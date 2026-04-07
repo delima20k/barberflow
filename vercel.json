@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/apps/cliente/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/apps/cliente/" },
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/apps/profissional/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/apps/profissional/" },
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/cliente", "destination": "/apps/cliente/index.html" },
+    { "source": "/profissional", "destination": "/apps/profissional/index.html" }
+  ]
+}

@@ -1,0 +1,97 @@
+/* ============================================================
+   BARBERFLOW — DESIGN TOKENS & BASE LAYOUT
+   Inclua este arquivo em TODOS os apps antes de components.css
+============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Cores principais */
+  --bg:           #0a0a0a;
+  --surface:      #111111;
+  --card:         #181818;
+  --card2:        #222222;
+
+  /* Paleta dourada */
+  --gold:         #D4AF37;
+  --gold-light:   #E8C84A;
+  --gold-dark:    #B8941F;
+  --gold-muted:   rgba(212, 175, 55, .12);
+  --gold-border:  rgba(212, 175, 55, .22);
+
+  /* Texto */
+  --text:         #FFFFFF;
+  --text-muted:   #888888;
+  --text-dim:     #484848;
+
+  /* Feedback */
+  --danger:       #e05252;
+  --success:      #52c97a;
+  --warning:      #e0a832;
+
+  /* Raios */
+  --r-xs:   4px;
+  --r-sm:   8px;
+  --r-md:   16px;
+  --r-lg:   24px;
+  --r-xl:   32px;
+  --r-full: 9999px;
+
+  /* Layout */
+  --nav-h:    68px;
+  --header-h: 58px;
+
+  /* Animação */
+  --ease: .22s cubic-bezier(.4, 0, .2, 1);
+
+  /* Tipografia */
+  --font: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── SPA Root ──────────────────────────────────────────────── */
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Telas (screens) ──────────────────────────────────────── */
+.tela {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  scroll-behavior: smooth;
+}
+
+.tela.ativa {
+  display: flex;
+  animation: telaIn .28s var(--ease) both;
+}
+
+@keyframes telaIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar fina */
+.tela::-webkit-scrollbar       { width: 2px; }
+.tela::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 10px; }

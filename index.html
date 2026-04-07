@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="BarberFlow — Conectando clientes e barbeiros">
+  <title>BarberFlow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0a0a;
+      --card:       #181818;
+      --gold:       #D4AF37;
+      --gold-light: #E8C84A;
+      --gold-dark:  #B8941F;
+      --text:       #FFFFFF;
+      --text-muted: #888888;
+      --r-md: 16px;
+      --r-lg: 24px;
+      --r-full: 9999px;
+      --ease: .22s cubic-bezier(.4,0,.2,1);
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px;
+      gap: 48px;
+      background:
+        radial-gradient(ellipse at 50% -5%, rgba(212,175,55,.13) 0%, transparent 55%),
+        var(--bg);
+    }
+
+    /* ── Brand ─────────────────────────────────────────────── */
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      text-align: center;
+    }
+    .brand-icon {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 30px rgba(212,175,55,.35));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    .brand-name {
+      height: 36px;
+      object-fit: contain;
+    }
+    .brand-tagline {
+      font-size: .78rem;
+      color: var(--text-muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ── Cards seletor ──────────────────────────────────────── */
+    .selector {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .app-card {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 22px;
+      background: var(--card);
+      border: 1.5px solid rgba(212,175,55,.2);
+      border-radius: var(--r-lg);
+      text-decoration: none;
+      color: var(--text);
+      cursor: pointer;
+      transition:
+        border-color var(--ease),
+        transform var(--ease),
+        box-shadow var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(212,175,55,.07) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity var(--ease);
+    }
+    .app-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 36px rgba(212,175,55,.14);
+    }
+    .app-card:hover::before { opacity: 1; }
+    .app-card:active { transform: scale(.98); }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--r-md);
+      background: rgba(212,175,55,.1);
+      border: 1.5px solid rgba(212,175,55,.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      flex-shrink: 0;
+    }
+    .card-text   { flex: 1; }
+    .card-title  { font-size: 1rem; font-weight: 800; margin-bottom: 3px; }
+    .card-sub    { font-size: .76rem; color: var(--text-muted); line-height: 1.5; }
+    .card-arrow  { color: var(--gold); font-size: 1.3rem; opacity: .7; }
+
+    /* ── Divisor ────────────────────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .divider-line { flex: 1; height: 1px; background: rgba(212,175,55,.15); }
+    .divider-text { font-size: .7rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .footer {
+      font-size: .7rem;
+      color: rgba(255,255,255,.2);
+      text-align: center;
+      letter-spacing: .5px;
+    }
+
+    @media (min-width: 640px) {
+      .selector { flex-direction: row; max-width: 680px; }
+      .app-card { flex-direction: column; align-items: flex-start; flex: 1; }
+      .card-arrow { align-self: flex-end; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="brand">
+    <img class="brand-icon" src="shared/img/logoApp.png" alt="BarberFlow"
+         onerror="this.style.display='none'">
+    <img class="brand-name" src="shared/img/nome-app.svg" alt="BarberFlow"
+         onerror="this.outerHTML='<h1 style=&quot;font-size:2rem;font-weight:900;color:#D4AF37;letter-spacing:2px;&quot;>BarberFlow</h1>'">
+    <p class="brand-tagline">Escolha como deseja entrar</p>
+  </div>
+
+  <div class="selector">
+    <a class="app-card" href="apps/cliente/">
+      <div class="card-icon">💇</div>
+      <div class="card-text">
+        <p class="card-title">Sou Cliente</p>
+        <p class="card-sub">Agende, acompanhe a fila e descubra barbearias perto de você</p>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <div class="divider" aria-hidden="true">
+      <div class="divider-line"></div>
+      <span class="divider-text">ou</span>
+      <div class="divider-line"></div>
+    </div>
+
+    <a class="app-card" href="apps/profissional/">
+      <div class="card-icon">✂️</div>
+      <div class="card-text">
+        <p class="card-title">Sou Profissional</p>
+        <p class="card-sub">Gerencie agenda, fila, financeiro e portfólio em um só lugar</p>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+  </div>
+
+  <p class="footer">BarberFlow &copy; 2026 · v1.0.0</p>
+
+</body>
+</html>

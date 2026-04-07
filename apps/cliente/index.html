@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="BarberFlow — App do Cliente">
+  <title>BarberFlow — Cliente</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="../../shared/img/icone-do-App.png">
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="../../shared/css/tokens.css">
+  <link rel="stylesheet" href="../../shared/css/components.css">
+
+  <!-- App-specific CSS -->
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================
+       TELA — LOGIN
+  ============================================================ -->
+  <main id="tela-login" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <img class="app-name" src="../../shared/img/nome-app.svg" alt="BarberFlow"
+             onerror="this.outerHTML='<h1 style=&quot;font-size:1.9rem;font-weight:900;color:var(--gold);letter-spacing:2px;&quot;>BarberFlow</h1>'">
+        <span class="login-tagline">Seu estilo, nossa arte</span>
+      </div>
+
+      <div class="login-form">
+        <div class="form-field">
+          <label>E-mail ou telefone</label>
+          <input type="text" placeholder="seu@email.com" autocomplete="username">
+        </div>
+        <div class="form-field">
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-gold btn-full" onclick="App.nav('inicio')">Entrar</button>
+        <button class="btn btn-outline btn-full">Criar conta gratuita</button>
+        <p class="login-link">
+          Sou profissional &rarr;
+          <a href="../profissional/">Acessar app profissional</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — INÍCIO
+  ============================================================ -->
+  <main id="tela-inicio" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/logoApp.png" alt="Logo" onerror="this.style.display='none'">
+        <span>BarberFlow</span>
+      </div>
+      <span class="chip">Cliente</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Stories -->
+      <div>
+        <p class="sec-title">Stories</p>
+        <div class="h-scroll" style="padding-top:6px;">
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">
+                <img src="../../shared/img/icones-perfil.png" alt="perfil"
+                     onerror="this.outerHTML='<span>✂️</span>'">
+              </div>
+            </div>
+            <span class="story-name">João Barber</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring"><div class="story-inner">💈</div></div>
+            <span class="story-name">Elite</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring"><div class="story-inner">✂️</div></div>
+            <span class="story-name">Corte &amp; Arte</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring"><div class="story-inner">👑</div></div>
+            <span class="story-name">King Cuts</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring"><div class="story-inner">🪒</div></div>
+            <span class="story-name">Studio Beard</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring"><div class="story-inner">⭐</div></div>
+            <span class="story-name">Premium</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mapa GPS -->
+      <div>
+        <p class="sec-title">Barbearias Próximas</p>
+        <div class="map-box">
+          <span class="map-pin">📍</span>
+          <p>Mapa de barbearias próximas<br>
+            <span style="font-size:.72rem;color:var(--text-dim);">Ative o GPS para ver barbearias perto de você</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Fila ao vivo -->
+      <div>
+        <p class="sec-title">Fila ao Vivo</p>
+        <div class="h-scroll">
+          <div class="chair ocupada">
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>João</span>
+            <span>Ocupada</span>
+          </div>
+          <div class="chair ocupada">
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Pedro</span>
+            <span>Ocupada</span>
+          </div>
+          <div class="chair livre">
+            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+                 onerror="this.outerHTML='🪑'">
+            <span>—</span>
+            <span>Livre</span>
+          </div>
+          <div class="chair espera">
+            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
+                 onerror="this.outerHTML='⏳'">
+            <span>+3</span>
+            <span>Fila</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Em destaque -->
+      <div>
+        <p class="sec-title">Em Destaque</p>
+        <div class="h-scroll">
+          <div class="card-mini">
+            <div class="avatar gold">✂️</div>
+            <strong style="font-size:.83rem;">Barbearia Elite</strong>
+            <div class="stars">★★★★★</div>
+            <span class="badge">Aberto</span>
+          </div>
+          <div class="card-mini">
+            <div class="avatar gold">💈</div>
+            <strong style="font-size:.83rem;">Corte &amp; Arte</strong>
+            <div class="stars">★★★★☆</div>
+            <span class="badge">Aberto</span>
+          </div>
+          <div class="card-mini">
+            <div class="avatar gold">👑</div>
+            <strong style="font-size:.83rem;">King Cuts</strong>
+            <div class="stars">★★★★★</div>
+            <span class="badge">Aberto</span>
+          </div>
+          <div class="card-mini">
+            <div class="avatar" style="border-color:var(--text-dim);">🪒</div>
+            <strong style="font-size:.83rem;">Studio Beard</strong>
+            <div class="stars" style="color:var(--text-dim);">★★★☆☆</div>
+            <span class="badge closed">Fechado</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barbeiros populares -->
+      <div>
+        <p class="sec-title">Barbeiros Populares</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="barber-row">
+            <div class="avatar gold">
+              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
+                   onerror="this.outerHTML='💇'">
+            </div>
+            <div class="barber-info">
+              <p class="barber-name">João Silva</p>
+              <p class="barber-sub">Barbearia Elite · 0.8 km</p>
+              <div class="tags" style="margin-top:6px;">
+                <span class="tag on">Degradê</span>
+                <span class="tag">Barba</span>
+              </div>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.9</span>
+              <span class="price">R$ 35</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">💈</div>
+            <div class="barber-info">
+              <p class="barber-name">Carlos Mendes</p>
+              <p class="barber-sub">King Cuts · 1.2 km</p>
+              <div class="tags" style="margin-top:6px;">
+                <span class="tag on">Social</span>
+                <span class="tag">Infantil</span>
+              </div>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.7</span>
+              <span class="price">R$ 30</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .content -->
+  </main>
+
+  <!-- ============================================================
+       TELA — PESQUISA
+  ============================================================ -->
+  <main id="tela-pesquisa" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/pesquisa.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Pesquisar</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="search-wrap">
+        <img src="../../shared/img/pesquisa.svg" alt="buscar">
+        <input type="search" placeholder="Barbearia, barbeiro, bairro…">
+      </div>
+
+      <div class="tags">
+        <span class="tag on">Todos</span>
+        <span class="tag">Degradê</span>
+        <span class="tag">Barba</span>
+        <span class="tag">Social</span>
+        <span class="tag">Infantil</span>
+        <span class="tag">Freestyle</span>
+        <span class="tag">Sobrancelha</span>
+        <span class="tag">Antes e Depois</span>
+      </div>
+
+      <div>
+        <p class="sec-title">Barbearias</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="barber-row">
+            <div class="avatar gold">✂️</div>
+            <div class="barber-info">
+              <p class="barber-name">Barbearia Elite</p>
+              <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.9</span>
+              <span class="badge">Aberto</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">💈</div>
+            <div class="barber-info">
+              <p class="barber-name">Corte &amp; Arte</p>
+              <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.6</span>
+              <span class="badge">Aberto</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">👑</div>
+            <div class="barber-info">
+              <p class="barber-name">King Cuts</p>
+              <p class="barber-sub">R. Oscar Freire, 789 · 1.4 km</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.8</span>
+              <span class="badge">Aberto</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="sec-title">Barbeiros</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="barber-row">
+            <div class="avatar gold">
+              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
+                   onerror="this.outerHTML='💇'">
+            </div>
+            <div class="barber-info">
+              <p class="barber-name">João Silva</p>
+              <p class="barber-sub">Barbearia Elite · Degradê</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.9</span>
+              <span class="price">R$ 35</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">🧔</div>
+            <div class="barber-info">
+              <p class="barber-name">Rafael Costa</p>
+              <p class="barber-sub">Corte &amp; Arte · Barba</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.8</span>
+              <span class="price">R$ 28</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — MENSAGENS
+  ============================================================ -->
+  <main id="tela-mensagens" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/mensagen.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Mensagens</span>
+      </div>
+      <button class="btn btn-outline btn-sm">+ Nova</button>
+    </div>
+
+    <div class="content">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div class="chat-item">
+          <div class="avatar gold">✂️</div>
+          <div class="chat-info">
+            <p class="chat-name">Barbearia Elite</p>
+            <p class="chat-preview">Seu agendamento foi confirmado para amanhã às 14h 🗓️</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">14:23</span>
+            <span class="chat-badge">2</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar gold">
+            <img src="../../shared/img/icones-perfil.png" alt="perfil"
+                 onerror="this.outerHTML='💇'">
+          </div>
+          <div class="chat-info">
+            <p class="chat-name">João Silva</p>
+            <p class="chat-preview">Tudo certo! Te vejo na sexta então 👍</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Ontem</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">👑</div>
+          <div class="chat-info">
+            <p class="chat-name">King Cuts</p>
+            <p class="chat-preview">Obrigado pela visita! Avalie seu atendimento</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Seg</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" style="padding:20px 0;">
+        <p style="font-size:.8rem;color:var(--text-dim);">
+          Agende um serviço para iniciar uma conversa
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEARIAS FAVORITAS
+  ============================================================ -->
+  <main id="tela-favoritas" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/meu-b.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Favoritas</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <p class="sec-title">Minhas Barbearias</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="barber-row">
+          <div class="avatar gold">✂️</div>
+          <div class="barber-info">
+            <p class="barber-name">Barbearia Elite</p>
+            <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
+            <div class="stars" style="margin-top:4px;">★★★★★</div>
+          </div>
+          <div class="barber-meta">
+            <span class="badge">Aberto</span>
+            <button class="btn btn-gold btn-sm">Agendar</button>
+          </div>
+        </div>
+        <div class="barber-row">
+          <div class="avatar gold">💈</div>
+          <div class="barber-info">
+            <p class="barber-name">Corte &amp; Arte</p>
+            <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
+            <div class="stars" style="margin-top:4px;">★★★★☆</div>
+          </div>
+          <div class="barber-meta">
+            <span class="badge">Aberto</span>
+            <button class="btn btn-gold btn-sm">Agendar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty">
+        <div class="empty-icon">⭐</div>
+        <p class="empty-title">Adicionar mais favoritas</p>
+        <p class="empty-text">Salve barbearias para acesso rápido e agendamento com 1 toque</p>
+        <button class="btn btn-outline" onclick="App.nav('pesquisa')">Explorar Barbearias</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PERFIL
+  ============================================================ -->
+  <main id="tela-perfil" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/perfil.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Perfil</span>
+      </div>
+    </div>
+
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        <img src="../../shared/img/icones-perfil.png" alt="avatar"
+             onerror="this.outerHTML='😎'">
+      </div>
+      <p class="profile-name">Lucas Oliveira</p>
+      <p class="profile-sub">Cliente desde Janeiro 2025</p>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <span class="stat-val">12</span>
+          <span class="stat-lbl">Cortes</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-val">3</span>
+          <span class="stat-lbl">Favoritas</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-val">4.8</span>
+          <span class="stat-lbl">Avaliação</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" style="padding-top:12px;">
+      <div class="menu-list">
+        <div class="menu-item"><div class="menu-icon">👤</div><span class="menu-label">Dados Pessoais</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">📅</div><span class="menu-label">Histórico de Agendamentos</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">💳</div><span class="menu-label">Pagamentos</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">🔔</div><span class="menu-label">Notificações</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">🔒</div><span class="menu-label">Segurança</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">⚙️</div><span class="menu-label">Configurações</span><span class="menu-arrow">›</span></div>
+        <div class="gold-line" style="margin:4px 0;"></div>
+        <div class="menu-item" onclick="App.nav('sair')">
+          <div class="menu-icon" style="background:rgba(224,82,82,.1);">
+            <img src="../../shared/img/sair.svg" alt="sair"
+                 style="width:20px;filter:brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);"
+                 onerror="this.outerHTML='🚪'">
+          </div>
+          <span class="menu-label" style="color:var(--danger);">Sair da conta</span>
+          <span class="menu-arrow" style="color:var(--danger);">›</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — SAIR
+  ============================================================ -->
+  <main id="tela-sair" class="tela">
+    <div class="sair-wrap">
+      <div class="sair-icon">
+        <img src="../../shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
+      </div>
+      <div>
+        <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
+        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto;">
+          Você precisará fazer login novamente para acessar sua conta.
+        </p>
+      </div>
+      <div class="sair-btns">
+        <button class="btn btn-danger btn-full" onclick="App.nav('inicio')">Sim, quero sair</button>
+        <button class="btn btn-outline btn-full" onclick="App.voltar()">Cancelar</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       FOOTER NAV
+  ============================================================ -->
+  <nav class="footer-nav" id="footer-nav">
+    <button class="nav-btn" data-tela="inicio" onclick="App.nav('inicio')">
+      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
+      <span class="nav-label">Início</span>
+    </button>
+
+    <button class="nav-btn" data-tela="pesquisa" onclick="App.nav('pesquisa')">
+      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <span class="nav-label">Pesquisar</span>
+    </button>
+
+    <button class="nav-btn" data-tela="mensagens" onclick="App.nav('mensagens')">
+      <span class="nav-dot"></span>
+      <div class="nav-pill"><img src="../../shared/img/mensagen.svg" alt="Mensagens"></div>
+      <span class="nav-label">Mensagens</span>
+    </button>
+
+    <button class="nav-btn" data-tela="favoritas" onclick="App.nav('favoritas')">
+      <div class="nav-pill"><img src="../../shared/img/meu-b.svg" alt="Favoritas"></div>
+      <span class="nav-label">Favoritas</span>
+    </button>
+
+    <button class="nav-btn" data-tela="perfil" onclick="App.nav('perfil')">
+      <div class="nav-pill"><img src="../../shared/img/perfil.svg" alt="Perfil"></div>
+      <span class="nav-label">Perfil</span>
+    </button>
+
+    <button class="nav-btn" data-tela="sair" onclick="App.nav('sair')">
+      <div class="nav-pill"><img src="../../shared/img/sair.svg" alt="Sair"></div>
+      <span class="nav-label">Sair</span>
+    </button>
+  </nav>
+
+</div><!-- #app -->
+
+<!-- Supabase SDK (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Serviço Supabase compartilhado -->
+<script src="../../shared/js/SupabaseService.js"></script>
+<!-- Shared Router base class -->
+<script src="../../shared/js/Router.js"></script>
+<!-- App Cliente logic -->
+<script src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# ======================================================
+# .gitignore — BarberFlow
+# ======================================================
+
+# Variáveis de ambiente (NUNCA commitar)
+.env
+.env.local
+.env.production
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+supabase/functions/.cache/
+
+# Node (servidor de dev)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build / dist
+dist/
+build/
+.output/
+
+# TWA / Android APK
+build-cliente/
+build-profissional/
+*.aab
+*.apk
+android/
+*.keystore
+*.jks
+
+# Editores
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.parcel-cache/

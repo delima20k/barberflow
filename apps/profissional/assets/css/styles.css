@@ -1,0 +1,125 @@
+/* ============================================================
+   BARBERFLOW — App PROFISSIONAL — estilos específicos
+   Depende de: ../../shared/css/tokens.css
+               ../../shared/css/components.css
+============================================================ */
+
+/* ── Tag PRO (login) ────────────────────────────────────────── */
+.pro-tag {
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 16px;
+  border-radius: var(--r-full);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: var(--bg);
+}
+
+/* ── Badge variantes pro ────────────────────────────────────── */
+.badge.verde  { background: rgba(82, 201, 122, .1); color: var(--success); border-color: rgba(82, 201, 122, .3); }
+.badge.danger { background: rgba(224, 82, 82, .08); color: var(--danger);  border-color: rgba(224, 82, 82, .25); }
+
+/* ── KPI Grid ───────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kpi.destaque {
+  background: linear-gradient(135deg, rgba(212,175,55,.14), rgba(184,148,31,.06));
+  border-color: rgba(212,175,55,.4);
+}
+.kpi-icon { font-size: 1.4rem; margin-bottom: 4px; }
+.kpi-val  { font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+.kpi-lbl  { font-size: .72rem; color: var(--text-muted); letter-spacing: .3px; }
+
+/* ── Progress bars ──────────────────────────────────────────── */
+.progress-wrap   { display: flex; flex-direction: column; gap: 6px; }
+.progress-header { display: flex; justify-content: space-between; align-items: center; }
+.progress-label  { font-size: .78rem; color: var(--text-muted); }
+.progress-pct    { font-size: .78rem; font-weight: 700; color: var(--gold); }
+.progress-bar    { height: 6px; background: var(--card2); border-radius: var(--r-full); overflow: hidden; }
+.progress-fill   { height: 100%; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); border-radius: var(--r-full); }
+
+/* ── Agenda (timeline) ──────────────────────────────────────── */
+.agenda-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  background: var(--card);
+  border-radius: var(--r-md);
+  border: 1px solid var(--gold-border);
+  cursor: pointer;
+  transition: border-color var(--ease);
+}
+.agenda-item:hover  { border-color: rgba(212, 175, 55, .5); }
+
+.agenda-time { display: flex; flex-direction: column; align-items: center; min-width: 48px; gap: 3px; }
+.agenda-hr   { font-size: .92rem; font-weight: 800; color: var(--gold); }
+.agenda-min  { font-size: .65rem; color: var(--text-muted); }
+
+.agenda-info { flex: 1; min-width: 0; }
+.agenda-name { font-size: .9rem; font-weight: 700; }
+.agenda-serv { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+.agenda-val  { font-size: .82rem; font-weight: 700; color: var(--gold); margin-top: 4px; }
+
+/* ── Financeiro ─────────────────────────────────────────────── */
+.fin-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(212,175,55,.15), rgba(184,148,31,.07));
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: var(--r-lg);
+  padding: 28px 24px;
+  text-align: center;
+}
+.fin-label  { font-size: .78rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+.fin-val    { font-size: 2.2rem; font-weight: 900; color: var(--gold); letter-spacing: 1px; }
+.fin-period { font-size: .72rem; color: var(--text-dim); }
+
+.fin-row            { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--gold-border); }
+.fin-row:last-child { border-bottom: none; }
+.fin-row-label      { font-size: .85rem; color: var(--text-muted); }
+.fin-row-val        { font-size: .9rem; font-weight: 700; color: var(--text); }
+.fin-row-val.pos    { color: var(--success); }
+.fin-row-val.neg    { color: var(--danger); }
+
+/* ── Portfólio grid ─────────────────────────────────────────── */
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.port-item {
+  aspect-ratio: 1;
+  background: var(--card2);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  border: 1px solid var(--gold-border);
+  transition: border-color var(--ease);
+  overflow: hidden;
+}
+.port-item:hover    { border-color: var(--gold); }
+.port-item img      { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Chair pro (ligeiramente maior) ─────────────────────────── */
+.chair { min-width: 68px; height: 80px; }
+.chair img { width: 32px; height: 32px; }

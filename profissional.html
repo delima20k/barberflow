@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BarberFlow — Profissional</title>
+  <style>
+    /* ============================================================
+       RESET & TOKENS
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0a0a0a;
+      --surface:      #111111;
+      --card:         #181818;
+      --card2:        #222222;
+      --gold:         #D4AF37;
+      --gold-light:   #E8C84A;
+      --gold-dark:    #B8941F;
+      --gold-muted:   rgba(212,175,55,.12);
+      --gold-border:  rgba(212,175,55,.22);
+      --text:         #FFFFFF;
+      --text-muted:   #888888;
+      --text-dim:     #484848;
+      --danger:       #e05252;
+      --success:      #52c97a;
+      --r-sm:  8px;
+      --r-md:  16px;
+      --r-lg:  24px;
+      --r-full: 9999px;
+      --nav-h: 68px;
+      --header-h: 58px;
+      --ease: .22s cubic-bezier(.4,0,.2,1);
+      --font: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       SPA ROOT
+    ============================================================ */
+    #app {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================================
+       TELAS
+    ============================================================ */
+    .tela {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+      scroll-behavior: smooth;
+    }
+    .tela.ativa {
+      display: flex;
+      animation: telaIn .28s var(--ease) both;
+    }
+    @keyframes telaIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tela::-webkit-scrollbar { width: 2px; }
+    .tela::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 10px; }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: rgba(10,10,10,.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--gold-border);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .header-brand img { height: 28px; object-fit: contain; }
+    .header-brand span {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 1px;
+    }
+    .chip {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      padding: 3px 10px;
+      border-radius: var(--r-full);
+      background: rgba(212,175,55,.18);
+      color: var(--gold-light);
+      border: 1px solid var(--gold-border);
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+       FOOTER NAV
+    ============================================================ */
+    .footer-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      height: var(--nav-h);
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--surface);
+      border-top: 1px solid var(--gold-border);
+      display: none;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .nav-btn {
+      all: unset;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 6px 4px;
+      flex: 1;
+      color: var(--text-dim);
+      transition: color var(--ease);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn:hover { color: var(--gold-light); }
+    .nav-btn.ativo { color: var(--gold); }
+
+    .nav-pill {
+      width: 42px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--r-full);
+      transition: background var(--ease);
+    }
+    .nav-btn.ativo .nav-pill { background: var(--gold-muted); }
+
+    .nav-btn img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+      opacity: .32;
+      transition: filter var(--ease), opacity var(--ease);
+    }
+    .nav-btn.ativo img,
+    .nav-btn:hover img {
+      filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+      opacity: 1;
+    }
+
+    .nav-label {
+      font-size: .58rem;
+      font-weight: 600;
+      letter-spacing: .2px;
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       LAYOUT
+    ============================================================ */
+    .content { display: flex; flex-direction: column; gap: 22px; padding: 16px; }
+
+    .sec-title {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sec-title::after { content: ''; flex: 1; height: 1px; background: var(--gold-border); }
+
+    .gold-line { height: 1px; background: linear-gradient(90deg, transparent, var(--gold-border), transparent); }
+
+    /* ============================================================
+       CARDS
+    ============================================================ */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      transition: border-color var(--ease);
+    }
+    .card:hover { border-color: rgba(212,175,55,.45); }
+
+    .h-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .h-scroll::-webkit-scrollbar { display: none; }
+
+    /* ============================================================
+       KPI CARD
+    ============================================================ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-icon { font-size: 1.4rem; margin-bottom: 4px; }
+    .kpi-val  { font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+    .kpi-lbl  { font-size: .72rem; color: var(--text-muted); letter-spacing: .3px; }
+    .kpi.destaque { background: linear-gradient(135deg, rgba(212,175,55,.14), rgba(184,148,31,.06)); border-color: rgba(212,175,55,.4); }
+
+    /* ============================================================
+       AVATAR
+    ============================================================ */
+    .avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--card2);
+      border: 2px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .avatar.gold { border-color: var(--gold); }
+    .avatar img  { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    /* ============================================================
+       BADGE
+    ============================================================ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--r-full);
+      background: var(--gold-muted);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+    }
+    .badge.verde  { background: rgba(82,201,122,.1); color: var(--success); border-color: rgba(82,201,122,.3); }
+    .badge.danger { background: rgba(224,82,82,.08); color: var(--danger);  border-color: rgba(224,82,82,.25); }
+
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 24px;
+      border-radius: var(--r-full);
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform var(--ease), box-shadow var(--ease), background var(--ease);
+      letter-spacing: .4px;
+      font-family: var(--font);
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-full   { width: 100%; }
+
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      color: var(--bg);
+    }
+    .btn-gold:hover { box-shadow: 0 8px 26px rgba(212,175,55,.3); transform: translateY(-2px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--gold);
+      border: 1.5px solid var(--gold);
+    }
+    .btn-outline:hover { background: var(--gold-muted); }
+
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 7px 16px; font-size: .78rem; }
+
+    /* ============================================================
+       STARS
+    ============================================================ */
+    .stars { color: var(--gold); font-size: .75rem; letter-spacing: 1px; }
+
+    /* ============================================================
+       AGENDA / FILA
+    ============================================================ */
+    .chair {
+      min-width: 68px;
+      height: 80px;
+      border-radius: var(--r-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: .62rem;
+      font-weight: 700;
+      gap: 4px;
+      border: 1.5px solid var(--gold-border);
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform var(--ease), border-color var(--ease);
+    }
+    .chair:hover { transform: translateY(-3px); }
+    .chair img { width: 32px; height: 32px; object-fit: contain; }
+    .chair.ocupada { background: rgba(212,175,55,.07); border-color: var(--gold); color: var(--gold); }
+    .chair.livre    { background: rgba(255,255,255,.02); color: var(--text-dim); }
+    .chair.espera   { background: rgba(224,82,82,.07); border-color: rgba(224,82,82,.35); color: var(--danger); }
+
+    /* timeline de agenda */
+    .agenda-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 14px;
+      background: var(--card);
+      border-radius: var(--r-md);
+      border: 1px solid var(--gold-border);
+      cursor: pointer;
+      transition: border-color var(--ease);
+    }
+    .agenda-item:hover { border-color: rgba(212,175,55,.5); }
+    .agenda-time {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 48px;
+      gap: 3px;
+    }
+    .agenda-hr   { font-size: .92rem; font-weight: 800; color: var(--gold); }
+    .agenda-min  { font-size: .65rem; color: var(--text-muted); }
+    .agenda-info { flex: 1; min-width: 0; }
+    .agenda-name { font-size: .9rem; font-weight: 700; }
+    .agenda-serv { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+    .agenda-val  { font-size: .82rem; font-weight: 700; color: var(--gold); margin-top: 4px; }
+
+    /* ============================================================
+       FINANCEIRO
+    ============================================================ */
+    .fin-total {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(212,175,55,.15), rgba(184,148,31,.07));
+      border: 1px solid rgba(212,175,55,.35);
+      border-radius: var(--r-lg);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .fin-label  { font-size: .78rem; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+    .fin-val    { font-size: 2.2rem; font-weight: 900; color: var(--gold); letter-spacing: 1px; }
+    .fin-period { font-size: .72rem; color: var(--text-dim); }
+
+    .fin-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--gold-border);
+    }
+    .fin-row:last-child { border-bottom: none; }
+    .fin-row-label  { font-size: .85rem; color: var(--text-muted); }
+    .fin-row-val    { font-size: .9rem; font-weight: 700; color: var(--text); }
+    .fin-row-val.pos { color: var(--success); }
+    .fin-row-val.neg { color: var(--danger); }
+
+    /* ============================================================
+       STATUS BARS
+    ============================================================ */
+    .progress-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .progress-header { display: flex; justify-content: space-between; align-items: center; }
+    .progress-label  { font-size: .78rem; color: var(--text-muted); }
+    .progress-pct    { font-size: .78rem; font-weight: 700; color: var(--gold); }
+    .progress-bar    { height: 6px; background: var(--card2); border-radius: var(--r-full); overflow: hidden; }
+    .progress-fill   { height: 100%; background: linear-gradient(90deg, var(--gold-dark), var(--gold-light)); border-radius: var(--r-full); }
+
+    /* ============================================================
+       CHAT
+    ============================================================ */
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--card);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color var(--ease);
+    }
+    .chat-item:hover { border-color: var(--gold-border); }
+    .chat-info    { flex: 1; min-width: 0; }
+    .chat-name    { font-size: .9rem; font-weight: 700; }
+    .chat-preview { font-size: .76rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .chat-meta    { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .chat-time    { font-size: .67rem; color: var(--text-dim); }
+    .chat-badge   { background: var(--gold); color: var(--bg); font-size: .62rem; font-weight: 800; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+    /* ============================================================
+       MINHA BARBEARIA
+    ============================================================ */
+    .barber-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color var(--ease), transform var(--ease);
+    }
+    .barber-row:hover { border-color: rgba(212,175,55,.5); transform: translateX(3px); }
+    .barber-info { flex: 1; min-width: 0; }
+    .barber-name { font-size: .92rem; font-weight: 700; }
+    .barber-sub  { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+    .barber-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+
+    /* ============================================================
+       PORTFOLIO MINI
+    ============================================================ */
+    .portfolio-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .port-item {
+      aspect-ratio: 1;
+      background: var(--card2);
+      border-radius: var(--r-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+      border: 1px solid var(--gold-border);
+      transition: border-color var(--ease);
+      overflow: hidden;
+    }
+    .port-item:hover { border-color: var(--gold); }
+    .port-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ============================================================
+       PROFILE
+    ============================================================ */
+    .profile-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 32px 16px 20px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(212,175,55,.09) 0%, transparent 60%);
+    }
+    .profile-avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 3px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .profile-name { font-size: 1.2rem; font-weight: 800; }
+    .profile-sub  { font-size: .8rem; color: var(--text-muted); }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 1px;
+      background: var(--gold-border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      width: 100%;
+      max-width: 360px;
+    }
+    .stat-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 14px 8px;
+      background: var(--card);
+    }
+    .stat-val { font-size: 1.1rem; font-weight: 900; color: var(--gold); }
+    .stat-lbl { font-size: .64rem; color: var(--text-muted); text-align: center; }
+
+    /* ============================================================
+       MENU
+    ============================================================ */
+    .menu-list { display: flex; flex-direction: column; gap: 3px; }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 15px 16px;
+      background: var(--card);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color var(--ease), background var(--ease);
+    }
+    .menu-item:hover { border-color: var(--gold-border); background: var(--card2); }
+    .menu-icon  { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
+    .menu-label { flex: 1; font-size: .9rem; font-weight: 600; }
+    .menu-arrow { color: var(--text-dim); font-size: .9rem; }
+
+    /* ============================================================
+       SAIR
+    ============================================================ */
+    .sair-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      min-height: 80vh;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .sair-icon {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: rgba(224,82,82,.08);
+      border: 2px solid rgba(224,82,82,.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sair-icon img { width: 38px; height: 38px; filter: brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg); }
+    .sair-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+
+    /* ============================================================
+       LOGIN
+    ============================================================ */
+    .login-bg {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      gap: 36px;
+      background:
+        radial-gradient(ellipse at 50% -10%, rgba(212,175,55,.14) 0%, transparent 55%),
+        var(--bg);
+    }
+    .login-logo { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+    .login-logo .app-icon  { width: 82px; height: 82px; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(212,175,55,.3)); }
+    .login-logo .app-name  { height: 34px; object-fit: contain; }
+    .login-tagline { font-size: .78rem; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; }
+    .pro-tag {
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 16px;
+      border-radius: var(--r-full);
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--bg);
+    }
+    .login-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label { font-size: .76rem; font-weight: 600; color: var(--text-muted); letter-spacing: .5px; }
+    .form-field input {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--card);
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--r-md);
+      color: var(--text);
+      font-size: .93rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color var(--ease), box-shadow var(--ease);
+    }
+    .form-field input::placeholder { color: var(--text-dim); }
+    .form-field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,.1); }
+    .login-link { font-size: .8rem; color: var(--text-dim); text-align: center; line-height: 1.6; }
+    .login-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
+
+    /* ============================================================
+       EMPTY
+    ============================================================ */
+    .empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 24px; text-align: center; }
+    .empty-icon { width: 68px; height: 68px; border-radius: 50%; background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
+    .empty-title { font-size: 1rem; font-weight: 700; }
+    .empty-text  { font-size: .82rem; color: var(--text-muted); line-height: 1.6; max-width: 270px; }
+
+    /* ============================================================
+       TAGS
+    ============================================================ */
+    .tags { display: flex; gap: 7px; flex-wrap: wrap; }
+    .tag { font-size: .7rem; font-weight: 600; padding: 4px 12px; border-radius: var(--r-full); background: var(--card2); border: 1px solid var(--gold-border); color: var(--text-muted); cursor: pointer; transition: background var(--ease), border-color var(--ease), color var(--ease); }
+    .tag:hover, .tag.on { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); }
+
+    /* ============================================================
+       DESKTOP
+    ============================================================ */
+    @media (min-width: 640px) {
+      .footer-nav { max-width: 540px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; }
+      .content { padding: 20px 24px; max-width: 680px; margin: 0 auto; }
+    }
+    @media (min-width: 1024px) {
+      .content { padding: 24px 32px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================
+       TELA — LOGIN PROFISSIONAL
+  ============================================================ -->
+  <main id="tela-login" class="tela ativa">
+    <div class="login-bg">
+      <div class="login-logo">
+        <img class="app-icon" src="img/logoApp.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <img class="app-name" src="img/nome-app.svg" alt="BarberFlow"
+             onerror="this.outerHTML='<h1 style=&quot;font-size:1.9rem;font-weight:900;color:var(--gold);letter-spacing:2px;&quot;>BarberFlow</h1>'">
+        <span class="pro-tag">Profissional</span>
+        <span class="login-tagline">Gestão que transforma</span>
+      </div>
+
+      <div class="login-form">
+        <div class="form-field">
+          <label>E-mail profissional</label>
+          <input type="email" placeholder="barbeiro@seudominio.com" autocomplete="username">
+        </div>
+        <div class="form-field">
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-gold btn-full" onclick="Pro.nav('inicio')">Acessar Painel</button>
+        <button class="btn btn-outline btn-full">Criar conta profissional</button>
+        <p class="login-link">
+          Sou cliente &rarr;
+          <a href="cliente.html">Acessar app cliente</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — INÍCIO (DASHBOARD)
+  ============================================================ -->
+  <main id="tela-inicio" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/logoApp.png" alt="Logo" onerror="this.style.display='none'">
+        <span>BarberFlow</span>
+      </div>
+      <span class="chip">Pro</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Boas vindas -->
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="avatar gold" style="width:52px;height:52px;font-size:1.4rem;">
+          <img src="img/icones-perfil.png" alt="barbeiro"
+               onerror="this.outerHTML='💈'">
+        </div>
+        <div>
+          <p style="font-size:.78rem;color:var(--text-muted);">Bom dia,</p>
+          <p style="font-size:1.1rem;font-weight:800;">João Silva ✂️</p>
+        </div>
+      </div>
+
+      <!-- KPIs do dia -->
+      <div>
+        <p class="sec-title">Hoje</p>
+        <div class="kpi-grid">
+          <div class="kpi destaque">
+            <span class="kpi-icon">💰</span>
+            <span class="kpi-val">R$ 380</span>
+            <span class="kpi-lbl">Faturamento do dia</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-icon">📅</span>
+            <span class="kpi-val">8</span>
+            <span class="kpi-lbl">Agendamentos</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-icon">⏳</span>
+            <span class="kpi-val">3</span>
+            <span class="kpi-lbl">Na fila agora</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-icon">⭐</span>
+            <span class="kpi-val">4.9</span>
+            <span class="kpi-lbl">Avaliação média</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meta semanal -->
+      <div class="card">
+        <p class="sec-title" style="margin-bottom:14px;">Meta da Semana</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-label">Faturamento</span>
+              <span class="progress-pct">72%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:72%;"></div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-label">Atendimentos</span>
+              <span class="progress-pct">58%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:58%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Próximo agendamento -->
+      <div>
+        <p class="sec-title">Próximo</p>
+        <div class="agenda-item">
+          <div class="agenda-time">
+            <span class="agenda-hr">14:30</span>
+            <span class="agenda-min">hoje</span>
+          </div>
+          <div class="avatar gold" style="font-size:1rem;">
+            <img src="img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+          </div>
+          <div class="agenda-info">
+            <p class="agenda-name">Lucas Ferreira</p>
+            <p class="agenda-serv">Degradê + Barba · 45 min</p>
+            <p class="agenda-val">R$ 55,00</p>
+          </div>
+          <span class="badge verde">Confirmado</span>
+        </div>
+      </div>
+
+      <!-- Fila ao vivo -->
+      <div>
+        <p class="sec-title">Fila ao Vivo</p>
+        <div class="h-scroll">
+          <div class="chair ocupada">
+            <img src="img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Minha</span>
+            <span>Atendendo</span>
+          </div>
+          <div class="chair livre">
+            <img src="img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+                 onerror="this.outerHTML='🪑'">
+            <span>—</span>
+            <span>Livre</span>
+          </div>
+          <div class="chair espera">
+            <img src="img/icones-cadeira-de-éspera.png" alt="espera"
+                 onerror="this.outerHTML='⏳'">
+            <span>+4</span>
+            <span>Aguardando</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — AGENDA
+  ============================================================ -->
+  <main id="tela-agenda" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/inicio.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Agenda</span>
+      </div>
+      <button class="btn btn-gold btn-sm">+ Bloquear</button>
+    </div>
+
+    <div class="content">
+
+      <!-- Filtro por data -->
+      <div class="tags">
+        <span class="tag on">Hoje</span>
+        <span class="tag">Amanhã</span>
+        <span class="tag">Semana</span>
+        <span class="tag">Mês</span>
+      </div>
+
+      <!-- Visão geral cadeiras -->
+      <div>
+        <p class="sec-title">Cadeiras</p>
+        <div class="h-scroll">
+          <div class="chair ocupada">
+            <img src="img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Lucas</span>
+            <span>Atendendo</span>
+          </div>
+          <div class="chair ocupada">
+            <img src="img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Pedro</span>
+            <span>Atendendo</span>
+          </div>
+          <div class="chair livre">
+            <img src="img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+                 onerror="this.outerHTML='🪑'">
+            <span>—</span>
+            <span>Livre</span>
+          </div>
+          <div class="chair espera">
+            <img src="img/icones-cadeira-de-éspera.png" alt="espera"
+                 onerror="this.outerHTML='⏳'">
+            <span>+5</span>
+            <span>Fila</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de agendamentos -->
+      <div>
+        <p class="sec-title">Segunda-feira, 06 de Abril</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">09:00</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar gold" style="font-size:.9rem;">
+              <img src="img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+            </div>
+            <div class="agenda-info">
+              <p class="agenda-name">Marcos Oliveira</p>
+              <p class="agenda-serv">Corte Social · 30 min</p>
+              <p class="agenda-val">R$ 35,00</p>
+            </div>
+            <span class="badge verde">Concluído</span>
+          </div>
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">10:00</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar gold">👤</div>
+            <div class="agenda-info">
+              <p class="agenda-name">Rafael Lima</p>
+              <p class="agenda-serv">Degradê + Barba · 45 min</p>
+              <p class="agenda-val">R$ 55,00</p>
+            </div>
+            <span class="badge verde">Concluído</span>
+          </div>
+          <div class="agenda-item" style="border-color:var(--gold);">
+            <div class="agenda-time">
+              <span class="agenda-hr">14:30</span>
+              <span class="agenda-min">agora</span>
+            </div>
+            <div class="avatar gold">
+              <img src="img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+            </div>
+            <div class="agenda-info">
+              <p class="agenda-name">Lucas Ferreira</p>
+              <p class="agenda-serv">Degradê + Barba · 45 min</p>
+              <p class="agenda-val">R$ 55,00</p>
+            </div>
+            <span class="badge">Em curso</span>
+          </div>
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">15:30</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar">👤</div>
+            <div class="agenda-info">
+              <p class="agenda-name">Thiago Rocha</p>
+              <p class="agenda-serv">Corte Infantil · 25 min</p>
+              <p class="agenda-val">R$ 25,00</p>
+            </div>
+            <span class="badge" style="background:rgba(82,201,122,.08);color:var(--success);border-color:rgba(82,201,122,.25);">Confirmado</span>
+          </div>
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">17:00</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar">🧔</div>
+            <div class="agenda-info">
+              <p class="agenda-name">Bruno Santos</p>
+              <p class="agenda-serv">Barba Completa · 35 min</p>
+              <p class="agenda-val">R$ 40,00</p>
+            </div>
+            <span class="badge" style="background:rgba(82,201,122,.08);color:var(--success);border-color:rgba(82,201,122,.25);">Confirmado</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — MENSAGENS
+  ============================================================ -->
+  <main id="tela-mensagens" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/mensagen.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Mensagens</span>
+      </div>
+      <button class="btn btn-outline btn-sm">+ Nova</button>
+    </div>
+
+    <div class="content">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div class="chat-item">
+          <div class="avatar gold">
+            <img src="img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+          </div>
+          <div class="chat-info">
+            <p class="chat-name">Lucas Ferreira</p>
+            <p class="chat-preview">Pode confirmar o horário das 14:30? 🙏</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">14:15</span>
+            <span class="chat-badge">1</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">👤</div>
+          <div class="chat-info">
+            <p class="chat-name">Marcos Oliveira</p>
+            <p class="chat-preview">Valeu pelo corte! Ficou incrível 🔥</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">10:40</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">🧔</div>
+          <div class="chat-info">
+            <p class="chat-name">Bruno Santos</p>
+            <p class="chat-preview">Posso adiantar para 16h?</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Ontem</span>
+            <span class="chat-badge">2</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">👤</div>
+          <div class="chat-info">
+            <p class="chat-name">Rafael Lima</p>
+            <p class="chat-preview">Show! Até semana que vem então 👊</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Seg</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — MINHA BARBEARIA
+  ============================================================ -->
+  <main id="tela-minha-barbearia" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/meu-b.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Minha Barbearia</span>
+      </div>
+      <button class="btn btn-outline btn-sm">Editar</button>
+    </div>
+
+    <div class="content">
+
+      <!-- Capa da barbearia -->
+      <div style="position:relative;height:160px;border-radius:var(--r-lg);overflow:hidden;background:linear-gradient(135deg,rgba(212,175,55,.15),rgba(10,10,10,.9));border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:3rem;">✂️</span>
+        <div style="position:absolute;bottom:16px;left:16px;">
+          <p style="font-size:1.1rem;font-weight:800;">Barbearia Do João</p>
+          <p style="font-size:.78rem;color:var(--text-muted);">Av. Central, 1024 · São Paulo</p>
+        </div>
+        <span class="badge verde" style="position:absolute;top:12px;right:12px;">Aberta</span>
+      </div>
+
+      <!-- Status rápido -->
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="kpi-icon">⭐</span>
+          <span class="kpi-val">4.9</span>
+          <span class="kpi-lbl">Avaliação</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-icon">👥</span>
+          <span class="kpi-val">284</span>
+          <span class="kpi-lbl">Clientes</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-icon">📸</span>
+          <span class="kpi-val">47</span>
+          <span class="kpi-lbl">Portfólio</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-icon">❤️</span>
+          <span class="kpi-val">1.2k</span>
+          <span class="kpi-lbl">Curtidas</span>
+        </div>
+      </div>
+
+      <!-- Portfólio mini galeria -->
+      <div>
+        <p class="sec-title">Portfólio</p>
+        <div class="portfolio-grid">
+          <div class="port-item">✂️</div>
+          <div class="port-item">💈</div>
+          <div class="port-item">🪒</div>
+          <div class="port-item">👑</div>
+          <div class="port-item">✨</div>
+          <div class="port-item" style="font-size:1rem;font-weight:700;color:var(--gold);">+42</div>
+        </div>
+        <button class="btn btn-outline btn-full" style="margin-top:12px;">Ver portfólio completo</button>
+      </div>
+
+      <!-- Serviços -->
+      <div>
+        <p class="sec-title">Serviços</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="barber-row">
+            <div class="avatar gold" style="font-size:.95rem;">✂️</div>
+            <div class="barber-info">
+              <p class="barber-name">Degradê</p>
+              <p class="barber-sub">45 min · inclui acabamento</p>
+            </div>
+            <div class="barber-meta">
+              <span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 45</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold" style="font-size:.95rem;">🪒</div>
+            <div class="barber-info">
+              <p class="barber-name">Barba Completa</p>
+              <p class="barber-sub">35 min · toalha quente inclusa</p>
+            </div>
+            <div class="barber-meta">
+              <span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 40</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold" style="font-size:.95rem;">👑</div>
+            <div class="barber-info">
+              <p class="barber-name">Combo Premium</p>
+              <p class="barber-sub">75 min · corte + barba + sobrancelha</p>
+            </div>
+            <div class="barber-meta">
+              <span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 75</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-full" style="margin-top:12px;">+ Adicionar serviço</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PERFIL PROFISSIONAL
+  ============================================================ -->
+  <main id="tela-perfil" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/perfil.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Perfil</span>
+      </div>
+    </div>
+
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        <img src="img/icones-perfil.png" alt="avatar"
+             onerror="this.outerHTML='💈'">
+      </div>
+      <p class="profile-name">João Silva</p>
+      <p class="profile-sub">Barbeiro Profissional · 8 anos de experiência</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <span class="badge">Degradê</span>
+        <span class="badge">Barba</span>
+        <span class="badge">Freestyle</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <span class="stat-val">1.4k</span>
+          <span class="stat-lbl">Clientes</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-val">4.9</span>
+          <span class="stat-lbl">Avaliação</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-val">47</span>
+          <span class="stat-lbl">Portfólio</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" style="padding-top:12px;">
+      <div class="menu-list">
+        <div class="menu-item">
+          <div class="menu-icon">✂️</div>
+          <span class="menu-label">Minha Barbearia</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon">📸</div>
+          <span class="menu-label">Portfólio</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon">⚙️</div>
+          <span class="menu-label">Configurações</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon">📊</div>
+          <span class="menu-label">Relatórios</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon">🤝</div>
+          <span class="menu-label">Convites de Barbearia</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="menu-item">
+          <div class="menu-icon">🔒</div>
+          <span class="menu-label">Segurança</span>
+          <span class="menu-arrow">›</span>
+        </div>
+        <div class="gold-line" style="margin:4px 0;"></div>
+        <div class="menu-item" onclick="Pro.nav('sair')">
+          <div class="menu-icon" style="background:rgba(224,82,82,.1);">
+            <img src="img/sair.svg" alt="sair"
+                 style="width:20px;filter:brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);"
+                 onerror="this.outerHTML='🚪'">
+          </div>
+          <span class="menu-label" style="color:var(--danger);">Sair da conta</span>
+          <span class="menu-arrow" style="color:var(--danger);">›</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — SAIR
+  ============================================================ -->
+  <main id="tela-sair" class="tela">
+    <div class="sair-wrap">
+      <div class="sair-icon">
+        <img src="img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
+      </div>
+      <div>
+        <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
+        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto;">
+          Você precisará fazer login novamente para acessar o painel profissional.
+        </p>
+      </div>
+      <div class="sair-btns">
+        <button class="btn btn-danger btn-full" onclick="Pro.nav('login')">Sim, quero sair</button>
+        <button class="btn btn-outline btn-full" onclick="Pro.voltar()">Cancelar</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       FOOTER NAV — APP PROFISSIONAL
+  ============================================================ -->
+  <nav class="footer-nav" id="footer-nav">
+    <button class="nav-btn" data-tela="inicio" onclick="Pro.nav('inicio')">
+      <div class="nav-pill">
+        <img src="img/inicio.svg" alt="Início">
+      </div>
+      <span class="nav-label">Início</span>
+    </button>
+
+    <button class="nav-btn" data-tela="agenda" onclick="Pro.nav('agenda')">
+      <div class="nav-pill">
+        <img src="img/pesquisa.svg" alt="Agenda">
+      </div>
+      <span class="nav-label">Agenda</span>
+    </button>
+
+    <button class="nav-btn" data-tela="mensagens" onclick="Pro.nav('mensagens')">
+      <div class="nav-pill">
+        <img src="img/mensagen.svg" alt="Mensagens">
+      </div>
+      <span class="nav-label">Mensagens</span>
+    </button>
+
+    <button class="nav-btn" data-tela="minha-barbearia" onclick="Pro.nav('minha-barbearia')">
+      <div class="nav-pill">
+        <img src="img/meu-b.svg" alt="Minha Barbearia">
+      </div>
+      <span class="nav-label">Barbearia</span>
+    </button>
+
+    <button class="nav-btn" data-tela="perfil" onclick="Pro.nav('perfil')">
+      <div class="nav-pill">
+        <img src="img/perfil.svg" alt="Perfil">
+      </div>
+      <span class="nav-label">Perfil</span>
+    </button>
+
+    <button class="nav-btn" data-tela="sair" onclick="Pro.nav('sair')">
+      <div class="nav-pill">
+        <img src="img/sair.svg" alt="Sair">
+      </div>
+      <span class="nav-label">Sair</span>
+    </button>
+  </nav>
+
+</div><!-- #app -->
+
+<!-- ============================================================
+     SPA NAVIGATION — POO
+============================================================ -->
+<script>
+  'use strict';
+
+  class BarberFlowProfissional {
+    #telaAtual = 'login';
+    #historico = [];
+    #footer    = null;
+    #navBtns   = [];
+
+    static TELAS_COM_NAV = new Set([
+      'inicio', 'agenda', 'mensagens', 'minha-barbearia', 'perfil', 'sair'
+    ]);
+
+    constructor() {
+      this.#footer  = document.getElementById('footer-nav');
+      this.#navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+      this.#atualizarUI('login');
+    }
+
+    /**
+     * Navega para a tela indicada.
+     * @param {string} tela — ID sem prefixo "tela-"
+     */
+    nav(tela) {
+      if (tela === this.#telaAtual) return;
+
+      const destino = document.getElementById(`tela-${tela}`);
+      if (!destino) { console.warn(`[BarberFlow Pro] Tela "${tela}" não encontrada.`); return; }
+
+      this.#historico.push(this.#telaAtual);
+      document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+      destino.classList.add('ativa');
+
+      this.#telaAtual = tela;
+      this.#atualizarUI(tela);
+    }
+
+    /** Volta para a tela anterior. */
+    voltar() {
+      if (this.#historico.length === 0) return;
+      const anterior = this.#historico.pop();
+      const destino  = document.getElementById(`tela-${anterior}`);
+      if (!destino) return;
+      document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+      destino.classList.add('ativa');
+      this.#telaAtual = anterior;
+      this.#atualizarUI(anterior);
+    }
+
+    /** Sincroniza footer e estado ativo dos botões. */
+    #atualizarUI(tela) {
+      const mostrar = BarberFlowProfissional.TELAS_COM_NAV.has(tela);
+      this.#footer.style.display = mostrar ? 'flex' : 'none';
+
+      this.#navBtns.forEach(btn => {
+        btn.classList.toggle('ativo', btn.dataset.tela === tela);
+      });
+    }
+  }
+
+  // Instância global
+  const Pro = new BarberFlowProfissional();
+</script>
+</body>
+</html>

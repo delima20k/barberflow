@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="BarberFlow — App Profissional">
+  <title>BarberFlow — Profissional</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="../../shared/img/icone-do-App.png">
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="../../shared/css/tokens.css">
+  <link rel="stylesheet" href="../../shared/css/components.css">
+
+  <!-- App-specific CSS -->
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================
+       TELA — LOGIN
+  ============================================================ -->
+  <main id="tela-login" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <img class="app-name" src="../../shared/img/nome-app.svg" alt="BarberFlow"
+             onerror="this.outerHTML='<h1 style=&quot;font-size:1.9rem;font-weight:900;color:var(--gold);letter-spacing:2px;&quot;>BarberFlow</h1>'">
+        <span class="pro-tag">Profissional</span>
+        <span class="login-tagline">Gestão que transforma</span>
+      </div>
+
+      <div class="login-form">
+        <div class="form-field">
+          <label>E-mail profissional</label>
+          <input type="email" placeholder="barbeiro@seudominio.com" autocomplete="username">
+        </div>
+        <div class="form-field">
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-gold btn-full" onclick="Pro.nav('inicio')">Acessar Painel</button>
+        <button class="btn btn-outline btn-full">Criar conta profissional</button>
+        <p class="login-link">
+          Sou cliente &rarr;
+          <a href="../cliente/">Acessar app cliente</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — INÍCIO (DASHBOARD)
+  ============================================================ -->
+  <main id="tela-inicio" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/logoApp.png" alt="Logo" onerror="this.style.display='none'">
+        <span>BarberFlow</span>
+      </div>
+      <span class="chip">Pro</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Boas vindas -->
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="avatar gold" style="width:52px;height:52px;font-size:1.4rem;">
+          <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
+               onerror="this.outerHTML='💈'">
+        </div>
+        <div>
+          <p style="font-size:.78rem;color:var(--text-muted);">Bom dia,</p>
+          <p style="font-size:1.1rem;font-weight:800;">João Silva ✂️</p>
+        </div>
+      </div>
+
+      <!-- KPIs do dia -->
+      <div>
+        <p class="sec-title">Hoje</p>
+        <div class="kpi-grid">
+          <div class="kpi destaque">
+            <span class="kpi-icon">💰</span>
+            <span class="kpi-val">R$ 380</span>
+            <span class="kpi-lbl">Faturamento do dia</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-icon">📅</span>
+            <span class="kpi-val">8</span>
+            <span class="kpi-lbl">Agendamentos</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-icon">⏳</span>
+            <span class="kpi-val">3</span>
+            <span class="kpi-lbl">Na fila agora</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-icon">⭐</span>
+            <span class="kpi-val">4.9</span>
+            <span class="kpi-lbl">Avaliação média</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meta semanal -->
+      <div class="card">
+        <p class="sec-title" style="margin-bottom:14px;">Meta da Semana</p>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-label">Faturamento</span>
+              <span class="progress-pct">72%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:72%;"></div>
+            </div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-header">
+              <span class="progress-label">Atendimentos</span>
+              <span class="progress-pct">58%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:58%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Próximo agendamento -->
+      <div>
+        <p class="sec-title">Próximo</p>
+        <div class="agenda-item">
+          <div class="agenda-time">
+            <span class="agenda-hr">14:30</span>
+            <span class="agenda-min">hoje</span>
+          </div>
+          <div class="avatar gold" style="font-size:.9rem;">
+            <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+          </div>
+          <div class="agenda-info">
+            <p class="agenda-name">Lucas Ferreira</p>
+            <p class="agenda-serv">Degradê + Barba · 45 min</p>
+            <p class="agenda-val">R$ 55,00</p>
+          </div>
+          <span class="badge verde">Confirmado</span>
+        </div>
+      </div>
+
+      <!-- Fila ao vivo -->
+      <div>
+        <p class="sec-title">Fila ao Vivo</p>
+        <div class="h-scroll">
+          <div class="chair ocupada">
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Minha</span>
+            <span>Atendendo</span>
+          </div>
+          <div class="chair livre">
+            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+                 onerror="this.outerHTML='🪑'">
+            <span>—</span>
+            <span>Livre</span>
+          </div>
+          <div class="chair espera">
+            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
+                 onerror="this.outerHTML='⏳'">
+            <span>+4</span>
+            <span>Aguardando</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — AGENDA
+  ============================================================ -->
+  <main id="tela-agenda" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/inicio.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Agenda</span>
+      </div>
+      <button class="btn btn-gold btn-sm">+ Bloquear</button>
+    </div>
+
+    <div class="content">
+
+      <div class="tags">
+        <span class="tag on">Hoje</span>
+        <span class="tag">Amanhã</span>
+        <span class="tag">Semana</span>
+        <span class="tag">Mês</span>
+      </div>
+
+      <div>
+        <p class="sec-title">Cadeiras</p>
+        <div class="h-scroll">
+          <div class="chair ocupada">
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Lucas</span>
+            <span>Atendendo</span>
+          </div>
+          <div class="chair ocupada">
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Pedro</span>
+            <span>Atendendo</span>
+          </div>
+          <div class="chair livre">
+            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+                 onerror="this.outerHTML='🪑'">
+            <span>—</span>
+            <span>Livre</span>
+          </div>
+          <div class="chair espera">
+            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
+                 onerror="this.outerHTML='⏳'">
+            <span>+5</span>
+            <span>Fila</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="sec-title">Segunda-feira, 06 de Abril</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">09:00</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar gold" style="font-size:.9rem;">
+              <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+            </div>
+            <div class="agenda-info">
+              <p class="agenda-name">Marcos Oliveira</p>
+              <p class="agenda-serv">Corte Social · 30 min</p>
+              <p class="agenda-val">R$ 35,00</p>
+            </div>
+            <span class="badge verde">Concluído</span>
+          </div>
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">10:00</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar gold">👤</div>
+            <div class="agenda-info">
+              <p class="agenda-name">Rafael Lima</p>
+              <p class="agenda-serv">Degradê + Barba · 45 min</p>
+              <p class="agenda-val">R$ 55,00</p>
+            </div>
+            <span class="badge verde">Concluído</span>
+          </div>
+          <div class="agenda-item" style="border-color:var(--gold);">
+            <div class="agenda-time">
+              <span class="agenda-hr">14:30</span>
+              <span class="agenda-min">agora</span>
+            </div>
+            <div class="avatar gold">
+              <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+            </div>
+            <div class="agenda-info">
+              <p class="agenda-name">Lucas Ferreira</p>
+              <p class="agenda-serv">Degradê + Barba · 45 min</p>
+              <p class="agenda-val">R$ 55,00</p>
+            </div>
+            <span class="badge">Em curso</span>
+          </div>
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">15:30</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar">👤</div>
+            <div class="agenda-info">
+              <p class="agenda-name">Thiago Rocha</p>
+              <p class="agenda-serv">Corte Infantil · 25 min</p>
+              <p class="agenda-val">R$ 25,00</p>
+            </div>
+            <span class="badge verde">Confirmado</span>
+          </div>
+          <div class="agenda-item">
+            <div class="agenda-time">
+              <span class="agenda-hr">17:00</span>
+              <span class="agenda-min">hoje</span>
+            </div>
+            <div class="avatar">🧔</div>
+            <div class="agenda-info">
+              <p class="agenda-name">Bruno Santos</p>
+              <p class="agenda-serv">Barba Completa · 35 min</p>
+              <p class="agenda-val">R$ 40,00</p>
+            </div>
+            <span class="badge verde">Confirmado</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — MENSAGENS
+  ============================================================ -->
+  <main id="tela-mensagens" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/mensagen.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Mensagens</span>
+      </div>
+      <button class="btn btn-outline btn-sm">+ Nova</button>
+    </div>
+
+    <div class="content">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div class="chat-item">
+          <div class="avatar gold">
+            <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+          </div>
+          <div class="chat-info">
+            <p class="chat-name">Lucas Ferreira</p>
+            <p class="chat-preview">Pode confirmar o horário das 14:30? 🙏</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">14:15</span>
+            <span class="chat-badge">1</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">👤</div>
+          <div class="chat-info">
+            <p class="chat-name">Marcos Oliveira</p>
+            <p class="chat-preview">Valeu pelo corte! Ficou incrível 🔥</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">10:40</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">🧔</div>
+          <div class="chat-info">
+            <p class="chat-name">Bruno Santos</p>
+            <p class="chat-preview">Posso adiantar para 16h?</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Ontem</span>
+            <span class="chat-badge">2</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">👤</div>
+          <div class="chat-info">
+            <p class="chat-name">Rafael Lima</p>
+            <p class="chat-preview">Show! Até semana que vem então 👊</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Seg</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — MINHA BARBEARIA
+  ============================================================ -->
+  <main id="tela-minha-barbearia" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/meu-b.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Minha Barbearia</span>
+      </div>
+      <button class="btn btn-outline btn-sm">Editar</button>
+    </div>
+
+    <div class="content">
+
+      <!-- Capa -->
+      <div style="position:relative;height:160px;border-radius:var(--r-lg);overflow:hidden;background:linear-gradient(135deg,rgba(212,175,55,.15),rgba(10,10,10,.9));border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:3rem;">✂️</span>
+        <div style="position:absolute;bottom:16px;left:16px;">
+          <p style="font-size:1.1rem;font-weight:800;">Barbearia Do João</p>
+          <p style="font-size:.78rem;color:var(--text-muted);">Av. Central, 1024 · São Paulo</p>
+        </div>
+        <span class="badge verde" style="position:absolute;top:12px;right:12px;">Aberta</span>
+      </div>
+
+      <!-- Status -->
+      <div class="kpi-grid">
+        <div class="kpi"><span class="kpi-icon">⭐</span><span class="kpi-val">4.9</span><span class="kpi-lbl">Avaliação</span></div>
+        <div class="kpi"><span class="kpi-icon">👥</span><span class="kpi-val">284</span><span class="kpi-lbl">Clientes</span></div>
+        <div class="kpi"><span class="kpi-icon">📸</span><span class="kpi-val">47</span><span class="kpi-lbl">Portfólio</span></div>
+        <div class="kpi"><span class="kpi-icon">❤️</span><span class="kpi-val">1.2k</span><span class="kpi-lbl">Curtidas</span></div>
+      </div>
+
+      <!-- Portfólio galeria -->
+      <div>
+        <p class="sec-title">Portfólio</p>
+        <div class="portfolio-grid">
+          <div class="port-item">✂️</div>
+          <div class="port-item">💈</div>
+          <div class="port-item">🪒</div>
+          <div class="port-item">👑</div>
+          <div class="port-item">✨</div>
+          <div class="port-item" style="font-size:1rem;font-weight:700;color:var(--gold);">+42</div>
+        </div>
+        <button class="btn btn-outline btn-full" style="margin-top:12px;">Ver portfólio completo</button>
+      </div>
+
+      <!-- Serviços -->
+      <div>
+        <p class="sec-title">Serviços</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="barber-row">
+            <div class="avatar gold" style="font-size:.95rem;">✂️</div>
+            <div class="barber-info">
+              <p class="barber-name">Degradê</p>
+              <p class="barber-sub">45 min · inclui acabamento</p>
+            </div>
+            <div class="barber-meta"><span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 45</span></div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold" style="font-size:.95rem;">🪒</div>
+            <div class="barber-info">
+              <p class="barber-name">Barba Completa</p>
+              <p class="barber-sub">35 min · toalha quente inclusa</p>
+            </div>
+            <div class="barber-meta"><span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 40</span></div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold" style="font-size:.95rem;">👑</div>
+            <div class="barber-info">
+              <p class="barber-name">Combo Premium</p>
+              <p class="barber-sub">75 min · corte + barba + sobrancelha</p>
+            </div>
+            <div class="barber-meta"><span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 75</span></div>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-full" style="margin-top:12px;">+ Adicionar serviço</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PERFIL
+  ============================================================ -->
+  <main id="tela-perfil" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="../../shared/img/perfil.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Perfil</span>
+      </div>
+    </div>
+
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        <img src="../../shared/img/icones-perfil.png" alt="avatar"
+             onerror="this.outerHTML='💈'">
+      </div>
+      <p class="profile-name">João Silva</p>
+      <p class="profile-sub">Barbeiro Profissional · 8 anos de experiência</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+        <span class="badge">Degradê</span>
+        <span class="badge">Barba</span>
+        <span class="badge">Freestyle</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-cell"><span class="stat-val">1.4k</span><span class="stat-lbl">Clientes</span></div>
+        <div class="stat-cell"><span class="stat-val">4.9</span><span class="stat-lbl">Avaliação</span></div>
+        <div class="stat-cell"><span class="stat-val">47</span><span class="stat-lbl">Portfólio</span></div>
+      </div>
+    </div>
+
+    <div class="content" style="padding-top:12px;">
+      <div class="menu-list">
+        <div class="menu-item"><div class="menu-icon">✂️</div><span class="menu-label">Minha Barbearia</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">📸</div><span class="menu-label">Portfólio</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">📊</div><span class="menu-label">Relatórios</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">🤝</div><span class="menu-label">Convites de Barbearia</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">🔔</div><span class="menu-label">Notificações</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">🔒</div><span class="menu-label">Segurança</span><span class="menu-arrow">›</span></div>
+        <div class="menu-item"><div class="menu-icon">⚙️</div><span class="menu-label">Configurações</span><span class="menu-arrow">›</span></div>
+        <div class="gold-line" style="margin:4px 0;"></div>
+        <div class="menu-item" onclick="Pro.nav('sair')">
+          <div class="menu-icon" style="background:rgba(224,82,82,.1);">
+            <img src="../../shared/img/sair.svg" alt="sair"
+                 style="width:20px;filter:brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);"
+                 onerror="this.outerHTML='🚪'">
+          </div>
+          <span class="menu-label" style="color:var(--danger);">Sair da conta</span>
+          <span class="menu-arrow" style="color:var(--danger);">›</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — SAIR
+  ============================================================ -->
+  <main id="tela-sair" class="tela">
+    <div class="sair-wrap">
+      <div class="sair-icon">
+        <img src="../../shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
+      </div>
+      <div>
+        <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
+        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto;">
+          Você precisará fazer login novamente para acessar o painel profissional.
+        </p>
+      </div>
+      <div class="sair-btns">
+        <button class="btn btn-danger btn-full" onclick="Pro.nav('inicio')">Sim, quero sair</button>
+        <button class="btn btn-outline btn-full" onclick="Pro.voltar()">Cancelar</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       FOOTER NAV
+  ============================================================ -->
+  <nav class="footer-nav" id="footer-nav">
+    <button class="nav-btn" data-tela="inicio" onclick="Pro.nav('inicio')">
+      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
+      <span class="nav-label">Início</span>
+    </button>
+
+    <button class="nav-btn" data-tela="agenda" onclick="Pro.nav('agenda')">
+      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Agenda"></div>
+      <span class="nav-label">Agenda</span>
+    </button>
+
+    <button class="nav-btn" data-tela="mensagens" onclick="Pro.nav('mensagens')">
+      <div class="nav-pill"><img src="../../shared/img/mensagen.svg" alt="Mensagens"></div>
+      <span class="nav-label">Mensagens</span>
+    </button>
+
+    <button class="nav-btn" data-tela="minha-barbearia" onclick="Pro.nav('minha-barbearia')">
+      <div class="nav-pill"><img src="../../shared/img/meu-b.svg" alt="Barbearia"></div>
+      <span class="nav-label">Barbearia</span>
+    </button>
+
+    <button class="nav-btn" data-tela="perfil" onclick="Pro.nav('perfil')">
+      <div class="nav-pill"><img src="../../shared/img/perfil.svg" alt="Perfil"></div>
+      <span class="nav-label">Perfil</span>
+    </button>
+
+    <button class="nav-btn" data-tela="sair" onclick="Pro.nav('sair')">
+      <div class="nav-pill"><img src="../../shared/img/sair.svg" alt="Sair"></div>
+      <span class="nav-label">Sair</span>
+    </button>
+  </nav>
+
+</div><!-- #app -->
+
+<!-- Supabase SDK (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Serviço Supabase compartilhado -->
+<script src="../../shared/js/SupabaseService.js"></script>
+<!-- Shared Router base class -->
+<script src="../../shared/js/Router.js"></script>
+<!-- App Profissional logic -->
+<script src="assets/js/app.js"></script>
+</body>
+</html>
