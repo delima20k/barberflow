@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -9,15 +9,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="BarberFlow — App do Cliente">
   <title>BarberFlow — Cliente</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="/shared/img/icone-do-App.png">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="../../shared/img/icone-do-App.png">
 
   <!-- Shared CSS -->
-  <link rel="stylesheet" href="/shared/css/tokens.css">
-  <link rel="stylesheet" href="/shared/css/components.css">
+  <link rel="stylesheet" href="../../shared/css/tokens.css">
+  <link rel="stylesheet" href="../../shared/css/components.css">
 
   <!-- App-specific CSS -->
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="./assets/css/styles.css">
 </head>
 <body>
 <div id="app">
@@ -27,14 +27,14 @@
   ============================================================ -->
   <header id="app-header">
     <button class="header-menu-btn" id="btn-menu" onclick="App.toggleMenu()">
-      <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
+      <img id="icon-menu" src="../../shared/img/icones-menu.png" alt="Menu"
            onerror="this.outerHTML='&#9776;'">
     </button>
     <div class="header-logo">
       <h1 style="font-size:1.3rem;font-weight:900;color:var(--gold);letter-spacing:2px;pointer-events:none;">BarberFlow</h1>
     </div>
     <button class="header-avatar-btn" id="header-avatar-btn" onclick="App.nav('login')">
-      <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
+      <img id="header-avatar-img" src="../../shared/img/icones-perfil.png" alt="Perfil">
       <span id="header-user-label">Entrar</span>
     </button>
   </header>
@@ -50,12 +50,12 @@
   <nav id="menu-drawer">
     <div class="menu-header">
       <div class="menu-logo">
-        <img src="/shared/img/logoApp.png" alt="BarberFlow" onerror="this.style.display='none'">
+        <img src="../../shared/img/logoApp.png" alt="BarberFlow" onerror="this.style.display='none'">
         <span>BarberFlow</span>
       </div>
       <div class="menu-avatar-wrap">
           <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="App.abrirUploadAvatar()">
-          <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
+          <img id="menu-avatar-img" src="../../shared/img/icones-perfil.png" alt="Avatar">
           <div class="menu-avatar-upload">📷</div>
           <input type="file" accept="image/*" id="menu-avatar-input"
                  style="display:none" onchange="App.previewAvatar(this)">
@@ -69,15 +69,15 @@
     </div>
     <ul class="menu-list-nav">
       <li class="menu-nav-item" onclick="App.fecharMenu(); App.nav('login')">
-        <img src="/shared/img/login.svg" alt="">
+        <img src="../../shared/img/login.svg" alt="">
         <span>Entrar</span>
       </li>
       <li class="menu-nav-item" onclick="App.fecharMenu(); App.nav('cadastro')">
-        <img src="/shared/img/cadastro.svg" alt="">
+        <img src="../../shared/img/cadastro.svg" alt="">
         <span>Cadastro</span>
       </li>
       <li class="menu-nav-item" onclick="App.fecharMenu(); App.nav('inicio')">
-        <img src="/shared/img/inicio.svg" alt="">
+        <img src="../../shared/img/inicio.svg" alt="">
         <span>Início</span>
       </li>
     </ul>
@@ -90,7 +90,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img class="app-icon" src="/shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="login-tagline">Seu estilo, nossa arte</span>
       </div>
@@ -124,7 +124,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img class="app-icon" src="/shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="login-tagline">Crie sua conta grátis</span>
       </div>
@@ -166,7 +166,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img class="app-icon" src="/shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="login-tagline">Recuperar acesso</span>
       </div>
@@ -202,16 +202,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="/shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">João Barber</p>
               <p class="story-card-addr">Av. Paulista, 123</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <img src="../../shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">128</span>
             </button>
           </div>
@@ -219,16 +219,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="/shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Barbearia Elite</p>
               <p class="story-card-addr">Rua Augusta, 450</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <img src="../../shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">94</span>
             </button>
           </div>
@@ -236,16 +236,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="/shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Corte &amp; Arte</p>
               <p class="story-card-addr">R. dos Pinheiros, 78</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <img src="../../shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">217</span>
             </button>
           </div>
@@ -253,16 +253,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="/shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">King Cuts</p>
               <p class="story-card-addr">Al. Santos, 1200</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <img src="../../shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">63</span>
             </button>
           </div>
@@ -270,16 +270,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="/shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Studio Beard</p>
               <p class="story-card-addr">Rua Haddock Lobo, 34</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <img src="../../shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">181</span>
             </button>
           </div>
@@ -303,25 +303,25 @@
         <p class="sec-title">Fila ao Vivo</p>
         <div class="h-scroll">
           <div class="chair ocupada">
-            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>João</span>
             <span>Ocupada</span>
           </div>
           <div class="chair ocupada">
-            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>Pedro</span>
             <span>Ocupada</span>
           </div>
           <div class="chair livre">
-            <img src="/shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
                  onerror="this.outerHTML='🪑'">
             <span>—</span>
             <span>Livre</span>
           </div>
           <div class="chair espera">
-            <img src="/shared/img/icones-cadeira-de-éspera.png" alt="espera"
+            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
                  onerror="this.outerHTML='⏳'">
             <span>+3</span>
             <span>Fila</span>
@@ -366,7 +366,7 @@
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="barber-row">
             <div class="avatar gold">
-              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
+              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
                    onerror="this.outerHTML='💇'">
             </div>
             <div class="barber-info">
@@ -409,7 +409,7 @@
   <main id="tela-pesquisa" class="tela">
     <div class="content">
       <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img src="/shared/img/pesquisa.svg" alt="buscar">
+        <img src="../../shared/img/pesquisa.svg" alt="buscar">
         <input type="search" placeholder="Barbearia, barbeiro, bairro…">
       </div>
 
@@ -468,7 +468,7 @@
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="barber-row">
             <div class="avatar gold">
-              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
+              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
                    onerror="this.outerHTML='💇'">
             </div>
             <div class="barber-info">
@@ -519,7 +519,7 @@
         </div>
         <div class="chat-item">
           <div class="avatar gold">
-            <img src="/shared/img/icones-perfil.png" alt="perfil"
+            <img src="../../shared/img/icones-perfil.png" alt="perfil"
                  onerror="this.outerHTML='💇'">
           </div>
           <div class="chat-info">
@@ -599,7 +599,7 @@
     <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
     <div class="profile-hero">
       <div class="profile-avatar">
-        <img src="/shared/img/icones-perfil.png" alt="avatar"
+        <img src="../../shared/img/icones-perfil.png" alt="avatar"
              onerror="this.outerHTML='😎'">
       </div>
       <p class="profile-name">Lucas Oliveira</p>
@@ -631,7 +631,7 @@
         <div class="gold-line" style="margin:4px 0;"></div>
         <div class="menu-item" onclick="App.nav('sair')">
           <div class="menu-icon" style="background:rgba(224,82,82,.1);">
-            <img src="/shared/img/sair.svg" alt="sair"
+            <img src="../../shared/img/sair.svg" alt="sair"
                  style="width:20px;filter:brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);"
                  onerror="this.outerHTML='🚪'">
           </div>
@@ -648,7 +648,7 @@
   <main id="tela-sair" class="tela">
     <div class="sair-wrap">
       <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img src="/shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
+        <img src="../../shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
       </div>
       <div>
         <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
@@ -668,15 +668,15 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav-offline">
     <button class="nav-btn" data-tela="inicio" onclick="App.nav('inicio')">
-      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
+      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
       <span class="nav-label">Início</span>
     </button>
     <button class="nav-btn" data-tela="pesquisa" onclick="App.nav('pesquisa')">
-      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Pesquisa"></div>
       <span class="nav-label">Pesquisar</span>
     </button>
     <button class="nav-btn" onclick="App.nav('login')">
-      <div class="nav-pill"><img src="/shared/img/login.svg" alt="Entrar"></div>
+      <div class="nav-pill"><img src="../../shared/img/login.svg" alt="Entrar"></div>
       <span class="nav-label">Entrar</span>
     </button>
   </nav>
@@ -686,33 +686,33 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav">
     <button class="nav-btn" data-tela="inicio" onclick="App.nav('inicio')">
-      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
+      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
       <span class="nav-label">Início</span>
     </button>
 
     <button class="nav-btn" data-tela="pesquisa" onclick="App.nav('pesquisa')">
-      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Pesquisa"></div>
       <span class="nav-label">Pesquisar</span>
     </button>
 
     <button class="nav-btn" data-tela="mensagens" onclick="App.nav('mensagens')">
       <span class="nav-dot"></span>
-      <div class="nav-pill"><img src="/shared/img/mensagen.svg" alt="Mensagens"></div>
+      <div class="nav-pill"><img src="../../shared/img/mensagen.svg" alt="Mensagens"></div>
       <span class="nav-label">Mensagens</span>
     </button>
 
     <button class="nav-btn" data-tela="favoritas" onclick="App.nav('favoritas')">
-      <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Favoritas"></div>
+      <div class="nav-pill"><img src="../../shared/img/meu-b.svg" alt="Favoritas"></div>
       <span class="nav-label">Favoritas</span>
     </button>
 
     <button class="nav-btn" data-tela="perfil" onclick="App.nav('perfil')">
-      <div class="nav-pill"><img src="/shared/img/perfil.svg" alt="Perfil"></div>
+      <div class="nav-pill"><img src="../../shared/img/perfil.svg" alt="Perfil"></div>
       <span class="nav-label">Perfil</span>
     </button>
 
     <button class="nav-btn" data-tela="sair" onclick="App.nav('sair')">
-      <div class="nav-pill"><img src="/shared/img/sair.svg" alt="Sair"></div>
+      <div class="nav-pill"><img src="../../shared/img/sair.svg" alt="Sair"></div>
       <span class="nav-label">Sair</span>
     </button>
   </nav>
@@ -722,13 +722,13 @@
 <!-- Supabase SDK (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Serviço Supabase compartilhado -->
-<script src="/shared/js/SupabaseService.js"></script>
+<script src="../../shared/js/SupabaseService.js"></script>
 <!-- Shared Router base class -->
-<script src="/shared/js/Router.js"></script>
+<script src="../../shared/js/Router.js"></script>
 <!-- Componente BarberPole -->
-<script src="/shared/js/BarberPole.js"></script>
+<script src="../../shared/js/BarberPole.js"></script>
 <!-- App Cliente logic -->
-<script src="assets/js/app.js"></script>
+<script src="./assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
 </body>
 </html>

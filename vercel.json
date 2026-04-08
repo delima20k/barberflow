@@ -27,8 +27,10 @@
     }
   ],
   "rewrites": [
+    { "source": "/cliente/",          "destination": "/apps/cliente/index.html"     },
     { "source": "/cliente",           "destination": "/apps/cliente/index.html"     },
     { "source": "/cliente/(.*)",      "destination": "/apps/cliente/$1"              },
+    { "source": "/profissional/",     "destination": "/apps/profissional/index.html" },
     { "source": "/profissional",      "destination": "/apps/profissional/index.html" },
     { "source": "/profissional/(.*)", "destination": "/apps/profissional/$1"         }
   ]
