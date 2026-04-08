@@ -8,6 +8,7 @@ class BarberFlowProfissional extends Router {
 
   static #TELAS_COM_NAV = new Set([
     'inicio',
+    'pesquisa',
     'agenda',
     'mensagens',
     'minha-barbearia',
@@ -15,9 +16,10 @@ class BarberFlowProfissional extends Router {
     'sair',
   ]);
 
-  get telasComNav() {
-    return BarberFlowProfissional.#TELAS_COM_NAV;
-  }
+  static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa']);
+
+  get telasComNav()  { return BarberFlowProfissional.#TELAS_COM_NAV; }
+  get telasOffline() { return BarberFlowProfissional.#TELAS_OFFLINE; }
 
   constructor() {
     super('inicio');

@@ -1,15 +1,16 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-cliente-v1';
+const CACHE_NAME = 'barberflow-cliente-v3';
 
 const ASSETS = [
-  '/apps/cliente/',
-  '/apps/cliente/manifest.json',
-  '/apps/cliente/assets/css/styles.css',
-  '/apps/cliente/assets/js/app.js',
+  '/cliente/',
+  '/cliente/manifest.json',
+  '/cliente/assets/css/styles.css',
+  '/cliente/assets/js/app.js',
   '/shared/css/tokens.css',
   '/shared/css/components.css',
   '/shared/js/Router.js',
+  '/shared/js/BarberPole.js',
   '/shared/img/logoApp.png',
   '/shared/img/nome-app.svg',
   '/shared/img/icone-do-App.png',
@@ -46,13 +47,30 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Cache-first para assets estáticos, network-first para o resto
+// Network-first para documentos HTML (sempre página fresca do servidor)
+// Cache-first para assets estáticos (performance)
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   // Só intercepta GET do mesmo origin
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
+  // Navegações HTML — sempre busca na rede para garantir HTML atualizado
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          // Atualiza o cache com a versão mais nova
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(e.request)) // fallback offline
+    );
+    return;
+  }
+
+  // Assets estáticos — cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;

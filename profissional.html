@@ -72,11 +72,37 @@
     }
     .tela.ativa {
       display: flex;
-      animation: telaIn .28s var(--ease) both;
+      animation: telaSlideIn .32s var(--ease) both;
     }
-    @keyframes telaIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
+    /* Entrada lenta — carrossel aba→aba */
+    .tela.entrando-lento {
+      display: flex;
+      animation: telaSlideIn .72s var(--ease) both;
+    }
+    .tela.saindo {
+      display: flex;
+      animation: telaSlideOut .48s var(--ease) both;
+      pointer-events: none;
+    }
+    .tela.saindo-direita {
+      display: flex;
+      animation: telaSlideOutRight .48s var(--ease) both;
+      pointer-events: none;
+    }
+    /* Home: base permanente — sempre visível por baixo */
+    #tela-inicio { display: flex; z-index: 1; }
+    #tela-inicio.ativa, #tela-inicio.saindo { animation: none; pointer-events: auto; }
+    @keyframes telaSlideIn {
+      from { opacity: 0; transform: translateX(-100%); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes telaSlideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(-100%); }
+    }
+    @keyframes telaSlideOutRight {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(100%); }
     }
     .tela::-webkit-scrollbar { width: 2px; }
     .tela::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 10px; }
@@ -594,7 +620,6 @@
     }
     .login-logo { display: flex; flex-direction: column; align-items: center; gap: 14px; }
     .login-logo .app-icon  { width: 82px; height: 82px; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(212,175,55,.3)); }
-    .login-logo .app-name  { height: 34px; object-fit: contain; }
     .login-tagline { font-size: .78rem; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; }
     .pro-tag {
       font-size: .7rem;
@@ -664,8 +689,6 @@
       <div class="login-logo">
         <img class="app-icon" src="img/logoApp.png" alt="BarberFlow"
              onerror="this.style.display='none'">
-        <img class="app-name" src="img/nome-app.svg" alt="BarberFlow"
-             onerror="this.outerHTML='<h1 style=&quot;font-size:1.9rem;font-weight:900;color:var(--gold);letter-spacing:2px;&quot;>BarberFlow</h1>'">
         <span class="pro-tag">Profissional</span>
         <span class="login-tagline">Gestão que transforma</span>
       </div>
@@ -683,7 +706,7 @@
         <button class="btn btn-outline btn-full">Criar conta profissional</button>
         <p class="login-link">
           Sou cliente &rarr;
-          <a href="cliente.html">Acessar app cliente</a>
+          <a href="#" onclick="Pro.navegarApp('cliente.html'); return false;">Acessar app cliente</a>
         </p>
       </div>
     </div>
@@ -1274,64 +1297,24 @@
 <!-- ============================================================
      SPA NAVIGATION — POO
 ============================================================ -->
+<script src="shared/js/Router.js"></script>
+<script src="shared/js/BarberPole.js"></script>
 <script>
   'use strict';
 
-  class BarberFlowProfissional {
-    #telaAtual = 'login';
-    #historico = [];
-    #footer    = null;
-    #navBtns   = [];
+  /**
+   * BarberFlow — App Profissional (legacy standalone)
+   * Extende o Router base de shared/js/Router.js
+   */
+  class BarberFlowProfissional extends Router {
 
-    static TELAS_COM_NAV = new Set([
+    static #TELAS_COM_NAV = new Set([
       'inicio', 'agenda', 'mensagens', 'minha-barbearia', 'perfil', 'sair'
     ]);
 
-    constructor() {
-      this.#footer  = document.getElementById('footer-nav');
-      this.#navBtns = Array.from(document.querySelectorAll('.nav-btn'));
-      this.#atualizarUI('login');
-    }
+    get telasComNav() { return BarberFlowProfissional.#TELAS_COM_NAV; }
 
-    /**
-     * Navega para a tela indicada.
-     * @param {string} tela — ID sem prefixo "tela-"
-     */
-    nav(tela) {
-      if (tela === this.#telaAtual) return;
-
-      const destino = document.getElementById(`tela-${tela}`);
-      if (!destino) { console.warn(`[BarberFlow Pro] Tela "${tela}" não encontrada.`); return; }
-
-      this.#historico.push(this.#telaAtual);
-      document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-      destino.classList.add('ativa');
-
-      this.#telaAtual = tela;
-      this.#atualizarUI(tela);
-    }
-
-    /** Volta para a tela anterior. */
-    voltar() {
-      if (this.#historico.length === 0) return;
-      const anterior = this.#historico.pop();
-      const destino  = document.getElementById(`tela-${anterior}`);
-      if (!destino) return;
-      document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-      destino.classList.add('ativa');
-      this.#telaAtual = anterior;
-      this.#atualizarUI(anterior);
-    }
-
-    /** Sincroniza footer e estado ativo dos botões. */
-    #atualizarUI(tela) {
-      const mostrar = BarberFlowProfissional.TELAS_COM_NAV.has(tela);
-      this.#footer.style.display = mostrar ? 'flex' : 'none';
-
-      this.#navBtns.forEach(btn => {
-        btn.classList.toggle('ativo', btn.dataset.tela === tela);
-      });
-    }
+    constructor() { super('login'); }
   }
 
   // Instância global

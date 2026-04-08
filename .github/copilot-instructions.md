@@ -49,6 +49,26 @@ SEMPRE trabalhar com:
 - sempre validar performance
 - sempre validar custo
 
+## POO OBRIGATÓRIO PARA ANIMAÇÕES E NAVEGAÇÃO
+
+- NUNCA duplicar lógica de navegação ou animação em cada arquivo
+- TODO app DEVE extender a classe base `Router` de `shared/js/Router.js`
+- TODO app DEVE importar `shared/css/tokens.css` e `shared/css/components.css`
+- As classes de animação (`.ativa`, `.entrando-lento`, `.saindo`, `.saindo-direita`) ficam SOMENTE em `shared/css/tokens.css`
+- Os métodos de navegação (`nav`, `push`, `voltar`, `_animar`) ficam SOMENTE em `shared/js/Router.js`
+- Cada app cria uma subclasse fina que declara apenas `telasComNav` e `constructor` com `super(telaInicial)`
+- NUNCA criar `@keyframes` de tela dentro de arquivo HTML ou CSS específico de app
+
+### Estrutura obrigatória de toda nova app:
+```js
+class NomeApp extends Router {
+  static #TELAS_COM_NAV = new Set(['inicio', 'outra-tela', ...]);
+  get telasComNav() { return NomeApp.#TELAS_COM_NAV; }
+  constructor() { super('inicio'); } // ou 'login' se começar no login
+}
+const App = new NomeApp();
+```
+
 ---
 
 # PADRÃO DE ENTREGA
@@ -69,6 +89,44 @@ SEMPRE trabalhar com:
 - otimizado para performance
 - já preparado como PWA
 - pronto para conversão em TWA (APK)
+- PADRONIZA TODAS AS ENTRADA E SAIDA DE ABOS E PAGINAS OU MODAIS,INGUAL AS ANIMAÇÕES DE ENTRADA E SAIDA DO MENU HANBURGUER, MANTENDO O HOME PRINCIPAL POR BAIXO DE TODAS AS OUTRAS TELAS, PARA EVITAR RECARREGAMENTO DESNECESSÁRIO E GARANTIR UMA EXPERIÊNCIA FLUIDA E RÁPIDA.
+- SEMPRE QUE ESTIVER UMA ABA BERTA, E ABRIR OUTRA A ABA QUE ESTIVER ABERTA SAIRA PELO LADO DIREITO, E A NOVA ABA ENTRARA PELO LADO ESQUERDO, SEMPRE MANTENDO O HOME PRINCIPAL POR BAIXO DE TODAS AS ABAS, PARA EVITAR RECARREGAMENTO DESNECESSÁRIO E GARANTIR UMA EXPERIÊNCIA FLUIDA E RÁPIDA.
+
+---
+
+# REGRA TÉCNICA DE ANIMAÇÃO DE TELAS (OBRIGATÓRIO)
+
+## Comportamento padrão — NUNCA DESVIAR DISSO:
+
+| Cenário | Tela que sai | Tela que entra |
+|---|---|---|
+| Home → Nova aba | (home fica por baixo, sem animação) | entra pela **ESQUERDA** (`ativa`) |
+| Aba A → Aba B (carrossel) | sai pela **DIREITA** (`saindo-direita` + lento) | entra pela **ESQUERDA** (`entrando-lento`) |
+| `push()` login↔cadastro↔esqueceu | sai pela **DIREITA** (`saindo-direita` + lento) | entra pela **ESQUERDA** (`entrando-lento`) |
+| `voltar()` (btn-voltar) | sai pela **ESQUERDA** (`saindo`) | **home já está por baixo** — sem animação de entrada |
+| Toggle (clicar na aba já aberta) | sai pela **ESQUERDA** (`saindo`) | home já está por baixo |
+
+> **Regra de ouro do voltar():** `voltar()` SEMPRE vai para o **home**, NUNCA para a aba anterior do histórico. A aba fecha pela **ESQUERDA** (`saindo`). O histórico é limpo ao voltar. NUNCA mudar a direção do voltar.
+
+> **Regra de ouro do carrossel:** A aba só sai pela DIREITA+ESQUERDA (carrossel) quando outra aba entra ao mesmo tempo (`nav()`/`push()`). Toggle e `voltar()` são operações isoladas.
+
+## Classes CSS usadas (definidas em shared/css/tokens.css):
+- `.ativa` → entrada pela esquerda (.32s) — vindo da home
+- `.entrando-lento` → entrada pela esquerda (.72s) — transição entre abas
+- `.saindo` → saída pela esquerda (.48s) — toggle/fechar para home
+- `.saindo-direita` → saída pela direita (.48s) — carrossel ou voltar
+
+## Métodos do Router (shared/js/Router.js):
+- `App.nav('nome-tela')` → navegação pelo footer/menu — usa carrossel automático (sai direita, entra esquerda)
+- `App.push('nome-tela')` → fluxo de auth (login→cadastro→esqueceu) — sempre carrossel (sai direita, entra esquerda)
+- `App.voltar()` → SEMPRE fecha a aba atual pela **ESQUERDA** e volta para o **home** (nunca para aba anterior) — NUNCA mudar a direção
+
+## Ao criar nova tela SEMPRE:
+1. Estrutura HTML: `<main id="tela-NOME" class="tela">` dentro de `#app`
+2. Registrar a tela no Set `#TELAS_COM_NAV` (se tiver footer) na classe do app
+3. Usar `App.nav('NOME')` ou `App.push('NOME')` para navegar — NUNCA manipular classes `.tela` manualmente
+4. O botão voltar usa `App.voltar()` — NUNCA `window.history.back()` ou `location.href`
+5. NUNCA criar animações próprias — usar SOMENTE as classes acima
 
 ---
 
@@ -263,7 +321,7 @@ Criar classes:
 - NÃO criar arquitetura complexa
 - NÃO usar microserviços
 - NÃO desperdiçar requisições
-
+- NÃO DEIXAR ENTRADA DE ABAS E PAGINAS DIFERENTES
 ---
 
 # FOCO FINAL
@@ -299,6 +357,62 @@ Sempre pensar:
 
 Se sim:
 FAZER MELHOR.
+
+---
+
+# COMPONENTE BARBER POLE (OBRIGATÓRIO)
+
+O polo de barbearia é a identidade visual do BarberFlow.
+Arquivo: `shared/js/BarberPole.js` + CSS em `shared/css/components.css`
+
+## Regras obrigatórias:
+
+- NUNCA recriar a animação do polo manualmente
+- SEMPRE usar a classe `BarberPole` para instanciar o componente
+- SEMPRE incluir o script antes de usar: `<script src="/shared/js/BarberPole.js"></script>`
+- O container recebe a classe `.barber-pole` automaticamente via JS
+- A fonte `Rye` (Google Fonts) é injetada automaticamente pelo componente
+- NUNCA alterar as cores diretamente — usar as variáveis do sistema no CSS
+
+## Cores do sistema usadas no polo:
+
+| Elemento | Cor |
+|---|---|
+| Faixa dourada | `#D4AF37` (ouro) |
+| Faixa marrom | `#5C3317` (madeira) |
+| Faixa escura | `#1a0800` (preto quente) |
+| Faixa vermelha | `#8B2500` (vermelho madeira) |
+| Globo glow | `rgba(212,175,55,…)` pulsante |
+
+## Como usar:
+
+```html
+<!-- 1. Incluir o script (após Router.js) -->
+<script src="/shared/js/BarberPole.js"></script>
+
+<!-- 2. Container vazio no HTML -->
+<div id="polo-barber"></div>
+
+<!-- 3. Instanciar via JS -->
+<script>
+  const polo = new BarberPole(document.getElementById('polo-barber'));
+  // polo.parar();    → pausa animação
+  // polo.iniciar();  → retoma animação
+  // polo.destruir(); → remove do DOM
+</script>
+```
+
+## Estrutura DOM gerada automaticamente:
+
+```
+.barber-pole
+  ├── .bp-globo          (esfera com luz pulsante)
+  ├── .bp-topo           (moldura superior + nome "BarberFlow")
+  ├── .bp-aro            (aro central)
+  ├── .bp-campo          (SVG animado — faixas + texto)
+  ├── .bp-base-med       (pedestal médio)
+  └── .bp-base           (pedestal base)
+```
 
 # IMAGENS E CURTIDAS (SOCIAL)
 

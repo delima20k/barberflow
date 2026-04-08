@@ -42,8 +42,8 @@
   --r-full: 9999px;
 
   /* Layout */
-  --nav-h:    68px;
-  --header-h: 58px;
+  --nav-h:    80px;
+  --header-h: 80px;
 
   /* Animação */
   --ease: .22s cubic-bezier(.4, 0, .2, 1);
@@ -69,28 +69,42 @@ html, body {
   inset: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* corta slides fora da viewport */
 }
 
 /* ── Telas (screens) ──────────────────────────────────────── */
 .tela {
   display: none;
-  flex: 1;
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* scroll nativo iOS/Android WebView */
+  background: var(--bg);
   padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
   scroll-behavior: smooth;
 }
 
-.tela.ativa {
+/* Home: base permanente — fica embaixo de tudo, sem animação */
+#tela-inicio {
   display: flex;
-  animation: telaIn .28s var(--ease) both;
+  z-index: 1;
 }
+#tela-inicio.ativa,
+#tela-inicio.saindo { pointer-events: auto; }
 
-@keyframes telaIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* Classes de estado — display gerenciado pelo WAAPI em Router._animar()
+   Sem animation: aqui; o JS usa Web Animations API para permitir
+   interrupção fluida no meio da animação. */
+.tela.ativa         { display: flex; }
+.tela.entrando-lento,
+.tela.saindo,
+.tela.saindo-direita { display: flex; }
 
 /* Scrollbar fina */
 .tela::-webkit-scrollbar       { width: 2px; }

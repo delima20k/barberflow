@@ -3,7 +3,283 @@
    Depende de tokens.css. Inclua APÓS tokens.css.
 ============================================================ */
 
-/* ── Header ────────────────────────────────────────────────── */
+/* ── Header Global Fixo ────────────────────────────────────── */
+#app-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: var(--header-h);
+  padding-top: env(safe-area-inset-top);
+  padding-left: 10px;
+  padding-right: 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Botão hamburger */
+.header-menu-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.header-menu-btn img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: .75;
+  transition: opacity var(--ease);
+}
+.header-menu-btn:hover img { opacity: 1; }
+
+/* Logo central */
+.header-logo {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.header-logo img {
+  height: 26px;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+}
+.header-logo-txt {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+/* Avatar + label direita */
+.header-avatar-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.header-avatar-btn img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--gold-border);
+  transition: border-color var(--ease);
+}
+.header-avatar-btn.logado img {
+  border-color: var(--gold);
+}
+.header-avatar-btn span {
+  font-size: .58rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+/* Overlay só cobre abaixo do header */
+#menu-overlay {
+  display: none;
+  position: fixed;
+  top: var(--header-h); left: 0; right: 0; bottom: 0;
+  z-index: 1100;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+#menu-overlay.ativo {
+  display: block;
+  animation: overlayIn .25s ease both;
+}
+@keyframes overlayIn { from { opacity:0 } to { opacity:1 } }
+
+/* ── Menu Drawer ───────────────────────────────────────────── */
+#menu-drawer {
+  position: fixed;
+  top: var(--header-h); left: 0; bottom: 0;
+  z-index: 1200;
+  width: min(300px, 80vw);
+  background: var(--card);
+  border-right: 1px solid var(--gold-border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .52s cubic-bezier(.4,0,.2,1),
+              box-shadow .52s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#menu-drawer.aberto {
+  transform: translateX(0);
+  box-shadow: 12px 0 48px rgba(0,0,0,.7), 2px 0 0 var(--gold-border);
+}
+
+/* Header do menu */
+.menu-header {
+  padding: 22px 20px 22px;
+  border-bottom: 1px solid var(--gold-border);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: linear-gradient(160deg, rgba(212,175,55,.07), transparent 70%);
+  flex-shrink: 0;
+}
+.menu-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.menu-logo img { height: 24px; object-fit: contain; }
+.menu-logo span {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+.menu-avatar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.menu-avatar {
+  position: relative;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: border-color var(--ease);
+}
+.menu-avatar:hover { border-color: var(--gold); }
+.menu-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: opacity var(--ease);
+}
+.menu-avatar.logado img { opacity: 1; }
+.menu-avatar-upload {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.5);
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.menu-avatar:hover .menu-avatar-upload { opacity: 1; }
+.menu-username {
+  font-size: .98rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+}
+.menu-username small {
+  display: block;
+  font-size: .72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Itens do menu */
+.menu-list-nav {
+  list-style: none;
+  padding: 12px 0;
+  flex: 1;
+}
+.menu-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 22px;
+  cursor: pointer;
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .18s, color .18s, padding-left .18s;
+  -webkit-tap-highlight-color: transparent;
+}
+.menu-nav-item:hover {
+  background: rgba(212,175,55,.08);
+  color: var(--gold);
+  padding-left: 28px;
+}
+.menu-nav-item img {
+  width: 40px; height: 40px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: .65;
+  flex-shrink: 0;
+  transition: filter var(--ease), opacity var(--ease);
+}
+.menu-nav-item:hover img {
+  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+  opacity: 1;
+}
+.menu-icon-txt {
+  width: 40px; height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+/* ── Botão Voltar ────────────────────────────────────────────── */
+.btn-voltar {
+  all: unset;
+  cursor: pointer;
+  position: absolute; /* relativo à .tela (position:fixed) */
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: .4px;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--ease);
+}
+.btn-voltar:active { opacity: .6; }
+.btn-voltar::before {
+  content: '';
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  background: url('/shared/img/inicio.svg') center/contain no-repeat;
+  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+  transform: scaleX(-1); /* aponta para a esquerda */
+}
+
+/* ── Header antigo (screens internas) ── oculto na inicio ── */
 .header {
   position: sticky;
   top: 0;
@@ -50,7 +326,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 200;
+  z-index: 1000;
   height: var(--nav-h);
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--surface);
@@ -78,8 +354,8 @@
 .nav-btn.ativo  { color: var(--gold); }
 
 .nav-pill {
-  width: 42px;
-  height: 26px;
+  width: 54px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -89,8 +365,8 @@
 .nav-btn.ativo .nav-pill { background: var(--gold-muted); }
 
 .nav-btn img {
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   filter: brightness(0) invert(1);
   opacity: .32;
@@ -103,7 +379,7 @@
 }
 
 .nav-label {
-  font-size: .58rem;
+  font-size: .68rem;
   font-weight: 600;
   letter-spacing: .2px;
   white-space: nowrap;
@@ -125,6 +401,7 @@
 .content {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0; /* impede flex de comprimir — ativa scroll na .tela */
   gap: 22px;
   padding: 16px;
 }
@@ -184,6 +461,102 @@
   transition: transform var(--ease), border-color var(--ease);
 }
 .card-mini:hover { transform: translateY(-3px); border-color: var(--gold); }
+
+/* ── Story Cards ─────────────────────────────────────────── */
+.story-card {
+  min-width: 148px;
+  max-width: 148px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.story-video-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: var(--card2);
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.story-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.story-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: rgba(255,255,255,.9);
+  background: rgba(0,0,0,.28);
+  transition: opacity .2s;
+  pointer-events: none;
+}
+.story-play-btn.playing { opacity: 0; }
+.story-shop-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  object-fit: cover;
+  background: var(--card);
+}
+.story-card-info {
+  padding: 8px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.story-card-name {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.story-card-addr {
+  font-size: .68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.story-like-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+.story-like-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.story-like-btn.curtido img {
+  filter: brightness(0) saturate(100%) invert(20%) sepia(90%) saturate(1000%) hue-rotate(340deg);
+  animation: likePop .2s ease;
+}
+.story-like-count {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.story-like-btn.curtido .story-like-count { color: #e74c3c; }
+@keyframes likePop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
 
 /* ── Avatar ─────────────────────────────────────────────────── */
 .avatar {
@@ -510,6 +883,7 @@
 /* ── Login Screen ───────────────────────────────────────────── */
 .login-bg {
   min-height: 100%;
+  flex-shrink: 0; /* impede flex de comprimir — ativa scroll na .tela */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -523,7 +897,7 @@
 
 .login-logo     { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .login-logo .app-icon { width: 82px; height: 82px; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(212, 175, 55, .3)); }
-.login-logo .app-name { height: 34px; object-fit: contain; }
+
 .login-tagline  { font-size: .78rem; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; }
 
 .login-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
@@ -548,11 +922,177 @@
 .login-link   { font-size: .8rem; color: var(--text-dim); text-align: center; line-height: 1.6; }
 .login-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
 
+/* ── Splash Overlay — transição entre apps ──────────────────── */
+.splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: url('/shared/img/fundo2.svg') center center / cover no-repeat;
+  animation: splashIn .35s ease both;
+}
+.splash-overlay.saindo {
+  animation: splashOut .5s ease both;
+}
+@keyframes splashIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Título "BEM-VINDO" acima do polo */
+.splash-titulo {
+  font-family: 'Rye', serif;
+  font-size: 1.55rem;
+  color: #D4AF37;
+  letter-spacing: 5px;
+  text-shadow: 0 0 18px rgba(212, 175, 55, 0.7), 0 2px 6px rgba(0,0,0,0.9);
+  margin: 0 0 2.5rem;
+  text-align: center;
+}
+
+/* Nome do app "BarberFlow Cliente/Profissional" abaixo do polo */
+.splash-app {
+  font-family: 'Rye', serif;
+  font-size: 1.05rem;
+  color: #ffffff;
+  letter-spacing: 2.5px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9), 0 0 12px rgba(212,175,55,0.3);
+  margin: 3rem 0 0;
+  text-align: center;
+}
+
+/* Polo reduzido dentro do splash para caber na tela com os textos */
+.splash-overlay #splash-polo {
+  transform: scale(0.58);
+  transform-origin: center top;
+  margin-bottom: -13.5rem;
+}
+
 /* ── Empty State ────────────────────────────────────────────── */
 .empty        { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 24px; text-align: center; }
 .empty-icon   { width: 68px; height: 68px; border-radius: 50%; background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
 .empty-title  { font-size: 1rem; font-weight: 700; }
 .empty-text   { font-size: .82rem; color: var(--text-muted); line-height: 1.6; max-width: 270px; }
+
+/* ── BarberPole Component ───────────────────────────────────── */
+
+/* Container — flex coluna centralizado */
+.barber-pole {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  user-select: none;
+}
+
+/* Globo com efeito de luz acesa */
+.bp-globo {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%,
+    #fffde0 0%,        /* ponto de luz — branco quente */
+    #E8C84A 18%,       /* dourado claro */
+    #D4AF37 38%,       /* ouro do sistema */
+    #8B4500 65%,       /* marrom avermelhado */
+    #3a0800 100%       /* escuro */
+  );
+  border: 2px solid rgba(212, 175, 55, 0.8);
+  box-shadow:
+    0 0 12px 4px  rgba(212, 175, 55, 0.9),
+    0 0 28px 10px rgba(212, 175, 55, 0.4),
+    0 0 60px 20px rgba(139, 69,  0,  0.25),
+    inset 0  2px 8px  rgba(255, 253, 200, 0.35),
+    inset 0 -4px 12px rgba(0,   0,   0,   0.5);
+  margin-bottom: -3rem;
+  transform: translateY(-0.8rem);
+  z-index: 1;
+  animation: bp-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes bp-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 12px 4px  rgba(212, 175, 55, 0.9),
+      0 0 28px 10px rgba(212, 175, 55, 0.4),
+      0 0 60px 20px rgba(139, 69,  0,  0.25),
+      inset 0  2px 8px  rgba(255, 253, 200, 0.35),
+      inset 0 -4px 12px rgba(0,   0,   0,   0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 22px 9px  rgba(212, 175, 55, 1),
+      0 0 50px 20px rgba(212, 175, 55, 0.65),
+      0 0 90px 38px rgba(139, 69,  0,  0.45),
+      inset 0  2px 8px  rgba(255, 253, 200, 0.55),
+      inset 0 -4px 12px rgba(0,   0,   0,   0.5);
+  }
+}
+
+/* Topo — moldura superior com nome */
+.bp-topo {
+  width: 8rem;
+  height: 2.5rem;
+  background: linear-gradient(180deg, #4a2a08 0%, #5C3317 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.7);
+  border-radius: 0.5rem 0.5rem 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.bp-nome {
+  font-family: 'Rye', serif;
+  font-size: 0.9rem;
+  color: #D4AF37;
+  letter-spacing: 1.5px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 8px rgba(212, 175, 55, 0.35);
+}
+
+/* Aro central */
+.bp-aro {
+  width: 11.5rem;
+  height: 2rem;
+  background: linear-gradient(180deg, #3a1f00 0%, #5C3317 50%, #3a1f00 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.7);
+  border-radius: 0.4rem;
+  z-index: 2;
+}
+
+/* Campo — área animada SVG */
+.bp-campo {
+  width: 10.5rem;
+  height: 21rem;
+  background: #1a0800;
+  border-left:   1.5px solid rgba(212, 175, 55, 0.45);
+  border-right:  1.5px solid rgba(212, 175, 55, 0.45);
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.45);
+  border-radius: 0 0 0.4rem 0.4rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.bp-campo svg { width: 100%; height: 100%; display: block; }
+
+/* Pedestais */
+.bp-base-med {
+  width: 12.5rem;
+  height: 2rem;
+  background: linear-gradient(180deg, #5C3317 0%, #3a1f00 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.7);
+  border-radius: 0.4rem;
+}
+
+.bp-base {
+  width: 14rem;
+  height: 2rem;
+  background: linear-gradient(180deg, #5C3317 0%, #2a0e00 100%);
+  border: 1.5px solid rgba(212, 175, 55, 0.7);
+  border-radius: 0.4rem;
+}
 
 /* ── Desktop breakpoints ────────────────────────────────────── */
 @media (min-width: 640px) {

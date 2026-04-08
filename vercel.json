@@ -4,16 +4,16 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/apps/cliente/sw.js",
+      "source": "/cliente/sw.js",
       "headers": [
-        { "key": "Service-Worker-Allowed", "value": "/apps/cliente/" },
+        { "key": "Service-Worker-Allowed", "value": "/cliente/" },
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     },
     {
-      "source": "/apps/profissional/sw.js",
+      "source": "/profissional/sw.js",
       "headers": [
-        { "key": "Service-Worker-Allowed", "value": "/apps/profissional/" },
+        { "key": "Service-Worker-Allowed", "value": "/profissional/" },
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     },
@@ -27,7 +27,9 @@
     }
   ],
   "rewrites": [
-    { "source": "/cliente", "destination": "/apps/cliente/index.html" },
-    { "source": "/profissional", "destination": "/apps/profissional/index.html" }
+    { "source": "/cliente",           "destination": "/apps/cliente/index.html"     },
+    { "source": "/cliente/(.*)",      "destination": "/apps/cliente/$1"              },
+    { "source": "/profissional",      "destination": "/apps/profissional/index.html" },
+    { "source": "/profissional/(.*)", "destination": "/apps/profissional/$1"         }
   ]
 }

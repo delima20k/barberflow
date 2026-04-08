@@ -10,33 +10,165 @@
  * @abstract
  */
 class Router {
-  _telaAtual = '';
-  _historico = [];
-  _footer    = null;
-  _navBtns   = [];
+  _telaAtual    = '';
+  _historico    = [];
+  _footer       = null;
+  _footerOffline = null;
+  _navBtns      = [];
+  _logado       = false;
 
-  /**
-   * Conjunto de telas que exibem o footer de navegação.
-   * @returns {Set<string>}
-   */
-  get telasComNav() {
-    return new Set([]);
-  }
+  /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
+  get telasComNav() { return new Set([]); }
+
+  /** Telas que exibem o footer offline (sem login). @returns {Set<string>} */
+  get telasOffline() { return new Set(['inicio', 'pesquisa']); }
 
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")
    */
   constructor(telaInicial = 'login') {
-    this._footer  = document.getElementById('footer-nav');
-    this._navBtns = Array.from(document.querySelectorAll('.nav-btn'));
+    this._footer        = document.getElementById('footer-nav');
+    this._footerOffline = document.getElementById('footer-nav-offline');
+    this._navBtns       = Array.from(document.querySelectorAll('.nav-btn'));
+
+    // Oculta ambos os footers inicialmente
+    if (this._footer)        this._footer.style.display        = 'none';
+    if (this._footerOffline) this._footerOffline.style.display = 'none';
+
     this._telaAtual = telaInicial;
 
-    // Ativa a tela inicial visualmente
     document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-    const telaEl = document.getElementById(`tela-${telaInicial}`);
-    if (telaEl) telaEl.classList.add('ativa');
+    // Home fica sempre visível por CSS; não precisa de .ativa
+    if (telaInicial !== 'inicio') {
+      const telaEl = document.getElementById(`tela-${telaInicial}`);
+      if (telaEl) telaEl.classList.add('ativa');
+    }
 
     this._atualizarUI(telaInicial);
+    this._bindLoginEvent();
+
+    // Limpa overlay residual caso a página seja restaurada do bfcache
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        document.querySelectorAll('.splash-overlay').forEach(el => el.remove());
+      }
+    });
+  }
+
+  /** Marca o usuario como logado e re-renderiza o footer. */
+  entrar() {
+    this._logado = true;
+    this._atualizarUI(this._telaAtual);
+  }
+
+  /** Marca o usuario como deslogado e re-renderiza o footer. */
+  sair() {
+    this._logado = false;
+    this._atualizarUI(this._telaAtual);
+  }
+
+  /**
+   * ÚNICO método responsável por toda animação de transição entre telas.
+   * Usa Web Animations API (WAAPI) para animação interruptível e fluida:
+   *  - Lê a posição atual do elemento antes de cancelar qualquer animação em andamento
+   *  - Anima DE onde o elemento está (não do início absoluto)
+   *  - Sem opacity — aba permanece totalmente visível durante o slide
+   *  - Duração proporcional ao deslocamento restante
+   *
+   * @param {HTMLElement|null} saindo    — Tela que sai (null = home, não anima)
+   * @param {HTMLElement|null} entrando  — Tela que entra (null = home, não anima)
+   * @param {'saindo'|'saindo-direita'}  classeSaida   — Direção da saída
+   * @param {'ativa'|'entrando-lento'}   classeEntrada — Velocidade de entrada
+   * @private
+   */
+  _animar(saindo, entrando, classeSaida = 'saindo', classeEntrada = 'ativa') {
+    const EASE = 'cubic-bezier(0.4,0,0.2,1)';
+
+    /**
+     * Lê o translateX atual do elemento em percentual relativo à sua largura.
+     * Funciona mesmo enquanto uma animação WAAPI está rodando.
+     * @param {HTMLElement} el
+     * @returns {number} valor em % (ex: -60.0 significa 60% fora pela esquerda)
+     */
+    const _xAtual = (el) => {
+      const m = new DOMMatrix(getComputedStyle(el).transform);
+      return el.offsetWidth ? (m.m41 / el.offsetWidth) * 100 : 0;
+    };
+
+    // ── Tela que SAI ────────────────────────────────────────────────────────
+    if (saindo) {
+      const fromX = _xAtual(saindo);                        // posição atual
+      const toX   = classeSaida === 'saindo-direita' ? 100 : -100;
+      const dist  = Math.abs(toX - fromX) / 100;            // 0..1
+      const dur   = Math.round(480 * dist);
+
+      // Cancela qualquer animação em curso — captura de posição já foi feita
+      saindo.getAnimations().forEach(a => a.cancel());
+      saindo.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
+
+      if (dur < 16) {
+        // Já está fora da tela — apenas oculta imediatamente
+        saindo.style.display       = 'none';
+        saindo.style.pointerEvents = '';
+      } else {
+        saindo.style.display       = 'flex';
+        saindo.style.pointerEvents = 'none';
+
+        const a = saindo.animate(
+          [
+            { transform: `translateX(${fromX.toFixed(2)}%)` },
+            { transform: `translateX(${toX}%)`               }
+          ],
+          { duration: dur, easing: EASE, fill: 'both' }
+        );
+
+        a.onfinish = () => {
+          a.cancel();                      // libera fill:both
+          saindo.style.display       = 'none';
+          saindo.style.pointerEvents = '';
+        };
+        // oncancel: nova animação (re-abertura) assume o controle — sem cleanup aqui
+      }
+    }
+
+    // ── Tela que ENTRA ───────────────────────────────────────────────────────
+    if (entrando) {
+      // Se inline display='flex' → animação estava em andamento (entrada ou saída)
+      // Lê posição atual para continuar de onde parou (interrupção fluida)
+      // Se oculta (display:none via CSS) → começa do off-screen esquerda (-100%)
+      const isVisible = entrando.style.display === 'flex';
+      const fromX     = isVisible ? _xAtual(entrando) : -100;
+      const baseDur   = classeEntrada === 'entrando-lento' ? 720 : 320;
+      const dist      = Math.abs(fromX) / 100;              // distância até 0%
+      const dur       = Math.round(baseDur * dist);
+
+      // Cancela qualquer animação em curso
+      entrando.getAnimations().forEach(a => a.cancel());
+      entrando.classList.remove('saindo', 'saindo-direita', 'ativa', 'entrando-lento');
+      entrando.style.display = 'flex';
+      void entrando.offsetWidth;                            // força reflow
+
+      if (dur < 16) {
+        // Já está na posição correta — apenas marca como ativa
+        entrando.style.display = '';
+        entrando.classList.add('ativa');
+      } else {
+        const a = entrando.animate(
+          [
+            { transform: `translateX(${fromX.toFixed(2)}%)` },
+            { transform: 'translateX(0%)'                    }
+          ],
+          { duration: dur, easing: EASE, fill: 'both' }
+        );
+
+        a.onfinish = () => {
+          a.cancel();                        // libera fill:both — devolve ao CSS
+          entrando.style.display = '';       // .ativa gerencia display:flex
+          entrando.classList.add('ativa');
+        };
+        // oncancel: animação de saída (toggle/voltar) assume o controle — sem cleanup
+      }
+    }
   }
 
   /**
@@ -44,51 +176,253 @@ class Router {
    * @param {string} tela — ID sem prefixo "tela-"
    */
   nav(tela) {
+    // Toggle: clicou no ícone da aba já aberta → fecha pela ESQUERDA (igual a voltar)
+    if (tela === this._telaAtual && tela !== 'inicio') {
+      const atual = document.getElementById(`tela-${this._telaAtual}`);
+      this._historico = [];          // limpa histórico — volta pra home
+      this._telaAtual = 'inicio';
+      this._atualizarUI('inicio');
+      this._animar(atual, null, 'saindo');  // sai pela esquerda, home já está embaixo
+      return;
+    }
     if (tela === this._telaAtual) return;
 
     const destino = document.getElementById(`tela-${tela}`);
-    if (!destino) {
-      console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`);
-      return;
-    }
+    if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
-    this._historico.push(this._telaAtual);
-    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-    destino.classList.add('ativa');
+    const telaAnterior = this._telaAtual;
+    const atual = document.getElementById(`tela-${telaAnterior}`);
 
+    this._historico.push(telaAnterior);
     this._telaAtual = tela;
     this._atualizarUI(tela);
+
+    // Home é base fixa — nunca anima saída
+    // Aba já aberta → carrossel: atual sai DIREITA (lento), nova entra ESQUERDA (lento)
+    // Vindo da home  → nova entra pela ESQUERDA normalmente (sem exit)
+    const carrossel = telaAnterior !== 'inicio';
+    this._animar(
+      carrossel       ? atual   : null,
+      tela !== 'inicio' ? destino : null,
+      carrossel       ? 'saindo-direita' : 'saindo',
+      carrossel       ? 'entrando-lento' : 'ativa'
+    );
   }
 
-  /**
-   * Volta para a tela anterior no histórico.
+  /** Fecha a aba atual e volta sempre para o home.
+   *  A aba sai pela ESQUERDA — NUNCA alterar isso.
+   *  O histórico é limpo para que nenhuma aba anterior reapareça.
    */
   voltar() {
-    if (this._historico.length === 0) return;
+    if (this._telaAtual === 'inicio') return;
 
-    const anterior = this._historico.pop();
-    const destino  = document.getElementById(`tela-${anterior}`);
-    if (!destino) return;
+    const telaAtual = this._telaAtual;
+    const atual = document.getElementById(`tela-${telaAtual}`);
 
-    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-    destino.classList.add('ativa');
+    // Limpa histórico — garante que nada do passado remerge
+    this._historico = [];
+    this._telaAtual = 'inicio';
+    this._atualizarUI('inicio');
 
-    this._telaAtual = anterior;
-    this._atualizarUI(anterior);
+    // Aba atual sai pela ESQUERDA — NUNCA mudar isso
+    // Home já está por baixo — sem animação de entrada
+    this._animar(
+      telaAtual !== 'inicio' ? atual : null,
+      null,     // home não anima — já está lá
+      'saindo', // aba sai pela ESQUERDA — NUNCA mudar
+      'ativa'   // ignorado pois destino é null
+    );
   }
 
   /**
-   * Sincroniza visibilidade do footer e estado ativo dos botões.
+   * Navega para uma tela irmã no fluxo de auth (ex: login → cadastro).
+   * @param {string} tela
+   */
+  push(tela) {
+    if (tela === this._telaAtual) return;
+
+    const destino = document.getElementById(`tela-${tela}`);
+    if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
+
+    const telaAnterior = this._telaAtual;
+    const atual = document.getElementById(`tela-${telaAnterior}`);
+
+    this._historico.push(telaAnterior);
+    this._telaAtual = tela;
+    this._atualizarUI(tela);
+
+    // Fluxo de auth (login ↔ cadastro ↔ esqueceu-senha):
+    // atual sai pela DIREITA, nova entra pela ESQUERDA — padrão carrossel
+    this._animar(
+      telaAnterior !== 'inicio' ? atual   : null,
+      tela         !== 'inicio' ? destino : null,
+      'saindo-direita',
+      'entrando-lento'
+    );
+  }
+
+  /**
+   * Sincroniza visibilidade dos footers e estado ativo dos botões.
+   * - Logado:        footer completo nas telasComNav
+   * - Não logado:    footer offline (3 botões) nas telasOffline
    * @param {string} tela
    * @private
    */
   _atualizarUI(tela) {
-    if (this._footer) {
-      this._footer.style.display = this.telasComNav.has(tela) ? 'flex' : 'none';
-    }
+    const mostrarCompleto = this._logado && this.telasComNav.has(tela);
+    // Footer sempre visível: completo quando logado em tela de nav, senão mostra offline
+    if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
+    if (this._footerOffline) this._footerOffline.style.display = mostrarCompleto ? 'none' : 'flex';
 
     this._navBtns.forEach(btn =>
       btn.classList.toggle('ativo', btn.dataset.tela === tela)
     );
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     MENU DRAWER
+  ───────────────────────────────────────────────────────────── */
+
+  toggleMenu() {
+    const drawer = document.getElementById('menu-drawer');
+    if (!drawer) return;
+    drawer.classList.contains('aberto') ? this.fecharMenu() : this._abrirMenu();
+  }
+
+  _abrirMenu() {
+    document.getElementById('menu-drawer')?.classList.add('aberto');
+    document.getElementById('menu-overlay')?.classList.add('ativo');
+    const icon = document.getElementById('icon-menu');
+    if (icon) icon.src = '/shared/img/icones-menu-fechado.png';
+  }
+
+  fecharMenu() {
+    document.getElementById('menu-drawer')?.classList.remove('aberto');
+    document.getElementById('menu-overlay')?.classList.remove('ativo');
+    const icon = document.getElementById('icon-menu');
+    if (icon) icon.src = '/shared/img/icones-menu.png';
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     STORIES — CURTIDA E VÍDEO
+  ───────────────────────────────────────────────────────────── */
+
+  toggleLike(btn) {
+    btn.classList.toggle('curtido');
+    const span = btn.querySelector('.story-like-count');
+    const n = parseInt(span.textContent) || 0;
+    span.textContent = btn.classList.contains('curtido') ? n + 1 : n - 1;
+  }
+
+  toggleStoryVideo(wrap) {
+    const video = wrap.querySelector('.story-video');
+    const play  = wrap.querySelector('.story-play-btn');
+    if (video.paused) { video.play();  play.classList.add('playing'); }
+    else              { video.pause(); play.classList.remove('playing'); }
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     AVATAR — PREVIEW E UPLOAD
+  ───────────────────────────────────────────────────────────── */
+
+  previewAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const url = URL.createObjectURL(input.files[0]);
+    ['menu-avatar-img', 'header-avatar-img'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.src = url;
+      el.style.filter  = 'none';
+      el.style.opacity = '1';
+    });
+  }
+
+  abrirUploadAvatar() {
+    if (!this._logado) { this.fecharMenu(); this.nav('login'); return; }
+    document.getElementById('menu-avatar-input').click();
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     EVENTO: LOGIN — atualiza header e menu com nome do usuário
+  ───────────────────────────────────────────────────────────── */
+
+  _bindLoginEvent() {
+    document.addEventListener('barberflow:login', e => {
+      const { nome } = e.detail || {};
+      if (nome) {
+        const usernameEl = document.getElementById('menu-username');
+        if (usernameEl) usernameEl.childNodes[0].nodeValue = nome + ' ';
+        const subEl = document.getElementById('menu-user-sub');
+        if (subEl) subEl.textContent = 'Bem-vindo(a)!';
+        const labelEl = document.getElementById('header-user-label');
+        if (labelEl) labelEl.textContent = nome.split(' ')[0];
+      }
+      document.getElementById('header-avatar-btn')?.classList.add('logado');
+      document.getElementById('menu-avatar')?.classList.add('logado');
+    });
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     SPLASH — transição entre apps (BarberPole)
+  ───────────────────────────────────────────────────────────── */
+
+  /**
+   * Exibe o splash BarberPole na ORIGEM e navega ao fim.
+   * Mostra na origem (código já está em memória = sempre confiável).
+   * Nunca depende de SW cache ou sessionStorage.
+   * @param {string} url — caminho destino (ex: '../profissional/')
+   */
+  navegarApp(url) {
+    if (this._navegandoApp) return;
+    this._navegandoApp = true;
+
+    const tipo = url.toLowerCase().includes('profissional') ? 'Profissional' : 'Cliente';
+
+    // Exibe splash aqui na origem — ao fim navega para o destino
+    this._exibirSplash(tipo, () => window.location.replace(url));
+  }
+
+  /**
+   * Monta o overlay splash com BarberPole e executa o callback ao fechar.
+   * Único ponto de criação visual — DRY, POO puro.
+   * @param {string}   tipo     — 'Cliente' | 'Profissional'
+   * @param {Function} [onFim]  — callback chamado após o fade-out completar
+   * @private
+   */
+  _exibirSplash(tipo, onFim = null) {
+    // Evita duplicar se já estiver visível
+    if (document.querySelector('.splash-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'splash-overlay';
+    overlay.innerHTML = `
+      <p class="splash-titulo">BEM-VINDO</p>
+      <div id="splash-polo"></div>
+      <p class="splash-app">BarberFlow ${tipo}</p>
+    `;
+    document.body.appendChild(overlay);
+
+    let polo = null;
+    if (typeof BarberPole !== 'undefined') {
+      polo = new BarberPole(overlay.querySelector('#splash-polo'));
+    }
+
+    // Após 2.5s: fade-out → remove overlay → executa callback (navega)
+    // Após 2.5s: inicia fade-out; ao terminar executa o callback (ex: navegar)
+    // IMPORTANTE: onFim() é chamado ANTES de remover o overlay para evitar
+    // flash da tela de trás entre overlay.remove() e window.location.replace().
+    // Quando há navegação a página inteira é substituída — cleanup desnecessário.
+    setTimeout(() => {
+      overlay.classList.add('saindo');
+      setTimeout(() => {
+        if (onFim) {
+          onFim(); // navega primeiro — página será substituída, overlay some junto
+        } else {
+          // Sem navegação: remove o overlay e para o polo manualmente
+          if (polo) polo.destruir();
+          overlay.remove();
+        }
+      }, 500);
+    }, 2500);
   }
 }
