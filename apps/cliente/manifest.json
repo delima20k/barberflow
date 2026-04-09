@@ -14,13 +14,13 @@
   "categories": ["lifestyle", "shopping"],
   "icons": [
     {
-      "src": "../../shared/img/icone-do-App.png",
+      "src": "/shared/img/icone-do-App.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "../../shared/img/icone-do-App.png",
+      "src": "/shared/img/icone-do-App.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
