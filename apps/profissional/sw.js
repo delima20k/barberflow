@@ -1,18 +1,17 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-profissional-v3';
+const CACHE_NAME = 'barberflow-profissional-v6';
 
+// HTML nunca entra na lista — sempre servido da rede
 const ASSETS = [
-  '/profissional/',
-  '/profissional/manifest.json',
-  '/profissional/assets/css/styles.css',
-  '/profissional/assets/js/app.js',
+  '/apps/profissional/manifest.json',
+  '/apps/profissional/assets/css/styles.css',
+  '/apps/profissional/assets/js/app.js',
   '/shared/css/tokens.css',
   '/shared/css/components.css',
   '/shared/js/Router.js',
   '/shared/js/BarberPole.js',
-  '/shared/img/logoApp.png',
-  '/shared/img/nome-app.svg',
+  '/shared/img/Logo01.png',
   '/shared/img/icone-do-App.png',
   '/shared/img/inicio.svg',
   '/shared/img/mensagen.svg',
@@ -47,26 +46,16 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Network-first para documentos HTML (sempre página fresca do servidor)
-// Cache-first para assets estáticos (performance)
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   // Só intercepta GET do mesmo origin
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Navegações HTML — sempre busca na rede para garantir HTML atualizado
+  // Navegações HTML — NUNCA cachear, sempre rede
+  // Garante que o HTML mais recente (com boot-lock) seja sempre servido
   if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request)
-        .then(response => {
-          // Atualiza o cache com a versão mais nova
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-          return response;
-        })
-        .catch(() => caches.match(e.request)) // fallback offline
-    );
+    e.respondWith(fetch(e.request));
     return;
   }
 

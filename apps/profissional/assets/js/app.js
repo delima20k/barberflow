@@ -23,6 +23,39 @@ class BarberFlowProfissional extends Router {
 
   constructor() {
     super('inicio');
+    AuthService.iniciarListener();
+    AuthService.inicializarSessao();
+  }
+
+  // ── Auth ──────────────────────────────────────────────────
+
+  fazerLogin() {
+    AuthService.login(
+      document.getElementById('login-email'),
+      document.getElementById('login-senha'),
+      document.getElementById('login-erro'),
+      (tela) => this.nav(tela)
+    );
+  }
+
+  fazerCadastro() {
+    AuthService.cadastro({
+      nome:       document.getElementById('cad-nome')?.value,
+      email:      document.getElementById('cad-email')?.value,
+      telefone:   document.getElementById('cad-tel')?.value,
+      senha:      document.getElementById('cad-senha')?.value,
+      senha2:     document.getElementById('cad-senha2')?.value,
+      barbearia:  document.getElementById('cad-barbearia')?.value,
+      role:       'professional',
+    }, document.getElementById('cad-erro'), (tela) => this.nav(tela));
+  }
+
+  fazerRecuperacao() {
+    AuthService.recuperarSenha(
+      document.getElementById('rec-email')?.value,
+      document.getElementById('rec-erro'),
+      (tela) => this.nav(tela)
+    );
   }
 }
 

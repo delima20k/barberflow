@@ -3,6 +3,39 @@
    Inclua este arquivo em TODOS os apps antes de components.css
 ============================================================ */
 
+/* ── Fontes Customizadas ──────────────────────────────────── */
+@font-face {
+  font-family: 'Broughton';
+  src: url('/shared/fonts/Broughton.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'QiduwyPesonaluse';
+  src: url('/shared/fonts/QiduwyPesonaluse.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Hadrey';
+  src: url('/shared/fonts/Hadrey.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BabyAzalea';
+  src: url('/shared/fonts/Baby Azalea.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -23,6 +56,11 @@
   --gold-muted:   rgba(212, 175, 55, .12);
   --gold-border:  rgba(212, 175, 55, .22);
 
+  /* Marrom */
+  --brown:        #5C3317;
+  --brown-light:  #7A4520;
+  --brown-border: rgba(92, 51, 23, .50);
+
   /* Texto */
   --text:         #FFFFFF;
   --text-muted:   #888888;
@@ -32,6 +70,11 @@
   --danger:       #e05252;
   --success:      #52c97a;
   --warning:      #e0a832;
+
+  /* Azul complementar */
+  --blue:         #0D1F3C;
+  --blue-light:   #1A3460;
+  --blue-border:  rgba(26, 52, 96, .60);
 
   /* Raios */
   --r-xs:   4px;
@@ -50,6 +93,10 @@
 
   /* Tipografia */
   --font: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'QiduwyPesonaluse', serif;
+  --font-text:    'Broughton', 'Segoe UI', sans-serif;
+  --font-names:   'Hadrey', 'Segoe UI', sans-serif;
+  --font-script:  'BabyAzalea', cursive;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -62,6 +109,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Tipografia Custom ─────────────────────────────────────── */
+p  { font-family: var(--font); }
+h2 { font-family: var(--font-display); }
 
 /* ── SPA Root ──────────────────────────────────────────────── */
 #app {

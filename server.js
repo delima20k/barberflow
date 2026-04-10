@@ -68,9 +68,13 @@ const server = http.createServer((req, res) => {
     const ext      = path.extname(filePath).toLowerCase();
     const mimeType = MIME[ext] || 'application/octet-stream';
 
+    // HTML: no-store desabilita bfcache — página sempre carrega do zero
+    // Outros assets (CSS/JS/img): no-cache permite revalidação normal
+    const cacheControl = ext === '.html' ? 'no-store' : 'no-cache';
+
     res.writeHead(200, {
       'Content-Type'  : mimeType,
-      'Cache-Control' : 'no-cache',
+      'Cache-Control' : cacheControl,
       'X-Content-Type-Options': 'nosniff',
     });
     res.end(data);
@@ -78,12 +82,21 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
+  const os    = require('os');
+  const iface = Object.values(os.networkInterfaces())
+    .flat()
+    .find(i => i.family === 'IPv4' && !i.internal);
+  const ip = iface ? iface.address : 'SEU_IP';
+
   console.log('\n\x1b[33m BarberFlow — Servidor de desenvolvimento\x1b[0m');
   console.log('─────────────────────────────────────────');
-  console.log(`\x1b[36m Landing  →  http://localhost:${PORT}/\x1b[0m`);
-  console.log(`\x1b[36m Cliente  →  http://localhost:${PORT}/apps/cliente/\x1b[0m`);
-  console.log(`\x1b[36m Profissional →  http://localhost:${PORT}/apps/profissional/\x1b[0m`);
+  console.log(`\x1b[36m Local    →  http://localhost:${PORT}/\x1b[0m`);
+  console.log(`\x1b[32m Rede     →  http://${ip}:${PORT}/\x1b[0m`);
+  console.log('─────────────────────────────────────────');
+  console.log(`\x1b[32m 📱 Celular (mesma Wi-Fi):\x1b[0m`);
+  console.log(`\x1b[32m  Cliente       →  http://${ip}:${PORT}/apps/cliente/\x1b[0m`);
+  console.log(`\x1b[32m  Profissional  →  http://${ip}:${PORT}/apps/profissional/\x1b[0m`);
   console.log('─────────────────────────────────────────');
   console.log(' Ctrl+C para parar\n');
 });

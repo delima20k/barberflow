@@ -38,23 +38,33 @@
   object-fit: contain;
   filter: brightness(0) invert(1);
   opacity: .75;
-  transition: opacity var(--ease);
+  transition: filter var(--ease), opacity var(--ease);
 }
 .header-menu-btn:hover img { opacity: 1; }
+
+/* Menu aberto — hamburger fica dourado (igual aos nav-btns ativos) */
+.header-menu-btn.menu-aberto img {
+  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+  opacity: 1;
+}
 
 /* Logo central */
 .header-logo {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  left: calc(56px + 1rem);
+  top: 50%;
+  transform: translateY(calc(-50% + 0.3rem)) translateX(-1rem);
+  width: 60%;
+  height: calc(var(--header-h) * 2.10);
   display: flex;
   align-items: center;
   pointer-events: none;
+  overflow: visible;
 }
 .header-logo img {
-  height: 26px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
 }
 .header-logo-txt {
   font-size: 1.25rem;
@@ -121,8 +131,8 @@
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
-  transition: transform .52s cubic-bezier(.4,0,.2,1),
-              box-shadow .52s cubic-bezier(.4,0,.2,1);
+  transition: transform .32s cubic-bezier(.25,0,.2,1),
+              box-shadow .32s cubic-bezier(.25,0,.2,1);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -143,10 +153,17 @@
 }
 .menu-logo {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
+  width: 100%;
+  margin-top: 0px;
+  border-radius: var(--r-md);
+  background: radial-gradient(ellipse at 50% 50%, rgba(255,251,230,.90) 0%, rgba(245,217,122,.65) 28%, rgba(212,175,55,.30) 55%, transparent 78%);
+  padding: 0.5rem;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 40%, rgba(0,0,0,.55) 62%, transparent 82%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 40%, rgba(0,0,0,.55) 62%, transparent 82%);
 }
-.menu-logo img { height: 24px; object-fit: contain; }
+.menu-logo img { height: 120px; width: 100%; object-fit: contain; }
 .menu-logo span {
   font-size: 1.1rem;
   font-weight: 900;
@@ -181,15 +198,19 @@
 .menu-avatar-upload {
   position: absolute;
   inset: 0;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   background: rgba(0,0,0,.5);
   font-size: 1.1rem;
   opacity: 0;
   transition: opacity .2s;
+  border-radius: 50%;
+  cursor: pointer;
 }
-.menu-avatar:hover .menu-avatar-upload { opacity: 1; }
+/* Só exibe o ícone de câmera quando o usuário está logado */
+.menu-avatar.logado .menu-avatar-upload { display: flex; }
+.menu-avatar.logado:hover .menu-avatar-upload { opacity: 1; }
 .menu-username {
   font-size: .98rem;
   font-weight: 700;
@@ -228,6 +249,13 @@
   color: var(--gold);
   padding-left: 28px;
 }
+/* Item ativo no menu lateral — igual ao hover */
+.menu-nav-item.ativo {
+  background: rgba(212,175,55,.12);
+  color: var(--gold);
+  padding-left: 28px;
+  border-left: 3px solid var(--gold);
+}
 .menu-nav-item img {
   width: 40px; height: 40px;
   object-fit: contain;
@@ -240,6 +268,10 @@
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   opacity: 1;
 }
+.menu-nav-item.ativo img {
+  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+  opacity: 1;
+}
 .menu-icon-txt {
   width: 40px; height: 40px;
   display: flex;
@@ -247,6 +279,42 @@
   justify-content: center;
   font-size: 1.15rem;
   flex-shrink: 0;
+}
+
+/* ── Menu Drawer — responsivo mobile ───────────────────────── */
+@media (max-width: 480px) {
+  .menu-header {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .menu-logo img {
+    height: 70px;
+  }
+  .menu-avatar {
+    width: 44px;
+    height: 44px;
+  }
+  .menu-username {
+    font-size: .85rem;
+  }
+  .menu-username small {
+    font-size: .65rem;
+  }
+  .menu-nav-item {
+    padding: 11px 18px;
+    gap: 12px;
+    font-size: .84rem;
+  }
+  .menu-nav-item:hover,
+  .menu-nav-item.ativo {
+    padding-left: 24px;
+  }
+  .menu-nav-item img,
+  .menu-icon-txt {
+    width: 28px;
+    height: 28px;
+    font-size: .95rem;
+  }
 }
 
 /* ── Botão Voltar ────────────────────────────────────────────── */
@@ -407,11 +475,12 @@
 }
 
 .sec-title {
-  font-size: .85rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: .8px;
   text-transform: uppercase;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -473,7 +542,7 @@
 .story-video-wrap {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 160px;  /* 200px ≓20% = 160px */
   background: var(--card2);
   overflow: hidden;
   flex-shrink: 0;
@@ -498,12 +567,108 @@
   pointer-events: none;
 }
 .story-play-btn.playing { opacity: 0; }
-.story-shop-badge {
+
+/* ── Stories Tagline ──────────────────────────────────────────── */
+.stories-tagline {
+  font-family: var(--font-script);
+  font-size: 1.15rem;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 2px 0 8px;
+  background: linear-gradient(90deg, var(--brown-light), var(--gold), var(--brown-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+}
+
+/* ── Stories Scroll — 3 cards visíveis, snap 1 card por vez ───── */
+.stories-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 10px;   /* ancora o snap após o padding lateral */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  /* quebra o padding do .content para usar largura total */
+  margin-inline: -16px;
+  align-items: flex-start;
+}
+.stories-scroll::-webkit-scrollbar { display: none; }
+
+/* Cada card ocupa exatamente 1/3 da área interna (3 cards + 2 gaps de 8px) */
+.stories-scroll .story-card {
+  width: calc((100% - 16px) / 3);
+  min-width: 0;
+  max-width: none;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+/* Vídeo proporcional ao card menor */
+.stories-scroll .story-card .story-video-wrap {
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
+
+/* Badge da loja — escala para o card menor */
+.stories-scroll .story-card .story-shop-badge {
+  width: 38px;
+  height: 38px;
+}
+
+/* Info e like — ajuste de tamanho */
+.stories-scroll .story-card .story-card-info {
+  padding: 5px 7px 2px;
+}
+/* Nome compartilhado: Stories + Em Destaque — mesma fonte e tamanho */
+.destaque-name,
+.stories-scroll .story-card .story-card-name {
+  font-family: var(--font-names);
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--brown-light), var(--gold), var(--brown-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stories-scroll .story-card .story-card-addr { font-size: .59rem; }
+.stories-scroll .story-card .story-like-btn {
+  padding: 4px 7px 7px;
+  gap: 3px;
+}
+.stories-scroll .story-card .story-like-btn img { width: 15px; height: 15px; }
+.stories-scroll .story-card .story-like-count  { font-size: .67rem; }
+
+/* ── LogoGlow — efeito de luz dourada radial (POO) ─────────── */
+.logo-glow-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  padding: 0.5rem;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255,251,230,.90) 0%, rgba(245,217,122,.65) 28%, rgba(212,175,55,.30) 55%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 40%, rgba(0,0,0,.55) 62%, transparent 82%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 40%, rgba(0,0,0,.55) 62%, transparent 82%);
+}
+
+/* Variante para o badge dos stories — mantém posicionamento absoluto */
+.logo-glow-wrap--badge {
   position: absolute;
   bottom: 8px;
   left: 8px;
-  width: 32px;
-  height: 32px;
+  border-radius: 50%;
+  padding: 4px;
+}
+
+.story-shop-badge {
+  width: 77px;   /* 96px ≓20% = 77px */
+  height: 77px;
   border-radius: 50%;
   border: 2px solid var(--gold);
   object-fit: cover;
@@ -516,8 +681,9 @@
   gap: 2px;
 }
 .story-card-name {
-  font-size: .82rem;
+  font-size: .95rem;
   font-weight: 700;
+  font-family: var(--font-names);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -672,7 +838,286 @@
   white-space: nowrap;
 }
 
-/* ── Map Placeholder ────────────────────────────────────────── */
+/* ── MapWidget — Container Leaflet ──────────────────────────── */
+.mapa-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  border: 1px solid var(--gold-border);
+  background: var(--card);
+}
+
+/* Leaflet attribution — dark */
+.mapa-container .leaflet-control-attribution {
+  background: rgba(0,0,0,.65) !important;
+  color: rgba(255,255,255,.4) !important;
+  font-size: .58rem !important;
+}
+.mapa-container .leaflet-control-attribution a { color: var(--gold) !important; }
+
+/* Zoom control — dark */
+.mapa-container .leaflet-bar a {
+  background: var(--surface) !important;
+  color: var(--gold) !important;
+  border-color: var(--gold-border) !important;
+}
+.mapa-container .leaflet-bar a:hover { background: var(--card) !important; }
+
+/* ── FAB sobre o mapa ───────────────────────────────────────── */
+.mapa-gps-fab {
+  position:   absolute;
+  bottom:     16px;
+  left:       50%;
+  transform:  translateX(-50%);
+  z-index:    500;
+  display:    flex;
+  align-items: center;
+  gap:        8px;
+  background: var(--gold);
+  color:      #0a0a0a;
+  border:     none;
+  border-radius: var(--r-full);
+  padding:    10px 22px;
+  font-size:  .88rem;
+  font-weight: 700;
+  cursor:     pointer;
+  box-shadow: 0 4px 20px rgba(212,175,55,.50);
+  transition: transform .25s, opacity .3s, box-shadow .25s;
+  white-space: nowrap;
+  letter-spacing: .4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.mapa-gps-fab:active               { transform: translateX(-50%) scale(.94); }
+.mapa-gps-fab--oculto              { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(50px); }
+.mapa-gps-fab--carregando          {
+  background: var(--card);
+  color:      var(--gold);
+  border:     1px solid var(--gold-border);
+  cursor:     default;
+  animation:  mapa-fab-pulse .9s ease-in-out infinite alternate;
+}
+.mapa-gps-fab--erro {
+  background: #8B2500;
+  color:      #fff;
+  box-shadow: 0 4px 20px rgba(139,37,0,.50);
+}
+
+@keyframes mapa-fab-pulse {
+  from { box-shadow: 0 4px 16px rgba(212,175,55,.15); }
+  to   { box-shadow: 0 6px 32px rgba(212,175,55,.65); }
+}
+
+/* ── Marcador — posição do usuário ─────────────────────────── */
+.mapa-marker-user  {
+  position: relative;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mapa-marker-user-dot {
+  width:  14px; height: 14px;
+  background:    var(--gold);
+  border:        2.5px solid #0a0a0a;
+  border-radius: 50%;
+  position:      relative;
+  z-index:       2;
+  box-shadow:    0 0 8px rgba(212,175,55,.85);
+}
+.mapa-marker-user-pulse {
+  position:      absolute; inset: 0;
+  border-radius: 50%;
+  background:    rgba(212,175,55,.28);
+  animation:     mapa-user-pulse 1.7s ease-out infinite;
+}
+@keyframes mapa-user-pulse {
+  0%   { transform: scale(1);   opacity: .9; }
+  100% { transform: scale(2.4); opacity: 0;  }
+}
+
+/* ── Marcador avatar — barbearia ────────────────────────────── */
+.mapa-av {
+  position:        relative;
+  width:           48px;
+  height:          58px;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  cursor:          pointer;
+  filter:          drop-shadow(0 3px 8px rgba(0,0,0,.6));
+  transition:      transform .18s;
+}
+.mapa-av:hover          { transform: scale(1.1); }
+.mapa-av:active         { transform: scale(.95); }
+
+.mapa-av__ring {
+  width:           46px;
+  height:          46px;
+  border-radius:   50%;
+  border:          2.5px solid var(--gold);
+  overflow:        hidden;
+  background:      var(--surface);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  box-shadow:      0 0 0 2px rgba(212,175,55,.18), 0 2px 10px rgba(0,0,0,.5);
+  flex-shrink:     0;
+}
+.mapa-av__img {
+  width:           100%;
+  height:          100%;
+  object-fit:      cover;
+  border-radius:   50%;
+  display:         block;
+}
+.mapa-av__initials {
+  width:           100%;
+  height:          100%;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       .95rem;
+  font-weight:     800;
+  color:           var(--gold);
+  background:      var(--card);
+  letter-spacing:  .5px;
+  user-select:     none;
+}
+.mapa-av__pin {
+  width:            0;
+  height:           0;
+  border-left:      7px solid transparent;
+  border-right:     7px solid transparent;
+  border-top:       11px solid var(--gold);
+  margin-top:       -1px;
+  filter:           drop-shadow(0 2px 3px rgba(0,0,0,.4));
+}
+
+/* ── Tooltip permanente — nome da barbearia ─────────────────── */
+.mapa-tooltip-nome.leaflet-tooltip {
+  background:      rgba(10,10,10,.88) !important;
+  border:          1px solid var(--gold-border) !important;
+  border-radius:   20px !important;
+  color:           var(--gold) !important;
+  font-size:       .68rem !important;
+  font-weight:     700 !important;
+  padding:         2px 8px !important;
+  white-space:     nowrap !important;
+  box-shadow:      0 2px 8px rgba(0,0,0,.5) !important;
+  letter-spacing:  .3px;
+  pointer-events:  none;
+}
+.mapa-tooltip-nome.leaflet-tooltip::before { border: none !important; }
+
+/* ── Popup Leaflet — dark ───────────────────────────────────── */
+.leaflet-popup-content-wrapper {
+  background:    var(--surface)    !important;
+  color:         var(--text)       !important;
+  border:        1px solid var(--gold-border) !important;
+  border-radius: var(--r-md)       !important;
+  box-shadow:    0 4px 20px rgba(0,0,0,.55) !important;
+  padding:       0 !important;
+}
+.leaflet-popup-content  { margin: 0 !important; }
+.leaflet-popup-tip      { background: var(--surface) !important; }
+.leaflet-popup-close-button {
+  color:         var(--gold)       !important;
+  font-size:     1rem              !important;
+  padding:       4px 7px          !important;
+  top:           2px               !important;
+  right:         2px               !important;
+}
+
+/* ── Popup card — layout ────────────────────────────────────── */
+.mapa-popup {
+  display:         flex;
+  align-items:     flex-start;
+  gap:             10px;
+  padding:         12px 14px;
+  min-width:       200px;
+  max-width:       250px;
+}
+.mapa-popup__avatar {
+  width:           52px;
+  height:          52px;
+  border-radius:   50%;
+  border:          2px solid var(--gold);
+  overflow:        hidden;
+  flex-shrink:     0;
+  background:      var(--card);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+}
+.mapa-popup__avatar-img {
+  width:           100%;
+  height:          100%;
+  object-fit:      cover;
+}
+.mapa-popup__avatar-initials {
+  width:           100%;
+  height:          100%;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       1rem;
+  font-weight:     800;
+  color:           var(--gold);
+}
+.mapa-popup__info {
+  display:         flex;
+  flex-direction:  column;
+  gap:             3px;
+  flex: 1;
+  min-width: 0;
+}
+.mapa-popup__nome {
+  color:           var(--gold);
+  font-size:       .9rem;
+  font-weight:     700;
+  white-space:     nowrap;
+  overflow:        hidden;
+  text-overflow:   ellipsis;
+  display:         block;
+}
+.mapa-popup__meta {
+  display:         flex;
+  align-items:     center;
+  gap:             6px;
+  flex-wrap:       wrap;
+}
+.mapa-popup__badge {
+  font-size:       .65rem;
+  font-weight:     700;
+  padding:         1px 7px;
+  border-radius:   20px;
+  letter-spacing:  .3px;
+}
+.mapa-popup__badge--open   { background: rgba(39,174,96,.22); color: #4edf8f; border: 1px solid rgba(39,174,96,.35); }
+.mapa-popup__badge--closed { background: rgba(139,37,0,.22);  color: #e07050; border: 1px solid rgba(139,37,0,.35); }
+.mapa-popup__rating {
+  font-size:       .72rem;
+  color:           var(--gold);
+  display:         flex;
+  align-items:     center;
+  gap:             2px;
+}
+.mapa-popup__rating small { color: var(--text-muted); font-size: .67rem; }
+.mapa-popup__addr {
+  font-size:       .72rem;
+  color:           var(--text-muted);
+  white-space:     nowrap;
+  overflow:        hidden;
+  text-overflow:   ellipsis;
+  display:         block;
+}
+.mapa-popup__dist {
+  font-size:       .72rem;
+  color:           var(--gold);
+  font-weight:     600;
+}
+
+/* ── Map Placeholder (fallback) ─────────────────────────────── */
 .map-box {
   width: 100%;
   height: 175px;
@@ -689,17 +1134,145 @@
   position: relative;
   overflow: hidden;
 }
-.map-box::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(0deg,   transparent, transparent 36px, var(--gold-border) 36px, var(--gold-border) 37px),
-    repeating-linear-gradient(90deg,  transparent, transparent 36px, var(--gold-border) 36px, var(--gold-border) 37px);
-  opacity: .22;
-}
-.map-pin  { font-size: 2rem; position: relative; z-index: 1; }
+.map-pin   { font-size: 2rem; position: relative; z-index: 1; }
 .map-box p { position: relative; z-index: 1; text-align: center; line-height: 1.5; }
+
+.nearby-hint-wrap {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+}
+.nearby-hint-msg {
+  font-size: .83rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  text-align: center;
+}
+.nearby-hint-msg strong {
+  color: var(--gold);
+  font-weight: 700;
+}
+.nearby-hint-link {
+  color: var(--gold);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Search Bar (tela pesquisa) ────────────────────────────── */
+.search-bar-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--gold-border);
+}
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border-radius: var(--r-full);
+  overflow: hidden;
+  gap: 0;
+}
+.search-bar-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold);
+  border-radius: 50%;
+  margin: 4px 0 4px 4px;
+  overflow: hidden;
+}
+.search-bar-icon img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+.search-bar-input {
+  flex: 1;
+  height: 56px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: var(--font);
+  padding: 0 16px;
+  caret-color: var(--gold);
+}
+.search-bar-input::placeholder { color: var(--text-dim); }
+.search-bar-input::-webkit-search-cancel-button { filter: invert(1) sepia(1) saturate(3) hue-rotate(10deg); }
+
+.search-content {
+  padding-top: 16px;
+}
+
+/* Search placeholder (bem-vindo / vazio / erro) */
+.search-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 16px;
+  text-align: center;
+}
+.search-placeholder-icon { font-size: 2.4rem; }
+
+/* ── NearbyBarbershopsWidget ────────────────────────────────── */
+.nearby-gps-off {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px;
+  background: var(--card);
+  border-radius: var(--r-md);
+  border: 1px solid var(--gold-border);
+  text-align: center;
+}
+.nearby-gps-icon { font-size: 2rem; }
+.nearby-gps-msg  { font-size: .83rem; color: var(--text-muted); line-height: 1.5; }
+.nearby-gps-btn  { margin-top: 4px; }
+
+.nearby-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  color: var(--text-muted);
+  font-size: .83rem;
+}
+.nearby-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--gold-border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: nearby-spin .7s linear infinite;
+}
+@keyframes nearby-spin { to { transform: rotate(360deg); } }
+
+.nearby-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nearby-gps-btn-round {
+  border-radius: var(--r-full);
+  padding: 10px 28px;
+  font-size: .9rem;
+  letter-spacing: .5px;
+  margin-top: 6px;
+}
 
 /* ── Chairs (fila) ──────────────────────────────────────────── */
 .chair {
@@ -738,7 +1311,7 @@
 }
 .barber-row:hover { border-color: rgba(212, 175, 55, .5); transform: translateX(3px); }
 .barber-info      { flex: 1; min-width: 0; }
-.barber-name      { font-size: .92rem; font-weight: 700; }
+.barber-name      { font-size: 1.08rem; font-weight: 700; font-family: var(--font); }
 .barber-sub       { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
 .barber-meta      { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .price            { font-size: .8rem; font-weight: 700; color: var(--gold); }
@@ -858,25 +1431,86 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  min-height: 80vh;
+  gap: 32px;
+  min-height: 100%;
   padding: 40px 24px;
   text-align: center;
 }
-.sair-icon {
-  width: 82px;
-  height: 82px;
-  border-radius: 50%;
-  background: rgba(224, 82, 82, .08);
-  border: 2px solid rgba(224, 82, 82, .25);
+
+/* Botão-ícone central — o elemento clicável de confirmar saída */
+.sair-icone-btn {
+  all: unset;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(224,82,82,.18) 0%,
+    rgba(224,82,82,.06) 60%,
+    transparent 80%);
+  border: 2px solid rgba(224, 82, 82, .35);
+  box-shadow: 0 0 32px rgba(224,82,82,.15);
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
 }
-.sair-icon img {
-  width: 38px;
-  height: 38px;
+.sair-icone-btn::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(224,82,82,.12);
+  pointer-events: none;
+}
+.sair-icone-btn:hover,
+.sair-icone-btn:focus-visible {
+  transform: scale(1.08);
+  box-shadow: 0 0 48px rgba(224,82,82,.28);
+  border-color: rgba(224,82,82,.6);
+}
+.sair-icone-btn:active {
+  transform: scale(.95);
+}
+.sair-icone-btn img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
   filter: brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);
+  transition: filter .18s;
+}
+
+/* Estado "confirmando" — feedback visual ao clicar */
+.sair-icone-btn.saindo-confirm {
+  animation: sairPulse .4s ease forwards;
+  pointer-events: none;
+}
+@keyframes sairPulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 32px rgba(224,82,82,.15); }
+  40%  { transform: scale(1.15); box-shadow: 0 0 64px rgba(224,82,82,.45); }
+  100% { transform: scale(.9);   box-shadow: 0 0 16px rgba(224,82,82,.08); opacity: .5; }
+}
+
+.sair-texto-titulo {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: .3px;
+}
+.sair-texto-sub {
+  font-size: .85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 280px;
+  margin: -16px auto 0;
+}
+.sair-hint {
+  font-size: .72rem;
+  color: var(--text-dim);
+  opacity: .7;
 }
 .sair-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
 
@@ -896,7 +1530,7 @@
 }
 
 .login-logo     { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.login-logo .app-icon { width: 82px; height: 82px; object-fit: contain; filter: drop-shadow(0 8px 24px rgba(212, 175, 55, .3)); }
+.login-logo .app-icon { width: 246px; height: 246px; object-fit: contain; }
 
 .login-tagline  { font-size: .78rem; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; }
 
@@ -922,6 +1556,19 @@
 .login-link   { font-size: .8rem; color: var(--text-dim); text-align: center; line-height: 1.6; }
 .login-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
 
+/* Mensagens de erro/sucesso nos formulários de auth */
+.form-erro {
+  display: none;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  line-height: 1.5;
+  margin-bottom: -4px;
+}
+.form-erro--error   { color: var(--danger); background: rgba(224,82,82,.10); border: 1px solid rgba(224,82,82,.25); }
+.form-erro--success { color: var(--success); background: rgba(82,201,122,.10); border: 1px solid rgba(82,201,122,.25); }
+
 /* ── Splash Overlay — transição entre apps ──────────────────── */
 .splash-overlay {
   position: fixed;
@@ -941,6 +1588,17 @@
 @keyframes splashIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
 
+/* Logo do menu (Logo01.png) — acima do "BEM-VINDO" */
+.splash-logo-menu {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  margin-bottom: 2.2rem;
+  filter: drop-shadow(0 0 14px rgba(212,175,55,.55));
+  animation: splashLogoIn .6s ease both;
+}
+@keyframes splashLogoIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+
 /* Título "BEM-VINDO" acima do polo */
 .splash-titulo {
   font-family: 'Rye', serif;
@@ -948,7 +1606,7 @@
   color: #D4AF37;
   letter-spacing: 5px;
   text-shadow: 0 0 18px rgba(212, 175, 55, 0.7), 0 2px 6px rgba(0,0,0,0.9);
-  margin: 0 0 2.5rem;
+  margin: 0 0 0.4rem;
   text-align: center;
 }
 
@@ -959,8 +1617,18 @@
   color: #ffffff;
   letter-spacing: 2.5px;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9), 0 0 12px rgba(212,175,55,0.3);
-  margin: 3rem 0 0;
+  margin: 1.8rem 0 0;
   text-align: center;
+}
+
+/* Logo do header (LogoNomeBarberFlow.png) — entre BEM-VINDO e o polo */
+.splash-logo-nome {
+  width: 82%;
+  max-width: 360px;
+  object-fit: contain;
+  margin-bottom: 0.3rem;
+  filter: drop-shadow(0 0 10px rgba(212,175,55,.4));
+  animation: splashLogoIn .6s .2s ease both;
 }
 
 /* Polo reduzido dentro do splash para caber na tela com os textos */
@@ -1092,6 +1760,174 @@
   background: linear-gradient(180deg, #5C3317 0%, #2a0e00 100%);
   border: 1.5px solid rgba(212, 175, 55, 0.7);
   border-radius: 0.4rem;
+}
+
+/* ── Story Viewer — overlay expandido (StoryViewer.js) ─────── */
+#sv-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .28s ease;
+}
+#sv-overlay.sv-ativo { opacity: 1; }
+
+.sv-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Linha horizontal: prev | card | next */
+.sv-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Wrapper — aplica perspective para o flip 3D */
+.sv-inner-wrap {
+  width: 80vw;
+  max-width: 360px;
+  aspect-ratio: 9 / 16;
+  perspective: 900px;
+}
+
+/* Elemento que rotaciona — transition injetada via JS */
+.sv-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  border: 1.5px solid var(--gold-border);
+  box-shadow:
+    0 24px 64px rgba(0,0,0,.85),
+    0 0 0 1px rgba(212,175,55,.12);
+}
+
+.sv-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Gradiente + info no topo */
+.sv-top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 14px 12px 32px;
+  background: linear-gradient(to bottom, rgba(0,0,0,.75) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.sv-top > * { pointer-events: auto; }
+
+.sv-badge {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.sv-info { flex: 1; min-width: 0; }
+.sv-nome {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sv-addr {
+  font-size: .7rem;
+  color: rgba(255,255,255,.72);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sv-fechar {
+  all: unset;
+  cursor: pointer;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,.58);
+  border: 1px solid rgba(255,255,255,.18);
+  color: #fff;
+  font-size: .9rem;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Gradiente + curtir na base */
+.sv-bottom {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 32px 14px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%);
+  display: flex;
+  justify-content: flex-end;
+}
+.sv-like-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--r-full);
+  background: rgba(0,0,0,.55);
+  border: 1px solid rgba(255,255,255,.18);
+  -webkit-tap-highlight-color: transparent;
+}
+.sv-like-btn img {
+  width: 22px; height: 22px;
+  object-fit: contain;
+  transition: filter .15s;
+}
+.sv-like-btn span {
+  font-size: .82rem;
+  font-weight: 700;
+  color: #fff;
+}
+.sv-like-btn.curtido img {
+  filter: brightness(0) saturate(100%) invert(20%) sepia(90%) saturate(1000%) hue-rotate(340deg);
+}
+
+/* Botões de navegação prev / next — ficam fora do .sv-inner */
+.sv-nav {
+  all: unset;
+  cursor: pointer;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(0,0,0,.58);
+  border: 1px solid rgba(255,255,255,.22);
+  color: #fff;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  margin: 0 6px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, transform .12s;
+  user-select: none;
+}
+.sv-nav:active {
+  background: rgba(212,175,55,.3);
+  transform: scale(.88);
 }
 
 /* ── Desktop breakpoints ────────────────────────────────────── */

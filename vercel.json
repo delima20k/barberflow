@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "trailingSlash": true,
   "headers": [
     {
       "source": "/cliente/sw.js",
@@ -39,11 +38,9 @@
     }
   ],
   "rewrites": [
-    { "source": "/cliente/",          "destination": "/apps/cliente/index.html"     },
-    { "source": "/cliente",           "destination": "/apps/cliente/index.html"     },
-    { "source": "/cliente/(.*)",      "destination": "/apps/cliente/$1"              },
-    { "source": "/profissional/",     "destination": "/apps/profissional/index.html" },
-    { "source": "/profissional",      "destination": "/apps/profissional/index.html" },
-    { "source": "/profissional/(.*)", "destination": "/apps/profissional/$1"         }
+    { "source": "/cliente/",            "destination": "/apps/cliente/index.html"      },
+    { "source": "/cliente/:path*",      "destination": "/apps/cliente/:path*"          },
+    { "source": "/profissional/",       "destination": "/apps/profissional/index.html" },
+    { "source": "/profissional/:path*", "destination": "/apps/profissional/:path*"     }
   ]
 }

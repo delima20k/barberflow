@@ -1,18 +1,16 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-cliente-v3';
+const CACHE_NAME = 'barberflow-cliente-v6';
 
 const ASSETS = [
-  '/cliente/',
-  '/cliente/manifest.json',
-  '/cliente/assets/css/styles.css',
-  '/cliente/assets/js/app.js',
+  '/apps/cliente/manifest.json',
+  '/apps/cliente/assets/css/styles.css',
+  '/apps/cliente/assets/js/app.js',
   '/shared/css/tokens.css',
   '/shared/css/components.css',
   '/shared/js/Router.js',
   '/shared/js/BarberPole.js',
-  '/shared/img/logoApp.png',
-  '/shared/img/nome-app.svg',
+  '/shared/img/Logo01.png',
   '/shared/img/icone-do-App.png',
   '/shared/img/inicio.svg',
   '/shared/img/pesquisa.svg',
@@ -34,7 +32,7 @@ self.addEventListener('install', e => {
   );
 });
 
-// Remove caches antigos
+// Remove caches antigos e assume controle imediato
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -47,34 +45,31 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Network-first para documentos HTML (sempre página fresca do servidor)
-// Cache-first para assets estáticos (performance)
+// Network-first para HTML (sempre fresco) — cache-first para assets
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   // Só intercepta GET do mesmo origin
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Navegações HTML — sempre busca na rede para garantir HTML atualizado
+  // Navegações HTML — sempre busca na rede, fallback no cache offline
   if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request)
         .then(response => {
-          // Atualiza o cache com a versão mais nova
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
           return response;
         })
-        .catch(() => caches.match(e.request)) // fallback offline
+        .catch(() => caches.match(e.request))
     );
     return;
   }
 
-  // Assets estáticos — cache-first
+  // Assets estáticos — cache-first, atualiza em background
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
-
       return fetch(e.request).then(response => {
         if (!response || response.status !== 200 || response.type === 'opaque') {
           return response;

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="BarberFlow — App Profissional">
   <title>BarberFlow — Profissional</title>
-  <link rel="manifest" href="/profissional/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="/shared/img/icone-do-App.png">
 
   <!-- Shared CSS -->
@@ -17,7 +17,15 @@
   <link rel="stylesheet" href="/shared/css/components.css">
 
   <!-- App-specific CSS -->
-  <link rel="stylesheet" href="/profissional/assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+  <!-- Boot lock: oculta TODAS as telas instantaneamente antes de qualquer CSS externo carregar.
+       Impede FOUC (flash de telas) independente de Service Worker ou cache.
+       Removido pelo Router assim que o estado correto é aplicado. -->
+  <style id="boot-lock">
+    .tela { display: none !important; }
+    #tela-inicio { display: flex !important; }
+  </style>
 </head>
 <body>
 <div id="app">
@@ -27,14 +35,14 @@
   ============================================================ -->
   <header id="app-header">
     <button class="header-menu-btn" id="btn-menu" onclick="Pro.toggleMenu()">
-      <img id="icon-menu" src="../../shared/img/icones-menu.png" alt="Menu"
+      <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
            onerror="this.outerHTML='&#9776;'">
     </button>
     <div class="header-logo">
-      <h1 style="font-size:1.3rem;font-weight:900;color:var(--gold);letter-spacing:2px;pointer-events:none;">BarberFlow</h1>
+      <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
     </div>
-    <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.nav('login')">
-      <img id="header-avatar-img" src="../../shared/img/icones-perfil.png" alt="Perfil">
+    <button class="header-avatar-btn" id="header-avatar-btn">
+      <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
       <span id="header-user-label">Entrar</span>
     </button>
   </header>
@@ -50,18 +58,17 @@
   <nav id="menu-drawer">
     <div class="menu-header">
       <div class="menu-logo">
-        <img src="../../shared/img/logoApp.png" alt="BarberFlow" onerror="this.style.display='none'">
-        <span>BarberFlow</span>
+        <img src="/shared/img/Logo01.png" alt="BarberFlow" onerror="this.style.display='none'">
       </div>
       <div class="menu-avatar-wrap">
         <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="Pro.abrirUploadAvatar()">
-          <img id="menu-avatar-img" src="../../shared/img/icones-perfil.png" alt="Avatar">
+          <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
           <div class="menu-avatar-upload">📷</div>
           <input type="file" accept="image/*" id="menu-avatar-input"
                  style="display:none" onchange="Pro.previewAvatar(this)">
         </div>
         <div>
-          <p class="menu-username" id="menu-username">Visitante
+          <p class="menu-username" id="menu-username">Visitante Profissional
             <small id="menu-user-sub">Faça login para continuar</small>
           </p>
         </div>
@@ -69,15 +76,15 @@
     </div>
     <ul class="menu-list-nav">
       <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.nav('login')">
-        <img src="../../shared/img/login.svg" alt="">
+        <img src="/shared/img/login.svg" alt="">
         <span>Entrar</span>
       </li>
       <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.nav('cadastro')">
-        <img src="../../shared/img/cadastro.svg" alt="">
+        <img src="/shared/img/cadastro.svg" alt="">
         <span>Cadastro</span>
       </li>
       <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.nav('inicio')">
-        <img src="../../shared/img/inicio.svg" alt="">
+        <img src="/shared/img/inicio.svg" alt="">
         <span>Início</span>
       </li>
     </ul>
@@ -90,7 +97,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="pro-tag">Profissional</span>
         <span class="login-tagline">Gestão que transforma</span>
@@ -99,20 +106,21 @@
       <div class="login-form">
         <div class="form-field">
           <label>E-mail profissional</label>
-          <input type="email" placeholder="barbeiro@seudominio.com" autocomplete="username">
+          <input id="login-email" type="email" placeholder="barbeiro@seudominio.com" autocomplete="username">
         </div>
         <div class="form-field">
           <label>Senha</label>
-          <input type="password" placeholder="••••••••" autocomplete="current-password">
+          <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button class="btn btn-gold btn-full" onclick="Pro.entrar(); Pro.nav('inicio')">Acessar Painel</button>
+        <p id="login-erro" class="form-erro"></p>
+        <button class="btn btn-gold btn-full" onclick="Pro.fazerLogin()">Acessar Painel</button>
         <button class="btn btn-outline btn-full" onclick="Pro.push('cadastro')">Criar conta profissional</button>
         <p class="login-link" style="text-align:center;">
           <a href="#" onclick="Pro.push('esqueceu-senha'); return false;" style="color:var(--text-muted);font-size:.8rem;">Esqueceu a senha?</a>
         </p>
         <p class="login-link">
           Sou cliente &rarr;
-          <a href="#" onclick="Pro.navegarApp('/cliente'); return false;">Acessar app cliente</a>
+          <a href="#" onclick="Pro.navegarApp('/apps/cliente/'); return false;">Acessar app cliente</a>
         </p>
       </div>
     </div>
@@ -125,7 +133,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="pro-tag">Profissional</span>
         <span class="login-tagline">Comece a gerir seu negócio</span>
@@ -134,29 +142,30 @@
       <div class="login-form">
         <div class="form-field">
           <label>Nome completo</label>
-          <input type="text" placeholder="Seu nome profissional" autocomplete="name">
+          <input id="cad-nome" type="text" placeholder="Seu nome profissional" autocomplete="name">
         </div>
         <div class="form-field">
           <label>Nome da barbearia</label>
-          <input type="text" placeholder="Nome do estabelecimento" autocomplete="organization">
+          <input id="cad-barbearia" type="text" placeholder="Nome do estabelecimento" autocomplete="organization">
         </div>
         <div class="form-field">
           <label>E-mail profissional</label>
-          <input type="email" placeholder="barbeiro@seudominio.com" autocomplete="email">
+          <input id="cad-email" type="email" placeholder="barbeiro@seudominio.com" autocomplete="email">
         </div>
         <div class="form-field">
           <label>Telefone</label>
-          <input type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
+          <input id="cad-tel" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
         </div>
         <div class="form-field">
           <label>Senha</label>
-          <input type="password" placeholder="Crie uma senha" autocomplete="new-password">
+          <input id="cad-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password">
         </div>
         <div class="form-field">
           <label>Confirmar senha</label>
-          <input type="password" placeholder="Repita a senha" autocomplete="new-password">
+          <input id="cad-senha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
         </div>
-        <button class="btn btn-gold btn-full" onclick="Pro.entrar(); Pro.nav('inicio')">Criar conta profissional</button>
+        <p id="cad-erro" class="form-erro"></p>
+        <button class="btn btn-gold btn-full" onclick="Pro.fazerCadastro()">Criar conta profissional</button>
         <p class="login-link">
           Já tenho conta &rarr;
           <a href="#" onclick="Pro.push('login'); return false;">Fazer login</a>
@@ -172,7 +181,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="pro-tag">Profissional</span>
         <span class="login-tagline">Recuperar acesso</span>
@@ -184,9 +193,10 @@
         </p>
         <div class="form-field">
           <label>E-mail profissional</label>
-          <input type="email" placeholder="barbeiro@seudominio.com" autocomplete="email">
+          <input id="rec-email" type="email" placeholder="barbeiro@seudominio.com" autocomplete="email">
         </div>
-        <button class="btn btn-gold btn-full" onclick="Pro.push('login')">Enviar link de recuperação</button>
+        <p id="rec-erro" class="form-erro"></p>
+        <button class="btn btn-gold btn-full" onclick="Pro.fazerRecuperacao()">Enviar link de recuperação</button>
         <p class="login-link">
           Lembrei a senha &rarr;
           <a href="#" onclick="Pro.push('login'); return false;">Fazer login</a>
@@ -203,22 +213,23 @@
 
       <!-- Stories -->
       <div>
-        <p class="sec-title">Stories</p>
+        <h2 class="sec-title">Stories</h2>
+        <h3 class="stories-tagline">Barbearias Flow</h3>
         <div class="h-scroll" style="padding-top:6px;gap:12px;align-items:flex-start;">
 
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">João Barber</p>
               <p class="story-card-addr">Av. Paulista, 123</p>
             </div>
             <button class="story-like-btn" onclick="Pro.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">128</span>
             </button>
           </div>
@@ -226,16 +237,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Barbearia Elite</p>
               <p class="story-card-addr">Rua Augusta, 450</p>
             </div>
             <button class="story-like-btn" onclick="Pro.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">94</span>
             </button>
           </div>
@@ -243,16 +254,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Corte &amp; Arte</p>
               <p class="story-card-addr">R. dos Pinheiros, 78</p>
             </div>
             <button class="story-like-btn" onclick="Pro.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">217</span>
             </button>
           </div>
@@ -260,16 +271,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">King Cuts</p>
               <p class="story-card-addr">Al. Santos, 1200</p>
             </div>
             <button class="story-like-btn" onclick="Pro.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">63</span>
             </button>
           </div>
@@ -277,16 +288,16 @@
           <div class="card-mini story-card">
             <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Studio Beard</p>
               <p class="story-card-addr">Rua Haddock Lobo, 34</p>
             </div>
             <button class="story-like-btn" onclick="Pro.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">181</span>
             </button>
           </div>
@@ -310,25 +321,25 @@
         <p class="sec-title">Fila ao Vivo</p>
         <div class="h-scroll">
           <div class="chair ocupada">
-            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>João</span>
             <span>Ocupada</span>
           </div>
           <div class="chair ocupada">
-            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>Pedro</span>
             <span>Ocupada</span>
           </div>
           <div class="chair livre">
-            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+            <img src="/shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
                  onerror="this.outerHTML='🪑'">
             <span>—</span>
             <span>Livre</span>
           </div>
           <div class="chair espera">
-            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
+            <img src="/shared/img/icones-cadeira-de-éspera.png" alt="espera"
                  onerror="this.outerHTML='⏳'">
             <span>+3</span>
             <span>Fila</span>
@@ -373,7 +384,7 @@
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="barber-row">
             <div class="avatar gold">
-              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
+              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
                    onerror="this.outerHTML='💇'">
             </div>
             <div class="barber-info">
@@ -416,7 +427,7 @@
   <main id="tela-pesquisa" class="tela">
     <div class="content">
       <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <img src="../../shared/img/pesquisa.svg" alt="buscar">
+        <img src="/shared/img/pesquisa.svg" alt="buscar">
         <input type="search" placeholder="Barbearia, barbeiro, bairro…">
       </div>
 
@@ -475,7 +486,7 @@
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="barber-row">
             <div class="avatar gold">
-              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
+              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
                    onerror="this.outerHTML='&#x1F487;'">
             </div>
             <div class="barber-info">
@@ -519,25 +530,25 @@
         <p class="sec-title">Cadeiras</p>
         <div class="h-scroll">
           <div class="chair ocupada">
-            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>Lucas</span>
             <span>Atendendo</span>
           </div>
           <div class="chair ocupada">
-            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>Pedro</span>
             <span>Atendendo</span>
           </div>
           <div class="chair livre">
-            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+            <img src="/shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
                  onerror="this.outerHTML='🪑'">
             <span>—</span>
             <span>Livre</span>
           </div>
           <div class="chair espera">
-            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
+            <img src="/shared/img/icones-cadeira-de-éspera.png" alt="espera"
                  onerror="this.outerHTML='⏳'">
             <span>+5</span>
             <span>Fila</span>
@@ -554,7 +565,7 @@
               <span class="agenda-min">hoje</span>
             </div>
             <div class="avatar gold" style="font-size:.9rem;">
-              <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+              <img src="/shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
             </div>
             <div class="agenda-info">
               <p class="agenda-name">Marcos Oliveira</p>
@@ -582,7 +593,7 @@
               <span class="agenda-min">agora</span>
             </div>
             <div class="avatar gold">
-              <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
+              <img src="/shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
             </div>
             <div class="agenda-info">
               <p class="agenda-name">Lucas Ferreira</p>
@@ -632,7 +643,7 @@
       <div style="display:flex;flex-direction:column;gap:4px;">
         <div class="chat-item">
           <div class="avatar gold">
-            <img src="../../shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='&#x1F464;'">
+            <img src="/shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='&#x1F464;'">
           </div>
           <div class="chat-info">
             <p class="chat-name">Lucas Ferreira</p>
@@ -757,7 +768,7 @@
     <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
     <div class="profile-hero">
       <div class="profile-avatar">
-        <img src="../../shared/img/icones-perfil.png" alt="avatar"
+        <img src="/shared/img/icones-perfil.png" alt="avatar"
              onerror="this.outerHTML='💈'">
       </div>
       <p class="profile-name">João Silva</p>
@@ -786,7 +797,7 @@
         <div class="gold-line" style="margin:4px 0;"></div>
         <div class="menu-item" onclick="Pro.nav('sair')">
           <div class="menu-icon" style="background:rgba(224,82,82,.1);">
-            <img src="../../shared/img/sair.svg" alt="sair"
+            <img src="/shared/img/sair.svg" alt="sair"
                  style="width:20px;filter:brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);"
                  onerror="this.outerHTML='🚪'">
           </div>
@@ -803,18 +814,18 @@
   <main id="tela-sair" class="tela">
     <div class="sair-wrap">
       <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <img src="../../shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
-      </div>
-      <div>
-        <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
-        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto;">
-          Você precisará fazer login novamente para acessar o painel profissional.
-        </p>
-      </div>
-      <div class="sair-btns">
-          <button class="btn btn-danger btn-full" onclick="Pro.sair(); Pro.nav('inicio')">Sim, quero sair</button>
-        <button class="btn btn-outline btn-full" onclick="Pro.voltar()">Cancelar</button>
-      </div>
+
+      <!-- Ícone central — clique confirma o logout -->
+      <button class="sair-icone-btn" onclick="Pro.confirmarSaida()" aria-label="Confirmar saída">
+        <img src="/shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='&#x1F6AA;'">
+      </button>
+
+      <p class="sair-texto-titulo">Sair da conta?</p>
+      <p class="sair-texto-sub">
+        Toque no ícone acima para confirmar.<br>
+        Você precisará fazer login novamente.
+      </p>
+      <p class="sair-hint">ou toque em Voltar para cancelar</p>
     </div>
   </main>
 
@@ -823,15 +834,15 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav-offline">
     <button class="nav-btn" data-tela="inicio" onclick="Pro.nav('inicio')">
-      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
       <span class="nav-label">Início</span>
     </button>
     <button class="nav-btn" data-tela="pesquisa" onclick="Pro.nav('pesquisa')">
-      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
       <span class="nav-label">Pesquisar</span>
     </button>
     <button class="nav-btn" onclick="Pro.nav('login')">
-      <div class="nav-pill"><img src="../../shared/img/login.svg" alt="Entrar"></div>
+      <div class="nav-pill"><img src="/shared/img/login.svg" alt="Entrar"></div>
       <span class="nav-label">Entrar</span>
     </button>
   </nav>
@@ -841,32 +852,32 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav">
     <button class="nav-btn" data-tela="inicio" onclick="Pro.nav('inicio')">
-      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
       <span class="nav-label">Início</span>
     </button>
 
     <button class="nav-btn" data-tela="agenda" onclick="Pro.nav('agenda')">
-      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Agenda"></div>
+      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Agenda"></div>
       <span class="nav-label">Agenda</span>
     </button>
 
     <button class="nav-btn" data-tela="mensagens" onclick="Pro.nav('mensagens')">
-      <div class="nav-pill"><img src="../../shared/img/mensagen.svg" alt="Mensagens"></div>
+      <div class="nav-pill"><img src="/shared/img/mensagen.svg" alt="Mensagens"></div>
       <span class="nav-label">Mensagens</span>
     </button>
 
     <button class="nav-btn" data-tela="minha-barbearia" onclick="Pro.nav('minha-barbearia')">
-      <div class="nav-pill"><img src="../../shared/img/meu-b.svg" alt="Minha Barbearia"></div>
+      <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Minha Barbearia"></div>
       <span class="nav-label">Minha Barbearia</span>
     </button>
 
     <button class="nav-btn" data-tela="perfil" onclick="Pro.nav('perfil')">
-      <div class="nav-pill"><img src="../../shared/img/perfil.svg" alt="Perfil"></div>
+      <div class="nav-pill"><img src="/shared/img/perfil.svg" alt="Perfil"></div>
       <span class="nav-label">Perfil</span>
     </button>
 
     <button class="nav-btn" data-tela="sair" onclick="Pro.nav('sair')">
-      <div class="nav-pill"><img src="../../shared/img/sair.svg" alt="Sair"></div>
+      <div class="nav-pill"><img src="/shared/img/sair.svg" alt="Sair"></div>
       <span class="nav-label">Sair</span>
     </button>
   </nav>
@@ -877,12 +888,24 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Serviço Supabase compartilhado -->
 <script src="/shared/js/SupabaseService.js"></script>
+<!-- Cache de sessão e avatar (localStorage) -->
+<script src="/shared/js/SessionCache.js"></script>
+<!-- Configuração centralizada de navegação (menu + rodapé) -->
+<script src="/shared/js/NavConfig.js"></script>
+<!-- Serviço de autenticação -->
+<script src="/shared/js/AuthService.js"></script>
+<!-- Tela de saída com animações (POO) -->
+<script src="/shared/js/LogoutScreen.js"></script>
 <!-- Shared Router base class -->
 <script src="/shared/js/Router.js"></script>
 <!-- Componente BarberPole -->
 <script src="/shared/js/BarberPole.js"></script>
+<!-- Efeito glow nas logos -->
+<script src="/shared/js/LogoGlow.js"></script>
+<!-- Layout de stories 3x3 -->
+<script src="/shared/js/StoriesLayout.js"></script>
 <!-- App Profissional logic -->
-<script src="/profissional/assets/js/app.js"></script>
+<script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
 </body>
 </html>

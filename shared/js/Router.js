@@ -47,11 +47,30 @@ class Router {
     this._atualizarUI(telaInicial);
     this._bindLoginEvent();
 
-    // Limpa overlay residual caso a página seja restaurada do bfcache
+    // Remove boot-lock e libera o CSS normal
+    document.getElementById('boot-lock')?.remove();
+
+    // Restaura estado correto quando a página volta do bfcache
     window.addEventListener('pageshow', (e) => {
-      if (e.persisted) {
-        document.querySelectorAll('.splash-overlay').forEach(el => el.remove());
-      }
+      if (!e.persisted) return;
+
+      // Remove overlay de splash residual
+      document.querySelectorAll('.splash-overlay').forEach(el => el.remove());
+
+      // Cancela animações em curso e reseta todas as telas para o estado inicial
+      document.querySelectorAll('.tela').forEach(t => {
+        t.getAnimations().forEach(a => a.cancel());
+        t.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
+        t.style.display       = '';
+        t.style.pointerEvents = '';
+        t.style.transform     = '';
+      });
+
+      // Volta sempre para o home — nunca exibe login ou outra tela no retorno
+      this._telaAtual   = 'inicio';
+      this._historico   = [];
+      this._navegandoApp = false;
+      this._atualizarUI('inicio');
     });
   }
 
@@ -65,6 +84,16 @@ class Router {
   sair() {
     this._logado = false;
     this._atualizarUI(this._telaAtual);
+  }
+
+  /**
+   * Confirma o logout via LogoutScreen (POO):
+   * tela-sair + footer logado → saem pela DIREITA
+   * footer deslogado → entra pela ESQUERDA
+   * Chamado pelo botão central da tela-sair.
+   */
+  confirmarSaida() {
+    LogoutScreen.executar(this);
   }
 
   /**
@@ -277,6 +306,11 @@ class Router {
     this._navBtns.forEach(btn =>
       btn.classList.toggle('ativo', btn.dataset.tela === tela)
     );
+
+    // Marca item ativo no menu lateral
+    document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
+      item.classList.toggle('ativo', item.dataset.tela === tela)
+    );
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -292,6 +326,8 @@ class Router {
   _abrirMenu() {
     document.getElementById('menu-drawer')?.classList.add('aberto');
     document.getElementById('menu-overlay')?.classList.add('ativo');
+    const btn = document.querySelector('.header-menu-btn');
+    if (btn) btn.classList.add('menu-aberto');
     const icon = document.getElementById('icon-menu');
     if (icon) icon.src = '/shared/img/icones-menu-fechado.png';
   }
@@ -299,6 +335,8 @@ class Router {
   fecharMenu() {
     document.getElementById('menu-drawer')?.classList.remove('aberto');
     document.getElementById('menu-overlay')?.classList.remove('ativo');
+    const btn = document.querySelector('.header-menu-btn');
+    if (btn) btn.classList.remove('menu-aberto');
     const icon = document.getElementById('icon-menu');
     if (icon) icon.src = '/shared/img/icones-menu.png';
   }
@@ -327,18 +365,88 @@ class Router {
 
   previewAvatar(input) {
     if (!input.files || !input.files[0]) return;
-    const url = URL.createObjectURL(input.files[0]);
+    const file = input.files[0];
+
+    // 1. Preview instantâneo (antes do upload)
+    const localUrl = URL.createObjectURL(file);
     ['menu-avatar-img', 'header-avatar-img'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.src = url;
+      el.src = localUrl;
       el.style.filter  = 'none';
       el.style.opacity = '1';
+    });
+
+    // 2. Upload assíncrono para Supabase Storage
+    this._uploadAvatar(file);
+  }
+
+  async _uploadAvatar(file) {
+    try {
+      const user = await SupabaseService.getUser();
+      if (!user) return;
+
+      // Comprime para máx 512KB antes de enviar
+      const blob = await this._comprimirImagem(file, 512);
+
+      const ext  = file.name.split('.').pop().toLowerCase().replace('jpg','jpeg');
+      const path = `${user.id}/avatar.${ext}`;
+
+      // Faz o upload (upsert — substitui se já existir)
+      const { error: upErr } = await SupabaseService.client.storage
+        .from('avatars')
+        .upload(path, blob, { upsert: true, contentType: blob.type });
+
+      if (upErr) throw upErr;
+
+      // Atualiza o avatar_path no profile
+      await SupabaseService.client
+        .from('profiles')
+        .update({ avatar_path: path, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      // Substitui o preview local pela URL pública definitiva
+      const { data } = SupabaseService.client.storage.from('avatars').getPublicUrl(path);
+      const publicUrl = data.publicUrl + '?t=' + Date.now(); // cache-bust
+      ['menu-avatar-img', 'header-avatar-img'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.src = publicUrl;
+      });
+
+      // Persiste a URL no cache local para carregamento imediato no próximo acesso
+      if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
+
+    } catch (e) {
+      console.warn('[Avatar] Erro no upload:', e.message);
+    }
+  }
+
+  async _comprimirImagem(file, maxKB) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = maxKB * 1024;
+        let w = img.width, h = img.height;
+        const max = 600;
+        if (w > max || h > max) {
+          const r = Math.min(max / w, max / h);
+          w = Math.round(w * r); h = Math.round(h * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(b => resolve(b || file), 'image/jpeg', 0.82);
+      };
+      img.onerror = () => resolve(file);
+      img.src = URL.createObjectURL(file);
     });
   }
 
   abrirUploadAvatar() {
-    if (!this._logado) { this.fecharMenu(); this.nav('login'); return; }
+    const logado = !!(typeof AuthService !== 'undefined'
+      ? AuthService.getPerfil()
+      : this._logado);
+    if (!logado) { this.fecharMenu(); this.nav('login'); return; }
     document.getElementById('menu-avatar-input').click();
   }
 
@@ -378,8 +486,11 @@ class Router {
 
     const tipo = url.toLowerCase().includes('profissional') ? 'Profissional' : 'Cliente';
 
-    // Exibe splash aqui na origem — ao fim navega para o destino
-    this._exibirSplash(tipo, () => window.location.replace(url));
+    // Adiciona timestamp para garantir carga fresca — nunca usa bfcache
+    const urlFresca = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+
+    // Exibe splash aqui na origem — ao fim navega para o destino (sempre fresh)
+    this._exibirSplash(tipo, () => window.location.replace(urlFresca));
   }
 
   /**
@@ -396,7 +507,9 @@ class Router {
     const overlay = document.createElement('div');
     overlay.className = 'splash-overlay';
     overlay.innerHTML = `
+      <img class="splash-logo-menu" src="/shared/img/Logo01.png" alt="">
       <p class="splash-titulo">BEM-VINDO</p>
+      <img class="splash-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
       <div id="splash-polo"></div>
       <p class="splash-app">BarberFlow ${tipo}</p>
     `;
@@ -407,22 +520,25 @@ class Router {
       polo = new BarberPole(overlay.querySelector('#splash-polo'));
     }
 
-    // Após 2.5s: fade-out → remove overlay → executa callback (navega)
-    // Após 2.5s: inicia fade-out; ao terminar executa o callback (ex: navegar)
-    // IMPORTANTE: onFim() é chamado ANTES de remover o overlay para evitar
-    // flash da tela de trás entre overlay.remove() e window.location.replace().
-    // Quando há navegação a página inteira é substituída — cleanup desnecessário.
     setTimeout(() => {
       overlay.classList.add('saindo');
       setTimeout(() => {
         if (onFim) {
-          onFim(); // navega primeiro — página será substituída, overlay some junto
+          onFim();
         } else {
-          // Sem navegação: remove o overlay e para o polo manualmente
           if (polo) polo.destruir();
           overlay.remove();
         }
       }, 500);
     }, 2500);
+  }
+
+  /**
+   * Exibe splash de boas-vindas ao fazer login (sem navegar de app).
+   * Chamado pelo AuthService após login bem-sucedido.
+   */
+  splashLogin() {
+    const tipo = window.location.pathname.includes('profissional') ? 'Profissional' : 'Cliente';
+    this._exibirSplash(tipo, null);
   }
 }

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="BarberFlow — App do Cliente">
   <title>BarberFlow — Cliente</title>
-  <link rel="manifest" href="/cliente/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="/shared/img/icone-do-App.png">
 
   <!-- Shared CSS -->
@@ -17,7 +17,19 @@
   <link rel="stylesheet" href="/shared/css/components.css">
 
   <!-- App-specific CSS -->
-  <link rel="stylesheet" href="/cliente/assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+  <!-- Leaflet (mapa interativo) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+  <!-- Boot lock: oculta TODAS as telas instantaneamente antes de qualquer CSS externo carregar.
+       Impede FOUC (flash de telas) independente de Service Worker ou cache.
+       Removido pelo Router assim que o estado correto é aplicado. -->
+  <style id="boot-lock">
+    .tela { display: none !important; }
+    #tela-inicio { display: flex !important; }
+  </style>
 </head>
 <body>
 <div id="app">
@@ -27,14 +39,14 @@
   ============================================================ -->
   <header id="app-header">
     <button class="header-menu-btn" id="btn-menu" onclick="App.toggleMenu()">
-      <img id="icon-menu" src="../../shared/img/icones-menu.png" alt="Menu"
+      <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
            onerror="this.outerHTML='&#9776;'">
     </button>
     <div class="header-logo">
-      <h1 style="font-size:1.3rem;font-weight:900;color:var(--gold);letter-spacing:2px;pointer-events:none;">BarberFlow</h1>
+      <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
     </div>
-    <button class="header-avatar-btn" id="header-avatar-btn" onclick="App.nav('login')">
-      <img id="header-avatar-img" src="../../shared/img/icones-perfil.png" alt="Perfil">
+    <button class="header-avatar-btn" id="header-avatar-btn">
+      <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
       <span id="header-user-label">Entrar</span>
     </button>
   </header>
@@ -50,18 +62,17 @@
   <nav id="menu-drawer">
     <div class="menu-header">
       <div class="menu-logo">
-        <img src="../../shared/img/logoApp.png" alt="BarberFlow" onerror="this.style.display='none'">
-        <span>BarberFlow</span>
+        <img src="/shared/img/Logo01.png" alt="BarberFlow" onerror="this.style.display='none'">
       </div>
       <div class="menu-avatar-wrap">
           <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="App.abrirUploadAvatar()">
-          <img id="menu-avatar-img" src="../../shared/img/icones-perfil.png" alt="Avatar">
+          <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
           <div class="menu-avatar-upload">📷</div>
           <input type="file" accept="image/*" id="menu-avatar-input"
                  style="display:none" onchange="App.previewAvatar(this)">
         </div>
         <div>
-          <p class="menu-username" id="menu-username">Visitante
+          <p class="menu-username" id="menu-username">Visitante Cliente
             <small id="menu-user-sub">Faça login para continuar</small>
           </p>
         </div>
@@ -69,15 +80,15 @@
     </div>
     <ul class="menu-list-nav">
       <li class="menu-nav-item" onclick="App.fecharMenu(); App.nav('login')">
-        <img src="../../shared/img/login.svg" alt="">
+        <img src="/shared/img/login.svg" alt="">
         <span>Entrar</span>
       </li>
       <li class="menu-nav-item" onclick="App.fecharMenu(); App.nav('cadastro')">
-        <img src="../../shared/img/cadastro.svg" alt="">
+        <img src="/shared/img/cadastro.svg" alt="">
         <span>Cadastro</span>
       </li>
       <li class="menu-nav-item" onclick="App.fecharMenu(); App.nav('inicio')">
-        <img src="../../shared/img/inicio.svg" alt="">
+        <img src="/shared/img/inicio.svg" alt="">
         <span>Início</span>
       </li>
     </ul>
@@ -90,28 +101,29 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="login-tagline">Seu estilo, nossa arte</span>
       </div>
 
       <div class="login-form">
         <div class="form-field">
-          <label>E-mail ou telefone</label>
-          <input type="text" placeholder="seu@email.com" autocomplete="username">
+          <label>E-mail</label>
+          <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
         </div>
         <div class="form-field">
           <label>Senha</label>
-          <input type="password" placeholder="••••••••" autocomplete="current-password">
+          <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button class="btn btn-gold btn-full" onclick="App.entrar(); App.nav('inicio')">Entrar</button>
+        <p id="login-erro" class="form-erro"></p>
+        <button class="btn btn-gold btn-full" onclick="App.fazerLogin()">Entrar</button>
         <button class="btn btn-outline btn-full" onclick="App.push('cadastro')">Criar conta gratuita</button>
         <p class="login-link" style="text-align:center;">
           <a href="#" onclick="App.push('esqueceu-senha'); return false;" style="color:var(--text-muted);font-size:.8rem;">Esqueceu a senha?</a>
         </p>
         <p class="login-link">
           Sou profissional &rarr;
-          <a href="#" onclick="App.navegarApp('/profissional'); return false;">Acessar app profissional</a>
+          <a href="#" onclick="App.navegarApp('/apps/profissional/'); return false;">Acessar app profissional</a>
         </p>
       </div>
     </div>
@@ -124,7 +136,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="login-tagline">Crie sua conta grátis</span>
       </div>
@@ -132,25 +144,26 @@
       <div class="login-form">
         <div class="form-field">
           <label>Nome completo</label>
-          <input type="text" placeholder="Seu nome" autocomplete="name">
+          <input id="cad-nome" type="text" placeholder="Seu nome" autocomplete="name">
         </div>
         <div class="form-field">
           <label>E-mail</label>
-          <input type="email" placeholder="seu@email.com" autocomplete="email">
+          <input id="cad-email" type="email" placeholder="seu@email.com" autocomplete="email">
         </div>
         <div class="form-field">
           <label>Telefone</label>
-          <input type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
+          <input id="cad-tel" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
         </div>
         <div class="form-field">
           <label>Senha</label>
-          <input type="password" placeholder="Crie uma senha" autocomplete="new-password">
+          <input id="cad-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password">
         </div>
         <div class="form-field">
           <label>Confirmar senha</label>
-          <input type="password" placeholder="Repita a senha" autocomplete="new-password">
+          <input id="cad-senha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
         </div>
-        <button class="btn btn-gold btn-full" onclick="App.entrar(); App.nav('inicio')">Criar minha conta</button>
+        <p id="cad-erro" class="form-erro"></p>
+        <button class="btn btn-gold btn-full" onclick="App.fazerCadastro()">Criar minha conta</button>
         <p class="login-link">
           Já tenho conta &rarr;
           <a href="#" onclick="App.push('login'); return false;">Fazer login</a>
@@ -166,7 +179,7 @@
     <div class="login-bg">
       <div class="login-logo">
         <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img class="app-icon" src="../../shared/img/logoApp.png" alt="BarberFlow"
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
         <span class="login-tagline">Recuperar acesso</span>
       </div>
@@ -177,9 +190,10 @@
         </p>
         <div class="form-field">
           <label>E-mail cadastrado</label>
-          <input type="email" placeholder="seu@email.com" autocomplete="email">
+          <input id="rec-email" type="email" placeholder="seu@email.com" autocomplete="email">
         </div>
-        <button class="btn btn-gold btn-full" onclick="App.push('login')">Enviar link de recuperação</button>
+        <p id="rec-erro" class="form-erro"></p>
+        <button class="btn btn-gold btn-full" onclick="App.fazerRecuperacao()">Enviar link de recuperação</button>
         <p class="login-link">
           Lembrei a senha &rarr;
           <a href="#" onclick="App.push('login'); return false;">Fazer login</a>
@@ -196,90 +210,91 @@
 
       <!-- Stories -->
       <div>
-        <p class="sec-title">Stories</p>
-        <div class="h-scroll" style="padding-top:6px;gap:12px;align-items:flex-start;">
+        <h2 class="sec-title">Stories</h2>
+        <h3 class="stories-tagline">Barbearias Flow</h3>
+        <div class="stories-scroll">
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">João Barber</p>
               <p class="story-card-addr">Av. Paulista, 123</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">128</span>
             </button>
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Barbearia Elite</p>
               <p class="story-card-addr">Rua Augusta, 450</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">94</span>
             </button>
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Corte &amp; Arte</p>
               <p class="story-card-addr">R. dos Pinheiros, 78</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">217</span>
             </button>
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">King Cuts</p>
               <p class="story-card-addr">Al. Santos, 1200</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">63</span>
             </button>
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="App.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
-                     poster="../../shared/img/icones-perfil.png" class="story-video"></video>
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
-              <img class="story-shop-badge" src="../../shared/img/logoApp.png" alt="" onerror="this.style.display='none'">
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
             </div>
             <div class="story-card-info">
               <p class="story-card-name">Studio Beard</p>
               <p class="story-card-addr">Rua Haddock Lobo, 34</p>
             </div>
             <button class="story-like-btn" onclick="App.toggleLike(this)">
-              <img src="../../shared/img/icones_curtir.png" alt="curtir">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
               <span class="story-like-count">181</span>
             </button>
           </div>
@@ -288,40 +303,38 @@
       </div>
 
       <!-- Mapa GPS -->
-      <div>
-        <p class="sec-title">Barbearias Próximas</p>
-        <div class="map-box">
-          <span class="map-pin">📍</span>
-          <p>Mapa de barbearias próximas<br>
-            <span style="font-size:.72rem;color:var(--text-dim);">Ative o GPS para ver barbearias perto de você</span>
-          </p>
-        </div>
+      <div id="section-mapa">
+        <h2 class="sec-title">Barbearias Próximas</h2>
+        <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
+        <div id="mapa-container" class="mapa-container"></div>
+        <!-- NearbyBarbershopsWidget: lista de barbearias abaixo do mapa -->
+        <div id="nearby-map-widget"></div>
       </div>
 
       <!-- Fila ao vivo -->
       <div>
-        <p class="sec-title">Fila ao Vivo</p>
+        <h2 class="sec-title">Fila ao Vivo</h2>
         <div class="h-scroll">
           <div class="chair ocupada">
-            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>João</span>
             <span>Ocupada</span>
           </div>
           <div class="chair ocupada">
-            <img src="../../shared/img/icones-cadeira-salao.png" alt="cadeira"
+            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
                  onerror="this.outerHTML='💺'">
             <span>Pedro</span>
             <span>Ocupada</span>
           </div>
           <div class="chair livre">
-            <img src="../../shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+            <img src="/shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
                  onerror="this.outerHTML='🪑'">
             <span>—</span>
             <span>Livre</span>
           </div>
           <div class="chair espera">
-            <img src="../../shared/img/icones-cadeira-de-éspera.png" alt="espera"
+            <img src="/shared/img/icones-cadeira-de-éspera.png" alt="espera"
                  onerror="this.outerHTML='⏳'">
             <span>+3</span>
             <span>Fila</span>
@@ -331,29 +344,29 @@
 
       <!-- Em destaque -->
       <div>
-        <p class="sec-title">Em Destaque</p>
+        <h2 class="sec-title">Em Destaque</h2>
         <div class="h-scroll">
           <div class="card-mini">
             <div class="avatar gold">✂️</div>
-            <strong style="font-size:.83rem;">Barbearia Elite</strong>
+            <strong class="destaque-name">Barbearia Elite</strong>
             <div class="stars">★★★★★</div>
             <span class="badge">Aberto</span>
           </div>
           <div class="card-mini">
             <div class="avatar gold">💈</div>
-            <strong style="font-size:.83rem;">Corte &amp; Arte</strong>
+            <strong class="destaque-name">Corte &amp; Arte</strong>
             <div class="stars">★★★★☆</div>
             <span class="badge">Aberto</span>
           </div>
           <div class="card-mini">
             <div class="avatar gold">👑</div>
-            <strong style="font-size:.83rem;">King Cuts</strong>
+            <strong class="destaque-name">King Cuts</strong>
             <div class="stars">★★★★★</div>
             <span class="badge">Aberto</span>
           </div>
           <div class="card-mini">
             <div class="avatar" style="border-color:var(--text-dim);">🪒</div>
-            <strong style="font-size:.83rem;">Studio Beard</strong>
+            <strong class="destaque-name">Studio Beard</strong>
             <div class="stars" style="color:var(--text-dim);">★★★☆☆</div>
             <span class="badge closed">Fechado</span>
           </div>
@@ -362,11 +375,19 @@
 
       <!-- Barbeiros populares -->
       <div>
-        <p class="sec-title">Barbeiros Populares</p>
+        <h2 class="sec-title">Barbearias Populares Próximas de Você</h2>
+        <div id="nearby-barbershops-widget" class="nearby-hint-wrap">
+          <p class="nearby-hint-msg">
+            Olá, <strong id="nearby-hint-nome">Anônimo</strong>! 👋<br>
+            Ative o GPS em <span class="nearby-hint-link" onclick="document.getElementById('section-mapa').scrollIntoView({behavior:'smooth'})">Barbearias Próximas</span>
+            acima para ver as barbearias e barbeiros mais próximos de você.
+          </p>
+        </div>
+        <h2 class="sec-title">Barbeiros Populares</h2>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="barber-row">
             <div class="avatar gold">
-              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
+              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
                    onerror="this.outerHTML='💇'">
             </div>
             <div class="barber-info">
@@ -407,93 +428,30 @@
        TELA — PESQUISA
   ============================================================ -->
   <main id="tela-pesquisa" class="tela">
-    <div class="content">
-      <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img src="../../shared/img/pesquisa.svg" alt="buscar">
-        <input type="search" placeholder="Barbearia, barbeiro, bairro…">
-      </div>
 
-      <div class="tags">
-        <span class="tag on">Todos</span>
-        <span class="tag">Degradê</span>
-        <span class="tag">Barba</span>
-        <span class="tag">Social</span>
-        <span class="tag">Infantil</span>
-        <span class="tag">Freestyle</span>
-        <span class="tag">Sobrancelha</span>
-        <span class="tag">Antes e Depois</span>
-      </div>
-
-      <div>
-        <p class="sec-title">Barbearias</p>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="barber-row">
-            <div class="avatar gold">✂️</div>
-            <div class="barber-info">
-              <p class="barber-name">Barbearia Elite</p>
-              <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.9</span>
-              <span class="badge">Aberto</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">💈</div>
-            <div class="barber-info">
-              <p class="barber-name">Corte &amp; Arte</p>
-              <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.6</span>
-              <span class="badge">Aberto</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">👑</div>
-            <div class="barber-info">
-              <p class="barber-name">King Cuts</p>
-              <p class="barber-sub">R. Oscar Freire, 789 · 1.4 km</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.8</span>
-              <span class="badge">Aberto</span>
-            </div>
-          </div>
+    <!-- Barra de busca fixa no topo da tela -->
+    <div class="search-bar-wrap">
+      <div class="search-bar">
+        <div class="search-bar-icon">
+          <img src="/shared/img/Logo01.png" alt="BarberFlow"
+               onerror="this.outerHTML='💈'">
         </div>
-      </div>
-
-      <div>
-        <p class="sec-title">Barbeiros</p>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="barber-row">
-            <div class="avatar gold">
-              <img src="../../shared/img/icones-perfil.png" alt="barbeiro"
-                   onerror="this.outerHTML='💇'">
-            </div>
-            <div class="barber-info">
-              <p class="barber-name">João Silva</p>
-              <p class="barber-sub">Barbearia Elite · Degradê</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.9</span>
-              <span class="price">R$ 35</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">🧔</div>
-            <div class="barber-info">
-              <p class="barber-name">Rafael Costa</p>
-              <p class="barber-sub">Corte &amp; Arte · Barba</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.8</span>
-              <span class="price">R$ 28</span>
-            </div>
-          </div>
-        </div>
+        <input
+          id="pesquisa-input"
+          type="search"
+          class="search-bar-input"
+          placeholder="Nome, bairro, rua ou CEP…"
+          autocomplete="off"
+          enterkeyhint="search"
+        >
       </div>
     </div>
+
+    <!-- Resultados dinâmicos -->
+    <div class="content search-content">
+      <div id="pesquisa-resultados"></div>
+    </div>
+
   </main>
 
   <!-- ============================================================
@@ -519,7 +477,7 @@
         </div>
         <div class="chat-item">
           <div class="avatar gold">
-            <img src="../../shared/img/icones-perfil.png" alt="perfil"
+            <img src="/shared/img/icones-perfil.png" alt="perfil"
                  onerror="this.outerHTML='💇'">
           </div>
           <div class="chat-info">
@@ -599,7 +557,7 @@
     <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
     <div class="profile-hero">
       <div class="profile-avatar">
-        <img src="../../shared/img/icones-perfil.png" alt="avatar"
+        <img src="/shared/img/icones-perfil.png" alt="avatar"
              onerror="this.outerHTML='😎'">
       </div>
       <p class="profile-name">Lucas Oliveira</p>
@@ -631,7 +589,7 @@
         <div class="gold-line" style="margin:4px 0;"></div>
         <div class="menu-item" onclick="App.nav('sair')">
           <div class="menu-icon" style="background:rgba(224,82,82,.1);">
-            <img src="../../shared/img/sair.svg" alt="sair"
+            <img src="/shared/img/sair.svg" alt="sair"
                  style="width:20px;filter:brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);"
                  onerror="this.outerHTML='🚪'">
           </div>
@@ -648,18 +606,18 @@
   <main id="tela-sair" class="tela">
     <div class="sair-wrap">
       <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-        <img src="../../shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
-      </div>
-      <div>
-        <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
-        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto;">
-          Você precisará fazer login novamente para acessar sua conta.
-        </p>
-      </div>
-      <div class="sair-btns">
-          <button class="btn btn-danger btn-full" onclick="App.sair(); App.nav('inicio')">Sim, quero sair</button>
-        <button class="btn btn-outline btn-full" onclick="App.voltar()">Cancelar</button>
-      </div>
+
+      <!-- Ícone central — clique confirma o logout -->
+      <button class="sair-icone-btn" onclick="App.confirmarSaida()" aria-label="Confirmar saída">
+        <img src="/shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='&#x1F6AA;'">
+      </button>
+
+      <p class="sair-texto-titulo">Sair da conta?</p>
+      <p class="sair-texto-sub">
+        Toque no ícone acima para confirmar.<br>
+        Você precisará fazer login novamente.
+      </p>
+      <p class="sair-hint">ou toque em Voltar para cancelar</p>
     </div>
   </main>
 
@@ -668,15 +626,15 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav-offline">
     <button class="nav-btn" data-tela="inicio" onclick="App.nav('inicio')">
-      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
       <span class="nav-label">Início</span>
     </button>
     <button class="nav-btn" data-tela="pesquisa" onclick="App.nav('pesquisa')">
-      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
       <span class="nav-label">Pesquisar</span>
     </button>
     <button class="nav-btn" onclick="App.nav('login')">
-      <div class="nav-pill"><img src="../../shared/img/login.svg" alt="Entrar"></div>
+      <div class="nav-pill"><img src="/shared/img/login.svg" alt="Entrar"></div>
       <span class="nav-label">Entrar</span>
     </button>
   </nav>
@@ -686,33 +644,33 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav">
     <button class="nav-btn" data-tela="inicio" onclick="App.nav('inicio')">
-      <div class="nav-pill"><img src="../../shared/img/inicio.svg" alt="Início"></div>
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
       <span class="nav-label">Início</span>
     </button>
 
     <button class="nav-btn" data-tela="pesquisa" onclick="App.nav('pesquisa')">
-      <div class="nav-pill"><img src="../../shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
       <span class="nav-label">Pesquisar</span>
     </button>
 
     <button class="nav-btn" data-tela="mensagens" onclick="App.nav('mensagens')">
       <span class="nav-dot"></span>
-      <div class="nav-pill"><img src="../../shared/img/mensagen.svg" alt="Mensagens"></div>
+      <div class="nav-pill"><img src="/shared/img/mensagen.svg" alt="Mensagens"></div>
       <span class="nav-label">Mensagens</span>
     </button>
 
     <button class="nav-btn" data-tela="favoritas" onclick="App.nav('favoritas')">
-      <div class="nav-pill"><img src="../../shared/img/meu-b.svg" alt="Favoritas"></div>
+      <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Favoritas"></div>
       <span class="nav-label">Favoritas</span>
     </button>
 
     <button class="nav-btn" data-tela="perfil" onclick="App.nav('perfil')">
-      <div class="nav-pill"><img src="../../shared/img/perfil.svg" alt="Perfil"></div>
+      <div class="nav-pill"><img src="/shared/img/perfil.svg" alt="Perfil"></div>
       <span class="nav-label">Perfil</span>
     </button>
 
     <button class="nav-btn" data-tela="sair" onclick="App.nav('sair')">
-      <div class="nav-pill"><img src="../../shared/img/sair.svg" alt="Sair"></div>
+      <div class="nav-pill"><img src="/shared/img/sair.svg" alt="Sair"></div>
       <span class="nav-label">Sair</span>
     </button>
   </nav>
@@ -723,12 +681,33 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Serviço Supabase compartilhado -->
 <script src="/shared/js/SupabaseService.js"></script>
+<!-- Cache de sessão e avatar (localStorage) -->
+<script src="/shared/js/SessionCache.js"></script>
+<!-- Configuração centralizada de navegação (menu + rodapé) -->
+<script src="/shared/js/NavConfig.js"></script>
+<!-- Serviço de autenticação -->
+<script src="/shared/js/AuthService.js"></script>
+<!-- Tela de saída com animações (POO) -->
+<script src="/shared/js/LogoutScreen.js"></script>
 <!-- Shared Router base class -->
 <script src="/shared/js/Router.js"></script>
 <!-- Componente BarberPole -->
 <script src="/shared/js/BarberPole.js"></script>
+<!-- Efeito glow nas logos -->
+<script src="/shared/js/LogoGlow.js"></script>
+<!-- Viewer expandido de stories com flip animation -->
+<script src="/shared/js/StoryViewer.js"></script>
+<!-- Layout de stories 3x3 -->
+<script src="/shared/js/StoriesLayout.js"></script>
+<!-- Geolocalização GPS -->  <!-- Leaflet JS (mapa interativo) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLdQ=" crossorigin=""></script>
+<script src="/shared/js/GeoService.js"></script>
+<!-- Widget de barbearias próximas -->
+<script src="/shared/js/NearbyBarbershopsWidget.js"></script>  <script src="/shared/js/MapWidget.js"></script><!-- Widget de pesquisa dinâmica -->
+<script src="/shared/js/SearchWidget.js"></script>
 <!-- App Cliente logic -->
-<script src="/cliente/assets/js/app.js"></script>
+<script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
 </body>
 </html>
