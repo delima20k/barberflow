@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "trailingSlash": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/cliente/sw.js",
@@ -36,6 +36,10 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
+  ],
+  "redirects": [
+    { "source": "/cliente",      "destination": "/cliente/",      "permanent": false },
+    { "source": "/profissional", "destination": "/profissional/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/cliente/",            "destination": "/apps/cliente/index.html"      },
