@@ -1,6 +1,7 @@
 {
   "version": 2,
   "buildCommand": "cp -r ../../shared .",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/sw.js",
