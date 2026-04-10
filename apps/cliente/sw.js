@@ -1,11 +1,11 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-cliente-v6';
+const CACHE_NAME = 'barberflow-cliente-v7';
 
 const ASSETS = [
-  '/apps/cliente/manifest.json',
-  '/apps/cliente/assets/css/styles.css',
-  '/apps/cliente/assets/js/app.js',
+  '/manifest.json',
+  '/assets/css/styles.css',
+  '/assets/js/app.js',
   '/shared/css/tokens.css',
   '/shared/css/components.css',
   '/shared/js/Router.js',

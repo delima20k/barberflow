@@ -47,3 +47,7 @@ logs/
 # Cache
 .cache/
 .parcel-cache/
+
+# Build artifacts — pasta shared copiada pelo buildCommand da Vercel
+apps/cliente/shared/
+apps/profissional/shared/

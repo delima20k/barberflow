@@ -3,8 +3,8 @@
   "short_name": "BarberFlow",
   "description": "Agende, acompanhe a fila e descubra barbearias perto de você",
   "id": "com.barberflow.cliente",
-  "start_url": "/cliente/",
-  "scope": "/cliente/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0a0a0a",
@@ -14,13 +14,13 @@
   "categories": ["lifestyle", "shopping"],
   "icons": [
     {
-      "src": "../../shared/img/icon-192.png",
+      "src": "/shared/img/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "../../shared/img/icon-512.png",
+      "src": "/shared/img/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

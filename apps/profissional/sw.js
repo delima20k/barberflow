@@ -1,12 +1,12 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-profissional-v6';
+const CACHE_NAME = 'barberflow-profissional-v7';
 
 // HTML nunca entra na lista — sempre servido da rede
 const ASSETS = [
-  '/apps/profissional/manifest.json',
-  '/apps/profissional/assets/css/styles.css',
-  '/apps/profissional/assets/js/app.js',
+  '/manifest.json',
+  '/assets/css/styles.css',
+  '/assets/js/app.js',
   '/shared/css/tokens.css',
   '/shared/css/components.css',
   '/shared/js/Router.js',
