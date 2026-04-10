@@ -13,7 +13,7 @@
   padding: 4px 16px;
   border-radius: var(--r-full);
   background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-  color: var(--bg);
+  color: var(--cta-text);
 }
 
 /* ── Badge variantes pro ────────────────────────────────────── */
@@ -29,15 +29,16 @@
 
 .kpi {
   background: var(--card);
-  border: 1px solid var(--gold-border);
+  border: 1px solid var(--border-soft);
   border-radius: var(--r-md);
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-shadow: var(--shadow-soft);
 }
 .kpi.destaque {
-  background: linear-gradient(135deg, rgba(212,175,55,.14), rgba(184,148,31,.06));
+  background: linear-gradient(135deg, rgba(242,183,5,.16), rgba(107,74,50,.08));
   border-color: rgba(212,175,55,.4);
 }
 .kpi-icon { font-size: 1.4rem; margin-bottom: 4px; }
@@ -60,7 +61,7 @@
   padding: 14px;
   background: var(--card);
   border-radius: var(--r-md);
-  border: 1px solid var(--gold-border);
+  border: 1px solid var(--border-soft);
   cursor: pointer;
   transition: border-color var(--ease);
 }
@@ -81,7 +82,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, rgba(212,175,55,.15), rgba(184,148,31,.07));
+  background: linear-gradient(135deg, rgba(242,183,5,.18), rgba(107,74,50,.08));
   border: 1px solid rgba(212,175,55,.35);
   border-radius: var(--r-lg);
   padding: 28px 24px;
@@ -113,7 +114,7 @@
   justify-content: center;
   font-size: 1.5rem;
   cursor: pointer;
-  border: 1px solid var(--gold-border);
+  border: 1px solid var(--border-soft);
   transition: border-color var(--ease);
   overflow: hidden;
 }

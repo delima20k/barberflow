@@ -18,7 +18,7 @@ class BarberPole {
 
   // ── Configuração ────────────────────────────────────────────
   // Cores do sistema intercaladas com branco: ouro, branco, marrom, branco, preto, branco, vermelho, branco
-  static #CORES    = ['#D4AF37', '#FFFFFF', '#5C3317', '#FFFFFF', '#1a0800', '#FFFFFF', '#8B2500', '#FFFFFF'];
+  static #CORES_FALLBACK = ['#D4AF37', '#FFFFFF', '#5C3317', '#FFFFFF', '#1a0800', '#FFFFFF', '#8B2500', '#FFFFFF'];
   static #CICLO    = 800;  // 8 cores × 100px — período completo
   static #PASSO    = 4;    // pixels avançados por frame (velocidade)
   static #MS_FRAME = 20;   // ~50fps — balanceado para mobile/TWA
@@ -77,11 +77,30 @@ class BarberPole {
     return s;
   }
 
+  #obterCores() {
+    const css = getComputedStyle(document.documentElement);
+    const ler = (token, fallback) => {
+      const valor = css.getPropertyValue(token).trim();
+      return valor || fallback;
+    };
+
+    return [
+      ler('--gold', BarberPole.#CORES_FALLBACK[0]),
+      '#FFFFFF',
+      ler('--wood-1', BarberPole.#CORES_FALLBACK[2]),
+      '#FFFFFF',
+      ler('--wood-darker', BarberPole.#CORES_FALLBACK[4]),
+      '#FFFFFF',
+      '#8B2500',
+      '#FFFFFF',
+    ];
+  }
+
   // ── Render de um frame ───────────────────────────────────────
   #render() {
     const svg   = this.#svg;
     const f     = this.#frame;
-    const cores = BarberPole.#CORES;
+    const cores = this.#obterCores();
 
     // Limpa SVG de forma eficiente
     while (svg.firstChild) svg.removeChild(svg.firstChild);
