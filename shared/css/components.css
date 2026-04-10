@@ -470,16 +470,64 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0; /* impede flex de comprimir — ativa scroll na .tela */
-  gap: 22px;
+  gap: var(--space-section);
   padding: 16px;
 }
 
-.sec-title {
-  font-size: 1rem;
-  font-weight: 700;
+/* ── Hierarquia Tipográfica Reutilizável ───────────────────── */
+.title-large,
+.type-title-large {
+  font-family: var(--font-display);
+  font-size: var(--fs-title-large);
+  font-weight: var(--fw-title-large);
+  line-height: var(--lh-title-large);
+  color: var(--text);
+  margin-bottom: var(--space-title-content);
+}
+
+.section-title,
+.type-section-title {
+  font-family: var(--font);
+  font-size: var(--fs-section-title);
+  font-weight: var(--fw-section-title);
+  line-height: var(--lh-section-title);
+  color: var(--text);
+}
+
+.card-title,
+.type-card-title {
+  font-family: var(--font);
+  font-size: var(--fs-card-title);
+  font-weight: var(--fw-card-title);
+  line-height: var(--lh-body);
+  color: var(--text);
+}
+
+.body-text,
+.type-body-text {
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-body);
+  line-height: var(--lh-body);
+  color: var(--text);
+}
+
+.caption,
+.type-caption {
+  font-family: var(--font);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-caption);
+  line-height: var(--lh-caption);
   color: var(--text-muted);
-  letter-spacing: .8px;
-  text-transform: uppercase;
+}
+
+.sec-title {
+  font-family: var(--font);
+  font-size: var(--fs-section-title);
+  font-weight: var(--fw-section-title);
+  color: var(--text);
+  letter-spacing: .2px;
+  text-transform: none;
   margin: 0;
   display: flex;
   align-items: center;
@@ -571,13 +619,143 @@
 
 /* ── Stories Tagline ──────────────────────────────────────────── */
 .stories-tagline {
-  font-family: var(--font-script);
-  font-size: 1.15rem;
-  font-weight: 900;
+  font-family: var(--font-display);
+  font-size: var(--fs-section-title);
+  font-weight: var(--fw-title-large);
   text-align: center;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   margin: 2px 0 8px;
+  background: linear-gradient(90deg, var(--brown-light), var(--gold), var(--brown-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+}
+
+/* ── Stories Scroll — 3 cards visíveis, snap 1 card por vez ───── */
+.stories-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  margin-inline: -16px;
+  align-items: flex-start;
+}
+.stories-scroll::-webkit-scrollbar { display: none; }
+
+.stories-scroll .story-card {
+  width: calc((100% - 16px) / 3);
+  min-width: 0;
+  max-width: none;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+.stories-scroll .story-card .story-video-wrap {
+  height: auto;
+  aspect-ratio: 3 / 4;
+}
+
+.stories-scroll .story-card .story-shop-badge {
+  width: 38px;
+  height: 38px;
+}
+
+.stories-scroll .story-card .story-card-info {
+  padding: 5px 7px 2px;
+}
+
+.destaque-name,
+.stories-scroll .story-card .story-card-name {
+  font-family: var(--font);
+  font-size: var(--fs-card-title);
+  font-weight: var(--fw-card-title);
+  background: linear-gradient(90deg, var(--brown-light), var(--gold), var(--brown-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stories-scroll .story-card .story-card-addr { font-size: var(--fs-caption); }
+.stories-scroll .story-card .story-like-btn {
+  padding: 4px 7px 7px;
+  gap: 3px;
+}
+.stories-scroll .story-card .story-like-btn img { width: 15px; height: 15px; }
+.stories-scroll .story-card .story-like-count { font-size: var(--fs-caption); }
+
+.story-shop-badge {
+  width: 77px;
+  height: 77px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  object-fit: cover;
+  background: var(--card);
+}
+.story-card-info {
+  padding: 8px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.story-card-name {
+  font-size: var(--fs-card-title);
+  font-weight: var(--fw-card-title);
+  font-family: var(--font);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.story-card-addr {
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.story-like-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px 10px;
+  -webkit-tap-highlight-color: transparent;
+}
+.story-like-btn img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.story-like-btn.curtido img {
+  filter: brightness(0) saturate(100%) invert(20%) sepia(90%) saturate(1000%) hue-rotate(340deg);
+  animation: likePop .2s ease;
+}
+.story-like-count {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.story-like-btn.curtido .story-like-count { color: #e74c3c; }
+@keyframes likePop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.4)} }
+
+/* ── Stories Tagline ──────────────────────────────────────────── */
+.stories-tagline {
+  font-family: var(--font-display);
+  font-size: var(--fs-section-title);
+  font-weight: var(--fw-title-large);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 2px 0 8px;
+  text-align: center;
   background: linear-gradient(90deg, var(--brown-light), var(--gold), var(--brown-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -629,7 +807,7 @@
 /* Nome compartilhado: Stories + Em Destaque — mesma fonte e tamanho */
 .destaque-name,
 .stories-scroll .story-card .story-card-name {
-  font-family: var(--font-names);
+  font-family: var(--font);
   font-size: 2rem;
   font-weight: 700;
   background: linear-gradient(90deg, var(--brown-light), var(--gold), var(--brown-light));
@@ -684,7 +862,7 @@
 .story-card-name {
   font-size: .95rem;
   font-weight: 700;
-  font-family: var(--font-names);
+  font-family: var(--font);
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -798,7 +976,7 @@
 .btn-outline:hover { background: var(--gold-muted); }
 
 .btn-danger { background: var(--danger); color: #fff; }
-.btn-sm     { padding: 7px 16px; font-size: .78rem; }
+.btn-sm     { padding: 7px 16px; font-size: var(--fs-caption); }
 
 /* ── Stories ────────────────────────────────────────────────── */
 .story-item {
@@ -1313,8 +1491,8 @@
 }
 .barber-row:hover { border-color: rgba(212, 175, 55, .5); transform: translateX(3px); }
 .barber-info      { flex: 1; min-width: 0; }
-.barber-name      { font-size: 1.08rem; font-weight: 700; font-family: var(--font); }
-.barber-sub       { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+.barber-name      { font-size: var(--fs-card-title); font-weight: var(--fw-card-title); font-family: var(--font); }
+.barber-sub       { font-size: var(--fs-caption); color: var(--text-muted); margin-top: 2px; }
 .barber-meta      { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .price            { font-size: .8rem; font-weight: 700; color: var(--gold); }
 
@@ -1346,7 +1524,7 @@
 }
 .search-wrap:focus-within          { border-color: var(--gold); }
 .search-wrap img                   { width: 18px; opacity: .7; filter: brightness(0) saturate(100%) invert(24%) sepia(28%) saturate(829%) hue-rotate(344deg) brightness(91%) contrast(89%); flex-shrink: 0; }
-.search-wrap input                 { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: .92rem; font-family: var(--font); }
+.search-wrap input                 { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: var(--fs-body); font-family: var(--font); }
 .search-wrap input::placeholder    { color: var(--text-dim); }
 
 /* ── Chat List ──────────────────────────────────────────────── */
@@ -1363,10 +1541,10 @@
 }
 .chat-item:hover    { border-color: var(--gold-border); }
 .chat-info          { flex: 1; min-width: 0; }
-.chat-name          { font-size: .9rem; font-weight: 700; }
-.chat-preview       { font-size: .76rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.chat-name          { font-size: var(--fs-card-title); font-weight: var(--fw-card-title); }
+.chat-preview       { font-size: var(--fs-caption); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 .chat-meta          { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-.chat-time          { font-size: .67rem; color: var(--text-dim); }
+.chat-time          { font-size: var(--fs-caption); color: var(--text-dim); }
 .chat-badge         { background: var(--gold); color: var(--bg); font-size: .62rem; font-weight: 800; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
 /* ── Profile Hero ───────────────────────────────────────────── */
@@ -1391,8 +1569,8 @@
   overflow: hidden;
 }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.profile-name { font-size: 1.2rem; font-weight: 800; }
-.profile-sub  { font-size: .8rem; color: var(--text-muted); }
+.profile-name { font-family: var(--font-display); font-size: var(--fs-title-large); font-weight: var(--fw-title-large); line-height: var(--lh-title-large); }
+.profile-sub  { font-size: var(--fs-caption); color: var(--text-muted); }
 
 /* ── Stat Grid ──────────────────────────────────────────────── */
 .stat-grid {
@@ -1424,7 +1602,7 @@
 }
 .menu-item:hover { border-color: var(--gold-border); background: var(--card2); }
 .menu-icon  { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
-.menu-label { flex: 1; font-size: .9rem; font-weight: 600; }
+.menu-label { flex: 1; font-size: var(--fs-body); font-weight: var(--fw-section-title); }
 .menu-arrow { color: var(--text-dim); font-size: .9rem; }
 
 /* ── Sair Screen ────────────────────────────────────────────── */
@@ -1533,12 +1711,12 @@
 .login-logo     { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .login-logo .app-icon { width: 246px; height: 246px; object-fit: contain; }
 
-.login-tagline  { font-size: .78rem; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; }
+.login-tagline  { font-size: var(--fs-caption); color: var(--text-muted); letter-spacing: 1.4px; text-transform: uppercase; }
 
 .login-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
 
 .form-field         { display: flex; flex-direction: column; gap: 6px; }
-.form-field label   { font-size: .76rem; font-weight: 600; color: var(--text-muted); letter-spacing: .5px; }
+.form-field label   { font-size: var(--fs-caption); font-weight: var(--fw-section-title); color: var(--text-muted); letter-spacing: .2px; }
 .form-field input {
   width: 100%;
   padding: 13px 16px;
@@ -1546,7 +1724,7 @@
   border: 1.5px solid var(--border-soft);
   border-radius: var(--r-md);
   color: var(--text);
-  font-size: .93rem;
+  font-size: var(--fs-body);
   font-family: var(--font);
   outline: none;
   transition: border-color var(--ease), box-shadow var(--ease);
@@ -1554,7 +1732,7 @@
 .form-field input::placeholder { color: var(--text-dim); }
 .form-field input:focus        { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212, 175, 55, .1); }
 
-.login-link   { font-size: .8rem; color: var(--text-dim); text-align: center; line-height: 1.6; }
+.login-link   { font-size: var(--fs-caption); color: var(--text-dim); text-align: center; line-height: 1.6; }
 .login-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
 
 /* Mensagens de erro/sucesso nos formulários de auth */
@@ -1602,7 +1780,7 @@
 
 /* Título "BEM-VINDO" acima do polo */
 .splash-titulo {
-  font-family: 'Rye', serif;
+  font-family: var(--font-display);
   font-size: 1.55rem;
   color: #D4AF37;
   letter-spacing: 5px;
@@ -1613,7 +1791,7 @@
 
 /* Nome do app "BarberFlow Cliente/Profissional" abaixo do polo */
 .splash-app {
-  font-family: 'Rye', serif;
+  font-family: var(--font-display);
   font-size: 1.05rem;
   color: #ffffff;
   letter-spacing: 2.5px;
@@ -1642,8 +1820,8 @@
 /* ── Empty State ────────────────────────────────────────────── */
 .empty        { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 48px 24px; text-align: center; }
 .empty-icon   { width: 68px; height: 68px; border-radius: 50%; background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
-.empty-title  { font-size: 1rem; font-weight: 700; }
-.empty-text   { font-size: .82rem; color: var(--text-muted); line-height: 1.6; max-width: 270px; }
+.empty-title  { font-size: var(--fs-section-title); font-weight: var(--fw-section-title); }
+.empty-text   { font-size: var(--fs-caption); color: var(--text-muted); line-height: 1.6; max-width: 270px; }
 
 /* ── BarberPole Component ───────────────────────────────────── */
 
@@ -1714,7 +1892,7 @@
 }
 
 .bp-nome {
-  font-family: 'Rye', serif;
+  font-family: var(--font-display);
   font-size: 0.9rem;
   color: #D4AF37;
   letter-spacing: 1.5px;

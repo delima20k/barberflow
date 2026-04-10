@@ -9,6 +9,8 @@
   <meta name="description" content="BarberFlow — Conectando clientes e barbeiros">
   <title>BarberFlow</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -23,7 +25,8 @@
       --r-lg: 24px;
       --r-full: 9999px;
       --ease: .22s cubic-bezier(.4,0,.2,1);
-      --font: 'Segoe UI', system-ui, sans-serif;
+      --font: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
     }
 
     html, body {
@@ -134,7 +137,7 @@
       flex-shrink: 0;
     }
     .card-text   { flex: 1; }
-    .card-title  { font-size: 1rem; font-weight: 800; margin-bottom: 3px; }
+    .card-title  { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin-bottom: 3px; }
     .card-sub    { font-size: .76rem; color: var(--text-muted); line-height: 1.5; }
     .card-arrow  { color: var(--gold); font-size: 1.3rem; opacity: .7; }
 

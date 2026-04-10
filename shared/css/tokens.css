@@ -3,38 +3,8 @@
    Inclua este arquivo em TODOS os apps antes de components.css
 ============================================================ */
 
-/* ── Fontes Customizadas ──────────────────────────────────── */
-@font-face {
-  font-family: 'Broughton';
-  src: url('/shared/fonts/Broughton.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'QiduwyPesonaluse';
-  src: url('/shared/fonts/QiduwyPesonaluse.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Hadrey';
-  src: url('/shared/fonts/Hadrey.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'BabyAzalea';
-  src: url('/shared/fonts/Baby Azalea.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
+/* ── Fontes (somente Poppins + Playfair Display) ──────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -113,11 +83,31 @@
   --ease: .22s cubic-bezier(.4, 0, .2, 1);
 
   /* Tipografia */
-  --font: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'QiduwyPesonaluse', serif;
-  --font-text:    'Broughton', 'Segoe UI', sans-serif;
-  --font-names:   'Hadrey', 'Segoe UI', sans-serif;
-  --font-script:  'BabyAzalea', cursive;
+  --font: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+
+  /* Hierarquia tipográfica reutilizável */
+  --fs-title-large: clamp(1.375rem, 2.2vw, 1.75rem); /* 22px-28px */
+  --fs-section-title: clamp(1rem, 1.6vw, 1.125rem);  /* 16px-18px */
+  --fs-card-title: 0.95rem;                           /* ~15px */
+  --fs-body: 0.9rem;                                  /* ~14px */
+  --fs-caption: 0.8rem;                               /* ~13px */
+
+  --fw-title-large: 700;
+  --fw-section-title: 600;
+  --fw-card-title: 600;
+  --fw-body: 500;
+  --fw-caption: 400;
+
+  --lh-title-large: 1.25;
+  --lh-section-title: 1.35;
+  --lh-body: 1.5;
+  --lh-caption: 1.45;
+
+  /* Espaçamentos de hierarquia */
+  --space-title-content: 24px;
+  --space-section: 22px;
+  --space-item: 10px;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -131,9 +121,10 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Tipografia Custom ─────────────────────────────────────── */
-p  { font-family: var(--font); }
-h2 { font-family: var(--font-display); }
+/* ── Tipografia Base ───────────────────────────────────────── */
+p, input, textarea, button, label, span, small, li {
+  font-family: var(--font);
+}
 
 /* ── SPA Root ──────────────────────────────────────────────── */
 #app {

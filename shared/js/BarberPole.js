@@ -4,7 +4,7 @@
  * BarberFlow — Componente BarberPole
  *
  * Polo giratório animado com cores do sistema.
- * Auto-injeta a fonte Rye (Google Fonts) se não estiver presente.
+ * Usa a tipografia global definida no tema.
  *
  * Uso:
  *   <div id="meu-polo"></div>
@@ -36,18 +36,8 @@ class BarberPole {
    */
   constructor(container) {
     this.#container = container;
-    this.#carregarFonte();
     this.#montar();
     this.iniciar();
-  }
-
-  // ── Fonte ────────────────────────────────────────────────────
-  #carregarFonte() {
-    if (document.querySelector('link[href*="Rye"]')) return;
-    const link = document.createElement('link');
-    link.rel  = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Rye&display=swap';
-    document.head.appendChild(link);
   }
 
   // ── Montagem do DOM ──────────────────────────────────────────

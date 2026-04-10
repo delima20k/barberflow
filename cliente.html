@@ -9,6 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>BarberFlow — Cliente</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
     /* ============================================================
        RESET & TOKENS
     ============================================================ */
@@ -37,7 +39,8 @@
       --nav-h: 68px;
       --header-h: 58px;
       --ease: .22s cubic-bezier(.4,0,.2,1);
-      --font: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
     }
 
     html, body {
@@ -861,7 +864,7 @@
 
       <!-- Mapa GPS -->
       <div>
-        <p class="sec-title">Barbearias Próximas</p>
+        <p class="sec-title title-large">Barbearias Próximas</p>
         <div class="map-box">
           <span class="map-pin">📍</span>
           <p>Mapa de barbearias próximas<br>
