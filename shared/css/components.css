@@ -10,13 +10,15 @@
   z-index: 1000;
   height: var(--header-h);
   padding-top: env(safe-area-inset-top);
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 16px;
+  padding-right: 16px;
   background: var(--header-bg);
   border-bottom: 1px solid var(--gold-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -28,82 +30,86 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
-  -webkit-tap-highlight-color: transparent;
-  flex-shrink: 0;
-}
-.header-menu-btn img {
   width: 40px;
   height: 40px;
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity var(--ease), transform var(--ease);
+}
+.header-menu-btn img {
+  width: 22px;
+  height: 22px;
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
-  border: none;
-  background: transparent;
-  box-shadow: 0 3px 10px rgba(43, 27, 18, .16);
   transition: filter var(--ease), opacity var(--ease);
 }
-.header-menu-btn:hover img { opacity: 1; }
+.header-menu-btn:active {
+  opacity: .7;
+  transform: scale(.9);
+}
 
-/* Menu aberto — hamburger fica dourado (igual aos nav-btns ativos) */
+/* Menu aberto — hamburger fica dourado */
 .header-menu-btn.menu-aberto img {
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   opacity: 1;
 }
 
-/* Logo central */
+/* Logo central — flex puro, sem position:absolute */
 .header-logo {
-  position: absolute;
-  left: calc(56px + 1rem);
-  top: 50%;
-  transform: translateY(calc(-50% + 0.3rem)) translateX(-1rem);
-  width: 60%;
-  height: calc(var(--header-h) * 2.10);
+  flex: 1;
   display: flex;
+  justify-content: center;
   align-items: center;
+  height: 100%;
   pointer-events: none;
-  overflow: visible;
+  overflow: hidden;
 }
 .header-logo img {
-  width: 100%;
-  height: 100%;
+  height: 38px;
+  width: auto;
+  max-width: 180px;
   object-fit: contain;
 }
 .header-logo-txt {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 900;
   color: var(--gold);
   letter-spacing: 2px;
 }
 
-/* Avatar + label direita */
+/* Avatar — 36px circular, borda dourada */
 .header-avatar-btn {
   all: unset;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 8px;
+  justify-content: center;
   flex-shrink: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-.header-avatar-btn img {
   width: 40px;
   height: 40px;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--ease), opacity var(--ease);
+}
+.header-avatar-btn img {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid var(--gold-border);
-  transition: border-color var(--ease);
+  border: 2px solid var(--gold-border);
+  box-shadow: 0 0 0 1.5px rgba(212, 175, 55, .25);
+  transition: border-color var(--ease), box-shadow var(--ease);
 }
 .header-avatar-btn.logado img {
   border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, .35);
+}
+.header-avatar-btn:active {
+  transform: scale(.9);
+  opacity: .8;
 }
 .header-avatar-btn span {
-  font-size: .58rem;
-  font-weight: 700;
-  color: var(--text-on-surface-muted);
-  letter-spacing: .6px;
-  text-transform: uppercase;
+  display: none;
 }
 
 /* Overlay só cobre abaixo do header */
