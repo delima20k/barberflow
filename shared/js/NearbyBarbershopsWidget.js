@@ -202,7 +202,7 @@ class NearbyBarbershopsWidget {
    */
   static #criarBarberRow(b) {
     const row = document.createElement('div');
-    row.className = 'barber-row';
+    row.className = 'barber-row barber-card';
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
@@ -225,7 +225,7 @@ class NearbyBarbershopsWidget {
 
     const sub = document.createElement('p');
     sub.className   = 'barber-sub';
-    sub.textContent = `${b.address} · ${Number(b.distance_km).toFixed(1)} km`;
+    sub.textContent = `📍 ${b.address} · ⭐ ${Number(b.rating_avg ?? 0).toFixed(1)} · Barbearia · ${Number(b.distance_km).toFixed(1)} km`;
 
     info.appendChild(nome);
     info.appendChild(sub);
@@ -241,8 +241,14 @@ class NearbyBarbershopsWidget {
     badge.className   = b.is_open ? 'badge' : 'badge closed';
     badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
 
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-gold btn-sm barber-action';
+    btn.type = 'button';
+    btn.textContent = 'Agendar';
+
     meta.appendChild(stars);
     meta.appendChild(badge);
+    meta.appendChild(btn);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
