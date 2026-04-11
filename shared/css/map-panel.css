@@ -67,7 +67,7 @@
 
 .mph-gps-label {
   font-family:    var(--font, sans-serif);
-  font-size:      0.65rem;
+  font-size:      0.85rem;
   font-weight:    700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -89,9 +89,9 @@
 
 /* Traço animado */
 .mph-bar {
-  height:        3px;
+  height:        0.3rem;
   background:    linear-gradient(90deg, transparent 0%, var(--gold, #D4A017) 100%);
-  border-radius: 2px;
+  border-radius: 3px;
   transition:    width 280ms cubic-bezier(.4, 0, .2, 1),
                  background 200ms ease;
   /* width é controlado por JS: começa em 48px, vai para 100% */
@@ -104,7 +104,7 @@
   align-items: center;
   justify-content: flex-end;
   width:       100%;
-  margin-top:  2px;
+  margin-top:  0;
 }
 
 .mph-arrow svg {
