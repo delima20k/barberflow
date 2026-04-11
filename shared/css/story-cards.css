@@ -15,15 +15,21 @@
   font-weight: var(--fw-section-title);
 }
 
-/* Horizontal rail: lighter and breathing room */
+/* Wrapper injetado pelo StoriesCarousel.js (garante overflow:hidden) */
+.stories-carousel-wrap {
+  overflow: hidden;
+  width: 100%;
+}
+
+/* Horizontal rail: sem padding horizontal para evitar peek do card fora da tela */
 .stories-scroll {
   display: flex;
   gap: 10px;
-  padding: 16px;
+  padding: 12px 0;
   margin: 0;
-  overflow-x: auto;
+  overflow-x: scroll;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: 16px;
+  scroll-padding-inline: 0;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -255,7 +261,7 @@
     padding-bottom: 18px;
   }
   .story-card {
-    width: calc((100% - 24px) / 3);
+    width: calc((100% - 24px) / 3); /* fallback CSS; JS sobrescreve com pixel-exact */
   }
   .story-card-name { font-size: .86rem; }
 }

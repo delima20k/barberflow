@@ -1,7 +1,106 @@
 'use strict';
 
 // =============================================================
-// StoriesLayout.js — Inicializador dos containers de Stories (POO)
+// StoriesCarousel — Garante exatamente 3 cards visíveis,
+// sem peek lateral, com scroll 1-a-1 (POO)
+//
+// Responsabilidades:
+//   - Envolve cada .stories-scroll num .stories-carousel-wrap
+//     com overflow:hidden para clipar o 4º card
+//   - Calcula largura pixel-exata de cada .story-card com base
+//     na largura real do wrapper
+//   - Monitora redimensionamentos via ResizeObserver
+// =============================================================
+
+class StoriesCarousel {
+
+  /** Atributo que marca o wrapper já criado (idempotência). */
+  static #MARCA = 'data-sc-wrap';
+
+  /** Map<container, ResizeObserver> */
+  static #obs = new Map();
+
+  // ═══════════════════════════════════════════════════════════
+  // PÚBLICO
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Inicializa o carrossel em todos os .stories-scroll do root.
+   * @param {Document|HTMLElement} root
+   */
+  static aplicar(root = document) {
+    root.querySelectorAll('.stories-scroll').forEach(c => StoriesCarousel.#inicializar(c));
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PRIVADO
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Envolve o container em um div.stories-carousel-wrap (idempotente).
+   * O wrapper recebe overflow:hidden para clipar qualquer card fora da
+   * área visível sem afetar o scroll do container filho.
+   * @param {HTMLElement} container — o .stories-scroll
+   * @returns {HTMLElement} o wrapper
+   */
+  static #envolverContainer(container) {
+    const pai = container.parentElement;
+    if (pai?.hasAttribute(StoriesCarousel.#MARCA)) return pai;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'stories-carousel-wrap';
+    wrap.setAttribute(StoriesCarousel.#MARCA, '1');
+    pai.insertBefore(wrap, container);
+    wrap.appendChild(container);
+    return wrap;
+  }
+
+  /**
+   * Lê o gap atual do container via CSS computado e calcula a
+   * largura pixel-exata para que exatamente 3 cards preencham o wrapper.
+   * @param {HTMLElement} container
+   */
+  static #calibrarCards(container) {
+    const wrap = container.parentElement;
+    const wrapW = wrap ? wrap.clientWidth : container.clientWidth;
+    if (!wrapW) return;
+
+    const gap   = parseFloat(getComputedStyle(container).columnGap) || 10;
+    const cardW = (wrapW - gap * 2) / 3;
+
+    container.querySelectorAll('.story-card').forEach(card => {
+      card.style.width    = `${cardW}px`;
+      card.style.minWidth = `${cardW}px`;
+      card.style.maxWidth = `${cardW}px`;
+    });
+  }
+
+  /**
+   * Registra um ResizeObserver no wrapper para recalibrar quando a
+   * viewport mudar (rotação, zoom, mudança de janela).
+   * @param {HTMLElement} container
+   */
+  static #monitorar(container) {
+    if (StoriesCarousel.#obs.has(container)) return;
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const wrap = container.parentElement;
+    const ro   = new ResizeObserver(() => StoriesCarousel.#calibrarCards(container));
+    if (wrap) ro.observe(wrap);
+    StoriesCarousel.#obs.set(container, ro);
+  }
+
+  /**
+   * Pipeline completo para um único container.
+   * @param {HTMLElement} container
+   */
+  static #inicializar(container) {
+    StoriesCarousel.#envolverContainer(container);
+    StoriesCarousel.#calibrarCards(container);
+    StoriesCarousel.#monitorar(container);
+  }
+}
+
 //
 // Responsabilidades:
 //   - Detecta containers .stories-scroll com .story-card dentro
@@ -31,6 +130,7 @@ class StoriesLayout {
     StoriesLayout.#migrarLegado(root);
     StoriesLayout.#bindViewers(root);
     StoriesLayout.#bindLoadingState(root);
+    StoriesCarousel.aplicar(root);
   }
 
   // ═══════════════════════════════════════════════════════════
