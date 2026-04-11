@@ -110,25 +110,28 @@
         <span class="login-tagline">Seu estilo, nossa arte</span>
       </div>
 
-      <div class="login-form">
-        <div class="form-field">
-          <label>E-mail</label>
-          <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
+      <div class="auth-card">
+        <h2 class="auth-title">Entrar</h2>
+        <div class="login-form">
+          <div class="form-field">
+            <label>E-mail</label>
+            <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
+          </div>
+          <div class="form-field">
+            <label>Senha</label>
+            <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <p id="login-erro" class="form-erro"></p>
+          <button class="btn btn-gold btn-full" onclick="App.fazerLogin()">Entrar</button>
+          <button class="btn btn-outline btn-full" onclick="App.push('cadastro')">Criar conta gratuita</button>
+          <p class="login-link" style="text-align:center;">
+            <a href="#" onclick="App.push('esqueceu-senha'); return false;">Esqueceu a senha?</a>
+          </p>
+          <p class="login-link">
+            Sou profissional &rarr;
+            <a href="#" onclick="App.navegarApp('https://barberflow-profissional.vercel.app/'); return false;">Acessar app profissional</a>
+          </p>
         </div>
-        <div class="form-field">
-          <label>Senha</label>
-          <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <p id="login-erro" class="form-erro"></p>
-        <button class="btn btn-gold btn-full" onclick="App.fazerLogin()">Entrar</button>
-        <button class="btn btn-outline btn-full" onclick="App.push('cadastro')">Criar conta gratuita</button>
-        <p class="login-link" style="text-align:center;">
-          <a href="#" onclick="App.push('esqueceu-senha'); return false;" style="color:var(--text-muted);font-size:.8rem;">Esqueceu a senha?</a>
-        </p>
-        <p class="login-link">
-          Sou profissional &rarr;
-          <a href="#" onclick="App.navegarApp('https://barberflow-profissional.vercel.app/'); return false;">Acessar app profissional</a>
-        </p>
       </div>
     </div>
   </main>
@@ -145,33 +148,36 @@
         <span class="login-tagline">Crie sua conta grátis</span>
       </div>
 
-      <div class="login-form">
-        <div class="form-field">
-          <label>Nome completo</label>
-          <input id="cad-nome" type="text" placeholder="Seu nome" autocomplete="name">
+      <div class="auth-card">
+        <h2 class="auth-title">Criar conta</h2>
+        <div class="login-form">
+          <div class="form-field">
+            <label>Nome completo</label>
+            <input id="cad-nome" type="text" placeholder="Seu nome" autocomplete="name">
+          </div>
+          <div class="form-field">
+            <label>E-mail</label>
+            <input id="cad-email" type="email" placeholder="seu@email.com" autocomplete="email">
+          </div>
+          <div class="form-field">
+            <label>Telefone</label>
+            <input id="cad-tel" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
+          </div>
+          <div class="form-field">
+            <label>Senha</label>
+            <input id="cad-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password">
+          </div>
+          <div class="form-field">
+            <label>Confirmar senha</label>
+            <input id="cad-senha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
+          </div>
+          <p id="cad-erro" class="form-erro"></p>
+          <button class="btn btn-gold btn-full" onclick="App.fazerCadastro()">Criar minha conta</button>
+          <p class="login-link">
+            Já tenho conta &rarr;
+            <a href="#" onclick="App.push('login'); return false;">Fazer login</a>
+          </p>
         </div>
-        <div class="form-field">
-          <label>E-mail</label>
-          <input id="cad-email" type="email" placeholder="seu@email.com" autocomplete="email">
-        </div>
-        <div class="form-field">
-          <label>Telefone</label>
-          <input id="cad-tel" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
-        </div>
-        <div class="form-field">
-          <label>Senha</label>
-          <input id="cad-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password">
-        </div>
-        <div class="form-field">
-          <label>Confirmar senha</label>
-          <input id="cad-senha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
-        </div>
-        <p id="cad-erro" class="form-erro"></p>
-        <button class="btn btn-gold btn-full" onclick="App.fazerCadastro()">Criar minha conta</button>
-        <p class="login-link">
-          Já tenho conta &rarr;
-          <a href="#" onclick="App.push('login'); return false;">Fazer login</a>
-        </p>
       </div>
     </div>
   </main>
@@ -188,20 +194,23 @@
         <span class="login-tagline">Recuperar acesso</span>
       </div>
 
-      <div class="login-form">
-        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
-          Digite seu e-mail e enviaremos um link para criar uma nova senha.
-        </p>
-        <div class="form-field">
-          <label>E-mail cadastrado</label>
-          <input id="rec-email" type="email" placeholder="seu@email.com" autocomplete="email">
+      <div class="auth-card">
+        <h2 class="auth-title">Esqueceu a senha?</h2>
+        <div class="login-form">
+          <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
+            Digite seu e-mail e enviaremos um link para criar uma nova senha.
+          </p>
+          <div class="form-field">
+            <label>E-mail cadastrado</label>
+            <input id="rec-email" type="email" placeholder="seu@email.com" autocomplete="email">
+          </div>
+          <p id="rec-erro" class="form-erro"></p>
+          <button class="btn btn-gold btn-full" onclick="App.fazerRecuperacao()">Enviar link de recuperação</button>
+          <p class="login-link">
+            Lembrei a senha &rarr;
+            <a href="#" onclick="App.push('login'); return false;">Fazer login</a>
+          </p>
         </div>
-        <p id="rec-erro" class="form-erro"></p>
-        <button class="btn btn-gold btn-full" onclick="App.fazerRecuperacao()">Enviar link de recuperação</button>
-        <p class="login-link">
-          Lembrei a senha &rarr;
-          <a href="#" onclick="App.push('login'); return false;">Fazer login</a>
-        </p>
       </div>
     </div>
   </main>

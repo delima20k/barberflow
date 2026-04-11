@@ -512,6 +512,7 @@ class Router {
       <img class="splash-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
       <div id="splash-polo"></div>
       <p class="splash-app">BarberFlow ${tipo}</p>
+      <div class="splash-spinner"></div>
     `;
     document.body.appendChild(overlay);
 

@@ -1706,24 +1706,50 @@
 /* ── Login Screen ───────────────────────────────────────────── */
 .login-bg {
   min-height: 100%;
-  flex-shrink: 0; /* impede flex de comprimir — ativa scroll na .tela */
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 24px;
-  gap: 36px;
-  background:
-    radial-gradient(ellipse at 50% -10%, rgba(212, 175, 55, .14) 0%, transparent 55%),
-    var(--bg);
+  padding: 28px 20px 36px;
+  gap: 20px;
+  background: var(--bg);
 }
 
-.login-logo     { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.login-logo .app-icon { width: 246px; height: 246px; object-fit: contain; }
+.login-logo     { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.login-logo .app-icon {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(43, 27, 18, .18));
+}
 
 .login-tagline  { font-size: var(--fs-caption); color: var(--text-muted); letter-spacing: 1.4px; text-transform: uppercase; }
 
-.login-form { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
+/* Card branco do formulário de auth */
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(43, 27, 18, .10);
+  padding: 28px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 18px;
+  letter-spacing: .2px;
+}
+
+.login-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
 
 .form-field         { display: flex; flex-direction: column; gap: 6px; }
 .form-field label   { font-size: var(--fs-caption); font-weight: var(--fw-section-title); color: var(--text-muted); letter-spacing: .2px; }
@@ -1768,7 +1794,7 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  background: url('/shared/img/fundo2.svg') center center / cover no-repeat;
+  background: linear-gradient(135deg, #5A3E2B 0%, #2B1B12 100%);
   animation: splashIn .35s ease both;
 }
 .splash-overlay.saindo {
@@ -1776,6 +1802,18 @@
 }
 @keyframes splashIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes splashOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Spinner dourado de loading no splash */
+.splash-spinner {
+  width: 26px;
+  height: 26px;
+  border: 2.5px solid rgba(212, 175, 55, .25);
+  border-top-color: #D4AF37;
+  border-radius: 50%;
+  margin-top: 1.8rem;
+  animation: splashSpin .8s linear infinite;
+}
+@keyframes splashSpin { to { transform: rotate(360deg); } }
 
 /* Logo do menu (Logo01.png) — acima do "BEM-VINDO" */
 .splash-logo-menu {
