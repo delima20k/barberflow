@@ -133,6 +133,10 @@ class MapWidget {
 
     // LayerGroup reutilizável para os marcadores das barbearias
     MapWidget.#layerBarbearias = L.layerGroup().addTo(MapWidget.#mapa);
+
+    // Garante que o Leaflet conhece as dimensões reais do container
+    // após o primeiro ciclo de renderização do CSS.
+    setTimeout(() => MapWidget.#mapa?.invalidateSize(), 0);
   }
 
   /** Obtém GPS, centraliza mapa e carrega marcadores de barbearias. */
@@ -196,23 +200,18 @@ class MapWidget {
 
     MapWidget.#posUsuario = { lat, lng };
 
-    try {
-      // Atualiza o tamanho interno do mapa caso o container esteja oculto.
-      // Containers com dimensões zero produzem NaN no loop de animação do Leaflet.
-      MapWidget.#mapa.invalidateSize({ animate: false });
-      const sz = MapWidget.#mapa.getSize();
-      if (sz && sz.x > 0 && sz.y > 0) {
-        MapWidget.#mapa.flyTo([lat, lng], MapWidget.#ZOOM_PADRAO, {
-          animate:  true,
-          duration: 1.2,
-        });
-      } else {
-        // Container oculto/sem dimensões — posiciona sem animação para evitar NaN
-        MapWidget.#mapa.setView([lat, lng], MapWidget.#ZOOM_PADRAO, { animate: false });
-      }
-    } catch {
-      // fallback silencioso: evita rejeição não tratada se o mapa ainda não estiver pronto
-    }
+    // Para qualquer animação em andamento e força recalculo das dimensões.
+    // Sem isso, Leaflet faz unproject com container size = 0 → NaN por frame.
+    MapWidget.#mapa.stop();
+    MapWidget.#mapa.invalidateSize();
+
+    const container = MapWidget.#mapa.getContainer();
+    const animar    = !!(container?.clientWidth && container?.clientHeight);
+
+    MapWidget.#mapa.flyTo([lat, lng], MapWidget.#ZOOM_PADRAO, {
+      animate:  animar,
+      duration: animar ? 1.2 : 0,
+    });
 
     if (MapWidget.#markerUser) MapWidget.#markerUser.remove();
 
