@@ -94,3 +94,9 @@ policy = "oneshot"
 enabled = false
 port = 54327
 backend = "postgres"
+
+[functions.nearby-barbershops]
+verify_jwt = false
+
+[functions.queue-status]
+verify_jwt = false

@@ -80,7 +80,7 @@ serve(async (req: Request) => {
       headers: {
         'Access-Control-Allow-Origin':  '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, content-type',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       },
     })
   }
@@ -155,8 +155,9 @@ serve(async (req: Request) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=30', // cache curto (30s)
+        'Access-Control-Allow-Origin':  '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Cache-Control': 'public, max-age=30',
       },
     }
   )
