@@ -310,12 +310,18 @@
       <!-- Mapa GPS -->
       <div class="section-mapa">
         <p class="sec-title title-large">Barbearias Próximas</p>
-        <div class="map-card map-card--placeholder">
-          <div class="map-box">
-            <span class="map-pin">📍</span>
-            <p>Mapa de barbearias próximas<br>
-              <span class="map-box-note">Ative o GPS para ver barbearias perto de você</span>
-            </p>
+        <div class="map-toggle-head">
+          <p class="map-toggle-text">Visualize o endereco da barbearia mais proxima de voce</p>
+          <button class="map-toggle-btn" type="button" data-map-toggle-btn aria-expanded="true">Fechar mapa</button>
+        </div>
+        <div class="map-collapse-panel" data-map-toggle-panel>
+          <div class="map-card map-card--placeholder">
+            <div class="map-box">
+              <span class="map-pin">📍</span>
+              <p>Mapa de barbearias proximas<br>
+                <span class="map-box-note">Ative o GPS para ver barbearias perto de voce</span>
+              </p>
+            </div>
           </div>
         </div>
       </div>

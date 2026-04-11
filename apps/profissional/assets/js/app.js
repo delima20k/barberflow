@@ -61,6 +61,34 @@ class BarberFlowProfissional extends Router {
 
 /* ── Instância global ───────────────────────────────────────── */
 const Pro = new BarberFlowProfissional();
+
+function initMapTogglePro() {
+  const section = document.querySelector('.section-mapa');
+  if (!section) return;
+
+  const btn = section.querySelector('[data-map-toggle-btn]');
+  const panel = section.querySelector('[data-map-toggle-panel]');
+  if (!btn || !panel) return;
+
+  const setExpanded = (expanded) => {
+    section.classList.toggle('mapa-fechado', !expanded);
+    panel.hidden = !expanded;
+    btn.setAttribute('aria-expanded', String(expanded));
+    btn.textContent = expanded ? 'Fechar mapa' : 'Abrir mapa';
+  };
+
+  setExpanded(true);
+
+  btn.addEventListener('click', () => {
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    setExpanded(!expanded);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initMapTogglePro();
+});
+
 /* ── Service Worker (PWA / TWA) ──────────────────────────── */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

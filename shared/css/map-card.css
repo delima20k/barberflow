@@ -16,6 +16,62 @@
   margin: 0;
 }
 
+.map-toggle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.map-toggle-text {
+  margin: 0;
+  font-family: var(--font);
+  font-size: .78rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.map-toggle-btn {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 74, 50, .28);
+  background: #fff;
+  color: var(--gold-dark);
+  font-family: var(--font);
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .2px;
+  box-shadow: 0 4px 10px rgba(43, 27, 18, .12);
+  transition: transform var(--ease), box-shadow var(--ease), background var(--ease);
+}
+
+.map-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 14px rgba(43, 27, 18, .16);
+}
+
+.map-toggle-btn:active {
+  transform: scale(.97);
+}
+
+.map-collapse-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.map-collapse-panel[hidden] {
+  display: none !important;
+}
+
+.mapa-fechado .map-toggle-text {
+  color: var(--text-dim);
+}
+
 /* Reusable map card shell */
 .map-card {
   width: 100%;

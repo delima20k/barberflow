@@ -307,12 +307,18 @@
       <!-- Mapa GPS -->
       <div id="section-mapa">
         <h2 class="sec-title title-large">Barbearias Próximas</h2>
-        <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
-        <div class="map-card">
-          <div id="mapa-container" class="mapa-container"></div>
+        <div class="map-toggle-head">
+          <p class="map-toggle-text">Visualize o endereco da barbearia mais proxima de voce</p>
+          <button class="map-toggle-btn" type="button" data-map-toggle-btn aria-expanded="true">Fechar mapa</button>
         </div>
-        <!-- NearbyBarbershopsWidget: lista de barbearias abaixo do mapa -->
-        <div id="nearby-map-widget"></div>
+        <div class="map-collapse-panel" data-map-toggle-panel>
+          <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
+          <div class="map-card">
+            <div id="mapa-container" class="mapa-container"></div>
+          </div>
+          <!-- NearbyBarbershopsWidget: lista de barbearias abaixo do mapa -->
+          <div id="nearby-map-widget"></div>
+        </div>
       </div>
 
       <!-- Fila ao vivo -->

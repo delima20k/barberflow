@@ -59,8 +59,38 @@ class BarberFlowCliente extends Router {
 /* ── Instância global ───────────────────────────────────────── */
 const App = new BarberFlowCliente();
 
+function initMapToggle() {
+  const section = document.getElementById('section-mapa');
+  if (!section) return;
+
+  const btn = section.querySelector('[data-map-toggle-btn]');
+  const panel = section.querySelector('[data-map-toggle-panel]');
+  if (!btn || !panel) return;
+
+  const setExpanded = (expanded) => {
+    section.classList.toggle('mapa-fechado', !expanded);
+    panel.hidden = !expanded;
+    btn.setAttribute('aria-expanded', String(expanded));
+    btn.textContent = expanded ? 'Fechar mapa' : 'Abrir mapa';
+
+    if (expanded) {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 260);
+    }
+  };
+
+  setExpanded(true);
+
+  btn.addEventListener('click', () => {
+    const expanded = btn.getAttribute('aria-expanded') === 'true';
+    setExpanded(!expanded);
+  });
+}
+
 /* ── Inicializa widgets de geolocalização ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  initMapToggle();
   // Mapa interativo Leaflet com FAB flutuante
   MapWidget.init('mapa-container');
   // Lista de barbearias próximas (abaixo do mapa)
