@@ -1,0 +1,262 @@
+/* ============================================================
+   BARBERFLOW — Map Panel Premium
+   Módulo de mapa expansível com animações premium.
+   NÃO altera animações de abas, navegação ou transições do Router.
+   Importar após map-card.css.
+============================================================ */
+
+/* ── Seção raiz ───────────────────────────────────────────── */
+.map-panel-section {
+  display:        flex;
+  flex-direction: column;
+  gap:            0;
+}
+
+/* ── Botão controle (MapHandleButton) ──────────────────────── */
+.mph-wrapper {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-end;
+  gap:            0;
+  width:          100%;
+  padding:        4px 0 8px;
+  background:     transparent;
+  border:         none;
+  cursor:         pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select:    none;
+}
+
+/* Row superior: texto + label GPS */
+.mph-row-top {
+  display:        flex;
+  align-items:    baseline;
+  gap:            10px;
+  width:          100%;
+  justify-content: flex-end;
+}
+
+.mph-text {
+  font-family:    var(--font, sans-serif);
+  font-size:      var(--fs-section-title, 1rem);
+  font-weight:    700;
+  color:          var(--text, #2A211B);
+  letter-spacing: 0.01em;
+  line-height:    1;
+  display:        inline-flex;
+  overflow:       hidden;
+  /* largura será animada pelo JS */
+  max-width:      100%;
+}
+
+/* Caractere individual — animado por MapTextAnimation */
+.mta-char {
+  display:     inline-block;
+  transition:  opacity 60ms linear, transform 60ms linear;
+  will-change: opacity, transform;
+}
+.mta-char.mta-saindo {
+  opacity:   0;
+  transform: translateY(-4px);
+}
+.mta-char.mta-oculto {
+  opacity:   0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
+.mph-gps-label {
+  font-family:    var(--font, sans-serif);
+  font-size:      0.65rem;
+  font-weight:    700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color:          var(--gold, #D4A017);
+  line-height:    1;
+  flex-shrink:    0;
+}
+
+/* Trilho do traço */
+.mph-bar-track {
+  position:   relative;
+  display:    flex;
+  align-items: center;
+  justify-content: flex-end;
+  width:      100%;
+  height:     16px;
+  margin-top: 2px;
+}
+
+/* Traço animado */
+.mph-bar {
+  height:        3px;
+  background:    linear-gradient(90deg, transparent 0%, var(--gold, #D4A017) 100%);
+  border-radius: 2px;
+  transition:    width 280ms cubic-bezier(.4, 0, .2, 1),
+                 background 200ms ease;
+  /* width é controlado por JS: começa em 48px, vai para 100% */
+  will-change: width;
+}
+
+/* Seta chevron */
+.mph-arrow {
+  display:     flex;
+  align-items: center;
+  justify-content: flex-end;
+  width:       100%;
+  margin-top:  2px;
+}
+
+.mph-arrow svg {
+  width:      18px;
+  height:     18px;
+  color:      var(--gold, #D4A017);
+  transition: transform 260ms cubic-bezier(.4, 0, .2, 1);
+  will-change: transform;
+}
+
+.mph-wrapper[aria-expanded="true"] .mph-arrow svg {
+  transform: rotate(180deg);
+}
+
+/* Feedback toque */
+.mph-wrapper:active .mph-bar {
+  background: linear-gradient(90deg, transparent 0%, var(--gold-light, #F2B705) 100%);
+}
+
+/* ── Frame amadeirado (MapBorderFrame) ─────────────────────── */
+.mpf-frame {
+  border-radius: 16px;
+  padding:       4px;
+
+  /* textura amadeirada via gradientes sobrepostos */
+  background:
+    /* veios em diagonal (muito sutis) */
+    repeating-linear-gradient(
+      105deg,
+      transparent              0px,
+      transparent              12px,
+      rgba(255,255,255,.025)   13px,
+      rgba(255,255,255,.025)   14px,
+      transparent              15px,
+      transparent              28px
+    ),
+    repeating-linear-gradient(
+      82deg,
+      transparent              0px,
+      transparent              20px,
+      rgba(0,0,0,.04)          21px,
+      rgba(0,0,0,.04)          22px,
+      transparent              23px
+    ),
+    /* base: gradiente de madeira escura */
+    linear-gradient(
+      160deg,
+      #3a1f0e 0%,
+      #2B1B12 40%,
+      #321a0b 70%,
+      #2a1909 100%
+    );
+
+  box-shadow:
+    0  2px  0   rgba(255,255,255,.08) inset,  /* brilho superior */
+    0 -1px  0   rgba(0,0,0,.35) inset,        /* sombra inferior */
+    0  8px 24px rgba(0, 0, 0, .30),           /* sombra externa profunda */
+    0  2px  8px rgba(0, 0, 0, .20),           /* sombra close */
+    0  0   16px rgba(212, 160, 23, .08);      /* glow dourado sutil */
+
+  /* estado oculto inicial */
+  display:     none;
+  position:    relative;
+  overflow:    hidden;
+  will-change: transform;
+}
+
+.mpf-frame.mpf-visivel {
+  display: block;
+}
+
+/* ── Painel do mapa (MapPanel) ─────────────────────────────── */
+.mpp-panel {
+  overflow: hidden;
+  /* height animada pelo JS via style.height */
+  transition: height 300ms cubic-bezier(.4, 0, .2, 1);
+  will-change: height;
+  border-radius: 12px 12px 0 0;
+  background: transparent;
+}
+
+/* Dentro do frame: map-card sem border-radius próprio */
+.mpf-frame .map-card {
+  border-radius: 12px 12px 0 0;
+  overflow:      hidden;
+  margin:        0;
+}
+
+/* ── Handle de arraste (MapDragHandle) ─────────────────────── */
+.mpd-handle {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             4px;
+  height:          36px;
+  cursor:          ns-resize;
+  border-radius:   0 0 12px 12px;
+  touch-action:    none; /* impede scroll durante drag */
+  background:      rgba(43, 27, 18, .35);
+  transition:      background var(--ease, .22s ease);
+}
+
+.mpd-handle:active,
+.mpd-handle.mpd-arrastando {
+  background: rgba(43, 27, 18, .55);
+}
+
+/* Pill indicador */
+.mpd-pill {
+  width:        36px;
+  height:       4px;
+  border-radius: 2px;
+  background:   var(--gold, #D4A017);
+  opacity:      0.65;
+  transition:   width 200ms ease, opacity 200ms ease;
+}
+
+.mpd-handle.mpd-arrastando .mpd-pill,
+.mpd-handle:hover .mpd-pill {
+  width:   52px;
+  opacity: 1;
+}
+
+/* Hint de arraste — visível apenas no estado semiaberto */
+.mpd-hint {
+  font-family:  var(--font, sans-serif);
+  font-size:    0.62rem;
+  letter-spacing: 0.04em;
+  color:        rgba(212, 160, 23, .7);
+  opacity:      0;
+  transition:   opacity 300ms ease 150ms;
+  pointer-events: none;
+  white-space:  nowrap;
+}
+
+.mpf-frame[data-state="semiopen"] .mpd-hint {
+  opacity: 1;
+}
+
+/* ── Responsividade ────────────────────────────────────────── */
+@media (min-width: 640px) {
+  .mpf-frame {
+    border-radius: 20px;
+    padding:       5px;
+  }
+
+  .mpf-frame .map-card {
+    border-radius: 15px 15px 0 0;
+  }
+
+  .mpd-handle {
+    border-radius: 0 0 15px 15px;
+  }
+}

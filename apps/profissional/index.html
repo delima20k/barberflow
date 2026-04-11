@@ -26,6 +26,9 @@
   <!-- Notificações -->
   <link rel="stylesheet" href="/shared/css/notifications.css">
 
+  <!-- Mapa premium -->
+  <link rel="stylesheet" href="/shared/css/map-panel.css">
+
   <!-- Leaflet (mapa interativo) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -351,21 +354,59 @@
         </div>
       </div>
 
-      <!-- Mapa GPS -->
+      <!-- Mapa GPS Premium -->
       <div id="section-mapa">
-        <h2 class="sec-title title-large">Barbearias Próximas</h2>
-        <div class="map-toggle-head">
-          <p class="map-toggle-text">Visualize o endereco da barbearia mais proxima de voce</p>
-          <button class="map-toggle-btn" type="button" data-map-toggle-btn aria-expanded="true">Fechar mapa</button>
-        </div>
-        <div class="map-collapse-panel" data-map-toggle-panel>
-          <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
-          <div class="map-card">
-            <div id="mapa-container" class="mapa-container"></div>
+
+        <!-- Botão controle (MapHandleButton) -->
+        <button class="mph-wrapper" id="map-handle-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="map-panel"
+                aria-label="Abrir mapa de Barbearias Próximas">
+
+          <!-- Row superior: texto + label GPS -->
+          <div class="mph-row-top">
+            <span class="mph-text">Barbearias Próximas</span>
+            <span class="mph-gps-label">GPS</span>
           </div>
-          <!-- NearbyBarbershopsWidget: lista de barbearias abaixo do mapa -->
-          <div id="nearby-map-widget"></div>
+
+          <!-- Traço animado -->
+          <div class="mph-bar-track">
+            <div class="mph-bar" style="width:48px"></div>
+          </div>
+
+          <!-- Seta chevron -->
+          <div class="mph-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+
+        </button>
+
+        <!-- Frame amadeirado (MapBorderFrame) -->
+        <div class="mpf-frame" id="map-border-frame" aria-hidden="true" data-state="closed">
+
+          <!-- Painel expansível -->
+          <div class="mpp-panel" id="map-panel" style="height:0;overflow:hidden">
+            <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
+            <div class="map-card">
+              <div id="mapa-container" class="mapa-container"></div>
+            </div>
+            <!-- NearbyBarbershopsWidget -->
+            <div id="nearby-map-widget"></div>
+          </div>
+
+          <!-- Handle de arraste -->
+          <div class="mpd-handle" id="map-drag-handle" role="separator"
+               aria-label="Arraste para expandir o mapa">
+            <div class="mpd-pill"></div>
+            <span class="mpd-hint">Arraste para expandir</span>
+          </div>
+
         </div>
+
       </div>
 
       <!-- Fila ao vivo -->
@@ -1017,6 +1058,8 @@
 <script src="/shared/js/MapWidget.js"></script>
 <!-- Widget de pesquisa dinâmica -->
 <script src="/shared/js/SearchWidget.js"></script>
+<!-- Módulo de mapa premium -->
+<script src="/shared/js/MapPanelModule.js"></script>
 <!-- Sistema de notificações -->
 <script src="/shared/js/NotificationService.js"></script>
 <!-- App Profissional logic -->

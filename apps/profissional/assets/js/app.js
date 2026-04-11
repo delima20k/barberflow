@@ -64,26 +64,7 @@ class BarberFlowProfissional extends Router {
 const Pro = new BarberFlowProfissional();
 
 function initMapToggle() {
-  const section = document.getElementById('section-mapa');
-  if (!section) return;
-
-  const btn = section.querySelector('[data-map-toggle-btn]');
-  const panel = section.querySelector('[data-map-toggle-panel]');
-  if (!btn || !panel) return;
-
-  const setExpanded = (expanded) => {
-    section.classList.toggle('mapa-fechado', !expanded);
-    panel.hidden = !expanded;
-    btn.setAttribute('aria-expanded', String(expanded));
-    btn.textContent = expanded ? 'Fechar mapa' : 'Abrir mapa';
-  };
-
-  setExpanded(true);
-
-  btn.addEventListener('click', () => {
-    const expanded = btn.getAttribute('aria-expanded') === 'true';
-    setExpanded(!expanded);
-  });
+  MapPanel.init('section-mapa');
 }
 
 /* ── Inicializa widgets de geolocalização ───────────────────── */
