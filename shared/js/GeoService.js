@@ -55,21 +55,39 @@ class GeoService {
 
   /**
    * Solicita GPS automaticamente na primeira abertura do app.
+   * - Se bloqueado pelo browser: vai direto ao fallback (sem gerar warning no console)
+   * - Se 'prompt': dispara o dialog nativo do browser para o usuário aceitar
    * - Se concedido: salva no banco + notifica widgets
-   * - Se negado: tenta fallback do banco (ultima posicao salva)
+   * - Se negado agora: tenta fallback do banco (ultima posicao salva)
    */
-  static solicitarNaPrimeiraVez() {
+  static async solicitarNaPrimeiraVez() {
     if (!navigator.geolocation) {
       GeoService.#tentarFallbackBanco();
       return;
     }
+
+    // Verifica o estado da permissão ANTES de chamar getCurrentPosition.
+    // Quando o Chrome bloqueia automaticamente (dismissed várias vezes),
+    // chamar getCurrentPosition sem verificar gera o warning no console
+    // e nunca exibe o prompt ao usuário.
+    const permissao = await GeoService.verificarPermissao();
+
+    if (permissao === 'denied') {
+      // Permissão bloqueada no browser — notifica widgets e usa fallback do banco
+      if (typeof MapWidget              !== 'undefined') MapWidget.onGPSNegado();
+      if (typeof NearbyBarbershopsWidget !== 'undefined') NearbyBarbershopsWidget.onGPSNegado();
+      GeoService.#tentarFallbackBanco();
+      return;
+    }
+
+    // 'prompt' ou 'granted' — chama normalmente (exibe o dialog se necessário)
     GeoService.obter()
       .then(() => {
         if (typeof MapWidget               !== 'undefined') MapWidget.onGPSConcedido();
         if (typeof NearbyBarbershopsWidget  !== 'undefined') NearbyBarbershopsWidget.onGPSConcedido();
       })
       .catch(() => {
-        // GPS negado — tenta posicao do banco como fallback silencioso
+        // Usuário rejeitou agora — fallback silencioso
         GeoService.#tentarFallbackBanco();
       });
   }
