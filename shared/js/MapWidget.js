@@ -32,6 +32,7 @@ class MapWidget {
   static #el              = null;  // elemento raiz do container
   static #carregando      = false; // lock para evitar chamadas duplas
   static #posUsuario      = null;  // última posição válida do usuário
+  static #headingAccum    = null;  // ângulo acumulado (evita giro de 360° na borda 0/360)
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -149,6 +150,8 @@ class MapWidget {
       MapWidget.#centralizarUsuario(pos.lat, pos.lng);
       const lista = await MapWidget.#buscarBarbearias(pos.lat, pos.lng);
       MapWidget.#renderMarcadores(lista);
+      // Inicia rastreamento contínuo — move o marcador do usuário em tempo real
+      GeoService.iniciarWatch((lat, lng) => MapWidget.atualizarPosicaoUsuario(lat, lng));
     } catch (_) {
       // silencioso — GPS negado após concessão anterior (raro)
     } finally {
@@ -260,6 +263,20 @@ class MapWidget {
   static atualizarMarcadorUsuario() {
     if (!MapWidget.#markerUser || !MapWidget.#posUsuario) return;
     MapWidget.#markerUser.setIcon(MapWidget.#criarIconeUsuario());
+  }
+
+  /**
+   * Move o marcador do usuário em tempo real sem reanimar o mapa.
+   * Chamado pelo GeoService via watchPosition a cada nova leitura GPS.
+   * O DOM do marcador é preservado — o cone de heading não é perdido.
+   * @param {number} lat
+   * @param {number} lng
+   */
+  static atualizarPosicaoUsuario(lat, lng) {
+    if (!MapWidget.#markerUser || !MapWidget.#mapa) return;
+    if (!isFinite(lat) || !isFinite(lng)) return;
+    MapWidget.#posUsuario = { lat, lng };
+    MapWidget.#markerUser.setLatLng([lat, lng]);
   }
 
   /** Adiciona um marcador avatar no mapa para cada barbearia da lista. */
@@ -467,7 +484,8 @@ class MapWidget {
 
     // Cria o cone de rotação apenas uma vez por marcador
     let cone = inner.querySelector('.mapa-heading-cone');
-    if (!cone) {
+    const primeiraVez = !cone;
+    if (primeiraVez) {
       cone = document.createElement('div');
       cone.className = 'mapa-heading-cone';
       const arrowEl = document.createElement('div');
@@ -476,8 +494,27 @@ class MapWidget {
       inner.appendChild(cone);
     }
 
-    // Roda o cone ao redor do centro do marcador; a seta aponta na direção do heading
-    cone.style.transform = `rotate(${heading}deg)`;
+    // ── Interpolação de caminho mínimo ─────────────────────────
+    // Resolver o problema: 350° → 10° deve girar +20°, não -340°.
+    // Acumulamos o ângulo real em vez de forçar o valor para 0-360.
+    if (MapWidget.#headingAccum === null) {
+      // 1ª ativação da bússola — posiciona sem transição para evitar voo inicial
+      cone.style.transition = 'none';
+      MapWidget.#headingAccum = heading;
+    } else if (primeiraVez) {
+      // Marcador foi recriado (atualização de posição) mas bússola ainda ativa.
+      // Re-aplica o ângulo acumulado sem transição e SEM resetar #headingAccum.
+      cone.style.transition = 'none';
+    } else {
+      // Update normal — calcula o delta pelo caminho mais curto (-180 a +180)
+      let delta = heading - (MapWidget.#headingAccum % 360);
+      if (delta >  180) delta -= 360;
+      if (delta < -180) delta += 360;
+      MapWidget.#headingAccum += delta;
+      cone.style.transition = 'opacity 300ms ease, transform 280ms cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    }
+
+    cone.style.transform = `rotate(${MapWidget.#headingAccum}deg)`;
     cone.style.opacity   = '1';
   }
 
@@ -491,5 +528,6 @@ class MapWidget {
     if (!el) return;
     const cone = el.querySelector('.mapa-heading-cone');
     if (cone) cone.style.opacity = '0';
+    MapWidget.#headingAccum = null; // reset para próxima ativação
   }
 }

@@ -105,13 +105,26 @@ class DeviceCompass {
     }
 
     if (heading == null) return;
+
+    // Suavização exponencial leve (alpha = 0.25): reduz ruído do sensor
+    // sem introduzir lag excessivo na resposta
+    if (this.#lastHeading !== null) {
+      // Interpola pelo caminho mais curto para evitar salto no cruzamento 0/360
+      let delta = heading - this.#lastHeading;
+      if (delta >  180) delta -= 360;
+      if (delta < -180) delta += 360;
+      heading = this.#lastHeading + delta * 0.25;
+      // Re-normaliza para 0-360
+      heading = ((heading % 360) + 360) % 360;
+    }
+
     heading = Math.round(heading);
 
-    // Dead zone: só dispara se mudou >= 2°
+    // Dead zone: só dispara se mudou >= 3°
     if (this.#lastHeading != null) {
       let delta = Math.abs(heading - this.#lastHeading);
       if (delta > 180) delta = 360 - delta;
-      if (delta < 2) return;
+      if (delta < 3) return;
     }
 
     this.#lastHeading = heading;

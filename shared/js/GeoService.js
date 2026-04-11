@@ -22,6 +22,7 @@ class GeoService {
   static #SALVAR_COOLDOWN_MS = 10 * 60 * 1000; // throttle: salva no banco no max 1x/10min
   static #cache              = null;            // { lat, lng, ts }
   static #ultimoSalvo        = null;            // Date.now() do ultimo save no banco
+  static #watchId            = null;            // ID do watchPosition ativo (ou null)
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -122,6 +123,36 @@ class GeoService {
    */
   static limparCache() {
     GeoService.#cache = null;
+  }
+
+  /**
+   * Inicia o monitoramento contínuo de posição via watchPosition.
+   * Cada atualização do GPS chama onUpdate(lat, lng) e atualiza o cache.
+   * Seguro chamar várias vezes — só abre um único watch.
+   * @param {Function} onUpdate — callback(lat: number, lng: number)
+   */
+  static iniciarWatch(onUpdate) {
+    if (GeoService.#watchId !== null || !navigator.geolocation) return;
+    GeoService.#watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        GeoService.#cache = { lat, lng, ts: Date.now() };
+        GeoService.#salvarNoBanco(lat, lng); // fire-and-forget, throttled
+        if (typeof onUpdate === 'function') onUpdate(lat, lng);
+      },
+      () => { /* silencioso — watchPosition continua após erro transitório */ },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+    );
+  }
+
+  /**
+   * Para o monitoramento contínuo de posição iniciado por iniciarWatch.
+   */
+  static pararWatch() {
+    if (GeoService.#watchId !== null) {
+      navigator.geolocation.clearWatch(GeoService.#watchId);
+      GeoService.#watchId = null;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
