@@ -2019,26 +2019,70 @@
   gap: 0;
 }
 
-/* Wrapper — aplica perspective para o flip 3D */
-.sv-inner-wrap {
+/* Stage: perspective container — sobrepõe os dois inners (dual-buffer) */
+.sv-stage {
+  position: relative;
   width: 80vw;
   max-width: 360px;
   aspect-ratio: 9 / 16;
-  perspective: 900px;
+  perspective: 1200px;          /* mais sutil que 900px → efeito premium */
+  perspective-origin: 50% 50%;
 }
 
-/* Elemento que rotaciona — transition injetada via JS */
+/* Dois inners ocupam o mesmo espaço absoluto dentro do stage.
+   transform e opacity injetados pelo StorySwipeTransition.js (GPU). */
 .sv-inner {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   border-radius: 18px;
   overflow: hidden;
-  position: relative;
   background: #000;
   border: 1.5px solid var(--gold-border);
   box-shadow:
     0 24px 64px rgba(0,0,0,.85),
     0 0 0 1px rgba(212,175,55,.12);
+  /* Força camada compositor própria — evita repaint durante a animação */
+  will-change: transform, opacity;
+  transform-origin: 50% 50%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Overlay de escurecimento dinâmico — controlado por --sv-darken via JS.
+   Reforça separação de profundidade entre card que sai e card que entra. */
+.sv-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--sv-darken, 0);
+  pointer-events: none;
+  z-index: 19;
+  border-radius: 18px;
+}
+
+/* Indicadores de posição (pílulas) — injetados pelo StoryProgressLayer.js */
+.sv-progress {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  gap: 5px;
+  pointer-events: none;
+}
+.sv-progress-pill {
+  height: 3px;
+  width: 20px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.35);
+  transition: background .2s ease, width .2s ease;
+  flex-shrink: 0;
+}
+.sv-progress-pill.ativo {
+  background: rgba(255,255,255,.92);
+  width: 28px;
 }
 
 .sv-video {

@@ -196,10 +196,23 @@ class MapWidget {
 
     MapWidget.#posUsuario = { lat, lng };
 
-    MapWidget.#mapa.flyTo([lat, lng], MapWidget.#ZOOM_PADRAO, {
-      animate:  true,
-      duration: 1.2,
-    });
+    try {
+      // Atualiza o tamanho interno do mapa caso o container esteja oculto.
+      // Containers com dimensões zero produzem NaN no loop de animação do Leaflet.
+      MapWidget.#mapa.invalidateSize({ animate: false });
+      const sz = MapWidget.#mapa.getSize();
+      if (sz && sz.x > 0 && sz.y > 0) {
+        MapWidget.#mapa.flyTo([lat, lng], MapWidget.#ZOOM_PADRAO, {
+          animate:  true,
+          duration: 1.2,
+        });
+      } else {
+        // Container oculto/sem dimensões — posiciona sem animação para evitar NaN
+        MapWidget.#mapa.setView([lat, lng], MapWidget.#ZOOM_PADRAO, { animate: false });
+      }
+    } catch {
+      // fallback silencioso: evita rejeição não tratada se o mapa ainda não estiver pronto
+    }
 
     if (MapWidget.#markerUser) MapWidget.#markerUser.remove();
 
