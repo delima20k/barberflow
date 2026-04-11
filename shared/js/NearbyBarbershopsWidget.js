@@ -90,12 +90,35 @@ class NearbyBarbershopsWidget {
   }
 
   static async #buscarBarbearias(lat, lng) {
-    const { data, error } = await SupabaseService.client.functions.invoke(
-      'nearby-barbershops',
-      { body: { latitude: lat, longitude: lng, radius_km: NearbyBarbershopsWidget.#RAIO_KM } }
-    );
-    if (error) throw new Error('Não foi possível carregar as barbearias.');
-    return data ?? [];
+    const R    = NearbyBarbershopsWidget.#RAIO_KM;
+    const latD = R / 111.0;
+    const lonD = R / (111.0 * Math.cos(lat * Math.PI / 180));
+
+    const { data, error } = await SupabaseService.client
+      .from('barbershops')
+      .select('id, name, slug, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count')
+      .eq('is_active', true)
+      .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
+      .gte('longitude', lng - lonD).lte('longitude', lng + lonD)
+      .limit(30);
+
+    if (error) throw new Error('N\u00e3o foi poss\u00edvel carregar as barbearias.');
+
+    return (data ?? [])
+      .map(s => ({
+        ...s,
+        distance_km: parseFloat(NearbyBarbershopsWidget.#haversine(lat, lng, s.latitude, s.longitude).toFixed(2)),
+      }))
+      .filter(s => s.distance_km <= R)
+      .sort((a, b) => a.distance_km - b.distance_km);
+  }
+
+  static #haversine(lat1, lon1, lat2, lon2) {
+    const Rt = 6371, d = Math.PI / 180;
+    const dLat = (lat2 - lat1) * d, dLon = (lon2 - lon1) * d;
+    const a = Math.sin(dLat / 2) ** 2
+            + Math.cos(lat1 * d) * Math.cos(lat2 * d) * Math.sin(dLon / 2) ** 2;
+    return Rt * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   // ═══════════════════════════════════════════════════════════
