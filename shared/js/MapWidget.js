@@ -418,4 +418,47 @@ class MapWidget {
       MapWidget.#fab.disabled = false;
     }
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // EXPOSTOS para MapOrientationModule
+  // ═══════════════════════════════════════════════════════════
+
+  /** Expõe a instância Leaflet Map para módulos externos. */
+  static getMap() {
+    return MapWidget.#mapa;
+  }
+
+  /**
+   * Adiciona/mostra a seta de heading no marcador do usuário.
+   * Chamado pelo MapOrientationModule quando a bússola está ativa.
+   */
+  static setUserHeading() {
+    if (!MapWidget.#markerUser) return;
+    const el = MapWidget.#markerUser.getElement();
+    if (!el) return;
+    const inner = el.querySelector('.mapa-marker-user');
+    if (!inner) return;
+
+    let arrow = inner.querySelector('.mapa-heading-arrow');
+    if (!arrow) {
+      arrow = document.createElement('div');
+      arrow.className = 'mapa-heading-arrow';
+      inner.insertBefore(arrow, inner.firstChild);
+    }
+    // No modo bússola o mapa já está rotacionado para Norte = frente do celular.
+    // A seta sempre aponta "para cima" no mapa rotacionado — sem rotação adicional.
+    arrow.style.opacity = '1';
+  }
+
+  /**
+   * Oculta a seta de heading no marcador do usuário.
+   * Chamado ao desativar a bússola.
+   */
+  static clearUserHeading() {
+    if (!MapWidget.#markerUser) return;
+    const el = MapWidget.#markerUser.getElement();
+    if (!el) return;
+    const arrow = el.querySelector('.mapa-heading-arrow');
+    if (arrow) arrow.style.opacity = '0';
+  }
 }

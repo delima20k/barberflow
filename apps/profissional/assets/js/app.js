@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
   GeoService.solicitarNaPrimeiraVez();
   // Sistema de notificações
   NotificationService.init();
+  // Bússola e orientação do mapa
+  MapOrientationModule.init();
 });
 
 /* ── Service Worker (PWA / TWA) ──────────────────────────── */

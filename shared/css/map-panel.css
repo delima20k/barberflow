@@ -280,3 +280,96 @@
     border-radius: 0 0 15px 15px;
   }
 }
+
+/* ============================================================
+   MÓDULO DE ORIENTAÇÃO / BÚSSOLA (MapOrientationModule)
+============================================================ */
+
+/* Toolbar injetada dinamicamente dentro de .mpp-panel */
+.moc-toolbar {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  gap:             12px;
+  padding:         10px 14px;
+  background:      var(--card, #fff);
+  border-top:      1px solid rgba(43, 27, 18, .08);
+  border-radius:   0 0 12px 12px;
+}
+
+/* Botão bússola */
+.moc-btn {
+  display:       flex;
+  align-items:   center;
+  gap:           6px;
+  padding:       7px 16px;
+  background:    var(--card2, #F0E4D7);
+  border:        1px solid var(--gold-border, rgba(212, 160, 23, .3));
+  border-radius: var(--r-full, 9999px);
+  font-family:   var(--font, sans-serif);
+  font-size:     0.78rem;
+  font-weight:   600;
+  color:         var(--text, #2A211B);
+  cursor:        pointer;
+  transition:    background var(--ease, .22s ease),
+                 color var(--ease, .22s ease),
+                 border-color var(--ease, .22s ease);
+  flex-shrink:   0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moc-btn-svg {
+  width:       16px;
+  height:      16px;
+  flex-shrink: 0;
+}
+
+/* Estado ativo (bússola ON) */
+.moc-btn.ativo {
+  background:   var(--gold, #D4A017);
+  border-color: var(--gold, #D4A017);
+  color:        #2A211B;
+}
+
+.moc-btn:active {
+  filter: brightness(0.9);
+}
+
+.moc-btn-label {
+  white-space: nowrap;
+}
+
+/* Display do heading: "NE 47°" */
+.moc-heading-text {
+  font-family:    'Courier New', Courier, monospace;
+  font-size:      0.8rem;
+  font-weight:    700;
+  letter-spacing: 0.06em;
+  color:          var(--gold, #D4A017);
+  min-width:      54px;
+  text-align:     right;
+}
+
+/* Fundo escuro para corners ao rotacionar (combina com tiles OSM invertidos) */
+.mapa-container {
+  background: #111a22;
+}
+
+/* Seta de direção injetada no marcador do usuário */
+.mapa-heading-arrow {
+  position:      absolute;
+  top:           -18px;
+  left:          50%;
+  transform:     translateX(-50%);
+  width:         0;
+  height:        0;
+  border-left:   8px  solid transparent;
+  border-right:  8px  solid transparent;
+  border-bottom: 16px solid rgba(212, 160, 23, .92);
+  filter:        drop-shadow(0 0 5px rgba(212, 160, 23, .55));
+  opacity:       0;
+  transition:    opacity 300ms ease;
+  pointer-events: none;
+  z-index:       5;
+}
+
