@@ -1,5 +1,7 @@
 'use strict';
 
+if (!window.StoryViewer) {
+
 // =============================================================
 // StorySwipeTransition — Animação pseudo-3D entre stories (POO)
 //
@@ -1085,3 +1087,8 @@ class StoryViewer {
     });
   }
 }
+
+  window.StoryViewer = StoryViewer;
+}
+
+var StoryViewer = window.StoryViewer;

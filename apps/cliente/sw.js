@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-cliente-v7';
+const CACHE_NAME = 'barberflow-cliente-v8';
 
 const ASSETS = [
   '/manifest.json',
@@ -61,7 +61,10 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
           return response;
         })
-        .catch(() => caches.match(e.request))
+        .catch(async () => {
+          const cached = await caches.match(e.request);
+          return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+        })
     );
     return;
   }
@@ -70,14 +73,19 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
-      return fetch(e.request).then(response => {
-        if (!response || response.status !== 200 || response.type === 'opaque') {
+      return fetch(e.request)
+        .then(response => {
+          if (!response || response.status !== 200 || response.type === 'opaque') {
+            return response;
+          }
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
           return response;
-        }
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        return response;
-      });
+        })
+        .catch(async () => {
+          const fallback = await caches.match(e.request);
+          return fallback || new Response('', { status: 504, statusText: 'Gateway Timeout' });
+        });
     })
   );
 });

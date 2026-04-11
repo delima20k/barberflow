@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-profissional-v7';
+const CACHE_NAME = 'barberflow-profissional-v8';
 
 // HTML nunca entra na lista — sempre servido da rede
 const ASSETS = [
@@ -55,7 +55,12 @@ self.addEventListener('fetch', e => {
   // Navegações HTML — NUNCA cachear, sempre rede
   // Garante que o HTML mais recente (com boot-lock) seja sempre servido
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request));
+    e.respondWith(
+      fetch(e.request).catch(async () => {
+        const cached = await caches.match(e.request);
+        return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+      })
+    );
     return;
   }
 
@@ -64,14 +69,19 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(cached => {
       if (cached) return cached;
 
-      return fetch(e.request).then(response => {
-        if (!response || response.status !== 200 || response.type === 'opaque') {
+      return fetch(e.request)
+        .then(response => {
+          if (!response || response.status !== 200 || response.type === 'opaque') {
+            return response;
+          }
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
           return response;
-        }
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        return response;
-      });
+        })
+        .catch(async () => {
+          const fallback = await caches.match(e.request);
+          return fallback || new Response('', { status: 504, statusText: 'Gateway Timeout' });
+        });
     })
   );
 });
