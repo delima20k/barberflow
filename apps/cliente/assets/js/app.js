@@ -12,7 +12,6 @@ class BarberFlowCliente extends Router {
     'mensagens',
     'favoritas',
     'perfil',
-    'notificacoes',
     'sair',
   ]);
 
@@ -73,8 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
   NearbyBarbershopsWidget.init('nearby-map-widget');
   // Solicita GPS silenciosamente na primeira abertura
   GeoService.solicitarNaPrimeiraVez();
-  // Sistema de notificações
-  NotificationService.init();
   // Bússola e orientação do mapa
   MapOrientationModule.init();
 });

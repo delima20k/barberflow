@@ -238,6 +238,8 @@ class AuthService {
       const el = document.getElementById(id);
       if (el) { el.src = url; el.onerror = null; }
     });
+    // Atualiza o marcador do usuário no mapa (se já posicionado)
+    if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
   }
 
   static _instancia() {
@@ -297,6 +299,8 @@ class AuthService {
       const el = document.getElementById(id);
       if (el) el.src = '/shared/img/icones-perfil.png';
     });
+    // Volta o marcador do usuário no mapa para o ícone padrão
+    if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
 
     const mu = document.getElementById('menu-username');
     // Remove botão de upload do avatar

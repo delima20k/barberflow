@@ -31,6 +31,7 @@ class MapWidget {
   static #fab             = null;  // elemento do botão flutuante (FAB)
   static #el              = null;  // elemento raiz do container
   static #carregando      = false; // lock para evitar chamadas duplas
+  static #posUsuario      = null;  // última posição válida do usuário
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -140,6 +141,7 @@ class MapWidget {
     MapWidget.#carregando = true;
     try {
       const pos   = await GeoService.obter();
+      if (!pos || !isFinite(pos.lat) || !isFinite(pos.lng)) return;
       MapWidget.#centralizarUsuario(pos.lat, pos.lng);
       const lista = await MapWidget.#buscarBarbearias(pos.lat, pos.lng);
       MapWidget.#renderMarcadores(lista);
@@ -187,9 +189,12 @@ class MapWidget {
     return Rt * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  /** Centraliza o mapa na posição do usuário e adiciona marcador com avatar. */
+  /** Centraliza o mapa na posição do usuário e cria/atualiza o marcador com avatar. */
   static #centralizarUsuario(lat, lng) {
     if (!MapWidget.#mapa) return;
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    MapWidget.#posUsuario = { lat, lng };
 
     MapWidget.#mapa.flyTo([lat, lng], MapWidget.#ZOOM_PADRAO, {
       animate:  true,
@@ -198,43 +203,51 @@ class MapWidget {
 
     if (MapWidget.#markerUser) MapWidget.#markerUser.remove();
 
-    // Usa avatar do usuário logado; fallback: ponto azul pulsante
+    MapWidget.#markerUser = L.marker([lat, lng], { icon: MapWidget.#criarIconeUsuario() })
+      .addTo(MapWidget.#mapa)
+      .bindPopup('<strong style="color:#D4AF37">Você está aqui</strong>');
+  }
+
+  /** Constrói o L.divIcon do marcador do usuário com o avatar atual em cache. */
+  static #criarIconeUsuario() {
     const avatarUrl = (typeof SessionCache !== 'undefined')
       ? SessionCache.getAvatar()
       : null;
 
-    let iconHtml, iconSize, iconAnchor;
-
     if (avatarUrl) {
-      iconHtml = `<div class="mapa-marker-user mapa-marker-user--avatar">
-                    <div class="mapa-marker-user-pulse"></div>
-                    <img src="${avatarUrl}"
-                         class="mapa-marker-user-img"
-                         alt="Você"
-                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                    <div class="mapa-marker-user-dot" style="display:none"></div>
-                  </div>`;
-      iconSize   = [40, 40];
-      iconAnchor = [20, 20];
-    } else {
-      iconHtml = `<div class="mapa-marker-user">
-                    <div class="mapa-marker-user-pulse"></div>
-                    <div class="mapa-marker-user-dot"></div>
-                  </div>`;
-      iconSize   = [28, 28];
-      iconAnchor = [14, 14];
+      return L.divIcon({
+        className: '',
+        html: `<div class="mapa-marker-user mapa-marker-user--avatar">
+                 <div class="mapa-marker-user-pulse"></div>
+                 <img src="${avatarUrl}"
+                      class="mapa-marker-user-img"
+                      alt="Você"
+                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                 <div class="mapa-marker-user-dot" style="display:none"></div>
+               </div>`,
+        iconSize:   [40, 40],
+        iconAnchor: [20, 20],
+      });
     }
 
-    const icon = L.divIcon({
+    return L.divIcon({
       className: '',
-      html:      iconHtml,
-      iconSize,
-      iconAnchor,
+      html: `<div class="mapa-marker-user">
+               <div class="mapa-marker-user-pulse"></div>
+               <div class="mapa-marker-user-dot"></div>
+             </div>`,
+      iconSize:   [28, 28],
+      iconAnchor: [14, 14],
     });
+  }
 
-    MapWidget.#markerUser = L.marker([lat, lng], { icon })
-      .addTo(MapWidget.#mapa)
-      .bindPopup('<strong style="color:#D4AF37">Você está aqui</strong>');
+  /**
+   * Atualiza o ícone do marcador do usuário com o avatar atual do cache.
+   * Chamado pelo AuthService após login, logout ou troca de avatar.
+   */
+  static atualizarMarcadorUsuario() {
+    if (!MapWidget.#markerUser || !MapWidget.#posUsuario) return;
+    MapWidget.#markerUser.setIcon(MapWidget.#criarIconeUsuario());
   }
 
   /** Adiciona um marcador avatar no mapa para cada barbearia da lista. */
