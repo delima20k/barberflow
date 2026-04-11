@@ -113,7 +113,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Entrar</h2>
-        <div class="login-form">
+        <form class="login-form" onsubmit="Pro.fazerLogin(); return false;">
           <div class="form-field">
             <label>E-mail profissional</label>
             <input id="login-email" type="email" placeholder="barbeiro@seudominio.com" autocomplete="username">
@@ -123,8 +123,8 @@
             <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
           </div>
           <p id="login-erro" class="form-erro"></p>
-          <button class="btn btn-gold btn-full" onclick="Pro.fazerLogin()">Acessar Painel</button>
-          <button class="btn btn-outline btn-full" onclick="Pro.push('cadastro')">Criar conta profissional</button>
+          <button type="submit" class="btn btn-gold btn-full">Acessar Painel</button>
+          <button type="button" class="btn btn-outline btn-full" onclick="Pro.push('cadastro')">Criar conta profissional</button>
           <p class="login-link" style="text-align:center;">
             <a href="#" onclick="Pro.push('esqueceu-senha'); return false;">Esqueceu a senha?</a>
           </p>
@@ -132,7 +132,7 @@
             Sou cliente &rarr;
             <a href="#" onclick="Pro.navegarApp('https://barberflow-cliente.vercel.app/'); return false;">Acessar app cliente</a>
           </p>
-        </div>
+        </form>
       </div>
     </div>
   </main>
@@ -152,7 +152,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Criar conta</h2>
-        <div class="login-form">
+        <form class="login-form" onsubmit="Pro.fazerCadastro(); return false;">
           <div class="form-field">
             <label>Nome completo</label>
             <input id="cad-nome" type="text" placeholder="Seu nome profissional" autocomplete="name">
@@ -178,12 +178,12 @@
             <input id="cad-senha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
           </div>
           <p id="cad-erro" class="form-erro"></p>
-          <button class="btn btn-gold btn-full" onclick="Pro.fazerCadastro()">Criar conta profissional</button>
+          <button type="submit" class="btn btn-gold btn-full">Criar conta profissional</button>
           <p class="login-link">
             Já tenho conta &rarr;
             <a href="#" onclick="Pro.push('login'); return false;">Fazer login</a>
           </p>
-        </div>
+        </form>
       </div>
     </div>
   </main>
@@ -203,7 +203,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Esqueceu a senha?</h2>
-        <div class="login-form">
+        <form class="login-form" onsubmit="Pro.fazerRecuperacao(); return false;">
           <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
             Digite seu e-mail profissional e enviaremos um link para criar uma nova senha.
           </p>
@@ -212,12 +212,12 @@
             <input id="rec-email" type="email" placeholder="barbeiro@seudominio.com" autocomplete="email">
           </div>
           <p id="rec-erro" class="form-erro"></p>
-          <button class="btn btn-gold btn-full" onclick="Pro.fazerRecuperacao()">Enviar link de recuperação</button>
+          <button type="submit" class="btn btn-gold btn-full">Enviar link de recuperação</button>
           <p class="login-link">
             Lembrei a senha &rarr;
             <a href="#" onclick="Pro.push('login'); return false;">Fazer login</a>
           </p>
-        </div>
+        </form>
       </div>
     </div>
   </main>
