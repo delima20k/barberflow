@@ -23,6 +23,10 @@
   <!-- App-specific CSS -->
   <link rel="stylesheet" href="assets/css/styles.css">
 
+  <!-- Leaflet (mapa interativo) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
   <!-- Boot lock: oculta TODAS as telas instantaneamente antes de qualquer CSS externo carregar.
        Impede FOUC (flash de telas) independente de Service Worker ou cache.
        Removido pelo Router assim que o estado correto é aplicado. -->
@@ -219,10 +223,10 @@
       <div>
         <h2 class="sec-title">Stories</h2>
         <h3 class="stories-tagline">Barbearias Flow</h3>
-        <div class="h-scroll" style="padding-top:6px;gap:12px;align-items:flex-start;">
+        <div class="stories-scroll">
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
                      poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
@@ -239,7 +243,7 @@
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
                      poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
@@ -256,7 +260,7 @@
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
                      poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
@@ -273,7 +277,7 @@
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
                      poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
@@ -290,7 +294,7 @@
           </div>
 
           <div class="card-mini story-card">
-            <div class="story-video-wrap" onclick="Pro.toggleStoryVideo(this)">
+            <div class="story-video-wrap" onclick="StoryViewer.abrir(this)">
               <video playsinline muted loop preload="none"
                      poster="/shared/img/icones-perfil.png" class="story-video"></video>
               <div class="story-play-btn">▶</div>
@@ -310,27 +314,25 @@
       </div>
 
       <!-- Mapa GPS -->
-      <div class="section-mapa">
-        <p class="sec-title title-large">Barbearias Próximas</p>
+      <div id="section-mapa">
+        <h2 class="sec-title title-large">Barbearias Próximas</h2>
         <div class="map-toggle-head">
           <p class="map-toggle-text">Visualize o endereco da barbearia mais proxima de voce</p>
           <button class="map-toggle-btn" type="button" data-map-toggle-btn aria-expanded="true">Fechar mapa</button>
         </div>
         <div class="map-collapse-panel" data-map-toggle-panel>
-          <div class="map-card map-card--placeholder">
-            <div class="map-box">
-              <span class="map-pin">📍</span>
-              <p>Mapa de barbearias proximas<br>
-                <span class="map-box-note">Ative o GPS para ver barbearias perto de voce</span>
-              </p>
-            </div>
+          <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
+          <div class="map-card">
+            <div id="mapa-container" class="mapa-container"></div>
           </div>
+          <!-- NearbyBarbershopsWidget: lista de barbearias abaixo do mapa -->
+          <div id="nearby-map-widget"></div>
         </div>
       </div>
 
       <!-- Fila ao vivo -->
       <div>
-        <p class="sec-title">Fila ao Vivo</p>
+        <h2 class="sec-title">Fila ao Vivo</h2>
         <div class="h-scroll">
           <div class="chair ocupada">
             <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
@@ -361,29 +363,29 @@
 
       <!-- Em destaque -->
       <div>
-        <p class="sec-title">Em Destaque</p>
+        <h2 class="sec-title">Em Destaque</h2>
         <div class="h-scroll">
           <div class="card-mini">
             <div class="avatar gold">✂️</div>
-            <strong style="font-size:.83rem;">Barbearia Elite</strong>
+            <strong class="destaque-name">Barbearia Elite</strong>
             <div class="stars">★★★★★</div>
             <span class="badge">Aberto</span>
           </div>
           <div class="card-mini">
             <div class="avatar gold">💈</div>
-            <strong style="font-size:.83rem;">Corte &amp; Arte</strong>
+            <strong class="destaque-name">Corte &amp; Arte</strong>
             <div class="stars">★★★★☆</div>
             <span class="badge">Aberto</span>
           </div>
           <div class="card-mini">
             <div class="avatar gold">👑</div>
-            <strong style="font-size:.83rem;">King Cuts</strong>
+            <strong class="destaque-name">King Cuts</strong>
             <div class="stars">★★★★★</div>
             <span class="badge">Aberto</span>
           </div>
           <div class="card-mini">
             <div class="avatar" style="border-color:var(--text-dim);">🪒</div>
-            <strong style="font-size:.83rem;">Studio Beard</strong>
+            <strong class="destaque-name">Studio Beard</strong>
             <div class="stars" style="color:var(--text-dim);">★★★☆☆</div>
             <span class="badge closed">Fechado</span>
           </div>
@@ -392,7 +394,15 @@
 
       <!-- Barbeiros populares -->
       <div>
-        <p class="sec-title">Barbeiros Populares</p>
+        <h2 class="sec-title title-large">Barbearias Populares Próximas de Você</h2>
+        <div id="nearby-barbershops-widget" class="nearby-hint-wrap">
+          <p class="nearby-hint-msg">
+            Olá, <strong id="nearby-hint-nome">Anônimo</strong>! 👋<br>
+            Ative o GPS em <span class="nearby-hint-link" onclick="document.getElementById('section-mapa').scrollIntoView({behavior:'smooth'})">Barbearias Próximas</span>
+            acima para ver as barbearias e barbeiros mais próximos de você.
+          </p>
+        </div>
+        <h2 class="sec-title">Barbeiros Populares</h2>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <div class="barber-row">
             <div class="avatar gold">
@@ -914,8 +924,20 @@
 <script src="/shared/js/BarberPole.js"></script>
 <!-- Efeito glow nas logos -->
 <script src="/shared/js/LogoGlow.js"></script>
+<!-- Visualizador de stories em tela cheia (POO) -->
+<script src="/shared/js/StoryViewer.js"></script>
 <!-- Layout de stories 3x3 -->
 <script src="/shared/js/StoriesLayout.js"></script>
+<!-- Geolocalização -->
+<script src="/shared/js/GeoService.js"></script>
+<!-- Leaflet JS (mapa interativo) -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Widget de barbearias próximas -->
+<script src="/shared/js/NearbyBarbershopsWidget.js"></script>
+<script src="/shared/js/MapWidget.js"></script>
+<!-- Widget de pesquisa dinâmica -->
+<script src="/shared/js/SearchWidget.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->

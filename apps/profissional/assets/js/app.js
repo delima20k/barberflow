@@ -62,8 +62,8 @@ class BarberFlowProfissional extends Router {
 /* ── Instância global ───────────────────────────────────────── */
 const Pro = new BarberFlowProfissional();
 
-function initMapTogglePro() {
-  const section = document.querySelector('.section-mapa');
+function initMapToggle() {
+  const section = document.getElementById('section-mapa');
   if (!section) return;
 
   const btn = section.querySelector('[data-map-toggle-btn]');
@@ -86,7 +86,13 @@ function initMapTogglePro() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initMapTogglePro();
+  initMapToggle();
+  // Mapa interativo Leaflet com FAB flutuante
+  MapWidget.init('mapa-container');
+  // Lista de barbearias próximas (abaixo do mapa)
+  NearbyBarbershopsWidget.init('nearby-map-widget');
+  // Solicita GPS silenciosamente na primeira abertura
+  GeoService.solicitarNaPrimeiraVez();
 });
 
 /* ── Service Worker (PWA / TWA) ──────────────────────────── */
