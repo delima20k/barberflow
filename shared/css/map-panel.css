@@ -87,6 +87,26 @@
   margin-top: 2px;
 }
 
+/* Hint de fechar — aparece quando o texto dos chars some (mapa aberto) */
+.mph-close-hint {
+  font-family:  var(--font, sans-serif);
+  font-size:    0.72rem;
+  color:        var(--text-dim, rgba(42,33,27,.5));
+  font-style:   italic;
+  opacity:      0;
+  pointer-events: none;
+  white-space:  nowrap;
+  transition:   opacity 240ms ease 200ms;
+  flex:         1;
+  text-align:   left;
+}
+
+/* Só aparece com o mapa aberto */
+.mph-wrapper[aria-expanded="true"] .mph-close-hint {
+  opacity: 1;
+  pointer-events: none;
+}
+
 /* Traço animado */
 .mph-bar {
   height:        0.3rem;
