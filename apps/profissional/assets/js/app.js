@@ -85,6 +85,7 @@ function initMapToggle() {
   });
 }
 
+/* ── Inicializa widgets de geolocalização ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initMapToggle();
   // Mapa interativo Leaflet com FAB flutuante

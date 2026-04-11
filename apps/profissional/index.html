@@ -401,6 +401,18 @@
         </div>
       </div>
 
+      <!-- Barbearias populares próximas (NearbyBarbershopsWidget) -->
+      <div>
+        <h2 class="sec-title">Barbearias Populares Próximas de Você</h2>
+        <div id="nearby-barbershops-widget" class="nearby-hint-wrap">
+          <p class="nearby-hint-msg">
+            Olá, <strong id="nearby-hint-nome">Anônimo</strong>! 👋<br>
+            Ative o GPS em <span class="nearby-hint-link" onclick="document.getElementById('section-mapa').scrollIntoView({behavior:'smooth'})">Barbearias Próximas</span>
+            acima para ver as barbearias e barbeiros mais próximos de você.
+          </p>
+        </div>
+      </div>
+
       <!-- Barbeiros populares -->
       <div>
         <h2 class="sec-title title-large">Barbearias Populares Próximas de Você</h2>
@@ -935,7 +947,7 @@
 <script src="/shared/js/StoryViewer.js"></script>
 <!-- Layout de stories 3x3 -->
 <script src="/shared/js/StoriesLayout.js"></script>
-<!-- Geolocalização -->
+<!-- Geolocalização GPS -->
 <script src="/shared/js/GeoService.js"></script>
 <!-- Leaflet JS (mapa interativo) -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"

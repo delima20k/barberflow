@@ -102,7 +102,7 @@ class MapWidget {
   // PRIVADO — Leaflet
   // ═══════════════════════════════════════════════════════════
 
-  /** Cria o mapa Leaflet com tiles claros (CartoDB Positron, gratuito). */
+  /** Cria o mapa Leaflet com tiles OpenStreetMap + filtro dark (100% gratuito, sem API key). */
   static #inicializarLeaflet() {
     MapWidget.#mapa = L.map(MapWidget.#el, {
       center:             [MapWidget.#LAT_PADRAO, MapWidget.#LNG_PADRAO],
@@ -111,17 +111,21 @@ class MapWidget {
       attributionControl: true,
     });
 
-    // Fundo claro — integrado ao tema premium atual do BarberFlow
-    L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    // OpenStreetMap — gratuito para sempre, sem chave de API, open-source
+    // Filtro CSS inverte as cores para manter tema escuro do BarberFlow
+    const tiles = L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       {
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
-          ' &copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom:    19,
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
       }
     ).addTo(MapWidget.#mapa);
+
+    tiles.on('add', () => {
+      const c = tiles.getContainer ? tiles.getContainer() : null;
+      if (c) c.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1)';
+    });
 
     // Zoom no canto inferior direito
     L.control.zoom({ position: 'bottomright' }).addTo(MapWidget.#mapa);
