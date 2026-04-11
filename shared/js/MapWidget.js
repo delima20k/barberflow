@@ -454,25 +454,31 @@ class MapWidget {
   }
 
   /**
-   * Adiciona/mostra a seta de heading no marcador do usuário.
-   * Chamado pelo MapOrientationModule quando a bússola está ativa.
+   * Gira a seta de direção no marcador do usuário conforme o heading.
+   * O mapa permanece fixo (Norte = cima). Apenas a seta roda.
+   * @param {number} heading — graus 0-360 (0 = Norte, sentido horário)
    */
-  static setUserHeading() {
+  static setUserHeading(heading) {
     if (!MapWidget.#markerUser) return;
     const el = MapWidget.#markerUser.getElement();
     if (!el) return;
     const inner = el.querySelector('.mapa-marker-user');
     if (!inner) return;
 
-    let arrow = inner.querySelector('.mapa-heading-arrow');
-    if (!arrow) {
-      arrow = document.createElement('div');
-      arrow.className = 'mapa-heading-arrow';
-      inner.insertBefore(arrow, inner.firstChild);
+    // Cria o cone de rotação apenas uma vez por marcador
+    let cone = inner.querySelector('.mapa-heading-cone');
+    if (!cone) {
+      cone = document.createElement('div');
+      cone.className = 'mapa-heading-cone';
+      const arrowEl = document.createElement('div');
+      arrowEl.className = 'mapa-heading-arrow';
+      cone.appendChild(arrowEl);
+      inner.appendChild(cone);
     }
-    // No modo bússola o mapa já está rotacionado para Norte = frente do celular.
-    // A seta sempre aponta "para cima" no mapa rotacionado — sem rotação adicional.
-    arrow.style.opacity = '1';
+
+    // Roda o cone ao redor do centro do marcador; a seta aponta na direção do heading
+    cone.style.transform = `rotate(${heading}deg)`;
+    cone.style.opacity   = '1';
   }
 
   /**
@@ -483,7 +489,7 @@ class MapWidget {
     if (!MapWidget.#markerUser) return;
     const el = MapWidget.#markerUser.getElement();
     if (!el) return;
-    const arrow = el.querySelector('.mapa-heading-arrow');
-    if (arrow) arrow.style.opacity = '0';
+    const cone = el.querySelector('.mapa-heading-cone');
+    if (cone) cone.style.opacity = '0';
   }
 }

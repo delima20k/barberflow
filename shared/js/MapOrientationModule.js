@@ -364,17 +364,10 @@ class MapOrientationModule {
       return;
     }
 
-    // Criar controller de rotação
-    const leafletMap  = (typeof MapWidget !== 'undefined') ? MapWidget.getMap() : null;
-    MapOrientationModule.#rotation = new MapRotationController(containerId, leafletMap);
-    MapOrientationModule.#rotation.enable();
-
-    // Registrar callback de heading
+    // O mapa fica sempre com Norte para cima.
+    // Apenas a seta no marcador do usuário gira conforme o heading do celular.
     compass.onHeading(heading => {
-      MapOrientationModule.#rotation?.setHeading(heading);
       MapOrientationModule.#ui?.updateHeading(heading);
-
-      // Mostrar seta no marcador do usuário
       if (typeof MapWidget !== 'undefined') {
         MapWidget.setUserHeading(heading);
       }
@@ -385,8 +378,6 @@ class MapOrientationModule {
 
   static #desativar() {
     MapOrientationModule.#compass?.stop();
-    MapOrientationModule.#rotation?.disable();
-    MapOrientationModule.#rotation = null;
 
     if (typeof MapWidget !== 'undefined') {
       MapWidget.clearUserHeading();

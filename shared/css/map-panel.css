@@ -355,7 +355,20 @@
   background: #111a22;
 }
 
-/* Seta de direção injetada no marcador do usuário */
+/* Cone de direção — wrapper que gira ao redor do centro do avatar do usuário */
+.mapa-heading-cone {
+  position:         absolute;
+  inset:            0;
+  transform-origin: center center;
+  opacity:          0;
+  transition:       opacity 300ms ease,
+                    transform 150ms ease-out;
+  pointer-events:   none;
+  z-index:          5;
+}
+
+/* Seta triangular dentro do cone — aponta sempre "para cima" (Norte do cone).
+   O cone é rotacionado pelo JS; a seta não precisa de rotação própria. */
 .mapa-heading-arrow {
   position:      absolute;
   top:           -18px;
@@ -367,10 +380,7 @@
   border-right:  8px  solid transparent;
   border-bottom: 16px solid rgba(212, 160, 23, .92);
   filter:        drop-shadow(0 0 5px rgba(212, 160, 23, .55));
-  opacity:       0;
-  transition:    opacity 300ms ease;
   pointer-events: none;
-  z-index:       5;
 }
 
 
@@ -443,26 +453,8 @@
   text-align:     right;
 }
 
-/* Fundo escuro para corners ao rotacionar (combina com tiles OSM invertidos) */
+/* Fundo escuro previne cantos brancos (tiles OSM invertidos) */
 .mapa-container {
   background: #111a22;
-}
-
-/* Seta de direção injetada no marcador do usuário */
-.mapa-heading-arrow {
-  position:      absolute;
-  top:           -18px;
-  left:          50%;
-  transform:     translateX(-50%);
-  width:         0;
-  height:        0;
-  border-left:   8px  solid transparent;
-  border-right:  8px  solid transparent;
-  border-bottom: 16px solid rgba(212, 160, 23, .92);
-  filter:        drop-shadow(0 0 5px rgba(212, 160, 23, .55));
-  opacity:       0;
-  transition:    opacity 300ms ease;
-  pointer-events: none;
-  z-index:       5;
 }
 
