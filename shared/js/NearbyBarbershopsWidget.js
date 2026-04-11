@@ -161,22 +161,9 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#montar(wrap);
   }
 
-  /** Estado: nenhuma barbearia encontrada (sem botão GPS) */
+  /** Estado: nenhuma barbearia encontrada — limpa o container sem exibir nada */
   static #renderVazio() {
-    const wrap = document.createElement('div');
-    wrap.className = 'nearby-vazio';
-
-    const icone = document.createElement('span');
-    icone.className   = 'nearby-gps-icon';
-    icone.textContent = '🔍';
-
-    const msg = document.createElement('p');
-    msg.className   = 'nearby-gps-msg';
-    msg.textContent = `Nenhuma barbearia encontrada em ${NearbyBarbershopsWidget.#RAIO_KM} km de você.`;
-
-    wrap.appendChild(icone);
-    wrap.appendChild(msg);
-    NearbyBarbershopsWidget.#montar(wrap);
+    if (NearbyBarbershopsWidget.#el) NearbyBarbershopsWidget.#el.innerHTML = '';
   }
 
   /**
