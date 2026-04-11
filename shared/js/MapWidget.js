@@ -102,7 +102,7 @@ class MapWidget {
   // PRIVADO — Leaflet
   // ═══════════════════════════════════════════════════════════
 
-  /** Cria o mapa Leaflet com tiles escuros (CartoDB DarkMatter, gratuito). */
+  /** Cria o mapa Leaflet com tiles claros (CartoDB Positron, gratuito). */
   static #inicializarLeaflet() {
     MapWidget.#mapa = L.map(MapWidget.#el, {
       center:             [MapWidget.#LAT_PADRAO, MapWidget.#LNG_PADRAO],
@@ -111,9 +111,9 @@ class MapWidget {
       attributionControl: true,
     });
 
-    // Fundo escuro — combina com o design dark do BarberFlow
+    // Fundo claro — integrado ao tema premium atual do BarberFlow
     L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
       {
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +

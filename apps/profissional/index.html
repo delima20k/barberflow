@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/shared/css/tokens.css">
   <link rel="stylesheet" href="/shared/css/components.css">
   <link rel="stylesheet" href="/shared/css/story-cards.css">
+  <link rel="stylesheet" href="/shared/css/map-card.css">
 
   <!-- App-specific CSS -->
   <link rel="stylesheet" href="assets/css/styles.css">
@@ -307,13 +308,15 @@
       </div>
 
       <!-- Mapa GPS -->
-      <div>
+      <div class="section-mapa">
         <p class="sec-title title-large">Barbearias Próximas</p>
-        <div class="map-box">
-          <span class="map-pin">📍</span>
-          <p>Mapa de barbearias próximas<br>
-            <span style="font-size:.72rem;color:var(--text-dim);">Ative o GPS para ver barbearias perto de você</span>
-          </p>
+        <div class="map-card map-card--placeholder">
+          <div class="map-box">
+            <span class="map-pin">📍</span>
+            <p>Mapa de barbearias próximas<br>
+              <span class="map-box-note">Ative o GPS para ver barbearias perto de você</span>
+            </p>
+          </div>
         </div>
       </div>
 
