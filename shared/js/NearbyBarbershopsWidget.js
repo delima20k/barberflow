@@ -23,7 +23,7 @@ class NearbyBarbershopsWidget {
 
   /**
    * Inicializa o widget.
-   * Verifica a permissão atual e decide o estado inicial.
+   * Se GPS já concedido → carrega lista. Caso contrário deixa o hint HTML intacto.
    * @param {string} containerId
    */
   static async init(containerId) {
@@ -33,43 +33,25 @@ class NearbyBarbershopsWidget {
     const permissao = await GeoService.verificarPermissao();
 
     if (permissao === 'granted') {
-      // GPS já liberado — carrega direto, sem botão
       await NearbyBarbershopsWidget.#carregar();
-    } else {
-      // Negado ou primeira vez — mostra botão
-      NearbyBarbershopsWidget.#renderBotaoGPS();
     }
+    // caso não concedido: hint HTML já está no DOM — não altera nada
   }
 
   /**
-   * Chamado pelo GeoService quando GPS é concedido na primeira abertura.
+   * Chamado pelo GeoService quando GPS é concedido (mapa ativou o GPS).
+   * Limpa o hint e carrega a lista de barbearias.
    */
   static async onGPSConcedido() {
     if (!NearbyBarbershopsWidget.#el) return;
-    NearbyBarbershopsWidget.#ocultarBotaoGPS();
     await NearbyBarbershopsWidget.#carregar();
   }
 
   /**
-   * Chamado pelo GeoService quando GPS é negado na primeira abertura.
+   * Chamado pelo GeoService quando GPS é negado — hint permanece visível.
    */
   static onGPSNegado() {
-    NearbyBarbershopsWidget.#exibirBotaoGPS();
-  }
-
-  /**
-   * Acionado pelo botão "Ativar GPS" no HTML.
-   */
-  static async ativarGPS() {
-    NearbyBarbershopsWidget.#ocultarBotaoGPS();
-    NearbyBarbershopsWidget.#renderLoading();
-    try {
-      await GeoService.obter();
-      await NearbyBarbershopsWidget.#carregar();
-    } catch (err) {
-      NearbyBarbershopsWidget.#exibirBotaoGPS();
-      NearbyBarbershopsWidget.#renderErroInline(err.message);
-    }
+    // hint HTML já está no DOM — não faz nada
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -84,8 +66,9 @@ class NearbyBarbershopsWidget {
       lista.length
         ? NearbyBarbershopsWidget.#renderLista(lista)
         : NearbyBarbershopsWidget.#renderVazio();
-    } catch (err) {
-      NearbyBarbershopsWidget.#renderBotaoGPS(err.message);
+    } catch (_err) {
+      // silencioso — se GPS falhar o hint original não está mais, limpa
+      NearbyBarbershopsWidget.#el.innerHTML = '';
     }
   }
 
@@ -154,30 +137,6 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#el.appendChild(node);
   }
 
-  /** Botão redondo "Ativar GPS" (aparece só se permissão negada/pendente) */
-  static #renderBotaoGPS(erro = null) {
-    const wrap = document.createElement('div');
-    wrap.className = 'nearby-gps-off';
-
-    const icone = document.createElement('span');
-    icone.className   = 'nearby-gps-icon';
-    icone.textContent = erro ? '⚠️' : '📍';
-
-    const msg = document.createElement('p');
-    msg.className   = 'nearby-gps-msg';
-    msg.textContent = erro ?? 'Ative o GPS para ver barbearias perto de você.';
-
-    const btn = document.createElement('button');
-    btn.className   = 'btn btn-gold nearby-gps-btn nearby-gps-btn-round';
-    btn.textContent = '📍 Ativar GPS';
-    btn.addEventListener('click', () => NearbyBarbershopsWidget.ativarGPS());
-
-    wrap.appendChild(icone);
-    wrap.appendChild(msg);
-    wrap.appendChild(btn);
-    NearbyBarbershopsWidget.#montar(wrap);
-  }
-
   /** Estado: carregando */
   static #renderLoading() {
     const wrap = document.createElement('div');
@@ -202,10 +161,10 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#montar(wrap);
   }
 
-  /** Estado: nenhuma barbearia encontrada */
+  /** Estado: nenhuma barbearia encontrada (sem botão GPS) */
   static #renderVazio() {
     const wrap = document.createElement('div');
-    wrap.className = 'nearby-gps-off';
+    wrap.className = 'nearby-vazio';
 
     const icone = document.createElement('span');
     icone.className   = 'nearby-gps-icon';
