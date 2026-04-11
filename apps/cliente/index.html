@@ -23,6 +23,9 @@
   <!-- App-specific CSS -->
   <link rel="stylesheet" href="assets/css/styles.css">
 
+  <!-- Notificações -->
+  <link rel="stylesheet" href="/shared/css/notifications.css">
+
   <!-- Leaflet (mapa interativo) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -49,6 +52,19 @@
     <div class="header-logo">
       <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
     </div>
+
+    <!-- Botão de notificações -->
+    <button class="notif-bell-btn" id="btn-notif"
+            onclick="App.nav('notificacoes')"
+            aria-label="Notificações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span id="notif-badge" hidden aria-live="polite">0</span>
+    </button>
+
     <button class="header-avatar-btn" id="header-avatar-btn">
       <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
       <span id="header-user-label">Entrar</span>
@@ -312,6 +328,19 @@
             </button>
           </div>
 
+        </div>
+      </div>
+
+      <!-- Banner push notifications -->
+      <div id="notif-push-banner" hidden>
+        <div class="notif-push-icone">🔔</div>
+        <div class="notif-push-texto">
+          <p class="notif-push-titulo">Quer receber novidades? 🎯</p>
+          <p class="notif-push-sub">Barbearias próximas, promoções e lembretes de agendamento.</p>
+        </div>
+        <div class="notif-push-acoes">
+          <button class="notif-push-ativar" onclick="NotificationService.confirmarPush()">Ativar</button>
+          <button class="notif-push-dispensar" onclick="NotificationService.dispensarPush()">Agora não</button>
         </div>
       </div>
 
@@ -641,6 +670,37 @@
   </main>
 
   <!-- ============================================================
+       TELA — NOTIFICAÇÕES
+  ============================================================ -->
+  <main id="tela-notificacoes" class="tela">
+
+    <div class="notif-header">
+      <button class="btn-voltar" onclick="App.voltar()" style="position:static;margin:0;">Voltar</button>
+      <span class="notif-titulo">Notificações</span>
+      <button class="notif-marcar-todas" onclick="NotificationService.marcarTodasLidas().then(()=>NotificationService.renderizarLista(this.closest('.tela').dataset.filtro||'todos'))">
+        Marcar todas
+      </button>
+    </div>
+
+    <!-- Tabs de categoria -->
+    <div class="notif-cats" role="tablist">
+      <button class="notif-cat-btn ativo" role="tab" aria-selected="true"
+              onclick="NotificationService._trocarCategoria(this,'todos')">Todos</button>
+      <button class="notif-cat-btn" role="tab" aria-selected="false"
+              onclick="NotificationService._trocarCategoria(this,'agendamento')">📅 Agendamentos</button>
+      <button class="notif-cat-btn" role="tab" aria-selected="false"
+              onclick="NotificationService._trocarCategoria(this,'barbearia')">💈 Barbearias</button>
+      <button class="notif-cat-btn" role="tab" aria-selected="false"
+              onclick="NotificationService._trocarCategoria(this,'sistema')">⚙️ Sistema</button>
+      <button class="notif-cat-btn" role="tab" aria-selected="false"
+              onclick="NotificationService._trocarCategoria(this,'engajamento')">📍 Engajamento</button>
+    </div>
+
+    <div id="notif-lista"></div>
+
+  </main>
+
+  <!-- ============================================================
        FOOTER NAV — SEM LOGIN (3 opções)
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav-offline">
@@ -728,6 +788,8 @@
 <script src="/shared/js/MapWidget.js"></script>
 <!-- Widget de pesquisa dinâmica -->
 <script src="/shared/js/SearchWidget.js"></script>
+<!-- Sistema de notificações -->
+<script src="/shared/js/NotificationService.js"></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
