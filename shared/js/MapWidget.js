@@ -161,7 +161,7 @@ class MapWidget {
     }
   }
 
-  /** Centraliza o mapa na posição do usuário e adiciona marcador pulsante. */
+  /** Centraliza o mapa na posição do usuário e adiciona marcador com avatar. */
   static #centralizarUsuario(lat, lng) {
     if (!MapWidget.#mapa) return;
 
@@ -172,14 +172,38 @@ class MapWidget {
 
     if (MapWidget.#markerUser) MapWidget.#markerUser.remove();
 
+    // Usa avatar do usuário logado; fallback: ponto azul pulsante
+    const avatarUrl = (typeof SessionCache !== 'undefined')
+      ? SessionCache.getAvatar()
+      : null;
+
+    let iconHtml, iconSize, iconAnchor;
+
+    if (avatarUrl) {
+      iconHtml = `<div class="mapa-marker-user mapa-marker-user--avatar">
+                    <div class="mapa-marker-user-pulse"></div>
+                    <img src="${avatarUrl}"
+                         class="mapa-marker-user-img"
+                         alt="Você"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                    <div class="mapa-marker-user-dot" style="display:none"></div>
+                  </div>`;
+      iconSize   = [40, 40];
+      iconAnchor = [20, 20];
+    } else {
+      iconHtml = `<div class="mapa-marker-user">
+                    <div class="mapa-marker-user-pulse"></div>
+                    <div class="mapa-marker-user-dot"></div>
+                  </div>`;
+      iconSize   = [28, 28];
+      iconAnchor = [14, 14];
+    }
+
     const icon = L.divIcon({
       className: '',
-      html: `<div class="mapa-marker-user">
-               <div class="mapa-marker-user-pulse"></div>
-               <div class="mapa-marker-user-dot"></div>
-             </div>`,
-      iconSize:   [28, 28],
-      iconAnchor: [14, 14],
+      html:      iconHtml,
+      iconSize,
+      iconAnchor,
     });
 
     MapWidget.#markerUser = L.marker([lat, lng], { icon })

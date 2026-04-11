@@ -203,6 +203,27 @@
   background: rgba(47, 123, 232, .18);
 }
 
+/* Avatar do usuário no marcador */
+.mapa-marker-user--avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.mapa-marker-user-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2.5px solid #D4AF37;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px rgba(212, 175, 55, .4),
+    0 4px 12px rgba(43, 27, 18, .3);
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
 /* Barber marker refinement */
 .mapa-av {
   filter: drop-shadow(0 4px 10px rgba(43, 27, 18, .35));
