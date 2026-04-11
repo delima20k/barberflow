@@ -37,7 +37,9 @@
   height: 40px;
   object-fit: contain;
   filter: brightness(0) invert(1);
-  opacity: .75;
+  border: 1px solid var(--gold-border);
+  background: var(--card);
+  box-shadow: 0 3px 10px rgba(43, 27, 18, .16);
   transition: filter var(--ease), opacity var(--ease);
 }
 .header-menu-btn:hover img { opacity: 1; }

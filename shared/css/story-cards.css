@@ -1,0 +1,261 @@
+/* ============================================================
+   BARBERFLOW - STORIES PREMIUM MODULE
+   Visual-only StoryCard refinements. Keeps existing JS hooks.
+============================================================ */
+
+/* Stories section heading spacing */
+.stories-tagline {
+  margin: 4px 0 12px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--gold-dark);
+  font-family: var(--font-display);
+  font-size: var(--fs-section-title);
+  font-weight: var(--fw-section-title);
+}
+
+/* Horizontal rail: lighter and breathing room */
+.stories-scroll {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+  margin: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.stories-scroll::-webkit-scrollbar { display: none; }
+
+/* Reusable StoryCard shell */
+.story-card {
+  position: relative;
+  width: calc((100% - 20px) / 3);
+  min-width: 0;
+  max-width: none;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  border-radius: 15px;
+  background: var(--card);
+  border: 1.5px solid var(--gold-border);
+  box-shadow: 0 8px 18px rgba(43, 27, 18, .08);
+  overflow: hidden;
+  isolation: isolate;
+  transform: translateZ(0);
+  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+}
+.story-card:active {
+  transform: scale(.985);
+  box-shadow: 0 4px 12px rgba(43, 27, 18, .12);
+}
+.story-card:hover {
+  border-color: rgba(107, 74, 50, .36);
+  box-shadow: 0 12px 24px rgba(43, 27, 18, .12);
+}
+
+.story-video-wrap {
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  border-radius: 15px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #efe2d5 0%, #f8f1e9 100%);
+  cursor: pointer;
+}
+
+/* Shimmer light state while media is loading */
+.story-video-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 20%, rgba(255,255,255,.45) 45%, rgba(255,255,255,0) 70%);
+  transform: translateX(-120%);
+  animation: storyShimmer 1.3s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+.story-video-wrap.is-loaded::before {
+  opacity: 0;
+  animation: none;
+}
+
+.story-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Optional readability overlay */
+.story-video-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(43, 27, 18, .38) 0%, rgba(43, 27, 18, .06) 46%, rgba(43, 27, 18, 0) 70%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.story-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: #fff;
+  background: rgba(43, 27, 18, .16);
+  transition: opacity .2s ease;
+  pointer-events: none;
+  z-index: 4;
+}
+.story-play-btn.playing { opacity: 0; }
+
+.story-card-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.story-card-name {
+  margin: 0;
+  font-family: var(--font);
+  font-size: .82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.story-card-addr {
+  margin: 0;
+  font-family: var(--font);
+  font-size: .72rem;
+  font-weight: 500;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, .84);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.story-like-btn {
+  all: unset;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .3);
+  background: rgba(43, 27, 18, .18);
+  box-shadow: 0 2px 8px rgba(43, 27, 18, .14);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--ease), background var(--ease);
+}
+.story-like-btn:active { transform: scale(.96); }
+
+.story-like-btn img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.story-like-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font);
+  font-size: .67rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, .92);
+}
+
+/* Lightweight eye indicator */
+.story-like-count::before {
+  content: '';
+  width: 10px;
+  height: 6px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+.story-shop-badge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(212, 160, 23, .75);
+  background: #fff;
+  object-fit: cover;
+  z-index: 7;
+  box-shadow: 0 3px 10px rgba(43, 27, 18, .15);
+}
+
+@keyframes storyShimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(130%); }
+}
+
+/* Legacy mini stories rail (cliente.html) */
+.h-scroll.story-rail {
+  gap: 10px;
+  padding: 10px 0 4px;
+}
+.h-scroll.story-rail .story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.h-scroll.story-rail .story-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(212, 160, 23, .9), rgba(107, 74, 50, .65));
+  box-shadow: 0 7px 14px rgba(43, 27, 18, .10);
+}
+.h-scroll.story-rail .story-inner {
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.72);
+  background: linear-gradient(180deg, #f3e8dc 0%, #f8f2eb 100%);
+}
+.h-scroll.story-rail .story-name {
+  max-width: 64px;
+  font-family: var(--font);
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--gold-dark);
+}
+
+@media (min-width: 640px) {
+  .stories-scroll {
+    gap: 12px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+  .story-card {
+    width: calc((100% - 24px) / 3);
+  }
+  .story-card-name { font-size: .86rem; }
+}

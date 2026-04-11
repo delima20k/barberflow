@@ -30,6 +30,7 @@ class StoriesLayout {
   static aplicar(root = document) {
     StoriesLayout.#migrarLegado(root);
     StoriesLayout.#bindViewers(root);
+    StoriesLayout.#bindLoadingState(root);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -62,6 +63,28 @@ class StoriesLayout {
         wrap.setAttribute(StoriesLayout.#MARCA, '1');
         wrap.addEventListener('click', () => StoryViewer.abrir(wrap));
       });
+  }
+
+  /**
+   * Estado visual de carregamento para shimmer dos stories.
+   * Nao altera funcionalidade: apenas adiciona/remove classe CSS.
+   * @param {Document|HTMLElement} root
+   */
+  static #bindLoadingState(root) {
+    root.querySelectorAll('.stories-scroll .story-video-wrap').forEach(wrap => {
+      const video = wrap.querySelector('.story-video');
+      if (!video) return;
+
+      const marcarPronto = () => wrap.classList.add('is-loaded');
+
+      if (video.readyState >= 2) {
+        marcarPronto();
+      } else {
+        wrap.classList.remove('is-loaded');
+        video.addEventListener('loadeddata', marcarPronto, { once: true });
+        video.addEventListener('error', marcarPronto, { once: true });
+      }
+    });
   }
 }
 
