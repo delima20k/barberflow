@@ -36,9 +36,9 @@
   width: 40px;
   height: 40px;
   object-fit: contain;
-  filter: brightness(0) invert(1);
-  border: 1px solid var(--gold-border);
-  background: var(--card);
+  filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+  border: none;
+  background: transparent;
   box-shadow: 0 3px 10px rgba(43, 27, 18, .16);
   transition: filter var(--ease), opacity var(--ease);
 }
@@ -399,7 +399,7 @@
   z-index: 1000;
   height: var(--nav-h);
   padding-bottom: env(safe-area-inset-bottom);
-  background: var(--surface);
+  background: var(--header-bg);
   border-top: 1px solid var(--gold-border);
   display: flex;
   align-items: center;
@@ -415,7 +415,7 @@
   cursor: pointer;
   padding: 6px 4px;
   flex: 1;
-  color: var(--text-muted);
+  color: var(--text-on-surface-muted);
   transition: color var(--ease);
   -webkit-tap-highlight-color: transparent;
   position: relative;
@@ -438,8 +438,8 @@
   width: 40px;
   height: 40px;
   object-fit: contain;
-  filter: brightness(0) saturate(100%) invert(24%) sepia(28%) saturate(829%) hue-rotate(344deg) brightness(91%) contrast(89%);
-  opacity: .32;
+  filter: brightness(0) invert(1);
+  opacity: .62;
   transition: filter var(--ease), opacity var(--ease);
 }
 .nav-btn.ativo img,
