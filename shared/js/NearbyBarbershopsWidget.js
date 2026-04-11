@@ -14,8 +14,9 @@
 
 class NearbyBarbershopsWidget {
 
-  static #RAIO_KM = 2;
-  static #el      = null;   // container raiz no HTML
+  static #RAIO_KM       = 3;
+  static #el             = null;   // container raiz no HTML
+  static #buscaEncerrada = false;  // true após "nenhuma barbearia" — não rebusca
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -59,6 +60,8 @@ class NearbyBarbershopsWidget {
   // ═══════════════════════════════════════════════════════════
 
   static async #carregar() {
+    // Se a busca já foi encerrada por ausência de resultados, não reexecuta
+    if (NearbyBarbershopsWidget.#buscaEncerrada) return;
     NearbyBarbershopsWidget.#renderLoading();
     try {
       const pos   = await GeoService.obter();
@@ -161,9 +164,30 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#montar(wrap);
   }
 
-  /** Estado: nenhuma barbearia encontrada — limpa o container sem exibir nada */
+  /** Estado: nenhuma barbearia encontrada — exibe mensagem e encerra a busca */
   static #renderVazio() {
-    if (NearbyBarbershopsWidget.#el) NearbyBarbershopsWidget.#el.innerHTML = '';
+    if (!NearbyBarbershopsWidget.#el) return;
+    NearbyBarbershopsWidget.#buscaEncerrada = true;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'nearby-vazio';
+
+    const icone = document.createElement('span');
+    icone.className = 'nearby-vazio-icone';
+    icone.textContent = '✂️';
+
+    const titulo = document.createElement('p');
+    titulo.className = 'nearby-vazio-titulo';
+    titulo.textContent = 'Nenhuma barbearia por perto';
+
+    const sub = document.createElement('p');
+    sub.className = 'nearby-vazio-sub';
+    sub.textContent = `Não encontramos barbearias em até ${NearbyBarbershopsWidget.#RAIO_KM} km da sua localização.`;
+
+    wrap.appendChild(icone);
+    wrap.appendChild(titulo);
+    wrap.appendChild(sub);
+    NearbyBarbershopsWidget.#montar(wrap);
   }
 
   /**
