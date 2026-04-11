@@ -42,9 +42,13 @@
     { "source": "/profissional", "destination": "/profissional/", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/cliente/",            "destination": "/apps/cliente/index.html"      },
-    { "source": "/cliente/:path*",      "destination": "/apps/cliente/:path*"          },
-    { "source": "/profissional/",       "destination": "/apps/profissional/index.html" },
-    { "source": "/profissional/:path*", "destination": "/apps/profissional/:path*"     }
+    { "source": "/cliente/",                 "destination": "/apps/cliente/index.html"      },
+    { "source": "/cliente/:path*",           "destination": "/apps/cliente/:path*"          },
+    { "source": "/profissional/",            "destination": "/apps/profissional/index.html" },
+    { "source": "/profissional/:path*",      "destination": "/apps/profissional/:path*"     },
+    { "source": "/apps/cliente/",            "destination": "/apps/cliente/index.html"      },
+    { "source": "/apps/cliente/:path*",      "destination": "/apps/cliente/:path*"          },
+    { "source": "/apps/profissional/",       "destination": "/apps/profissional/index.html" },
+    { "source": "/apps/profissional/:path*", "destination": "/apps/profissional/:path*"     }
   ]
 }
