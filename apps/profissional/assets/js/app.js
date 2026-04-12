@@ -28,7 +28,7 @@ class MonetizationGuard {
     if (MonetizationGuard.planoSelecionado) {
       cb();
     } else {
-      if (typeof Pro !== 'undefined') Pro.push('tipo-usuario');
+      if (typeof Pro !== 'undefined') Pro.push('planos-pro');
     }
   }
 
@@ -157,6 +157,40 @@ class BarberFlowProfissional extends Router {
         this.push('cadastro');              // fallback: segue para cadastro
       }
     );
+  }
+
+  /**
+   * Tela Planos Pro unificada — salva tipo+plano e inicia pagamento.
+   * @param {'barbeiro'|'barbearia'} tipo
+   * @param {'trial'|'mensal'|'trimestral'} plano
+   */
+  selecionarPlanoPro(tipo, plano) {
+    MonetizationGuard.setPlan(tipo, plano);
+    PaymentFlowHandler.iniciarFluxo(
+      plano,
+      () => this.push('cadastro'),
+      (msg) => { console.warn('[PlanosPro]', msg); this.push('cadastro'); }
+    );
+  }
+
+  /**
+   * Alterna entre barbeiro/barbearia na tela-planos-pro.
+   * @param {'barbeiro'|'barbearia'} tipo
+   */
+  alternarTipoPlano(tipo) {
+    const eBarbeiro = tipo === 'barbeiro';
+    document.getElementById('ppp-btn-barbeiro')
+      ?.classList.toggle('ppp-toggle-btn--ativo', eBarbeiro);
+    document.getElementById('ppp-btn-barbearia')
+      ?.classList.toggle('ppp-toggle-btn--ativo', !eBarbeiro);
+    const elB = document.getElementById('ppp-cards-barbeiro');
+    const elS = document.getElementById('ppp-cards-barbearia');
+    if (elB) elB.style.display = eBarbeiro ? '' : 'none';
+    if (elS) elS.style.display = eBarbeiro ? 'none' : '';
+    const sub = document.getElementById('ppp-subtitulo');
+    if (sub) sub.textContent = eBarbeiro
+      ? 'Plano Profissional para Barbeiros'
+      : 'Plano Profissional para Barbearias';
   }
 
   // ── Helpers privados ──────────────────────────────────────

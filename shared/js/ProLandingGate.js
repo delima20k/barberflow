@@ -54,7 +54,7 @@ class ProLandingGate {
   static irParaCadastro() {
     ProLandingGate.#fechar(() => {
       // Pro é a instância global definida em app.js
-      if (typeof Pro !== 'undefined') Pro.push('tipo-usuario');
+      if (typeof Pro !== 'undefined') Pro.push('planos-pro');
     });
   }
 

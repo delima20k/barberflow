@@ -1027,6 +1027,182 @@
     </div>
   </main>
 
+  <!-- ============================================================
+       TELA — PLANOS PRO (barbeiro + barbearia com toggle)
+  ============================================================ -->
+  <main id="tela-planos-pro" class="tela">
+
+    <!-- Cabeçalho de marca compacto -->
+    <div class="ppp-brand">
+      <img src="/shared/img/Logo01.png" class="ppp-brand-logo" alt="BarberFlow"
+           onerror="this.outerHTML='💈'">
+      <div>
+        <p class="ppp-brand-nome">BarberFlow</p>
+        <p class="ppp-brand-sub" id="ppp-subtitulo">Plano Profissional para Barbeiros</p>
+      </div>
+      <button class="ppp-fechar-btn" onclick="Pro.voltar()" aria-label="Fechar">✕</button>
+    </div>
+
+    <!-- Toggle barbeiro / barbearia -->
+    <div class="ppp-toggle" role="tablist">
+      <button class="ppp-toggle-btn ppp-toggle-btn--ativo" id="ppp-btn-barbeiro"
+              onclick="Pro.alternarTipoPlano('barbeiro')">✂️ Barbeiro</button>
+      <button class="ppp-toggle-btn" id="ppp-btn-barbearia"
+              onclick="Pro.alternarTipoPlano('barbearia')">🏪 Barbearia</button>
+    </div>
+
+    <!-- ── Cards BARBEIRO ─────────────────────────────────── -->
+    <div id="ppp-cards-barbeiro" class="ppp-cards-wrap">
+
+      <!-- Trial -->
+      <div class="ppp-card">
+        <div class="ppp-card-row">
+          <div>
+            <p class="ppp-card-titulo">Teste Grátis</p>
+            <p class="ppp-card-dur">14 dias sem cobrança</p>
+          </div>
+          <p class="ppp-preco-gratis">GRÁTIS</p>
+        </div>
+        <div class="ppp-chips">
+          <span class="ppp-chip">💰 Gest. financeira</span>
+          <span class="ppp-chip">👥 Clientes</span>
+          <span class="ppp-chip">🤝 Parcerias</span>
+          <span class="ppp-chip">💈 Cadeirinhas live</span>
+          <span class="ppp-chip">📍 GPS live</span>
+          <span class="ppp-chip">📸 Stories</span>
+        </div>
+        <button class="ppp-btn ppp-btn--outline"
+                onclick="Pro.selecionarPlanoPro('barbeiro','trial')">Começar teste grátis</button>
+      </div>
+
+      <!-- Mensal -->
+      <div class="ppp-card">
+        <div class="ppp-card-row">
+          <div>
+            <p class="ppp-card-titulo">Plano Mensal</p>
+            <p class="ppp-card-dur">Renovação mensal automática</p>
+          </div>
+          <div class="ppp-preco-wrap">
+            <p class="ppp-preco">R$ 24<span class="ppp-centavos">,90</span></p>
+            <p class="ppp-periodo">/mês</p>
+          </div>
+        </div>
+        <div class="ppp-chips">
+          <span class="ppp-chip">💰 Gest. financeira</span>
+          <span class="ppp-chip">👥 Clientes</span>
+          <span class="ppp-chip">🤝 Parcerias</span>
+          <span class="ppp-chip">💈 Cadeirinhas live</span>
+          <span class="ppp-chip">📍 GPS live</span>
+          <span class="ppp-chip">📸 Stories</span>
+        </div>
+        <button class="ppp-btn"
+                onclick="Pro.selecionarPlanoPro('barbeiro','mensal')">Assinar agora</button>
+      </div>
+
+      <!-- Trimestral — destaque -->
+      <div class="ppp-card ppp-card--destaque">
+        <div class="ppp-badge">Melhor custo-benefício</div>
+        <div class="ppp-card-row">
+          <div>
+            <p class="ppp-card-titulo">Plano Trimestral</p>
+            <p class="ppp-card-dur">A cada 3 meses</p>
+          </div>
+          <div class="ppp-preco-wrap">
+            <p class="ppp-preco">R$ 59<span class="ppp-centavos">,90</span></p>
+            <p class="ppp-periodo ppp-economia-tag">Economia de R$ 15</p>
+          </div>
+        </div>
+        <div class="ppp-chips">
+          <span class="ppp-chip">💰 Gest. financeira</span>
+          <span class="ppp-chip">👥 Clientes</span>
+          <span class="ppp-chip">🤝 Parcerias</span>
+          <span class="ppp-chip">💈 Cadeirinhas live</span>
+          <span class="ppp-chip">📍 GPS live</span>
+          <span class="ppp-chip">📸 Stories</span>
+        </div>
+        <button class="ppp-btn"
+                onclick="Pro.selecionarPlanoPro('barbeiro','trimestral')">Assinar com desconto</button>
+      </div>
+
+    </div><!-- #ppp-cards-barbeiro -->
+
+    <!-- ── Cards BARBEARIA (oculto inicialmente) ──────────── -->
+    <div id="ppp-cards-barbearia" class="ppp-cards-wrap" style="display:none">
+
+      <!-- Trial -->
+      <div class="ppp-card">
+        <div class="ppp-card-row">
+          <div>
+            <p class="ppp-card-titulo">Teste Grátis</p>
+            <p class="ppp-card-dur">14 dias sem cobrança</p>
+          </div>
+          <p class="ppp-preco-gratis">GRÁTIS</p>
+        </div>
+        <div class="ppp-chips">
+          <span class="ppp-chip">💰 Gest. financeira</span>
+          <span class="ppp-chip">👥 Clientes</span>
+          <span class="ppp-chip">🤝 Parcerias</span>
+          <span class="ppp-chip">💈 Cadeirinhas live</span>
+          <span class="ppp-chip">📍 GPS live</span>
+          <span class="ppp-chip">📸 Stories</span>
+        </div>
+        <button class="ppp-btn ppp-btn--outline"
+                onclick="Pro.selecionarPlanoPro('barbearia','trial')">Começar teste grátis</button>
+      </div>
+
+      <!-- Mensal -->
+      <div class="ppp-card">
+        <div class="ppp-card-row">
+          <div>
+            <p class="ppp-card-titulo">Plano Mensal</p>
+            <p class="ppp-card-dur">Renovação mensal automática</p>
+          </div>
+          <div class="ppp-preco-wrap">
+            <p class="ppp-preco">R$ 54<span class="ppp-centavos">,90</span></p>
+            <p class="ppp-periodo">/mês</p>
+          </div>
+        </div>
+        <div class="ppp-chips">
+          <span class="ppp-chip">💰 Gest. financeira</span>
+          <span class="ppp-chip">👥 Clientes</span>
+          <span class="ppp-chip">🤝 Parcerias</span>
+          <span class="ppp-chip">💈 Cadeirinhas live</span>
+          <span class="ppp-chip">📍 GPS live</span>
+          <span class="ppp-chip">📸 Stories</span>
+        </div>
+        <button class="ppp-btn"
+                onclick="Pro.selecionarPlanoPro('barbearia','mensal')">Assinar agora</button>
+      </div>
+
+      <!-- Trimestral — destaque -->
+      <div class="ppp-card ppp-card--destaque">
+        <div class="ppp-badge">Melhor custo-benefício</div>
+        <div class="ppp-card-row">
+          <div>
+            <p class="ppp-card-titulo">Plano Trimestral</p>
+            <p class="ppp-card-dur">A cada 3 meses</p>
+          </div>
+          <div class="ppp-preco-wrap">
+            <p class="ppp-preco">R$ 139<span class="ppp-centavos">,90</span></p>
+            <p class="ppp-periodo ppp-economia-tag">Economia de R$ 25</p>
+          </div>
+        </div>
+        <div class="ppp-chips">
+          <span class="ppp-chip">💰 Gest. financeira</span>
+          <span class="ppp-chip">👥 Clientes</span>
+          <span class="ppp-chip">🤝 Parcerias</span>
+          <span class="ppp-chip">💈 Cadeirinhas live</span>
+          <span class="ppp-chip">📍 GPS live</span>
+          <span class="ppp-chip">📸 Stories</span>
+        </div>
+        <button class="ppp-btn"
+                onclick="Pro.selecionarPlanoPro('barbearia','trimestral')">Assinar com desconto</button>
+      </div>
+
+    </div><!-- #ppp-cards-barbearia -->
+
+  </main>
+
 </div><!-- #app -->
 
 <!-- ============================================================
