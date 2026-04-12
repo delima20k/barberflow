@@ -261,9 +261,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ── Service Worker (PWA / TWA) ──────────────────────────── */
 if ('serviceWorker' in navigator) {
+  // Recarrega a página automaticamente quando um novo SW assumir o controle
+  // Garante que usuários com cache antigo recebam o código novo imediatamente
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!sessionStorage.getItem('sw_reloaded')) {
+      sessionStorage.setItem('sw_reloaded', '1');
+      location.reload();
+    }
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { scope: './' })
-      .then(reg => console.log('[BarberFlow Pro] SW registrado', reg.scope))
+      .then(reg => {
+        console.log('[BarberFlow Pro] SW registrado', reg.scope);
+        // Força verificação de atualização do SW a cada carregamento
+        reg.update();
+      })
       .catch(err => console.warn('[BarberFlow Pro] SW erro', err));
   });
 }
