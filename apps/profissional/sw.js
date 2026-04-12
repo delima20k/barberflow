@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-profissional-v10';
+const CACHE_NAME = 'barberflow-profissional-v11';
 
 // HTML nunca entra na lista — sempre servido da rede
 const ASSETS = [
@@ -25,12 +25,12 @@ const ASSETS = [
   '/shared/img/login.svg',
 ];
 
-// Instala e pré-cacheia assets
+// Instala e pré-cacheia assets (falhas individuais não bloqueiam o install)
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(ASSETS.map(url => cache.add(url)))
+    ).then(() => self.skipWaiting())
   );
 });
 
