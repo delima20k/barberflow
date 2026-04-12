@@ -174,6 +174,30 @@
             <label>Telefone</label>
             <input id="cad-tel" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
           </div>
+
+          <!-- CPF / CNPJ — opcional -->
+          <div class="form-field">
+            <label>Documento <span class="form-label-opt">(opcional)</span></label>
+            <div class="cad-doc-toggle">
+              <button type="button" class="cad-doc-btn cad-doc-btn--ativo" id="cad-doc-btn-cpf"
+                      onclick="Pro.alternarDoc('cpf')">CPF</button>
+              <button type="button" class="cad-doc-btn" id="cad-doc-btn-cnpj"
+                      onclick="Pro.alternarDoc('cnpj')">CNPJ</button>
+              <button type="button" class="cad-doc-btn" id="cad-doc-btn-ambos"
+                      onclick="Pro.alternarDoc('ambos')">Ambos</button>
+            </div>
+            <div id="cad-doc-cpf">
+              <input id="cad-cpf" type="text" inputmode="numeric" placeholder="000.000.000-00"
+                     maxlength="14" autocomplete="off"
+                     oninput="Pro.mascaraDoc(this,'cpf')">
+            </div>
+            <div id="cad-doc-cnpj" style="display:none">
+              <input id="cad-cnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00"
+                     maxlength="18" autocomplete="off"
+                     oninput="Pro.mascaraDoc(this,'cnpj')">
+            </div>
+          </div>
+
           <div class="form-field">
             <label>Senha</label>
             <input id="cad-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password">

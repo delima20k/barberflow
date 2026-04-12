@@ -69,6 +69,39 @@ class BarberFlowProfissional extends Router {
     AuthService.inicializarSessao();
   }
 
+  // ── Documento (CPF/CNPJ) ──────────────────────────────────
+
+  /** Alterna visibilidade dos inputs de documento. */
+  alternarDoc(tipo) {
+    const cpfWrap  = document.getElementById('cad-doc-cpf');
+    const cnpjWrap = document.getElementById('cad-doc-cnpj');
+    ['cpf','cnpj','ambos'].forEach(t =>
+      document.getElementById(`cad-doc-btn-${t}`)?.classList.remove('cad-doc-btn--ativo')
+    );
+    document.getElementById(`cad-doc-btn-${tipo}`)?.classList.add('cad-doc-btn--ativo');
+    if (tipo === 'cpf')   { cpfWrap.style.display=''; cnpjWrap.style.display='none'; }
+    if (tipo === 'cnpj')  { cpfWrap.style.display='none'; cnpjWrap.style.display=''; }
+    if (tipo === 'ambos') { cpfWrap.style.display=''; cnpjWrap.style.display=''; }
+  }
+
+  /** Aplica máscara de CPF (000.000.000-00) ou CNPJ (00.000.000/0000-00). */
+  mascaraDoc(input, tipo) {
+    let v = input.value.replace(/\D/g, '');
+    if (tipo === 'cpf') {
+      v = v.slice(0,11);
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+      v = v.slice(0,14);
+      v = v.replace(/(\d{2})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1.$2');
+      v = v.replace(/(\d{3})(\d)/, '$1/$2');
+      v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+    }
+    input.value = v;
+  }
+
   // ── Auth ──────────────────────────────────────────────────
 
   fazerLogin() {
@@ -85,6 +118,8 @@ class BarberFlowProfissional extends Router {
       nome:       document.getElementById('cad-nome')?.value,
       email:      document.getElementById('cad-email')?.value,
       telefone:   document.getElementById('cad-tel')?.value,
+      cpf:        document.getElementById('cad-cpf')?.value  || null,
+      cnpj:       document.getElementById('cad-cnpj')?.value || null,
       senha:      document.getElementById('cad-senha')?.value,
       senha2:     document.getElementById('cad-senha2')?.value,
       barbearia:  document.getElementById('cad-barbearia')?.value,
