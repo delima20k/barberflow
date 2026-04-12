@@ -43,7 +43,9 @@ self.addEventListener('activate', e => {
           .filter(k => k !== CACHE_NAME)
           .map(k => caches.delete(k))
       )
-    ).then(() => self.clients.claim())
+    // .catch evita "Could not establish connection" quando o Chrome
+    // tenta reclamar clientes que já fecharam/navegaram
+    ).then(() => self.clients.claim().catch(() => {}))
   );
 });
 

@@ -140,8 +140,11 @@ async function validarTokenGooglePlay(plano: string, purchaseToken: string): Pro
 
 async function getGoogleAccessToken(serviceAccount: Record<string, string>): Promise<string> {
   const now        = Math.floor(Date.now() / 1000);
-  const header     = btoa(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const claimSet   = btoa(JSON.stringify({
+  // Google exige base64url (sem +, / ou = do base64 padrão)
+  const b64url = (str: string) =>
+    btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const header     = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const claimSet   = b64url(JSON.stringify({
     iss:   serviceAccount.client_email,
     scope: 'https://www.googleapis.com/auth/androidpublisher',
     aud:   'https://oauth2.googleapis.com/token',
@@ -165,7 +168,7 @@ async function getGoogleAccessToken(serviceAccount: Record<string, string>): Pro
     'RSASSA-PKCS1-v1_5', cryptoKey,
     new TextEncoder().encode(`${header}.${claimSet}`),
   );
-  const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)));
+  const sig = b64url(String.fromCharCode(...new Uint8Array(sigBuffer)));
   const jwt = `${header}.${claimSet}.${sig}`;
 
   const tokenResp = await fetch('https://oauth2.googleapis.com/token', {

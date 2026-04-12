@@ -67,7 +67,7 @@ class BarberFlowProfissional extends Router {
     // Detecta sessão Supabase no localStorage para definir tela inicial
     const temSessao = Object.keys(localStorage)
       .some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-    super(temSessao ? 'inicio' : 'planos-pro');
+    super(temSessao ? 'inicio' : 'login');
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }
@@ -148,12 +148,7 @@ class BarberFlowProfissional extends Router {
    * Se o usuário está no modo preview (sem plano) → exige plano primeiro.
    */
   irParaLogin() {
-    if (MonetizationGuard.planoSelecionado) {
-      this.nav('login');
-    } else {
-      // Usuário em preview: direciona para escolha de plano antes do login
-      ProLandingGate.irParaCadastro();
-    }
+    this.nav('login');
   }
 
   /**
