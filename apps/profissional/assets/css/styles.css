@@ -124,3 +124,379 @@
 /* ── Chair pro (ligeiramente maior) ─────────────────────────── */
 .chair { min-width: 68px; height: 80px; }
 .chair img { width: 32px; height: 32px; }
+
+/* ============================================================
+   LANDING GATE — Overlay de entrada
+============================================================ */
+#landing-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none; /* controlado por JS */
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #1a0e06 0%, #2a1408 55%, #0d0600 100%);
+  padding: 24px;
+  opacity: 0;
+  transition: opacity .32s ease;
+}
+#landing-gate.gate-ativo  { opacity: 1; }
+#landing-gate.gate-saindo { opacity: 0; pointer-events: none; }
+
+.gate-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+
+.gate-polo {
+  margin-bottom: 4px;
+}
+
+.gate-titulo {
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  font-weight: 900;
+  color: #e8d48b;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  font-family: 'Rye', serif;
+}
+.gate-titulo-pro {
+  color: var(--gold);
+}
+
+.gate-sub {
+  font-size: .88rem;
+  color: rgba(232,212,139,.65);
+  margin: 0;
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+.gate-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.gate-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: var(--r-lg);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.gate-btn:active { transform: scale(.97); }
+
+.gate-btn--primario {
+  background: linear-gradient(135deg, var(--gold-dark), #7a4e2a);
+  border: 1px solid var(--gold);
+  box-shadow: 0 4px 20px rgba(212,175,55,.25);
+}
+.gate-btn--primario:hover { box-shadow: 0 6px 28px rgba(212,175,55,.4); }
+
+.gate-btn--secundario {
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.35);
+}
+.gate-btn--secundario:hover { background: rgba(212,175,55,.18); }
+
+.gate-btn-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.gate-btn-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gate-btn-texto strong {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #e8d48b;
+}
+.gate-btn-texto small {
+  font-size: .73rem;
+  color: rgba(232,212,139,.6);
+}
+
+/* ============================================================
+   TELA — TIPO DE USUÁRIO
+============================================================ */
+.tipo-usuario-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px 32px;
+  gap: 24px;
+  min-height: 100%;
+}
+
+.tipo-usuario-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.tipo-usuario-eyebrow {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.tipo-usuario-titulo {
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  font-weight: 900;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.tipo-usuario-sub {
+  font-size: .85rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tipo-usuario-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tipo-usuario-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 24px 20px;
+  background: var(--card);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+}
+.tipo-usuario-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 20px rgba(212,175,55,.2);
+}
+.tipo-usuario-card:active { transform: scale(.98); }
+
+.tipo-usuario-card--loja {
+  opacity: .7;
+  cursor: default;
+}
+.tipo-usuario-card--loja:hover {
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.tipo-usuario-card-icon { font-size: 2rem; }
+
+.tipo-usuario-card-titulo {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.tipo-usuario-card-sub {
+  font-size: .8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.tipo-usuario-card-cta {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--gold);
+  margin-top: 6px;
+}
+.tipo-usuario-card-cta--em-breve {
+  color: var(--text-muted);
+  background: var(--card2);
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: .7rem;
+  letter-spacing: .5px;
+}
+
+/* ============================================================
+   TELA — PLANOS DO BARBEIRO
+============================================================ */
+.planos-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px 40px;
+  gap: 20px;
+  min-height: 100%;
+}
+
+.planos-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.planos-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+/* ── Card de plano ──────────────────────────────────────────── */
+.plano-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 20px;
+  background: var(--card);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-soft);
+  transition: border-color .2s ease;
+  position: relative;
+}
+
+.plano-card--destaque {
+  border-color: var(--gold);
+  box-shadow: 0 4px 24px rgba(212,175,55,.2);
+  transform: scale(1.02);
+  transform-origin: center top;
+  z-index: 2;
+}
+
+.plano-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #1a0e06;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+
+.plano-card-topo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.plano-nome    { font-size: 1rem; font-weight: 800; color: var(--text); }
+.plano-nome-en { font-size: .72rem; color: var(--text-muted); }
+
+.plano-preco {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+}
+.plano-centavos {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.plano-periodo { font-size: .72rem; color: var(--text-muted); margin-top: -4px; }
+
+.plano-economia {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--success);
+  background: rgba(82,201,122,.08);
+  border: 1px solid rgba(82,201,122,.25);
+  border-radius: var(--r-sm);
+  padding: 5px 10px;
+}
+
+/* ── Lista de benefícios ──────────────────────────────────── */
+.plano-beneficios {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.plano-beneficios li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: .83rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.plano-check {
+  color: var(--gold);
+  font-weight: 900;
+  font-size: .9rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.plano-bi {
+  display: block;
+  font-size: .68rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.plano-btn {
+  margin-top: 6px;
+}
+
+/* ============================================================
+   PAY TOAST — feedback de pagamento
+============================================================ */
+.pay-toast {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--r-lg);
+  padding: 14px 20px;
+  font-size: .83rem;
+  color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  max-width: 320px;
+  width: calc(100% - 40px);
+  text-align: center;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 300;
+  white-space: pre-line;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.pay-toast--visivel {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}

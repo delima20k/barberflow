@@ -1,5 +1,47 @@
 'use strict';
 
+// =============================================================
+// MonetizationGuard — controla acesso a funções pagas
+// =============================================================
+class MonetizationGuard {
+
+  static #TIPO_KEY  = 'bf_tipo';
+  static #PLANO_KEY = 'bf_plano';
+
+  static get tipoUsuario()     { return sessionStorage.getItem(MonetizationGuard.#TIPO_KEY);  }
+  static get planoSelecionado(){ return sessionStorage.getItem(MonetizationGuard.#PLANO_KEY); }
+
+  /**
+   * Salva tipo de usuário e plano escolhidos na sessionStorage.
+   */
+  static setPlan(tipo, plano) {
+    sessionStorage.setItem(MonetizationGuard.#TIPO_KEY,  tipo);
+    sessionStorage.setItem(MonetizationGuard.#PLANO_KEY, plano);
+  }
+
+  /**
+   * Se o usuário já escolheu um plano → executa cb.
+   * Caso contrário → redireciona para a tela de tipo de usuário.
+   * @param {Function} cb
+   */
+  static exigirPlano(cb) {
+    if (MonetizationGuard.planoSelecionado) {
+      cb();
+    } else {
+      if (typeof Pro !== 'undefined') Pro.push('tipo-usuario');
+    }
+  }
+
+  /** Limpa seleção (chamado após cadastro concluído ou logout). */
+  static limpar() {
+    sessionStorage.removeItem(MonetizationGuard.#TIPO_KEY);
+    sessionStorage.removeItem(MonetizationGuard.#PLANO_KEY);
+  }
+}
+
+// =============================================================
+// BarberFlowProfissional — App principal
+// =============================================================
 /**
  * BarberFlow — App Profissional
  * Extende o Router base de ../../shared/js/Router.js
@@ -47,7 +89,10 @@ class BarberFlowProfissional extends Router {
       senha2:     document.getElementById('cad-senha2')?.value,
       barbearia:  document.getElementById('cad-barbearia')?.value,
       role:       'professional',
-    }, document.getElementById('cad-erro'), (tela) => this.nav(tela));
+    }, document.getElementById('cad-erro'), (tela) => {
+      MonetizationGuard.limpar();
+      this.nav(tela);
+    });
   }
 
   fazerRecuperacao() {
@@ -56,6 +101,77 @@ class BarberFlowProfissional extends Router {
       document.getElementById('rec-erro'),
       (tela) => this.nav(tela)
     );
+  }
+
+  // ── Monetização — pontos de entrada protegidos ────────────
+
+  /**
+   * Navega para o login.
+   * Se o usuário está no modo preview (sem plano) → exige plano primeiro.
+   */
+  irParaLogin() {
+    if (MonetizationGuard.planoSelecionado) {
+      this.nav('login');
+    } else {
+      // Usuário em preview: direciona para escolha de plano antes do login
+      ProLandingGate.irParaCadastro();
+    }
+  }
+
+  /**
+   * Navega para o cadastro.
+   * Garante que o usuário escolheu um plano antes.
+   */
+  irParaCadastroGuardado() {
+    MonetizationGuard.exigirPlano(() => this.push('cadastro'));
+  }
+
+  /**
+   * Salva o tipo de usuário escolhido e avança para a tela de planos.
+   * @param {'barbeiro'|'barbearia'} tipo
+   */
+  selecionarTipoUsuario(tipo) {
+    if (tipo === 'barbearia') {
+      // Plano barbearia ainda em desenvolvimento
+      this.#mostrarToastEmBreve();
+      return;
+    }
+    sessionStorage.setItem('bf_tipo', tipo);
+    this.push('planos-barbeiro');
+  }
+
+  /**
+   * Usuário selecionou um plano. Inicia fluxo de pagamento e,
+   * em caso de sucesso, redireciona para o cadastro.
+   * @param {'trial'|'mensal'|'trimestral'} plano
+   */
+  selecionarPlano(plano) {
+    const tipo = sessionStorage.getItem('bf_tipo') || 'barbeiro';
+    MonetizationGuard.setPlan(tipo, plano);
+
+    PaymentFlowHandler.iniciarFluxo(
+      plano,
+      () => this.push('cadastro'),          // sucesso → cadastro
+      (msg) => {
+        console.warn('[Planos] Pagamento falhou:', msg);
+        this.push('cadastro');              // fallback: segue para cadastro
+      }
+    );
+  }
+
+  // ── Helpers privados ──────────────────────────────────────
+
+  #mostrarToastEmBreve() {
+    let t = document.getElementById('toast-em-breve');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast-em-breve';
+      t.className = 'pay-toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = '🚀 Planos para barbearia chegando em breve!';
+    t.classList.add('pay-toast--visivel');
+    setTimeout(() => t.classList.remove('pay-toast--visivel'), 3000);
   }
 }
 
@@ -68,6 +184,11 @@ function initMapToggle() {
 
 /* ── Inicializa widgets de geolocalização ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  // Gate de entrada — exibe overlay se não autenticado e sem preview ativo
+  ProLandingGate.init();
+  // Instancia o BarberPole dentro do gate
+  const gatePoloEl = document.getElementById('gate-polo-container');
+  if (gatePoloEl) new BarberPole(gatePoloEl);
   initMapToggle();
   // Mapa interativo Leaflet com FAB flutuante
   MapWidget.init('mapa-container');

@@ -88,11 +88,11 @@
       </div>
     </div>
     <ul class="menu-list-nav">
-      <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.nav('login')">
+      <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.irParaLogin()">
         <img src="/shared/img/login.svg" alt="">
         <span>Entrar</span>
       </li>
-      <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.nav('cadastro')">
+      <li class="menu-nav-item" onclick="Pro.fecharMenu(); Pro.irParaCadastroGuardado()">
         <img src="/shared/img/cadastro.svg" alt="">
         <span>Cadastro</span>
       </li>
@@ -129,7 +129,7 @@
           </div>
           <p id="login-erro" class="form-erro"></p>
           <button type="submit" class="btn btn-gold btn-full">Acessar Painel</button>
-          <button type="button" class="btn btn-outline btn-full" onclick="Pro.push('cadastro')">Criar conta profissional</button>
+          <button type="button" class="btn btn-outline btn-full" onclick="Pro.irParaCadastroGuardado()">Criar conta profissional</button>
           <p class="login-link" style="text-align:center;">
             <a href="#" onclick="Pro.push('esqueceu-senha'); return false;">Esqueceu a senha?</a>
           </p>
@@ -939,7 +939,7 @@
       <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
       <span class="nav-label">Pesquisar</span>
     </button>
-    <button class="nav-btn" onclick="Pro.nav('login')">
+    <button class="nav-btn" onclick="Pro.irParaLogin()">
       <div class="nav-pill"><img src="/shared/img/login.svg" alt="Entrar"></div>
       <span class="nav-label">Entrar</span>
     </button>
@@ -980,7 +980,144 @@
     </button>
   </nav>
 
+
+  <!-- ============================================================
+       TELA — TIPO DE USUÁRIO (escolha antes dos planos)
+  ============================================================ -->
+  <main id="tela-tipo-usuario" class="tela">
+    <div class="tipo-usuario-wrap">
+      <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
+      <div class="tipo-usuario-header">
+        <span class="tipo-usuario-eyebrow">BarberFlow Pro</span>
+        <h2 class="tipo-usuario-titulo">Como você vai usar?</h2>
+        <p class="tipo-usuario-sub">Escolha o perfil para ver os planos ideais para você.</p>
+      </div>
+      <div class="tipo-usuario-cards">
+        <!-- Card — Barbeiro autônomo -->
+        <button class="tipo-usuario-card" onclick="Pro.selecionarTipoUsuario('barbeiro')">
+          <span class="tipo-usuario-card-icon">💈</span>
+          <span class="tipo-usuario-card-titulo">Sou Barbeiro</span>
+          <span class="tipo-usuario-card-sub">Trabalho de forma autônoma ou como funcionário em uma barbearia.</span>
+          <span class="tipo-usuario-card-cta">Ver planos →</span>
+        </button>
+        <!-- Card — Barbeiro com loja -->
+        <button class="tipo-usuario-card tipo-usuario-card--loja" onclick="Pro.selecionarTipoUsuario('barbearia')">
+          <span class="tipo-usuario-card-icon">🏪</span>
+          <span class="tipo-usuario-card-titulo">Sou Barbeiro com Loja</span>
+          <span class="tipo-usuario-card-sub">Tenho minha própria barbearia e quero gerenciar toda a equipe.</span>
+          <span class="tipo-usuario-card-cta tipo-usuario-card-cta--em-breve">Em breve</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PLANOS DO BARBEIRO
+  ============================================================ -->
+  <main id="tela-planos-barbeiro" class="tela">
+    <div class="planos-wrap">
+      <button class="btn-voltar" onclick="Pro.push('tipo-usuario')">Voltar</button>
+      <div class="planos-header">
+        <span class="tipo-usuario-eyebrow">Para Barbeiros</span>
+        <h2 class="tipo-usuario-titulo">Escolha seu plano</h2>
+        <p class="tipo-usuario-sub">Comece de graça. Evolua quando quiser.</p>
+      </div>
+      <div class="planos-scroll">
+
+        <!-- ── Plano Trial ── -->
+        <div class="plano-card">
+          <div class="plano-card-topo">
+            <span class="plano-nome">Teste Grátis</span>
+            <span class="plano-nome-en">Free Trial</span>
+          </div>
+          <div class="plano-preco">R$ 0</div>
+          <div class="plano-periodo">por 14 dias · free for 14 days</div>
+          <ul class="plano-beneficios">
+            <li><span class="plano-check">✓</span><span>Gestão financeira profissional<span class="plano-bi">Professional financial management</span></span></li>
+            <li><span class="plano-check">✓</span><span>Parcerias com barbearias<span class="plano-bi">Partnerships with barbershops</span></span></li>
+            <li><span class="plano-check">✓</span><span>Uso do sistema da barbearia<span class="plano-bi">Access to barbershop system</span></span></li>
+            <li><span class="plano-check">✓</span><span>Funcionário ou freelancer<span class="plano-bi">Work as employee or freelancer</span></span></li>
+            <li><span class="plano-check">✓</span><span>Sistema de cadeirinhas em tempo real<span class="plano-bi">Real-time queue system</span></span></li>
+            <li><span class="plano-check">✓</span><span>GPS em tempo real<span class="plano-bi">Real-time location</span></span></li>
+            <li><span class="plano-check">✓</span><span>Até 3 stories por dia<span class="plano-bi">Up to 3 stories per day</span></span></li>
+          </ul>
+          <button class="btn btn-outline btn-full plano-btn" onclick="Pro.selecionarPlano('trial')">Começar agora</button>
+        </div>
+
+        <!-- ── Plano Mensal ── -->
+        <div class="plano-card plano-card--destaque">
+          <div class="plano-badge">Mais escolhido · Most popular</div>
+          <div class="plano-card-topo">
+            <span class="plano-nome">Plano Mensal</span>
+            <span class="plano-nome-en">Monthly Plan</span>
+          </div>
+          <div class="plano-preco">R$ 24<span class="plano-centavos">,90</span></div>
+          <div class="plano-periodo">por mês · per month</div>
+          <ul class="plano-beneficios">
+            <li><span class="plano-check">✓</span><span>Gestão financeira profissional<span class="plano-bi">Professional financial management</span></span></li>
+            <li><span class="plano-check">✓</span><span>Parcerias com barbearias<span class="plano-bi">Partnerships with barbershops</span></span></li>
+            <li><span class="plano-check">✓</span><span>Uso do sistema da barbearia<span class="plano-bi">Access to barbershop system</span></span></li>
+            <li><span class="plano-check">✓</span><span>Funcionário ou freelancer<span class="plano-bi">Work as employee or freelancer</span></span></li>
+            <li><span class="plano-check">✓</span><span>Sistema de cadeirinhas em tempo real<span class="plano-bi">Real-time queue system</span></span></li>
+            <li><span class="plano-check">✓</span><span>GPS em tempo real<span class="plano-bi">Real-time location</span></span></li>
+            <li><span class="plano-check">✓</span><span>Até 3 stories por dia<span class="plano-bi">Up to 3 stories per day</span></span></li>
+          </ul>
+          <button class="btn btn-gold btn-full plano-btn" onclick="Pro.selecionarPlano('mensal')">Assinar</button>
+        </div>
+
+        <!-- ── Plano Trimestral ── -->
+        <div class="plano-card">
+          <div class="plano-card-topo">
+            <span class="plano-nome">Plano 3 Meses</span>
+            <span class="plano-nome-en">3-Month Plan</span>
+          </div>
+          <div class="plano-preco">R$ 59<span class="plano-centavos">,90</span></div>
+          <div class="plano-periodo">a cada 3 meses · every 3 months</div>
+          <div class="plano-economia">💰 Economize com este plano · Save with this plan</div>
+          <ul class="plano-beneficios">
+            <li><span class="plano-check">✓</span><span>Gestão financeira profissional<span class="plano-bi">Professional financial management</span></span></li>
+            <li><span class="plano-check">✓</span><span>Parcerias com barbearias<span class="plano-bi">Partnerships with barbershops</span></span></li>
+            <li><span class="plano-check">✓</span><span>Uso do sistema da barbearia<span class="plano-bi">Access to barbershop system</span></span></li>
+            <li><span class="plano-check">✓</span><span>Funcionário ou freelancer<span class="plano-bi">Work as employee or freelancer</span></span></li>
+            <li><span class="plano-check">✓</span><span>Sistema de cadeirinhas em tempo real<span class="plano-bi">Real-time queue system</span></span></li>
+            <li><span class="plano-check">✓</span><span>GPS em tempo real<span class="plano-bi">Real-time location</span></span></li>
+            <li><span class="plano-check">✓</span><span>Até 3 stories por dia<span class="plano-bi">Up to 3 stories per day</span></span></li>
+          </ul>
+          <button class="btn btn-outline btn-full plano-btn" onclick="Pro.selecionarPlano('trimestral')">Assinar com desconto</button>
+        </div>
+
+      </div><!-- .planos-scroll -->
+    </div>
+  </main>
+
 </div><!-- #app -->
+
+<!-- ============================================================
+     LANDING GATE — overlay entrada (não é tela do Router)
+============================================================ -->
+<div id="landing-gate" style="display:none">
+  <div class="gate-inner">
+    <div class="gate-polo" id="gate-polo-container"></div>
+    <div class="gate-titulo">BarberFlow <span class="gate-titulo-pro">Pro</span></div>
+    <p class="gate-sub">A plataforma dos profissionais de barbearia</p>
+    <div class="gate-acoes">
+      <button class="gate-btn gate-btn--primario" onclick="ProLandingGate.irParaPreview()">
+        <span class="gate-btn-icon">🏠</span>
+        <span class="gate-btn-texto">
+          <strong>Entrar na Home Pro</strong>
+          <small>Explore sem se cadastrar</small>
+        </span>
+      </button>
+      <button class="gate-btn gate-btn--secundario" onclick="ProLandingGate.irParaCadastro()">
+        <span class="gate-btn-icon">✂️</span>
+        <span class="gate-btn-texto">
+          <strong>Cadastrar / Começar</strong>
+          <small>Comece agora — 14 dias grátis</small>
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Supabase SDK (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1018,6 +1155,9 @@
 <script src="/shared/js/MapPanelModule.js"></script>
 <!-- Módulo de bússola e orientação -->
 <script src="/shared/js/MapOrientationModule.js"></script>
+<!-- Gate de entrada e monetização -->
+<script src="/shared/js/ProLandingGate.js"></script>
+<script src="/shared/js/PaymentFlowHandler.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
