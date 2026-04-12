@@ -64,7 +64,10 @@ class BarberFlowProfissional extends Router {
   get telasOffline() { return BarberFlowProfissional.#TELAS_OFFLINE; }
 
   constructor() {
-    super('inicio');
+    // Detecta sessão Supabase no localStorage para definir tela inicial
+    const temSessao = Object.keys(localStorage)
+      .some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    super(temSessao ? 'inicio' : 'planos-pro');
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }
@@ -253,11 +256,6 @@ function initMapToggle() {
 
 /* ── Inicializa widgets de geolocalização ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  // Gate de entrada — exibe overlay se não autenticado e sem preview ativo
-  ProLandingGate.init();
-  // Instancia o BarberPole dentro do gate
-  const gatePoloEl = document.getElementById('gate-polo-container');
-  if (gatePoloEl) new BarberPole(gatePoloEl);
   initMapToggle();
   // Mapa interativo Leaflet com FAB flutuante
   MapWidget.init('mapa-container');

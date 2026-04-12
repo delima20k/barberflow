@@ -1229,33 +1229,6 @@
 
 </div><!-- #app -->
 
-<!-- ============================================================
-     LANDING GATE — overlay entrada (não é tela do Router)
-============================================================ -->
-<div id="landing-gate" style="display:none">
-  <div class="gate-inner">
-    <div class="gate-polo" id="gate-polo-container"></div>
-    <div class="gate-titulo">BarberFlow <span class="gate-titulo-pro">Pro</span></div>
-    <p class="gate-sub">A plataforma dos profissionais de barbearia</p>
-    <div class="gate-acoes">
-      <button class="gate-btn gate-btn--primario" onclick="ProLandingGate.irParaPreview()">
-        <span class="gate-btn-icon">🏠</span>
-        <span class="gate-btn-texto">
-          <strong>Entrar na Home Pro</strong>
-          <small>Explore sem se cadastrar</small>
-        </span>
-      </button>
-      <button class="gate-btn gate-btn--secundario" onclick="ProLandingGate.irParaCadastro()">
-        <span class="gate-btn-icon">✂️</span>
-        <span class="gate-btn-texto">
-          <strong>Cadastrar / Começar</strong>
-          <small>Comece agora — 14 dias grátis</small>
-        </span>
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- Supabase SDK (CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <!-- Serviço Supabase compartilhado -->
@@ -1292,8 +1265,7 @@
 <script src="/shared/js/MapPanelModule.js"></script>
 <!-- Módulo de bússola e orientação -->
 <script src="/shared/js/MapOrientationModule.js"></script>
-<!-- Gate de entrada e monetização -->
-<script src="/shared/js/ProLandingGate.js"></script>
+<!-- Monetização / Google Billing -->
 <script src="/shared/js/PaymentFlowHandler.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>

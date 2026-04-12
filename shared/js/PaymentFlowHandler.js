@@ -18,9 +18,17 @@
 
 class PaymentFlowHandler {
 
+  // Product IDs registrados no Google Play Console
+  // Formato: barberflow_<tipo>_<plano>
   static #PRODUCTS = {
-    mensal:      'plano_mensal_barbeiro',
-    trimestral:  'plano_trimestral_barbeiro',
+    barbeiro: {
+      mensal:      'barberflow_barbeiro_mensal',
+      trimestral:  'barberflow_barbeiro_trimestral',
+    },
+    barbearia: {
+      mensal:      'barberflow_barbearia_mensal',
+      trimestral:  'barberflow_barbearia_trimestral',
+    },
   };
 
   // URL da Edge Function no Supabase
@@ -78,8 +86,10 @@ class PaymentFlowHandler {
 
   static async #fluxoTWA(plano, onSucesso, onErro) {
     try {
-      const productId = PaymentFlowHandler.#PRODUCTS[plano];
-      if (!productId) throw new Error('Produto não encontrado: ' + plano);
+      // Resolve tipo (barbeiro ou barbearia) via MonetizationGuard
+      const tipo = (typeof MonetizationGuard !== 'undefined' && MonetizationGuard.tipoUsuario) || 'barbeiro';
+      const productId = PaymentFlowHandler.#PRODUCTS[tipo]?.[plano];
+      if (!productId) throw new Error(`Produto não encontrado: ${tipo}/${plano}`);
 
       // Digital Goods API — disponível apenas no TWA dentro do Google Play
       const service = await window.getDigitalGoodsService(
