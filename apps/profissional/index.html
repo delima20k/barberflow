@@ -523,93 +523,30 @@
        TELA — PESQUISA
   ============================================================ -->
   <main id="tela-pesquisa" class="tela">
-    <div class="content">
-      <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <img src="/shared/img/pesquisa.svg" alt="buscar">
-        <input type="search" placeholder="Barbearia, barbeiro, bairro…">
-      </div>
 
-      <div class="tags">
-        <span class="tag on">Todos</span>
-        <span class="tag">Degraê</span>
-        <span class="tag">Barba</span>
-        <span class="tag">Social</span>
-        <span class="tag">Infantil</span>
-        <span class="tag">Freestyle</span>
-        <span class="tag">Sobrancelha</span>
-        <span class="tag">Antes e Depois</span>
-      </div>
-
-      <div>
-        <p class="sec-title">Barbearias</p>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="barber-row">
-            <div class="avatar gold">✂️</div>
-            <div class="barber-info">
-              <p class="barber-name">Barbearia Elite</p>
-              <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.9</span>
-              <span class="badge">Aberto</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">💈</div>
-            <div class="barber-info">
-              <p class="barber-name">Corte &amp; Arte</p>
-              <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.6</span>
-              <span class="badge">Aberto</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">👑</div>
-            <div class="barber-info">
-              <p class="barber-name">King Cuts</p>
-              <p class="barber-sub">R. Oscar Freire, 789 · 1.4 km</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.8</span>
-              <span class="badge">Aberto</span>
-            </div>
-          </div>
+    <!-- Barra de busca fixa no topo da tela -->
+    <div class="search-bar-wrap">
+      <div class="search-bar">
+        <div class="search-bar-icon">
+          <img src="/shared/img/Logo01.png" alt="BarberFlow"
+               onerror="this.outerHTML='💈'">
         </div>
-      </div>
-
-      <div>
-        <p class="sec-title">Barbeiros</p>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="barber-row">
-            <div class="avatar gold">
-              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
-                   onerror="this.outerHTML='&#x1F487;'">
-            </div>
-            <div class="barber-info">
-              <p class="barber-name">João Silva</p>
-              <p class="barber-sub">Barbearia Elite · Degraê</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.9</span>
-              <span class="price">R$ 35</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">🧔</div>
-            <div class="barber-info">
-              <p class="barber-name">Rafael Costa</p>
-              <p class="barber-sub">Corte &amp; Arte · Barba</p>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.8</span>
-              <span class="price">R$ 28</span>
-            </div>
-          </div>
-        </div>
+        <input
+          id="pesquisa-input"
+          type="search"
+          class="search-bar-input"
+          placeholder="Barbearia, barbeiro, bairro ou CEP…"
+          autocomplete="off"
+          enterkeyhint="search"
+        >
       </div>
     </div>
+
+    <!-- Resultados dinâmicos -->
+    <div class="content search-content">
+      <div id="pesquisa-resultados"></div>
+    </div>
+
   </main>
 
   <!-- ============================================================
