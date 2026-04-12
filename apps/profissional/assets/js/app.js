@@ -149,11 +149,11 @@ class BarberFlowProfissional extends Router {
   }
 
   /**
-   * Navega para o cadastro.
-   * Garante que o usuário escolheu um plano antes.
+   * Navega para a tela de planos — ponto de entrada do cadastro.
+   * Sempre mostra os planos antes de criar conta.
    */
   irParaCadastroGuardado() {
-    MonetizationGuard.exigirPlano(() => this.push('cadastro'));
+    this.push('planos-pro');
   }
 
   /**

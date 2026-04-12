@@ -260,7 +260,7 @@ class AuthService {
     if (label) label.textContent = nome.split(' ')[0];
 
     const headerBtn = document.getElementById('header-avatar-btn');
-    if (headerBtn) headerBtn.removeAttribute('onclick');
+    if (headerBtn) headerBtn.setAttribute('onclick', `${p}.nav('perfil')`);
 
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
@@ -293,7 +293,7 @@ class AuthService {
     if (label) label.textContent = 'Entrar';
 
     const headerBtn = document.getElementById('header-avatar-btn');
-    if (headerBtn) headerBtn.removeAttribute('onclick');
+    if (headerBtn) headerBtn.setAttribute('onclick', `${p}.irParaLogin()`);
 
     ['header-avatar-img', 'menu-avatar-img'].forEach(id => {
       const el = document.getElementById(id);

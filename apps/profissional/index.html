@@ -54,7 +54,7 @@
       <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
     </div>
 
-    <button class="header-avatar-btn" id="header-avatar-btn">
+    <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
       <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
       <span id="header-user-label">Entrar</span>
     </button>
@@ -129,7 +129,7 @@
           </div>
           <p id="login-erro" class="form-erro"></p>
           <button type="submit" class="btn btn-gold btn-full">Acessar Painel</button>
-          <button type="button" class="btn btn-outline btn-full" onclick="Pro.irParaCadastroGuardado()">Criar conta profissional</button>
+          <button type="button" class="btn btn-outline btn-full" onclick="Pro.push('planos-pro')">Criar conta profissional</button>
           <p class="login-link" style="text-align:center;">
             <a href="#" onclick="Pro.push('esqueceu-senha'); return false;">Esqueceu a senha?</a>
           </p>
