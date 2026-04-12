@@ -64,10 +64,7 @@ class BarberFlowProfissional extends Router {
   get telasOffline() { return BarberFlowProfissional.#TELAS_OFFLINE; }
 
   constructor() {
-    // Detecta sessão Supabase no localStorage para definir tela inicial
-    const temSessao = Object.keys(localStorage)
-      .some(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-    super(temSessao ? 'inicio' : 'login');
+    super('inicio');
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }
