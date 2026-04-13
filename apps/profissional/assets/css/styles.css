@@ -415,8 +415,8 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 9px 0;
-  font-size: 13px;
+  padding: 10px 0;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-muted);
   border: none;
