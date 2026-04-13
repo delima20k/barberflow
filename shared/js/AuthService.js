@@ -35,8 +35,7 @@ class AuthService {
 
     try {
       await SupabaseService.signIn(email, senha);
-      AuthService._instancia()?.splashLogin();
-      setTimeout(() => navFn('inicio'), 3000);
+      navFn('inicio');
     } catch (e) {
       AuthService._erro(erroEl, AuthService._traduzirErro(e));
     } finally {
@@ -102,8 +101,7 @@ class AuthService {
         // Supabase exige confirmação de e-mail
         AuthService._erro(erroEl, '✅ Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
       } else {
-        AuthService._instancia()?.splashLogin();
-        setTimeout(() => navFn('inicio'), 3000);
+        navFn('inicio');
       }
     } catch (e) {
       AuthService._erro(erroEl, AuthService._traduzirErro(e));

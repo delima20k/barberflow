@@ -38,13 +38,6 @@
     .tela { display: none !important; }
     #tela-inicio { display: flex !important; }
   </style>
-  <!-- Inline: reaplica boot-lock para gate ANTES do primeiro paint, se vier de outro app -->
-  <script>
-    if (new URLSearchParams(location.search).has('from')) {
-      document.getElementById('boot-lock').textContent =
-        '.tela{display:none!important}#tela-gate{display:flex!important}';
-    }
-  </script>
 </head>
 <body>
 <div id="app">
@@ -111,27 +104,26 @@
   </nav>
 
   <!-- ============================================================
-       TELA — GATE (Boas-vindas ao App Profissional)
+       OVERLAY — LANDING GATE (Boas-vindas / primeiro acesso)
   ============================================================ -->
-  <main id="tela-gate" class="tela">
-    <div class="gate-bg">
-      <div class="gate-titulo">
-        <img class="gate-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-        <h2 class="gate-subtitulo">PROFISSIONAL</h2>
-      </div>
-      <div id="gate-polo"></div>
-      <div class="gate-btns">
-        <button class="btn gate-btn-primary" onclick="Pro.nav('inicio')">
+  <div id="landing-gate" style="display:none;">
+    <div class="lg-backdrop"></div>
+    <div class="lg-card">
+      <img class="lg-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
+      <h2 class="lg-subtitulo">PROFISSIONAL</h2>
+      <p class="lg-descricao">Gerencie sua agenda, barbearia e clientes</p>
+      <div class="lg-btns">
+        <button class="btn lg-btn-primary" onclick="ProLandingGate.irParaPreview()">
           <img src="/shared/img/inicio.svg" alt="">
-          Entrar na home
+          Explorar sem cadastro
         </button>
-        <button class="btn gate-btn-secondary" onclick="Pro.nav('cadastro')">
+        <button class="btn lg-btn-secondary" onclick="ProLandingGate.irParaCadastro()">
           <img src="/shared/img/perfil.svg" alt="">
           Cadastrar e Começar
         </button>
       </div>
     </div>
-  </main>
+  </div>
 
   <!-- ============================================================
        TELA — LOGIN
@@ -1297,6 +1289,8 @@
 <script src="/shared/js/MapOrientationModule.js"></script>
 <!-- Monetização / Google Billing -->
 <script src="/shared/js/PaymentFlowHandler.js"></script>
+<!-- Gate de boas-vindas (overlay estático, sem BarberPole) -->
+<script src="/shared/js/ProLandingGate.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->

@@ -23,9 +23,6 @@ class Router {
   /** Telas que exibem o footer offline (sem login). @returns {Set<string>} */
   get telasOffline() { return new Set(['inicio', 'pesquisa']); }
 
-  /** Telas que ocultam AMBOS os footers (ex: gate de boas-vindas). @returns {Set<string>} */
-  get telasSemFooter() { return new Set([]); }
-
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")
    */
@@ -56,9 +53,6 @@ class Router {
     // Restaura estado correto quando a página volta do bfcache
     window.addEventListener('pageshow', (e) => {
       if (!e.persisted) return;
-
-      // Remove overlay de splash residual
-      document.querySelectorAll('.splash-overlay').forEach(el => el.remove());
 
       // Cancela animações em curso e reseta todas as telas para o estado inicial
       document.querySelectorAll('.tela').forEach(t => {
@@ -301,29 +295,16 @@ class Router {
    * @private
    */
   _atualizarUI(tela) {
-    const _syncNav = () => {
-      this._navBtns.forEach(btn =>
-        btn.classList.toggle('ativo', btn.dataset.tela === tela)
-      );
-      document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
-        item.classList.toggle('ativo', item.dataset.tela === tela)
-      );
-    };
-
-    // Telas sem footer algum (ex: gate de boas-vindas)
-    if (this.telasSemFooter.has(tela)) {
-      if (this._footer)        this._footer.style.display        = 'none';
-      if (this._footerOffline) this._footerOffline.style.display = 'none';
-      _syncNav();
-      return;
-    }
-
     const mostrarCompleto = this._logado && this.telasComNav.has(tela);
-    // Footer sempre visível: completo quando logado em tela de nav, senão mostra offline
     if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
     if (this._footerOffline) this._footerOffline.style.display = mostrarCompleto ? 'none' : 'flex';
 
-    _syncNav();
+    this._navBtns.forEach(btn =>
+      btn.classList.toggle('ativo', btn.dataset.tela === tela)
+    );
+    document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
+      item.classList.toggle('ativo', item.dataset.tela === tela)
+    );
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -483,79 +464,14 @@ class Router {
     });
   }
 
-  /* ─────────────────────────────────────────────────────────────
-     SPLASH — transição entre apps (BarberPole)
-  ───────────────────────────────────────────────────────────── */
-
   /**
-   * Exibe o splash BarberPole na ORIGEM e navega ao fim.
-   * Mostra na origem (código já está em memória = sempre confiável).
-   * Nunca depende de SW cache ou sessionStorage.
+   * Navega para outro app adicionando timestamp para evitar bfcache.
    * @param {string} url — caminho destino (ex: '../profissional/')
    */
   navegarApp(url) {
     if (this._navegandoApp) return;
     this._navegandoApp = true;
-
-    const tipo = url.toLowerCase().includes('profissional') ? 'Profissional' : 'Cliente';
-
-    // Indica a origem para exibir gate de boas-vindas no destino
-    const origem  = window.location.pathname.includes('profissional') ? 'profissional' : 'cliente';
-    const sep     = url.includes('?') ? '&' : '?';
-    // Adiciona timestamp para garantir carga fresca — nunca usa bfcache
-    const urlFresca = `${url}${sep}from=${origem}&t=${Date.now()}`;
-
-    // Exibe splash aqui na origem — ao fim navega para o destino (sempre fresh)
-    this._exibirSplash(tipo, () => window.location.replace(urlFresca));
-  }
-
-  /**
-   * Monta o overlay splash com BarberPole e executa o callback ao fechar.
-   * Único ponto de criação visual — DRY, POO puro.
-   * @param {string}   tipo     — 'Cliente' | 'Profissional'
-   * @param {Function} [onFim]  — callback chamado após o fade-out completar
-   * @private
-   */
-  _exibirSplash(tipo, onFim = null) {
-    // Evita duplicar se já estiver visível
-    if (document.querySelector('.splash-overlay')) return;
-
-    const overlay = document.createElement('div');
-    overlay.className = 'splash-overlay';
-    overlay.innerHTML = `
-      <img class="splash-logo-menu" src="/shared/img/Logo01.png" alt="">
-      <p class="splash-titulo">BEM-VINDO</p>
-      <img class="splash-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-      <div id="splash-polo"></div>
-      <p class="splash-app">BarberFlow ${tipo}</p>
-      <div class="splash-spinner"></div>
-    `;
-    document.body.appendChild(overlay);
-
-    let polo = null;
-    if (typeof BarberPole !== 'undefined') {
-      polo = new BarberPole(overlay.querySelector('#splash-polo'));
-    }
-
-    setTimeout(() => {
-      overlay.classList.add('saindo');
-      setTimeout(() => {
-        if (onFim) {
-          onFim();
-        } else {
-          if (polo) polo.destruir();
-          overlay.remove();
-        }
-      }, 500);
-    }, 2500);
-  }
-
-  /**
-   * Exibe splash de boas-vindas ao fazer login (sem navegar de app).
-   * Chamado pelo AuthService após login bem-sucedido.
-   */
-  splashLogin() {
-    const tipo = window.location.pathname.includes('profissional') ? 'Profissional' : 'Cliente';
-    this._exibirSplash(tipo, null);
+    const sep = url.includes('?') ? '&' : '?';
+    window.location.replace(`${url}${sep}t=${Date.now()}`);
   }
 }

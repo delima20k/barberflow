@@ -59,21 +59,12 @@ class BarberFlowProfissional extends Router {
   ]);
 
   static #TELAS_OFFLINE    = new Set(['inicio', 'pesquisa']);
-  static #TELAS_SEM_FOOTER = new Set(['gate']);
 
   get telasComNav()    { return BarberFlowProfissional.#TELAS_COM_NAV; }
   get telasOffline()   { return BarberFlowProfissional.#TELAS_OFFLINE; }
-  get telasSemFooter() { return BarberFlowProfissional.#TELAS_SEM_FOOTER; }
 
   constructor() {
-    const deOutroApp = new URLSearchParams(location.search).has('from');
-    super(deOutroApp ? 'gate' : 'inicio');
-    if (deOutroApp) {
-      const poloEl = document.getElementById('gate-polo');
-      if (poloEl && typeof BarberPole !== 'undefined') {
-        new BarberPole(poloEl);
-      }
-    }
+    super('inicio');
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }
@@ -257,6 +248,8 @@ function initMapToggle() {
 
 /* ── Inicializa widgets de geolocalização ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
+  // Gate de boas-vindas — mostra overlay se não logado e não escolheu preview
+  ProLandingGate.init();
   initMapToggle();
   // Mapa interativo Leaflet com FAB flutuante
   MapWidget.init('mapa-container');
