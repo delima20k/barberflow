@@ -58,13 +58,22 @@ class BarberFlowProfissional extends Router {
     'sair',
   ]);
 
-  static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa']);
+  static #TELAS_OFFLINE    = new Set(['inicio', 'pesquisa']);
+  static #TELAS_SEM_FOOTER = new Set(['gate']);
 
-  get telasComNav()  { return BarberFlowProfissional.#TELAS_COM_NAV; }
-  get telasOffline() { return BarberFlowProfissional.#TELAS_OFFLINE; }
+  get telasComNav()    { return BarberFlowProfissional.#TELAS_COM_NAV; }
+  get telasOffline()   { return BarberFlowProfissional.#TELAS_OFFLINE; }
+  get telasSemFooter() { return BarberFlowProfissional.#TELAS_SEM_FOOTER; }
 
   constructor() {
-    super('inicio');
+    const deOutroApp = new URLSearchParams(location.search).has('from');
+    super(deOutroApp ? 'gate' : 'inicio');
+    if (deOutroApp) {
+      const poloEl = document.getElementById('gate-polo');
+      if (poloEl && typeof BarberPole !== 'undefined') {
+        new BarberPole(poloEl);
+      }
+    }
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }

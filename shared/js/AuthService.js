@@ -166,10 +166,20 @@ class AuthService {
    * Chame uma vez no constructor do App.
    */
   static iniciarListener() {
-    SupabaseService.onAuthChange(async (event, session) => {
+    // Callback NAO pode ser async: Supabase usa BroadcastChannel internamente
+    // e um callback que retorna Promise dispara o erro
+    // "message channel closed before a response was received".
+    SupabaseService.onAuthChange((event, session) => {
       if (session?.user) {
-        AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
-        AuthService._atualizarUI(AuthService.#perfil, session.user);
+        AuthService._carregarPerfil(session.user.id)
+          .then(perfil => {
+            AuthService.#perfil = perfil;
+            AuthService._atualizarUI(perfil, session.user);
+          })
+          .catch(() => {
+            AuthService.#perfil = null;
+            AuthService._limparUI();
+          });
       } else {
         AuthService.#perfil = null;
         AuthService._limparUI();

@@ -80,6 +80,15 @@ class MapWidget {
   }
 
   /**
+   * Força o Leaflet a recalcular o tamanho do container.
+   * Deve ser chamado sempre que o painel do mapa é exibido após ficar oculto.
+   */
+  static redimensionar() {
+    if (!MapWidget.#mapa) return;
+    requestAnimationFrame(() => MapWidget.#mapa.invalidateSize());
+  }
+
+  /**
    * Acionado pelo clique no FAB. Solicita GPS, centraliza mapa e carrega
    * marcadores. Ao concluir, notifica o NearbyBarbershopsWidget (lista).
    */

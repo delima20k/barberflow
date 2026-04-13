@@ -158,10 +158,13 @@ class StoriesLayout {
    * @param {Document|HTMLElement} root
    */
   static #bindViewers(root) {
-    root.querySelectorAll(`.stories-scroll .story-video-wrap:not([${StoriesLayout.#MARCA}])`)
-      .forEach(wrap => {
-        wrap.setAttribute(StoriesLayout.#MARCA, '1');
-        wrap.addEventListener('click', () => StoryViewer.abrir(wrap));
+    // Bind no .story-card inteiro: qualquer toque dentro do card abre o viewer
+    root.querySelectorAll(`.stories-scroll .story-card:not([${StoriesLayout.#MARCA}])`)
+      .forEach(card => {
+        card.setAttribute(StoriesLayout.#MARCA, '1');
+        // StoryViewer.abrir usa .closest('.story-card') internamente,
+        // passando o card diretamente funciona pois closest inclui o próprio elemento
+        card.addEventListener('click', () => StoryViewer.abrir(card));
       });
   }
 

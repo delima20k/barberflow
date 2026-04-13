@@ -23,6 +23,9 @@ class Router {
   /** Telas que exibem o footer offline (sem login). @returns {Set<string>} */
   get telasOffline() { return new Set(['inicio', 'pesquisa']); }
 
+  /** Telas que ocultam AMBOS os footers (ex: gate de boas-vindas). @returns {Set<string>} */
+  get telasSemFooter() { return new Set([]); }
+
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")
    */
@@ -298,19 +301,29 @@ class Router {
    * @private
    */
   _atualizarUI(tela) {
+    const _syncNav = () => {
+      this._navBtns.forEach(btn =>
+        btn.classList.toggle('ativo', btn.dataset.tela === tela)
+      );
+      document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
+        item.classList.toggle('ativo', item.dataset.tela === tela)
+      );
+    };
+
+    // Telas sem footer algum (ex: gate de boas-vindas)
+    if (this.telasSemFooter.has(tela)) {
+      if (this._footer)        this._footer.style.display        = 'none';
+      if (this._footerOffline) this._footerOffline.style.display = 'none';
+      _syncNav();
+      return;
+    }
+
     const mostrarCompleto = this._logado && this.telasComNav.has(tela);
     // Footer sempre visível: completo quando logado em tela de nav, senão mostra offline
     if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
     if (this._footerOffline) this._footerOffline.style.display = mostrarCompleto ? 'none' : 'flex';
 
-    this._navBtns.forEach(btn =>
-      btn.classList.toggle('ativo', btn.dataset.tela === tela)
-    );
-
-    // Marca item ativo no menu lateral
-    document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
-      item.classList.toggle('ativo', item.dataset.tela === tela)
-    );
+    _syncNav();
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -486,8 +499,11 @@ class Router {
 
     const tipo = url.toLowerCase().includes('profissional') ? 'Profissional' : 'Cliente';
 
+    // Indica a origem para exibir gate de boas-vindas no destino
+    const origem  = window.location.pathname.includes('profissional') ? 'profissional' : 'cliente';
+    const sep     = url.includes('?') ? '&' : '?';
     // Adiciona timestamp para garantir carga fresca — nunca usa bfcache
-    const urlFresca = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const urlFresca = `${url}${sep}from=${origem}&t=${Date.now()}`;
 
     // Exibe splash aqui na origem — ao fim navega para o destino (sempre fresh)
     this._exibirSplash(tipo, () => window.location.replace(urlFresca));
