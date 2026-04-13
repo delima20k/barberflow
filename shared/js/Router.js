@@ -464,14 +464,51 @@ class Router {
     });
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     SPLASH — transição entre apps (BarberPole compacto)
+  ───────────────────────────────────────────────────────────── */
+
   /**
-   * Navega para outro app adicionando timestamp para evitar bfcache.
+   * Exibe splash com BarberPole e navega ao destino ao fim.
+   * Detecta automaticamente o nome do app pelo URL de destino.
    * @param {string} url — caminho destino (ex: '../profissional/')
    */
   navegarApp(url) {
     if (this._navegandoApp) return;
     this._navegandoApp = true;
-    const sep = url.includes('?') ? '&' : '?';
-    window.location.replace(`${url}${sep}t=${Date.now()}`);
+
+    const tipo = url.toLowerCase().includes('profissional') ? 'PROFISSIONAL' : 'CLIENTE';
+    const sep  = url.includes('?') ? '&' : '?';
+    const dest = `${url}${sep}t=${Date.now()}`;
+
+    this._exibirSplash(tipo, () => window.location.replace(dest));
+  }
+
+  /**
+   * Monta o overlay splash compacto (mobile-first) com BarberPole.
+   * @param {string}   tipo   — 'PROFISSIONAL' | 'CLIENTE'
+   * @param {Function} [onFim] — callback após fade-out
+   * @private
+   */
+  _exibirSplash(tipo, onFim = null) {
+    if (document.querySelector('.splash-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'splash-overlay';
+    overlay.innerHTML = `
+      <img class="splash-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
+      <p class="splash-app">BarberFlow <strong>${tipo}</strong></p>
+      <div class="splash-polo-wrap"><div id="splash-polo"></div></div>
+    `;
+    document.body.appendChild(overlay);
+
+    if (typeof BarberPole !== 'undefined') {
+      new BarberPole(overlay.querySelector('#splash-polo'));
+    }
+
+    setTimeout(() => {
+      overlay.classList.add('saindo');
+      setTimeout(() => { onFim ? onFim() : overlay.remove(); }, 450);
+    }, 2200);
   }
 }
