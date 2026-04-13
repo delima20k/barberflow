@@ -30,8 +30,9 @@ create table if not exists public.legal_consents (
   -- Flags individuais por seção (auditoria)
   aceitou_termos    boolean     not null default false,
   direitos_autorais boolean     not null default false,
-  uso_arquivos      boolean     not null default false,
-  uso_gps           boolean     not null default false,
+  uso_arquivos         boolean     not null default false,
+  uso_midias_internas  boolean     not null default false,
+  uso_gps              boolean     not null default false,
 
   -- Metadados
   data_aceite       timestamptz not null default now(),

@@ -79,9 +79,10 @@ class LegalConsentService {
       user_id:          userId,
       plan_type:        planType,
       aceitou_termos:   true,
-      direitos_autorais: flags.direitos_autorais ?? true,
-      uso_arquivos:     flags.uso_arquivos      ?? true,
-      uso_gps:          flags.uso_gps           ?? true,
+      direitos_autorais:    flags.direitos_autorais    ?? true,
+      uso_arquivos:         flags.uso_arquivos         ?? true,
+      uso_midias_internas:  flags.uso_midias_internas  ?? true,
+      uso_gps:              flags.uso_gps              ?? true,
       data_aceite:      new Date().toISOString(),
       version:          LegalConsentService.#VERSAO_ATUAL,
     };

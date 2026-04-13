@@ -221,7 +221,7 @@ class BarberFlowProfissional extends Router {
     const erroEl = document.getElementById('tl-erro');
 
     // Valida checkboxes novamente por segurança
-    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-gps', 'tl-cb-responsabilidade'];
+    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-midias', 'tl-cb-gps', 'tl-cb-responsabilidade'];
     const todosMarcados = ids.every(id => document.getElementById(id)?.checked);
     if (!todosMarcados) return;
 
@@ -240,7 +240,7 @@ class BarberFlowProfissional extends Router {
       const { ok, error: erroResp } = await LegalConsentService.registrarAceite(
         userId,
         planType,
-        { direitos_autorais: true, uso_arquivos: true, uso_gps: true }
+        { direitos_autorais: true, uso_arquivos: true, uso_midias_internas: true, uso_gps: true }
       );
 
       if (!ok) throw new Error(erroResp || 'Erro ao registrar aceite.');
@@ -265,7 +265,7 @@ class BarberFlowProfissional extends Router {
    * Chamado via onchange nos checkboxes da tela-termos-legais.
    */
   _sincronizarBotaoTermos() {
-    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-gps', 'tl-cb-responsabilidade'];
+    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-midias', 'tl-cb-gps', 'tl-cb-responsabilidade'];
     const todosMarcados = ids.every(id => document.getElementById(id)?.checked);
     const btn = document.getElementById('tl-btn-continuar');
     if (btn) btn.disabled = !todosMarcados;
