@@ -220,10 +220,9 @@ class BarberFlowProfissional extends Router {
     const btn = document.getElementById('tl-btn-continuar');
     const erroEl = document.getElementById('tl-erro');
 
-    // Valida checkboxes novamente por segurança
-    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-midias', 'tl-cb-gps', 'tl-cb-responsabilidade'];
-    const todosMarcados = ids.every(id => document.getElementById(id)?.checked);
-    if (!todosMarcados) return;
+    // Valida o checkbox unico novamente por seguranca
+    const aceiteConfirmado = !!document.getElementById('tl-cb-termos')?.checked;
+    if (!aceiteConfirmado) return;
 
     // UI: spinner
     if (btn) btn.classList.add('tl-btn--carregando');
@@ -261,14 +260,13 @@ class BarberFlowProfissional extends Router {
   }
 
   /**
-   * Sincroniza estado do botão Continuar com os checkboxes.
-   * Chamado via onchange nos checkboxes da tela-termos-legais.
+   * Sincroniza estado do botão Continuar com o checkbox de aceite.
+   * Chamado via onchange no checkbox da tela-termos-legais.
    */
   _sincronizarBotaoTermos() {
-    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-midias', 'tl-cb-gps', 'tl-cb-responsabilidade'];
-    const todosMarcados = ids.every(id => document.getElementById(id)?.checked);
+    const aceiteConfirmado = !!document.getElementById('tl-cb-termos')?.checked;
     const btn = document.getElementById('tl-btn-continuar');
-    if (btn) btn.disabled = !todosMarcados;
+    if (btn) btn.disabled = !aceiteConfirmado;
   }
 
   /**

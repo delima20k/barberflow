@@ -9,7 +9,7 @@
 class LegalConsentService {
 
   /** Versão atual dos termos. Incrementar quando os termos mudarem. */
-  static #VERSAO_ATUAL = 1;
+  static #VERSAO_ATUAL = 2;
 
   /** Chave sessionStorage para evitar re-verificação na mesma sessão */
   static #CACHE_KEY = 'bf_termos_aceitos';

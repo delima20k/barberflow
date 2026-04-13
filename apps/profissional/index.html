@@ -1296,20 +1296,20 @@
       </p>
     </div>
 
-    <!-- ── 3. COMPARTILHAMENTO P2P E ECONOMIA DE DADOS ── -->
+    <!-- ── 3. COMPARTILHAMENTO DE VIDEOS E IMAGENS ── -->
     <div class="tl-card">
       <div class="tl-card-header">
         <span class="tl-card-icon">🔄</span>
-        <h2 class="tl-card-titulo">Compartilhamento P2P e Economia de Dados</h2>
+        <h2 class="tl-card-titulo">Compartilhamento de Videos e Imagens</h2>
       </div>
       <p class="tl-card-texto">
-        O usuário declara estar ciente de que arquivos enviados — como vídeos e
-        imagens — poderão ser utilizados pelo sistema de compartilhamento interno
-        da aplicação para exibição de stories e conteúdos visuais. Esse uso existe
-        com a finalidade de melhorar desempenho e reduzir consumo de armazenamento
-        em servidor, limitando-se ao funcionamento da própria plataforma. Nenhum
-        arquivo do dispositivo será compartilhado fora do contexto da plataforma
-        sem ação do usuário.
+        O usuario declara estar ciente de que videos e imagens enviados poderao
+        ser utilizados internamente na plataforma para exibicao de stories e
+        conteudos visuais do proprio servico. Esse uso ajuda a manter uma
+        experiencia mais rapida e eficiente, contribuindo para que a mensalidade
+        do servico permaneca mais acessivel para todos. Nenhum arquivo do
+        dispositivo sera compartilhado fora do contexto da plataforma sem acao do
+        usuario.
       </p>
     </div>
 
@@ -1342,37 +1342,13 @@
       </p>
     </div>
 
-    <!-- ── CHECKBOXES OBRIGATÓRIOS (todos necessários) ── -->
+    <!-- ── CHECKBOX OBRIGATORIO (confirmacao unica) ── -->
     <div class="tl-checks">
 
       <label class="tl-check-item">
-        <input type="checkbox" id="tl-cb-direitos" class="tl-checkbox"
+        <input type="checkbox" id="tl-cb-termos" class="tl-checkbox"
                onchange="Pro._sincronizarBotaoTermos()">
-        <span class="tl-check-label">Li e aceito os termos de direitos autorais</span>
-      </label>
-
-      <label class="tl-check-item">
-        <input type="checkbox" id="tl-cb-arquivos" class="tl-checkbox"
-               onchange="Pro._sincronizarBotaoTermos()">
-        <span class="tl-check-label">Autorizo o uso de arquivos do meu dispositivo apenas quando eu os enviar manualmente</span>
-      </label>
-
-      <label class="tl-check-item">
-        <input type="checkbox" id="tl-cb-midias" class="tl-checkbox"
-               onchange="Pro._sincronizarBotaoTermos()">
-        <span class="tl-check-label">Estou ciente do uso interno de arquivos e mídias dentro da plataforma</span>
-      </label>
-
-      <label class="tl-check-item">
-        <input type="checkbox" id="tl-cb-gps" class="tl-checkbox"
-               onchange="Pro._sincronizarBotaoTermos()">
-        <span class="tl-check-label">Autorizo o uso de localização para exibir meu endereço comercial</span>
-      </label>
-
-      <label class="tl-check-item">
-        <input type="checkbox" id="tl-cb-responsabilidade" class="tl-checkbox"
-               onchange="Pro._sincronizarBotaoTermos()">
-        <span class="tl-check-label">Aceito os termos de responsabilidade e consentimento</span>
+        <span class="tl-check-label">Declaro que li e aceito os termos de uso e o uso interno dos conteudos enviados dentro da plataforma.</span>
       </label>
 
     </div><!-- .tl-checks -->
@@ -1380,7 +1356,7 @@
     <!-- Mensagem de erro -->
     <p id="tl-erro" class="tl-erro" style="display:none"></p>
 
-    <!-- Botão Continuar (desabilitado até todos os CBs estarem marcados) -->
+    <!-- Botao Continuar (desabilitado ate confirmar o aceite) -->
     <div class="tl-action">
       <button id="tl-btn-continuar" class="tl-btn" disabled
               onclick="Pro.aceitarTermos()">Continuar</button>
