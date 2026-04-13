@@ -48,14 +48,17 @@ create index if not exists legal_consents_user_id_idx
 -- Row Level Security
 alter table public.legal_consents enable row level security;
 
+drop policy if exists "legal_consents: select próprio" on public.legal_consents;
 create policy "legal_consents: select próprio"
   on public.legal_consents for select
   using (auth.uid() = user_id);
 
+drop policy if exists "legal_consents: insert próprio" on public.legal_consents;
 create policy "legal_consents: insert próprio"
   on public.legal_consents for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "legal_consents: update próprio" on public.legal_consents;
 create policy "legal_consents: update próprio"
   on public.legal_consents for update
   using (auth.uid() = user_id)
