@@ -191,6 +191,7 @@ class BarberFlowProfissional extends Router {
 
   /**
    * Tela Planos Pro unificada — salva tipo+plano e inicia pagamento.
+   * Após pagamento confirmado, redireciona para aceite legal (obrigatório).
    * @param {'barbeiro'|'barbearia'} tipo
    * @param {'trial'|'mensal'|'trimestral'} plano
    */
@@ -198,9 +199,76 @@ class BarberFlowProfissional extends Router {
     MonetizationGuard.setPlan(tipo, plano);
     PaymentFlowHandler.iniciarFluxo(
       plano,
-      () => this.push('cadastro'),
-      (msg) => { console.warn('[PlanosPro]', msg); this.push('cadastro'); }
+      () => {
+        // Marca destino pós-aceite como cadastro (novo usuário)
+        sessionStorage.setItem('bf_termo_destino', 'cadastro');
+        this.push('termos-legais');
+      },
+      (msg) => {
+        console.warn('[PlanosPro]', msg);
+        sessionStorage.setItem('bf_termo_destino', 'cadastro');
+        this.push('termos-legais');
+      }
     );
+  }
+
+  /**
+   * Registra aceite legal no Supabase e navega para o destino configurado.
+   * Chamado pelo botão "Continuar" da tela-termos-legais.
+   */
+  async aceitarTermos() {
+    const btn = document.getElementById('tl-btn-continuar');
+    const erroEl = document.getElementById('tl-erro');
+
+    // Valida checkboxes novamente por segurança
+    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-gps', 'tl-cb-responsabilidade'];
+    const todosMarcados = ids.every(id => document.getElementById(id)?.checked);
+    if (!todosMarcados) return;
+
+    // UI: spinner
+    if (btn) btn.classList.add('tl-btn--carregando');
+    if (erroEl) erroEl.style.display = 'none';
+
+    try {
+      // Obtém usuário autenticado
+      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const userId   = user?.id;
+      const planType = MonetizationGuard.planoSelecionado || 'trial';
+
+      if (!userId) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const { ok, error: erroResp } = await LegalConsentService.registrarAceite(
+        userId,
+        planType,
+        { direitos_autorais: true, uso_arquivos: true, uso_gps: true }
+      );
+
+      if (!ok) throw new Error(erroResp || 'Erro ao registrar aceite.');
+
+      // Navega para destino (cadastro ou inicio)
+      const destino = sessionStorage.getItem('bf_termo_destino') || 'cadastro';
+      sessionStorage.removeItem('bf_termo_destino');
+      this.push(destino);
+
+    } catch (e) {
+      if (erroEl) {
+        erroEl.textContent = e?.message || 'Erro ao salvar aceite. Tente novamente.';
+        erroEl.style.display = 'block';
+      }
+    } finally {
+      if (btn) btn.classList.remove('tl-btn--carregando');
+    }
+  }
+
+  /**
+   * Sincroniza estado do botão Continuar com os checkboxes.
+   * Chamado via onchange nos checkboxes da tela-termos-legais.
+   */
+  _sincronizarBotaoTermos() {
+    const ids = ['tl-cb-direitos', 'tl-cb-arquivos', 'tl-cb-gps', 'tl-cb-responsabilidade'];
+    const todosMarcados = ids.every(id => document.getElementById(id)?.checked);
+    const btn = document.getElementById('tl-btn-continuar');
+    if (btn) btn.disabled = !todosMarcados;
   }
 
   /**

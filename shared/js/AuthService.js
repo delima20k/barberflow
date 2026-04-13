@@ -35,6 +35,20 @@ class AuthService {
 
     try {
       await SupabaseService.signIn(email, senha);
+      // ═ Guard legal: verifica se profissional aceitou os termos ═════════════════
+      // Só aplica no app profissional (Pro definido, App não)
+      if (typeof Pro !== 'undefined' &&
+          typeof LegalConsentService !== 'undefined') {
+        const { data: { user } } = await SupabaseService.client.auth.getUser();
+        if (user) {
+          const aceitou = await LegalConsentService.verificarAceite(user.id);
+          if (!aceitou) {
+            sessionStorage.setItem('bf_termo_destino', 'inicio');
+            navFn('termos-legais');
+            return;
+          }
+        }
+      }
       navFn('inicio');
     } catch (e) {
       AuthService._erro(erroEl, AuthService._traduzirErro(e));
@@ -149,6 +163,8 @@ class AuthService {
     } catch (_) { /* ignora erro de sessão já expirada */ }
     AuthService.#perfil = null;
     SessionCache.limparTudo();   // remove perfil, user e avatar_url do localStorage
+    // Limpa cache de aceite de termos (sessão encerrada)
+    if (typeof LegalConsentService !== 'undefined') LegalConsentService.limparCache();
     AuthService._limparUI();
   }
 
@@ -212,6 +228,17 @@ class AuthService {
         AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
         SessionCache.salvar(AuthService.#perfil, session.user);
         AuthService._atualizarUI(AuthService.#perfil, session.user);
+        // ═ Guard legal: verifica aceite ao restaurar sessão ════════════════
+        // Só aplica no app profissional e quando no flow pós-login (não durante cadastro)
+        if (typeof Pro !== 'undefined' &&
+            typeof LegalConsentService !== 'undefined' &&
+            !sessionStorage.getItem('bf_termo_destino')) {
+          const aceitou = await LegalConsentService.verificarAceite(session.user.id);
+          if (!aceitou) {
+            sessionStorage.setItem('bf_termo_destino', 'inicio');
+            Pro.push('termos-legais');
+          }
+        }
       } else if (perfilCache) {
         // Sessão expirou mas havia cache → limpa e mostra como visitante
         AuthService.#perfil = null;

@@ -653,6 +653,165 @@
 }
 .ppp-btn--outline:active { box-shadow: none; }
 
+/* ============================================================
+   TELA TERMOS LEGAIS — aceite obrigatório pós-pagamento
+============================================================ */
+
+/* Header da tela */
+.tl-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 20px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.tl-header-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tl-titulo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--gold);
+  margin: 0;
+  letter-spacing: .5px;
+}
+.tl-subtitulo {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+}
+
+/* Cards de seção */
+.tl-card {
+  margin: 12px 16px 0;
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--gold);
+}
+.tl-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tl-card-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tl-card-titulo {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.tl-card-texto {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Checkboxes */
+.tl-checks {
+  padding: 20px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tl-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tl-checkbox {
+  /* Checkbox customizado — aparência manual */
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 6px;
+  border: 2px solid rgba(212,175,55,.4);
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  margin-top: 1px;
+  transition: background .15s, border-color .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-checkbox:checked {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.tl-checkbox:checked::after {
+  content: '✓';
+  font-size: 12px;
+  color: #1a0e00;
+  font-weight: 900;
+  display: block;
+  line-height: 1;
+  margin: auto;
+}
+.tl-check-label {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  user-select: none;
+}
+
+/* Erro */
+.tl-erro {
+  font-size: 12px;
+  color: #e05151;
+  text-align: center;
+  margin: 12px 16px 0;
+  padding: 8px 12px;
+  background: rgba(224,81,81,.08);
+  border-radius: 8px;
+}
+
+/* Área do botão */
+.tl-action {
+  padding: 20px 16px 32px;
+}
+.tl-btn {
+  display: block;
+  width: 100%;
+  padding: 14px 0;
+  background: linear-gradient(135deg, #D4A017, #F2C630);
+  color: #1a0e00;
+  font-size: 14px;
+  font-weight: 800;
+  border: none;
+  border-radius: var(--r-full);
+  letter-spacing: .3px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(212,160,23,.35);
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.tl-btn:active:not(:disabled) {
+  transform: scale(.97);
+  box-shadow: 0 1px 6px rgba(212,160,23,.20);
+}
+.tl-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+/* Spinner no botão durante carregamento */
+.tl-btn--carregando {
+  opacity: .7;
+  cursor: wait;
+  pointer-events: none;
+}
+
 /* ── CPF/CNPJ toggle (cadastro) ─────────────────────────────── */
 .form-label-opt {
   font-size: .72rem;

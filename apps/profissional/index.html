@@ -1252,6 +1252,139 @@
 
   </main>
 
+  <!-- ══════════════════════════════════════════════════════
+       TELA: ACEITE LEGAL PROFISSIONAL (obrigatória)
+       Exibida após pagamento, antes do cadastro/home
+  ═══════════════════════════════════════════════════════ -->
+  <main id="tela-termos-legais" class="tela">
+
+    <!-- Header fixo dentro da tela -->
+    <div class="tl-header">
+      <div class="tl-header-icon">📋</div>
+      <div class="tl-header-texto">
+        <h1 class="tl-titulo">Termos de Uso</h1>
+        <p class="tl-subtitulo">Leia com atenção antes de continuar</p>
+      </div>
+    </div>
+
+    <!-- ── SEÇÃO 1: DIREITOS AUTORAIS ──────────────────── -->
+    <div class="tl-card">
+      <div class="tl-card-header">
+        <span class="tl-card-icon">©️</span>
+        <h2 class="tl-card-titulo">Direitos Autorais</h2>
+      </div>
+      <p class="tl-card-texto">
+        Você declara que todo conteúdo enviado — imagens, vídeos, textos e mídias —
+        é de sua autoria ou possui autorização legal para uso. Você se responsabiliza
+        por qualquer violação de direitos autorais dentro da plataforma.
+      </p>
+    </div>
+
+    <!-- ── SEÇÃO 2: USO DE ARQUIVOS E P2P ─────────────── -->
+    <div class="tl-card">
+      <div class="tl-card-header">
+        <span class="tl-card-icon">📁</span>
+        <h2 class="tl-card-titulo">Uso de Arquivos e P2P</h2>
+      </div>
+      <p class="tl-card-texto">
+        Você autoriza o app a acessar arquivos do dispositivo (fotos e vídeos)
+        exclusivamente para publicação de conteúdos na plataforma. Os arquivos
+        poderão ser utilizados em sistema P2P (peer-to-peer) para exibição de
+        stories e mídias, reduzindo consumo de armazenamento em servidor.
+        Nenhum arquivo será acessado sem ação direta sua.
+      </p>
+    </div>
+
+    <!-- ── SEÇÃO 3: GPS E LOCALIZAÇÃO ─────────────────── -->
+    <div class="tl-card">
+      <div class="tl-card-header">
+        <span class="tl-card-icon">📍</span>
+        <h2 class="tl-card-titulo">GPS e Localização</h2>
+      </div>
+      <p class="tl-card-texto">
+        Você autoriza o uso da localização (GPS) para exibir o endereço da barbearia
+        e melhorar a experiência dos clientes. A localização será usada apenas dentro
+        da plataforma e não será compartilhada externamente sem seu consentimento.
+      </p>
+    </div>
+
+    <!-- ── SEÇÃO 4: CÂMERA ─────────────────────────────── -->
+    <div class="tl-card">
+      <div class="tl-card-header">
+        <span class="tl-card-icon">📷</span>
+        <h2 class="tl-card-titulo">Uso de Câmera</h2>
+      </div>
+      <p class="tl-card-texto">
+        O aplicativo poderá acessar a câmera do dispositivo para captura de imagens
+        e vídeos a serem publicados no perfil profissional.
+      </p>
+    </div>
+
+    <!-- ── SEÇÃO 5: PRIVACIDADE E DADOS ───────────────── -->
+    <div class="tl-card">
+      <div class="tl-card-header">
+        <span class="tl-card-icon">🔒</span>
+        <h2 class="tl-card-titulo">Privacidade e Dados</h2>
+      </div>
+      <p class="tl-card-texto">
+        Seus dados serão armazenados com segurança (Supabase / PostgreSQL).
+        Nenhuma informação será vendida ou compartilhada indevidamente.
+        Você pode solicitar a exclusão dos seus dados a qualquer momento.
+      </p>
+    </div>
+
+    <!-- ── SEÇÃO 6: RESPONSABILIDADE ──────────────────── -->
+    <div class="tl-card">
+      <div class="tl-card-header">
+        <span class="tl-card-icon">⚖️</span>
+        <h2 class="tl-card-titulo">Responsabilidade</h2>
+      </div>
+      <p class="tl-card-texto">
+        Você é totalmente responsável pelos conteúdos publicados, incluindo imagens,
+        vídeos, localização e informações fornecidas dentro da plataforma.
+      </p>
+    </div>
+
+    <!-- ── CHECKBOXES OBRIGATÓRIOS ─────────────────────── -->
+    <div class="tl-checks">
+
+      <label class="tl-check-item">
+        <input type="checkbox" id="tl-cb-direitos" class="tl-checkbox"
+               onchange="Pro._sincronizarBotaoTermos()">
+        <span class="tl-check-label">Aceito os Termos de Direitos Autorais</span>
+      </label>
+
+      <label class="tl-check-item">
+        <input type="checkbox" id="tl-cb-arquivos" class="tl-checkbox"
+               onchange="Pro._sincronizarBotaoTermos()">
+        <span class="tl-check-label">Autorizo uso de arquivos do dispositivo</span>
+      </label>
+
+      <label class="tl-check-item">
+        <input type="checkbox" id="tl-cb-gps" class="tl-checkbox"
+               onchange="Pro._sincronizarBotaoTermos()">
+        <span class="tl-check-label">Autorizo uso de localização (GPS)</span>
+      </label>
+
+      <label class="tl-check-item">
+        <input type="checkbox" id="tl-cb-responsabilidade" class="tl-checkbox"
+               onchange="Pro._sincronizarBotaoTermos()">
+        <span class="tl-check-label">Aceito os termos de uso e responsabilidade</span>
+      </label>
+
+    </div><!-- .tl-checks -->
+
+    <!-- Mensagem de erro -->
+    <p id="tl-erro" class="tl-erro" style="display:none"></p>
+
+    <!-- Botão Continuar (desabilitado até todos os CBs estarem marcados) -->
+    <div class="tl-action">
+      <button id="tl-btn-continuar" class="tl-btn" disabled
+              onclick="Pro.aceitarTermos()">Continuar</button>
+    </div>
+
+  </main><!-- #tela-termos-legais -->
+
 </div><!-- #app -->
 
 <!-- Supabase SDK (CDN) -->
@@ -1294,6 +1427,8 @@
 <script src="/shared/js/PaymentFlowHandler.js"></script>
 <!-- Gate de boas-vindas (overlay estático, sem BarberPole) -->
 <script src="/shared/js/ProLandingGate.js"></script>
+<!-- Aceite legal profissional -->
+<script src="/apps/profissional/assets/js/LegalConsentService.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
