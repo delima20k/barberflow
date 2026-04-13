@@ -36,8 +36,15 @@
        Removido pelo Router assim que o estado correto é aplicado. -->
   <style id="boot-lock">
     .tela { display: none !important; }
-    #tela-gate { display: flex !important; }
+    #tela-inicio { display: flex !important; }
   </style>
+  <!-- Inline: reaplica boot-lock para gate ANTES do primeiro paint, se vier de outro app -->
+  <script>
+    if (new URLSearchParams(location.search).has('from')) {
+      document.getElementById('boot-lock').textContent =
+        '.tela{display:none!important}#tela-gate{display:flex!important}';
+    }
+  </script>
 </head>
 <body>
 <div id="app">
