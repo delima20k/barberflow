@@ -1078,23 +1078,23 @@
   ============================================================ -->
   <main id="tela-planos-pro" class="tela">
 
-    <!-- Cabeçalho de marca compacto -->
+    <!-- Cabeçalho centralizado — sem logo -->
     <div class="ppp-brand">
-      <img src="/shared/img/Logo01.png" class="ppp-brand-logo" alt="BarberFlow"
-           onerror="this.outerHTML='💈'">
-      <div>
-        <p class="ppp-brand-nome">BarberFlow</p>
-        <p class="ppp-brand-sub" id="ppp-subtitulo">Plano Profissional para Barbeiros</p>
-      </div>
       <button class="ppp-fechar-btn" onclick="Pro.voltar()" aria-label="Fechar">✕</button>
+      <h1 class="ppp-brand-nome">BarberFlow</h1>
+      <p class="ppp-brand-sub" id="ppp-subtitulo">Plano Profissional para Barbeiros</p>
     </div>
 
     <!-- Toggle barbeiro / barbearia -->
     <div class="ppp-toggle" role="tablist">
       <button class="ppp-toggle-btn ppp-toggle-btn--ativo" id="ppp-btn-barbeiro"
-              onclick="Pro.alternarTipoPlano('barbeiro')">✂️ Barbeiro</button>
+              onclick="Pro.alternarTipoPlano('barbeiro')">
+        <img src="/shared/img/perfil.svg" class="ppp-toggle-icon" alt=""> Barbeiro
+      </button>
       <button class="ppp-toggle-btn" id="ppp-btn-barbearia"
-              onclick="Pro.alternarTipoPlano('barbearia')">🏪 Barbearia</button>
+              onclick="Pro.alternarTipoPlano('barbearia')">
+        <img src="/shared/img/meu-b.svg" class="ppp-toggle-icon" alt=""> Barbearia
+      </button>
     </div>
 
     <!-- ── Cards BARBEIRO ─────────────────────────────────── -->
@@ -1109,14 +1109,15 @@
           </div>
           <p class="ppp-preco-gratis">GRÁTIS</p>
         </div>
-        <div class="ppp-chips">
-          <span class="ppp-chip">💰 Gest. financeira</span>
-          <span class="ppp-chip">👥 Clientes</span>
-          <span class="ppp-chip">🤝 Parcerias</span>
-          <span class="ppp-chip">💈 Cadeirinhas live</span>
-          <span class="ppp-chip">📍 GPS live</span>
-          <span class="ppp-chip">📸 Stories</span>
-        </div>
+        <ul class="ppp-chips">
+          <li class="ppp-chip">· Gestão financeira <span class="ppp-chip-obs">compartilhada</span></li>
+          <li class="ppp-chip">· Clientes <span class="ppp-chip-obs">compartilhados</span></li>
+          <li class="ppp-chip">· Parcerias</li>
+          <li class="ppp-chip ppp-chip--parceria">· Cadeirinhas live</li>
+          <li class="ppp-chip ppp-chip--parceria">· GPS live</li>
+          <li class="ppp-chip ppp-chip--parceria">· Stories</li>
+        </ul>
+        <p class="ppp-nota-parceria">★ Cadeirinhas, GPS e Stories exigem parceria com barbearia do sistema</p>
         <button class="ppp-btn ppp-btn--outline"
                 onclick="Pro.selecionarPlanoPro('barbeiro','trial')">Começar teste grátis</button>
       </div>
@@ -1133,14 +1134,15 @@
             <p class="ppp-periodo">/mês</p>
           </div>
         </div>
-        <div class="ppp-chips">
-          <span class="ppp-chip">💰 Gest. financeira</span>
-          <span class="ppp-chip">👥 Clientes</span>
-          <span class="ppp-chip">🤝 Parcerias</span>
-          <span class="ppp-chip">💈 Cadeirinhas live</span>
-          <span class="ppp-chip">📍 GPS live</span>
-          <span class="ppp-chip">📸 Stories</span>
-        </div>
+        <ul class="ppp-chips">
+          <li class="ppp-chip">· Gestão financeira <span class="ppp-chip-obs">compartilhada</span></li>
+          <li class="ppp-chip">· Clientes <span class="ppp-chip-obs">compartilhados</span></li>
+          <li class="ppp-chip">· Parcerias</li>
+          <li class="ppp-chip ppp-chip--parceria">· Cadeirinhas live</li>
+          <li class="ppp-chip ppp-chip--parceria">· GPS live</li>
+          <li class="ppp-chip ppp-chip--parceria">· Stories</li>
+        </ul>
+        <p class="ppp-nota-parceria">★ Cadeirinhas, GPS e Stories exigem parceria com barbearia do sistema</p>
         <button class="ppp-btn"
                 onclick="Pro.selecionarPlanoPro('barbeiro','mensal')">Assinar agora</button>
       </div>
@@ -1158,14 +1160,15 @@
             <p class="ppp-periodo ppp-economia-tag">Economia de R$ 15</p>
           </div>
         </div>
-        <div class="ppp-chips">
-          <span class="ppp-chip">💰 Gest. financeira</span>
-          <span class="ppp-chip">👥 Clientes</span>
-          <span class="ppp-chip">🤝 Parcerias</span>
-          <span class="ppp-chip">💈 Cadeirinhas live</span>
-          <span class="ppp-chip">📍 GPS live</span>
-          <span class="ppp-chip">📸 Stories</span>
-        </div>
+        <ul class="ppp-chips">
+          <li class="ppp-chip">· Gestão financeira <span class="ppp-chip-obs">compartilhada</span></li>
+          <li class="ppp-chip">· Clientes <span class="ppp-chip-obs">compartilhados</span></li>
+          <li class="ppp-chip">· Parcerias</li>
+          <li class="ppp-chip ppp-chip--parceria">· Cadeirinhas live</li>
+          <li class="ppp-chip ppp-chip--parceria">· GPS live</li>
+          <li class="ppp-chip ppp-chip--parceria">· Stories</li>
+        </ul>
+        <p class="ppp-nota-parceria">★ Cadeirinhas, GPS e Stories exigem parceria com barbearia do sistema</p>
         <button class="ppp-btn"
                 onclick="Pro.selecionarPlanoPro('barbeiro','trimestral')">Assinar com desconto</button>
       </div>
@@ -1184,14 +1187,14 @@
           </div>
           <p class="ppp-preco-gratis">GRÁTIS</p>
         </div>
-        <div class="ppp-chips">
-          <span class="ppp-chip">💰 Gest. financeira</span>
-          <span class="ppp-chip">👥 Clientes</span>
-          <span class="ppp-chip">🤝 Parcerias</span>
-          <span class="ppp-chip">💈 Cadeirinhas live</span>
-          <span class="ppp-chip">📍 GPS live</span>
-          <span class="ppp-chip">📸 Stories</span>
-        </div>
+        <ul class="ppp-chips">
+          <li class="ppp-chip">· Gestão financeira</li>
+          <li class="ppp-chip">· Clientes</li>
+          <li class="ppp-chip">· Parcerias</li>
+          <li class="ppp-chip">· Cadeirinhas live</li>
+          <li class="ppp-chip">· GPS live</li>
+          <li class="ppp-chip">· Stories</li>
+        </ul>
         <button class="ppp-btn ppp-btn--outline"
                 onclick="Pro.selecionarPlanoPro('barbearia','trial')">Começar teste grátis</button>
       </div>
@@ -1208,14 +1211,14 @@
             <p class="ppp-periodo">/mês</p>
           </div>
         </div>
-        <div class="ppp-chips">
-          <span class="ppp-chip">💰 Gest. financeira</span>
-          <span class="ppp-chip">👥 Clientes</span>
-          <span class="ppp-chip">🤝 Parcerias</span>
-          <span class="ppp-chip">💈 Cadeirinhas live</span>
-          <span class="ppp-chip">📍 GPS live</span>
-          <span class="ppp-chip">📸 Stories</span>
-        </div>
+        <ul class="ppp-chips">
+          <li class="ppp-chip">· Gestão financeira</li>
+          <li class="ppp-chip">· Clientes</li>
+          <li class="ppp-chip">· Parcerias</li>
+          <li class="ppp-chip">· Cadeirinhas live</li>
+          <li class="ppp-chip">· GPS live</li>
+          <li class="ppp-chip">· Stories</li>
+        </ul>
         <button class="ppp-btn"
                 onclick="Pro.selecionarPlanoPro('barbearia','mensal')">Assinar agora</button>
       </div>
@@ -1233,14 +1236,14 @@
             <p class="ppp-periodo ppp-economia-tag">Economia de R$ 25</p>
           </div>
         </div>
-        <div class="ppp-chips">
-          <span class="ppp-chip">💰 Gest. financeira</span>
-          <span class="ppp-chip">👥 Clientes</span>
-          <span class="ppp-chip">🤝 Parcerias</span>
-          <span class="ppp-chip">💈 Cadeirinhas live</span>
-          <span class="ppp-chip">📍 GPS live</span>
-          <span class="ppp-chip">📸 Stories</span>
-        </div>
+        <ul class="ppp-chips">
+          <li class="ppp-chip">· Gestão financeira</li>
+          <li class="ppp-chip">· Clientes</li>
+          <li class="ppp-chip">· Parcerias</li>
+          <li class="ppp-chip">· Cadeirinhas live</li>
+          <li class="ppp-chip">· GPS live</li>
+          <li class="ppp-chip">· Stories</li>
+        </ul>
         <button class="ppp-btn"
                 onclick="Pro.selecionarPlanoPro('barbearia','trimestral')">Assinar com desconto</button>
       </div>
