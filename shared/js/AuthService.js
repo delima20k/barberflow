@@ -11,6 +11,9 @@ class AuthService {
   // Perfil em memória (evita re-fetch desnecessário)
   static #perfil = null;
 
+  // Detecta se estamos no app profissional (calculado uma vez, sem TDZ)
+  static #isPro = window.location.pathname.includes('profissional');
+
   // ═══════════════════════════════════════════════════════════
   // LOGIN
   // ═══════════════════════════════════════════════════════════
@@ -37,7 +40,7 @@ class AuthService {
       const { user: userLogin } = await SupabaseService.signIn(email, senha);
 
       // ═ Guard de app: bloqueia clientes no app profissional ═══════════════════
-      if (typeof Pro !== 'undefined' && userLogin) {
+      if (AuthService.#isPro && userLogin) {
         const perfilLogin = await AuthService._carregarPerfil(userLogin.id);
         if (!await AuthService._verificarRoleApp(perfilLogin)) {
           AuthService._erro(erroEl, 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.');
@@ -47,7 +50,7 @@ class AuthService {
 
       // ═ Guard legal: verifica se profissional aceitou os termos ═════════════════
       // Só aplica no app profissional (Pro definido, App não)
-      if (typeof Pro !== 'undefined' &&
+      if (AuthService.#isPro &&
           typeof LegalConsentService !== 'undefined') {
         const { data: { user } } = await SupabaseService.client.auth.getUser();
         if (user) {
@@ -250,7 +253,7 @@ class AuthService {
     const { perfil: perfilCache, user: userCache } = SessionCache.restaurar();
     if (perfilCache && userCache) {
       // No app profissional: não exibir UI de cliente em cache (evita flash antes do bloqueio)
-      if (typeof Pro === 'undefined' || perfilCache.role === 'professional') {
+      if (!AuthService.#isPro || perfilCache.role === 'professional') {
         AuthService._atualizarUI(perfilCache, userCache);
       }
     }
@@ -278,7 +281,7 @@ class AuthService {
         // Só aplica no app profissional e quando no flow pós-login (não durante cadastro)
         if (typeof LegalConsentService !== 'undefined' &&
             !sessionStorage.getItem('bf_termo_destino')) {
-          const isPro = typeof Pro !== 'undefined' || window.location.pathname.includes('profissional');
+          const isPro = AuthService.#isPro;
           if (isPro) {
             const aceitou = await LegalConsentService.verificarAceite(session.user.id);
             if (!aceitou) {
@@ -346,13 +349,14 @@ class AuthService {
   }
 
   static _instancia() {
-    if (typeof App !== 'undefined') return App;
-    if (typeof Pro !== 'undefined') return Pro;
+    // Tenta globals em ambos os apps (chamado após awaits, TDZ não é problema aqui)
+    try { if (typeof App !== 'undefined' && App) return App; } catch (_) {}
+    try { if (typeof Pro !== 'undefined' && Pro) return Pro; } catch (_) {}
     return null;
   }
 
   static _prefix() {
-    return typeof App !== 'undefined' ? 'App' : 'Pro';
+    return AuthService.#isPro ? 'Pro' : 'App';
   }
 
   static _atualizarUI(perfil, user) {
