@@ -45,7 +45,7 @@ class NavConfig {
   static get #PROFISSIONAL_LOGADO() {
     return [
       { tela: 'inicio',          icone: 'inicio.svg',   label: 'Início'          },
-      { tela: 'agenda',          icone: 'pesquisa.svg', label: 'Agenda'          },
+      { tela: 'pesquisa',        icone: 'pesquisa.svg', label: 'Pesquisar'       },
       { tela: 'mensagens',       icone: 'mensagen.svg', label: 'Mensagens'       },
       { tela: 'minha-barbearia', icone: 'meu-b.svg',    label: 'Minha Barbearia' },
       { tela: 'perfil',          icone: 'perfil.svg',   label: 'Meu Perfil'      },
