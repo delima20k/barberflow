@@ -84,14 +84,18 @@ class SearchWidget {
         .order('rating_avg', { ascending: false })
         .limit(SearchWidget.#LIMIT);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[SearchWidget] Supabase error:', error);
+        throw error;
+      }
 
       if (!data.length) {
         SearchWidget.#renderVazio(termo);
       } else {
         SearchWidget.#renderLista(data);
       }
-    } catch {
+    } catch (err) {
+      console.error('[SearchWidget] buscar exception:', err);
       SearchWidget.#renderErro();
     }
   }

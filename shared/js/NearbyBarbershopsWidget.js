@@ -83,7 +83,8 @@ class NearbyBarbershopsWidget {
         .order('rating_avg', { ascending: false })
         .limit(10);
 
-      if (error || !data?.length) { el.innerHTML = ''; return; }
+      if (error) { console.error('[NearbyBarbershopsWidget] initHomeCards error:', error); el.innerHTML = ''; return; }
+      if (!data?.length) { el.innerHTML = ''; return; }
 
       // Se GPS disponível, calcula distância
       let lista = data;
@@ -104,7 +105,8 @@ class NearbyBarbershopsWidget {
         const row = NearbyBarbershopsWidget.#criarBarberRow(b);
         el.appendChild(row);
       });
-    } catch (_) {
+    } catch (err) {
+      console.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
       el.innerHTML = '';
     }
   }
@@ -134,7 +136,8 @@ class NearbyBarbershopsWidget {
         .order('rating_avg', { ascending: false })
         .limit(6);
 
-      if (error || !data?.length) { el.innerHTML = ''; return; }
+      if (error) { console.error('[NearbyBarbershopsWidget] initHomeDestaque error:', error); el.innerHTML = ''; return; }
+      if (!data?.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
       data.forEach(b => {
@@ -174,7 +177,8 @@ class NearbyBarbershopsWidget {
         card.appendChild(badge);
         el.appendChild(card);
       });
-    } catch (_) {
+    } catch (err) {
+      console.error('[NearbyBarbershopsWidget] initHomeDestaque exception:', err);
       el.innerHTML = '';
     }
   }
@@ -211,7 +215,8 @@ class NearbyBarbershopsWidget {
         .eq('is_active', true)
         .limit(10);
 
-      if (error || !data?.length) { el.innerHTML = ''; return; }
+      if (error) { console.error('[NearbyBarbershopsWidget] initHomeBarbeiros error:', error); el.innerHTML = ''; return; }
+      if (!data?.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
       data.forEach(p => {
@@ -259,7 +264,8 @@ class NearbyBarbershopsWidget {
         row.appendChild(meta);
         el.appendChild(row);
       });
-    } catch (_) {
+    } catch (err) {
+      console.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
       el.innerHTML = '';
     }
   }
