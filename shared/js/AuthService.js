@@ -34,7 +34,17 @@ class AuthService {
     AuthService._erro(erroEl, '');
 
     try {
-      await SupabaseService.signIn(email, senha);
+      const { user: userLogin } = await SupabaseService.signIn(email, senha);
+
+      // ═ Guard de app: bloqueia clientes no app profissional ═══════════════════
+      if (typeof Pro !== 'undefined' && userLogin) {
+        const perfilLogin = await AuthService._carregarPerfil(userLogin.id);
+        if (!await AuthService._verificarRoleApp(perfilLogin)) {
+          AuthService._erro(erroEl, 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.');
+          return;
+        }
+      }
+
       // ═ Guard legal: verifica se profissional aceitou os termos ═════════════════
       // Só aplica no app profissional (Pro definido, App não)
       if (typeof Pro !== 'undefined' &&
@@ -186,7 +196,11 @@ class AuthService {
     SupabaseService.onAuthChange((event, session) => {
       if (session?.user) {
         AuthService._carregarPerfil(session.user.id)
-          .then(perfil => {
+          .then(async perfil => {
+            if (!await AuthService._verificarRoleApp(perfil)) {
+              AuthService._limparUI();
+              return;
+            }
             AuthService.#perfil = perfil;
             AuthService._atualizarUI(perfil, session.user);
           })
@@ -216,7 +230,10 @@ class AuthService {
     // ── Camada 2: perfil do cache local (sem rede) ──────────────────
     const { perfil: perfilCache, user: userCache } = SessionCache.restaurar();
     if (perfilCache && userCache) {
-      AuthService._atualizarUI(perfilCache, userCache);
+      // No app profissional: não exibir UI de cliente em cache (evita flash antes do bloqueio)
+      if (typeof Pro === 'undefined' || perfilCache.role === 'professional') {
+        AuthService._atualizarUI(perfilCache, userCache);
+      }
     }
 
     // ── Camada 3: validação real da sessão com Supabase ─────────────
@@ -226,6 +243,16 @@ class AuthService {
       const { data: { session } } = await SupabaseService.client.auth.getSession();
       if (session?.user) {
         AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
+
+        // ═ Guard de app: bloqueia clientes com sessão restaurada no app profissional ═
+        if (!await AuthService._verificarRoleApp(AuthService.#perfil)) {
+          AuthService._limparUI();
+          AuthService._instancia()?.nav('login');
+          const loginErroEl = document.getElementById('login-erro');
+          AuthService._erro(loginErroEl, 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.');
+          return;
+        }
+
         SessionCache.salvar(AuthService.#perfil, session.user);
         AuthService._atualizarUI(AuthService.#perfil, session.user);
         // ═ Guard legal: verifica aceite ao restaurar sessão ════════════════
@@ -261,6 +288,25 @@ class AuthService {
       .eq('id', userId)
       .single();
     return data || null;
+  }
+
+  /**
+   * Verifica se o role do perfil é compatível com o app atual.
+   * App profissional → exige role 'professional' (clientes são bloqueados).
+   * App cliente      → aceita qualquer role (profissional age como cliente).
+   * Em caso de bloqueio: faz logout silencioso e limpa todo o estado local.
+   * @param {Object|null} perfil
+   * @returns {Promise<boolean>} true = acesso permitido
+   */
+  static async _verificarRoleApp(perfil) {
+    if (typeof Pro === 'undefined') return true;        // App cliente: sem restrição de role
+    if (perfil?.role === 'professional') return true;   // Profissional no app correto
+    // Bloqueio: limpa sessão silenciosamente
+    try { await SupabaseService.signOut(); } catch (_) {}
+    AuthService.#perfil = null;
+    SessionCache.limparTudo();
+    if (typeof LegalConsentService !== 'undefined') LegalConsentService.limparCache();
+    return false;
   }
 
   // ═══════════════════════════════════════════════════════════
