@@ -401,7 +401,7 @@ class MapWidget {
    * @returns {string}
    */
   static #iniciaisNome(nome) {
-    if (!nome) return '✂';
+    if (!nome) return '💈';
     const palavras = nome.trim().split(/\s+/).filter(Boolean);
     if (palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
     return (palavras[0][0] + palavras[1][0]).toUpperCase();

@@ -174,7 +174,7 @@ class NearbyBarbershopsWidget {
 
     const icone = document.createElement('span');
     icone.className = 'nearby-vazio-icone';
-    icone.textContent = '✂️';
+    icone.textContent = '📍';
 
     const titulo = document.createElement('p');
     titulo.className = 'nearby-vazio-titulo';
