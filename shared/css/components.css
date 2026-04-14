@@ -92,24 +92,19 @@
 .header-sair-btn {
   all: unset;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(212, 175, 55, .08);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  padding: 4px 8px;
+  border-radius: 20px;
   border: 1px solid var(--gold-border);
-  transition: background var(--ease), transform var(--ease);
+  background: rgba(212, 175, 55, .06);
+  transition: background var(--ease), color var(--ease);
   -webkit-tap-highlight-color: transparent;
 }
-.header-sair-btn img {
-  width: 18px;
-  height: 18px;
-  opacity: .75;
-}
 .header-sair-btn:active {
-  transform: scale(.9);
   background: rgba(212, 175, 55, .18);
 }
 
