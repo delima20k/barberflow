@@ -229,23 +229,29 @@ class BarberFlowProfissional extends Router {
     if (erroEl) erroEl.style.display = 'none';
 
     try {
-      // Obtém usuário autenticado
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
-      const userId   = user?.id;
+      const destino  = sessionStorage.getItem('bf_termo_destino') || 'cadastro';
       const planType = MonetizationGuard.planoSelecionado || 'trial';
+      const flags    = { direitos_autorais: true, uso_arquivos: true, uso_midias_internas: true, uso_gps: true };
 
-      if (!userId) throw new Error('Sessão expirada. Faça login novamente.');
+      // Verifica se já existe usuário autenticado
+      const { data: { user } } = await SupabaseService.client.auth.getUser();
 
+      if (!user) {
+        // ── Fluxo pré-cadastro: usuário ainda não existe ───────────────────
+        // Salva o aceite em sessionStorage para registrar após criar a conta
+        LegalConsentService.marcarAceitePendente(planType, flags);
+        sessionStorage.removeItem('bf_termo_destino');
+        this.push(destino);
+        return;
+      }
+
+      // ── Fluxo pós-login: usuário existe, registra direto no banco ─────────
       const { ok, error: erroResp } = await LegalConsentService.registrarAceite(
-        userId,
-        planType,
-        { direitos_autorais: true, uso_arquivos: true, uso_midias_internas: true, uso_gps: true }
+        user.id, planType, flags
       );
 
       if (!ok) throw new Error(erroResp || 'Erro ao registrar aceite.');
 
-      // Navega para destino (cadastro ou inicio)
-      const destino = sessionStorage.getItem('bf_termo_destino') || 'cadastro';
       sessionStorage.removeItem('bf_termo_destino');
       this.push(destino);
 

@@ -104,12 +104,59 @@ class LegalConsentService {
   }
 
   // ──────────────────────────────────────────────────────────
+  // ACEITE PENDENTE (pré-cadastro)
+  // ──────────────────────────────────────────────────────────
+
+  /** Chave para armazenar aceite pendente até o usuário criar conta */
+  static #PENDENTE_KEY = 'bf_termos_pendentes';
+
+  /**
+   * Salva o consentimento em sessionStorage para ser registrado após o cadastro.
+   * Chamado quando o usuário aceita os termos ANTES de ter conta criada.
+   */
+  static marcarAceitePendente(planType, flags = {}) {
+    sessionStorage.setItem(LegalConsentService.#PENDENTE_KEY, JSON.stringify({ planType, flags }));
+    // Marca como aceito na sessão para evitar reexibição no mesmo fluxo
+    sessionStorage.setItem(LegalConsentService.#CACHE_KEY, '1');
+  }
+
+  /**
+   * Verifica se há aceite pendente armazenado em sessionStorage.
+   * @returns {boolean}
+   */
+  static temAceitePendente() {
+    return !!sessionStorage.getItem(LegalConsentService.#PENDENTE_KEY);
+  }
+
+  /**
+   * Após o cadastro ser concluído, registra o aceite pendente no banco.
+   * Limpa o pendente em caso de sucesso.
+   *
+   * @param {string} userId — UUID do usuário recém-criado
+   * @returns {Promise<{ ok: boolean, error?: string }>}
+   */
+  static async registrarAceitePendente(userId) {
+    const raw = sessionStorage.getItem(LegalConsentService.#PENDENTE_KEY);
+    if (!raw) return { ok: true }; // nada pendente
+
+    try {
+      const { planType, flags } = JSON.parse(raw);
+      const result = await LegalConsentService.registrarAceite(userId, planType, flags);
+      if (result.ok) sessionStorage.removeItem(LegalConsentService.#PENDENTE_KEY);
+      return result;
+    } catch (e) {
+      return { ok: false, error: e?.message || 'Erro ao registrar aceite pendente.' };
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
   // LIMPAR CACHE (logout)
   // ──────────────────────────────────────────────────────────
 
   /** Remove flag de cache de sessão — chamado no logout */
   static limparCache() {
     sessionStorage.removeItem(LegalConsentService.#CACHE_KEY);
+    sessionStorage.removeItem(LegalConsentService.#PENDENTE_KEY);
   }
 }
 

@@ -125,6 +125,11 @@ class AuthService {
         // Supabase exige confirmação de e-mail
         AuthService._erro(erroEl, '✅ Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
       } else {
+        // ── Registra aceite legal pendente (aceito na tela de termos pré-cadastro) ──
+        if (typeof LegalConsentService !== 'undefined' && user) {
+          LegalConsentService.registrarAceitePendente(user.id)
+            .catch(e => console.warn('[AuthService] Aceite pendente não registrado:', e?.message));
+        }
         navFn('inicio');
       }
     } catch (e) {
