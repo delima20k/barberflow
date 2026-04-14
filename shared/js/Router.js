@@ -477,7 +477,9 @@ class Router {
     if (this._navegandoApp) return;
     this._navegandoApp = true;
 
-    const tipo = url.toLowerCase().includes('profissional') ? 'PROFISSIONAL' : 'CLIENTE';
+    // Detecta o app destino pelo URL:
+    // URL com 'cliente' → CLIENTE; qualquer outro (pro / profissional / pro-two) → PROFISSIONAL
+    const tipo = url.toLowerCase().includes('cliente') ? 'CLIENTE' : 'PROFISSIONAL';
     const sep  = url.includes('?') ? '&' : '?';
     const dest = `${url}${sep}t=${Date.now()}`;
 
@@ -493,11 +495,16 @@ class Router {
   _exibirSplash(tipo, onFim = null) {
     if (document.querySelector('.splash-overlay')) return;
 
+    // Textos de boas-vindas diferenciados por app
+    const bv = tipo === 'PROFISSIONAL'
+      ? { linha1: 'Bem-vindo,', linha2: 'BarberFlow PROFISSIONAL' }
+      : { linha1: 'Bem-vindo ao', linha2: 'BarberFlow CLIENTE' };
+
     const overlay = document.createElement('div');
     overlay.className = 'splash-overlay';
     overlay.innerHTML = `
       <img class="splash-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-      <p class="splash-app">BarberFlow <strong>${tipo}</strong></p>
+      <p class="splash-app">${bv.linha1} <strong>${bv.linha2}</strong></p>
       <div class="splash-polo-wrap"><div id="splash-polo"></div></div>
     `;
     document.body.appendChild(overlay);
