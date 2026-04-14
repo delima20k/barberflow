@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
   MapWidget.init('mapa-container');
   // Lista de barbearias próximas (abaixo do mapa)
   NearbyBarbershopsWidget.init('nearby-map-widget');
+  // Cards de barbearias na home (dinâmico, sem GPS obrigatório)
+  NearbyBarbershopsWidget.initHomeCards('home-barbearias-lista');
   // Solicita GPS silenciosamente na primeira abertura
   GeoService.solicitarNaPrimeiraVez();
   // Bússola e orientação do mapa

@@ -256,9 +256,9 @@
 }
 
 /* traço do meio menor — cria efeito escalonado */
-.mpd-pill::before { width: 28px; }
+.mpd-pill::before { width: 20px; }
 .mpd-pill span    { width: 20px; }
-.mpd-pill::after  { width: 28px; }
+.mpd-pill::after  { width: 20px; }
 
 .mpd-handle.mpd-arrastando .mpd-pill::before,
 .mpd-handle.mpd-arrastando .mpd-pill span,
@@ -270,8 +270,8 @@
 }
 
 .mpd-handle:hover .mpd-pill::before,
-.mpd-handle:hover .mpd-pill::after    { width: 32px; }
-.mpd-handle:hover .mpd-pill span      { width: 24px; }
+.mpd-handle:hover .mpd-pill::after { width: 24px; }
+.mpd-handle:hover .mpd-pill span   { width: 24px; }
 
 /* Hint de arraste — visível apenas no estado semiaberto */
 .mpd-hint {

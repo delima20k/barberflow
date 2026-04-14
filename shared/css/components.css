@@ -80,16 +80,49 @@
   letter-spacing: 2px;
 }
 
-/* Avatar — 36px circular, borda dourada */
-.header-avatar-btn {
+/* Wrapper direito do header (sair + avatar) */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Botão Sair no header */
+.header-sair-btn {
   all: unset;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, .08);
+  border: 1px solid var(--gold-border);
+  transition: background var(--ease), transform var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+.header-sair-btn img {
+  width: 18px;
+  height: 18px;
+  opacity: .75;
+}
+.header-sair-btn:active {
+  transform: scale(.9);
+  background: rgba(212, 175, 55, .18);
+}
+
+/* Avatar — layout vertical: foto + nome abaixo */
+.header-avatar-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
   -webkit-tap-highlight-color: transparent;
   transition: transform var(--ease), opacity var(--ease);
 }
@@ -111,7 +144,17 @@
   opacity: .8;
 }
 .header-avatar-btn span {
-  display: none;
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  max-width: 52px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: 1;
 }
 
 /* Overlay só cobre abaixo do header */

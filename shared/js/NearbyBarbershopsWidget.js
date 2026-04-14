@@ -55,6 +55,60 @@ class NearbyBarbershopsWidget {
     // hint HTML já está no DOM — não faz nada
   }
 
+  /**
+   * Renderiza cards de barbearias na seção "Populares" da home.
+   * Não exige GPS — busca todas as barbearias ativas (limit 10).
+   * Se GPS disponível, ordena por proximidade.
+   * @param {string} containerId
+   */
+  static async initHomeCards(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    // Skeleton loading
+    el.innerHTML = Array(3).fill(0).map(() => `
+      <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+        <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+        <div class="barber-info">
+          <p class="barber-name" style="width:120px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+          <p class="barber-sub"  style="width:80px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
+        </div>
+      </div>`).join('');
+
+    try {
+      const { data, error } = await SupabaseService.client
+        .from('barbershops')
+        .select('id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg')
+        .eq('is_active', true)
+        .order('rating_avg', { ascending: false })
+        .limit(10);
+
+      if (error || !data?.length) { el.innerHTML = ''; return; }
+
+      // Se GPS disponível, calcula distância
+      let lista = data;
+      try {
+        const permissao = await GeoService.verificarPermissao();
+        if (permissao === 'granted') {
+          const pos = await GeoService.obter();
+          lista = data
+            .map(b => ({ ...b, distance_km: b.latitude
+              ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
+              : null }))
+            .sort((a, b) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
+        }
+      } catch (_) { /* sem GPS — mantém ordem por rating */ }
+
+      el.innerHTML = '';
+      lista.forEach(b => {
+        const row = NearbyBarbershopsWidget.#criarBarberRow(b);
+        el.appendChild(row);
+      });
+    } catch (_) {
+      el.innerHTML = '';
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PRIVADO — Fluxo
   // ═══════════════════════════════════════════════════════════
@@ -172,10 +226,6 @@ class NearbyBarbershopsWidget {
     const wrap = document.createElement('div');
     wrap.className = 'nearby-vazio';
 
-    const icone = document.createElement('span');
-    icone.className = 'nearby-vazio-icone';
-    icone.textContent = '📍';
-
     const titulo = document.createElement('p');
     titulo.className = 'nearby-vazio-titulo';
     titulo.textContent = 'Nenhuma barbearia por perto';
@@ -184,7 +234,6 @@ class NearbyBarbershopsWidget {
     sub.className = 'nearby-vazio-sub';
     sub.textContent = `Não encontramos barbearias em até ${NearbyBarbershopsWidget.#RAIO_KM} km da sua localização.`;
 
-    wrap.appendChild(icone);
     wrap.appendChild(titulo);
     wrap.appendChild(sub);
     NearbyBarbershopsWidget.#montar(wrap);

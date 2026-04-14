@@ -118,6 +118,18 @@ class AuthService {
         await SupabaseService.client
           .from('profiles')
           .upsert(perfilData, { onConflict: 'id' });
+
+        // Se é dono de barbearia, cria registro mínimo para aparecer na pesquisa
+        if (pro_type === 'barbearia' && barbearia?.trim()) {
+          await SupabaseService.client
+            .from('barbershops')
+            .insert({
+              owner_id:  user.id,
+              name:      barbearia.trim(),
+              is_active: true,
+              is_open:   false,
+            });
+        }
       }
 
       if (!session) {
@@ -340,13 +352,16 @@ class AuthService {
     const email = user?.email || '';
     const p     = AuthService._prefix();
 
-    // Header — nome (logado)
+    // Header — nome abaixo do avatar (logado)
     const label = document.getElementById('header-user-label');
     if (label) label.textContent = nome.split(' ')[0];
 
     const headerBtn = document.getElementById('header-avatar-btn');
     if (headerBtn) headerBtn.setAttribute('onclick', `${p}.nav('perfil')`);
 
+    // Botão sair no header — visível quando logado
+    const sairBtn = document.getElementById('header-sair-btn');
+    if (sairBtn) sairBtn.style.display = '';
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
       const url = SupabaseService.client.storage
@@ -379,6 +394,10 @@ class AuthService {
 
     const headerBtn = document.getElementById('header-avatar-btn');
     if (headerBtn) headerBtn.setAttribute('onclick', `${p}.irParaLogin()`);
+
+    // Botão sair no header — oculto quando deslogado
+    const sairBtn = document.getElementById('header-sair-btn');
+    if (sairBtn) sairBtn.style.display = 'none';
 
     ['header-avatar-img', 'menu-avatar-img'].forEach(id => {
       const el = document.getElementById(id);

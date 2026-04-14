@@ -54,10 +54,15 @@
       <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
     </div>
 
-    <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
-      <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
-      <span id="header-user-label">Entrar</span>
-    </button>
+    <div class="header-right">
+      <button class="header-sair-btn" id="header-sair-btn" onclick="AuthService.logout()" style="display:none">
+        <img src="/shared/img/sair.svg" alt="Sair">
+      </button>
+      <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
+        <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
+        <span id="header-user-label">Entrar</span>
+      </button>
+    </div>
   </header>
 
   <!-- ============================================================
@@ -510,41 +515,7 @@
       <div>
         <h2 class="sec-title title-large">Barbearias Populares Próximas de Você</h2>
         <h2 class="sec-title">Barbeiros Populares</h2>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div class="barber-row">
-            <div class="avatar gold">
-              <img src="/shared/img/icones-perfil.png" alt="barbeiro"
-                   onerror="this.outerHTML='💇'">
-            </div>
-            <div class="barber-info">
-              <p class="barber-name">João Silva</p>
-              <p class="barber-sub">Barbearia Elite · 0.8 km</p>
-              <div class="tags" style="margin-top:6px;">
-                <span class="tag on">Degradê</span>
-                <span class="tag">Barba</span>
-              </div>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.9</span>
-              <span class="price">R$ 35</span>
-            </div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold">💈</div>
-            <div class="barber-info">
-              <p class="barber-name">Carlos Mendes</p>
-              <p class="barber-sub">King Cuts · 1.2 km</p>
-              <div class="tags" style="margin-top:6px;">
-                <span class="tag on">Social</span>
-                <span class="tag">Infantil</span>
-              </div>
-            </div>
-            <div class="barber-meta">
-              <span class="stars">★ 4.7</span>
-              <span class="price">R$ 30</span>
-            </div>
-          </div>
-        </div>
+        <div id="home-barbearias-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
 
     </div><!-- .content -->
