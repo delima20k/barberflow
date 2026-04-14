@@ -233,21 +233,45 @@
   background: rgba(43, 27, 18, .55);
 }
 
-/* Pill indicador */
+/* Pill indicador — 3 traços elegantes */
 .mpd-pill {
-  width:        36px;
-  height:       4px;
-  border-radius: 2px;
-  background:   var(--gold, #D4A017);
-  opacity:      0.65;
-  transition:   width 200ms ease, opacity 200ms ease;
+  position: relative;
+  display:  flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
 }
 
-.mpd-handle.mpd-arrastando .mpd-pill,
-.mpd-handle:hover .mpd-pill {
-  width:   52px;
+.mpd-pill::before,
+.mpd-pill::after,
+.mpd-pill span {
+  content: '';
+  display: block;
+  height:  2.5px;
+  border-radius: 99px;
+  background: var(--gold, #D4A017);
+  opacity: 0.6;
+  transition: width 220ms ease, opacity 220ms ease;
+}
+
+/* traço do meio menor — cria efeito escalonado */
+.mpd-pill::before { width: 28px; }
+.mpd-pill span    { width: 20px; }
+.mpd-pill::after  { width: 28px; }
+
+.mpd-handle.mpd-arrastando .mpd-pill::before,
+.mpd-handle.mpd-arrastando .mpd-pill span,
+.mpd-handle.mpd-arrastando .mpd-pill::after,
+.mpd-handle:hover .mpd-pill::before,
+.mpd-handle:hover .mpd-pill span,
+.mpd-handle:hover .mpd-pill::after {
   opacity: 1;
 }
+
+.mpd-handle:hover .mpd-pill::before,
+.mpd-handle:hover .mpd-pill::after    { width: 32px; }
+.mpd-handle:hover .mpd-pill span      { width: 24px; }
 
 /* Hint de arraste — visível apenas no estado semiaberto */
 .mpd-hint {
