@@ -113,6 +113,88 @@ class NearbyBarbershopsWidget {
   // PRIVADO — Fluxo
   // ═══════════════════════════════════════════════════════════
 
+  /**
+   * Renderiza barbeiros (professionals) na seção "Barbeiros Populares" da home.
+   * Busca profiles com role='professional' e pro_type='barbeiro', limit 10.
+   * @param {string} containerId
+   */
+  static async initHomeBarbeiros(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    // Skeleton
+    el.innerHTML = Array(3).fill(0).map(() => `
+      <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+        <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+        <div class="barber-info">
+          <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+          <p class="barber-sub"  style="width:70px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
+        </div>
+      </div>`).join('');
+
+    try {
+      const { data, error } = await SupabaseService.client
+        .from('profiles')
+        .select('id, full_name, avatar_path, pro_type')
+        .eq('role', 'professional')
+        .eq('pro_type', 'barbeiro')
+        .eq('is_active', true)
+        .limit(10);
+
+      if (error || !data?.length) { el.innerHTML = ''; return; }
+
+      el.innerHTML = '';
+      data.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'barber-row barber-card';
+
+        const avatarWrap = document.createElement('div');
+        avatarWrap.className = 'avatar gold';
+        if (p.avatar_path) {
+          const img = document.createElement('img');
+          img.alt = p.full_name;
+          img.onerror = () => { avatarWrap.textContent = '💈'; };
+          img.src = SupabaseService.client.storage
+            .from('avatars').getPublicUrl(p.avatar_path).data?.publicUrl || '';
+          avatarWrap.appendChild(img);
+        } else {
+          avatarWrap.textContent = '💈';
+        }
+
+        const info = document.createElement('div');
+        info.className = 'barber-info';
+
+        const nome = document.createElement('p');
+        nome.className = 'barber-name';
+        nome.textContent = p.full_name || 'Barbeiro';
+
+        const sub = document.createElement('p');
+        sub.className = 'barber-sub';
+        sub.textContent = 'Barbeiro Profissional';
+
+        info.appendChild(nome);
+        info.appendChild(sub);
+
+        const meta = document.createElement('div');
+        meta.className = 'barber-meta';
+
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = 'Barbeiro';
+
+        meta.appendChild(badge);
+
+        row.appendChild(avatarWrap);
+        row.appendChild(info);
+        row.appendChild(meta);
+        el.appendChild(row);
+      });
+    } catch (_) {
+      el.innerHTML = '';
+    }
+  }
+
+
   static async #carregar() {
     // Se a busca já foi encerrada por ausência de resultados, não reexecuta
     if (NearbyBarbershopsWidget.#buscaEncerrada) return;

@@ -121,7 +121,7 @@ class AuthService {
 
         // Se é dono de barbearia, cria registro mínimo para aparecer na pesquisa
         if (pro_type === 'barbearia' && barbearia?.trim()) {
-          await SupabaseService.client
+          const { error: errShop } = await SupabaseService.client
             .from('barbershops')
             .insert({
               owner_id:  user.id,
@@ -129,6 +129,9 @@ class AuthService {
               is_active: true,
               is_open:   false,
             });
+          if (errShop) {
+            console.error('[AuthService] Erro ao criar barbearia:', errShop.message, errShop.code);
+          }
         }
       }
 
@@ -273,13 +276,16 @@ class AuthService {
         AuthService._atualizarUI(AuthService.#perfil, session.user);
         // ═ Guard legal: verifica aceite ao restaurar sessão ════════════════
         // Só aplica no app profissional e quando no flow pós-login (não durante cadastro)
-        if (typeof Pro !== 'undefined' &&
-            typeof LegalConsentService !== 'undefined' &&
+        if (typeof LegalConsentService !== 'undefined' &&
             !sessionStorage.getItem('bf_termo_destino')) {
-          const aceitou = await LegalConsentService.verificarAceite(session.user.id);
-          if (!aceitou) {
-            sessionStorage.setItem('bf_termo_destino', 'inicio');
-            Pro.push('termos-legais');
+          const isPro = typeof Pro !== 'undefined' || window.location.pathname.includes('profissional');
+          if (isPro) {
+            const aceitou = await LegalConsentService.verificarAceite(session.user.id);
+            if (!aceitou) {
+              sessionStorage.setItem('bf_termo_destino', 'inicio');
+              // Adia para garantir que a instância global (Pro) já foi atribuída
+              setTimeout(() => AuthService._instancia()?.push('termos-legais'), 0);
+            }
           }
         }
       } else if (perfilCache) {
