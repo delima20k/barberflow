@@ -479,32 +479,7 @@
       <!-- Em destaque -->
       <div>
         <h2 class="sec-title">Em Destaque</h2>
-        <div class="h-scroll">
-          <div class="card-mini">
-            <div class="avatar gold">✂️</div>
-            <strong class="destaque-name">Barbearia Elite</strong>
-            <div class="stars">★★★★★</div>
-            <span class="badge">Aberto</span>
-          </div>
-          <div class="card-mini">
-            <div class="avatar gold">💈</div>
-            <strong class="destaque-name">Corte &amp; Arte</strong>
-            <div class="stars">★★★★☆</div>
-            <span class="badge">Aberto</span>
-          </div>
-          <div class="card-mini">
-            <div class="avatar gold">👑</div>
-            <strong class="destaque-name">King Cuts</strong>
-            <div class="stars">★★★★★</div>
-            <span class="badge">Aberto</span>
-          </div>
-          <div class="card-mini">
-            <div class="avatar" style="border-color:var(--text-dim);">🪒</div>
-            <strong class="destaque-name">Studio Beard</strong>
-            <div class="stars" style="color:var(--text-dim);">★★★☆☆</div>
-            <span class="badge closed">Fechado</span>
-          </div>
-        </div>
+        <div id="home-destaque-lista" class="h-scroll"></div>
       </div>
 
 
@@ -1317,7 +1292,7 @@
 </div><!-- #app -->
 
 <!-- Supabase SDK (CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/shared/js/supabase.min.js"></script>
 <!-- Serviço Supabase compartilhado -->
 <script src="/shared/js/SupabaseService.js"></script>
 <!-- Cache de sessão e avatar (localStorage) -->

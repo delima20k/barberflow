@@ -109,6 +109,76 @@ class NearbyBarbershopsWidget {
     }
   }
 
+  /**
+   * Renderiza cards de barbearias na seção "Em Destaque" da home (scroll horizontal).
+   * Busca até 6 barbearias ativas ordenadas por rating.
+   * @param {string} containerId  — id do .h-scroll
+   */
+  static async initHomeDestaque(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    // Skeleton 4 cards
+    el.innerHTML = Array(4).fill(0).map(() => `
+      <div class="card-mini" style="opacity:.4;pointer-events:none;">
+        <div class="avatar gold" style="background:var(--card-alt,#f0e8df);width:54px;height:54px;"></div>
+        <strong class="destaque-name" style="width:80px;height:12px;background:var(--card-alt,#f0e8df);border-radius:6px;display:block;margin:6px auto 4px;"></strong>
+        <div class="stars" style="opacity:0">-</div>
+      </div>`).join('');
+
+    try {
+      const { data, error } = await SupabaseService.client
+        .from('barbershops')
+        .select('id, name, logo_path, is_open, rating_avg')
+        .eq('is_active', true)
+        .order('rating_avg', { ascending: false })
+        .limit(6);
+
+      if (error || !data?.length) { el.innerHTML = ''; return; }
+
+      el.innerHTML = '';
+      data.forEach(b => {
+        const card = document.createElement('div');
+        card.className = 'card-mini';
+
+        // Avatar / Logo
+        const avatarWrap = document.createElement('div');
+        avatarWrap.className = 'avatar gold';
+        if (b.logo_path) {
+          const img = document.createElement('img');
+          img.alt = b.name;
+          img.onerror = () => { avatarWrap.textContent = '💈'; };
+          img.src = SupabaseService.client.storage
+            .from('logos').getPublicUrl(b.logo_path).data?.publicUrl || '';
+          avatarWrap.appendChild(img);
+        } else {
+          avatarWrap.textContent = '💈';
+        }
+
+        const nome = document.createElement('strong');
+        nome.className = 'destaque-name';
+        nome.textContent = b.name;
+
+        const stars = document.createElement('div');
+        stars.className = 'stars';
+        const r = Number(b.rating_avg ?? 0);
+        stars.textContent = '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
+
+        const badge = document.createElement('span');
+        badge.className = b.is_open ? 'badge' : 'badge closed';
+        badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+
+        card.appendChild(avatarWrap);
+        card.appendChild(nome);
+        card.appendChild(stars);
+        card.appendChild(badge);
+        el.appendChild(card);
+      });
+    } catch (_) {
+      el.innerHTML = '';
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PRIVADO — Fluxo
   // ═══════════════════════════════════════════════════════════

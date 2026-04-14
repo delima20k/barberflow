@@ -346,7 +346,9 @@ class AuthService {
   }
 
   static _instancia() {
-    return typeof App !== 'undefined' ? App : Pro;
+    if (typeof App !== 'undefined') return App;
+    if (typeof Pro !== 'undefined') return Pro;
+    return null;
   }
 
   static _prefix() {

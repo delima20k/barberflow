@@ -72,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
   NearbyBarbershopsWidget.init('nearby-map-widget');
   // Cards de barbearias na home (dinâmico, sem GPS obrigatório)
   NearbyBarbershopsWidget.initHomeCards('home-barbearias-lista');
+  // Cards em destaque (scroll horizontal)
+  NearbyBarbershopsWidget.initHomeDestaque('home-destaque-lista');
   // Cards de barbeiros populares na home
   NearbyBarbershopsWidget.initHomeBarbeiros('home-barbeiros-lista');
   // Solicita GPS silenciosamente na primeira abertura
