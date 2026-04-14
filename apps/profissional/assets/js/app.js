@@ -124,6 +124,7 @@ class BarberFlowProfissional extends Router {
       senha2:     document.getElementById('cad-senha2')?.value,
       barbearia:  document.getElementById('cad-barbearia')?.value,
       role:       'professional',
+      pro_type:   MonetizationGuard.tipoUsuario || null,
     }, document.getElementById('cad-erro'), (tela) => {
       MonetizationGuard.limpar();
       this.nav(tela);
@@ -273,6 +274,17 @@ class BarberFlowProfissional extends Router {
     const aceiteConfirmado = !!document.getElementById('tl-cb-termos')?.checked;
     const btn = document.getElementById('tl-btn-continuar');
     if (btn) btn.disabled = !aceiteConfirmado;
+  }
+
+  /**
+   * Retorna o subtipo do profissional logado.
+   * Prioridade: perfil do banco → sessionStorage (pré-cadastro).
+   * @returns {'barbeiro'|'barbearia'|null}
+   */
+  getProType() {
+    return AuthService.getPerfil()?.pro_type
+        || MonetizationGuard.tipoUsuario
+        || null;
   }
 
   /**

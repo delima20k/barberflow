@@ -76,7 +76,7 @@ class AuthService {
    * @param {HTMLElement}      erroEl
    * @param {function(string)} navFn
    */
-  static async cadastro({ nome, email, telefone, senha, senha2, role = 'client', barbearia = null }, erroEl, navFn) {
+  static async cadastro({ nome, email, telefone, senha, senha2, role = 'client', pro_type = null, barbearia = null }, erroEl, navFn) {
     nome  = nome?.trim();
     email = email?.trim();
 
@@ -113,12 +113,11 @@ class AuthService {
 
       // Garante criação do perfil (fallback caso o trigger não exista)
       if (user) {
+        const perfilData = { id: user.id, full_name: nome, phone: telefone || null, role };
+        if (pro_type) perfilData.pro_type = pro_type;
         await SupabaseService.client
           .from('profiles')
-          .upsert(
-            { id: user.id, full_name: nome, phone: telefone || null, role },
-            { onConflict: 'id' }
-          );
+          .upsert(perfilData, { onConflict: 'id' });
       }
 
       if (!session) {
@@ -289,7 +288,7 @@ class AuthService {
   static async _carregarPerfil(userId) {
     const { data } = await SupabaseService.client
       .from('profiles')
-      .select('id, full_name, phone, avatar_path, role')
+      .select('id, full_name, phone, avatar_path, role, pro_type')
       .eq('id', userId)
       .single();
     return data || null;
