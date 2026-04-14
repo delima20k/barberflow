@@ -108,7 +108,7 @@ class AuthService {
       const { data, error } = await SupabaseService.client.auth.signUp({
         email,
         password: senha,
-        options: { data: { full_name: nome, role, phone: telefone || null } }
+        options: { data: { full_name: nome, role, phone: telefone || null, pro_type: pro_type || null, barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null } }
       });
       if (error) throw error;
 
