@@ -691,6 +691,32 @@
     </button>
   </nav>
 
+  <!-- ============================================================
+       BOTÃO FLUTUANTE — Reabrir footer (pingo d'água)
+       Aparece quando o footer é oculto pelo scroll
+  ============================================================ -->
+  <button id="btn-abrir-footer"
+          onclick="FooterScrollManager.abrirPorBotao()"
+          aria-label="Abrir menu de navegação">
+    <svg viewBox="0 0 48 62" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Corpo do pingo d'água -->
+      <path d="M24 3 C24 3 4 28 4 40 C4 52 13.2 59 24 59 C34.8 59 44 52 44 40 C44 28 24 3 24 3Z"
+            fill="rgba(212,160,23,0.55)"
+            stroke="rgba(212,175,55,0.75)"
+            stroke-width="1.5"/>
+      <!-- Reflexo interno -->
+      <ellipse cx="17" cy="24" rx="4" ry="6"
+               fill="rgba(255,255,255,0.18)"
+               transform="rotate(-20 17 24)"/>
+      <!-- Seta para cima -->
+      <polyline points="14,44 24,32 34,44"
+                stroke="white" stroke-width="3"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+    </svg>
+  </button>
+
 </div><!-- #app -->
 
 <!-- Supabase SDK (CDN) -->

@@ -4,5 +4,55 @@
                ../../shared/css/components.css
 ============================================================ */
 
-/* Sem overrides ativos por enquanto.
-   Adicione aqui estilos exclusivos do app cliente. */
+/* ── Botão flutuante — pingo d'água para reabrir footer ────── */
+#btn-abrir-footer {
+  all: unset;
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  right: 18px;
+  z-index: 998; /* abaixo do footer (1000) mas acima do conteúdo */
+  width: 48px;
+  height: 62px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  /* Oculto por padrão */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(32px) scale(0.80);
+  transition:
+    opacity   0.38s cubic-bezier(.4, 0, .2, 1),
+    transform 0.38s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Estado visível — desliza para cima ao aparecer */
+#btn-abrir-footer.visivel {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+#btn-abrir-footer svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 18px rgba(212, 160, 23, 0.55));
+  transition: filter var(--ease), transform var(--ease);
+}
+
+/* Feedback de toque */
+#btn-abrir-footer:active svg {
+  filter: drop-shadow(0 2px 8px rgba(212, 160, 23, 0.75));
+  transform: scale(0.90);
+}
+
+/* Pulso sutil para chamar atenção quando aparece */
+@keyframes pingo-pulso {
+  0%   { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-4px) scale(1.06); }
+  100% { transform: translateY(0) scale(1); }
+}
+#btn-abrir-footer.visivel {
+  animation: pingo-pulso 1.8s cubic-bezier(.4, 0, .2, 1) 0.4s 2 both;
+}

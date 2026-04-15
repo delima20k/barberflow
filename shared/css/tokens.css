@@ -77,7 +77,7 @@
 
   /* Layout */
   --nav-h:    80px;
-  --header-h: 64px;
+  --header-h: 80px; /* era 64px → +25% */
 
   /* Animação */
   --ease: .22s cubic-bezier(.4, 0, .2, 1);

@@ -1,6 +1,69 @@
 'use strict';
 
 /**
+ * FooterScrollManager
+ * Gerencia a visibilidade do footer baseado no scroll da tela início.
+ * - Oculta o footer quando o usuário rola > 30% da viewport
+ * - Exibe o botão flutuante pingo d'água para reabrir
+ * - Cooldown de 3s após reabrir manualmente para evitar re-ocultamento imediato
+ */
+class FooterScrollManager {
+
+  static #THRESHOLD_PC = 0.30;   // 30% da viewport
+  static #COOLDOWN_MS  = 3000;   // ms de cooldown após abertura manual
+
+  static #tela    = null;
+  static #footers = [];
+  static #btn     = null;
+  static #oculto  = false;
+  static #cooldown = false;
+  static #timer   = null;
+
+  static init() {
+    this.#tela    = document.getElementById('tela-inicio');
+    this.#footers = ['footer-nav', 'footer-nav-offline']
+                      .map(id => document.getElementById(id))
+                      .filter(Boolean);
+    this.#btn     = document.getElementById('btn-abrir-footer');
+
+    if (!this.#tela) return;
+
+    this.#tela.addEventListener('scroll', () => this.#avaliar(), { passive: true });
+  }
+
+  /* Avalia posição de scroll e decide estado do footer */
+  static #avaliar() {
+    if (this.#cooldown) return;
+    const limiar = window.innerHeight * this.#THRESHOLD_PC;
+    if (this.#tela.scrollTop > limiar && !this.#oculto) {
+      this.#ocultar();
+    } else if (this.#tela.scrollTop <= limiar && this.#oculto) {
+      this.#exibir();
+    }
+  }
+
+  static #ocultar() {
+    this.#oculto = true;
+    this.#footers.forEach(f => f.classList.add('oculto'));
+    this.#btn?.classList.add('visivel');
+  }
+
+  static #exibir() {
+    this.#oculto = false;
+    this.#footers.forEach(f => f.classList.remove('oculto'));
+    this.#btn?.classList.remove('visivel');
+  }
+
+  /* Chamado pelo botão flutuante — reabre o footer com cooldown */
+  static abrirPorBotao() {
+    this.#exibir();
+    this.#cooldown = true;
+    clearTimeout(this.#timer);
+    this.#timer = setTimeout(() => { this.#cooldown = false; }, this.#COOLDOWN_MS);
+  }
+}
+
+/**
  * BarberFlow — App Cliente
  * Extende o Router base de ../../shared/js/Router.js
  */
@@ -66,6 +129,8 @@ function initMapToggle() {
 /* ── Inicializa widgets de geolocalização ───────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initMapToggle();
+  // Footer inteligente: oculta ao rolar 30% da viewport na home
+  FooterScrollManager.init();
   // Mapa interativo Leaflet com FAB flutuante
   MapWidget.init('mapa-container');
   // Lista de barbearias próximas (abaixo do mapa)
