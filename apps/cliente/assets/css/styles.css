@@ -11,8 +11,8 @@
   bottom: calc(18px + env(safe-area-inset-bottom));
   right: 18px;
   z-index: 998; /* abaixo do footer (1000) mas acima do conteúdo */
-  width: 48px;
-  height: 62px;
+  width: 34px;   /* era 48px → menor */
+  height: 44px;  /* era 62px → menor */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -29,7 +29,7 @@
 
 /* Estado visível — desliza para cima ao aparecer */
 #btn-abrir-footer.visivel {
-  opacity: 1;
+  opacity: 0.58; /* era 1 → mais transparente */
   pointer-events: auto;
   transform: translateY(0) scale(1);
 }
@@ -37,13 +37,13 @@
 #btn-abrir-footer svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 4px 18px rgba(212, 160, 23, 0.55));
+  filter: drop-shadow(0 3px 10px rgba(212, 160, 23, 0.35));
   transition: filter var(--ease), transform var(--ease);
 }
 
 /* Feedback de toque */
 #btn-abrir-footer:active svg {
-  filter: drop-shadow(0 2px 8px rgba(212, 160, 23, 0.75));
+  filter: drop-shadow(0 2px 6px rgba(212, 160, 23, 0.60));
   transform: scale(0.90);
 }
 
