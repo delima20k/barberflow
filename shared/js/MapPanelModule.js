@@ -128,10 +128,12 @@ class MapHandleButton {
 
     // Expande/retrai o traço
     if (open) {
+      this._btn.classList.remove('mph-text-reveal');
       this._expandBar();
       if (animated && this._anim) this._anim.animateOut();
     } else {
       this._retractBar();
+      this._triggerTextRevealOutline();
       if (animated && this._anim) this._anim.animateIn();
     }
   }
@@ -152,6 +154,13 @@ class MapHandleButton {
   _retractBar() {
     if (!this._bar) return;
     this._bar.style.width = '48px';
+  }
+
+  _triggerTextRevealOutline() {
+    this._btn.classList.remove('mph-text-reveal');
+    // Reinicia a animação para disparar em toda reabertura do texto.
+    void this._btn.offsetWidth;
+    this._btn.classList.add('mph-text-reveal');
   }
 }
 

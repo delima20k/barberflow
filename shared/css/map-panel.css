@@ -19,12 +19,101 @@
   align-items:    flex-end;
   gap:            0;
   width:          100%;
-  padding:        4px 0 8px;
+  padding:        6px 1rem 1.65rem;
   background:     transparent;
   border:         none;
+  border-radius:  16px;
+  position:       relative;
+  overflow:       hidden;
   cursor:         pointer;
   -webkit-tap-highlight-color: transparent;
   user-select:    none;
+}
+
+.mph-wrapper::before,
+.mph-wrapper::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 4px;
+  bottom: 18px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  pointer-events: none;
+}
+
+.mph-wrapper::before {
+  border-color: #6B4A32;
+  opacity: 0;
+  transform: scale(0.18);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 1px 3px rgba(43, 27, 18, .24));
+}
+
+.mph-wrapper::after {
+  width: 12px;
+  height: 12px;
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: 14px;
+  margin-left: -6px;
+  border-radius: 999px;
+  border-color: #6B4A32;
+  background: rgba(107, 74, 50, .08);
+  opacity: 0;
+  transform: scale(.7);
+}
+
+.mph-wrapper.mph-text-reveal::before {
+  animation: mph-outline-draw 620ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.mph-wrapper.mph-text-reveal::after {
+  animation: mph-outline-drop 300ms ease-out 1;
+}
+
+@keyframes mph-outline-drop {
+  0% {
+    opacity: 0;
+    transform: scale(.5);
+  }
+  22% {
+    opacity: .95;
+    transform: scale(1.14);
+  }
+  70% {
+    opacity: .35;
+    transform: scale(.92);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(.78);
+  }
+}
+
+@keyframes mph-outline-draw {
+  0% {
+    opacity: 0;
+    clip-path: ellipse(9% 18% at 50% 100%);
+    transform: scale(0.16);
+  }
+  24% {
+    opacity: .95;
+    clip-path: ellipse(34% 26% at 50% 100%);
+    transform: scale(0.38);
+  }
+  58% {
+    opacity: .95;
+    clip-path: inset(44% 44% 0 44% round 14px);
+    transform: scale(1);
+  }
+  100% {
+    opacity: .9;
+    clip-path: inset(0 0 0 0 round 14px);
+    transform: scale(1);
+  }
 }
 
 /* Row superior: texto + label GPS */
@@ -37,16 +126,19 @@
 }
 
 .mph-text {
+  position:       absolute;
+  right:          1rem;
+  bottom:         0;
   font-family:    var(--font, sans-serif);
-  font-size:      var(--fs-section-title, 1rem);
+  font-size:      .78rem;
   font-weight:    700;
-  color:          var(--text, #2A211B);
+  color:          #6B4A32;
   letter-spacing: 0.01em;
   line-height:    1;
   display:        inline-flex;
   overflow:       hidden;
-  /* largura será animada pelo JS */
-  max-width:      100%;
+  max-width:      calc(100% - 2rem);
+  white-space:    nowrap;
 }
 
 /* Caractere individual — animado por MapTextAnimation */
@@ -84,7 +176,7 @@
   justify-content: flex-end;
   width:      100%;
   height:     16px;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 /* Hint de fechar — aparece quando o texto dos chars some (mapa aberto) */
@@ -110,7 +202,7 @@
 /* Traço animado */
 .mph-bar {
   height:        0.3rem;
-  background:    linear-gradient(90deg, transparent 0%, var(--gold, #D4A017) 100%);
+  background:    linear-gradient(90deg, transparent 0%, #6B4A32 100%);
   border-radius: 3px;
   transition:    width 280ms cubic-bezier(.4, 0, .2, 1),
                  background 200ms ease;
@@ -118,30 +210,9 @@
   will-change: width;
 }
 
-/* Seta chevron */
-.mph-arrow {
-  display:     flex;
-  align-items: center;
-  justify-content: flex-end;
-  width:       100%;
-  margin-top:  0;
-}
-
-.mph-arrow svg {
-  width:      18px;
-  height:     18px;
-  color:      var(--gold, #D4A017);
-  transition: transform 260ms cubic-bezier(.4, 0, .2, 1);
-  will-change: transform;
-}
-
-.mph-wrapper[aria-expanded="true"] .mph-arrow svg {
-  transform: rotate(180deg);
-}
-
 /* Feedback toque */
 .mph-wrapper:active .mph-bar {
-  background: linear-gradient(90deg, transparent 0%, var(--gold-light, #F2B705) 100%);
+  background: linear-gradient(90deg, transparent 0%, #8B5A3C 100%);
 }
 
 /* ── Frame amadeirado (MapBorderFrame) ─────────────────────── */
