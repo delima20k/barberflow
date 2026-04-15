@@ -463,6 +463,71 @@
   pointer-events: none;
 }
 
+/* ── Dica do botão gota (footer oculto) ─────────────────────── */
+#footer-dica {
+  position: fixed;
+  bottom: 10px;
+  left: 0;
+  right: 62px; /* espaço para o botão gota à direita */
+  z-index: 996;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+#footer-dica.visivel {
+  opacity: 1;
+}
+.dica-texto {
+  flex-shrink: 0;
+  padding-left: 14px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(212, 175, 55, 0.88);
+  white-space: nowrap;
+  text-shadow: 0 1px 8px rgba(43, 27, 18, 0.70);
+}
+.dica-seta {
+  flex: 1;
+  height: 26px;
+  min-width: 0;
+  overflow: visible;
+}
+/* Linha curva da seta */
+.dica-caminho {
+  stroke: rgba(212, 175, 55, 0.78);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  vector-effect: non-scaling-stroke;
+}
+/* Ponta da seta */
+.dica-ponta {
+  stroke: rgba(212, 175, 55, 0.78);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  vector-effect: non-scaling-stroke;
+}
+/* Animação: desenha o caminho da esquerda para a direita */
+#footer-dica.animando .dica-caminho {
+  animation: dica-caminho 1.1s ease-out 0.15s forwards;
+}
+/* Animação: ponta aparece depois que a linha chegou */
+#footer-dica.animando .dica-ponta {
+  animation: dica-ponta 0.32s ease-out 1.1s forwards;
+}
+@keyframes dica-caminho { to { stroke-dashoffset: 0; } }
+@keyframes dica-ponta   { to { stroke-dashoffset: 0; } }
+
 .nav-btn {
   all: unset;
   display: flex;

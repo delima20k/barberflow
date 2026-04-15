@@ -2,36 +2,50 @@
 
 /**
  * FooterScrollManager
- * Gerencia a visibilidade do footer baseado no scroll da tela início.
- * - Oculta o footer quando o usuário rola > 30% da viewport
- * - Exibe o botão flutuante pingo d'água para reabrir
- * - Cooldown de 3s após reabrir manualmente para evitar re-ocultamento imediato
+ * Gerencia visibilidade do footer e exibe dica animada (gota) quando oculto.
+ *
+ * Ciclo da dica:
+ *  - Ativa somente quando footer está oculto
+ *  - Aparece a cada 3s, por 3x máx por sessão de home
+ *  - Reinicia o contador ao navegar para outra tela e voltar ao início
  */
 class FooterScrollManager {
 
-  static #THRESHOLD_PC = 0.30;   // 30% da viewport
-  static #COOLDOWN_MS  = 3000;   // ms de cooldown após abertura manual
+  static #THRESHOLD_PC   = 0.30;  // 30% da viewport para ocultar footer
+  static #COOLDOWN_MS    = 3000;  // cooldown após abrir pelo botão
+  static #DICA_INTERVALO = 3000;  // espera entre dicas
+  static #DICA_DURACAO   = 2500;  // quanto tempo cada dica fica visível
+  static #DICA_MAX       = 3;     // máximo de dicas por entrada na home
 
-  static #tela    = null;
-  static #footers = [];
-  static #btn     = null;
-  static #oculto  = false;
+  static #tela     = null;
+  static #footers  = [];
+  static #btn      = null;
+  static #dicaEl   = null;
+  static #oculto   = false;
   static #cooldown = false;
-  static #timer   = null;
+  static #timer    = null;
+  static #dicaCount  = 0;
+  static #timerDica  = null;
 
   static init() {
     this.#tela    = document.getElementById('tela-inicio');
     this.#footers = ['footer-nav', 'footer-nav-offline']
                       .map(id => document.getElementById(id))
                       .filter(Boolean);
-    this.#btn     = document.getElementById('btn-abrir-footer');
+    this.#btn    = document.getElementById('btn-abrir-footer');
+    this.#dicaEl = document.getElementById('footer-dica');
 
     if (!this.#tela) return;
 
     this.#tela.addEventListener('scroll', () => this.#avaliar(), { passive: true });
+
+    // Reinicia contador da dica ao voltar para o início pelo footer/menu
+    document.querySelectorAll('.nav-btn[data-tela="inicio"]').forEach(btn => {
+      btn.addEventListener('click', () => this.#resetarDica());
+    });
   }
 
-  /* Avalia posição de scroll e decide estado do footer */
+  /* Avalia scroll e decide estado do footer */
   static #avaliar() {
     if (this.#cooldown) return;
     const limiar = window.innerHeight * this.#THRESHOLD_PC;
@@ -46,20 +60,64 @@ class FooterScrollManager {
     this.#oculto = true;
     this.#footers.forEach(f => f.classList.add('oculto'));
     this.#btn?.classList.add('visivel');
+    this.#agendarDica();
   }
 
   static #exibir() {
     this.#oculto = false;
     this.#footers.forEach(f => f.classList.remove('oculto'));
     this.#btn?.classList.remove('visivel');
+    this.#pararDica();
   }
 
-  /* Chamado pelo botão flutuante — reabre o footer com cooldown */
+  /* Botão gota: reabre footer com cooldown */
   static abrirPorBotao() {
     this.#exibir();
     this.#cooldown = true;
     clearTimeout(this.#timer);
     this.#timer = setTimeout(() => { this.#cooldown = false; }, this.#COOLDOWN_MS);
+  }
+
+  /* ── Dica ────────────────────────────────────────────────── */
+
+  /* Agenda a próxima dica se ainda não atingiu o máximo */
+  static #agendarDica() {
+    if (!this.#oculto || this.#dicaCount >= this.#DICA_MAX || !this.#dicaEl) return;
+    clearTimeout(this.#timerDica);
+    this.#timerDica = setTimeout(() => this.#ciclarDica(), this.#DICA_INTERVALO);
+  }
+
+  /* Exibe a dica com animação, depois agenda a próxima */
+  static #ciclarDica() {
+    if (!this.#oculto || this.#dicaCount >= this.#DICA_MAX || !this.#dicaEl) return;
+
+    // Reinicia animação CSS (reflow force)
+    this.#dicaEl.classList.remove('animando', 'visivel');
+    void this.#dicaEl.offsetWidth;
+    this.#dicaEl.classList.add('visivel', 'animando');
+    this.#dicaEl.setAttribute('aria-hidden', 'false');
+    this.#dicaCount++;
+
+    // Depois de DICA_DURACAO: esconde e agenda próxima se necessário
+    this.#timerDica = setTimeout(() => {
+      this.#dicaEl.classList.remove('visivel', 'animando');
+      this.#dicaEl.setAttribute('aria-hidden', 'true');
+      this.#agendarDica(); // só agenda se dicaCount < DICA_MAX
+    }, this.#DICA_DURACAO);
+  }
+
+  /* Para todos os timers e oculta a dica */
+  static #pararDica() {
+    clearTimeout(this.#timerDica);
+    if (!this.#dicaEl) return;
+    this.#dicaEl.classList.remove('visivel', 'animando');
+    this.#dicaEl.setAttribute('aria-hidden', 'true');
+  }
+
+  /* Reinicia o ciclo (chamado ao voltar para o início) */
+  static #resetarDica() {
+    this.#dicaCount = 0;
+    this.#pararDica();
   }
 }
 
