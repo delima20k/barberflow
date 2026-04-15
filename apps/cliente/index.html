@@ -688,12 +688,20 @@
   ============================================================ -->
   <div id="footer-dica" role="status" aria-live="polite" aria-hidden="true">
     <span class="dica-texto">Toque na gota para o menu</span>
-    <div class="dica-borda" aria-hidden="true">
-      <span class="dica-gota"></span>
-      <span class="dica-lado dica-lado-esq"></span>
-      <span class="dica-lado dica-lado-dir"></span>
-      <span class="dica-topo"></span>
-    </div>
+    <svg class="dica-seta" viewBox="0 0 200 26"
+         xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="none"
+         aria-hidden="true">
+      <!--
+        Curva da esquerda para a direita, subindo suavemente
+        para apontar em direção ao botão gota (acima à direita)
+      -->
+      <path class="dica-caminho"
+            d="M 4 13 C 55 13 120 10 185 6"/>
+      <!-- Seta na ponta (apontando para cima-direita) -->
+      <path class="dica-ponta"
+            d="M 178 10 L 186 5 L 180 12"/>
+    </svg>
   </div>
 
   <!-- ============================================================
