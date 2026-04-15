@@ -466,13 +466,13 @@
 /* ── Dica do botão gota (footer oculto) ─────────────────────── */
 #footer-dica {
   position: fixed;
-  bottom: 10px;
+  bottom: 2px;          /* mais para baixo — colado na borda */
   left: 0;
-  right: 62px; /* espaço para o botão gota à direita */
+  right: 48px;          /* mais à direita, mais perto do botão gota */
   z-index: 996;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.9s ease;
@@ -482,23 +482,23 @@
 }
 .dica-texto {
   flex-shrink: 0;
-  padding-left: 14px;
-  font-size: 0.66rem;
-  font-weight: 600;
+  padding-left: 10px;
+  font-size: 0.64rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(212, 175, 55, 0.88);
+  color: rgba(30, 18, 10, 0.82);          /* preto quente */
+  text-shadow: 0 1px 6px rgba(255,255,255,0.55);
   white-space: nowrap;
-  text-shadow: 0 1px 8px rgba(43, 27, 18, 0.70);
 }
 .dica-seta {
   flex: 1;
-  height: 26px;
+  height: 22px;
   min-width: 0;
   overflow: visible;
 }
 /* Linha curva da seta */
 .dica-caminho {
-  stroke: rgba(212, 175, 55, 0.78);
+  stroke: rgba(30, 18, 10, 0.70);         /* preto quente */
   stroke-width: 2;
   fill: none;
   stroke-linecap: round;
@@ -508,7 +508,7 @@
 }
 /* Ponta da seta */
 .dica-ponta {
-  stroke: rgba(212, 175, 55, 0.78);
+  stroke: rgba(30, 18, 10, 0.70);         /* preto quente */
   stroke-width: 2;
   fill: none;
   stroke-linecap: round;
