@@ -466,9 +466,10 @@
 /* ── Dica do botão gota (footer oculto) ─────────────────────── */
 #footer-dica {
   position: fixed;
-  right: 18px;
-  bottom: calc(18px + env(safe-area-inset-bottom));
-  z-index: 999;
+  bottom: -10px;        /* abaixo da borda — bem colado no rodapé */
+  left: 0;
+  right: 48px;          /* mais à direita, mais perto do botão gota */
+  z-index: 996;
   display: flex;
   flex-direction: column;
   align-items: center;
