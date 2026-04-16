@@ -3,8 +3,8 @@
    Inclua este arquivo em TODOS os apps antes de components.css
 ============================================================ */
 
-/* ── Fontes (somente Poppins + Playfair Display) ──────────── */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+/* ── Fontes (Poppins + Playfair Display + Special Elite) ──── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&family=Special+Elite&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;

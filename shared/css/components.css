@@ -1533,13 +1533,15 @@
 .search-dig {
   width: 100%;
   box-sizing: border-box;
-  padding: 0 4px;
-  font-size: 0.97rem;
+  padding: 0 10px;
+  font-size: 1.08rem;
+  font-family: 'Special Elite', 'Courier New', Courier, monospace;
   color: var(--text-muted, rgba(255,255,255,0.5));
-  line-height: 1.65;
-  min-height: 1.4em;
-  margin-top: 14px;
+  line-height: 1.75;
+  min-height: 1.5em;
+  margin-top: 18px;
   text-align: center;
+  letter-spacing: 0.01em;
 }
 .search-dig.dig-ativo::after {
   content: '|';
