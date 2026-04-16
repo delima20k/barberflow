@@ -2379,11 +2379,24 @@
 ============================================================ */
 
 /* ── Lista de conversas ─────────────────────────────────── */
+/* ── Logo + cabeçalho da tela de mensagens ───────────────── */
+.msgs-header {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+.msgs-logo {
+  width: 110px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
 .msgs-lista {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 4px;
+  margin-top: 1.5rem;
 }
 
 /* ── Empty state ────────────────────────────────────────── */
