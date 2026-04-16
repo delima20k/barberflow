@@ -17,41 +17,63 @@ class FooterScrollManager {
   static #DICA_DURACAO   = 2500;  // quanto tempo cada dica fica visível
   static #DICA_MAX       = 3;     // máximo de dicas por entrada na home
 
-  static #tela     = null;
-  static #footers  = [];
-  static #btn      = null;
-  static #dicaEl   = null;
-  static #oculto   = false;
-  static #cooldown = false;
-  static #timer    = null;
+  static #footers    = [];
+  static #btn        = null;
+  static #dicaEl     = null;
+  static #oculto     = false;
+  static #cooldown   = false;
+  static #timer      = null;
   static #dicaCount  = 0;
   static #timerDica  = null;
 
   static init() {
-    this.#tela    = document.getElementById('tela-inicio');
     this.#footers = ['footer-nav', 'footer-nav-offline']
                       .map(id => document.getElementById(id))
                       .filter(Boolean);
     this.#btn    = document.getElementById('btn-abrir-footer');
     this.#dicaEl = document.getElementById('footer-dica');
 
-    if (!this.#tela) return;
+    // Escuta scroll em TODAS as telas — ignora inativas via #ehTelaAtiva
+    document.querySelectorAll('.tela').forEach(tela => {
+      tela.addEventListener('scroll', () => this.#avaliar(tela), { passive: true });
+    });
 
-    this.#tela.addEventListener('scroll', () => this.#avaliar(), { passive: true });
+    // MutationObserver: quando o Router troca .ativa, reavalia o footer imediatamente
+    document.querySelectorAll('.tela').forEach(tela => {
+      new MutationObserver(() => this.#aoMudarTela())
+        .observe(tela, { attributes: true, attributeFilter: ['class'] });
+    });
 
-    // Reinicia contador da dica ao voltar para o início pelo footer/menu
+    // Reinicia contador da dica ao clicar em "início" no footer
     document.querySelectorAll('.nav-btn[data-tela="inicio"]').forEach(btn => {
       btn.addEventListener('click', () => this.#resetarDica());
     });
   }
 
-  /* Avalia scroll e decide estado do footer */
-  static #avaliar() {
+  /** Tela que está no topo agora: .tela.ativa se existir, senão tela-inicio */
+  static #ehTelaAtiva(tela) {
+    const ativa = document.querySelector('.tela.ativa');
+    return ativa ? ativa === tela : tela.id === 'tela-inicio';
+  }
+
+  /** Chamado pelo MutationObserver ao mudar classe em qualquer .tela */
+  static #aoMudarTela() {
+    const ativa    = document.querySelector('.tela.ativa');
+    const telaTopo = ativa ?? document.getElementById('tela-inicio');
+    if (!telaTopo) return;
+    this.#avaliar(telaTopo);
+    // Voltou para o início → reseta ciclo de dica
+    if (!ativa) this.#resetarDica();
+  }
+
+  /* Avalia scroll e decide estado do footer — ignora telas inativas */
+  static #avaliar(tela) {
+    if (!this.#ehTelaAtiva(tela)) return;
     if (this.#cooldown) return;
     const limiar = window.innerHeight * this.#THRESHOLD_PC;
-    if (this.#tela.scrollTop > limiar && !this.#oculto) {
+    if (tela.scrollTop > limiar && !this.#oculto) {
       this.#ocultar();
-    } else if (this.#tela.scrollTop <= limiar && this.#oculto) {
+    } else if (tela.scrollTop <= limiar && this.#oculto) {
       this.#exibir();
     }
   }
