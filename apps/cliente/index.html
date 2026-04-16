@@ -463,51 +463,7 @@
   <main id="tela-mensagens" class="tela">
     <div class="content">
       <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div class="chat-item">
-          <div class="avatar gold">✂️</div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div class="chat-item">
-          <div class="avatar gold">✂️</div>
-          <div class="chat-info">
-            <p class="chat-name">Barbearia Elite</p>
-            <p class="chat-preview">Seu agendamento foi confirmado para amanhã às 14h 🗓️</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">14:23</span>
-            <span class="chat-badge">2</span>
-          </div>
-        </div>
-        <div class="chat-item">
-          <div class="avatar gold">
-            <img src="/shared/img/icones-perfil.png" alt="perfil"
-                 onerror="this.outerHTML='💇'">
-          </div>
-          <div class="chat-info">
-            <p class="chat-name">João Silva</p>
-            <p class="chat-preview">Tudo certo! Te vejo na sexta então 👍</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">Ontem</span>
-          </div>
-        </div>
-        <div class="chat-item">
-          <div class="avatar">👑</div>
-          <div class="chat-info">
-            <p class="chat-name">King Cuts</p>
-            <p class="chat-preview">Obrigado pela visita! Avalie seu atendimento</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">Seg</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="empty" style="padding:20px 0;">
-        <p style="font-size:.8rem;color:var(--text-dim);">
-          Agende um serviço para iniciar uma conversa
-        </p>
-      </div>
+      <div id="msgs-lista" class="msgs-lista"></div>
     </div>
   </main>
 
