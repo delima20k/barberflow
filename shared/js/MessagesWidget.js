@@ -8,7 +8,8 @@
 //   - Suporta tipos: barbearia | barbeiro | cliente
 //   - Abre modal de chat ao clicar em um card
 //   - Bolhas de chat com avatar + nome de cada participante
-//   - Integrado ao Supabase (mock inteligente no fallback)
+//   - Envia mensagens reais via MessageService (fallback mock)
+//   - Recebe mensagens em tempo real via Realtime (Supabase)
 //
 // Uso:
 //   MessagesWidget.init('msgs-lista', 'cliente')
@@ -165,6 +166,7 @@ class MessagesWidget {
 
     MessagesWidget.#carregar();
     MessagesWidget.#initNotifDig();
+    MessagesWidget.#iniciarRealtime();
   }
 
   /** Abre o modal de chat para a conversa com o id informado. */
@@ -223,7 +225,11 @@ class MessagesWidget {
     MessagesWidget.#conversa = null;
   }
 
-  /** Envia a mensagem digitada no input. */
+  /**
+   * Envia a mensagem digitada no input.
+   * Renderização otimista — bolha aparece imediatamente;
+   * o INSERT no banco acontece em background via MessageService.
+   */
   static enviar() {
     const input = document.getElementById('chat-input');
     if (!input || !MessagesWidget.#conversa) return;
@@ -231,20 +237,39 @@ class MessagesWidget {
     const texto = input.value.trim();
     if (!texto) return;
 
+    input.value = '';
+    input.focus();
+
     const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const msg  = { de: 'eu', texto, hora };
+    const msg  = { de: 'eu', texto, hora, _enviando: true };
 
     MessagesWidget.#conversa.msgs.push(msg);
     MessagesWidget.#conversa.preview = texto;
 
     const area = document.getElementById('chat-mensagens');
+    let bolhaEl = null;
     if (area) {
-      area.appendChild(MessagesWidget.#criarBolha(msg, MessagesWidget.#conversa.nome));
+      bolhaEl = MessagesWidget.#criarBolha(msg, MessagesWidget.#conversa.nome);
+      area.appendChild(bolhaEl);
       area.scrollTop = area.scrollHeight;
     }
 
-    input.value = '';
-    input.focus();
+    // Persist no banco em background (não bloqueia UI)
+    const conv = MessagesWidget.#conversa;
+    if (typeof MessageService !== 'undefined') {
+      MessageService.enviarMensagem(conv.recipientId ?? conv.id, texto)
+        .then(({ ok }) => {
+          if (!ok && bolhaEl) {
+            // Indica falha com ícone sutil mas não remove a bolha
+            bolhaEl.style.opacity = '0.55';
+            bolhaEl.title = 'Falha ao enviar — toque para tentar novamente';
+          }
+          msg._enviando = false;
+        })
+        .catch(() => {
+          if (bolhaEl) bolhaEl.style.opacity = '0.55';
+        });
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -254,6 +279,48 @@ class MessagesWidget {
   static #carregar() {
     const lista = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
     MessagesWidget.#renderConversas(lista);
+  }
+
+  /**
+   * Inicia escuta Realtime de novas mensagens recebidas.
+   * Ao chegar nova mensagem, atualiza o card do remetente na lista
+   * e refresca a animação de não-lidos (DigText).
+   */
+  static async #iniciarRealtime() {
+    if (typeof MessageService === 'undefined') return;
+
+    await MessageService.iniciarRealtime(nova => {
+      // Encontra a conversa correspondente ao remetente
+      const lista = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
+      const conv  = lista.find(c => c.id === nova.sender_id || c.recipientId === nova.sender_id);
+
+      if (conv) {
+        conv.badge   += 1;
+        conv.preview  = nova.content;
+        conv.hora     = new Date(nova.created_at).toLocaleTimeString('pt-BR', {
+          hour: '2-digit', minute: '2-digit',
+        });
+        conv.msgs.push({
+          de:   'outro',
+          texto: nova.content,
+          hora:  conv.hora,
+        });
+      }
+
+      // Re-renderiza lista e atualiza DigText
+      MessagesWidget.#carregar();
+      MessagesWidget.#atualizarNotifDig();
+
+      // Se o modal dessa conversa estiver aberto, renderiza a nova bolha
+      if (MessagesWidget.#conversa?.id === nova.sender_id) {
+        const area = document.getElementById('chat-mensagens');
+        if (area && conv) {
+          const msg = conv.msgs.at(-1);
+          area.appendChild(MessagesWidget.#criarBolha(msg, conv.nome));
+          area.scrollTop = area.scrollHeight;
+        }
+      }
+    });
   }
 
   static #initNotifDig() {

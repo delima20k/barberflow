@@ -135,6 +135,10 @@ class StoryViewer {
   static #idx        = 0;
   static #flipping   = false;
 
+  // story metadata do card ativo
+  static #storyId  = null;
+  static #ownerId  = null;
+
   static #swipeStartX = 0;
   static #swipeDx     = 0;
   static #swipeAtivo  = false;
@@ -324,11 +328,53 @@ class StoryViewer {
     const likeCount = document.createElement('span');
     likeCount.textContent = '0';
 
-    likeBtn.append(likeImg, likeCount);
     likeBtn.addEventListener('click', () => StoryViewer.toggleLike());
 
-    svBottom.appendChild(likeBtn);
-    inner.append(video, svTop, svBottom);
+    // ── Botão comentar ──
+    const comentarBtn = document.createElement('button');
+    comentarBtn.className = 'sv-comentar-btn';
+    comentarBtn.setAttribute('aria-label', 'Comentar story');
+    comentarBtn.innerHTML = '<img src="/shared/img/mensagen.svg" alt="comentar" onerror="this.outerHTML=\'\u{1F4AC}\'"> <span>Comentar</span>';
+    comentarBtn.addEventListener('click', () => StoryViewer.#abrirPainelComentario());
+
+    svBottom.append(likeBtn, comentarBtn);
+
+    // ── Painel de comentários (slide-up) ──
+    const comentPanel = document.createElement('div');
+    comentPanel.className = 'sv-comment-panel';
+    comentPanel.setAttribute('aria-hidden', 'true');
+
+    const comentHeader = document.createElement('div');
+    comentHeader.className = 'sv-comment-header';
+    const comentTitulo = document.createElement('span');
+    comentTitulo.textContent = 'Comentários';
+    const comentFechar = document.createElement('button');
+    comentFechar.className = 'sv-comment-fechar';
+    comentFechar.textContent = '✕';
+    comentFechar.addEventListener('click', () => StoryViewer.#fecharPainelComentario(inner));
+    comentHeader.append(comentTitulo, comentFechar);
+
+    const comentLista = document.createElement('div');
+    comentLista.className = 'sv-comment-lista';
+
+    const comentInputWrap = document.createElement('div');
+    comentInputWrap.className = 'sv-comment-input-wrap';
+    const comentInput = document.createElement('input');
+    comentInput.type = 'text';
+    comentInput.className = 'sv-comment-input';
+    comentInput.setAttribute('placeholder', 'Escreva um comentário...');
+    comentInput.setAttribute('maxlength', '500');
+    const comentEnviar = document.createElement('button');
+    comentEnviar.className = 'sv-comment-enviar';
+    comentEnviar.textContent = 'Enviar';
+    comentEnviar.addEventListener('click', () => StoryViewer.#enviarComentario(inner));
+    comentInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') StoryViewer.#enviarComentario(inner);
+    });
+    comentInputWrap.append(comentInput, comentEnviar);
+
+    comentPanel.append(comentHeader, comentLista, comentInputWrap);
+    inner.appendChild(comentPanel);
     return inner;
   }
 
@@ -353,7 +399,8 @@ class StoryViewer {
     StoryViewer.#els.likeBtn   = inner.querySelector('.sv-like-btn');
     StoryViewer.#els.likeCount = inner.querySelector('.sv-like-btn span');
     StoryViewer.#els.likeImg   = inner.querySelector('.sv-like-btn img');
-    StoryViewer.#els.btnFechar = inner.querySelector('.sv-fechar');
+    StoryViewer.#els.btnFechar   = inner.querySelector('.sv-fechar');
+    StoryViewer.#els.btnComentar = inner.querySelector('.sv-comentar-btn');
   }
 
   // ── PRIVADO — Renderização ─────────────────────────────────
@@ -362,7 +409,9 @@ class StoryViewer {
     const card = StoryViewer.#cards[idx];
     const vid  = card?.querySelector('.story-video');
     return {
-      videoSrc:  vid?.src                                                         || '',
+      storyId:   card?.dataset.storyId                                              || null,
+      ownerId:   card?.dataset.ownerId                                              || null,
+      videoSrc:  vid?.src                                                           || '',
       poster:    vid?.getAttribute('poster')                                      || '',
       badgeSrc:  card?.querySelector('.story-shop-badge')?.src                   || '',
       nome:      card?.querySelector('.story-card-name')?.textContent             || '',
@@ -393,7 +442,10 @@ class StoryViewer {
 
   static #renderizar() {
     StoryViewer.#atualizarCacheAtivo();
-    StoryViewer.#preencherInner(StoryViewer.#ativo, StoryViewer.#lerCard());
+    const dados = StoryViewer.#lerCard();
+    StoryViewer.#storyId = dados.storyId;
+    StoryViewer.#ownerId = dados.ownerId;
+    StoryViewer.#preencherInner(StoryViewer.#ativo, dados);
     StoryViewer.#els.video?.play().catch(() => {});
     StoryViewer.#atualizarNavegacao();
   }
@@ -555,5 +607,167 @@ class StoryViewer {
       if (e.key === 'ArrowRight') StoryViewer.next();
       if (e.key === 'Escape')     StoryViewer.fechar();
     });
+  }
+
+  // ─── COMENTÁRIOS ──────────────────────────────────────────
+
+  /** Abre o painel de comentários do inner ativo e carrega os existentes. */
+  static #abrirPainelComentario() {
+    const inner = StoryViewer.#ativo;
+    if (!inner) return;
+
+    const panel = inner.querySelector('.sv-comment-panel');
+    if (!panel) return;
+
+    panel.classList.add('sv-comment-panel--aberto');
+    panel.setAttribute('aria-hidden', 'false');
+
+    // Pausa o vídeo enquanto painel estiver aberto
+    StoryViewer.#els.video?.pause();
+
+    // Carrega comentários existentes do story ativo
+    StoryViewer.#carregarComentarios(inner);
+
+    // Foca no input
+    setTimeout(() => inner.querySelector('.sv-comment-input')?.focus(), 320);
+  }
+
+  /** Fecha o painel de comentários e retoma o vídeo. */
+  static #fecharPainelComentario(inner) {
+    const panel = inner?.querySelector('.sv-comment-panel');
+    if (!panel) return;
+
+    panel.classList.remove('sv-comment-panel--aberto');
+    panel.setAttribute('aria-hidden', 'true');
+
+    StoryViewer.#els.video?.play().catch(() => {});
+  }
+
+  /**
+   * Carrega comentários do Supabase para o story ativo.
+   * Em modo demo (sem banco), exibe mensagem vazia.
+   *
+   * @param {HTMLElement} inner
+   */
+  static async #carregarComentarios(inner) {
+    const lista = inner.querySelector('.sv-comment-lista');
+    if (!lista) return;
+
+    lista.innerHTML = '';
+
+    const storyId = StoryViewer.#storyId;
+    if (!storyId || typeof MessageService === 'undefined') {
+      const vazio = document.createElement('p');
+      vazio.className   = 'sv-comment-vazio';
+      vazio.textContent = 'Nenhum comentário ainda. Seja o primeiro!';
+      lista.appendChild(vazio);
+      return;
+    }
+
+    const { ok, data } = await MessageService.buscarComentariosStory(storyId);
+    if (!ok || !data.length) {
+      const vazio = document.createElement('p');
+      vazio.className   = 'sv-comment-vazio';
+      vazio.textContent = 'Nenhum comentário ainda. Seja o primeiro!';
+      lista.appendChild(vazio);
+      return;
+    }
+
+    data.forEach(c => lista.appendChild(StoryViewer.#criarItemComentario(c)));
+    lista.scrollTop = lista.scrollHeight;
+  }
+
+  /**
+   * Envia o comentário digitado no input.
+   * Renderização otimista — item aparece imediatamente.
+   *
+   * @param {HTMLElement} inner
+   */
+  static async #enviarComentario(inner) {
+    const input = inner?.querySelector('.sv-comment-input');
+    if (!input) return;
+
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    input.value    = '';
+    input.disabled = true;
+
+    const storyId = StoryViewer.#storyId;
+    const ownerId = StoryViewer.#ownerId;
+
+    // Renderiza otimisticamente
+    const lista = inner.querySelector('.sv-comment-lista');
+    if (lista) {
+      const mockComent = {
+        content:    texto,
+        created_at: new Date().toISOString(),
+        profiles:   { full_name: 'Você', avatar_url: null },
+      };
+      lista.querySelector('.sv-comment-vazio')?.remove();
+      const item = StoryViewer.#criarItemComentario(mockComent);
+      item.classList.add('sv-comment-item--enviando');
+      lista.appendChild(item);
+      lista.scrollTop = lista.scrollHeight;
+
+      // Persiste no banco
+      if (storyId && ownerId && typeof MessageService !== 'undefined') {
+        const { ok } = await MessageService.enviarComentarioStory(storyId, ownerId, texto);
+        if (ok) {
+          item.classList.remove('sv-comment-item--enviando');
+        } else {
+          item.style.opacity = '0.5';
+          item.title         = 'Falha ao enviar. Tente novamente.';
+        }
+      }
+    }
+
+    input.disabled = false;
+    input.focus();
+  }
+
+  /**
+   * Cria um elemento DOM para um item de comentário.
+   *
+   * @param {{ content: string, created_at: string, profiles?: object }} c
+   * @returns {HTMLElement}
+   */
+  static #criarItemComentario(c) {
+    const item = document.createElement('div');
+    item.className = 'sv-comment-item';
+
+    const av = document.createElement('div');
+    av.className = 'sv-comment-avatar';
+
+    if (c.profiles?.avatar_url) {
+      const img = document.createElement('img');
+      img.src     = c.profiles.avatar_url;
+      img.alt     = c.profiles.full_name ?? '';
+      img.onerror = () => { img.remove(); av.textContent = (c.profiles.full_name ?? '?')[0]; };
+      av.appendChild(img);
+    } else {
+      av.textContent = (c.profiles?.full_name ?? 'U')[0].toUpperCase();
+    }
+
+    const body = document.createElement('div');
+    body.className = 'sv-comment-body';
+
+    const nome = document.createElement('span');
+    nome.className   = 'sv-comment-nome';
+    nome.textContent = c.profiles?.full_name ?? 'Usuário';
+
+    const texto = document.createElement('p');
+    texto.className   = 'sv-comment-texto';
+    texto.textContent = c.content;
+
+    const hora = document.createElement('span');
+    hora.className   = 'sv-comment-hora';
+    hora.textContent = new Date(c.created_at).toLocaleTimeString('pt-BR', {
+      hour: '2-digit', minute: '2-digit',
+    });
+
+    body.append(nome, texto, hora);
+    item.append(av, body);
+    return item;
   }
 }
