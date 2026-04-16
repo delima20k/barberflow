@@ -701,3 +701,59 @@ Responsabilidades:
 - ótima experiência para o cliente
 
 ---
+
+# ANIMAÇÃO "DIG" (DIGITAÇÃO LETRA A LETRA)
+
+Classe: `DigText` — localizada em `shared/js/SearchWidget.js`
+
+## Regras obrigatórias:
+
+- NUNCA recriar lógica de digitação manualmente em nenhuma tela
+- SEMPRE usar `new DigText(containerEl, textos, opts)` — classe já existente
+- Chamar `dig.iniciar()` ao entrar na tela e `dig.parar()` ao sair
+- Usar `MutationObserver` na `.tela` para detectar entrada/saída automaticamente
+- O cursor piscante é feito SOMENTE via CSS `.dig-ativo::after` + `@keyframes dig-cursor`
+- O elemento container deve ter a classe `.search-dig` (ou equivalente com o mesmo CSS)
+
+## Como usar em qualquer tela:
+
+```html
+<!-- 1. Container vazio no HTML -->
+<p id="meu-dig" class="search-dig" aria-live="polite"></p>
+```
+
+```js
+// 2. Instanciar e conectar ao ciclo de vida da tela
+const digEl = document.getElementById('meu-dig');
+const dig = new DigText(digEl, ['Texto 1...', 'Texto 2...', 'Texto 3...'], { velocidade: 36 });
+
+const tela = document.getElementById('tela-nome-da-tela');
+new MutationObserver(() => {
+  tela.classList.contains('ativa') ? dig.iniciar() : dig.parar();
+}).observe(tela, { attributes: true, attributeFilter: ['class'] });
+dig.iniciar(); // para primeira carga
+```
+
+## Opções:
+
+| Opção | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `velocidade` | number | 38 | ms entre cada letra |
+| `pausaFinal` | number | 0 | ms de pausa ao terminar (só com loop) |
+| `loop` | boolean | false | repete sorteando novo texto ao terminar |
+
+## CSS necessário (já em `shared/css/components.css`):
+
+```css
+.search-dig.dig-ativo::after {
+  content: '|';
+  animation: dig-cursor 0.7s step-end infinite;
+  color: var(--gold);
+}
+@keyframes dig-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+```
+
+---

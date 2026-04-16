@@ -1,6 +1,71 @@
 'use strict';
 
 // =============================================================
+// DigText — Animação de digitação letra por letra ("dig")
+//
+// Reutilizável em qualquer tela:
+//   const dig = new DigText(containerEl, textos, opts);
+//   dig.iniciar();  → sorteia texto e digita letra por letra
+//   dig.parar();    → cancela e limpa o container
+//
+// Opções: { velocidade:38, pausaFinal:0, loop:false }
+// CSS necessário: classe .dig-ativo no container + @keyframes dig-cursor
+// =============================================================
+class DigText {
+
+  #el         = null;
+  #textos     = [];
+  #velocidade = 38;
+  #pausaFinal = 0;
+  #loop       = false;
+  #timer      = null;
+  #ativo      = false;
+
+  /**
+   * @param {HTMLElement} container — elemento que receberá o texto animado
+   * @param {string[]}    textos    — array de frases; uma é sorteada aleatoriamente
+   * @param {object}      [opts]    — { velocidade, pausaFinal, loop }
+   */
+  constructor(container, textos, opts = {}) {
+    this.#el         = container;
+    this.#textos     = textos;
+    this.#velocidade = opts.velocidade ?? 38;
+    this.#pausaFinal = opts.pausaFinal ?? 0;
+    this.#loop       = opts.loop       ?? false;
+  }
+
+  /** Sorteia um texto e começa a digitar. */
+  iniciar() {
+    this.parar();
+    this.#ativo = true;
+    const texto = this.#textos[Math.floor(Math.random() * this.#textos.length)];
+    this.#el.textContent = '';
+    this.#el.classList.add('dig-ativo');
+    this.#digitar(texto, 0);
+  }
+
+  /** Cancela a animação e limpa o conteúdo. */
+  parar() {
+    this.#ativo = false;
+    clearTimeout(this.#timer);
+    if (this.#el) {
+      this.#el.textContent = '';
+      this.#el.classList.remove('dig-ativo');
+    }
+  }
+
+  #digitar(texto, i) {
+    if (!this.#ativo) return;
+    if (i <= texto.length) {
+      this.#el.textContent = texto.slice(0, i);
+      this.#timer = setTimeout(() => this.#digitar(texto, i + 1), this.#velocidade);
+    } else if (this.#loop && this.#pausaFinal > 0) {
+      this.#timer = setTimeout(() => { if (this.#ativo) this.iniciar(); }, this.#pausaFinal);
+    }
+  }
+}
+
+// =============================================================
 // SearchWidget.js — Busca dinâmica de barbearias (POO, Singleton)
 //
 // Responsabilidades:
@@ -8,11 +73,9 @@
 //   - Busca no Supabase por: nome, endereço, cidade, CEP
 //   - Renderiza resultados como barber-rows dinâmicos (zero innerHTML)
 //   - Gerencia estados: boas-vindas | loading | lista | vazio | erro
+//   - Animação "dig" (digitação) via DigText na tela de boas-vindas
 //
 // Dependências: SupabaseService.js
-//
-// Uso (auto-inicializa no DOMContentLoaded):
-//   SearchWidget.init('pesquisa-input', 'pesquisa-resultados')
 // =============================================================
 
 class SearchWidget {
@@ -20,10 +83,17 @@ class SearchWidget {
   static #input        = null;
   static #container    = null;
   static #timer        = null;
+  static #dig          = null;
 
   static #DEBOUNCE_MS  = 350;
   static #MIN_CHARS    = 2;
   static #LIMIT        = 20;
+
+  static #TEXTOS_DIG = [
+    'Busque agora a barbearia mais perto e aguarde sua vez com conforto, no seu lar. Ao chegar a sua vez, você será notificado.',
+    'Busque a barbearia mais próxima e espere sua vez, relaxando no seu sofá. Assim que for sua vez, você receberá a notificação.',
+    'Encontre a barbearia ideal e fique na sua vez, no conforto da sua casa. Assim que for sua vez, você receberá a notificação.',
+  ];
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -40,6 +110,29 @@ class SearchWidget {
 
     SearchWidget.#bindEventos();
     SearchWidget.#renderBemVindo();
+    SearchWidget.#initDig();
+  }
+
+  static #initDig() {
+    const digEl = document.getElementById('pesquisa-dig');
+    if (!digEl) return;
+
+    SearchWidget.#dig = new DigText(digEl, SearchWidget.#TEXTOS_DIG, { velocidade: 36 });
+
+    // Dispara ao entrar na tela (MutationObserver na classe .ativa)
+    const telaPesquisa = document.getElementById('tela-pesquisa');
+    if (telaPesquisa) {
+      new MutationObserver(() => {
+        if (telaPesquisa.classList.contains('ativa')) {
+          SearchWidget.#dig.iniciar();
+        } else {
+          SearchWidget.#dig.parar();
+        }
+      }).observe(telaPesquisa, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    // Primeira carga (caso a tela já esteja ativa no boot)
+    SearchWidget.#dig.iniciar();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -50,6 +143,9 @@ class SearchWidget {
     SearchWidget.#input.addEventListener('input', () => {
       clearTimeout(SearchWidget.#timer);
       const termo = SearchWidget.#input.value.trim();
+
+      // Para o dig ao começar a digitar
+      SearchWidget.#dig?.parar();
 
       if (termo.length < SearchWidget.#MIN_CHARS) {
         SearchWidget.#renderBemVindo();

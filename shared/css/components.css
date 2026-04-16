@@ -1508,6 +1508,7 @@
   width: 100%;
   box-sizing: border-box;
   height: 46px;
+  margin-top: 1.5rem;
   background: var(--card);
   border: 1.5px solid var(--gold-border);
   border-radius: 3px;
@@ -1526,6 +1527,29 @@
 .search-bar-input::placeholder { color: var(--text-dim); }
 .search-bar-input::-webkit-search-cancel-button {
   filter: invert(1) sepia(1) saturate(3) hue-rotate(10deg);
+}
+
+/* ── Texto animado "dig" (digitação) ──────────────────────── */
+.search-dig {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 4px;
+  font-size: 0.82rem;
+  color: var(--text-muted, rgba(255,255,255,0.5));
+  line-height: 1.6;
+  min-height: 1.3em;
+  margin-top: 6px;
+}
+.search-dig.dig-ativo::after {
+  content: '|';
+  display: inline-block;
+  animation: dig-cursor 0.7s step-end infinite;
+  color: var(--gold);
+  margin-left: 1px;
+}
+@keyframes dig-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 .search-content {
