@@ -1484,54 +1484,48 @@
 }
 
 /* ── Search Bar (tela pesquisa) ────────────────────────────── */
-.search-bar-wrap {
+/* ── Cabeçalho da tela de pesquisa ──────────────────────────── */
+.search-header {
   position: sticky;
   top: 0;
   z-index: 20;
   background: var(--bg);
-  padding: 12px 16px 8px;
+  padding: 48px 16px 10px;          /* espaço para o btn-voltar no topo */
+  display: flex;
+  align-items: center;
+  gap: 10px;
   border-bottom: 1px solid var(--gold-border);
 }
-.search-bar {
-  display: flex;
-  align-items: center;
-  background: var(--card);
-  border-radius: var(--r-full);
-  overflow: hidden;
-  gap: 0;
-}
-.search-bar-icon {
+
+/* btn-voltar dentro do search-header usa position static */
+.search-header .btn-voltar {
+  position: static;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--gold);
-  border-radius: 50%;
-  margin: 4px 0 4px 4px;
-  overflow: hidden;
+  padding: 6px 4px;
 }
-.search-bar-icon img {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  border-radius: 50%;
-}
+
 .search-bar-input {
   flex: 1;
-  height: 56px;
-  background: transparent;
-  border: none;
+  height: 46px;
+  background: var(--card);
+  border: 1.5px solid var(--gold-border);
+  border-radius: var(--r-md);        /* menos arredondado que --r-full */
   outline: none;
   color: var(--text);
   font-size: 1rem;
   font-family: var(--font);
-  padding: 0 16px;
+  padding: 0 14px;
   caret-color: var(--gold);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.search-bar-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.18);
 }
 .search-bar-input::placeholder { color: var(--text-dim); }
-.search-bar-input::-webkit-search-cancel-button { filter: invert(1) sepia(1) saturate(3) hue-rotate(10deg); }
+.search-bar-input::-webkit-search-cancel-button {
+  filter: invert(1) sepia(1) saturate(3) hue-rotate(10deg);
+}
 
 .search-content {
   padding-top: 16px;
@@ -1547,6 +1541,12 @@
   text-align: center;
 }
 .search-placeholder-icon { font-size: 2.4rem; }
+.search-placeholder-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  opacity: 0.75;
+}
 
 /* ── NearbyBarbershopsWidget ────────────────────────────────── */
 .nearby-gps-off {

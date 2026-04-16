@@ -492,22 +492,17 @@
   ============================================================ -->
   <main id="tela-pesquisa" class="tela">
 
-    <!-- Barra de busca fixa no topo da tela -->
-    <div class="search-bar-wrap">
-      <div class="search-bar">
-        <div class="search-bar-icon">
-          <img src="/shared/img/Logo01.png" alt="BarberFlow"
-               onerror="this.outerHTML='💈'">
-        </div>
-        <input
-          id="pesquisa-input"
-          type="search"
-          class="search-bar-input"
-          placeholder="Barbearia, barbeiro, bairro ou CEP…"
-          autocomplete="off"
-          enterkeyhint="search"
-        >
-      </div>
+    <!-- Cabeçalho da pesquisa -->
+    <div class="search-header">
+      <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
+      <input
+        id="pesquisa-input"
+        type="search"
+        class="search-bar-input"
+        placeholder="Barbearia, barbeiro, bairro ou CEP…"
+        autocomplete="off"
+        enterkeyhint="search"
+      >
     </div>
 
     <!-- Resultados dinâmicos -->

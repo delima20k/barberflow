@@ -110,7 +110,12 @@ class SearchWidget {
   }
 
   static #renderBemVindo() {
-    const wrap = SearchWidget.#criarPlaceholder('💈', 'Digite o nome, bairro, rua ou CEP para buscar');
+    const logo = document.createElement('img');
+    logo.src       = '/shared/img/Logo01.png';
+    logo.alt       = 'BarberFlow';
+    logo.className = 'search-placeholder-logo';
+    logo.onerror   = () => { logo.style.display = 'none'; };
+    const wrap = SearchWidget.#criarPlaceholder(logo, 'Digite o nome, bairro, rua ou CEP para buscar');
     SearchWidget.#montar(wrap);
   }
 
@@ -142,6 +147,7 @@ class SearchWidget {
     SearchWidget.#montar(wrap);
   }
 
+
   static #renderLista(lista) {
     const wrap = document.createElement('div');
     wrap.className = 'nearby-lista';
@@ -154,8 +160,8 @@ class SearchWidget {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Cria um estado de placeholder (ícone + mensagem).
-   * @param {string} icone
+   * Cria um estado de placeholder (ícone ou elemento + mensagem).
+   * @param {string|HTMLElement} icone — texto emoji ou elemento DOM
    * @param {string} mensagem
    * @returns {HTMLElement}
    */
@@ -163,15 +169,19 @@ class SearchWidget {
     const wrap = document.createElement('div');
     wrap.className = 'search-placeholder';
 
-    const icon = document.createElement('span');
-    icon.className = 'search-placeholder-icon';
-    icon.textContent = icone;
+    if (icone instanceof HTMLElement) {
+      wrap.appendChild(icone);
+    } else {
+      const icon = document.createElement('span');
+      icon.className = 'search-placeholder-icon';
+      icon.textContent = icone;
+      wrap.appendChild(icon);
+    }
 
     const msg = document.createElement('p');
     msg.className = 'nearby-gps-msg';
     msg.textContent = mensagem;
 
-    wrap.appendChild(icon);
     wrap.appendChild(msg);
     return wrap;
   }
@@ -188,15 +198,11 @@ class SearchWidget {
     // Avatar
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
-    if (b.logo_path) {
-      const img       = document.createElement('img');
-      img.src         = b.logo_path;
-      img.alt         = b.name;
-      img.onerror     = () => { avatarWrap.textContent = '💈'; };
-      avatarWrap.appendChild(img);
-    } else {
-      avatarWrap.textContent = '💈';
-    }
+    const avatarImg       = document.createElement('img');
+    avatarImg.src         = b.logo_path || '/shared/img/Logo01.png';
+    avatarImg.alt         = b.name;
+    avatarImg.onerror     = () => { avatarImg.src = '/shared/img/Logo01.png'; };
+    avatarWrap.appendChild(avatarImg);
 
     // Info
     const info = document.createElement('div');
