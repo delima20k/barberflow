@@ -21,6 +21,7 @@ class MessagesWidget {
   static #modal     = null;
   static #role      = 'cliente';
   static #conversa  = null;  // conversa aberta no momento
+  static #notifDig  = null;
 
   // ──────────────────────────────────────────────────────────
   // Mock — substituir por chamadas Supabase quando schema existir
@@ -163,6 +164,7 @@ class MessagesWidget {
     });
 
     MessagesWidget.#carregar();
+    MessagesWidget.#initNotifDig();
   }
 
   /** Abre o modal de chat para a conversa com o id informado. */
@@ -195,6 +197,9 @@ class MessagesWidget {
     conv.badge = 0;
     const card = MessagesWidget.#lista?.querySelector(`[data-conv-id="${convId}"] .chat-badge`);
     if (card) card.remove();
+    const cardEl = MessagesWidget.#lista?.querySelector(`[data-conv-id="${convId}"]`);
+    if (cardEl) cardEl.classList.remove('barber-row--unread');
+    MessagesWidget.#atualizarNotifDig();
 
     MessagesWidget.#renderMensagens(conv.msgs, conv.nome);
 
@@ -251,6 +256,35 @@ class MessagesWidget {
     MessagesWidget.#renderConversas(lista);
   }
 
+  static #initNotifDig() {
+    const el = document.getElementById('msgs-notif-dig');
+    if (!el) return;
+    MessagesWidget.#atualizarNotifDig();
+  }
+
+  static #atualizarNotifDig() {
+    const el = document.getElementById('msgs-notif-dig');
+    if (!el) return;
+
+    if (MessagesWidget.#notifDig) {
+      MessagesWidget.#notifDig.parar();
+      MessagesWidget.#notifDig = null;
+    }
+
+    const lista   = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
+    const naoLidos = lista.filter(c => c.badge > 0);
+
+    if (!naoLidos.length) {
+      el.classList.remove('dig-visivel');
+      return;
+    }
+
+    el.classList.add('dig-visivel');
+    const textos = naoLidos.map(c => `${c.nome} te enviou uma mensagem`);
+    MessagesWidget.#notifDig = new DigText(el, textos, { velocidade: 36, loop: true, pausaFinal: 2400 });
+    MessagesWidget.#notifDig.iniciar();
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PRIVADO — Renderização de lista de conversas
   // ═══════════════════════════════════════════════════════════
@@ -284,7 +318,7 @@ class MessagesWidget {
 
   static #criarCard(conv) {
     const row = document.createElement('div');
-    row.className = 'barber-row barber-card';
+    row.className = conv.badge > 0 ? 'barber-row barber-card barber-row--unread' : 'barber-row barber-card';
     row.dataset.convId = conv.id;
     row.setAttribute('role', 'button');
     row.setAttribute('tabindex', '0');
