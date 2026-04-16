@@ -1533,15 +1533,18 @@
 .search-dig {
   width: 100%;
   box-sizing: border-box;
-  padding: 0 10px;
-  font-size: 1.08rem;
+  padding: 6px 14px;
+  font-size: 1.18rem;
   font-family: 'Special Elite', 'Courier New', Courier, monospace;
-  color: var(--text-muted, rgba(255,255,255,0.5));
-  line-height: 1.75;
+  color: var(--gold-dark, #6B4A32);
+  line-height: 1.8;
   min-height: 1.5em;
-  margin-top: 18px;
+  margin-top: 20px;
   text-align: center;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
+  background: var(--gold-muted, rgba(212,160,23,.10));
+  border-left: 3px solid var(--gold, #D4A017);
+  border-radius: 0 6px 6px 0;
 }
 .search-dig.dig-ativo::after {
   content: '|';
