@@ -1534,11 +1534,12 @@
   width: 100%;
   box-sizing: border-box;
   padding: 0 4px;
-  font-size: 0.82rem;
+  font-size: 0.97rem;
   color: var(--text-muted, rgba(255,255,255,0.5));
-  line-height: 1.6;
-  min-height: 1.3em;
-  margin-top: 6px;
+  line-height: 1.65;
+  min-height: 1.4em;
+  margin-top: 14px;
+  text-align: center;
 }
 .search-dig.dig-ativo::after {
   content: '|';

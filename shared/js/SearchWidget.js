@@ -34,6 +34,9 @@ class DigText {
     this.#loop       = opts.loop       ?? false;
   }
 
+  /** Expõe o elemento DOM para ser inserido em qualquer container. */
+  get elemento() { return this.#el; }
+
   /** Sorteia um texto e começa a digitar. */
   iniciar() {
     this.parar();
@@ -59,8 +62,12 @@ class DigText {
     if (i <= texto.length) {
       this.#el.textContent = texto.slice(0, i);
       this.#timer = setTimeout(() => this.#digitar(texto, i + 1), this.#velocidade);
-    } else if (this.#loop && this.#pausaFinal > 0) {
-      this.#timer = setTimeout(() => { if (this.#ativo) this.iniciar(); }, this.#pausaFinal);
+    } else {
+      // Animação concluída — remove cursor piscante, mantém o texto visível
+      this.#el.classList.remove('dig-ativo');
+      if (this.#loop && this.#pausaFinal > 0) {
+        this.#timer = setTimeout(() => { if (this.#ativo) this.iniciar(); }, this.#pausaFinal);
+      }
     }
   }
 }
@@ -108,31 +115,31 @@ class SearchWidget {
     SearchWidget.#container = document.getElementById(containerId);
     if (!SearchWidget.#input || !SearchWidget.#container) return;
 
+    SearchWidget.#initDig();          // cria elemento dig antes do primeiro render
     SearchWidget.#bindEventos();
-    SearchWidget.#renderBemVindo();
-    SearchWidget.#initDig();
+    SearchWidget.#renderBemVindo();   // já inclui o dig no placeholder
   }
 
   static #initDig() {
-    const digEl = document.getElementById('pesquisa-dig');
-    if (!digEl) return;
+    // Cria o elemento dinamicamente — sem ID necessário no HTML
+    const digEl = document.createElement('p');
+    digEl.className = 'search-dig';
+    digEl.setAttribute('aria-live', 'polite');
 
     SearchWidget.#dig = new DigText(digEl, SearchWidget.#TEXTOS_DIG, { velocidade: 36 });
 
-    // Dispara ao entrar na tela (MutationObserver na classe .ativa)
+    // MutationObserver: ao entrar na tela → re-renderiza boas-vindas (com dig)
+    //                   ao sair da tela   → para animação
     const telaPesquisa = document.getElementById('tela-pesquisa');
     if (telaPesquisa) {
       new MutationObserver(() => {
         if (telaPesquisa.classList.contains('ativa')) {
-          SearchWidget.#dig.iniciar();
+          SearchWidget.#renderBemVindo();
         } else {
           SearchWidget.#dig.parar();
         }
       }).observe(telaPesquisa, { attributes: true, attributeFilter: ['class'] });
     }
-
-    // Primeira carga (caso a tela já esteja ativa no boot)
-    SearchWidget.#dig.iniciar();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -212,10 +219,18 @@ class SearchWidget {
     logo.className = 'search-placeholder-logo';
     logo.onerror   = () => { logo.style.display = 'none'; };
     const wrap = SearchWidget.#criarPlaceholder(logo, 'Digite o nome, bairro, rua ou CEP para buscar');
+
+    // Injeta texto dig abaixo do .nearby-gps-msg e inicia animação
+    if (SearchWidget.#dig) {
+      wrap.appendChild(SearchWidget.#dig.elemento);
+      SearchWidget.#dig.iniciar();
+    }
+
     SearchWidget.#montar(wrap);
   }
 
   static #renderLoading() {
+    SearchWidget.#dig?.parar();
     const wrap = document.createElement('div');
     wrap.className = 'nearby-loading';
 
@@ -231,6 +246,7 @@ class SearchWidget {
   }
 
   static #renderVazio(termo) {
+    SearchWidget.#dig?.parar();
     const wrap = SearchWidget.#criarPlaceholder(
       '🔍',
       `Nenhuma barbearia encontrada para "${termo}"`
@@ -239,12 +255,14 @@ class SearchWidget {
   }
 
   static #renderErro() {
+    SearchWidget.#dig?.parar();
     const wrap = SearchWidget.#criarPlaceholder('⚠️', 'Erro ao buscar. Verifique sua conexão.');
     SearchWidget.#montar(wrap);
   }
 
 
   static #renderLista(lista) {
+    SearchWidget.#dig?.parar();
     const wrap = document.createElement('div');
     wrap.className = 'nearby-lista';
     lista.forEach(b => wrap.appendChild(SearchWidget.#criarBarberRow(b)));
