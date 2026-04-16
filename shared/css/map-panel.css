@@ -23,6 +23,7 @@
   background:     transparent;
   border:         none;
   outline:        none;
+  position:       relative;
   cursor:         pointer;
   -webkit-tap-highlight-color: transparent;
   user-select:    none;

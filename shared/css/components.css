@@ -505,12 +505,12 @@
   opacity: 0;
 }
 
-/* Texto flutua para a esquerda do botão */
+/* Texto flutua abaixo e à esquerda do botão */
 .dica-texto {
   position: absolute;
-  right: calc(100% + 10px);
-  top: 50%;
-  transform: translateY(-50%);
+  right: calc(100% + 8px);
+  bottom: -2px;
+  transform: none;
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
