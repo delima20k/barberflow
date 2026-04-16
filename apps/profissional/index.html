@@ -638,52 +638,7 @@
   <main id="tela-mensagens" class="tela">
     <div class="content">
       <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div class="chat-item">
-          <div class="avatar gold">
-            <img src="/shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='&#x1F464;'">
-          </div>
-          <div class="chat-info">
-            <p class="chat-name">Lucas Ferreira</p>
-            <p class="chat-preview">Pode confirmar o horário das 14:30? 🙏</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">14:15</span>
-            <span class="chat-badge">1</span>
-          </div>
-        </div>
-        <div class="chat-item">
-          <div class="avatar">👤</div>
-          <div class="chat-info">
-            <p class="chat-name">Marcos Oliveira</p>
-            <p class="chat-preview">Valeu pelo corte! Ficou incrível 🔥</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">10:40</span>
-          </div>
-        </div>
-        <div class="chat-item">
-          <div class="avatar">🧔</div>
-          <div class="chat-info">
-            <p class="chat-name">Bruno Santos</p>
-            <p class="chat-preview">Posso adiantar para 16h?</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">Ontem</span>
-            <span class="chat-badge">2</span>
-          </div>
-        </div>
-        <div class="chat-item">
-          <div class="avatar">👤</div>
-          <div class="chat-info">
-            <p class="chat-name">Rafael Lima</p>
-            <p class="chat-preview">Show! Até semana que vem então 👊</p>
-          </div>
-          <div class="chat-meta">
-            <span class="chat-time">Seg</span>
-          </div>
-        </div>
-      </div>
+      <div id="msgs-lista" class="msgs-lista"></div>
     </div>
   </main>
 
@@ -1359,8 +1314,41 @@
 <script src="/shared/js/ProLandingGate.js"></script>
 <!-- Aceite legal profissional -->
 <script src="assets/js/LegalConsentService.js"></script>
+<script src="/shared/js/MessagesWidget.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
+
+<!-- Modal de Chat — MessagesWidget -->
+<div id="chat-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="chat-modal-nome">
+  <div class="chat-modal-backdrop" onclick="MessagesWidget.fecharModal()"></div>
+  <div class="chat-modal-inner">
+    <header class="chat-modal-header">
+      <div id="chat-modal-avatar-inner" class="chat-modal-avatar"></div>
+      <div class="chat-modal-title-wrap">
+        <p id="chat-modal-nome" class="chat-modal-nome"></p>
+        <p id="chat-modal-sub"  class="chat-modal-sub"></p>
+      </div>
+      <button class="chat-modal-fechar" onclick="MessagesWidget.fecharModal()" aria-label="Fechar conversa">✕</button>
+    </header>
+    <div id="chat-mensagens" class="chat-mensagens" role="log" aria-live="polite"></div>
+    <footer class="chat-modal-footer">
+      <div class="chat-input-wrap">
+        <div class="chat-eu-avatar" id="chat-eu-avatar">EU</div>
+        <input
+          id="chat-input"
+          type="text"
+          class="chat-input"
+          placeholder="Digite uma mensagem…"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')MessagesWidget.enviar()"
+        >
+        <button class="chat-send-btn" onclick="MessagesWidget.enviar()" aria-label="Enviar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>
 </body>
 </html>

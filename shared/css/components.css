@@ -2373,3 +2373,260 @@
 @media (min-width: 1024px) {
   .content { padding: 24px 32px; }
 }
+
+/* ============================================================
+   MESSAGES — Lista de conversas + Modal de chat
+============================================================ */
+
+/* ── Lista de conversas ─────────────────────────────────── */
+.msgs-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* ── Empty state ────────────────────────────────────────── */
+.msgs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 16px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.msgs-empty span          { font-size: 2.8rem; }
+.msgs-empty p:first-of-type { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); }
+.msgs-empty p:last-of-type  { font-size: 0.8rem; }
+
+/* ── lock do body quando modal aberto ──────────────────── */
+body.chat-modal-lock { overflow: hidden; }
+
+/* ── Modal de Chat (bottom-sheet) ──────────────────────── */
+#chat-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+#chat-modal.chat-modal-aberto {
+  pointer-events: all;
+  opacity: 1;
+}
+
+.chat-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(43, 27, 18, .65);
+  cursor: pointer;
+}
+
+.chat-modal-inner {
+  position: relative;
+  width: 100%;
+  max-height: 88dvh;
+  background: var(--bg);
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(.4, 0, .2, 1);
+  overflow: hidden;
+}
+#chat-modal.chat-modal-aberto .chat-modal-inner {
+  transform: translateY(0);
+}
+
+/* ── Cabeçalho do modal ─────────────────────────────────── */
+.chat-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--gold-border);
+  background: var(--card);
+  flex-shrink: 0;
+}
+
+.chat-modal-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--gold-muted);
+  border: 2px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--gold-dark);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.chat-modal-title-wrap { flex: 1; min-width: 0; }
+.chat-modal-nome { font-size: 1rem; font-weight: 700; color: var(--text); }
+.chat-modal-sub  { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.chat-modal-fechar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card2);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--ease), color var(--ease);
+}
+.chat-modal-fechar:hover { background: var(--gold-muted); color: var(--gold); }
+
+/* ── Área de mensagens ──────────────────────────────────── */
+.chat-mensagens {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface, var(--bg));
+}
+
+/* ── Bolhas de chat ─────────────────────────────────────── */
+.chat-bubble-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 82%;
+}
+.chat-bubble-eu    { align-self: flex-end; }
+.chat-bubble-outro { align-self: flex-start; }
+
+.chat-bubble-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold-muted);
+  border: 1.5px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--gold-dark);
+  flex-shrink: 0;
+  letter-spacing: -.5px;
+}
+.chat-bubble-avatar-eu {
+  background: var(--gold);
+  color: #1a0800;
+  border-color: var(--gold);
+}
+
+.chat-bubble-col { display: flex; flex-direction: column; gap: 4px; }
+.chat-bubble-eu    .chat-bubble-col { align-items: flex-end; }
+.chat-bubble-outro .chat-bubble-col { align-items: flex-start; }
+
+.chat-bubble-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.chat-balao {
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+  max-width: 260px;
+}
+.chat-bubble-eu .chat-balao {
+  background: var(--gold);
+  color: #1a0800;
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble-outro .chat-balao {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble-hora {
+  font-size: 0.64rem;
+  color: var(--text-dim);
+  padding: 0 4px;
+}
+
+/* ── Rodapé do modal (input de envio) ───────────────────── */
+.chat-modal-footer {
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--gold-border);
+  background: var(--card);
+  flex-shrink: 0;
+}
+
+.chat-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-eu-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #1a0800;
+  font-size: 0.6rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: -.5px;
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--card2);
+  border: 1.5px solid var(--gold-border);
+  border-radius: var(--r-full);
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  color: var(--text);
+  font-family: var(--font);
+  outline: none;
+  caret-color: var(--gold);
+  transition: border-color 0.2s ease;
+}
+.chat-input:focus         { border-color: var(--gold); }
+.chat-input::placeholder  { color: var(--text-dim); }
+
+.chat-send-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gold);
+  color: #1a0800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--ease), transform var(--ease);
+}
+.chat-send-btn:hover { background: var(--gold-light); transform: scale(1.06); }
+.chat-send-btn svg   { width: 18px; height: 18px; }

@@ -755,8 +755,41 @@
 <script src="/shared/js/MapPanelModule.js"></script>
 <!-- Módulo de bússola e orientação -->
 <script src="/shared/js/MapOrientationModule.js"></script>
+<script src="/shared/js/MessagesWidget.js"></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
+
+<!-- Modal de Chat — MessagesWidget -->
+<div id="chat-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="chat-modal-nome">
+  <div class="chat-modal-backdrop" onclick="MessagesWidget.fecharModal()"></div>
+  <div class="chat-modal-inner">
+    <header class="chat-modal-header">
+      <div id="chat-modal-avatar-inner" class="chat-modal-avatar"></div>
+      <div class="chat-modal-title-wrap">
+        <p id="chat-modal-nome" class="chat-modal-nome"></p>
+        <p id="chat-modal-sub"  class="chat-modal-sub"></p>
+      </div>
+      <button class="chat-modal-fechar" onclick="MessagesWidget.fecharModal()" aria-label="Fechar conversa">✕</button>
+    </header>
+    <div id="chat-mensagens" class="chat-mensagens" role="log" aria-live="polite"></div>
+    <footer class="chat-modal-footer">
+      <div class="chat-input-wrap">
+        <div class="chat-eu-avatar" id="chat-eu-avatar">EU</div>
+        <input
+          id="chat-input"
+          type="text"
+          class="chat-input"
+          placeholder="Digite uma mensagem…"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')MessagesWidget.enviar()"
+        >
+        <button class="chat-send-btn" onclick="MessagesWidget.enviar()" aria-label="Enviar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>
 </body>
 </html>

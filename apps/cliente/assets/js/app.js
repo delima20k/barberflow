@@ -225,6 +225,8 @@ document.addEventListener('DOMContentLoaded', () => {
   GeoService.solicitarNaPrimeiraVez();
   // Bússola e orientação do mapa
   MapOrientationModule.init();
+  // Tela de mensagens
+  MessagesWidget.init('msgs-lista', 'cliente');
 });
 
 /* ── Service Worker (PWA / TWA) ──────────────────────────── */
