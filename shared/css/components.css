@@ -1846,7 +1846,9 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .07em;
+  transition: opacity .2s;
 }
+.perfil-item-label[hidden] { display: none; }
 .pi-val {
   font-size: .92rem;
   color: var(--text);

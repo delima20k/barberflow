@@ -44,10 +44,20 @@ class PerfilEditor {
       ? `${PerfilEditor.#SVG_LAPIS} Concluir`
       : `${PerfilEditor.#SVG_LAPIS} Editar perfil`;
 
-    // Ao sair do modo edição, cancela campos ainda abertos
+    // Ao sair do modo edição
     if (!PerfilEditor.#modo) {
+      // Cancela campos ainda abertos
       PerfilEditor.#lista.querySelectorAll('.perfil-item.editando')
         .forEach(li => PerfilEditor._cancelarCampo(li));
+      // Atualiza visibilidade das labels (oculta se tiver valor)
+      PerfilEditor.#lista.querySelectorAll('.perfil-item').forEach(li => {
+        PerfilEditor._sincronizarLabel(li);
+      });
+    } else {
+      // Ao entrar no modo edição: mostra todas as labels
+      PerfilEditor.#lista.querySelectorAll('.perfil-item-label').forEach(el => {
+        el.hidden = false;
+      });
     }
   }
 
@@ -109,8 +119,17 @@ class PerfilEditor {
   /** Reseta a lista ao fazer logout. */
   static limpar() {
     ['pi-address', 'pi-birth_date', 'pi-gender', 'pi-zip_code'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.textContent = '—'; delete el.dataset.raw; el.hidden = false; }
+      const valEl = document.getElementById(id);
+      if (!valEl) return;
+      valEl.textContent = '—';
+      delete valEl.dataset.raw;
+      valEl.hidden = false;
+      // Restaura label
+      const li = valEl.closest('.perfil-item');
+      if (li) {
+        const label = li.querySelector('.perfil-item-label');
+        if (label) label.hidden = false;
+      }
     });
     // Sai do modo edição se ativo
     if (PerfilEditor.#modo && PerfilEditor.#btnEditar) {
@@ -127,18 +146,69 @@ class PerfilEditor {
   static _criarInput(campo, valorAtual) {
     const inp = document.createElement('input');
     inp.className = 'pi-editor';
-    inp.value     = valorAtual;
+
     if (campo === 'birth_date') {
-      inp.type = 'date';
-    } else if (campo === 'zip_code') {
+      return PerfilEditor._criarInputData(valorAtual);
+    }
+
+    if (campo === 'zip_code') {
       inp.type        = 'tel';
       inp.inputMode   = 'numeric';
       inp.maxLength   = 9;
       inp.placeholder = '00000-000';
+      inp.value       = valorAtual;
+      // Máscara CEP
+      inp.addEventListener('input', () => {
+        let v = inp.value.replace(/\D/g, '').slice(0, 8);
+        if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+        inp.value = v;
+      });
     } else {
       inp.type        = 'text';
       inp.placeholder = 'Digite aqui...';
+      inp.value       = valorAtual;
     }
+    return inp;
+  }
+
+  /**
+   * Cria input de data com máscara automática DD/MM/AAAA.
+   * Sem calendário nativo — digitação livre com barras auto-inseridas.
+   * @param {string} valorAtual — formato ISO 'YYYY-MM-DD' ou vazio
+   */
+  static _criarInputData(valorAtual) {
+    const inp = document.createElement('input');
+    inp.className   = 'pi-editor';
+    inp.type        = 'text';
+    inp.inputMode   = 'numeric';
+    inp.maxLength   = 10;
+    inp.placeholder = 'DD/MM/AAAA';
+    inp.dataset.campo = 'birth_date';
+
+    // Converte ISO para exibição DD/MM/AAAA
+    if (valorAtual) {
+      const [ano, mes, dia] = valorAtual.split('-');
+      if (dia && mes && ano) inp.value = `${dia}/${mes}/${ano}`;
+    }
+
+    inp.addEventListener('input', e => {
+      const sel   = inp.selectionStart;
+      let raw     = inp.value.replace(/\D/g, '').slice(0, 8);
+      let mascara = '';
+      if (raw.length > 4) {
+        mascara = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4);
+      } else if (raw.length > 2) {
+        mascara = raw.slice(0,2) + '/' + raw.slice(2);
+      } else {
+        mascara = raw;
+      }
+      // Reposiciona cursor considerando barras inseridas
+      const barrasAntes = (inp.value.slice(0, sel).match(/\//g) || []).length;
+      const barrasDepois = (mascara.slice(0, sel).match(/\//g) || []).length;
+      inp.value = mascara;
+      inp.selectionStart = inp.selectionEnd = sel + (barrasDepois - barrasAntes);
+    });
+
     return inp;
   }
 
@@ -164,9 +234,30 @@ class PerfilEditor {
   static _setVal(id, valor, transformar) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (!valor) { el.textContent = '—'; delete el.dataset.raw; return; }
-    el.dataset.raw  = valor;
-    el.textContent  = transformar(valor) || '—';
+    if (!valor) {
+      el.textContent = '—';
+      delete el.dataset.raw;
+      return;
+    }
+    el.dataset.raw = valor;
+    el.textContent = transformar(valor) || '—';
+    // Sincroniza visibilidade da label (ocultada se tiver conteúdo e fora do modo editar)
+    const li = el.closest('.perfil-item');
+    if (li) PerfilEditor._sincronizarLabel(li);
+  }
+
+  /**
+   * Oculta a label da LI se: tiver conteúdo E não estiver em modo editar.
+   * Mostra a label se: sem conteúdo OU em modo editar.
+   * @param {HTMLLIElement} li
+   */
+  static _sincronizarLabel(li) {
+    const valEl = li.querySelector('.pi-val');
+    const label = li.querySelector('.perfil-item-label');
+    if (!valEl || !label) return;
+    const temValor = !!valEl.dataset.raw;
+    // Oculta label somente fora do modo editar e com valor preenchido
+    label.hidden = temValor && !PerfilEditor.#modo;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -182,18 +273,29 @@ class PerfilEditor {
     li.dataset.salvando = '1';
     li.classList.remove('editando');
 
-    const novoValor = editor.value.trim();
+    let novoValor = editor.value.trim();
     editor.remove();
     valEl.hidden = false;
     delete li.dataset.salvando;
 
     if (!novoValor) return;
 
+    // Converte DD/MM/AAAA para ISO YYYY-MM-DD antes de salvar
+    let valorParaSalvar = novoValor;
+    if (campo === 'birth_date') {
+      const partes = novoValor.split('/');
+      if (partes.length === 3) {
+        valorParaSalvar = `${partes[2]}-${partes[1]}-${partes[0]}`;
+      } else {
+        return; // data incompleta — não salva
+      }
+    }
+
     // Atualiza exibição imediatamente (optimistic UI)
-    PerfilEditor._setVal(valEl.id, novoValor, v => {
+    PerfilEditor._setVal(valEl.id, valorParaSalvar, v => {
       if (campo === 'birth_date') {
-        const d = new Date(v + 'T00:00:00');
-        return d.toLocaleDateString('pt-BR');
+        const [ano, mes, dia] = v.split('-');
+        return dia && mes && ano ? `${dia}/${mes}/${ano}` : v;
       }
       if (campo === 'gender') {
         return { masculino: 'Masculino', feminino: 'Feminino',
@@ -207,7 +309,7 @@ class PerfilEditor {
       const { data: { user } } = await SupabaseService.client.auth.getUser();
       if (user) {
         await SupabaseService.client.from('profiles')
-          .update({ [campo]: novoValor, updated_at: new Date().toISOString() })
+          .update({ [campo]: valorParaSalvar, updated_at: new Date().toISOString() })
           .eq('id', user.id);
       }
     } catch (err) {
