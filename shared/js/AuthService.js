@@ -309,7 +309,7 @@ class AuthService {
   static async _carregarPerfil(userId) {
     const { data } = await SupabaseService.client
       .from('profiles')
-      .select('id, full_name, phone, avatar_path, role, pro_type')
+      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
       .eq('id', userId)
       .single();
 
@@ -445,6 +445,9 @@ class AuthService {
       perfilSub.textContent = AuthService._formatarDataCadastro(createdAt, perfil?.role, perfil?.pro_type);
     }
 
+    // Tela de perfil — dados pessoais editáveis
+    if (typeof PerfilEditor !== 'undefined') PerfilEditor.popular(perfil);
+
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
       const url = SupabaseService.client.storage
@@ -487,6 +490,7 @@ class AuthService {
     if (perfilNome) perfilNome.textContent = '';
     const perfilSub = document.getElementById('perfil-sub');
     if (perfilSub)  perfilSub.textContent  = '';
+    if (typeof PerfilEditor !== 'undefined') PerfilEditor.limpar();
     // Volta o marcador do usuário no mapa para o ícone padrão
     if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
 

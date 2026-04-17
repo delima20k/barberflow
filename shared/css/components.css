@@ -1754,7 +1754,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 32px 16px 20px;
+  padding: calc(32px + 1.5rem) 16px 20px;
   background: radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, .09) 0%, transparent 60%);
 }
 .profile-avatar {
@@ -1811,6 +1811,86 @@
   color: #fff;
   border: 1.5px solid var(--brown-border);
 }
+
+/* ── Perfil — Lista de dados pessoais ──────────────────────── */
+.perfil-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 32px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  align-self: stretch;
+}
+.perfil-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--gold-border);
+}
+.perfil-item:last-child { border-bottom: none; }
+.perfil-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.perfil-item-label {
+  font-size: .68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+.pi-val {
+  font-size: .92rem;
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Botão lápis: escondido até ativar modo editar */
+.btn-pi-lapis {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, background .15s, color .15s;
+  flex-shrink: 0;
+}
+.perfil-lista.modo-editar .btn-pi-lapis {
+  opacity: 1;
+  pointer-events: auto;
+}
+.btn-pi-lapis:hover  { background: var(--gold-muted); color: var(--gold); }
+.btn-pi-lapis:active { transform: scale(.88); }
+/* Campo editável inline */
+.pi-editor {
+  flex: 1;
+  background: var(--card2);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: .9rem;
+  padding: 7px 10px;
+  outline: none;
+  min-width: 0;
+  width: 100%;
+  max-width: 260px;
+}
+.pi-editor:focus { border-color: var(--gold-light); box-shadow: 0 0 0 3px var(--gold-muted); }
+select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Stat Grid ──────────────────────────────────────────────── */
 .stat-grid {

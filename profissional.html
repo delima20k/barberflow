@@ -1168,12 +1168,43 @@
         <button class="btn-perfil-criar" onclick="Pro.nav('criar')">
           + Criar
         </button>
-        <button class="btn-perfil-editar" onclick="Pro.nav('editar-perfil')">
+        <button class="btn-perfil-editar" onclick="PerfilEditor.alternarModo(this)">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Editar perfil
         </button>
       </div>
     </div>
+    <!-- Dados pessoais editáveis -->
+    <ul class="perfil-lista" id="perfil-lista">
+      <li class="perfil-item">
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Endereço</span>
+          <span class="pi-val" id="pi-address">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'address')" aria-label="Editar endereço"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <li class="perfil-item">
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Data de Nascimento</span>
+          <span class="pi-val" id="pi-birth_date">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'birth_date')" aria-label="Editar data de nascimento"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <li class="perfil-item">
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Sexo</span>
+          <span class="pi-val" id="pi-gender">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'gender')" aria-label="Editar sexo"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <li class="perfil-item">
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">CEP</span>
+          <span class="pi-val" id="pi-zip_code">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'zip_code')" aria-label="Editar CEP"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+    </ul>
   </main>
 
   <!-- ============================================================
@@ -1252,6 +1283,7 @@
 <script src="shared/js/LogoutScreen.js"></script>
 <script src="shared/js/Router.js"></script>
 <script src="shared/js/BarberPole.js"></script>
+<script src="shared/js/PerfilEditor.js"></script>
 <script>
   'use strict';
 
