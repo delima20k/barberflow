@@ -393,17 +393,25 @@ class AuthService {
 
   /**
    * Formata a data de cadastro para exibição na tela de perfil.
-   * Retorna ex: "Cliente desde abril de 2025" / "Membro desde 17 de abril de 2026"
+   * - role 'client'       → "Cliente desde abril de 2026"
+   * - role 'professional' → "Barbeiro desde abril de 2026"
+   * - role 'professional' + pro_type 'barbearia' → "Barbeiro c/ Barbearia desde abril de 2026"
    * @param {string|null} isoDate — created_at do Supabase Auth
-   * @param {boolean} isPro
+   * @param {string} role — 'client' | 'professional'
+   * @param {string|null} proType — null | 'barbearia'
    * @returns {string}
    */
-  static _formatarDataCadastro(isoDate, isPro = false) {
-    if (!isoDate) return isPro ? 'Profissional BarberFlow' : 'Cliente BarberFlow';
-    const d = new Date(isoDate);
+  static _formatarDataCadastro(isoDate, role = 'client', proType = null) {
+    let prefixo;
+    if (role === 'professional') {
+      prefixo = proType === 'barbearia' ? 'Barbeiro c/ Barbearia' : 'Barbeiro';
+    } else {
+      prefixo = 'Cliente';
+    }
+    if (!isoDate) return `${prefixo} BarberFlow`;
+    const d   = new Date(isoDate);
     const mes = d.toLocaleString('pt-BR', { month: 'long' });
     const ano = d.getFullYear();
-    const prefixo = isPro ? 'Profissional' : 'Cliente';
     return `${prefixo} desde ${mes} de ${ano}`;
   }
 
@@ -434,7 +442,7 @@ class AuthService {
     const perfilSub = document.getElementById('perfil-sub');
     if (perfilSub) {
       const createdAt = perfil?._created_at || user?.created_at || null;
-      perfilSub.textContent = AuthService._formatarDataCadastro(createdAt, AuthService.#isPro);
+      perfilSub.textContent = AuthService._formatarDataCadastro(createdAt, perfil?.role, perfil?.pro_type);
     }
 
     // Avatars — aplica URL e persiste no cache local
