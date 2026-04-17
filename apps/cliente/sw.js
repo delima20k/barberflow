@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-cliente-v8';
+const CACHE_NAME = 'barberflow-cliente-v9';
 
 const ASSETS = [
   '/manifest.json',
