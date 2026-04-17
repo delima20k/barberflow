@@ -335,6 +335,18 @@ class Router {
     if (icon) icon.src = '/shared/img/icones-menu.png';
   }
 
+  /**
+   * Fecha o menu hamburguer e, após a transição CSS (.32s),
+   * navega para a tela indicada — garantindo a mesma animação
+   * visual do botão equivalente no rodapé.
+   * @param {string} tela — ID sem prefixo "tela-"
+   */
+  navDoMenu(tela) {
+    this.fecharMenu();
+    // Aguarda a transição CSS do drawer (.32s) antes de navegar
+    setTimeout(() => this.nav(tela), 320);
+  }
+
   /* ─────────────────────────────────────────────────────────────
      STORIES — CURTIDA E VÍDEO
   ───────────────────────────────────────────────────────────── */
