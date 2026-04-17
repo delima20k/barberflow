@@ -71,7 +71,9 @@ class NavConfig {
    * @returns {Array<{tela?: string, acao?: string, icone: string, label: string}>}
    */
   static getItems(logado) {
-    const isPro = typeof Pro !== 'undefined';
+    // Detecta o app pelo nome da classe instanciada — funciona mesmo durante o constructor
+    // quando a variável global (Pro/App) ainda não foi atribuída
+    const isPro = typeof BarberFlowProfissional !== 'undefined';
     if (logado) {
       return isPro ? NavConfig.#PROFISSIONAL_LOGADO : NavConfig.#CLIENTE_LOGADO;
     }
@@ -84,7 +86,14 @@ class NavConfig {
    * @returns {string} HTML
    */
   static renderMenuHtml(logado) {
-    const p     = typeof App !== 'undefined' ? 'App' : 'Pro';
+    // Usa AuthService._instancia() para pegar Pro/App independente do timing
+    const inst = (typeof AuthService !== 'undefined') ? AuthService._instancia() : null;
+    let p;
+    if (inst) {
+      p = inst === (typeof App !== 'undefined' ? App : null) ? 'App' : 'Pro';
+    } else {
+      p = typeof BarberFlowProfissional !== 'undefined' ? 'Pro' : 'App';
+    }
     const items = NavConfig.getItems(logado);
     return items.map(item => {
       const onclick = item.acao === 'sair'
