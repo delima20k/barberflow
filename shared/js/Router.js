@@ -339,8 +339,9 @@ class Router {
    * Fecha o menu hamburguer e navega para a tela indicada com a
    * MESMA animação do botão equivalente no rodapé.
    *
-   * Usa `transitionend` no drawer como gatilho preciso — garante
-   * que o menu está 100% fechado antes de a animação de tela iniciar.
+   * Lê a duração real da transição CSS do drawer via getComputedStyle —
+   * garante sincronismo sem depender de `transitionend`, que é não
+   * confiável em browsers mobile com `overflow-y: auto`.
    *
    * @param {string} tela — ID sem prefixo "tela-"
    */
@@ -353,14 +354,12 @@ class Router {
       return;
     }
 
-    // Aguarda apenas a transição de `transform` (ignora `box-shadow`)
-    const _onFim = (e) => {
-      if (e.propertyName !== 'transform') return;
-      drawer.removeEventListener('transitionend', _onFim);
-      this.nav(tela);
-    };
-    drawer.addEventListener('transitionend', _onFim);
+    // Lê duração real da transição CSS (ex: "0.32s, 0.32s") — sem magic number
+    const durStr = getComputedStyle(drawer).transitionDuration.split(',')[0];
+    const durMs  = Math.round(parseFloat(durStr) * 1000) + 32; // +32ms margem (1 frame extra)
+
     this.fecharMenu();
+    setTimeout(() => this.nav(tela), durMs);
   }
 
   /* ─────────────────────────────────────────────────────────────
