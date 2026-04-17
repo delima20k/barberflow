@@ -1833,6 +1833,16 @@
   border-bottom: 1px solid var(--gold-border);
 }
 .perfil-item:last-child { border-bottom: none; }
+/* ícone decorativo à esquerda de cada campo */
+.pi-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+  opacity: .82;
+}
 .perfil-item-info {
   display: flex;
   flex-direction: column;
