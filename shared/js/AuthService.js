@@ -355,6 +355,12 @@ class AuthService {
     return null;
   }
 
+  /** Primeira letra maiúscula, restante minúsculo. @param {string} str */
+  static _capitalize(str) {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  }
+
   static _prefix() {
     return AuthService.#isPro ? 'Pro' : 'App';
   }
@@ -364,16 +370,15 @@ class AuthService {
     const email = user?.email || '';
     const p     = AuthService._prefix();
 
-    // Header — nome abaixo do avatar (logado)
+    // Header — Olá, Nome (logado) — primeira letra maiúscula
     const label = document.getElementById('header-user-label');
-    if (label) label.textContent = nome.split(' ')[0];
+    if (label) {
+      const primeiro = nome.split(' ')[0];
+      label.textContent = 'Olá, ' + AuthService._capitalize(primeiro);
+    }
 
     const headerBtn = document.getElementById('header-avatar-btn');
     if (headerBtn) headerBtn.setAttribute('onclick', `${p}.nav('perfil')`);
-
-    // Botão sair no header — visível quando logado
-    const sairBtn = document.getElementById('header-sair-btn');
-    if (sairBtn) sairBtn.style.display = '';
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
       const url = SupabaseService.client.storage
@@ -406,10 +411,6 @@ class AuthService {
 
     const headerBtn = document.getElementById('header-avatar-btn');
     if (headerBtn) headerBtn.setAttribute('onclick', `${p}.irParaLogin()`);
-
-    // Botão sair no header — oculto quando deslogado
-    const sairBtn = document.getElementById('header-sair-btn');
-    if (sairBtn) sairBtn.style.display = 'none';
 
     ['header-avatar-img', 'menu-avatar-img'].forEach(id => {
       const el = document.getElementById(id);
