@@ -1786,10 +1786,12 @@
 .btn-perfil-criar {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 9px 20px;
+  min-width: 130px;
   border: none;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: .82rem;
   font-weight: 700;
   letter-spacing: .03em;
