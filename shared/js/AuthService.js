@@ -193,8 +193,11 @@ class AuthService {
     try {
       await SupabaseService.signOut();
     } catch (_) { /* ignora erro de sessão já expirada */ }
+    // Remove extras locais do usuário antes de limpar o cache (precisamos do ID ainda)
+    const userId = AuthService.#perfil?.id;
     AuthService.#perfil = null;
     SessionCache.limparTudo();   // remove perfil, user e avatar_url do localStorage
+    if (userId) SessionCache.limparExtras(userId); // remove extras locais do perfil
     // Limpa cache de aceite de termos (sessão encerrada)
     if (typeof LegalConsentService !== 'undefined') LegalConsentService.limparCache();
     AuthService._limparUI();
@@ -307,29 +310,21 @@ class AuthService {
   // ═══════════════════════════════════════════════════════════
 
   static async _carregarPerfil(userId) {
-    // Tenta perfil completo (inclui colunas adicionadas na migration 20260417000001)
-    let { data, error } = await SupabaseService.client
+    // Busca apenas colunas que existem na tabela profiles original
+    // Os dados extras (address, birth_date, gender, zip_code) ficam no localStorage
+    const { data } = await SupabaseService.client
       .from('profiles')
-      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
+      .select('id, full_name, phone, avatar_path, role, pro_type')
       .eq('id', userId)
       .single();
-
-    // Fallback: se a migration ainda não foi aplicada no banco remoto (400 = coluna inexistente)
-    if (!data && error) {
-      console.warn('[AuthService] Colunas de perfil estendidas ausentes — usando seleção básica. ' +
-        'Aplique a migration 20260417000001_profiles_personal_data.sql no Supabase Dashboard.');
-      const fb = await SupabaseService.client
-        .from('profiles')
-        .select('id, full_name, phone, avatar_path, role, pro_type')
-        .eq('id', userId)
-        .single();
-      data = fb.data;
-    }
 
     // Busca created_at do auth.users via session (já disponível localmente)
     if (data) {
       const { data: { user } } = await SupabaseService.client.auth.getUser();
       data._created_at = user?.created_at || null;
+      // Mescla dados extras salvos localmente (sem custo de banco)
+      const extras = SessionCache.getExtras(userId);
+      if (extras) Object.assign(data, extras);
     }
 
     return data || null;
@@ -475,7 +470,12 @@ class AuthService {
     }
 
     // Tela de perfil — dados pessoais editáveis
-    if (typeof PerfilEditor !== 'undefined') PerfilEditor.popular(perfil);
+    // Mescla extras locais no perfil antes de popular (zero custo de banco)
+    if (typeof PerfilEditor !== 'undefined') {
+      const extras = SessionCache.getExtras(perfil?.id);
+      const dadosCompletos = extras ? { ...perfil, ...extras } : perfil;
+      PerfilEditor.popular(dadosCompletos);
+    }
 
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {

@@ -302,33 +302,14 @@ class PerfilEditor {
       return v;
     });
 
-    // Persiste no Supabase em background
+    // Salva localmente (zero custo de banco)
     try {
       const { data: { user } } = await SupabaseService.client.auth.getUser();
-      if (user) {
-        const payload = { [campo]: valorParaSalvar };
-
-        // Tenta incluir updated_at (pode não existir em versões antigas da migration)
-        try {
-          payload.updated_at = new Date().toISOString();
-        } catch (_) {}
-
-        const { error } = await SupabaseService.client
-          .from('profiles')
-          .update(payload)
-          .eq('id', user.id);
-
-        if (error) {
-          // 400 = coluna não existe no banco — migration pendente
-          console.error(
-            `[PerfilEditor] Não foi possível salvar "${campo}". ` +
-            `O banco retornou: ${error.message}. ` +
-            `Execute a SQL da migration 20260417000001 no Supabase Dashboard.`
-          );
-        }
+      if (user?.id) {
+        SessionCache.salvarExtras(user.id, { [campo]: valorParaSalvar });
       }
     } catch (err) {
-      console.warn('[PerfilEditor] Falha ao salvar campo:', campo, err);
+      console.warn('[PerfilEditor] Falha ao salvar no cache local:', campo, err);
     }
   }
 

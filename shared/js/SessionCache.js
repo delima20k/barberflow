@@ -52,6 +52,46 @@ class SessionCache {
     try { if (url) localStorage.setItem(SessionCache.#K_AVATAR, url); } catch (_) {}
   }
 
+  /**
+   * Salva os dados extras do perfil (endereço, nascimento, sexo, CEP)
+   * localmente por user ID — sem custo de escrita no Supabase.
+   * @param {string} userId
+   * @param {object} dados  — campos extras { address, birth_date, gender, zip_code }
+   */
+  static salvarExtras(userId, dados) {
+    if (!userId || !dados) return;
+    try {
+      const chave   = `${SessionCache.#ns}_extra_${userId}`;
+      const atual   = SessionCache.getExtras(userId) || {};
+      const merged  = { ...atual, ...dados };
+      localStorage.setItem(chave, JSON.stringify(merged));
+    } catch (_) {}
+  }
+
+  /**
+   * Lê os dados extras do perfil do localStorage.
+   * @param {string} userId
+   * @returns {object|null}
+   */
+  static getExtras(userId) {
+    if (!userId) return null;
+    try {
+      const chave = `${SessionCache.#ns}_extra_${userId}`;
+      return JSON.parse(localStorage.getItem(chave) ?? 'null');
+    } catch (_) { return null; }
+  }
+
+  /**
+   * Remove extras do perfil (chamado no logout).
+   * @param {string} userId
+   */
+  static limparExtras(userId) {
+    if (!userId) return;
+    try {
+      localStorage.removeItem(`${SessionCache.#ns}_extra_${userId}`);
+    } catch (_) {}
+  }
+
   // ═══════════════════════════════════════════════════════════
   // RESTAURAR
   // ═══════════════════════════════════════════════════════════
