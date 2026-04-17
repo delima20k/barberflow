@@ -88,7 +88,7 @@ class NavConfig {
     const items = NavConfig.getItems(logado);
     return items.map(item => {
       const onclick = item.acao === 'sair'
-        ? `AuthService.logout().then(()=>${p}.fecharMenu())`
+        ? `${p}.navDoMenu('sair')`
         : `${p}.fecharMenu();${p}.nav('${item.tela}')`;
       // data-tela permite ao Router marcar o item ativo com .ativo
       const dataTela = item.tela ? `data-tela="${item.tela}"` : '';
