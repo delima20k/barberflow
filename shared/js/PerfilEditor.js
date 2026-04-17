@@ -47,16 +47,21 @@ class PerfilEditor {
     // Ao sair do modo edição
     if (!PerfilEditor.#modo) {
       // SALVA (não cancela!) campos ainda abertos ao concluir
+      let houveSalvamento = false;
       PerfilEditor.#lista.querySelectorAll('.perfil-item.editando')
         .forEach(li => {
           const campo = li.querySelector('.pi-editor')?.dataset?.campo;
-          if (campo) PerfilEditor._confirmarCampo(li, campo);
+          if (campo) { PerfilEditor._confirmarCampo(li, campo); houveSalvamento = true; }
           else       PerfilEditor._cancelarCampo(li);
         });
       // Atualiza visibilidade das labels (oculta se tiver valor)
       PerfilEditor.#lista.querySelectorAll('.perfil-item').forEach(li => {
         PerfilEditor._sincronizarLabel(li);
       });
+      // Toast de confirmação — só se havia algo sendo editado
+      if (houveSalvamento && typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Perfil salvo', 'Suas informações foram atualizadas.', NotificationService.TIPOS.ENGAJAMENTO);
+      }
     } else {
       // Ao entrar no modo edição: mostra todas as labels
       PerfilEditor.#lista.querySelectorAll('.perfil-item-label').forEach(el => {
