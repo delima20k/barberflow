@@ -336,15 +336,31 @@ class Router {
   }
 
   /**
-   * Fecha o menu hamburguer e, após a transição CSS (.32s),
-   * navega para a tela indicada — garantindo a mesma animação
-   * visual do botão equivalente no rodapé.
+   * Fecha o menu hamburguer e navega para a tela indicada com a
+   * MESMA animação do botão equivalente no rodapé.
+   *
+   * Usa `transitionend` no drawer como gatilho preciso — garante
+   * que o menu está 100% fechado antes de a animação de tela iniciar.
+   *
    * @param {string} tela — ID sem prefixo "tela-"
    */
   navDoMenu(tela) {
+    const drawer = document.getElementById('menu-drawer');
+
+    // Drawer inexistente ou já fechado → navega imediatamente
+    if (!drawer || !drawer.classList.contains('aberto')) {
+      this.nav(tela);
+      return;
+    }
+
+    // Aguarda apenas a transição de `transform` (ignora `box-shadow`)
+    const _onFim = (e) => {
+      if (e.propertyName !== 'transform') return;
+      drawer.removeEventListener('transitionend', _onFim);
+      this.nav(tela);
+    };
+    drawer.addEventListener('transitionend', _onFim);
     this.fecharMenu();
-    // Aguarda a transição CSS do drawer (.32s) antes de navegar
-    setTimeout(() => this.nav(tela), 320);
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -469,7 +485,10 @@ class Router {
         const subEl = document.getElementById('menu-user-sub');
         if (subEl) subEl.textContent = 'Bem-vindo(a)!';
         const labelEl = document.getElementById('header-user-label');
-        if (labelEl) labelEl.textContent = nome.split(' ')[0];
+        if (labelEl) {
+          const primeiro = nome.split(' ')[0];
+          labelEl.textContent = 'Olá, ' + (primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase());
+        }
       }
       document.getElementById('header-avatar-btn')?.classList.add('logado');
       document.getElementById('menu-avatar')?.classList.add('logado');
