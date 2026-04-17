@@ -552,10 +552,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
-  padding: 6px 4px;
+  padding: 4px 2px;
   flex: 1;
+  min-width: 0;
   color: var(--text-on-surface-muted);
   transition: color var(--ease);
   -webkit-tap-highlight-color: transparent;
@@ -565,8 +566,8 @@
 .nav-btn.ativo  { color: var(--gold); }
 
 .nav-pill {
-  width: 58px;
-  height: 40px;
+  width: 44px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -576,8 +577,8 @@
 .nav-btn.ativo .nav-pill { background: var(--gold-muted); }
 
 .nav-btn img {
-  width: 48px;
-  height: 48px;
+  width: 24px;
+  height: 24px;
   object-fit: contain;
   filter: brightness(0) invert(1);
   opacity: .62;
@@ -590,7 +591,7 @@
 }
 
 .nav-label {
-  font-size: .68rem;
+  font-size: .60rem;
   font-weight: 600;
   letter-spacing: .2px;
   white-space: nowrap;
@@ -1840,8 +1841,8 @@
   height: 28px;
   display: grid;
   place-items: center;
-  color: var(--gold);
-  opacity: .82;
+  color: var(--text);
+  opacity: .55;
 }
 .perfil-item-info {
   display: flex;

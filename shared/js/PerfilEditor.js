@@ -46,9 +46,13 @@ class PerfilEditor {
 
     // Ao sair do modo edição
     if (!PerfilEditor.#modo) {
-      // Cancela campos ainda abertos
+      // SALVA (não cancela!) campos ainda abertos ao concluir
       PerfilEditor.#lista.querySelectorAll('.perfil-item.editando')
-        .forEach(li => PerfilEditor._cancelarCampo(li));
+        .forEach(li => {
+          const campo = li.querySelector('.pi-editor')?.dataset?.campo;
+          if (campo) PerfilEditor._confirmarCampo(li, campo);
+          else       PerfilEditor._cancelarCampo(li);
+        });
       // Atualiza visibilidade das labels (oculta se tiver valor)
       PerfilEditor.#lista.querySelectorAll('.perfil-item').forEach(li => {
         PerfilEditor._sincronizarLabel(li);

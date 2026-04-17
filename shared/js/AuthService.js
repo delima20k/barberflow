@@ -358,14 +358,30 @@ class AuthService {
   // PRIVADOS — UI
   // ═══════════════════════════════════════════════════════════
 
+  /** URL do avatar atual — permite re-aplicar após navegação ou delay de DOM */
+  static #avatarUrl = null;
+
   /** Aplica uma URL de avatar em todos os elementos de imagem de avatar */
   static _aplicarAvatar(url) {
-    ['header-avatar-img', 'menu-avatar-img', 'perfil-avatar-img'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.src = url; el.onerror = null; }
-    });
+    if (!url) return;
+    AuthService.#avatarUrl = url;
+    const IDS = ['header-avatar-img', 'menu-avatar-img', 'perfil-avatar-img'];
+    const aplicar = () => {
+      IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.src = url; el.onerror = null; }
+      });
+    };
+    aplicar();
+    // Retry após 600ms para o caso de race condition no DOM (especialmente mobile)
+    setTimeout(aplicar, 600);
     // Atualiza o marcador do usuário no mapa (se já posicionado)
     if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
+  }
+
+  /** Re-aplica o avatar armazenado em elementos que estejam no DOM agora */
+  static reaplicarAvatar() {
+    if (AuthService.#avatarUrl) AuthService._aplicarAvatar(AuthService.#avatarUrl);
   }
 
   static _instancia() {
