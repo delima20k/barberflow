@@ -307,11 +307,24 @@ class AuthService {
   // ═══════════════════════════════════════════════════════════
 
   static async _carregarPerfil(userId) {
-    const { data } = await SupabaseService.client
+    // Tenta perfil completo (inclui colunas adicionadas na migration 20260417000001)
+    let { data, error } = await SupabaseService.client
       .from('profiles')
       .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
       .eq('id', userId)
       .single();
+
+    // Fallback: se a migration ainda não foi aplicada no banco remoto (400 = coluna inexistente)
+    if (!data && error) {
+      console.warn('[AuthService] Colunas de perfil estendidas ausentes — usando seleção básica. ' +
+        'Aplique a migration 20260417000001_profiles_personal_data.sql no Supabase Dashboard.');
+      const fb = await SupabaseService.client
+        .from('profiles')
+        .select('id, full_name, phone, avatar_path, role, pro_type')
+        .eq('id', userId)
+        .single();
+      data = fb.data;
+    }
 
     // Busca created_at do auth.users via session (já disponível localmente)
     if (data) {

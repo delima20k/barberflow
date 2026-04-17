@@ -105,10 +105,7 @@ class PerfilEditor {
    */
   static popular(dados) {
     PerfilEditor._setVal('pi-address',    dados?.address,    v => v);
-    PerfilEditor._setVal('pi-birth_date', dados?.birth_date, v => {
-      const d = new Date(v + 'T00:00:00');
-      return d.toLocaleDateString('pt-BR');
-    });
+    PerfilEditor._setVal('pi-birth_date', dados?.birth_date, v => PerfilEditor._formatarDataLonga(v));
     PerfilEditor._setVal('pi-gender',     dados?.gender,     v => ({
       masculino: 'Masculino', feminino: 'Feminino',
       outro: 'Outro', nao_informar: 'Prefiro não informar',
@@ -293,10 +290,7 @@ class PerfilEditor {
 
     // Atualiza exibição imediatamente (optimistic UI)
     PerfilEditor._setVal(valEl.id, valorParaSalvar, v => {
-      if (campo === 'birth_date') {
-        const [ano, mes, dia] = v.split('-');
-        return dia && mes && ano ? `${dia}/${mes}/${ano}` : v;
-      }
+      if (campo === 'birth_date') return PerfilEditor._formatarDataLonga(v);
       if (campo === 'gender') {
         return { masculino: 'Masculino', feminino: 'Feminino',
                  outro: 'Outro', nao_informar: 'Prefiro não informar' }[v] || v;
@@ -315,6 +309,22 @@ class PerfilEditor {
     } catch (err) {
       console.warn('[PerfilEditor] Falha ao salvar campo:', campo, err);
     }
+  }
+
+  /**
+   * Formata data ISO 'YYYY-MM-DD' como '3 de Setembro de 1988'.
+   * @param {string} isoStr
+   * @returns {string}
+   */
+  static _formatarDataLonga(isoStr) {
+    if (!isoStr) return '—';
+    const d = new Date(isoStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return isoStr;
+    const dia = d.getDate();
+    const mes = d.toLocaleDateString('pt-BR', { month: 'long' }); // 'setembro'
+    const ano = d.getFullYear();
+    const mesCapital = mes.charAt(0).toUpperCase() + mes.slice(1); // 'Setembro'
+    return `${dia} de ${mesCapital} de ${ano}`;
   }
 
   static _cancelarCampo(li) {
