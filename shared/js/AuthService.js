@@ -312,6 +312,13 @@ class AuthService {
       .select('id, full_name, phone, avatar_path, role, pro_type')
       .eq('id', userId)
       .single();
+
+    // Busca created_at do auth.users via session (já disponível localmente)
+    if (data) {
+      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      data._created_at = user?.created_at || null;
+    }
+
     return data || null;
   }
 
@@ -340,7 +347,7 @@ class AuthService {
 
   /** Aplica uma URL de avatar em todos os elementos de imagem de avatar */
   static _aplicarAvatar(url) {
-    ['header-avatar-img', 'menu-avatar-img'].forEach(id => {
+    ['header-avatar-img', 'menu-avatar-img', 'perfil-avatar-img'].forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.src = url; el.onerror = null; }
     });
@@ -361,14 +368,54 @@ class AuthService {
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   }
 
+  /**
+   * Capitalização inteligente de nome completo.
+   * - Se o nome estiver TUDO em maiúsculas ou TUDO em minúsculas:
+   *   cada palavra terá a 1ª letra maiúscula e o restante minúsculo.
+   * - Se o nome já tiver mistura (ex: "João SILVA" ou "joÃO silva"):
+   *   mantém como digitado (respeita intenção do usuário).
+   * @param {string} nome
+   * @returns {string}
+   */
+  static _capitalizarNome(nome) {
+    if (!nome) return nome;
+    const semEspacos = nome.trim();
+    const tudoMaius  = semEspacos === semEspacos.toUpperCase();
+    const tudoMinus  = semEspacos === semEspacos.toLowerCase();
+    if (tudoMaius || tudoMinus) {
+      return semEspacos
+        .split(/\s+/)
+        .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+        .join(' ');
+    }
+    return semEspacos; // já formatado pelo usuário
+  }
+
+  /**
+   * Formata a data de cadastro para exibição na tela de perfil.
+   * Retorna ex: "Cliente desde abril de 2025" / "Membro desde 17 de abril de 2026"
+   * @param {string|null} isoDate — created_at do Supabase Auth
+   * @param {boolean} isPro
+   * @returns {string}
+   */
+  static _formatarDataCadastro(isoDate, isPro = false) {
+    if (!isoDate) return isPro ? 'Profissional BarberFlow' : 'Cliente BarberFlow';
+    const d = new Date(isoDate);
+    const mes = d.toLocaleString('pt-BR', { month: 'long' });
+    const ano = d.getFullYear();
+    const prefixo = isPro ? 'Profissional' : 'Cliente';
+    return `${prefixo} desde ${mes} de ${ano}`;
+  }
+
   static _prefix() {
     return AuthService.#isPro ? 'Pro' : 'App';
   }
 
   static _atualizarUI(perfil, user) {
-    const nome  = perfil?.full_name || user?.email?.split('@')[0] || 'Usuário';
-    const email = user?.email || '';
-    const p     = AuthService._prefix();
+    const nomeRaw = perfil?.full_name || user?.email?.split('@')[0] || 'Usuário';
+    const nome    = AuthService._capitalizarNome(nomeRaw);
+    const email   = user?.email || '';
+    const p       = AuthService._prefix();
 
     // Header — Olá, Nome (logado) — primeira letra maiúscula
     const label = document.getElementById('header-user-label');
@@ -379,6 +426,17 @@ class AuthService {
 
     const headerBtn = document.getElementById('header-avatar-btn');
     if (headerBtn) headerBtn.setAttribute('onclick', `${p}.nav('perfil')`);
+
+    // Tela de perfil — nome, sub (data de cadastro) e avatar
+    const perfilNome = document.getElementById('perfil-nome');
+    if (perfilNome) perfilNome.textContent = nome;
+
+    const perfilSub = document.getElementById('perfil-sub');
+    if (perfilSub) {
+      const createdAt = perfil?._created_at || user?.created_at || null;
+      perfilSub.textContent = AuthService._formatarDataCadastro(createdAt, AuthService.#isPro);
+    }
+
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
       const url = SupabaseService.client.storage
@@ -412,10 +470,15 @@ class AuthService {
     const headerBtn = document.getElementById('header-avatar-btn');
     if (headerBtn) headerBtn.setAttribute('onclick', `${p}.irParaLogin()`);
 
-    ['header-avatar-img', 'menu-avatar-img'].forEach(id => {
+    ['header-avatar-img', 'menu-avatar-img', 'perfil-avatar-img'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.src = '/shared/img/icones-perfil.png';
     });
+    // Reseta tela de perfil
+    const perfilNome = document.getElementById('perfil-nome');
+    if (perfilNome) perfilNome.textContent = '';
+    const perfilSub = document.getElementById('perfil-sub');
+    if (perfilSub)  perfilSub.textContent  = '';
     // Volta o marcador do usuário no mapa para o ícone padrão
     if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
 
