@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'barberflow-profissional-v12';
+const CACHE_NAME = 'barberflow-profissional-v13';
 
 // HTML nunca entra na lista — sempre servido da rede
 const ASSETS = [

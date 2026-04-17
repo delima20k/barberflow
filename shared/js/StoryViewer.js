@@ -328,6 +328,7 @@ class StoryViewer {
     const likeCount = document.createElement('span');
     likeCount.textContent = '0';
 
+    likeBtn.append(likeImg, likeCount);
     likeBtn.addEventListener('click', () => StoryViewer.toggleLike());
 
     // ── Botão comentar ──
@@ -374,7 +375,7 @@ class StoryViewer {
     comentInputWrap.append(comentInput, comentEnviar);
 
     comentPanel.append(comentHeader, comentLista, comentInputWrap);
-    inner.appendChild(comentPanel);
+    inner.append(video, svTop, svBottom, comentPanel);
     return inner;
   }
 
