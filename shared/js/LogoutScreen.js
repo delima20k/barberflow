@@ -49,7 +49,7 @@ class LogoutScreen {
     ]);
 
     // ── Fase 3: executa o logout real ─────────────────────────────────────
-    await AuthService.logout();
+    if (typeof AuthService !== 'undefined') await AuthService.logout();
 
     // ── Fase 4: reseta Router para home deslogado ──────────────────────────
     router._logado     = false;
@@ -71,7 +71,7 @@ class LogoutScreen {
     document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
       item.classList.toggle('ativo', item.dataset.tela === 'inicio')
     );
-    AuthService._renderizarMenu(false);
+    if (typeof AuthService !== 'undefined') AuthService._renderizarMenu(false);
 
     // ── Fase 7: footer deslogado entra pela ESQUERDA ───────────────────────
     LogoutScreen._mostrarFooterOffline(footerOffline);

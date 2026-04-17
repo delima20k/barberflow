@@ -767,6 +767,7 @@
       .content { padding: 24px 32px; }
     }
   </style>
+  <link rel="stylesheet" href="shared/css/components.css">
   <link rel="stylesheet" href="shared/css/story-cards.css">
   <link rel="stylesheet" href="shared/css/barber-card.css">
   <link rel="stylesheet" href="shared/css/button-system.css">
@@ -1276,19 +1277,19 @@
   ============================================================ -->
   <main id="tela-sair" class="tela">
     <div class="sair-wrap">
-      <div class="sair-icon">
-        <img src="img/sair.svg" alt="Sair" onerror="this.outerHTML='🚪'">
-      </div>
-      <div>
-        <p style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Sair da conta?</p>
-        <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;max-width:280px;margin:0 auto;">
-          Você precisará fazer login novamente para acessar sua conta.
-        </p>
-      </div>
-      <div class="sair-btns">
-        <button class="btn btn-danger btn-full" onclick="App.nav('inicio')">Sim, quero sair</button>
-        <button class="btn btn-outline btn-full" onclick="App.voltar()">Cancelar</button>
-      </div>
+      <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
+
+      <!-- Ícone central — clique confirma o logout -->
+      <button class="sair-icone-btn" onclick="App.confirmarSaida()" aria-label="Confirmar saída">
+        <img src="img/sair.svg" alt="Sair" onerror="this.outerHTML='&#x1F6AA;'">
+      </button>
+
+      <p class="sair-texto-titulo">Sair da conta?</p>
+      <p class="sair-texto-sub">
+        Toque no ícone acima para confirmar.<br>
+        Você precisará fazer login novamente.
+      </p>
+      <p class="sair-hint">ou toque em Voltar para cancelar</p>
     </div>
   </main>
 
@@ -1332,7 +1333,7 @@
       <span class="nav-label">Perfil</span>
     </button>
 
-    <button class="nav-btn" data-tela="sair" onclick="App.nav('sair')">
+    <button class="nav-btn" data-tela="sair" onclick="App.navDoMenu('sair')">
       <div class="nav-pill">
         <img src="img/sair.svg" alt="Sair">
       </div>
@@ -1345,6 +1346,7 @@
 <!-- ============================================================
      SPA NAVIGATION — POO
 ============================================================ -->
+<script src="shared/js/LogoutScreen.js"></script>
 <script src="shared/js/Router.js"></script>
 <script src="shared/js/BarberPole.js"></script>
 <script>
