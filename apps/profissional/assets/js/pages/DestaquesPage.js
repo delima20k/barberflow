@@ -16,6 +16,7 @@ class DestaquesPage {
   #listaEl  = null;
   #vazioEl  = null;
   #carregou = false;  // evita re-fetch na mesma sessão
+  #dig      = null;   // instância DigText da descrição
 
   constructor() {}
 
@@ -25,11 +26,23 @@ class DestaquesPage {
     this.#vazioEl = document.getElementById('destaques-vazio');
     if (!this.#telaEl) return;
 
-    // Carrega quando a tela fica ativa (nav ou push)
+    // Animação dig na descrição
+    const digEl = document.getElementById('destaques-dig');
+    if (digEl) {
+      this.#dig = new DigText(digEl, [
+        'Explore as barbearias mais bem avaliadas no BarberFlow. Ordenadas por pontuação e número de cortes, as mais populares oferecem o melhor serviço, enquanto as menos avaliadas mostram novas opões. Encontre a sua favorita e agende já o seu corte.'
+      ], { velocidade: 20 });
+    }
+
+    // Carrega e anima quando a tela fica ativa
     new MutationObserver(() => {
-      if (this.#telaEl.classList.contains('ativa') ||
-          this.#telaEl.classList.contains('entrando-lento')) {
+      const ativa = this.#telaEl.classList.contains('ativa') ||
+                    this.#telaEl.classList.contains('entrando-lento');
+      if (ativa) {
         if (!this.#carregou) this.#carregar();
+        this.#dig?.iniciar();
+      } else {
+        this.#dig?.parar();
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }

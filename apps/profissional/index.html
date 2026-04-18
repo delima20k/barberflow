@@ -469,10 +469,12 @@
   <main id="tela-destaques" class="tela">
     <div class="tela-topo">
       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
-      <h2 class="tela-topo__titulo">Top Barbearias</h2>
     </div>
     <div class="content">
-      <p class="tela-destaques-sub">Ordenadas por pontuação e avaliação no BarberFlow</p>
+      <div class="destaques-hero">
+        <h2 class="destaques-titulo">Top <span class="destaques-barber">Barber</span><span class="destaques-flow">Flow</span></h2>
+        <p id="destaques-dig" class="search-dig" aria-live="polite"></p>
+      </div>
       <div id="destaques-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
       <p id="destaques-vazio" class="tela-destaques-vazio" hidden>Nenhuma barbearia encontrada.</p>
     </div>

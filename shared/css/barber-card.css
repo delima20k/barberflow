@@ -557,6 +557,26 @@
   margin: 0 0 12px;
   padding: 0 2px;
 }
+
+/* ── Hero da tela Destaques ── */
+.destaques-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.destaques-titulo {
+  font-family: var(--font);
+  font-size: 1.45rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -.2px;
+}
+
+/* "Barber" em dourado, "Flow" em marrom visível */
+.destaques-barber { color: var(--gold, #D4AF37); }
+.destaques-flow   { color: #bf8040; }
   font-size: .72rem;
   color: var(--text-muted, #a08060);
   margin: 0 0 12px;
