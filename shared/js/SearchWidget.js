@@ -359,9 +359,15 @@ class SearchWidget {
     row.appendChild(meta);
     return row;
   }
+
+  /**
+   * Ponto de entrada autoático — chame no DOMContentLoaded do app.
+   * Encapsulado na classe para manter OOP completo.
+   */
+  static boot() {
+    SearchWidget.init('pesquisa-input', 'pesquisa-resultados');
+  }
 }
 
-// Auto-inicializa quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () =>
-  SearchWidget.init('pesquisa-input', 'pesquisa-resultados')
-);
+/* Ponto de entrada — método da própria classe, sem código solto */
+document.addEventListener('DOMContentLoaded', () => SearchWidget.boot());

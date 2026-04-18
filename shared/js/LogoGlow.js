@@ -33,11 +33,12 @@ class LogoGlow {
       });
     });
   }
+
+  /** Ponto de entrada autoático para DOMContentLoaded. */
+  static boot() {
+    LogoGlow.aplicar();
+  }
 }
 
-// Aplica automaticamente quando o DOM estiver pronto
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => LogoGlow.aplicar());
-} else {
-  LogoGlow.aplicar();
-}
+/* Ponto de entrada — método da própria classe, sem código solto */
+document.addEventListener('DOMContentLoaded', () => LogoGlow.boot());

@@ -28,10 +28,10 @@ class AuthService {
     const email = emailEl?.value.trim();
     const senha = senhaEl?.value;
 
-    if (!email || !senha) {
-      AuthService._erro(erroEl, 'Preencha e-mail e senha.');
-      return;
-    }
+    const vEmail = InputValidator.email(email);
+    if (!vEmail.ok) { AuthService._erro(erroEl, vEmail.msg); return; }
+    const vSenha = InputValidator.senha(senha);
+    if (!vSenha.ok) { AuthService._erro(erroEl, vSenha.msg); return; }
 
     AuthService._setLoading(true, [emailEl, senhaEl]);
     AuthService._erro(erroEl, '');
@@ -83,24 +83,13 @@ class AuthService {
     nome  = nome?.trim();
     email = email?.trim();
 
-    if (!nome || !email || !senha) {
-      AuthService._erro(erroEl, 'Preencha todos os campos obrigatórios.');
-      return;
-    }
-    if (senha !== senha2) {
-      AuthService._erro(erroEl, 'As senhas não coincidem.');
-      return;
-    }
-    if (senha.length < 6) {
-      AuthService._erro(erroEl, 'A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-
-    // Valida email básico
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      AuthService._erro(erroEl, 'Digite um e-mail válido.');
-      return;
-    }
+    const vCadastro = InputValidator.todos([
+      InputValidator.nome(nome),
+      InputValidator.email(email),
+      InputValidator.senha(senha),
+      InputValidator.senhasConferem(senha, senha2),
+    ]);
+    if (!vCadastro.ok) { AuthService._erro(erroEl, vCadastro.msg); return; }
 
     AuthService._erro(erroEl, '');
 

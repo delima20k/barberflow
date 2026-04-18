@@ -160,14 +160,4 @@ class LegalConsentService {
   }
 }
 
-// ── Função global para verificação rápida (mencionada no requisito) ──
-/**
- * Verifica se o usuário aceitou os termos legais.
- * Retorna false se não aceitou → deve redirecionar para tela-termos-legais.
- *
- * @param {string} userId
- * @returns {Promise<boolean>}
- */
-function verificarAceiteLegal(userId) {
-  return LegalConsentService.verificarAceite(userId);
-}
+

@@ -189,8 +189,13 @@ class StoriesLayout {
       }
     });
   }
+
+  /** Ponto de entrada autoático para DOMContentLoaded. */
+  static boot() {
+    StoriesLayout.aplicar();
+  }
 }
 
-// Auto-inicializa quando o DOM estiver pronto
-document.addEventListener('DOMContentLoaded', () => StoriesLayout.aplicar());
+/* Ponto de entrada — método da própria classe, sem código solto */
+document.addEventListener('DOMContentLoaded', () => StoriesLayout.boot());
 

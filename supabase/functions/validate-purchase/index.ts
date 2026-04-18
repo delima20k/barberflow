@@ -2,8 +2,13 @@
 // validate-purchase/index.ts — Edge Function
 // BarberFlow — valida compra Google Play e registra assinatura
 //
+// SEGURANÇA:
+//   - userId é extraído do JWT no header Authorization — NUNCA do body
+//     Impede que um usuário ative assinaturas para outros usuários.
+//   - plano é validado contra lista de valores permitidos
+//   - purchaseToken é validado via Google Play API antes do insert
+//
 // Entradas (JSON body):
-//   userId        : string — UUID do usuário
 //   plano         : 'trial' | 'mensal' | 'trimestral'
 //   purchaseToken : string | undefined — token do Google Play
 //
@@ -13,6 +18,8 @@
 
 import { serve }        from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const PLANOS_VALIDOS = new Set(['trial', 'mensal', 'trimestral']);
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -24,27 +31,63 @@ serve(async (req: Request) => {
     return new Response(null, { headers: CORS });
   }
 
-  try {
-    const { userId, plano, purchaseToken } = await req.json() as {
-      userId:        string;
-      plano:         'trial' | 'mensal' | 'trimestral';
-      purchaseToken?: string;
-    };
+  if (req.method !== 'POST') {
+    return json({ ok: false, error: 'Método não permitido.' }, 405);
+  }
 
-    if (!userId || !plano) {
-      return json({ ok: false, error: 'userId e plano são obrigatórios.' }, 400);
+  try {
+    // ── 1. Verificar autenticação via JWT (NUNCA confiar em userId do body) ──
+    const authHeader = req.headers.get('authorization') ?? '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return json({ ok: false, error: 'Não autorizado.' }, 401);
+    }
+    const token = authHeader.slice(7);
+
+    // Cria client anon apenas para verificar o JWT
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { auth: { persistSession: false } },
+    );
+    const { data: { user }, error: authErr } = await supabaseAuth.auth.getUser(token);
+    if (authErr || !user) {
+      return json({ ok: false, error: 'Não autorizado.' }, 401);
     }
 
+    // userId vem do JWT verificado — ignoramos qualquer userId do body
+    const authenticatedUserId = user.id;
+
+    // ── 2. Validar body ───────────────────────────────────────────────────────
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json() as Record<string, unknown>;
+    } catch {
+      return json({ ok: false, error: 'JSON inválido.' }, 400);
+    }
+
+    const plano         = body.plano as string | undefined;
+    const purchaseToken = typeof body.purchaseToken === 'string' ? body.purchaseToken : undefined;
+
+    if (!plano || !PLANOS_VALIDOS.has(plano)) {
+      return json({ ok: false, error: 'Plano inválido. Use: trial, mensal ou trimestral.' }, 400);
+    }
+
+    // purchaseToken obrigatório para planos pagos
+    if (plano !== 'trial' && !purchaseToken) {
+      return json({ ok: false, error: 'purchaseToken obrigatório para planos pagos.' }, 400);
+    }
+
+    // ── 3. Client com service role (apenas para escrita no banco) ─────────────
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // ── Calcular data de expiração ─────────────────────────
+    // ── 4. Calcular data de expiração ─────────────────────────────────────────
     const startsAt = new Date();
     const endsAt   = calcularFim(plano, startsAt);
 
-    // ── Validar token Google Play (apenas planos pagos) ────
+    // ── 5. Validar token Google Play (apenas planos pagos) ────────────────────
     if (plano !== 'trial' && purchaseToken) {
       const valid = await validarTokenGooglePlay(plano, purchaseToken);
       if (!valid) {
@@ -52,9 +95,9 @@ serve(async (req: Request) => {
       }
     }
 
-    // ── Inserir assinatura no banco ────────────────────────
+    // ── 6. Inserir assinatura — userId vem do JWT, não do body ────────────────
     const { error } = await supabase.from('subscriptions').insert({
-      user_id:        userId,
+      user_id:        authenticatedUserId,
       plan_type:      plano,
       status:         plano === 'trial' ? 'trial' : 'active',
       purchase_token: purchaseToken ?? null,
@@ -65,7 +108,7 @@ serve(async (req: Request) => {
 
     if (error) {
       console.error('[validate-purchase] insert error:', error);
-      return json({ ok: false, error: error.message }, 500);
+      return json({ ok: false, error: 'Erro ao registrar assinatura.' }, 500);
     }
 
     return json({ ok: true, endsAt: endsAt.toISOString() });
