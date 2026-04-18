@@ -208,11 +208,10 @@ class NearbyBarbershopsWidget {
 
     try {
       const { data, error } = await SupabaseService.client
-        .from('profiles')
+        .from('profiles_public')
         .select('id, full_name, avatar_path, pro_type')
         .eq('role', 'professional')
         .eq('pro_type', 'barbeiro')
-        .eq('is_active', true)
         .limit(10);
 
       if (error) { console.error('[NearbyBarbershopsWidget] initHomeBarbeiros error:', error); el.innerHTML = ''; return; }

@@ -21,12 +21,29 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const PLANOS_VALIDOS = new Set(['trial', 'mensal', 'trimestral']);
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Origens permitidas — rejeita requisições de outros domínios
+const ALLOWED_ORIGINS = new Set([
+  'https://barberflow.vercel.app',
+  'https://www.barberflow.app',
+  'https://barberflow.app',
+]);
+
+function buildCors(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') ?? '';
+  // Em dev (sem origin no header) ou origem permitida: libera
+  const allowedOrigin = !origin || ALLOWED_ORIGINS.has(origin)
+    ? (origin || '*')
+    : ALLOWED_ORIGINS.values().next().value as string;
+  return {
+    'Access-Control-Allow-Origin':  allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Vary': 'Origin',
+  };
+}
 
 serve(async (req: Request) => {
+  const CORS = buildCors(req);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: CORS });
   }
@@ -69,19 +86,32 @@ serve(async (req: Request) => {
     const purchaseToken = typeof body.purchaseToken === 'string' ? body.purchaseToken : undefined;
 
     if (!plano || !PLANOS_VALIDOS.has(plano)) {
-      return json({ ok: false, error: 'Plano inválido. Use: trial, mensal ou trimestral.' }, 400);
+      return json({ ok: false, error: 'Plano inválido. Use: trial, mensal ou trimestral.' }, 400, CORS);
     }
 
     // purchaseToken obrigatório para planos pagos
     if (plano !== 'trial' && !purchaseToken) {
-      return json({ ok: false, error: 'purchaseToken obrigatório para planos pagos.' }, 400);
+      return json({ ok: false, error: 'purchaseToken obrigatório para planos pagos.' }, 400, CORS);
     }
 
-    // ── 3. Client com service role (apenas para escrita no banco) ─────────────
+    // ── 3. Client com service role (apenas para escrita no banco) ———————————
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
+
+    // ── 3b. Verificar assinatura ativa existente (anti-trial-abuse) ────────────────────
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('id, status, ends_at')
+      .eq('user_id', authenticatedUserId)
+      .in('status', ['trial', 'active'])
+      .gte('ends_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (existing) {
+      return json({ ok: false, error: 'Você já possui uma assinatura ativa.' }, 409, CORS);
+    }
 
     // ── 4. Calcular data de expiração ─────────────────────────────────────────
     const startsAt = new Date();
@@ -91,7 +121,7 @@ serve(async (req: Request) => {
     if (plano !== 'trial' && purchaseToken) {
       const valid = await validarTokenGooglePlay(plano, purchaseToken);
       if (!valid) {
-        return json({ ok: false, error: 'Token de compra inválido.' }, 422);
+        return json({ ok: false, error: 'Token de compra inválido.' }, 422, CORS);
       }
     }
 
@@ -108,22 +138,22 @@ serve(async (req: Request) => {
 
     if (error) {
       console.error('[validate-purchase] insert error:', error);
-      return json({ ok: false, error: 'Erro ao registrar assinatura.' }, 500);
+      return json({ ok: false, error: 'Erro ao registrar assinatura.' }, 500, CORS);
     }
 
-    return json({ ok: true, endsAt: endsAt.toISOString() });
+    return json({ ok: true, endsAt: endsAt.toISOString() }, 200, CORS);
   } catch (err) {
     console.error('[validate-purchase] unexpected:', err);
-    return json({ ok: false, error: 'Erro interno.' }, 500);
+    return json({ ok: false, error: 'Erro interno.' }, 500, CORS);
   }
 });
 
 // ── Helpers ────────────────────────────────────────────────
 
-function json(body: unknown, status = 200): Response {
+function json(body: unknown, status = 200, cors: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 }
 

@@ -474,9 +474,16 @@ class AuthService {
       SessionCache.salvarAvatar(url);
     }
 
-    // Menu — nome + email
+    // Menu — nome + email (sem innerHTML — previne XSS)
     const mu = document.getElementById('menu-username');
-    if (mu) mu.innerHTML = `${nome} <small id="menu-user-sub">${email}</small>`;
+    if (mu) {
+      mu.textContent = '';
+      const small = document.createElement('small');
+      small.id = 'menu-user-sub';
+      small.textContent = InputValidator.sanitizar(email);
+      mu.appendChild(document.createTextNode(InputValidator.sanitizar(nome) + ' '));
+      mu.appendChild(small);
+    }
 
     // Ativa botão de upload do avatar
     document.getElementById('menu-avatar')?.classList.add('logado');
@@ -521,7 +528,14 @@ class AuthService {
     if (hintNome) hintNome.textContent = 'Anônimo';
 
     const nomeVisitante = typeof App !== 'undefined' ? 'Visitante Cliente' : 'Visitante Profissional';
-    if (mu) mu.innerHTML = `${nomeVisitante} <small id="menu-user-sub">Faça login para continuar</small>`;
+    if (mu) {
+      mu.textContent = '';
+      const small = document.createElement('small');
+      small.id = 'menu-user-sub';
+      small.textContent = 'Faça login para continuar';
+      mu.appendChild(document.createTextNode(nomeVisitante + ' '));
+      mu.appendChild(small);
+    }
 
     // Atualiza menu lateral + footer via NavConfig e Router
     AuthService._instancia()?.sair();
