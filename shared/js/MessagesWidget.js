@@ -186,12 +186,18 @@ class MessagesWidget {
     if (subEl)  subEl.textContent  = conv.sub;
 
     if (avEl) {
+      avEl.textContent = '';
+      avEl.dataset.texto = '';
       if (conv.avatar) {
-        avEl.innerHTML = `<img src="${conv.avatar}" alt="${conv.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.remove()">`;
-        avEl.dataset.texto = '';
+        // DOM API — previne XSS ao usar URL de avatar do banco de dados
+        const img = document.createElement('img');
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+        img.alt     = conv.nome;
+        img.onerror = () => { img.remove(); avEl.textContent = MessagesWidget.#iniciais(conv.nome); };
+        img.src     = conv.avatar;
+        avEl.appendChild(img);
       } else {
-        avEl.innerHTML    = '';
-        avEl.textContent  = MessagesWidget.#iniciais(conv.nome);
+        avEl.textContent = MessagesWidget.#iniciais(conv.nome);
       }
     }
 
