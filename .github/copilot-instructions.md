@@ -127,6 +127,22 @@ const App = new NomeApp();
 3. Usar `App.nav('NOME')` ou `App.push('NOME')` para navegar — NUNCA manipular classes `.tela` manualmente
 4. O botão voltar usa `App.voltar()` — NUNCA `window.history.back()` ou `location.href`
 5. NUNCA criar animações próprias — usar SOMENTE as classes acima
+6. **OBRIGATÓRIO — padrão de topo:** toda nova tela com btn-voltar DEVE usar a estrutura abaixo:
+   ```html
+   <main id="tela-NOME" class="tela">
+     <div class="tela-topo">
+       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+       <h2 class="tela-topo__titulo">Título da Tela</h2>
+     </div>
+     <div class="content">
+       <!-- conteúdo ficará automaticamente a 1.5rem abaixo do botão -->
+     </div>
+   </main>
+   ```
+   - `.tela-topo` posiciona o btn-voltar no canto superior esquerdo, abaixo da header global
+   - `.tela-topo + .content` aplica automaticamente `margin-top: 1.5rem` via CSS em `components.css`
+   - NUNCA criar header próprio sticky para substituir esse padrão
+   - NUNCA usar `position: absolute` para o btn-voltar em telas com `.tela-topo`
 
 ---
 

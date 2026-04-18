@@ -395,6 +395,45 @@
   transform: scaleX(-1); /* aponta para a esquerda */
 }
 
+/* ── Padrão obrigatório para novas telas: topo com btn-voltar ── */
+/* Uso:
+   <div class="tela-topo">
+     <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+     <h2 class="tela-topo__titulo">Título</h2>
+   </div>
+   <div class="content"> ... </div>
+*/
+.tela-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 0 8px;
+  flex-shrink: 0;
+}
+
+/* Override: dentro de .tela-topo o btn-voltar é parte do fluxo */
+.tela-topo .btn-voltar {
+  position: static;
+}
+
+.tela-topo__titulo {
+  font-family: var(--font);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Conteúdo a 1.5rem abaixo do topo */
+.tela-topo + .content {
+  padding-top: 0;
+  margin-top: 1.5rem;
+}
+
 /* ── Header antigo (screens internas) ── oculto na inicio ── */
 .header {
   position: sticky;

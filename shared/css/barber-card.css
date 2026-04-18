@@ -551,29 +551,12 @@
 /* Skeleton */
 .top-card--skel { pointer-events: none; opacity: .45; }
 
-/* Cabeçalho da tela destaques */
-.tela-destaques-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px 8px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--bg, #140a00);
-  border-bottom: 1px solid rgba(212,175,55,.08);
-}
-
-.tela-destaques-titulo {
-  font-family: var(--font);
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--gold, #D4AF37);
-  margin: 0;
-  flex: 1;
-}
-
 .tela-destaques-sub {
+  font-size: .72rem;
+  color: var(--text-muted, #a08060);
+  margin: 0 0 12px;
+  padding: 0 2px;
+}
   font-size: .72rem;
   color: var(--text-muted, #a08060);
   margin: 0 0 12px;
