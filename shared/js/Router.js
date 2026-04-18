@@ -46,6 +46,7 @@ class Router {
 
     this._atualizarUI(telaInicial);
     this._bindLoginEvent();
+    this._bindDataAttributes();
 
     // Remove boot-lock e libera o CSS normal
     document.getElementById('boot-lock')?.remove();
@@ -503,8 +504,7 @@ class Router {
    * Detecta automaticamente o nome do app pelo URL de destino.
    * @param {string} url — caminho destino (ex: '../profissional/')
    */
-  navegarApp(url) {
-    if (this._navegandoApp) return;
+  navegarApp(url) {    if (this._navegandoApp) return;
     this._navegandoApp = true;
 
     // Detecta o app destino pelo URL:
@@ -547,5 +547,56 @@ class Router {
       overlay.classList.add('saindo');
       setTimeout(() => { onFim ? onFim() : overlay.remove(); }, 450);
     }, 2200);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     DELEGAÇÃO POR DATA-ATTRIBUTES
+     Centraliza navegação e ações — elimina onclick inline no HTML.
+     Handlers registrados por event delegation (um único listener).
+  ───────────────────────────────────────────────────────────── */
+
+  /**
+   * Registra um único listener de clique no document para tratar
+   * todos os elementos com data-attributes de navegação/ação.
+   *
+   * Atributos suportados:
+   *   [data-nav="tela"]        → this.nav(tela)
+   *   [data-push="tela"]       → this.push(tela)
+   *   [data-voltar]            → this.voltar()
+   *   [data-menu-nav="tela"]   → this.navDoMenu(tela)  (fecha menu + nav)
+   *   [data-navapp="url"]      → this.navegarApp(url)
+   *   [data-action="confirmar-saida"]  → this.confirmarSaida()
+   *   [data-action="avatar-upload"]    → this.abrirUploadAvatar()
+   */
+  _bindDataAttributes() {
+    document.addEventListener('click', (e) => {
+      // data-nav
+      const navEl = e.target.closest('[data-nav]');
+      if (navEl) { e.preventDefault(); this.nav(navEl.dataset.nav); return; }
+
+      // data-push
+      const pushEl = e.target.closest('[data-push]');
+      if (pushEl) { e.preventDefault(); this.push(pushEl.dataset.push); return; }
+
+      // data-voltar
+      const voltarEl = e.target.closest('[data-voltar]');
+      if (voltarEl) { e.preventDefault(); this.voltar(); return; }
+
+      // data-menu-nav — fecha drawer e depois navega
+      const menuNavEl = e.target.closest('[data-menu-nav]');
+      if (menuNavEl) { e.preventDefault(); this.navDoMenu(menuNavEl.dataset.menuNav); return; }
+
+      // data-navapp — splash + redirect para outro app
+      const navappEl = e.target.closest('[data-navapp]');
+      if (navappEl) { e.preventDefault(); this.navegarApp(navappEl.dataset.navapp); return; }
+
+      // data-action — ações pontuais delegadas ao Router
+      const actionEl = e.target.closest('[data-action]');
+      if (actionEl) {
+        const a = actionEl.dataset.action;
+        if (a === 'confirmar-saida')  { e.preventDefault(); this.confirmarSaida();    return; }
+        if (a === 'avatar-upload')    { e.preventDefault(); this.abrirUploadAvatar(); return; }
+      }
+    }, { passive: false });
   }
 }

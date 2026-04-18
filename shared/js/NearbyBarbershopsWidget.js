@@ -9,7 +9,7 @@
 //   - Se negada/prompt: mostrar botão radondo "Ativar GPS"
 //   - Reação ao GeoService (onGPSConcedido / onGPSNegado)
 //
-// Dependências: GeoService.js, SupabaseService.js
+// Dependências: GeoService.js, BarbershopRepository.js, BarbershopService.js
 // =============================================================
 
 class NearbyBarbershopsWidget {
@@ -76,23 +76,14 @@ class NearbyBarbershopsWidget {
       </div>`).join('');
 
     try {
-      const { data, error } = await SupabaseService.client
-        .from('barbershops')
-        .select('id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg')
-        .eq('is_active', true)
-        .order('rating_avg', { ascending: false })
-        .limit(10);
-
-      if (error) { console.error('[NearbyBarbershopsWidget] initHomeCards error:', error); el.innerHTML = ''; return; }
-      if (!data?.length) { el.innerHTML = ''; return; }
+      let lista = await BarbershopRepository.getAll(10);
 
       // Se GPS disponível, calcula distância
-      let lista = data;
       try {
         const permissao = await GeoService.verificarPermissao();
         if (permissao === 'granted') {
           const pos = await GeoService.obter();
-          lista = data
+          lista = lista
             .map(b => ({ ...b, distance_km: b.latitude
               ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
               : null }))
@@ -129,18 +120,11 @@ class NearbyBarbershopsWidget {
       </div>`).join('');
 
     try {
-      const { data, error } = await SupabaseService.client
-        .from('barbershops')
-        .select('id, name, logo_path, is_open, rating_avg')
-        .eq('is_active', true)
-        .order('rating_avg', { ascending: false })
-        .limit(6);
-
-      if (error) { console.error('[NearbyBarbershopsWidget] initHomeDestaque error:', error); el.innerHTML = ''; return; }
-      if (!data?.length) { el.innerHTML = ''; return; }
+      const lista = await BarbershopRepository.getFeatured(6);
+      if (!lista.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
-      data.forEach(b => {
+      lista.forEach(b => {
         const card = document.createElement('div');
         card.className = 'card-mini';
 
@@ -207,18 +191,11 @@ class NearbyBarbershopsWidget {
       </div>`).join('');
 
     try {
-      const { data, error } = await SupabaseService.client
-        .from('profiles_public')
-        .select('id, full_name, avatar_path, pro_type')
-        .eq('role', 'professional')
-        .eq('pro_type', 'barbeiro')
-        .limit(10);
-
-      if (error) { console.error('[NearbyBarbershopsWidget] initHomeBarbeiros error:', error); el.innerHTML = ''; return; }
-      if (!data?.length) { el.innerHTML = ''; return; }
+      const lista = await BarbershopRepository.getBarbers(10);
+      if (!lista.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
-      data.forEach(p => {
+      lista.forEach(p => {
         const row = document.createElement('div');
         row.className = 'barber-row barber-card';
 
@@ -287,27 +264,7 @@ class NearbyBarbershopsWidget {
   }
 
   static async #buscarBarbearias(lat, lng) {
-    const R    = NearbyBarbershopsWidget.#RAIO_KM;
-    const latD = R / 111.0;
-    const lonD = R / (111.0 * Math.cos(lat * Math.PI / 180));
-
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
-      .select('id, name, slug, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count')
-      .eq('is_active', true)
-      .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
-      .gte('longitude', lng - lonD).lte('longitude', lng + lonD)
-      .limit(30);
-
-    if (error) throw new Error('N\u00e3o foi poss\u00edvel carregar as barbearias.');
-
-    return (data ?? [])
-      .map(s => ({
-        ...s,
-        distance_km: parseFloat(NearbyBarbershopsWidget.#haversine(lat, lng, s.latitude, s.longitude).toFixed(2)),
-      }))
-      .filter(s => s.distance_km <= R)
-      .sort((a, b) => a.distance_km - b.distance_km);
+    return BarbershopRepository.getNearby(lat, lng, NearbyBarbershopsWidget.#RAIO_KM);
   }
 
   static #haversine(lat1, lon1, lat2, lon2) {

@@ -1,16 +1,28 @@
 'use strict';
 
+// =============================================================
+// app.js — App Cliente (BarberFlow)
+//
+// Extende o Router base e orquestra as Pages por domínio.
+// Responsabilidades:
+//   - Declarar telasComNav
+//   - Instanciar Pages (UI) — cada uma gerencia seu próprio bind
+//   - Iniciar listener e sessão de autenticação
+//   - NÃO contém lógica de negócio nem queries de dados
+//
+// Estrutura de camadas:
+//   UI   →  pages/  (LoginPage, HomePage, ProfilePage…)
+//   Logic→  shared/js/  (AuthService, BarbershopService…)
+//   Data →  shared/js/  (BarbershopRepository, ProfileRepository…)
+// =============================================================
+
 /**
- * BarberFlow — App Cliente
- * Extende o Router base de ../../shared/js/Router.js
- *
- * Responsabilidades desta classe:
- *   - Declarar telasComNav
- *   - Instanciar AuthController (binding de auth sem onsubmit no HTML)
- *   - Métodos de navegação chamados pelo HTML (nav/push/voltar vêm do Router)
+ * Aplicação cliente do BarberFlow.
+ * Orquestra as Pages e delega ao Router toda a navegação SPA.
  */
 class BarberFlowCliente extends Router {
 
+  // Telas que exibem o footer completo (usuário logado)
   static #TELAS_COM_NAV = new Set([
     'inicio',
     'pesquisa',
@@ -22,12 +34,45 @@ class BarberFlowCliente extends Router {
 
   get telasComNav() { return BarberFlowCliente.#TELAS_COM_NAV; }
 
-  #auth;
+  // ── Pages (UI por tela) ──────────────────────────────────
+  #loginPage;
+  #registerPage;
+  #forgotPage;
+  #homePage;
+  #searchPage;
+  #messagesPage;
+  #favoritesPage;
+  #profilePage;
+  #logoutPage;
 
   constructor() {
     super('inicio');
-    this.#auth = new AuthController((tela) => this.nav(tela), 'client');
-    this.#auth.bind();
+
+    const nav = (tela) => this.nav(tela);
+
+    // Instancia cada Page — bind de eventos sem lógica de negócio
+    this.#loginPage    = new LoginPage(nav);
+    this.#registerPage = new RegisterPage(nav);
+    this.#forgotPage   = new ForgotPasswordPage(nav);
+    this.#homePage     = new HomePage();
+    this.#searchPage   = new SearchPage();
+    this.#messagesPage = new MessagesPage();
+    this.#favoritesPage = new FavoritesPage();
+    this.#profilePage  = new ProfilePage();
+    this.#logoutPage   = new LogoutPage();
+
+    // Registra todos os listeners de DOM
+    this.#loginPage.bind();
+    this.#registerPage.bind();
+    this.#forgotPage.bind();
+    this.#homePage.bind();
+    this.#searchPage.bind();
+    this.#messagesPage.bind();
+    this.#favoritesPage.bind();
+    this.#profilePage.bind();
+    this.#logoutPage.bind();
+
+    // Inicia sessão de autenticação
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }
