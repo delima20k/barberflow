@@ -113,12 +113,25 @@ class NearbyBarbershopsWidget {
 
     // Skeleton 4 cards
     el.innerHTML = Array(4).fill(0).map(() => `
-      <div class="destaque-card destaque-card--skeleton" aria-hidden="true">
-        <div class="dc-avatar dc-avatar--skel"></div>
-        <div class="dc-nome dc-skel" style="width:80px;height:12px;"></div>
-        <div class="dc-addr dc-skel" style="width:60px;height:10px;"></div>
-        <div class="dc-stars-wrap dc-skel" style="width:70px;height:14px;"></div>
-        <div class="dc-actions"><div class="dc-skel" style="width:90px;height:22px;border-radius:20px;"></div></div>
+      <div class="destaque-item">
+        <div class="destaque-card destaque-card--skeleton" aria-hidden="true">
+          <div class="dc-header">
+            <div class="dc-left">
+              <div class="dc-avatar dc-avatar--skel"></div>
+              <div class="dc-skel" style="width:44px;height:10px;border-radius:99px;"></div>
+            </div>
+            <div class="dc-actions">
+              <div class="dc-skel" style="width:38px;height:22px;border-radius:20px;"></div>
+              <div class="dc-skel" style="width:38px;height:22px;border-radius:20px;"></div>
+              <div class="dc-skel" style="width:28px;height:22px;border-radius:20px;"></div>
+            </div>
+          </div>
+          <div class="dc-skel" style="width:80%;height:12px;"></div>
+          <div class="dc-card-footer">
+            <div class="dc-skel" style="width:70px;height:14px;margin:0 auto;"></div>
+          </div>
+        </div>
+        <div class="dc-skel" style="width:85%;height:10px;margin:0 auto;border-radius:6px;"></div>
       </div>`).join('');
 
     try {
@@ -136,6 +149,10 @@ class NearbyBarbershopsWidget {
           ? Number(b.rating_score)
           : BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0);
         const fillPct = ((score / 5) * 100).toFixed(1);
+
+        // ── Wrapper externo (card + endereço abaixo) ──────
+        const item = document.createElement('div');
+        item.className = 'destaque-item';
 
         const card = document.createElement('div');
         card.className = 'destaque-card';
@@ -158,22 +175,61 @@ class NearbyBarbershopsWidget {
           avatarWrap.textContent = '💈';
         }
 
-        // ── Badge aberto/fechado ──────────────────────────
+        // ── Badge aberto/fechado (abaixo do avatar, no dc-left) ──
         const badge = document.createElement('span');
         badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
         badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+
+        // ── Coluna esquerda: avatar + badge ───────────────
+        const dcLeft = document.createElement('div');
+        dcLeft.className = 'dc-left';
+        dcLeft.appendChild(avatarWrap);
+        dcLeft.appendChild(badge);
+
+        // ── Botões de ação (coluna direita: like → dislike → favorito) ──
+        const btnLike = document.createElement('button');
+        btnLike.type = 'button';
+        btnLike.className = 'dc-btn like';
+        btnLike.dataset.action = 'barbershop-like';
+        btnLike.title = 'Curtir esta barbearia';
+        btnLike.setAttribute('aria-label', 'Curtir');
+        btnLike.innerHTML = `<span class="dc-btn-icon">👍</span><span class="dc-count">${likes}</span>`;
+
+        const btnDislike = document.createElement('button');
+        btnDislike.type = 'button';
+        btnDislike.className = 'dc-btn dislike';
+        btnDislike.dataset.action = 'barbershop-dislike';
+        btnDislike.title = 'Feedback negativo';
+        btnDislike.setAttribute('aria-label', 'Feedback negativo');
+        btnDislike.innerHTML = `<span class="dc-btn-icon">👎</span><span class="dc-count">${dislikes}</span>`;
+
+        const btnFav = document.createElement('button');
+        btnFav.type = 'button';
+        btnFav.className = 'dc-btn favorite';
+        btnFav.dataset.action = 'barbershop-favorite';
+        btnFav.title = 'Adicionar aos favoritos';
+        btnFav.setAttribute('aria-label', 'Favoritar');
+        btnFav.setAttribute('aria-pressed', 'false');
+        btnFav.innerHTML = `<span class="dc-btn-icon">⭐</span>`;
+
+        const actions = document.createElement('div');
+        actions.className = 'dc-actions';
+        actions.appendChild(btnLike);
+        actions.appendChild(btnDislike);
+        actions.appendChild(btnFav);
+
+        // ── Header: avatar (esq) + ações em coluna (dir) ──
+        const dcHeader = document.createElement('div');
+        dcHeader.className = 'dc-header';
+        dcHeader.appendChild(dcLeft);
+        dcHeader.appendChild(actions);
 
         // ── Nome ──────────────────────────────────────────
         const nome = document.createElement('p');
         nome.className = 'dc-nome';
         nome.textContent = b.name;
 
-        // ── Endereço ──────────────────────────────────────
-        const addr = document.createElement('p');
-        addr.className = 'dc-addr';
-        addr.textContent = b.address || b.city || '';
-
-        // ── Estrelas (CSS fill) ───────────────────────────
+        // ── Rodapé do card: estrelas + pontuação ──────────
         const starsWrap = document.createElement('div');
         starsWrap.className = 'dc-stars-wrap';
         starsWrap.innerHTML = `
@@ -190,51 +246,23 @@ class NearbyBarbershopsWidget {
         starsRow.appendChild(starsWrap);
         starsRow.appendChild(scoreNum);
 
-        // ── Botões de ação ────────────────────────────────
-        const actions = document.createElement('div');
-        actions.className = 'dc-actions';
+        const cardFooter = document.createElement('div');
+        cardFooter.className = 'dc-card-footer';
+        cardFooter.appendChild(starsRow);
 
-        // Like (👍)
-        const btnLike = document.createElement('button');
-        btnLike.type = 'button';
-        btnLike.className = 'dc-btn like';
-        btnLike.dataset.action = 'barbershop-like';
-        btnLike.title = 'Curtir esta barbearia';
-        btnLike.setAttribute('aria-label', 'Curtir');
-        btnLike.innerHTML = `<span class="dc-btn-icon">👍</span><span class="dc-count">${likes}</span>`;
-
-        // Dislike (👎)
-        const btnDislike = document.createElement('button');
-        btnDislike.type = 'button';
-        btnDislike.className = 'dc-btn dislike';
-        btnDislike.dataset.action = 'barbershop-dislike';
-        btnDislike.title = 'Feedback negativo';
-        btnDislike.setAttribute('aria-label', 'Feedback negativo');
-        btnDislike.innerHTML = `<span class="dc-btn-icon">👎</span><span class="dc-count">${dislikes}</span>`;
-
-        // Favorito (⭐)
-        const btnFav = document.createElement('button');
-        btnFav.type = 'button';
-        btnFav.className = 'dc-btn favorite';
-        btnFav.dataset.action = 'barbershop-favorite';
-        btnFav.title = 'Adicionar aos favoritos';
-        btnFav.setAttribute('aria-label', 'Favoritar');
-        btnFav.setAttribute('aria-pressed', 'false');
-        btnFav.innerHTML = `<span class="dc-btn-icon">⭐</span>`;
-
-        actions.appendChild(btnLike);
-        actions.appendChild(btnDislike);
-        actions.appendChild(btnFav);
-
-        // ── Monta card ───────────────────────────────────
-        card.appendChild(avatarWrap);
-        card.appendChild(badge);
+        // ── Monta card ────────────────────────────────────
+        card.appendChild(dcHeader);
         card.appendChild(nome);
-        card.appendChild(addr);
-        card.appendChild(starsRow);
-        card.appendChild(actions);
+        card.appendChild(cardFooter);
 
-        el.appendChild(card);
+        // ── Endereço — fora do card, abaixo ───────────────
+        const addr = document.createElement('p');
+        addr.className = 'dc-addr';
+        addr.textContent = b.address || b.city || '';
+
+        item.appendChild(card);
+        item.appendChild(addr);
+        el.appendChild(item);
         cardsEls.push(card);
       });
 

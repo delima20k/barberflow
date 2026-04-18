@@ -174,11 +174,15 @@
 
 /* ============================================================
    DESTAQUE CARD — cards mini da seção "Em Destaque" da home.
-   Layout: vertical, scroll horizontal, com estrelas decimais,
-   botões de curtida, descurtida e favorito.
+   Layout:
+     - Topo esq: avatar + badge abaixo
+     - Topo dir: botões em coluna (like → dislike → favorito)
+     - Centro: nome da barbearia
+     - Rodapé do card: estrelas decimais
+     - Abaixo do card: endereço
 ============================================================ */
 
-/* Container de scroll (h-scroll já fornece overflow-x: auto) */
+/* Container de scroll */
 #home-destaque-lista {
   display: flex;
   gap: 12px;
@@ -186,28 +190,37 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
 }
 
 #home-destaque-lista::-webkit-scrollbar { display: none; }
+
+/* ── Wrapper externo: card + endereço abaixo ── */
+.destaque-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 148px;
+  max-width: 164px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
 
 /* ── Card base ── */
 .destaque-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 5px;
+  gap: 6px;
   background: var(--card-bg, #1c1006);
   border: 1px solid rgba(212, 175, 55, .14);
   border-radius: 16px;
-  padding: 14px 10px 10px;
-  min-width: 136px;
-  max-width: 150px;
-  flex-shrink: 0;
-  text-align: center;
+  padding: 12px 10px 10px;
   cursor: pointer;
-  scroll-snap-align: start;
   transition: transform .18s, box-shadow .18s, border-color .18s;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .destaque-card:hover {
@@ -233,6 +246,24 @@
   50%       { opacity: .9;  }
 }
 
+/* ── Header: avatar + badge (esq) | botões (dir) ── */
+.dc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Coluna esquerda: avatar + badge centralizado abaixo */
+.dc-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 /* ── Avatar ── */
 .dc-avatar {
   width: 54px;
@@ -251,110 +282,33 @@
 .dc-avatar--skel { background: rgba(212, 175, 55, .08); }
 .dc-avatar img   { width: 100%; height: 100%; object-fit: cover; }
 
-/* ── Badge aberto/fechado ── */
+/* ── Badge aberto/fechado (abaixo do avatar) ── */
 .dc-badge {
-  font-size: .6rem;
+  font-size: .55rem;
   font-weight: 700;
   letter-spacing: .04em;
   text-transform: uppercase;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 99px;
   line-height: 1.6;
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  white-space: nowrap;
 }
 .dc-badge--open   { background: rgba(80,200,80,.14);  color: #6dce6d; border: 1px solid rgba(80,200,80,.25); }
 .dc-badge--closed { background: rgba(200,80,80,.12);  color: #e07070; border: 1px solid rgba(200,80,80,.2);  }
 
-/* ── Nome ── */
-.dc-nome {
-  font-size: .78rem;
-  font-weight: 700;
-  color: var(--text-primary, #f5e9dc);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  width: 100%;
-  margin: 0;
-}
-
-/* ── Endereço ── */
-.dc-addr {
-  font-size: .64rem;
-  color: var(--text-muted, #a08060);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  width: 100%;
-  margin: 0;
-}
-
-/* ── Linha de estrelas + número ── */
-.dc-stars-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  margin-top: 2px;
-}
-
-/* Estrelas com fill dinâmico via width% */
-.dc-stars-wrap {
-  position: relative;
-  display: inline-block;
-  line-height: 1;
-  font-size: .88rem;
-  letter-spacing: .06em;
-  flex-shrink: 0;
-}
-
-.dc-stars-base {
-  color: rgba(212, 175, 55, .2);
-  display: block;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.dc-stars-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  color: var(--gold, #D4AF37);
-  pointer-events: none;
-  transition: width .3s ease;
-  user-select: none;
-}
-
-.dc-rating-num {
-  font-size: .72rem;
-  font-weight: 700;
-  color: var(--gold, #D4AF37);
-  white-space: nowrap;
-}
-
-/* ── Botões de ação ── */
+/* ── Botões de ação — coluna direita ── */
 .dc-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 4px;
-  width: 100%;
-  margin-top: 4px;
-  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .dc-btn {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   padding: 4px 7px;
   border-radius: 20px;
   border: 1px solid transparent;
@@ -402,10 +356,90 @@
 }
 .dc-btn.favorite.ativo .dc-btn-icon::after { content: ''; }
 
+/* ── Nome ── */
+.dc-nome {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text-primary, #f5e9dc);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* ── Rodapé do card: estrelas ── */
+.dc-card-footer {
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid rgba(212, 175, 55, .08);
+  width: 100%;
+}
+
+/* Linha de estrelas + número */
+.dc-stars-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+/* Estrelas com fill dinâmico via width% */
+.dc-stars-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  font-size: .88rem;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+}
+
+.dc-stars-base {
+  color: rgba(212, 175, 55, .2);
+  display: block;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.dc-stars-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--gold, #D4AF37);
+  pointer-events: none;
+  transition: width .3s ease;
+  user-select: none;
+}
+
+.dc-rating-num {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  white-space: nowrap;
+}
+
+/* ── Endereço — abaixo do card (fora) ── */
+.dc-addr {
+  font-size: .64rem;
+  color: var(--text-muted, #a08060);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  padding: 0 2px;
+  text-align: center;
+}
+
 /* Mobile: reduz padding mínimo */
 @media (max-width: 380px) {
-  .destaque-card { min-width: 122px; padding: 12px 8px 9px; }
-  .dc-avatar     { width: 48px; height: 48px; font-size: 1.3rem; }
-  .dc-nome       { font-size: .72rem; }
-  .dc-btn        { padding: 3px 5px; font-size: .58rem; }
+  .destaque-item  { min-width: 132px; max-width: 148px; }
+  .dc-avatar      { width: 46px; height: 46px; font-size: 1.3rem; }
+  .dc-nome        { font-size: .72rem; }
+  .dc-btn         { padding: 3px 5px; font-size: .58rem; }
 }
