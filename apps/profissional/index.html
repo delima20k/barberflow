@@ -443,7 +443,10 @@
 
       <!-- Em destaque -->
       <div>
-        <h2 class="sec-title">Em Destaque</h2>
+        <div class="sec-header">
+          <h2 class="sec-title">Em Destaque</h2>
+          <button class="sec-ver-mais" data-push="destaques">Ver mais</button>
+        </div>
         <div id="home-destaque-lista" class="h-scroll"></div>
       </div>
 
@@ -458,6 +461,21 @@
       </div>
 
     </div><!-- .content -->
+  </main>
+
+  <!-- ============================================================
+       TELA — DESTAQUES (Top Barbearias / ranking)
+  ============================================================ -->
+  <main id="tela-destaques" class="tela">
+    <div class="tela-destaques-header">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">←</button>
+      <h2 class="tela-destaques-titulo">Top Barbearias</h2>
+    </div>
+    <div class="content" style="padding-top:0;">
+      <p class="tela-destaques-sub">Ordenadas por pontuação e avaliação no BarberFlow</p>
+      <div id="destaques-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <p id="destaques-vazio" class="tela-destaques-vazio" hidden>Nenhuma barbearia encontrada.</p>
+    </div>
   </main>
 
   <!-- ============================================================
@@ -1321,6 +1339,7 @@
 <script src="assets/js/controllers/CadastroController.js"></script>
 <script src="assets/js/controllers/PlanosController.js"></script>
 <script src="assets/js/controllers/TermosController.js"></script>
+<script src="assets/js/pages/DestaquesPage.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>

@@ -46,24 +46,3 @@ class AppBootstrap {
     });
   }
 }
-
-  static init() {
-    AppBootstrap.#WIDGETS.forEach(({ label, fn }) => {
-      try {
-        fn();
-      } catch (e) {
-        console.warn(`[AppBootstrap] ${label} falhou:`, e?.message);
-      }
-    });
-    AppBootstrap.#registrarSW();
-  }
-
-  static #registrarSW() {
-    if (!('serviceWorker' in navigator)) return;
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => console.log('[BarberFlow Cliente] SW registrado', reg.scope))
-        .catch(err => console.warn('[BarberFlow Cliente] SW erro', err));
-    });
-  }
-}
