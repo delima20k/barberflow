@@ -577,10 +577,16 @@
 /* "Barber" em dourado, "Flow" em marrom visível */
 .destaques-barber { color: var(--gold, #D4AF37); }
 .destaques-flow   { color: #bf8040; }
+
+/* Parágrafo dig — menor e discreto, sem fundo */
+.destaques-hero #destaques-dig {
   font-size: .72rem;
-  color: var(--text-muted, #a08060);
-  margin: 0 0 12px;
-  padding: 0 2px;
+  line-height: 1.6;
+  margin-top: 6px;
+  padding: 5px 10px;
+  text-align: left;
+  background: transparent;
+  border-left: 2px solid rgba(212,175,55,.3);
 }
 
 .tela-destaques-vazio {
