@@ -105,8 +105,13 @@ class AuthService {
 
       // Garante criação do perfil (fallback caso o trigger não exista)
       if (user) {
-        const perfilData = { id: user.id, full_name: nome, phone: telefone || null, role };
-        if (pro_type) perfilData.pro_type = pro_type;
+        // SEGURANÇA: role e pro_type são definidos pelo trigger handle_new_user
+        // (SECURITY DEFINER no servidor) via raw_user_meta_data.
+        // Nunca enviamos role/pro_type no upsert de fallback — o trigger
+        // tem autoridade sobre esses campos. Um upsert com role: 'admin' aqui
+        // seria bloqueado pelo trigger prevent_role_escalation, mas por defesa
+        // em profundidade, removemos o campo da origem do problema.
+        const perfilData = { id: user.id, full_name: nome, phone: telefone || null };
         await SupabaseService.client
           .from('profiles')
           .upsert(perfilData, { onConflict: 'id' });

@@ -142,7 +142,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Entrar</h2>
-        <form class="login-form" onsubmit="Pro.fazerLogin(); return false;">
+        <form id="login-form" class="login-form">
           <div class="form-field">
             <label>E-mail profissional</label>
             <input id="login-email" type="email" placeholder="barbeiro@seudominio.com" autocomplete="username">
@@ -181,7 +181,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Criar conta</h2>
-        <form class="login-form" onsubmit="Pro.fazerCadastro(); return false;">
+        <form id="cad-form" class="login-form">
           <div class="form-field">
             <label>Nome completo</label>
             <input id="cad-nome" type="text" placeholder="Seu nome profissional" autocomplete="name">
@@ -203,22 +203,17 @@
           <div class="form-field">
             <label>Documento <span class="form-label-opt">(opcional)</span></label>
             <div class="cad-doc-toggle">
-              <button type="button" class="cad-doc-btn cad-doc-btn--ativo" id="cad-doc-btn-cpf"
-                      onclick="Pro.alternarDoc('cpf')">CPF</button>
-              <button type="button" class="cad-doc-btn" id="cad-doc-btn-cnpj"
-                      onclick="Pro.alternarDoc('cnpj')">CNPJ</button>
-              <button type="button" class="cad-doc-btn" id="cad-doc-btn-ambos"
-                      onclick="Pro.alternarDoc('ambos')">Ambos</button>
+              <button type="button" class="cad-doc-btn cad-doc-btn--ativo" id="cad-doc-btn-cpf">CPF</button>
+              <button type="button" class="cad-doc-btn" id="cad-doc-btn-cnpj">CNPJ</button>
+              <button type="button" class="cad-doc-btn" id="cad-doc-btn-ambos">Ambos</button>
             </div>
             <div id="cad-doc-cpf">
               <input id="cad-cpf" type="text" inputmode="numeric" placeholder="000.000.000-00"
-                     maxlength="14" autocomplete="off"
-                     oninput="Pro.mascaraDoc(this,'cpf')">
+                     maxlength="14" autocomplete="off">
             </div>
             <div id="cad-doc-cnpj" style="display:none">
               <input id="cad-cnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00"
-                     maxlength="18" autocomplete="off"
-                     oninput="Pro.mascaraDoc(this,'cnpj')">
+                     maxlength="18" autocomplete="off">
             </div>
           </div>
 
@@ -256,7 +251,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Esqueceu a senha?</h2>
-        <form class="login-form" onsubmit="Pro.fazerRecuperacao(); return false;">
+        <form id="rec-form" class="login-form">
           <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
             Digite seu e-mail profissional e enviaremos um link para criar uma nova senha.
           </p>
@@ -844,14 +839,14 @@
       </div>
       <div class="tipo-usuario-cards">
         <!-- Card — Barbeiro autônomo -->
-        <button class="tipo-usuario-card" onclick="Pro.selecionarTipoUsuario('barbeiro')">
+        <button class="tipo-usuario-card" data-tipo-usuario="barbeiro">
           <span class="tipo-usuario-card-icon">💈</span>
           <span class="tipo-usuario-card-titulo">Sou Barbeiro</span>
           <span class="tipo-usuario-card-sub">Trabalho de forma autônoma ou como funcionário em uma barbearia.</span>
           <span class="tipo-usuario-card-cta">Ver planos →</span>
         </button>
         <!-- Card — Barbeiro com loja -->
-        <button class="tipo-usuario-card tipo-usuario-card--loja" onclick="Pro.selecionarTipoUsuario('barbearia')">
+        <button class="tipo-usuario-card tipo-usuario-card--loja" data-tipo-usuario="barbearia">
           <span class="tipo-usuario-card-icon">🏪</span>
           <span class="tipo-usuario-card-titulo">Sou Barbeiro com Loja</span>
           <span class="tipo-usuario-card-sub">Tenho minha própria barbearia e quero gerenciar toda a equipe.</span>
@@ -891,7 +886,7 @@
             <li><span class="plano-check">✓</span><span>GPS em tempo real<span class="plano-bi">Real-time location</span></span></li>
             <li><span class="plano-check">✓</span><span>Até 3 stories por dia<span class="plano-bi">Up to 3 stories per day</span></span></li>
           </ul>
-          <button class="btn btn-outline btn-full plano-btn" onclick="Pro.selecionarPlano('trial')">Começar agora</button>
+          <button class="btn btn-outline btn-full plano-btn" data-plano-old="trial">Começar agora</button>
         </div>
 
         <!-- ── Plano Mensal ── -->
@@ -912,7 +907,7 @@
             <li><span class="plano-check">✓</span><span>GPS em tempo real<span class="plano-bi">Real-time location</span></span></li>
             <li><span class="plano-check">✓</span><span>Até 3 stories por dia<span class="plano-bi">Up to 3 stories per day</span></span></li>
           </ul>
-          <button class="btn btn-gold btn-full plano-btn" onclick="Pro.selecionarPlano('mensal')">Assinar</button>
+          <button class="btn btn-gold btn-full plano-btn" data-plano-old="mensal">Assinar</button>
         </div>
 
         <!-- ── Plano Trimestral ── -->
@@ -933,7 +928,7 @@
             <li><span class="plano-check">✓</span><span>GPS em tempo real<span class="plano-bi">Real-time location</span></span></li>
             <li><span class="plano-check">✓</span><span>Até 3 stories por dia<span class="plano-bi">Up to 3 stories per day</span></span></li>
           </ul>
-          <button class="btn btn-outline btn-full plano-btn" onclick="Pro.selecionarPlano('trimestral')">Assinar com desconto</button>
+          <button class="btn btn-outline btn-full plano-btn" data-plano-old="trimestral">Assinar com desconto</button>
         </div>
 
       </div><!-- .planos-scroll -->
@@ -954,12 +949,10 @@
 
     <!-- Toggle barbeiro / barbearia -->
     <div class="ppp-toggle" role="tablist">
-      <button class="ppp-toggle-btn ppp-toggle-btn--ativo" id="ppp-btn-barbeiro"
-              onclick="Pro.alternarTipoPlano('barbeiro')">
+      <button class="ppp-toggle-btn ppp-toggle-btn--ativo" id="ppp-btn-barbeiro">
         <img src="/shared/img/perfil.svg" class="ppp-toggle-icon" alt=""> Barbeiro
       </button>
-      <button class="ppp-toggle-btn" id="ppp-btn-barbearia"
-              onclick="Pro.alternarTipoPlano('barbearia')">
+      <button class="ppp-toggle-btn" id="ppp-btn-barbearia">
         <img src="/shared/img/meu-b.svg" class="ppp-toggle-icon" alt=""> Barbearia
       </button>
     </div>
@@ -986,7 +979,7 @@
         </ul>
         <p class="ppp-nota-parceria">★ Cadeirinhas, GPS e Stories exigem parceria com barbearia do sistema</p>
         <button class="ppp-btn ppp-btn--outline"
-                onclick="Pro.selecionarPlanoPro('barbeiro','trial')">Começar teste grátis</button>
+                data-tipo="barbeiro" data-plano="trial">Começar teste grátis</button>
       </div>
 
       <!-- Mensal -->
@@ -1011,7 +1004,7 @@
         </ul>
         <p class="ppp-nota-parceria">★ Cadeirinhas, GPS e Stories exigem parceria com barbearia do sistema</p>
         <button class="ppp-btn"
-                onclick="Pro.selecionarPlanoPro('barbeiro','mensal')">Assinar agora</button>
+                data-tipo="barbeiro" data-plano="mensal">Assinar agora</button>
       </div>
 
       <!-- Trimestral — destaque -->
@@ -1037,7 +1030,7 @@
         </ul>
         <p class="ppp-nota-parceria">★ Cadeirinhas, GPS e Stories exigem parceria com barbearia do sistema</p>
         <button class="ppp-btn"
-                onclick="Pro.selecionarPlanoPro('barbeiro','trimestral')">Assinar com desconto</button>
+                data-tipo="barbeiro" data-plano="trimestral">Assinar com desconto</button>
       </div>
 
     </div><!-- #ppp-cards-barbeiro -->
@@ -1063,7 +1056,7 @@
           <li class="ppp-chip">· Stories</li>
         </ul>
         <button class="ppp-btn ppp-btn--outline"
-                onclick="Pro.selecionarPlanoPro('barbearia','trial')">Começar teste grátis</button>
+                data-tipo="barbearia" data-plano="trial">Começar teste grátis</button>
       </div>
 
       <!-- Mensal -->
@@ -1087,7 +1080,7 @@
           <li class="ppp-chip">· Stories</li>
         </ul>
         <button class="ppp-btn"
-                onclick="Pro.selecionarPlanoPro('barbearia','mensal')">Assinar agora</button>
+                data-tipo="barbearia" data-plano="mensal">Assinar agora</button>
       </div>
 
       <!-- Trimestral — destaque -->
@@ -1112,7 +1105,7 @@
           <li class="ppp-chip">· Stories</li>
         </ul>
         <button class="ppp-btn"
-                onclick="Pro.selecionarPlanoPro('barbearia','trimestral')">Assinar com desconto</button>
+                data-tipo="barbearia" data-plano="trimestral">Assinar com desconto</button>
       </div>
 
     </div><!-- #ppp-cards-barbearia -->
@@ -1213,8 +1206,7 @@
     <div class="tl-checks">
 
       <label class="tl-check-item">
-        <input type="checkbox" id="tl-cb-termos" class="tl-checkbox"
-               onchange="Pro._sincronizarBotaoTermos()">
+        <input type="checkbox" id="tl-cb-termos" class="tl-checkbox">
         <span class="tl-check-label">Declaro que li e aceito os termos de uso e o uso interno dos conteudos enviados dentro da plataforma.</span>
       </label>
 
@@ -1225,8 +1217,7 @@
 
     <!-- Botao Continuar (desabilitado ate confirmar o aceite) -->
     <div class="tl-action">
-      <button id="tl-btn-continuar" class="tl-btn" disabled
-              onclick="Pro.aceitarTermos()">Continuar</button>
+      <button id="tl-btn-continuar" class="tl-btn" disabled>Continuar</button>
     </div>
 
   </main><!-- #tela-termos-legais -->
@@ -1321,6 +1312,12 @@
 <script src="/shared/js/NotificationService.js"></script>
 <script src="/shared/js/PerfilEditor.js"></script>
 <script src="/shared/js/FooterScrollManager.js"></script>
+<!-- Controllers por domínio -->
+<script src="/shared/js/AuthController.js"></script>
+<script src="assets/js/controllers/CadastroController.js"></script>
+<script src="assets/js/controllers/PlanosController.js"></script>
+<script src="assets/js/controllers/TermosController.js"></script>
+<script src="assets/js/AppBootstrap.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->

@@ -101,6 +101,11 @@ serve(async (req: Request) => {
     );
 
     // ── 3b. Verificar assinatura ativa existente (anti-trial-abuse) ────────────────────
+    // NOTA DE SEGURANÇA: Esta verificação SELECT + INSERT separados seria vulnerável
+    // a race condition (TOCTOU): requests paralelos passariam pelo SELECT ao mesmo tempo.
+    // A proteção definitiva é o índice partial UNIQUE idx_subscriptions_one_active_per_user
+    // no banco (migration 20260417000006), que rejeita o segundo INSERT atomicamente.
+    // Este check antecipado serve apenas para retornar 409 com mensagem amigável.
     const { data: existing } = await supabase
       .from('subscriptions')
       .select('id, status, ends_at')
@@ -126,6 +131,8 @@ serve(async (req: Request) => {
     }
 
     // ── 6. Inserir assinatura — userId vem do JWT, não do body ────────────────
+    // Se a race condition bypassar o check acima, o UNIQUE INDEX no banco
+    // rejeita com código 23505 (unique_violation), tratado abaixo como 409.
     const { error } = await supabase.from('subscriptions').insert({
       user_id:        authenticatedUserId,
       plan_type:      plano,
@@ -137,7 +144,11 @@ serve(async (req: Request) => {
     });
 
     if (error) {
-      console.error('[validate-purchase] insert error:', error);
+      // 23505 = unique_violation — race condition resolvida pelo índice do banco
+      if (error.code === '23505') {
+        return json({ ok: false, error: 'Você já possui uma assinatura ativa.' }, 409, CORS);
+      }
+      console.error('[validate-purchase] insert error:', error.code);
       return json({ ok: false, error: 'Erro ao registrar assinatura.' }, 500, CORS);
     }
 

@@ -119,7 +119,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Entrar</h2>
-        <form class="login-form" onsubmit="App.fazerLogin(); return false;">
+        <form id="login-form" class="login-form">
           <div class="form-field">
             <label>E-mail</label>
             <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
@@ -157,7 +157,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Criar conta</h2>
-        <form class="login-form" onsubmit="App.fazerCadastro(); return false;">
+        <form id="cad-form" class="login-form">
           <div class="form-field">
             <label>Nome completo</label>
             <input id="cad-nome" type="text" placeholder="Seu nome" autocomplete="name">
@@ -203,7 +203,7 @@
 
       <div class="auth-card">
         <h2 class="auth-title">Esqueceu a senha?</h2>
-        <form class="login-form" onsubmit="App.fazerRecuperacao(); return false;">
+        <form id="rec-form" class="login-form">
           <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
             Digite seu e-mail e enviaremos um link para criar uma nova senha.
           </p>
@@ -712,6 +712,9 @@
 <script src="/shared/js/NotificationService.js"></script>
 <script src="/shared/js/PerfilEditor.js"></script>
 <script src="/shared/js/FooterScrollManager.js"></script>
+<!-- Controllers por domínio -->
+<script src="/shared/js/AuthController.js"></script>
+<script src="assets/js/AppBootstrap.js"></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
