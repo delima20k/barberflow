@@ -2,14 +2,15 @@
 
 // =============================================================
 // HomePage.js — Página inicial do app cliente.
-// Responsabilidade: bind de interações dos stories (like e abertura
-// de vídeo) via event delegation. Os widgets de dados (NearbyBarbershops,
-// MapPanel, etc.) são inicializados pelo AppBootstrap — não aqui.
+// Responsabilidade: bind de interações dos stories e dos cards
+// destaque (like, dislike, favorite) via event delegation.
+// Os widgets de dados (NearbyBarbershops, MapPanel, etc.) são
+// inicializados pelo AppBootstrap — não aqui.
 //
 // Dependências: BarbershopService.js, StoryViewer.js
 // =============================================================
 
-// Gerencia a tela inicial: likes de stories, abertura de vídeo e avatar upload.
+// Gerencia a tela inicial: stories, cards destaque e interações de barbearias.
 class HomePage {
 
   #telaEl = null;  // referência a #tela-inicio
@@ -25,6 +26,8 @@ class HomePage {
     if (!this.#telaEl) return;
 
     this.#telaEl.addEventListener('click', (e) => {
+      // ── Stories ─────────────────────────────────────────
+
       // Story: like
       const likeBtn = e.target.closest('[data-action="like"]');
       if (likeBtn) {
@@ -38,6 +41,35 @@ class HomePage {
       if (storyWrap) {
         e.preventDefault();
         if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(storyWrap);
+        return;
+      }
+
+      // ── Cards destaque (barbearias) ──────────────────────
+
+      // Curtida positiva
+      const barbLike = e.target.closest('[data-action="barbershop-like"]');
+      if (barbLike) {
+        e.preventDefault();
+        e.stopPropagation();
+        BarbershopService.toggleBarbershopLike(barbLike);
+        return;
+      }
+
+      // Feedback negativo (descurtida)
+      const barbDislike = e.target.closest('[data-action="barbershop-dislike"]');
+      if (barbDislike) {
+        e.preventDefault();
+        e.stopPropagation();
+        BarbershopService.toggleBarbershopDislike(barbDislike);
+        return;
+      }
+
+      // Favoritar
+      const barbFav = e.target.closest('[data-action="barbershop-favorite"]');
+      if (barbFav) {
+        e.preventDefault();
+        e.stopPropagation();
+        BarbershopService.toggleBarbershopFavorite(barbFav);
         return;
       }
     });

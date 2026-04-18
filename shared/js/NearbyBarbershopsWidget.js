@@ -113,10 +113,12 @@ class NearbyBarbershopsWidget {
 
     // Skeleton 4 cards
     el.innerHTML = Array(4).fill(0).map(() => `
-      <div class="card-mini" style="opacity:.4;pointer-events:none;">
-        <div class="avatar gold" style="background:var(--card-alt,#f0e8df);width:54px;height:54px;"></div>
-        <strong class="destaque-name" style="width:80px;height:12px;background:var(--card-alt,#f0e8df);border-radius:6px;display:block;margin:6px auto 4px;"></strong>
-        <div class="stars" style="opacity:0">-</div>
+      <div class="destaque-card destaque-card--skeleton" aria-hidden="true">
+        <div class="dc-avatar dc-avatar--skel"></div>
+        <div class="dc-nome dc-skel" style="width:80px;height:12px;"></div>
+        <div class="dc-addr dc-skel" style="width:60px;height:10px;"></div>
+        <div class="dc-stars-wrap dc-skel" style="width:70px;height:14px;"></div>
+        <div class="dc-actions"><div class="dc-skel" style="width:90px;height:22px;border-radius:20px;"></div></div>
       </div>`).join('');
 
     try {
@@ -124,16 +126,30 @@ class NearbyBarbershopsWidget {
       if (!lista.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
-      lista.forEach(b => {
-        const card = document.createElement('div');
-        card.className = 'card-mini';
+      const cardsEls = [];
 
-        // Avatar / Logo
+      lista.forEach(b => {
+        const likes    = Number(b.likes_count    ?? 0);
+        const dislikes = Number(b.dislikes_count ?? 0);
+        // Usa rating_score do banco se disponível, senão calcula a partir do rating_avg
+        const score = b.rating_score != null
+          ? Number(b.rating_score)
+          : BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0);
+        const fillPct = ((score / 5) * 100).toFixed(1);
+
+        const card = document.createElement('div');
+        card.className = 'destaque-card';
+        card.dataset.barbershopId = b.id;
+        card.dataset.likes        = likes;
+        card.dataset.dislikes     = dislikes;
+
+        // ── Avatar / Logo ──────────────────────────────────
         const avatarWrap = document.createElement('div');
-        avatarWrap.className = 'avatar gold';
+        avatarWrap.className = 'dc-avatar';
         if (b.logo_path) {
           const img = document.createElement('img');
           img.alt = b.name;
+          img.loading = 'lazy';
           img.onerror = () => { avatarWrap.textContent = '💈'; };
           img.src = SupabaseService.client.storage
             .from('logos').getPublicUrl(b.logo_path).data?.publicUrl || '';
@@ -142,25 +158,89 @@ class NearbyBarbershopsWidget {
           avatarWrap.textContent = '💈';
         }
 
-        const nome = document.createElement('strong');
-        nome.className = 'destaque-name';
-        nome.textContent = b.name;
-
-        const stars = document.createElement('div');
-        stars.className = 'stars';
-        const r = Number(b.rating_avg ?? 0);
-        stars.textContent = '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
-
+        // ── Badge aberto/fechado ──────────────────────────
         const badge = document.createElement('span');
-        badge.className = b.is_open ? 'badge' : 'badge closed';
+        badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
         badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
 
+        // ── Nome ──────────────────────────────────────────
+        const nome = document.createElement('p');
+        nome.className = 'dc-nome';
+        nome.textContent = b.name;
+
+        // ── Endereço ──────────────────────────────────────
+        const addr = document.createElement('p');
+        addr.className = 'dc-addr';
+        addr.textContent = b.address || b.city || '';
+
+        // ── Estrelas (CSS fill) ───────────────────────────
+        const starsWrap = document.createElement('div');
+        starsWrap.className = 'dc-stars-wrap';
+        starsWrap.innerHTML = `
+          <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
+          <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>`;
+
+        const scoreNum = document.createElement('span');
+        scoreNum.className = 'dc-rating-num';
+        scoreNum.setAttribute('aria-label', `Pontuação: ${score.toFixed(1)} de 5`);
+        scoreNum.textContent = score.toFixed(1);
+
+        const starsRow = document.createElement('div');
+        starsRow.className = 'dc-stars-row';
+        starsRow.appendChild(starsWrap);
+        starsRow.appendChild(scoreNum);
+
+        // ── Botões de ação ────────────────────────────────
+        const actions = document.createElement('div');
+        actions.className = 'dc-actions';
+
+        // Like (👍)
+        const btnLike = document.createElement('button');
+        btnLike.type = 'button';
+        btnLike.className = 'dc-btn like';
+        btnLike.dataset.action = 'barbershop-like';
+        btnLike.title = 'Curtir esta barbearia';
+        btnLike.setAttribute('aria-label', 'Curtir');
+        btnLike.innerHTML = `<span class="dc-btn-icon">👍</span><span class="dc-count">${likes}</span>`;
+
+        // Dislike (👎)
+        const btnDislike = document.createElement('button');
+        btnDislike.type = 'button';
+        btnDislike.className = 'dc-btn dislike';
+        btnDislike.dataset.action = 'barbershop-dislike';
+        btnDislike.title = 'Feedback negativo';
+        btnDislike.setAttribute('aria-label', 'Feedback negativo');
+        btnDislike.innerHTML = `<span class="dc-btn-icon">👎</span><span class="dc-count">${dislikes}</span>`;
+
+        // Favorito (⭐)
+        const btnFav = document.createElement('button');
+        btnFav.type = 'button';
+        btnFav.className = 'dc-btn favorite';
+        btnFav.dataset.action = 'barbershop-favorite';
+        btnFav.title = 'Adicionar aos favoritos';
+        btnFav.setAttribute('aria-label', 'Favoritar');
+        btnFav.setAttribute('aria-pressed', 'false');
+        btnFav.innerHTML = `<span class="dc-btn-icon">⭐</span>`;
+
+        actions.appendChild(btnLike);
+        actions.appendChild(btnDislike);
+        actions.appendChild(btnFav);
+
+        // ── Monta card ───────────────────────────────────
         card.appendChild(avatarWrap);
-        card.appendChild(nome);
-        card.appendChild(stars);
         card.appendChild(badge);
+        card.appendChild(nome);
+        card.appendChild(addr);
+        card.appendChild(starsRow);
+        card.appendChild(actions);
+
         el.appendChild(card);
+        cardsEls.push(card);
       });
+
+      // Restaura estado ativo dos botões (usuário logado)
+      BarbershopService.restaurarInteracoes(cardsEls);
+
     } catch (err) {
       console.error('[NearbyBarbershopsWidget] initHomeDestaque exception:', err);
       el.innerHTML = '';

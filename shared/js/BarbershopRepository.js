@@ -13,7 +13,7 @@ class BarbershopRepository {
 
   // Campos base usados na maioria das consultas
   static #SELECT_BASIC =
-    'id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count';
+    'id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count, rating_score, likes_count, dislikes_count';
 
   // ═══════════════════════════════════════════════════════════
   // BARBEARIAS
@@ -62,13 +62,14 @@ class BarbershopRepository {
 
   /**
    * Retorna barbearias em destaque ordenadas por avaliação.
+   * Inclui contadores de curtidas/descurtidas para exibição nos cards.
    * @param {number} limit
    * @returns {Promise<object[]>}
    */
   static async getFeatured(limit = 6) {
     const { data, error } = await SupabaseService.client
       .from('barbershops')
-      .select('id, name, logo_path, is_open, rating_avg')
+      .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count')
       .eq('is_active', true)
       .order('rating_avg', { ascending: false })
       .limit(limit);
@@ -129,6 +130,57 @@ class BarbershopRepository {
       .eq('pro_type', 'barbeiro')
       .limit(limit);
 
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // INTERAÇÕES (like / dislike / favorite)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Adiciona uma interação. Se já existir (UNIQUE), lança — o chamador faz o toggle removendo primeiro.
+   * @param {string} barbershopId
+   * @param {string} userId
+   * @param {'like'|'dislike'|'favorite'} type
+   */
+  static async addInteraction(barbershopId, userId, type) {
+    const { error } = await SupabaseService.client
+      .from('barbershop_interactions')
+      .insert({ barbershop_id: barbershopId, user_id: userId, type });
+    if (error) throw error;
+  }
+
+  /**
+   * Remove uma interação específica.
+   * @param {string} barbershopId
+   * @param {string} userId
+   * @param {'like'|'dislike'|'favorite'} type
+   */
+  static async removeInteraction(barbershopId, userId, type) {
+    const { error } = await SupabaseService.client
+      .from('barbershop_interactions')
+      .delete()
+      .eq('barbershop_id', barbershopId)
+      .eq('user_id', userId)
+      .eq('type', type);
+    if (error) throw error;
+  }
+
+  /**
+   * Retorna todas as interações do usuário para um conjunto de barbearias.
+   * Usado para restaurar o estado visual (ativo/inativo) dos botões.
+   * @param {string} userId
+   * @param {string[]} barbershopIds
+   * @returns {Promise<Array<{barbershop_id:string, type:string}>>}
+   */
+  static async getUserInteractions(userId, barbershopIds) {
+    if (!userId || !barbershopIds.length) return [];
+    const { data, error } = await SupabaseService.client
+      .from('barbershop_interactions')
+      .select('barbershop_id, type')
+      .eq('user_id', userId)
+      .in('barbershop_id', barbershopIds);
     if (error) throw error;
     return data ?? [];
   }
