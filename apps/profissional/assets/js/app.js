@@ -74,6 +74,9 @@ class BarberFlowProfissional extends Router {
   #planos;
   #termos;
   #destaquesPage;
+  #agendaPage;
+  #barbeariaPage;
+  #queueWidget;
 
   constructor() {
     super('inicio');
@@ -82,11 +85,17 @@ class BarberFlowProfissional extends Router {
     this.#planos   = new PlanosController((t) => this.push(t));
     this.#termos   = new TermosController((t) => this.push(t));
     this.#destaquesPage = new DestaquesPage();
+    this.#agendaPage    = new AgendaPage();
+    this.#barbeariaPage = new MinhaBarbeariaPage();
+    this.#queueWidget   = new QueueWidget();
     this.#auth.bind();
     this.#cadastro.bind();
     this.#planos.bind();
     this.#termos.bind();
     this.#destaquesPage.bind();
+    this.#agendaPage.bind();
+    this.#barbeariaPage.bind();
+    this.#queueWidget.bind();
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }

@@ -441,6 +441,20 @@
 
       </div>
 
+      <!-- Fila ao vivo (QueueWidget — só aparece para profissionais logados) -->
+      <div id="queue-section" style="display:none;">
+        <div class="sec-header" style="margin-top:20px;">
+          <h2 class="sec-title">Cadeiras ao Vivo</h2>
+          <span id="queue-realtime-badge" class="badge verde" style="font-size:.7rem;">● Tempo real</span>
+        </div>
+        <div id="queue-cadeiras" class="h-scroll" style="gap:10px;"></div>
+
+        <div class="sec-header" style="margin-top:16px;">
+          <h2 class="sec-title">Fila de Espera</h2>
+        </div>
+        <div id="queue-fila" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
       <!-- Em destaque -->
       <div>
         <div class="sec-header">
@@ -511,116 +525,17 @@
   <main id="tela-agenda" class="tela">
     <div class="content">
       <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
-        <span class="tag on">Hoje</span>
-        <span class="tag">Amanhã</span>
-        <span class="tag">Semana</span>
-        <span class="tag">Mês</span>
+
+      <!-- Filtros de período -->
+      <div class="h-scroll" style="gap:8px;padding-bottom:4px;">
+        <button class="tag filtro-periodo on"  data-periodo="hoje">Hoje</button>
+        <button class="tag filtro-periodo"     data-periodo="amanha">Amanhã</button>
+        <button class="tag filtro-periodo"     data-periodo="semana">Semana</button>
+        <button class="tag filtro-periodo"     data-periodo="mes">Mês</button>
       </div>
 
-      <div>
-        <p class="sec-title">Cadeiras</p>
-        <div class="h-scroll">
-          <div class="chair ocupada">
-            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
-                 onerror="this.outerHTML='💺'">
-            <span>Lucas</span>
-            <span>Atendendo</span>
-          </div>
-          <div class="chair ocupada">
-            <img src="/shared/img/icones-cadeira-salao.png" alt="cadeira"
-                 onerror="this.outerHTML='💺'">
-            <span>Pedro</span>
-            <span>Atendendo</span>
-          </div>
-          <div class="chair livre">
-            <img src="/shared/img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
-                 onerror="this.outerHTML='🪑'">
-            <span>—</span>
-            <span>Livre</span>
-          </div>
-          <div class="chair espera">
-            <img src="/shared/img/icones-cadeira-de-éspera.png" alt="espera"
-                 onerror="this.outerHTML='⏳'">
-            <span>+5</span>
-            <span>Fila</span>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <p class="sec-title">Segunda-feira, 06 de Abril</p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div class="agenda-item">
-            <div class="agenda-time">
-              <span class="agenda-hr">09:00</span>
-              <span class="agenda-min">hoje</span>
-            </div>
-            <div class="avatar gold" style="font-size:.9rem;">
-              <img src="/shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
-            </div>
-            <div class="agenda-info">
-              <p class="agenda-name">Marcos Oliveira</p>
-              <p class="agenda-serv">Corte Social · 30 min</p>
-              <p class="agenda-val">R$ 35,00</p>
-            </div>
-            <span class="badge verde">Concluído</span>
-          </div>
-          <div class="agenda-item">
-            <div class="agenda-time">
-              <span class="agenda-hr">10:00</span>
-              <span class="agenda-min">hoje</span>
-            </div>
-            <div class="avatar gold">👤</div>
-            <div class="agenda-info">
-              <p class="agenda-name">Rafael Lima</p>
-              <p class="agenda-serv">Degradê + Barba · 45 min</p>
-              <p class="agenda-val">R$ 55,00</p>
-            </div>
-            <span class="badge verde">Concluído</span>
-          </div>
-          <div class="agenda-item" style="border-color:var(--gold);">
-            <div class="agenda-time">
-              <span class="agenda-hr">14:30</span>
-              <span class="agenda-min">agora</span>
-            </div>
-            <div class="avatar gold">
-              <img src="/shared/img/icones-perfil.png" alt="" onerror="this.outerHTML='👤'">
-            </div>
-            <div class="agenda-info">
-              <p class="agenda-name">Lucas Ferreira</p>
-              <p class="agenda-serv">Degradê + Barba · 45 min</p>
-              <p class="agenda-val">R$ 55,00</p>
-            </div>
-            <span class="badge">Em curso</span>
-          </div>
-          <div class="agenda-item">
-            <div class="agenda-time">
-              <span class="agenda-hr">15:30</span>
-              <span class="agenda-min">hoje</span>
-            </div>
-            <div class="avatar">👤</div>
-            <div class="agenda-info">
-              <p class="agenda-name">Thiago Rocha</p>
-              <p class="agenda-serv">Corte Infantil · 25 min</p>
-              <p class="agenda-val">R$ 25,00</p>
-            </div>
-            <span class="badge verde">Confirmado</span>
-          </div>
-          <div class="agenda-item">
-            <div class="agenda-time">
-              <span class="agenda-hr">17:00</span>
-              <span class="agenda-min">hoje</span>
-            </div>
-            <div class="avatar">🧔</div>
-            <div class="agenda-info">
-              <p class="agenda-name">Bruno Santos</p>
-              <p class="agenda-serv">Barba Completa · 35 min</p>
-              <p class="agenda-val">R$ 40,00</p>
-            </div>
-            <span class="badge verde">Confirmado</span>
-          </div>
-        </div>
-      </div>
+      <!-- Lista dinâmica (preenchida por AgendaPage.js) -->
+      <div id="agenda-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
 
     </div>
   </main>
@@ -647,66 +562,43 @@
   <main id="tela-minha-barbearia" class="tela">
     <div class="content">
       <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
+
+      <!-- Banner da barbearia -->
       <div style="position:relative;height:160px;border-radius:var(--r-lg);overflow:hidden;background:linear-gradient(135deg,rgba(242,183,5,.22),rgba(107,74,50,.14));border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:3rem;">✂️</span>
+        <img id="mb-logo" src="/shared/img/Logo01.png" alt="logo"
+             style="height:72px;object-fit:contain;opacity:.7;"
+             onerror="this.style.display='none'">
         <div style="position:absolute;bottom:16px;left:16px;">
-          <p style="font-size:1.1rem;font-weight:800;">Barbearia Do João</p>
-          <p style="font-size:.78rem;color:var(--text-muted);">Av. Central, 1024 · São Paulo</p>
+          <p id="mb-nome" style="font-size:1.1rem;font-weight:800;">Carregando…</p>
+          <p id="mb-endereco" style="font-size:.78rem;color:var(--text-muted);"></p>
         </div>
-        <span class="badge verde" style="position:absolute;top:12px;right:12px;">Aberta</span>
+        <button id="mb-badge-status" class="badge"
+                id="mb-toggle-status"
+                style="position:absolute;top:12px;right:12px;cursor:pointer;border:none;background:none;">
+          …
+        </button>
       </div>
 
-      <!-- Status -->
+      <!-- KPIs -->
       <div class="kpi-grid">
-        <div class="kpi"><span class="kpi-icon">⭐</span><span class="kpi-val">4.9</span><span class="kpi-lbl">Avaliação</span></div>
-        <div class="kpi"><span class="kpi-icon">👥</span><span class="kpi-val">284</span><span class="kpi-lbl">Clientes</span></div>
-        <div class="kpi"><span class="kpi-icon">📸</span><span class="kpi-val">47</span><span class="kpi-lbl">Portfólio</span></div>
-        <div class="kpi"><span class="kpi-icon">❤️</span><span class="kpi-val">1.2k</span><span class="kpi-lbl">Curtidas</span></div>
+        <div class="kpi"><span class="kpi-icon">⭐</span><span id="mb-kpi-rating"  class="kpi-val">…</span><span class="kpi-lbl">Avaliação</span></div>
+        <div class="kpi"><span class="kpi-icon">👥</span><span id="mb-kpi-clientes" class="kpi-val">…</span><span class="kpi-lbl">Avaliações</span></div>
+        <div class="kpi"><span class="kpi-icon">📸</span><span id="mb-kpi-portfolio" class="kpi-val">…</span><span class="kpi-lbl">Portfólio</span></div>
+        <div class="kpi"><span class="kpi-icon">❤️</span><span id="mb-kpi-likes"    class="kpi-val">…</span><span class="kpi-lbl">Curtidas</span></div>
       </div>
 
-      <!-- Portfólio galeria -->
+      <!-- Portfólio galeria (preenchido por MinhaBarbeariaPage.js) -->
       <div>
         <p class="sec-title">Portfólio</p>
-        <div class="portfolio-grid">
-          <div class="port-item">✂️</div>
-          <div class="port-item">💈</div>
-          <div class="port-item">🪒</div>
-          <div class="port-item">👑</div>
-          <div class="port-item">✨</div>
-          <div class="port-item" style="font-size:1rem;font-weight:700;color:var(--gold);">+42</div>
-        </div>
-        <button class="btn btn-outline btn-full" style="margin-top:12px;">Ver portfólio completo</button>
+        <div id="mb-portfolio-grid" class="portfolio-grid"></div>
+        <button class="btn btn-outline btn-full" style="margin-top:12px;"
+                onclick="Pro.nav('destaques')">Ver portfólio completo</button>
       </div>
 
-      <!-- Serviços -->
+      <!-- Serviços (preenchidos por MinhaBarbeariaPage.js) -->
       <div>
         <p class="sec-title">Serviços</p>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div class="barber-row">
-            <div class="avatar gold" style="font-size:.95rem;">✂️</div>
-            <div class="barber-info">
-              <p class="barber-name">Degradê</p>
-              <p class="barber-sub">45 min · inclui acabamento</p>
-            </div>
-            <div class="barber-meta"><span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 45</span></div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold" style="font-size:.95rem;">🪒</div>
-            <div class="barber-info">
-              <p class="barber-name">Barba Completa</p>
-              <p class="barber-sub">35 min · toalha quente inclusa</p>
-            </div>
-            <div class="barber-meta"><span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 40</span></div>
-          </div>
-          <div class="barber-row">
-            <div class="avatar gold" style="font-size:.95rem;">👑</div>
-            <div class="barber-info">
-              <p class="barber-name">Combo Premium</p>
-              <p class="barber-sub">75 min · corte + barba + sobrancelha</p>
-            </div>
-            <div class="barber-meta"><span style="font-size:.9rem;font-weight:800;color:var(--gold);">R$ 75</span></div>
-          </div>
-        </div>
+        <div id="mb-servicos-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
         <button class="btn btn-outline btn-full" style="margin-top:12px;">+ Adicionar serviço</button>
       </div>
 
@@ -1341,7 +1233,12 @@
 <script src="assets/js/controllers/CadastroController.js"></script>
 <script src="assets/js/controllers/PlanosController.js"></script>
 <script src="assets/js/controllers/TermosController.js"></script>
+<script src="/shared/js/AppointmentRepository.js"></script>
+<script src="/shared/js/QueueRepository.js"></script>
 <script src="assets/js/pages/DestaquesPage.js"></script>
+<script src="assets/js/pages/AgendaPage.js"></script>
+<script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
+<script src="assets/js/pages/QueueWidget.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
