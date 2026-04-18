@@ -684,6 +684,36 @@
   background: var(--gold-border);
 }
 
+/* ── Linha de seção com título esq + botão "Ver mais" dir ── */
+.sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+/* O sec-title dentro de sec-header não usa a linha decorativa */
+.sec-header .sec-title::after { display: none; }
+.sec-header .sec-title { flex: 1; }
+
+.sec-ver-mais {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font-family: var(--font);
+  font-size: .78rem;
+  font-weight: 600;
+  color: #c0504a;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .18s;
+  flex-shrink: 0;
+}
+.sec-ver-mais:hover { color: #e06a64; }
+
 .gold-line {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--gold-border), transparent);

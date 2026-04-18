@@ -443,3 +443,146 @@
   .dc-nome        { font-size: .72rem; }
   .dc-btn         { padding: 3px 5px; font-size: .58rem; }
 }
+
+/* ============================================================
+   TOP-CARD — card da tela Destaques (ranking geral)
+============================================================ */
+.top-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-bg, #1c1006);
+  border: 1px solid rgba(212, 175, 55, .14);
+  border-radius: 14px;
+  padding: 12px 14px;
+  position: relative;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+
+.top-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, .16);
+  border-color: rgba(212, 175, 55, .3);
+}
+.top-card:active { transform: scale(.98); }
+
+/* Número de ranking */
+.top-card__rank {
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--text-muted, #a08060);
+  min-width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+/* Top 3: cor dourada */
+.top-card__rank--podio {
+  color: var(--gold, #D4AF37);
+  font-size: .88rem;
+}
+
+/* Avatar */
+.top-card__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, rgba(212,175,55,.18) 0%, rgba(90,50,18,.35) 100%);
+  border: 2px solid rgba(212, 175, 55, .28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.top-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Info central */
+.top-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.top-card__nome {
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--text-primary, #f5e9dc);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-card__addr {
+  font-size: .68rem;
+  color: var(--text-muted, #a08060);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-card__stars {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+.top-card__likes {
+  font-size: .66rem;
+  color: #70d070;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* Badge (reutiliza .dc-badge): posicionado no canto dir */
+.top-card .dc-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: .55rem;
+}
+
+/* Skeleton */
+.top-card--skel { pointer-events: none; opacity: .45; }
+
+/* Cabeçalho da tela destaques */
+.tela-destaques-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg, #140a00);
+  border-bottom: 1px solid rgba(212,175,55,.08);
+}
+
+.tela-destaques-titulo {
+  font-family: var(--font);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+  flex: 1;
+}
+
+.tela-destaques-sub {
+  font-size: .72rem;
+  color: var(--text-muted, #a08060);
+  margin: 0 0 12px;
+  padding: 0 2px;
+}
+
+.tela-destaques-vazio {
+  text-align: center;
+  color: var(--text-muted, #a08060);
+  font-size: .84rem;
+  padding: 40px 20px;
+}

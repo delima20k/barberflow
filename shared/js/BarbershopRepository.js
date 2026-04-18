@@ -79,6 +79,25 @@ class BarbershopRepository {
   }
 
   /**
+   * Retorna todas as barbearias ativas ordenadas por rating_score desc,
+   * depois por rating_avg desc (desempate). Usado na tela de destaques.
+   * @param {number} limit
+   * @returns {Promise<object[]>}
+   */
+  static async getTopRated(limit = 50) {
+    const { data, error } = await SupabaseService.client
+      .from('barbershops')
+      .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count')
+      .eq('is_active', true)
+      .order('rating_score', { ascending: false })
+      .order('rating_avg',   { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  /**
    * Busca barbearia por ID.
    * @param {string} id
    * @returns {Promise<object>}
