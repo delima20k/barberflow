@@ -49,7 +49,7 @@ class Router {
   get telasComNav() { return new Set([]); }
 
   /** Telas que exibem o footer offline (sem login). @returns {Set<string>} */
-  get telasOffline() { return new Set(['inicio', 'pesquisa']); }
+  get telasOffline() { return new Set(['inicio', 'pesquisa', 'destaques', 'barbearias', 'barbeiros']); }
 
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")
@@ -293,8 +293,9 @@ class Router {
   _atualizarUI(tela) {
     const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') : false;
     const mostrarCompleto = logado && this.telasComNav.has(tela);
+    const mostrarOffline  = !logado && this.telasOffline.has(tela);
     if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
-    if (this._footerOffline) this._footerOffline.style.display = mostrarCompleto ? 'none' : 'flex';
+    if (this._footerOffline) this._footerOffline.style.display = mostrarOffline  ? 'flex' : 'none';
 
     this._navBtns.forEach(btn =>
       btn.classList.toggle('ativo', btn.dataset.tela === tela)
