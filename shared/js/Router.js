@@ -91,6 +91,10 @@ class Router {
     this._bindLoginEvent();
     this._bindDataAttributes();
 
+    // Modo visitante — bloqueia visualmente botões de ação para usuários não logados
+    /** @type {GuestMode|null} */
+    this._guestMode = typeof GuestMode !== 'undefined' ? new GuestMode() : null;
+
     // Sincroniza o footer automaticamente sempre que o estado de login mudar
     if (typeof AppState !== 'undefined') {
       AppState.onAuth(() => this._atualizarUI(this._telaAtual));

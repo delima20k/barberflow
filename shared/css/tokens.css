@@ -172,3 +172,34 @@ p, input, textarea, button, label, span, small, li {
 /* Scrollbar fina */
 .tela::-webkit-scrollbar       { width: 2px; }
 .tela::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 10px; }
+
+/* ── Modo Visitante — botões bloqueados ───────────────────── */
+/*
+ * Aplicado automaticamente pelo GuestMode.js em botões com
+ * data-action="agendar|mensagem|pagar|like|barbershop-favorite"
+ * quando o usuário não está logado.
+ *
+ * Não desabilita o elemento (aria-disabled fica no JS);
+ * o bloqueio real é feito no Router via event delegation.
+ */
+.bloqueado {
+  opacity: .45;
+  pointer-events: none;
+  cursor: not-allowed;
+  filter: grayscale(.35);
+  position: relative;
+  transition: opacity var(--ease), filter var(--ease);
+}
+
+/* Ícone de cadeado sobreposto via pseudo-elemento */
+.bloqueado::after {
+  content: '🔒';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8em;
+  pointer-events: none;
+  opacity: .7;
+}
