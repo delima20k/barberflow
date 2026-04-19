@@ -349,6 +349,14 @@ Criar classes:
 - O fundo transparente permite que o tema/contexto da tela apareça por trás, mantendo consistência visual em modo claro e escuro
 - Arquivo de referência: `shared/css/barber-card.css`
 
+## Fundo e borda dos cards `.top-card` / `.destaque-card`
+
+- **SEMPRE** usar `background: transparent` e `border: none` nos cards `.top-card` (tela Destaques) e `.destaque-card` (home mini cards)
+- `.top-card` deve ter `min-height: 114px` para manter proporção 378×114 no mobile
+- NUNCA usar `background: var(--card-bg)` ou cor sólida, nem `border: 1px solid` nesses cards
+- Nos estados `:hover`, NUNCA adicionar `border-color` — apenas `transform` e `box-shadow`
+- Arquivo de referência: `shared/css/barber-card.css`
+
 ---
 
 # FOCO FINAL

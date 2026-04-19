@@ -212,12 +212,12 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: var(--card-bg, #1c1006);
-  border: 1px solid rgba(212, 175, 55, .14);
+  background: transparent;
+  border: none;
   border-radius: 16px;
   padding: 12px 10px 10px;
   cursor: pointer;
-  transition: transform .18s, box-shadow .18s, border-color .18s;
+  transition: transform .18s, box-shadow .18s;
   position: relative;
   width: 100%;
   box-sizing: border-box;
@@ -226,7 +226,6 @@
 .destaque-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(212, 175, 55, .18);
-  border-color: rgba(212, 175, 55, .32);
 }
 
 .destaque-card:active { transform: scale(.97); }
@@ -451,19 +450,19 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--card-bg, #1c1006);
-  border: 1px solid rgba(212, 175, 55, .14);
+  background: transparent;
+  border: none;
   border-radius: 14px;
   padding: 12px 14px;
+  min-height: 114px;
   position: relative;
   cursor: pointer;
-  transition: transform .18s, box-shadow .18s, border-color .18s;
+  transition: transform .18s, box-shadow .18s;
 }
 
 .top-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(212, 175, 55, .16);
-  border-color: rgba(212, 175, 55, .3);
 }
 .top-card:active { transform: scale(.98); }
 
