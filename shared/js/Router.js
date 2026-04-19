@@ -443,19 +443,21 @@ class Router {
         if (a === 'confirmar-saida')  { e.preventDefault(); this.confirmarSaida();    return; }
         if (a === 'avatar-upload')    { e.preventDefault(); this.abrirUploadAvatar(); return; }
 
-        // Guard inline — bloqueia agendar / mensagem / pagar para visitantes.
-        // Fonte de verdade: AppState.get('isLogado'). Não depende de AuthGuard.
+        // Guard de ações protegidas — fonte única: AuthGuard quando disponível,
+        // fallback local apenas se AuthGuard não estiver carregado.
         if (Router._ACOES_AUTH.has(a)) {
-          const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
-          if (!logado) {
-            e.preventDefault();
-            this._alertarLoginObrigatorio();
-            return;
+          if (typeof AuthGuard !== 'undefined') {
+            // AuthGuard exibe o aviso e redireciona internamente se necessário
+            if (!AuthGuard.permitirAcao(a, this)) { e.preventDefault(); return; }
+          } else {
+            // Fallback: sem AuthGuard carregado
+            const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
+            if (!logado) { e.preventDefault(); this._alertarLoginObrigatorio(); return; }
           }
         }
 
-        // Guard secundário via AuthGuard (cobre demais ações protegidas registradas externamente)
-        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(a, this)) {
+        // AuthGuard cobre ações protegidas além de _ACOES_AUTH (ex: barbershop-favorite)
+        if (!Router._ACOES_AUTH.has(a) && typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(a, this)) {
           e.preventDefault();
           return;
         }
