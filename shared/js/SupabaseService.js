@@ -62,7 +62,14 @@ class SupabaseService {
 
       SupabaseService.#client = window.supabase.createClient(
         SupabaseService.#URL,
-        key
+        key,
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        }
       );
     }
     return SupabaseService.#client;
