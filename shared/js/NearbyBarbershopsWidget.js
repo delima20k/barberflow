@@ -503,14 +503,8 @@ class NearbyBarbershopsWidget {
     badge.className   = b.is_open ? 'badge' : 'badge closed';
     badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
 
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-gold btn-sm barber-action';
-    btn.type = 'button';
-    btn.textContent = 'Agendar';
-
     meta.appendChild(stars);
     meta.appendChild(badge);
-    meta.appendChild(btn);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
