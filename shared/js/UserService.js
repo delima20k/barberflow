@@ -12,9 +12,10 @@
  *   UserService.fetchUser(force?)   → busca no Supabase; usa cache se já existir
  *   UserService.getPerfil()         → AppState.get('perfil') — linha da tabela profiles
  *   UserService.requireAuth(router) → verifica login; redireciona para 'login' se necessário
+ *   UserService.refresh()           → busca user + perfil na API e sincroniza AppState
  *
  * Dependências (carregadas antes):
- *   AppState.js, SupabaseService.js, AuthGuard.js
+ *   AppState.js, SupabaseService.js, AuthService.js, AuthGuard.js
  */
 const UserService = (() => {
   'use strict';
@@ -103,5 +104,54 @@ const UserService = (() => {
     return logado;
   }
 
-  return Object.freeze({ getUser, getPerfil, fetchUser, requireAuth });
+  // ── Sincronização ─────────────────────────────────────────
+
+  /**
+   * Busca user e perfil frescos na API e sincroniza o AppState.
+   * Deve ser chamado após login, logout ou qualquer situação que
+   * possa ter deixado o estado desatualizado.
+   *
+   * Fluxo:
+   *   1. SupabaseService.getUser()          → objeto User (ou null se sem sessão)
+   *   2. AuthService._carregarPerfil(id)    → linha fresca da tabela profiles
+   *   3. AppState.login(user, perfil)        → atualiza estado e isLogado=true
+   *   Em caso de sem sessão: AppState.logout() limpa o estado.
+   *
+   * @returns {Promise<{ user: object|null, perfil: object|null }>}
+   *
+   * @example
+   *   // Após restaurar sessão ou mudança de perfil:
+   *   const { user, perfil } = await UserService.refresh();
+   */
+  async function refresh() {
+    if (typeof AppState === 'undefined' || typeof SupabaseService === 'undefined') {
+      return { user: null, perfil: null };
+    }
+
+    try {
+      // 1. Busca o user autenticado no Supabase
+      const user = await SupabaseService.getUser();
+
+      if (!user) {
+        // Sem sessão ativa — limpa o estado
+        AppState.logout();
+        return { user: null, perfil: null };
+      }
+
+      // 2. Busca o perfil fresco via AuthService
+      const perfil = typeof AuthService !== 'undefined'
+        ? await AuthService._carregarPerfil(user.id)
+        : null;
+
+      // 3. Sincroniza AppState atomicamente
+      AppState.login(user, perfil);
+
+      return { user, perfil };
+    } catch (e) {
+      console.warn('[UserService] refresh falhou:', e?.message);
+      return { user: AppState.getUser(), perfil: AppState.get('perfil') };
+    }
+  }
+
+  return Object.freeze({ getUser, getPerfil, fetchUser, requireAuth, refresh });
 })();
