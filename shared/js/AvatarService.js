@@ -65,33 +65,19 @@ const AvatarService = (() => {
 
   /**
    * Faz o upload do arquivo para Supabase Storage e atualiza o profile.
+   * Delega para UserService (identidade) e ProfileRepository (persistência).
    * Substitui o preview local pela URL pública após o upload.
    * @param {File} file
    */
   async function _upload(file) {
     try {
-      if (typeof SupabaseService === 'undefined') return;
+      if (typeof UserService === 'undefined' || typeof ProfileRepository === 'undefined') return;
 
-      const user = await SupabaseService.getUser();
+      const user = await UserService.getUser();
       if (!user) return;
 
-      const blob = await _comprimir(file, 512);
-      const ext  = file.name.split('.').pop().toLowerCase().replace('jpg', 'jpeg');
-      const path = `${user.id}/avatar.${ext}`;
-
-      const { error: upErr } = await SupabaseService.client.storage
-        .from('avatars')
-        .upload(path, blob, { upsert: true, contentType: blob.type });
-
-      if (upErr) throw upErr;
-
-      await SupabaseService.client
-        .from('profiles')
-        .update({ avatar_path: path, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
-      const { data } = SupabaseService.client.storage.from('avatars').getPublicUrl(path);
-      const publicUrl = data.publicUrl + '?t=' + Date.now(); // cache-bust
+      const blob      = await _comprimir(file, 512);
+      const publicUrl = await ProfileRepository.updateAvatar(user.id, blob);
 
       _aplicarSrc(publicUrl);
 
@@ -121,8 +107,8 @@ const AvatarService = (() => {
    * @param {object} router — instância do Router (para fecharMenu e nav se não logado)
    */
   function abrirUpload(router) {
-    const logado = !!(typeof AuthService !== 'undefined'
-      ? AuthService.getPerfil()
+    const logado = !!(typeof UserService !== 'undefined'
+      ? UserService.getPerfil()
       : router._logado);
 
     if (!logado) {
