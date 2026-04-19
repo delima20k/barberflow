@@ -108,7 +108,7 @@ const AvatarService = (() => {
    */
   function abrirUpload(router) {
     const logado = typeof AppState !== 'undefined'
-      ? AppState.isLogged()
+      ? AppState.get('isLogado') === true
       : (typeof UserService !== 'undefined' ? !!UserService.getPerfil() : false);
 
     if (!logado) {

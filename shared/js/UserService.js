@@ -135,7 +135,7 @@ const UserService = (() => {
 
   /**
    * Verifica autenticação e redireciona para 'login' se necessário.
-   * Contrato: síncrono, zero rede — lê AppState.isLogged().
+   * Contrato: síncrono, zero rede — lê AppState.get('isLogado').
    * Delega ao AuthGuard (fonte única da regra).
    *
    * @param {Router} router — instância do app (App ou Pro)
@@ -146,7 +146,7 @@ const UserService = (() => {
    */
   function requireAuth(router) {
     if (typeof AuthGuard !== 'undefined') return AuthGuard.requireAuth(router);
-    const logado = typeof AppState !== 'undefined' && AppState.isLogged();
+    const logado = typeof AppState !== 'undefined' && AppState.get('isLogado') === true;
     if (!logado && router && typeof router.push === 'function') router.push('login');
     return logado;
   }
@@ -157,7 +157,7 @@ const UserService = (() => {
 
   /**
    * Verifica autenticação e redireciona para 'login' se necessário.
-   * Contrato: síncrono, zero rede — lê AppState.isLogged().
+   * Contrato: síncrono, zero rede — lê AppState.get('isLogado').
    * Delega ao AuthGuard (fonte única da regra).
    *
    * @param {Router} router — instância do app (App ou Pro)
@@ -168,7 +168,7 @@ const UserService = (() => {
    */
   function requireAuth(router) {
     if (typeof AuthGuard !== 'undefined') return AuthGuard.requireAuth(router);
-    const logado = typeof AppState !== 'undefined' && AppState.isLogged();
+    const logado = typeof AppState !== 'undefined' && AppState.get('isLogado') === true;
     if (!logado && router && typeof router.push === 'function') router.push('login');
     return logado;
   }
@@ -180,7 +180,7 @@ const UserService = (() => {
 
   /**
    * Retorna true se o usuário está autenticado.
-   * Contrato: NUNCA faz rede. Lê AppState.isLogged().
+   * Contrato: NUNCA faz rede. Lê AppState.get('isLogado').
    * @returns {boolean}
    *
    * @example
@@ -188,7 +188,7 @@ const UserService = (() => {
    */
   function isLogged() {
     if (typeof AppState === 'undefined') return false;
-    return AppState.isLogged();
+    return AppState.get('isLogado') === true;
   }
 
   /**

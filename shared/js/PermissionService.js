@@ -73,7 +73,7 @@ const PermissionService = (() => {
 
     if (!permissao.exigeAuth) return true;
 
-    const logado = typeof AppState !== 'undefined' && AppState.isLogged();
+    const logado = typeof AppState !== 'undefined' && AppState.get('isLogado') === true;
     if (logado) return true;
 
     // Bloqueado — escolhe o modo de resposta

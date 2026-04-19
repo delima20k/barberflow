@@ -10,9 +10,11 @@
 //   - Zero acoplamento com Router — recebe instância via parâmetro
 //
 // Regra de negócio:
-//   ✔ Visitante pode: home, pesquisa, ver barbearias, ver barbeiros
-//   ✗ Visitante NÃO pode: agendar, mensagem, favoritar, pagamento, like
+//   ✔ Visitante pode: inicio, pesquisa, barbearias, barbeiros
+//   ✗ Visitante NÃO pode: agendamento, mensagens, pagamento, perfil,
+//                          favoritas, agenda, minha-barbearia, sair
 //
+// Fonte de verdade: AppState.get('isLogado')
 // Dependências: AppState.js (carregado antes deste arquivo)
 // =============================================================
 
@@ -21,18 +23,22 @@ const AuthGuard = (() => {
   // ── Rotas protegidas por app ───────────────────────────────
 
   const _ROTAS_CLIENTE = new Set([
+    'agendamento',
     'mensagens',
-    'favoritas',
+    'pagamento',
     'perfil',
+    'favoritas',
     'sair',
   ]);
 
   const _ROTAS_PRO = new Set([
+    'agendamento',
     'mensagens',
-    'minha-barbearia',
+    'pagamento',
     'perfil',
-    'sair',
+    'minha-barbearia',
     'agenda',
+    'sair',
   ]);
 
   // ── Ações protegidas (data-action values) ─────────────────
@@ -61,16 +67,58 @@ const AuthGuard = (() => {
     return _ehPro() ? _ROTAS_PRO : _ROTAS_CLIENTE;
   }
 
+  /** Fonte única de verdade — nunca acessa DOM, nunca faz rede. */
+  function _estaLogado() {
+    return typeof AppState !== 'undefined'
+      ? AppState.get('isLogado') === true
+      : false;
+  }
+
+  /** Exibe um toast leve de "faça login para interagir" (não bloqueia). */
+  function _mostrarAvisoLogin() {
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast(
+        'Login necessário',
+        'Faça login para interagir',
+        'info'
+      );
+      return;
+    }
+    // Fallback nativo quando NotificationService não está disponível
+    const id = '__auth-guard-toast';
+    if (document.getElementById(id)) return;
+    const el = document.createElement('div');
+    el.id            = id;
+    el.textContent   = 'Faça login para interagir';
+    el.style.cssText = [
+      'position:fixed',
+      'bottom:80px',
+      'left:50%',
+      'transform:translateX(-50%)',
+      'background:rgba(0,0,0,.82)',
+      'color:#fff',
+      'padding:.55rem 1.2rem',
+      'border-radius:2rem',
+      'font-size:.88rem',
+      'z-index:9999',
+      'pointer-events:none',
+      'white-space:nowrap',
+    ].join(';');
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+  }
+
   // ── API pública ───────────────────────────────────────────
 
   /**
    * Verifica se o usuário está logado.
-   * Se não logado: redireciona para login via push() e retorna false.
-   * @param {Router} router — instância do app (App ou Pro)
+   * Se não logado: exibe aviso, redireciona para login e retorna false.
+   * @param {object|null} router — instância do app (App ou Pro)
    * @returns {boolean}
    */
   function requireAuth(router) {
-    if (typeof AppState !== 'undefined' && AppState.isLogged()) return true;
+    if (_estaLogado()) return true;
+    _mostrarAvisoLogin();
     if (router && typeof router.push === 'function') router.push('login');
     return false;
   }
@@ -78,8 +126,8 @@ const AuthGuard = (() => {
   /**
    * Verifica se a navegação para `tela` é permitida sem autenticação.
    * Rotas públicas passam sempre. Rotas protegidas exigem login.
-   * @param {string} tela — nome da tela (sem prefixo "tela-")
-   * @param {Router} router
+   * @param {string}      tela   — nome da tela (sem prefixo "tela-")
+   * @param {object|null} router — instância do app
    * @returns {boolean} true = pode navegar | false = bloqueado + redirecionado
    */
   function permitirNav(tela, router) {
@@ -89,8 +137,8 @@ const AuthGuard = (() => {
 
   /**
    * Verifica se uma ação protegida pode ser executada.
-   * @param {string} acao — valor do data-action
-   * @param {Router} router
+   * @param {string}      acao   — valor do data-action
+   * @param {object|null} router
    * @returns {boolean} true = permitido | false = bloqueado + redirecionado
    */
   function permitirAcao(acao, router) {
@@ -101,3 +149,4 @@ const AuthGuard = (() => {
   return Object.freeze({ requireAuth, permitirNav, permitirAcao, ACOES_PROTEGIDAS });
 
 })();
+
