@@ -2829,46 +2829,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .msgs-empty p:last-of-type  { font-size: 0.8rem; }
 
 /* ── lock do body quando modal aberto ──────────────────── */
-body.chat-modal-lock { overflow: hidden; }
-
-/* ── Modal de Chat (bottom-sheet) ──────────────────────── */
-#chat-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: flex;
-  align-items: flex-end;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-#chat-modal.chat-modal-aberto {
-  pointer-events: all;
-  opacity: 1;
-}
-
-.chat-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(43, 27, 18, .65);
-  cursor: pointer;
-}
-
-.chat-modal-inner {
-  position: relative;
-  width: 100%;
-  max-height: 88dvh;
-  background: var(--bg);
-  border-radius: 24px 24px 0 0;
-  display: flex;
-  flex-direction: column;
-  transform: translateY(100%);
-  transition: transform 0.32s cubic-bezier(.4, 0, .2, 1);
+/* ── Tela Chat (full-screen, dentro do #app) ────────────── */
+/* #tela-chat precisa de overflow:hidden para que apenas
+   #chat-mensagens role internamente, não a tela inteira.   */
+#tela-chat {
   overflow: hidden;
+  padding-bottom: 0; /* o chat-modal-footer gerencia o safe-area */
 }
-#chat-modal.chat-modal-aberto .chat-modal-inner {
-  transform: translateY(0);
-}
+
+/* Mantém CSS legado do bottom-sheet para retrocompatibilidade
+   (não usado mais, mas não quebra nada se existir)          */
 
 /* ── Cabeçalho do modal ─────────────────────────────────── */
 .chat-modal-header {

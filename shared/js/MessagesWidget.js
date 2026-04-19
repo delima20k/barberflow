@@ -19,7 +19,8 @@
 class MessagesWidget {
 
   static #lista     = null;
-  static #modal     = null;
+  static #modal     = null;   // mantido para evitar erros em chamadas externas legadas
+  static #router    = null;   // instância do Router (App | Pro) resolvida no init
   static #role      = 'cliente';
   static #conversa  = null;  // conversa aberta no momento
   static #notifDig  = null;
@@ -146,9 +147,10 @@ class MessagesWidget {
    * @param {string} role     — 'cliente' | 'profissional'
    */
   static init(listaId, role = 'cliente') {
-    MessagesWidget.#lista = document.getElementById(listaId);
-    MessagesWidget.#modal = document.getElementById('chat-modal');
-    MessagesWidget.#role  = role;
+    MessagesWidget.#lista  = document.getElementById(listaId);
+    MessagesWidget.#role   = role;
+    // Detecta automaticamente o router da app atual (App = cliente, Pro = profissional)
+    MessagesWidget.#router = window.App ?? window.Pro ?? null;
 
     if (!MessagesWidget.#lista) return;
 
@@ -160,9 +162,9 @@ class MessagesWidget {
       }).observe(tela, { attributes: true, attributeFilter: ['class'] });
     }
 
-    // Fechar modal ao pressionar Escape
+    // Fechar chat ao pressionar Escape (só se estiver em tela-chat)
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') MessagesWidget.fecharModal();
+      if (e.key === 'Escape' && MessagesWidget.#conversa) MessagesWidget.fecharModal();
     });
 
     MessagesWidget.#carregar();
@@ -170,11 +172,11 @@ class MessagesWidget {
     MessagesWidget.#iniciarRealtime();
   }
 
-  /** Abre o modal de chat para a conversa com o id informado. */
+  /** Abre a tela de chat para a conversa com o id informado. */
   static abrirModal(convId) {
     const lista = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
     const conv  = lista.find(c => c.id === convId);
-    if (!conv || !MessagesWidget.#modal) return;
+    if (!conv) return;
 
     MessagesWidget.#conversa = conv;
 
@@ -212,24 +214,20 @@ class MessagesWidget {
 
     MessagesWidget.#renderMensagens(conv.msgs, conv.nome);
 
-    MessagesWidget.#modal.classList.add('chat-modal-aberto');
-    MessagesWidget.#modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('chat-modal-lock');
+    // Navega para tela-chat via Router (slide-in da esquerda, igual às outras telas)
+    MessagesWidget.#router?.nav('chat');
 
-    // Rola para a última mensagem
+    // Rola para a última mensagem após a animação de entrada
     setTimeout(() => {
       const area = document.getElementById('chat-mensagens');
       if (area) area.scrollTop = area.scrollHeight;
-    }, 60);
+    }, 380);
   }
 
-  /** Fecha o modal de chat. */
+  /** Fecha a tela de chat via Router (animação saindo — igual ao btn-voltar). */
   static fecharModal() {
-    if (!MessagesWidget.#modal) return;
-    MessagesWidget.#modal.classList.remove('chat-modal-aberto');
-    MessagesWidget.#modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('chat-modal-lock');
     MessagesWidget.#conversa = null;
+    MessagesWidget.#router?.voltar();
   }
 
   /**
