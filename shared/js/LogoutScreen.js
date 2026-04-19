@@ -52,7 +52,7 @@ class LogoutScreen {
     if (typeof AuthService !== 'undefined') await AuthService.logout();
 
     // ── Fase 4: reseta Router para home deslogado ──────────────────────────
-    router._logado     = false;
+    if (typeof AppState !== 'undefined') AppState.set('isLogado', false);
     router._telaAtual  = 'inicio';
     router._historico  = [];
 

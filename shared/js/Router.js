@@ -28,8 +28,8 @@ class Router {
   _footer        = null;
   _footerOffline = null;
   _navBtns       = [];
-  _logado        = false;
   _services      = {};
+  // _logado removido — use AppState.isLogged() como fonte única de verdade
 
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
@@ -78,6 +78,11 @@ class Router {
     this._bindLoginEvent();
     this._bindDataAttributes();
 
+    // Sincroniza o footer automaticamente sempre que o estado de login mudar
+    if (typeof AppState !== 'undefined') {
+      AppState.onAuth(() => this._atualizarUI(this._telaAtual));
+    }
+
     // Remove boot-lock e libera o CSS normal
     document.getElementById('boot-lock')?.remove();
 
@@ -102,15 +107,21 @@ class Router {
     });
   }
 
-  /** Marca o usuario como logado e re-renderiza o footer. */
+  /**
+   * Marca o usuário como logado no AppState e re-renderiza o footer.
+   * Mantido por compatibilidade — preferível chamar AppState.set('isLogado', true).
+   */
   entrar() {
-    this._logado = true;
+    if (typeof AppState !== 'undefined') AppState.set('isLogado', true);
     this._atualizarUI(this._telaAtual);
   }
 
-  /** Marca o usuario como deslogado e re-renderiza o footer. */
+  /**
+   * Marca o usuário como deslogado no AppState e re-renderiza o footer.
+   * Mantido por compatibilidade — preferível chamar AppState.set('isLogado', false).
+   */
   sair() {
-    this._logado = false;
+    if (typeof AppState !== 'undefined') AppState.set('isLogado', false);
     this._atualizarUI(this._telaAtual);
   }
 
@@ -234,7 +245,8 @@ class Router {
    * @private
    */
   _atualizarUI(tela) {
-    const mostrarCompleto = this._logado && this.telasComNav.has(tela);
+    const logado = typeof AppState !== 'undefined' ? AppState.isLogged() : false;
+    const mostrarCompleto = logado && this.telasComNav.has(tela);
     if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
     if (this._footerOffline) this._footerOffline.style.display = mostrarCompleto ? 'none' : 'flex';
 

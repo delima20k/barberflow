@@ -79,6 +79,36 @@ class AppState {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // CONVENIÊNCIA — leitura semântica do estado de sessão
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Retorna true se o usuário está autenticado.
+   * Fonte única de verdade — não duplicar em outros módulos.
+   * @returns {boolean}
+   */
+  static isLogged() {
+    return AppState.#state.isLogado === true;
+  }
+
+  /**
+   * Retorna o objeto Supabase User corrente (ou null).
+   * @returns {object|null}
+   */
+  static getUser() {
+    return AppState.#state.user ?? null;
+  }
+
+  /**
+   * Retorna o role do usuário corrente ('client' | 'professional' | null).
+   * Lê do perfil em cache — sem chamada de rede.
+   * @returns {string|null}
+   */
+  static getRole() {
+    return AppState.#state.perfil?.role ?? null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // RESET
   // ═══════════════════════════════════════════════════════════
 

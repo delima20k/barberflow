@@ -107,9 +107,9 @@ const AvatarService = (() => {
    * @param {object} router — instância do Router (para fecharMenu e nav se não logado)
    */
   function abrirUpload(router) {
-    const logado = !!(typeof UserService !== 'undefined'
-      ? UserService.getPerfil()
-      : router._logado);
+    const logado = typeof AppState !== 'undefined'
+      ? AppState.isLogged()
+      : (typeof UserService !== 'undefined' ? !!UserService.getPerfil() : false);
 
     if (!logado) {
       MenuService.fechar();
