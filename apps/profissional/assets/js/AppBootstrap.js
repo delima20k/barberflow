@@ -22,7 +22,11 @@ class AppBootstrap {
     { label: 'NearbyBarbershops.todas', fn: () => NearbyBarbershopsWidget.initHomeTodas('home-todas-lista')        },
     { label: 'GeoService.solicit',      fn: () => GeoService.solicitarNaPrimeiraVez()                        },
     { label: 'MapOrientationModule',    fn: () => MapOrientationModule.init()                                },
-    { label: 'MessagesWidget',          fn: () => MessagesWidget.init('msgs-lista', 'profissional')          },
+    { label: 'MessagesWidget',          fn: () => MessagesWidget.init('msgs-lista', 'profissional', (tela) => {
+        if (typeof Pro === 'undefined') return;
+        tela === 'chat' ? Pro.push('chat') : Pro.nav(tela);
+      })
+    },
   ];
 
   static init() {
