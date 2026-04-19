@@ -32,6 +32,8 @@ class HomePage {
       const likeBtn = e.target.closest('[data-action="like"]');
       if (likeBtn) {
         e.preventDefault();
+        const _r = typeof App !== 'undefined' ? App : null;
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', _r)) return;
         BarbershopService.toggleLike(likeBtn);
         return;
       }
@@ -69,6 +71,8 @@ class HomePage {
       if (barbFav) {
         e.preventDefault();
         e.stopPropagation();
+        const _r = typeof App !== 'undefined' ? App : null;
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-favorite', _r)) return;
         BarbershopService.toggleBarbershopFavorite(barbFav);
         return;
       }

@@ -163,6 +163,9 @@ class Router {
     }
     if (tela === this._telaAtual) return;
 
+    // Guard de autenticação — bloqueia rotas privadas para visitantes
+    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirNav(tela, this)) return;
+
     const destino = document.getElementById(`tela-${tela}`);
     if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
@@ -357,6 +360,11 @@ class Router {
         const a = actionEl.dataset.action;
         if (a === 'confirmar-saida')  { e.preventDefault(); this.confirmarSaida();    return; }
         if (a === 'avatar-upload')    { e.preventDefault(); this.abrirUploadAvatar(); return; }
+        // Guard: ações que exigem autenticação (agendar, mensagem, pagamento…)
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(a, this)) {
+          e.preventDefault();
+          return;
+        }
       }
     }, { passive: false });
   }

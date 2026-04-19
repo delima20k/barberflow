@@ -486,7 +486,7 @@
           </div>
           <div class="barber-meta">
             <span class="badge">Aberto</span>
-            <button class="btn btn-gold btn-sm">Agendar</button>
+            <button class="btn btn-gold btn-sm" data-action="agendar">Agendar</button>
           </div>
         </div>
         <div class="barber-row">
@@ -498,7 +498,7 @@
           </div>
           <div class="barber-meta">
             <span class="badge">Aberto</span>
-            <button class="btn btn-gold btn-sm">Agendar</button>
+            <button class="btn btn-gold btn-sm" data-action="agendar">Agendar</button>
           </div>
         </div>
       </div>
@@ -725,6 +725,8 @@
 <script src="/shared/js/ProfileRepository.js"></script>
 <!-- Estado global reativo -->
 <script src="/shared/js/AppState.js"></script>
+<!-- Controle de acesso baseado em autenticação -->
+<script src="/shared/js/AuthGuard.js"></script>
 <!-- Serviços de negócio -->
 <script src="/shared/js/BarbershopService.js"></script>
 <!-- Leaflet JS (mapa interativo) -->

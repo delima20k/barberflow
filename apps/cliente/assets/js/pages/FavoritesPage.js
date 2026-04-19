@@ -96,8 +96,9 @@ class FavoritesPage {
       badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
 
       const btn = document.createElement('button');
-      btn.className   = 'btn btn-gold btn-sm';
-      btn.textContent = 'Agendar';
+      btn.className        = 'btn btn-gold btn-sm';
+      btn.textContent      = 'Agendar';
+      btn.dataset.action   = 'agendar';
 
       meta.appendChild(badge);
       meta.appendChild(btn);
