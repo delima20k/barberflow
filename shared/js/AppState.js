@@ -23,8 +23,25 @@ class AppState {
     geo:      null,   // { lat, lng } ou null
   };
 
+  // Chaves válidas — qualquer outra lança TypeError imediatamente
+  static #CHAVES = Object.freeze(new Set(['user', 'perfil', 'isLogado', 'geo']));
+
   // Mapa de chave → array de callbacks
   static #listeners = new Map();
+
+  /**
+   * Valida se a chave pertence ao schema permitido.
+   * @param {string} key
+   * @throws {TypeError} se a chave for inválida
+   * @private
+   */
+  static #validarChave(key) {
+    if (!AppState.#CHAVES.has(key)) {
+      throw new TypeError(
+        `[AppState] Chave inválida: "${key}". Permitidas: ${[...AppState.#CHAVES].join(', ')}.`
+      );
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // LEITURA
@@ -36,6 +53,7 @@ class AppState {
    * @returns {*}
    */
   static get(key) {
+    AppState.#validarChave(key);
     return AppState.#state[key];
   }
 
@@ -49,6 +67,7 @@ class AppState {
    * @param {*} value
    */
   static set(key, value) {
+    AppState.#validarChave(key);
     AppState.#state[key] = value;
     const cbs = AppState.#listeners.get(key) ?? [];
     cbs.forEach(cb => {
@@ -66,6 +85,7 @@ class AppState {
    * @param {function(*): void} callback
    */
   static on(key, callback) {
+    AppState.#validarChave(key);
     if (!AppState.#listeners.has(key)) AppState.#listeners.set(key, []);
     AppState.#listeners.get(key).push(callback);
   }
