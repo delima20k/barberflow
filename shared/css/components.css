@@ -2829,16 +2829,59 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .msgs-empty p:last-of-type  { font-size: 0.8rem; }
 
 /* ── lock do body quando modal aberto ──────────────────── */
+
 /* ── Tela Chat (full-screen, dentro do #app) ────────────── */
-/* #tela-chat precisa de overflow:hidden para que apenas
-   #chat-mensagens role internamente, não a tela inteira.   */
+/* A tela usa o padrão .tela (position:fixed, top:header-h, bottom:0, display:flex, flex-direction:column).
+   overflow:hidden é obrigatório para que só #chat-mensagens role, não a tela inteira. */
 #tela-chat {
   overflow: hidden;
-  padding-bottom: 0; /* o chat-modal-footer gerencia o safe-area */
+  padding-bottom: 0; /* .chat-modal-footer controla o safe-area */
 }
 
-/* Mantém CSS legado do bottom-sheet para retrocompatibilidade
-   (não usado mais, mas não quebra nada se existir)          */
+/* No topo do chat: avatar ao lado do btn-voltar, sem quebrar o layout */
+#tela-chat .tela-topo {
+  border-bottom: 1px solid var(--gold-border);
+  background: var(--card);
+  padding: 10px 16px;
+  flex-shrink: 0;
+}
+
+/* Avatar menor para caber na linha do topo */
+#tela-chat .chat-modal-avatar {
+  width: 38px;
+  height: 38px;
+  font-size: 0.75rem;
+}
+
+/* Título + sub no chat-topo */
+#tela-chat .chat-modal-nome {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tela-chat .chat-modal-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Área de mensagens expande para preencher todo o espaço disponível */
+#tela-chat .chat-mensagens {
+  flex: 1;
+  min-height: 0; /* crucial para que flex:1 respeite o limite do pai */
+}
+
+/* Rodapé do chat sempre colado à base da tela */
+#tela-chat .chat-modal-footer {
+  flex-shrink: 0;
+}
 
 /* ── Cabeçalho do modal ─────────────────────────────────── */
 .chat-modal-header {

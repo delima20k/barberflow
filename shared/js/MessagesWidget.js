@@ -20,11 +20,13 @@ class MessagesWidget {
 
   static #lista     = null;
   static #modal     = null;   // mantido para evitar erros em chamadas externas legadas
-  static #router    = null;   // instância do Router (App | Pro) resolvida no init
   static #role      = 'cliente';
   static #conversa  = null;  // conversa aberta no momento
   static #notifDig  = null;
   static #citadoId  = null;  // id do card atualmente iluminado pelo dig
+
+  /** Resolve o router da app atual de forma lazy (App=cliente, Pro=profissional). */
+  static get #router() { return window.App ?? window.Pro ?? null; }
 
   // ──────────────────────────────────────────────────────────
   // Mock — substituir por chamadas Supabase quando schema existir
@@ -149,8 +151,6 @@ class MessagesWidget {
   static init(listaId, role = 'cliente') {
     MessagesWidget.#lista  = document.getElementById(listaId);
     MessagesWidget.#role   = role;
-    // Detecta automaticamente o router da app atual (App = cliente, Pro = profissional)
-    MessagesWidget.#router = window.App ?? window.Pro ?? null;
 
     if (!MessagesWidget.#lista) return;
 
@@ -215,7 +215,7 @@ class MessagesWidget {
     MessagesWidget.#renderMensagens(conv.msgs, conv.nome);
 
     // Navega para tela-chat via Router (slide-in da esquerda, igual às outras telas)
-    MessagesWidget.#router?.nav('chat');
+    MessagesWidget.#router?.push('chat');
 
     // Rola para a última mensagem após a animação de entrada
     setTimeout(() => {
@@ -224,7 +224,7 @@ class MessagesWidget {
     }, 380);
   }
 
-  /** Fecha a tela de chat via Router (animação saindo — igual ao btn-voltar). */
+  /** Fecha a tela de chat e limpa o estado da conversa. */
   static fecharModal() {
     MessagesWidget.#conversa = null;
     MessagesWidget.#router?.voltar();
