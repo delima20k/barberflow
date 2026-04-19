@@ -2852,13 +2852,18 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 6px 4px 6px 0;
   position: static !important;
   background: none !important;
+  font-size: 0 !important;       /* elimina qualquer texto residual */
+  line-height: 0 !important;
 }
 #tela-chat .btn-voltar::before {
-  display: none !important; /* oculta o ícone padrão dourado */
+  content: none !important;      /* suprime o pseudo-elemento por completo */
+  display: none !important;
 }
 #tela-chat .btn-voltar svg {
   display: block;
   flex-shrink: 0;
+  width: 24px;
+  height: 24px;
 }
 
 /* Avatar menor para caber na linha do topo */

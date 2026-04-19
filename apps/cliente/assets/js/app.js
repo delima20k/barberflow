@@ -43,7 +43,6 @@ class BarberFlowCliente extends Router {
   #forgotPage;
   #homePage;
   #searchPage;
-  #messagesPage;
   #favoritesPage;
   #profilePage;
   #logoutPage;
@@ -62,7 +61,6 @@ class BarberFlowCliente extends Router {
     this.#forgotPage   = new ForgotPasswordPage(nav);
     this.#homePage     = new HomePage();
     this.#searchPage   = new SearchPage();
-    this.#messagesPage = new MessagesPage();
     this.#favoritesPage = new FavoritesPage();
     this.#profilePage  = new ProfilePage();
     this.#logoutPage   = new LogoutPage();
@@ -76,7 +74,6 @@ class BarberFlowCliente extends Router {
     this.#forgotPage.bind();
     this.#homePage.bind();
     this.#searchPage.bind();
-    this.#messagesPage.bind();
     this.#favoritesPage.bind();
     this.#profilePage.bind();
     this.#logoutPage.bind();

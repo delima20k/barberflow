@@ -2,24 +2,18 @@
 
 // =============================================================
 // MessagesPage.js — Página de Mensagens do app cliente.
-// Responsabilidade: registrar o MessagesWidget com os parâmetros
-// corretos do app cliente. A lógica de renderização e Realtime
-// fica no MessagesWidget — não aqui.
+// Responsabilidade: apenas delegar ao MessagesWidget compartilhado.
+// A inicialização completa (DOM + MutationObserver) é feita via
+// AppBootstrap.init() — NUNCA chamar MessagesWidget.init() aqui
+// para não duplicar observers e causar comportamentos diferentes
+// do app profissional.
 //
 // Dependências: MessagesWidget.js (shared)
 // =============================================================
-
-// Gerencia a tela de mensagens: inicializa o widget de chat para o papel cliente.
 class MessagesPage {
-
   constructor() {}
 
-  /**
-   * Inicializa o MessagesWidget para o app cliente.
-   * Chame uma vez via AppBootstrap (DOM já está disponível).
-   */
-  bind() {
-    if (typeof MessagesWidget === 'undefined') return;
-    MessagesWidget.init('msgs-lista', 'cliente');
-  }
+  // bind() é mantido para compatibilidade com o loop de app.js,
+  // mas não executa o init (AppBootstrap cuida disso).
+  bind() {}
 }
