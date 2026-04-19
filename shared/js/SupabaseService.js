@@ -35,11 +35,12 @@ class SupabaseService {
   static #client = null;
 
   /**
-   * Retorna (ou cria) o cliente Supabase.
-   * Valida o formato da chave antes de criar o cliente.
+   * Retorna (ou cria) o cliente Supabase — PRIVADO.
+   * Nenhum código fora desta classe deve chamar este método.
+   * Use os métodos públicos: getUser(), signIn(), profiles(), channel()…
    * @returns {import('@supabase/supabase-js').SupabaseClient}
    */
-  static get client() {
+  static #getClient() {
     if (!SupabaseService.#client) {
       if (!window.supabase) {
         throw new Error('[SupabaseService] SDK não carregado. Verifique o <script> em supabase.min.js.');
@@ -75,6 +76,13 @@ class SupabaseService {
       SupabaseService.#_initAuthSync();
     }
     return SupabaseService.#client;
+  }
+
+  /** @deprecated Acesso interno — use os métodos públicos do SupabaseService. */
+  static get client() {
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+    if (isLocal) console.warn('[SupabaseService] .client está deprecado. Use os métodos públicos.');
+    return SupabaseService.#getClient();
   }
 
   /**
@@ -154,28 +162,37 @@ class SupabaseService {
 
   // ── Auth helpers ──────────────────────────────────────────
 
+  // ── Auth ─────────────────────────────────────────────────
+
   /** Retorna o usuário autenticado atual (ou null) */
   static async getUser() {
     try {
-      const { data: { user }, error } = await SupabaseService.client.auth.getUser();
+      const { data: { user }, error } = await SupabaseService.#getClient().auth.getUser();
       if (error) SupabaseService.#erro('getUser', error);
       return user;
     } catch (e) {
-      if (e.contexto) throw e; // já tratado
+      if (e.contexto) throw e;
       SupabaseService.#erro('getUser', e);
     }
   }
 
+  /** Retorna a sessão atual (lê localStorage — rápido, sem rede). */
+  static async getSession() {
+    const { data: { session }, error } = await SupabaseService.#getClient().auth.getSession();
+    if (error) SupabaseService.#erro('getSession', error);
+    return session;
+  }
+
   /** Login com email + senha */
   static async signIn(email, password) {
-    const { data, error } = await SupabaseService.client.auth.signInWithPassword({ email, password });
+    const { data, error } = await SupabaseService.#getClient().auth.signInWithPassword({ email, password });
     if (error) SupabaseService.#erro('signIn', error);
     return data;
   }
 
   /** Cadastro com email + senha */
   static async signUp(email, password, meta = {}) {
-    const { data, error } = await SupabaseService.client.auth.signUp({
+    const { data, error } = await SupabaseService.#getClient().auth.signUp({
       email, password, options: { data: meta }
     });
     if (error) SupabaseService.#erro('signUp', error);
@@ -184,8 +201,19 @@ class SupabaseService {
 
   /** Logout */
   static async signOut() {
-    const { error } = await SupabaseService.client.auth.signOut();
+    const { error } = await SupabaseService.#getClient().auth.signOut();
     if (error) SupabaseService.#erro('signOut', error);
+  }
+
+  /**
+   * Envia e-mail de recuperação de senha.
+   * @param {string} email
+   */
+  static async resetPassword(email) {
+    const { error } = await SupabaseService.#getClient().auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname,
+    });
+    if (error) SupabaseService.#erro('resetPassword', error);
   }
 
   /**
@@ -193,7 +221,7 @@ class SupabaseService {
    * @param {(event: string, session: object|null) => void} callback
    */
   static onAuthChange(callback) {
-    return SupabaseService.client.auth.onAuthStateChange(callback);
+    return SupabaseService.#getClient().auth.onAuthStateChange(callback);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -203,48 +231,167 @@ class SupabaseService {
   // ═══════════════════════════════════════════════════════════
 
   /** Tabela de perfis de usuários */
-  static profiles()               { return SupabaseService.client.from('profiles'); }
+  static profiles()               { return SupabaseService.#getClient().from('profiles'); }
 
   /** View pública de perfis (sem dados sensíveis) */
-  static profilesPublic()         { return SupabaseService.client.from('profiles_public'); }
+  static profilesPublic()         { return SupabaseService.#getClient().from('profiles_public'); }
 
   /** Tabela de barbearias */
-  static barbershops()            { return SupabaseService.client.from('barbershops'); }
+  static barbershops()            { return SupabaseService.#getClient().from('barbershops'); }
 
   /** Tabela de interações com barbearias (favoritos, likes, visitas) */
-  static barbershopInteractions() { return SupabaseService.client.from('barbershop_interactions'); }
+  static barbershopInteractions() { return SupabaseService.#getClient().from('barbershop_interactions'); }
 
   /** Tabela de agendamentos */
-  static appointments()           { return SupabaseService.client.from('appointments'); }
+  static appointments()           { return SupabaseService.#getClient().from('appointments'); }
 
   /** Tabela de notificações */
-  static notifications()          { return SupabaseService.client.from('notifications'); }
+  static notifications()          { return SupabaseService.#getClient().from('notifications'); }
 
   /** Tabela de stories */
-  static stories()                { return SupabaseService.client.from('stories'); }
+  static stories()                { return SupabaseService.#getClient().from('stories'); }
 
   /** Tabela de comentários de stories */
-  static storyComments()          { return SupabaseService.client.from('story_comments'); }
+  static storyComments()          { return SupabaseService.#getClient().from('story_comments'); }
 
   /** Tabela de mensagens diretas */
-  static directMessages()         { return SupabaseService.client.from('direct_messages'); }
+  static directMessages()         { return SupabaseService.#getClient().from('direct_messages'); }
 
   /** Tabela de favoritos */
-  static favorites()              { return SupabaseService.client.from('favorites'); }
+  static favorites()              { return SupabaseService.#getClient().from('favorites'); }
 
   /** Tabela de entradas na fila */
-  static queueEntries()           { return SupabaseService.client.from('queue_entries'); }
+  static queueEntries()           { return SupabaseService.#getClient().from('queue_entries'); }
 
   /** Tabela de cadeiras/estações de trabalho */
-  static chairs()                 { return SupabaseService.client.from('chairs'); }
+  static chairs()                 { return SupabaseService.#getClient().from('chairs'); }
+
+  /** Tabela de serviços de barbearia */
+  static services()               { return SupabaseService.#getClient().from('services'); }
+
+  /** Tabela de imagens do portfólio */
+  static portfolioImages()        { return SupabaseService.#getClient().from('portfolio_images'); }
+
+  /** Tabela de aceites legais */
+  static legalConsents()          { return SupabaseService.#getClient().from('legal_consents'); }
 
   // ── Storage ───────────────────────────────────────────────
 
   /** Bucket de avatares de usuários */
-  static storageAvatars()         { return SupabaseService.client.storage.from('avatars'); }
+  static storageAvatars()         { return SupabaseService.#getClient().storage.from('avatars'); }
 
   /** Bucket de logos de barbearias */
-  static storageLogos()           { return SupabaseService.client.storage.from('logos'); }
+  static storageLogos()           { return SupabaseService.#getClient().storage.from('logos'); }
+
+  /**
+   * Retorna a URL pública de um avatar.
+   * @param {string} path — avatar_path da tabela profiles
+   * @returns {string}
+   */
+  static getAvatarUrl(path) {
+    return SupabaseService.storageAvatars().getPublicUrl(path).data.publicUrl;
+  }
+
+  /**
+   * Retorna a URL pública de um logo de barbearia.
+   * @param {string} path — logo_path da tabela barbershops
+   * @returns {string}
+   */
+  static getLogoUrl(path) {
+    return SupabaseService.storageLogos().getPublicUrl(path).data.publicUrl;
+  }
+
+  /**
+   * Retorna a URL pública de uma thumbnail do portfólio.
+   * @param {string} path — thumbnail_path
+   * @returns {string}
+   */
+  static getPortfolioThumbUrl(path) {
+    return SupabaseService.#getClient().storage.from('portfolio').getPublicUrl(path).data.publicUrl;
+  }
+
+  // ── Realtime ──────────────────────────────────────────────
+
+  /**
+   * Cria um canal Realtime.
+   * @param {string} name — identificador único do canal
+   * @returns {RealtimeChannel}
+   */
+  static channel(name) {
+    return SupabaseService.#getClient().channel(name);
+  }
+
+  /**
+   * Remove e cancela a inscrição de um canal Realtime.
+   * @param {RealtimeChannel} canal
+   */
+  static removeChannel(canal) {
+    try { SupabaseService.#getClient().removeChannel(canal); } catch (_) {}
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // OPERAÇÕES DE ALTO NÍVEL — Service Layer
+  // Evitam uso de .from() espalhado no app.
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Retorna o perfil de um usuário pelo ID.
+   * @param {string} userId
+   * @returns {Promise<object|null>}
+   */
+  static async getProfile(userId) {
+    const { data, error } = await SupabaseService.profiles()
+      .select('id, full_name, phone, avatar_path, role, pro_type')
+      .eq('id', userId)
+      .single();
+    if (error) SupabaseService.#erro('getProfile', error);
+    return data ?? null;
+  }
+
+  /**
+   * Atualiza o perfil de um usuário.
+   * @param {string} userId
+   * @param {object} dados — campos a atualizar (ex: { full_name, phone })
+   * @returns {Promise<object>}
+   */
+  static async updateProfile(userId, dados) {
+    const { data, error } = await SupabaseService.profiles()
+      .update(dados)
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) SupabaseService.#erro('updateProfile', error);
+    return data;
+  }
+
+  /**
+   * Retorna todas as barbearias ativas, ordenadas por avaliação.
+   * @param {number} [limit=20]
+   * @returns {Promise<object[]>}
+   */
+  static async getBarbers(limit = 20) {
+    const { data, error } = await SupabaseService.barbershops()
+      .select('id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg')
+      .eq('is_active', true)
+      .order('rating_avg', { ascending: false })
+      .limit(limit);
+    if (error) SupabaseService.#erro('getBarbers', error);
+    return data ?? [];
+  }
+
+  /**
+   * Cria um novo agendamento.
+   * @param {object} dados — { client_id, professional_id, barbershop_id, service_id, scheduled_at, duration_min, price_charged, notes? }
+   * @returns {Promise<{ id: string }>}
+   */
+  static async createAppointment(dados) {
+    const { data, error } = await SupabaseService.appointments()
+      .insert(dados)
+      .select('id')
+      .single();
+    if (error) SupabaseService.#erro('createAppointment', error);
+    return data;
+  }
 
   // ═══════════════════════════════════════════════════════════
   // DIAGNÓSTICO — use no console DevTools para debugar 401
@@ -289,7 +436,7 @@ class SupabaseService {
     let session = null;
     try {
       for (let i = 0; i < 6; i++) {
-        const { data, error } = await SupabaseService.client.auth.getSession();
+        const { data, error } = await SupabaseService.#getClient().auth.getSession();
         if (error) { console.error('Erro ao buscar sessão:', error); break; }
         if (data?.session) { session = data.session; break; }
         if (i < 5) {
@@ -298,7 +445,7 @@ class SupabaseService {
         }
       }
     } catch (e) {
-      console.error('Falha ao acessar SupabaseService.client:', e.message);
+      console.error('Falha ao acessar SupabaseService:', e.message);
       console.groupEnd(); console.groupEnd(); return;
     }
 

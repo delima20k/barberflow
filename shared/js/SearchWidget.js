@@ -174,8 +174,7 @@ class SearchWidget {
     SearchWidget.#renderLoading();
 
     try {
-      const { data, error } = await SupabaseService.client
-        .from('barbershops')
+      const { data, error } = await SupabaseService.barbershops()
         .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg')
         .eq('is_active', true)
         .or(

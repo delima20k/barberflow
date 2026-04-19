@@ -86,8 +86,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers estáticos (sem referência a this) ──────────────
 
   static async #fetchMinhaBarbearia(ownerId) {
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
@@ -99,8 +98,7 @@ class MinhaBarbeariaPage {
   }
 
   static async #fetchServicos(barbershopId) {
-    const { data, error } = await SupabaseService.client
-      .from('services')
+    const { data, error } = await SupabaseService.services()
       .select('id, name, description, duration_min, price')
       .eq('barbershop_id', barbershopId)
       .eq('is_active', true)
@@ -113,8 +111,7 @@ class MinhaBarbeariaPage {
   static async #fetchPortfolio(barbershopId) {
     // portfolio_images pode não existir ainda — fallback seguro
     try {
-      const { data, error } = await SupabaseService.client
-        .from('portfolio_images')
+      const { data, error } = await SupabaseService.portfolioImages()
         .select('id, thumbnail_path, title, likes_count')
         .eq('owner_id', barbershopId)
         .eq('owner_type', 'barbershop')
@@ -145,8 +142,7 @@ class MinhaBarbeariaPage {
     if (kpiClientes)kpiClientes.textContent = String(shop.rating_count ?? 0);
 
     if (logoEl && shop.logo_path) {
-      const url = SupabaseService.client.storage
-        .from('logos').getPublicUrl(shop.logo_path).data?.publicUrl || '';
+      const url = SupabaseService.getLogoUrl(shop.logo_path) || '';
       if (url) {
         logoEl.src     = url;
         logoEl.onerror = () => { logoEl.style.display = 'none'; };
@@ -197,8 +193,7 @@ class MinhaBarbeariaPage {
       if (!img.thumbnail_path) {
         return `<div class="port-item" title="${img.title ?? ''}">✂️</div>`;
       }
-      const url = SupabaseService.client.storage
-        .from('portfolio').getPublicUrl(img.thumbnail_path).data?.publicUrl || '';
+      const url = SupabaseService.getPortfolioThumbUrl(img.thumbnail_path) || '';
       return `<div class="port-item" title="${img.title ?? ''}">
         <img src="${url}" alt="${img.title ?? ''}" loading="lazy"
              style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm);"
@@ -216,8 +211,7 @@ class MinhaBarbeariaPage {
     const estaAberta = badge?.textContent?.trim() === 'Aberta';
 
     try {
-      const { error } = await SupabaseService.client
-        .from('barbershops')
+      const { error } = await SupabaseService.barbershops()
         .update({ is_open: !estaAberta })
         .eq('id', this.#barbershopId);
 

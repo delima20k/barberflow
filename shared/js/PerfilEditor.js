@@ -309,7 +309,7 @@ class PerfilEditor {
 
     // Salva localmente (zero custo de banco)
     try {
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const user = await SupabaseService.getUser();
       if (user?.id) {
         SessionCache.salvarExtras(user.id, { [campo]: valorParaSalvar });
       }

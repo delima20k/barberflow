@@ -26,15 +26,10 @@ class MessageService {
 
   // ─── Helpers privados ────────────────────────────────────────
 
-  /** Retorna o cliente Supabase (pode ser null se não disponível). */
-  static get #sb() {
-    try { return SupabaseService.client; } catch { return null; }
-  }
-
   /** ID do usuário autenticado (null em modo demo). */
   static async #uid() {
     try {
-      const { user } = await SupabaseService.getUser();
+      const user = await SupabaseService.getUser();
       return user?.id ?? null;
     } catch {
       return null;
@@ -58,11 +53,10 @@ class MessageService {
       return { ok: false, data: null, error: 'Dados inválidos' };
     }
 
-    const sb  = MessageService.#sb;
     const uid = await MessageService.#uid();
 
     // Fallback MOCK — modo offline/demo
-    if (!sb || !uid) {
+    if (!uid) {
       const mock = {
         id:           crypto.randomUUID(),
         sender_id:    'demo',
@@ -76,8 +70,7 @@ class MessageService {
       return { ok: true, data: mock, error: null };
     }
 
-    const { data, error } = await sb
-      .from('direct_messages')
+    const { data, error } = await SupabaseService.directMessages()
       .insert({
         sender_id:    uid,
         recipient_id: recipientId,
@@ -105,18 +98,16 @@ class MessageService {
    * @returns {{ ok: boolean, data: Array, error: string|null }}
    */
   static async buscarConversa(otherUserId, limit = 50, offset = 0) {
-    const sb  = MessageService.#sb;
     const uid = await MessageService.#uid();
 
-    if (!sb || !uid) {
+    if (!uid) {
       const mock = MessageService.#MOCK_INBOX.filter(
         m => m.sender_id === otherUserId || m.recipient_id === otherUserId,
       );
       return { ok: true, data: mock, error: null };
     }
 
-    const { data, error } = await sb
-      .from('direct_messages')
+    const { data, error } = await SupabaseService.directMessages()
       .select('*')
       .or(
         `and(sender_id.eq.${uid},recipient_id.eq.${otherUserId}),` +
@@ -140,12 +131,10 @@ class MessageService {
    * @returns {{ ok: boolean }}
    */
   static async marcarLido(senderId) {
-    const sb  = MessageService.#sb;
     const uid = await MessageService.#uid();
-    if (!sb || !uid) return { ok: true };
+    if (!uid) return { ok: true };
 
-    const { error } = await sb
-      .from('direct_messages')
+    const { error } = await SupabaseService.directMessages()
       .update({ is_read: true })
       .eq('sender_id',    senderId)
       .eq('recipient_id', uid)
@@ -172,10 +161,9 @@ class MessageService {
       return { ok: false, data: null, error: 'Dados inválidos' };
     }
 
-    const sb  = MessageService.#sb;
     const uid = await MessageService.#uid();
 
-    if (!sb || !uid) {
+    if (!uid) {
       const mock = {
         id:           crypto.randomUUID(),
         story_id:     storyId,
@@ -187,8 +175,7 @@ class MessageService {
       return { ok: true, data: mock, error: null };
     }
 
-    const { data, error } = await sb
-      .from('story_comments')
+    const { data, error } = await SupabaseService.storyComments()
       .insert({
         story_id:     storyId,
         sender_id:    uid,
@@ -216,13 +203,7 @@ class MessageService {
   static async buscarComentariosStory(storyId, limit = 30) {
     if (!storyId) return { ok: false, data: [], error: 'storyId inválido' };
 
-    const sb = MessageService.#sb;
-
-    if (!sb) return { ok: true, data: [], error: null };
-
-    // Verifica se story ainda está ativo antes de buscar
-    const { data: story } = await sb
-      .from('stories')
+    const { data: story } = await SupabaseService.stories()
       .select('id, expires_at')
       .eq('id', storyId)
       .single();
@@ -231,8 +212,7 @@ class MessageService {
       return { ok: true, data: [], error: null }; // story expirado → sem comentários
     }
 
-    const { data, error } = await sb
-      .from('story_comments')
+    const { data, error } = await SupabaseService.storyComments()
       .select(`
         id,
         content,
@@ -262,11 +242,7 @@ class MessageService {
    * @returns {{ ok: boolean }}
    */
   static async apagarComentario(commentId) {
-    const sb = MessageService.#sb;
-    if (!sb) return { ok: true };
-
-    const { error } = await sb
-      .from('story_comments')
+    const { error } = await SupabaseService.storyComments()
       .delete()
       .eq('id', commentId);
 
@@ -291,12 +267,10 @@ class MessageService {
 
     if (MessageService.#realtimeChannel) return; // já inscrito
 
-    const sb  = MessageService.#sb;
     const uid = await MessageService.#uid();
-    if (!sb || !uid) return;
+    if (!uid) return;
 
-    MessageService.#realtimeChannel = sb
-      .channel('inbox-realtime')
+    MessageService.#realtimeChannel = SupabaseService.channel('inbox-realtime')
       .on(
         'postgres_changes',
         {

@@ -109,7 +109,7 @@ class PaymentFlowHandler {
       await paymentResponse.complete('success');
 
       // Valida e persiste no backend
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const user = await SupabaseService.getUser();
       if (user) {
         await PaymentFlowHandler.validarESalvar(user.id, plano, purchaseToken);
       }

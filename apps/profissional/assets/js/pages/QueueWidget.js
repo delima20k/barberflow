@@ -160,8 +160,7 @@ class QueueWidget {
   // ── Helpers ─────────────────────────────────────────────────
 
   static async #fetchShopId(ownerId) {
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select('id')
       .eq('owner_id', ownerId)
       .eq('is_active', true)

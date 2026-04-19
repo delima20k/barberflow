@@ -32,8 +32,7 @@ class QueueRepository {
    * @returns {Promise<object[]>}
    */
   static async getByBarbershop(barbershopId) {
-    const { data, error } = await SupabaseService.client
-      .from('queue_entries')
+    const { data, error } = await SupabaseService.queueEntries()
       .select(QueueRepository.#SELECT_LIST)
       .eq('barbershop_id', barbershopId)
       .in('status', ['waiting', 'in_service'])
@@ -49,8 +48,7 @@ class QueueRepository {
    * @returns {Promise<object[]>}
    */
   static async getCadeiras(barbershopId) {
-    const { data, error } = await SupabaseService.client
-      .from('chairs')
+    const { data, error } = await SupabaseService.chairs()
       .select('id, label, status, professional:professionals!professional_id(profile:profiles!id(full_name))')
       .eq('barbershop_id', barbershopId)
       .neq('status', 'inativa')
@@ -78,8 +76,7 @@ class QueueRepository {
     if (status === 'in_service') patch.served_at = new Date().toISOString();
     if (status === 'done')       patch.done_at   = new Date().toISOString();
 
-    const { data, error } = await SupabaseService.client
-      .from('queue_entries')
+    const { data, error } = await SupabaseService.queueEntries()
       .update(patch)
       .eq('id', id)
       .select('id, status, position')
@@ -95,8 +92,7 @@ class QueueRepository {
    * @returns {Promise<object>}
    */
   static async entrar(payload) {
-    const { data, error } = await SupabaseService.client
-      .from('queue_entries')
+    const { data, error } = await SupabaseService.queueEntries()
       .insert(payload)
       .select('id, position')
       .single();
@@ -118,8 +114,7 @@ class QueueRepository {
   static subscribe(barbershopId, callback) {
     if (QueueRepository.#canais.has(barbershopId)) return; // já inscrito
 
-    const canal = SupabaseService.client
-      .channel(`queue:${barbershopId}`)
+    const canal = SupabaseService.channel(`queue:${barbershopId}`)
       .on(
         'postgres_changes',
         {
@@ -143,7 +138,7 @@ class QueueRepository {
     const canal = QueueRepository.#canais.get(barbershopId);
     if (!canal) return;
     try {
-      SupabaseService.client.removeChannel(canal);
+      SupabaseService.removeChannel(canal);
     } catch (_) {}
     QueueRepository.#canais.delete(barbershopId);
   }

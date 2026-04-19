@@ -101,10 +101,9 @@ class GeoService {
    */
   static async carregarDoBanco() {
     try {
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const user = await SupabaseService.getUser();
       if (!user) return null;
-      const { data, error } = await SupabaseService.client
-        .from('profiles')
+      const { data, error } = await SupabaseService.profiles()
         .select('last_lat, last_lng, last_location_at')
         .eq('id', user.id)
         .single();
@@ -216,10 +215,9 @@ class GeoService {
       Date.now() - GeoService.#ultimoSalvo < GeoService.#SALVAR_COOLDOWN_MS
     ) return;
     try {
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const user = await SupabaseService.getUser();
       if (!user) return;
-      await SupabaseService.client
-        .from('profiles')
+      await SupabaseService.profiles()
         .update({
           last_lat:         lat,
           last_lng:         lng,

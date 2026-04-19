@@ -129,8 +129,7 @@ class AgendaPage {
     // Avatar do cliente
     let avatarHTML;
     if (a.client?.avatar_path) {
-      const url = SupabaseService.client.storage
-        .from('avatars').getPublicUrl(a.client.avatar_path).data?.publicUrl || '';
+      const url = SupabaseService.getAvatarUrl(a.client.avatar_path) || '';
       avatarHTML = `<img src="${url}" alt="${nome}" onerror="this.outerHTML='👤'">`;
     } else {
       avatarHTML = '👤';

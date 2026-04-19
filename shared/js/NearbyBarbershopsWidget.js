@@ -168,8 +168,7 @@ class NearbyBarbershopsWidget {
           img.alt = b.name;
           img.loading = 'lazy';
           img.onerror = () => { avatarWrap.textContent = '💈'; };
-          img.src = SupabaseService.client.storage
-            .from('logos').getPublicUrl(b.logo_path).data?.publicUrl || '';
+          img.src = SupabaseService.getLogoUrl(b.logo_path) || '';
           avatarWrap.appendChild(img);
         } else {
           avatarWrap.textContent = '💈';
@@ -313,8 +312,7 @@ class NearbyBarbershopsWidget {
           const img = document.createElement('img');
           img.alt = p.full_name;
           img.onerror = () => { avatarWrap.textContent = '💈'; };
-          img.src = SupabaseService.client.storage
-            .from('avatars').getPublicUrl(p.avatar_path).data?.publicUrl || '';
+          img.src = SupabaseService.getAvatarUrl(p.avatar_path) || '';
           avatarWrap.appendChild(img);
         } else {
           avatarWrap.textContent = '💈';

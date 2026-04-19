@@ -21,8 +21,7 @@ class ProfileRepository {
    * @returns {Promise<object>}
    */
   static async getById(userId) {
-    const { data, error } = await SupabaseService.client
-      .from('profiles')
+    const { data, error } = await SupabaseService.profiles()
       .select('*')
       .eq('id', userId)
       .single();
@@ -37,8 +36,7 @@ class ProfileRepository {
    * @param {object} dados — campos a atualizar
    */
   static async update(userId, dados) {
-    const { error } = await SupabaseService.client
-      .from('profiles')
+    const { error } = await SupabaseService.profiles()
       .update({ ...dados, updated_at: new Date().toISOString() })
       .eq('id', userId);
 
@@ -62,19 +60,15 @@ class ProfileRepository {
       : 'jpeg';
     const path = `${userId}/avatar.${ext}`;
 
-    const { error: upErr } = await SupabaseService.client.storage
-      .from('avatars')
+    const { error: upErr } = await SupabaseService.storageAvatars()
       .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
 
     if (upErr) throw upErr;
 
     await ProfileRepository.update(userId, { avatar_path: path });
 
-    const { data } = SupabaseService.client.storage
-      .from('avatars')
-      .getPublicUrl(path);
-
-    return (data?.publicUrl ?? '') + '?t=' + Date.now();
+    const publicUrl = SupabaseService.getAvatarUrl(path);
+    return publicUrl + '?t=' + Date.now();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -87,8 +81,7 @@ class ProfileRepository {
    * @returns {Promise<object[]>}
    */
   static async getFavorites(userId) {
-    const { data, error } = await SupabaseService.client
-      .from('favorites')
+    const { data, error } = await SupabaseService.favorites()
       .select('barbershop_id, barbershops(id, name, address, is_open, rating_avg, logo_path)')
       .eq('user_id', userId);
 
@@ -104,16 +97,14 @@ class ProfileRepository {
    * @returns {Promise<boolean>}
    */
   static async toggleFavorite(userId, barbershopId) {
-    const { data: existing } = await SupabaseService.client
-      .from('favorites')
+    const { data: existing } = await SupabaseService.favorites()
       .select('id')
       .eq('user_id', userId)
       .eq('barbershop_id', barbershopId)
       .maybeSingle();
 
     if (existing) {
-      const { error } = await SupabaseService.client
-        .from('favorites')
+      const { error } = await SupabaseService.favorites()
         .delete()
         .eq('user_id', userId)
         .eq('barbershop_id', barbershopId);
@@ -121,8 +112,7 @@ class ProfileRepository {
       return false; // removido
     }
 
-    const { error } = await SupabaseService.client
-      .from('favorites')
+    const { error } = await SupabaseService.favorites()
       .insert({ user_id: userId, barbershop_id: barbershopId });
     if (error) throw error;
     return true; // adicionado

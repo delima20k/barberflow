@@ -65,7 +65,7 @@ class TermosController {
         uso_gps:             true,
       };
 
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const user = await SupabaseService.getUser();
 
       if (!user) {
         // Fluxo pré-cadastro: salva aceite pendente, segue para cadastro

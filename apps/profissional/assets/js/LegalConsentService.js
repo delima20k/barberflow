@@ -34,8 +34,7 @@ class LegalConsentService {
     }
 
     try {
-      const { data, error } = await SupabaseService.client
-        .from('legal_consents')
+      const { data, error } = await SupabaseService.legalConsents()
         .select('version, aceitou_termos')
         .eq('user_id', userId)
         .maybeSingle();
@@ -88,8 +87,7 @@ class LegalConsentService {
     };
 
     try {
-      const { error } = await SupabaseService.client
-        .from('legal_consents')
+      const { error } = await SupabaseService.legalConsents()
         .upsert(registro, { onConflict: 'user_id' });
 
       if (error) throw error;

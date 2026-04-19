@@ -25,8 +25,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getAll(limit = 10) {
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
       .order('rating_avg', { ascending: false })
@@ -48,8 +47,7 @@ class BarbershopRepository {
     const latD = radiusKm / 111.0;
     const lonD = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
 
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
       .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
@@ -67,8 +65,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getFeatured(limit = 6) {
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count')
       .eq('is_active', true)
       .order('rating_avg', { ascending: false })
@@ -85,8 +82,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getTopRated(limit = 50) {
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
@@ -103,8 +99,7 @@ class BarbershopRepository {
    * @returns {Promise<object>}
    */
   static async getById(id) {
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select('*')
       .eq('id', id)
       .single();
@@ -121,8 +116,7 @@ class BarbershopRepository {
    */
   static async search(query, limit = 20) {
     const q = query.trim();
-    const { data, error } = await SupabaseService.client
-      .from('barbershops')
+    const { data, error } = await SupabaseService.barbershops()
       .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg')
       .eq('is_active', true)
       .or(`name.ilike.%${q}%,address.ilike.%${q}%,city.ilike.%${q}%,zip_code.ilike.%${q}%`)
@@ -142,8 +136,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getBarbers(limit = 10) {
-    const { data, error } = await SupabaseService.client
-      .from('profiles_public')
+    const { data, error } = await SupabaseService.profilesPublic()
       .select('id, full_name, avatar_path, pro_type')
       .eq('role', 'professional')
       .eq('pro_type', 'barbeiro')
@@ -164,8 +157,7 @@ class BarbershopRepository {
    * @param {'like'|'dislike'|'favorite'} type
    */
   static async addInteraction(barbershopId, userId, type) {
-    const { error } = await SupabaseService.client
-      .from('barbershop_interactions')
+    const { error } = await SupabaseService.barbershopInteractions()
       .insert({ barbershop_id: barbershopId, user_id: userId, type });
     if (error) throw error;
   }
@@ -177,8 +169,7 @@ class BarbershopRepository {
    * @param {'like'|'dislike'|'favorite'} type
    */
   static async removeInteraction(barbershopId, userId, type) {
-    const { error } = await SupabaseService.client
-      .from('barbershop_interactions')
+    const { error } = await SupabaseService.barbershopInteractions()
       .delete()
       .eq('barbershop_id', barbershopId)
       .eq('user_id', userId)
@@ -195,8 +186,7 @@ class BarbershopRepository {
    */
   static async getUserInteractions(userId, barbershopIds) {
     if (!userId || !barbershopIds.length) return [];
-    const { data, error } = await SupabaseService.client
-      .from('barbershop_interactions')
+    const { data, error } = await SupabaseService.barbershopInteractions()
       .select('barbershop_id, type')
       .eq('user_id', userId)
       .in('barbershop_id', barbershopIds);

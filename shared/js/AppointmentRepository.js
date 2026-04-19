@@ -32,8 +32,7 @@ class AppointmentRepository {
    * @returns {Promise<object[]>}
    */
   static async getByProfessional(professionalId, inicio, fim) {
-    const { data, error } = await SupabaseService.client
-      .from('appointments')
+    const { data, error } = await SupabaseService.appointments()
       .select(AppointmentRepository.#SELECT_LIST)
       .eq('professional_id', professionalId)
       .gte('scheduled_at', inicio.toISOString())
@@ -107,8 +106,7 @@ class AppointmentRepository {
    * @returns {Promise<object[]>}
    */
   static async getByCliente(clientId) {
-    const { data, error } = await SupabaseService.client
-      .from('appointments')
+    const { data, error } = await SupabaseService.appointments()
       .select(AppointmentRepository.#SELECT_LIST)
       .eq('client_id', clientId)
       .gte('scheduled_at', new Date().toISOString())
@@ -134,8 +132,7 @@ class AppointmentRepository {
     const validos = ['pending', 'confirmed', 'in_progress', 'done', 'cancelled', 'no_show'];
     if (!validos.includes(status)) throw new Error(`Status inválido: ${status}`);
 
-    const { data, error } = await SupabaseService.client
-      .from('appointments')
+    const { data, error } = await SupabaseService.appointments()
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('id, status')
@@ -151,8 +148,7 @@ class AppointmentRepository {
    * @returns {Promise<object>}
    */
   static async criar(payload) {
-    const { data, error } = await SupabaseService.client
-      .from('appointments')
+    const { data, error } = await SupabaseService.appointments()
       .insert(payload)
       .select('id')
       .single();

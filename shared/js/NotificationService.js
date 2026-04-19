@@ -73,16 +73,9 @@ class NotificationService {
 
     // Conecta/desconecta Realtime junto com a sessão Supabase
     try {
-      const client = SupabaseService?.client;
-      if (client) {
-        client.auth.onAuthStateChange((event, session) => {
-          if (session?.user) {
-            NotificationService.iniciarRealtime(session.user.id);
-          } else {
-            NotificationService.pararRealtime();
-          }
-        });
-      }
+      SupabaseService.getSession().then(({ data: { session } }) => {
+        if (session?.user) NotificationService.iniciarRealtime(session.user.id);
+      }).catch(() => {});
     } catch (_) {
       // SupabaseService não disponível — continua offline
     }
@@ -98,11 +91,7 @@ class NotificationService {
     if (NotificationService.#canal) return; // já conectado
 
     try {
-      const client = SupabaseService.client;
-      if (!client) return;
-
-      NotificationService.#canal = client
-        .channel(`notificacoes:${userId}`)
+      NotificationService.#canal = SupabaseService.channel(`notificacoes:${userId}`)
         .on(
           'postgres_changes',
           {
@@ -125,7 +114,7 @@ class NotificationService {
   static pararRealtime() {
     if (NotificationService.#canal) {
       try {
-        SupabaseService.client.removeChannel(NotificationService.#canal);
+      SupabaseService.removeChannel(NotificationService.#canal);
       } catch (_) {}
       NotificationService.#canal = null;
     }
@@ -193,8 +182,7 @@ class NotificationService {
     // Sincroniza com banco se for ID real (uuid, não local_*)
     if (!id.startsWith('local_')) {
       try {
-        await SupabaseService.client
-          .from('notifications')
+        await SupabaseService.notifications()
           .update({ is_read: true })
           .eq('id', id);
       } catch (_) {}
@@ -216,8 +204,7 @@ class NotificationService {
 
     if (ids.length > 0) {
       try {
-        await SupabaseService.client
-          .from('notifications')
+        await SupabaseService.notifications()
           .update({ is_read: true })
           .in('id', ids);
       } catch (_) {}

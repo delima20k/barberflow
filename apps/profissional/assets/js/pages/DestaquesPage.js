@@ -96,8 +96,7 @@ class DestaquesPage {
       img.alt = b.name;
       img.loading = 'lazy';
       img.onerror = () => { avatar.textContent = '💈'; };
-      img.src = SupabaseService.client.storage
-        .from('logos').getPublicUrl(b.logo_path).data?.publicUrl || '';
+      img.src = SupabaseService.getLogoUrl(b.logo_path) || '';
       avatar.appendChild(img);
     } else {
       avatar.textContent = '💈';

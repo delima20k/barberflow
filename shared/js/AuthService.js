@@ -52,7 +52,7 @@ class AuthService {
       // Só aplica no app profissional (Pro definido, App não)
       if (AuthService.#isPro &&
           typeof LegalConsentService !== 'undefined') {
-        const { data: { user } } = await SupabaseService.client.auth.getUser();
+        const user = await SupabaseService.getUser();
         if (user) {
           const aceitou = await LegalConsentService.verificarAceite(user.id);
           if (!aceitou) {
@@ -94,11 +94,11 @@ class AuthService {
     AuthService._erro(erroEl, '');
 
     try {
-      const { data, error } = await SupabaseService.client.auth.signUp({
+      const { data, error } = await SupabaseService.signUp(
         email,
-        password: senha,
-        options: { data: { full_name: nome, role, phone: telefone || null, pro_type: pro_type || null, barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null } }
-      });
+        senha,
+        { full_name: nome, role, phone: telefone || null, pro_type: pro_type || null, barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null }
+      );
       if (error) throw error;
 
       const { user, session } = data;
@@ -112,14 +112,12 @@ class AuthService {
         // seria bloqueado pelo trigger prevent_role_escalation, mas por defesa
         // em profundidade, removemos o campo da origem do problema.
         const perfilData = { id: user.id, full_name: nome, phone: telefone || null };
-        await SupabaseService.client
-          .from('profiles')
+        await SupabaseService.profiles()
           .upsert(perfilData, { onConflict: 'id' });
 
         // Se é dono de barbearia, cria registro mínimo para aparecer na pesquisa
         if (pro_type === 'barbearia' && barbearia?.trim()) {
-          const { error: errShop } = await SupabaseService.client
-            .from('barbershops')
+          const { error: errShop } = await SupabaseService.barbershops()
             .insert({
               owner_id:  user.id,
               name:      barbearia.trim(),
@@ -167,10 +165,7 @@ class AuthService {
     AuthService._erro(erroEl, '');
 
     try {
-      const { error } = await SupabaseService.client.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + window.location.pathname
-      });
-      if (error) throw error;
+      await SupabaseService.resetPassword(email);
 
       AuthService._erro(erroEl, '✅ Link enviado! Verifique sua caixa de entrada.', 'success');
       setTimeout(() => navFn('login'), 3000);
@@ -259,7 +254,7 @@ class AuthService {
     // getSession() lê o token do localStorage e auto-refresca — muito mais
     // rápido que getUser() que sempre vai à rede.
     try {
-      const { data: { session } } = await SupabaseService.client.auth.getSession();
+      const session = await SupabaseService.getSession();
       if (session?.user) {
         AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
 
@@ -306,15 +301,14 @@ class AuthService {
   static async _carregarPerfil(userId) {
     // Busca apenas colunas que existem na tabela profiles original
     // Os dados extras (address, birth_date, gender, zip_code) ficam no localStorage
-    const { data } = await SupabaseService.client
-      .from('profiles')
+    const { data } = await SupabaseService.profiles()
       .select('id, full_name, phone, avatar_path, role, pro_type')
       .eq('id', userId)
       .single();
 
     // Busca created_at do auth.users via session (já disponível localmente)
     if (data) {
-      const { data: { user } } = await SupabaseService.client.auth.getUser();
+      const user = await SupabaseService.getUser();
       data._created_at = user?.created_at || null;
       // Mescla dados extras salvos localmente (sem custo de banco)
       const extras = SessionCache.getExtras(userId);
@@ -473,8 +467,7 @@ class AuthService {
 
     // Avatars — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
-      const url = SupabaseService.client.storage
-        .from('avatars').getPublicUrl(perfil.avatar_path).data.publicUrl;
+      const url = SupabaseService.getAvatarUrl(perfil.avatar_path);
       AuthService._aplicarAvatar(url);
       SessionCache.salvarAvatar(url);
     }

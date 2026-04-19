@@ -175,8 +175,7 @@ class MapWidget {
       const latD = R / 111.0;
       const lonD = R / (111.0 * Math.cos(lat * Math.PI / 180));
 
-      const { data, error } = await SupabaseService.client
-        .from('barbershops')
+      const { data, error } = await SupabaseService.barbershops()
         .select('id, name, slug, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count')
         .eq('is_active', true)
         .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
@@ -386,10 +385,7 @@ class MapWidget {
   static #urlAvatar(logoPath) {
     if (!logoPath) return null;
     try {
-      const { data } = SupabaseService.client.storage
-        .from('barbershops')
-        .getPublicUrl(logoPath);
-      return data?.publicUrl ?? null;
+      return SupabaseService.getLogoUrl(logoPath) ?? null;
     } catch {
       return null;
     }
