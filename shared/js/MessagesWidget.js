@@ -25,8 +25,17 @@ class MessagesWidget {
   static #notifDig  = null;
   static #citadoId  = null;  // id do card atualmente iluminado pelo dig
 
-  /** Resolve o router da app atual de forma lazy (App=cliente, Pro=profissional). */
-  static get #router() { return window.App ?? window.Pro ?? null; }
+  /** Anima diretamente via AnimationService, sem passar pelo Router (sem auth-guard). */
+  static #animar(saindo, entrando, classeSaida, classeEntrada) {
+    if (typeof AnimationService !== 'undefined') {
+      AnimationService.animar(saindo, entrando, classeSaida, classeEntrada);
+    } else {
+      // Fallback sem AnimationService
+      saindo?.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
+      if (saindo) saindo.style.display = 'none';
+      if (entrando) { entrando.style.display = 'flex'; entrando.classList.add('ativa'); }
+    }
+  }
 
   // ──────────────────────────────────────────────────────────
   // Mock — substituir por chamadas Supabase quando schema existir
@@ -214,8 +223,15 @@ class MessagesWidget {
 
     MessagesWidget.#renderMensagens(conv.msgs, conv.nome);
 
-    // Navega para tela-chat via Router (slide-in da esquerda, igual às outras telas)
-    MessagesWidget.#router?.push('chat');
+    // Abre tela-chat diretamente via AnimationService (sem auth-guard do Router)
+    // tela-mensagens sai pela DIREITA, tela-chat entra pela ESQUERDA
+    const telaMensagens = document.getElementById('tela-mensagens');
+    const telaChat      = document.getElementById('tela-chat');
+    MessagesWidget.#animar(telaMensagens, telaChat, 'saindo-direita', 'entrando-lento');
+
+    // Oculta footer durante o chat (chat é tela dedicada sem nav)
+    document.getElementById('footer-nav')?.style.setProperty('display', 'none');
+    document.getElementById('footer-nav-offline')?.style.setProperty('display', 'none');
 
     // Rola para a última mensagem após a animação de entrada
     setTimeout(() => {
@@ -224,10 +240,21 @@ class MessagesWidget {
     }, 380);
   }
 
-  /** Fecha a tela de chat e limpa o estado da conversa. */
+  /** Fecha a tela de chat: chat sai pela ESQUERDA, mensagens fica por baixo. */
   static fecharModal() {
     MessagesWidget.#conversa = null;
-    MessagesWidget.#router?.voltar();
+    const telaChat      = document.getElementById('tela-chat');
+    const telaMensagens = document.getElementById('tela-mensagens');
+    // chat sai pela ESQUERDA (igual ao voltar), mensagens já está por baixo
+    MessagesWidget.#animar(telaChat, null, 'saindo', 'ativa');
+    // Garante que mensagens fique visível por baixo
+    if (telaMensagens) {
+      telaMensagens.style.display = 'flex';
+      telaMensagens.classList.add('ativa');
+    }
+    // Restaura footer conforme estado do Router
+    const router = window.App ?? window.Pro ?? null;
+    if (router?._atualizarUI) router._atualizarUI(router._telaAtual ?? 'mensagens');
   }
 
   /**
