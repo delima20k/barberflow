@@ -8,12 +8,13 @@
  * via fetchUser(), que atualiza o AppState após a resposta.
  *
  * API pública:
- *   UserService.getUser()          → leitura síncrona do AppState (cache, zero rede)
- *   UserService.fetchUser(force?)  → busca no Supabase; usa cache se já existir
- *   UserService.getPerfil()        → AppState.get('perfil') — linha da tabela profiles
+ *   UserService.getUser()           → leitura síncrona do AppState (cache, zero rede)
+ *   UserService.fetchUser(force?)   → busca no Supabase; usa cache se já existir
+ *   UserService.getPerfil()         → AppState.get('perfil') — linha da tabela profiles
+ *   UserService.requireAuth(router) → verifica login; redireciona para 'login' se necessário
  *
  * Dependências (carregadas antes):
- *   AppState.js, SupabaseService.js
+ *   AppState.js, SupabaseService.js, AuthGuard.js
  */
 const UserService = (() => {
   'use strict';
@@ -76,5 +77,31 @@ const UserService = (() => {
     }
   }
 
-  return Object.freeze({ getUser, getPerfil, fetchUser });
+  // ── Proteção de rotas ─────────────────────────────────────
+
+  /**
+   * Verifica se o usuário está autenticado.
+   * Se não estiver, redireciona para a tela 'login' via router e retorna false.
+   * Delega ao AuthGuard para não duplicar a lógica de proteção.
+   * Fallback direto ao AppState caso AuthGuard não esteja carregado.
+   *
+   * @param {Router} router — instância do app (App ou Pro)
+   * @returns {boolean} true = autenticado | false = bloqueado e redirecionado
+   *
+   * @example
+   *   // Em qualquer Page ou Service:
+   *   if (!UserService.requireAuth(App)) return;
+   *   // ... continua apenas se logado
+   */
+  function requireAuth(router) {
+    // Delega ao AuthGuard quando disponível (fonte única da regra)
+    if (typeof AuthGuard !== 'undefined') return AuthGuard.requireAuth(router);
+
+    // Fallback: aplica a regra diretamente via AppState
+    const logado = typeof AppState !== 'undefined' && AppState.isLogged();
+    if (!logado && router && typeof router.push === 'function') router.push('login');
+    return logado;
+  }
+
+  return Object.freeze({ getUser, getPerfil, fetchUser, requireAuth });
 })();
