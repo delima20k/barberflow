@@ -305,7 +305,7 @@
   border-left: 3px solid var(--gold);
 }
 .menu-nav-item img {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(24%) sepia(28%) saturate(829%) hue-rotate(344deg) brightness(91%) contrast(89%);
   opacity: .65;
@@ -321,11 +321,11 @@
   opacity: 1;
 }
 .menu-icon-txt {
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1.28rem;
   flex-shrink: 0;
 }
 
@@ -605,8 +605,8 @@
 .nav-btn.ativo  { color: var(--gold); }
 
 .nav-pill {
-  width: 44px;
-  height: 32px;
+  width: 48px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -616,8 +616,8 @@
 .nav-btn.ativo .nav-pill { background: var(--gold-muted); }
 
 .nav-btn img {
-  width: 24px;
-  height: 24px;
+  width: 27px;
+  height: 27px;
   object-fit: contain;
   filter: brightness(0) invert(1);
   opacity: .62;
@@ -630,7 +630,7 @@
 }
 
 .nav-label {
-  font-size: .60rem;
+  font-size: .62rem;
   font-weight: 600;
   letter-spacing: .2px;
   white-space: nowrap;
@@ -2005,7 +2005,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   transition: border-color var(--ease), background var(--ease);
 }
 .menu-item:hover { border-color: var(--gold-border); background: var(--card2); }
-.menu-icon  { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
+.menu-icon  { width: 42px; height: 42px; border-radius: var(--r-sm); background: var(--gold-muted); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0; }
 .menu-label { flex: 1; font-size: var(--fs-body); font-weight: var(--fw-section-title); }
 .menu-arrow { color: var(--text-dim); font-size: .9rem; }
 
