@@ -20,11 +20,6 @@ class MessagesPage {
    */
   bind() {
     if (typeof MessagesWidget === 'undefined') return;
-    // navFn envia para tela-chat (push) ou volta para mensagens (nav)
-    const navFn = (tela) => {
-      if (typeof App === 'undefined') return;
-      tela === 'chat' ? App.push('chat') : App.nav(tela);
-    };
-    MessagesWidget.init('msgs-lista', 'cliente', navFn);
+    MessagesWidget.init('msgs-lista', 'cliente');
   }
 }

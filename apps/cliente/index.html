@@ -821,20 +821,18 @@
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
 
-<!-- Tela de Chat — MessagesWidget (tela completa com animação Router) -->
-  <main id="tela-chat" class="tela" role="dialog" aria-labelledby="chat-modal-nome">
-    <div class="chat-tela-topo">
-      <button class="btn-seta-voltar" onclick="App.nav('mensagens')" aria-label="Voltar para mensagens">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-      </button>
-      <div class="chat-tela-header-info">
-        <div id="chat-modal-avatar-inner" class="chat-modal-avatar"></div>
-        <div class="chat-modal-title-wrap">
-          <p id="chat-modal-nome" class="chat-modal-nome"></p>
-          <p id="chat-modal-sub"  class="chat-modal-sub"></p>
-        </div>
+<!-- Modal de Chat — MessagesWidget -->
+<div id="chat-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="chat-modal-nome">
+  <div class="chat-modal-backdrop" onclick="MessagesWidget.fecharModal()"></div>
+  <div class="chat-modal-inner">
+    <header class="chat-modal-header">
+      <div id="chat-modal-avatar-inner" class="chat-modal-avatar"></div>
+      <div class="chat-modal-title-wrap">
+        <p id="chat-modal-nome" class="chat-modal-nome"></p>
+        <p id="chat-modal-sub"  class="chat-modal-sub"></p>
       </div>
-    </div>
+      <button class="chat-modal-fechar" onclick="MessagesWidget.fecharModal()" aria-label="Fechar conversa">✕</button>
+    </header>
     <div id="chat-mensagens" class="chat-mensagens" role="log" aria-live="polite"></div>
     <footer class="chat-modal-footer">
       <div class="chat-input-wrap">
@@ -852,6 +850,7 @@
         </button>
       </div>
     </footer>
-  </main>
+  </div>
+</div>
 </body>
 </html>

@@ -18,14 +18,13 @@ class DigText {
   #velocidade = 38;
   #pausaFinal = 0;
   #loop       = false;
-  #onTick     = null;   // cb(textoAtual, textoCompleto) chamado a cada letra
   #timer      = null;
   #ativo      = false;
 
   /**
    * @param {HTMLElement} container — elemento que receberá o texto animado
    * @param {string[]}    textos    — array de frases; uma é sorteada aleatoriamente
-   * @param {object}      [opts]    — { velocidade, pausaFinal, loop, onTick }
+   * @param {object}      [opts]    — { velocidade, pausaFinal, loop }
    */
   constructor(container, textos, opts = {}) {
     this.#el         = container;
@@ -33,7 +32,6 @@ class DigText {
     this.#velocidade = opts.velocidade ?? 38;
     this.#pausaFinal = opts.pausaFinal ?? 0;
     this.#loop       = opts.loop       ?? false;
-    this.#onTick     = opts.onTick     ?? null;
   }
 
   /** Expõe o elemento DOM para ser inserido em qualquer container. */
@@ -63,7 +61,6 @@ class DigText {
     if (!this.#ativo) return;
     if (i <= texto.length) {
       this.#el.textContent = texto.slice(0, i);
-      this.#onTick?.(this.#el.textContent, texto);
       this.#timer = setTimeout(() => this.#digitar(texto, i + 1), this.#velocidade);
     } else {
       // Animação concluída — remove cursor piscante, mantém o texto visível
