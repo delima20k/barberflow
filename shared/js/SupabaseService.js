@@ -195,13 +195,22 @@ class SupabaseService {
 
   // ═══════════════════════════════════════════════════════════
   // DIAGNÓSTICO — use no console DevTools para debugar 401
+  // Disponível APENAS em localhost — bloqueado em produção.
   // ═══════════════════════════════════════════════════════════
 
   /**
    * Diagnóstico completo: valida chave, sessão e faz INSERT de teste.
    * Uso no console: await SupabaseService.diagnosticar()
+   *
+   * ⚠️ Restrito a localhost — não executa em produção.
    */
   static async diagnosticar() {
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+    if (!isLocal) {
+      console.warn('[SupabaseService] diagnosticar() disponível apenas em localhost.');
+      return;
+    }
+
     const URL = SupabaseService.#URL;
     const KEY = SupabaseService.#ANON_KEY;
 
