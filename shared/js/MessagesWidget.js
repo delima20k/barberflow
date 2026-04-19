@@ -23,8 +23,6 @@ class MessagesWidget {
   static #role      = 'cliente';
   static #conversa  = null;  // conversa aberta no momento
   static #notifDig  = null;
-  static #navFn     = null;  // fn(tela) — navega via Router do app pai
-  static #citadoId  = null;  // id da conversa atualmente iluminada pelo dig
 
   // ──────────────────────────────────────────────────────────
   // Mock — substituir por chamadas Supabase quando schema existir
@@ -143,15 +141,13 @@ class MessagesWidget {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * @param {string}   listaId  — id do container de cards
-   * @param {string}   role     — 'cliente' | 'profissional'
-   * @param {Function} [navFn]  — fn(tela) para navegar via Router (ex: t => App.nav(t))
+   * @param {string} listaId  — id do container de cards
+   * @param {string} role     — 'cliente' | 'profissional'
    */
-  static init(listaId, role = 'cliente', navFn = null) {
+  static init(listaId, role = 'cliente') {
     MessagesWidget.#lista = document.getElementById(listaId);
     MessagesWidget.#modal = document.getElementById('chat-modal');
     MessagesWidget.#role  = role;
-    MessagesWidget.#navFn = navFn;
 
     if (!MessagesWidget.#lista) return;
 
@@ -177,9 +173,7 @@ class MessagesWidget {
   static abrirModal(convId) {
     const lista = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
     const conv  = lista.find(c => c.id === convId);
-    // Precisa de conversa; com navFn usa tela-chat, sem navFn exige modal
-    if (!conv) return;
-    if (!MessagesWidget.#navFn && !MessagesWidget.#modal) return;
+    if (!conv || !MessagesWidget.#modal) return;
 
     MessagesWidget.#conversa = conv;
 
@@ -217,15 +211,9 @@ class MessagesWidget {
 
     MessagesWidget.#renderMensagens(conv.msgs, conv.nome);
 
-    // Com navFn: usa tela-chat (animação padrão Router)
-    // Sem navFn: fallback bottom-sheet modal
-    if (MessagesWidget.#navFn) {
-      MessagesWidget.#navFn('chat');
-    } else {
-      MessagesWidget.#modal.classList.add('chat-modal-aberto');
-      MessagesWidget.#modal.setAttribute('aria-hidden', 'false');
-      document.body.classList.add('chat-modal-lock');
-    }
+    MessagesWidget.#modal.classList.add('chat-modal-aberto');
+    MessagesWidget.#modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('chat-modal-lock');
 
     // Rola para a última mensagem
     setTimeout(() => {
@@ -234,17 +222,13 @@ class MessagesWidget {
     }, 60);
   }
 
-  /** Fecha o modal de chat / navega de volta para mensagens. */
+  /** Fecha o modal de chat. */
   static fecharModal() {
+    if (!MessagesWidget.#modal) return;
+    MessagesWidget.#modal.classList.remove('chat-modal-aberto');
+    MessagesWidget.#modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('chat-modal-lock');
     MessagesWidget.#conversa = null;
-    if (MessagesWidget.#navFn) {
-      MessagesWidget.#navFn('mensagens');
-    } else {
-      if (!MessagesWidget.#modal) return;
-      MessagesWidget.#modal.classList.remove('chat-modal-aberto');
-      MessagesWidget.#modal.setAttribute('aria-hidden', 'true');
-      document.body.classList.remove('chat-modal-lock');
-    }
   }
 
   /**
@@ -359,9 +343,8 @@ class MessagesWidget {
       MessagesWidget.#notifDig.parar();
       MessagesWidget.#notifDig = null;
     }
-    MessagesWidget.#limparPulso();
 
-    const lista    = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
+    const lista   = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
     const naoLidos = lista.filter(c => c.badge > 0);
 
     if (!naoLidos.length) {
@@ -371,38 +354,8 @@ class MessagesWidget {
 
     el.classList.add('dig-visivel');
     const textos = naoLidos.map(c => `${c.nome} te enviou uma mensagem`);
-
-    // onTick: detecta qual nome está sendo digitado e pisca o card
-    const onTick = (textoAtual) => {
-      const citada = naoLidos.find(c => textoAtual.includes(c.nome));
-      if (citada) MessagesWidget.#pulsarCard(citada.id);
-      else        MessagesWidget.#limparPulso();
-    };
-
-    MessagesWidget.#notifDig = new DigText(el, textos, {
-      velocidade: 36,
-      loop:       true,
-      pausaFinal: 2400,
-      onTick,
-    });
+    MessagesWidget.#notifDig = new DigText(el, textos, { velocidade: 36, loop: true, pausaFinal: 2400 });
     MessagesWidget.#notifDig.iniciar();
-  }
-
-  /** Ilumina e faz piscar a borda do card da conversa citada. */
-  static #pulsarCard(convId) {
-    if (MessagesWidget.#citadoId === convId) return; // já ativo
-    MessagesWidget.#limparPulso();
-    MessagesWidget.#citadoId = convId;
-    const cardEl = MessagesWidget.#lista?.querySelector(`[data-conv-id="${convId}"]`);
-    cardEl?.classList.add('card-citado');
-  }
-
-  /** Remove o efeito pulsante do card atual. */
-  static #limparPulso() {
-    if (!MessagesWidget.#citadoId) return;
-    const cardEl = MessagesWidget.#lista?.querySelector(`[data-conv-id="${MessagesWidget.#citadoId}"]`);
-    cardEl?.classList.remove('card-citado');
-    MessagesWidget.#citadoId = null;
   }
 
   // ═══════════════════════════════════════════════════════════
