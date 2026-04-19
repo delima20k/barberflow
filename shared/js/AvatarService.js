@@ -73,7 +73,7 @@ const AvatarService = (() => {
     try {
       if (typeof UserService === 'undefined' || typeof ProfileRepository === 'undefined') return;
 
-      const user = await UserService.getUser();
+      const user = UserService.getUser();
       if (!user) return;
 
       const blob      = await _comprimir(file, 512);

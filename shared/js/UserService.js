@@ -4,37 +4,37 @@
  * UserService — Abstração de identidade do usuário corrente.
  *
  * Centraliza "quem é o usuário atual" em um único ponto.
- * Nenhum outro serviço deve chamar SupabaseService.getUser()
- * ou AuthService.getPerfil() diretamente — usa UserService.
+ * Usa AppState como fonte única de verdade — sem chamadas de rede
+ * e sem dependência direta de SupabaseService ou AuthService.
  *
  * API pública:
- *   UserService.getUser()    → usuário autenticado (via Supabase Auth, com rede)
- *   UserService.getPerfil()  → perfil em cache (sem rede, via AuthService)
+ *   UserService.getUser()    → AppState.get('user')   — objeto Supabase User ou null
+ *   UserService.getPerfil()  → AppState.get('perfil') — linha da tabela profiles ou null
  *
  * Dependências (carregadas antes):
- *   SupabaseService.js, AuthService.js
+ *   AppState.js
  */
 const UserService = (() => {
   'use strict';
 
   /**
-   * Retorna o usuário autenticado atual (ou null).
-   * Faz uma chamada à rede via Supabase Auth.
-   * @returns {Promise<object|null>}
+   * Retorna o objeto Supabase User corrente (ou null).
+   * Lê do AppState — sem chamada de rede.
+   * @returns {object|null}
    */
-  async function getUser() {
-    if (typeof SupabaseService === 'undefined') return null;
-    return SupabaseService.getUser();
+  function getUser() {
+    if (typeof AppState === 'undefined') return null;
+    return AppState.getUser();
   }
 
   /**
-   * Retorna o perfil em memória (sem rede).
-   * Depende de AuthService ter carregado a sessão previamente.
+   * Retorna o perfil em cache (ou null).
+   * Lê do AppState — sem chamada de rede.
    * @returns {object|null}
    */
   function getPerfil() {
-    if (typeof AuthService === 'undefined') return null;
-    return AuthService.getPerfil();
+    if (typeof AppState === 'undefined') return null;
+    return AppState.get('perfil');
   }
 
   return Object.freeze({ getUser, getPerfil });
