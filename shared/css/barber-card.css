@@ -228,71 +228,15 @@
   box-sizing: border-box;
 }
 
-/* ── Grid 2 colunas — "Todas as Barbearias" ── */
-.barbearias-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/* ── Lista de linhas 380×114 — "Todas as Barbearias" ── */
+.barbearias-lista-rows {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
-
-/* Card vertical compacto para o grid */
-.barber-col-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 12px 8px;
-  background: transparent;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-md, 12px);
-  text-align: center;
-  cursor: pointer;
-  transition: box-shadow .2s, border-color .2s;
-}
-.barber-col-card:hover {
-  box-shadow: 0 4px 14px rgba(43,27,18,.1);
-  border-color: rgba(212,175,55,.35);
-}
-.barber-col-card .avatar {
-  width: 52px;
-  height: 52px;
-  font-size: 1.4rem;
-}
-.bc-nome {
-  font-size: .78rem;
-  font-weight: 700;
-  color: var(--text);
-  margin: 0;
-  line-height: 1.3;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.bc-sub {
-  font-size: .65rem;
-  color: var(--text-muted);
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-.bc-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-top: 2px;
-}
-.bc-rating {
-  font-size: .7rem;
-  font-weight: 700;
-  color: var(--gold, #D4AF37);
-}
-.bc-cortes {
-  font-size: .62rem;
-  color: var(--text-muted);
+.barbearias-lista-rows .barber-row {
+  min-height: 114px;
+  box-sizing: border-box;
 }
 
 /* Coluna: 2 cards empilhados verticalmente */
