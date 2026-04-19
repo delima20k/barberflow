@@ -340,6 +340,17 @@ Criar classes:
 - NÃO DEIXAR ENTRADA DE ABAS E PAGINAS DIFERENTES
 ---
 
+# PADRÃO DE CARDS (OBRIGATÓRIO)
+
+## Fundo dos cards `.barber-card` / `.barber-row`
+
+- **SEMPRE** usar `background: transparent` em todos os cards que usam `.barber-card` ou `.barber-row`
+- NUNCA usar `background: #FFFFFF` ou qualquer cor sólida nesses cards
+- O fundo transparente permite que o tema/contexto da tela apareça por trás, mantendo consistência visual em modo claro e escuro
+- Arquivo de referência: `shared/css/barber-card.css`
+
+---
+
 # FOCO FINAL
 
 - máximo desempenho
