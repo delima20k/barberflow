@@ -66,7 +66,7 @@ class AuthService {
       if (AuthService.#isPro && userLogin) {
         const perfilLogin = await AuthService._carregarPerfil(userLogin.id);
         if (!await AuthService._verificarRoleApp(perfilLogin)) {
-          AuthService._erro(erroEl, 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.');
+          AuthService.#notificarMensagem(onMensagem, 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.');
           return;
         }
       }

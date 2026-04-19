@@ -34,14 +34,19 @@ class LoginPage {
     const form = document.getElementById('login-form');
     if (!form) return;
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      AuthService.login(
-        document.getElementById('login-email'),
-        document.getElementById('login-senha'),
-        document.getElementById('login-erro'),
-        this.#navFn
+      const emailEl = document.getElementById('login-email');
+      const senhaEl = document.getElementById('login-senha');
+      const erroEl  = document.getElementById('login-erro');
+      AuthUI.setLoading(true, [emailEl, senhaEl]);
+      await AuthService.login(
+        emailEl?.value,
+        senhaEl?.value,
+        this.#navFn,
+        (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
+      AuthUI.setLoading(false, [emailEl, senhaEl]);
     });
   }
 }

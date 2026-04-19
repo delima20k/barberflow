@@ -299,6 +299,7 @@ class BarbershopService {
    */
   static async restaurarInteracoes(cards) {
     try {
+      if (typeof AppState !== 'undefined' && AppState.get('isLogado') !== true) return;
       const user = await SupabaseService.getUser?.();
       if (!user?.id) return;
       const ids = [...cards].map(c => c.dataset.barbershopId).filter(Boolean);

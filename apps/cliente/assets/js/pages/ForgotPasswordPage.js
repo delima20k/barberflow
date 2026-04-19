@@ -36,10 +36,11 @@ class ForgotPasswordPage {
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      const erroEl = document.getElementById('rec-erro');
       AuthService.recuperarSenha(
         document.getElementById('rec-email')?.value,
-        document.getElementById('rec-erro'),
-        this.#navFn
+        this.#navFn,
+        (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
     });
   }

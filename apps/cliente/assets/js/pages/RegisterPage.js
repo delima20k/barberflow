@@ -44,10 +44,11 @@ class RegisterPage {
         senha2:   document.getElementById('cad-senha2')?.value,
         role:     'client',
       };
+      const erroEl = document.getElementById('cad-erro');
       AuthService.cadastro(
         dados,
-        document.getElementById('cad-erro'),
-        this.#navFn
+        this.#navFn,
+        (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
     });
   }

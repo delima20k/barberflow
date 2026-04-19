@@ -43,7 +43,7 @@ class Router {
    * Qualquer tela FORA deste Set exige autenticação.
    * Fonte única de verdade para AuthGuard.permitirNav() e _permitirNavAuth().
    */
-  static TELAS_PUBLICAS = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro']);
+  static TELAS_PUBLICAS = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques']);
 
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
