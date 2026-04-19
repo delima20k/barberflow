@@ -71,8 +71,38 @@ class SupabaseService {
           }
         }
       );
+
+      SupabaseService.#_initAuthSync();
     }
     return SupabaseService.#client;
+  }
+
+  /**
+   * Registra listener único de auth para sincronizar AppState.
+   * Cobre todos os eventos: login, logout, refresh de token, magic link, OAuth.
+   * Chamado uma única vez na criação do client.
+   *
+   * Eventos tratados:
+   *   SIGNED_IN / TOKEN_REFRESHED → AppState.login(user, perfilExistente)
+   *   SIGNED_OUT                  → AppState.logout()
+   *
+   * Nota: perfil (tabela profiles) não é carregado aqui — responsabilidade do UserService.refresh().
+   */
+  static #_initAuthSync() {
+    SupabaseService.#client.auth.onAuthStateChange((event, session) => {
+      if (typeof AppState === 'undefined') return;
+
+      switch (event) {
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+          // Atualiza user e mantém isLogado=true; preserva perfil em cache
+          AppState.login(session.user, AppState.get('perfil'));
+          break;
+        case 'SIGNED_OUT':
+          AppState.logout();
+          break;
+      }
+    });
   }
 
   // ── Auth helpers ──────────────────────────────────────────
