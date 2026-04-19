@@ -29,7 +29,7 @@ class Router {
   _footerOffline = null;
   _navBtns       = [];
   _services      = {};
-  // _logado removido — use AppState.isLogged() como fonte única de verdade
+  // _logado removido — use AppState.get('isLogado') como fonte única de verdade
 
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
@@ -248,7 +248,7 @@ class Router {
    * @private
    */
   _atualizarUI(tela) {
-    const logado = typeof AppState !== 'undefined' ? AppState.isLogged() : false;
+    const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') : false;
     const mostrarCompleto = logado && this.telasComNav.has(tela);
     if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
     if (this._footerOffline) this._footerOffline.style.display = mostrarCompleto ? 'none' : 'flex';
