@@ -132,6 +132,14 @@ const AuthGuard = (() => {
    * @returns {boolean} true = pode navegar | false = bloqueado + redirecionado
    */
   function permitirNav(tela, router) {
+    // Fonte primária: Router.TELAS_PUBLICAS (lista branca — set estático do Router)
+    // Telas públicas passam sempre, sem verificar login.
+    // Qualquer outra tela exige autenticação.
+    if (typeof Router !== 'undefined' && Router.TELAS_PUBLICAS instanceof Set) {
+      if (Router.TELAS_PUBLICAS.has(tela)) return true;
+      return requireAuth(router);
+    }
+    // Fallback: verifica Set de rotas protegidas por app (cliente / profissional)
     if (!_getRotas().has(tela)) return true;
     return requireAuth(router);
   }

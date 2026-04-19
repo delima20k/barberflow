@@ -37,6 +37,13 @@ class Router {
    */
   static _ACOES_AUTH = new Set(['agendar', 'mensagem', 'pagar']);
 
+  /**
+   * Telas públicas — qualquer visitante pode acessar sem login.
+   * Qualquer tela FORA deste Set exige autenticação.
+   * Fonte única de verdade para AuthGuard.permitirNav() e _permitirNavAuth().
+   */
+  static TELAS_PUBLICAS = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros']);
+
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
 
@@ -154,6 +161,25 @@ class Router {
   }
 
   /**
+   * Verifica se a navegação para `tela` é permitida.
+   * Fluxo:
+   *   1. Tela em TELAS_PUBLICAS  → permite sempre
+   *   2. Delega ao AuthGuard (exibe aviso + redireciona para login se necessário)
+   *   3. Fallback sem AuthGuard: bloqueia visitante com _alertarLoginObrigatorio()
+   * @param {string} tela
+   * @returns {boolean}
+   * @private
+   */
+  _permitirNavAuth(tela) {
+    if (Router.TELAS_PUBLICAS.has(tela)) return true;
+    if (typeof AuthGuard !== 'undefined') return AuthGuard.permitirNav(tela, this);
+    // Fallback: sem AuthGuard carregado
+    const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
+    if (!logado) { this._alertarLoginObrigatorio(); return false; }
+    return true;
+  }
+
+  /**
    * Navega para a tela indicada.
    * @param {string} tela — ID sem prefixo "tela-"
    */
@@ -169,8 +195,8 @@ class Router {
     }
     if (tela === this._telaAtual) return;
 
-    // Guard de autenticação — bloqueia rotas privadas para visitantes
-    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirNav(tela, this)) return;
+    // Guard de autenticação — bloqueia telas privadas para visitantes
+    if (!this._permitirNavAuth(tela)) return;
 
     const destino = document.getElementById(`tela-${tela}`);
     if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
