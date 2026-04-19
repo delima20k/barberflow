@@ -188,7 +188,8 @@ class Router {
    * @param {string} tela — ID sem prefixo "tela-"
    */
   nav(tela) {
-    // Toggle: clicou no ícone da aba já aberta → fecha pela ESQUERDA (igual a voltar)
+    // Toggle: clicou no ícone da aba já aberta → fecha pela ESQUERDA (igual a voltar).
+    // Guard intencionalmente omitido aqui: o destino é sempre 'inicio' (tela pública).
     if (tela === this._telaAtual && tela !== 'inicio') {
       const atual = document.getElementById(`tela-${this._telaAtual}`);
       this._historico = [];          // limpa histórico — volta pra home
@@ -251,10 +252,14 @@ class Router {
 
   /**
    * Navega para uma tela irmã no fluxo de auth (ex: login → cadastro).
+   * Guard de autenticação aplicado: telas privadas bloqueadas mesmo via push().
    * @param {string} tela
    */
   push(tela) {
     if (tela === this._telaAtual) return;
+
+    // Guard de autenticação — impede acesso a telas privadas via push() direto
+    if (!this._permitirNavAuth(tela)) return;
 
     const destino = document.getElementById(`tela-${tela}`);
     if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
