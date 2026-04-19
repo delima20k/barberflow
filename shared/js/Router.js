@@ -385,13 +385,22 @@ class Router {
     document.addEventListener('barberflow:login', e => {
       const { nome } = e.detail || {};
       if (nome) {
+        const nomeSanitizado = nome.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
+
+        // Reconstrói menu-username sem childNodes nem innerHTML (evita XSS)
         const usernameEl = document.getElementById('menu-username');
-        if (usernameEl) usernameEl.childNodes[0].nodeValue = nome + ' ';
-        const subEl = document.getElementById('menu-user-sub');
-        if (subEl) subEl.textContent = 'Bem-vindo(a)!';
+        if (usernameEl) {
+          usernameEl.textContent = '';
+          usernameEl.appendChild(document.createTextNode(nomeSanitizado + ' '));
+          const small = document.createElement('small');
+          small.id          = 'menu-user-sub';
+          small.textContent = 'Bem-vindo(a)!';
+          usernameEl.appendChild(small);
+        }
+
         const labelEl = document.getElementById('header-user-label');
         if (labelEl) {
-          const primeiro = nome.split(' ')[0];
+          const primeiro = nomeSanitizado.split(' ')[0];
           labelEl.textContent = 'Olá, ' + (primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase());
         }
       }
