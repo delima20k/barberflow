@@ -50,6 +50,7 @@ const AuthGuard = (() => {
   const ACOES_PROTEGIDAS = Object.freeze(new Set([
     'agendar',
     'mensagem',
+    'pagar',
     'barbershop-favorite',
     'pagamento',
     'like',

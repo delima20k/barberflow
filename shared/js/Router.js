@@ -31,6 +31,12 @@ class Router {
   _services      = {};
   // _logado removido — use AppState.get('isLogado') como fonte única de verdade
 
+  /**
+   * Ações que exigem autenticação — verificadas via event delegation em _bindDataAttributes.
+   * Exibem a mensagem "Você precisa estar logado" antes de redirecionar para login.
+   */
+  static _ACOES_AUTH = new Set(['agendar', 'mensagem', 'pagar']);
+
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
 
@@ -294,6 +300,47 @@ class Router {
 
   navegarApp(url)        { this._services.splash?.navegar(url); }
 
+  /**
+   * Exibe o alerta "Você precisa estar logado" via NotificationService (ou fallback DOM)
+   * e redireciona o usuário para a tela de login.
+   * @private
+   */
+  _alertarLoginObrigatorio() {
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast(
+        'Login necessário',
+        'Você precisa estar logado',
+        'warning'
+      );
+    } else {
+      // Fallback nativo — toast leve no rodapé
+      const id = '__router-auth-toast';
+      if (document.getElementById(id)) return;
+      const el = document.createElement('div');
+      el.id            = id;
+      el.textContent   = 'Você precisa estar logado';
+      el.style.cssText = [
+        'position:fixed',
+        'bottom:80px',
+        'left:50%',
+        'transform:translateX(-50%)',
+        'background:rgba(30,20,10,.92)',
+        'color:#D4AF37',
+        'padding:.55rem 1.25rem',
+        'border-radius:2rem',
+        'font-size:.88rem',
+        'z-index:9999',
+        'pointer-events:none',
+        'white-space:nowrap',
+        'box-shadow:0 2px 12px rgba(0,0,0,.5)',
+      ].join(';');
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2800);
+    }
+    // Redireciona para login após exibir a mensagem
+    this.push('login');
+  }
+
   _bindLoginEvent() {
     document.addEventListener('barberflow:login', e => {
       const { nome } = e.detail || {};
@@ -360,7 +407,19 @@ class Router {
         const a = actionEl.dataset.action;
         if (a === 'confirmar-saida')  { e.preventDefault(); this.confirmarSaida();    return; }
         if (a === 'avatar-upload')    { e.preventDefault(); this.abrirUploadAvatar(); return; }
-        // Guard: ações que exigem autenticação (agendar, mensagem, pagamento…)
+
+        // Guard inline — bloqueia agendar / mensagem / pagar para visitantes.
+        // Fonte de verdade: AppState.get('isLogado'). Não depende de AuthGuard.
+        if (Router._ACOES_AUTH.has(a)) {
+          const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
+          if (!logado) {
+            e.preventDefault();
+            this._alertarLoginObrigatorio();
+            return;
+          }
+        }
+
+        // Guard secundário via AuthGuard (cobre demais ações protegidas registradas externamente)
         if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(a, this)) {
           e.preventDefault();
           return;
