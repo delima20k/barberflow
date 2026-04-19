@@ -144,6 +144,56 @@ class SupabaseService {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // ACESSORES DE TABELA — evite client.from() direto no app.
+  // Use sempre SupabaseService.tabela() para centralizar e
+  // facilitar manutenção, mocks e auditoria de queries.
+  // ═══════════════════════════════════════════════════════════
+
+  /** Tabela de perfis de usuários */
+  static profiles()               { return SupabaseService.client.from('profiles'); }
+
+  /** View pública de perfis (sem dados sensíveis) */
+  static profilesPublic()         { return SupabaseService.client.from('profiles_public'); }
+
+  /** Tabela de barbearias */
+  static barbershops()            { return SupabaseService.client.from('barbershops'); }
+
+  /** Tabela de interações com barbearias (favoritos, likes, visitas) */
+  static barbershopInteractions() { return SupabaseService.client.from('barbershop_interactions'); }
+
+  /** Tabela de agendamentos */
+  static appointments()           { return SupabaseService.client.from('appointments'); }
+
+  /** Tabela de notificações */
+  static notifications()          { return SupabaseService.client.from('notifications'); }
+
+  /** Tabela de stories */
+  static stories()                { return SupabaseService.client.from('stories'); }
+
+  /** Tabela de comentários de stories */
+  static storyComments()          { return SupabaseService.client.from('story_comments'); }
+
+  /** Tabela de mensagens diretas */
+  static directMessages()         { return SupabaseService.client.from('direct_messages'); }
+
+  /** Tabela de favoritos */
+  static favorites()              { return SupabaseService.client.from('favorites'); }
+
+  /** Tabela de entradas na fila */
+  static queueEntries()           { return SupabaseService.client.from('queue_entries'); }
+
+  /** Tabela de cadeiras/estações de trabalho */
+  static chairs()                 { return SupabaseService.client.from('chairs'); }
+
+  // ── Storage ───────────────────────────────────────────────
+
+  /** Bucket de avatares de usuários */
+  static storageAvatars()         { return SupabaseService.client.storage.from('avatars'); }
+
+  /** Bucket de logos de barbearias */
+  static storageLogos()           { return SupabaseService.client.storage.from('logos'); }
+
+  // ═══════════════════════════════════════════════════════════
   // DIAGNÓSTICO — use no console DevTools para debugar 401
   // ═══════════════════════════════════════════════════════════
 
