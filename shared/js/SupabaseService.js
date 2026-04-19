@@ -107,16 +107,69 @@ class SupabaseService {
 
   // ── Auth helpers ──────────────────────────────────────────
 
+  // ═══════════════════════════════════════════════════════════
+  // TRATAMENTO DE ERROS — handler centralizado
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Mapa de mensagens amigáveis para códigos de erro do Supabase Auth.
+   * Evita expor mensagens técnicas ao usuário.
+   */
+  static #MENSAGENS_ERRO = Object.freeze({
+    'Invalid login credentials':          'E-mail ou senha incorretos.',
+    'Email not confirmed':                 'Confirme seu e-mail antes de entrar.',
+    'User already registered':            'Este e-mail já está cadastrado.',
+    'Password should be at least 6 characters': 'A senha precisa ter no mínimo 6 caracteres.',
+    'Email rate limit exceeded':          'Muitas tentativas. Aguarde alguns minutos.',
+    'Too many requests':                  'Muitas requisições. Tente novamente em breve.',
+    'JWT expired':                        'Sessão expirada. Faça login novamente.',
+    'Invalid JWT':                        'Sessão inválida. Faça login novamente.',
+    'Network request failed':             'Sem conexão com a internet.',
+    'Failed to fetch':                    'Sem conexão com a internet.',
+  });
+
+  /**
+   * Handler centralizado de erros do Supabase.
+   * Loga com contexto, traduz a mensagem e relança como Error padronizado.
+   *
+   * @param {string} contexto — ex: 'signIn', 'signUp'
+   * @param {object|Error} error — objeto de erro do Supabase ou nativo
+   * @throws {Error} com `.message` amigável e `.original` preservado
+   */
+  static #erro(contexto, error) {
+    const tecnica = error?.message ?? String(error);
+    const amigavel = SupabaseService.#MENSAGENS_ERRO[tecnica]
+      ?? 'Ocorreu um erro inesperado. Tente novamente.';
+
+    const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+    if (isLocal) {
+      console.error(`[SupabaseService.${contexto}]`, tecnica, error);
+    }
+
+    const err = new Error(amigavel);
+    err.original = error;
+    err.contexto = contexto;
+    throw err;
+  }
+
+  // ── Auth helpers ──────────────────────────────────────────
+
   /** Retorna o usuário autenticado atual (ou null) */
   static async getUser() {
-    const { data: { user } } = await SupabaseService.client.auth.getUser();
-    return user;
+    try {
+      const { data: { user }, error } = await SupabaseService.client.auth.getUser();
+      if (error) SupabaseService.#erro('getUser', error);
+      return user;
+    } catch (e) {
+      if (e.contexto) throw e; // já tratado
+      SupabaseService.#erro('getUser', e);
+    }
   }
 
   /** Login com email + senha */
   static async signIn(email, password) {
     const { data, error } = await SupabaseService.client.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) SupabaseService.#erro('signIn', error);
     return data;
   }
 
@@ -125,14 +178,14 @@ class SupabaseService {
     const { data, error } = await SupabaseService.client.auth.signUp({
       email, password, options: { data: meta }
     });
-    if (error) throw error;
+    if (error) SupabaseService.#erro('signUp', error);
     return data;
   }
 
   /** Logout */
   static async signOut() {
     const { error } = await SupabaseService.client.auth.signOut();
-    if (error) throw error;
+    if (error) SupabaseService.#erro('signOut', error);
   }
 
   /**
