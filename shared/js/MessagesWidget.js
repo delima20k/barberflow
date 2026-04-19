@@ -23,6 +23,7 @@ class MessagesWidget {
   static #role      = 'cliente';
   static #conversa  = null;  // conversa aberta no momento
   static #notifDig  = null;
+  static #citadoId  = null;  // id do card atualmente iluminado pelo dig
 
   // ──────────────────────────────────────────────────────────
   // Mock — substituir por chamadas Supabase quando schema existir
@@ -343,8 +344,9 @@ class MessagesWidget {
       MessagesWidget.#notifDig.parar();
       MessagesWidget.#notifDig = null;
     }
+    MessagesWidget.#limparPulso();
 
-    const lista   = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
+    const lista    = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
     const naoLidos = lista.filter(c => c.badge > 0);
 
     if (!naoLidos.length) {
@@ -354,8 +356,38 @@ class MessagesWidget {
 
     el.classList.add('dig-visivel');
     const textos = naoLidos.map(c => `${c.nome} te enviou uma mensagem`);
-    MessagesWidget.#notifDig = new DigText(el, textos, { velocidade: 36, loop: true, pausaFinal: 2400 });
+
+    // onTick: a cada letra digitada verifica qual nome está aparecendo
+    const onTick = (textoAtual) => {
+      const citada = naoLidos.find(c => textoAtual.includes(c.nome));
+      if (citada) MessagesWidget.#pulsarCard(citada.id);
+      else        MessagesWidget.#limparPulso();
+    };
+
+    MessagesWidget.#notifDig = new DigText(el, textos, {
+      velocidade: 36,
+      loop:       true,
+      pausaFinal: 2400,
+      onTick,
+    });
     MessagesWidget.#notifDig.iniciar();
+  }
+
+  /** Ilumina e faz piscar a borda do card da conversa citada. */
+  static #pulsarCard(convId) {
+    if (MessagesWidget.#citadoId === convId) return; // já ativo
+    MessagesWidget.#limparPulso();
+    MessagesWidget.#citadoId = convId;
+    const cardEl = MessagesWidget.#lista?.querySelector(`[data-conv-id="${convId}"]`);
+    cardEl?.classList.add('card-citado');
+  }
+
+  /** Remove o efeito pulsante do card atual. */
+  static #limparPulso() {
+    if (!MessagesWidget.#citadoId) return;
+    const cardEl = MessagesWidget.#lista?.querySelector(`[data-conv-id="${MessagesWidget.#citadoId}"]`);
+    cardEl?.classList.remove('card-citado');
+    MessagesWidget.#citadoId = null;
   }
 
   // ═══════════════════════════════════════════════════════════
