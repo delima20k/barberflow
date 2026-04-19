@@ -367,8 +367,10 @@ class Router {
       document.body.appendChild(el);
       setTimeout(() => el.remove(), 2800);
     }
-    // Redireciona para login após exibir a mensagem
-    this.push('login');
+    // Redireciona para login — evita loop se já estiver na tela de login
+    if (this._telaAtual !== 'login') {
+      this.push('login');
+    }
   }
 
   _bindLoginEvent() {
