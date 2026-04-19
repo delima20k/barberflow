@@ -238,11 +238,12 @@
   flex-direction: column;
   gap: 6px;
   background: transparent;
-  border: none;
+  border: 1px solid rgba(212, 175, 55, .18);
   border-radius: 16px;
   padding: 12px 10px 10px;
   cursor: pointer;
-  transition: transform .18s, box-shadow .18s;
+  box-shadow: 0 4px 14px rgba(43, 27, 18, .08);
+  transition: transform .18s, box-shadow .18s, border-color .18s;
   position: relative;
   width: 100%;
   box-sizing: border-box;
@@ -250,7 +251,8 @@
 
 .destaque-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(212, 175, 55, .18);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, .22);
+  border-color: rgba(212, 175, 55, .38);
 }
 
 .destaque-card:active { transform: scale(.97); }

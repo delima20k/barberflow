@@ -349,12 +349,18 @@ Criar classes:
 - O fundo transparente permite que o tema/contexto da tela apareça por trás, mantendo consistência visual em modo claro e escuro
 - Arquivo de referência: `shared/css/barber-card.css`
 
-## Fundo e borda dos cards `.top-card` / `.destaque-card`
+## Fundo e borda dos cards `.top-card`
 
-- **SEMPRE** usar `background: transparent` e `border: none` nos cards `.top-card` (tela Destaques) e `.destaque-card` (home mini cards)
+- **SEMPRE** usar `background: transparent` e `border: none` no `.top-card` (ranking da tela Destaques)
 - `.top-card` deve ter `min-height: 114px` para manter proporção 378×114 no mobile
-- NUNCA usar `background: var(--card-bg)` ou cor sólida, nem `border: 1px solid` nesses cards
-- Nos estados `:hover`, NUNCA adicionar `border-color` — apenas `transform` e `box-shadow`
+- NUNCA usar `background: var(--card-bg)` ou cor sólida no `.top-card`
+- No `:hover` do `.top-card`, NUNCA adicionar `border-color` — apenas `transform` e `box-shadow`
+
+## Borda e sombra dos cards `.destaque-card` (home — "Em Destaque")
+
+- **SEMPRE** usar `background: transparent` com `border: 1px solid rgba(212, 175, 55, .18)` e `box-shadow: 0 4px 14px rgba(43, 27, 18, .08)`
+- No `:hover`, usar `box-shadow: 0 8px 24px rgba(212, 175, 55, .22)` e `border-color: rgba(212, 175, 55, .38)`
+- NUNCA remover a borda dourada nem a sombra desses cards — é a identidade visual da seção
 - Arquivo de referência: `shared/css/barber-card.css`
 
 ---
