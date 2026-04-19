@@ -83,10 +83,11 @@ class GuestMode {
   // ── API pública ───────────────────────────────────────────
 
   /**
-   * Força uma ressincronização manual (útil após renderização dinâmica).
+   * Força uma ressincronização manual (useful após renderização dinâmica ou
+   * chamado pelo Router._atualizarUI a cada navegação).
    * @returns {void}
    */
-  sincronizar() {
+  atualizar() {
     this.#sincronizar();
   }
 

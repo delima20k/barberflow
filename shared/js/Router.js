@@ -295,6 +295,9 @@ class Router {
     document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
       item.classList.toggle('ativo', item.dataset.tela === tela)
     );
+
+    // Atualiza bloqueio visual do modo visitante (adiciona/remove .bloqueado)
+    this._guestMode?.atualizar();
   }
 
   /* ─────────────────────────────────────────────────────────────
