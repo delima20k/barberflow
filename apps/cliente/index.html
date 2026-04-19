@@ -403,7 +403,10 @@
 
       <!-- Barbearias Populares -->
       <div>
-        <h2 class="sec-title title-large">Barbearias Populares Próximas de Você</h2>
+        <div class="sec-header">
+          <h2 class="sec-title">Populares e mais Próximas</h2>
+          <button class="sec-ver-mais" data-nav="barbearias">Ver mais</button>
+        </div>
         <div id="home-barbearias-lista" class="barbearias-carrossel"></div>
       </div>
 
@@ -433,6 +436,20 @@
       </div>
       <div id="destaques-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
       <p id="destaques-vazio" class="tela-destaques-vazio" hidden>Nenhuma barbearia encontrada.</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEARIAS POPULARES E PRÓXIMAS
+  ============================================================ -->
+  <main id="tela-barbearias" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <h2 class="tela-topo__titulo">Populares e mais Próximas</h2>
+    </div>
+    <div class="content">
+      <div id="barbearias-page-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <p id="barbearias-page-vazio" hidden style="text-align:center;padding:20px;color:var(--text-muted)">Nenhuma barbearia encontrada.</p>
     </div>
   </main>
 
@@ -781,6 +798,7 @@
 <script src="assets/js/pages/LogoutPage.js"></script>
 <script src="assets/js/pages/DestaquesPage.js"></script>
 <script src="assets/js/pages/BarbeirosPage.js"></script>
+<script src="assets/js/pages/BarbeariasPage.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js"></script>
