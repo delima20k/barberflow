@@ -82,21 +82,39 @@ class AppState {
 
   /**
    * Registra um callback para mudanças em uma chave específica.
+   * Retorna uma função de unsubscribe — chame-a para remover o listener
+   * e evitar memory leaks em componentes que são destruídos.
+   *
    * @param {'user'|'perfil'|'isLogado'|'geo'} key
    * @param {function(*): void} callback
+   * @returns {function(): void} unsubscribe
+   *
+   * @example
+   *   const off = AppState.on('isLogado', cb);
+   *   // ... quando o componente for destruído:
+   *   off();
    */
   static on(key, callback) {
     AppState.#validarChave(key);
     if (!AppState.#listeners.has(key)) AppState.#listeners.set(key, []);
     AppState.#listeners.get(key).push(callback);
+
+    return function unsubscribe() {
+      const lista = AppState.#listeners.get(key);
+      if (!lista) return;
+      const idx = lista.indexOf(callback);
+      if (idx !== -1) lista.splice(idx, 1);
+    };
   }
 
   /**
    * Atalho — observa mudanças no estado de autenticação (isLogado).
+   * Retorna unsubscribe (propagado de on()).
    * @param {function(boolean): void} callback
+   * @returns {function(): void} unsubscribe
    */
   static onAuth(callback) {
-    AppState.on('isLogado', callback);
+    return AppState.on('isLogado', callback);
   }
 
   // ═══════════════════════════════════════════════════════════
