@@ -3,9 +3,13 @@
 /**
  * BarberFlow — Base SPA Router
  *
- * Classe base para navegação tipo SPA.
- * Estenda e implemente o getter `telasComNav`
- * para definir em quais telas o footer aparece.
+ * Responsabilidade ÚNICA: controle de navegação (nav, push, voltar),
+ * tela atual e histórico.
+ *
+ * Animações    → AnimationService
+ * Menu drawer  → MenuService
+ * Avatar       → AvatarService
+ * Splash       → SplashService
  *
  * @abstract
  */
@@ -95,107 +99,15 @@ class Router {
   }
 
   /**
-   * ÚNICO método responsável por toda animação de transição entre telas.
-   * Usa Web Animations API (WAAPI) para animação interruptível e fluida:
-   *  - Lê a posição atual do elemento antes de cancelar qualquer animação em andamento
-   *  - Anima DE onde o elemento está (não do início absoluto)
-   *  - Sem opacity — aba permanece totalmente visível durante o slide
-   *  - Duração proporcional ao deslocamento restante
-   *
-   * @param {HTMLElement|null} saindo    — Tela que sai (null = home, não anima)
-   * @param {HTMLElement|null} entrando  — Tela que entra (null = home, não anima)
-   * @param {'saindo'|'saindo-direita'}  classeSaida   — Direção da saída
-   * @param {'ativa'|'entrando-lento'}   classeEntrada — Velocidade de entrada
+   * Delega animação de transição ao AnimationService.
+   * @param {HTMLElement|null} saindo
+   * @param {HTMLElement|null} entrando
+   * @param {'saindo'|'saindo-direita'}  classeSaida
+   * @param {'ativa'|'entrando-lento'}   classeEntrada
    * @private
    */
   _animar(saindo, entrando, classeSaida = 'saindo', classeEntrada = 'ativa') {
-    const EASE = 'cubic-bezier(0.4,0,0.2,1)';
-
-    /**
-     * Lê o translateX atual do elemento em percentual relativo à sua largura.
-     * Funciona mesmo enquanto uma animação WAAPI está rodando.
-     * @param {HTMLElement} el
-     * @returns {number} valor em % (ex: -60.0 significa 60% fora pela esquerda)
-     */
-    const _xAtual = (el) => {
-      const m = new DOMMatrix(getComputedStyle(el).transform);
-      return el.offsetWidth ? (m.m41 / el.offsetWidth) * 100 : 0;
-    };
-
-    // ── Tela que SAI ────────────────────────────────────────────────────────
-    if (saindo) {
-      const fromX = _xAtual(saindo);                        // posição atual
-      const toX   = classeSaida === 'saindo-direita' ? 100 : -100;
-      const dist  = Math.abs(toX - fromX) / 100;            // 0..1
-      const dur   = Math.round(480 * dist);
-
-      // Cancela qualquer animação em curso — captura de posição já foi feita
-      saindo.getAnimations().forEach(a => a.cancel());
-      saindo.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
-
-      if (dur < 16) {
-        // Já está fora da tela — apenas oculta imediatamente
-        saindo.style.display       = 'none';
-        saindo.style.pointerEvents = '';
-      } else {
-        saindo.style.display       = 'flex';
-        saindo.style.pointerEvents = 'none';
-
-        const a = saindo.animate(
-          [
-            { transform: `translateX(${fromX.toFixed(2)}%)` },
-            { transform: `translateX(${toX}%)`               }
-          ],
-          { duration: dur, easing: EASE, fill: 'both' }
-        );
-
-        a.onfinish = () => {
-          a.cancel();                      // libera fill:both
-          saindo.style.display       = 'none';
-          saindo.style.pointerEvents = '';
-        };
-        // oncancel: nova animação (re-abertura) assume o controle — sem cleanup aqui
-      }
-    }
-
-    // ── Tela que ENTRA ───────────────────────────────────────────────────────
-    if (entrando) {
-      // Se inline display='flex' → animação estava em andamento (entrada ou saída)
-      // Lê posição atual para continuar de onde parou (interrupção fluida)
-      // Se oculta (display:none via CSS) → começa do off-screen esquerda (-100%)
-      const isVisible = entrando.style.display === 'flex';
-      const fromX     = isVisible ? _xAtual(entrando) : -100;
-      const baseDur   = classeEntrada === 'entrando-lento' ? 720 : 320;
-      const dist      = Math.abs(fromX) / 100;              // distância até 0%
-      const dur       = Math.round(baseDur * dist);
-
-      // Cancela qualquer animação em curso
-      entrando.getAnimations().forEach(a => a.cancel());
-      entrando.classList.remove('saindo', 'saindo-direita', 'ativa', 'entrando-lento');
-      entrando.style.display = 'flex';
-      void entrando.offsetWidth;                            // força reflow
-
-      if (dur < 16) {
-        // Já está na posição correta — apenas marca como ativa
-        entrando.style.display = '';
-        entrando.classList.add('ativa');
-      } else {
-        const a = entrando.animate(
-          [
-            { transform: `translateX(${fromX.toFixed(2)}%)` },
-            { transform: 'translateX(0%)'                    }
-          ],
-          { duration: dur, easing: EASE, fill: 'both' }
-        );
-
-        a.onfinish = () => {
-          a.cancel();                        // libera fill:both — devolve ao CSS
-          entrando.style.display = '';       // .ativa gerencia display:flex
-          entrando.classList.add('ativa');
-        };
-        // oncancel: animação de saída (toggle/voltar) assume o controle — sem cleanup
-      }
-    }
+    AnimationService.animar(saindo, entrando, classeSaida, classeEntrada);
   }
 
   /**
@@ -309,71 +221,18 @@ class Router {
   }
 
   /* ─────────────────────────────────────────────────────────────
-     MENU DRAWER
+     MENU DRAWER — delegates para MenuService
   ───────────────────────────────────────────────────────────── */
 
-  toggleMenu() {
-    const drawer = document.getElementById('menu-drawer');
-    if (!drawer) return;
-    drawer.classList.contains('aberto') ? this.fecharMenu() : this._abrirMenu();
-  }
-
-  _abrirMenu() {
-    document.getElementById('menu-drawer')?.classList.add('aberto');
-    document.getElementById('menu-overlay')?.classList.add('ativo');
-    const btn = document.querySelector('.header-menu-btn');
-    if (btn) btn.classList.add('menu-aberto');
-    const icon = document.getElementById('icon-menu');
-    if (icon) icon.src = '/shared/img/icones-menu-fechado.png';
-  }
-
-  fecharMenu() {
-    document.getElementById('menu-drawer')?.classList.remove('aberto');
-    document.getElementById('menu-overlay')?.classList.remove('ativo');
-    const btn = document.querySelector('.header-menu-btn');
-    if (btn) btn.classList.remove('menu-aberto');
-    const icon = document.getElementById('icon-menu');
-    if (icon) icon.src = '/shared/img/icones-menu.png';
-  }
-
-  /**
-   * Fecha o menu hamburguer e navega para a tela indicada com a
-   * MESMA animação do botão equivalente no rodapé.
-   *
-   * Lê a duração real da transição CSS do drawer via getComputedStyle —
-   * garante sincronismo sem depender de `transitionend`, que é não
-   * confiável em browsers mobile com `overflow-y: auto`.
-   *
-   * @param {string} tela — ID sem prefixo "tela-"
-   */
-  navDoMenu(tela) {
-    const drawer = document.getElementById('menu-drawer');
-
-    // Drawer inexistente ou já fechado → navega imediatamente
-    if (!drawer || !drawer.classList.contains('aberto')) {
-      this.nav(tela);
-      return;
-    }
-
-    // Lê duração real da transição CSS (ex: "0.32s, 0.32s") — sem magic number
-    const durStr = getComputedStyle(drawer).transitionDuration.split(',')[0];
-    const durMs  = Math.round(parseFloat(durStr) * 1000) + 32; // +32ms margem (1 frame extra)
-
-    this.fecharMenu();
-    setTimeout(() => this.nav(tela), durMs);
-  }
+  toggleMenu()          { MenuService.toggle(); }
+  fecharMenu()          { MenuService.fechar(); }
+  navDoMenu(tela)       { MenuService.navDoMenu(tela, t => this.nav(t)); }
 
   /* ─────────────────────────────────────────────────────────────
-     STORIES — CURTIDA E VÍDEO
+     STORIES — delegates para StoryViewer
   ───────────────────────────────────────────────────────────── */
 
-  toggleLike(btn) {
-    btn.classList.toggle('curtido');
-    const span = btn.querySelector('.story-like-count');
-    const n = parseInt(span.textContent) || 0;
-    span.textContent = btn.classList.contains('curtido') ? n + 1 : n - 1;
-  }
-
+  toggleLike(btn)        { StoryViewer.toggleLike(btn); }
   toggleStoryVideo(wrap) {
     const video = wrap.querySelector('.story-video');
     const play  = wrap.querySelector('.story-play-btn');
@@ -382,99 +241,17 @@ class Router {
   }
 
   /* ─────────────────────────────────────────────────────────────
-     AVATAR — PREVIEW E UPLOAD
+     AVATAR — delegates para AvatarService
   ───────────────────────────────────────────────────────────── */
 
-  previewAvatar(input) {
-    if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
-
-    // 1. Preview instantâneo (antes do upload)
-    const localUrl = URL.createObjectURL(file);
-    ['menu-avatar-img', 'header-avatar-img'].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.src = localUrl;
-      el.style.filter  = 'none';
-      el.style.opacity = '1';
-    });
-
-    // 2. Upload assíncrono para Supabase Storage
-    this._uploadAvatar(file);
-  }
-
-  async _uploadAvatar(file) {
-    try {
-      const user = await SupabaseService.getUser();
-      if (!user) return;
-
-      // Comprime para máx 512KB antes de enviar
-      const blob = await this._comprimirImagem(file, 512);
-
-      const ext  = file.name.split('.').pop().toLowerCase().replace('jpg','jpeg');
-      const path = `${user.id}/avatar.${ext}`;
-
-      // Faz o upload (upsert — substitui se já existir)
-      const { error: upErr } = await SupabaseService.client.storage
-        .from('avatars')
-        .upload(path, blob, { upsert: true, contentType: blob.type });
-
-      if (upErr) throw upErr;
-
-      // Atualiza o avatar_path no profile
-      await SupabaseService.client
-        .from('profiles')
-        .update({ avatar_path: path, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-
-      // Substitui o preview local pela URL pública definitiva
-      const { data } = SupabaseService.client.storage.from('avatars').getPublicUrl(path);
-      const publicUrl = data.publicUrl + '?t=' + Date.now(); // cache-bust
-      ['menu-avatar-img', 'header-avatar-img'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.src = publicUrl;
-      });
-
-      // Persiste a URL no cache local para carregamento imediato no próximo acesso
-      if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
-
-    } catch (e) {
-      console.warn('[Avatar] Erro no upload:', e.message);
-    }
-  }
-
-  async _comprimirImagem(file, maxKB) {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const MAX = maxKB * 1024;
-        let w = img.width, h = img.height;
-        const max = 600;
-        if (w > max || h > max) {
-          const r = Math.min(max / w, max / h);
-          w = Math.round(w * r); h = Math.round(h * r);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(b => resolve(b || file), 'image/jpeg', 0.82);
-      };
-      img.onerror = () => resolve(file);
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
-  abrirUploadAvatar() {
-    const logado = !!(typeof AuthService !== 'undefined'
-      ? AuthService.getPerfil()
-      : this._logado);
-    if (!logado) { this.fecharMenu(); this.nav('login'); return; }
-    document.getElementById('menu-avatar-input').click();
-  }
+  previewAvatar(input)   { AvatarService.preview(input); }
+  abrirUploadAvatar()    { AvatarService.abrirUpload(this); }
 
   /* ─────────────────────────────────────────────────────────────
-     EVENTO: LOGIN — atualiza header e menu com nome do usuário
+     SPLASH — delegate para SplashService
   ───────────────────────────────────────────────────────────── */
+
+  navegarApp(url)        { SplashService.navegar(url); }
 
   _bindLoginEvent() {
     document.addEventListener('barberflow:login', e => {
@@ -493,60 +270,6 @@ class Router {
       document.getElementById('header-avatar-btn')?.classList.add('logado');
       document.getElementById('menu-avatar')?.classList.add('logado');
     });
-  }
-
-  /* ─────────────────────────────────────────────────────────────
-     SPLASH — transição entre apps (BarberPole compacto)
-  ───────────────────────────────────────────────────────────── */
-
-  /**
-   * Exibe splash com BarberPole e navega ao destino ao fim.
-   * Detecta automaticamente o nome do app pelo URL de destino.
-   * @param {string} url — caminho destino (ex: '../profissional/')
-   */
-  navegarApp(url) {    if (this._navegandoApp) return;
-    this._navegandoApp = true;
-
-    // Detecta o app destino pelo URL:
-    // URL com 'cliente' → CLIENTE; qualquer outro (pro / profissional / pro-two) → PROFISSIONAL
-    const tipo = url.toLowerCase().includes('cliente') ? 'CLIENTE' : 'PROFISSIONAL';
-    const sep  = url.includes('?') ? '&' : '?';
-    const dest = `${url}${sep}t=${Date.now()}`;
-
-    this._exibirSplash(tipo, () => window.location.replace(dest));
-  }
-
-  /**
-   * Monta o overlay splash compacto (mobile-first) com BarberPole.
-   * @param {string}   tipo   — 'PROFISSIONAL' | 'CLIENTE'
-   * @param {Function} [onFim] — callback após fade-out
-   * @private
-   */
-  _exibirSplash(tipo, onFim = null) {
-    if (document.querySelector('.splash-overlay')) return;
-
-    // Textos de boas-vindas diferenciados por app
-    const bv = tipo === 'PROFISSIONAL'
-      ? { linha1: 'Bem-vindo,', linha2: 'BarberFlow PROFISSIONAL' }
-      : { linha1: 'Bem-vindo ao', linha2: 'BarberFlow CLIENTE' };
-
-    const overlay = document.createElement('div');
-    overlay.className = 'splash-overlay';
-    overlay.innerHTML = `
-      <img class="splash-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-      <p class="splash-app">${bv.linha1} <strong>${bv.linha2}</strong></p>
-      <div class="splash-polo-wrap"><div id="splash-polo"></div></div>
-    `;
-    document.body.appendChild(overlay);
-
-    if (typeof BarberPole !== 'undefined') {
-      new BarberPole(overlay.querySelector('#splash-polo'));
-    }
-
-    setTimeout(() => {
-      overlay.classList.add('saindo');
-      setTimeout(() => { onFim ? onFim() : overlay.remove(); }, 450);
-    }, 2200);
   }
 
   /* ─────────────────────────────────────────────────────────────
