@@ -29,6 +29,7 @@ class Router {
   _footerOffline = null;
   _navBtns       = [];
   _services      = {};
+  _navegandoApp  = false;
   // _logado removido — use AppState.get('isLogado') como fonte única de verdade
 
   /**
