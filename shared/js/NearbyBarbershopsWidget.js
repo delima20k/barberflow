@@ -65,18 +65,27 @@ class NearbyBarbershopsWidget {
     const el = document.getElementById(containerId);
     if (!el) return;
 
-    // Skeleton loading
+    // Skeleton — 2 colunas de 2 cards
     el.innerHTML = Array(3).fill(0).map(() => `
-      <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
-        <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
-        <div class="barber-info">
-          <p class="barber-name" style="width:120px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-          <p class="barber-sub"  style="width:80px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
+      <div class="barbearias-coluna">
+        <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+          <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+          <div class="barber-info">
+            <p class="barber-name" style="width:100px;height:13px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+            <p class="barber-sub"  style="width:70px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:5px"></p>
+          </div>
+        </div>
+        <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+          <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+          <div class="barber-info">
+            <p class="barber-name" style="width:90px;height:13px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+            <p class="barber-sub"  style="width:60px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:5px"></p>
+          </div>
         </div>
       </div>`).join('');
 
     try {
-      let lista = await BarbershopRepository.getAll(10);
+      let lista = await BarbershopRepository.getAll(20);
 
       // Se GPS disponível, calcula distância
       try {
@@ -92,10 +101,15 @@ class NearbyBarbershopsWidget {
       } catch (_) { /* sem GPS — mantém ordem por rating */ }
 
       el.innerHTML = '';
-      lista.forEach(b => {
-        const row = NearbyBarbershopsWidget.#criarBarberRow(b);
-        el.appendChild(row);
-      });
+
+      // Agrupa em pares — cada coluna tem 2 cards
+      for (let i = 0; i < lista.length; i += 2) {
+        const coluna = document.createElement('div');
+        coluna.className = 'barbearias-coluna';
+        coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i]));
+        if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i + 1]));
+        el.appendChild(coluna);
+      }
     } catch (err) {
       console.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
       el.innerHTML = '';

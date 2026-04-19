@@ -195,6 +195,31 @@
 
 #home-destaque-lista::-webkit-scrollbar { display: none; }
 
+/* ============================================================
+   BARBEARIAS CARROSSEL — seção "Barbearias Populares" da home.
+   Scroll horizontal com colunas de 2 cards empilhados.
+============================================================ */
+.barbearias-carrossel {
+  display: flex;
+  gap: 10px;
+  padding: 4px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+}
+.barbearias-carrossel::-webkit-scrollbar { display: none; }
+
+/* Coluna: 2 cards empilhados verticalmente */
+.barbearias-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: min(72vw, 300px);
+}
+
 /* ── Wrapper externo: card + endereço abaixo ── */
 .destaque-item {
   display: flex;
