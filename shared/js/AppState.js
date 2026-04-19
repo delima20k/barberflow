@@ -26,6 +26,14 @@ class AppState {
   // Chaves válidas — qualquer outra lança TypeError imediatamente
   static #CHAVES = Object.freeze(new Set(['user', 'perfil', 'isLogado', 'geo']));
 
+  // Validadores por chave — garantem tipo e formato antes de gravar no estado
+  static #VALIDADORES = Object.freeze({
+    user:     v => v === null || (typeof v === 'object' && typeof v.id === 'string'),
+    perfil:   v => v === null || typeof v === 'object',
+    isLogado: v => typeof v === 'boolean',
+    geo:      v => v === null || (typeof v === 'object' && typeof v.lat === 'number' && typeof v.lng === 'number'),
+  });
+
   // Mapa de chave → array de callbacks
   static #listeners = new Map();
 
@@ -42,6 +50,22 @@ class AppState {
     if (!AppState.#CHAVES.has(key)) {
       throw new TypeError(
         `[AppState] Chave inválida: "${key}". Permitidas: ${[...AppState.#CHAVES].join(', ')}.`
+      );
+    }
+  }
+
+  /**
+   * Valida o tipo/formato do valor para a chave informada.
+   * @param {string} key
+   * @param {*} value
+   * @throws {TypeError} se o valor não for compatível com o schema
+   * @private
+   */
+  static #validarValor(key, value) {
+    const validar = AppState.#VALIDADORES[key];
+    if (validar && !validar(value)) {
+      throw new TypeError(
+        `[AppState] Valor inválido para "${key}": ${JSON.stringify(value)}`
       );
     }
   }
@@ -67,11 +91,16 @@ class AppState {
   /**
    * Atualiza uma chave produzindo um novo objeto de estado (imutabilidade).
    * Nunca muta o estado anterior — facilita rastreabilidade e evita efeitos colaterais.
+   *
+   * Prefira os setters semânticos (setUser, setPerfil, setGeo) para maior clareza.
+   * Este método permanece disponível para compatibilidade com código existente.
+   *
    * @param {'user'|'perfil'|'isLogado'|'geo'} key
    * @param {*} value
    */
   static set(key, value) {
     AppState.#validarChave(key);
+    AppState.#validarValor(key, value);
     AppState.#state = { ...AppState.#state, [key]: value };
     // Notifica listeners específicos da chave
     const cbs = AppState.#listeners.get(key) ?? [];
@@ -148,6 +177,36 @@ class AppState {
       if (idx !== -1) AppState.#globalListeners.splice(idx, 1);
     };
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // SETTERS SEMÂNTICOS — interface preferida para escrita
+  // Delegam para set() — validação roda em um único lugar.
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Define o Supabase User corrente.
+   * @param {object|null} user — deve ter propriedade `id` (string) ou ser null
+   */
+  static setUser(user)       { AppState.set('user', user); }
+
+  /**
+   * Define o perfil da tabela profiles.
+   * @param {object|null} perfil — objeto ou null
+   */
+  static setPerfil(perfil)   { AppState.set('perfil', perfil); }
+
+  /**
+   * Define a flag de autenticação.
+   * Prefira login() / logout() para operações completas de sessão.
+   * @param {boolean} isLogado
+   */
+  static setAuth(isLogado)   { AppState.set('isLogado', isLogado); }
+
+  /**
+   * Define as coordenadas geográficas.
+   * @param {{ lat: number, lng: number }|null} geo
+   */
+  static setGeo(geo)         { AppState.set('geo', geo); }
 
   // ═══════════════════════════════════════════════════════════
   // ALTO NÍVEL — ações semânticas de sessão
