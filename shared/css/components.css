@@ -2832,10 +2832,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Tela Chat (full-screen, dentro do #app) ────────────── */
 /* A tela usa o padrão .tela (position:fixed, top:header-h, bottom:0, display:flex, flex-direction:column).
-   overflow:hidden é obrigatório para que só #chat-mensagens role, não a tela inteira. */
+   overflow:hidden é obrigatório para que só #chat-mensagens role, não a tela inteira.
+   z-index:20 garante que fique por cima do rodapé do sistema. */
 #tela-chat {
   overflow: hidden;
-  padding-bottom: 0; /* .chat-modal-footer controla o safe-area */
+  padding-bottom: 0;        /* anula o padding-bottom de .tela que reserva espaço p/ nav */
+  bottom: 0 !important;     /* garante que cobre o rodapé do sistema */
+  z-index: 20;              /* acima do footer-nav (z-index padrão do rodapé) */
 }
 
 /* No topo do chat: avatar ao lado do btn-voltar, sem quebrar o layout */
