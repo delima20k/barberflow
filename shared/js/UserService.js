@@ -1,27 +1,20 @@
 'use strict';
 
 /**
- * UserService — Abstração de identidade do usuário corrente.
+ * UserService — Fonte única de verdade sobre o usuário corrente.
  *
- * Contratos explícitos por camada:
- *
- *   CACHE  (síncrono, zero rede):
- *     getUser()           → AppState.getUser()     — User ou null
- *     getPerfil()         → AppState.get('perfil') — perfil ou null
- *
- *   REDE (assíncrono, sempre vai à API):
- *     fetchUser()         → Supabase Auth → atualiza AppState.user
- *
- *   SINCRONIZAÇÃO (assíncrono, atualiza tudo):
- *     refresh()           → user + perfil frescos → AppState.login() ou AppState.logout()
- *
- *   PROTEÇÃO:
- *     requireAuth(router) → verifica AppState.isLogged(); redireciona se necessário
+ * Responsabilidades:
+ *   Identidade    → getUser(), getUserId()
+ *   Perfil        → getPerfil()
+ *   Role          → getRole(), isProfessional(), isClient()
+ *   Estado login  → isLogged()
+ *   Rede          → fetchUser(), refresh()
+ *   Proteção      → requireAuth(router)
  *
  * Regra de ouro:
- *   getUser() e getPerfil() NUNCA fazem rede.
- *   fetchUser() e refresh() SEMPRE fazem rede.
- *   Use getUser() por padrão — chame fetchUser()/refresh() apenas quando precisar de dados frescos.
+ *   getUser(), getPerfil(), isLogged(), getRole() → NUNCA fazem rede (cache).
+ *   fetchUser(), refresh()                        → SEMPRE fazem rede.
+ *   AuthService NÃO deve ser acessado diretamente — passe por UserService.
  *
  * Dependências (carregadas antes):
  *   AppState.js, SupabaseService.js, AuthService.js, AuthGuard.js
@@ -158,144 +151,101 @@ const UserService = (() => {
     return logado;
   }
 
-  return Object.freeze({ getUser, getPerfil, fetchUser, requireAuth, refresh });
-})();
-
-const UserService = (() => {
-  'use strict';
-
-  // ── Leitura síncrona (cache) ───────────────────────────────
+  // ═══════════════════════════════════════════════════════════
+  // PROTEÇÃO — controle de acesso
+  // ═══════════════════════════════════════════════════════════
 
   /**
-   * Retorna o objeto Supabase User corrente do AppState (ou null).
-   * Zero rede — consulta apenas o estado em memória.
-   * @returns {object|null}
-   */
-  function getUser() {
-    if (typeof AppState === 'undefined') return null;
-    return AppState.getUser();
-  }
-
-  /**
-   * Retorna o perfil em cache do AppState (ou null).
-   * Zero rede — consulta apenas o estado em memória.
-   * @returns {object|null}
-   */
-  function getPerfil() {
-    if (typeof AppState === 'undefined') return null;
-    return AppState.get('perfil');
-  }
-
-  // ── Busca com cache inteligente ────────────────────────────
-
-  /**
-   * Retorna o usuário autenticado, buscando no Supabase apenas quando necessário.
-   *
-   * Estratégia de cache:
-   *   1. Se já existir no AppState e `force` for false → retorna do cache (zero rede)
-   *   2. Se não existir ou `force=true` → busca no Supabase e atualiza AppState
-   *
-   * @param {boolean} [force=false] — ignora cache e força nova requisição
-   * @returns {Promise<object|null>}
-   *
-   * @example
-   *   const user = await UserService.fetchUser();         // usa cache se disponível
-   *   const user = await UserService.fetchUser(true);     // força busca na API
-   */
-  async function fetchUser(force = false) {
-    if (typeof AppState === 'undefined') return null;
-
-    // Cache hit — evita chamada de rede desnecessária
-    const cached = AppState.getUser();
-    if (cached && !force) return cached;
-
-    // Cache miss ou force=true — busca no Supabase
-    if (typeof SupabaseService === 'undefined') return cached ?? null;
-
-    try {
-      const user = await SupabaseService.getUser();
-      if (user) AppState.set('user', user);
-      return user ?? null;
-    } catch (e) {
-      console.warn('[UserService] fetchUser falhou:', e?.message);
-      return cached ?? null; // fallback para o cache anterior em caso de erro
-    }
-  }
-
-  // ── Proteção de rotas ─────────────────────────────────────
-
-  /**
-   * Verifica se o usuário está autenticado.
-   * Se não estiver, redireciona para a tela 'login' via router e retorna false.
-   * Delega ao AuthGuard para não duplicar a lógica de proteção.
-   * Fallback direto ao AppState caso AuthGuard não esteja carregado.
+   * Verifica autenticação e redireciona para 'login' se necessário.
+   * Contrato: síncrono, zero rede — lê AppState.isLogged().
+   * Delega ao AuthGuard (fonte única da regra).
    *
    * @param {Router} router — instância do app (App ou Pro)
    * @returns {boolean} true = autenticado | false = bloqueado e redirecionado
    *
    * @example
-   *   // Em qualquer Page ou Service:
    *   if (!UserService.requireAuth(App)) return;
-   *   // ... continua apenas se logado
    */
   function requireAuth(router) {
-    // Delega ao AuthGuard quando disponível (fonte única da regra)
     if (typeof AuthGuard !== 'undefined') return AuthGuard.requireAuth(router);
-
-    // Fallback: aplica a regra diretamente via AppState
     const logado = typeof AppState !== 'undefined' && AppState.isLogged();
     if (!logado && router && typeof router.push === 'function') router.push('login');
     return logado;
   }
 
-  // ── Sincronização ─────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════
+  // IDENTIDADE — leitura semântica do estado do usuário
+  // Fonte única de verdade — nenhum outro módulo acessa AppState/AuthService diretamente.
+  // ═══════════════════════════════════════════════════════════
 
   /**
-   * Busca user e perfil frescos na API e sincroniza o AppState.
-   * Deve ser chamado após login, logout ou qualquer situação que
-   * possa ter deixado o estado desatualizado.
-   *
-   * Fluxo:
-   *   1. SupabaseService.getUser()          → objeto User (ou null se sem sessão)
-   *   2. AuthService._carregarPerfil(id)    → linha fresca da tabela profiles
-   *   3. AppState.login(user, perfil)        → atualiza estado e isLogado=true
-   *   Em caso de sem sessão: AppState.logout() limpa o estado.
-   *
-   * @returns {Promise<{ user: object|null, perfil: object|null }>}
+   * Retorna true se o usuário está autenticado.
+   * Contrato: NUNCA faz rede. Lê AppState.isLogged().
+   * @returns {boolean}
    *
    * @example
-   *   // Após restaurar sessão ou mudança de perfil:
-   *   const { user, perfil } = await UserService.refresh();
+   *   if (!UserService.isLogged()) return;
    */
-  async function refresh() {
-    if (typeof AppState === 'undefined' || typeof SupabaseService === 'undefined') {
-      return { user: null, perfil: null };
-    }
-
-    try {
-      // 1. Busca o user autenticado no Supabase
-      const user = await SupabaseService.getUser();
-
-      if (!user) {
-        // Sem sessão ativa — limpa o estado
-        AppState.logout();
-        return { user: null, perfil: null };
-      }
-
-      // 2. Busca o perfil fresco via AuthService
-      const perfil = typeof AuthService !== 'undefined'
-        ? await AuthService._carregarPerfil(user.id)
-        : null;
-
-      // 3. Sincroniza AppState atomicamente
-      AppState.login(user, perfil);
-
-      return { user, perfil };
-    } catch (e) {
-      console.warn('[UserService] refresh falhou:', e?.message);
-      return { user: AppState.getUser(), perfil: AppState.get('perfil') };
-    }
+  function isLogged() {
+    if (typeof AppState === 'undefined') return false;
+    return AppState.isLogged();
   }
 
-  return Object.freeze({ getUser, getPerfil, fetchUser, requireAuth, refresh });
+  /**
+   * Retorna o ID do usuário corrente ou null.
+   * Contrato: NUNCA faz rede.
+   * @returns {string|null}
+   */
+  function getUserId() {
+    if (typeof AppState === 'undefined') return null;
+    return AppState.getUserId();
+  }
+
+  /**
+   * Retorna o role do usuário corrente ('client' | 'professional' | null).
+   * Contrato: NUNCA faz rede — lê o perfil em cache.
+   * @returns {'client'|'professional'|null}
+   *
+   * @example
+   *   const role = UserService.getRole(); // 'client' | 'professional' | null
+   */
+  function getRole() {
+    if (typeof AppState === 'undefined') return null;
+    return AppState.getRole();
+  }
+
+  /**
+   * Retorna true se o usuário logado é profissional.
+   * Contrato: NUNCA faz rede.
+   * @returns {boolean}
+   *
+   * @example
+   *   if (UserService.isProfessional()) mostrarPainelPro();
+   */
+  function isProfessional() {
+    return getRole() === 'professional';
+  }
+
+  /**
+   * Retorna true se o usuário logado é cliente.
+   * Contrato: NUNCA faz rede.
+   * @returns {boolean}
+   *
+   * @example
+   *   if (UserService.isClient()) mostrarAgendamento();
+   */
+  function isClient() {
+    return getRole() === 'client';
+  }
+
+  return Object.freeze({
+    // CACHE
+    getUser, getPerfil,
+    // IDENTIDADE
+    isLogged, getUserId, getRole, isProfessional, isClient,
+    // REDE
+    fetchUser, refresh,
+    // PROTEÇÃO
+    requireAuth,
+  });
 })();
