@@ -118,6 +118,31 @@ class AppState {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // ALTO NÍVEL — ações semânticas de sessão
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Registra uma sessão autenticada de forma atômica.
+   * Define user, perfil e isLogado=true em uma única operação,
+   * disparando cada listener uma única vez na ordem correta.
+   * @param {object} user   — objeto Supabase User
+   * @param {object} perfil — linha da tabela profiles
+   */
+  static login(user, perfil) {
+    AppState.set('user',     user);
+    AppState.set('perfil',   perfil);
+    AppState.set('isLogado', true);
+  }
+
+  /**
+   * Encerra a sessão e limpa todo o estado.
+   * Alias semântico de clear() — prefira este em toda lógica de logout.
+   */
+  static logout() {
+    AppState.clear();
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // CONVENIÊNCIA — leitura semântica do estado de sessão
   // ═══════════════════════════════════════════════════════════
 
@@ -128,6 +153,15 @@ class AppState {
    */
   static isLogged() {
     return AppState.#state.isLogado === true;
+  }
+
+  /**
+   * Retorna o ID do usuário corrente (ou null se não logado).
+   * Atalho para AppState.getUser()?.id — evita encadeamento espalhado.
+   * @returns {string|null}
+   */
+  static getUserId() {
+    return AppState.#state.user?.id ?? null;
   }
 
   /**
