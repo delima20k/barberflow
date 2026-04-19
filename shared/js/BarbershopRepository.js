@@ -109,6 +109,25 @@ class BarbershopRepository {
   }
 
   /**
+   * Retorna todas as barbearias ativas ordenadas por número de cortes realizados
+   * (rating_count desc), depois rating_avg como desempate.
+   * Usado na seção "Todas as Barbearias" da home.
+   * @param {number} limit
+   * @returns {Promise<object[]>}
+   */
+  static async getAllByCortes(limit = 60) {
+    const { data, error } = await SupabaseService.barbershops()
+      .select(BarbershopRepository.#SELECT_BASIC)
+      .eq('is_active', true)
+      .order('rating_count', { ascending: false })
+      .order('rating_avg',   { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  /**
    * Busca textual por nome, endereço, cidade ou CEP.
    * @param {string} query — termo digitado pelo usuário
    * @param {number} limit

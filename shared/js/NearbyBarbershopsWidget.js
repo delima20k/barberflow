@@ -476,6 +476,94 @@ class NearbyBarbershopsWidget {
   /**
    * Cria um .barber-row a partir dos dados de uma barbearia.
    */
+  /**
+   * Renderiza TODAS as barbearias em grid 2 colunas, ordenadas por cortes realizados.
+   * Reutiliza #criarColCard (card vertical compacto).
+   * @param {string} containerId
+   */
+  static async initHomeTodas(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    // Skeleton 4 cards
+    el.innerHTML = Array(4).fill(0).map(() => `
+      <div class="barber-col-card" style="opacity:.4;pointer-events:none;">
+        <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+        <p style="width:80px;height:12px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+        <p style="width:50px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+      </div>`).join('');
+
+    try {
+      const lista = await BarbershopRepository.getAllByCortes(60);
+      if (!lista.length) { el.innerHTML = ''; return; }
+
+      el.innerHTML = '';
+      lista.forEach(b => el.appendChild(NearbyBarbershopsWidget.#criarColCard(b)));
+    } catch (err) {
+      console.error('[NearbyBarbershopsWidget] initHomeTodas exception:', err);
+      el.innerHTML = '';
+    }
+  }
+
+  /**
+   * Cria um card vertical compacto para exibição em grid 2 colunas.
+   * Reutilizável internamente pelo initHomeTodas.
+   * @param {object} b — objeto barbearia
+   * @returns {HTMLElement}
+   * @private
+   */
+  static #criarColCard(b) {
+    const card = document.createElement('div');
+    card.className = 'barber-col-card';
+
+    // Avatar / logo
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar gold';
+    if (b.logo_path) {
+      const img   = document.createElement('img');
+      img.src     = SupabaseService.getLogoUrl(b.logo_path) || '';
+      img.alt     = b.name;
+      img.loading = 'lazy';
+      img.onerror = () => { avatar.textContent = '\u2988'; };
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = '\u2988';
+    }
+
+    const nome = document.createElement('p');
+    nome.className   = 'bc-nome';
+    nome.textContent = b.name;
+
+    const sub = document.createElement('p');
+    sub.className   = 'bc-sub';
+    sub.textContent = b.city || b.address || '';
+
+    const meta = document.createElement('div');
+    meta.className = 'bc-meta';
+
+    const rating = document.createElement('span');
+    rating.className   = 'bc-rating';
+    rating.textContent = `\u2605 ${Number(b.rating_avg ?? 0).toFixed(1)}`;
+
+    const cortes = document.createElement('span');
+    cortes.className   = 'bc-cortes';
+    cortes.textContent = `${Number(b.rating_count ?? 0)} cortes`;
+
+    const badge = document.createElement('span');
+    badge.className   = b.is_open ? 'badge' : 'badge closed';
+    badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+
+    meta.appendChild(rating);
+    meta.appendChild(cortes);
+
+    card.appendChild(avatar);
+    card.appendChild(nome);
+    card.appendChild(sub);
+    card.appendChild(meta);
+    card.appendChild(badge);
+    return card;
+  }
+
   static #criarBarberRow(b) {
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
