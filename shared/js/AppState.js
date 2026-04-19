@@ -29,6 +29,9 @@ class AppState {
   // Mapa de chave → array de callbacks
   static #listeners = new Map();
 
+  // Listeners globais — notificados em qualquer mudança de estado
+  static #globalListeners = [];
+
   /**
    * Valida se a chave pertence ao schema permitido.
    * @param {string} key
@@ -70,9 +73,15 @@ class AppState {
   static set(key, value) {
     AppState.#validarChave(key);
     AppState.#state = { ...AppState.#state, [key]: value };
+    // Notifica listeners específicos da chave
     const cbs = AppState.#listeners.get(key) ?? [];
     cbs.forEach(cb => {
       try { cb(value); } catch (e) { console.warn('[AppState] Erro em listener:', e?.message); }
+    });
+    // Notifica listeners globais — recebem { key, value, state }
+    const snap = AppState.#state;
+    AppState.#globalListeners.forEach(cb => {
+      try { cb({ key, value, state: snap }); } catch (e) { console.warn('[AppState] Erro em listener global:', e?.message); }
     });
   }
 
@@ -115,6 +124,29 @@ class AppState {
    */
   static onAuth(callback) {
     return AppState.on('isLogado', callback);
+  }
+
+  /**
+   * Registra um listener global — notificado a cada mudança em QUALQUER chave.
+   * Recebe um objeto { key, value, state } com snapshot imutável do estado atual.
+   * Retorna função de unsubscribe para evitar memory leaks.
+   *
+   * @param {function({ key: string, value: *, state: object }): void} callback
+   * @returns {function(): void} unsubscribe
+   *
+   * @example
+   *   const off = AppState.onAny(({ key, value }) => {
+   *     console.log(`[AppState] ${key} →`, value);
+   *   });
+   *   // remover quando não precisar mais:
+   *   off();
+   */
+  static onAny(callback) {
+    AppState.#globalListeners.push(callback);
+    return function unsubscribe() {
+      const idx = AppState.#globalListeners.indexOf(callback);
+      if (idx !== -1) AppState.#globalListeners.splice(idx, 1);
+    };
   }
 
   // ═══════════════════════════════════════════════════════════
