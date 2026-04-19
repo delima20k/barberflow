@@ -6,20 +6,30 @@
  * Responsabilidade ÚNICA: controle de navegação (nav, push, voltar),
  * tela atual e histórico.
  *
- * Animações    → AnimationService
- * Menu drawer  → MenuService
- * Avatar       → AvatarService
- * Splash       → SplashService
+ * Dependências injetáveis (segundo parâmetro `services`):
+ *   animation  → AnimationService  (transições de tela)
+ *   menu       → MenuService       (drawer hamburguer)
+ *   avatar     → AvatarService     (upload de avatar)
+ *   splash     → SplashService     (transição entre apps)
+ *   logout     → LogoutScreen      (confirmação de saída)
+ *   story      → StoryViewer       (interações de story)
+ *
+ * Uso padrão (produção):
+ *   super('inicio')  — usa os singletons globais como padrão
+ *
+ * Uso em testes:
+ *   super('inicio', { animation: mockAnimation, menu: mockMenu, ... })
  *
  * @abstract
  */
 class Router {
-  _telaAtual    = '';
-  _historico    = [];
-  _footer       = null;
+  _telaAtual     = '';
+  _historico     = [];
+  _footer        = null;
   _footerOffline = null;
-  _navBtns      = [];
-  _logado       = false;
+  _navBtns       = [];
+  _logado        = false;
+  _services      = {};
 
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
@@ -29,8 +39,24 @@ class Router {
 
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")
+   * @param {object} [services]  — dependências injetáveis (opcional; usa singletons globais por padrão)
+   * @param {object} [services.animation] — implementação de AnimationService
+   * @param {object} [services.menu]      — implementação de MenuService
+   * @param {object} [services.avatar]    — implementação de AvatarService
+   * @param {object} [services.splash]    — implementação de SplashService
+   * @param {object} [services.logout]    — implementação de LogoutScreen
+   * @param {object} [services.story]     — implementação de StoryViewer
    */
-  constructor(telaInicial = 'login') {
+  constructor(telaInicial = 'login', services = {}) {
+    // Resolve dependências: valor injetado → singleton global → null-safe stub
+    this._services = {
+      animation: services.animation ?? (typeof AnimationService !== 'undefined' ? AnimationService : null),
+      menu:      services.menu      ?? (typeof MenuService      !== 'undefined' ? MenuService      : null),
+      avatar:    services.avatar    ?? (typeof AvatarService    !== 'undefined' ? AvatarService    : null),
+      splash:    services.splash    ?? (typeof SplashService    !== 'undefined' ? SplashService    : null),
+      logout:    services.logout    ?? (typeof LogoutScreen     !== 'undefined' ? LogoutScreen     : null),
+      story:     services.story     ?? (typeof StoryViewer      !== 'undefined' ? StoryViewer      : null),
+    };
     this._footer        = document.getElementById('footer-nav');
     this._footerOffline = document.getElementById('footer-nav-offline');
     this._navBtns       = Array.from(document.querySelectorAll('.nav-btn'));
@@ -95,7 +121,7 @@ class Router {
    * Chamado pelo botão central da tela-sair.
    */
   confirmarSaida() {
-    LogoutScreen.executar(this);
+    this._services.logout?.executar(this);
   }
 
   /**
@@ -107,7 +133,7 @@ class Router {
    * @private
    */
   _animar(saindo, entrando, classeSaida = 'saindo', classeEntrada = 'ativa') {
-    AnimationService.animar(saindo, entrando, classeSaida, classeEntrada);
+    this._services.animation?.animar(saindo, entrando, classeSaida, classeEntrada);
   }
 
   /**
@@ -224,15 +250,15 @@ class Router {
      MENU DRAWER — delegates para MenuService
   ───────────────────────────────────────────────────────────── */
 
-  toggleMenu()          { MenuService.toggle(); }
-  fecharMenu()          { MenuService.fechar(); }
-  navDoMenu(tela)       { MenuService.navDoMenu(tela, t => this.nav(t)); }
+  toggleMenu()          { this._services.menu?.toggle(); }
+  fecharMenu()          { this._services.menu?.fechar(); }
+  navDoMenu(tela)       { this._services.menu?.navDoMenu(tela, t => this.nav(t)); }
 
   /* ─────────────────────────────────────────────────────────────
      STORIES — delegates para StoryViewer
   ───────────────────────────────────────────────────────────── */
 
-  toggleLike(btn)        { StoryViewer.toggleLike(btn); }
+  toggleLike(btn)        { this._services.story?.toggleLike(btn); }
   toggleStoryVideo(wrap) {
     const video = wrap.querySelector('.story-video');
     const play  = wrap.querySelector('.story-play-btn');
@@ -244,14 +270,14 @@ class Router {
      AVATAR — delegates para AvatarService
   ───────────────────────────────────────────────────────────── */
 
-  previewAvatar(input)   { AvatarService.preview(input); }
-  abrirUploadAvatar()    { AvatarService.abrirUpload(this); }
+  previewAvatar(input)   { this._services.avatar?.preview(input); }
+  abrirUploadAvatar()    { this._services.avatar?.abrirUpload(this); }
 
   /* ─────────────────────────────────────────────────────────────
      SPLASH — delegate para SplashService
   ───────────────────────────────────────────────────────────── */
 
-  navegarApp(url)        { SplashService.navegar(url); }
+  navegarApp(url)        { this._services.splash?.navegar(url); }
 
   _bindLoginEvent() {
     document.addEventListener('barberflow:login', e => {
