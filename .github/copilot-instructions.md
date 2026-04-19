@@ -376,6 +376,16 @@ FAZER MELHOR.
 
 ---
 
+## Development Rules
+
+* Always test before applying any change
+* Test every modification in the project
+* Validate functionality before proceeding
+* Do not implement changes without prior testing
+* Prefer incremental changes over large untested updates
+
+---
+
 # COMPONENTE BARBER POLE (OBRIGATÓRIO)
 
 O polo de barbearia é a identidade visual do BarberFlow.
