@@ -31,6 +31,7 @@ class BarberFlowCliente extends Router {
     'perfil',
     'sair',
     'destaques',
+    'barbeiros',
   ]);
 
   get telasComNav() { return BarberFlowCliente.#TELAS_COM_NAV; }
@@ -46,6 +47,7 @@ class BarberFlowCliente extends Router {
   #profilePage;
   #logoutPage;
   #destaquesPage;
+  #barbeirosPage;
 
   constructor() {
     super('inicio');
@@ -63,6 +65,7 @@ class BarberFlowCliente extends Router {
     this.#profilePage  = new ProfilePage();
     this.#logoutPage   = new LogoutPage();
     this.#destaquesPage = new DestaquesPage();
+    this.#barbeirosPage = new BarbeirosPage();
 
     // Registra todos os listeners de DOM
     this.#loginPage.bind();
@@ -75,6 +78,7 @@ class BarberFlowCliente extends Router {
     this.#profilePage.bind();
     this.#logoutPage.bind();
     this.#destaquesPage.bind();
+    this.#barbeirosPage.bind();
 
     // Inicia sessão de autenticação
     AuthService.iniciarListener();

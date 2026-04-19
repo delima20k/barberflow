@@ -401,11 +401,18 @@
         <div id="home-destaque-lista" class="h-scroll"></div>
       </div>
 
-      <!-- Barbeiros populares -->
+      <!-- Barbearias Populares -->
       <div>
         <h2 class="sec-title title-large">Barbearias Populares Próximas de Você</h2>
         <div id="home-barbearias-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
-        <h2 class="sec-title" style="margin-top:20px;">Barbeiros Populares</h2>
+      </div>
+
+      <!-- Barbeiros Populares -->
+      <div>
+        <div class="sec-header">
+          <h2 class="sec-title">Barbeiros Populares</h2>
+          <button class="sec-ver-mais" data-nav="barbeiros">Ver mais</button>
+        </div>
         <div id="home-barbeiros-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
 
@@ -426,6 +433,20 @@
       </div>
       <div id="destaques-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
       <p id="destaques-vazio" class="tela-destaques-vazio" hidden>Nenhuma barbearia encontrada.</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEIROS POPULARES
+  ============================================================ -->
+  <main id="tela-barbeiros" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <h2 class="tela-topo__titulo">Barbeiros Populares</h2>
+    </div>
+    <div class="content">
+      <div id="barbeiros-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <p id="barbeiros-vazio" hidden style="text-align:center;padding:20px;color:var(--text-muted)">Nenhum barbeiro encontrado.</p>
     </div>
   </main>
 
@@ -759,6 +780,7 @@
 <script src="assets/js/pages/ProfilePage.js"></script>
 <script src="assets/js/pages/LogoutPage.js"></script>
 <script src="assets/js/pages/DestaquesPage.js"></script>
+<script src="assets/js/pages/BarbeirosPage.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js"></script>
