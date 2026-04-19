@@ -429,6 +429,10 @@ class Router {
    *   [data-action="avatar-upload"]    → this.abrirUploadAvatar()
    */
   _bindDataAttributes() {
+    // Impede registro duplicado caso o Router seja instanciado mais de uma vez
+    if (window.__routerClickBound) return;
+    window.__routerClickBound = true;
+
     document.addEventListener('click', (e) => {
       // data-nav
       const navEl = e.target.closest('[data-nav]');
