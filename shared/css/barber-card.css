@@ -621,3 +621,12 @@
   font-size: .84rem;
   padding: 40px 20px;
 }
+
+/* h2 genérico das telas hero (barbeiros, barbearias…) */
+.tela-hero-subtitulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+  line-height: 1.3;
+  color: var(--text);
+}
