@@ -62,13 +62,14 @@ class AppState {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Atualiza uma chave e notifica todos os assinantes registrados para ela.
+   * Atualiza uma chave produzindo um novo objeto de estado (imutabilidade).
+   * Nunca muta o estado anterior — facilita rastreabilidade e evita efeitos colaterais.
    * @param {'user'|'perfil'|'isLogado'|'geo'} key
    * @param {*} value
    */
   static set(key, value) {
     AppState.#validarChave(key);
-    AppState.#state[key] = value;
+    AppState.#state = { ...AppState.#state, [key]: value };
     const cbs = AppState.#listeners.get(key) ?? [];
     cbs.forEach(cb => {
       try { cb(value); } catch (e) { console.warn('[AppState] Erro em listener:', e?.message); }
