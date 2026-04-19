@@ -2848,16 +2848,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* Seta preta do btn-voltar exclusiva do chat (SVG inline, sem ::before dourado) */
 #tela-chat .btn-voltar {
-  color: var(--text, #1a0800);
-  padding: 6px 8px;
-  position: static; /* dentro de .tela-topo o btn fica no fluxo normal */
+  color: #1a0800 !important;
+  padding: 6px 4px 6px 0;
+  position: static !important;
+  background: none !important;
 }
 #tela-chat .btn-voltar::before {
-  display: none; /* oculta o ícone padrão dourado via CSS */
+  display: none !important; /* oculta o ícone padrão dourado */
 }
 #tela-chat .btn-voltar svg {
   display: block;
-  color: var(--text, #1a0800);
+  flex-shrink: 0;
 }
 
 /* Avatar menor para caber na linha do topo */
