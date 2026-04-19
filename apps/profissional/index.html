@@ -1231,7 +1231,13 @@
   <!-- ── Tela Chat (conversa individual) ────────────────── -->
   <main id="tela-chat" class="tela">
     <div class="tela-topo">
-      <button class="btn-voltar" onclick="MessagesWidget.fecharModal()" aria-label="Voltar">Voltar</button>
+      <button class="btn-voltar" onclick="MessagesWidget.fecharModal()" aria-label="Voltar">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+             width="22" height="22" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
       <div id="chat-modal-avatar-inner" class="chat-modal-avatar"></div>
       <div class="chat-modal-title-wrap">
         <p id="chat-modal-nome" class="chat-modal-nome"></p>

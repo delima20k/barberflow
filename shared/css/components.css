@@ -2846,6 +2846,20 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-shrink: 0;
 }
 
+/* Seta preta do btn-voltar exclusiva do chat (SVG inline, sem ::before dourado) */
+#tela-chat .btn-voltar {
+  color: var(--text, #1a0800);
+  padding: 6px 8px;
+  position: static; /* dentro de .tela-topo o btn fica no fluxo normal */
+}
+#tela-chat .btn-voltar::before {
+  display: none; /* oculta o ícone padrão dourado via CSS */
+}
+#tela-chat .btn-voltar svg {
+  display: block;
+  color: var(--text, #1a0800);
+}
+
 /* Avatar menor para caber na linha do topo */
 #tela-chat .chat-modal-avatar {
   width: 38px;
