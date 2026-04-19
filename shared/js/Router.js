@@ -179,8 +179,8 @@ class Router {
   _permitirNavAuth(tela) {
     if (Router.TELAS_PUBLICAS.has(tela)) return true;
     if (typeof AuthGuard !== 'undefined') return AuthGuard.permitirNav(tela, this);
-    // Fallback: sem AuthGuard carregado
-    const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
+    // Fallback: sem AuthGuard carregado — verifica AppState com segurança
+    const logado = typeof AppState !== 'undefined' && AppState.get('isLogado') === true;
     if (!logado) { this._alertarLoginObrigatorio(); return false; }
     return true;
   }
