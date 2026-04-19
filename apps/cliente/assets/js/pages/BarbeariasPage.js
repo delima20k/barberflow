@@ -12,7 +12,8 @@ class BarbeariasPage {
   #telaEl   = null;
   #listaEl  = null;
   #vazioEl  = null;
-  #carregou = false;  // evita re-fetch na mesma sessão
+  #carregou = false;
+  #dig      = null;   // instância DigText
 
   constructor() {}
 
@@ -22,11 +23,24 @@ class BarbeariasPage {
     this.#vazioEl = document.getElementById('barbearias-page-vazio');
     if (!this.#telaEl) return;
 
+    // Animação dig no subtítulo
+    const digEl = document.getElementById('barbearias-dig');
+    if (digEl) {
+      this.#dig = new DigText(digEl, [
+        'As barbearias mais bem avaliadas e próximas de você, reunidas em um só lugar.'
+      ], { velocidade: 28 });
+    }
+
     // Carrega na primeira vez que a tela fica ativa
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
                     this.#telaEl.classList.contains('entrando-lento');
-      if (ativa && !this.#carregou) this.#carregar();
+      if (ativa) {
+        if (!this.#carregou) this.#carregar();
+        this.#dig?.iniciar();
+      } else {
+        this.#dig?.parar();
+      }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
 

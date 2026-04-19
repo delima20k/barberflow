@@ -210,6 +210,24 @@
 }
 .barbearias-carrossel::-webkit-scrollbar { display: none; }
 
+/* ── Carrossel horizontal — 1 card por vez (barbeiros) ── */
+.barbeiros-carrossel-1 {
+  display: flex;
+  gap: 10px;
+  padding: 4px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.barbeiros-carrossel-1::-webkit-scrollbar { display: none; }
+.barbeiros-carrossel-1 .barber-row {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: center;
+  box-sizing: border-box;
+}
+
 /* Coluna: 2 cards empilhados verticalmente */
 .barbearias-coluna {
   display: flex;
@@ -605,7 +623,9 @@
 .destaques-flow   { color: #bf8040; }
 
 /* Parágrafo dig — menor e discreto, sem fundo */
-.destaques-hero #destaques-dig {
+.destaques-hero #destaques-dig,
+.destaques-hero #barbearias-dig,
+.destaques-hero #barbeiros-dig {
   font-size: .72rem;
   line-height: 1.6;
   margin-top: 6px;
@@ -613,6 +633,17 @@
   text-align: left;
   background: transparent;
   border-left: 2px solid rgba(212,175,55,.3);
+}
+
+/* Parágrafo descritivo da tela Barbeiros */
+.barbeiros-intro {
+  font-size: .8rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-left: 2px solid rgba(212,175,55,.22);
+  background: transparent;
 }
 
 .tela-destaques-vazio {
