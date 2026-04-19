@@ -15,26 +15,49 @@ class AuthService {
   static #isPro = window.location.pathname.includes('profissional');
 
   // ═══════════════════════════════════════════════════════════
+  // DESPACHO DE EVENTOS (canal de comunicação com a UI)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Dispara um CustomEvent no document.
+   * AuthUI (ou qualquer camada de apresentação) escuta esses eventos.
+   */
+  static #dispatch(nome, detail = {}) {
+    document.dispatchEvent(new CustomEvent(nome, { detail, bubbles: false }));
+  }
+
+  /**
+   * Notifica a UI sobre uma mensagem de formulário (erro ou sucesso).
+   * Dispara 'auth:mensagem' e chama o callback se fornecido.
+   * @param {function|null} cb    — callback(msg, tipo)
+   * @param {string}        msg   — texto a exibir
+   * @param {string}        tipo  — 'error' | 'success'
+   */
+  static #notificarMensagem(cb, msg, tipo = 'error') {
+    if (msg) AuthService.#dispatch('auth:mensagem', { message: msg, tipo });
+    if (typeof cb === 'function') cb(msg, tipo);
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // LOGIN
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * @param {HTMLInputElement} emailEl
-   * @param {HTMLInputElement} senhaEl
-   * @param {HTMLElement}      erroEl
-   * @param {function(string)} navFn  — ex: (tela) => App.nav(tela)
+   * @param {string}           email
+   * @param {string}           senha
+   * @param {function(string)} navFn     — ex: (tela) => App.nav(tela)
+   * @param {function|null}    onMensagem — callback(msg, tipo) para feedback de formulário
    */
-  static async login(emailEl, senhaEl, erroEl, navFn) {
-    const email = emailEl?.value.trim();
-    const senha = senhaEl?.value;
+  static async login(email, senha, navFn, onMensagem = null) {
+    email = (typeof email === 'string' ? email : email?.value ?? '').trim();
+    senha = typeof senha === 'string' ? senha : (senha?.value ?? '');
 
     const vEmail = InputValidator.email(email);
-    if (!vEmail.ok) { AuthService._erro(erroEl, vEmail.msg); return; }
+    if (!vEmail.ok) { AuthService.#notificarMensagem(onMensagem, vEmail.msg); return; }
     const vSenha = InputValidator.senha(senha);
-    if (!vSenha.ok) { AuthService._erro(erroEl, vSenha.msg); return; }
+    if (!vSenha.ok) { AuthService.#notificarMensagem(onMensagem, vSenha.msg); return; }
 
-    AuthService._setLoading(true, [emailEl, senhaEl]);
-    AuthService._erro(erroEl, '');
+    AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
 
     try {
       const { user: userLogin } = await SupabaseService.signIn(email, senha);
@@ -64,9 +87,7 @@ class AuthService {
       }
       navFn('inicio');
     } catch (e) {
-      AuthService._erro(erroEl, AuthService._traduzirErro(e));
-    } finally {
-      AuthService._setLoading(false, [emailEl, senhaEl]);
+      AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
     }
   }
 
@@ -76,10 +97,10 @@ class AuthService {
 
   /**
    * @param {{ nome, email, telefone, senha, senha2, role, barbearia? }} dados
-   * @param {HTMLElement}      erroEl
    * @param {function(string)} navFn
+   * @param {function|null}    onMensagem — callback(msg, tipo) para feedback de formulário
    */
-  static async cadastro({ nome, email, telefone, senha, senha2, role = 'client', pro_type = null, barbearia = null }, erroEl, navFn) {
+  static async cadastro({ nome, email, telefone, senha, senha2, role = 'client', pro_type = null, barbearia = null }, navFn, onMensagem = null) {
     nome  = nome?.trim();
     email = email?.trim();
 
@@ -89,9 +110,9 @@ class AuthService {
       InputValidator.senha(senha),
       InputValidator.senhasConferem(senha, senha2),
     ]);
-    if (!vCadastro.ok) { AuthService._erro(erroEl, vCadastro.msg); return; }
+    if (!vCadastro.ok) { AuthService.#notificarMensagem(onMensagem, vCadastro.msg); return; }
 
-    AuthService._erro(erroEl, '');
+    AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
 
     try {
       const { data, error } = await SupabaseService.signUp(
@@ -132,7 +153,7 @@ class AuthService {
 
       if (!session) {
         // Supabase exige confirmação de e-mail
-        AuthService._erro(erroEl, '✅ Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
+        AuthService.#notificarMensagem(onMensagem, '✅ Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
       } else {
         // ── Registra aceite legal pendente (aceito na tela de termos pré-cadastro) ──
         if (typeof LegalConsentService !== 'undefined' && user) {
@@ -142,7 +163,7 @@ class AuthService {
         navFn('inicio');
       }
     } catch (e) {
-      AuthService._erro(erroEl, AuthService._traduzirErro(e));
+      AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
     }
   }
 
@@ -152,25 +173,25 @@ class AuthService {
 
   /**
    * @param {string}           email
-   * @param {HTMLElement}      erroEl
    * @param {function(string)} navFn
+   * @param {function|null}    onMensagem — callback(msg, tipo) para feedback de formulário
    */
-  static async recuperarSenha(email, erroEl, navFn) {
+  static async recuperarSenha(email, navFn, onMensagem = null) {
     email = email?.trim();
     if (!email) {
-      AuthService._erro(erroEl, 'Digite seu e-mail.');
+      AuthService.#notificarMensagem(onMensagem, 'Digite seu e-mail.');
       return;
     }
 
-    AuthService._erro(erroEl, '');
+    AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
 
     try {
       await SupabaseService.resetPassword(email);
 
-      AuthService._erro(erroEl, '✅ Link enviado! Verifique sua caixa de entrada.', 'success');
+      AuthService.#notificarMensagem(onMensagem, '✅ Link enviado! Verifique sua caixa de entrada.', 'success');
       setTimeout(() => navFn('login'), 3000);
     } catch (e) {
-      AuthService._erro(erroEl, AuthService._traduzirErro(e));
+      AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
     }
   }
 
@@ -262,8 +283,10 @@ class AuthService {
         if (!await AuthService._verificarRoleApp(AuthService.#perfil)) {
           AuthService._limparUI();
           AuthService._instancia()?.nav('login');
-          const loginErroEl = document.getElementById('login-erro');
-          AuthService._erro(loginErroEl, 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.');
+          AuthService.#dispatch('auth:error', {
+            message: 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.',
+            context: 'login',
+          });
           return;
         }
 
@@ -341,30 +364,24 @@ class AuthService {
   // PRIVADOS — UI
   // ═══════════════════════════════════════════════════════════
 
-  /** URL do avatar atual — permite re-aplicar após navegação ou delay de DOM */
+  /** URL do avatar atual — necessária para reaplicarAvatar() */
   static #avatarUrl = null;
 
-  /** Aplica uma URL de avatar em todos os elementos de imagem de avatar */
+  /**
+   * Armazena a URL do avatar e dispara 'auth:avatar'.
+   * A camada de apresentação (AuthUI) aplica a URL no DOM.
+   */
   static _aplicarAvatar(url) {
     if (!url) return;
     AuthService.#avatarUrl = url;
-    const IDS = ['header-avatar-img', 'menu-avatar-img', 'perfil-avatar-img'];
-    const aplicar = () => {
-      IDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.src = url; el.onerror = null; }
-      });
-    };
-    aplicar();
-    // Retry após 600ms para o caso de race condition no DOM (especialmente mobile)
-    setTimeout(aplicar, 600);
-    // Atualiza o marcador do usuário no mapa (se já posicionado)
-    if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
+    AuthService.#dispatch('auth:avatar', { url });
   }
 
-  /** Re-aplica o avatar armazenado em elementos que estejam no DOM agora */
+  /** Força reaplicação do avatar em todos os elementos de imagem */
   static reaplicarAvatar() {
-    if (AuthService.#avatarUrl) AuthService._aplicarAvatar(AuthService.#avatarUrl);
+    if (AuthService.#avatarUrl) {
+      AuthService.#dispatch('auth:avatar', { url: AuthService.#avatarUrl });
+    }
   }
 
   static _instancia() {
@@ -431,138 +448,46 @@ class AuthService {
     return AuthService.#isPro ? 'Pro' : 'App';
   }
 
+  /**
+   * Dispara 'auth:login' — AuthUI escuta e atualiza o DOM.
+   */
   static _atualizarUI(perfil, user) {
-    const nomeRaw = perfil?.full_name || user?.email?.split('@')[0] || 'Usuário';
-    const nome    = AuthService._capitalizarNome(nomeRaw);
-    const email   = user?.email || '';
-    const p       = AuthService._prefix();
-
-    // Header — Olá, Nome (logado) — primeira letra maiúscula
-    const label = document.getElementById('header-user-label');
-    if (label) {
-      const primeiro = nome.split(' ')[0];
-      label.textContent = 'Olá, ' + AuthService._capitalize(primeiro);
-    }
-
-    const headerBtn = document.getElementById('header-avatar-btn');
-    if (headerBtn) headerBtn.setAttribute('onclick', `${p}.nav('perfil')`);
-
-    // Tela de perfil — nome, sub (data de cadastro) e avatar
-    const perfilNome = document.getElementById('perfil-nome');
-    if (perfilNome) perfilNome.textContent = nome;
-
-    const perfilSub = document.getElementById('perfil-sub');
-    if (perfilSub) {
-      const createdAt = perfil?._created_at || user?.created_at || null;
-      perfilSub.textContent = AuthService._formatarDataCadastro(createdAt, perfil?.role, perfil?.pro_type);
-    }
-
-    // Tela de perfil — dados pessoais editáveis
-    // Mescla extras locais no perfil antes de popular (zero custo de banco)
-    if (typeof PerfilEditor !== 'undefined') {
-      const extras = SessionCache.getExtras(perfil?.id);
-      const dadosCompletos = extras ? { ...perfil, ...extras } : perfil;
-      PerfilEditor.popular(dadosCompletos);
-    }
-
-    // Avatars — aplica URL e persiste no cache local
-    if (perfil?.avatar_path) {
-      const url = SupabaseService.getAvatarUrl(perfil.avatar_path);
-      AuthService._aplicarAvatar(url);
-      SessionCache.salvarAvatar(url);
-    }
-
-    // Menu — nome + email (sem innerHTML — previne XSS)
-    const mu = document.getElementById('menu-username');
-    if (mu) {
-      mu.textContent = '';
-      const small = document.createElement('small');
-      small.id = 'menu-user-sub';
-      small.textContent = InputValidator.sanitizar(email);
-      mu.appendChild(document.createTextNode(InputValidator.sanitizar(nome) + ' '));
-      mu.appendChild(small);
-    }
-
-    // Ativa botão de upload do avatar
-    document.getElementById('menu-avatar')?.classList.add('logado');
-
-    // Hint de GPS — mostra primeiro nome do usuário
-    const hintNome = document.getElementById('nearby-hint-nome');
-    if (hintNome) hintNome.textContent = nome.split(' ')[0];
-
-    // Atualiza menu lateral + footer via NavConfig e Router
-    AuthService._instancia()?.entrar();
-    AuthService._renderizarMenu(true);
-  }
-
-  static _limparUI() {
-    const p = AuthService._prefix();
-
-    const label = document.getElementById('header-user-label');
-    if (label) label.textContent = 'Entrar';
-
-    const headerBtn = document.getElementById('header-avatar-btn');
-    if (headerBtn) headerBtn.setAttribute('onclick', `${p}.irParaLogin()`);
-
-    ['header-avatar-img', 'menu-avatar-img', 'perfil-avatar-img'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.src = '/shared/img/icones-perfil.png';
-    });
-    // Reseta tela de perfil
-    const perfilNome = document.getElementById('perfil-nome');
-    if (perfilNome) perfilNome.textContent = '';
-    const perfilSub = document.getElementById('perfil-sub');
-    if (perfilSub)  perfilSub.textContent  = '';
-    if (typeof PerfilEditor !== 'undefined') PerfilEditor.limpar();
-    // Volta o marcador do usuário no mapa para o ícone padrão
-    if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
-
-    const mu = document.getElementById('menu-username');
-    // Remove botão de upload do avatar
-    document.getElementById('menu-avatar')?.classList.remove('logado');
-
-    // Hint de GPS — volta para Anônimo
-    const hintNome = document.getElementById('nearby-hint-nome');
-    if (hintNome) hintNome.textContent = 'Anônimo';
-
-    const nomeVisitante = typeof App !== 'undefined' ? 'Visitante Cliente' : 'Visitante Profissional';
-    if (mu) {
-      mu.textContent = '';
-      const small = document.createElement('small');
-      small.id = 'menu-user-sub';
-      small.textContent = 'Faça login para continuar';
-      mu.appendChild(document.createTextNode(nomeVisitante + ' '));
-      mu.appendChild(small);
-    }
-
-    // Atualiza menu lateral + footer via NavConfig e Router
-    AuthService._instancia()?.sair();
-    AuthService._renderizarMenu(false);
+    AuthService.#dispatch('auth:login', { perfil, user });
   }
 
   /**
-   * Renderiza os itens do menu lateral usando NavConfig como fonte única.
-   * Menu e rodapé sempre terão as mesmas opções.
+   * Dispara 'auth:logout' — AuthUI escuta e limpa o DOM.
+   */
+  static _limparUI() {
+    AuthService.#dispatch('auth:logout');
+  }
+
+  /**
+   * Dispara 'auth:menu' para que AuthUI re-renderize o menu lateral.
+   * Mantido como método público para compatibilidade com LogoutScreen.js.
    * @param {boolean} logado
    */
   static _renderizarMenu(logado) {
-    const lista = document.querySelector('.menu-list-nav');
-    if (!lista) return;
-    lista.innerHTML = NavConfig.renderMenuHtml(logado);
+    AuthService.#dispatch('auth:menu', { logado });
   }
 
   // ═══════════════════════════════════════════════════════════
-  // PRIVADOS — helpers UI de formulário
+  // PRIVADOS — helpers de formulário (mantidos por compatibilidade)
+  // @deprecated — prefira AuthUI.mostrarErroForm / AuthUI.setLoading
   // ═══════════════════════════════════════════════════════════
 
+  /** @deprecated Use AuthUI.mostrarErroForm(el, msg, tipo) */
   static _erro(el, msg, tipo = 'error') {
+    if (typeof AuthUI !== 'undefined') { AuthUI.mostrarErroForm(el, msg, tipo); return; }
     if (!el) return;
     el.textContent = msg;
     el.className = `form-erro form-erro--${tipo}`;
     el.style.display = msg ? 'block' : 'none';
   }
 
+  /** @deprecated Use AuthUI.setLoading(loading, inputs) */
   static _setLoading(loading, inputs) {
+    if (typeof AuthUI !== 'undefined') { AuthUI.setLoading(loading, inputs); return; }
     inputs.forEach(el => { if (el) el.disabled = loading; });
   }
 

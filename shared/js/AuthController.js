@@ -1,5 +1,3 @@
-'use strict';
-
 // =============================================================
 // AuthController.js — Binding programático dos formulários de auth
 //
@@ -10,7 +8,7 @@
 // negócio não pertence ao template, pertence ao controller.
 //
 // Compartilhado entre app cliente e app profissional.
-// Dependências: AuthService.js, InputValidator.js
+// Dependências: AuthService.js, AuthUI.js, InputValidator.js
 // =============================================================
 
 class AuthController {
@@ -45,22 +43,29 @@ class AuthController {
   #bindLogin() {
     const form = document.getElementById('login-form');
     if (!form) return;
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      AuthService.login(
-        document.getElementById('login-email'),
-        document.getElementById('login-senha'),
-        document.getElementById('login-erro'),
-        this.#navFn
+      const emailEl = document.getElementById('login-email');
+      const senhaEl = document.getElementById('login-senha');
+      const erroEl  = document.getElementById('login-erro');
+
+      AuthUI.setLoading(true, [emailEl, senhaEl]);
+      await AuthService.login(
+        emailEl?.value,
+        senhaEl?.value,
+        this.#navFn,
+        (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
+      AuthUI.setLoading(false, [emailEl, senhaEl]);
     });
   }
 
   #bindCadastro() {
     const form = document.getElementById('cad-form');
     if (!form) return;
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const erroEl = document.getElementById('cad-erro');
       const dados = {
         nome:     document.getElementById('cad-nome')?.value,
         email:    document.getElementById('cad-email')?.value,
@@ -75,25 +80,27 @@ class AuthController {
         dados.cnpj      = document.getElementById('cad-cnpj')?.value || null;
         dados.pro_type  = this.#getProType();
       }
-      AuthService.cadastro(dados, document.getElementById('cad-erro'), (tela) => {
+      await AuthService.cadastro(dados, (tela) => {
         if (this.#role === 'professional' && typeof MonetizationGuard !== 'undefined') {
           MonetizationGuard.limpar();
         }
         this.#navFn(tela);
-      });
+      }, (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo));
     });
   }
 
   #bindRecuperacao() {
     const form = document.getElementById('rec-form');
     if (!form) return;
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      AuthService.recuperarSenha(
+      const erroEl = document.getElementById('rec-erro');
+      await AuthService.recuperarSenha(
         document.getElementById('rec-email')?.value,
-        document.getElementById('rec-erro'),
-        this.#navFn
+        this.#navFn,
+        (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
     });
   }
 }
+
