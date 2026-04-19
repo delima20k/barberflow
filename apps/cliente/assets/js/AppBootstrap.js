@@ -28,6 +28,7 @@ class AppBootstrap {
     { label: 'MapWidget',           fn: () => MapWidget.init('mapa-container')     },
     { label: 'GeoService.solicit',  fn: () => GeoService.solicitarNaPrimeiraVez() },
     { label: 'MapOrientationModule',fn: () => MapOrientationModule.init()          },
+    { label: 'MessagesWidget',      fn: () => MessagesWidget.init('msgs-lista', 'cliente') },
   ];
 
   // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention
@@ -68,9 +69,19 @@ class AppBootstrap {
 
   static #registrarSW() {
     if (!('serviceWorker' in navigator)) return;
+    // Recarrega automaticamente quando um novo SW assumir o controle
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!sessionStorage.getItem('sw_reloaded')) {
+        sessionStorage.setItem('sw_reloaded', '1');
+        location.reload();
+      }
+    });
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => console.log('[BarberFlow Cliente] SW registrado', reg.scope))
+        .then(reg => {
+          console.log('[BarberFlow Cliente] SW registrado', reg.scope);
+          reg.update();
+        })
         .catch(err => console.warn('[BarberFlow Cliente] SW erro', err));
     });
   }
