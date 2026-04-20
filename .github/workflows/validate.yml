@@ -141,7 +141,7 @@ jobs:
           echo "Lint SQL concluído."
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 3: Testes automatizados (node:test nativo — sem deps extras)
+  # JOB 3: Testes automatizados (Jest)
   # Roda ANTES do deploy. Falha aqui bloqueia o deploy-supabase.yml.
   # ─────────────────────────────────────────────────────────────
   test:
@@ -158,8 +158,11 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install dev dependencies
+        run: npm install
+
       - name: Run tests
-        run: node --test tests/**/*.test.js
+        run: npm test
 
   # ─────────────────────────────────────────────────────────────
   # JOB 4: Validar Edge Functions TypeScript

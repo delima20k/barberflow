@@ -6,8 +6,7 @@
  * Testes automatizados para o fluxo de autenticação.
  * Cobre: AppState (estado global) + AuthGuard (controle de acesso).
  *
- * Runner: Node.js built-in test runner (node:test) — sem dependências externas.
- * Execução: npm test
+ * Runner: Jest — npm test
  *
  * Estratégia de isolamento:
  *   Cada teste cria um contexto VM separado (vm.createContext) com os módulos
@@ -15,7 +14,7 @@
  *   Isso garante que falhas em um teste não contaminem os demais.
  */
 
-const { describe, test } = require('node:test');
+// describe / test / expect são globals fornecidos pelo Jest
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const fs     = require('node:fs');
