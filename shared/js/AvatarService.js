@@ -83,8 +83,14 @@ const AvatarService = (() => {
 
       if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
 
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('✅ Avatar atualizado', '', NotificationService.TIPOS.SISTEMA);
+      }
     } catch (e) {
       LoggerService.warn('[AvatarService] Erro no upload:', e.message);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Erro ao salvar avatar', e?.message ?? 'Tente novamente.', NotificationService.TIPOS.SISTEMA);
+      }
     }
   }
 
@@ -117,7 +123,13 @@ const AvatarService = (() => {
       return;
     }
 
-    document.getElementById('menu-avatar-input')?.click();
+    // Fecha o menu ANTES de abrir o file picker.
+    // Em mobile, drawers com CSS transform/transition interferem com o file picker.
+    // O delay garante que a animação de fechamento termine antes de acionar o input.
+    if (typeof MenuService !== 'undefined') MenuService.fechar();
+    setTimeout(() => {
+      document.getElementById('menu-avatar-input')?.click();
+    }, 280);
   }
 
   return Object.freeze({ preview, abrirUpload });
