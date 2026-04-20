@@ -68,9 +68,9 @@ class NavConfig {
 
   static get #PROFISSIONAL_DESLOGADO() {
     return [
-      { tela: 'login',    icone: 'login.svg',    label: 'Entrar'   },
-      { tela: 'cadastro', icone: 'cadastro.svg', label: 'Cadastro' },
-      { tela: 'inicio',   icone: 'inicio.svg',   label: 'Início'   },
+      { tela: 'login',       icone: 'login.svg',    label: 'Entrar'   },
+      { acao: 'cadastro-pro', icone: 'cadastro.svg', label: 'Cadastro' },
+      { tela: 'inicio',      icone: 'inicio.svg',   label: 'Início'   },
     ];
   }
 
@@ -120,6 +120,8 @@ class NavConfig {
     return items.map(item => {
       const onclick = item.acao === 'sair'
         ? `${p}.navDoMenu('sair')`
+        : item.acao === 'cadastro-pro'
+        ? `${p}.fecharMenu();${p}.irParaCadastroGuardado()`
         : `${p}.fecharMenu();${p}.nav('${item.tela}')`;
       // data-tela permite ao Router marcar o item ativo com .ativo
       const dataTela = item.tela ? `data-tela="${item.tela}"` : '';
