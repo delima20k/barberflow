@@ -82,7 +82,6 @@ const AnimationService = (() => {
       entrando.getAnimations().forEach(a => a.cancel());
       entrando.classList.remove('saindo', 'saindo-direita', 'ativa', 'entrando-lento');
       entrando.style.display = 'flex';
-      void entrando.offsetWidth; // força reflow
 
       if (dur < 16) {
         entrando.style.display = '';
