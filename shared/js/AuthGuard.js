@@ -54,6 +54,7 @@ const AuthGuard = (() => {
     'barbershop-favorite',
     'pagamento',
     'like',
+    'avatar-upload',
   ]));
 
   // ── Helpers privados ──────────────────────────────────────

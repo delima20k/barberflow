@@ -30,6 +30,7 @@ class GuestMode {
     '[data-action="pagamento"]',
     '[data-action="like"]',
     '[data-action="barbershop-favorite"]',
+    '[data-action="avatar-upload"]',
   ].join(',');
 
   /** @type {MutationObserver|null} */

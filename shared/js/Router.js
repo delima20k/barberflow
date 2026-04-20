@@ -32,11 +32,8 @@ class Router {
   _navegandoApp  = false;
   // _logado removido — use AppState.get('isLogado') como fonte única de verdade
 
-  /**
-   * Ações que exigem autenticação — verificadas via event delegation em _bindDataAttributes.
-   * Exibem a mensagem "Você precisa estar logado" antes de redirecionar para login.
-   */
-  static _ACOES_AUTH = new Set(['agendar', 'mensagem', 'pagar']);
+  // _ACOES_AUTH removido — AuthGuard.ACOES_PROTEGIDAS é a fonte única de verdade.
+  // Qualquer ação que exige auth deve ser declarada SOMENTE em AuthGuard.js.
 
   /**
    * Telas públicas — qualquer visitante pode acessar sem login.
@@ -461,27 +458,26 @@ class Router {
       const actionEl = e.target.closest('[data-action]');
       if (actionEl) {
         const a = actionEl.dataset.action;
-        if (a === 'confirmar-saida')  { e.preventDefault(); this.confirmarSaida();    return; }
-        if (a === 'avatar-upload')    { e.preventDefault(); this.abrirUploadAvatar(); return; }
 
-        // Guard de ações protegidas — fonte única: AuthGuard quando disponível,
-        // fallback local apenas se AuthGuard não estiver carregado.
-        if (Router._ACOES_AUTH.has(a)) {
-          if (typeof AuthGuard !== 'undefined') {
-            // AuthGuard exibe o aviso e redireciona internamente se necessário
-            if (!AuthGuard.permitirAcao(a, this)) { e.preventDefault(); return; }
-          } else {
-            // Fallback: sem AuthGuard carregado
+        // Ação de logout — sem guard (confirmar é sempre permitido)
+        if (a === 'confirmar-saida') { e.preventDefault(); this.confirmarSaida(); return; }
+
+        // Ações protegidas — AuthGuard é a fonte única de verdade.
+        // avatar-upload incluído: visitante não pode trocar foto.
+        // Fallback sem AuthGuard: bloqueia via AppState diretamente.
+        if (typeof AuthGuard !== 'undefined') {
+          if (!AuthGuard.permitirAcao(a, this)) { e.preventDefault(); return; }
+        } else {
+          // Fallback: ações inline conhecidas exigem login quando AuthGuard não carregou
+          const acoesFallback = new Set(['agendar', 'mensagem', 'pagar', 'pagamento', 'like', 'barbershop-favorite', 'avatar-upload']);
+          if (acoesFallback.has(a)) {
             const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
             if (!logado) { e.preventDefault(); this._alertarLoginObrigatorio(); return; }
           }
         }
 
-        // AuthGuard cobre ações protegidas além de _ACOES_AUTH (ex: barbershop-favorite)
-        if (!Router._ACOES_AUTH.has(a) && typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(a, this)) {
-          e.preventDefault();
-          return;
-        }
+        // Ação de upload de avatar (após guard — só chega aqui se autenticado)
+        if (a === 'avatar-upload') { e.preventDefault(); this.abrirUploadAvatar(); return; }
       }
     }, { passive: false });
   }
