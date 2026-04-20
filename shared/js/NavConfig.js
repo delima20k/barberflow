@@ -92,13 +92,14 @@ class NavConfig {
     }
     if (!isPro) return NavConfig.#CLIENTE_LOGADO;
 
-    // Barbeiro autônomo não tem barbearia própria
+    // Somente dono de barbearia (pro_type='barbearia') acessa Minha Barbearia
+    // null e 'barbeiro' → lista Barbearias Parceiras
     const proType = (typeof AuthService !== 'undefined')
       ? AuthService.getPerfil()?.pro_type
       : null;
-    return proType === 'barbeiro'
-      ? NavConfig.#BARBEIRO_LOGADO
-      : NavConfig.#PROFISSIONAL_LOGADO;
+    return proType === 'barbearia'
+      ? NavConfig.#PROFISSIONAL_LOGADO
+      : NavConfig.#BARBEIRO_LOGADO;
   }
 
   /**

@@ -128,26 +128,26 @@ const AuthUI = (() => {
    * Atualiza o botão variável do footer no app profissional de acordo com o
    * pro_type do usuário logado:
    *   - 'barbearia' → mantém "Minha Barbearia" (tela minha-barbearia)
-   *   - 'barbeiro'  → substitui por "Barbearias Parceiras" (tela barbearias)
+   *   - qualquer outro valor (null ou 'barbeiro') → "Barbearias Parceiras"
    * Chamado logo após o login para refletir o tipo do usuário.
    */
   function _atualizarFooterNavPro(perfil) {
     const btn = document.getElementById('footer-nav-barbearia-btn');
     if (!btn) return; // só existe no app profissional
-    if (perfil?.pro_type === 'barbeiro') {
-      btn.dataset.tela     = 'barbearias';
-      btn.setAttribute('onclick', "Pro.nav('barbearias')");
-      const img = btn.querySelector('img');
-      if (img) img.alt = 'Barbearias Parceiras';
-      const label = btn.querySelector('.nav-label');
-      if (label) label.textContent = 'Barbearias Parceiras';
-    } else {
+    if (perfil?.pro_type === 'barbearia') {
       btn.dataset.tela     = 'minha-barbearia';
       btn.setAttribute('onclick', "Pro.nav('minha-barbearia')");
       const img = btn.querySelector('img');
       if (img) img.alt = 'Minha Barbearia';
       const label = btn.querySelector('.nav-label');
       if (label) label.textContent = 'Minha Barbearia';
+    } else {
+      btn.dataset.tela     = 'barbearias';
+      btn.setAttribute('onclick', "Pro.nav('barbearias')");
+      const img = btn.querySelector('img');
+      if (img) img.alt = 'Barbearias Parceiras';
+      const label = btn.querySelector('.nav-label');
+      if (label) label.textContent = 'Barbearias Parceiras';
     }
   }
 
