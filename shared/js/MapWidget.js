@@ -54,6 +54,10 @@ class MapWidget {
     MapWidget.#inicializarLeaflet();
     MapWidget.#criarFAB();
 
+    // Escuta eventos de GPS do GeoService — sem dependência direta
+    document.addEventListener('geo:concedido', () => MapWidget.onGPSConcedido(), { once: false });
+    document.addEventListener('geo:negado',    () => MapWidget.onGPSNegado(),    { once: false });
+
     const permissao = await GeoService.verificarPermissao();
     if (permissao === 'granted') {
       await MapWidget.#carregar();

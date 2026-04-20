@@ -65,6 +65,58 @@ const AuthUI = (() => {
     if (typeof MapWidget !== 'undefined') MapWidget.atualizarMarcadorUsuario();
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // PRIVADO — helpers de formatação de texto (pertencem à camada UI)
+  // ═══════════════════════════════════════════════════════════
+
+  /** Primeira letra maiúscula, restante minúsculo. @param {string} str */
+  function _capitalize(str) {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  }
+
+  /**
+   * Capitalização inteligente de nome completo.
+   * Normaliza para Title Case apenas quando o nome estiver todo maiúsculo
+   * ou todo minúsculo; caso contrário respeita a digitação original.
+   * @param {string} nome
+   * @returns {string}
+   */
+  function _capitalizarNome(nome) {
+    if (!nome) return nome;
+    const semEspacos = nome.trim();
+    const tudoMaius  = semEspacos === semEspacos.toUpperCase();
+    const tudoMinus  = semEspacos === semEspacos.toLowerCase();
+    if (tudoMaius || tudoMinus) {
+      return semEspacos
+        .split(/\s+/)
+        .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+        .join(' ');
+    }
+    return semEspacos;
+  }
+
+  /**
+   * Formata a data de cadastro para exibição na tela de perfil.
+   * @param {string|null} isoDate — created_at do Supabase Auth
+   * @param {string} role — 'client' | 'professional'
+   * @param {string|null} proType — null | 'barbearia'
+   * @returns {string}
+   */
+  function _formatarDataCadastro(isoDate, role = 'client', proType = null) {
+    let prefixo;
+    if (role === 'professional') {
+      prefixo = proType === 'barbearia' ? 'Barbeiro c/ Barbearia' : 'Barbeiro';
+    } else {
+      prefixo = 'Cliente';
+    }
+    if (!isoDate) return `${prefixo} BarberFlow`;
+    const d   = new Date(isoDate);
+    const mes = d.toLocaleString('pt-BR', { month: 'long' });
+    const ano = d.getFullYear();
+    return `${prefixo} desde ${mes} de ${ano}`;
+  }
+
   /** Renderiza os itens do menu lateral usando NavConfig como fonte única */
   function _renderizarMenu(logado) {
     const lista = document.querySelector('.menu-list-nav');
@@ -78,7 +130,7 @@ const AuthUI = (() => {
 
   function _onLogin({ perfil, user }) {
     const nomeRaw = perfil?.full_name || user?.email?.split('@')[0] || 'Usuário';
-    const nome    = AuthService._capitalizarNome(nomeRaw);
+    const nome    = _capitalizarNome(nomeRaw);
     const email   = user?.email || '';
     const p       = AuthService._prefix();
 
@@ -86,7 +138,7 @@ const AuthUI = (() => {
     const label = document.getElementById('header-user-label');
     if (label) {
       const primeiro = nome.split(' ')[0];
-      label.textContent = 'Olá, ' + AuthService._capitalize(primeiro);
+      label.textContent = 'Olá, ' + _capitalize(primeiro);
     }
 
     const headerBtn = document.getElementById('header-avatar-btn');
@@ -99,7 +151,7 @@ const AuthUI = (() => {
     const perfilSub = document.getElementById('perfil-sub');
     if (perfilSub) {
       const createdAt = perfil?._created_at || user?.created_at || null;
-      perfilSub.textContent = AuthService._formatarDataCadastro(
+      perfilSub.textContent = _formatarDataCadastro(
         createdAt, perfil?.role, perfil?.pro_type
       );
     }

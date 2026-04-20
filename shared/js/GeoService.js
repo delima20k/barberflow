@@ -74,9 +74,8 @@ class GeoService {
     const permissao = await GeoService.verificarPermissao();
 
     if (permissao === 'denied') {
-      // Permissão bloqueada no browser — notifica widgets e usa fallback do banco
-      if (typeof MapWidget              !== 'undefined') MapWidget.onGPSNegado();
-      if (typeof NearbyBarbershopsWidget !== 'undefined') NearbyBarbershopsWidget.onGPSNegado();
+      // Permissão bloqueada no browser — notifica via evento e usa fallback do banco
+      document.dispatchEvent(new CustomEvent('geo:negado'));
       GeoService.#tentarFallbackBanco();
       return;
     }
@@ -84,8 +83,7 @@ class GeoService {
     // 'prompt' ou 'granted' — chama normalmente (exibe o dialog se necessário)
     GeoService.obter()
       .then(() => {
-        if (typeof MapWidget               !== 'undefined') MapWidget.onGPSConcedido();
-        if (typeof NearbyBarbershopsWidget  !== 'undefined') NearbyBarbershopsWidget.onGPSConcedido();
+        document.dispatchEvent(new CustomEvent('geo:concedido'));
       })
       .catch(() => {
         // Usuário rejeitou agora — fallback silencioso
@@ -237,11 +235,9 @@ class GeoService {
     if (pos) {
       // Popula cache com posicao do banco
       GeoService.#cache = { lat: pos.lat, lng: pos.lng, ts: Date.now() };
-      if (typeof MapWidget               !== 'undefined') MapWidget.onGPSConcedido();
-      if (typeof NearbyBarbershopsWidget  !== 'undefined') NearbyBarbershopsWidget.onGPSConcedido();
+      document.dispatchEvent(new CustomEvent('geo:concedido'));
     } else {
-      if (typeof MapWidget               !== 'undefined') MapWidget.onGPSNegado();
-      if (typeof NearbyBarbershopsWidget  !== 'undefined') NearbyBarbershopsWidget.onGPSNegado();
+      document.dispatchEvent(new CustomEvent('geo:negado'));
     }
   }
 }

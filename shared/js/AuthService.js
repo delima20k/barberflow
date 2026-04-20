@@ -396,59 +396,6 @@ class AuthService {
     return null;
   }
 
-  /** Primeira letra maiúscula, restante minúsculo. @param {string} str */
-  static _capitalize(str) {
-    if (!str) return str;
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  }
-
-  /**
-   * Capitalização inteligente de nome completo.
-   * - Se o nome estiver TUDO em maiúsculas ou TUDO em minúsculas:
-   *   cada palavra terá a 1ª letra maiúscula e o restante minúsculo.
-   * - Se o nome já tiver mistura (ex: "João SILVA" ou "joÃO silva"):
-   *   mantém como digitado (respeita intenção do usuário).
-   * @param {string} nome
-   * @returns {string}
-   */
-  static _capitalizarNome(nome) {
-    if (!nome) return nome;
-    const semEspacos = nome.trim();
-    const tudoMaius  = semEspacos === semEspacos.toUpperCase();
-    const tudoMinus  = semEspacos === semEspacos.toLowerCase();
-    if (tudoMaius || tudoMinus) {
-      return semEspacos
-        .split(/\s+/)
-        .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-        .join(' ');
-    }
-    return semEspacos; // já formatado pelo usuário
-  }
-
-  /**
-   * Formata a data de cadastro para exibição na tela de perfil.
-   * - role 'client'       → "Cliente desde abril de 2026"
-   * - role 'professional' → "Barbeiro desde abril de 2026"
-   * - role 'professional' + pro_type 'barbearia' → "Barbeiro c/ Barbearia desde abril de 2026"
-   * @param {string|null} isoDate — created_at do Supabase Auth
-   * @param {string} role — 'client' | 'professional'
-   * @param {string|null} proType — null | 'barbearia'
-   * @returns {string}
-   */
-  static _formatarDataCadastro(isoDate, role = 'client', proType = null) {
-    let prefixo;
-    if (role === 'professional') {
-      prefixo = proType === 'barbearia' ? 'Barbeiro c/ Barbearia' : 'Barbeiro';
-    } else {
-      prefixo = 'Cliente';
-    }
-    if (!isoDate) return `${prefixo} BarberFlow`;
-    const d   = new Date(isoDate);
-    const mes = d.toLocaleString('pt-BR', { month: 'long' });
-    const ano = d.getFullYear();
-    return `${prefixo} desde ${mes} de ${ano}`;
-  }
-
   static _prefix() {
     return AuthService.#isPro ? 'Pro' : 'App';
   }

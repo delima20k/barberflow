@@ -31,6 +31,10 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#el = document.getElementById(containerId);
     if (!NearbyBarbershopsWidget.#el) return;
 
+    // Escuta eventos de GPS do GeoService — sem dependência direta
+    document.addEventListener('geo:concedido', () => NearbyBarbershopsWidget.onGPSConcedido(), { once: false });
+    document.addEventListener('geo:negado',    () => NearbyBarbershopsWidget.onGPSNegado(),    { once: false });
+
     const permissao = await GeoService.verificarPermissao();
 
     if (permissao === 'granted') {
