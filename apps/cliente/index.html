@@ -625,36 +625,17 @@
        TELA — BARBEARIAS FAVORITAS
   ============================================================ -->
   <main id="tela-favoritas" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <h2 class="tela-topo__titulo">Favoritas</h2>
+    </div>
     <div class="content">
-      <button class="btn-voltar" data-voltar>Voltar</button>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div class="barber-row">
-          <div class="avatar gold">✂️</div>
-          <div class="barber-info">
-            <p class="barber-name">Barbearia Elite</p>
-            <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
-            <div class="stars" style="margin-top:4px;">★★★★★</div>
-          </div>
-          <div class="barber-meta">
-            <span class="badge">Aberto</span>
-          </div>
-        </div>
-        <div class="barber-row">
-          <div class="avatar gold">💈</div>
-          <div class="barber-info">
-            <p class="barber-name">Corte &amp; Arte</p>
-            <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
-            <div class="stars" style="margin-top:4px;">★★★★☆</div>
-          </div>
-          <div class="barber-meta">
-            <span class="badge">Aberto</span>
-          </div>
-        </div>
+      <div id="favoritas-lista" style="display:flex;flex-direction:column;gap:10px;">
+        <!-- cards renderizados dinamicamente por FavoritesPage.js -->
       </div>
-
-      <div class="empty">
+      <div class="empty" id="favoritas-empty" style="display:none;">
         <div class="empty-icon">⭐</div>
-        <p class="empty-title">Adicionar mais favoritas</p>
+        <p class="empty-title">Nenhuma favorita ainda</p>
         <p class="empty-text">Salve barbearias para acesso rápido e agendamento com 1 toque</p>
         <button class="btn btn-outline" data-nav="pesquisa">Explorar Barbearias</button>
       </div>

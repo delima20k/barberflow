@@ -12,7 +12,8 @@
 // Gerencia a tela de favoritas: carrega e exibe favoritos do usuário logado.
 class FavoritesPage {
 
-  #listaEl    = null;  // container dinâmico dentro da tela
+  #listaEl    = null;  // #favoritas-lista
+  #emptyEl    = null;  // #favoritas-empty
   #telaEl     = null;  // #tela-favoritas
   #jaCarregou = false; // evita re-fetch redundante na mesma sessão
 
@@ -25,6 +26,7 @@ class FavoritesPage {
   bind() {
     this.#telaEl  = document.getElementById('tela-favoritas');
     this.#listaEl = document.getElementById('favoritas-lista');
+    this.#emptyEl = document.getElementById('favoritas-empty');
     if (!this.#telaEl) return;
 
     // Recarrega quando a tela entra em foco
@@ -43,7 +45,10 @@ class FavoritesPage {
     if (this.#jaCarregou) return;
 
     const perfil = AppState.get('perfil');
-    if (!perfil?.id) return; // não logado — exibe estado vazio padrão
+    if (!perfil?.id) {
+      this.#mostrarVazio();
+      return;
+    }
 
     this.#jaCarregou = true;
 
@@ -52,12 +57,20 @@ class FavoritesPage {
       this.#renderLista(lista);
     } catch (e) {
       LoggerService.warn('[FavoritesPage] Erro ao carregar favoritos:', e?.message);
+      this.#mostrarVazio();
     }
+  }
+
+  #mostrarVazio() {
+    if (this.#listaEl)  this.#listaEl.innerHTML       = '';
+    if (this.#emptyEl)  this.#emptyEl.style.display   = '';
   }
 
   #renderLista(lista) {
     if (!this.#listaEl) return;
-    if (!lista.length) { this.#listaEl.innerHTML = ''; return; }
+    if (!lista.length) { this.#mostrarVazio(); return; }
+
+    if (this.#emptyEl) this.#emptyEl.style.display = 'none';
 
     this.#listaEl.innerHTML = '';
     lista.forEach(b => {
