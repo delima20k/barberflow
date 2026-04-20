@@ -31,6 +31,9 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#el = document.getElementById(containerId);
     if (!NearbyBarbershopsWidget.#el) return;
 
+    // Reseta a flag toda vez que a tela é re-iniciada (SPA — sem reload de página)
+    NearbyBarbershopsWidget.#buscaEncerrada = false;
+
     // Escuta eventos de GPS do GeoService — sem dependência direta
     document.addEventListener('geo:concedido', () => NearbyBarbershopsWidget.onGPSConcedido(), { once: false });
     document.addEventListener('geo:negado',    () => NearbyBarbershopsWidget.onGPSNegado(),    { once: false });
