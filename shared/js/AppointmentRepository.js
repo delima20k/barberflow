@@ -129,6 +129,10 @@ class AppointmentRepository {
    * @returns {Promise<object>}
    */
   static async updateStatus(id, status) {
+    // Valida UUID antes de qualquer acesso ao banco
+    const rId = InputValidator.uuid(id);
+    if (!rId.ok) throw new TypeError(`[AppointmentRepository] id: ${rId.msg}`);
+
     const validos = ['pending', 'confirmed', 'in_progress', 'done', 'cancelled', 'no_show'];
     if (!validos.includes(status)) throw new Error(`Status inválido: ${status}`);
 
@@ -144,12 +148,42 @@ class AppointmentRepository {
 
   /**
    * Cria um novo agendamento.
-   * @param {object} payload — { client_id, professional_id, barbershop_id, service_id, scheduled_at, duration_min, price_charged, notes? }
+   * Valida UUIDs obrigatórios, sanitiza notas e aplica allowlist de campos
+   * para prevenir mass assignment.
+   * @param {object} payload — { client_id, professional_id, barbershop_id, service_id,
+   *                              scheduled_at, duration_min, price_charged, notes? }
    * @returns {Promise<object>}
    */
   static async criar(payload) {
+    // Valida UUIDs obrigatórios (rejeita SQL injection e IDs malformados)
+    for (const campo of ['client_id', 'professional_id', 'barbershop_id', 'service_id']) {
+      if (campo in (payload ?? {})) {
+        const r = InputValidator.uuid(payload[campo]);
+        if (!r.ok) throw new TypeError(`[AppointmentRepository] ${campo}: ${r.msg}`);
+      }
+    }
+
+    // Sanitiza notas: remove null-bytes e verifica comprimento máximo
+    let notasSanitizadas = payload?.notes;
+    if ('notes' in (payload ?? {})) {
+      const rNotes = InputValidator.textoLivre(payload.notes, 500);
+      if (!rNotes.ok) throw new TypeError(`[AppointmentRepository] notes: ${rNotes.msg}`);
+      notasSanitizadas = rNotes.valor;
+    }
+
+    // Allowlist de campos — descarta campos extras silenciosamente (previne mass assignment)
+    const camposPermitidos = [
+      'client_id', 'professional_id', 'barbershop_id', 'service_id',
+      'scheduled_at', 'duration_min', 'price_charged', 'notes', 'status',
+    ];
+    const { ok, msg, valor: payloadFiltrado } = InputValidator.payload(payload, camposPermitidos);
+    if (!ok) throw new TypeError(`[AppointmentRepository] ${msg}`);
+
+    // Substitui notes pela versão sanitizada
+    if ('notes' in (payload ?? {})) payloadFiltrado.notes = notasSanitizadas;
+
     const { data, error } = await SupabaseService.appointments()
-      .insert(payload)
+      .insert(payloadFiltrado)
       .select('id')
       .single();
 

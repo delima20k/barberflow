@@ -175,6 +175,95 @@ class InputValidator {
       .replace(/\//g, '&#x2F;');
   }
 
+  // ── Validação de dados da camada de persistência ──────────
+
+  /**
+   * Valida e sanitiza texto livre (notas, bio, endereços).
+   * Remove null-bytes (previne ataques de truncamento de string no banco);
+   * rejeita se exceder maxLen.
+   * Strings SQL-like (aspas, "--") são aceitas — o Supabase/PostgREST usa
+   * queries parametrizadas e nunca interpola o valor no SQL.
+   * @param {string}  str
+   * @param {number}  [maxLen=500]
+   * @param {boolean} [obrigatorio=false]
+   * @returns {{ ok: boolean, msg: string, valor: string }}
+   */
+  static textoLivre(str, maxLen = 500, obrigatorio = false) {
+    // Remove null-bytes (U+0000) que podem causar truncamento inesperado
+    const v = (str ?? '').replace(/\0/g, '').trim();
+    if (!v && obrigatorio) return { ok: false, msg: 'Campo obrigatório.',              valor: '' };
+    if (v.length > maxLen) return { ok: false, msg: `Máximo de ${maxLen} caracteres.`, valor: '' };
+    return { ok: true, msg: '', valor: v };
+  }
+
+  /**
+   * Valida par de coordenadas geográficas decimais.
+   * Previne passagem de NaN/Infinity para cálculos de bounding-box.
+   * @param {number} lat  — latitude  (-90 a 90)
+   * @param {number} lng  — longitude (-180 a 180)
+   * @returns {{ ok: boolean, msg: string }}
+   */
+  static coordenada(lat, lng) {
+    if (typeof lat !== 'number' || typeof lng !== 'number' ||
+        !isFinite(lat) || !isFinite(lng))
+      return { ok: false, msg: 'Coordenadas inválidas (tipo ou valor não finito).' };
+    if (lat < -90  || lat > 90)  return { ok: false, msg: 'Latitude fora do intervalo (-90 a 90).' };
+    if (lng < -180 || lng > 180) return { ok: false, msg: 'Longitude fora do intervalo (-180 a 180).' };
+    return { ok: true, msg: '' };
+  }
+
+  /**
+   * Valida número inteiro positivo com limite máximo.
+   * Usado para parâmetros de paginação e limites de query.
+   * @param {number}  n
+   * @param {number} [max=1000]
+   * @returns {{ ok: boolean, msg: string }}
+   */
+  static intPositivo(n, max = 1000) {
+    if (!Number.isInteger(n) || n < 1)
+      return { ok: false, msg: 'Deve ser um inteiro maior que zero.' };
+    if (n > max)
+      return { ok: false, msg: `Valor máximo permitido: ${max}.` };
+    return { ok: true, msg: '' };
+  }
+
+  /**
+   * Verifica se um valor pertence a uma allowlist de strings (enum de domínio).
+   * Previne que strings arbitrárias sejam aceitas em campos de status/tipo,
+   * inclusive strings de SQL injection.
+   * @param {string}   valor
+   * @param {string[]} opcoes — allowlist de valores aceitos
+   * @returns {{ ok: boolean, msg: string }}
+   */
+  static enumValido(valor, opcoes) {
+    if (!opcoes.includes(valor))
+      return { ok: false, msg: `"${String(valor)}" não é um valor permitido.` };
+    return { ok: true, msg: '' };
+  }
+
+  /**
+   * Filtra um objeto mantendo apenas os campos da allowlist.
+   * Previne mass assignment — campos extras são descartados silenciosamente.
+   * Retorna erro se o objeto filtrado estiver vazio (nenhum campo permitido).
+   * @param {object}   obj
+   * @param {string[]} camposPermitidos
+   * @returns {{ ok: boolean, msg: string, valor: object }}
+   */
+  static payload(obj, camposPermitidos) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj))
+      return { ok: false, msg: 'Payload inválido.', valor: {} };
+
+    const filtrado = {};
+    for (const campo of camposPermitidos) {
+      if (campo in obj) filtrado[campo] = obj[campo];
+    }
+
+    if (Object.keys(filtrado).length === 0)
+      return { ok: false, msg: 'Nenhum campo permitido informado.', valor: {} };
+
+    return { ok: true, msg: '', valor: filtrado };
+  }
+
   /**
    * Testa múltiplas validações em sequência.
    * Retorna o primeiro erro encontrado ou { ok: true } se tudo passar.

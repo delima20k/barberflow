@@ -69,6 +69,9 @@ class QueueRepository {
    * @returns {Promise<object>}
    */
   static async updateStatus(id, status) {
+    const rId = InputValidator.uuid(id);
+    if (!rId.ok) throw new TypeError(`[QueueRepository] id: ${rId.msg}`);
+
     const validos = ['waiting', 'in_service', 'done', 'cancelled'];
     if (!validos.includes(status)) throw new Error(`Status inválido: ${status}`);
 
@@ -88,12 +91,25 @@ class QueueRepository {
 
   /**
    * Adiciona um cliente à fila.
+   * Valida UUIDs obrigatórios e aplica allowlist de campos.
    * @param {object} payload — { barbershop_id, client_id, professional_id?, chair_id?, position }
    * @returns {Promise<object>}
    */
   static async entrar(payload) {
+    // Valida UUIDs obrigatórios
+    const rShop = InputValidator.uuid(payload?.barbershop_id);
+    if (!rShop.ok) throw new TypeError(`[QueueRepository] barbershop_id: ${rShop.msg}`);
+
+    const rClient = InputValidator.uuid(payload?.client_id);
+    if (!rClient.ok) throw new TypeError(`[QueueRepository] client_id: ${rClient.msg}`);
+
+    // Allowlist de campos — descarta campos extras silenciosamente
+    const camposPermitidos = ['barbershop_id', 'client_id', 'professional_id', 'chair_id', 'position'];
+    const { ok, msg, valor: payloadFiltrado } = InputValidator.payload(payload, camposPermitidos);
+    if (!ok) throw new TypeError(`[QueueRepository] ${msg}`);
+
     const { data, error } = await SupabaseService.queueEntries()
-      .insert(payload)
+      .insert(payloadFiltrado)
       .select('id, position')
       .single();
 

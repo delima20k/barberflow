@@ -44,6 +44,12 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getNearby(lat, lng, radiusKm = 3) {
+    const rCoord = InputValidator.coordenada(lat, lng);
+    if (!rCoord.ok) throw new TypeError(`[BarbershopRepository] ${rCoord.msg}`);
+
+    if (typeof radiusKm !== 'number' || !isFinite(radiusKm) || radiusKm <= 0 || radiusKm > 100)
+      throw new TypeError('[BarbershopRepository] radiusKm fora do intervalo permitido (0–100 km).');
+
     const latD = radiusKm / 111.0;
     const lonD = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
 
@@ -176,6 +182,15 @@ class BarbershopRepository {
    * @param {'like'|'dislike'|'favorite'} type
    */
   static async addInteraction(barbershopId, userId, type) {
+    const rShop = InputValidator.uuid(barbershopId);
+    if (!rShop.ok) throw new TypeError(`[BarbershopRepository] barbershopId: ${rShop.msg}`);
+
+    const rUser = InputValidator.uuid(userId);
+    if (!rUser.ok) throw new TypeError(`[BarbershopRepository] userId: ${rUser.msg}`);
+
+    const rType = InputValidator.enumValido(type, ['like', 'dislike', 'favorite']);
+    if (!rType.ok) throw new TypeError(`[BarbershopRepository] type: ${rType.msg}`);
+
     const { error } = await SupabaseService.barbershopInteractions()
       .insert({ barbershop_id: barbershopId, user_id: userId, type });
     if (error) throw error;
@@ -188,6 +203,15 @@ class BarbershopRepository {
    * @param {'like'|'dislike'|'favorite'} type
    */
   static async removeInteraction(barbershopId, userId, type) {
+    const rShop = InputValidator.uuid(barbershopId);
+    if (!rShop.ok) throw new TypeError(`[BarbershopRepository] barbershopId: ${rShop.msg}`);
+
+    const rUser = InputValidator.uuid(userId);
+    if (!rUser.ok) throw new TypeError(`[BarbershopRepository] userId: ${rUser.msg}`);
+
+    const rType = InputValidator.enumValido(type, ['like', 'dislike', 'favorite']);
+    if (!rType.ok) throw new TypeError(`[BarbershopRepository] type: ${rType.msg}`);
+
     const { error } = await SupabaseService.barbershopInteractions()
       .delete()
       .eq('barbershop_id', barbershopId)

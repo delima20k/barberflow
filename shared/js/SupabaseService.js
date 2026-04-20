@@ -275,6 +275,12 @@ class SupabaseService {
   /** Tabela de aceites legais */
   static legalConsents()          { return SupabaseService.#getClient().from('legal_consents'); }
 
+  /** Pedidos de exclusão de dados (LGPD Art. 18, VI) */
+  static deletionRequests()       { return SupabaseService.#getClient().from('data_deletion_requests'); }
+
+  /** Log de auditoria de acesso a dados (LGPD Art. 37) */
+  static dataAccessLog()          { return SupabaseService.#getClient().from('data_access_log'); }
+
   // ── Storage ───────────────────────────────────────────────
 
   /** Bucket de avatares de usuários */

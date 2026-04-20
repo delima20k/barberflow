@@ -21,6 +21,9 @@ class ProfileRepository {
    * @returns {Promise<object>}
    */
   static async getById(userId) {
+    const rId = InputValidator.uuid(userId);
+    if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
+
     const { data, error } = await SupabaseService.profiles()
       .select('*')
       .eq('id', userId)
@@ -31,13 +34,37 @@ class ProfileRepository {
   }
 
   /**
-   * Atualiza dados do perfil (campos permitidos).
+   * Atualiza dados do perfil aplicando allowlist de campos.
+   * Previne mass assignment (ex: role, plan_type não são alteraáveis pelo usuário).
    * @param {string} userId
    * @param {object} dados — campos a atualizar
    */
   static async update(userId, dados) {
+    const rId = InputValidator.uuid(userId);
+    if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
+
+    // Allowlist: apenas campos que o próprio usuário pode alterar
+    const camposPermitidos = [
+      'full_name', 'phone', 'bio', 'birth_date', 'gender',
+      'address', 'zip_code', 'city', 'avatar_path',
+    ];
+    const { ok, msg, valor: dadosFiltrados } = InputValidator.payload(dados, camposPermitidos);
+    if (!ok) throw new TypeError(`[ProfileRepository] ${msg}`);
+
+    // Sanitiza campos de texto livre: remove null-bytes e verifica comprimento
+    if ('bio' in dadosFiltrados) {
+      const r = InputValidator.textoLivre(dadosFiltrados.bio, 300);
+      if (!r.ok) throw new TypeError(`[ProfileRepository] bio: ${r.msg}`);
+      dadosFiltrados.bio = r.valor;
+    }
+    if ('address' in dadosFiltrados) {
+      const r = InputValidator.textoLivre(dadosFiltrados.address, 200);
+      if (!r.ok) throw new TypeError(`[ProfileRepository] address: ${r.msg}`);
+      dadosFiltrados.address = r.valor;
+    }
+
     const { error } = await SupabaseService.profiles()
-      .update({ ...dados, updated_at: new Date().toISOString() })
+      .update({ ...dadosFiltrados, updated_at: new Date().toISOString() })
       .eq('id', userId);
 
     if (error) throw error;
@@ -81,6 +108,9 @@ class ProfileRepository {
    * @returns {Promise<object[]>}
    */
   static async getFavorites(userId) {
+    const rId = InputValidator.uuid(userId);
+    if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
+
     const { data, error } = await SupabaseService.favorites()
       .select('barbershop_id, barbershops(id, name, address, is_open, rating_avg, logo_path)')
       .eq('user_id', userId);
