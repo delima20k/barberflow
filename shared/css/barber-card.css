@@ -917,6 +917,16 @@
   line-height: 1.4;
 }
 
+/* Dig sem fundo no hero de favoritas */
+.fav-hero .search-dig {
+  background: transparent;
+  border-left: none;
+  padding: 0;
+  margin-top: 8px;
+  font-size: .82rem;
+  color: var(--text-muted, #a08060);
+}
+
 /* ── FAVORITAS — título de seção ── */
 .fav-secao-titulo {
   font-size: .75rem;

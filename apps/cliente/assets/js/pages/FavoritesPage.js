@@ -15,6 +15,7 @@ class FavoritesPage {
   #barbeariasEl   = null;  // #favoritas-barbearias (carrossel)
   #barbeirosEl    = null;  // #favoritas-barbeiros  (lista)
   #jaCarregou     = false;
+  #dig            = null;  // instância DigText
 
   constructor() {}
 
@@ -25,11 +26,22 @@ class FavoritesPage {
     this.#barbeirosEl  = document.getElementById('favoritas-barbeiros');
     if (!this.#telaEl) return;
 
+    const digEl = document.getElementById('favoritas-dig');
+    if (digEl) {
+      this.#dig = new DigText(digEl, [
+        'Suas barbearias e barbeiros favoritos em um só lugar.',
+        'Acesse rápido e agende com 1 toque.',
+        'Favoritos sincronizados com sua conta.',
+      ], { velocidade: 32 });
+    }
+
     new MutationObserver(() => {
       if (this.#telaEl.classList.contains('ativa')) {
         this.#carregar();
+        this.#dig?.iniciar();
       } else {
         this.#jaCarregou = false;
+        this.#dig?.parar();
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
