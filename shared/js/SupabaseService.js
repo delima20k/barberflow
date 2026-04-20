@@ -164,11 +164,18 @@ class SupabaseService {
 
   // ── Auth ─────────────────────────────────────────────────
 
-  /** Retorna o usuário autenticado atual (ou null) */
+  /** Retorna o usuário autenticado atual (ou null se não houver sessão) */
   static async getUser() {
     try {
       const { data: { user }, error } = await SupabaseService.#getClient().auth.getUser();
-      if (error) SupabaseService.#erro('getUser', error);
+      if (error) {
+        // Sem sessão ativa = visitante/pré-cadastro — não é erro real
+        if (
+          error.name === 'AuthSessionMissingError' ||
+          error.message?.toLowerCase().includes('session')
+        ) return null;
+        SupabaseService.#erro('getUser', error);
+      }
       return user;
     } catch (e) {
       if (e.contexto) throw e;
