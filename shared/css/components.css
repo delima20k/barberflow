@@ -3050,39 +3050,44 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Rodapé do modal (input de envio) ───────────────────── */
 .chat-modal-footer {
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--gold-border);
   background: var(--card);
   flex-shrink: 0;
+  overflow: hidden;        /* garante que nada vaza horizontalmente */
 }
 
 .chat-input-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;             /* ocupa toda a largura disponível do footer */
+  box-sizing: border-box;
 }
 
 /* .chat-eu-avatar removido — div excluída do HTML */
 
 .chat-input {
   flex: 1;
+  min-width: 0;            /* CRUCIAL: permite que o input ceda espaço ao botão */
   background: var(--card2);
   border: 1.5px solid var(--gold-border);
   border-radius: var(--r-full);
-  padding: 10px 16px;
+  padding: 10px 14px;
   font-size: 0.9rem;
   color: var(--text);
   font-family: var(--font);
   outline: none;
   caret-color: var(--gold);
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 .chat-input:focus         { border-color: var(--gold); }
 .chat-input::placeholder  { color: var(--text-dim); }
 
 .chat-send-btn {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border: none;
   background: var(--gold);
@@ -3091,7 +3096,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex-shrink: 0;          /* NUNCA encolhe — botão sempre visível */
   transition: background var(--ease), transform var(--ease);
 }
 .chat-send-btn:hover { background: var(--gold-light); transform: scale(1.06); }
