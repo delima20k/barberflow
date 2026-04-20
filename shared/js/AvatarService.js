@@ -123,13 +123,7 @@ const AvatarService = (() => {
       return;
     }
 
-    // Fecha o menu ANTES de abrir o file picker.
-    // Em mobile, drawers com CSS transform/transition interferem com o file picker.
-    // O delay garante que a animação de fechamento termine antes de acionar o input.
-    if (typeof MenuService !== 'undefined') MenuService.fechar();
-    setTimeout(() => {
-      document.getElementById('menu-avatar-input')?.click();
-    }, 280);
+    document.getElementById('menu-avatar-input')?.click();
   }
 
   return Object.freeze({ preview, abrirUpload });
