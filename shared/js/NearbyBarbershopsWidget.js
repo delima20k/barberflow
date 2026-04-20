@@ -347,21 +347,87 @@ class NearbyBarbershopsWidget {
         sub.className = 'barber-sub';
         sub.textContent = 'Barbeiro Profissional';
 
+        const ratingAvg   = parseFloat(p.rating_avg   || 0);
+        const ratingCount = parseInt(p.rating_count   || 0, 10);
+        const fullStars   = Math.round(ratingAvg);
+        const starsStr    = '★'.repeat(Math.max(0, fullStars)) + '☆'.repeat(Math.max(0, 5 - fullStars));
+        const ratingEl = document.createElement('div');
+        ratingEl.className = 'bc-rating';
+        ratingEl.innerHTML =
+          `<span class="bc-stars">${starsStr}</span>` +
+          `<span class="bc-rating-val">${ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}</span>` +
+          (ratingCount > 0 ? `<span class="bc-rating-cnt">(${ratingCount})</span>` : '');
+
         info.appendChild(nome);
         info.appendChild(sub);
+        info.appendChild(ratingEl);
 
-        const meta = document.createElement('div');
-        meta.className = 'barber-meta';
+        // ── Ações (curtir + favoritar) ──────────────────────────
+        const getLiked = () => {
+          try { return new Set(JSON.parse(localStorage.getItem('bf_barber_likes') || '[]')); }
+          catch { return new Set(); }
+        };
+        const getFaved = () => {
+          try { return new Set(JSON.parse(localStorage.getItem('bf_barber_favs') || '[]')); }
+          catch { return new Set(); }
+        };
 
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = 'Barbeiro';
+        const isLiked = getLiked().has(p.id);
+        const isFaved = getFaved().has(p.id);
 
-        meta.appendChild(badge);
+        const acoes = document.createElement('div');
+        acoes.className = 'bc-acoes';
+
+        const btnLike = document.createElement('button');
+        btnLike.className = 'bc-btn-like' + (isLiked ? ' bc-btn--ativo' : '');
+        btnLike.setAttribute('aria-label', 'Curtir barbeiro');
+        btnLike.type = 'button';
+        btnLike.innerHTML =
+          `<span class="bc-ico">${isLiked ? '❤️' : '🤍'}</span>` +
+          `<span class="bc-cnt">${ratingCount}</span>`;
+        btnLike.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const liked = getLiked();
+          const cntEl = btnLike.querySelector('.bc-cnt');
+          const icoEl = btnLike.querySelector('.bc-ico');
+          const count = parseInt(cntEl?.textContent || '0', 10);
+          if (liked.has(p.id)) {
+            liked.delete(p.id); btnLike.classList.remove('bc-btn--ativo');
+            if (icoEl) icoEl.textContent = '🤍';
+            if (cntEl) cntEl.textContent = Math.max(0, count - 1);
+          } else {
+            liked.add(p.id); btnLike.classList.add('bc-btn--ativo');
+            if (icoEl) icoEl.textContent = '❤️';
+            if (cntEl) cntEl.textContent = count + 1;
+          }
+          try { localStorage.setItem('bf_barber_likes', JSON.stringify([...liked])); } catch { /* sem-op */ }
+        });
+
+        const btnFav = document.createElement('button');
+        btnFav.className = 'bc-btn-fav' + (isFaved ? ' bc-btn--ativo' : '');
+        btnFav.setAttribute('aria-label', 'Favoritar barbeiro');
+        btnFav.type = 'button';
+        btnFav.innerHTML = `<span class="bc-ico">${isFaved ? '⭐' : '☆'}</span>`;
+        btnFav.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const faved = getFaved();
+          const icoEl = btnFav.querySelector('.bc-ico');
+          if (faved.has(p.id)) {
+            faved.delete(p.id); btnFav.classList.remove('bc-btn--ativo');
+            if (icoEl) icoEl.textContent = '☆';
+          } else {
+            faved.add(p.id); btnFav.classList.add('bc-btn--ativo');
+            if (icoEl) icoEl.textContent = '⭐';
+          }
+          try { localStorage.setItem('bf_barber_favs', JSON.stringify([...faved])); } catch { /* sem-op */ }
+        });
+
+        acoes.appendChild(btnLike);
+        acoes.appendChild(btnFav);
 
         row.appendChild(avatarWrap);
         row.appendChild(info);
-        row.appendChild(meta);
+        row.appendChild(acoes);
         el.appendChild(row);
       });
     } catch (err) {

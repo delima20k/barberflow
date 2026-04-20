@@ -162,7 +162,7 @@ class BarbershopRepository {
    */
   static async getBarbers(limit = 10) {
     const { data, error } = await SupabaseService.profilesPublic()
-      .select('id, full_name, avatar_path, pro_type')
+      .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count')
       .eq('role', 'professional')
       .eq('pro_type', 'barbeiro')
       .limit(limit);
