@@ -84,7 +84,7 @@ const AvatarService = (() => {
       if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
 
     } catch (e) {
-      console.warn('[AvatarService] Erro no upload:', e.message);
+      LoggerService.warn('[AvatarService] Erro no upload:', e.message);
     }
   }
 

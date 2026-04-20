@@ -288,7 +288,7 @@ class BarbershopService {
         await BarbershopRepository.removeInteraction(barbershopId, user.id, type);
       }
     } catch (e) {
-      console.warn(`[BarbershopService] toggle ${type} falhou:`, e?.message);
+      LoggerService.warn(`[BarbershopService] toggle ${type} falhou:`, e?.message);
     }
   }
 
@@ -315,7 +315,7 @@ class BarbershopService {
         }
       });
     } catch (e) {
-      console.warn('[BarbershopService] restaurarInteracoes falhou:', e?.message);
+      LoggerService.warn('[BarbershopService] restaurarInteracoes falhou:', e?.message);
     }
   }
 }

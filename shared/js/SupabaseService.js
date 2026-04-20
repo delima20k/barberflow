@@ -53,12 +53,12 @@ class SupabaseService {
           ? '[SupabaseService] Chave "sb_publishable_*" não é suportada pelo PostgREST.\n'
             + 'Acesse: Supabase Dashboard → Settings → API → copie o JWT da "anon public key" (eyJ...).'
           : '[SupabaseService] #ANON_KEY não configurada. Substitua pelo JWT do Supabase Dashboard.';
-        console.error(msg);
+        LoggerService.error(msg);
         throw new Error(msg);
       }
 
       if (!key.startsWith('eyJ')) {
-        console.warn('[SupabaseService] Chave anon em formato inesperado. Esperado JWT (eyJ...).');
+        LoggerService.warn('[SupabaseService] Chave anon em formato inesperado. Esperado JWT (eyJ...).');
       }
 
       SupabaseService.#client = window.supabase.createClient(
@@ -81,7 +81,7 @@ class SupabaseService {
   /** @deprecated Acesso interno — use os métodos públicos do SupabaseService. */
   static get client() {
     const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
-    if (isLocal) console.warn('[SupabaseService] .client está deprecado. Use os métodos públicos.');
+    if (isLocal) LoggerService.warn('[SupabaseService] .client está deprecado. Use os métodos públicos.');
     return SupabaseService.#getClient();
   }
 
@@ -151,7 +151,7 @@ class SupabaseService {
 
     const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
     if (isLocal) {
-      console.error(`[SupabaseService.${contexto}]`, tecnica, error);
+      LoggerService.error(`[SupabaseService.${contexto}]`, tecnica, error);
     }
 
     const err = new Error(amigavel);
@@ -407,7 +407,7 @@ class SupabaseService {
   static async diagnosticar() {
     const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
     if (!isLocal) {
-      console.warn('[SupabaseService] diagnosticar() disponível apenas em localhost.');
+      LoggerService.warn('[SupabaseService] diagnosticar() disponível apenas em localhost.');
       return;
     }
 
@@ -419,16 +419,16 @@ class SupabaseService {
     // ── 1. Formato da chave ───────────────────────────────────
     console.group('1. Chave anon');
     if (!KEY || KEY.startsWith('COLE_AQUI')) {
-      console.error('❌ #ANON_KEY não configurada.');
-      console.warn('👉 Acesse: Supabase Dashboard → Settings → API → anon public (JWT eyJ...)');
+      LoggerService.error('❌ #ANON_KEY não configurada.');
+      LoggerService.warn('👉 Acesse: Supabase Dashboard → Settings → API → anon public (JWT eyJ...)');
       console.groupEnd(); console.groupEnd(); return;
     }
     if (KEY.startsWith('sb_publishable_')) {
-      console.error('❌ Formato "sb_publishable_*" — NÃO funciona no PostgREST (causa 401).');
-      console.warn('👉 Troque pela chave JWT (eyJ...) em: Supabase Dashboard → Settings → API');
+      LoggerService.error('❌ Formato "sb_publishable_*" — NÃO funciona no PostgREST (causa 401).');
+      LoggerService.warn('👉 Troque pela chave JWT (eyJ...) em: Supabase Dashboard → Settings → API');
       console.groupEnd(); console.groupEnd(); return;
     }
-    console.log(KEY.startsWith('eyJ') ? '✅ JWT válido (eyJ...)' : '⚠️ Formato desconhecido: ' + KEY.slice(0, 20));
+    LoggerService.info(KEY.startsWith('eyJ') ? '✅ JWT válido (eyJ...)' : '⚠️ Formato desconhecido: ' + KEY.slice(0, 20));
     console.groupEnd();
 
     // ── 2. Sessão do usuário (até 3s de espera) ───────────────
@@ -437,25 +437,25 @@ class SupabaseService {
     try {
       for (let i = 0; i < 6; i++) {
         const { data, error } = await SupabaseService.#getClient().auth.getSession();
-        if (error) { console.error('Erro ao buscar sessão:', error); break; }
+        if (error) { LoggerService.error('Erro ao buscar sessão:', error); break; }
         if (data?.session) { session = data.session; break; }
         if (i < 5) {
-          console.log(`  aguardando sessão... (${(i + 1) * 500}ms)`);
+          LoggerService.info(`  aguardando sessão... (${(i + 1) * 500}ms)`);
           await new Promise(r => setTimeout(r, 500));
         }
       }
     } catch (e) {
-      console.error('Falha ao acessar SupabaseService:', e.message);
+      LoggerService.error('Falha ao acessar SupabaseService:', e.message);
       console.groupEnd(); console.groupEnd(); return;
     }
 
     if (!session) {
-      console.error('❌ Usuário NÃO autenticado. Faça login no app antes de chamar diagnosticar().');
+      LoggerService.error('❌ Usuário NÃO autenticado. Faça login no app antes de chamar diagnosticar().');
       console.groupEnd(); console.groupEnd(); return;
     }
-    console.log('✅ Logado como:', session.user.email);
-    console.log('user_id       :', session.user.id);
-    console.log('token expira  :', new Date(session.expires_at * 1000).toLocaleTimeString());
+    LoggerService.info('✅ Logado como:', session.user.email);
+    LoggerService.info('user_id       :', session.user.id);
+    LoggerService.info('token expira  :', new Date(session.expires_at * 1000).toLocaleTimeString());
     console.groupEnd();
 
     // ── 3. Conectividade (fetch puro, ignora SDK) ─────────────
@@ -466,13 +466,13 @@ class SupabaseService {
         'Authorization': `Bearer ${session.access_token}`,
       },
     });
-    console.log('GET /notifications:', pingRes.status, pingRes.ok ? '✅ OK' : '❌ FALHOU');
+    LoggerService.info('GET /notifications:', pingRes.status, pingRes.ok ? '✅ OK' : '❌ FALHOU');
     if (!pingRes.ok) {
       const body = await pingRes.json().catch(() => ({}));
-      console.error('Detalhe:', body);
+      LoggerService.error('Detalhe:', body);
       if (pingRes.status === 401) {
-        console.error('❌ 401: a chave anon ainda não é aceita pelo PostgREST deste projeto.');
-        console.warn('Solução definitiva: vá ao Supabase Dashboard → Settings → API\n→ copie o JWT completo da "anon public key" e cole em #ANON_KEY.');
+        LoggerService.error('❌ 401: a chave anon ainda não é aceita pelo PostgREST deste projeto.');
+        LoggerService.warn('Solução definitiva: vá ao Supabase Dashboard → Settings → API\n→ copie o JWT completo da "anon public key" e cole em #ANON_KEY.');
       }
       console.groupEnd(); console.groupEnd(); return;
     }

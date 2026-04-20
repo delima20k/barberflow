@@ -82,7 +82,7 @@ class MessageService {
       .single();
 
     if (error) {
-      console.warn('[MessageService] enviarMensagem:', error.message);
+      LoggerService.warn('[MessageService] enviarMensagem:', error.message);
       return { ok: false, data: null, error: error.message };
     }
 
@@ -117,7 +117,7 @@ class MessageService {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.warn('[MessageService] buscarConversa:', error.message);
+      LoggerService.warn('[MessageService] buscarConversa:', error.message);
       return { ok: false, data: [], error: error.message };
     }
 
@@ -140,7 +140,7 @@ class MessageService {
       .eq('recipient_id', uid)
       .eq('is_read',      false);
 
-    if (error) console.warn('[MessageService] marcarLido:', error.message);
+    if (error) LoggerService.warn('[MessageService] marcarLido:', error.message);
     return { ok: !error };
   }
 
@@ -186,7 +186,7 @@ class MessageService {
       .single();
 
     if (error) {
-      console.warn('[MessageService] enviarComentarioStory:', error.message);
+      LoggerService.warn('[MessageService] enviarComentarioStory:', error.message);
       return { ok: false, data: null, error: error.message };
     }
 
@@ -228,7 +228,7 @@ class MessageService {
       .limit(limit);
 
     if (error) {
-      console.warn('[MessageService] buscarComentariosStory:', error.message);
+      LoggerService.warn('[MessageService] buscarComentariosStory:', error.message);
       return { ok: false, data: [], error: error.message };
     }
 
@@ -246,7 +246,7 @@ class MessageService {
       .delete()
       .eq('id', commentId);
 
-    if (error) console.warn('[MessageService] apagarComentario:', error.message);
+    if (error) LoggerService.warn('[MessageService] apagarComentario:', error.message);
     return { ok: !error };
   }
 
@@ -281,7 +281,7 @@ class MessageService {
         },
         payload => {
           MessageService.#inboxCallbacks.forEach(cb => {
-            try { cb(payload.new); } catch (e) { console.warn(e); }
+            try { cb(payload.new); } catch (e) { LoggerService.warn('[MessageService] inbox callback:', e); }
           });
         },
       )

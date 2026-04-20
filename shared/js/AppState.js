@@ -105,12 +105,12 @@ class AppState {
     // Notifica listeners específicos da chave
     const cbs = AppState.#listeners.get(key) ?? [];
     cbs.forEach(cb => {
-      try { cb(value); } catch (e) { console.warn('[AppState] Erro em listener:', e?.message); }
+      try { cb(value); } catch (e) { LoggerService.warn('[AppState] Erro em listener:', e?.message); }
     });
     // Notifica listeners globais — recebem { key, value, state }
     const snap = AppState.#state;
     AppState.#globalListeners.forEach(cb => {
-      try { cb({ key, value, state: snap }); } catch (e) { console.warn('[AppState] Erro em listener global:', e?.message); }
+      try { cb({ key, value, state: snap }); } catch (e) { LoggerService.warn('[AppState] Erro em listener global:', e?.message); }
     });
   }
 

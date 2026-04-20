@@ -96,7 +96,7 @@ class AgendaPage {
       this.#cache[this.#periodo] = data;
       this.#renderLista(data);
     } catch (err) {
-      console.error('[AgendaPage] erro:', err);
+      LoggerService.error('[AgendaPage] erro:', err);
       this.#listaEl.innerHTML = '<p class="agenda-vazio agenda-erro">Erro ao carregar agenda.</p>';
     }
   }
@@ -182,7 +182,7 @@ class AgendaPage {
       delete this.#cache[this.#periodo];
       await this.#carregar();
     } catch (err) {
-      console.error('[AgendaPage] erro ao atualizar status:', err);
+      LoggerService.error('[AgendaPage] erro ao atualizar status:', err);
       cardEl.querySelectorAll('button').forEach(b => { b.disabled = false; });
       NotificationService?.mostrarToast('Erro', 'Não foi possível atualizar o agendamento.', 'sistema');
     }

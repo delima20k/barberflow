@@ -59,6 +59,7 @@ class Router {
    * @param {object} [services.logout]    — implementação de LogoutScreen
    * @param {object} [services.story]     — implementação de StoryViewer
    * @param {object} [services.view]      — implementação de NavigationViewService
+   * @param {object} [services.logger]    — implementação de LoggerService
    */
   constructor(telaInicial = 'login', services = {}) {
     // Resolve dependências: valor injetado → singleton global → null-safe stub
@@ -69,6 +70,8 @@ class Router {
       splash:    services.splash    ?? (typeof SplashService    !== 'undefined' ? SplashService    : null),
       logout:    services.logout    ?? (typeof LogoutScreen     !== 'undefined' ? LogoutScreen     : null),
       story:     services.story     ?? (typeof StoryViewer      !== 'undefined' ? StoryViewer      : null),
+      // Logger injetável — sem acoplamento hard; fallback: console nativo
+      logger:    services.logger    ?? (typeof LoggerService    !== 'undefined' ? LoggerService    : console),
     };
 
     // Camada de apresentação — toda manipulação de DOM relacionada à navegação
@@ -184,7 +187,7 @@ class Router {
     if (!this._permitirNavAuth(tela)) return;
 
     const destino = this._view.telaEl(tela);
-    if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
+    if (!destino) { this._services.logger.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
     const telaAnterior = this._telaAtual;
     const atual = this._view.telaEl(telaAnterior);
@@ -242,7 +245,7 @@ class Router {
     if (!this._permitirNavAuth(tela)) return;
 
     const destino = this._view.telaEl(tela);
-    if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
+    if (!destino) { this._services.logger.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
     const telaAnterior = this._telaAtual;
     const atual = this._view.telaEl(telaAnterior);

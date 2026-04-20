@@ -146,7 +146,7 @@ class AuthService {
               is_open:   false,
             });
           if (errShop) {
-            console.error('[AuthService] Erro ao criar barbearia:', errShop.message, errShop.code);
+            LoggerService.error('[AuthService] Erro ao criar barbearia:', errShop.message, errShop.code);
           }
         }
       }
@@ -158,7 +158,7 @@ class AuthService {
         // ── Registra aceite legal pendente (aceito na tela de termos pré-cadastro) ──
         if (typeof LegalConsentService !== 'undefined' && user) {
           LegalConsentService.registrarAceitePendente(user.id)
-            .catch(e => console.warn('[AuthService] Aceite pendente não registrado:', e?.message));
+            .catch(e => LoggerService.warn('[AuthService] Aceite pendente não registrado:', e?.message));
         }
         navFn('inicio');
       }

@@ -62,7 +62,7 @@ class QueueWidget {
         this.#onRealtimeEvent(tipo, row);
       });
     } catch (err) {
-      console.error('[QueueWidget] erro ao iniciar:', err);
+      LoggerService.error('[QueueWidget] erro ao iniciar:', err);
     }
   }
 
@@ -87,7 +87,7 @@ class QueueWidget {
   // (simples e robusto — fila pequena, custo mínimo)
   #onRealtimeEvent(_tipo, _row) {
     this.#renderTudo().catch(err => {
-      console.warn('[QueueWidget] re-fetch realtime falhou:', err);
+      LoggerService.warn('[QueueWidget] re-fetch realtime falhou:', err);
     });
   }
 
@@ -153,7 +153,7 @@ class QueueWidget {
     try {
       await QueueRepository.updateStatus(entradaId, 'in_service');
     } catch (err) {
-      console.error('[QueueWidget] erro ao chamar cliente:', err);
+      LoggerService.error('[QueueWidget] erro ao chamar cliente:', err);
     }
   }
 

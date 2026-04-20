@@ -43,7 +43,7 @@ class AppBootstrap {
   static init() {
     // 1. Widgets sem Supabase: disparo simultâneo (não bloqueiam a UI)
     AppBootstrap.#WIDGETS_PARALELO.forEach(({ label, fn }) => {
-      try { fn(); } catch (e) { console.warn(`[AppBootstrap] ${label} falhou:`, e?.message); }
+      try { fn(); } catch (e) { LoggerService.warn(`[AppBootstrap] ${label} falhou:`, e?.message); }
     });
 
     // 2. Widgets Supabase: execução sequencial — evita múltiplos locks concorrentes
@@ -62,7 +62,7 @@ class AppBootstrap {
       try {
         await fn();
       } catch (e) {
-        console.warn(`[AppBootstrap] ${label} falhou:`, e?.message);
+        LoggerService.warn(`[AppBootstrap] ${label} falhou:`, e?.message);
       }
     }
   }
@@ -79,10 +79,10 @@ class AppBootstrap {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(reg => {
-          console.log('[BarberFlow Cliente] SW registrado', reg.scope);
+          LoggerService.info('[BarberFlow Cliente] SW registrado', reg.scope);
           reg.update();
         })
-        .catch(err => console.warn('[BarberFlow Cliente] SW erro', err));
+        .catch(err => LoggerService.warn('[BarberFlow Cliente] SW erro', err));
     });
   }
 }

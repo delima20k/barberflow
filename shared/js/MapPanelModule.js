@@ -287,7 +287,7 @@ class MapPanel {
     this._dragEl    = section.querySelector('.mpd-handle');
 
     if (!this._btn || !this._panel || !this._frame) {
-      console.warn('[MapPanel] Estrutura HTML incompleta na section#' + section.id);
+      LoggerService.warn('[MapPanel] Estrutura HTML incompleta na section#' + section.id);
       return;
     }
 

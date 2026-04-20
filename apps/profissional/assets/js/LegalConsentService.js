@@ -50,7 +50,7 @@ class LegalConsentService {
       if (aceitou) sessionStorage.setItem(LegalConsentService.#CACHE_KEY, '1');
       return aceitou;
     } catch (e) {
-      console.warn('[LegalConsentService] Erro ao verificar aceite:', e?.message);
+      LoggerService.warn('[LegalConsentService] Erro ao verificar aceite:', e?.message);
       // Em caso de falha de rede, permite continuar (fail open)
       // O guard no backend é a camada principal de segurança
       return false;
@@ -96,7 +96,7 @@ class LegalConsentService {
       sessionStorage.setItem(LegalConsentService.#CACHE_KEY, '1');
       return { ok: true };
     } catch (e) {
-      console.error('[LegalConsentService] Erro ao registrar aceite:', e?.message);
+      LoggerService.error('[LegalConsentService] Erro ao registrar aceite:', e?.message);
       return { ok: false, error: e?.message || 'Erro ao salvar aceite.' };
     }
   }

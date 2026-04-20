@@ -63,7 +63,7 @@ class DestaquesPage {
       lista.forEach((b, i) => this.#listaEl.appendChild(this.#criarCard(b, i)));
 
     } catch (err) {
-      console.error('[DestaquesPage] erro ao carregar:', err);
+      LoggerService.error('[DestaquesPage] erro ao carregar:', err);
       this.#listaEl.innerHTML = '<p style="color:#e07070;text-align:center;padding:20px;">Erro ao carregar barbearias.</p>';
     }
   }

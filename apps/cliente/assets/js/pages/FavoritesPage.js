@@ -51,7 +51,7 @@ class FavoritesPage {
       const lista = await ProfileRepository.getFavorites(perfil.id);
       this.#renderLista(lista);
     } catch (e) {
-      console.warn('[FavoritesPage] Erro ao carregar favoritos:', e?.message);
+      LoggerService.warn('[FavoritesPage] Erro ao carregar favoritos:', e?.message);
     }
   }
 

@@ -30,7 +30,7 @@ class AppBootstrap {
       try {
         fn();
       } catch (e) {
-        console.warn(`[AppBootstrap] ${label} falhou:`, e?.message);
+        LoggerService.warn(`[AppBootstrap] ${label} falhou:`, e?.message);
       }
     });
     AppBootstrap.#registrarSW();
@@ -48,10 +48,10 @@ class AppBootstrap {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(reg => {
-          console.log('[BarberFlow Pro] SW registrado', reg.scope);
+          LoggerService.info('[BarberFlow Pro] SW registrado', reg.scope);
           reg.update();
         })
-        .catch(err => console.warn('[BarberFlow Pro] SW erro', err));
+        .catch(err => LoggerService.warn('[BarberFlow Pro] SW erro', err));
     });
   }
 }

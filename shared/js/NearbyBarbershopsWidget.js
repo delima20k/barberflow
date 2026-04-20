@@ -115,7 +115,7 @@ class NearbyBarbershopsWidget {
         el.appendChild(coluna);
       }
     } catch (err) {
-      console.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
+      LoggerService.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
       el.innerHTML = '';
     }
   }
@@ -287,7 +287,7 @@ class NearbyBarbershopsWidget {
       BarbershopService.restaurarInteracoes(cardsEls);
 
     } catch (err) {
-      console.error('[NearbyBarbershopsWidget] initHomeDestaque exception:', err);
+      LoggerService.error('[NearbyBarbershopsWidget] initHomeDestaque exception:', err);
       el.innerHTML = '';
     }
   }
@@ -365,7 +365,7 @@ class NearbyBarbershopsWidget {
         el.appendChild(row);
       });
     } catch (err) {
-      console.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
+      LoggerService.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
       el.innerHTML = '';
     }
   }
@@ -516,7 +516,7 @@ class NearbyBarbershopsWidget {
         el.appendChild(row);
       });
     } catch (err) {
-      console.error('[NearbyBarbershopsWidget] initHomeTodas exception:', err);
+      LoggerService.error('[NearbyBarbershopsWidget] initHomeTodas exception:', err);
       el.innerHTML = '';
     }
   }

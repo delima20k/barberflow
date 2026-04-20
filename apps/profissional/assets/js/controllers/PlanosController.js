@@ -107,7 +107,7 @@ class PlanosController {
       plano,
       () => this.#pushFn('cadastro'),
       (msg) => {
-        console.warn('[PlanosController] Pagamento falhou:', msg);
+        LoggerService.warn('[PlanosController] Pagamento falhou:', msg);
         this.#pushFn('cadastro');
       }
     );
@@ -122,7 +122,7 @@ class PlanosController {
         this.#pushFn('termos-legais');
       },
       (msg) => {
-        console.warn('[PlanosController]', msg);
+        LoggerService.warn('[PlanosController]', msg);
         sessionStorage.setItem('bf_termo_destino', 'cadastro');
         this.#pushFn('termos-legais');
       }

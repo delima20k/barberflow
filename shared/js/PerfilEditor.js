@@ -316,7 +316,7 @@ class PerfilEditor {
         SessionCache.salvarExtras(user.id, { [campo]: valorParaSalvar });
       }
     } catch (err) {
-      console.warn('[PerfilEditor] Falha ao salvar perfil:', campo, err);
+      LoggerService.warn('[PerfilEditor] Falha ao salvar perfil:', campo, err);
     }
   }
 
