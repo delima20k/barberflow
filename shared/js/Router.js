@@ -208,9 +208,8 @@ class Router {
     );
   }
 
-  /** Fecha a aba atual e volta sempre para o home.
-   *  A aba sai pela ESQUERDA — NUNCA alterar isso.
-   *  O histórico é limpo para que nenhuma aba anterior reapareça.
+  /** Fecha a aba corrente e retorna ao início.
+   *  A aba sai pela esquerda; home sempre está visível por baixo.
    */
   voltar() {
     if (this._telaAtual === 'inicio') return;
@@ -218,18 +217,15 @@ class Router {
     const telaAtual = this._telaAtual;
     const atual = this._view.telaEl(telaAtual);
 
-    // Limpa histórico — garante que nada do passado remerge
     this._historico = [];
     this._telaAtual = 'inicio';
     this._atualizarUI('inicio');
 
-    // Aba atual sai pela ESQUERDA — NUNCA mudar isso
-    // Home já está por baixo — sem animação de entrada
     this._animar(
       telaAtual !== 'inicio' ? atual : null,
-      null,     // home não anima — já está lá
-      'saindo', // aba sai pela ESQUERDA — NUNCA mudar
-      'ativa'   // ignorado pois destino é null
+      null,
+      'saindo',
+      'ativa'
     );
   }
 
@@ -289,11 +285,11 @@ class Router {
   ───────────────────────────────────────────────────────────── */
 
   toggleLike(btn)        { this._services.story?.toggleLike(btn); }
-  toggleStoryVideo(wrap) {
-    const video = wrap.querySelector('.story-video');
-    const play  = wrap.querySelector('.story-play-btn');
-    if (video.paused) { video.play();  play.classList.add('playing'); }
-    else              { video.pause(); play.classList.remove('playing'); }
+  toggleStoryVideo(videoWrap) {
+    const video   = videoWrap.querySelector('.story-video');
+    const playBtn = videoWrap.querySelector('.story-play-btn');
+    if (video.paused) { video.play();  playBtn.classList.add('playing'); }
+    else              { video.pause(); playBtn.classList.remove('playing'); }
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -351,49 +347,42 @@ class Router {
     window.__routerClickBound = true;
 
     document.addEventListener('click', (e) => {
-      // data-nav
       const navEl = e.target.closest('[data-nav]');
       if (navEl) { e.preventDefault(); this.nav(navEl.dataset.nav); return; }
 
-      // data-push
       const pushEl = e.target.closest('[data-push]');
       if (pushEl) { e.preventDefault(); this.push(pushEl.dataset.push); return; }
 
-      // data-voltar
       const voltarEl = e.target.closest('[data-voltar]');
       if (voltarEl) { e.preventDefault(); this.voltar(); return; }
 
-      // data-menu-nav — fecha drawer e depois navega
+      // fecha o drawer antes de navegar
       const menuNavEl = e.target.closest('[data-menu-nav]');
       if (menuNavEl) { e.preventDefault(); this.navDoMenu(menuNavEl.dataset.menuNav); return; }
 
-      // data-navapp — splash + redirect para outro app
       const navappEl = e.target.closest('[data-navapp]');
       if (navappEl) { e.preventDefault(); this.navegarApp(navappEl.dataset.navapp); return; }
 
-      // data-action — ações pontuais delegadas ao Router
       const actionEl = e.target.closest('[data-action]');
       if (actionEl) {
-        const a = actionEl.dataset.action;
+        const actionName = actionEl.dataset.action;
 
-        // Ação de logout — sem guard (confirmar é sempre permitido)
-        if (a === 'confirmar-saida') { e.preventDefault(); this.confirmarSaida(); return; }
+        // Logout não exige autenticação — confirmar sempre é permitido
+        if (actionName === 'confirmar-saida') { e.preventDefault(); this.confirmarSaida(); return; }
 
-        // Ações protegidas — AuthGuard é a fonte única de verdade.
-        // avatar-upload incluído: visitante não pode trocar foto.
-        // Fallback sem AuthGuard: bloqueia via AppState diretamente.
+        // Guard de ações protegidas — AuthGuard é a fonte única de verdade.
+        // Inclui avatar-upload: visitante não pode trocar foto.
         if (typeof AuthGuard !== 'undefined') {
-          if (!AuthGuard.permitirAcao(a, this)) { e.preventDefault(); return; }
+          if (!AuthGuard.permitirAcao(actionName, this)) { e.preventDefault(); return; }
         } else {
-          // Fallback: ações inline conhecidas exigem login quando AuthGuard não carregou
-          if (Router.#ACOES_FALLBACK.has(a)) {
+          // Fallback sem AuthGuard: bloqueia ações conhecidas via AppState
+          if (Router.#ACOES_FALLBACK.has(actionName)) {
             const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
             if (!logado) { e.preventDefault(); this._alertarLoginObrigatorio(); return; }
           }
         }
 
-        // Ação de upload de avatar (após guard — só chega aqui se autenticado)
-        if (a === 'avatar-upload') { e.preventDefault(); this.abrirUploadAvatar(); return; }
+        if (actionName === 'avatar-upload') { e.preventDefault(); this.abrirUploadAvatar(); return; }
       }
     }, { passive: false });
   }

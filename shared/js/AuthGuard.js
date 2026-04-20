@@ -89,10 +89,10 @@ const AuthGuard = (() => {
     // Fallback nativo quando NotificationService não está disponível
     const id = '__auth-guard-toast';
     if (document.getElementById(id)) return;
-    const el = document.createElement('div');
-    el.id            = id;
-    el.textContent   = 'Faça login para interagir';
-    el.style.cssText = [
+    const toast = document.createElement('div');
+    toast.id            = id;
+    toast.textContent   = 'Faça login para interagir';
+    toast.style.cssText = [
       'position:fixed',
       'bottom:80px',
       'left:50%',
@@ -106,8 +106,8 @@ const AuthGuard = (() => {
       'pointer-events:none',
       'white-space:nowrap',
     ].join(';');
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2800);
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
   }
 
   // ── API pública ───────────────────────────────────────────

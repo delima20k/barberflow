@@ -73,7 +73,7 @@ class SupabaseService {
         }
       );
 
-      SupabaseService.#_initAuthSync();
+      SupabaseService.#initAuthSync();
     }
     return SupabaseService.#client;
   }
@@ -96,7 +96,7 @@ class SupabaseService {
    *
    * Nota: perfil (tabela profiles) não é carregado aqui — responsabilidade do UserService.refresh().
    */
-  static #_initAuthSync() {
+  static #initAuthSync() {
     SupabaseService.#client.auth.onAuthStateChange((event, session) => {
       if (typeof AppState === 'undefined') return;
 

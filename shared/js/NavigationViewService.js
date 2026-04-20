@@ -106,12 +106,12 @@ class NavigationViewService {
    * estado CSS original. Chamado pelo Router quando a página retorna do bfcache.
    */
   resetarParaHome() {
-    this.#telaEls.forEach(t => {
-      t.getAnimations().forEach(a => a.cancel());
-      t.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
-      t.style.display       = '';
-      t.style.pointerEvents = '';
-      t.style.transform     = '';
+    this.#telaEls.forEach(telaEl => {
+      telaEl.getAnimations().forEach(anim => anim.cancel());
+      telaEl.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
+      telaEl.style.display       = '';
+      telaEl.style.pointerEvents = '';
+      telaEl.style.transform     = '';
     });
   }
 
@@ -170,10 +170,10 @@ class NavigationViewService {
     const id = '__router-auth-toast';
     if (document.getElementById(id)) return;
 
-    const el = document.createElement('div');
-    el.id            = id;
-    el.textContent   = 'Você precisa estar logado';
-    el.style.cssText = [
+    const toast = document.createElement('div');
+    toast.id            = id;
+    toast.textContent   = 'Você precisa estar logado';
+    toast.style.cssText = [
       'position:fixed',
       'bottom:80px',
       'left:50%',
@@ -188,8 +188,8 @@ class NavigationViewService {
       'white-space:nowrap',
       'box-shadow:0 2px 12px rgba(0,0,0,.5)',
     ].join(';');
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 2800);
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
   }
 
   // ═══════════════════════════════════════════════════════════

@@ -33,9 +33,9 @@ class AuthService {
    * @param {string}        msg   — texto a exibir
    * @param {string}        tipo  — 'error' | 'success'
    */
-  static #notificarMensagem(cb, msg, tipo = 'error') {
+  static #notificarMensagem(onFeedback, msg, tipo = 'error') {
     if (msg) AuthService.#dispatch('auth:mensagem', { message: msg, tipo });
-    if (typeof cb === 'function') cb(msg, tipo);
+    if (typeof onFeedback === 'function') onFeedback(msg, tipo);
   }
 
   // ═══════════════════════════════════════════════════════════
