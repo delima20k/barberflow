@@ -215,6 +215,13 @@ const AuthUI = (() => {
     const hintNome = document.getElementById('nearby-hint-nome');
     if (hintNome) hintNome.textContent = nome.split(' ')[0];
 
+    // Sincroniza perfil e user no AppState — OBRIGATÓRIO para FavoritesPage,
+    // BarbeirosPage e qualquer tela que leia AppState.get('perfil')
+    if (typeof AppState !== 'undefined') {
+      AppState.set('user', user);
+      AppState.set('perfil', perfil);
+    }
+
     // Router e menu
     AuthService._instancia()?.entrar();
     _renderizarMenu(true);

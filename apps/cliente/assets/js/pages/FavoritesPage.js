@@ -51,8 +51,18 @@ class FavoritesPage {
   async #carregar() {
     if (this.#jaCarregou) return;
 
-    const perfil = AppState.get('perfil');
-    if (!perfil?.id) {
+    // Tenta pegar userId do AppState; fallback via Supabase para race-condition
+    // (sessão restaurada antes de AppState.perfil ser populado)
+    let userId = AppState.get('perfil')?.id;
+
+    if (!userId && AppState.get('isLogado')) {
+      try {
+        const u = await SupabaseService.getUser?.();
+        userId = u?.id ?? null;
+      } catch (_) { /* sem rede ou sem sessão */ }
+    }
+
+    if (!userId) {
       this.#renderVazioBarbearias();
       this.#renderVazioBarbeiros();
       return;
@@ -61,8 +71,8 @@ class FavoritesPage {
     this.#jaCarregou = true;
 
     const [barbearias, barbeiros] = await Promise.allSettled([
-      ProfileRepository.getFavorites(perfil.id),
-      ProfileRepository.getFavoriteBarbers(perfil.id),
+      ProfileRepository.getFavorites(userId),
+      ProfileRepository.getFavoriteBarbers(userId),
     ]);
 
     if (barbearias.status === 'fulfilled') {
