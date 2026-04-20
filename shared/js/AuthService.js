@@ -322,10 +322,10 @@ class AuthService {
   // ═══════════════════════════════════════════════════════════
 
   static async _carregarPerfil(userId) {
-    // Busca apenas colunas que existem na tabela profiles original
-    // Os dados extras (address, birth_date, gender, zip_code) ficam no localStorage
+    // Busca todos os campos do próprio usuário — RLS "profiles_select_own" permite
+    // (auth.uid() = id). Campos sensíveis só ficam visíveis para o próprio dono.
     const { data } = await SupabaseService.profiles()
-      .select('id, full_name, phone, avatar_path, role, pro_type')
+      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
       .eq('id', userId)
       .single();
 
@@ -333,9 +333,14 @@ class AuthService {
     if (data) {
       const user = await SupabaseService.getUser();
       data._created_at = user?.created_at || null;
-      // Mescla dados extras salvos localmente (sem custo de banco)
+      // Mescla extras locais como FALLBACK offline — Supabase é a fonte da verdade
       const extras = SessionCache.getExtras(userId);
-      if (extras) Object.assign(data, extras);
+      if (extras) {
+        data.address    = data.address    ?? extras.address;
+        data.birth_date = data.birth_date ?? extras.birth_date;
+        data.gender     = data.gender     ?? extras.gender;
+        data.zip_code   = data.zip_code   ?? extras.zip_code;
+      }
     }
 
     return data || null;

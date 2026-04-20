@@ -307,14 +307,16 @@ class PerfilEditor {
       return v;
     });
 
-    // Salva localmente (zero custo de banco)
+    // 1. Persiste no Supabase (fonte da verdade — sobrevive ao logout)
+    // 2. Atualiza o cache local (UI instantânea no próximo load, funciona offline)
     try {
       const user = await SupabaseService.getUser();
       if (user?.id) {
+        await ProfileRepository.update(user.id, { [campo]: valorParaSalvar });
         SessionCache.salvarExtras(user.id, { [campo]: valorParaSalvar });
       }
     } catch (err) {
-      console.warn('[PerfilEditor] Falha ao salvar no cache local:', campo, err);
+      console.warn('[PerfilEditor] Falha ao salvar perfil:', campo, err);
     }
   }
 
