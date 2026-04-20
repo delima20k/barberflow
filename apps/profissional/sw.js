@@ -14,6 +14,7 @@ class SWProfissional {
     '/assets/js/app.js',
     '/shared/css/tokens.css',
     '/shared/css/components.css',
+    '/shared/js/NavigationViewService.js',
     '/shared/js/Router.js',
     '/shared/js/BarberPole.js',
     '/shared/js/PaymentFlowHandler.js',

@@ -25,10 +25,8 @@
 class Router {
   _telaAtual     = '';
   _historico     = [];
-  _footer        = null;
-  _footerOffline = null;
-  _navBtns       = [];
   _services      = {};
+  _view          = null;   // NavigationViewService — toda manipulação DOM de navegação
   _navegandoApp  = false;
   // _logado removido — use AppState.get('isLogado') como fonte única de verdade
 
@@ -57,6 +55,7 @@ class Router {
    * @param {object} [services.splash]    — implementação de SplashService
    * @param {object} [services.logout]    — implementação de LogoutScreen
    * @param {object} [services.story]     — implementação de StoryViewer
+   * @param {object} [services.view]      — implementação de NavigationViewService
    */
   constructor(telaInicial = 'login', services = {}) {
     // Resolve dependências: valor injetado → singleton global → null-safe stub
@@ -68,23 +67,12 @@ class Router {
       logout:    services.logout    ?? (typeof LogoutScreen     !== 'undefined' ? LogoutScreen     : null),
       story:     services.story     ?? (typeof StoryViewer      !== 'undefined' ? StoryViewer      : null),
     };
-    this._footer        = document.getElementById('footer-nav');
-    this._footerOffline = document.getElementById('footer-nav-offline');
-    this._navBtns       = Array.from(document.querySelectorAll('.nav-btn'));
 
-    // Oculta ambos os footers inicialmente
-    if (this._footer)        this._footer.style.display        = 'none';
-    if (this._footerOffline) this._footerOffline.style.display = 'none';
+    // Camada de apresentação — toda manipulação de DOM relacionada à navegação
+    this._view = services.view ?? new NavigationViewService();
+    this._view.init(telaInicial);
 
     this._telaAtual = telaInicial;
-
-    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-    // Home fica sempre visível por CSS; não precisa de .ativa
-    if (telaInicial !== 'inicio') {
-      const telaEl = document.getElementById(`tela-${telaInicial}`);
-      if (telaEl) telaEl.classList.add('ativa');
-    }
-
     this._atualizarUI(telaInicial);
     this._bindLoginEvent();
     this._bindDataAttributes();
@@ -99,25 +87,15 @@ class Router {
       AppState.onAuth(() => this._atualizarUI(this._telaAtual));
     }
 
-    // Remove boot-lock e libera o CSS normal
-    document.getElementById('boot-lock')?.remove();
+    // Libera o CSS normal após todo o setup estar completo
+    this._view.removerBootLock();
 
     // Restaura estado correto quando a página volta do bfcache
     window.addEventListener('pageshow', (e) => {
       if (!e.persisted) return;
-
-      // Cancela animações em curso e reseta todas as telas para o estado inicial
-      document.querySelectorAll('.tela').forEach(t => {
-        t.getAnimations().forEach(a => a.cancel());
-        t.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
-        t.style.display       = '';
-        t.style.pointerEvents = '';
-        t.style.transform     = '';
-      });
-
-      // Volta sempre para o home — nunca exibe login ou outra tela no retorno
-      this._telaAtual   = 'inicio';
-      this._historico   = [];
+      this._view.resetarParaHome();
+      this._telaAtual    = 'inicio';
+      this._historico    = [];
       this._navegandoApp = false;
       this._atualizarUI('inicio');
     });
@@ -190,7 +168,7 @@ class Router {
     // Toggle: clicou no ícone da aba já aberta → fecha pela ESQUERDA (igual a voltar).
     // Guard intencionalmente omitido aqui: o destino é sempre 'inicio' (tela pública).
     if (tela === this._telaAtual && tela !== 'inicio') {
-      const atual = document.getElementById(`tela-${this._telaAtual}`);
+      const atual = this._view.telaEl(this._telaAtual);
       this._historico = [];          // limpa histórico — volta pra home
       this._telaAtual = 'inicio';
       this._atualizarUI('inicio');
@@ -202,11 +180,11 @@ class Router {
     // Guard de autenticação — bloqueia telas privadas para visitantes
     if (!this._permitirNavAuth(tela)) return;
 
-    const destino = document.getElementById(`tela-${tela}`);
+    const destino = this._view.telaEl(tela);
     if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
     const telaAnterior = this._telaAtual;
-    const atual = document.getElementById(`tela-${telaAnterior}`);
+    const atual = this._view.telaEl(telaAnterior);
 
     this._historico.push(telaAnterior);
     this._telaAtual = tela;
@@ -217,10 +195,10 @@ class Router {
     // Vindo da home  → nova entra pela ESQUERDA normalmente (sem exit)
     const carrossel = telaAnterior !== 'inicio';
     this._animar(
-      carrossel       ? atual   : null,
+      carrossel         ? atual   : null,
       tela !== 'inicio' ? destino : null,
-      carrossel       ? 'saindo-direita' : 'saindo',
-      carrossel       ? 'entrando-lento' : 'ativa'
+      carrossel         ? 'saindo-direita' : 'saindo',
+      carrossel         ? 'entrando-lento' : 'ativa'
     );
   }
 
@@ -232,7 +210,7 @@ class Router {
     if (this._telaAtual === 'inicio') return;
 
     const telaAtual = this._telaAtual;
-    const atual = document.getElementById(`tela-${telaAtual}`);
+    const atual = this._view.telaEl(telaAtual);
 
     // Limpa histórico — garante que nada do passado remerge
     this._historico = [];
@@ -260,11 +238,11 @@ class Router {
     // Guard de autenticação — impede acesso a telas privadas via push() direto
     if (!this._permitirNavAuth(tela)) return;
 
-    const destino = document.getElementById(`tela-${tela}`);
+    const destino = this._view.telaEl(tela);
     if (!destino) { console.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
     const telaAnterior = this._telaAtual;
-    const atual = document.getElementById(`tela-${telaAnterior}`);
+    const atual = this._view.telaEl(telaAnterior);
 
     this._historico.push(telaAnterior);
     this._telaAtual = tela;
@@ -289,20 +267,7 @@ class Router {
    */
   _atualizarUI(tela) {
     const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') : false;
-    const mostrarCompleto = logado && this.telasComNav.has(tela);
-    const mostrarOffline  = !logado && this.telasOffline.has(tela);
-    if (this._footer)        this._footer.style.display        = mostrarCompleto ? 'flex' : 'none';
-    if (this._footerOffline) this._footerOffline.style.display = mostrarOffline  ? 'flex' : 'none';
-
-    this._navBtns.forEach(btn =>
-      btn.classList.toggle('ativo', btn.dataset.tela === tela)
-    );
-    document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
-      item.classList.toggle('ativo', item.dataset.tela === tela)
-    );
-
-    // Atualiza bloqueio visual do modo visitante (adiciona/remove .bloqueado)
-    this._guestMode?.atualizar();
+    this._view.sincronizarUI(tela, logado, this.telasComNav, this.telasOffline, this._guestMode);
   }
 
   /* ─────────────────────────────────────────────────────────────
@@ -344,37 +309,7 @@ class Router {
    * @private
    */
   _alertarLoginObrigatorio() {
-    if (typeof NotificationService !== 'undefined') {
-      NotificationService.mostrarToast(
-        'Login necessário',
-        'Você precisa estar logado',
-        'warning'
-      );
-    } else {
-      // Fallback nativo — toast leve no rodapé
-      const id = '__router-auth-toast';
-      if (document.getElementById(id)) return;
-      const el = document.createElement('div');
-      el.id            = id;
-      el.textContent   = 'Você precisa estar logado';
-      el.style.cssText = [
-        'position:fixed',
-        'bottom:80px',
-        'left:50%',
-        'transform:translateX(-50%)',
-        'background:rgba(30,20,10,.92)',
-        'color:#D4AF37',
-        'padding:.55rem 1.25rem',
-        'border-radius:2rem',
-        'font-size:.88rem',
-        'z-index:9999',
-        'pointer-events:none',
-        'white-space:nowrap',
-        'box-shadow:0 2px 12px rgba(0,0,0,.5)',
-      ].join(';');
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 2800);
-    }
+    this._view.exibirToastLoginObrigatorio();
     // Redireciona para login — evita loop se já estiver na tela de login
     if (this._telaAtual !== 'login') {
       this.push('login');
@@ -382,31 +317,7 @@ class Router {
   }
 
   _bindLoginEvent() {
-    document.addEventListener('barberflow:login', e => {
-      const { nome } = e.detail || {};
-      if (nome) {
-        const nomeSanitizado = nome.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
-
-        // Reconstrói menu-username sem childNodes nem innerHTML (evita XSS)
-        const usernameEl = document.getElementById('menu-username');
-        if (usernameEl) {
-          usernameEl.textContent = '';
-          usernameEl.appendChild(document.createTextNode(nomeSanitizado + ' '));
-          const small = document.createElement('small');
-          small.id          = 'menu-user-sub';
-          small.textContent = 'Bem-vindo(a)!';
-          usernameEl.appendChild(small);
-        }
-
-        const labelEl = document.getElementById('header-user-label');
-        if (labelEl) {
-          const primeiro = nomeSanitizado.split(' ')[0];
-          labelEl.textContent = 'Olá, ' + (primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase());
-        }
-      }
-      document.getElementById('header-avatar-btn')?.classList.add('logado');
-      document.getElementById('menu-avatar')?.classList.add('logado');
-    });
+    this._view.bindLoginEvent();
   }
 
   /* ─────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ class SWCliente {
     '/assets/js/app.js',
     '/shared/css/tokens.css',
     '/shared/css/components.css',
+    '/shared/js/NavigationViewService.js',
     '/shared/js/Router.js',
     '/shared/js/BarberPole.js',
     '/shared/img/Logo01.png',
