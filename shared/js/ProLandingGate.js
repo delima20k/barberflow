@@ -19,6 +19,7 @@ class ProLandingGate {
 
   static #EL_ID       = 'landing-gate';
   static #PREVIEW_KEY = 'bf_preview'; // sessionStorage key
+  static #SPLASH_KEY  = 'bf_splash';  // sessionStorage key — splash já exibido
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -35,7 +36,14 @@ class ProLandingGate {
     // Se já há sessão Supabase ativa → não exibe
     if (ProLandingGate.#temSessaoAtiva()) return;
 
-    ProLandingGate.#mostrar();
+    // Primeiro acesso na sessão → exibe splash antes do gate
+    const primeiroAcesso = !sessionStorage.getItem(ProLandingGate.#SPLASH_KEY);
+    if (primeiroAcesso && typeof SplashService !== 'undefined') {
+      sessionStorage.setItem(ProLandingGate.#SPLASH_KEY, '1');
+      SplashService.exibir('PROFISSIONAL', () => ProLandingGate.#mostrar());
+    } else {
+      ProLandingGate.#mostrar();
+    }
   }
 
   /**

@@ -115,14 +115,15 @@ class AuthService {
     AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
 
     try {
-      const { data, error } = await SupabaseService.signUp(
+      // SupabaseService.signUp retorna data ({user, session}) diretamente — sem wrapper
+      const signUpData = await SupabaseService.signUp(
         email,
         senha,
         { full_name: nome, role, phone: telefone || null, pro_type: pro_type || null, barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null }
       );
-      if (error) throw error;
 
-      const { user, session } = data;
+      const user    = signUpData?.user    ?? null;
+      const session = signUpData?.session ?? null;
 
       // Garante criação do perfil (fallback caso o trigger não exista)
       if (user) {
@@ -160,7 +161,9 @@ class AuthService {
           LegalConsentService.registrarAceitePendente(user.id)
             .catch(e => LoggerService.warn('[AuthService] Aceite pendente não registrado:', e?.message));
         }
-        navFn('inicio');
+        // Feedback de sucesso antes de redirecionar
+        AuthService.#notificarMensagem(onMensagem, '✅ Conta criada com sucesso! Bem-vindo ao BarberFlow!', 'success');
+        setTimeout(() => navFn('inicio'), 1600);
       }
     } catch (e) {
       AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
