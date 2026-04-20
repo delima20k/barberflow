@@ -117,6 +117,95 @@ class BarbershopService {
     return BarbershopService.#enriquecerComGeo(data);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // LOCALIZAÇÃO DA BARBEARIA
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Salva a localização GPS atual como endereço da barbearia do owner.
+   * Uso: barbeiro ativa o GPS no app → posição salva no banco → aparece no mapa.
+   *
+   * @param {string} ownerId  — UUID do dono
+   * @param {number} lat      — latitude
+   * @param {number} lng      — longitude
+   * @returns {Promise<object>}
+   */
+  static async salvarLocalizacaoGPS(ownerId, lat, lng) {
+    if (!ownerId) throw new TypeError('[BarbershopService] owner_id inválido');
+    if (!isFinite(lat) || !isFinite(lng)) {
+      throw new TypeError('[BarbershopService] coordenadas inválidas');
+    }
+    return BarbershopRepository.updateLocation(ownerId, lat, lng);
+  }
+
+  /**
+   * Consulta o ViaCEP (gratuito, sem chave) e retorna o endereço estruturado.
+   * Não faz geocodificação — apenas converte CEP em logradouro/cidade/UF.
+   *
+   * @param {string} cep — 8 dígitos (com ou sem hífen)
+   * @returns {Promise<{address: string, city: string, state: string, zip_code: string}>}
+   */
+  static async geocodificarCep(cep) {
+    const limpo = String(cep ?? '').replace(/\D/g, '');
+    if (limpo.length !== 8) {
+      throw new TypeError('[BarbershopService] CEP com formato inválido — esperado 8 dígitos');
+    }
+
+    let resposta;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      resposta = await res.json();
+    } catch {
+      throw new Error('[BarbershopService] Falha ao consultar serviço ViaCEP (rede offline?)');
+    }
+
+    if (resposta?.erro) {
+      throw new Error(`[BarbershopService] CEP ${limpo} não encontrado no ViaCEP`);
+    }
+
+    const address = [resposta.logradouro, resposta.bairro].filter(Boolean).join(', ');
+    return {
+      address,
+      city:     resposta.localidade ?? '',
+      state:    resposta.uf          ?? '',
+      zip_code: resposta.cep         ?? `${limpo.slice(0,5)}-${limpo.slice(5)}`,
+    };
+  }
+
+  /**
+   * Fluxo completo: CEP → ViaCEP → endereço → Nominatim → coords → banco.
+   * Após este método o pin da barbearia aparece no mapa dos clientes.
+   *
+   * @param {string} ownerId — UUID do dono da barbearia
+   * @param {string} cep     — CEP (8 dígitos, com ou sem hífen)
+   * @returns {Promise<object>} — registro da barbearia atualizado
+   */
+  static async salvarLocalizacaoCep(ownerId, cep) {
+    // 1. CEP → endereço estruturado
+    const { address, city, state, zip_code } = await BarbershopService.geocodificarCep(cep);
+
+    // 2. Endereço → coordenadas via Nominatim (OpenStreetMap, gratuito, sem chave)
+    const query   = encodeURIComponent(`${address}, ${city}, ${state}, Brasil`);
+    const nomUrl  = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`;
+    let coords;
+    try {
+      const res    = await fetch(nomUrl, { headers: { 'Accept-Language': 'pt-BR' } });
+      const lista  = await res.json();
+      if (!lista?.length) {
+        throw new Error(`[BarbershopService] Endereço não encontrado no Nominatim: "${address}, ${city}"`);
+      }
+      coords = { lat: parseFloat(lista[0].lat), lng: parseFloat(lista[0].lon) };
+    } catch (e) {
+      if (e.message.includes('BarbershopService')) throw e;
+      throw new Error(`[BarbershopService] Falha ao consultar coordenadas: ${e.message}`);
+    }
+
+    // 3. Persiste no banco
+    return BarbershopRepository.updateLocation(
+      ownerId, coords.lat, coords.lng, address, city, state, zip_code
+    );
+  }
+
   /**
    * Toggle de like nos stories — atualiza a UI imediatamente (optimistic).
    * @param {HTMLElement} btn — botão .story-like-btn

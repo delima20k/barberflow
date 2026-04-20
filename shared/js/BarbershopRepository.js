@@ -100,6 +100,45 @@ class BarbershopRepository {
   }
 
   /**
+   * Atualiza latitude, longitude e campos de endereço da barbearia do owner.
+   * Chamado após geocodificação por CEP ou GPS direto.
+   *
+   * @param {string} ownerId   — UUID do dono da barbearia
+   * @param {number} lat       — latitude (−90 a 90)
+   * @param {number} lng       — longitude (−180 a 180)
+   * @param {string} [address] — logradouro + número (opcional)
+   * @param {string} [city]    — cidade (opcional)
+   * @param {string} [state]   — UF (opcional)
+   * @param {string} [zipCode] — CEP formatado (opcional)
+   * @returns {Promise<object>} — registro atualizado
+   */
+  static async updateLocation(ownerId, lat, lng, address, city, state, zipCode) {
+    const rOwner = InputValidator.uuid(ownerId);
+    if (!rOwner.ok) throw new TypeError(`[BarbershopRepository] owner_id inválido: ${rOwner.msg}`);
+
+    const rCoord = InputValidator.coordenada(lat, lng);
+    if (!rCoord.ok) throw new TypeError(`[BarbershopRepository] coordenadas inválidas: ${rCoord.msg}`);
+
+    const payload = {
+      latitude:   lat,
+      longitude:  lng,
+      updated_at: new Date().toISOString(),
+    };
+    if (address !== undefined && address !== null) payload.address  = address;
+    if (city    !== undefined && city    !== null) payload.city     = city;
+    if (state   !== undefined && state   !== null) payload.state    = state;
+    if (zipCode !== undefined && zipCode !== null) payload.zip_code = zipCode;
+
+    const { data, error } = await SupabaseService.barbershops()
+      .update(payload)
+      .eq('owner_id', ownerId)
+      .single();
+
+    if (error) throw new Error(`[BarbershopRepository] updateLocation: ${error.message ?? error.code}`);
+    return data;
+  }
+
+  /**
    * Busca barbearia por ID.
    * @param {string} id
    * @returns {Promise<object>}
