@@ -94,7 +94,16 @@
 }
 
 #nearby-map-widget {
-  margin-top: 14px;
+  margin-top: 10px;
+}
+
+/* Contador de barbearias próximas */
+.nearby-contador {
+  margin: 12px 16px 4px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text, #2A211B);
+  letter-spacing: .02em;
 }
 
 /* Leaflet visual integration */

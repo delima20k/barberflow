@@ -14,7 +14,7 @@
 
 class NearbyBarbershopsWidget {
 
-  static #RAIO_KM       = 3;
+  static #RAIO_KM       = 5;
   static #el             = null;   // container raiz no HTML
   static #buscaEncerrada = false;  // true após "nenhuma barbearia" — não rebusca
 
@@ -441,12 +441,13 @@ class NearbyBarbershopsWidget {
 
 
   static async #carregar() {
-    // Se a busca já foi encerrada por ausência de resultados, não reexecuta
-    if (NearbyBarbershopsWidget.#buscaEncerrada) return;
+    NearbyBarbershopsWidget.#buscaEncerrada = false;
+    NearbyBarbershopsWidget.#atualizarContador(-1); // estado: buscando
     NearbyBarbershopsWidget.#renderLoading();
     try {
       const pos   = await GeoService.obter();
       const lista = await NearbyBarbershopsWidget.#buscarBarbearias(pos.lat, pos.lng);
+      NearbyBarbershopsWidget.#atualizarContador(lista.length);
       lista.length
         ? NearbyBarbershopsWidget.#renderLista(lista)
         : NearbyBarbershopsWidget.#renderVazio();
@@ -525,10 +526,9 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#montar(wrap);
   }
 
-  /** Estado: nenhuma barbearia encontrada — exibe mensagem e encerra a busca */
+  /** Estado: nenhuma barbearia encontrada */
   static #renderVazio() {
     if (!NearbyBarbershopsWidget.#el) return;
-    NearbyBarbershopsWidget.#buscaEncerrada = true;
 
     const wrap = document.createElement('div');
     wrap.className = 'nearby-vazio';
@@ -544,6 +544,24 @@ class NearbyBarbershopsWidget {
     wrap.appendChild(titulo);
     wrap.appendChild(sub);
     NearbyBarbershopsWidget.#montar(wrap);
+  }
+
+  /**
+   * Atualiza o texto do contador de barbearias próximas no topo da seção.
+   * Procura elemento com id="nearby-contador" no DOM pai do widget.
+   * @param {number} total  — -1 = buscando, 0 = nenhuma, N = encontradas
+   */
+  static #atualizarContador(total) {
+    const el = document.getElementById('nearby-contador');
+    if (!el) return;
+    if (total < 0) {
+      el.textContent = 'Buscando barbearias…';
+    } else if (total === 0) {
+      el.textContent = 'Nenhuma barbearia por perto';
+    } else {
+      const plural = total === 1 ? 'barbearia' : 'barbearias';
+      el.textContent = `${total} ${plural} por perto`;
+    }
   }
 
   /**

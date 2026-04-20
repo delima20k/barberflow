@@ -19,7 +19,7 @@
 
 class MapWidget {
 
-  static #RAIO_KM      = 2;
+  static #RAIO_KM      = 5;
   static #ZOOM_PADRAO  = 15;   // zoom ao focar no usuário
   static #ZOOM_CIDADE  = 12;   // zoom inicial (sem GPS)
   static #LAT_PADRAO   = -15.7942; // Brasília — fallback visual
@@ -184,7 +184,7 @@ class MapWidget {
         .eq('is_active', true)
         .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
         .gte('longitude', lng - lonD).lte('longitude', lng + lonD)
-        .limit(30);
+        .limit(200);
 
       if (error) return [];
 
