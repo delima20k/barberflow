@@ -175,6 +175,63 @@
 .fin-row-val.pos    { color: var(--success); }
 .fin-row-val.neg    { color: var(--danger); }
 
+/* ── Banner de localização ──────────────────────────────────── */
+.loc-banner {
+  background: linear-gradient(135deg, rgba(212,175,55,.12), rgba(107,74,50,.08));
+  border: 1.5px solid rgba(212,175,55,.40);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.loc-banner__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.loc-banner__icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.loc-banner__titulo {
+  font-size: .92rem;
+  font-weight: 800;
+  color: var(--gold);
+  margin: 0 0 2px;
+}
+.loc-banner__sub {
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.loc-banner__cep-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.loc-banner__cep-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .88rem;
+  outline: none;
+}
+.loc-banner__cep-input:focus {
+  border-color: var(--gold);
+}
+.loc-banner__msg {
+  font-size: .8rem;
+  min-height: 1.2em;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 /* ── Portfólio grid ─────────────────────────────────────────── */
 .portfolio-grid {
   display: grid;
