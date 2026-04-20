@@ -38,6 +38,9 @@ class AppBootstrap {
 
   static #registrarSW() {
     if (!('serviceWorker' in navigator)) return;
+    // Limpa flag do ciclo anterior — garante que cada nova atualização de SW
+    // possa forçar o reload. O flag só precisa existir durante o ciclo de reload.
+    sessionStorage.removeItem('sw_reloaded');
     // Recarrega automaticamente quando um novo SW assumir o controle
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!sessionStorage.getItem('sw_reloaded')) {
