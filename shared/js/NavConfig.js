@@ -42,14 +42,27 @@ class NavConfig {
   // PROFISSIONAL
   // ═══════════════════════════════════════════════════════════
 
+  /** Nav para profissional com barbearia própria */
   static get #PROFISSIONAL_LOGADO() {
     return [
-      { tela: 'inicio',          icone: 'inicio.svg',   label: 'Início'          },
-      { tela: 'pesquisa',        icone: 'pesquisa.svg', label: 'Pesquisar'       },
-      { tela: 'mensagens',       icone: 'mensagen.svg', label: 'Mensagens'       },
-      { tela: 'minha-barbearia', icone: 'meu-b.svg',    label: 'Minha Barbearia' },
-      { tela: 'perfil',          icone: 'perfil.svg',   label: 'Meu Perfil'      },
-      { acao: 'sair',            icone: 'sair.svg',     label: 'Sair'            },
+      { tela: 'inicio',          icone: 'inicio.svg',   label: 'Início'              },
+      { tela: 'pesquisa',        icone: 'pesquisa.svg', label: 'Pesquisar'           },
+      { tela: 'mensagens',       icone: 'mensagen.svg', label: 'Mensagens'           },
+      { tela: 'minha-barbearia', icone: 'meu-b.svg',    label: 'Minha Barbearia'     },
+      { tela: 'perfil',          icone: 'perfil.svg',   label: 'Meu Perfil'          },
+      { acao: 'sair',            icone: 'sair.svg',     label: 'Sair'                },
+    ];
+  }
+
+  /** Nav para barbeiro autônomo (sem barbearia própria) */
+  static get #BARBEIRO_LOGADO() {
+    return [
+      { tela: 'inicio',       icone: 'inicio.svg',   label: 'Início'              },
+      { tela: 'pesquisa',     icone: 'pesquisa.svg', label: 'Pesquisar'           },
+      { tela: 'mensagens',    icone: 'mensagen.svg', label: 'Mensagens'           },
+      { tela: 'barbearias',   icone: 'meu-b.svg',    label: 'Barbearias Parceiras'},
+      { tela: 'perfil',       icone: 'perfil.svg',   label: 'Meu Perfil'          },
+      { acao: 'sair',         icone: 'sair.svg',     label: 'Sair'                },
     ];
   }
 
@@ -67,17 +80,25 @@ class NavConfig {
 
   /**
    * Retorna os itens de navegação corretos para o estado atual.
+   * No app profissional, distingue barbeiro autônomo (pro_type='barbeiro')
+   * de proprietário de barbearia (pro_type='barbearia').
    * @param {boolean} logado
    * @returns {Array<{tela?: string, acao?: string, icone: string, label: string}>}
    */
   static getItems(logado) {
-    // Detecta o app pelo nome da classe instanciada — funciona mesmo durante o constructor
-    // quando a variável global (Pro/App) ainda não foi atribuída
     const isPro = typeof BarberFlowProfissional !== 'undefined';
-    if (logado) {
-      return isPro ? NavConfig.#PROFISSIONAL_LOGADO : NavConfig.#CLIENTE_LOGADO;
+    if (!logado) {
+      return isPro ? NavConfig.#PROFISSIONAL_DESLOGADO : NavConfig.#CLIENTE_DESLOGADO;
     }
-    return isPro ? NavConfig.#PROFISSIONAL_DESLOGADO : NavConfig.#CLIENTE_DESLOGADO;
+    if (!isPro) return NavConfig.#CLIENTE_LOGADO;
+
+    // Barbeiro autônomo não tem barbearia própria
+    const proType = (typeof AuthService !== 'undefined')
+      ? AuthService.getPerfil()?.pro_type
+      : null;
+    return proType === 'barbeiro'
+      ? NavConfig.#BARBEIRO_LOGADO
+      : NavConfig.#PROFISSIONAL_LOGADO;
   }
 
   /**
