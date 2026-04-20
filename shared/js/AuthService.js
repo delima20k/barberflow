@@ -282,7 +282,24 @@ class AuthService {
     try {
       const session = await SupabaseService.getSession();
       if (session?.user) {
-        AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
+        // Carrega perfil — pode lançar PERFIL_ORFAO se o usuário foi deletado
+        try {
+          AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
+        } catch (perfilErr) {
+          if (perfilErr?.code === 'PERFIL_ORFAO') {
+            // Sessão órfã — deslogar silenciosamente e avisar o usuário
+            try { await SupabaseService.signOut(); } catch { /* sem-op */ }
+            SessionCache.limparTudo();
+            AuthService.#perfil = null;
+            AuthService._limparUI();
+            AuthService.#dispatch('auth:error', {
+              message: 'Sua conta não foi encontrada no BarberFlow. Crie uma nova conta para continuar.',
+              context: 'perfil_orfao',
+            });
+            return;
+          }
+          AuthService.#perfil = null; // erro de rede etc. → continua sem perfil
+        }
 
         // ═ Guard de app: bloqueia clientes com sessão restaurada no app profissional ═
         if (!await AuthService._verificarRoleApp(AuthService.#perfil)) {
@@ -329,10 +346,23 @@ class AuthService {
   static async _carregarPerfil(userId) {
     // Busca todos os campos do próprio usuário — RLS "profiles_select_own" permite
     // (auth.uid() = id). Campos sensíveis só ficam visíveis para o próprio dono.
-    const { data } = await SupabaseService.profiles()
+    const { data, error } = await SupabaseService.profiles()
       .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
       .eq('id', userId)
       .single();
+
+    // 406 / PGRST116 = nenhuma linha — perfil não existe (conta deletada / sessão órfã)
+    if (error) {
+      const code   = error?.code   ?? '';
+      const status = error?.status ?? error?.statusCode ?? 0;
+      if (code === 'PGRST116' || status === 406 || code === '406') {
+        const err  = new Error('Conta não encontrada no BarberFlow.');
+        err.code   = 'PERFIL_ORFAO';
+        throw err;
+      }
+      // Outros erros (sem rede, etc.) → retornar null silenciosamente
+      return null;
+    }
 
     // Busca created_at do auth.users via session (já disponível localmente)
     if (data) {

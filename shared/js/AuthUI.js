@@ -280,6 +280,20 @@ const AuthUI = (() => {
     if (context === 'login') {
       const el = document.getElementById('login-erro');
       mostrarErroForm(el, message, 'error');
+    } else if (context === 'perfil_orfao') {
+      // Conta deletada / sessão órfã — toast de aviso + redireciona para cadastro
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Conta não encontrada',
+          message,
+          NotificationService.TIPOS.SISTEMA
+        );
+      }
+      setTimeout(() => {
+        // Tenta navegar para cadastro (push mantém o carrossel); fallback: nav
+        const app = typeof AuthService !== 'undefined' ? AuthService._instancia() : null;
+        if (app) app.push?.('cadastro') ?? app.nav?.('cadastro');
+      }, 1800);
     }
   }
 
