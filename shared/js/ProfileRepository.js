@@ -147,4 +147,55 @@ class ProfileRepository {
     if (error) throw error;
     return true; // adicionado
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // BARBEIROS FAVORITOS
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Retorna barbeiros favoritos do usuário com dados básicos.
+   * @param {string} userId
+   * @returns {Promise<object[]>}
+   */
+  static async getFavoriteBarbers(userId) {
+    const rId = InputValidator.uuid(userId);
+    if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
+
+    const { data, error } = await SupabaseService.favoriteProfessionals()
+      .select(`professional_id,
+        professionals(
+          id, avatar_path, rating_avg, specialties,
+          profiles(full_name, avatar_url)
+        )`)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return (data ?? []).map(r => r.professionals).filter(Boolean);
+  }
+
+  /**
+   * Alterna barbeiro favorito.
+   * @returns {Promise<boolean>} true se adicionado, false se removido
+   */
+  static async toggleFavoriteBarber(userId, professionalId) {
+    const { data: existing } = await SupabaseService.favoriteProfessionals()
+      .select('id')
+      .eq('user_id', userId)
+      .eq('professional_id', professionalId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await SupabaseService.favoriteProfessionals()
+        .delete()
+        .eq('user_id', userId)
+        .eq('professional_id', professionalId);
+      if (error) throw error;
+      return false;
+    }
+
+    const { error } = await SupabaseService.favoriteProfessionals()
+      .insert({ user_id: userId, professional_id: professionalId });
+    if (error) throw error;
+    return true;
+  }
 }

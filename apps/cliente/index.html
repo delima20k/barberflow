@@ -630,14 +630,16 @@
       <h2 class="tela-topo__titulo">Favoritas</h2>
     </div>
     <div class="content">
-      <div id="favoritas-lista" style="display:flex;flex-direction:column;gap:10px;">
-        <!-- cards renderizados dinamicamente por FavoritesPage.js -->
+      <!-- ── Barbearias ── -->
+      <p class="fav-secao-titulo">Barbearias</p>
+      <div id="favoritas-barbearias" class="fav-carrossel">
+        <!-- cards 350×220 gerados por FavoritesPage.js -->
       </div>
-      <div class="empty" id="favoritas-empty" style="display:none;">
-        <div class="empty-icon">⭐</div>
-        <p class="empty-title">Nenhuma favorita ainda</p>
-        <p class="empty-text">Salve barbearias para acesso rápido e agendamento com 1 toque</p>
-        <button class="btn btn-outline" data-nav="pesquisa">Explorar Barbearias</button>
+
+      <!-- ── Barbeiros ── -->
+      <p class="fav-secao-titulo fav-secao-titulo--mt">Barbeiros</p>
+      <div id="favoritas-barbeiros" class="fav-barbeiros-lista">
+        <!-- barber-rows gerados por FavoritesPage.js -->
       </div>
     </div>
   </main>

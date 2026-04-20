@@ -1,126 +1,173 @@
 'use strict';
 
 // =============================================================
-// FavoritesPage.js — Página de Barbearias Favoritas do app cliente.
-// Responsabilidade: carregar e renderizar a lista de favoritos do
-// usuário autenticado usando o ProfileRepository.
-// A navegação para pesquisa via data-nav é tratada pelo Router.
+// FavoritesPage.js — Tela de Favoritas do app cliente.
+// Seção 1: Barbearias favoritas — carrossel de cards 350×220.
+// Seção 2: Barbeiros favoritos   — lista barber-row.
 //
-// Dependências: ProfileRepository.js, AuthService.js, AppState.js
+// Dependências: ProfileRepository, SupabaseService, AppState,
+//               AuthService, LoggerService
 // =============================================================
 
-// Gerencia a tela de favoritas: carrega e exibe favoritos do usuário logado.
 class FavoritesPage {
 
-  #listaEl    = null;  // #favoritas-lista
-  #emptyEl    = null;  // #favoritas-empty
-  #telaEl     = null;  // #tela-favoritas
-  #jaCarregou = false; // evita re-fetch redundante na mesma sessão
+  #telaEl         = null;  // #tela-favoritas
+  #barbeariasEl   = null;  // #favoritas-barbearias (carrossel)
+  #barbeirosEl    = null;  // #favoritas-barbeiros  (lista)
+  #jaCarregou     = false;
 
   constructor() {}
 
-  /**
-   * Registra observer para carregar favoritos quando a tela ficar ativa.
-   * Chame uma vez após instanciar (DOM já está disponível).
-   */
+  /** Chame uma vez após o DOM estar disponível. */
   bind() {
-    this.#telaEl  = document.getElementById('tela-favoritas');
-    this.#listaEl = document.getElementById('favoritas-lista');
-    this.#emptyEl = document.getElementById('favoritas-empty');
+    this.#telaEl       = document.getElementById('tela-favoritas');
+    this.#barbeariasEl = document.getElementById('favoritas-barbearias');
+    this.#barbeirosEl  = document.getElementById('favoritas-barbeiros');
     if (!this.#telaEl) return;
 
-    // Recarrega quando a tela entra em foco
     new MutationObserver(() => {
       if (this.#telaEl.classList.contains('ativa')) {
         this.#carregar();
       } else {
-        this.#jaCarregou = false; // permite re-fetch na próxima entrada
+        this.#jaCarregou = false;
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
 
-  // ── Privado ──────────────────────────────────────────────
+  // ── Privado ───────────────────────────────────────────────
 
   async #carregar() {
     if (this.#jaCarregou) return;
 
     const perfil = AppState.get('perfil');
     if (!perfil?.id) {
-      this.#mostrarVazio();
+      this.#renderVazioBarbearias();
+      this.#renderVazioBarbeiros();
       return;
     }
 
     this.#jaCarregou = true;
 
-    try {
-      const lista = await ProfileRepository.getFavorites(perfil.id);
-      this.#renderLista(lista);
-    } catch (e) {
-      LoggerService.warn('[FavoritesPage] Erro ao carregar favoritos:', e?.message);
-      this.#mostrarVazio();
+    const [barbearias, barbeiros] = await Promise.allSettled([
+      ProfileRepository.getFavorites(perfil.id),
+      ProfileRepository.getFavoriteBarbers(perfil.id),
+    ]);
+
+    if (barbearias.status === 'fulfilled') {
+      this.#renderBarbearias(barbearias.value);
+    } else {
+      LoggerService.warn('[FavoritesPage] barbearias:', barbearias.reason?.message);
+      this.#renderVazioBarbearias();
+    }
+
+    if (barbeiros.status === 'fulfilled') {
+      this.#renderBarbeiros(barbeiros.value);
+    } else {
+      LoggerService.warn('[FavoritesPage] barbeiros:', barbeiros.reason?.message);
+      this.#renderVazioBarbeiros();
     }
   }
 
-  #mostrarVazio() {
-    if (this.#listaEl)  this.#listaEl.innerHTML       = '';
-    if (this.#emptyEl)  this.#emptyEl.style.display   = '';
+  // ── Barbearias ────────────────────────────────────────────
+
+  #renderBarbearias(lista) {
+    if (!this.#barbeariasEl) return;
+    if (!lista.length) { this.#renderVazioBarbearias(); return; }
+
+    this.#barbeariasEl.innerHTML = '';
+    lista.forEach(b => this.#barbeariasEl.appendChild(this.#criarFavCard(b)));
   }
 
-  #renderLista(lista) {
-    if (!this.#listaEl) return;
-    if (!lista.length) { this.#mostrarVazio(); return; }
+  #renderVazioBarbearias() {
+    if (!this.#barbeariasEl) return;
+    this.#barbeariasEl.innerHTML = `
+      <div class="fav-card fav-card--sem-img" style="display:flex;align-items:center;justify-content:center;">
+        <div class="fav-card__overlay" style="align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:2rem;">💈</span>
+          <p style="color:rgba(255,255,255,.6);font-size:.8rem;text-align:center;">
+            Nenhuma barbearia favorita<br>
+            <button class="fav-card__btn" style="margin-top:8px;" data-nav="pesquisa">Explorar</button>
+          </p>
+        </div>
+      </div>`;
+  }
 
-    if (this.#emptyEl) this.#emptyEl.style.display = 'none';
+  /** Cria um card 350×220 para uma barbearia. */
+  #criarFavCard(b) {
+    const card = document.createElement('div');
+    card.className = 'fav-card' + (b.logo_path ? '' : ' fav-card--sem-img');
+    card.dataset.id = b.id;
 
-    this.#listaEl.innerHTML = '';
-    lista.forEach(b => {
-      const row = document.createElement('div');
-      row.className = 'barber-row';
+    const r     = Math.round(Number(b.rating_avg ?? 0));
+    const stars = '★'.repeat(r) + '☆'.repeat(5 - r);
+    const aberto = b.is_open;
 
-      const avatar = document.createElement('div');
-      avatar.className = 'avatar gold';
-      avatar.textContent = '💈';
+    card.innerHTML = `
+      ${b.logo_path ? `<img class="fav-card__img" src="${b.logo_path}" alt="${b.name}" loading="lazy">` : ''}
+      <div class="fav-card__overlay">
+        <div class="fav-card__badge-row">
+          <span class="badge${aberto ? '' : ' closed'}">${aberto ? 'Aberto' : 'Fechado'}</span>
+          <span class="fav-card__stars">${stars}</span>
+        </div>
+        <p class="fav-card__nome">${b.name ?? ''}</p>
+        <p class="fav-card__addr">${b.address ?? ''}</p>
+        <div class="fav-card__footer">
+          <span></span>
+          <button class="fav-card__btn" data-action="agendar" data-barbershop="${b.id}">Agendar</button>
+        </div>
+      </div>`;
 
-      const info = document.createElement('div');
-      info.className = 'barber-info';
+    return card;
+  }
 
-      const nome = document.createElement('p');
-      nome.className   = 'barber-name';
-      nome.textContent = b.name;
+  // ── Barbeiros ─────────────────────────────────────────────
 
-      const sub = document.createElement('p');
-      sub.className   = 'barber-sub';
-      sub.textContent = b.address ?? '';
+  #renderBarbeiros(lista) {
+    if (!this.#barbeirosEl) return;
+    if (!lista.length) { this.#renderVazioBarbeiros(); return; }
 
-      const stars = document.createElement('div');
-      stars.className   = 'stars';
-      const r = Number(b.rating_avg ?? 0);
-      stars.textContent = '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
+    this.#barbeirosEl.innerHTML = '';
+    lista.forEach(p => this.#barbeirosEl.appendChild(this.#criarBarbeiroRow(p)));
+  }
 
-      info.appendChild(nome);
-      info.appendChild(sub);
-      info.appendChild(stars);
+  #renderVazioBarbeiros() {
+    if (!this.#barbeirosEl) return;
+    this.#barbeirosEl.innerHTML = `
+      <div class="barber-row" style="opacity:.55;pointer-events:none;">
+        <div class="avatar gold">✂️</div>
+        <div class="barber-info">
+          <p class="barber-name">Nenhum barbeiro favorito</p>
+          <p class="barber-sub">Favorite barbeiros durante o agendamento</p>
+        </div>
+      </div>`;
+  }
 
-      const meta = document.createElement('div');
-      meta.className = 'barber-meta';
+  /** Cria um barber-row para um profissional favorito. */
+  #criarBarbeiroRow(p) {
+    const perfil  = p.profiles ?? {};
+    const nome    = perfil.full_name ?? 'Barbeiro';
+    const avatar  = perfil.avatar_url ?? p.avatar_path ?? '/shared/img/icones-perfil.png';
+    const r       = Math.round(Number(p.rating_avg ?? 0));
+    const stars   = '★'.repeat(r) + '☆'.repeat(5 - r);
+    const specs   = (p.specialties ?? []).slice(0, 2).join(' · ');
 
-      const badge = document.createElement('span');
-      badge.className   = b.is_open ? 'badge' : 'badge closed';
-      badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+    const row = document.createElement('div');
+    row.className   = 'barber-row';
+    row.dataset.id  = p.id;
 
-      const btn = document.createElement('button');
-      btn.className        = 'btn btn-gold btn-sm';
-      btn.textContent      = 'Agendar';
-      btn.dataset.action   = 'agendar';
+    row.innerHTML = `
+      <div class="avatar gold">
+        <img src="${avatar}" alt="${nome}" onerror="this.outerHTML='✂️'" loading="lazy">
+      </div>
+      <div class="barber-info">
+        <p class="barber-name">${nome}</p>
+        ${specs ? `<p class="barber-sub">${specs}</p>` : ''}
+        <div class="stars" style="margin-top:3px;">${stars}</div>
+      </div>
+      <div class="barber-meta">
+        <button class="btn btn-gold btn-sm" data-action="agendar" data-professional="${p.id}">Agendar</button>
+      </div>`;
 
-      meta.appendChild(badge);
-      meta.appendChild(btn);
-
-      row.appendChild(avatar);
-      row.appendChild(info);
-      row.appendChild(meta);
-
-      this.#listaEl.appendChild(row);
-    });
+    return row;
   }
 }
