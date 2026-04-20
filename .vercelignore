@@ -1,0 +1,48 @@
+# .vercelignore — BarberFlow
+# ──────────────────────────────────────────────────────────────
+# A Vercel só precisa de: apps/, shared/, .well-known/, vercel.json
+# Tudo abaixo é excluído do bundle de deploy (não sobe para produção).
+# ──────────────────────────────────────────────────────────────
+
+# Testes automatizados
+tests/
+
+# Scripts de utilitários (geração de ícones, coloração de logo, etc.)
+scripts/
+
+# Backend Supabase (migrations, Edge Functions, config local)
+supabase/
+
+# CI/CD e instruções do Copilot
+.github/
+
+# Dependências Node.js (não necessárias em deploy estático)
+node_modules/
+package.json
+package-lock.json
+
+# Servidor de desenvolvimento local
+server.js
+
+# Documentação e relatórios
+*.md
+escopoBebeFlow.md
+relatorioBarbeFlow.md
+
+# Exemplos de variáveis de ambiente
+.env.example
+.env*
+
+# Arquivos de rota legados na raiz
+cliente.html
+profissional.html
+redireciona
+push('termos-legais')
+
+# Editores e sistemas operacionais
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

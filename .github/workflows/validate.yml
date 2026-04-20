@@ -141,7 +141,28 @@ jobs:
           echo "Lint SQL concluído."
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 3: Validar Edge Functions TypeScript
+  # JOB 3: Testes automatizados (node:test nativo — sem deps extras)
+  # Roda ANTES do deploy. Falha aqui bloqueia o deploy-supabase.yml.
+  # ─────────────────────────────────────────────────────────────
+  test:
+    name: Run automated tests
+    runs-on: ubuntu-latest
+    needs: validate-structure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run tests
+        run: node --test tests/**/*.test.js
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 4: Validar Edge Functions TypeScript
   # ─────────────────────────────────────────────────────────────
   lint-functions:
     name: Lint Edge Functions

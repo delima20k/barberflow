@@ -1,6 +1,7 @@
 # ==============================================================
 # GitHub Actions: deploy-supabase.yml
-# Gatilho: push na branch main (produção)
+# Gatilho: após o workflow "Validate BarberFlow" concluir com
+#          sucesso na branch main — garante que testes passaram.
 # Objetivo: aplicar migrations e deploy das Edge Functions
 # Secrets obrigatórios (Settings > Secrets > Actions):
 #   - SUPABASE_ACCESS_TOKEN
@@ -11,14 +12,21 @@
 name: Deploy Supabase (main)
 
 on:
-  push:
+  workflow_run:
+    workflows: ['Validate BarberFlow']
+    types: [completed]
     branches: [main]
 
 jobs:
   deploy:
     name: Deploy migrations + functions
     runs-on: ubuntu-latest
-    environment: production   # opcional — cria aprovação manual no GitHub
+    environment: production
+
+    # Só executa se o workflow de validação (testes + lint) passou.
+    # Se os testes falharem, este job é cancelado automaticamente.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
 
     steps:
       - name: Checkout
