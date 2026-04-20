@@ -360,6 +360,15 @@ class BarbershopService {
     btn.setAttribute('aria-pressed', String(!eraFav));
     btn.title = eraFav ? 'Adicionar aos favoritos' : 'Remover dos favoritos';
 
+    // Feedback visual imediato via toast
+    if (typeof NotificationService !== 'undefined') {
+      if (eraFav) {
+        NotificationService.mostrarToast('Favorito removido', '', NotificationService.TIPOS.SISTEMA);
+      } else {
+        NotificationService.mostrarToast('Salvo em Favoritas ⭐', 'Barbearia adicionada aos seus favoritos', NotificationService.TIPOS.BARBEARIA);
+      }
+    }
+
     BarbershopService.#persistirInteracao(barbershopId, 'favorite', eraFav ? 'remove' : 'add');
   }
 

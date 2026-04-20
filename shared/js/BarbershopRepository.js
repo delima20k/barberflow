@@ -230,8 +230,12 @@ class BarbershopRepository {
     const rType = InputValidator.enumValido(type, ['like', 'dislike', 'favorite']);
     if (!rType.ok) throw new TypeError(`[BarbershopRepository] type: ${rType.msg}`);
 
+    // Upsert garante idempotência: não falha se o registro já existir
     const { error } = await SupabaseService.barbershopInteractions()
-      .insert({ barbershop_id: barbershopId, user_id: userId, type });
+      .upsert(
+        { barbershop_id: barbershopId, user_id: userId, type },
+        { onConflict: 'barbershop_id,user_id,type', ignoreDuplicates: true }
+      );
     if (error) throw error;
   }
 

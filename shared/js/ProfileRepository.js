@@ -112,13 +112,24 @@ class ProfileRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
-    const { data, error } = await SupabaseService.barbershopInteractions()
-      .select('barbershop_id, barbershops(id, name, address, is_open, rating_avg, logo_path)')
+    // Etapa 1: buscar IDs das barbearias favoritas do usuário
+    const { data: ints, error: e1 } = await SupabaseService.barbershopInteractions()
+      .select('barbershop_id')
       .eq('user_id', userId)
       .eq('type', 'favorite');
 
-    if (error) throw error;
-    return (data ?? []).map(r => r.barbershops).filter(Boolean);
+    if (e1) throw e1;
+
+    const ids = (ints ?? []).map(r => r.barbershop_id).filter(Boolean);
+    if (!ids.length) return [];
+
+    // Etapa 2: buscar dados reais das barbearias
+    const { data, error: e2 } = await SupabaseService.barbershops()
+      .select('id, name, address, is_open, rating_avg, logo_path')
+      .in('id', ids);
+
+    if (e2) throw e2;
+    return data ?? [];
   }
 
   /**
