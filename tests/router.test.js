@@ -1,48 +1,14 @@
 'use strict';
+const { suite, test } = require('node:test');
+const assert          = require('node:assert/strict');
+const vm              = require('node:vm');
+const { fn, carregar } = require('./_helpers.js');
 
-/**
- * tests/router.test.js
- *
- * Testes automatizados para o Router SPA base.
- * Cobre: nav(), push(), voltar(), _permitirNavAuth()
- *
- * Runner: Jest — npm test
- *
- * Estratégia de isolamento:
- *   Cada teste cria um contexto VM isolado via criarRouter().
- *   Todos os serviços (view, logger, animation) são injetados como mocks Jest.
- *   AppState é stubado para controle direto do estado de auth.
- *   O DOM nunca é acessado — a classe NavigationViewService não é carregada.
- *
- * Convenção:
- *   criarRouter() sempre zera os contadores dos mocks após o constructor.
- *   Assertivas refletem apenas o que aconteceu durante o método testado.
- */
-
-const vm   = require('node:vm');
-const fs   = require('node:fs');
-const path = require('node:path');
-
-const ROOT = path.resolve(__dirname, '..');
-
-// ─── Infraestrutura de isolamento ────────────────────────────────────────────
-
-/**
- * Carrega um arquivo JS plain-class no contexto VM informado e exporta
- * as classes/constantes declaradas em topo para globalThis do sandbox.
- */
-function carregar(sandbox, relPath) {
-  const raw   = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
-  const nomes = [...raw.matchAll(/^(?:class|const)\s+([A-Z][A-Za-z0-9_]*)/gm)].map(m => m[1]);
-  const exp   = nomes.map(n => `if(typeof ${n}!=='undefined') globalThis.${n}=${n};`).join('\n');
-  vm.runInContext(`${raw}\n${exp}`, sandbox);
-}
-
-/** Retorna um elemento de tela stub com jest.fn() no classList. */
+/** Retorna um elemento de tela stub com fn() no classList. */
 function criarTelaEl(nome) {
   return {
     id:            `tela-${nome}`,
-    classList:     { add: jest.fn(), remove: jest.fn(), toggle: jest.fn() },
+    classList:     { add: fn(), remove: fn(), toggle: fn() },
     style:         {},
     getAnimations: () => [],
   };
@@ -52,9 +18,9 @@ function criarTelaEl(nome) {
  * Fábrica principal.
  * Cria um sandbox VM com Router carregado e retorna:
  *   router    — instância concreta de TestRouter (extends Router)
- *   viewMock  — mock de NavigationViewService com jest.fn()
- *   loggerMock— mock de LoggerService com jest.fn()
- *   animMock  — mock de AnimationService com jest.fn()
+ *   viewMock  — mock de NavigationViewService com fn()
+ *   loggerMock— mock de LoggerService com fn()
+ *   animMock  — mock de AnimationService com fn()
  *   telaEls   — Map<nome, HTMLElement-stub> para verificar args de _animar()
  *   authState — { value: boolean } — mutável dentro dos testes
  *
@@ -69,26 +35,26 @@ function criarRouter({ logado = false, telaInicial = 'inicio' } = {}) {
 
   // Mock da camada de apresentação (NavigationViewService)
   const viewMock = {
-    init:                        jest.fn(),
-    removerBootLock:             jest.fn(),
-    resetarParaHome:             jest.fn(),
-    sincronizarUI:               jest.fn(),
-    exibirToastLoginObrigatorio: jest.fn(),
-    bindLoginEvent:              jest.fn(),
-    telaEl:                      jest.fn(nome => telaEls.get(nome) ?? null),
+    init:                        fn(),
+    removerBootLock:             fn(),
+    resetarParaHome:             fn(),
+    sincronizarUI:               fn(),
+    exibirToastLoginObrigatorio: fn(),
+    bindLoginEvent:              fn(),
+    telaEl:                      fn(nome => telaEls.get(nome) ?? null),
   };
 
-  const loggerMock = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
-  const animMock   = { animar: jest.fn() };
+  const loggerMock = { info: fn(), warn: fn(), error: fn() };
+  const animMock   = { animar: fn() };
 
   // Estado de auth mutável — permite virar logado/deslogado dentro de um teste
   const authState = { value: logado };
 
   // Stub de AppState — Router usa typeof + .get('isLogado')
   const appStateMock = {
-    get:    jest.fn(key => key === 'isLogado' ? authState.value : null),
-    onAuth: jest.fn(),
-    set:    jest.fn(),
+    get:    fn(key => key === 'isLogado' ? authState.value : null),
+    onAuth: fn(),
+    set:    fn(),
   };
 
   // Sandbox VM com stubs mínimos — sem DOM real
@@ -97,9 +63,9 @@ function criarRouter({ logado = false, telaInicial = 'inicio' } = {}) {
     setTimeout:   () => {},
     clearTimeout: () => {},
     // window.addEventListener é chamado no constructor (pageshow)
-    window:   { addEventListener: jest.fn(), __routerClickBound: false },
+    window:   { addEventListener: fn(), __routerClickBound: false },
     // document.addEventListener é chamado em _bindDataAttributes
-    document: { addEventListener: jest.fn() },
+    document: { addEventListener: fn() },
     AppState: appStateMock,
   });
 
@@ -136,25 +102,23 @@ function criarRouter({ logado = false, telaInicial = 'inicio' } = {}) {
 // BLOCO 1 — _permitirNavAuth()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Router — _permitirNavAuth()', () => {
+suite('Router — _permitirNavAuth()', () => {
 
   const TELAS_PUBLICAS = ['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques'];
 
-  test.each(TELAS_PUBLICAS)(
-    'tela pública "%s" → true para visitante (sem auth)',
-    (tela) => {
+  for (const tela of TELAS_PUBLICAS) {
+    test(`tela pública "${tela}" → true para visitante (sem auth)`, () => {
       const { router } = criarRouter({ logado: false, telaInicial: 'login' });
-      expect(router._permitirNavAuth(tela)).toBe(true);
-    }
-  );
+      assert.strictEqual(router._permitirNavAuth(tela), true);
+    });
+  }
 
-  test.each(TELAS_PUBLICAS)(
-    'tela pública "%s" → true para usuário logado',
-    (tela) => {
+  for (const tela of TELAS_PUBLICAS) {
+    test(`tela pública "${tela}" → true para usuário logado`, () => {
       const { router } = criarRouter({ logado: true, telaInicial: 'login' });
-      expect(router._permitirNavAuth(tela)).toBe(true);
-    }
-  );
+      assert.strictEqual(router._permitirNavAuth(tela), true);
+    });
+  }
 
   test('tela privada + visitante → false + toast exibido', () => {
     // telaInicial='login' evita que _alertarLoginObrigatorio chame push('login')
@@ -163,8 +127,8 @@ describe('Router — _permitirNavAuth()', () => {
 
     const resultado = router._permitirNavAuth('perfil');
 
-    expect(resultado).toBe(false);
-    expect(viewMock.exibirToastLoginObrigatorio).toHaveBeenCalledTimes(1);
+    assert.strictEqual(resultado, false);
+    assert.strictEqual(viewMock.exibirToastLoginObrigatorio.calls.length, 1);
   });
 
   test('tela privada + visitante → _alertarLoginObrigatorio não chama push quando já em "login"', () => {
@@ -173,8 +137,8 @@ describe('Router — _permitirNavAuth()', () => {
     router._permitirNavAuth('perfil');
 
     // push('login') não é chamado porque _telaAtual já é 'login'
-    expect(animMock.animar).not.toHaveBeenCalled();
-    expect(router._telaAtual).toBe('login');
+    assert.strictEqual(animMock.animar.calls.length, 0);
+    assert.strictEqual(router._telaAtual, 'login');
   });
 
   test('tela privada + logado → true, sem toast', () => {
@@ -182,8 +146,8 @@ describe('Router — _permitirNavAuth()', () => {
 
     const resultado = router._permitirNavAuth('perfil');
 
-    expect(resultado).toBe(true);
-    expect(viewMock.exibirToastLoginObrigatorio).not.toHaveBeenCalled();
+    assert.strictEqual(resultado, true);
+    assert.strictEqual(viewMock.exibirToastLoginObrigatorio.calls.length, 0);
   });
 
   test('tela privada + visitante → push("login") é chamado (side-effect via _alertarLoginObrigatorio)', () => {
@@ -193,10 +157,10 @@ describe('Router — _permitirNavAuth()', () => {
     router._permitirNavAuth('perfil');
 
     // Toast exibido E redireciona para login
-    expect(viewMock.exibirToastLoginObrigatorio).toHaveBeenCalledTimes(1);
-    expect(router._telaAtual).toBe('login');
+    assert.strictEqual(viewMock.exibirToastLoginObrigatorio.calls.length, 1);
+    assert.strictEqual(router._telaAtual, 'login');
     // Animação de push('login') disparada
-    expect(animMock.animar).toHaveBeenCalledTimes(1);
+    assert.strictEqual(animMock.animar.calls.length, 1);
   });
 
 });
@@ -205,16 +169,16 @@ describe('Router — _permitirNavAuth()', () => {
 // BLOCO 2 — nav()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Router — nav()', () => {
+suite('Router — nav()', () => {
 
   test('nav("inicio") quando já em "inicio" → no-op', () => {
     const { router, viewMock, animMock } = criarRouter({ telaInicial: 'inicio' });
 
     router.nav('inicio');
 
-    expect(router._telaAtual).toBe('inicio');
-    expect(viewMock.sincronizarUI).not.toHaveBeenCalled();
-    expect(animMock.animar).not.toHaveBeenCalled();
+    assert.strictEqual(router._telaAtual, 'inicio');
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 0);
+    assert.strictEqual(animMock.animar.calls.length, 0);
   });
 
   test('nav("perfil") quando em "perfil" → toggle: vai para "inicio"', () => {
@@ -222,14 +186,14 @@ describe('Router — nav()', () => {
 
     router.nav('perfil');
 
-    expect(router._telaAtual).toBe('inicio');
-    expect(router._historico).toEqual([]);
+    assert.strictEqual(router._telaAtual, 'inicio');
+    assert.deepStrictEqual(router._historico, []);
     // _atualizarUI('inicio') foi chamado via sincronizarUI
-    expect(viewMock.sincronizarUI).toHaveBeenCalledTimes(1);
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 1);
     // Aba sai pela esquerda — home está por baixo
-    expect(animMock.animar).toHaveBeenCalledWith(
+    assert.deepStrictEqual(animMock.animar.calls[animMock.animar.calls.length-1], [
       telaEls.get('perfil'), null, 'saindo', 'ativa'
-    );
+    ]);
   });
 
   test('nav para tela privada como visitante → bloqueado, redireciona para "login"', () => {
@@ -237,8 +201,8 @@ describe('Router — nav()', () => {
 
     router.nav('perfil');
 
-    expect(router._telaAtual).toBe('login');   // redirecionado
-    expect(viewMock.exibirToastLoginObrigatorio).toHaveBeenCalledTimes(1);
+    assert.strictEqual(router._telaAtual, 'login');   // redirecionado
+    assert.strictEqual(viewMock.exibirToastLoginObrigatorio.calls.length, 1);
   });
 
   test('nav para tela inexistente no DOM → logger.warn, _telaAtual não muda', () => {
@@ -246,11 +210,9 @@ describe('Router — nav()', () => {
 
     router.nav('tela-nao-existe-no-dom');
 
-    expect(router._telaAtual).toBe('inicio');
-    expect(loggerMock.warn).toHaveBeenCalledTimes(1);
-    expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining('tela-nao-existe-no-dom')
-    );
+    assert.strictEqual(router._telaAtual, 'inicio');
+    assert.strictEqual(loggerMock.warn.calls.length, 1);
+    assert.ok(String(loggerMock.warn.calls[0][0]).includes('tela-nao-existe-no-dom'));
   });
 
   test('nav("perfil") logado de "inicio" → _telaAtual="perfil", historico=["inicio"]', () => {
@@ -258,8 +220,8 @@ describe('Router — nav()', () => {
 
     router.nav('perfil');
 
-    expect(router._telaAtual).toBe('perfil');
-    expect(router._historico).toEqual(['inicio']);
+    assert.strictEqual(router._telaAtual, 'perfil');
+    assert.deepStrictEqual(router._historico, ['inicio']);
   });
 
   test('nav("perfil") de "inicio" → animação não-carrossel: home não sai', () => {
@@ -268,9 +230,9 @@ describe('Router — nav()', () => {
     router.nav('perfil');
 
     // carrossel = false (veio de 'inicio') → saindo=null, classeEntrada='ativa'
-    expect(animMock.animar).toHaveBeenCalledWith(
+    assert.deepStrictEqual(animMock.animar.calls[animMock.animar.calls.length-1], [
       null, telaEls.get('perfil'), 'saindo', 'ativa'
-    );
+    ]);
   });
 
   test('nav("mensagens") de "perfil" → animação carrossel', () => {
@@ -279,9 +241,9 @@ describe('Router — nav()', () => {
     router.nav('mensagens');
 
     // carrossel = true (telaAnterior ≠ 'inicio') → saindo-direita + entrando-lento
-    expect(animMock.animar).toHaveBeenCalledWith(
+    assert.deepStrictEqual(animMock.animar.calls[animMock.animar.calls.length-1], [
       telaEls.get('perfil'), telaEls.get('mensagens'), 'saindo-direita', 'entrando-lento'
-    );
+    ]);
   });
 
   test('nav bem-sucedida → sincronizarUI chamado com a nova tela', () => {
@@ -289,9 +251,9 @@ describe('Router — nav()', () => {
 
     router.nav('perfil');
 
-    expect(viewMock.sincronizarUI).toHaveBeenCalledTimes(1);
-    const [tela] = viewMock.sincronizarUI.mock.calls[0];
-    expect(tela).toBe('perfil');
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 1);
+    const [tela] = viewMock.sincronizarUI.calls[0];
+    assert.strictEqual(tela, 'perfil');
   });
 
 });
@@ -300,16 +262,16 @@ describe('Router — nav()', () => {
 // BLOCO 3 — push()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Router — push()', () => {
+suite('Router — push()', () => {
 
   test('push para mesma tela → no-op', () => {
     const { router, viewMock, animMock } = criarRouter({ telaInicial: 'login' });
 
     router.push('login');
 
-    expect(router._telaAtual).toBe('login');
-    expect(viewMock.sincronizarUI).not.toHaveBeenCalled();
-    expect(animMock.animar).not.toHaveBeenCalled();
+    assert.strictEqual(router._telaAtual, 'login');
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 0);
+    assert.strictEqual(animMock.animar.calls.length, 0);
   });
 
   test('push para tela privada como visitante → bloqueado', () => {
@@ -317,8 +279,8 @@ describe('Router — push()', () => {
 
     router.push('perfil');
 
-    expect(router._telaAtual).toBe('login');    // redirecionado
-    expect(viewMock.exibirToastLoginObrigatorio).toHaveBeenCalledTimes(1);
+    assert.strictEqual(router._telaAtual, 'login');    // redirecionado
+    assert.strictEqual(viewMock.exibirToastLoginObrigatorio.calls.length, 1);
   });
 
   test('push para tela inexistente → logger.warn, _telaAtual não muda', () => {
@@ -326,10 +288,8 @@ describe('Router — push()', () => {
 
     router.push('tela-que-nao-existe');
 
-    expect(router._telaAtual).toBe('login');
-    expect(loggerMock.warn).toHaveBeenCalledWith(
-      expect.stringContaining('tela-que-nao-existe')
-    );
+    assert.strictEqual(router._telaAtual, 'login');
+    assert.ok(String(loggerMock.warn.calls[0][0]).includes('tela-que-nao-existe'));
   });
 
   test('push("login") de "inicio" → _telaAtual="login", historico=["inicio"]', () => {
@@ -337,8 +297,8 @@ describe('Router — push()', () => {
 
     router.push('login');
 
-    expect(router._telaAtual).toBe('login');
-    expect(router._historico).toEqual(['inicio']);
+    assert.strictEqual(router._telaAtual, 'login');
+    assert.deepStrictEqual(router._historico, ['inicio']);
   });
 
   test('push("login") de "inicio" → animação: home não sai (null), login entra', () => {
@@ -348,9 +308,9 @@ describe('Router — push()', () => {
 
     // push sempre usa saindo-direita + entrando-lento
     // telaAnterior='inicio' → atual=null
-    expect(animMock.animar).toHaveBeenCalledWith(
+    assert.deepStrictEqual(animMock.animar.calls[animMock.animar.calls.length-1], [
       null, telaEls.get('login'), 'saindo-direita', 'entrando-lento'
-    );
+    ]);
   });
 
   test('push("cadastro") de "login" → animação: login sai DIREITA, cadastro entra ESQUERDA', () => {
@@ -358,9 +318,9 @@ describe('Router — push()', () => {
 
     router.push('cadastro');
 
-    expect(animMock.animar).toHaveBeenCalledWith(
+    assert.deepStrictEqual(animMock.animar.calls[animMock.animar.calls.length-1], [
       telaEls.get('login'), telaEls.get('cadastro'), 'saindo-direita', 'entrando-lento'
-    );
+    ]);
   });
 
   test('push bem-sucedido → sincronizarUI chamado com a tela destino', () => {
@@ -368,9 +328,9 @@ describe('Router — push()', () => {
 
     router.push('cadastro');
 
-    expect(viewMock.sincronizarUI).toHaveBeenCalledTimes(1);
-    const [tela] = viewMock.sincronizarUI.mock.calls[0];
-    expect(tela).toBe('cadastro');
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 1);
+    const [tela] = viewMock.sincronizarUI.calls[0];
+    assert.strictEqual(tela, 'cadastro');
   });
 
 });
@@ -379,16 +339,16 @@ describe('Router — push()', () => {
 // BLOCO 4 — voltar()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Router — voltar()', () => {
+suite('Router — voltar()', () => {
 
   test('voltar() de "inicio" → no-op', () => {
     const { router, viewMock, animMock } = criarRouter({ telaInicial: 'inicio' });
 
     router.voltar();
 
-    expect(router._telaAtual).toBe('inicio');
-    expect(viewMock.sincronizarUI).not.toHaveBeenCalled();
-    expect(animMock.animar).not.toHaveBeenCalled();
+    assert.strictEqual(router._telaAtual, 'inicio');
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 0);
+    assert.strictEqual(animMock.animar.calls.length, 0);
   });
 
   test('voltar() de "perfil" → _telaAtual="inicio", historico limpo', () => {
@@ -397,8 +357,8 @@ describe('Router — voltar()', () => {
 
     router.voltar();
 
-    expect(router._telaAtual).toBe('inicio');
-    expect(router._historico).toEqual([]);
+    assert.strictEqual(router._telaAtual, 'inicio');
+    assert.deepStrictEqual(router._historico, []);
   });
 
   test('voltar() de "perfil" → animação: perfil sai ESQUERDA, home já está por baixo', () => {
@@ -407,9 +367,9 @@ describe('Router — voltar()', () => {
     router.voltar();
 
     // home não entra (null) — já está por baixo
-    expect(animMock.animar).toHaveBeenCalledWith(
+    assert.deepStrictEqual(animMock.animar.calls[animMock.animar.calls.length-1], [
       telaEls.get('perfil'), null, 'saindo', 'ativa'
-    );
+    ]);
   });
 
   test('voltar() → sincronizarUI chamado com "inicio"', () => {
@@ -417,9 +377,9 @@ describe('Router — voltar()', () => {
 
     router.voltar();
 
-    expect(viewMock.sincronizarUI).toHaveBeenCalledTimes(1);
-    const [tela] = viewMock.sincronizarUI.mock.calls[0];
-    expect(tela).toBe('inicio');
+    assert.strictEqual(viewMock.sincronizarUI.calls.length, 1);
+    const [tela] = viewMock.sincronizarUI.calls[0];
+    assert.strictEqual(tela, 'inicio');
   });
 
   test('voltar() de "perfil" → animMock chamado exatamente uma vez', () => {
@@ -427,7 +387,7 @@ describe('Router — voltar()', () => {
 
     router.voltar();
 
-    expect(animMock.animar).toHaveBeenCalledTimes(1);
+    assert.strictEqual(animMock.animar.calls.length, 1);
   });
 
 });

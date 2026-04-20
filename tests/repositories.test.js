@@ -1,93 +1,30 @@
 'use strict';
-
-/**
- * tests/repositories.test.js
- *
- * Testes de segurança para a camada de repositórios.
- *
- * Verifica que os repositórios:
- *   1. Validam UUIDs antes de executar qualquer query (rejeita SQL injection como ID)
- *   2. Validam enums de status (rejeita strings não permitidas)
- *   3. Aplicam allowlist de campos nos payloads de escrita (previne mass assignment)
- *   4. Sanitizam campos de texto livre (remove null-bytes, enforce comprimento)
- *   5. Validam coordenadas geográficas (previne NaN/Infinity como lat/lng)
- *   6. Demonstram que strings SQL-like em campos de texto são armazenadas com
- *      segurança via queries parametrizadas (PostgREST — sem interpolação SQL)
- *
- * Runner: Jest — npm test
- *
- * Estratégia de isolamento:
- *   Cada fábrica cria um sandbox VM com SupabaseService mockado e
- *   InputValidator carregado da fonte real — sem estado compartilhado entre testes.
- */
-
-const vm   = require('node:vm');
-const fs   = require('node:fs');
-const path = require('node:path');
-
-const ROOT = path.resolve(__dirname, '..');
-
-// UUIDs válidos para uso nos testes
-const UUID_CLIENTE   = '00000000-0000-1000-8000-000000000001';
-const UUID_PROF      = '00000000-0000-1000-8000-000000000002';
-const UUID_SHOP      = '00000000-0000-1000-8000-000000000003';
-const UUID_SERVICE   = '00000000-0000-1000-8000-000000000004';
-const UUID_ENTRY     = '00000000-0000-1000-8000-000000000005';
+const { suite, test } = require('node:test');
+const assert          = require('node:assert/strict');
+const vm              = require('node:vm');
+const { fn, carregar } = require('./_helpers.js');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INFRAESTRUTURA COMPARTILHADA
+// HELPER: Query builder fluente (substitui fn() chain)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Cria um query builder mockado que cobre todos os padrões de chaining
- * usados pelos repositórios. Cada método retorna o mesmo objeto (chain) e
- * os terminais (single, maybeSingle) resolvem para `result`.
- * O objeto chain é também thenable — `await chain` resolve para `result`.
- */
-function criarQueryBuilder(result = { data: null, error: null }) {
-  const promise = Promise.resolve(result);
-
+function criarQueryBuilder(result) {
   const chain = {
-    // Torna o chain diretamente awaitable
-    then:        (res, rej) => promise.then(res, rej),
-    catch:       rej        => promise.catch(rej),
-    // Terminais com resultado explícito
-    single:      jest.fn().mockResolvedValue(result),
-    maybeSingle: jest.fn().mockResolvedValue(result),
-    // Métodos chainable
-    select:      jest.fn(),
-    eq:          jest.fn(),
-    gte:         jest.fn(),
-    lte:         jest.fn(),
-    in:          jest.fn(),
-    neq:         jest.fn(),
-    order:       jest.fn(),
-    limit:       jest.fn(),
+    single:  fn().mockResolvedValue(result),
+    select:  fn(), insert: fn(), update: fn(), delete: fn(),
+    eq:      fn(), neq:    fn(), gt:     fn(), lt:      fn(),
+    gte:     fn(), lte:    fn(), in:     fn(), is:      fn(),
+    order:   fn(), limit:  fn(), range:  fn(), filter:  fn(),
+    match:   fn(), not:    fn(), or:     fn(), returns: fn(),
+    upsert:  fn(), maybeSingle: fn().mockResolvedValue(result),
   };
-
-  // Todos os métodos chainable retornam o mesmo objeto chain
-  ['select', 'eq', 'gte', 'lte', 'in', 'neq', 'order', 'limit'].forEach(m => {
-    chain[m].mockReturnValue(chain);
-  });
-
-  const builder = {
-    select: jest.fn().mockReturnValue(chain),
-    insert: jest.fn().mockReturnValue(chain),
-    update: jest.fn().mockReturnValue(chain),
-    delete: jest.fn().mockReturnValue(chain),
-    upsert: jest.fn().mockResolvedValue(result),
-    _chain: chain,
-  };
-
-  return builder;
-}
-
-/** Carrega um arquivo JS no sandbox VM e exporta todos os símbolos top-level. */
-function carregar(sandbox, relPath) {
-  const raw   = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
-  const nomes = [...raw.matchAll(/^(?:class|const)\s+([A-Z][A-Za-z0-9_]*)/gm)].map(m => m[1]);
-  const exp   = nomes.map(n => `if(typeof ${n}!=='undefined') globalThis.${n}=${n};`).join('\n');
-  vm.runInContext(`${raw}\n${exp}`, sandbox);
+  const chainMethods = [
+    'select','insert','update','delete','eq','neq','gt','lt',
+    'gte','lte','in','is','order','limit','range','filter',
+    'match','not','or','returns','upsert',
+  ];
+  for (const m of chainMethods) chain[m].mockReturnValue(chain);
+  return chain;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,7 +34,7 @@ function carregar(sandbox, relPath) {
 function criarAppointmentRepo({ data = null, error = null } = {}) {
   const result         = { data, error };
   const apptBuilder    = criarQueryBuilder(result);
-  const supabaseMock   = { appointments: jest.fn(() => apptBuilder) };
+  const supabaseMock   = { appointments: fn(() => apptBuilder) };
 
   const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
   carregar(sandbox, 'shared/js/InputValidator.js');
@@ -110,12 +47,12 @@ function criarProfileRepo({ data = null, error = null } = {}) {
   const result        = { data, error };
   const profBuilder   = criarQueryBuilder(result);
   const favBuilder    = criarQueryBuilder(result);
-  const storeMock     = { upload: jest.fn().mockResolvedValue({ error: null }) };
+  const storeMock     = { upload: fn().mockResolvedValue({ error: null }) };
   const supabaseMock  = {
-    profiles:    jest.fn(() => profBuilder),
-    favorites:   jest.fn(() => favBuilder),
-    storageAvatars: jest.fn(() => storeMock),
-    getAvatarUrl:   jest.fn(() => 'https://cdn.example.com/avatar.jpg'),
+    profiles:    fn(() => profBuilder),
+    favorites:   fn(() => favBuilder),
+    storageAvatars: fn(() => storeMock),
+    getAvatarUrl:   fn(() => 'https://cdn.example.com/avatar.jpg'),
   };
 
   const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
@@ -130,9 +67,9 @@ function criarQueueRepo({ data = null, error = null } = {}) {
   const queueBuilder = criarQueryBuilder(result);
   const chairBuilder = criarQueryBuilder(result);
   const supabaseMock = {
-    queueEntries: jest.fn(() => queueBuilder),
-    chairs:       jest.fn(() => chairBuilder),
-    channel:      jest.fn(() => ({ on: jest.fn().mockReturnThis(), subscribe: jest.fn() })),
+    queueEntries: fn(() => queueBuilder),
+    chairs:       fn(() => chairBuilder),
+    channel:      fn(() => ({ on: fn().mockReturnThis(), subscribe: fn() })),
   };
 
   const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
@@ -148,9 +85,9 @@ function criarBarbershopRepo({ data = null, error = null } = {}) {
   const interBuilder  = criarQueryBuilder(result);
   const pubBuilder    = criarQueryBuilder(result);
   const supabaseMock  = {
-    barbershops:            jest.fn(() => shopBuilder),
-    barbershopInteractions: jest.fn(() => interBuilder),
-    profilesPublic:         jest.fn(() => pubBuilder),
+    barbershops:            fn(() => shopBuilder),
+    barbershopInteractions: fn(() => interBuilder),
+    profilesPublic:         fn(() => pubBuilder),
   };
 
   const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
@@ -163,12 +100,12 @@ function criarBarbershopRepo({ data = null, error = null } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // AppointmentRepository
 // ─────────────────────────────────────────────────────────────────────────────
-describe('AppointmentRepository.updateStatus()', () => {
+suite('AppointmentRepository.updateStatus()', () => {
   test('executa update com UUID e status válidos', async () => {
     const { AppointmentRepository, apptBuilder } = criarAppointmentRepo({ data: { id: UUID_ENTRY, status: 'confirmed' } });
     const r = await AppointmentRepository.updateStatus(UUID_ENTRY, 'confirmed');
-    expect(r.status).toBe('confirmed');
-    expect(apptBuilder.update).toHaveBeenCalled();
+    assert.strictEqual(r.status, 'confirmed');
+    assert.ok(apptBuilder.update.calls.length > 0);
   });
 
   test('lança erro para SQL injection como id', async () => {
@@ -198,7 +135,7 @@ describe('AppointmentRepository.updateStatus()', () => {
   });
 });
 
-describe('AppointmentRepository.criar()', () => {
+suite('AppointmentRepository.criar()', () => {
   const payloadValido = () => ({
     client_id:       UUID_CLIENTE,
     professional_id: UUID_PROF,
@@ -213,8 +150,8 @@ describe('AppointmentRepository.criar()', () => {
   test('cria agendamento com payload válido', async () => {
     const { AppointmentRepository, apptBuilder } = criarAppointmentRepo({ data: { id: UUID_ENTRY } });
     const r = await AppointmentRepository.criar(payloadValido());
-    expect(r.id).toBe(UUID_ENTRY);
-    expect(apptBuilder.insert).toHaveBeenCalled();
+    assert.strictEqual(r.id, UUID_ENTRY);
+    assert.ok(apptBuilder.insert.calls.length > 0);
   });
 
   test('lança erro para client_id com SQL injection', async () => {
@@ -238,9 +175,9 @@ describe('AppointmentRepository.criar()', () => {
       role:     'admin',
       is_admin: true,
     });
-    const inserido = apptBuilder.insert.mock.calls[0][0];
-    expect(inserido).not.toHaveProperty('role');
-    expect(inserido).not.toHaveProperty('is_admin');
+    const inserido = apptBuilder.insert.calls[0][0];
+    assert.ok(!Object.prototype.hasOwnProperty.call(inserido, 'role'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(inserido, 'is_admin'));
   });
 
   test('lança erro para notes que excedem 500 caracteres', async () => {
@@ -255,26 +192,26 @@ describe('AppointmentRepository.criar()', () => {
     const { AppointmentRepository, apptBuilder } = criarAppointmentRepo({ data: { id: UUID_ENTRY } });
     const sqlLike = "'; DROP TABLE appointments; --";
     await AppointmentRepository.criar({ ...payloadValido(), notes: sqlLike });
-    const inserido = apptBuilder.insert.mock.calls[0][0];
-    expect(inserido.notes).toBe(sqlLike);
+    const inserido = apptBuilder.insert.calls[0][0];
+    assert.strictEqual(inserido.notes, sqlLike);
   });
 
   test('remove null-bytes das notas antes de inserir', async () => {
     const { AppointmentRepository, apptBuilder } = criarAppointmentRepo({ data: { id: UUID_ENTRY } });
     await AppointmentRepository.criar({ ...payloadValido(), notes: 'nota\x00maliciosa' });
-    const inserido = apptBuilder.insert.mock.calls[0][0];
-    expect(inserido.notes).not.toContain('\x00');
+    const inserido = apptBuilder.insert.calls[0][0];
+    assert.ok(!(inserido.notes).includes('\x00'));
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileRepository
 // ─────────────────────────────────────────────────────────────────────────────
-describe('ProfileRepository.update()', () => {
+suite('ProfileRepository.update()', () => {
   test('atualiza perfil com dados válidos', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo();
     await ProfileRepository.update(UUID_CLIENTE, { full_name: 'Carlos Silva' });
-    expect(profBuilder.update).toHaveBeenCalled();
+    assert.ok(profBuilder.update.calls.length > 0);
   });
 
   test('lança erro para userId com SQL injection', async () => {
@@ -292,16 +229,16 @@ describe('ProfileRepository.update()', () => {
   test('descarta campo "role" (mass assignment: tentativa de escalada de privilégio)', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo();
     await ProfileRepository.update(UUID_CLIENTE, { full_name: 'Carlos', role: 'admin' });
-    const atualizado = profBuilder.update.mock.calls[0][0];
-    expect(atualizado).not.toHaveProperty('role');
-    expect(atualizado).toHaveProperty('full_name', 'Carlos');
+    const atualizado = profBuilder.update.calls[0][0];
+    assert.ok(!Object.prototype.hasOwnProperty.call(atualizado, 'role'));
+    assert.strictEqual(atualizado['full_name'], 'Carlos');
   });
 
   test('descarta campo "is_active" para evitar desativação indevida via dados do usuário', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo();
     await ProfileRepository.update(UUID_CLIENTE, { full_name: 'Carlos', is_active: false });
-    const atualizado = profBuilder.update.mock.calls[0][0];
-    expect(atualizado).not.toHaveProperty('is_active');
+    const atualizado = profBuilder.update.calls[0][0];
+    assert.ok(!Object.prototype.hasOwnProperty.call(atualizado, 'is_active'));
   });
 
   test('lança erro para bio que excede 300 caracteres', async () => {
@@ -314,8 +251,8 @@ describe('ProfileRepository.update()', () => {
   test('remove null-bytes do campo bio', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo();
     await ProfileRepository.update(UUID_CLIENTE, { bio: 'bio\x00legal' });
-    const atualizado = profBuilder.update.mock.calls[0][0];
-    expect(atualizado.bio).not.toContain('\x00');
+    const atualizado = profBuilder.update.calls[0][0];
+    assert.ok(!(atualizado.bio).includes('\x00'));
   });
 
   test('lança erro quando todos os campos são bloqueados pela allowlist', async () => {
@@ -326,11 +263,11 @@ describe('ProfileRepository.update()', () => {
   });
 });
 
-describe('ProfileRepository.getById()', () => {
+suite('ProfileRepository.getById()', () => {
   test('aceita UUID válido', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo({ data: { id: UUID_CLIENTE } });
     const r = await ProfileRepository.getById(UUID_CLIENTE);
-    expect(r.id).toBe(UUID_CLIENTE);
+    assert.strictEqual(r.id, UUID_CLIENTE);
   });
 
   test('lança erro para UUID com SQL injection', async () => {
@@ -344,11 +281,11 @@ describe('ProfileRepository.getById()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // QueueRepository
 // ─────────────────────────────────────────────────────────────────────────────
-describe('QueueRepository.updateStatus()', () => {
+suite('QueueRepository.updateStatus()', () => {
   test('atualiza status com UUID e status válidos', async () => {
     const { QueueRepository, queueBuilder } = criarQueueRepo({ data: { id: UUID_ENTRY, status: 'done', position: 1 } });
     const r = await QueueRepository.updateStatus(UUID_ENTRY, 'done');
-    expect(r.status).toBe('done');
+    assert.strictEqual(r.status, 'done');
   });
 
   test('lança erro para id com SQL injection', async () => {
@@ -366,7 +303,7 @@ describe('QueueRepository.updateStatus()', () => {
   });
 });
 
-describe('QueueRepository.entrar()', () => {
+suite('QueueRepository.entrar()', () => {
   const payloadValido = () => ({
     barbershop_id: UUID_SHOP,
     client_id:     UUID_CLIENTE,
@@ -376,7 +313,7 @@ describe('QueueRepository.entrar()', () => {
   test('adiciona cliente à fila com payload válido', async () => {
     const { QueueRepository, queueBuilder } = criarQueueRepo({ data: { id: UUID_ENTRY, position: 1 } });
     const r = await QueueRepository.entrar(payloadValido());
-    expect(r.position).toBe(1);
+    assert.strictEqual(r.position, 1);
   });
 
   test('lança erro para barbershop_id com SQL injection', async () => {
@@ -396,21 +333,21 @@ describe('QueueRepository.entrar()', () => {
   test('descarta campos extras (mass assignment: admin, status, role)', async () => {
     const { QueueRepository, queueBuilder } = criarQueueRepo({ data: { id: UUID_ENTRY, position: 1 } });
     await QueueRepository.entrar({ ...payloadValido(), admin: true, role: 'superuser' });
-    const inserido = queueBuilder.insert.mock.calls[0][0];
-    expect(inserido).not.toHaveProperty('admin');
-    expect(inserido).not.toHaveProperty('role');
+    const inserido = queueBuilder.insert.calls[0][0];
+    assert.ok(!Object.prototype.hasOwnProperty.call(inserido, 'admin'));
+    assert.ok(!Object.prototype.hasOwnProperty.call(inserido, 'role'));
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BarbershopRepository
 // ─────────────────────────────────────────────────────────────────────────────
-describe('BarbershopRepository.getNearby()', () => {
+suite('BarbershopRepository.getNearby()', () => {
   test('executa query com coordenadas válidas', async () => {
     const { BarbershopRepository, shopBuilder } = criarBarbershopRepo({ data: [] });
     const r = await BarbershopRepository.getNearby(-23.5505, -46.6333, 3);
-    expect(Array.isArray(r)).toBe(true);
-    expect(shopBuilder.select).toHaveBeenCalled();
+    assert.strictEqual(Array.isArray(r)), true);
+    assert.ok(shopBuilder.select.calls.length > 0);
   });
 
   test('lança erro para latitude NaN', async () => {
@@ -445,11 +382,11 @@ describe('BarbershopRepository.getNearby()', () => {
   });
 });
 
-describe('BarbershopRepository.addInteraction()', () => {
+suite('BarbershopRepository.addInteraction()', () => {
   test('adiciona interação com parâmetros válidos', async () => {
     const { BarbershopRepository, interBuilder } = criarBarbershopRepo();
     await BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, 'like');
-    expect(interBuilder.insert).toHaveBeenCalled();
+    assert.ok(interBuilder.insert.calls.length > 0);
   });
 
   test('lança erro para barbershopId com SQL injection', async () => {

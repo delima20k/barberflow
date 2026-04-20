@@ -1,98 +1,8 @@
 'use strict';
-
-/**
- * tests/auth.test.js
- *
- * Testes automatizados para o fluxo de autenticação.
- * Cobre: AppState (estado global) + AuthGuard (controle de acesso).
- *
- * Runner: Jest — npm test
- *
- * Estratégia de isolamento:
- *   Cada teste cria um contexto VM separado (vm.createContext) com os módulos
- *   carregados do zero — sem estado compartilhado entre testes.
- *   Isso garante que falhas em um teste não contaminem os demais.
- */
-
-// describe / test / expect são globals fornecidos pelo Jest
-const assert = require('node:assert/strict');
-const vm     = require('node:vm');
-const fs     = require('node:fs');
-const path   = require('node:path');
-
-const ROOT = path.resolve(__dirname, '..');
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INFRAESTRUTURA DE TESTE
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Mock mínimo de document para AuthGuard.
- * _mostrarAvisoLogin() usa DOM apenas no fallback sem NotificationService.
- */
-function mockDocument() {
-  const el = { style: { cssText: '' }, textContent: '', id: '', remove() {} };
-  return {
-    getElementById: () => null,
-    createElement:  () => Object.assign({}, el),
-    body:           { appendChild() {} },
-  };
-}
-
-/**
- * Cria um contexto VM limpo com stubs mínimos para rodar os módulos.
- * Cada chamada retorna um sandbox completamente novo — zero estado compartilhado.
- *
- * @param {object} opts
- * @param {boolean} [opts.simularPro=false] — inclui BarberFlowProfissional no contexto
- * @returns {vm.Context}
- */
-function criarCtx({ simularPro = false } = {}) {
-  const sandbox = vm.createContext({
-    console,
-    setTimeout:   () => {},   // no-op — testes não dependem de timers
-    clearTimeout: () => {},
-    document:     mockDocument(),
-  });
-
-  // Stub do Router — apenas TELAS_PUBLICAS.
-  // Criado DENTRO do VM para que `instanceof Set` passe na mesma realm.
-  vm.runInContext(
-    `class Router {
-       static TELAS_PUBLICAS = new Set([
-         'inicio','pesquisa','barbearias','barbeiros',
-         'login','cadastro','destaques'
-       ]);
-     }`,
-    sandbox
-  );
-
-  // Simula presença do app profissional (AuthGuard usa typeof para detectar)
-  if (simularPro) {
-    vm.runInContext(`class BarberFlowProfissional {}`, sandbox);
-  }
-
-  return sandbox;
-}
-
-/**
- * Carrega um arquivo JS no contexto VM informado e exporta
- * classes/constantes declaradas com `class X` ou `const X =` para o global
- * do sandbox (globalThis.X = X), pois 'use strict' impede que declarações
- * de topo virem propriedades do sandbox automaticamente.
- * @param {vm.Context} sandbox
- * @param {string}     relPath — caminho relativo ao root do projeto
- */
-function carregar(sandbox, relPath) {
-  const raw    = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
-  // Localiza nomes declarados em topo: class Foo, const Foo =
-  const nomes  = [...raw.matchAll(/^(?:class|const)\s+([A-Z][A-Za-z0-9_]*)/gm)]
-    .map(m => m[1]);
-  // Envolve o código em uma IIFE que exporta os nomes para globalThis
-  const export_ = nomes.map(n => `if(typeof ${n}!=='undefined') globalThis.${n}=${n};`).join('\n');
-  const wrapped  = `${raw}\n${export_}`;
-  vm.runInContext(wrapped, sandbox);
-}
+const { suite, test } = require('node:test');
+const assert          = require('node:assert/strict');
+const vm              = require('node:vm');
+const { fn, carregar } = require('./_helpers.js');
 
 /** Fábrica: contexto limpo com AppState carregado. */
 function novoAppState() {
@@ -128,7 +38,7 @@ const PERFIL_PRO       = { id: 'u-pro-01',      full_name: 'Maria Barbeira', rol
 // BLOCO 1 — AppState: Estado inicial
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AppState — estado inicial', () => {
+suite('AppState — estado inicial', () => {
 
   test('isLogado=false, user=null, perfil=null, geo=null', () => {
     const { AppState } = novoAppState();
@@ -159,7 +69,7 @@ describe('AppState — estado inicial', () => {
 // BLOCO 2 — AppState: login()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AppState — login()', () => {
+suite('AppState — login()', () => {
 
   test('atualiza isLogado=true, user e perfil atomicamente', () => {
     const { AppState } = novoAppState();
@@ -199,7 +109,7 @@ describe('AppState — login()', () => {
 // BLOCO 3 — AppState: logout() / clear()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AppState — logout()', () => {
+suite('AppState — logout()', () => {
 
   test('reseta isLogado, user, perfil e geo após login', () => {
     const { AppState } = novoAppState();
@@ -247,7 +157,7 @@ describe('AppState — logout()', () => {
 // BLOCO 4 — AppState: setters semânticos
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AppState — setters semânticos', () => {
+suite('AppState — setters semânticos', () => {
 
   test('setAuth(true) → isLogado=true', () => {
     const { AppState } = novoAppState();
@@ -301,7 +211,7 @@ describe('AppState — setters semânticos', () => {
 // BLOCO 5 — AppState: listeners e reatividade
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AppState — listeners reativos', () => {
+suite('AppState — listeners reativos', () => {
 
   test('onAuth() dispara com true ao fazer login()', () => {
     const { AppState } = novoAppState();
@@ -387,7 +297,7 @@ describe('AppState — listeners reativos', () => {
 // BLOCO 6 — AppState: validação de schema
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AppState — validação de schema', () => {
+suite('AppState — validação de schema', () => {
 
   test('chave inválida em get() lança TypeError', () => {
     const { AppState } = novoAppState();
@@ -437,7 +347,7 @@ describe('AppState — validação de schema', () => {
 // BLOCO 7 — AuthGuard: rotas públicas (app cliente)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AuthGuard — rotas públicas (app cliente)', () => {
+suite('AuthGuard — rotas públicas (app cliente)', () => {
 
   const PUBLICAS = ['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques'];
 
@@ -463,7 +373,7 @@ describe('AuthGuard — rotas públicas (app cliente)', () => {
 // BLOCO 8 — AuthGuard: rotas protegidas (app cliente)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AuthGuard — rotas protegidas (app cliente)', () => {
+suite('AuthGuard — rotas protegidas (app cliente)', () => {
 
   const PROTEGIDAS = ['perfil', 'mensagens', 'favoritas', 'agendamento', 'pagamento', 'sair'];
 
@@ -497,7 +407,7 @@ describe('AuthGuard — rotas protegidas (app cliente)', () => {
 // BLOCO 9 — AuthGuard: ações protegidas (app cliente)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AuthGuard — ações protegidas (app cliente)', () => {
+suite('AuthGuard — ações protegidas (app cliente)', () => {
 
   const PROTEGIDAS = [
     'agendar',
@@ -541,7 +451,7 @@ describe('AuthGuard — ações protegidas (app cliente)', () => {
 // BLOCO 10 — AuthGuard: requireAuth()
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AuthGuard — requireAuth()', () => {
+suite('AuthGuard — requireAuth()', () => {
 
   test('retorna false e chama router.push("login") quando não logado', () => {
     const { AuthGuard } = novoGuard();
@@ -575,7 +485,7 @@ describe('AuthGuard — requireAuth()', () => {
 // BLOCO 11 — AuthGuard: app profissional
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('AuthGuard — app profissional', () => {
+suite('AuthGuard — app profissional', () => {
 
   const PROTEGIDAS_PRO = ['minha-barbearia', 'agenda', 'perfil', 'mensagens', 'sair'];
   const PUBLICAS       = ['inicio', 'pesquisa', 'login', 'cadastro', 'destaques'];
@@ -614,7 +524,7 @@ describe('AuthGuard — app profissional', () => {
 // BLOCO 12 — Fluxo integrado: login → ações → logout
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Fluxo integrado: login → ações → logout', () => {
+suite('Fluxo integrado: login → ações → logout', () => {
 
   test('ciclo completo preserva e limpa o estado corretamente', () => {
     const { AppState, AuthGuard } = novoGuard();

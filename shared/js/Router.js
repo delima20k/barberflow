@@ -38,7 +38,12 @@ class Router {
    * Qualquer tela FORA deste Set exige autenticação.
    * Fonte única de verdade para AuthGuard.permitirNav() e _permitirNavAuth().
    */
-  static TELAS_PUBLICAS = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques']);
+  static TELAS_PUBLICAS = new Set([
+    // Telas compartilhadas (cliente + profissional)
+    'inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques',
+    // Fluxo de cadastro profissional (visitante ainda não tem conta)
+    'planos-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'termos-legais',
+  ]);
 
   // Set alocado uma vez — referenciado no fallback de _bindDataAttributes
   static #ACOES_FALLBACK = new Set(['agendar', 'mensagem', 'pagar', 'pagamento', 'like', 'barbershop-favorite', 'avatar-upload']);
