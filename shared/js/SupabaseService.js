@@ -354,10 +354,22 @@ class SupabaseService {
    */
   static async getProfile(userId) {
     const { data, error } = await SupabaseService.profiles()
-      .select('id, full_name, phone, avatar_path, role, pro_type')
+      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
       .eq('id', userId)
       .single();
-    if (error) SupabaseService.#erro('getProfile', error);
+
+    // 406 = nenhuma linha encontrada (perfil não existe — usuário deletado ou incompleto)
+    // Nesse caso deslogamos silenciosamente em vez de lançar erro
+    if (error) {
+      const code = error?.code ?? '';
+      const status = error?.status ?? error?.statusCode ?? 0;
+      if (code === 'PGRST116' || status === 406 || code === '406') {
+        // Perfil órfão — limpa sessão local e retorna null
+        try { await SupabaseService.#getClient().auth.signOut(); } catch { /* sem-op */ }
+        return null;
+      }
+      SupabaseService.#erro('getProfile', error);
+    }
     return data ?? null;
   }
 
