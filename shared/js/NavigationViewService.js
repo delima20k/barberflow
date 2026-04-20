@@ -22,6 +22,17 @@ class NavigationViewService {
   #footerOffline = null;
   #navBtns       = [];
 
+  // Cache de elementos estáticos — evita querySelectorAll/getElementById repetidos
+  #telaEls      = [];   // todos os .tela  (para resetarParaHome + init)
+  #menuNavItems = [];   // .menu-nav-item[data-tela]  (para sincronizarUI)
+  #telaCache    = new Map(); // getElementById('tela-X') — 1 lookup por nome de tela
+
+  // Refs do header/menu — resolvidos em init(), reutilizados em bindLoginEvent
+  #elUsernameMenu = null;
+  #elHeaderLabel  = null;
+  #elAvatarBtn    = null;
+  #elMenuAvatar   = null;
+
   // ═══════════════════════════════════════════════════════════
   // INICIALIZAÇÃO
   // ═══════════════════════════════════════════════════════════
@@ -36,15 +47,25 @@ class NavigationViewService {
     this.#footerOffline = document.getElementById('footer-nav-offline');
     this.#navBtns       = Array.from(document.querySelectorAll('.nav-btn'));
 
+    // Cache estático — resolvido uma única vez durante o boot
+    this.#telaEls      = Array.from(document.querySelectorAll('.tela'));
+    this.#menuNavItems = Array.from(document.querySelectorAll('.menu-nav-item[data-tela]'));
+
+    // Refs do header/menu para bindLoginEvent — evita getElementById no hot path
+    this.#elUsernameMenu = document.getElementById('menu-username');
+    this.#elHeaderLabel  = document.getElementById('header-user-label');
+    this.#elAvatarBtn    = document.getElementById('header-avatar-btn');
+    this.#elMenuAvatar   = document.getElementById('menu-avatar');
+
     // Oculta ambos os footers até o estado de auth ser conhecido
     if (this.#footer)        this.#footer.style.display        = 'none';
     if (this.#footerOffline) this.#footerOffline.style.display = 'none';
 
     // Garante que apenas a tela inicial tem a classe .ativa
-    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+    this.#telaEls.forEach(t => t.classList.remove('ativa'));
     // Home fica sempre visível por CSS; demais precisam de .ativa
     if (telaInicial !== 'inicio') {
-      const el = document.getElementById(`tela-${telaInicial}`);
+      const el = this.telaEl(telaInicial);  // pré-aquece o cache
       if (el) el.classList.add('ativa');
     }
   }
@@ -63,11 +84,17 @@ class NavigationViewService {
 
   /**
    * Retorna o elemento HTML de uma tela pelo nome.
+   * Resultado cacheado em Map — cada ID é resolvido no DOM apenas uma vez.
    * @param {string} nome — sem prefixo "tela-"
    * @returns {HTMLElement|null}
    */
   telaEl(nome) {
-    return document.getElementById(`tela-${nome}`);
+    let el = this.#telaCache.get(nome);
+    if (!el) {
+      el = document.getElementById(`tela-${nome}`);
+      if (el) this.#telaCache.set(nome, el);
+    }
+    return el ?? null;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -79,7 +106,7 @@ class NavigationViewService {
    * estado CSS original. Chamado pelo Router quando a página retorna do bfcache.
    */
   resetarParaHome() {
-    document.querySelectorAll('.tela').forEach(t => {
+    this.#telaEls.forEach(t => {
       t.getAnimations().forEach(a => a.cancel());
       t.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
       t.style.display       = '';
@@ -113,7 +140,7 @@ class NavigationViewService {
       btn.classList.toggle('ativo', btn.dataset.tela === tela)
     );
 
-    document.querySelectorAll('.menu-nav-item[data-tela]').forEach(item =>
+    this.#menuNavItems.forEach(item =>
       item.classList.toggle('ativo', item.dataset.tela === tela)
     );
 
@@ -184,27 +211,25 @@ class NavigationViewService {
           c => ({ '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '&': '&amp;' }[c])
         );
 
-        // Reconstrói menu-username sem innerHTML (evita XSS)
-        const usernameEl = document.getElementById('menu-username');
-        if (usernameEl) {
-          usernameEl.textContent = '';
-          usernameEl.appendChild(document.createTextNode(nomeSanitizado + ' '));
+        // Usa refs cacheadas em init() — evita getElementById no hot path
+        if (this.#elUsernameMenu) {
+          this.#elUsernameMenu.textContent = '';
+          this.#elUsernameMenu.appendChild(document.createTextNode(nomeSanitizado + ' '));
           const small = document.createElement('small');
           small.id          = 'menu-user-sub';
           small.textContent = 'Bem-vindo(a)!';
-          usernameEl.appendChild(small);
+          this.#elUsernameMenu.appendChild(small);
         }
 
-        const labelEl = document.getElementById('header-user-label');
-        if (labelEl) {
+        if (this.#elHeaderLabel) {
           const primeiro = nomeSanitizado.split(' ')[0];
-          labelEl.textContent =
+          this.#elHeaderLabel.textContent =
             'Olá, ' + primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
         }
       }
 
-      document.getElementById('header-avatar-btn')?.classList.add('logado');
-      document.getElementById('menu-avatar')?.classList.add('logado');
+      this.#elAvatarBtn?.classList.add('logado');
+      this.#elMenuAvatar?.classList.add('logado');
     });
   }
 }

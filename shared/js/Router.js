@@ -40,6 +40,9 @@ class Router {
    */
   static TELAS_PUBLICAS = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques']);
 
+  // Set alocado uma vez — referenciado no fallback de _bindDataAttributes
+  static #ACOES_FALLBACK = new Set(['agendar', 'mensagem', 'pagar', 'pagamento', 'like', 'barbershop-favorite', 'avatar-upload']);
+
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
 
@@ -380,8 +383,7 @@ class Router {
           if (!AuthGuard.permitirAcao(a, this)) { e.preventDefault(); return; }
         } else {
           // Fallback: ações inline conhecidas exigem login quando AuthGuard não carregou
-          const acoesFallback = new Set(['agendar', 'mensagem', 'pagar', 'pagamento', 'like', 'barbershop-favorite', 'avatar-upload']);
-          if (acoesFallback.has(a)) {
+          if (Router.#ACOES_FALLBACK.has(a)) {
             const logado = typeof AppState !== 'undefined' ? AppState.get('isLogado') === true : false;
             if (!logado) { e.preventDefault(); this._alertarLoginObrigatorio(); return; }
           }
