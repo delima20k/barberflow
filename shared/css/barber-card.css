@@ -895,6 +895,28 @@
   background: linear-gradient(135deg, #1a0800 0%, #2d1200 100%);
 }
 
+/* ── FAVORITAS — hero (h1 + h2) ── */
+.fav-hero {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.fav-hero__titulo {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 .35rem;
+  letter-spacing: -.5px;
+}
+
+.fav-hero__sub {
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--text-muted, #a08060);
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* ── FAVORITAS — título de seção ── */
 .fav-secao-titulo {
   font-size: .75rem;
