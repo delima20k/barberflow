@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test": "node --test tests/auth.test.js"
+  },
   "devDependencies": {
     "jimp": "^1.6.1"
   }
