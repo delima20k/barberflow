@@ -38,8 +38,102 @@
     .tela { display: none !important; }
     #tela-inicio { display: flex !important; }
   </style>
+
+  <!-- LGPD — Overlay de consentimento -->
+  <style>
+    #lgpd-consent-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0,0,0,.88);
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+    #lgpd-consent-overlay:not([hidden]) { display: flex; }
+    .lgpd-card {
+      background: #1a120a;
+      border: 1px solid rgba(212,175,55,.25);
+      border-radius: 1rem;
+      padding: 1.75rem 1.5rem;
+      max-width: 420px;
+      width: 100%;
+      color: #F5E9DC;
+      font-size: .93rem;
+      line-height: 1.55;
+    }
+    .lgpd-card h2 {
+      margin: 0 0 .75rem;
+      font-size: 1.15rem;
+      color: #D4AF37;
+    }
+    .lgpd-card p { margin: 0 0 .75rem; }
+    .lgpd-card ul {
+      margin: 0 0 .75rem;
+      padding-left: 1.25rem;
+    }
+    .lgpd-card a { color: #D4AF37; }
+    .lgpd-card .lgpd-actions {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      margin-top: 1.25rem;
+    }
+    .lgpd-card .lgpd-aceitar {
+      background: #D4AF37;
+      color: #1a120a;
+      border: none;
+      border-radius: .6rem;
+      padding: .75rem;
+      font-weight: 700;
+      font-size: .95rem;
+      cursor: pointer;
+    }
+    .lgpd-card .lgpd-recusar {
+      background: transparent;
+      color: rgba(245,233,220,.5);
+      border: 1px solid rgba(245,233,220,.2);
+      border-radius: .6rem;
+      padding: .65rem;
+      font-size: .85rem;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LGPD — Consentimento explícito (Art. 7, I — Lei 13.709/2018)
+     Exibido na primeira sessão autenticada.
+     Controlado por AppBootstrap + LgpdService.
+══════════════════════════════════════════════════════════════ -->
+<div id="lgpd-consent-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="lgpd-consent-titulo" hidden>
+  <div class="lgpd-card">
+    <h2 id="lgpd-consent-titulo">Antes de continuar</h2>
+    <p>Para usar o BarberFlow, você autoriza o uso dos seus dados pessoais
+       conforme nossa
+       <a href="https://barberflow.app/privacidade" target="_blank" rel="noopener noreferrer">
+         Política de Privacidade</a> (LGPD — Lei 13.709/2018).</p>
+    <ul>
+      <li>Nome, e-mail e telefone para identificação</li>
+      <li>Localização para mostrar barbearias próximas</li>
+      <li>Histórico de agendamentos para facilitar futuras reservas</li>
+    </ul>
+    <p>Você pode solicitar a exclusão dos seus dados a qualquer momento
+       nas configurações do perfil.</p>
+    <div class="lgpd-actions">
+      <button id="lgpd-aceitar-btn" class="lgpd-aceitar" type="button">
+        Aceitar e continuar
+      </button>
+      <button id="lgpd-recusar-btn" class="lgpd-recusar" type="button">
+        Não aceitar (sair da conta)
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- ============================================================
@@ -840,6 +934,7 @@
 <script src="/shared/js/MessageService.js"></script>
 <script src="/shared/js/MessagesWidget.js"></script>
 <script src="/shared/js/NotificationService.js"></script>
+<script src="/shared/js/LgpdService.js"></script>
 <script src="/shared/js/PerfilEditor.js"></script>
 <script src="/shared/js/FooterScrollManager.js"></script>
 <!-- Pages por tela (UI + bind) -->

@@ -210,6 +210,8 @@ class AuthService {
     if (userId) SessionCache.limparExtras(userId); // remove extras locais do perfil
     // Limpa cache de aceite de termos (sessão encerrada)
     if (typeof LegalConsentService !== 'undefined') LegalConsentService.limparCache();
+    // Limpa cache de consentimento LGPD do app cliente
+    if (typeof LgpdService !== 'undefined') LgpdService.limparCache();
     AuthService._limparUI();
   }
 

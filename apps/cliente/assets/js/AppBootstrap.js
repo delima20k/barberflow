@@ -49,6 +49,9 @@ class AppBootstrap {
     // 2. Widgets Supabase: execução sequencial — evita múltiplos locks concorrentes
     AppBootstrap.#_executarSequencial();
 
+    // 3. LGPD: verifica consentimento quando o estado de auth mudar
+    AppBootstrap.#iniciarConsentimentoLGPD();
+
     AppBootstrap.#registrarSW();
   }
 
@@ -65,6 +68,68 @@ class AppBootstrap {
         LoggerService.warn(`[AppBootstrap] ${label} falhou:`, e?.message);
       }
     }
+  }
+
+  /**
+   * Registra listener de auth para exibir o overlay de consentimento LGPD
+   * na primeira sessão autenticada.
+   * Chamado uma única vez em init().
+   * @private
+   */
+  static #iniciarConsentimentoLGPD() {
+    // Verifica estado imediato (usuário já logado na abertura da página)
+    if (typeof AppState !== 'undefined' && AppState.get('isLogado')) {
+      const userId = AppState.getUserId?.();
+      if (userId) AppBootstrap.#verificarEExibirConsentimento(userId);
+    }
+
+    // Escuta mudanças futuras (login/logout)
+    if (typeof AppState !== 'undefined') {
+      AppState.onAuth(async isLogado => {
+        if (!isLogado) return;
+        const userId = AppState.getUserId?.();
+        if (userId) AppBootstrap.#verificarEExibirConsentimento(userId);
+      });
+    }
+  }
+
+  /**
+   * Verifica consentimento e exibe o overlay se ainda não houver.
+   * @param {string} userId
+   * @private
+   */
+  static async #verificarEExibirConsentimento(userId) {
+    if (typeof LgpdService === 'undefined') return;
+    try {
+      const consentiu = await LgpdService.verificarConsentimentoCliente(userId);
+      if (!consentiu) AppBootstrap.#mostrarOverlayConsentimento(userId);
+    } catch (e) {
+      LoggerService.warn('[AppBootstrap] Falha ao verificar consentimento LGPD:', e?.message);
+    }
+  }
+
+  /**
+   * Exibe o overlay de consentimento e vincula os botões de aceitar/recusar.
+   * @param {string} userId
+   * @private
+   */
+  static #mostrarOverlayConsentimento(userId) {
+    const overlay = document.getElementById('lgpd-consent-overlay');
+    if (!overlay) return;
+
+    overlay.removeAttribute('hidden');
+
+    document.getElementById('lgpd-aceitar-btn')?.addEventListener('click', async () => {
+      const result = await LgpdService.registrarConsentimentoCliente(userId);
+      if (result.ok) overlay.setAttribute('hidden', '');
+    }, { once: true });
+
+    document.getElementById('lgpd-recusar-btn')?.addEventListener('click', () => {
+      // Não aceitou — encerra a sessão e recarrega a página
+      AuthService.logout()
+        .catch(() => {})
+        .finally(() => location.reload());
+    }, { once: true });
   }
 
   static #registrarSW() {
