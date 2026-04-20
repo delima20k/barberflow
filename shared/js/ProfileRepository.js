@@ -103,7 +103,8 @@ class ProfileRepository {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Retorna barbearias favoritas do usuário com dados básicos.
+   * Retorna barbearias favoritas do usuário.
+   * Lê de barbershop_interactions onde type='favorite'.
    * @param {string} userId
    * @returns {Promise<object[]>}
    */
@@ -111,41 +112,36 @@ class ProfileRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
-    const { data, error } = await SupabaseService.favorites()
+    const { data, error } = await SupabaseService.barbershopInteractions()
       .select('barbershop_id, barbershops(id, name, address, is_open, rating_avg, logo_path)')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .eq('type', 'favorite');
 
     if (error) throw error;
     return (data ?? []).map(r => r.barbershops).filter(Boolean);
   }
 
   /**
-   * Alterna favorito — adiciona se não existir, remove se já existir.
+   * Alterna favorito de barbearia — delega para BarbershopRepository.
    * Retorna true se adicionado, false se removido.
    * @param {string} userId
    * @param {string} barbershopId
    * @returns {Promise<boolean>}
    */
   static async toggleFavorite(userId, barbershopId) {
-    const { data: existing } = await SupabaseService.favorites()
+    const { data: existing } = await SupabaseService.barbershopInteractions()
       .select('id')
       .eq('user_id', userId)
       .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite')
       .maybeSingle();
 
     if (existing) {
-      const { error } = await SupabaseService.favorites()
-        .delete()
-        .eq('user_id', userId)
-        .eq('barbershop_id', barbershopId);
-      if (error) throw error;
-      return false; // removido
+      await BarbershopRepository.removeInteraction(barbershopId, userId, 'favorite');
+      return false;
     }
-
-    const { error } = await SupabaseService.favorites()
-      .insert({ user_id: userId, barbershop_id: barbershopId });
-    if (error) throw error;
-    return true; // adicionado
+    await BarbershopRepository.addInteraction(barbershopId, userId, 'favorite');
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -197,5 +193,59 @@ class ProfileRepository {
       .insert({ user_id: userId, professional_id: professionalId });
     if (error) throw error;
     return true;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CURTIDAS EM BARBEIROS
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Alterna curtida em um barbeiro.
+   * @returns {Promise<boolean>} true=curtido, false=descurtido
+   */
+  static async toggleProfessionalLike(userId, professionalId) {
+    const { data: existing } = await SupabaseService.professionalLikes()
+      .select('id')
+      .eq('user_id', userId)
+      .eq('professional_id', professionalId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await SupabaseService.professionalLikes()
+        .delete()
+        .eq('user_id', userId)
+        .eq('professional_id', professionalId);
+      if (error) throw error;
+      return false;
+    }
+
+    const { error } = await SupabaseService.professionalLikes()
+      .insert({ user_id: userId, professional_id: professionalId });
+    if (error) throw error;
+    return true;
+  }
+
+  /**
+   * Retorna IDs de barbeiros curtidos pelo usuário.
+   * @returns {Promise<Set<string>>}
+   */
+  static async getUserProfessionalLikes(userId) {
+    const { data, error } = await SupabaseService.professionalLikes()
+      .select('professional_id')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return new Set((data ?? []).map(r => r.professional_id));
+  }
+
+  /**
+   * Retorna IDs de barbeiros favoritados pelo usuário.
+   * @returns {Promise<Set<string>>}
+   */
+  static async getUserProfessionalFavs(userId) {
+    const { data, error } = await SupabaseService.favoriteProfessionals()
+      .select('professional_id')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return new Set((data ?? []).map(r => r.professional_id));
   }
 }

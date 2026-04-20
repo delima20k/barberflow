@@ -264,8 +264,8 @@ class SupabaseService {
   /** Tabela de mensagens diretas */
   static directMessages()         { return SupabaseService.#getClient().from('direct_messages'); }
 
-  /** Tabela de favoritos (barbearias) */
-  static favorites()              { return SupabaseService.#getClient().from('favorites'); }
+  /** Tabela de curtidas em barbeiros */
+  static professionalLikes()      { return SupabaseService.#getClient().from('professional_likes'); }
 
   /** Tabela de barbeiros favoritos */
   static favoriteProfessionals()  { return SupabaseService.#getClient().from('favorite_professionals'); }
