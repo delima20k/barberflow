@@ -627,30 +627,46 @@ class BarbershopService {
   }
 
   /**
-   * Marca os botões dos cards como ativos com base nas interações do usuário logado.
-   * Deve ser chamado após renderizar os cards destaque.
-   * @param {NodeListOf<Element>} cards — todos os .destaque-card
+   * Restaura contadores e estado visual dos cards após renderização.
+   * Contadores totais (likes/dislikes): visíveis para TODOS, incluindo anônimos.
+   * Estado ativo dos botões (curtido/favoritado): só para usuários logados.
+   * @param {Element[]|NodeList} cards
    */
   static async restaurarInteracoes(cards) {
     try {
-      if (typeof AppState !== 'undefined' && AppState.get('isLogado') !== true) return;
-      const user = await SupabaseService.getUser?.();
-      if (!user?.id) return;
-      const ids = [...cards].map(c => c.dataset.barbershopId).filter(Boolean);
+      const cardsArr = [...cards];
+      const ids = cardsArr.map(c => c.dataset.barbershopId).filter(Boolean);
       if (!ids.length) return;
 
-      // Busca interações do usuário E contadores totais em paralelo
-      const [resInteracoes, resCounts] = await Promise.allSettled([
-        BarbershopRepository.getUserInteractions(user.id, ids),
-        BarbershopRepository.getInteractionCountsAll(ids),
-      ]);
+      // Contadores totais — búsca de barbershop_interactions diretamente.
+      // Para anônimos: retorna {} se RLS bloquear (contadores do render inicial permanecem).
+      // Para logados: retorna contagem real de todos os usuários.
+      const resCounts = await BarbershopRepository.getInteractionCountsAll(ids)
+        .catch(() => ({}));
 
-      const interacoes = resInteracoes.status === 'fulfilled' ? resInteracoes.value : [];
-      const allCounts  = resCounts.status === 'fulfilled'     ? resCounts.value     : {};
+      ;cardsArr.forEach(card => {
+        const id = card.dataset.barbershopId;
+        if (!id || !resCounts[id]) return;
+        const { likes, dislikes } = resCounts[id];
+        const score = BarbershopService.calcRatingScore(likes, dislikes);
+        card.dataset.likes    = likes;
+        card.dataset.dislikes = dislikes;
+        const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
+        const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
+        if (likeBtn)    { const cnt = likeBtn.querySelector('.dc-count');    if (cnt) cnt.textContent = likes; }
+        if (dislikeBtn) { const ds  = dislikeBtn.querySelector('.dc-count'); if (ds)  ds.textContent  = dislikes; }
+        BarbershopService.atualizarEstrelaCard(card, score);
+      });
 
-      // 1. Restaura estado ativo dos botões (like, dislike, favorite)
+      // Estado ativo dos botões — apenas para usuários logados
+      const user = await SupabaseService.getUser?.().catch(() => null);
+      if (!user?.id) return;
+
+      const interacoes = await BarbershopRepository.getUserInteractions(user.id, ids)
+        .catch(() => []);
+
       interacoes.forEach(({ barbershop_id, type }) => {
-        const card = [...cards].find(c => c.dataset.barbershopId === barbershop_id);
+        const card = cardsArr.find(c => c.dataset.barbershopId === barbershop_id);
         if (!card) return;
         const btn = card.querySelector(`[data-action="barbershop-${type}"]`);
         if (btn) {
@@ -662,22 +678,6 @@ class BarbershopService {
             if (ico) ico.textContent = '⭐';
           }
         }
-      });
-
-      // 2. Restaura contadores e estrelas direto de barbershop_interactions
-      //    (não depende do trigger que mantém likes_count em barbershops)
-      ;[...cards].forEach(card => {
-        const id = card.dataset.barbershopId;
-        if (!id || !allCounts[id]) return;
-        const { likes, dislikes } = allCounts[id];
-        const score = BarbershopService.calcRatingScore(likes, dislikes);
-        card.dataset.likes    = likes;
-        card.dataset.dislikes = dislikes;
-        const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
-        const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
-        if (likeBtn)    { const cnt = likeBtn.querySelector('.dc-count');    if (cnt) cnt.textContent = likes; }
-        if (dislikeBtn) { const ds  = dislikeBtn.querySelector('.dc-count'); if (ds)  ds.textContent  = dislikes; }
-        BarbershopService.atualizarEstrelaCard(card, score);
       });
     } catch (e) {
       LoggerService.warn('[BarbershopService] restaurarInteracoes falhou:', e?.message);

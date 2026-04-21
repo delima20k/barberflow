@@ -294,6 +294,7 @@ class NearbyBarbershopsWidget {
       try { await ProfessionalService.carregarInteracoes(); } catch { /* silencioso */ }
 
       el.innerHTML = '';
+      const barbeiroCards = [];
       lista.forEach(p => {
         const ratingCount = parseInt(p.rating_count || 0, 10);
         const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
@@ -342,7 +343,28 @@ class NearbyBarbershopsWidget {
         row.appendChild(actions);
 
         el.appendChild(row);
+        barbeiroCards.push(row);
       });
+
+      // Restaura contadores de curtidas para todos (inclusive anônimos)
+      // getProfessionalLikeCountsDirect conta de professional_likes diretamente
+      try {
+        const ids    = lista.map(p => p.id).filter(Boolean);
+        const counts = await ProfileRepository.getProfessionalLikeCountsDirect(ids);
+        barbeiroCards.forEach(card => {
+          const id = card.dataset.professionalId;
+          if (!id || counts[id] === undefined) return;
+          const total = counts[id];
+          const val   = ProfessionalService.estrelasPorCurtidas(total);
+          const likeBtn = card.querySelector('[data-action="professional-like"]');
+          if (likeBtn) {
+            const cnt = likeBtn.querySelector('.dc-count');
+            if (cnt) cnt.textContent = total;
+          }
+          BarbershopService.atualizarEstrelaCard(card, val);
+        });
+      } catch (_) { /* silencioso — contadores do render inicial permanecem */ }
+
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
       el.innerHTML = '';
