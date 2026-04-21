@@ -118,6 +118,28 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Destaques: favorito com confetes + 2ª estrela sobreposta]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** no `.top-card .card-fav-btn`, manter o tamanho exato do botão (borda da estrela) quando inativo, e ao clicar disparar animação de fogos/confetes + uma 2ª estrela do mesmo tamanho/borda sobreposta levemente para o lado.
+
+**Mudanças CSS (escopadas em `.top-card .card-fav-btn` — não afeta outros cards):**
+- Botão agora usa `::before` como ★ via `-webkit-text-stroke` dourado no estado inativo (borda apenas, interior transparente, mesmo tamanho 32×32px)
+- **Ativo:** estrela preenchida dourada + `text-shadow` + animação `fav-pop` (scale .6 → 1.35 → 1)
+- **2ª estrela sobreposta** via `::after` do `.cfb-ico` — mesmo tamanho/borda, aparece com `translate(6px, -4px) rotate(14deg)`
+- **Confetes (8 partículas coloridas)** via `box-shadow` multi-stop animado no `::before` do botão — keyframe `fav-confetti` .9s explode partes em 8 direções
+- **Sparkles (6 faiscas brancas/douradas)** via `::after` do botão — keyframe `fav-sparkles` 1s com delay .08s
+- Hover: scale leve (1.08) + drop-shadow dourado, mantém borda inativa
+
+**Técnica:** tudo em CSS puro — zero JS extra, sem bibliotecas, zero impacto de performance (partículas reutilizam box-shadow GPU-accelerated). Animação dispara automaticamente quando classe `.ativo` é adicionada pelo `BarbershopService.#sincronizarBotoesFavorito`.
+
+**SW:** bump `v32`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Destaques: likes clicável + botão favorito sem círculo]
 
 **Data/Hora:** 21 de abril de 2026

@@ -814,6 +814,186 @@
   right: auto;
 }
 
+/* ============================================================
+   TOP-CARD — favorito com estrela outline (tamanho fixo) +
+   animação de confetes/fogos ao clicar + 2ª estrela sobreposta.
+============================================================ */
+.top-card .card-fav-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  font-size: 0;          /* esconde possível texto */
+  color: transparent;     /* esconde caractere ☆/⭐ nativo — usaremos ::before */
+  background: transparent;
+  border: none;
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Esconde o span interno (conteúdo original do botão) */
+.top-card .card-fav-btn .cfb-ico {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  color: var(--gold, #D4AF37);
+  line-height: 1;
+  text-shadow: none;
+  transform: none !important;
+  transition: transform .25s ease, text-shadow .25s ease;
+  -webkit-text-stroke: 0;
+}
+
+/* Estrela primária: usa ★ com cor dourada; ativo preenchido, inativo outline via -webkit-text-stroke */
+.top-card .card-fav-btn .cfb-ico::before {
+  content: '★';
+}
+
+.top-card .card-fav-btn:not(.ativo) .cfb-ico {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--gold, #D4AF37);
+}
+
+/* 2ª estrela sobreposta — só aparece quando ativo */
+.top-card .card-fav-btn .cfb-ico::after {
+  content: '★';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--gold, #D4AF37);
+  opacity: 0;
+  transform: translate(0, 0) rotate(0deg);
+  transition: opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
+}
+
+.top-card .card-fav-btn.ativo .cfb-ico::after {
+  opacity: 1;
+  transform: translate(6px, -4px) rotate(14deg);
+}
+
+.top-card .card-fav-btn.ativo .cfb-ico {
+  color: var(--gold, #D4AF37);
+  -webkit-text-stroke: 0;
+  text-shadow: 0 0 10px rgba(212, 175, 55, .65);
+  animation: fav-pop .5s cubic-bezier(.34,1.56,.64,1);
+}
+
+@keyframes fav-pop {
+  0%   { transform: scale(.6); }
+  55%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* ── Confetes/fogos: 8 partículas via box-shadow em ::before ── */
+.top-card .card-fav-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+.top-card .card-fav-btn.ativo::before {
+  animation: fav-confetti .9s ease-out forwards;
+}
+
+@keyframes fav-confetti {
+  0% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 0 #D4AF37,
+      0 0 0 0 #ff6b6b,
+      0 0 0 0 #4ecdc4,
+      0 0 0 0 #ffe66d,
+      0 0 0 0 #c77dff,
+      0 0 0 0 #70d070,
+      0 0 0 0 #ff9f43,
+      0 0 0 0 #feca57;
+  }
+  70% { opacity: 1; }
+  100% {
+    opacity: 0;
+    box-shadow:
+       22px -18px 0 -1px #D4AF37,
+      -22px -20px 0 -1px #ff6b6b,
+       26px   6px 0 -1px #4ecdc4,
+      -24px   8px 0 -1px #ffe66d,
+        4px -28px 0 -1px #c77dff,
+       -6px  26px 0 -1px #70d070,
+       18px  22px 0 -1px #ff9f43,
+      -18px -24px 0 -1px #feca57;
+  }
+}
+
+/* Segundo burst mais fino (raios/sparkles) */
+.top-card .card-fav-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+.top-card .card-fav-btn.ativo::after {
+  animation: fav-sparkles 1s ease-out forwards;
+  animation-delay: .08s;
+}
+
+@keyframes fav-sparkles {
+  0% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 0 rgba(255,255,255,.95),
+      0 0 0 0 rgba(255,255,255,.95),
+      0 0 0 0 rgba(255,255,255,.95),
+      0 0 0 0 rgba(212,175,55,.95),
+      0 0 0 0 rgba(212,175,55,.95),
+      0 0 0 0 rgba(212,175,55,.95);
+  }
+  100% {
+    opacity: 0;
+    box-shadow:
+       14px  -8px 0 -.5px rgba(255,255,255,.9),
+      -16px  -4px 0 -.5px rgba(255,255,255,.9),
+        0px  16px 0 -.5px rgba(255,255,255,.9),
+       10px  14px 0 -.5px rgba(212,175,55,.9),
+      -12px  12px 0 -.5px rgba(212,175,55,.9),
+        2px -18px 0 -.5px rgba(212,175,55,.9);
+  }
+}
+
+/* Hover: apenas um leve scale, mantém tamanho base ao inativo */
+.top-card .card-fav-btn:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 2px 6px rgba(212, 175, 55, .5));
+}
+
+.top-card .card-fav-btn:active {
+  transform: scale(.92);
+}
+
+
 /* Skeleton */
 .top-card--skel { pointer-events: none; opacity: .45; }
 
