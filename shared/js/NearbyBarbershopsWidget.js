@@ -94,6 +94,9 @@ class NearbyBarbershopsWidget {
     try {
       let lista = await BarbershopRepository.getAll(20);
 
+      // Carrega favoritos em cache antes de renderizar (idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
+
       // Se GPS disponível, calcula distância
       try {
         const permissao = await GeoService.verificarPermissao();
@@ -627,6 +630,7 @@ class NearbyBarbershopsWidget {
   static #criarBarberRow(b) {
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
+    if (b?.id) row.dataset.barbershopId = b.id;
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
@@ -671,6 +675,10 @@ class NearbyBarbershopsWidget {
     row.appendChild(avatarWrap);
     row.appendChild(info);
     row.appendChild(meta);
+
+    // Botão favorito padronizado (canto superior direito)
+    if (b?.id) row.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+
     return row;
   }
 }

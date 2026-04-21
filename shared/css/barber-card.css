@@ -5,14 +5,15 @@
 
 .barber-card,
 .barber-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   background: transparent;
   border: 1px solid rgba(107, 74, 50, .18);
   border-radius: 15px;
-  padding: 14px;
-  min-height: 96px;
+  padding: 14px 52px 14px 14px;
+  min-height: 104px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
   cursor: pointer;
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
@@ -34,6 +35,58 @@
 .barber-row:active {
   transform: scale(.985);
 }
+
+/* ============================================================
+   BOTÃO FAVORITO PADRÃO — aplicado a TODOS os cards
+   (.barber-row, .barber-card) e ao .destaque-card via .dc-btn.favorite
+============================================================ */
+.card-fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px solid rgba(212, 175, 55, .55);
+  border-radius: 999px;
+  color: var(--gold, #D4AF37);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background .18s ease, border-color .18s ease,
+              transform .14s ease, box-shadow .18s ease;
+  z-index: 2;
+}
+
+.card-fav-btn:hover {
+  border-color: rgba(212, 175, 55, .9);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, .22);
+  transform: scale(1.06);
+}
+
+.card-fav-btn:active {
+  transform: scale(.94);
+}
+
+.card-fav-btn.ativo {
+  background: rgba(212, 175, 55, .22);
+  border-color: rgba(212, 175, 55, .9);
+  color: var(--gold, #D4AF37);
+}
+
+.card-fav-btn .cfb-ico {
+  display: inline-block;
+  transition: transform .2s ease;
+}
+
+.card-fav-btn.ativo .cfb-ico {
+  transform: scale(1.1);
+}
+
 
 .barber-card .avatar,
 .barber-row .avatar {

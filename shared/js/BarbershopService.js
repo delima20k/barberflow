@@ -13,6 +13,86 @@
 class BarbershopService {
 
   // ═══════════════════════════════════════════════════════════
+  // CACHE DE FAVORITOS (barbearias) — preenchido 1× após login
+  // ═══════════════════════════════════════════════════════════
+  static #FAV_IDS = new Set();
+  static #FAV_CARREGADO = false;
+  static #FAV_PROMISE = null;
+  static #DELEGATION_ATIVA = false;
+
+  /**
+   * Carrega todos os IDs de barbearias favoritadas do usuário logado
+   * para o cache em memória. Idempotente.
+   * @returns {Promise<Set<string>>}
+   */
+  static async carregarFavoritos(force = false) {
+    if (BarbershopService.#FAV_CARREGADO && !force) return BarbershopService.#FAV_IDS;
+    if (BarbershopService.#FAV_PROMISE) return BarbershopService.#FAV_PROMISE;
+
+    BarbershopService.#FAV_PROMISE = (async () => {
+      try {
+        const user = await SupabaseService.getUser?.();
+        if (!user?.id) { BarbershopService.#FAV_IDS = new Set(); return BarbershopService.#FAV_IDS; }
+        const favs = await ProfileRepository.getFavorites(user.id);
+        BarbershopService.#FAV_IDS = new Set((favs ?? []).map(f => f.id).filter(Boolean));
+        BarbershopService.#FAV_CARREGADO = true;
+        return BarbershopService.#FAV_IDS;
+      } catch (e) {
+        LoggerService.warn('[BarbershopService] carregarFavoritos falhou:', e?.message);
+        return BarbershopService.#FAV_IDS;
+      } finally {
+        BarbershopService.#FAV_PROMISE = null;
+      }
+    })();
+    return BarbershopService.#FAV_PROMISE;
+  }
+
+  /** @returns {boolean} */
+  static isFavorito(barbershopId) {
+    return !!barbershopId && BarbershopService.#FAV_IDS.has(barbershopId);
+  }
+
+  /**
+   * Cria o botão de favorito padronizado para qualquer card de barbearia.
+   * O card ancestral DEVE ter `data-barbershop-id`.
+   * @param {string} barbershopId
+   * @returns {HTMLButtonElement}
+   */
+  static criarBotaoFavoritoCard(barbershopId) {
+    const btn = document.createElement('button');
+    const ativo = BarbershopService.isFavorito(barbershopId);
+    btn.type = 'button';
+    btn.className = 'card-fav-btn' + (ativo ? ' ativo' : '');
+    btn.dataset.action = 'barbershop-favorite';
+    btn.setAttribute('aria-label', 'Favoritar barbearia');
+    btn.setAttribute('aria-pressed', String(ativo));
+    btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+    btn.innerHTML = `<span class="cfb-ico">${ativo ? '⭐' : '☆'}</span>`;
+    BarbershopService.#instalarDelegation();
+    return btn;
+  }
+
+  /**
+   * Instala UM listener global (idempotente) para qualquer botão
+   * .card-fav-btn em toda a aplicação — funciona na home, na lista
+   * de barbearias e em qualquer tela futura.
+   * @private
+   */
+  static #instalarDelegation() {
+    if (BarbershopService.#DELEGATION_ATIVA) return;
+    BarbershopService.#DELEGATION_ATIVA = true;
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.card-fav-btn[data-action="barbershop-favorite"]');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const router = typeof App !== 'undefined' ? App : null;
+      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-favorite', router)) return;
+      BarbershopService.toggleBarbershopFavorite(btn);
+    }, true); // capture — roda antes do click do card
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // UTILITÁRIOS PRIVADOS
   // ═══════════════════════════════════════════════════════════
 
@@ -356,9 +436,14 @@ class BarbershopService {
     const barbershopId = card.dataset.barbershopId;
 
     const eraFav = btn.classList.contains('ativo');
-    btn.classList.toggle('ativo');
-    btn.setAttribute('aria-pressed', String(!eraFav));
-    btn.title = eraFav ? 'Adicionar aos favoritos' : 'Remover dos favoritos';
+    const novoEstado = !eraFav;
+
+    // Atualiza cache em memória (estado canônico)
+    if (novoEstado) BarbershopService.#FAV_IDS.add(barbershopId);
+    else            BarbershopService.#FAV_IDS.delete(barbershopId);
+
+    // Sincroniza TODOS os botões do mesmo barbershopId na tela
+    BarbershopService.#sincronizarBotoesFavorito(barbershopId, novoEstado);
 
     // Feedback visual imediato via toast
     if (typeof NotificationService !== 'undefined') {
@@ -370,6 +455,24 @@ class BarbershopService {
     }
 
     BarbershopService.#persistirInteracao(barbershopId, 'favorite', eraFav ? 'remove' : 'add');
+  }
+
+  /**
+   * Atualiza o visual de TODOS os botões de favorito que apontam para
+   * a mesma barbearia (pode aparecer em várias seções simultaneamente).
+   * @private
+   */
+  static #sincronizarBotoesFavorito(barbershopId, ativo) {
+    document.querySelectorAll(`[data-barbershop-id="${CSS.escape(barbershopId)}"]`).forEach(card => {
+      card.querySelectorAll('[data-action="barbershop-favorite"]').forEach(btn => {
+        btn.classList.toggle('ativo', ativo);
+        btn.setAttribute('aria-pressed', String(ativo));
+        btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+        // Troca ícone só em botões que usam .cfb-ico (card-fav-btn)
+        const ico = btn.querySelector('.cfb-ico');
+        if (ico) ico.textContent = ativo ? '⭐' : '☆';
+      });
+    });
   }
 
   /**
@@ -409,7 +512,12 @@ class BarbershopService {
         const btn = card.querySelector(`[data-action="barbershop-${type}"]`);
         if (btn) {
           btn.classList.add('ativo');
-          if (type === 'favorite') btn.setAttribute('aria-pressed', 'true');
+          if (type === 'favorite') {
+            btn.setAttribute('aria-pressed', 'true');
+            BarbershopService.#FAV_IDS.add(barbershop_id);
+            const ico = btn.querySelector('.cfb-ico');
+            if (ico) ico.textContent = '⭐';
+          }
         }
       });
     } catch (e) {

@@ -118,6 +118,38 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Padronização botão favorito em TODOS os cards de barbearia]
+
+**Data/Hora:** 21 de abril de 2026  
+**Pedido do usuário:** padronizar botão favorito em todos os cards da home + adicionar em `.barber-row.barber-card` + lista completa de barbearias + alargar card + pré-marcar favoritadas.
+
+**Arquitetura (POO + DRY):**
+- **`BarbershopService`** centraliza tudo:
+  - Cache em memória `#FAV_IDS: Set<string>`
+  - `carregarFavoritos()` → idempotente, popula Set 1× a partir de `ProfileRepository.getFavorites`
+  - `isFavorito(id)` → consulta Set
+  - `criarBotaoFavoritoCard(id)` → factory padronizada do botão
+  - `#instalarDelegation()` → UM listener global no document (capture) para `.card-fav-btn` — funciona em qualquer tela
+  - `#sincronizarBotoesFavorito(id, ativo)` → atualiza visual de TODOS botões com mesmo `data-barbershop-id` (evita inconsistência destaque ↔ lista)
+
+**CSS (`shared/css/barber-card.css`):**
+- `.barber-card, .barber-row` agora têm `position: relative` + `padding: 14px 52px 14px 14px` + `min-height: 104px` (alargamento sutil)
+- Nova classe `.card-fav-btn` — 36×36, absolute top:10 right:10, borda dourada `rgba(212,175,55,.55)`, hover expande, `.ativo` → fundo `rgba(212,175,55,.22)` + borda cheia
+
+**Integração:**
+- `NearbyBarbershopsWidget.#criarBarberRow` → `row.dataset.barbershopId` + `appendChild(criarBotaoFavoritoCard)`
+- `BarbeariasPage.#criarCard` → mesma coisa
+- `initHomeCards` + `BarbeariasPage.#carregar` chamam `await carregarFavoritos()` antes de renderizar
+
+**Pré-marcação:**
+Cache popula antes da renderização → `criarBotaoFavoritoCard` lê do Set e já volta com `.ativo` + ícone ⭐.
+
+**SW:** bump `v25`
+
+**Status:** ✅ Pronto — reload Ctrl+Shift+R e o SW novo ativa.
+
+---
+
 ### [2026-04-21 — Fix coluna avatar_url → avatar_path em profiles_public]
 
 **Data/Hora:** 21 de abril de 2026  

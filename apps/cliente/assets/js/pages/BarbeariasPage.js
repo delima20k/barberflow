@@ -53,6 +53,9 @@ class BarbeariasPage {
     try {
       const lista = await BarbershopRepository.getAll(100);
 
+      // Carrega favoritos em cache antes de renderizar (idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
+
       if (!lista.length) {
         this.#listaEl.innerHTML = '';
         if (this.#vazioEl) this.#vazioEl.hidden = false;
@@ -71,6 +74,7 @@ class BarbeariasPage {
   #criarCard(b) {
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
+    if (b?.id) row.dataset.barbershopId = b.id;
 
     // Avatar / logo
     const avatarWrap = document.createElement('div');
@@ -120,6 +124,10 @@ class BarbeariasPage {
     row.appendChild(avatarWrap);
     row.appendChild(info);
     row.appendChild(meta);
+
+    // Botão favorito padronizado (canto superior direito)
+    if (b?.id) row.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+
     return row;
   }
 
