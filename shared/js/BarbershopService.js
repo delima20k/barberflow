@@ -568,21 +568,33 @@ class BarbershopService {
       const stats = await BarbershopRepository.getStats(barbershopId);
       if (!stats) return;
       const { likes_count, dislikes_count, rating_score } = stats;
-      // Re-usa #sincronizarContadores preservando o estado de ativo dos botões (não muda)
+
       document.querySelectorAll(`[data-barbershop-id="${CSS.escape(barbershopId)}"]`).forEach(card => {
-        card.dataset.likes    = likes_count;
-        card.dataset.dislikes = dislikes_count;
+        // Proteção: nunca reverter para valores menores que o estado otimista atual.
+        // Isso ocorre quando o trigger do banco ainda não está configurado e retorna 0.
+        const optLikes    = parseInt(card.dataset.likes    ?? 0);
+        const optDislikes = parseInt(card.dataset.dislikes ?? 0);
+        const finalLikes    = Math.max(likes_count,    optLikes);
+        const finalDislikes = Math.max(dislikes_count, optDislikes);
+        // Se banco retornou score 0 mas temos curtidas otimistas, recalcula localmente
+        const finalScore = (rating_score > 0)
+          ? Number(rating_score)
+          : BarbershopService.calcRatingScore(finalLikes, finalDislikes);
+
+        card.dataset.likes    = finalLikes;
+        card.dataset.dislikes = finalDislikes;
+
         const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
         const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
         if (likeBtn) {
           const cnt = likeBtn.querySelector('.dc-count');
-          if (cnt) cnt.textContent = likes_count;
+          if (cnt) cnt.textContent = finalLikes;
         }
         if (dislikeBtn) {
           const ds = dislikeBtn.querySelector('.dc-count');
-          if (ds) ds.textContent = dislikes_count;
+          if (ds) ds.textContent = finalDislikes;
         }
-        BarbershopService.#atualizarEstrelaCard(card, Number(rating_score));
+        BarbershopService.#atualizarEstrelaCard(card, finalScore);
       });
     } catch (e) {
       LoggerService.warn('[BarbershopService] sincronizarComBanco falhou:', e?.message);
