@@ -232,13 +232,20 @@ class ProfessionalService {
           }
           btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
 
-          // Atualiza estrelas e pontuação do card (se tiver .bc-rating)
+          // Atualiza estrelas e pontuação do card (se tiver .bc-rating — padrão legado)
           const starsEl = card.querySelector('.bc-stars');
           const valEl   = card.querySelector('.bc-rating-val');
           const cntEl   = card.querySelector('.bc-rating-cnt');
           if (starsEl) starsEl.textContent = ProfessionalService.renderStars(novoTotal);
           if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(novoTotal).toFixed(1);
           if (cntEl)   cntEl.textContent   = `(${novoTotal})`;
+
+          // Atualiza cards com padrão top-card__stars (novo padrão unificado)
+          const fillEl = card.querySelector('.dc-stars-fill');
+          const numEl  = card.querySelector('.dc-rating-num');
+          const novaVal = ProfessionalService.estrelasPorCurtidas(novoTotal);
+          if (fillEl) fillEl.style.width = ((novaVal / 5) * 100).toFixed(1) + '%';
+          if (numEl)  numEl.textContent  = novaVal.toFixed(1);
         } else {
           const ico = btn.querySelector('.cfb-ico');
           if (ico) ico.textContent = ativo ? '⭐' : '☆';
