@@ -665,6 +665,43 @@
   </main>
 
   <!-- ============================================================
+       TELA — CRIAR BARBEARIA
+       Acessível pelo botão "+ Criar" na tela de perfil.
+       Permite que barbeiros sem barbearia criem uma.
+  ============================================================ -->
+  <main id="tela-criar" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <span class="login-tagline">Crie sua barbearia</span>
+      </div>
+      <div class="auth-card">
+        <h2 class="auth-title">Nova Barbearia</h2>
+        <div class="criar-intro">
+          <p>Preencha os dados abaixo para criar sua barbearia no BarberFlow.
+             Depois, configure a localização para aparecer no mapa dos clientes.</p>
+        </div>
+        <div class="form-field">
+          <label for="criar-nome">Nome da barbearia *</label>
+          <input id="criar-nome" type="text" placeholder="Ex: Barbearia do Rafael"
+                 maxlength="100" autocomplete="organization">
+        </div>
+        <div class="form-field">
+          <label for="criar-tel">Telefone / WhatsApp</label>
+          <input id="criar-tel" type="tel" placeholder="(00) 00000-0000"
+                 maxlength="20" autocomplete="tel">
+        </div>
+        <p id="criar-msg" class="criar-msg"></p>
+        <button id="criar-btn" type="button" class="btn btn-gold btn-full">
+          Criar Barbearia
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
        TELA — PERFIL
   ============================================================ -->
   <main id="tela-perfil" class="tela">
@@ -677,7 +714,7 @@
       <p class="profile-name" id="perfil-nome">João Silva</p>
       <p class="profile-sub" id="perfil-sub">Barbeiro Profissional · 8 anos de experiência</p>
       <div class="perfil-acoes">
-        <button class="btn-perfil-criar" onclick="Pro.nav('criar')">
+        <button id="btn-perfil-criar" class="btn-perfil-criar" style="display:none" onclick="Pro.nav('criar')">
           + Criar
         </button>
         <button class="btn-perfil-editar" onclick="PerfilEditor.alternarModo(this)">
@@ -1349,6 +1386,7 @@
 <script src="assets/js/pages/BarbeariasPage.js"></script>
 <script src="assets/js/pages/AgendaPage.js"></script>
 <script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
+<script src="assets/js/pages/CriarBarbeariaPage.js"></script>
 <script src="assets/js/pages/QueueWidget.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- Controllers do app profissional — devem preceder app.js -->

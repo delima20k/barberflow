@@ -2178,6 +2178,26 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .form-erro--error   { color: var(--danger); background: rgba(224,82,82,.10); border: 1px solid rgba(224,82,82,.25); }
 .form-erro--success { color: var(--success); background: rgba(82,201,122,.10); border: 1px solid rgba(82,201,122,.25); }
 
+/* ── CriarBarbeariaPage — mensagem e intro ──────────────────── */
+.criar-msg {
+  display: block;
+  font-size: .83rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  margin-bottom: 4px;
+  min-height: 1.6em;
+}
+.criar-msg:empty { display: none; }
+.criar-msg.form-erro   { display: block; color: var(--danger);  background: rgba(224,82,82,.10); border: 1px solid rgba(224,82,82,.25); }
+.criar-msg--ok         { color: var(--success); background: rgba(82,201,122,.10); border: 1px solid rgba(82,201,122,.25); }
+.criar-intro p {
+  font-size: .85rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
 /* ── Empty State ────────────────────────────────────────────── */
 /* ── Splash Overlay — troca de app (compacto / mobile-first) ────────── */
 .splash-overlay {
