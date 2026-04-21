@@ -165,13 +165,18 @@ class ProfessionalService {
     if (!card) return;
     const proId = card.dataset.professionalId;
 
-    const era    = btn.classList.contains('ativo');
-    const novo   = !era;
+    const era  = btn.classList.contains('ativo');
+    const novo = !era;
+
+    // Calcula novoTotal a partir do botão clicado (valor canônico)
+    const cntEl    = btn.querySelector('.dc-count') || btn.querySelector('.clb-cnt');
+    const current  = parseInt(cntEl?.textContent || '0', 10);
+    const novoTotal = Math.max(0, novo ? current + 1 : current - 1);
 
     if (novo) ProfessionalService.#LIKE_IDS.add(proId);
     else      ProfessionalService.#LIKE_IDS.delete(proId);
 
-    ProfessionalService.#sincronizarBotoes(proId, 'professional-like', novo);
+    ProfessionalService.#sincronizarBotoes(proId, 'professional-like', novo, novoTotal);
 
     // Persiste no banco em background
     try {
@@ -214,34 +219,30 @@ class ProfessionalService {
    * Também atualiza estrelas+pontuação com base no novo contador.
    * @private
    */
-  static #sincronizarBotoes(proId, action, ativo) {
+  static #sincronizarBotoes(proId, action, ativo, novoTotal = null) {
     document.querySelectorAll(`[data-professional-id="${CSS.escape(proId)}"]`).forEach(card => {
       card.querySelectorAll(`[data-action="${action}"]`).forEach(btn => {
         btn.classList.toggle('ativo', ativo);
         btn.setAttribute('aria-pressed', String(ativo));
 
         if (action === 'professional-like') {
-          // Suporta .dc-count (novo top-card__likes) e .clb-cnt (legado)
+          // Usa valor canônico passado — todos os cards recebem o mesmo total
           const cnt = btn.querySelector('.dc-count') || btn.querySelector('.clb-cnt');
-          let novoTotal = 0;
-          if (cnt) {
-            const n = parseInt(cnt.textContent, 10) || 0;
-            novoTotal = Math.max(0, ativo ? n + 1 : n - 1);
-            cnt.textContent = novoTotal;
-          }
+          if (cnt && novoTotal !== null) cnt.textContent = novoTotal;
           btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
 
-          // Atualiza estrelas e pontuação do card (se tiver .bc-rating — padrão legado)
+          // Legado (.bc-rating)
+          const total = novoTotal ?? (parseInt(cnt?.textContent || '0', 10));
           const starsEl = card.querySelector('.bc-stars');
           const valEl   = card.querySelector('.bc-rating-val');
           const cntEl   = card.querySelector('.bc-rating-cnt');
-          if (starsEl) starsEl.textContent = ProfessionalService.renderStars(novoTotal);
-          if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(novoTotal).toFixed(1);
-          if (cntEl)   cntEl.textContent   = `(${novoTotal})`;
+          if (starsEl) starsEl.textContent = ProfessionalService.renderStars(total);
+          if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(total).toFixed(1);
+          if (cntEl)   cntEl.textContent   = `(${total})`;
 
-          // Atualiza estrelas individuais no card (padrão tc-star unificado)
-          const novaVal = ProfessionalService.estrelasPorCurtidas(novoTotal);
-          const numEl  = card.querySelector('.dc-rating-num');
+          // Padrão tc-star unificado
+          const novaVal = ProfessionalService.estrelasPorCurtidas(total);
+          const numEl   = card.querySelector('.dc-rating-num');
           if (numEl) numEl.textContent = novaVal.toFixed(1);
           card.querySelectorAll('.tc-star').forEach((s, i) => {
             const pct = Math.min(100, Math.max(0, Math.round((novaVal - i) * 100)));

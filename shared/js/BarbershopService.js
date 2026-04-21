@@ -404,7 +404,7 @@ class BarbershopService {
     const novoScore = BarbershopService.calcRatingScore(likes, dislikes);
 
     // Sincroniza TODOS os cards com o mesmo barbershopId
-    BarbershopService.#sincronizarLike(barbershopId, likes, dislikes, novoScore, eraLike, eraDislike);
+    BarbershopService.#sincronizarContadores(barbershopId, likes, dislikes, novoScore, !eraLike, false, eraDislike);
 
     // Persiste no banco (silencioso se não logado)
     BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
@@ -419,35 +419,23 @@ class BarbershopService {
     if (!card) return;
     const barbershopId = card.dataset.barbershopId;
 
-    // Desabilita botão de like se ativo
-    const likeBtn   = card.querySelector('[data-action="barbershop-like"]');
-    const eraLike   = likeBtn?.classList.contains('ativo');
+    const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
+    const eraLike    = likeBtn?.classList.contains('ativo');
     const eraDislike = btn.classList.contains('ativo');
-
-    btn.classList.toggle('ativo');
 
     let likes    = parseInt(card.dataset.likes    ?? 0);
     let dislikes = parseInt(card.dataset.dislikes ?? 0);
 
-    if (eraLike) {
-      likeBtn.classList.remove('ativo');
-      likes = Math.max(0, likes - 1);
-      card.dataset.likes = likes;
-      const ls = likeBtn.querySelector('.dc-count');
-      if (ls) ls.textContent = likes;
-    }
+    if (eraLike)    likes    = Math.max(0, likes - 1);
+    if (eraDislike) dislikes = Math.max(0, dislikes - 1);
+    else            dislikes += 1;
 
-    if (eraDislike) {
-      dislikes = Math.max(0, dislikes - 1);
-    } else {
-      dislikes += 1;
-    }
-    card.dataset.dislikes = dislikes;
-    const span = btn.querySelector('.dc-count');
-    if (span) span.textContent = dislikes;
+    const novoScore = BarbershopService.calcRatingScore(likes, dislikes);
 
-    BarbershopService.#atualizarEstrelaCard(card,
-      BarbershopService.calcRatingScore(likes, dislikes));
+    // Sincroniza TODOS os cards com o mesmo barbershopId
+    BarbershopService.#sincronizarContadores(
+      barbershopId, likes, dislikes, novoScore, false, !eraDislike, eraLike
+    );
 
     BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
   }
@@ -503,35 +491,40 @@ class BarbershopService {
   }
 
   /**
-   * Sincroniza o contador de likes e estrelas em TODOS os cards com o mesmo
-   * barbershopId (pode aparecer em home destaque + lista + nearby simultaneamente).
+   * Sincroniza contadores, estado dos botões e estrelas em TODOS os cards
+   * com o mesmo barbershopId — funciona para like e dislike.
+   * @param {string}  barbershopId
+   * @param {number}  likes          novo total de likes
+   * @param {number}  dislikes       novo total de dislikes
+   * @param {number}  score          novo score já calculado
+   * @param {boolean} likeAtivo      true se o like deve ficar marcado
+   * @param {boolean} dislikeAtivo   true se o dislike deve ficar marcado
+   * @param {boolean} removeuOposto  true se o botão oposto foi retirado
    * @private
    */
-  static #sincronizarLike(barbershopId, likes, dislikes, score, eraLike, eraDislike) {
+  static #sincronizarContadores(barbershopId, likes, dislikes, score, likeAtivo, dislikeAtivo, removeuOposto) {
     document.querySelectorAll(`[data-barbershop-id="${CSS.escape(barbershopId)}"]`).forEach(card => {
-      // Atualiza datasets
+      // datasets canônicos
       card.dataset.likes    = likes;
       card.dataset.dislikes = dislikes;
 
       // Botão like
       const likeBtn = card.querySelector('[data-action="barbershop-like"]');
       if (likeBtn) {
-        likeBtn.classList.toggle('ativo', !eraLike);
+        likeBtn.classList.toggle('ativo', likeAtivo);
         const cnt = likeBtn.querySelector('.dc-count');
         if (cnt) cnt.textContent = likes;
       }
 
-      // Botão dislike (remove estado se era dislike)
-      if (eraDislike) {
-        const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
-        if (dislikeBtn) {
-          dislikeBtn.classList.remove('ativo');
-          const ds = dislikeBtn.querySelector('.dc-count');
-          if (ds) ds.textContent = dislikes;
-        }
+      // Botão dislike
+      const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
+      if (dislikeBtn) {
+        dislikeBtn.classList.toggle('ativo', dislikeAtivo);
+        const ds = dislikeBtn.querySelector('.dc-count');
+        if (ds) ds.textContent = dislikes;
       }
 
-      // Atualiza estrelas e pontuação
+      // Estrelas individuais + número
       BarbershopService.#atualizarEstrelaCard(card, score);
     });
   }
