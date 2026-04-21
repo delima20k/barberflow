@@ -312,6 +312,10 @@
   flex-shrink: 0;
   transition: filter var(--ease), opacity var(--ease);
 }
+/* Ícone de Finanças — ampliar pois o SVG tem mais detalhes */
+.menu-nav-item img[src*="finaca"] {
+  width: 54px; height: 54px;
+}
 .menu-nav-item:hover img {
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   opacity: 1;
@@ -362,6 +366,9 @@
     width: 28px;
     height: 28px;
     font-size: .95rem;
+  }
+  .menu-nav-item img[src*="finaca"] {
+    width: 36px; height: 36px;
   }
 }
 
