@@ -5,7 +5,7 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_NAME = 'barberflow-profissional-v31';
+  static #CACHE_NAME = 'barberflow-profissional-v32';
 
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS = [
@@ -102,6 +102,10 @@ class SWProfissional {
     self.addEventListener('install',  e => SWProfissional.install(e));
     self.addEventListener('activate', e => SWProfissional.activate(e));
     self.addEventListener('fetch',    e => SWProfissional.fetch(e));
+    // Permite que o app force skipWaiting via postMessage
+    self.addEventListener('message',  e => {
+      if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+    });
   }
 }
 

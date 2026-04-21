@@ -41,6 +41,7 @@ class AppBootstrap {
     // Limpa flag do ciclo anterior — garante que cada nova atualização de SW
     // possa forçar o reload. O flag só precisa existir durante o ciclo de reload.
     sessionStorage.removeItem('sw_reloaded');
+
     // Recarrega automaticamente quando um novo SW assumir o controle
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!sessionStorage.getItem('sw_reloaded')) {
@@ -48,11 +49,29 @@ class AppBootstrap {
         location.reload();
       }
     });
+
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js', { scope: './' })
         .then(reg => {
-          LoggerService.info('[BarberFlow Pro] SW registrado', reg.scope);
+          // Se já há um SW instalado aguardando, força imediatamente
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+
+          // Detecta novo SW que chega após o carregamento da página
+          reg.addEventListener('updatefound', () => {
+            const sw = reg.installing;
+            if (!sw) return;
+            sw.addEventListener('statechange', () => {
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                // Novo SW instalado e pronto — força ativação imediata
+                sw.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          });
+
           reg.update();
+          LoggerService.info('[BarberFlow Pro] SW registrado', reg.scope);
         })
         .catch(err => LoggerService.warn('[BarberFlow Pro] SW erro', err));
     });
