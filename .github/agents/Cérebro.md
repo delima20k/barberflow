@@ -118,6 +118,31 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Badge aberto/fechado no topo + layout padronizado cards de barbearia]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** nos cards de Populares/Mais Próximas, colocar o `.badge` (Aberto/Fechado) 1 gap acima da `.card-top-actions`, e deixar todos os cards iguais.
+
+**Mudanças:**
+- **CSS `.card-top-actions`** → agora `flex-direction: column; align-items: flex-end; gap: 1rem`
+- **Nova classe `.cta-row`** → container interno `flex row gap: 1rem` que recebe stars + fav (+ eventual like)
+- **`NearbyBarbershopsWidget.#criarBarberRow`** → badge agora é primeiro filho de `.card-top-actions` (topo) · `.cta-row` logo abaixo com stars + fav · removido o `.barber-meta` vazio
+
+**Resultado visual:**
+```
+┌───────────────────────────────────┐
+│  [🏠]   Barbearia X        Aberto │
+│         📍 Endereço       ★ 4.8 ⭐│
+└───────────────────────────────────┘
+```
+
+**SW:** bump `v28`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Ícone 👍 + padronização like/dislike + estrelas por curtidas]
 
 **Data/Hora:** 21 de abril de 2026

@@ -5,7 +5,7 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v27';
+  static #CACHE_NAME = 'barberflow-cliente-v28';
 
   static #ASSETS = [
     '/manifest.json',

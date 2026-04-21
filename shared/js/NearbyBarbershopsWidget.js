@@ -588,29 +588,30 @@ class NearbyBarbershopsWidget {
     info.appendChild(nome);
     info.appendChild(sub);
 
-    // Badge aberto/fechado (abaixo, sem estrelas — estrelas vão pro top-right)
-    const meta = document.createElement('div');
-    meta.className = 'barber-meta';
-    const badge = document.createElement('span');
-    badge.className   = b.is_open ? 'badge' : 'badge closed';
-    badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
-    meta.appendChild(badge);
-
     row.appendChild(avatarWrap);
     row.appendChild(info);
-    row.appendChild(meta);
 
-    // Container top-right: stars + botão favorito (POO — reaproveita BarbershopService)
+    // Container top-right padronizado: badge (topo) + linha [stars + fav]
     if (b?.id) {
       const actions = document.createElement('div');
       actions.className = 'card-top-actions';
 
+      const badge = document.createElement('span');
+      badge.className   = b.is_open ? 'badge' : 'badge closed';
+      badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+      actions.appendChild(badge);
+
+      const ctaRow = document.createElement('div');
+      ctaRow.className = 'cta-row';
+
       const stars = document.createElement('span');
       stars.className   = 'stars';
       stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
-      actions.appendChild(stars);
+      ctaRow.appendChild(stars);
 
-      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      ctaRow.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      actions.appendChild(ctaRow);
+
       row.appendChild(actions);
     }
 
