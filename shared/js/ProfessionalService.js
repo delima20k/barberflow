@@ -178,10 +178,25 @@ class ProfessionalService {
 
     ProfessionalService.#sincronizarBotoes(proId, 'professional-like', novo, novoTotal);
 
-    // Persiste no banco em background
+    // Persiste no banco em background e re-sincroniza com o total real do banco
     try {
       const user = await SupabaseService.getUser?.();
-      if (user?.id) await ProfileRepository.toggleProfessionalLike(user.id, proId);
+      if (user?.id) {
+        await ProfileRepository.toggleProfessionalLike(user.id, proId);
+        // Busca o contador real (inclui curtidas de todos os usuários)
+        const realCount = await ProfileRepository.getProfessionalLikeCount(proId);
+        const realVal   = ProfessionalService.estrelasPorCurtidas(realCount);
+        ProfessionalService.#sincronizarBotoes(proId, 'professional-like', novo, realCount);
+        // Sincroniza o dc-rating-num com o score real
+        document.querySelectorAll(`[data-professional-id="${CSS.escape(proId)}"]`).forEach(card => {
+          const numEl = card.querySelector('.dc-rating-num');
+          if (numEl) numEl.textContent = realVal.toFixed(1);
+          card.querySelectorAll('.tc-star').forEach((s, i) => {
+            const pct = Math.min(100, Math.max(0, Math.round((realVal - i) * 100)));
+            s.style.setProperty('--pct', `${pct}%`);
+          });
+        });
+      }
     } catch (e) {
       LoggerService.warn('[ProfessionalService] toggleLike falhou:', e?.message);
     }

@@ -291,4 +291,20 @@ class ProfileRepository {
     if (error) throw error;
     return new Set((data ?? []).map(r => r.professional_id));
   }
+
+  /**
+   * Retorna o rating_count real de um profissional após persistência.
+   * Usado para re-sincronizar a UI com o total de curtidas do banco
+   * (inclui curtidas de TODOS os usuários).
+   * @param {string} professionalId
+   * @returns {Promise<number>}
+   */
+  static async getProfessionalLikeCount(professionalId) {
+    const { data, error } = await SupabaseService.professionals()
+      .select('rating_count')
+      .eq('id', professionalId)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.rating_count ?? 0;
+  }
 }

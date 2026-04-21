@@ -287,4 +287,20 @@ class BarbershopRepository {
     if (error) throw error;
     return data ?? [];
   }
+
+  /**
+   * Retorna os contadores reais de uma barbearia após persistência.
+   * Usado para re-sincronizar a UI com os valores do banco
+   * (que incluem curtidas de TODOS os usuários).
+   * @param {string} barbershopId
+   * @returns {Promise<{likes_count:number, dislikes_count:number, rating_score:number}|null>}
+   */
+  static async getStats(barbershopId) {
+    const { data, error } = await SupabaseService.barbershops()
+      .select('likes_count, dislikes_count, rating_score')
+      .eq('id', barbershopId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
 }

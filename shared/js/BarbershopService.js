@@ -403,11 +403,12 @@ class BarbershopService {
 
     const novoScore = BarbershopService.calcRatingScore(likes, dislikes);
 
-    // Sincroniza TODOS os cards com o mesmo barbershopId
+    // 1) Feedback otimista imediato em todos os cards
     BarbershopService.#sincronizarContadores(barbershopId, likes, dislikes, novoScore, !eraLike, false, eraDislike);
 
-    // Persiste no banco (silencioso se não logado)
-    BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
+    // 2) Persiste no banco e re-sincroniza com valores reais (inclui curtidas de outros usuários)
+    await BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
+    await BarbershopService.#sincronizarComBanco(barbershopId);
   }
 
   /**
@@ -432,12 +433,14 @@ class BarbershopService {
 
     const novoScore = BarbershopService.calcRatingScore(likes, dislikes);
 
-    // Sincroniza TODOS os cards com o mesmo barbershopId
+    // 1) Feedback otimista imediato em todos os cards
     BarbershopService.#sincronizarContadores(
       barbershopId, likes, dislikes, novoScore, false, !eraDislike, eraLike
     );
 
-    BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
+    // 2) Persiste no banco e re-sincroniza com valores reais (inclui curtidas de outros usuários)
+    await BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
+    await BarbershopService.#sincronizarComBanco(barbershopId);
   }
 
   /**
@@ -527,6 +530,37 @@ class BarbershopService {
       // Estrelas individuais + número
       BarbershopService.#atualizarEstrelaCard(card, score);
     });
+  }
+
+  /**
+   * Após persistir no banco, busca os valores reais (likes_count, dislikes_count, rating_score)
+   * e re-sincroniza TODOS os cards com os contadores que refletem curtidas de todos os usuários.
+   * @private
+   */
+  static async #sincronizarComBanco(barbershopId) {
+    try {
+      const stats = await BarbershopRepository.getStats(barbershopId);
+      if (!stats) return;
+      const { likes_count, dislikes_count, rating_score } = stats;
+      // Re-usa #sincronizarContadores preservando o estado de ativo dos botões (não muda)
+      document.querySelectorAll(`[data-barbershop-id="${CSS.escape(barbershopId)}"]`).forEach(card => {
+        card.dataset.likes    = likes_count;
+        card.dataset.dislikes = dislikes_count;
+        const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
+        const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
+        if (likeBtn) {
+          const cnt = likeBtn.querySelector('.dc-count');
+          if (cnt) cnt.textContent = likes_count;
+        }
+        if (dislikeBtn) {
+          const ds = dislikeBtn.querySelector('.dc-count');
+          if (ds) ds.textContent = dislikes_count;
+        }
+        BarbershopService.#atualizarEstrelaCard(card, Number(rating_score));
+      });
+    } catch (e) {
+      LoggerService.warn('[BarbershopService] sincronizarComBanco falhou:', e?.message);
+    }
   }
 
   /**
