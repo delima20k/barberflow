@@ -118,6 +118,24 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Top-card favorito: manter apenas a estrela da direita]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** remover a estrela `cfb-ico` da esquerda (a primária). Ficar só a estrela deslocada para a direita+cima.
+
+**Mudanças CSS:**
+- Removido `.cfb-ico::before` (estrela primária central)
+- A única estrela agora é o `.cfb-ico::after` com `translate(6px, -4px) rotate(14deg)` — outline inativa, preenchida/brilhante ativa
+- `.cfb-ico` continua escondendo o caractere original do HTML via `font-size: 0`
+- Confetes + sparkles + animação `fav-pop` preservados
+
+**SW:** bump `v33`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Destaques: favorito com confetes + 2ª estrela sobreposta]
 
 **Data/Hora:** 21 de abril de 2026

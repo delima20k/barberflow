@@ -837,8 +837,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.55rem;
-  color: var(--gold, #D4AF37);
+  font-size: 0;           /* oculta o caractere original ★/☆ do HTML */
+  color: transparent;
   line-height: 1;
   text-shadow: none;
   transform: none !important;
@@ -846,17 +846,8 @@
   -webkit-text-stroke: 0;
 }
 
-/* Estrela primária: usa ★ com cor dourada; ativo preenchido, inativo outline via -webkit-text-stroke */
-.top-card .card-fav-btn .cfb-ico::before {
-  content: '★';
-}
-
-.top-card .card-fav-btn:not(.ativo) .cfb-ico {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--gold, #D4AF37);
-}
-
-/* 2ª estrela sobreposta — só aparece quando ativo */
+/* Única estrela exibida — levemente deslocada para a direita/cima,
+   outline dourada quando inativa, preenchida + brilho quando ativa. */
 .top-card .card-fav-btn .cfb-ico::after {
   content: '★';
   position: absolute;
@@ -867,21 +858,17 @@
   font-size: 1.55rem;
   color: transparent;
   -webkit-text-stroke: 1.5px var(--gold, #D4AF37);
-  opacity: 0;
-  transform: translate(0, 0) rotate(0deg);
-  transition: opacity .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+  opacity: 1;
+  transform: translate(6px, -4px) rotate(14deg);
+  transition: color .25s ease, text-shadow .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
   pointer-events: none;
 }
 
 .top-card .card-fav-btn.ativo .cfb-ico::after {
-  opacity: 1;
-  transform: translate(6px, -4px) rotate(14deg);
-}
-
-.top-card .card-fav-btn.ativo .cfb-ico {
   color: var(--gold, #D4AF37);
   -webkit-text-stroke: 0;
   text-shadow: 0 0 10px rgba(212, 175, 55, .65);
+  transform: translate(6px, -4px) rotate(14deg) scale(1.08);
   animation: fav-pop .5s cubic-bezier(.34,1.56,.64,1);
 }
 
