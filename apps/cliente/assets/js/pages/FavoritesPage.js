@@ -133,10 +133,6 @@ class FavoritesPage {
         </div>
         <p class="fav-card__nome">${b.name ?? ''}</p>
         <p class="fav-card__addr">${b.address ?? ''}</p>
-        <div class="fav-card__footer">
-          <span></span>
-          <button class="fav-card__btn" data-action="agendar" data-barbershop="${b.id}">Agendar</button>
-        </div>
       </div>`;
 
     return card;
@@ -186,9 +182,6 @@ class FavoritesPage {
         <p class="barber-name">${nome}</p>
         ${specs ? `<p class="barber-sub">${specs}</p>` : ''}
         <div class="stars" style="margin-top:3px;">${stars}</div>
-      </div>
-      <div class="barber-meta">
-        <button class="btn btn-gold btn-sm" data-action="agendar" data-professional="${p.id}">Agendar</button>
       </div>`;
 
     return row;
