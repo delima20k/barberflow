@@ -123,6 +123,10 @@ class NearbyBarbershopsWidget {
         if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i + 1]));
         el.appendChild(coluna);
       }
+
+      // Restaura contadores reais para todos (inclusive anônimos)
+      BarbershopService.restaurarInteracoes([...el.querySelectorAll('[data-barbershop-id]')]);
+
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
       el.innerHTML = '';
@@ -534,6 +538,10 @@ class NearbyBarbershopsWidget {
         if (subEl) subEl.textContent = bc._sub;
         el.appendChild(row);
       });
+
+      // Restaura contadores reais para todos (inclusive anônimos)
+      BarbershopService.restaurarInteracoes([...el.querySelectorAll('[data-barbershop-id]')]);
+
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeTodas exception:', err);
       el.innerHTML = '';
@@ -542,12 +550,16 @@ class NearbyBarbershopsWidget {
 
   static #criarBarberRow(b) {
     const likes    = Number(b.likes_count    ?? 0);
-    const ratingAvg = Number(b.rating_avg ?? 0);
+    const dislikes = Number(b.dislikes_count ?? 0);
+    const score    = b.rating_score != null
+      ? Number(b.rating_score)
+      : BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0);
 
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
     if (b?.id) row.dataset.barbershopId = b.id;
-    row.dataset.likes = likes;
+    row.dataset.likes    = likes;
+    row.dataset.dislikes = dislikes;
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
@@ -576,8 +588,8 @@ class NearbyBarbershopsWidget {
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
     starsRow.innerHTML = `
-      ${BarbershopService.criarEstrelasHTML(ratingAvg)}
-      <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>
+      ${BarbershopService.criarEstrelasHTML(score)}
+      <span class="dc-rating-num">${score.toFixed(1)}</span>
       <button type="button" class="top-card__likes" data-action="barbershop-like"
               aria-label="Curtir barbearia" title="Curtir barbearia">
         <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>

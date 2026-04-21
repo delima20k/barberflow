@@ -644,11 +644,15 @@ class BarbershopService {
       const resCounts = await BarbershopRepository.getInteractionCountsAll(ids)
         .catch(() => ({}));
 
-      ;cardsArr.forEach(card => {
+      cardsArr.forEach(card => {
         const id = card.dataset.barbershopId;
-        if (!id || !resCounts[id]) return;
-        const { likes, dislikes } = resCounts[id];
-        const score = BarbershopService.calcRatingScore(likes, dislikes);
+        if (!id) return;
+        // Usa contadores do banco se disponíveis (RLS permite), senão usa dataset do render inicial
+        // (que vem de barbershops.likes_count / dislikes_count da query inicial)
+        const dbCounts = resCounts[id];
+        const likes    = dbCounts ? dbCounts.likes    : parseInt(card.dataset.likes    ?? 0);
+        const dislikes = dbCounts ? dbCounts.dislikes : parseInt(card.dataset.dislikes ?? 0);
+        const score    = BarbershopService.calcRatingScore(likes, dislikes);
         card.dataset.likes    = likes;
         card.dataset.dislikes = dislikes;
         const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
