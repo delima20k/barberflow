@@ -141,28 +141,20 @@ const AuthGuard = (() => {
 
     actions.append(btnEnter, btnReg);
 
+    // Botão fechar (X)
+    const btnFechar = document.createElement('button');
+    btnFechar.className = 'bf-auth-popup-btn-fechar';
+    btnFechar.setAttribute('aria-label', 'Fechar');
+    btnFechar.textContent = '✕';
+
     const bar = document.createElement('div');
     bar.className = 'bf-auth-popup-bar';
     const barInner = document.createElement('div');
     barInner.className = 'bf-auth-popup-bar-inner';
     bar.appendChild(barInner);
 
-    card.append(icon, title, body, actions, bar);
+    card.append(btnFechar, icon, title, body, actions, bar);
     overlay.appendChild(card);
-
-    // Navega ao clicar nos botões
-    overlay.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-goto]');
-      if (!btn && e.target !== overlay) return;
-      const dest = btn?.dataset.goto;
-      overlay.remove();
-      if (dest) {
-        const router = typeof App !== 'undefined' ? App : null;
-        if (router && typeof router.push === 'function') router.push(dest);
-      }
-    });
-
-    document.body.appendChild(overlay);
 
     // Auto-dismiss em 3 segundos
     const timer = setTimeout(() => {
@@ -170,8 +162,27 @@ const AuthGuard = (() => {
       setTimeout(() => overlay.remove(), 400);
     }, 3000);
 
-    // Cancela o timer se o usuário clicar em qualquer botão
-    overlay.addEventListener('click', () => clearTimeout(timer), { once: true });
+    /** Fecha o popup e cancela o timer pendente. */
+    function _fechar(dest) {
+      clearTimeout(timer);
+      overlay.remove();
+      if (dest) {
+        const router = typeof App !== 'undefined' ? App : null;
+        if (router && typeof router.push === 'function') router.push(dest);
+      }
+    }
+
+    // Fecha ao clicar nos botões de navegação ou no fundo escuro
+    overlay.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-goto]');
+      if (btn) { _fechar(btn.dataset.goto); return; }
+      if (e.target === overlay) _fechar(null);
+    });
+
+    // Fecha ao clicar no botão X
+    btnFechar.addEventListener('click', () => _fechar(null));
+
+    document.body.appendChild(overlay);
   }
 
   // ── API pública ───────────────────────────────────────────
@@ -184,7 +195,6 @@ const AuthGuard = (() => {
    */
   function requireAuth(router) {
     if (_estaLogado()) return true;
-    _mostrarAvisoLogin();
     if (router && typeof router.push === 'function') router.push('login');
     return false;
   }

@@ -177,6 +177,7 @@
 }
 
 .bf-auth-popup {
+  position:      relative;
   background:    var(--card-bg, #1c1008);
   border:        1.5px solid var(--gold-border, rgba(212,160,23,.35));
   border-radius: var(--r-lg, 18px);
@@ -244,6 +245,23 @@
   border:     1.5px solid var(--gold-border, rgba(212,160,23,.45));
   color:      var(--gold, #d4a017);
 }
+
+/* Botão fechar (X) ────────────────────────────────────────── */
+.bf-auth-popup-btn-fechar {
+  position:      absolute;
+  top:           10px;
+  right:         12px;
+  background:    transparent;
+  border:        none;
+  color:         var(--text-muted, #c8b89a);
+  font-size:     1.1rem;
+  line-height:   1;
+  cursor:        pointer;
+  padding:       4px 6px;
+  border-radius: 50%;
+  transition:    color 0.15s, background 0.15s;
+}
+.bf-auth-popup-btn-fechar:hover { color: var(--gold, #d4a017); background: rgba(212,160,23,.12); }
 
 /* Barra de progresso 3s ──────────────────────────────────── */
 .bf-auth-popup-bar {
