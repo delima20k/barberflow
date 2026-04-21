@@ -411,18 +411,34 @@ class NearbyBarbershopsWidget {
         btnFav.setAttribute('aria-label', 'Favoritar barbeiro');
         btnFav.type = 'button';
         btnFav.innerHTML = `<span class="bc-ico">${isFaved ? '⭐' : '☆'}</span>`;
-        btnFav.addEventListener('click', (e) => {
+        btnFav.addEventListener('click', async (e) => {
           e.stopPropagation();
-          const faved = getFaved();
-          const icoEl = btnFav.querySelector('.bc-ico');
-          if (faved.has(p.id)) {
-            faved.delete(p.id); btnFav.classList.remove('bc-btn--ativo');
-            if (icoEl) icoEl.textContent = '☆';
-          } else {
-            faved.add(p.id); btnFav.classList.add('bc-btn--ativo');
-            if (icoEl) icoEl.textContent = '⭐';
+          const perfil = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
+          const router = typeof App !== 'undefined' ? App : null;
+          if (!perfil?.id) {
+            if (typeof AuthGuard !== 'undefined') AuthGuard.permitirAcao('favoritar', router);
+            return;
           }
-          try { localStorage.setItem('bf_barber_favs', JSON.stringify([...faved])); } catch { /* sem-op */ }
+          const icoEl  = btnFav.querySelector('.bc-ico');
+          const eraFav = btnFav.classList.contains('bc-btn--ativo');
+          if (eraFav) {
+            btnFav.classList.remove('bc-btn--ativo');
+            if (icoEl) icoEl.textContent = '☆';
+            if (typeof NotificationService !== 'undefined') {
+              NotificationService.mostrarToast('Você desfavoritou este Barbeiro', '', NotificationService.TIPOS.SISTEMA);
+            }
+          } else {
+            btnFav.classList.add('bc-btn--ativo');
+            if (icoEl) icoEl.textContent = '⭐';
+            if (typeof NotificationService !== 'undefined') {
+              NotificationService.mostrarToast('Você favoritou este Barbeiro ⭐', '', NotificationService.TIPOS.SISTEMA);
+            }
+          }
+          try {
+            await ProfileRepository.toggleFavoriteBarber(perfil.id, p.id);
+          } catch (err) {
+            LoggerService.warn('[NearbyBarbershopsWidget] toggleFav barbeiro falhou:', err?.message);
+          }
         });
 
         acoes.appendChild(btnLike);

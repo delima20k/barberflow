@@ -1,0 +1,154 @@
+# Cérebro.md — Memória Central do Agente DELIMA
+
+> **Propósito:** Repositório central de tarefas, padrões e histórico de ações do agente.
+> Antes de cada nova ação: consulte o índice abaixo, localize a seção, evite repetição.
+> Após cada nova ação não registrada: adicione ao histórico e atualize o índice.
+
+---
+
+## ÍNDICE
+
+| # | Seção                        | Linha |
+|---|------------------------------|-------|
+| 1 | Visão Geral do Projeto       | L30   |
+| 2 | Padrões Obrigatórios         | L60   |
+| 3 | Comandos Frequentes          | L110  |
+| 4 | Estrutura de Pastas          | L140  |
+| 5 | Histórico de Tarefas         | L175  |
+
+---
+
+## 1. Visão Geral do Projeto
+
+**Projeto:** BarberFlow  
+**Stack:** HTML + CSS + JS (POO) · Supabase · PWA/TWA  
+**Repositório:** https://github.com/delima20k/barberflow.git  
+**Branch principal:** `main`  
+**Apps:**
+- `apps/cliente/` — app do cliente final
+- `apps/profissional/` — app do barbeiro/profissional
+- `shared/` — código compartilhado (CSS, JS, fontes, imagens)
+
+**Prioridades do sistema:**
+1. Custo mínimo
+2. Performance alta
+3. UX extraordinário (mobile-first)
+4. Arquitetura limpa e escalável
+
+---
+
+## 2. Padrões Obrigatórios
+
+### Navegação e Animações
+- Toda app DEVE estender `Router` de `shared/js/Router.js`
+- NUNCA duplicar lógica de navegação/animação
+- Classes de animação ficam SOMENTE em `shared/css/tokens.css`
+- `App.nav('tela')` → carrossel (sai direita, entra esquerda)
+- `App.push('tela')` → fluxo de auth (sai direita, entra esquerda)
+- `App.voltar()` → SEMPRE fecha pela ESQUERDA e vai para home
+
+### Cards e Visual
+- `.barber-card` / `.barber-row` → `background: transparent` (NUNCA cor sólida)
+- `.top-card` → `background: transparent` + `border: none` + `min-height: 114px`
+- `.destaque-card` → `border: 1px solid rgba(212,175,55,.18)` + `box-shadow`
+
+### Banco de Dados
+- Imagens/vídeos NUNCA ficam no banco — apenas metadados no Supabase
+- Storage: `/videos`, `/thumbnails`, `/portfolio/images/original`, `/portfolio/images/thumbs`
+
+### POO / Código
+- Orientação a objetos obrigatória em TUDO
+- DRY — nunca duplicar código
+- Separar responsabilidades (MVC / Services)
+- Revisar sintaxe antes de entregar
+
+### Workflow Git
+```
+git add <arquivos>
+git commit -m "tipo(escopo): descrição"
+git push origin main
+```
+> **Windows:** NUNCA usar dois `-m` no commit (não suporta multiline no terminal)
+
+---
+
+## 3. Comandos Frequentes
+
+| Comando                          | Finalidade                          |
+|----------------------------------|-------------------------------------|
+| `git add . && git commit -m "..."` | Commitar alterações               |
+| `git push origin main`           | Enviar para remoto                  |
+| `npx jest`                       | Rodar testes                        |
+| `npx jest --testPathPattern=...` | Rodar teste específico              |
+| `node server.js`                 | Iniciar servidor local de dev       |
+
+---
+
+## 4. Estrutura de Pastas
+
+```
+barberflow/
+├── .github/
+│   ├── agents/
+│   │   └── Cérebro.md          ← este arquivo
+│   ├── copilot-instructions.md
+│   └── workflows/
+├── apps/
+│   ├── cliente/
+│   └── profissional/
+├── shared/
+│   ├── css/                    ← tokens.css, components.css, ...
+│   ├── js/                     ← Router.js, AuthService.js, ...
+│   ├── fonts/
+│   └── img/
+├── supabase/
+│   ├── migrations/
+│   ├── functions/
+│   └── seeds/
+├── tests/
+└── scripts/
+```
+
+---
+
+## 5. Histórico de Tarefas
+
+> Formato: `### [DATA HH:MM] — Descrição da tarefa`
+> Ordenado do mais recente para o mais antigo.
+
+---
+
+### [2026-04-21 — Favoritar barbearia/barbeiro: toast + persistência DB]
+
+**Data/Hora:** 21 de abril de 2026  
+**Arquivos modificados:**
+- `shared/js/BarbershopService.js` — mensagens do toast de favoritar barbearia atualizadas para "Você favoritou esta Barbearia ⭐" / "Você desfavoritou esta Barbearia"
+- `shared/js/NearbyBarbershopsWidget.js` — handler do `btnFav` em `initHomeBarbeiros` refatorado: localStorage removido, agora chama `ProfileRepository.toggleFavoriteBarber`, exige login via `AuthGuard` e exibe toast "Você favoritou este Barbeiro ⭐" / "Você desfavoritou este Barbeiro"
+- `apps/cliente/assets/js/pages/BarbeirosPage.js` — adicionado toast "Você favoritou/desfavoritou este Barbeiro" ao `#toggleFav`
+
+**Comportamento após a mudança:**
+- Clicar em ⭐ no card "Em Destaque" (home) → toast + persiste no banco → aparece em `tela-favoritas`
+- Clicar em ⭐ em "Barbeiros Populares" (home) → toast + persiste no banco → aparece em `tela-favoritas`
+- `tela-favoritas` já recarrega do banco a cada navegação (flag `#jaCarregou` é resetada ao sair da tela)
+**Status:** ✅ Concluído
+
+---
+
+### [2026-04-21 — Criação do Cérebro.md]
+
+**Data/Hora:** 21 de abril de 2026  
+**Solicitante:** Usuário (DELIMA)  
+**Descrição:** Criação do arquivo `Cérebro.md` dentro da pasta `.github/agents/`.  
+**Objetivo:** Centralizar o histórico de tarefas, padrões e instruções do agente para otimizar o uso de tokens e evitar repetição de contexto.  
+**Arquivo criado:** `.github/agents/Cérebro.md`  
+**Status:** ✅ Concluído
+
+**Estrutura definida:**
+- Índice com numeração de linha para acesso rápido
+- Seção 1 — Visão geral do projeto
+- Seção 2 — Padrões obrigatórios (navegação, cards, banco, POO, git)
+- Seção 3 — Comandos frequentes
+- Seção 4 — Estrutura de pastas
+- Seção 5 — Histórico de tarefas (esta seção)
+
+---

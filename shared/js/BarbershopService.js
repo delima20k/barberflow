@@ -363,9 +363,9 @@ class BarbershopService {
     // Feedback visual imediato via toast
     if (typeof NotificationService !== 'undefined') {
       if (eraFav) {
-        NotificationService.mostrarToast('Favorito removido', '', NotificationService.TIPOS.SISTEMA);
+        NotificationService.mostrarToast('Você desfavoritou esta Barbearia', '', NotificationService.TIPOS.SISTEMA);
       } else {
-        NotificationService.mostrarToast('Salvo em Favoritas ⭐', 'Barbearia adicionada aos seus favoritos', NotificationService.TIPOS.BARBEARIA);
+        NotificationService.mostrarToast('Você favoritou esta Barbearia ⭐', '', NotificationService.TIPOS.BARBEARIA);
       }
     }
 

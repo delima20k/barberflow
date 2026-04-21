@@ -164,10 +164,16 @@ class BarbeirosPage {
       this.#faved.delete(id);
       btn.classList.remove('bc-btn--ativo');
       if (icoEl) icoEl.textContent = '☆';
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Você desfavoritou este Barbeiro', '', NotificationService.TIPOS.SISTEMA);
+      }
     } else {
       this.#faved.add(id);
       btn.classList.add('bc-btn--ativo');
       if (icoEl) icoEl.textContent = '⭐';
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Você favoritou este Barbeiro ⭐', '', NotificationService.TIPOS.SISTEMA);
+      }
     }
 
     // Persiste no banco
