@@ -86,12 +86,18 @@ class BarbershopService {
       const btnLike    = e.target.closest('[data-action="barbershop-like"]');
       const btnDislike = e.target.closest('[data-action="barbershop-dislike"]');
       const btn = btnFav || btnLike || btnDislike;
+      // DIAGNÓSTICO v36
+      if (btnFav) {
+        console.log('[FAV-DIAG] click alcançou delegation — btnFav:', btnFav, 'target:', e.target, 'card:', btnFav.closest('[data-barbershop-id]'));
+      }
       if (!btn) return;
       e.preventDefault();
       e.stopPropagation();
       const router = typeof App !== 'undefined' ? App : null;
       if (btnFav) {
-        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-favorite', router)) return;
+        const guard = typeof AuthGuard !== 'undefined' ? AuthGuard.permitirAcao('barbershop-favorite', router) : true;
+        console.log('[FAV-DIAG] AuthGuard.permitirAcao →', guard);
+        if (!guard) return;
         BarbershopService.toggleBarbershopFavorite(btn);
       } else if (btnLike) {
         if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', router)) return;
