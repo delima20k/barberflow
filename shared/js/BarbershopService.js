@@ -95,10 +95,10 @@ class BarbershopService {
         if (!guard) return;
         BarbershopService.toggleBarbershopFavorite(btn);
       } else if (btnLike) {
-        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', router)) return;
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-like', router)) return;
         BarbershopService.toggleBarbershopLike(btn);
       } else {
-        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', router)) return;
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-dislike', router)) return;
         BarbershopService.toggleBarbershopDislike(btn);
       }
     }, true); // capture — roda antes do click do card
