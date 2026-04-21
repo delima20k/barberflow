@@ -49,6 +49,7 @@ class NavConfig {
       { tela: 'pesquisa',        icone: 'pesquisa.svg', label: 'Pesquisar'           },
       { tela: 'mensagens',       icone: 'mensagen.svg', label: 'Mensagens'           },
       { tela: 'minha-barbearia', icone: 'meu-b.svg',    label: 'Minha Barbearia'     },
+      { tela: 'financas',        icone: 'finaca.svg',   label: 'Finanças'            },
       { tela: 'perfil',          icone: 'perfil.svg',   label: 'Meu Perfil'          },
       { acao: 'sair',            icone: 'sair.svg',     label: 'Sair'                },
     ];
@@ -61,6 +62,7 @@ class NavConfig {
       { tela: 'pesquisa',     icone: 'pesquisa.svg', label: 'Pesquisar'           },
       { tela: 'mensagens',    icone: 'mensagen.svg', label: 'Mensagens'           },
       { tela: 'parcerias',    icone: 'meu-b.svg',    label: 'Parcerias'           },
+      { tela: 'financas',     icone: 'finaca.svg',   label: 'Finanças'            },
       { tela: 'perfil',       icone: 'perfil.svg',   label: 'Meu Perfil'          },
       { acao: 'sair',         icone: 'sair.svg',     label: 'Sair'                },
     ];
