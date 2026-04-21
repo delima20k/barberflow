@@ -73,7 +73,6 @@ class BarbeariasPage {
 
   #criarCard(b) {
     const ratingAvg = Number(b.rating_avg ?? 0);
-    const fillPct   = ((ratingAvg / 5) * 100).toFixed(1);
 
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
@@ -105,10 +104,7 @@ class BarbeariasPage {
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
     starsRow.innerHTML = `
-      <span class="dc-stars-wrap">
-        <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-        <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-      </span>
+      ${BarbershopService.criarEstrelasHTML(ratingAvg)}
       <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>
       <button type="button" class="top-card__likes" data-action="barbershop-like"
               aria-label="Curtir barbearia" title="Curtir barbearia">

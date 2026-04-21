@@ -328,25 +328,47 @@ class BarbershopService {
    * @returns {number} score 0.0–5.0
    */
   static calcRatingScore(likes, dislikes) {
-    if (likes + dislikes === 0) return 0.0;
-    const ratio = likes / (likes + dislikes);
-    const raw   = ratio * 5.0 - dislikes * 0.1;
-    return Math.max(0.0, Math.min(5.0, Math.round(raw * 10) / 10));
+    const total = likes + dislikes;
+    if (total === 0) return 0.0;
+    // Média ponderada: like = 5.0, dislike = 1.0
+    const avg = (likes * 5.0 + dislikes * 1.0) / total;
+    // Suavização Bayesiana (estabiliza com poucos votos, como iFood/99)
+    // Prior: 5 avaliações fantasmas com nota 3.0
+    const PRIOR_N = 5, PRIOR_MEAN = 3.0;
+    const score = (PRIOR_MEAN * PRIOR_N + avg * total) / (PRIOR_N + total);
+    return Math.round(score * 10) / 10;
   }
 
   /**
-   * Atualiza os elementos de estrela/pontuação dentro de um card destaque.
-   * Busca `.dc-stars-fill`, `.dc-rating-num` e `.dc-score-val` pelo card pai.
-   * @param {HTMLElement} card — o elemento .destaque-card
+   * Gera o HTML de 5 estrelas com preenchimento progressivo individual.
+   * Cada estrela é um <span class="tc-star"> com CSS custom property --pct.
+   * @param {number} score — 0.0 a 5.0
+   * @returns {string} HTML string
+   */
+  static criarEstrelasHTML(score) {
+    const s = Math.max(0, Math.min(5, Number(score) || 0));
+    const spans = Array.from({ length: 5 }, (_, i) => {
+      const pct = Math.min(100, Math.max(0, Math.round((s - i) * 100)));
+      return `<span class="tc-star" style="--pct:${pct}%" aria-hidden="true">★</span>`;
+    }).join('');
+    return `<span class="tc-stars-row">${spans}</span>`;
+  }
+
+  /**
+   * Atualiza os elementos de estrela/pontuação dentro de um card.
+   * Suporta .tc-star (novo padrão progressivo individual).
+   * @param {HTMLElement} card
    * @param {number} score — 0.0 a 5.0
    */
   static #atualizarEstrelaCard(card, score) {
-    const fill = card.querySelector('.dc-stars-fill');
-    const num  = card.querySelector('.dc-rating-num');
-    const val  = card.querySelector('.dc-score-val');
-    if (fill) fill.style.width = `${(score / 5) * 100}%`;
-    if (num)  num.textContent  = score.toFixed(1);
-    if (val)  val.textContent  = score.toFixed(1);
+    card.querySelectorAll('.tc-star').forEach((s, i) => {
+      const pct = Math.min(100, Math.max(0, Math.round((score - i) * 100)));
+      s.style.setProperty('--pct', `${pct}%`);
+    });
+    const num = card.querySelector('.dc-rating-num');
+    const val = card.querySelector('.dc-score-val');
+    if (num) num.textContent = score.toFixed(1);
+    if (val) val.textContent = score.toFixed(1);
   }
 
   /**

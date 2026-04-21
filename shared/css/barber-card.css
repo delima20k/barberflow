@@ -586,33 +586,41 @@
   width: 100%;
 }
 
-/* Estrelas com fill dinâmico via width% */
-.dc-stars-wrap {
-  position: relative;
-  display: inline-block;
+/* ── Estrelas individuais progressivas (iFood/99 style) ── */
+.tc-stars-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
   line-height: 1;
-  font-size: .88rem;
-  letter-spacing: .06em;
   flex-shrink: 0;
 }
 
-.dc-stars-base {
-  color: rgba(212, 175, 55, .2);
-  display: block;
-  white-space: nowrap;
+/* Cada estrela: vazia (cinza) + fill progressivo amarelo via clip-path */
+.tc-star {
+  position: relative;
+  display: inline-block;
+  color: rgba(212, 175, 55, 0.22);
+  font-size: .92rem;
+  line-height: 1;
   user-select: none;
 }
 
-.dc-stars-fill {
+.tc-star::after {
+  content: '★';
+  color: #ffc107;
   position: absolute;
-  top: 0;
   left: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  color: var(--gold, #D4AF37);
+  top: 0;
+  clip-path: inset(0 calc(100% - var(--pct, 0%)) 0 0);
+  transition: clip-path .35s ease;
   pointer-events: none;
-  transition: width .3s ease;
-  user-select: none;
+}
+
+/* Tamanho maior nos contextos top-card__stars */
+.top-card__stars .tc-star,
+.top-card__stars .tc-stars-row {
+  font-size: 1.05rem;
+  letter-spacing: 1px;
 }
 
 .dc-rating-num {
@@ -736,13 +744,6 @@
   min-height: 26px;
   font-size: 1.05rem;
   line-height: 1;
-}
-
-.top-card__stars .dc-stars-wrap,
-.top-card__stars .dc-stars-base,
-.top-card__stars .dc-stars-fill {
-  font-size: 1.05rem;
-  letter-spacing: 1px;
 }
 
 .top-card__stars .dc-rating-num {

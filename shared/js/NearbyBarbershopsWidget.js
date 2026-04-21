@@ -172,7 +172,6 @@ class NearbyBarbershopsWidget {
         const score = b.rating_score != null
           ? Number(b.rating_score)
           : BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0);
-        const fillPct = ((score / 5) * 100).toFixed(1);
 
         // ── Wrapper externo (card + endereço abaixo) ──────
         const item = document.createElement('div');
@@ -228,10 +227,7 @@ class NearbyBarbershopsWidget {
         const starsRow = document.createElement('div');
         starsRow.className = 'top-card__stars';
         starsRow.innerHTML = `
-          <span class="dc-stars-wrap">
-            <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-            <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-          </span>
+          ${BarbershopService.criarEstrelasHTML(score)}
           <span class="dc-rating-num">${score.toFixed(1)}</span>
           <button type="button" class="top-card__likes" data-action="barbershop-like"
                   aria-label="Curtir barbearia" title="Curtir barbearia">
@@ -301,7 +297,6 @@ class NearbyBarbershopsWidget {
       lista.forEach(p => {
         const ratingCount = parseInt(p.rating_count || 0, 10);
         const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
-        const fillPct     = ((ratingVal / 5) * 100).toFixed(1);
 
         const row = document.createElement('div');
         row.className = 'barber-row barber-card';
@@ -330,10 +325,7 @@ class NearbyBarbershopsWidget {
         const starsRow = document.createElement('div');
         starsRow.className = 'top-card__stars';
         starsRow.innerHTML = `
-          <span class="dc-stars-wrap">
-            <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-            <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-          </span>
+          ${BarbershopService.criarEstrelasHTML(ratingVal)}
           <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
         starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
 
@@ -529,7 +521,6 @@ class NearbyBarbershopsWidget {
   static #criarBarberRow(b) {
     const likes    = Number(b.likes_count    ?? 0);
     const ratingAvg = Number(b.rating_avg ?? 0);
-    const fillPct   = ((ratingAvg / 5) * 100).toFixed(1);
 
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
@@ -563,10 +554,7 @@ class NearbyBarbershopsWidget {
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
     starsRow.innerHTML = `
-      <span class="dc-stars-wrap">
-        <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-        <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-      </span>
+      ${BarbershopService.criarEstrelasHTML(ratingAvg)}
       <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>
       <button type="button" class="top-card__likes" data-action="barbershop-like"
               aria-label="Curtir barbearia" title="Curtir barbearia">

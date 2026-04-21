@@ -77,7 +77,6 @@ class DestaquesPage {
     const score = b.rating_score != null
       ? Number(b.rating_score)
       : BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0);
-    const fillPct = ((score / 5) * 100).toFixed(1);
 
     // Card wrapper
     const card = document.createElement('div');
@@ -121,10 +120,7 @@ class DestaquesPage {
     const starsWrap = document.createElement('div');
     starsWrap.className = 'top-card__stars';
     starsWrap.innerHTML = `
-      <span class="dc-stars-wrap">
-        <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-        <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-      </span>
+      ${BarbershopService.criarEstrelasHTML(score)}
       <span class="dc-rating-num">${score.toFixed(1)}</span>
       <button type="button" class="top-card__likes" data-action="barbershop-like"
               aria-label="Curtir barbearia" title="Curtir barbearia">

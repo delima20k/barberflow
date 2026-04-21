@@ -80,12 +80,10 @@ class ProfessionalService {
    */
   static estrelasPorCurtidas(likes) {
     const n = Math.max(0, Number(likes) || 0);
-    let estrelas = 0;
-    for (const limite of ProfessionalService.#STAR_THRESHOLDS) {
-      if (n >= limite) estrelas++;
-      else break;
-    }
-    return estrelas;
+    if (n === 0) return 0.0;
+    // Média ponderada Bayesiana: cada curtida = 5.0, prior 3.0 com 5 votos
+    const score = (3.0 * 5 + 5.0 * n) / (5 + n);
+    return Math.round(score * 10) / 10;
   }
 
   /**
@@ -241,12 +239,14 @@ class ProfessionalService {
           if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(novoTotal).toFixed(1);
           if (cntEl)   cntEl.textContent   = `(${novoTotal})`;
 
-          // Atualiza cards com padrão top-card__stars (novo padrão unificado)
-          const fillEl = card.querySelector('.dc-stars-fill');
-          const numEl  = card.querySelector('.dc-rating-num');
+          // Atualiza estrelas individuais no card (padrão tc-star unificado)
           const novaVal = ProfessionalService.estrelasPorCurtidas(novoTotal);
-          if (fillEl) fillEl.style.width = ((novaVal / 5) * 100).toFixed(1) + '%';
-          if (numEl)  numEl.textContent  = novaVal.toFixed(1);
+          const numEl  = card.querySelector('.dc-rating-num');
+          if (numEl) numEl.textContent = novaVal.toFixed(1);
+          card.querySelectorAll('.tc-star').forEach((s, i) => {
+            const pct = Math.min(100, Math.max(0, Math.round((novaVal - i) * 100)));
+            s.style.setProperty('--pct', `${pct}%`);
+          });
         } else {
           const ico = btn.querySelector('.cfb-ico');
           if (ico) ico.textContent = ativo ? '⭐' : '☆';

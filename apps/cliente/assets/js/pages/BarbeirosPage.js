@@ -86,7 +86,6 @@ class BarbeirosPage {
   #criarCard(p) {
     const ratingCount = parseInt(p.rating_count || 0, 10);
     const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
-    const fillPct     = ((ratingVal / 5) * 100).toFixed(1);
 
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
@@ -117,10 +116,7 @@ class BarbeirosPage {
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
     starsRow.innerHTML = `
-      <span class="dc-stars-wrap">
-        <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-        <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-      </span>
+      ${BarbershopService.criarEstrelasHTML(ratingVal)}
       <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
     starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
 
