@@ -105,16 +105,9 @@ class BarbeariasPage {
     info.appendChild(nome);
     info.appendChild(sub);
 
-    // Meta (rating + badge aberto/fechado)
+    // Meta (badge aberto/fechado — estrelas vão para o top-right)
     const meta = document.createElement('div');
     meta.className = 'barber-meta';
-
-    if (b.rating_avg) {
-      const rating = document.createElement('span');
-      rating.className   = 'badge';
-      rating.textContent = `★ ${Number(b.rating_avg).toFixed(1)}`;
-      meta.appendChild(rating);
-    }
 
     const statusBadge = document.createElement('span');
     statusBadge.className   = `badge ${b.is_open ? 'badge-open' : 'badge-closed'}`;
@@ -125,8 +118,19 @@ class BarbeariasPage {
     row.appendChild(info);
     row.appendChild(meta);
 
-    // Botão favorito padronizado (canto superior direito)
-    if (b?.id) row.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+    // Container top-right: stars + botão favorito (POO reuso do BarbershopService)
+    if (b?.id) {
+      const actions = document.createElement('div');
+      actions.className = 'card-top-actions';
+
+      const stars = document.createElement('span');
+      stars.className   = 'stars';
+      stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
+      actions.appendChild(stars);
+
+      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      row.appendChild(actions);
+    }
 
     return row;
   }

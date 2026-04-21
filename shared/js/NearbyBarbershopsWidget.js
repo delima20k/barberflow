@@ -325,10 +325,14 @@ class NearbyBarbershopsWidget {
       const lista = await BarbershopRepository.getBarbers(10);
       if (!lista.length) { el.innerHTML = ''; return; }
 
+      // Preload interações em cache (idempotente)
+      try { await ProfessionalService.carregarInteracoes(); } catch { /* silencioso */ }
+
       el.innerHTML = '';
       lista.forEach(p => {
         const row = document.createElement('div');
         row.className = 'barber-row barber-card';
+        row.dataset.professionalId = p.id;
 
         const avatarWrap = document.createElement('div');
         avatarWrap.className = 'avatar gold';
@@ -368,88 +372,16 @@ class NearbyBarbershopsWidget {
         info.appendChild(sub);
         info.appendChild(ratingEl);
 
-        // ── Ações (curtir + favoritar) ──────────────────────────
-        const getLiked = () => {
-          try { return new Set(JSON.parse(localStorage.getItem('bf_barber_likes') || '[]')); }
-          catch { return new Set(); }
-        };
-        const getFaved = () => {
-          try { return new Set(JSON.parse(localStorage.getItem('bf_barber_favs') || '[]')); }
-          catch { return new Set(); }
-        };
-
-        const isLiked = getLiked().has(p.id);
-        const isFaved = getFaved().has(p.id);
-
-        const acoes = document.createElement('div');
-        acoes.className = 'bc-acoes';
-
-        const btnLike = document.createElement('button');
-        btnLike.className = 'bc-btn-like' + (isLiked ? ' bc-btn--ativo' : '');
-        btnLike.setAttribute('aria-label', 'Curtir barbeiro');
-        btnLike.type = 'button';
-        btnLike.innerHTML =
-          `<span class="bc-ico">${isLiked ? '❤️' : '🤍'}</span>` +
-          `<span class="bc-cnt">${ratingCount}</span>`;
-        btnLike.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const liked = getLiked();
-          const cntEl = btnLike.querySelector('.bc-cnt');
-          const icoEl = btnLike.querySelector('.bc-ico');
-          const count = parseInt(cntEl?.textContent || '0', 10);
-          if (liked.has(p.id)) {
-            liked.delete(p.id); btnLike.classList.remove('bc-btn--ativo');
-            if (icoEl) icoEl.textContent = '🤍';
-            if (cntEl) cntEl.textContent = Math.max(0, count - 1);
-          } else {
-            liked.add(p.id); btnLike.classList.add('bc-btn--ativo');
-            if (icoEl) icoEl.textContent = '❤️';
-            if (cntEl) cntEl.textContent = count + 1;
-          }
-          try { localStorage.setItem('bf_barber_likes', JSON.stringify([...liked])); } catch { /* sem-op */ }
-        });
-
-        const btnFav = document.createElement('button');
-        btnFav.className = 'bc-btn-fav' + (isFaved ? ' bc-btn--ativo' : '');
-        btnFav.setAttribute('aria-label', 'Favoritar barbeiro');
-        btnFav.type = 'button';
-        btnFav.innerHTML = `<span class="bc-ico">${isFaved ? '⭐' : '☆'}</span>`;
-        btnFav.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const perfil = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
-          const router = typeof App !== 'undefined' ? App : null;
-          if (!perfil?.id) {
-            if (typeof AuthGuard !== 'undefined') AuthGuard.permitirAcao('favoritar', router);
-            return;
-          }
-          const icoEl  = btnFav.querySelector('.bc-ico');
-          const eraFav = btnFav.classList.contains('bc-btn--ativo');
-          if (eraFav) {
-            btnFav.classList.remove('bc-btn--ativo');
-            if (icoEl) icoEl.textContent = '☆';
-            if (typeof NotificationService !== 'undefined') {
-              NotificationService.mostrarToast('Você desfavoritou este Barbeiro', '', NotificationService.TIPOS.SISTEMA);
-            }
-          } else {
-            btnFav.classList.add('bc-btn--ativo');
-            if (icoEl) icoEl.textContent = '⭐';
-            if (typeof NotificationService !== 'undefined') {
-              NotificationService.mostrarToast('Você favoritou este Barbeiro ⭐', '', NotificationService.TIPOS.SISTEMA);
-            }
-          }
-          try {
-            await ProfileRepository.toggleFavoriteBarber(perfil.id, p.id);
-          } catch (err) {
-            LoggerService.warn('[NearbyBarbershopsWidget] toggleFav barbeiro falhou:', err?.message);
-          }
-        });
-
-        acoes.appendChild(btnLike);
-        acoes.appendChild(btnFav);
-
         row.appendChild(avatarWrap);
         row.appendChild(info);
-        row.appendChild(acoes);
+
+        // Ações padronizadas — canto superior direito (like + favorito) via ProfessionalService
+        const actions = document.createElement('div');
+        actions.className = 'card-top-actions';
+        actions.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+        actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+        row.appendChild(actions);
+
         el.appendChild(row);
       });
     } catch (err) {
@@ -653,31 +585,36 @@ class NearbyBarbershopsWidget {
 
     const sub = document.createElement('p');
     sub.className   = 'barber-sub';
-    sub.textContent = `📍 ${b.address} · ⭐ ${Number(b.rating_avg ?? 0).toFixed(1)} · Barbearia · ${Number(b.distance_km).toFixed(1)} km`;
+    sub.textContent = `📍 ${b.address} · Barbearia · ${Number(b.distance_km).toFixed(1)} km`;
 
     info.appendChild(nome);
     info.appendChild(sub);
 
+    // Badge aberto/fechado (abaixo, sem estrelas — estrelas vão pro top-right)
     const meta = document.createElement('div');
     meta.className = 'barber-meta';
-
-    const stars = document.createElement('span');
-    stars.className   = 'stars';
-    stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
-
     const badge = document.createElement('span');
     badge.className   = b.is_open ? 'badge' : 'badge closed';
     badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
-
-    meta.appendChild(stars);
     meta.appendChild(badge);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
     row.appendChild(meta);
 
-    // Botão favorito padronizado (canto superior direito)
-    if (b?.id) row.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+    // Container top-right: stars + botão favorito (POO — reaproveita BarbershopService)
+    if (b?.id) {
+      const actions = document.createElement('div');
+      actions.className = 'card-top-actions';
+
+      const stars = document.createElement('span');
+      stars.className   = 'stars';
+      stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
+      actions.appendChild(stars);
+
+      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      row.appendChild(actions);
+    }
 
     return row;
   }

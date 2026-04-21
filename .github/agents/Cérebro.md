@@ -118,6 +118,52 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Stars ao lado do fav + ProfessionalService (likes em DB)]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** no `#home-barbearias-lista` (Populares/Mais Próximas), colocar `.stars` à esquerda do botão de favorito com gap; alargar o card; migrar curtidas+favoritos de barbeiros do localStorage para o banco reutilizando código (POO / DRY).
+
+**Novo módulo:** `shared/js/ProfessionalService.js` (irmão do `BarbershopService`)
+- `#FAV_IDS`, `#LIKE_IDS` — Sets em memória
+- `carregarInteracoes(force?)` — preload idempotente de favoritos+curtidas
+- `isFavorito(id)` / `isCurtido(id)` — consulta cache
+- `criarBotaoLike(id, count)` / `criarBotaoFavorito(id)` — factories stateless
+- `#instalarDelegation()` — UM listener global (capture) cuida de ambos os botões em qualquer tela
+- `#sincronizarBotoes(id, action, ativo)` — espelha visual em TODOS os botões do mesmo pro (home + lista + favoritos)
+- Persiste via `ProfileRepository.toggleProfessionalLike` e `toggleFavoriteBarber` (tabelas `professional_likes` + `favorite_professionals`)
+
+**Layout (CSS — `barber-card.css`):**
+- `.card-top-actions` — absolute top-right, flex com `gap: 1rem` — contém `.stars` + `.card-like-btn` + `.card-fav-btn`
+- `.card-fav-btn` vira `position: static` dentro de `.card-top-actions`
+- Novo `.card-like-btn` (capsula dourada com emoji + contador)
+- `.barber-card/.barber-row` padding-right → 110px para caber os novos botões
+- `.barbearias-coluna` width → `min(86vw, 360px)` (alargamento do pedido)
+
+**Integração:**
+- `NearbyBarbershopsWidget.#criarBarberRow` → `.stars` movida para `.card-top-actions` (fora do `.barber-meta`)
+- `NearbyBarbershopsWidget.initHomeBarbeiros` → removeu **~70 linhas** de lógica inline + localStorage; agora só:
+  ```js
+  await ProfessionalService.carregarInteracoes();
+  row.dataset.professionalId = p.id;
+  actions.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+  actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+  ```
+- `BarbeariasPage.#criarCard` → mesmo padrão `.card-top-actions`
+
+**Persistência:**
+- Curtidas de barbearia → `barbershop_interactions` (type='like') — já existia
+- Curtidas de barbeiro → `professional_likes` — trigger no DB atualiza `professionals.rating_count` automaticamente
+- Favoritos de ambos → tabelas dedicadas (`barbershop_interactions` type='favorite' / `favorite_professionals`)
+
+**HTML:** `/shared/js/ProfessionalService.js` registrado depois do `BarbershopService.js`
+
+**SW:** bump `v26`
+
+**Status:** ✅ pronto para Ctrl+Shift+R. Se `professional_likes` não existir no remoto, log terá stack claro (não quebra UX — toggle visual funciona mesmo sem persistência).
+
+---
+
 ### [2026-04-21 — Padronização botão favorito em TODOS os cards de barbearia]
 
 **Data/Hora:** 21 de abril de 2026  
