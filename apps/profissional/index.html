@@ -497,6 +497,90 @@
   </main>
 
   <!-- ============================================================
+       TELA — PARCERIAS
+       Exclusiva para barbeiros autônomos (pro_type='barbeiro').
+       Seção 1: Barbearias Parceiras
+       Seção 2: Convites recebidos (comissão/cláusulas)
+       Seção 3: Favoritos (barbearias e barbeiros)
+  ============================================================ -->
+  <main id="tela-parcerias" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content parcerias-content">
+
+      <!-- Hero -->
+      <div class="parcerias-hero">
+        <h1 class="destaques-titulo">
+          <span class="destaques-barber">Parce</span><span class="destaques-flow">rias</span>
+        </h1>
+        <p class="parcerias-sub">Barbearias parceiras, convites e seus favoritos em um só lugar.</p>
+      </div>
+
+      <!-- ── Seção 1: Barbearias Parceiras ─────────────────── -->
+      <section class="parcerias-secao">
+        <div class="parcerias-secao-header">
+          <span class="parcerias-secao-icone">🏪</span>
+          <h2 class="parcerias-secao-titulo">Barbearias Parceiras</h2>
+        </div>
+        <p class="parcerias-secao-desc">
+          Barbearias cadastradas no BarberFlow. Agende um horário ou inicie uma parceria.
+        </p>
+        <div id="parcerias-barbearias-lista"
+             style="display:flex;flex-direction:column;gap:10px;">
+        </div>
+      </section>
+
+      <!-- ── Seção 2: Convites ──────────────────────────────── -->
+      <section class="parcerias-secao">
+        <div class="parcerias-secao-header">
+          <span class="parcerias-secao-icone">📩</span>
+          <h2 class="parcerias-secao-titulo">Convites</h2>
+        </div>
+        <p class="parcerias-secao-desc">
+          Barbearias podem te convidar para trabalhar com elas. Veja as condições,
+          porcentagem e cláusulas antes de aceitar.
+        </p>
+        <div id="parcerias-convites-lista"
+             style="display:flex;flex-direction:column;gap:12px;">
+        </div>
+        <p id="parcerias-convites-vazio" class="parcerias-vazio-inline" hidden>
+          📭 Nenhum convite recebido ainda.
+          Quando uma barbearia te convidar, aparecerá aqui.
+        </p>
+      </section>
+
+      <!-- ── Seção 3: Favoritos ─────────────────────────────── -->
+      <section class="parcerias-secao parcerias-secao--fav">
+        <div class="parcerias-secao-header">
+          <span class="parcerias-secao-icone">⭐</span>
+          <h2 class="parcerias-secao-titulo">Meus Favoritos</h2>
+        </div>
+        <p class="parcerias-secao-desc">
+          Barbearias e barbeiros que você favoritou. Acesse rápido e agende com 1 toque.
+        </p>
+        <button id="parcerias-fav-toggle" class="btn btn-outline btn-full parcerias-fav-btn">
+          ▼ Ver meus favoritos
+        </button>
+
+        <!-- Expande ao clicar -->
+        <div id="parcerias-fav-wrap" hidden>
+          <p class="parcerias-sub-titulo">Barbearias</p>
+          <div id="parcerias-fav-barbearias"
+               style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+          </div>
+
+          <p class="parcerias-sub-titulo">Barbeiros</p>
+          <div id="parcerias-fav-barbeiros"
+               style="display:flex;flex-direction:column;gap:10px;">
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
        TELA — BARBEARIAS
   ============================================================ -->
   <main id="tela-barbearias" class="tela">
@@ -822,7 +906,7 @@
       <span class="nav-label">Mensagens</span>
     </button>
 
-    <button class="nav-btn" data-tela="barbearias" id="footer-nav-barbearia-btn" onclick="Pro.nav('barbearias')">
+    <button class="nav-btn" data-tela="parcerias" id="footer-nav-barbearia-btn" onclick="Pro.nav('parcerias')">
       <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Parcerias"></div>
       <span class="nav-label">Parcerias</span>
     </button>
@@ -1387,6 +1471,7 @@
 <script src="assets/js/pages/AgendaPage.js"></script>
 <script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
 <script src="assets/js/pages/CriarBarbeariaPage.js"></script>
+<script src="assets/js/pages/ParceriasPage.js"></script>
 <script src="assets/js/pages/QueueWidget.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- Controllers do app profissional — devem preceder app.js -->

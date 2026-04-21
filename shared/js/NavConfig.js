@@ -60,7 +60,7 @@ class NavConfig {
       { tela: 'inicio',       icone: 'inicio.svg',   label: 'Início'              },
       { tela: 'pesquisa',     icone: 'pesquisa.svg', label: 'Pesquisar'           },
       { tela: 'mensagens',    icone: 'mensagen.svg', label: 'Mensagens'           },
-      { tela: 'barbearias',   icone: 'meu-b.svg',    label: 'Parcerias'           },
+      { tela: 'parcerias',    icone: 'meu-b.svg',    label: 'Parcerias'           },
       { tela: 'perfil',       icone: 'perfil.svg',   label: 'Meu Perfil'          },
       { acao: 'sair',         icone: 'sair.svg',     label: 'Sair'                },
     ];

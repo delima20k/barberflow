@@ -142,8 +142,8 @@ const AuthUI = (() => {
       const label = btn.querySelector('.nav-label');
       if (label) label.textContent = 'Minha Barbearia';
     } else {
-      btn.dataset.tela     = 'barbearias';
-      btn.setAttribute('onclick', "Pro.nav('barbearias')");
+      btn.dataset.tela     = 'parcerias';
+      btn.setAttribute('onclick', "Pro.nav('parcerias')");
       const img = btn.querySelector('img');
       if (img) img.alt = 'Parcerias';
       const label = btn.querySelector('.nav-label');
