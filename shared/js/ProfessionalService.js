@@ -102,19 +102,19 @@ class ProfessionalService {
   // FACTORY DOS BOTÕES (stateless — lê cache e devolve <button>)
   // ═══════════════════════════════════════════════════════════
 
-  /** Botão de curtir barbeiro — contador incluso. Ícone 👍 sempre, estado via .ativo. */
+  /** Botão de curtir barbeiro — visual idêntico ao top-card__likes das barbearias. */
   static criarBotaoLike(proId, countInicial = 0) {
     const ativo = ProfessionalService.isCurtido(proId);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'card-like-btn' + (ativo ? ' ativo' : '');
+    btn.className = 'top-card__likes' + (ativo ? ' ativo' : '');
     btn.dataset.action = 'professional-like';
     btn.setAttribute('aria-label', 'Curtir barbeiro');
     btn.setAttribute('aria-pressed', String(ativo));
     btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
     btn.innerHTML =
-      `<span class="clb-ico">👍</span>` +
-      `<span class="clb-cnt">${Math.max(0, Number(countInicial) || 0)}</span>`;
+      `<span class="tcl-ico">👍</span>` +
+      `<span class="dc-count">${Math.max(0, Number(countInicial) || 0)}</span>`;
     ProfessionalService.#instalarDelegation();
     return btn;
   }
@@ -223,7 +223,8 @@ class ProfessionalService {
         btn.setAttribute('aria-pressed', String(ativo));
 
         if (action === 'professional-like') {
-          const cnt = btn.querySelector('.clb-cnt');
+          // Suporta .dc-count (novo top-card__likes) e .clb-cnt (legado)
+          const cnt = btn.querySelector('.dc-count') || btn.querySelector('.clb-cnt');
           let novoTotal = 0;
           if (cnt) {
             const n = parseInt(cnt.textContent, 10) || 0;

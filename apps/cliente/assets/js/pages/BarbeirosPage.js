@@ -122,6 +122,7 @@ class BarbeirosPage {
         <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
       </span>
       <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
+    starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
 
     info.appendChild(nome);
     info.appendChild(starsRow);

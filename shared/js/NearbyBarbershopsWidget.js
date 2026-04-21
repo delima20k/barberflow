@@ -296,6 +296,10 @@ class NearbyBarbershopsWidget {
 
       el.innerHTML = '';
       lista.forEach(p => {
+        const ratingCount = parseInt(p.rating_count || 0, 10);
+        const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
+        const fillPct     = ((ratingVal / 5) * 100).toFixed(1);
+
         const row = document.createElement('div');
         row.className = 'barber-row barber-card';
         row.dataset.professionalId = p.id;
@@ -319,31 +323,27 @@ class NearbyBarbershopsWidget {
         nome.className = 'barber-name';
         nome.textContent = p.full_name || 'Barbeiro';
 
-        const ratingCount = parseInt(p.rating_count || 0, 10);
+        // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
+        const starsRow = document.createElement('div');
+        starsRow.className = 'top-card__stars';
+        starsRow.innerHTML = `
+          <span class="dc-stars-wrap">
+            <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
+            <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
+          </span>
+          <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
+        starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
 
         info.appendChild(nome);
+        info.appendChild(starsRow);
 
         row.appendChild(avatarWrap);
         row.appendChild(info);
 
-        // Ações padronizadas — canto superior direito: stars + like + favorito em linha
+        // Canto superior direito: apenas favorito com confetes
         const actions = document.createElement('div');
-        actions.className = 'card-top-actions';
-
-        const ctaRow = document.createElement('div');
-        ctaRow.className = 'cta-row';
-
-        const starsEl = document.createElement('span');
-        starsEl.className = 'stars';
-        starsEl.innerHTML =
-          `<span class="bc-stars">${ProfessionalService.renderStars(ratingCount)}</span>` +
-          `<span class="bc-rating-val" style="margin-left:4px">${ProfessionalService.estrelasPorCurtidas(ratingCount).toFixed(1)}</span>` +
-          (ratingCount > 0 ? `<span class="bc-rating-cnt" style="margin-left:2px">(${ratingCount})</span>` : '');
-        ctaRow.appendChild(starsEl);
-
-        ctaRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
-        ctaRow.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
-        actions.appendChild(ctaRow);
+        actions.className = 'top-card__actions';
+        actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
         row.appendChild(actions);
 
         el.appendChild(row);
