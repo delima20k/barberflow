@@ -859,7 +859,7 @@
   color: transparent;
   -webkit-text-stroke: 1.5px var(--gold, #D4AF37);
   opacity: 1;
-  transform: translate(6px, -4px) rotate(14deg);
+  transform: translate(-6px, -4px) rotate(14deg);
   transition: color .25s ease, text-shadow .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
   pointer-events: none;
 }
@@ -868,7 +868,7 @@
   color: var(--gold, #D4AF37);
   -webkit-text-stroke: 0;
   text-shadow: 0 0 10px rgba(212, 175, 55, .65);
-  transform: translate(6px, -4px) rotate(14deg) scale(1.08);
+  transform: translate(-6px, -4px) rotate(14deg) scale(1.08);
   animation: fav-pop .5s cubic-bezier(.34,1.56,.64,1);
 }
 
