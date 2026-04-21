@@ -63,7 +63,15 @@ class DestaquesPage {
       }
 
       this.#listaEl.innerHTML = '';
-      lista.forEach((b, i) => this.#listaEl.appendChild(this.#criarCard(b, i)));
+      const cards = [];
+      lista.forEach((b, i) => {
+        const card = this.#criarCard(b, i);
+        this.#listaEl.appendChild(card);
+        cards.push(card);
+      });
+
+      // Restaura estado visual de like/dislike/favorito do usuário logado
+      BarbershopService.restaurarInteracoes(cards);
 
     } catch (err) {
       LoggerService.error('[DestaquesPage] erro ao carregar:', err);

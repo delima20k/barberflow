@@ -63,7 +63,15 @@ class BarbeariasPage {
       }
 
       this.#listaEl.innerHTML = '';
-      lista.forEach(b => this.#listaEl.appendChild(this.#criarCard(b)));
+      const cards = [];
+      lista.forEach(b => {
+        const card = this.#criarCard(b);
+        this.#listaEl.appendChild(card);
+        cards.push(card);
+      });
+
+      // Restaura estado visual de like/dislike/favorito do usuário logado
+      BarbershopService.restaurarInteracoes(cards);
 
     } catch (err) {
       LoggerService.error('[BarbeariasPage] erro ao carregar:', err);

@@ -11,6 +11,19 @@
 // Repositório responsável por todas as operações de leitura de barbearias e barbeiros.
 class BarbershopRepository {
 
+  // Flag: tabela barbershop_interactions ausente no banco remoto
+  static #INTERACTIONS_UNAVAILABLE = false;
+
+  /** Detecta erro 404 de tabela inexistente no PostgREST */
+  static #is404(error) {
+    return (
+      error?.status === 404 ||
+      error?.statusCode === 404 ||
+      String(error?.code ?? '').includes('42P01') ||
+      String(error?.message ?? '').toLowerCase().includes('does not exist')
+    );
+  }
+
   // Campos base usados na maioria das consultas
   static #SELECT_BASIC =
     'id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count, rating_score, likes_count, dislikes_count';
@@ -238,13 +251,18 @@ class BarbershopRepository {
     const rType = InputValidator.enumValido(type, ['like', 'dislike', 'favorite']);
     if (!rType.ok) throw new TypeError(`[BarbershopRepository] type: ${rType.msg}`);
 
+    if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) throw new Error('Tabela barbershop_interactions indisponível.');
+
     // Upsert garante idempotência: não falha se o registro já existir
     const { error } = await SupabaseService.barbershopInteractions()
       .upsert(
         { barbershop_id: barbershopId, user_id: userId, type },
         { onConflict: 'barbershop_id,user_id,type', ignoreDuplicates: true }
       );
-    if (error) throw error;
+    if (error) {
+      if (BarbershopRepository.#is404(error)) BarbershopRepository.#INTERACTIONS_UNAVAILABLE = true;
+      throw error;
+    }
   }
 
   /**
@@ -263,12 +281,17 @@ class BarbershopRepository {
     const rType = InputValidator.enumValido(type, ['like', 'dislike', 'favorite']);
     if (!rType.ok) throw new TypeError(`[BarbershopRepository] type: ${rType.msg}`);
 
+    if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) throw new Error('Tabela barbershop_interactions indisponível.');
+
     const { error } = await SupabaseService.barbershopInteractions()
       .delete()
       .eq('barbershop_id', barbershopId)
       .eq('user_id', userId)
       .eq('type', type);
-    if (error) throw error;
+    if (error) {
+      if (BarbershopRepository.#is404(error)) BarbershopRepository.#INTERACTIONS_UNAVAILABLE = true;
+      throw error;
+    }
   }
 
   /**
@@ -280,11 +303,15 @@ class BarbershopRepository {
    */
   static async getUserInteractions(userId, barbershopIds) {
     if (!userId || !barbershopIds.length) return [];
+    if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) return [];
     const { data, error } = await SupabaseService.barbershopInteractions()
       .select('barbershop_id, type')
       .eq('user_id', userId)
       .in('barbershop_id', barbershopIds);
-    if (error) throw error;
+    if (error) {
+      if (BarbershopRepository.#is404(error)) { BarbershopRepository.#INTERACTIONS_UNAVAILABLE = true; return []; }
+      throw error;
+    }
     return data ?? [];
   }
 
