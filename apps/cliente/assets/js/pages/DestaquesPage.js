@@ -51,6 +51,9 @@ class DestaquesPage {
     this.#listaEl.innerHTML = this.#skeleton(8);
 
     try {
+      // Pre-carrega favoritos do usuário (cache, idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
+
       const lista = await BarbershopRepository.getTopRated(50);
 
       if (!lista.length) {
@@ -129,15 +132,23 @@ class DestaquesPage {
     info.appendChild(addr);
     info.appendChild(starsWrap);
 
-    // ── Badge ─────────────────────────────────────────────
+    // ── Badge + botão favorito (coluna no canto superior direito) ──
+    const actions = document.createElement('div');
+    actions.className = 'top-card__actions';
+
     const badge = document.createElement('span');
     badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
     badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+    actions.appendChild(badge);
+
+    if (b?.id) {
+      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+    }
 
     card.appendChild(rank);
     card.appendChild(avatar);
     card.appendChild(info);
-    card.appendChild(badge);
+    card.appendChild(actions);
 
     return card;
   }

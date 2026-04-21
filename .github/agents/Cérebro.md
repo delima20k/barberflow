@@ -118,6 +118,27 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Destaques: botão de favorito abaixo do badge + top-card__stars ampliado]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** na tela Destaques, adicionar botão de curtida/favorito logo abaixo do `.dc-badge` com 1 gap de distância, e aumentar o conteúdo e altura da `.top-card__stars`.
+
+**Mudanças:**
+- **`DestaquesPage.#criarCard`** → novo wrapper `.top-card__actions` (coluna, gap 1rem) com `.dc-badge` em cima + `BarbershopService.criarBotaoFavoritoCard(b.id)` embaixo
+- **`DestaquesPage.#carregar`** → preload `BarbershopService.carregarFavoritos()` antes de renderizar (para pré-marcar favoritos)
+- **CSS `.top-card`** → `padding: 14px 60px 14px 14px` (espaço extra à direita para a coluna), `min-height: 124px`
+- **CSS `.top-card__actions`** → `position: absolute; top: 10px; right: 12px; flex column; align-items: flex-end; gap: 1rem`
+- **CSS `.top-card__stars`** → `min-height: 26px; font-size: 1.05rem` · estrelas/num aumentados (`.dc-stars-*` 1.05rem, `.dc-rating-num` .86rem dourado)
+- **CSS `.top-card__nome`** .86→.98rem · **`.top-card__addr`** .68→.78rem · **`.top-card__likes`** .66→.8rem
+- Cliques no fav sincronizam automaticamente com todos os outros cards da mesma barbearia via `BarbershopService.#sincronizarBotoesFavorito` (já existente)
+
+**SW:** bump `v30`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Cards uniformizados: remoção do barber-sub + like/favorito subidos para cta-row + sync cross-card]
 
 **Data/Hora:** 21 de abril de 2026

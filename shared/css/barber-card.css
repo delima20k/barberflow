@@ -656,8 +656,8 @@
   background: transparent;
   border: none;
   border-radius: 14px;
-  padding: 12px 14px;
-  min-height: 114px;
+  padding: 14px 60px 14px 14px;
+  min-height: 124px;
   position: relative;
   cursor: pointer;
   transition: transform .18s, box-shadow .18s;
@@ -710,7 +710,7 @@
 }
 
 .top-card__nome {
-  font-size: .86rem;
+  font-size: .98rem;
   font-weight: 700;
   color: var(--text);
   margin: 0;
@@ -720,7 +720,7 @@
 }
 
 .top-card__addr {
-  font-size: .68rem;
+  font-size: .78rem;
   color: var(--text-muted, #a08060);
   margin: 0;
   white-space: nowrap;
@@ -731,23 +731,56 @@
 .top-card__stars {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   flex-wrap: nowrap;
+  min-height: 26px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.top-card__stars .dc-stars-wrap,
+.top-card__stars .dc-stars-base,
+.top-card__stars .dc-stars-fill {
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+}
+
+.top-card__stars .dc-rating-num {
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
 }
 
 .top-card__likes {
-  font-size: .66rem;
+  font-size: .8rem;
   color: #70d070;
   font-weight: 600;
   margin-left: 4px;
 }
 
-/* Badge (reutiliza .dc-badge): posicionado no canto dir */
-.top-card .dc-badge {
+/* Container canto superior direito: badge (Aberto/Fechado) em cima + favorito embaixo */
+.top-card__actions {
   position: absolute;
   top: 10px;
   right: 12px;
-  font-size: .55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  z-index: 2;
+}
+
+.top-card__actions .dc-badge {
+  position: static;
+  top: auto;
+  right: auto;
+  font-size: .6rem;
+}
+
+.top-card__actions .card-fav-btn {
+  position: static;
+  top: auto;
+  right: auto;
 }
 
 /* Skeleton */
