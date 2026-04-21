@@ -101,6 +101,7 @@ class BarbeariasPage {
     nome.className   = 'barber-name';
     nome.textContent = b.name || 'Barbearia';
 
+    const likes    = Number(b.likes_count    ?? 0);
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
     starsRow.innerHTML = `
@@ -108,7 +109,11 @@ class BarbeariasPage {
         <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
         <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
       </span>
-      <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>`;
+      <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>
+      <button type="button" class="top-card__likes" data-action="barbershop-like"
+              aria-label="Curtir barbearia" title="Curtir barbearia">
+        <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>
+      </button>`;
 
     info.appendChild(nome);
     info.appendChild(starsRow);

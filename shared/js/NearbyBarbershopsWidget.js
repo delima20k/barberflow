@@ -524,9 +524,14 @@ class NearbyBarbershopsWidget {
   }
 
   static #criarBarberRow(b) {
+    const likes    = Number(b.likes_count    ?? 0);
+    const ratingAvg = Number(b.rating_avg ?? 0);
+    const fillPct   = ((ratingAvg / 5) * 100).toFixed(1);
+
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
     if (b?.id) row.dataset.barbershopId = b.id;
+    row.dataset.likes = likes;
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
@@ -549,35 +554,40 @@ class NearbyBarbershopsWidget {
 
     const sub = document.createElement('p');
     sub.className   = 'barber-sub';
-    sub.textContent = `📍 ${b.address} · Barbearia · ${Number(b.distance_km).toFixed(1)} km`;
+    sub.textContent = `📍 ${b.address} · Barbearia · ${Number(b.distance_km ?? 0).toFixed(1)} km`;
+
+    // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
+    const starsRow = document.createElement('div');
+    starsRow.className = 'top-card__stars';
+    starsRow.innerHTML = `
+      <span class="dc-stars-wrap">
+        <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
+        <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
+      </span>
+      <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>
+      <button type="button" class="top-card__likes" data-action="barbershop-like"
+              aria-label="Curtir barbearia" title="Curtir barbearia">
+        <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>
+      </button>`;
 
     info.appendChild(nome);
     info.appendChild(sub);
+    info.appendChild(starsRow);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
 
-    // Container top-right padronizado: badge (topo) + linha [stars + fav]
+    // Canto superior direito: badge + favorito com confetes
     if (b?.id) {
       const actions = document.createElement('div');
-      actions.className = 'card-top-actions';
+      actions.className = 'top-card__actions';
 
       const badge = document.createElement('span');
-      badge.className   = b.is_open ? 'badge' : 'badge closed';
+      badge.className   = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
       badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
       actions.appendChild(badge);
 
-      const ctaRow = document.createElement('div');
-      ctaRow.className = 'cta-row';
-
-      const stars = document.createElement('span');
-      stars.className   = 'stars';
-      stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
-      ctaRow.appendChild(stars);
-
-      ctaRow.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
-      actions.appendChild(ctaRow);
-
+      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
       row.appendChild(actions);
     }
 
