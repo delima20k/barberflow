@@ -92,23 +92,26 @@ class NearbyBarbershopsWidget {
       </div>`).join('');
 
     try {
-      let lista = await BarbershopRepository.getAll(20);
+      let lista;
 
       // Carrega favoritos em cache antes de renderizar (idempotente)
       try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
 
-      // Se GPS disponível, calcula distância
+      // Se GPS disponível, usa barbearias próximas (≤5km), já ordenadas por score/curtidas
       try {
         const permissao = await GeoService.verificarPermissao();
         if (permissao === 'granted') {
           const pos = await GeoService.obter();
-          lista = lista
-            .map(b => ({ ...b, distance_km: b.latitude
-              ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
-              : null }))
-            .sort((a, b) => (a.distance_km ?? 999) - (b.distance_km ?? 999));
+          lista = await BarbershopRepository.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
+          // Adiciona distância apenas para exibição no sub-texto
+          lista = lista.map(b => ({ ...b, distance_km: b.latitude
+            ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
+            : null }));
         }
-      } catch (_) { /* sem GPS — mantém ordem por rating */ }
+      } catch (_) { /* sem GPS */ }
+
+      // Fallback: busca todas ordenadas por popularidade
+      if (!lista) lista = await BarbershopRepository.getAll(20);
 
       el.innerHTML = '';
 

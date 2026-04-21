@@ -28,7 +28,9 @@ class BarbershopRepository {
     const { data, error } = await SupabaseService.barbershops()
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
-      .order('rating_avg', { ascending: false })
+      .order('likes_count',  { ascending: false })
+      .order('rating_score', { ascending: false })
+      .order('rating_avg',   { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -58,6 +60,8 @@ class BarbershopRepository {
       .eq('is_active', true)
       .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
       .gte('longitude', lng - lonD).lte('longitude', lng + lonD)
+      .order('rating_score', { ascending: false })
+      .order('likes_count',  { ascending: false })
       .limit(30);
 
     if (error) throw error;
@@ -74,7 +78,9 @@ class BarbershopRepository {
     const { data, error } = await SupabaseService.barbershops()
       .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count')
       .eq('is_active', true)
-      .order('rating_avg', { ascending: false })
+      .order('rating_score', { ascending: false })
+      .order('likes_count',  { ascending: false })
+      .order('rating_avg',   { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -164,7 +170,8 @@ class BarbershopRepository {
     const { data, error } = await SupabaseService.barbershops()
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
-      .order('rating_count', { ascending: false })
+      .order('likes_count',  { ascending: false })
+      .order('rating_score', { ascending: false })
       .order('rating_avg',   { ascending: false })
       .limit(limit);
 
@@ -204,6 +211,7 @@ class BarbershopRepository {
       .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count')
       .eq('role', 'professional')
       .eq('pro_type', 'barbeiro')
+      .order('rating_count', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
