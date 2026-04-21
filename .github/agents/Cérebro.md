@@ -118,6 +118,24 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Fix 404 favorite_professionals + limpeza de arquivos acidentais]
+
+**Data/Hora:** 21 de abril de 2026  
+**Problema reportado pelo usuário:**
+- Erro 404 em `GET/POST /rest/v1/favorite_professionals` ao clicar em ⭐ de barbeiros → tabela não existe no Supabase remoto
+- Usuário relatou que botão de favoritar do `.destaque-card` não funcionava (investigação: listener está OK em `HomePage.bind()`, evento delegado em `#tela-inicio`; o erro 404 no console era do botão de barbeiro, não de barbearia)
+
+**Arquivos criados/modificados:**
+- `supabase/migrations/20260421000001_favorite_professionals_ensure.sql` (novo) — migration idempotente (`IF NOT EXISTS` + `DROP POLICY IF EXISTS`) para garantir que a tabela seja criada mesmo se a migration anterior (`20260420000003`) tenha falhado no deploy
+- Removidos arquivos acidentais do repo raiz: `fn`, `for...of`, `v27`
+
+**Próximo passo (automático):**
+- Push aciona workflow `Validate BarberFlow` → se passar, aciona `Deploy Supabase` → `supabase db push` aplica a nova migration → 404 desaparece
+
+**Status:** ✅ Concluído (aguardando deploy via GitHub Actions)
+
+---
+
 ### [2026-04-21 — Favoritar barbearia/barbeiro: toast + persistência DB]
 
 **Data/Hora:** 21 de abril de 2026  
