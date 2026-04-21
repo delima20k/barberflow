@@ -166,12 +166,13 @@ class FavoritesPage {
 
   /** Cria um barber-row para um profissional favorito. */
   #criarBarbeiroRow(p) {
-    const perfil  = p.profiles ?? {};
-    const nome    = perfil.full_name ?? 'Barbeiro';
-    const avatar  = perfil.avatar_url ?? p.avatar_path ?? '/shared/img/icones-perfil.png';
-    const r       = Math.round(Number(p.rating_avg ?? 0));
-    const stars   = '★'.repeat(r) + '☆'.repeat(5 - r);
-    const specs   = (p.specialties ?? []).slice(0, 2).join(' · ');
+    const perfil   = p.profiles ?? {};
+    const nome     = perfil.full_name ?? 'Barbeiro';
+    const path     = perfil.avatar_path ?? p.avatar_path ?? null;
+    const avatar   = path ? (SupabaseService.getAvatarUrl(path) || '') : '/shared/img/icones-perfil.png';
+    const r        = Math.round(Number(p.rating_avg ?? 0));
+    const stars    = '★'.repeat(r) + '☆'.repeat(5 - r);
+    const specs    = (p.specialties ?? []).slice(0, 2).join(' · ');
 
     const row = document.createElement('div');
     row.className   = 'barber-row';

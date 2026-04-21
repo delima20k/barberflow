@@ -118,6 +118,20 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Fix coluna avatar_url → avatar_path em profiles_public]
+
+**Data/Hora:** 21 de abril de 2026  
+**Bug:** 400 Bad Request em `profiles_public?select=id,full_name,avatar_url` — coluna `avatar_url` não existe, a correta é `avatar_path`.
+
+**Arquivos alterados:**
+- `shared/js/ProfileRepository.js` — select corrigido para `avatar_path`
+- `apps/cliente/assets/js/pages/FavoritesPage.js` — `#criarBarbeiroRow` agora resolve path via `SupabaseService.getAvatarUrl(path)` (storage path → URL pública)
+- `apps/cliente/sw.js` — cache `v24`
+
+**Status:** ✅ Aguarda reload (Ctrl+Shift+R) para SW novo ativar.
+
+---
+
 ### [2026-04-21 — CAUSA RAIZ: FK violation em favorite_professionals]
 
 **Data/Hora:** 21 de abril de 2026  

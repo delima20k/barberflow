@@ -187,9 +187,9 @@ class ProfileRepository {
     if (e2) throw e2;
     if (!pros?.length) return [];
 
-    // 3. Perfis (nome + avatar_url) — mesmo id usado em professionals
+    // 3. Perfis (nome + avatar_path) — mesmo id usado em professionals
     const { data: profs } = await SupabaseService.profilesPublic()
-      .select('id, full_name, avatar_url')
+      .select('id, full_name, avatar_path')
       .in('id', ids);
     const profilesMap = {};
     (profs ?? []).forEach(pr => { profilesMap[pr.id] = pr; });
