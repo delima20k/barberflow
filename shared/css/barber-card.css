@@ -665,7 +665,7 @@
   border: none;
   border-radius: 14px;
   padding: 14px 60px 14px 14px;
-  min-height: 124px;
+  min-height: 136px;
   position: relative;
   cursor: pointer;
   transition: transform .18s, box-shadow .18s;
@@ -739,8 +739,8 @@
 .top-card__stars {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
+  gap: 4px 6px;
+  flex-wrap: wrap;
   min-height: 26px;
   font-size: 1.05rem;
   line-height: 1;
@@ -759,7 +759,7 @@
   background: transparent;
   border: none;
   padding: 4px 6px;
-  margin-left: 4px;
+  margin-left: 0;
   font-size: .9rem;
   color: #70d070;
   font-weight: 600;
