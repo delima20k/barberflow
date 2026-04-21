@@ -330,4 +330,31 @@ class BarbershopRepository {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Conta likes e dislikes por barbearia diretamente de barbershop_interactions.
+   * Usado por restaurarInteracoes para restaurar contadores sem depender do trigger
+   * que mantém likes_count/dislikes_count em barbershops.
+   * @param {string[]} barbershopIds
+   * @returns {Promise<Record<string, {likes:number, dislikes:number}>>}
+   */
+  static async getInteractionCountsAll(barbershopIds) {
+    if (!barbershopIds?.length) return {};
+    if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) return {};
+    const { data, error } = await SupabaseService.barbershopInteractions()
+      .select('barbershop_id, type')
+      .in('barbershop_id', barbershopIds)
+      .in('type', ['like', 'dislike']);
+    if (error) {
+      if (BarbershopRepository.#is404(error)) { BarbershopRepository.#INTERACTIONS_UNAVAILABLE = true; }
+      return {};
+    }
+    const counts = {};
+    (data ?? []).forEach(({ barbershop_id, type }) => {
+      if (!counts[barbershop_id]) counts[barbershop_id] = { likes: 0, dislikes: 0 };
+      if (type === 'like')    counts[barbershop_id].likes++;
+      if (type === 'dislike') counts[barbershop_id].dislikes++;
+    });
+    return counts;
+  }
 }

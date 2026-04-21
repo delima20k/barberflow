@@ -344,4 +344,28 @@ class ProfileRepository {
     if (error) throw error;
     return data?.rating_count ?? 0;
   }
+
+  /**
+   * Conta curtidas por profissional diretamente de professional_likes.
+   * Não depende de trigger que mantém rating_count em professionals.
+   * Usado para restaurar contadores na recarga sem depender do trigger.
+   * @param {string[]} professionalIds
+   * @returns {Promise<Record<string, number>>} mapa id → contagem
+   */
+  static async getProfessionalLikeCountsDirect(professionalIds) {
+    if (!professionalIds?.length) return {};
+    if (ProfileRepository.#PRO_LIKES_UNAVAILABLE) return {};
+    const { data, error } = await SupabaseService.professionalLikes()
+      .select('professional_id')
+      .in('professional_id', professionalIds);
+    if (error) {
+      if (ProfileRepository.#is404(error)) { ProfileRepository.#PRO_LIKES_UNAVAILABLE = true; }
+      return {};
+    }
+    const counts = {};
+    (data ?? []).forEach(({ professional_id }) => {
+      counts[professional_id] = (counts[professional_id] ?? 0) + 1;
+    });
+    return counts;
+  }
 }

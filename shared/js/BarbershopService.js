@@ -637,7 +637,17 @@ class BarbershopService {
       if (!user?.id) return;
       const ids = [...cards].map(c => c.dataset.barbershopId).filter(Boolean);
       if (!ids.length) return;
-      const interacoes = await BarbershopRepository.getUserInteractions(user.id, ids);
+
+      // Busca interações do usuário E contadores totais em paralelo
+      const [resInteracoes, resCounts] = await Promise.allSettled([
+        BarbershopRepository.getUserInteractions(user.id, ids),
+        BarbershopRepository.getInteractionCountsAll(ids),
+      ]);
+
+      const interacoes = resInteracoes.status === 'fulfilled' ? resInteracoes.value : [];
+      const allCounts  = resCounts.status === 'fulfilled'     ? resCounts.value     : {};
+
+      // 1. Restaura estado ativo dos botões (like, dislike, favorite)
       interacoes.forEach(({ barbershop_id, type }) => {
         const card = [...cards].find(c => c.dataset.barbershopId === barbershop_id);
         if (!card) return;
@@ -651,6 +661,22 @@ class BarbershopService {
             if (ico) ico.textContent = '⭐';
           }
         }
+      });
+
+      // 2. Restaura contadores e estrelas direto de barbershop_interactions
+      //    (não depende do trigger que mantém likes_count em barbershops)
+      ;[...cards].forEach(card => {
+        const id = card.dataset.barbershopId;
+        if (!id || !allCounts[id]) return;
+        const { likes, dislikes } = allCounts[id];
+        const score = BarbershopService.calcRatingScore(likes, dislikes);
+        card.dataset.likes    = likes;
+        card.dataset.dislikes = dislikes;
+        const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
+        const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
+        if (likeBtn)    { const cnt = likeBtn.querySelector('.dc-count');    if (cnt) cnt.textContent = likes; }
+        if (dislikeBtn) { const ds  = dislikeBtn.querySelector('.dc-count'); if (ds)  ds.textContent  = dislikes; }
+        BarbershopService.#atualizarEstrelaCard(card, score);
       });
     } catch (e) {
       LoggerService.warn('[BarbershopService] restaurarInteracoes falhou:', e?.message);

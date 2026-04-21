@@ -75,11 +75,48 @@ class BarbeirosPage {
       }
 
       this.#listaEl.innerHTML = '';
-      lista.forEach(p => this.#listaEl.appendChild(this.#criarCard(p)));
+      const cards = [];
+      lista.forEach(p => {
+        const card = this.#criarCard(p);
+        this.#listaEl.appendChild(card);
+        cards.push(card);
+      });
+
+      // Restaura contadores reais direto de professional_likes (sem depender do trigger)
+      this.#restaurarContadoresBarbeiros(cards, lista);
 
     } catch (err) {
       LoggerService.error('[BarbeirosPage] erro ao carregar:', err);
       this.#listaEl.innerHTML = '<p style="color:#e07070;text-align:center;padding:20px;">Erro ao carregar barbeiros.</p>';
+    }
+  }
+
+  async #restaurarContadoresBarbeiros(cards, lista) {
+    try {
+      const ids = lista.map(p => p.id).filter(Boolean);
+      if (!ids.length) return;
+      const counts = await ProfileRepository.getProfessionalLikeCountsDirect(ids);
+      cards.forEach(card => {
+        const id = card.dataset.professionalId;
+        if (!id || counts[id] === undefined) return;
+        const total = counts[id];
+        const val   = ProfessionalService.estrelasPorCurtidas(total);
+        // Atualiza o botão de curtida
+        const likeBtn = card.querySelector('[data-action="professional-like"]');
+        if (likeBtn) {
+          const cnt = likeBtn.querySelector('.dc-count');
+          if (cnt) cnt.textContent = total;
+        }
+        // Atualiza estrelas e nota
+        const numEl = card.querySelector('.dc-rating-num');
+        if (numEl) numEl.textContent = val.toFixed(1);
+        card.querySelectorAll('.tc-star').forEach((s, i) => {
+          const pct = Math.min(100, Math.max(0, Math.round((val - i) * 100)));
+          s.style.setProperty('--pct', `${pct}%`);
+        });
+      });
+    } catch (e) {
+      LoggerService.warn('[BarbeirosPage] restaurarContadoresBarbeiros:', e?.message);
     }
   }
 
