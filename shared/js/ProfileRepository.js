@@ -182,27 +182,29 @@ class ProfileRepository {
 
   /**
    * Alterna barbeiro favorito.
+   * Estratégia DELETE-primeiro: evita 409 em caso de estado inconsistente.
+   * Se DELETE retorna linhas → era favorito, agora removido.
+   * Se DELETE retorna 0 linhas → não era favorito, faz INSERT.
    * @returns {Promise<boolean>} true se adicionado, false se removido
    */
   static async toggleFavoriteBarber(userId, professionalId) {
-    const { data: existing } = await SupabaseService.favoriteProfessionals()
-      .select('id')
+    // 1. Tenta DELETE com .select() para saber quantas linhas foram afetadas
+    const { data: deleted, error: delErr } = await SupabaseService.favoriteProfessionals()
+      .delete()
       .eq('user_id', userId)
       .eq('professional_id', professionalId)
-      .maybeSingle();
+      .select();
 
-    if (existing) {
-      const { error } = await SupabaseService.favoriteProfessionals()
-        .delete()
-        .eq('user_id', userId)
-        .eq('professional_id', professionalId);
-      if (error) throw error;
-      return false;
-    }
+    if (delErr) throw delErr;
+    if (Array.isArray(deleted) && deleted.length > 0) return false;
 
-    const { error } = await SupabaseService.favoriteProfessionals()
-      .insert({ user_id: userId, professional_id: professionalId });
-    if (error) throw error;
+    // 2. Não existia — INSERT com upsert para idempotência total
+    const { error: insErr } = await SupabaseService.favoriteProfessionals()
+      .upsert(
+        { user_id: userId, professional_id: professionalId },
+        { onConflict: 'user_id,professional_id', ignoreDuplicates: true }
+      );
+    if (insErr) throw insErr;
     return true;
   }
 

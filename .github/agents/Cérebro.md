@@ -118,6 +118,25 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Fix 409 toggleFavoriteBarber: DELETE-first + upsert idempotente]
+
+**Data/Hora:** 21 de abril de 2026  
+**Problema:** `POST /favorite_professionals 409 Conflict` — tabela já existia, mas SELECT prévio não achava o registro (por cache/RLS/race) → INSERT batia na UNIQUE constraint `(user_id, professional_id)`.
+
+**Arquivo modificado:** `shared/js/ProfileRepository.js` — método `toggleFavoriteBarber`
+
+**Nova estratégia (à prova de inconsistência):**
+1. `DELETE ... .select()` → retorna linhas afetadas
+2. Se deletou ≥1 → era favorito, agora removido (`return false`)
+3. Se deletou 0 → faz `UPSERT` com `onConflict: 'user_id,professional_id'` + `ignoreDuplicates: true` → nunca mais 409
+
+**⚠️ LIÇÃO APRENDIDA (repo memory):**
+Sempre usar `DELETE-first + UPSERT` para operações de toggle em tabelas com UNIQUE constraint — evita race conditions e 409.
+
+**Status:** ✅ Concluído
+
+---
+
 ### [2026-04-21 — Tabela favorite_professionals criada manualmente no Supabase]
 
 **Data/Hora:** 21 de abril de 2026  
