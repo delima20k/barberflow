@@ -118,6 +118,24 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Card destaque maior + botão favorito dourado]
+
+**Data/Hora:** 21 de abril de 2026  
+**Arquivo modificado:** `shared/css/barber-card.css`
+
+**Mudanças:**
+- `.destaque-item` → `min-width: 172px` / `max-width: 188px` (antes 148/164)
+- `.destaque-card` → `border-radius: 18px`, `padding: 14px 12px 12px` (antes 16px / 12px 10px 10px)
+- `.dc-btn.favorite` → redesenhado:
+  - Padrão: `border: 1.5px solid rgba(212,175,55,.55)`, fundo transparente, ícone maior (`.95rem`)
+  - Ativo (`.ativo`): fundo `var(--gold)` sólido, texto `#1a0800`, glow dourado
+  - `min-width: 34px` / `min-height: 30px` — maior e clicável
+- Mobile `@media (max-width: 380px)`: ajustes proporcionais para não quebrar
+
+**Status:** ✅ Concluído
+
+---
+
 ### [2026-04-21 — Fix 404 favorite_professionals + limpeza de arquivos acidentais]
 
 **Data/Hora:** 21 de abril de 2026  
