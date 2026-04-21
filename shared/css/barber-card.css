@@ -505,22 +505,22 @@
 .dc-btn-icon { font-size: .78rem; line-height: 1; }
 .dc-count    { font-size: .62rem; min-width: 14px; text-align: left; }
 
-/* Like */
-.dc-btn.like { border-color: rgba(80, 200, 80, .2); }
+/* Like — padronizado em DOURADO (idêntico a .card-like-btn) */
+.dc-btn.like { border-color: rgba(212, 175, 55, .4); color: var(--gold, #D4AF37); }
 .dc-btn.like:hover,
 .dc-btn.like.ativo {
-  background: rgba(80, 200, 80, .12);
-  color: #70d070;
-  border-color: rgba(80, 200, 80, .4);
+  background: rgba(212, 175, 55, .22);
+  color: var(--gold, #D4AF37);
+  border-color: rgba(212, 175, 55, .9);
 }
 
-/* Dislike */
-.dc-btn.dislike { border-color: rgba(220, 80, 80, .2); }
+/* Dislike — padronizado em DOURADO (mesma cor — diferença é apenas o ícone 👎) */
+.dc-btn.dislike { border-color: rgba(212, 175, 55, .4); color: var(--gold, #D4AF37); }
 .dc-btn.dislike:hover,
 .dc-btn.dislike.ativo {
-  background: rgba(220, 80, 80, .1);
-  color: #e07070;
-  border-color: rgba(220, 80, 80, .38);
+  background: rgba(212, 175, 55, .22);
+  color: var(--gold, #D4AF37);
+  border-color: rgba(212, 175, 55, .9);
 }
 
 /* Favorite — maior, só borda no padrão, dourado suave quando ativo */

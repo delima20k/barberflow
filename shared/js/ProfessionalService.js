@@ -63,10 +63,46 @@ class ProfessionalService {
   static isCurtido(proId)   { return !!proId && ProfessionalService.#LIKE_IDS.has(proId); }
 
   // ═══════════════════════════════════════════════════════════
+  // CÁLCULO DE ESTRELAS A PARTIR DE CURTIDAS
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Limiares (cumulativos) de curtidas para preencher cada estrela.
+   * Atingiu 1 curtida → 1★ · 5 → 2★ · 15 → 3★ · 40 → 4★ · 100 → 5★.
+   * Mantido estático para escalabilidade e consistência de UI.
+   */
+  static #STAR_THRESHOLDS = [1, 5, 15, 40, 100];
+
+  /**
+   * Converte o número de curtidas em quantidade de estrelas cheias (0-5).
+   * @param {number} likes
+   * @returns {number} 0..5
+   */
+  static estrelasPorCurtidas(likes) {
+    const n = Math.max(0, Number(likes) || 0);
+    let estrelas = 0;
+    for (const limite of ProfessionalService.#STAR_THRESHOLDS) {
+      if (n >= limite) estrelas++;
+      else break;
+    }
+    return estrelas;
+  }
+
+  /**
+   * Retorna a string visual "★★★☆☆" correspondente ao número de curtidas.
+   * @param {number} likes
+   * @returns {string}
+   */
+  static renderStars(likes) {
+    const cheias = ProfessionalService.estrelasPorCurtidas(likes);
+    return '★'.repeat(cheias) + '☆'.repeat(Math.max(0, 5 - cheias));
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // FACTORY DOS BOTÕES (stateless — lê cache e devolve <button>)
   // ═══════════════════════════════════════════════════════════
 
-  /** Botão de curtir barbeiro — contador incluso. */
+  /** Botão de curtir barbeiro — contador incluso. Ícone 👍 sempre, estado via .ativo. */
   static criarBotaoLike(proId, countInicial = 0) {
     const ativo = ProfessionalService.isCurtido(proId);
     const btn = document.createElement('button');
@@ -77,7 +113,7 @@ class ProfessionalService {
     btn.setAttribute('aria-pressed', String(ativo));
     btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
     btn.innerHTML =
-      `<span class="clb-ico">${ativo ? '❤️' : '🤍'}</span>` +
+      `<span class="clb-ico">👍</span>` +
       `<span class="clb-cnt">${Math.max(0, Number(countInicial) || 0)}</span>`;
     ProfessionalService.#instalarDelegation();
     return btn;
@@ -177,6 +213,7 @@ class ProfessionalService {
   /**
    * Atualiza visualmente TODOS os botões de um profissional
    * (pode aparecer em várias seções — home, lista, favoritos).
+   * Também atualiza estrelas+pontuação com base no novo contador.
    * @private
    */
   static #sincronizarBotoes(proId, action, ativo) {
@@ -186,14 +223,22 @@ class ProfessionalService {
         btn.setAttribute('aria-pressed', String(ativo));
 
         if (action === 'professional-like') {
-          const ico = btn.querySelector('.clb-ico');
           const cnt = btn.querySelector('.clb-cnt');
-          if (ico) ico.textContent = ativo ? '❤️' : '🤍';
+          let novoTotal = 0;
           if (cnt) {
             const n = parseInt(cnt.textContent, 10) || 0;
-            cnt.textContent = Math.max(0, ativo ? n + 1 : n - 1);
+            novoTotal = Math.max(0, ativo ? n + 1 : n - 1);
+            cnt.textContent = novoTotal;
           }
           btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
+
+          // Atualiza estrelas e pontuação do card (se tiver .bc-rating)
+          const starsEl = card.querySelector('.bc-stars');
+          const valEl   = card.querySelector('.bc-rating-val');
+          const cntEl   = card.querySelector('.bc-rating-cnt');
+          if (starsEl) starsEl.textContent = ProfessionalService.renderStars(novoTotal);
+          if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(novoTotal).toFixed(1);
+          if (cntEl)   cntEl.textContent   = `(${novoTotal})`;
         } else {
           const ico = btn.querySelector('.cfb-ico');
           if (ico) ico.textContent = ativo ? '⭐' : '☆';

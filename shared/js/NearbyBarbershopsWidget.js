@@ -357,15 +357,13 @@ class NearbyBarbershopsWidget {
         sub.className = 'barber-sub';
         sub.textContent = 'Barbeiro Profissional';
 
-        const ratingAvg   = parseFloat(p.rating_avg   || 0);
         const ratingCount = parseInt(p.rating_count   || 0, 10);
-        const fullStars   = Math.round(ratingAvg);
-        const starsStr    = '★'.repeat(Math.max(0, fullStars)) + '☆'.repeat(Math.max(0, 5 - fullStars));
+        const starsStr    = ProfessionalService.renderStars(ratingCount);
         const ratingEl = document.createElement('div');
         ratingEl.className = 'bc-rating';
         ratingEl.innerHTML =
           `<span class="bc-stars">${starsStr}</span>` +
-          `<span class="bc-rating-val">${ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}</span>` +
+          `<span class="bc-rating-val">${ProfessionalService.estrelasPorCurtidas(ratingCount).toFixed(1)}</span>` +
           (ratingCount > 0 ? `<span class="bc-rating-cnt">(${ratingCount})</span>` : '');
 
         info.appendChild(nome);

@@ -118,6 +118,31 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Ícone 👍 + padronização like/dislike + estrelas por curtidas]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedidos:**
+1. Trocar ícone do `bc-btn-like` para joinha 👍
+2. Padronizar TODOS os botões de curtida (positivo e negativo) — visual igual
+3. Nos cards de barbeiros, `.bc-stars` deve preencher conforme cresce o número de curtidas
+4. Pontuação ao lado das estrelas
+5. Todos os cards de barbeiros padronizados
+
+**Mudanças:**
+- **`ProfessionalService.criarBotaoLike`** — ícone 👍 sempre, estado via classe `.ativo` (cor de fundo muda, ícone mantém)
+- **`ProfessionalService.estrelasPorCurtidas(likes)`** e **`renderStars(likes)`** — conversores centralizados (POO / DRY)
+  - Limiares cumulativos: `[1, 5, 15, 40, 100]` → 1★ com 1 curtida, 2★ com 5, ..., 5★ com 100
+- **`NearbyBarbershopsWidget.initHomeBarbeiros`** — estrelas agora calculadas via `ProfessionalService.renderStars(ratingCount)` e valor numérico é `estrelasPorCurtidas(count).toFixed(1)`
+- **`#sincronizarBotoes`** — ao clicar no like, atualiza em tempo real `.bc-stars`, `.bc-rating-val` e `.bc-rating-cnt` do card
+- **CSS `.dc-btn.like` / `.dc-btn.dislike`** (destaque card) — removido verde/vermelho, agora usam mesma paleta dourada do `.card-like-btn` → visual padronizado em todos os botões de curtida do app
+
+**SW:** bump `v27`
+
+**Status:** ✅ deploy feito.
+
+---
+
 ### [2026-04-21 — Stars ao lado do fav + ProfessionalService (likes em DB)]
 
 **Data/Hora:** 21 de abril de 2026
