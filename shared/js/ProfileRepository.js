@@ -11,6 +11,21 @@
 // Repositório responsável por perfis, favoritos e upload de avatar.
 class ProfileRepository {
 
+  // Flag: tabelas opcionais ainda não criadas no banco remoto
+  // Marcado como true após primeiro 404, evita spam de queries 404
+  static #PRO_LIKES_UNAVAILABLE = false;
+  static #FAV_PROS_UNAVAILABLE  = false;
+
+  /** Detecta se o erro é um 404 de tabela inexistente no PostgREST */
+  static #is404(error) {
+    return (
+      error?.status === 404 ||
+      error?.statusCode === 404 ||
+      String(error?.code ?? '').includes('42P01') ||
+      String(error?.message ?? '').toLowerCase().includes('does not exist')
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PERFIL
   // ═══════════════════════════════════════════════════════════
@@ -170,12 +185,17 @@ class ProfileRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
+    if (ProfileRepository.#FAV_PROS_UNAVAILABLE) return [];
+
     // 1. IDs dos barbeiros favoritos
     const { data: favs, error: e1 } = await SupabaseService.favoriteProfessionals()
       .select('professional_id')
       .eq('user_id', userId);
 
-    if (e1) throw e1;
+    if (e1) {
+      if (ProfileRepository.#is404(e1)) { ProfileRepository.#FAV_PROS_UNAVAILABLE = true; return []; }
+      throw e1;
+    }
     const ids = (favs ?? []).map(r => r.professional_id).filter(Boolean);
     if (!ids.length) return [];
 
@@ -247,11 +267,18 @@ class ProfileRepository {
    * @returns {Promise<boolean>} true=curtido, false=descurtido
    */
   static async toggleProfessionalLike(userId, professionalId) {
-    const { data: existing } = await SupabaseService.professionalLikes()
+    if (ProfileRepository.#PRO_LIKES_UNAVAILABLE) throw new Error('Tabela professional_likes indisponível. Aplique as migrations pendentes.');
+
+    const { data: existing, error: selErr } = await SupabaseService.professionalLikes()
       .select('id')
       .eq('user_id', userId)
       .eq('professional_id', professionalId)
       .maybeSingle();
+
+    if (selErr) {
+      if (ProfileRepository.#is404(selErr)) { ProfileRepository.#PRO_LIKES_UNAVAILABLE = true; }
+      throw selErr;
+    }
 
     if (existing) {
       const { error } = await SupabaseService.professionalLikes()
@@ -270,25 +297,35 @@ class ProfileRepository {
 
   /**
    * Retorna IDs de barbeiros curtidos pelo usuário.
+   * Retorna Set vazio silenciosamente se a tabela não existir no banco.
    * @returns {Promise<Set<string>>}
    */
   static async getUserProfessionalLikes(userId) {
+    if (ProfileRepository.#PRO_LIKES_UNAVAILABLE) return new Set();
     const { data, error } = await SupabaseService.professionalLikes()
       .select('professional_id')
       .eq('user_id', userId);
-    if (error) throw error;
+    if (error) {
+      if (ProfileRepository.#is404(error)) { ProfileRepository.#PRO_LIKES_UNAVAILABLE = true; return new Set(); }
+      throw error;
+    }
     return new Set((data ?? []).map(r => r.professional_id));
   }
 
   /**
    * Retorna IDs de barbeiros favoritados pelo usuário.
+   * Retorna Set vazio silenciosamente se a tabela não existir no banco.
    * @returns {Promise<Set<string>>}
    */
   static async getUserProfessionalFavs(userId) {
+    if (ProfileRepository.#FAV_PROS_UNAVAILABLE) return new Set();
     const { data, error } = await SupabaseService.favoriteProfessionals()
       .select('professional_id')
       .eq('user_id', userId);
-    if (error) throw error;
+    if (error) {
+      if (ProfileRepository.#is404(error)) { ProfileRepository.#FAV_PROS_UNAVAILABLE = true; return new Set(); }
+      throw error;
+    }
     return new Set((data ?? []).map(r => r.professional_id));
   }
 
