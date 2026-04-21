@@ -118,6 +118,28 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Fix definitivo: 400 embed + 409 duplicate em favorite_professionals]
+
+**Data/Hora:** 21 de abril de 2026  
+**Problemas identificados no console:**
+1. `GET ?select=professional_id,professionals(...)` → **400 Bad Request** — PostgREST não resolveu o embed (cache de schema desatualizado após criar tabela via SQL Editor)
+2. `POST ?on_conflict=user_id,professional_id` → **409 Conflict** — `upsert + ignoreDuplicates` do supabase-js v2 ainda dispara 409 visível no console mesmo ignorando
+
+**Arquivos modificados:**
+- `shared/js/SupabaseService.js` — adicionado acessor `professionals()` (antes não existia)
+- `shared/js/ProfileRepository.js`:
+  - `getFavoriteBarbers` → reescrito em **3 queries separadas** (sem embed): IDs → professionals → profiles_public. Usa o fato de que `professionals.id === profiles.id` (PK/FK compartilhado).
+  - `toggleFavoriteBarber` → `DELETE-first + INSERT` com catch no código de erro `23505` (duplicate_key). Sem mais `upsert`.
+
+**⚠️ LIÇÃO APRENDIDA (repo memory):**
+1. Tabela `professionals` NÃO tem coluna `profile_id` — o `id` é a própria FK/PK para `profiles.id`.
+2. Evitar embeds do PostgREST em tabelas recém-criadas — preferir múltiplas queries.
+3. Em toggles, tratar erro `23505` (duplicate_key) como sucesso é mais limpo que `upsert + ignoreDuplicates`.
+
+**Status:** ✅ Concluído — aguarda teste do usuário
+
+---
+
 ### [2026-04-21 — Fix 409 toggleFavoriteBarber: DELETE-first + upsert idempotente]
 
 **Data/Hora:** 21 de abril de 2026  

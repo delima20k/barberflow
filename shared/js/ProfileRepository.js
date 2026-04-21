@@ -161,6 +161,8 @@ class ProfileRepository {
 
   /**
    * Retorna barbeiros favoritos do usuário com dados básicos.
+   * Usa 2 queries separadas (IDs → dados) em vez de embed do PostgREST,
+   * para evitar 400 quando o cache de schema não reconhece a FK.
    * @param {string} userId
    * @returns {Promise<object[]>}
    */
@@ -168,23 +170,41 @@ class ProfileRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
-    const { data, error } = await SupabaseService.favoriteProfessionals()
-      .select(`professional_id,
-        professionals(
-          id, avatar_path, rating_avg, specialties,
-          profiles(full_name, avatar_url)
-        )`)
+    // 1. IDs dos barbeiros favoritos
+    const { data: favs, error: e1 } = await SupabaseService.favoriteProfessionals()
+      .select('professional_id')
       .eq('user_id', userId);
 
-    if (error) throw error;
-    return (data ?? []).map(r => r.professionals).filter(Boolean);
+    if (e1) throw e1;
+    const ids = (favs ?? []).map(r => r.professional_id).filter(Boolean);
+    if (!ids.length) return [];
+
+    // 2. Dados dos profissionais (professionals.id === profiles.id — FK/PK compartilhado)
+    const { data: pros, error: e2 } = await SupabaseService.professionals()
+      .select('id, avatar_path, rating_avg, specialties')
+      .in('id', ids);
+
+    if (e2) throw e2;
+    if (!pros?.length) return [];
+
+    // 3. Perfis (nome + avatar_url) — mesmo id usado em professionals
+    const { data: profs } = await SupabaseService.profilesPublic()
+      .select('id, full_name, avatar_url')
+      .in('id', ids);
+    const profilesMap = {};
+    (profs ?? []).forEach(pr => { profilesMap[pr.id] = pr; });
+
+    return pros.map(p => ({
+      ...p,
+      profiles: profilesMap[p.id] ?? null,
+    }));
   }
 
   /**
    * Alterna barbeiro favorito.
-   * Estratégia DELETE-primeiro: evita 409 em caso de estado inconsistente.
-   * Se DELETE retorna linhas → era favorito, agora removido.
-   * Se DELETE retorna 0 linhas → não era favorito, faz INSERT.
+   * Estratégia à prova de race conditions:
+   *  - DELETE-first → retorna linhas afetadas
+   *  - Se 0 linhas afetadas → INSERT; se der 23505 (duplicate) considera sucesso
    * @returns {Promise<boolean>} true se adicionado, false se removido
    */
   static async toggleFavoriteBarber(userId, professionalId) {
@@ -198,13 +218,11 @@ class ProfileRepository {
     if (delErr) throw delErr;
     if (Array.isArray(deleted) && deleted.length > 0) return false;
 
-    // 2. Não existia — INSERT com upsert para idempotência total
+    // 2. Não existia — tenta INSERT puro e ignora duplicate key (23505)
     const { error: insErr } = await SupabaseService.favoriteProfessionals()
-      .upsert(
-        { user_id: userId, professional_id: professionalId },
-        { onConflict: 'user_id,professional_id', ignoreDuplicates: true }
-      );
-    if (insErr) throw insErr;
+      .insert({ user_id: userId, professional_id: professionalId });
+
+    if (insErr && insErr.code !== '23505') throw insErr;
     return true;
   }
 

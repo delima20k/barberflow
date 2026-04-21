@@ -267,6 +267,9 @@ class SupabaseService {
   /** Tabela de curtidas em barbeiros */
   static professionalLikes()      { return SupabaseService.#getClient().from('professional_likes'); }
 
+  /** Tabela de barbeiros (profissionais vinculados a barbearias) */
+  static professionals()          { return SupabaseService.#getClient().from('professionals'); }
+
   /** Tabela de barbeiros favoritos */
   static favoriteProfessionals()  { return SupabaseService.#getClient().from('favorite_professionals'); }
 
