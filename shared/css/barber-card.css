@@ -817,8 +817,11 @@
 /* ============================================================
    TOP-CARD — favorito com estrela outline (tamanho fixo) +
    animação de confetes/fogos ao clicar + 2ª estrela sobreposta.
+   Também aplicado a .destaque-card (home "Em Destaque") para
+   consistência visual.
 ============================================================ */
-.top-card .card-fav-btn {
+.top-card .card-fav-btn,
+.destaque-card .card-fav-btn {
   position: relative;
   width: 32px;
   height: 32px;
@@ -831,7 +834,8 @@
 }
 
 /* Esconde o span interno (conteúdo original do botão) */
-.top-card .card-fav-btn .cfb-ico {
+.top-card .card-fav-btn .cfb-ico,
+.destaque-card .card-fav-btn .cfb-ico {
   position: absolute;
   inset: 0;
   display: flex;
@@ -846,9 +850,10 @@
   -webkit-text-stroke: 0;
 }
 
-/* Única estrela exibida — levemente deslocada para a direita/cima,
+/* Única estrela exibida — levemente deslocada para a esquerda/cima,
    outline dourada quando inativa, preenchida + brilho quando ativa. */
-.top-card .card-fav-btn .cfb-ico::after {
+.top-card .card-fav-btn .cfb-ico::after,
+.destaque-card .card-fav-btn .cfb-ico::after {
   content: '★';
   position: absolute;
   inset: 0;
@@ -864,7 +869,8 @@
   pointer-events: none;
 }
 
-.top-card .card-fav-btn.ativo .cfb-ico::after {
+.top-card .card-fav-btn.ativo .cfb-ico::after,
+.destaque-card .card-fav-btn.ativo .cfb-ico::after {
   color: var(--gold, #D4AF37);
   -webkit-text-stroke: 0;
   text-shadow: 0 0 10px rgba(212, 175, 55, .65);
@@ -879,7 +885,8 @@
 }
 
 /* ── Confetes/fogos: 8 partículas via box-shadow em ::before ── */
-.top-card .card-fav-btn::before {
+.top-card .card-fav-btn::before,
+.destaque-card .card-fav-btn::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -894,7 +901,8 @@
   z-index: -1;
 }
 
-.top-card .card-fav-btn.ativo::before {
+.top-card .card-fav-btn.ativo::before,
+.destaque-card .card-fav-btn.ativo::before {
   animation: fav-confetti .9s ease-out forwards;
 }
 
@@ -927,7 +935,8 @@
 }
 
 /* Segundo burst mais fino (raios/sparkles) */
-.top-card .card-fav-btn::after {
+.top-card .card-fav-btn::after,
+.destaque-card .card-fav-btn::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -942,7 +951,8 @@
   z-index: -1;
 }
 
-.top-card .card-fav-btn.ativo::after {
+.top-card .card-fav-btn.ativo::after,
+.destaque-card .card-fav-btn.ativo::after {
   animation: fav-sparkles 1s ease-out forwards;
   animation-delay: .08s;
 }
@@ -971,13 +981,31 @@
 }
 
 /* Hover: apenas um leve scale, mantém tamanho base ao inativo */
-.top-card .card-fav-btn:hover {
+.top-card .card-fav-btn:hover,
+.destaque-card .card-fav-btn:hover {
   transform: scale(1.08);
   filter: drop-shadow(0 2px 6px rgba(212, 175, 55, .5));
 }
 
-.top-card .card-fav-btn:active {
+.top-card .card-fav-btn:active,
+.destaque-card .card-fav-btn:active {
   transform: scale(.92);
+}
+
+/* Container top-right no destaque-card (badge + favorito) */
+.destaque-card .top-card__actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  z-index: 2;
+}
+
+.destaque-card .top-card__actions .dc-badge {
+  position: static;
 }
 
 

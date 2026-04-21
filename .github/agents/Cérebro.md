@@ -118,6 +118,31 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Em Destaque (home): reuso de top-card__stars + badge/fav no canto + remoção de like/dislike antigos]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** (1) usar `.top-card__stars` nos `.destaque-card` no lugar de `.dc-stars-row`; (2) excluir `.dc-actions` (botões de like/dislike/favorite antigos); (3) colocar `.dc-badge` no canto superior direito; (4) colocar o botão de favoritos (estrela com confetes do top-card) abaixo do badge com 1 gap.
+
+**Mudanças JS (`NearbyBarbershopsWidget.initHomeDestaque`):**
+- Removido `dc-actions` inteiro (btnLike/btnDislike/btnFav antigos)
+- Novo `.top-card__actions` absoluto no canto superior direito: badge em cima + `BarbershopService.criarBotaoFavoritoCard(b.id)` embaixo (gap: 1rem)
+- `.dc-header` agora só tem o avatar à esquerda
+- Rodapé do card usa `.top-card__stars` com: `.dc-stars-wrap` + `.dc-rating-num` + `<button.top-card__likes data-action="barbershop-like">` (clicável, +1 ao contador)
+- Skeleton simplificado (sem colunas de ações)
+- Preload `BarbershopService.carregarFavoritos()` antes de renderizar (pré-marca favoritos)
+
+**Mudanças CSS:**
+- Todos os estilos de `.top-card .card-fav-btn` (confetes, sparkles, `fav-pop`, estrela outline/filled deslocada) agora também se aplicam a `.destaque-card .card-fav-btn` via seletores combinados — DRY
+- Novo `.destaque-card .top-card__actions` absoluto (top:10px; right:10px; column; gap:1rem)
+- `.destaque-card .top-card__actions .dc-badge` → `position: static` (sobrescreve qualquer absolute herdado)
+
+**SW:** bump `v35`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Top-card favorito: manter apenas a estrela da direita]
 
 **Data/Hora:** 21 de abril de 2026

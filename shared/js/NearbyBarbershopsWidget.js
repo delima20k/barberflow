@@ -142,12 +142,6 @@ class NearbyBarbershopsWidget {
           <div class="dc-header">
             <div class="dc-left">
               <div class="dc-avatar dc-avatar--skel"></div>
-              <div class="dc-skel" style="width:44px;height:10px;border-radius:99px;"></div>
-            </div>
-            <div class="dc-actions">
-              <div class="dc-skel" style="width:38px;height:22px;border-radius:20px;"></div>
-              <div class="dc-skel" style="width:38px;height:22px;border-radius:20px;"></div>
-              <div class="dc-skel" style="width:28px;height:22px;border-radius:20px;"></div>
             </div>
           </div>
           <div class="dc-skel" style="width:80%;height:12px;"></div>
@@ -159,6 +153,9 @@ class NearbyBarbershopsWidget {
       </div>`).join('');
 
     try {
+      // Pre-carrega favoritos do usuário (cache, idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
+
       const lista = await BarbershopRepository.getFeatured(6);
       if (!lista.length) { el.innerHTML = ''; return; }
 
@@ -198,82 +195,52 @@ class NearbyBarbershopsWidget {
           avatarWrap.textContent = '💈';
         }
 
-        // ── Badge aberto/fechado (abaixo do avatar, no dc-left) ──
-        const badge = document.createElement('span');
-        badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
-        badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
-
-        // ── Coluna esquerda: avatar + badge ───────────────
+        // ── Coluna esquerda: apenas avatar ────────────────
         const dcLeft = document.createElement('div');
         dcLeft.className = 'dc-left';
         dcLeft.appendChild(avatarWrap);
-        dcLeft.appendChild(badge);
 
-        // ── Botões de ação (coluna direita: like → dislike → favorito) ──
-        const btnLike = document.createElement('button');
-        btnLike.type = 'button';
-        btnLike.className = 'dc-btn like';
-        btnLike.dataset.action = 'barbershop-like';
-        btnLike.title = 'Curtir esta barbearia';
-        btnLike.setAttribute('aria-label', 'Curtir');
-        btnLike.innerHTML = `<span class="dc-btn-icon">👍</span><span class="dc-count">${likes}</span>`;
-
-        const btnDislike = document.createElement('button');
-        btnDislike.type = 'button';
-        btnDislike.className = 'dc-btn dislike';
-        btnDislike.dataset.action = 'barbershop-dislike';
-        btnDislike.title = 'Feedback negativo';
-        btnDislike.setAttribute('aria-label', 'Feedback negativo');
-        btnDislike.innerHTML = `<span class="dc-btn-icon">👎</span><span class="dc-count">${dislikes}</span>`;
-
-        const btnFav = document.createElement('button');
-        btnFav.type = 'button';
-        btnFav.className = 'dc-btn favorite';
-        btnFav.dataset.action = 'barbershop-favorite';
-        btnFav.title = 'Adicionar aos favoritos';
-        btnFav.setAttribute('aria-label', 'Favoritar');
-        btnFav.setAttribute('aria-pressed', 'false');
-        btnFav.innerHTML = `<span class="dc-btn-icon">⭐</span>`;
-
-        const actions = document.createElement('div');
-        actions.className = 'dc-actions';
-        actions.appendChild(btnLike);
-        actions.appendChild(btnDislike);
-        actions.appendChild(btnFav);
-
-        // ── Header: avatar (esq) + ações em coluna (dir) ──
+        // ── Header (só o avatar à esquerda — ações foram para o canto superior direito) ──
         const dcHeader = document.createElement('div');
         dcHeader.className = 'dc-header';
         dcHeader.appendChild(dcLeft);
-        dcHeader.appendChild(actions);
+
+        // ── Canto superior direito: badge (Aberto/Fechado) + favorito (com confetes) ──
+        const topActions = document.createElement('div');
+        topActions.className = 'top-card__actions';
+
+        const badge = document.createElement('span');
+        badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
+        badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+        topActions.appendChild(badge);
+
+        topActions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
 
         // ── Nome ──────────────────────────────────────────
         const nome = document.createElement('p');
         nome.className = 'dc-nome';
         nome.textContent = b.name;
 
-        // ── Rodapé do card: estrelas + pontuação ──────────
-        const starsWrap = document.createElement('div');
-        starsWrap.className = 'dc-stars-wrap';
-        starsWrap.innerHTML = `
-          <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-          <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>`;
-
-        const scoreNum = document.createElement('span');
-        scoreNum.className = 'dc-rating-num';
-        scoreNum.setAttribute('aria-label', `Pontuação: ${score.toFixed(1)} de 5`);
-        scoreNum.textContent = score.toFixed(1);
-
+        // ── Rodapé do card: usa .top-card__stars (estrelas + num + likes clicável) ──
         const starsRow = document.createElement('div');
-        starsRow.className = 'dc-stars-row';
-        starsRow.appendChild(starsWrap);
-        starsRow.appendChild(scoreNum);
+        starsRow.className = 'top-card__stars';
+        starsRow.innerHTML = `
+          <span class="dc-stars-wrap">
+            <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
+            <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
+          </span>
+          <span class="dc-rating-num">${score.toFixed(1)}</span>
+          <button type="button" class="top-card__likes" data-action="barbershop-like"
+                  aria-label="Curtir barbearia" title="Curtir barbearia">
+            <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>
+          </button>`;
 
         const cardFooter = document.createElement('div');
         cardFooter.className = 'dc-card-footer';
         cardFooter.appendChild(starsRow);
 
         // ── Monta card ────────────────────────────────────
+        card.appendChild(topActions);
         card.appendChild(dcHeader);
         card.appendChild(nome);
         card.appendChild(cardFooter);
