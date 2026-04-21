@@ -724,53 +724,159 @@
        TELA — MINHA BARBEARIA
   ============================================================ -->
   <main id="tela-minha-barbearia" class="tela">
-    <div class="content">
-      <button class="btn-voltar" onclick="Pro.voltar()">Voltar</button>
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content mb-content">
 
-      <!-- Banner da barbearia -->
-      <div style="position:relative;height:160px;border-radius:var(--r-lg);overflow:hidden;background:linear-gradient(135deg,rgba(242,183,5,.22),rgba(107,74,50,.14));border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;">
-        <img id="mb-logo" src="/shared/img/Logo01.png" alt="logo"
-             style="height:72px;object-fit:contain;opacity:.7;"
-             onerror="this.style.display='none'">
-        <div style="position:absolute;bottom:16px;left:16px;">
-          <p id="mb-nome" style="font-size:1.1rem;font-weight:800;">Carregando…</p>
-          <p id="mb-endereco" style="font-size:.78rem;color:var(--text-muted);"></p>
+      <!-- Nome da barbearia -->
+      <h1 id="mb-nome" class="mb-nome-titulo"></h1>
+
+      <!-- ── Stories da barbearia ──────────────────────────── -->
+      <div class="stories-scroll mb-stories-scroll" id="mb-stories-scroll">
+
+        <!-- Card 1: Upload / imagem principal -->
+        <div class="card-mini story-card mb-story-upload" id="mb-story-upload-card">
+          <div class="mb-story-upload-inner">
+            <img id="mb-cover-img" src="/shared/img/Logo01.png" alt="Imagem principal"
+                 onerror="this.src='/shared/img/Logo01.png'">
+            <button class="mb-gear-btn" id="mb-gear-btn" aria-label="Configurações da barbearia">
+              ⚙️
+            </button>
+            <!-- Input oculto de upload da capa -->
+            <input type="file" id="mb-cover-input" accept="image/*,video/*"
+                   style="display:none">
+            <div class="mb-upload-overlay" id="mb-upload-overlay">
+              <span class="mb-upload-icon">📹</span>
+              <span class="mb-upload-txt">Postar vídeo</span>
+              <span id="mb-quota-txt" class="mb-quota-txt"></span>
+            </div>
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name" id="mb-story-nome">Minha Barbearia</p>
+            <p class="story-card-addr" id="mb-story-addr"></p>
+          </div>
         </div>
-        <button id="mb-badge-status" class="badge"
-                id="mb-toggle-status"
-                style="position:absolute;top:12px;right:12px;cursor:pointer;border:none;background:none;">
-          …
-        </button>
-      </div>
 
-      <!-- Banner de localização (injetado por MinhaBarbeariaPage quando coords ausentes) -->
+        <!-- Cards 2 e 3: stories da barbearia (injetados por JS) -->
+        <div id="mb-story-slot-2" class="card-mini story-card mb-story-slot">
+          <div class="story-video-wrap">
+            <div class="mb-slot-vazio">＋</div>
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 2</p>
+          </div>
+        </div>
+        <div id="mb-story-slot-3" class="card-mini story-card mb-story-slot">
+          <div class="story-video-wrap">
+            <div class="mb-slot-vazio">＋</div>
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 3</p>
+          </div>
+        </div>
+
+      </div><!-- /stories-scroll -->
+
+      <!-- ── Botão "Mais" (abre configurações) ─────────────── -->
+      <button class="mb-mais-btn" id="mb-mais-btn" aria-label="Mais opções">
+        + Mais
+      </button>
+
+      <!-- Banner de localização -->
       <div id="mb-loc-banner"></div>
 
       <!-- KPIs -->
       <div class="kpi-grid">
-        <div class="kpi"><span class="kpi-icon">⭐</span><span id="mb-kpi-rating"  class="kpi-val">…</span><span class="kpi-lbl">Avaliação</span></div>
+        <div class="kpi"><span class="kpi-icon">⭐</span><span id="mb-kpi-rating"   class="kpi-val">…</span><span class="kpi-lbl">Avaliação</span></div>
         <div class="kpi"><span class="kpi-icon">👥</span><span id="mb-kpi-clientes" class="kpi-val">…</span><span class="kpi-lbl">Avaliações</span></div>
         <div class="kpi"><span class="kpi-icon">📸</span><span id="mb-kpi-portfolio" class="kpi-val">…</span><span class="kpi-lbl">Portfólio</span></div>
         <div class="kpi"><span class="kpi-icon">❤️</span><span id="mb-kpi-likes"    class="kpi-val">…</span><span class="kpi-lbl">Curtidas</span></div>
       </div>
 
-      <!-- Portfólio galeria (preenchido por MinhaBarbeariaPage.js) -->
+      <!-- Portfólio -->
       <div>
         <p class="sec-title">Portfólio</p>
         <div id="mb-portfolio-grid" class="portfolio-grid"></div>
         <button class="btn btn-outline btn-full" style="margin-top:12px;"
-                onclick="Pro.nav('destaques')">Ver portfólio completo</button>
+                data-nav="destaques">Ver portfólio completo</button>
       </div>
 
-      <!-- Serviços (preenchidos por MinhaBarbeariaPage.js) -->
+      <!-- Serviços / Produtos -->
       <div>
-        <p class="sec-title">Serviços</p>
+        <p class="sec-title">Serviços &amp; Produtos</p>
         <div id="mb-servicos-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
-        <button class="btn btn-outline btn-full" style="margin-top:12px;">+ Adicionar serviço</button>
       </div>
 
     </div>
   </main>
+
+  <!-- ============================================================
+       PAINEL — CONFIGURAÇÕES DA BARBEARIA (slide lateral)
+  ============================================================ -->
+  <aside id="mb-config-panel" class="mb-config-panel" aria-hidden="true">
+    <div class="mb-config-inner">
+
+      <div class="mb-config-header">
+        <h2 class="mb-config-titulo">Configurações</h2>
+        <button class="mb-config-fechar" id="mb-config-fechar" aria-label="Fechar">✕</button>
+      </div>
+
+      <div class="mb-config-body">
+
+        <!-- Upload imagem principal (capa) -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Imagem Principal (Capa)</p>
+          <div class="mb-config-upload-wrap" id="mb-cfg-capa-preview">
+            <img id="mb-cfg-capa-img" src="/shared/img/Logo01.png" alt="Capa">
+            <label class="mb-config-upload-btn" for="mb-cfg-capa-input">
+              📷 Alterar capa
+            </label>
+            <input type="file" id="mb-cfg-capa-input" accept="image/*" style="display:none">
+          </div>
+        </div>
+
+        <!-- Upload ícone circular -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Ícone Circular (Logo)</p>
+          <div class="mb-config-icone-wrap">
+            <div class="mb-config-icone-circulo" id="mb-cfg-logo-preview">
+              <img id="mb-cfg-logo-img" src="/shared/img/Logo01.png" alt="Logo">
+            </div>
+            <label class="mb-config-upload-btn" for="mb-cfg-logo-input">
+              🖼 Alterar logo
+            </label>
+            <input type="file" id="mb-cfg-logo-input" accept="image/*" style="display:none">
+          </div>
+        </div>
+
+        <!-- Nome do salão -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Nome do Salão</p>
+          <input type="text" id="mb-cfg-nome" class="mb-config-input"
+                 placeholder="Nome da barbearia" maxlength="80">
+        </div>
+
+        <!-- Formulário dinâmico de produtos/preços -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Serviços &amp; Produtos</p>
+          <div id="mb-cfg-produtos-lista" class="mb-cfg-produtos-lista"></div>
+          <button class="mb-config-add-btn" id="mb-cfg-add-produto">
+            + Adicionar item
+          </button>
+        </div>
+
+        <!-- Salvar -->
+        <button class="btn btn-gold btn-full mb-config-salvar" id="mb-config-salvar">
+          Salvar alterações
+        </button>
+        <p id="mb-config-msg" class="mb-config-msg"></p>
+
+      </div><!-- /body -->
+    </div><!-- /inner -->
+  </aside>
+  <!-- Overlay para fechar o painel -->
+  <div id="mb-config-overlay" class="mb-config-overlay" hidden></div>
 
   <!-- ============================================================
        TELA — CRIAR BARBEARIA

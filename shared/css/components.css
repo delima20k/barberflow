@@ -3130,3 +3130,348 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .chat-send-btn:hover { background: var(--gold-light); transform: scale(1.06); }
 .chat-send-btn svg   { width: 17px; height: 17px; }
+
+/* ================================================================
+   MINHA BARBEARIA — tela + painel de configurações
+================================================================ */
+
+/* ── Layout geral ──────────────────────────────────────── */
+.mb-content {
+  padding-top: 0;
+}
+.mb-nome-titulo {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 1.5rem 0 12px;
+  min-height: 1.6rem;
+}
+
+/* ── Stories scroll (3 cards fixos visíveis) ──────────── */
+.mb-stories-scroll {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+/* ── Card 1: upload ────────────────────────────────────── */
+.mb-story-upload {
+  cursor: pointer;
+}
+.mb-story-upload-inner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 8;
+  border-radius: 15px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #efe2d5 0%, #f8f1e9 100%);
+}
+.mb-story-upload-inner > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mb-gear-btn {
+  all: unset;
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0,0,0,.55);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.mb-gear-btn:active { background: rgba(0,0,0,.75); }
+
+/* Overlay de upload sobre o card 1 */
+.mb-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.38);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.mb-upload-overlay:active { background: rgba(0,0,0,.55); }
+.mb-upload-icon { font-size: 1.6rem; }
+.mb-upload-txt  { font-size: .72rem; font-weight: 700; color: #fff; }
+.mb-quota-txt   { font-size: .64rem; color: rgba(255,255,255,.75); }
+
+/* ── Slots 2 e 3: placeholder vazio ───────────────────── */
+.mb-story-slot .story-video-wrap {
+  background: var(--card);
+  border: 1.5px dashed var(--gold-border);
+}
+.mb-slot-vazio {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--gold-border);
+}
+
+/* ── Botão "Mais" ──────────────────────────────────────── */
+.mb-mais-btn {
+  display: block;
+  width: 100%;
+  padding: 11px 0;
+  margin: 14px 0 6px;
+  background: transparent;
+  border: 2px solid var(--gold);
+  border-radius: var(--r-sm, 8px);
+  color: var(--gold);
+  font-size: .9rem;
+  font-weight: 700;
+  letter-spacing: .4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+}
+.mb-mais-btn:active,
+.mb-mais-btn:hover {
+  background: var(--gold);
+  color: #1a0800;
+}
+
+/* ================================================================
+   PAINEL DE CONFIGURAÇÕES (slide da direita)
+================================================================ */
+.mb-config-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(420px, 96vw);
+  height: 100%;
+  background: var(--surface, #1a0e07);
+  border-left: 1.5px solid var(--gold-border);
+  z-index: 1200;
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.22,.61,.36,1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.mb-config-panel--aberto {
+  transform: translateX(0);
+}
+
+/* Overlay escuro por trás do painel */
+.mb-config-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 1199;
+}
+
+/* Header do painel */
+.mb-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--gold-border);
+  flex-shrink: 0;
+  padding-top: calc(18px + env(safe-area-inset-top));
+}
+.mb-config-titulo {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+.mb-config-fechar {
+  all: unset;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.mb-config-fechar:active { background: rgba(255,255,255,.1); }
+
+/* Body scrollável */
+.mb-config-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scrollbar-width: none;
+}
+.mb-config-body::-webkit-scrollbar { display: none; }
+
+/* Seções */
+.mb-config-secao { display: flex; flex-direction: column; gap: 8px; }
+.mb-config-secao-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* Preview de upload da capa */
+.mb-config-upload-wrap {
+  position: relative;
+  height: 120px;
+  border-radius: var(--r-lg, 12px);
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+}
+.mb-config-upload-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Preview ícone circular */
+.mb-config-icone-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mb-config-icone-circulo {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid var(--gold);
+  flex-shrink: 0;
+  background: var(--card);
+}
+.mb-config-icone-circulo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Botão de upload */
+.mb-config-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--r-full, 100px);
+  background: transparent;
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+}
+.mb-config-upload-btn:active,
+.mb-config-upload-btn:hover {
+  background: var(--gold);
+  color: #1a0800;
+}
+
+/* Input de texto (nome) */
+.mb-config-input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--card);
+  border: 1.5px solid var(--gold-border);
+  border-radius: var(--r-md, 10px);
+  color: var(--text);
+  font-size: .9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .18s;
+}
+.mb-config-input:focus { border-color: var(--gold); }
+
+/* Lista dinâmica de produtos */
+.mb-cfg-produtos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mb-cfg-produto-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 6px;
+  align-items: center;
+}
+.mb-cfg-prod-nome,
+.mb-cfg-prod-preco,
+.mb-cfg-prod-dur {
+  padding: 9px 10px;
+  background: var(--card);
+  border: 1.5px solid var(--gold-border);
+  border-radius: var(--r-md, 10px);
+  color: var(--text);
+  font-size: .82rem;
+  outline: none;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: border-color .18s;
+}
+.mb-cfg-prod-nome:focus,
+.mb-cfg-prod-preco:focus,
+.mb-cfg-prod-dur:focus { border-color: var(--gold); }
+.mb-cfg-prod-preco,
+.mb-cfg-prod-dur { width: 72px; }
+.mb-cfg-prod-remove {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .15s;
+}
+.mb-cfg-prod-remove:active { color: #e44; }
+
+/* Botão adicionar item */
+.mb-config-add-btn {
+  all: unset;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--gold);
+  padding: 6px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Botão salvar */
+.mb-config-salvar {
+  margin-top: 4px;
+}
+
+/* Mensagem de status */
+.mb-config-msg {
+  font-size: .82rem;
+  text-align: center;
+  color: var(--gold);
+  min-height: 1.2em;
+}
