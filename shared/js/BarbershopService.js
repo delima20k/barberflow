@@ -373,8 +373,8 @@ class BarbershopService {
 
   /**
    * Toggle de curtida (like) em um card de barbearia.
-   * Persiste no banco via BarbershopRepository (usuário logado) ou
-   * usa localStorage como fallback para anônimos.
+   * Persiste no banco via BarbershopRepository (usuário logado).
+   * Rollback do update otimista se a persistência falhar.
    * @param {HTMLElement} btn — botão [data-action="barbershop-like"]
    */
   static async toggleBarbershopLike(btn) {
@@ -382,37 +382,44 @@ class BarbershopService {
     if (!card) return;
     const barbershopId = card.dataset.barbershopId;
 
-    // Desabilita botão de dislike no mesmo card se ativo
-    const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
-    const eraDislike = dislikeBtn?.classList.contains('ativo');
+    const dislikeBtn   = card.querySelector('[data-action="barbershop-dislike"]');
+    const eraDislike   = dislikeBtn?.classList.contains('ativo');
+    const eraLike      = btn.classList.contains('ativo');
 
-    const eraLike = btn.classList.contains('ativo');
+    // Estado anterior (para rollback)
+    const prevLikes    = parseInt(card.dataset.likes    ?? 0);
+    const prevDislikes = parseInt(card.dataset.dislikes ?? 0);
+    const prevScore    = BarbershopService.calcRatingScore(prevLikes, prevDislikes);
 
-    // Atualiza contadores otimisticamente neste card
-    let likes    = parseInt(card.dataset.likes    ?? 0);
-    let dislikes = parseInt(card.dataset.dislikes ?? 0);
-
-    if (eraDislike) {
-      dislikes = Math.max(0, dislikes - 1);
-    }
-    if (eraLike) {
-      likes = Math.max(0, likes - 1);
-    } else {
-      likes += 1;
-    }
+    // Novos contadores otimistas
+    let likes    = prevLikes;
+    let dislikes = prevDislikes;
+    if (eraDislike) dislikes = Math.max(0, dislikes - 1);
+    if (eraLike)    likes    = Math.max(0, likes - 1);
+    else            likes   += 1;
 
     const novoScore = BarbershopService.calcRatingScore(likes, dislikes);
 
     // 1) Feedback otimista imediato em todos os cards
     BarbershopService.#sincronizarContadores(barbershopId, likes, dislikes, novoScore, !eraLike, false, eraDislike);
 
-    // 2) Persiste no banco e re-sincroniza com valores reais (inclui curtidas de outros usuários)
-    await BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
+    // 2) Persiste no banco
+    const ok = await BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
+
+    if (!ok) {
+      // Rollback: restaura estado anterior
+      BarbershopService.#sincronizarContadores(barbershopId, prevLikes, prevDislikes, prevScore, eraLike, eraDislike, false);
+      NotificationService?.mostrarToast?.('Erro ao curtir. Tente novamente.', '', 'info');
+      return;
+    }
+
+    // 3) Re-sincroniza com valores reais do banco (inclui curtidas de todos)
     await BarbershopService.#sincronizarComBanco(barbershopId);
   }
 
   /**
    * Toggle de descurtida (dislike) em um card de barbearia.
+   * Rollback do update otimista se a persistência falhar.
    * @param {HTMLElement} btn — botão [data-action="barbershop-dislike"]
    */
   static async toggleBarbershopDislike(btn) {
@@ -420,13 +427,17 @@ class BarbershopService {
     if (!card) return;
     const barbershopId = card.dataset.barbershopId;
 
-    const likeBtn    = card.querySelector('[data-action="barbershop-like"]');
-    const eraLike    = likeBtn?.classList.contains('ativo');
-    const eraDislike = btn.classList.contains('ativo');
+    const likeBtn      = card.querySelector('[data-action="barbershop-like"]');
+    const eraLike      = likeBtn?.classList.contains('ativo');
+    const eraDislike   = btn.classList.contains('ativo');
 
-    let likes    = parseInt(card.dataset.likes    ?? 0);
-    let dislikes = parseInt(card.dataset.dislikes ?? 0);
+    // Estado anterior (para rollback)
+    const prevLikes    = parseInt(card.dataset.likes    ?? 0);
+    const prevDislikes = parseInt(card.dataset.dislikes ?? 0);
+    const prevScore    = BarbershopService.calcRatingScore(prevLikes, prevDislikes);
 
+    let likes    = prevLikes;
+    let dislikes = prevDislikes;
     if (eraLike)    likes    = Math.max(0, likes - 1);
     if (eraDislike) dislikes = Math.max(0, dislikes - 1);
     else            dislikes += 1;
@@ -438,8 +449,17 @@ class BarbershopService {
       barbershopId, likes, dislikes, novoScore, false, !eraDislike, eraLike
     );
 
-    // 2) Persiste no banco e re-sincroniza com valores reais (inclui curtidas de outros usuários)
-    await BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
+    // 2) Persiste no banco
+    const ok = await BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
+
+    if (!ok) {
+      // Rollback: restaura estado anterior
+      BarbershopService.#sincronizarContadores(barbershopId, prevLikes, prevDislikes, prevScore, eraLike, eraDislike, false);
+      NotificationService?.mostrarToast?.('Erro ao avaliar. Tente novamente.', '', 'info');
+      return;
+    }
+
+    // 3) Re-sincroniza com valores reais do banco
     await BarbershopService.#sincronizarComBanco(barbershopId);
   }
 
@@ -564,20 +584,24 @@ class BarbershopService {
   }
 
   /**
-   * Persiste ou remove uma interação no banco (silencioso se não logado).
+   * Persiste ou remove uma interação no banco.
+   * Retorna true em sucesso, false em falha (sem sessão ou erro de rede/DB).
    * @private
+   * @returns {Promise<boolean>}
    */
   static async #persistirInteracao(barbershopId, type, op) {
     try {
       const user = await SupabaseService.getUser?.();
-      if (!user?.id) return; // anônimo — não persiste
+      if (!user?.id) return false; // sem sessão ativa
       if (op === 'add') {
         await BarbershopRepository.addInteraction(barbershopId, user.id, type);
       } else {
         await BarbershopRepository.removeInteraction(barbershopId, user.id, type);
       }
+      return true;
     } catch (e) {
       LoggerService.warn(`[BarbershopService] toggle ${type} falhou:`, e?.message);
+      return false;
     }
   }
 

@@ -77,6 +77,8 @@ class BarbeariasPage {
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
     if (b?.id) row.dataset.barbershopId = b.id;
+    row.dataset.likes    = Number(b.likes_count    ?? 0);
+    row.dataset.dislikes = Number(b.dislikes_count ?? 0);
 
     // Avatar / logo
     const avatarWrap = document.createElement('div');

@@ -7,6 +7,45 @@
 -- ================================================================
 
 -- ────────────────────────────────────────────────────────────────
+-- 0. BARBERSHOP_INTERACTIONS — curtidas/descurtidas/favoritos em barbearias
+--    (cria apenas se não existir — idempotente)
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE barbershops
+  ADD COLUMN IF NOT EXISTS likes_count     INTEGER      NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS dislikes_count  INTEGER      NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rating_score    NUMERIC(3,1) NOT NULL DEFAULT 0.0;
+
+CREATE TABLE IF NOT EXISTS public.barbershop_interactions (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  barbershop_id UUID        NOT NULL REFERENCES public.barbershops(id) ON DELETE CASCADE,
+  user_id       UUID        NOT NULL REFERENCES auth.users(id)         ON DELETE CASCADE,
+  type          TEXT        NOT NULL CHECK (type IN ('like', 'dislike', 'favorite')),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (barbershop_id, user_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bi_barbershop ON public.barbershop_interactions (barbershop_id);
+CREATE INDEX IF NOT EXISTS idx_bi_user       ON public.barbershop_interactions (user_id);
+
+ALTER TABLE public.barbershop_interactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "bi_select_own" ON public.barbershop_interactions;
+CREATE POLICY "bi_select_own"
+  ON public.barbershop_interactions FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "bi_insert_own" ON public.barbershop_interactions;
+CREATE POLICY "bi_insert_own"
+  ON public.barbershop_interactions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "bi_delete_own" ON public.barbershop_interactions;
+CREATE POLICY "bi_delete_own"
+  ON public.barbershop_interactions FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ────────────────────────────────────────────────────────────────
 -- 1. PROFILES_PUBLIC — expõe rating_avg e rating_count dos profissionais
 -- ────────────────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW public.profiles_public AS
