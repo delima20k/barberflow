@@ -142,8 +142,9 @@ class ParceriasPage {
 
     const btnAgendar = document.createElement('button');
     btnAgendar.className       = 'btn btn-gold btn-sm';
-    btnAgendar.textContent     = 'Agendar';
-    btnAgendar.dataset.action  = 'agendar';
+    btnAgendar.textContent     = 'Atividade';
+    btnAgendar.dataset.action  = 'atividade';
+    btnAgendar.dataset.tela    = 'producao-parceira';  // caminho preparado: tela a ser construída
     btnAgendar.dataset.barbershop = b.id;
     meta.appendChild(btnAgendar);
 
@@ -351,63 +352,42 @@ class ParceriasPage {
   #renderFavVazioBarbearias() {
     if (!this.#favBarbeariasEl) return;
     this.#favBarbeariasEl.innerHTML = `
-      <div class="barber-row" style="opacity:.55;pointer-events:none;">
-        <div class="avatar gold">💈</div>
-        <div class="barber-info">
-          <p class="barber-name">Nenhuma barbearia favorita</p>
-          <p class="barber-sub">Favorite barbearias ao agendar</p>
+      <div class="fav-card fav-card--sem-img" style="display:flex;align-items:center;justify-content:center;">
+        <div class="fav-card__overlay" style="align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:2rem;">💈</span>
+          <p style="color:rgba(255,255,255,.6);font-size:.8rem;text-align:center;">
+            Nenhuma barbearia favorita
+          </p>
         </div>
       </div>`;
   }
 
-  /** Card horizontal para barbearia favorita. */
+  /** Card fav-card (350×220) para barbearia favorita — mesmo padrão de tela-favoritas. */
   #criarFavCard(b) {
-    const row = document.createElement('div');
-    row.className   = 'barber-row parcerias-row';
-    row.dataset.id  = b.id;
+    const card = document.createElement('div');
+    card.className = 'fav-card' + (b.logo_path ? '' : ' fav-card--sem-img');
+    card.dataset.id = b.id;
 
     const r     = Math.round(Number(b.rating_avg ?? 0));
     const stars = '★'.repeat(r) + '☆'.repeat(5 - r);
     const aberto = b.is_open;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'avatar gold';
-    if (b.logo_path) {
-      const img = document.createElement('img');
-      img.src     = b.logo_path;
-      img.alt     = b.name || '';
-      img.loading = 'lazy';
-      img.onerror = () => { avatar.textContent = '💈'; };
-      avatar.appendChild(img);
-    } else {
-      avatar.textContent = '💈';
-    }
-
-    const info = document.createElement('div');
-    info.className = 'barber-info';
-    info.innerHTML = `
-      <p class="barber-name">${b.name ?? ''}</p>
-      <p class="barber-sub">${b.address ?? ''}</p>
-      <div class="stars" style="margin-top:2px;">${stars}
-        <span class="badge ${aberto ? 'badge-open' : 'badge-closed'}" style="margin-left:6px;">
-          ${aberto ? 'Aberta' : 'Fechada'}
-        </span>
+    card.innerHTML = `
+      ${b.logo_path ? `<img class="fav-card__img" src="${b.logo_path}" alt="${b.name ?? ''}" loading="lazy">` : ''}
+      <div class="fav-card__overlay">
+        <div class="fav-card__badge-row">
+          <span class="badge${aberto ? '' : ' closed'}">${aberto ? 'Aberta' : 'Fechada'}</span>
+          <span class="fav-card__stars">${stars}</span>
+        </div>
+        <p class="fav-card__nome">${b.name ?? ''}</p>
+        <p class="fav-card__addr">${b.address ?? ''}</p>
+        <div class="fav-card__footer">
+          <span></span>
+          <button class="fav-card__btn" data-action="agendar" data-barbershop="${b.id}">Agendar</button>
+        </div>
       </div>`;
 
-    const meta = document.createElement('div');
-    meta.className = 'barber-meta';
-
-    const btnAgendar = document.createElement('button');
-    btnAgendar.className      = 'btn btn-gold btn-sm';
-    btnAgendar.textContent    = 'Agendar';
-    btnAgendar.dataset.action = 'agendar';
-    btnAgendar.dataset.barbershop = b.id;
-    meta.appendChild(btnAgendar);
-
-    row.appendChild(avatar);
-    row.appendChild(info);
-    row.appendChild(meta);
-    return row;
+    return card;
   }
 
   // ── Favoritos — Barbeiros ────────────────────────────────
