@@ -404,16 +404,20 @@ class BarbershopService {
     BarbershopService.#sincronizarContadores(barbershopId, likes, dislikes, novoScore, !eraLike, false, eraDislike);
 
     // 2) Persiste no banco
-    const ok = await BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
+    const resultado = await BarbershopService.#persistirInteracao(barbershopId, 'like', eraLike ? 'remove' : 'add');
 
-    if (!ok) {
-      // Rollback: restaura estado anterior
+    if (resultado === 'noauth') {
+      // Usuário deslogou entre o clique e a persistência — rollback
       BarbershopService.#sincronizarContadores(barbershopId, prevLikes, prevDislikes, prevScore, eraLike, eraDislike, false);
-      NotificationService?.mostrarToast?.('Erro ao curtir. Tente novamente.', '', 'info');
+      return;
+    }
+    if (resultado === 'error') {
+      // Falha técnica (tabela ausente, rede) — mantém UI otímista, avisa e para aqui
+      NotificationService?.mostrarToast?.('Não foi possível salvar. Tente novamente.', '', 'info');
       return;
     }
 
-    // 3) Re-sincroniza com valores reais do banco (inclui curtidas de todos)
+    // 3) 'ok' — re-sincroniza com valores reais do banco (inclui curtidas de todos)
     await BarbershopService.#sincronizarComBanco(barbershopId);
   }
 
@@ -450,16 +454,18 @@ class BarbershopService {
     );
 
     // 2) Persiste no banco
-    const ok = await BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
+    const resultado = await BarbershopService.#persistirInteracao(barbershopId, 'dislike', eraDislike ? 'remove' : 'add');
 
-    if (!ok) {
-      // Rollback: restaura estado anterior
+    if (resultado === 'noauth') {
       BarbershopService.#sincronizarContadores(barbershopId, prevLikes, prevDislikes, prevScore, eraLike, eraDislike, false);
-      NotificationService?.mostrarToast?.('Erro ao avaliar. Tente novamente.', '', 'info');
+      return;
+    }
+    if (resultado === 'error') {
+      NotificationService?.mostrarToast?.('Não foi possível salvar. Tente novamente.', '', 'info');
       return;
     }
 
-    // 3) Re-sincroniza com valores reais do banco
+    // 3) 'ok' — re-sincroniza com valores reais do banco
     await BarbershopService.#sincronizarComBanco(barbershopId);
   }
 
@@ -585,23 +591,25 @@ class BarbershopService {
 
   /**
    * Persiste ou remove uma interação no banco.
-   * Retorna true em sucesso, false em falha (sem sessão ou erro de rede/DB).
+   * @returns {Promise<'ok'|'noauth'|'error'>}
+   *   'ok'     — salvo com sucesso → pode sincronizar com banco
+   *   'noauth' — usuário não logado  → rollback correto
+   *   'error'  — falha técnica (tabela ausente, rede) → mantém UI otímista, não faz rollback
    * @private
-   * @returns {Promise<boolean>}
    */
   static async #persistirInteracao(barbershopId, type, op) {
     try {
       const user = await SupabaseService.getUser?.();
-      if (!user?.id) return false; // sem sessão ativa
+      if (!user?.id) return 'noauth';
       if (op === 'add') {
         await BarbershopRepository.addInteraction(barbershopId, user.id, type);
       } else {
         await BarbershopRepository.removeInteraction(barbershopId, user.id, type);
       }
-      return true;
+      return 'ok';
     } catch (e) {
       LoggerService.warn(`[BarbershopService] toggle ${type} falhou:`, e?.message);
-      return false;
+      return 'error';
     }
   }
 
