@@ -118,6 +118,25 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Cards uniformizados: remoção do barber-sub + like/favorito subidos para cta-row + sync cross-card]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** (1) quando um card for atualizado, todos os cards com o mesmo identificador do mesmo usuário devem atualizar juntos; (2) cards da tela `BarbeariasPage` devem ter as mesmas características dos cards Populares/Mais Próximas; (3) remover o `<p class="barber-sub">` dos cards; (4) o botão de curtida dos Barbeiros Populares estava muito embaixo — subir.
+
+**Mudanças:**
+- **`NearbyBarbershopsWidget.initHomeBarbeiros`** → `barber-sub` removido · stars, like e fav agora vão juntos na `.cta-row` dentro de `.card-top-actions` (o like sobe visualmente) · skeleton também sem `barber-sub`
+- **`BarbeirosPage.#criarCard`** → reescrito usando `ProfessionalService.criarBotaoLike/Favorito` (POO centralizado) · `dataset.proId` → `dataset.professionalId` para casar com delegation global · stars+like+fav na `.cta-row` · sem `barber-sub`
+- **`BarbeirosPage.#carregar` / `#restaurarInteracoes`** → simplificados para usar `ProfessionalService.carregarInteracoes()` · removido ~100 linhas de código morto (`#toggleLike`, `#toggleFav`, `#renderStars`, `#liked`, `#faved`)
+- **`BarbeariasPage.#criarCard`** → agora idêntico ao `#criarBarberRow` da home: `.card-top-actions` com badge em cima + `.cta-row` (stars + fav) embaixo · removido `.barber-meta` separado · sem `barber-sub`
+- **Sincronização cross-card automática:** clicar no like/fav de qualquer card atualiza *todos* os cards do mesmo profissional/barbearia em qualquer seção (home + tela da lista + favoritos) — já era feito pelo `ProfessionalService.#sincronizarBotoes` e `BarbershopService.#sincronizarBotoesFavorito` via `document.querySelectorAll('[data-professional-id]')` / `[data-barbershop-id]`
+
+**SW:** bump `v29`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Badge aberto/fechado no topo + layout padronizado cards de barbearia]
 
 **Data/Hora:** 21 de abril de 2026

@@ -317,7 +317,6 @@ class NearbyBarbershopsWidget {
         <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
         <div class="barber-info">
           <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-          <p class="barber-sub"  style="width:70px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
         </div>
       </div>`).join('');
 
@@ -353,31 +352,31 @@ class NearbyBarbershopsWidget {
         nome.className = 'barber-name';
         nome.textContent = p.full_name || 'Barbeiro';
 
-        const sub = document.createElement('p');
-        sub.className = 'barber-sub';
-        sub.textContent = 'Barbeiro Profissional';
-
-        const ratingCount = parseInt(p.rating_count   || 0, 10);
-        const starsStr    = ProfessionalService.renderStars(ratingCount);
-        const ratingEl = document.createElement('div');
-        ratingEl.className = 'bc-rating';
-        ratingEl.innerHTML =
-          `<span class="bc-stars">${starsStr}</span>` +
-          `<span class="bc-rating-val">${ProfessionalService.estrelasPorCurtidas(ratingCount).toFixed(1)}</span>` +
-          (ratingCount > 0 ? `<span class="bc-rating-cnt">(${ratingCount})</span>` : '');
+        const ratingCount = parseInt(p.rating_count || 0, 10);
 
         info.appendChild(nome);
-        info.appendChild(sub);
-        info.appendChild(ratingEl);
 
         row.appendChild(avatarWrap);
         row.appendChild(info);
 
-        // Ações padronizadas — canto superior direito (like + favorito) via ProfessionalService
+        // Ações padronizadas — canto superior direito: stars + like + favorito em linha
         const actions = document.createElement('div');
         actions.className = 'card-top-actions';
-        actions.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
-        actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+
+        const ctaRow = document.createElement('div');
+        ctaRow.className = 'cta-row';
+
+        const starsEl = document.createElement('span');
+        starsEl.className = 'stars';
+        starsEl.innerHTML =
+          `<span class="bc-stars">${ProfessionalService.renderStars(ratingCount)}</span>` +
+          `<span class="bc-rating-val" style="margin-left:4px">${ProfessionalService.estrelasPorCurtidas(ratingCount).toFixed(1)}</span>` +
+          (ratingCount > 0 ? `<span class="bc-rating-cnt" style="margin-left:2px">(${ratingCount})</span>` : '');
+        ctaRow.appendChild(starsEl);
+
+        ctaRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+        ctaRow.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+        actions.appendChild(ctaRow);
         row.appendChild(actions);
 
         el.appendChild(row);

@@ -98,37 +98,32 @@ class BarbeariasPage {
     nome.className   = 'barber-name';
     nome.textContent = b.name || 'Barbearia';
 
-    const sub = document.createElement('p');
-    sub.className   = 'barber-sub';
-    sub.textContent = b.city ? `${b.address ? b.address + ' — ' : ''}${b.city}` : (b.address || 'Barbearia');
-
     info.appendChild(nome);
-    info.appendChild(sub);
-
-    // Meta (badge aberto/fechado — estrelas vão para o top-right)
-    const meta = document.createElement('div');
-    meta.className = 'barber-meta';
-
-    const statusBadge = document.createElement('span');
-    statusBadge.className   = `badge ${b.is_open ? 'badge-open' : 'badge-closed'}`;
-    statusBadge.textContent = b.is_open ? 'Aberto' : 'Fechado';
-    meta.appendChild(statusBadge);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
-    row.appendChild(meta);
 
-    // Container top-right: stars + botão favorito (POO reuso do BarbershopService)
+    // Top-right padronizado: badge (Aberto/Fechado) em cima + cta-row (stars + favorito) embaixo
     if (b?.id) {
       const actions = document.createElement('div');
       actions.className = 'card-top-actions';
 
+      const badge = document.createElement('span');
+      badge.className   = b.is_open ? 'badge' : 'badge closed';
+      badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+      actions.appendChild(badge);
+
+      const ctaRow = document.createElement('div');
+      ctaRow.className = 'cta-row';
+
       const stars = document.createElement('span');
       stars.className   = 'stars';
       stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
-      actions.appendChild(stars);
+      ctaRow.appendChild(stars);
 
-      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      ctaRow.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      actions.appendChild(ctaRow);
+
       row.appendChild(actions);
     }
 
@@ -141,7 +136,6 @@ class BarbeariasPage {
         <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
         <div class="barber-info">
           <p class="barber-name" style="width:130px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-          <p class="barber-sub"  style="width:90px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
         </div>
       </div>`).join('');
   }

@@ -51,56 +51,22 @@ class BarbeirosPage {
 
   // ── Privado ──────────────────────────────────────────────
 
-  // Sets em memória — carregados do banco ao entrar na tela
-  #liked = new Set();
-  #faved = new Set();
-
   async #restaurarInteracoes() {
-    const perfil = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
-    if (!perfil?.id) return;
     try {
-      const [likes, favs] = await Promise.all([
-        ProfileRepository.getUserProfessionalLikes(perfil.id),
-        ProfileRepository.getUserProfessionalFavs(perfil.id),
-      ]);
-      this.#liked = likes;
-      this.#faved = favs;
-
-      // Atualiza visual dos botões já renderizados
-      this.#listaEl?.querySelectorAll('.barber-row[data-pro-id]').forEach(row => {
-        const id = row.dataset.proId;
-        const btnL = row.querySelector('.bc-btn-like');
-        const btnF = row.querySelector('.bc-btn-fav');
-        if (btnL) {
-          btnL.classList.toggle('bc-btn--ativo', likes.has(id));
-          const ico = btnL.querySelector('.bc-ico');
-          if (ico) ico.textContent = likes.has(id) ? '❤️' : '🤍';
-        }
-        if (btnF) {
-          btnF.classList.toggle('bc-btn--ativo', favs.has(id));
-          const ico = btnF.querySelector('.bc-ico');
-          if (ico) ico.textContent = favs.has(id) ? '⭐' : '☆';
-        }
-      });
+      await ProfessionalService.carregarInteracoes(true);
     } catch (e) {
       LoggerService.warn('[BarbeirosPage] restaurarInteracoes:', e?.message);
     }
   }
 
-  async #carregar() {    this.#carregou = true;
+  async #carregar() {
+    this.#carregou = true;
     this.#listaEl.innerHTML = this.#skeleton(6);
 
     try {
-      // Carrega interações do usuário logado em paralelo com a lista
-      const perfil = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
-      const [lista, likes, favs] = await Promise.all([
-        BarbershopRepository.getBarbers(100),
-        perfil?.id ? ProfileRepository.getUserProfessionalLikes(perfil.id).catch(() => new Set()) : Promise.resolve(new Set()),
-        perfil?.id ? ProfileRepository.getUserProfessionalFavs(perfil.id).catch(() => new Set())  : Promise.resolve(new Set()),
-      ]);
-
-      this.#liked = likes;
-      this.#faved = favs;
+      // Pre-carrega cache de interações do usuário (idempotente)
+      await ProfessionalService.carregarInteracoes();
+      const lista = await BarbershopRepository.getBarbers(100);
 
       if (!lista.length) {
         this.#listaEl.innerHTML = '';
@@ -117,88 +83,12 @@ class BarbeirosPage {
     }
   }
 
-  // ── Interações (banco + UI) ──────────────────────────────
-
-  async #toggleLike(id, btn) {
-    const perfil = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
-    const cntEl  = btn.querySelector('.bc-cnt');
-    const icoEl  = btn.querySelector('.bc-ico');
-    const count  = parseInt(cntEl?.textContent || '0', 10);
-
-    const eraLike = this.#liked.has(id);
-
-    // Feedback imediato
-    if (eraLike) {
-      this.#liked.delete(id);
-      btn.classList.remove('bc-btn--ativo');
-      if (icoEl) icoEl.textContent = '🤍';
-      if (cntEl) cntEl.textContent = Math.max(0, count - 1);
-    } else {
-      this.#liked.add(id);
-      btn.classList.add('bc-btn--ativo');
-      if (icoEl) icoEl.textContent = '❤️';
-      if (cntEl) cntEl.textContent = count + 1;
-    }
-
-    // Persiste no banco (silencioso se não logado)
-    if (!perfil?.id) return;
-    try {
-      await ProfileRepository.toggleProfessionalLike(perfil.id, id);
-    } catch (e) {
-      LoggerService.warn('[BarbeirosPage] toggleLike falhou:', e?.message);
-    }
-  }
-
-  async #toggleFav(id, btn) {
-    const perfil = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
-    const router = typeof App !== 'undefined' ? App : null;
-    if (!perfil?.id) {
-      if (typeof AuthGuard !== 'undefined') AuthGuard.permitirAcao('favoritar', router);
-      return;
-    }
-    const icoEl  = btn.querySelector('.bc-ico');
-    const eraFav = this.#faved.has(id);
-
-    // Feedback imediato
-    if (eraFav) {
-      this.#faved.delete(id);
-      btn.classList.remove('bc-btn--ativo');
-      if (icoEl) icoEl.textContent = '☆';
-      if (typeof NotificationService !== 'undefined') {
-        NotificationService.mostrarToast('Você desfavoritou este Barbeiro', '', NotificationService.TIPOS.SISTEMA);
-      }
-    } else {
-      this.#faved.add(id);
-      btn.classList.add('bc-btn--ativo');
-      if (icoEl) icoEl.textContent = '⭐';
-      if (typeof NotificationService !== 'undefined') {
-        NotificationService.mostrarToast('Você favoritou este Barbeiro ⭐', '', NotificationService.TIPOS.SISTEMA);
-      }
-    }
-
-    // Persiste no banco
-    try {
-      await ProfileRepository.toggleFavoriteBarber(perfil.id, id);
-    } catch (e) {
-      LoggerService.warn('[BarbeirosPage] toggleFav falhou:', e?.message);
-    }
-  }
-
-  #renderStars(avg) {
-    const full  = Math.round(avg);
-    const empty = 5 - full;
-    return '★'.repeat(Math.max(0, full)) + '☆'.repeat(Math.max(0, empty));
-  }
-
   #criarCard(p) {
-    const isLiked = this.#liked.has(p.id);
-    const isFaved = this.#faved.has(p.id);
-    const ratingAvg   = parseFloat(p.rating_avg  || 0);
-    const ratingCount = parseInt(p.rating_count  || 0, 10);
+    const ratingCount = parseInt(p.rating_count || 0, 10);
 
     const row = document.createElement('div');
-    row.className    = 'barber-row barber-card';
-    row.dataset.proId = p.id;
+    row.className = 'barber-row barber-card';
+    row.dataset.professionalId = p.id;
 
     // ── Avatar ──────────────────────────────────────────────
     const avatarWrap = document.createElement('div');
@@ -222,47 +112,32 @@ class BarbeirosPage {
     nome.className   = 'barber-name';
     nome.textContent = p.full_name || 'Barbeiro';
 
-    const sub = document.createElement('p');
-    sub.className   = 'barber-sub';
-    sub.textContent = 'Barbeiro Profissional';
-
-    const ratingEl = document.createElement('div');
-    ratingEl.className = 'bc-rating';
-    ratingEl.innerHTML =
-      `<span class="bc-stars">${this.#renderStars(ratingAvg)}</span>` +
-      `<span class="bc-rating-val">${ratingAvg > 0 ? ratingAvg.toFixed(1) : '—'}</span>` +
-      (ratingCount > 0 ? `<span class="bc-rating-cnt">(${ratingCount})</span>` : '');
-
     info.appendChild(nome);
-    info.appendChild(sub);
-    info.appendChild(ratingEl);
-
-    // ── Ações (curtir + favoritar) ────────────────────────────
-    const acoes = document.createElement('div');
-    acoes.className = 'bc-acoes';
-
-    const btnLike = document.createElement('button');
-    btnLike.className = 'bc-btn-like' + (isLiked ? ' bc-btn--ativo' : '');
-    btnLike.setAttribute('aria-label', 'Curtir barbeiro');
-    btnLike.type = 'button';
-    btnLike.innerHTML =
-      `<span class="bc-ico">${isLiked ? '❤️' : '🤍'}</span>` +
-      `<span class="bc-cnt">${ratingCount}</span>`;
-    btnLike.addEventListener('click', (e) => { e.stopPropagation(); this.#toggleLike(p.id, btnLike); });
-
-    const btnFav = document.createElement('button');
-    btnFav.className = 'bc-btn-fav' + (isFaved ? ' bc-btn--ativo' : '');
-    btnFav.setAttribute('aria-label', 'Favoritar barbeiro');
-    btnFav.type = 'button';
-    btnFav.innerHTML = `<span class="bc-ico">${isFaved ? '⭐' : '☆'}</span>`;
-    btnFav.addEventListener('click', (e) => { e.stopPropagation(); this.#toggleFav(p.id, btnFav); });
-
-    acoes.appendChild(btnLike);
-    acoes.appendChild(btnFav);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
-    row.appendChild(acoes);
+
+    // ── Top-right padronizado: cta-row (stars + like + favorito) ──
+    const actions = document.createElement('div');
+    actions.className = 'card-top-actions';
+
+    const ctaRow = document.createElement('div');
+    ctaRow.className = 'cta-row';
+
+    const starsEl = document.createElement('span');
+    starsEl.className = 'stars';
+    starsEl.innerHTML =
+      `<span class="bc-stars">${ProfessionalService.renderStars(ratingCount)}</span>` +
+      `<span class="bc-rating-val" style="margin-left:4px">${ProfessionalService.estrelasPorCurtidas(ratingCount).toFixed(1)}</span>` +
+      (ratingCount > 0 ? `<span class="bc-rating-cnt" style="margin-left:2px">(${ratingCount})</span>` : '');
+    ctaRow.appendChild(starsEl);
+
+    ctaRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+    ctaRow.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+
+    actions.appendChild(ctaRow);
+    row.appendChild(actions);
+
     return row;
   }
 
@@ -272,7 +147,6 @@ class BarbeirosPage {
         <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
         <div class="barber-info">
           <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-          <p class="barber-sub"  style="width:70px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
         </div>
       </div>`).join('');
   }
