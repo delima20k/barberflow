@@ -80,25 +80,75 @@ const AuthGuard = (() => {
       : false;
   }
 
-  /** Exibe popup centralizada de login/cadastro por 3 segundos. */
-  function _mostrarAvisoLogin() {
+  /** Mapa de mensagens contextuais por ação. */
+  const _MSG_POPUP = Object.freeze({
+    'like':                  'Para curtir stories, você precisa estar logado.',
+    'barbershop-like':       'Para curtir barbearias, você precisa estar logado.',
+    'barbershop-dislike':    'Para avaliar barbearias, você precisa estar logado.',
+    'barbershop-favorite':   'Para favoritar barbearias, você precisa estar logado.',
+    'professional-like':     'Para curtir barbeiros, você precisa estar logado.',
+    'professional-favorite': 'Para favoritar barbeiros, você precisa estar logado.',
+    'mensagem':              'Para enviar mensagens, você precisa estar logado.',
+    'agendar':               'Para fazer agendamentos, você precisa estar logado.',
+    'avatar-upload':         'Para alterar seu avatar, você precisa estar logado.',
+  });
+
+  /**
+   * Exibe popup centralizada de login/cadastro por 3 segundos.
+   * @param {string} [acao] — usado para mensagem contextual
+   */
+  function _mostrarAvisoLogin(acao) {
     const ID = '__bf-auth-popup';
     if (document.getElementById(ID)) return;  // já visível
+
+    const msg = _MSG_POPUP[acao] ?? 'Para usar esta função, você precisa estar logado.';
 
     const overlay = document.createElement('div');
     overlay.id = ID;
     overlay.className = 'bf-auth-popup-overlay';
-    overlay.innerHTML = `
-      <div class="bf-auth-popup" role="alertdialog" aria-modal="true" aria-label="Login necessário">
-        <div class="bf-auth-popup-icon">🔐</div>
-        <p class="bf-auth-popup-title">Acesso restrito</p>
-        <p class="bf-auth-popup-msg">Para curtir e interagir, você precisa estar logado.</p>
-        <div class="bf-auth-popup-actions">
-          <button class="bf-auth-popup-btn bf-auth-popup-btn--primary" data-goto="login">Entrar</button>
-          <button class="bf-auth-popup-btn bf-auth-popup-btn--secondary" data-goto="cadastro">Cadastrar</button>
-        </div>
-        <div class="bf-auth-popup-bar"><div class="bf-auth-popup-bar-inner"></div></div>
-      </div>`;
+
+    // Conteúdo montado via DOM (sem innerHTML com variáveis dinâmicas de usuário)
+    const card = document.createElement('div');
+    card.className = 'bf-auth-popup';
+    card.setAttribute('role', 'alertdialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', 'Login necessário');
+
+    const icon = document.createElement('div');
+    icon.className = 'bf-auth-popup-icon';
+    icon.textContent = '🔐';
+
+    const title = document.createElement('p');
+    title.className = 'bf-auth-popup-title';
+    title.textContent = 'Acesso restrito';
+
+    const body = document.createElement('p');
+    body.className = 'bf-auth-popup-msg';
+    body.textContent = msg;  // seguro: vem do mapa estático, nunca de input do usuário
+
+    const actions = document.createElement('div');
+    actions.className = 'bf-auth-popup-actions';
+
+    const btnEnter = document.createElement('button');
+    btnEnter.className = 'bf-auth-popup-btn bf-auth-popup-btn--primary';
+    btnEnter.dataset.goto = 'login';
+    btnEnter.textContent = 'Entrar';
+
+    const btnReg = document.createElement('button');
+    btnReg.className = 'bf-auth-popup-btn bf-auth-popup-btn--secondary';
+    btnReg.dataset.goto = 'cadastro';
+    btnReg.textContent = 'Cadastrar';
+
+    actions.append(btnEnter, btnReg);
+
+    const bar = document.createElement('div');
+    bar.className = 'bf-auth-popup-bar';
+    const barInner = document.createElement('div');
+    barInner.className = 'bf-auth-popup-bar-inner';
+    bar.appendChild(barInner);
+
+    card.append(icon, title, body, actions, bar);
+    overlay.appendChild(card);
 
     // Navega ao clicar nos botões
     overlay.addEventListener('click', (e) => {
@@ -168,7 +218,7 @@ const AuthGuard = (() => {
   function permitirAcao(acao, router) {
     if (!ACOES_PROTEGIDAS.has(acao)) return true;
     if (_estaLogado()) return true;
-    _mostrarAvisoLogin();
+    _mostrarAvisoLogin(acao);
     return false;
   }
 

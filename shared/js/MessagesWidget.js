@@ -183,6 +183,9 @@ class MessagesWidget {
 
   /** Abre a tela de chat para a conversa com o id informado. */
   static abrirModal(convId) {
+    // Guard: anônimos não podem abrir conversas
+    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('mensagem', null)) return;
+
     const lista = MessagesWidget.#MOCK[MessagesWidget.#role] ?? [];
     const conv  = lista.find(c => c.id === convId);
     if (!conv) return;
@@ -263,6 +266,9 @@ class MessagesWidget {
    * o INSERT no banco acontece em background via MessageService.
    */
   static enviar() {
+    // Guard: anônimos não podem enviar mensagens
+    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('mensagem', null)) return;
+
     const input = document.getElementById('chat-input');
     if (!input || !MessagesWidget.#conversa) return;
 

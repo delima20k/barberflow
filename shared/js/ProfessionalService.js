@@ -149,7 +149,8 @@ class ProfessionalService {
       e.stopPropagation();
 
       const router = typeof App !== 'undefined' ? App : null;
-      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('favoritar', router)) return;
+      const acao   = btnLike ? 'professional-like' : 'professional-favorite';
+      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(acao, router)) return;
 
       if (btnLike) ProfessionalService.#toggleLike(btn);
       else         ProfessionalService.#toggleFavorito(btn);

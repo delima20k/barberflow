@@ -217,6 +217,9 @@ class StoryViewer {
   }
 
   static toggleLike() {
+    // Guard: anônimos não podem curtir stories
+    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', null)) return;
+
     const { likeBtn, likeCount } = StoryViewer.#els;
     const card = StoryViewer.#cards[StoryViewer.#idx];
     if (!likeBtn || !card) return;
