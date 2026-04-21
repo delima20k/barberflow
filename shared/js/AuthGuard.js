@@ -167,7 +167,9 @@ const AuthGuard = (() => {
       clearTimeout(timer);
       overlay.remove();
       if (dest) {
-        const router = typeof App !== 'undefined' ? App : null;
+        // Suporta tanto o app cliente (App) quanto o profissional (Pro)
+        const router = (typeof App !== 'undefined' ? App : null)
+                    ?? (typeof Pro !== 'undefined' ? Pro : null);
         if (router && typeof router.push === 'function') router.push(dest);
       }
     }

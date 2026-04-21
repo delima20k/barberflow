@@ -582,7 +582,9 @@ class NearbyBarbershopsWidget {
 
     const sub = document.createElement('p');
     sub.className   = 'barber-sub';
-    sub.textContent = `📍 ${b.address} · Barbearia · ${Number(b.distance_km ?? 0).toFixed(1)} km`;
+    const distStr = Number(b.distance_km ?? 0).toFixed(1);
+    const addrStr = b.address ?? b.city ?? 'Localização não informada';
+    sub.textContent = `📍 ${addrStr} · Barbearia · ${distStr} km`;
 
     // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
     const starsRow = document.createElement('div');
