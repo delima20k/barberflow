@@ -118,6 +118,31 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Bump SW cache v23 + error handling defensivo]
+
+**Data/Hora:** 21 de abril de 2026  
+**Causa raiz identificada:**
+- Service Worker `barberflow-cliente-v22` estava servindo versão antiga de `ProfileRepository.js` em cache → fixes anteriores não chegavam ao navegador
+- Banco com linhas órfãs de testes anteriores que DELETE não conseguia remover (possível diferença entre `auth.uid()` e estado de perfil anterior)
+
+**Arquivos modificados:**
+- `apps/cliente/sw.js` — `#CACHE_NAME` bumpado de `v22` → `v23` (força re-download de todos os assets)
+- `shared/js/ProfileRepository.js` — `toggleFavoriteBarber` com error handling ultra-defensivo:
+  - Aceita como "já favoritado" qualquer um destes: `code === '23505'`, `status === 409`, mensagem contém `duplicate`/`conflict`/`already exists`
+
+**⚠️ LIÇÃO APRENDIDA (repo memory):**
+SEMPRE bumpar `#CACHE_NAME` do Service Worker ao modificar arquivos compartilhados críticos. Caso contrário, o usuário executa código antigo mesmo após deploy.
+
+**Ação complementar requerida (usuário):**
+Limpar linhas órfãs de teste no SQL Editor:
+```sql
+DELETE FROM favorite_professionals WHERE user_id = '529295cb-d9a2-45b5-bc31-754e9218742a';
+```
+
+**Status:** ✅ Código corrigido — aguarda usuário limpar DB e fazer hard reload (Ctrl+Shift+R)
+
+---
+
 ### [2026-04-21 — Fix definitivo: 400 embed + 409 duplicate em favorite_professionals]
 
 **Data/Hora:** 21 de abril de 2026  

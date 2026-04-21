@@ -218,11 +218,23 @@ class ProfileRepository {
     if (delErr) throw delErr;
     if (Array.isArray(deleted) && deleted.length > 0) return false;
 
-    // 2. Não existia — tenta INSERT puro e ignora duplicate key (23505)
+    // 2. Não existia (ou estava invisível ao usuário) — tenta INSERT
     const { error: insErr } = await SupabaseService.favoriteProfessionals()
       .insert({ user_id: userId, professional_id: professionalId });
 
-    if (insErr && insErr.code !== '23505') throw insErr;
+    if (insErr) {
+      // 23505 = duplicate_key | 409 status | mensagens de duplicata
+      // Qualquer uma dessas situações significa "já está favoritado" — trata como sucesso.
+      const code    = String(insErr.code    ?? '');
+      const status  = Number(insErr.status  ?? 0);
+      const message = String(insErr.message ?? '').toLowerCase();
+      const isDup   = code === '23505'
+                   || status === 409
+                   || message.includes('duplicate')
+                   || message.includes('conflict')
+                   || message.includes('already exists');
+      if (!isDup) throw insErr;
+    }
     return true;
   }
 
