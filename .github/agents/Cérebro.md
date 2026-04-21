@@ -118,6 +118,32 @@ barberflow/
 
 ---
 
+### [2026-04-21 — CAUSA RAIZ: FK violation em favorite_professionals]
+
+**Data/Hora:** 21 de abril de 2026  
+**Bug revelado pelo log:** `insert or update on table "favorite_professionals" violates foreign key constraint "favorite_professionals_professional_id_fkey"`
+
+**Causa raiz (após 4 iterações):**
+- `BarbershopRepository.getBarbers()` retorna IDs de `profiles_public` (todos profiles com `role='professional'`)
+- `favorite_professionals.professional_id` tem FK para `public.professionals.id`
+- MAS o trigger `handle_new_user` **nunca cria** linha em `professionals` — só em `profiles`
+- Logo: cadastro profissional cria profile mas não professional → favorito falha com 409 (FK violation, não duplicate_key)
+
+**Arquivo criado:**
+- `supabase/migrations/20260421000002_ensure_professionals_row.sql`:
+  1. **Backfill:** `INSERT INTO professionals (id) SELECT id FROM profiles WHERE role='professional' AND NOT EXISTS (...)`
+  2. **Trigger `trg_profile_professional`:** AFTER INSERT OR UPDATE OF role → auto-cria linha em `professionals` (idempotente via `ON CONFLICT (id) DO NOTHING`)
+
+**⚠️ LIÇÃO APRENDIDA (repo memory):**
+Mensagens 409 do PostgREST podem ser QUALQUER constraint violation — não só duplicate_key. SEMPRE olhar a mensagem completa no `LoggerService.warn` (não apenas o código 409 no Network tab).
+
+**Ação requerida do usuário:**
+Colar o SQL da migration em https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new e executar.
+
+**Status:** ✅ Código pronto — aguarda execução do SQL
+
+---
+
 ### [2026-04-21 — Bump SW cache v23 + error handling defensivo]
 
 **Data/Hora:** 21 de abril de 2026  
