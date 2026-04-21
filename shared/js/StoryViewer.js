@@ -691,6 +691,9 @@ class StoryViewer {
     const texto = input.value.trim();
     if (!texto) return;
 
+    // Guard: anônimos não podem comentar
+    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('mensagem', null)) return;
+
     input.value    = '';
     input.disabled = true;
 

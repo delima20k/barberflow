@@ -52,6 +52,10 @@ const AuthGuard = (() => {
     'mensagem',
     'pagar',
     'barbershop-favorite',
+    'barbershop-like',
+    'barbershop-dislike',
+    'professional-like',
+    'professional-favorite',
     'pagamento',
     'like',
     'avatar-upload',
@@ -76,38 +80,48 @@ const AuthGuard = (() => {
       : false;
   }
 
-  /** Exibe um toast leve de "faça login para interagir" (não bloqueia). */
+  /** Exibe popup centralizada de login/cadastro por 3 segundos. */
   function _mostrarAvisoLogin() {
-    if (typeof NotificationService !== 'undefined') {
-      NotificationService.mostrarToast(
-        'Login necessário',
-        'Faça login para interagir',
-        'info'
-      );
-      return;
-    }
-    // Fallback nativo quando NotificationService não está disponível
-    const id = '__auth-guard-toast';
-    if (document.getElementById(id)) return;
-    const toast = document.createElement('div');
-    toast.id            = id;
-    toast.textContent   = 'Faça login para interagir';
-    toast.style.cssText = [
-      'position:fixed',
-      'bottom:80px',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'background:rgba(0,0,0,.82)',
-      'color:#fff',
-      'padding:.55rem 1.2rem',
-      'border-radius:2rem',
-      'font-size:.88rem',
-      'z-index:9999',
-      'pointer-events:none',
-      'white-space:nowrap',
-    ].join(';');
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2800);
+    const ID = '__bf-auth-popup';
+    if (document.getElementById(ID)) return;  // já visível
+
+    const overlay = document.createElement('div');
+    overlay.id = ID;
+    overlay.className = 'bf-auth-popup-overlay';
+    overlay.innerHTML = `
+      <div class="bf-auth-popup" role="alertdialog" aria-modal="true" aria-label="Login necessário">
+        <div class="bf-auth-popup-icon">🔐</div>
+        <p class="bf-auth-popup-title">Acesso restrito</p>
+        <p class="bf-auth-popup-msg">Para curtir e interagir, você precisa estar logado.</p>
+        <div class="bf-auth-popup-actions">
+          <button class="bf-auth-popup-btn bf-auth-popup-btn--primary" data-goto="login">Entrar</button>
+          <button class="bf-auth-popup-btn bf-auth-popup-btn--secondary" data-goto="cadastro">Cadastrar</button>
+        </div>
+        <div class="bf-auth-popup-bar"><div class="bf-auth-popup-bar-inner"></div></div>
+      </div>`;
+
+    // Navega ao clicar nos botões
+    overlay.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-goto]');
+      if (!btn && e.target !== overlay) return;
+      const dest = btn?.dataset.goto;
+      overlay.remove();
+      if (dest) {
+        const router = typeof App !== 'undefined' ? App : null;
+        if (router && typeof router.push === 'function') router.push(dest);
+      }
+    });
+
+    document.body.appendChild(overlay);
+
+    // Auto-dismiss em 3 segundos
+    const timer = setTimeout(() => {
+      overlay.classList.add('bf-auth-popup-overlay--saindo');
+      setTimeout(() => overlay.remove(), 400);
+    }, 3000);
+
+    // Cancela o timer se o usuário clicar em qualquer botão
+    overlay.addEventListener('click', () => clearTimeout(timer), { once: true });
   }
 
   // ── API pública ───────────────────────────────────────────
@@ -149,11 +163,13 @@ const AuthGuard = (() => {
    * Verifica se uma ação protegida pode ser executada.
    * @param {string}      acao   — valor do data-action
    * @param {object|null} router
-   * @returns {boolean} true = permitido | false = bloqueado + redirecionado
+   * @returns {boolean} true = permitido | false = bloqueado + popup
    */
   function permitirAcao(acao, router) {
     if (!ACOES_PROTEGIDAS.has(acao)) return true;
-    return requireAuth(router);
+    if (_estaLogado()) return true;
+    _mostrarAvisoLogin();
+    return false;
   }
 
   return Object.freeze({ requireAuth, permitirNav, permitirAcao, ACOES_PROTEGIDAS });
