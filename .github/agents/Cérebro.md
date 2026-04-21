@@ -118,6 +118,17 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Botão favorito: fundo ativo mais suave]
+
+**Data/Hora:** 21 de abril de 2026  
+**Arquivo modificado:** `shared/css/barber-card.css`
+
+**Mudança:** `.dc-btn.favorite.ativo` — fundo agora é `rgba(212,175,55,.22)` (dourado translúcido) em vez de `var(--gold)` sólido. Cor do ícone mantida em `var(--gold)`.
+
+**Status:** ✅ Concluído
+
+---
+
 ### [2026-04-21 — Card destaque maior + botão favorito dourado]
 
 **Data/Hora:** 21 de abril de 2026  

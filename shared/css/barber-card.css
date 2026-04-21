@@ -401,7 +401,7 @@
   border-color: rgba(220, 80, 80, .38);
 }
 
-/* Favorite — maior, só borda no padrão, dourado sólido quando ativo */
+/* Favorite — maior, só borda no padrão, dourado suave quando ativo */
 .dc-btn.favorite {
   border: 1.5px solid rgba(212, 175, 55, .55);
   background: transparent;
@@ -414,14 +414,14 @@
 }
 .dc-btn.favorite .dc-btn-icon { font-size: .95rem; }
 .dc-btn.favorite:hover {
-  background: rgba(212, 175, 55, .08);
-  border-color: rgba(212, 175, 55, .75);
+  background: rgba(212, 175, 55, .06);
+  border-color: rgba(212, 175, 55, .7);
 }
 .dc-btn.favorite.ativo {
-  background: var(--gold, #D4AF37);
-  color: #1a0800;
-  border-color: var(--gold, #D4AF37);
-  box-shadow: 0 2px 10px rgba(212, 175, 55, .45);
+  background: rgba(212, 175, 55, .22);
+  color: var(--gold, #D4AF37);
+  border-color: rgba(212, 175, 55, .6);
+  box-shadow: 0 2px 8px rgba(212, 175, 55, .18);
 }
 .dc-btn.favorite.ativo .dc-btn-icon { filter: none; }
 .dc-btn.favorite.ativo .dc-btn-icon::after { content: ''; }
