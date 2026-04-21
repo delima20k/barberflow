@@ -356,11 +356,12 @@ class BarbershopService {
 
   /**
    * Atualiza os elementos de estrela/pontuação dentro de um card.
+   * Método público para ser reutilizado por ProfessionalService e pages.
    * Suporta .tc-star (novo padrão progressivo individual).
    * @param {HTMLElement} card
    * @param {number} score — 0.0 a 5.0
    */
-  static #atualizarEstrelaCard(card, score) {
+  static atualizarEstrelaCard(card, score) {
     card.querySelectorAll('.tc-star').forEach((s, i) => {
       const pct = Math.min(100, Math.max(0, Math.round((score - i) * 100)));
       s.style.setProperty('--pct', `${pct}%`);
@@ -554,7 +555,7 @@ class BarbershopService {
       }
 
       // Estrelas individuais + número
-      BarbershopService.#atualizarEstrelaCard(card, score);
+      BarbershopService.atualizarEstrelaCard(card, score);
     });
   }
 
@@ -594,7 +595,7 @@ class BarbershopService {
           const ds = dislikeBtn.querySelector('.dc-count');
           if (ds) ds.textContent = finalDislikes;
         }
-        BarbershopService.#atualizarEstrelaCard(card, finalScore);
+        BarbershopService.atualizarEstrelaCard(card, finalScore);
       });
     } catch (e) {
       LoggerService.warn('[BarbershopService] sincronizarComBanco falhou:', e?.message);
@@ -676,7 +677,7 @@ class BarbershopService {
         const dislikeBtn = card.querySelector('[data-action="barbershop-dislike"]');
         if (likeBtn)    { const cnt = likeBtn.querySelector('.dc-count');    if (cnt) cnt.textContent = likes; }
         if (dislikeBtn) { const ds  = dislikeBtn.querySelector('.dc-count'); if (ds)  ds.textContent  = dislikes; }
-        BarbershopService.#atualizarEstrelaCard(card, score);
+        BarbershopService.atualizarEstrelaCard(card, score);
       });
     } catch (e) {
       LoggerService.warn('[BarbershopService] restaurarInteracoes falhou:', e?.message);

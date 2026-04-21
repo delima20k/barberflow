@@ -107,13 +107,8 @@ class BarbeirosPage {
           const cnt = likeBtn.querySelector('.dc-count');
           if (cnt) cnt.textContent = total;
         }
-        // Atualiza estrelas e nota
-        const numEl = card.querySelector('.dc-rating-num');
-        if (numEl) numEl.textContent = val.toFixed(1);
-        card.querySelectorAll('.tc-star').forEach((s, i) => {
-          const pct = Math.min(100, Math.max(0, Math.round((val - i) * 100)));
-          s.style.setProperty('--pct', `${pct}%`);
-        });
+        // Atualiza estrelas e nota — método central reutilizável
+        BarbershopService.atualizarEstrelaCard(card, val);
       });
     } catch (e) {
       LoggerService.warn('[BarbeirosPage] restaurarContadoresBarbeiros:', e?.message);

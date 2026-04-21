@@ -187,17 +187,8 @@ class ProfessionalService {
         const realCount = await ProfileRepository.getProfessionalLikeCount(proId);
         // Proteção: nunca reverter abaixo do valor otimista (trigger pode não estar rodando)
         const finalCount = Math.max(realCount, novoTotal);
-        const finalVal   = ProfessionalService.estrelasPorCurtidas(finalCount);
+        // #sincronizarBotoes já atualiza estrelas e dc-rating-num via atualizarEstrelaCard
         ProfessionalService.#sincronizarBotoes(proId, 'professional-like', novo, finalCount);
-        // Sincroniza o dc-rating-num com o score final
-        document.querySelectorAll(`[data-professional-id="${CSS.escape(proId)}"]`).forEach(card => {
-          const numEl = card.querySelector('.dc-rating-num');
-          if (numEl) numEl.textContent = finalVal.toFixed(1);
-          card.querySelectorAll('.tc-star').forEach((s, i) => {
-            const pct = Math.min(100, Math.max(0, Math.round((finalVal - i) * 100)));
-            s.style.setProperty('--pct', `${pct}%`);
-          });
-        });
       }
     } catch (e) {
       LoggerService.warn('[ProfessionalService] toggleLike falhou:', e?.message);
@@ -257,14 +248,8 @@ class ProfessionalService {
           if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(total).toFixed(1);
           if (cntEl)   cntEl.textContent   = `(${total})`;
 
-          // Padrão tc-star unificado
-          const novaVal = ProfessionalService.estrelasPorCurtidas(total);
-          const numEl   = card.querySelector('.dc-rating-num');
-          if (numEl) numEl.textContent = novaVal.toFixed(1);
-          card.querySelectorAll('.tc-star').forEach((s, i) => {
-            const pct = Math.min(100, Math.max(0, Math.round((novaVal - i) * 100)));
-            s.style.setProperty('--pct', `${pct}%`);
-          });
+          // Padrão tc-star unificado — delegado ao método central
+          BarbershopService.atualizarEstrelaCard(card, ProfessionalService.estrelasPorCurtidas(total));
         } else {
           const ico = btn.querySelector('.cfb-ico');
           if (ico) ico.textContent = ativo ? '⭐' : '☆';
