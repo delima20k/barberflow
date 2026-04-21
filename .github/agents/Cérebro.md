@@ -118,6 +118,20 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Tabela favorite_professionals criada manualmente no Supabase]
+
+**Data/Hora:** 21 de abril de 2026  
+**Ação:** Usuário executou o SQL da migration `20260421000001_favorite_professionals_ensure.sql` diretamente no SQL Editor do Supabase (https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new).  
+**Resultado:** "Success. No rows returned" — tabela `public.favorite_professionals` + índices + 3 policies RLS criadas.
+
+**⚠️ LIÇÃO APRENDIDA (repo memory):**
+- O deploy automático via GitHub Actions (`deploy-supabase.yml`) não está rodando ou está falhando silenciosamente — provável ausência de secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`) no repo GitHub.
+- Workaround padrão: em caso de erro 404 em tabela recém-criada via migration, instruir o usuário a colar o SQL no SQL Editor do Supabase.
+
+**Status:** ✅ 404 resolvido. Fluxo de favoritos (barbearia + barbeiro) operacional.
+
+---
+
 ### [2026-04-21 — Botão favorito: fundo ativo mais suave]
 
 **Data/Hora:** 21 de abril de 2026  
