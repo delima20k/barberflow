@@ -60,7 +60,7 @@ class NavConfig {
       { tela: 'inicio',       icone: 'inicio.svg',   label: 'Início'              },
       { tela: 'pesquisa',     icone: 'pesquisa.svg', label: 'Pesquisar'           },
       { tela: 'mensagens',    icone: 'mensagen.svg', label: 'Mensagens'           },
-      { tela: 'barbearias',   icone: 'meu-b.svg',    label: 'Barbearias Parceiras'},
+      { tela: 'barbearias',   icone: 'meu-b.svg',    label: 'Parcerias'           },
       { tela: 'perfil',       icone: 'perfil.svg',   label: 'Meu Perfil'          },
       { acao: 'sair',         icone: 'sair.svg',     label: 'Sair'                },
     ];
@@ -93,7 +93,7 @@ class NavConfig {
     if (!isPro) return NavConfig.#CLIENTE_LOGADO;
 
     // Somente dono de barbearia (pro_type='barbearia') acessa Minha Barbearia
-    // null e 'barbeiro' → lista Barbearias Parceiras
+    // null e 'barbeiro' → lista Parcerias
     const proType = (typeof AuthService !== 'undefined')
       ? AuthService.getPerfil()?.pro_type
       : null;

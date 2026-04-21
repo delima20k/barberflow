@@ -128,7 +128,7 @@ const AuthUI = (() => {
    * Atualiza o botão variável do footer no app profissional de acordo com o
    * pro_type do usuário logado:
    *   - 'barbearia' → mantém "Minha Barbearia" (tela minha-barbearia)
-   *   - qualquer outro valor (null ou 'barbeiro') → "Barbearias Parceiras"
+   *   - qualquer outro valor (null ou 'barbeiro') → "Parcerias"
    * Chamado logo após o login para refletir o tipo do usuário.
    */
   function _atualizarFooterNavPro(perfil) {
@@ -145,9 +145,9 @@ const AuthUI = (() => {
       btn.dataset.tela     = 'barbearias';
       btn.setAttribute('onclick', "Pro.nav('barbearias')");
       const img = btn.querySelector('img');
-      if (img) img.alt = 'Barbearias Parceiras';
+      if (img) img.alt = 'Parcerias';
       const label = btn.querySelector('.nav-label');
-      if (label) label.textContent = 'Barbearias Parceiras';
+      if (label) label.textContent = 'Parcerias';
     }
   }
 
