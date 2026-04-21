@@ -135,15 +135,17 @@ const AuthUI = (() => {
     const btn = document.getElementById('footer-nav-barbearia-btn');
     if (!btn) return; // só existe no app profissional
     if (perfil?.pro_type === 'barbearia') {
-      btn.dataset.tela     = 'minha-barbearia';
-      btn.setAttribute('onclick', "Pro.nav('minha-barbearia')");
+      btn.dataset.tela = 'minha-barbearia';
+      btn.dataset.nav  = 'minha-barbearia';
+      btn.removeAttribute('onclick');
       const img = btn.querySelector('img');
       if (img) img.alt = 'Minha Barbearia';
       const label = btn.querySelector('.nav-label');
       if (label) label.textContent = 'Minha Barbearia';
     } else {
-      btn.dataset.tela     = 'parcerias';
-      btn.setAttribute('onclick', "Pro.nav('parcerias')");
+      btn.dataset.tela = 'parcerias';
+      btn.dataset.nav  = 'parcerias';
+      btn.removeAttribute('onclick');
       const img = btn.querySelector('img');
       if (img) img.alt = 'Parcerias';
       const label = btn.querySelector('.nav-label');
