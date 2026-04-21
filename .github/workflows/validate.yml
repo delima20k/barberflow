@@ -1,0 +1,208 @@
+# ==============================================================
+# GitHub Actions: validate.yml
+# Gatilho: push e pull_request em qualquer branch
+# Objetivo: validar estrutura do projeto e migrations
+# ==============================================================
+
+name: Validate BarberFlow
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: Validar estrutura obrigatória do projeto
+  # ─────────────────────────────────────────────────────────────
+  validate-structure:
+    name: Validate project structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check required files
+        run: |
+          echo "Verificando arquivos obrigatórios..."
+          
+          REQUIRED=(
+            "supabase/config.toml"
+            "supabase/seeds/seed.sql"
+            ".env.example"
+            ".gitignore"
+            "README.md"
+            "apps/cliente/index.html"
+            "apps/profissional/index.html"
+            "apps/cliente/manifest.json"
+            "apps/profissional/manifest.json"
+            ".well-known/assetlinks.json"
+          )
+          
+          FAILED=0
+          for f in "${REQUIRED[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "ERRO: arquivo obrigatório não encontrado: $f"
+              FAILED=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          
+          if [ $FAILED -eq 1 ]; then
+            exit 1
+          fi
+          echo "Estrutura validada com sucesso."
+
+      - name: Check migration files are versioned correctly
+        run: |
+          echo "Verificando nomenclatura das migrations..."
+          
+          shopt -s nullglob
+          FILES=(supabase/migrations/*.sql)
+          
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "AVISO: nenhuma migration encontrada em supabase/migrations/"
+            exit 0
+          fi
+          
+          FAILED=0
+          for f in "${FILES[@]}"; do
+            filename=$(basename "$f")
+            # Padrão esperado: YYYYMMDDHHMMSS_nome.sql
+            if ! echo "$filename" | grep -qE '^[0-9]{14}_[a-z0-9_]+\.sql$'; then
+              echo "ERRO: nome inválido de migration: $filename"
+              echo "Esperado: YYYYMMDDHHMMSS_nome_da_migration.sql"
+              FAILED=1
+            else
+              echo "OK: $filename"
+            fi
+          done
+          
+          if [ $FAILED -eq 1 ]; then
+            exit 1
+          fi
+          echo "Migrations validadas."
+
+      - name: Check .env is not committed
+        run: |
+          if [ -f ".env" ]; then
+            echo "ERRO CRÍTICO: arquivo .env está commitado! Remova imediatamente e rotacione as chaves."
+            exit 1
+          fi
+          echo "OK: .env não está commitado."
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: Lint básico de SQL nas migrations
+  # ─────────────────────────────────────────────────────────────
+  lint-sql:
+    name: Lint SQL migrations
+    runs-on: ubuntu-latest
+    needs: validate-structure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check SQL syntax basics
+        run: |
+          echo "Verificando problemas comuns no SQL..."
+          
+          shopt -s nullglob
+          FILES=(supabase/migrations/*.sql)
+          FAILED=0
+          
+          for f in "${FILES[@]}"; do
+            # Proibir uso de SELECT * (consulta pesada sem coluna explícita)
+            if grep -qiE "SELECT \*" "$f"; then
+              echo "AVISO: SELECT * encontrado em $f — prefira colunas explícitas"
+            fi
+            
+            # Detectar DROP TABLE sem IF EXISTS (perigoso em prod)
+            if grep -qiE "DROP TABLE [^I]" "$f"; then
+              echo "ERRO: DROP TABLE sem IF EXISTS em $f — pode destruir dados!"
+              FAILED=1
+            fi
+            
+            # Detectar TRUNCATE (proibido em migrations iniciais)
+            if grep -qiE "^TRUNCATE" "$f"; then
+              echo "ERRO: TRUNCATE encontrado em $f — não permitido em migrations"
+              FAILED=1
+            fi
+            
+            echo "Verificado: $(basename $f)"
+          done
+          
+          if [ $FAILED -eq 1 ]; then
+            exit 1
+          fi
+          echo "Lint SQL concluído."
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 3: Testes automatizados (Jest)
+  # Roda ANTES do deploy. Falha aqui bloqueia o deploy-supabase.yml.
+  # ─────────────────────────────────────────────────────────────
+  test:
+    name: Run automated tests
+    runs-on: ubuntu-latest
+    needs: validate-structure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dev dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 4: Validar Edge Functions TypeScript
+  # ─────────────────────────────────────────────────────────────
+  lint-functions:
+    name: Lint Edge Functions
+    runs-on: ubuntu-latest
+    needs: validate-structure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Check Deno lint
+        run: |
+          shopt -s nullglob
+          FILES=(supabase/functions/*/index.ts)
+          
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "Nenhuma Edge Function encontrada. Pulando lint."
+            exit 0
+          fi
+          
+          for f in "${FILES[@]}"; do
+            echo "Linting: $f"
+            deno lint "$f" || exit 1
+          done
+          echo "Edge Functions validadas."
+
+      - name: Type-check functions
+        run: |
+          shopt -s nullglob
+          FILES=(supabase/functions/*/index.ts)
+          
+          for f in "${FILES[@]}"; do
+            echo "Type-check: $f"
+            deno check "$f" || exit 1
+          done
