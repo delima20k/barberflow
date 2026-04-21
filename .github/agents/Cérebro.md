@@ -118,6 +118,27 @@ barberflow/
 
 ---
 
+### [2026-04-21 — Destaques: likes clicável + botão favorito sem círculo]
+
+**Data/Hora:** 21 de abril de 2026
+
+**Pedido:** (1) o `.top-card__likes` (👍 0) precisa ser clicável para curtir e incrementar +1; (2) remover o círculo em volta do botão de favorito — deixar apenas a estrela dourada (outline quando inativo, preenchida quando clicado).
+
+**Mudanças:**
+- **`DestaquesPage.#criarCard`** → `.top-card__likes` virou `<button data-action="barbershop-like">` com `<span class="tcl-ico">👍</span>` + `<span class="dc-count">${likes}</span>`
+- **`BarbershopService.#instalarDelegation`** → agora intercepta também `barbershop-like` e `barbershop-dislike` (além de `barbershop-favorite`) via capture phase global — funciona em qualquer página (home, destaques, futuras)
+- **`HomePage.bind`** → removidos os handlers locais de `barbershop-like`, `barbershop-dislike`, `barbershop-favorite` (deduplicados — `BarbershopService` já cuida globalmente). Mantidos apenas os handlers de stories.
+- **CSS `.card-fav-btn`** → `border: none; background: transparent; border-radius removido` · font-size 1.05→1.5rem (estrela maior) · hover apenas `transform + drop-shadow` · `.ativo` apenas altera `color` + `text-shadow` dourado (sem bg nem border)
+- **CSS `.top-card__likes`** → reestilizado como botão (bg/border transparent, cursor pointer, hover scale + drop-shadow verde) · `.tcl-ico` 1rem · `.dc-count` .9rem bold
+
+**Sincronização:** clicar no like em qualquer card (home/destaques) atualiza contador + estrelas em todas as ocorrências da mesma barbearia via `toggleBarbershopLike` (já existente).
+
+**SW:** bump `v31`
+
+**Status:** ✅
+
+---
+
 ### [2026-04-21 — Destaques: botão de favorito abaixo do badge + top-card__stars ampliado]
 
 **Data/Hora:** 21 de abril de 2026

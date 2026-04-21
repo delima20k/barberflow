@@ -126,7 +126,10 @@ class DestaquesPage {
         <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
       </span>
       <span class="dc-rating-num">${score.toFixed(1)}</span>
-      <span class="top-card__likes">👍 ${likes}</span>`;
+      <button type="button" class="top-card__likes" data-action="barbershop-like"
+              aria-label="Curtir barbearia" title="Curtir barbearia">
+        <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>
+      </button>`;
 
     info.appendChild(nome);
     info.appendChild(addr);

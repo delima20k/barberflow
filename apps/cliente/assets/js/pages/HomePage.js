@@ -47,35 +47,8 @@ class HomePage {
       }
 
       // ── Cards destaque (barbearias) ──────────────────────
-
-      // Curtida positiva
-      const barbLike = e.target.closest('[data-action="barbershop-like"]');
-      if (barbLike) {
-        e.preventDefault();
-        e.stopPropagation();
-        BarbershopService.toggleBarbershopLike(barbLike);
-        return;
-      }
-
-      // Feedback negativo (descurtida)
-      const barbDislike = e.target.closest('[data-action="barbershop-dislike"]');
-      if (barbDislike) {
-        e.preventDefault();
-        e.stopPropagation();
-        BarbershopService.toggleBarbershopDislike(barbDislike);
-        return;
-      }
-
-      // Favoritar
-      const barbFav = e.target.closest('[data-action="barbershop-favorite"]');
-      if (barbFav) {
-        e.preventDefault();
-        e.stopPropagation();
-        const _r = typeof App !== 'undefined' ? App : null;
-        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-favorite', _r)) return;
-        BarbershopService.toggleBarbershopFavorite(barbFav);
-        return;
-      }
+      // Like/Dislike/Favorite são tratados globalmente por BarbershopService
+      // via delegation em capture phase — não há necessidade de duplicar aqui.
     });
   }
 }

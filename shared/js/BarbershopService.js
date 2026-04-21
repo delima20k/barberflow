@@ -82,13 +82,24 @@ class BarbershopService {
     if (BarbershopService.#DELEGATION_ATIVA) return;
     BarbershopService.#DELEGATION_ATIVA = true;
     document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.card-fav-btn[data-action="barbershop-favorite"]');
+      const btnFav     = e.target.closest('[data-action="barbershop-favorite"]');
+      const btnLike    = e.target.closest('[data-action="barbershop-like"]');
+      const btnDislike = e.target.closest('[data-action="barbershop-dislike"]');
+      const btn = btnFav || btnLike || btnDislike;
       if (!btn) return;
       e.preventDefault();
       e.stopPropagation();
       const router = typeof App !== 'undefined' ? App : null;
-      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-favorite', router)) return;
-      BarbershopService.toggleBarbershopFavorite(btn);
+      if (btnFav) {
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-favorite', router)) return;
+        BarbershopService.toggleBarbershopFavorite(btn);
+      } else if (btnLike) {
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', router)) return;
+        BarbershopService.toggleBarbershopLike(btn);
+      } else {
+        if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', router)) return;
+        BarbershopService.toggleBarbershopDislike(btn);
+      }
     }, true); // capture — roda antes do click do card
   }
 
