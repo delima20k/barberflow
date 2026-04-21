@@ -54,13 +54,11 @@ class MinhaBarbeariaPage {
     const q = id => document.getElementById(id);
     this.#refs = {
       nome:          q('mb-nome'),
-      storyNome:     q('mb-story-nome'),
       storyAddr:     q('mb-story-addr'),
       coverImg:      q('mb-cover-img'),
       coverInput:    q('mb-cover-input'),
-      uploadOverlay: q('mb-upload-overlay'),
       quotaTxt:      q('mb-quota-txt'),
-      gearBtn:       q('mb-gear-btn'),
+      addBtn:        q('mb-add-btn'),
       maisBtn:       q('mb-mais-btn'),
       slot2:         q('mb-story-slot-2'),
       slot3:         q('mb-story-slot-3'),
@@ -89,16 +87,10 @@ class MinhaBarbeariaPage {
 
   #bindEventos() {
     this.#refs.maisBtn?.addEventListener('click', () => this.#abrirConfig());
-    this.#refs.gearBtn?.addEventListener('click', e => {
-      e.stopPropagation();
-      this.#abrirConfig();
-    });
+    this.#refs.addBtn?.addEventListener('click', () => this.#refs.coverInput?.click());
     this.#overlayEl?.addEventListener('click', () => this.#fecharConfig());
     this.#refs.cfgFechar?.addEventListener('click', () => this.#fecharConfig());
     this.#refs.coverInput?.addEventListener('change', e => this.#onUploadMidia(e));
-    this.#refs.uploadOverlay?.addEventListener('click', () => {
-      this.#refs.coverInput?.click();
-    });
     this.#refs.cfgCapaInput?.addEventListener('change', e => this.#onUploadCapa(e));
     this.#refs.cfgLogoInput?.addEventListener('change', e => this.#onUploadLogo(e));
     this.#refs.cfgAddProd?.addEventListener('click', () => this.#adicionarLinhaProduto());
@@ -217,10 +209,9 @@ class MinhaBarbeariaPage {
   // ── Renders ─────────────────────────────────────────────────
 
   #renderCabecalho(shop) {
-    const { nome, storyNome, storyAddr } = this.#refs;
+    const { nome, storyAddr } = this.#refs;
 
     if (nome)      nome.textContent      = shop.name ?? '';
-    if (storyNome) storyNome.textContent = shop.name ?? 'Minha Barbearia';
     if (storyAddr) storyAddr.textContent = [shop.address, shop.city].filter(Boolean).join(' · ');
 
     if (shop.cover_path) {
@@ -244,9 +235,9 @@ class MinhaBarbeariaPage {
     if (this.#refs.coverInput) {
       this.#refs.coverInput.disabled = restante === 0;
     }
-    if (this.#refs.uploadOverlay) {
-      this.#refs.uploadOverlay.style.opacity       = restante === 0 ? '0.45' : '';
-      this.#refs.uploadOverlay.style.pointerEvents = restante === 0 ? 'none'  : '';
+    if (this.#refs.addBtn) {
+      this.#refs.addBtn.style.opacity       = restante === 0 ? '0.35' : '';
+      this.#refs.addBtn.style.pointerEvents = restante === 0 ? 'none'  : '';
     }
 
     const slots = [this.#refs.slot2, this.#refs.slot3];
@@ -458,8 +449,7 @@ class MinhaBarbeariaPage {
 
       if (msg) msg.textContent = '✅ Alterações salvas!';
       if (nome) {
-        if (this.#refs.nome)      this.#refs.nome.textContent      = nome;
-        if (this.#refs.storyNome) this.#refs.storyNome.textContent = nome;
+        if (this.#refs.nome) this.#refs.nome.textContent = nome;
       }
       setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
     } catch (err) {
@@ -518,8 +508,8 @@ class MinhaBarbeariaPage {
       return;
     }
 
-    const overlay = this.#refs.uploadOverlay;
-    if (overlay) overlay.innerHTML = '<span class="mb-upload-icon">⏳</span><span class="mb-upload-txt">Enviando…</span>';
+    const addBtn = this.#refs.addBtn;
+    if (addBtn) { addBtn.textContent = '⏳'; addBtn.style.pointerEvents = 'none'; }
 
     try {
       const ext  = file.name.split('.').pop().toLowerCase();
@@ -548,11 +538,7 @@ class MinhaBarbeariaPage {
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadMidia erro:', err);
       NotificationService?.mostrarToast('Erro', 'Falha ao enviar mídia. Tente novamente.', 'sistema');
-      if (overlay) overlay.innerHTML = `
-        <span class="mb-upload-icon">📹</span>
-        <span class="mb-upload-txt">Postar vídeo</span>
-        <span class="mb-quota-txt"></span>
-      `;
+      if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
     }
   }
 

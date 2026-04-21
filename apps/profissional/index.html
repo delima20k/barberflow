@@ -737,23 +737,15 @@
 
         <!-- Card 1: Upload / imagem principal -->
         <div class="card-mini story-card mb-story-upload" id="mb-story-upload-card">
-          <div class="mb-story-upload-inner">
+          <div class="story-video-wrap mb-story-upload-inner">
             <img id="mb-cover-img" src="/shared/img/Logo01.png" alt="Imagem principal"
                  onerror="this.src='/shared/img/Logo01.png'">
-            <button class="mb-gear-btn" id="mb-gear-btn" aria-label="Configurações da barbearia">
-              ⚙️
-            </button>
-            <!-- Input oculto de upload da capa -->
             <input type="file" id="mb-cover-input" accept="image/*,video/*"
                    style="display:none">
-            <div class="mb-upload-overlay" id="mb-upload-overlay">
-              <span class="mb-upload-icon">📹</span>
-              <span class="mb-upload-txt">Postar vídeo</span>
-              <span id="mb-quota-txt" class="mb-quota-txt"></span>
-            </div>
+            <span id="mb-quota-txt" class="mb-quota-txt"></span>
+            <button class="mb-add-btn" id="mb-add-btn" aria-label="Postar vídeo">＋</button>
           </div>
           <div class="story-card-info">
-            <p class="story-card-name" id="mb-story-nome">Minha Barbearia</p>
             <p class="story-card-addr" id="mb-story-addr"></p>
           </div>
         </div>

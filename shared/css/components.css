@@ -3157,57 +3157,54 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-story-upload {
   cursor: pointer;
 }
-.mb-story-upload-inner {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 5 / 8;
-  border-radius: 15px;
-  overflow: hidden;
-  background: linear-gradient(180deg, #efe2d5 0%, #f8f1e9 100%);
-}
+/* mb-story-upload-inner herda todos os estilos de .story-video-wrap;
+   apenas garante que a imagem de capa preencha o container. */
 .mb-story-upload-inner > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.mb-gear-btn {
+
+/* Texto de quota: absoluto no canto sup. esq. do card */
+.mb-quota-txt {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  font-size: .58rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.85);
+  background: rgba(0,0,0,.45);
+  padding: 2px 6px;
+  border-radius: 20px;
+  z-index: 3;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+/* Círculo + (canto inferior direito) */
+.mb-add-btn {
   all: unset;
   position: absolute;
-  bottom: 6px;
-  right: 6px;
-  width: 28px;
-  height: 28px;
-  background: rgba(0,0,0,.55);
-  border-radius: 8px;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: var(--gold);
+  color: #1a0800;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.3rem;
+  font-weight: 900;
   cursor: pointer;
-  z-index: 2;
+  z-index: 3;
   -webkit-tap-highlight-color: transparent;
-  transition: background .15s;
+  box-shadow: 0 2px 10px rgba(0,0,0,.40);
+  transition: transform .15s, background .15s;
 }
-.mb-gear-btn:active { background: rgba(0,0,0,.75); }
-
-/* Overlay de upload sobre o card 1 */
-.mb-upload-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,.38);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: background .15s;
-}
-.mb-upload-overlay:active { background: rgba(0,0,0,.55); }
-.mb-upload-icon { font-size: 1.6rem; }
-.mb-upload-txt  { font-size: .72rem; font-weight: 700; color: #fff; }
-.mb-quota-txt   { font-size: .64rem; color: rgba(255,255,255,.75); }
+.mb-add-btn:active { transform: scale(.88); }
 
 /* ── Slots 2 e 3: placeholder vazio ───────────────────── */
 .mb-story-slot .story-video-wrap {
