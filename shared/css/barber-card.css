@@ -356,7 +356,7 @@
 }
 .barbearias-carrossel::-webkit-scrollbar { display: none; }
 
-/* ── Carrossel horizontal — 1 card por vez (barbeiros) ── */
+/* ── Carrossel horizontal — colunas de 2 cards (barbeiros) ── */
 .barbeiros-carrossel-1 {
   display: flex;
   gap: 10px;
@@ -365,12 +365,18 @@
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  align-items: flex-start;
 }
 .barbeiros-carrossel-1::-webkit-scrollbar { display: none; }
-.barbeiros-carrossel-1 .barber-row {
-  flex: 0 0 100%;
-  min-width: 0;
-  scroll-snap-align: center;
+
+/* Coluna com 2 cards empilhados — igual às barbearias */
+.barbeiros-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: min(86vw, 360px);
   box-sizing: border-box;
 }
 

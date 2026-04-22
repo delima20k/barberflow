@@ -291,12 +291,22 @@ class NearbyBarbershopsWidget {
     const el = document.getElementById(containerId);
     if (!el) return;
 
-    // Skeleton
-    el.innerHTML = Array(3).fill(0).map(() => `
-      <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
-        <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
-        <div class="barber-info">
-          <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+    // Skeleton — 2 colunas de 2 cards
+    el.innerHTML = Array(2).fill(0).map(() => `
+      <div class="barbeiros-coluna">
+        <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+          <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+          <div class="barber-info">
+            <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+            <p style="width:70px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
+          </div>
+        </div>
+        <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+          <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+          <div class="barber-info">
+            <p class="barber-name" style="width:90px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
+            <p style="width:60px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
+          </div>
         </div>
       </div>`).join('');
 
@@ -309,66 +319,18 @@ class NearbyBarbershopsWidget {
 
       el.innerHTML = '';
       const barbeiroCards = [];
-      lista.forEach(p => {
-        const ratingCount = parseInt(p.rating_count || 0, 10);
-        const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
 
-        const row = document.createElement('div');
-        row.className = 'barber-row barber-card';
-        row.dataset.professionalId = p.id;
-
-        const avatarWrap = document.createElement('div');
-        avatarWrap.className = 'avatar gold';
-        if (p.avatar_path) {
-          const img = document.createElement('img');
-          img.alt = p.full_name;
-          img.onerror = () => { avatarWrap.textContent = '💈'; };
-          img.src = SupabaseService.getAvatarUrl(p.avatar_path) || '';
-          avatarWrap.appendChild(img);
-        } else {
-          avatarWrap.textContent = '💈';
-        }
-
-        const info = document.createElement('div');
-        info.className = 'barber-info';
-
-        const nome = document.createElement('p');
-        nome.className = 'barber-name';
-        nome.textContent = p.full_name || 'Barbeiro';
-        info.appendChild(nome);
-
-        if (p.pro_type === 'barbearia') {
-          const badge = document.createElement('span');
-          badge.className   = 'barber-owner-badge';
-          badge.textContent = '🏪 Tem Barbearia';
-          info.appendChild(badge);
-        }
-
-        // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
-        const starsRow = document.createElement('div');
-        starsRow.className = 'top-card__stars';
-        starsRow.innerHTML = `
-          ${BarbershopService.criarEstrelasHTML(ratingVal)}
-          <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
-        starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
-
-        info.appendChild(starsRow);
-
-        row.appendChild(avatarWrap);
-        row.appendChild(info);
-
-        // Canto superior direito: apenas favorito com confetes
-        const actions = document.createElement('div');
-        actions.className = 'top-card__actions';
-        actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
-        row.appendChild(actions);
-
-        el.appendChild(row);
-        barbeiroCards.push(row);
-      });
+      // Agrupa em pares — cada coluna tem 2 cards (até 5 colunas = 10 barbeiros)
+      for (let i = 0; i < lista.length; i += 2) {
+        const coluna = document.createElement('div');
+        coluna.className = 'barbeiros-coluna';
+        coluna.appendChild(NearbyBarbershopsWidget.#criarBarberCard(lista[i]));
+        if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberCard(lista[i + 1]));
+        el.appendChild(coluna);
+        barbeiroCards.push(...coluna.querySelectorAll('[data-professional-id]'));
+      }
 
       // Restaura contadores de curtidas para todos (inclusive anônimos)
-      // getProfessionalLikeCountsDirect conta de professional_likes diretamente
       try {
         const ids    = lista.map(p => p.id).filter(Boolean);
         const counts = await ProfileRepository.getProfessionalLikeCountsDirect(ids);
@@ -384,12 +346,67 @@ class NearbyBarbershopsWidget {
           }
           BarbershopService.atualizarEstrelaCard(card, val);
         });
-      } catch (_) { /* silencioso — contadores do render inicial permanecem */ }
+      } catch (_) { /* silencioso */ }
 
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
       el.innerHTML = '';
     }
+  }
+
+  /** Cria um card individual de barbeiro para o carrossel da home. */
+  static #criarBarberCard(p) {
+    const ratingCount = parseInt(p.rating_count || 0, 10);
+    const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
+
+    const row = document.createElement('div');
+    row.className = 'barber-row barber-card';
+    row.dataset.professionalId = p.id;
+
+    const avatarWrap = document.createElement('div');
+    avatarWrap.className = 'avatar gold';
+    if (p.avatar_path) {
+      const img = document.createElement('img');
+      img.alt     = p.full_name || 'Barbeiro';
+      img.onerror = () => { avatarWrap.textContent = '💈'; };
+      img.src     = SupabaseService.getAvatarUrl(p.avatar_path) || '';
+      avatarWrap.appendChild(img);
+    } else {
+      avatarWrap.textContent = '💈';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'barber-info';
+
+    const nome = document.createElement('p');
+    nome.className   = 'barber-name';
+    nome.textContent = p.full_name || 'Barbeiro';
+    info.appendChild(nome);
+
+    if (p.pro_type === 'barbearia') {
+      const badge = document.createElement('span');
+      badge.className   = 'barber-owner-badge';
+      badge.textContent = '🏪 Tem Barbearia';
+      info.appendChild(badge);
+    }
+
+    const starsRow = document.createElement('div');
+    starsRow.className = 'top-card__stars';
+    starsRow.innerHTML = `
+      ${BarbershopService.criarEstrelasHTML(ratingVal)}
+      <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
+    starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+    info.appendChild(starsRow);
+
+    row.appendChild(avatarWrap);
+    row.appendChild(info);
+
+    const actions = document.createElement('div');
+    actions.className = 'top-card__actions';
+    actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+    row.appendChild(actions);
+
+    return row;
   }
 
 
