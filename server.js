@@ -55,11 +55,17 @@ class DevServer {
   });
 
   // ── Rate limiting (em memória) ────────────────────────────
-  // 200 requisições por minuto por IP.
+  // Em dev: 2000 req/min (páginas HTML) — arquivos estáticos isentos.
   // Em produção use Vercel Edge Middleware ou Cloudflare.
-  static #RATE_MAX = 200;
+  static #RATE_MAX = 2000;
   static #RATE_WIN = 60_000; // 1 minuto (ms)
   static #ipRate   = new Map(); // IP → { count, resetAt }
+
+  // Extensões isentas de rate-limit (assets estáticos sem estado)
+  static #RATE_ISENTOS = new Set([
+    '.js', '.css', '.json', '.svg', '.png', '.jpg', '.jpeg',
+    '.ico', '.webp', '.woff', '.woff2', '.map',
+  ]);
 
   // ── Instância do servidor ─────────────────────────────────
   static #server = null;
@@ -84,8 +90,10 @@ class DevServer {
   /** Handler principal de cada requisição HTTP. */
   static #handle(req, res) {
     const clientIp = req.socket.remoteAddress ?? '0.0.0.0';
+    const ext      = path.extname(req.url.split('?')[0]).toLowerCase();
+    const isAsset  = DevServer.#RATE_ISENTOS.has(ext);
 
-    if (!DevServer.#checkRate(clientIp)) {
+    if (!isAsset && !DevServer.#checkRate(clientIp)) {
       DevServer.#responder(res, 429, 'text/plain', '429 Too Many Requests',
         { 'Retry-After': '60' });
       DevServer.#log(429, req.url);
