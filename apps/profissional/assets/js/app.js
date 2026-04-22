@@ -67,6 +67,7 @@ class BarberFlowProfissional extends Router {
     'barbeiros',
     'parcerias',
     'financas',
+    'gps-barbearia',
   ]);
 
   static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros']);
@@ -87,6 +88,7 @@ class BarberFlowProfissional extends Router {
   #barbeariasPage;
   #parceriasPage;
   #financasPage;
+  #gpsPage;
 
   constructor() {
     super('inicio');
@@ -103,6 +105,7 @@ class BarberFlowProfissional extends Router {
     this.#barbeariasPage = new BarbeariasPage();
     this.#parceriasPage  = new ParceriasPage();
     this.#financasPage   = new FinancasPage();
+    this.#gpsPage        = new GpsPage();
     this.#auth.bind();
     this.#cadastro.bind();
     this.#planos.bind();
@@ -116,6 +119,7 @@ class BarberFlowProfissional extends Router {
     this.#barbeariasPage.bind();
     this.#parceriasPage.bind();
     this.#financasPage.bind();
+    this.#gpsPage.bind();
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }

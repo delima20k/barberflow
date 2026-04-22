@@ -770,10 +770,11 @@
 
       </div><!-- /stories-scroll -->
 
-      <!-- ── Botão "Mais" (abre configurações) ─────────────── -->
-      <button class="mb-mais-btn" id="mb-mais-btn" aria-label="Mais opções">
-        + Mais
-      </button>
+      <!-- ── Linha de botões: GPS (esq) + Mais (dir) ──────── -->
+      <div class="mb-btns-row">
+        <button class="mb-gps-btn" id="mb-gps-btn" aria-label="Configurar localização">+GPS</button>
+        <button class="mb-mais-btn" id="mb-mais-btn" aria-label="Mais opções">+ Mais</button>
+      </div>
 
       <!-- Banner de localização -->
       <div id="mb-loc-banner"></div>
@@ -799,6 +800,84 @@
         <p class="sec-title">Serviços &amp; Produtos</p>
         <div id="mb-servicos-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — GPS / ENDEREÇO DA BARBEARIA
+  ============================================================ -->
+  <main id="tela-gps-barbearia" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content gps-content">
+
+      <div class="gps-hero">
+        <h1 class="gps-titulo">📍 Localização</h1>
+        <p class="gps-sub">Configure o endereço e ative o GPS da barbearia para aparecer no mapa.</p>
+      </div>
+
+      <!-- CEP -->
+      <div class="gps-campo">
+        <label class="gps-label" for="gps-cep">CEP</label>
+        <div class="gps-input-row">
+          <input class="gps-input" id="gps-cep" type="text" inputmode="numeric"
+                 maxlength="9" placeholder="00000-000" autocomplete="postal-code">
+          <span class="gps-cep-status" id="gps-cep-status"></span>
+        </div>
+      </div>
+
+      <!-- Logradouro (auto) -->
+      <div class="gps-campo">
+        <label class="gps-label" for="gps-logradouro">Rua / Avenida</label>
+        <input class="gps-input" id="gps-logradouro" type="text"
+               placeholder="Preenchido automaticamente" readonly>
+      </div>
+
+      <!-- Bairro (auto) -->
+      <div class="gps-campo">
+        <label class="gps-label" for="gps-bairro">Bairro</label>
+        <input class="gps-input" id="gps-bairro" type="text"
+               placeholder="Preenchido automaticamente" readonly>
+      </div>
+
+      <!-- Cidade / Estado (auto) -->
+      <div class="gps-campo">
+        <label class="gps-label" for="gps-cidade">Cidade / Estado</label>
+        <input class="gps-input" id="gps-cidade" type="text"
+               placeholder="Preenchido automaticamente" readonly>
+      </div>
+
+      <!-- Número -->
+      <div class="gps-campo">
+        <label class="gps-label" for="gps-numero">Número</label>
+        <input class="gps-input gps-input-sm" id="gps-numero" type="text"
+               inputmode="numeric" maxlength="10" placeholder="Ex: 245">
+      </div>
+
+      <!-- Complemento -->
+      <div class="gps-campo">
+        <label class="gps-label" for="gps-complemento">
+          Complemento <span class="gps-opcional">(opcional)</span>
+        </label>
+        <input class="gps-input" id="gps-complemento" type="text"
+               maxlength="60" placeholder="Sala, Loja, etc.">
+      </div>
+
+      <!-- Botão GPS -->
+      <div class="gps-gps-row">
+        <button class="gps-btn-gps" id="gps-btn-gps" type="button">📍 Ativar GPS</button>
+        <span class="gps-coords-txt" id="gps-coords-txt"></span>
+      </div>
+
+      <!-- Mensagem -->
+      <p class="gps-msg" id="gps-msg"></p>
+
+      <!-- Salvar -->
+      <button class="btn btn-primary btn-full gps-btn-salvar" id="gps-btn-salvar" type="button">
+        Salvar Endereço
+      </button>
 
     </div>
   </main>
@@ -1596,6 +1675,7 @@
 <script src="assets/js/pages/CriarBarbeariaPage.js"></script>
 <script src="assets/js/pages/ParceriasPage.js"></script>
 <script src="assets/js/pages/FinancasPage.js"></script>
+<script src="assets/js/pages/GpsPage.js"></script>
 <script src="assets/js/pages/QueueWidget.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
 <!-- Controllers do app profissional — devem preceder app.js -->

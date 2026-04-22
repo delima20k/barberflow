@@ -59,6 +59,7 @@ class MinhaBarbeariaPage {
       coverInput:    q('mb-cover-input'),
       quotaTxt:      q('mb-quota-txt'),
       addBtn:        q('mb-add-btn'),
+      gpsBtn:        q('mb-gps-btn'),
       maisBtn:       q('mb-mais-btn'),
       slot2:         q('mb-story-slot-2'),
       slot3:         q('mb-story-slot-3'),
@@ -87,6 +88,9 @@ class MinhaBarbeariaPage {
 
   #bindEventos() {
     this.#refs.maisBtn?.addEventListener('click', () => this.#abrirConfig());
+    this.#refs.gpsBtn?.addEventListener('click', () => {
+      if (typeof Pro !== 'undefined') Pro.push('gps-barbearia');
+    });
     this.#refs.addBtn?.addEventListener('click', () => this.#refs.coverInput?.click());
     this.#overlayEl?.addEventListener('click', () => this.#fecharConfig());
     this.#refs.cfgFechar?.addEventListener('click', () => this.#fecharConfig());

@@ -3221,28 +3221,122 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: var(--gold-border);
 }
 
-/* ── Botão "Mais" ──────────────────────────────────────── */
-.mb-mais-btn {
-  display: block;
-  width: 100%;
-  padding: 11px 0;
+/* ── Linha GPS + Mais ──────────────────────────────────── */
+.mb-btns-row {
+  display: flex;
+  gap: 10px;
   margin: 14px 0 6px;
-  background: transparent;
-  border: 2px solid var(--gold);
+}
+.mb-gps-btn,
+.mb-mais-btn {
+  flex: 1;
+  padding: 10px 0;
   border-radius: var(--r-sm, 8px);
-  color: var(--gold);
-  font-size: .9rem;
+  font-size: .88rem;
   font-weight: 700;
   letter-spacing: .4px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background .15s, color .15s;
 }
-.mb-mais-btn:active,
-.mb-mais-btn:hover {
-  background: var(--gold);
-  color: #1a0800;
+.mb-gps-btn {
+  background: #5c2a0e;
+  border: 2px solid #7a3a14;
+  color: #f5d9c0;
 }
+.mb-gps-btn:active,
+.mb-gps-btn:hover  { background: #7a3a14; color: #fff; }
+.mb-mais-btn {
+  background: transparent;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+}
+.mb-mais-btn:active,
+.mb-mais-btn:hover  { background: var(--gold); color: #1a0800; }
+
+/* ================================================================
+   TELA GPS / ENDEREÇO
+================================================================ */
+.gps-content { padding-bottom: 40px; }
+
+.gps-hero    { text-align: center; margin-bottom: 28px; padding-top: 8px; }
+.gps-titulo  {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.gps-sub {
+  font-size: .88rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Campos */
+.gps-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.gps-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.gps-opcional { font-weight: 400; text-transform: none; font-size: .75rem; }
+.gps-input-row { display: flex; align-items: center; gap: 8px; }
+.gps-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface-2, #261508);
+  border: 1.5px solid var(--gold-border);
+  border-radius: var(--r-sm, 8px);
+  color: var(--text);
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .15s;
+  box-sizing: border-box;
+}
+.gps-input:focus { border-color: var(--gold); }
+.gps-input[readonly] { opacity: .7; cursor: default; }
+.gps-input-sm { max-width: 160px; }
+.gps-cep-status { font-size: 1rem; flex-shrink: 0; min-width: 20px; text-align: center; }
+
+/* Linha GPS */
+.gps-gps-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+.gps-btn-gps {
+  padding: 11px 18px;
+  background: var(--surface-2, #261508);
+  border: 2px solid var(--gold-border);
+  border-radius: var(--r-sm, 8px);
+  color: var(--gold);
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.gps-btn-gps:active { background: var(--gold); color: #1a0800; }
+.gps-btn-gps:disabled { opacity: .55; pointer-events: none; }
+.gps-coords-txt {
+  font-size: .72rem;
+  color: var(--gold);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* Mensagens */
+.gps-msg      { font-size: .84rem; min-height: 1.4em; margin: 6px 0 14px; text-align: center; }
+.gps-msg--ok  { color: #4caf50; }
+.gps-msg--erro{ color: #e57373; }
+
+/* Botão salvar */
+.gps-btn-salvar { margin-top: 8px; }
 
 /* ================================================================
    PAINEL DE CONFIGURAÇÕES (slide da direita)
