@@ -1134,6 +1134,11 @@
   gap: 0.8rem;
 }
 
+/* Botão favorito sobe mais — margem negativa */
+.barber-card .card-actions-brand .card-fav-btn {
+  margin-top: -0.8rem;
+}
+
 /* Botão favorito afastado 1.5rem da borda direita do card */
 .barber-card .card-actions-brand .card-fav-btn {
   margin-right: 1.2rem; /* 0.3rem (container) + 1.2rem = 1.5rem da borda */
