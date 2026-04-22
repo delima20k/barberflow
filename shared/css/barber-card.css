@@ -1081,6 +1081,48 @@
 .destaques-barber { color: var(--gold, #D4AF37); }
 .destaques-flow   { color: #bf8040; }
 
+/* H1 da tela-barbeiros: "Barber" à esquerda + logo Flow à direita */
+.barbeiros-h1-brand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.destaques-logo-img {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.18));
+}
+
+/* Bloco de brand no card do barbeiro (top-right) */
+.card-actions-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.card-brand {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.card-brand-text {
+  font-size: .65rem;
+  font-weight: 700;
+  font-family: var(--font);
+  color: #8B4513;
+  letter-spacing: .3px;
+  line-height: 1;
+}
+.card-brand-logo {
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
+}
+
 /* Parágrafo dig — menor e discreto, sem fundo */
 .destaques-hero #destaques-dig,
 .destaques-hero #barbearias-dig,

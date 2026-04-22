@@ -165,9 +165,24 @@ class BarbeirosPage {
     row.appendChild(avatarWrap);
     row.appendChild(info);
 
-    // ── Canto superior direito: apenas favorito (sem like/dislike) ──
+    // ── Canto superior direito: brand (Barber + logo) + favorito abaixo ──
     const actions = document.createElement('div');
-    actions.className = 'top-card__actions';
+    actions.className = 'top-card__actions card-actions-brand';
+
+    const brand = document.createElement('div');
+    brand.className = 'card-brand';
+    const brandText = document.createElement('span');
+    brandText.className = 'card-brand-text';
+    brandText.textContent = 'Barber';
+    const brandImg = document.createElement('img');
+    brandImg.src     = '../../shared/img/logo-flow.png';
+    brandImg.alt     = 'Flow';
+    brandImg.loading = 'lazy';
+    brandImg.className = 'card-brand-logo';
+    brand.appendChild(brandText);
+    brand.appendChild(brandImg);
+    actions.appendChild(brand);
+
     actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
     row.appendChild(actions);
 
