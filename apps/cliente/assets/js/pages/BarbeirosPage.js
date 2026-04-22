@@ -172,7 +172,7 @@ class BarbeirosPage {
     const brand = document.createElement('div');
     brand.className = 'card-brand';
     const brandImg = document.createElement('img');
-    brandImg.src     = '../../shared/img/nomeAppBarber.png';
+    brandImg.src     = '/shared/img/nomeAppBarber.png';
     brandImg.alt     = 'BarberFlow';
     brandImg.loading = 'lazy';
     brandImg.className = 'card-brand-logo';
