@@ -46,7 +46,7 @@ class GpsPage {
     const q = id => document.getElementById(id);
     this.#refs = {
       cep:         q('gps-cep'),
-      cepStatus:   q('gps-cep-status'),
+      btnBuscar:   q('gps-btn-buscar'),
       logradouro:  q('gps-logradouro'),
       bairro:      q('gps-bairro'),
       cidade:      q('gps-cidade'),
@@ -63,7 +63,7 @@ class GpsPage {
 
   #bindEventos() {
     this.#refs.cep?.addEventListener('input', e => this.#onCepInput(e));
-    this.#refs.cep?.addEventListener('blur',  ()  => this.#buscarCep());
+    this.#refs.btnBuscar?.addEventListener('click', () => this.#buscarCep());
     this.#refs.btnGps?.addEventListener('click',    () => this.#ativarGps());
     this.#refs.btnSalvar?.addEventListener('click', () => this.#salvar());
   }
@@ -74,7 +74,6 @@ class GpsPage {
     // Limpa mensagens anteriores
     this.#coords = null;
     this.#mostrarMsg('', '');
-    if (this.#refs.cepStatus)  this.#refs.cepStatus.textContent = '';
     if (this.#refs.coordsTxt)  this.#refs.coordsTxt.textContent = '';
     const btn = this.#refs.btnGps;
     if (btn) { btn.textContent = '📍 Ativar GPS'; btn.disabled = false; }
@@ -117,23 +116,26 @@ class GpsPage {
   // ── Busca CEP ────────────────────────────────────────────────
 
   #onCepInput(e) {
+    // Apenas aplica máscara; busca só via botão "Buscar"
     let v = e.target.value.replace(/\D/g, '').slice(0, 8);
     e.target.value = v.length > 5 ? v.replace(/(\d{5})(\d{1,3})/, '$1-$2') : v;
-    if (v.length === 8) this.#buscarCep();
   }
 
   async #buscarCep() {
     const cep = this.#refs.cep?.value.replace(/\D/g, '');
-    if (!cep || cep.length !== 8) return;
+    if (!cep || cep.length !== 8) {
+      this.#mostrarMsg('Digite um CEP válido (8 dígitos).', 'erro');
+      return;
+    }
 
-    if (this.#refs.cepStatus) this.#refs.cepStatus.textContent = '🔄';
+    const btnB = this.#refs.btnBuscar;
+    if (btnB) { btnB.textContent = '...'; btnB.disabled = true; }
 
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
       if (!res.ok) throw new Error('http');
       const d = await res.json();
       if (d.erro) {
-        if (this.#refs.cepStatus) this.#refs.cepStatus.textContent = '❌';
         this.#mostrarMsg('CEP não encontrado.', 'erro');
         return;
       }
@@ -142,14 +144,12 @@ class GpsPage {
       if (this.#refs.cidade)     this.#refs.cidade.value     = d.localidade && d.uf
         ? `${d.localidade} / ${d.uf}`
         : (d.localidade ?? '');
-      if (this.#refs.cepStatus) this.#refs.cepStatus.textContent = '✅';
       this.#mostrarMsg('', '');
-
-      // Foca no campo número para agilizar o preenchimento
       this.#refs.numero?.focus();
     } catch {
-      if (this.#refs.cepStatus) this.#refs.cepStatus.textContent = '❌';
       this.#mostrarMsg('Não foi possível consultar o CEP. Verifique sua conexão.', 'erro');
+    } finally {
+      if (btnB) { btnB.textContent = 'Buscar'; btnB.disabled = false; }
     }
   }
 
