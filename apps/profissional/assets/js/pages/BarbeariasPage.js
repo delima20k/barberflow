@@ -127,7 +127,7 @@ class BarbeariasPage {
     // Endereço — obrigatório em todos os cards de barbearia
     const addr = document.createElement('p');
     addr.className   = 'barber-addr';
-    addr.textContent = b.address || b.city || '';
+    addr.textContent = b.address || b.city ? `📍 ${b.address || b.city}` : '';
     info.appendChild(addr);
 
     row.appendChild(avatarWrap);

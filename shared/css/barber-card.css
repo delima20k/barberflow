@@ -12,8 +12,8 @@
   background: transparent;
   border: 1px solid rgba(107, 74, 50, .18);
   border-radius: 15px;
-  padding: 14px 110px 14px 14px;
-  min-height: 120px;
+  padding: 18px 110px 18px 14px;
+  min-height: 148px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
   cursor: pointer;
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
@@ -286,9 +286,9 @@
 @media (max-width: 480px) {
   .barber-card,
   .barber-row {
-    padding: 12px;
+    padding: 14px 12px;
     gap: 10px;
-    min-height: 88px;
+    min-height: 120px;
   }
 
   .barber-card .avatar,
@@ -1048,7 +1048,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 1.6rem;
+  gap: 0.8rem;
   z-index: 2;
 }
 
@@ -1059,7 +1059,7 @@
 
 /* Endereço padrão em TODOS os cards de barbearia — obrigatório */
 .barber-addr {
-  margin: 3px 0 0;
+  margin: 8px 0 0;
   font-size: .72rem;
   font-weight: 500;
   color: var(--text-muted, #a08060);

@@ -302,31 +302,42 @@ Evitar:
 
 # PADRÃO OBRIGATÓRIO — CARDS DE BARBEARIA (CRÍTICO)
 
-**TODO card de barbearia** em qualquer tela ou seção do app (home, tela-barbearias, ver mais, etc.) DEVE seguir obrigatoriamente este padrão visual:
+**TODO card de barbearia** em qualquer tela ou seção do app (home, tela-barbearias, ver mais, etc.)
+DEVE ser **idêntico** visual e estruturalmente. Não existe card "da home" vs "da página" — é um único padrão.
 
-### Estrutura de info (dentro de `.barber-info`):
+### Estrutura DOM obrigatória (`.barber-info`):
 1. `.barber-name` — nome da barbearia
 2. `.top-card__stars` — estrelas + nota + botão curtir
-3. `.barber-addr` — endereço (OBRIGATÓRIO, sempre presente)
+3. `.barber-addr` — endereço (OBRIGATÓRIO, **sempre presente no DOM**)
 
-### Regra do endereço (`.barber-addr`):
-- Usar `b.address || b.city || ''` como conteúdo
-- Se vazio, o CSS `.barber-addr:empty::before` exibe automaticamente `📍 Endereço não cadastrado`
-- **NUNCA omitir o elemento** — ele deve sempre estar no DOM para quando o usuário cadastrar o endereço, aparecer imediatamente
+### Regra canônica do endereço (`.barber-addr`):
+```js
+// Endereço com 📍 quando preenchido — idêntico em TODOS os cards
+addr.className   = 'barber-addr';
+addr.textContent = b.address || b.city ? `📍 ${b.address || b.city}` : '';
+```
+- Se vazio (`textContent = ''`), o CSS `.barber-addr:empty::before` exibe automaticamente `📍 Endereço não cadastrado`
+- **NUNCA omitir o elemento** — quando o usuário cadastrar o endereço, ele aparece imediatamente no lugar certo
 - Classe obrigatória: `barber-addr` (NÃO usar `barber-sub` para endereço de barbearia)
 
-### Canto superior direito (`.top-card__actions`):
-- Badge Aberto/Fechado (`.dc-badge--open` ou `.dc-badge--closed`)
-- Botão favorito via `BarbershopService.criarBotaoFavoritoCard(b.id)`
+### Canto superior direito (`.top-card__actions` — obrigatório):
+```js
+const actions = document.createElement('div');
+actions.className = 'top-card__actions';
+actions.appendChild(badge);                                    // Aberto/Fechado
+actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+row.appendChild(actions);
+```
 
-### Arquivos que devem seguir este padrão:
+### Arquivos que DEVEM seguir este padrão:
 - `apps/cliente/assets/js/pages/BarbeariasPage.js` — `#criarCard(b)`
 - `apps/profissional/assets/js/pages/BarbeariasPage.js` — `#criarCard(b)`
 - `shared/js/NearbyBarbershopsWidget.js` — `#criarBarberRow(b)` (home: Populares + Todas)
-- Qualquer novo card de barbearia criado no futuro
+- Qualquer novo card de barbearia criado no futuro (POO: extrair `static #criarCardBarbearia(b)` se repetir)
 
-### Tamanho mínimo do card:
-- `min-height: 120px` (definido em `.barber-card`, `.barber-row` no `barber-card.css`)
+### Tamanho do card:
+- `min-height: 148px` — `padding: 18px 110px 18px 14px` (definido em `.barber-card`, `.barber-row` no `barber-card.css`)
+- @media 480px: `min-height: 120px` — `padding: 14px 12px`
 
 ---
 
