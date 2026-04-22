@@ -1195,6 +1195,10 @@
 #tela-barbeiros .destaques-hero {
   margin-top: 0.5rem;
 }
+#tela-barbeiros .destaques-logo-img {
+  position: relative;
+  top: 0.5rem;
+}
 
 /* Parágrafo descritivo da tela Barbeiros */
 .barbeiros-intro {
