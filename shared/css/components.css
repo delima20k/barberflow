@@ -3434,19 +3434,14 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-sub-tela::-webkit-scrollbar { display: none; }
 .mb-sub-ativa { transform: translateX(0); }
 
-/* Topo sticky: botão Voltar sempre visível mesmo com scroll */
+/* Botão Voltar rola junto com o conteúdo — igual a todas as telas main */
 .mb-sub-tela .tela-topo {
-  position: sticky;
-  top: var(--header-h);
-  z-index: 10;
-  background: var(--bg, #0f0500);
-  padding-top: 4px;
-  padding-bottom: 0;
+  position: static;
 }
 
-/* Conteúdo logo abaixo do topo */
+/* 1.5rem de respiro entre o botão Voltar e o conteúdo (h1) */
 .mb-sub-tela .tela-topo + .content {
-  margin-top: 6px;
+  margin-top: 1.5rem;
 }
 
 /* Título da página de configurações */
