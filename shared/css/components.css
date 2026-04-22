@@ -3259,7 +3259,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 ================================================================ */
 .gps-content { padding-bottom: 40px; }
 
-.gps-hero    { text-align: center; margin-bottom: 28px; padding-top: 8px; }
+.gps-hero    { text-align: center; margin-bottom: 28px; padding-top: 0; }
 .gps-titulo  {
   font-size: 1.3rem;
   font-weight: 900;
@@ -3396,6 +3396,14 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .mb-sub-tela::-webkit-scrollbar { display: none; }
 .mb-sub-ativa { transform: translateX(0); }
+
+/* Topo sticky: botão Voltar sempre visível mesmo com scroll */
+.mb-sub-tela .tela-topo {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg, #0f0500);
+}
 
 /* Título da página de configurações */
 .mb-cfg-titulo-pg {
