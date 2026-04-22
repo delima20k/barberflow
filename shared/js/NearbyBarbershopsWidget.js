@@ -368,6 +368,7 @@ class NearbyBarbershopsWidget {
     if (p.avatar_path) {
       const img = document.createElement('img');
       img.alt     = p.full_name || 'Barbeiro';
+      img.loading = 'lazy';
       img.onerror = () => { avatarWrap.textContent = '💈'; };
       img.src     = SupabaseService.getAvatarUrl(p.avatar_path) || '';
       avatarWrap.appendChild(img);
@@ -401,8 +402,20 @@ class NearbyBarbershopsWidget {
     row.appendChild(avatarWrap);
     row.appendChild(info);
 
+    // ── Canto superior direito: brand (logo) + favorito abaixo ──
     const actions = document.createElement('div');
-    actions.className = 'top-card__actions';
+    actions.className = 'top-card__actions card-actions-brand';
+
+    const brand = document.createElement('div');
+    brand.className = 'card-brand';
+    const brandImg = document.createElement('img');
+    brandImg.src       = '../../shared/img/nomeAppBarber.png';
+    brandImg.alt       = 'BarberFlow';
+    brandImg.loading   = 'lazy';
+    brandImg.className = 'card-brand-logo';
+    brand.appendChild(brandImg);
+    actions.appendChild(brand);
+
     actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
     row.appendChild(actions);
 
