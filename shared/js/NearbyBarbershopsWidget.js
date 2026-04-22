@@ -91,53 +91,56 @@ class NearbyBarbershopsWidget {
         </div>
       </div>`).join('');
 
+    // ── 1. Carrega lista base (sem GPS, rápido e confiável) ──────────────
+    let lista = [];
     try {
-      let lista;
-
-      // Carrega favoritos em cache antes de renderizar (idempotente)
-      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
-
-      // Se GPS disponível, usa barbearias próximas (≤5km), já ordenadas por score/curtidas
-      try {
-        const permissao = await GeoService.verificarPermissao();
-        if (permissao === 'granted') {
-          const pos = await GeoService.obter();
-          lista = await BarbershopRepository.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
-          // Adiciona distância apenas para exibição no sub-texto
-          lista = lista.map(b => ({ ...b, distance_km: b.latitude
-            ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
-            : null }));
-        }
-      } catch (_) { /* sem GPS */ }
-
-      // Fallback: busca todas ordenadas por popularidade
-      // Usa !lista?.length para cobrir GPS com lista vazia ([] é truthy)
-      if (!lista?.length) lista = await BarbershopRepository.getAll(20);
-
-      el.innerHTML = '';
-
-      // Normaliza logo_path para URL completa (igual a initHomeTodas)
-      lista = lista.map(b => ({
-        ...b,
-        logo_path: b.logo_path ? SupabaseService.getLogoUrl(b.logo_path) : null,
-      }));
-
-      // Agrupa em pares — cada coluna tem 2 cards
-      for (let i = 0; i < lista.length; i += 2) {
-        const coluna = document.createElement('div');
-        coluna.className = 'barbearias-coluna';
-        coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i]));
-        if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i + 1]));
-        el.appendChild(coluna);
-      }
-
-      // Restaura contadores reais para todos (inclusive anônimos)
-      BarbershopService.restaurarInteracoes([...el.querySelectorAll('[data-barbershop-id]')]);
-
+      lista = await BarbershopRepository.getAll(20);
     } catch (err) {
-      LoggerService.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
-      el.innerHTML = '';
+      LoggerService.error('[NearbyBarbershopsWidget] initHomeCards getAll falhou:', err);
+      // Mantém skeleton visível e sai — sem limpar
+      return;
     }
+
+    if (!lista.length) { el.innerHTML = ''; return; }
+
+    // ── 2. Tenta enriquecer com distância GPS (opcional, sem bloquear) ───
+    try {
+      const permissao = await GeoService.verificarPermissao();
+      if (permissao === 'granted') {
+        const pos = await GeoService.obter();
+        const nearby = await BarbershopRepository.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
+        if (nearby.length) {
+          lista = nearby.map(b => ({
+            ...b,
+            distance_km: b.latitude
+              ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
+              : null,
+          }));
+        }
+      }
+    } catch (_) { /* GPS indisponível — usa getAll já carregado */ }
+
+    // ── 3. Normaliza logo_path para URL completa ─────────────────────────
+    lista = lista.map(b => ({
+      ...b,
+      logo_path: b.logo_path ? SupabaseService.getLogoUrl(b.logo_path) : null,
+    }));
+
+    // ── 4. Renderiza ─────────────────────────────────────────────────────
+    el.innerHTML = '';
+    for (let i = 0; i < lista.length; i += 2) {
+      const coluna = document.createElement('div');
+      coluna.className = 'barbearias-coluna';
+      coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i]));
+      if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i + 1]));
+      el.appendChild(coluna);
+    }
+
+    // ── 5. Restaura interações (favoritos / likes) ───────────────────────
+    try {
+      await BarbershopService.carregarFavoritos();
+    } catch (_) { /* silencioso */ }
+    BarbershopService.restaurarInteracoes([...el.querySelectorAll('[data-barbershop-id]')]);
   }
 
   /**
