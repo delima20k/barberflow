@@ -67,7 +67,6 @@ class BarberFlowProfissional extends Router {
     'barbeiros',
     'parcerias',
     'financas',
-    'gps-barbearia',
   ]);
 
   static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros']);

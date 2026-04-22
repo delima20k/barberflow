@@ -3367,78 +3367,38 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .gps-btn-salvar { margin-top: 8px; }
 
 /* ================================================================
-   PAINEL DE CONFIGURAÇÕES (slide da direita)
+   SUB-PAINÉIS — deslizam por cima de tela-minha-barbearia
+   (GPS + Configurações)
 ================================================================ */
-.mb-config-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: min(420px, 96vw);
-  height: 100%;
-  background: var(--surface, #1a0e07);
-  border-left: 1.5px solid var(--gold-border);
-  z-index: 1200;
-  transform: translateX(100%);
-  transition: transform .32s cubic-bezier(.22,.61,.36,1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.mb-config-panel--aberto {
-  transform: translateX(0);
-}
-
-/* Overlay escuro por trás do painel */
-.mb-config-overlay {
+.mb-sub-tela {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.55);
-  z-index: 1199;
-}
-
-/* Header do painel */
-.mb-config-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 16px 14px;
-  border-bottom: 1px solid var(--gold-border);
-  flex-shrink: 0;
-  padding-top: calc(18px + env(safe-area-inset-top));
-}
-.mb-config-titulo {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text);
-  margin: 0;
-}
-.mb-config-fechar {
-  all: unset;
-  cursor: pointer;
-  font-size: 1.2rem;
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  -webkit-tap-highlight-color: transparent;
-  transition: background .15s;
-}
-.mb-config-fechar:active { background: rgba(255,255,255,.1); }
-
-/* Body scrollável */
-.mb-config-body {
-  flex: 1;
+  z-index: 900;
+  background: var(--bg, #0f0500);
   overflow-y: auto;
-  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.22,.61,.36,1);
+  scrollbar-width: none;
+}
+.mb-sub-tela::-webkit-scrollbar { display: none; }
+.mb-sub-ativa { transform: translateX(0); }
+
+/* Título da página de configurações */
+.mb-cfg-titulo-pg {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text);
+  margin: 4px 0 24px;
+  letter-spacing: .3px;
+}
+
+/* Body de configurações */
+.mb-config-body {
+  padding: 0 0 calc(40px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 20px;
-  scrollbar-width: none;
 }
-.mb-config-body::-webkit-scrollbar { display: none; }
 
 /* Seções */
 .mb-config-secao { display: flex; flex-direction: column; gap: 8px; }

@@ -21,11 +21,14 @@ class MinhaBarbeariaPage {
 
   // ── Estado ─────────────────────────────────────────────────
   #telaEl       = null;
-  #panelEl      = null;
-  #overlayEl    = null;
+  #panelEl      = null;   // mb-config-panel
+  #gpsPanelEl   = null;   // mb-gps-panel
+  #subTelaAtiva = null;   // sub-painel aberto no momento
   #carregou     = false;
   #barbershopId = null;
-  #isOwner      = false;   // true se o usuário é dono da barbearia
+  #isOwner      = false;  // true se o usuário é dono da barbearia
+  #shopData     = null;   // dados da barbearia (pré-preenchimento GPS)
+  #coordsGps    = null;   // coordenadas GPS capturadas no sub-painel
   #refs         = {};
 
   constructor() {}
@@ -33,9 +36,9 @@ class MinhaBarbeariaPage {
   // ── Ponto de entrada ────────────────────────────────────────
 
   bind() {
-    this.#telaEl   = document.getElementById('tela-minha-barbearia');
-    this.#panelEl  = document.getElementById('mb-config-panel');
-    this.#overlayEl= document.getElementById('mb-config-overlay');
+    this.#telaEl    = document.getElementById('tela-minha-barbearia');
+    this.#panelEl   = document.getElementById('mb-config-panel');
+    this.#gpsPanelEl= document.getElementById('mb-gps-panel');
     if (!this.#telaEl) return;
 
     this.#cacheRefs();
@@ -79,26 +82,42 @@ class MinhaBarbeariaPage {
       cfgNome:       q('mb-cfg-nome'),
       cfgProdutos:   q('mb-cfg-produtos-lista'),
       cfgAddProd:    q('mb-cfg-add-produto'),
-      cfgSalvar:     q('mb-config-salvar'),
-      cfgMsg:        q('mb-config-msg'),
+      cfgSalvar:      q('mb-config-salvar'),
+      cfgMsg:         q('mb-config-msg'),
+      // GPS sub-painel
+      gpsFechar:      q('mb-gps-fechar'),
+      gpsCep:         q('gps-cep'),
+      gpsBtnBuscar:   q('gps-btn-buscar'),
+      gpsLogradouro:  q('gps-logradouro'),
+      gpsBairro:      q('gps-bairro'),
+      gpsCidade:      q('gps-cidade'),
+      gpsNumero:      q('gps-numero'),
+      gpsComplemento: q('gps-complemento'),
+      gpsBtnGps:      q('gps-btn-gps'),
+      gpsCoordsT:     q('gps-coords-txt'),
+      gpsMsg:         q('gps-msg'),
+      gpsBtnSalvar:   q('gps-btn-salvar'),
     };
   }
 
   // ── Eventos ─────────────────────────────────────────────────
 
   #bindEventos() {
-    this.#refs.maisBtn?.addEventListener('click', () => this.#abrirConfig());
-    this.#refs.gpsBtn?.addEventListener('click', () => {
-      if (typeof Pro !== 'undefined') Pro.push('gps-barbearia');
-    });
-    this.#refs.addBtn?.addEventListener('click', () => this.#refs.coverInput?.click());
-    this.#overlayEl?.addEventListener('click', () => this.#fecharConfig());
-    this.#refs.cfgFechar?.addEventListener('click', () => this.#fecharConfig());
-    this.#refs.coverInput?.addEventListener('change', e => this.#onUploadMidia(e));
-    this.#refs.cfgCapaInput?.addEventListener('change', e => this.#onUploadCapa(e));
-    this.#refs.cfgLogoInput?.addEventListener('change', e => this.#onUploadLogo(e));
-    this.#refs.cfgAddProd?.addEventListener('click', () => this.#adicionarLinhaProduto());
-    this.#refs.cfgSalvar?.addEventListener('click', () => this.#salvarConfiguracoes());
+    this.#refs.maisBtn?.addEventListener('click', () => this.#abrirSub('config'));
+    this.#refs.gpsBtn?.addEventListener('click',  () => this.#abrirSub('gps'));
+    this.#refs.addBtn?.addEventListener('click',  () => this.#refs.coverInput?.click());
+    this.#refs.cfgFechar?.addEventListener('click',    () => this.#fecharSub());
+    this.#refs.coverInput?.addEventListener('change',  e => this.#onUploadMidia(e));
+    this.#refs.cfgCapaInput?.addEventListener('change',e => this.#onUploadCapa(e));
+    this.#refs.cfgLogoInput?.addEventListener('change',e => this.#onUploadLogo(e));
+    this.#refs.cfgAddProd?.addEventListener('click',   () => this.#adicionarLinhaProduto());
+    this.#refs.cfgSalvar?.addEventListener('click',    () => this.#salvarConfiguracoes());
+    // GPS sub-painel
+    this.#refs.gpsFechar?.addEventListener('click',    () => this.#fecharSub());
+    this.#refs.gpsCep?.addEventListener('input',       e  => this.#onCepInput(e));
+    this.#refs.gpsBtnBuscar?.addEventListener('click', () => this.#buscarCep());
+    this.#refs.gpsBtnGps?.addEventListener('click',    () => this.#ativarGps());
+    this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
   }
 
   // ── Carregamento principal ───────────────────────────────────
@@ -116,6 +135,7 @@ class MinhaBarbeariaPage {
 
       this.#barbershopId = shop.id;
       this.#isOwner      = shop.owner_id === perfil.id;
+      this.#shopData     = shop;
 
       const [servicos, portfolio, stories, quotaHoje] = await Promise.all([
         MinhaBarbeariaPage.#fetchServicos(shop.id),
@@ -141,7 +161,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, owner_id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude')
+      .select('id, owner_id, name, address, city, state, zip_code, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
@@ -374,22 +394,22 @@ class MinhaBarbeariaPage {
     });
   }
 
-  // ── Painel de configurações ──────────────────────────────────
+  // ── Sub-painéis (Config + GPS) ───────────────────────────────
 
-  #abrirConfig() {
-    if (!this.#panelEl) return;
-    this.#panelEl.classList.add('mb-config-panel--aberto');
-    this.#panelEl.setAttribute('aria-hidden', 'false');
-    if (this.#overlayEl) this.#overlayEl.removeAttribute('hidden');
-    document.body.style.overflow = 'hidden';
+  #abrirSub(id) {
+    const el = id === 'config' ? this.#panelEl : this.#gpsPanelEl;
+    if (!el) return;
+    this.#subTelaAtiva = el;
+    el.classList.add('mb-sub-ativa');
+    el.setAttribute('aria-hidden', 'false');
+    if (id === 'gps') this.#preencherGpsForm();
   }
 
-  #fecharConfig() {
-    if (!this.#panelEl) return;
-    this.#panelEl.classList.remove('mb-config-panel--aberto');
-    this.#panelEl.setAttribute('aria-hidden', 'true');
-    if (this.#overlayEl) this.#overlayEl.setAttribute('hidden', '');
-    document.body.style.overflow = '';
+  #fecharSub() {
+    if (!this.#subTelaAtiva) return;
+    this.#subTelaAtiva.classList.remove('mb-sub-ativa');
+    this.#subTelaAtiva.setAttribute('aria-hidden', 'true');
+    this.#subTelaAtiva = null;
   }
 
   #preencherConfigPanel(shop, servicos) {
@@ -605,9 +625,163 @@ class MinhaBarbeariaPage {
     }
   }
 
-  // ── GPS / CEP ────────────────────────────────────────────────
+  // ── GPS: pré-preenchimento e métodos ─────────────────────────
 
-  async #salvarGPS(ownerId) {
+  #preencherGpsForm() {
+    const s = this.#shopData;
+    this.#coordsGps = null;
+    this.#mostrarGpsMsg('', '');
+    const ct  = this.#refs.gpsCoordsT;
+    const btn = this.#refs.gpsBtnGps;
+    if (ct)  ct.textContent  = '';
+    if (btn) { btn.textContent = '📍 Ativar GPS'; btn.disabled = false; }
+    if (!s) return;
+    if (s.zip_code && this.#refs.gpsCep) {
+      const raw = s.zip_code.replace(/\D/g, '');
+      this.#refs.gpsCep.value = raw.length === 8
+        ? raw.replace(/(\d{5})(\d{3})/, '$1-$2')
+        : s.zip_code;
+    }
+    if (s.address && this.#refs.gpsLogradouro)
+      this.#refs.gpsLogradouro.value = s.address;
+    if (s.city && this.#refs.gpsCidade)
+      this.#refs.gpsCidade.value = s.state ? `${s.city} / ${s.state}` : s.city;
+    if (s.latitude && s.longitude) {
+      this.#coordsGps = { lat: +s.latitude, lng: +s.longitude };
+      if (ct) ct.textContent = `${this.#coordsGps.lat.toFixed(5)}, ${this.#coordsGps.lng.toFixed(5)}`;
+    }
+  }
+
+  #onCepInput(e) {
+    let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+    e.target.value = v.length > 5 ? v.replace(/(\d{5})(\d{1,3})/, '$1-$2') : v;
+  }
+
+  async #buscarCep() {
+    const cep = this.#refs.gpsCep?.value.replace(/\D/g, '');
+    if (!cep || cep.length !== 8) {
+      this.#mostrarGpsMsg('Digite um CEP válido (8 dígitos).', 'erro'); return;
+    }
+    const btnB = this.#refs.gpsBtnBuscar;
+    if (btnB) { btnB.textContent = '...'; btnB.disabled = true; }
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      if (!res.ok) throw new Error('http');
+      const d = await res.json();
+      if (d.erro) { this.#mostrarGpsMsg('CEP não encontrado.', 'erro'); return; }
+      if (this.#refs.gpsLogradouro) this.#refs.gpsLogradouro.value = d.logradouro ?? '';
+      if (this.#refs.gpsBairro)     this.#refs.gpsBairro.value     = d.bairro     ?? '';
+      if (this.#refs.gpsCidade)     this.#refs.gpsCidade.value     = d.localidade && d.uf
+        ? `${d.localidade} / ${d.uf}` : (d.localidade ?? '');
+      this.#mostrarGpsMsg('', '');
+      this.#refs.gpsNumero?.focus();
+    } catch {
+      this.#mostrarGpsMsg('Não foi possível consultar o CEP.', 'erro');
+    } finally {
+      if (btnB) { btnB.textContent = 'Buscar'; btnB.disabled = false; }
+    }
+  }
+
+  #ativarGps() {
+    if (!('geolocation' in navigator)) {
+      this.#mostrarGpsMsg('GPS não disponível neste dispositivo.', 'erro'); return;
+    }
+    const btn = this.#refs.gpsBtnGps;
+    if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        this.#coordsGps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (this.#refs.gpsCoordsT)
+          this.#refs.gpsCoordsT.textContent =
+            `${this.#coordsGps.lat.toFixed(5)}, ${this.#coordsGps.lng.toFixed(5)}`;
+        if (btn) { btn.textContent = '📍 GPS Ativo ✅'; btn.disabled = false; }
+        this.#mostrarGpsMsg('GPS capturado com sucesso.', 'ok');
+      },
+      err => {
+        const msgs = {
+          1: 'Permissão negada. Ative a localização nas configurações.',
+          2: 'Posição indisponível.',
+          3: 'Tempo esgotado. Tente novamente.',
+        };
+        this.#mostrarGpsMsg(msgs[err.code] ?? 'Erro ao obter GPS.', 'erro');
+        if (btn) { btn.textContent = '📍 Ativar GPS'; btn.disabled = false; }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  }
+
+  async #salvarGps() {
+    const cep      = this.#refs.gpsCep?.value.replace(/\D/g, '')       ?? '';
+    const rua      = this.#refs.gpsLogradouro?.value.trim()            ?? '';
+    const num      = this.#refs.gpsNumero?.value.trim()                ?? '';
+    const cidadeUf = this.#refs.gpsCidade?.value.trim()                ?? '';
+    const comp     = this.#refs.gpsComplemento?.value.trim()           ?? '';
+
+    if (!rua) { this.#mostrarGpsMsg('Informe o CEP para preencher o endereço.', 'erro'); return; }
+    if (!num) {
+      this.#mostrarGpsMsg('Informe o número do estabelecimento.', 'erro');
+      this.#refs.gpsNumero?.focus(); return;
+    }
+    if (!this.#barbershopId) {
+      this.#mostrarGpsMsg('Barbearia não encontrada.', 'erro'); return;
+    }
+
+    const address = [rua, num, comp].filter(Boolean).join(', ');
+    const [city, state] = cidadeUf.includes('/')
+      ? cidadeUf.split('/').map(s => s.trim())
+      : [cidadeUf.trim(), ''];
+
+    const payload = {
+      address,
+      city:       city  || null,
+      state:      state || null,
+      zip_code:   cep   || null,
+      updated_at: new Date().toISOString(),
+    };
+    if (this.#coordsGps) {
+      payload.latitude  = this.#coordsGps.lat;
+      payload.longitude = this.#coordsGps.lng;
+    }
+
+    const btn = this.#refs.gpsBtnSalvar;
+    if (btn) { btn.textContent = 'Salvando…'; btn.disabled = true; }
+
+    try {
+      const { error } = await SupabaseService.barbershops()
+        .update(payload)
+        .eq('id', this.#barbershopId);
+      if (error) throw error;
+
+      // Atualiza cache local para que o banner e outros renders sejam coerentes
+      if (this.#shopData) {
+        Object.assign(this.#shopData, {
+          address, city: city||null, state: state||null, zip_code: cep||null,
+        });
+        if (this.#coordsGps) {
+          this.#shopData.latitude  = this.#coordsGps.lat;
+          this.#shopData.longitude = this.#coordsGps.lng;
+          this.#renderLocBanner(this.#shopData); // remove o banner se GPS agora está ok
+        }
+      }
+
+      this.#mostrarGpsMsg('✅ Endereço salvo! Sua barbearia já aparece no mapa.', 'ok');
+      NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
+    } catch (err) {
+      console.error('[MinhaBarbeariaPage] salvarGps:', err);
+      this.#mostrarGpsMsg('Erro ao salvar. Tente novamente.', 'erro');
+    } finally {
+      if (btn) { btn.textContent = 'Salvar Endereço'; btn.disabled = false; }
+    }
+  }
+
+  #mostrarGpsMsg(texto, tipo) {
+    const el = this.#refs.gpsMsg;
+    if (!el) return;
+    el.textContent = texto;
+    el.className   = tipo === 'ok'  ? 'gps-msg gps-msg--ok'
+                   : tipo === 'erro'? 'gps-msg gps-msg--erro'
+                   : 'gps-msg';
+  }
     const msg = document.getElementById('mb-loc-msg');
     const btn = document.getElementById('mb-btn-gps');
     if (btn) { btn.disabled = true; btn.textContent = 'Obtendo posição…'; }

@@ -805,11 +805,11 @@
   </main>
 
   <!-- ============================================================
-       TELA — GPS / ENDEREÇO DA BARBEARIA
+       SUB-PAINEL — GPS / ENDEREÇO DA BARBEARIA
   ============================================================ -->
-  <main id="tela-gps-barbearia" class="tela">
+  <div id="mb-gps-panel" class="mb-sub-tela" aria-hidden="true">
     <div class="tela-topo">
-      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <button class="btn-voltar" id="mb-gps-fechar" aria-label="Voltar">Voltar</button>
     </div>
     <div class="content gps-content">
 
@@ -881,19 +881,17 @@
       </button>
 
     </div>
-  </main>
+  </div>
 
   <!-- ============================================================
-       PAINEL — CONFIGURAÇÕES DA BARBEARIA (slide lateral)
+       SUB-PAINEL — CONFIGURAÇÕES DA BARBEARIA
   ============================================================ -->
-  <aside id="mb-config-panel" class="mb-config-panel" aria-hidden="true">
-    <div class="mb-config-inner">
-
-      <div class="mb-config-header">
-        <h2 class="mb-config-titulo">Configurações</h2>
-        <button class="mb-config-fechar" id="mb-config-fechar" aria-label="Fechar">✕</button>
-      </div>
-
+  <div id="mb-config-panel" class="mb-sub-tela" aria-hidden="true">
+    <div class="tela-topo">
+      <button class="btn-voltar" id="mb-config-fechar" aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content">
+      <h2 class="mb-cfg-titulo-pg">Configurações</h2>
       <div class="mb-config-body">
 
         <!-- Upload imagem principal (capa) -->
@@ -944,11 +942,9 @@
         </button>
         <p id="mb-config-msg" class="mb-config-msg"></p>
 
-      </div><!-- /body -->
-    </div><!-- /inner -->
-  </aside>
-  <!-- Overlay para fechar o painel -->
-  <div id="mb-config-overlay" class="mb-config-overlay" hidden></div>
+      </div><!-- /mb-config-body -->
+    </div><!-- /content -->
+  </div><!-- /mb-config-panel -->
 
   <!-- ============================================================
        TELA — CRIAR BARBEARIA
