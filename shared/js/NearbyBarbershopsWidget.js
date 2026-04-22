@@ -543,13 +543,15 @@ class NearbyBarbershopsWidget {
         const bc = {
           ...b,
           logo_path: b.logo_path ? SupabaseService.getLogoUrl(b.logo_path) : null,
-          // sub-texto: cidade + cortes realizados
-          _sub: `${b.city || b.address || ''} · ${Number(b.rating_count ?? 0)} cortes`,
         };
         const row = NearbyBarbershopsWidget.#criarBarberRow(bc);
-        // Substitui sub padrão pelo enriquecido com nº de cortes
-        const subEl = row.querySelector('.barber-sub');
-        if (subEl) subEl.textContent = bc._sub;
+        // Enriquece endereço com nº de cortes
+        const subEl = row.querySelector('.barber-addr');
+        const addrBase = b.address || b.city || '';
+        const cortes   = Number(b.rating_count ?? 0);
+        if (subEl) subEl.textContent = addrBase
+          ? `📍 ${addrBase} · ${cortes} cortes`
+          : cortes ? `${cortes} cortes realizados` : '';
         el.appendChild(row);
       });
 
@@ -595,10 +597,10 @@ class NearbyBarbershopsWidget {
     nome.textContent = b.name;
 
     const sub = document.createElement('p');
-    sub.className   = 'barber-sub';
-    const distStr = Number(b.distance_km ?? 0).toFixed(1);
-    const addrStr = b.address ?? b.city ?? 'Localização não informada';
-    sub.textContent = `📍 ${addrStr} · Barbearia · ${distStr} km`;
+    sub.className   = 'barber-addr';
+    const distStr = b.distance_km != null ? ` · ${Number(b.distance_km).toFixed(1)} km` : '';
+    const addrStr = b.address || b.city || '';
+    sub.textContent = addrStr ? `📍 ${addrStr}${distStr}` : '';
 
     // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
     const starsRow = document.createElement('div');

@@ -300,6 +300,36 @@ Evitar:
 
 ---
 
+# PADRÃO OBRIGATÓRIO — CARDS DE BARBEARIA (CRÍTICO)
+
+**TODO card de barbearia** em qualquer tela ou seção do app (home, tela-barbearias, ver mais, etc.) DEVE seguir obrigatoriamente este padrão visual:
+
+### Estrutura de info (dentro de `.barber-info`):
+1. `.barber-name` — nome da barbearia
+2. `.top-card__stars` — estrelas + nota + botão curtir
+3. `.barber-addr` — endereço (OBRIGATÓRIO, sempre presente)
+
+### Regra do endereço (`.barber-addr`):
+- Usar `b.address || b.city || ''` como conteúdo
+- Se vazio, o CSS `.barber-addr:empty::before` exibe automaticamente `📍 Endereço não cadastrado`
+- **NUNCA omitir o elemento** — ele deve sempre estar no DOM para quando o usuário cadastrar o endereço, aparecer imediatamente
+- Classe obrigatória: `barber-addr` (NÃO usar `barber-sub` para endereço de barbearia)
+
+### Canto superior direito (`.top-card__actions`):
+- Badge Aberto/Fechado (`.dc-badge--open` ou `.dc-badge--closed`)
+- Botão favorito via `BarbershopService.criarBotaoFavoritoCard(b.id)`
+
+### Arquivos que devem seguir este padrão:
+- `apps/cliente/assets/js/pages/BarbeariasPage.js` — `#criarCard(b)`
+- `apps/profissional/assets/js/pages/BarbeariasPage.js` — `#criarCard(b)`
+- `shared/js/NearbyBarbershopsWidget.js` — `#criarBarberRow(b)` (home: Populares + Todas)
+- Qualquer novo card de barbearia criado no futuro
+
+### Tamanho mínimo do card:
+- `min-height: 120px` (definido em `.barber-card`, `.barber-row` no `barber-card.css`)
+
+---
+
 # STORAGE
 
 - usar Supabase Storage

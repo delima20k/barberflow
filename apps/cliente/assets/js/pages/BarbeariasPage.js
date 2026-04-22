@@ -124,6 +124,12 @@ class BarbeariasPage {
     info.appendChild(nome);
     info.appendChild(starsRow);
 
+    // Endereço — obrigatório em todos os cards de barbearia
+    const addr = document.createElement('p');
+    addr.className   = 'barber-addr';
+    addr.textContent = b.address || b.city || '';
+    info.appendChild(addr);
+
     row.appendChild(avatarWrap);
     row.appendChild(info);
 
