@@ -3261,10 +3261,24 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .gps-hero    { text-align: center; margin-bottom: 28px; padding-top: 8px; }
 .gps-titulo  {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 900;
   color: var(--text);
-  margin: 0 0 6px;
+  margin: 0 0 10px;
+  letter-spacing: .5px;
+}
+/* Variante sem fundo para o gps-sub */
+.gps-dig {
+  background: transparent !important;
+  border-left: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin-top: 4px;
+  font-size: 1rem;
+  font-family: 'Special Elite', 'Courier New', Courier, monospace;
+  color: var(--text-muted);
+  min-height: 1.5em;
+  text-align: center;
 }
 .gps-sub {
   font-size: .88rem;

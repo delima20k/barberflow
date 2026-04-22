@@ -29,6 +29,7 @@ class MinhaBarbeariaPage {
   #isOwner      = false;  // true se o usuário é dono da barbearia
   #shopData     = null;   // dados da barbearia (pré-preenchimento GPS)
   #coordsGps    = null;   // coordenadas GPS capturadas no sub-painel
+  #digGps       = null;   // instância DigText para o p.gps-dig
   #refs         = {};
 
   constructor() {}
@@ -43,6 +44,17 @@ class MinhaBarbeariaPage {
 
     this.#cacheRefs();
     this.#bindEventos();
+
+    // Animação "dig" no sub-painel de GPS
+    const digEl = document.getElementById('gps-dig');
+    if (digEl && typeof DigText !== 'undefined') {
+      this.#digGps = new DigText(digEl, [
+        'Configure o endereço e ative o GPS...',
+        'Sua barbearia aparecerá no mapa dos clientes.',
+        'Preencha o CEP e clique em Buscar.',
+        'Com o GPS ativo, sua localização será precisa.',
+      ], { velocidade: 36, pausaFinal: 3200, loop: true });
+    }
 
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
@@ -402,7 +414,10 @@ class MinhaBarbeariaPage {
     this.#subTelaAtiva = el;
     el.classList.add('mb-sub-ativa');
     el.setAttribute('aria-hidden', 'false');
-    if (id === 'gps') this.#preencherGpsForm();
+    if (id === 'gps') {
+      this.#preencherGpsForm();
+      this.#digGps?.iniciar();
+    }
   }
 
   #fecharSub() {
@@ -410,6 +425,7 @@ class MinhaBarbeariaPage {
     this.#subTelaAtiva.classList.remove('mb-sub-ativa');
     this.#subTelaAtiva.setAttribute('aria-hidden', 'true');
     this.#subTelaAtiva = null;
+    this.#digGps?.parar();
   }
 
   #preencherConfigPanel(shop, servicos) {
