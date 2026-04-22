@@ -170,15 +170,11 @@ class BarbeirosPage {
 
     const brand = document.createElement('div');
     brand.className = 'card-brand';
-    const brandText = document.createElement('span');
-    brandText.className = 'card-brand-text';
-    brandText.textContent = 'Barber';
     const brandImg = document.createElement('img');
-    brandImg.src     = '../../shared/img/logo-flow.png';
-    brandImg.alt     = 'Flow';
+    brandImg.src     = '../../shared/img/nomeAppBarber.png';
+    brandImg.alt     = 'BarberFlow';
     brandImg.loading = 'lazy';
     brandImg.className = 'card-brand-logo';
-    brand.appendChild(brandText);
     brand.appendChild(brandImg);
     actions.appendChild(brand);
 
