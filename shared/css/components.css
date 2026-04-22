@@ -1771,6 +1771,21 @@
 .barber-info      { flex: 1; min-width: 0; }
 .barber-name      { font-size: var(--fs-card-title); font-weight: var(--fw-card-title); font-family: var(--font); }
 .barber-sub       { font-size: var(--fs-caption); color: var(--text-muted); margin-top: 2px; }
+
+/* Wrapper de card de barbearia (lista) + endereço abaixo */
+.barber-card-item {
+  display: flex;
+  flex-direction: column;
+}
+.barber-addr-below {
+  font-size: .72rem;
+  color: var(--text-muted, #a08060);
+  padding: 2px 14px 8px 62px; /* alinha com o texto do card (avatar 44px + gap) */
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .barber-meta      { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .price            { font-size: .8rem; font-weight: 700; color: var(--gold); }
 

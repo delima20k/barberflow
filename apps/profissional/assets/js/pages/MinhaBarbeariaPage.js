@@ -71,7 +71,6 @@ class MinhaBarbeariaPage {
     const q = id => document.getElementById(id);
     this.#refs = {
       nome:          q('mb-nome'),
-      storyAddr:     q('mb-story-addr'),
       coverImg:      q('mb-cover-img'),
       coverInput:    q('mb-cover-input'),
       quotaTxt:      q('mb-quota-txt'),
@@ -247,10 +246,9 @@ class MinhaBarbeariaPage {
   // ── Renders ─────────────────────────────────────────────────
 
   #renderCabecalho(shop) {
-    const { nome, storyAddr } = this.#refs;
+    const { nome } = this.#refs;
 
     if (nome)      nome.textContent      = shop.name ?? '';
-    if (storyAddr) storyAddr.textContent = [shop.address, shop.city].filter(Boolean).join(' · ');
 
     if (shop.cover_path) {
       const url = SupabaseService.getLogoUrl(shop.cover_path);

@@ -60,7 +60,18 @@ class BarbeariasPage {
       }
 
       this.#listaEl.innerHTML = '';
-      lista.forEach(b => this.#listaEl.appendChild(this.#criarCard(b)));
+      lista.forEach(b => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'barber-card-item';
+        wrapper.appendChild(this.#criarCard(b));
+        if (b.address || b.city) {
+          const addr = document.createElement('p');
+          addr.className   = 'barber-addr-below';
+          addr.textContent = [b.address, b.city].filter(Boolean).join(' · ');
+          wrapper.appendChild(addr);
+        }
+        this.#listaEl.appendChild(wrapper);
+      });
 
     } catch (err) {
       console.error('[BarbeariasPage] erro ao carregar:', err);
@@ -96,7 +107,7 @@ class BarbeariasPage {
 
     const sub = document.createElement('p');
     sub.className   = 'barber-sub';
-    sub.textContent = b.city ? `${b.address ? b.address + ' — ' : ''}${b.city}` : (b.address || 'Barbearia');
+    sub.textContent = b.city || 'Barbearia';
 
     info.appendChild(nome);
     info.appendChild(sub);
