@@ -223,7 +223,7 @@ class BarbershopRepository {
     const { data, error } = await SupabaseService.profilesPublic()
       .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count')
       .eq('role', 'professional')
-      .eq('pro_type', 'barbeiro')
+      .in('pro_type', ['barbeiro', 'barbearia'])
       .order('rating_count', { ascending: false })
       .limit(limit);
 

@@ -144,6 +144,14 @@ class BarbeirosPage {
     const nome = document.createElement('p');
     nome.className   = 'barber-name';
     nome.textContent = p.full_name || 'Barbeiro';
+    info.appendChild(nome);
+
+    if (p.pro_type === 'barbearia') {
+      const badge = document.createElement('span');
+      badge.className   = 'barber-owner-badge';
+      badge.textContent = '🏪 Tem Barbearia';
+      info.appendChild(badge);
+    }
 
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
@@ -152,7 +160,6 @@ class BarbeirosPage {
       <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
     starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
 
-    info.appendChild(nome);
     info.appendChild(starsRow);
 
     row.appendChild(avatarWrap);

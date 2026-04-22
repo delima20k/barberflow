@@ -325,6 +325,14 @@ class NearbyBarbershopsWidget {
         const nome = document.createElement('p');
         nome.className = 'barber-name';
         nome.textContent = p.full_name || 'Barbeiro';
+        info.appendChild(nome);
+
+        if (p.pro_type === 'barbearia') {
+          const badge = document.createElement('span');
+          badge.className   = 'barber-owner-badge';
+          badge.textContent = '🏪 Tem Barbearia';
+          info.appendChild(badge);
+        }
 
         // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
         const starsRow = document.createElement('div');
@@ -334,7 +342,6 @@ class NearbyBarbershopsWidget {
           <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
         starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
 
-        info.appendChild(nome);
         info.appendChild(starsRow);
 
         row.appendChild(avatarWrap);
