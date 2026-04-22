@@ -1078,6 +1078,15 @@
   border-left: 2px solid rgba(212,175,55,.3);
 }
 
+/* tela-barbeiros: reduz espaço entre header e conteúdo */
+#tela-barbeiros .tela-topo {
+  padding-top: 4px;
+  padding-bottom: 0;
+}
+#tela-barbeiros .tela-topo + .content {
+  margin-top: 6px;
+}
+
 /* Parágrafo descritivo da tela Barbeiros */
 .barbeiros-intro {
   font-size: .8rem;
