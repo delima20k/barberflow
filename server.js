@@ -122,10 +122,10 @@ class DevServer {
         return;
       }
 
-      const ext          = path.extname(filePath).toLowerCase();
-      const mimeType     = DevServer.#MIME[ext] ?? 'application/octet-stream';
+      const fileExt      = path.extname(filePath).toLowerCase();
+      const mimeType     = DevServer.#MIME[fileExt] ?? 'application/octet-stream';
       // HTML: no-store desabilita bfcache. Outros assets: no-cache para revalidação.
-      const cacheControl = ext === '.html' ? 'no-store' : 'no-cache';
+      const cacheControl = fileExt === '.html' ? 'no-store' : 'no-cache';
 
       DevServer.#responder(res, 200, mimeType, data, { 'Cache-Control': cacheControl });
       DevServer.#log(200, req.url);

@@ -5,16 +5,18 @@
 //
 // Responsabilidades:
 //  • Exibir KPIs, stories ativos, portfólio e serviços/produtos.
-//  • 1º story-card = card de upload com ícone de engrenagem.
+//  • 1º story-card = card de upload de mídia (vídeo/imagem).
 //    - Dono da barbearia: até 3 vídeos/dia.
 //    - Barbeiro convidado: até 1 vídeo/dia.
-//  • Botão "Mais" → painel de configurações (slide lateral).
+//  • Botão +GPS → sub-painel GPS (slide sobre a tela).
+//    - CEP + ViaCEP, GPS nativo, salva endereço no Supabase.
+//  • Botão + Mais → sub-painel configurações (slide sobre a tela).
 //    - Upload capa, upload logo circular, nome, serviços/produtos.
 //    - Salva no Supabase.
 //
 // Dependências: BarbershopRepository.js, BarbershopService.js,
 //               AuthService.js, SupabaseService.js,
-//               NotificationService.js
+//               NotificationService.js, DigText (SearchWidget.js)
 // =============================================================
 
 class MinhaBarbeariaPage {
@@ -798,6 +800,10 @@ class MinhaBarbeariaPage {
                    : tipo === 'erro'? 'gps-msg gps-msg--erro'
                    : 'gps-msg';
   }
+
+  // ── Banner de localização: GPS rápido ────────────────────────
+
+  async #salvarGPS(ownerId) {
     const msg = document.getElementById('mb-loc-msg');
     const btn = document.getElementById('mb-btn-gps');
     if (btn) { btn.disabled = true; btn.textContent = 'Obtendo posição…'; }
