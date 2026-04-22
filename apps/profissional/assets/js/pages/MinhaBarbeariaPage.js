@@ -79,7 +79,6 @@ class MinhaBarbeariaPage {
       maisBtn:       q('mb-mais-btn'),
       slot2:         q('mb-story-slot-2'),
       slot3:         q('mb-story-slot-3'),
-      locBanner:     q('mb-loc-banner'),
       kpiRating:     q('mb-kpi-rating'),
       kpiClientes:   q('mb-kpi-clientes'),
       kpiPortfolio:  q('mb-kpi-portfolio'),
@@ -159,7 +158,6 @@ class MinhaBarbeariaPage {
 
       this.#renderCabecalho(shop);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
-      this.#renderLocBanner(shop);
       this.#renderKpis(shop, portfolio.length);
       this.#renderPortfolio(portfolio);
       this.#renderServicos(servicos);
@@ -360,50 +358,6 @@ class MinhaBarbeariaPage {
         </div>
       </div>
     `).join('');
-  }
-
-  // ── Banner de localização ────────────────────────────────────
-
-  #renderLocBanner(shop) {
-    const el = this.#refs.locBanner;
-    if (!el) return;
-
-    if (shop.latitude && shop.longitude) {
-      el.innerHTML = ''; // barbearia já tem localização → sem banner
-      return;
-    }
-
-    const ownerId = shop.owner_id;
-    el.innerHTML = `
-      <div class="loc-banner">
-        <div class="loc-banner__header">
-          <span class="loc-banner__icon">📍</span>
-          <div>
-            <p class="loc-banner__titulo">Localização não configurada</p>
-            <p class="loc-banner__sub">Sua barbearia não aparece no mapa dos clientes. Defina agora.</p>
-          </div>
-        </div>
-        <button class="btn btn-gold btn-full" id="mb-btn-gps">Usar minha localização (GPS)</button>
-        <div class="loc-banner__cep-row">
-          <input type="text" id="mb-cep-input" inputmode="numeric" maxlength="9"
-                 placeholder="Ou informe o CEP: 00000-000" class="loc-banner__cep-input">
-          <button class="btn btn-outline" id="mb-btn-cep">OK</button>
-        </div>
-        <p id="mb-loc-msg" class="loc-banner__msg"></p>
-      </div>
-    `;
-
-    el.querySelector('#mb-btn-gps').addEventListener('click', () => this.#salvarGPS(ownerId));
-    el.querySelector('#mb-btn-cep').addEventListener('click', () => {
-      const cep = el.querySelector('#mb-cep-input').value;
-      this.#salvarCep(ownerId, cep);
-    });
-    // Máscara simples de CEP
-    el.querySelector('#mb-cep-input').addEventListener('input', e => {
-      let v = e.target.value.replace(/\D/g, '').slice(0, 8);
-      if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
-      e.target.value = v;
-    });
   }
 
   // ── Sub-painéis (Config + GPS) ───────────────────────────────
@@ -776,7 +730,6 @@ class MinhaBarbeariaPage {
         if (this.#coordsGps) {
           this.#shopData.latitude  = this.#coordsGps.lat;
           this.#shopData.longitude = this.#coordsGps.lng;
-          this.#renderLocBanner(this.#shopData); // remove o banner se GPS agora está ok
         }
       }
 
@@ -797,47 +750,6 @@ class MinhaBarbeariaPage {
     el.className   = tipo === 'ok'  ? 'gps-msg gps-msg--ok'
                    : tipo === 'erro'? 'gps-msg gps-msg--erro'
                    : 'gps-msg';
-  }
-
-  // ── Banner de localização: GPS rápido ────────────────────────
-
-  async #salvarGPS(ownerId) {
-    const msg = document.getElementById('mb-loc-msg');
-    const btn = document.getElementById('mb-btn-gps');
-    if (btn) { btn.disabled = true; btn.textContent = 'Obtendo posição…'; }
-
-    try {
-      const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
-      );
-      await BarbershopService.salvarLocalizacaoGPS(ownerId, pos.coords.latitude, pos.coords.longitude);
-      if (msg) msg.textContent = '✅ Localização salva! Sua barbearia já aparece no mapa.';
-      setTimeout(() => { this.#carregou = false; this.#carregar(); }, 1500);
-    } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Usar minha localização (GPS)'; }
-      if (msg) msg.textContent = e?.code === 1 ? 'GPS negado. Use o CEP abaixo.' : 'Erro ao obter GPS.';
-    }
-  }
-
-  async #salvarCep(ownerId, cep) {
-    const msg = document.getElementById('mb-loc-msg');
-    const btn = document.getElementById('mb-btn-cep');
-    cep = (cep ?? '').replace(/\D/g, '');
-
-    if (cep.length !== 8) {
-      if (msg) msg.textContent = 'Digite um CEP válido com 8 dígitos.';
-      return;
-    }
-    if (btn) { btn.disabled = true; btn.textContent = '…'; }
-
-    try {
-      await BarbershopService.salvarLocalizacaoCep(ownerId, cep);
-      if (msg) msg.textContent = '✅ Localização salva! Sua barbearia já aparece no mapa.';
-      setTimeout(() => { this.#carregou = false; this.#carregar(); }, 1500);
-    } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = 'OK'; }
-      if (msg) msg.textContent = e?.message ?? 'CEP não encontrado. Verifique e tente novamente.';
-    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────
