@@ -53,6 +53,9 @@ class BarbeariasPage {
     try {
       const lista = await BarbershopRepository.getAll(100);
 
+      // Carrega favoritos em cache antes de renderizar (idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
+
       if (!lista.length) {
         this.#listaEl.innerHTML = '';
         if (this.#vazioEl) this.#vazioEl.hidden = false;
@@ -60,28 +63,30 @@ class BarbeariasPage {
       }
 
       this.#listaEl.innerHTML = '';
+      const cards = [];
       lista.forEach(b => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'barber-card-item';
-        wrapper.appendChild(this.#criarCard(b));
-        if (b.address || b.city) {
-          const addr = document.createElement('p');
-          addr.className   = 'barber-addr-below';
-          addr.textContent = [b.address, b.city].filter(Boolean).join(' · ');
-          wrapper.appendChild(addr);
-        }
-        this.#listaEl.appendChild(wrapper);
+        const card = this.#criarCard(b);
+        this.#listaEl.appendChild(card);
+        cards.push(card);
       });
 
+      // Restaura estado visual de like/dislike/favorito do usuário logado
+      BarbershopService.restaurarInteracoes(cards);
+
     } catch (err) {
-      console.error('[BarbeariasPage] erro ao carregar:', err);
+      LoggerService.error('[BarbeariasPage] erro ao carregar:', err);
       this.#listaEl.innerHTML = '<p style="color:#e07070;text-align:center;padding:20px;">Erro ao carregar barbearias.</p>';
     }
   }
 
   #criarCard(b) {
+    const ratingAvg = Number(b.rating_avg ?? 0);
+
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
+    if (b?.id) row.dataset.barbershopId = b.id;
+    row.dataset.likes    = Number(b.likes_count    ?? 0);
+    row.dataset.dislikes = Number(b.dislikes_count ?? 0);
 
     // Avatar / logo
     const avatarWrap = document.createElement('div');
@@ -97,7 +102,7 @@ class BarbeariasPage {
       avatarWrap.textContent = '💈';
     }
 
-    // Info
+    // Info: nome + estrelas (padrão top-card__stars)
     const info = document.createElement('div');
     info.className = 'barber-info';
 
@@ -105,32 +110,37 @@ class BarbeariasPage {
     nome.className   = 'barber-name';
     nome.textContent = b.name || 'Barbearia';
 
-    const sub = document.createElement('p');
-    sub.className   = 'barber-sub';
-    sub.textContent = b.city || 'Barbearia';
+    const likes    = Number(b.likes_count    ?? 0);
+    const starsRow = document.createElement('div');
+    starsRow.className = 'top-card__stars';
+    starsRow.innerHTML = `
+      ${BarbershopService.criarEstrelasHTML(ratingAvg)}
+      <span class="dc-rating-num">${ratingAvg.toFixed(1)}</span>
+      <button type="button" class="top-card__likes" data-action="barbershop-like"
+              aria-label="Curtir barbearia" title="Curtir barbearia">
+        <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>
+      </button>`;
 
     info.appendChild(nome);
-    info.appendChild(sub);
-
-    // Meta (rating + badge aberto/fechado)
-    const meta = document.createElement('div');
-    meta.className = 'barber-meta';
-
-    if (b.rating_avg) {
-      const rating = document.createElement('span');
-      rating.className   = 'badge';
-      rating.textContent = `★ ${Number(b.rating_avg).toFixed(1)}`;
-      meta.appendChild(rating);
-    }
-
-    const statusBadge = document.createElement('span');
-    statusBadge.className   = `badge ${b.is_open ? 'badge-open' : 'badge-closed'}`;
-    statusBadge.textContent = b.is_open ? 'Aberto' : 'Fechado';
-    meta.appendChild(statusBadge);
+    info.appendChild(starsRow);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
-    row.appendChild(meta);
+
+    // Canto superior direito: badge (Aberto/Fechado) + favorito com confetes
+    if (b?.id) {
+      const actions = document.createElement('div');
+      actions.className = 'top-card__actions';
+
+      const badge = document.createElement('span');
+      badge.className   = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
+      badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+      actions.appendChild(badge);
+
+      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      row.appendChild(actions);
+    }
+
     return row;
   }
 
@@ -140,7 +150,6 @@ class BarbeariasPage {
         <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
         <div class="barber-info">
           <p class="barber-name" style="width:130px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-          <p class="barber-sub"  style="width:90px;height:11px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
         </div>
       </div>`).join('');
   }

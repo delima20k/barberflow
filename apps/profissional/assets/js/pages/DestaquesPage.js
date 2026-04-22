@@ -52,6 +52,9 @@ class DestaquesPage {
     this.#listaEl.innerHTML = this.#skeleton(8);
 
     try {
+      // Pre-carrega favoritos do usuário (cache, idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
+
       const lista = await BarbershopRepository.getTopRated(50);
 
       if (!lista.length) {
@@ -61,10 +64,18 @@ class DestaquesPage {
       }
 
       this.#listaEl.innerHTML = '';
-      lista.forEach((b, i) => this.#listaEl.appendChild(this.#criarCard(b, i)));
+      const cards = [];
+      lista.forEach((b, i) => {
+        const card = this.#criarCard(b, i);
+        this.#listaEl.appendChild(card);
+        cards.push(card);
+      });
+
+      // Restaura estado visual de like/dislike/favorito do usuário logado
+      BarbershopService.restaurarInteracoes(cards);
 
     } catch (err) {
-      console.error('[DestaquesPage] erro ao carregar:', err);
+      LoggerService.error('[DestaquesPage] erro ao carregar:', err);
       this.#listaEl.innerHTML = '<p style="color:#e07070;text-align:center;padding:20px;">Erro ao carregar barbearias.</p>';
     }
   }
@@ -75,8 +86,8 @@ class DestaquesPage {
     const score = b.rating_score != null
       ? Number(b.rating_score)
       : BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0);
-    const fillPct = ((score / 5) * 100).toFixed(1);
 
+    // Card wrapper
     const card = document.createElement('div');
     card.className = 'top-card';
     card.dataset.barbershopId = b.id;
@@ -114,29 +125,38 @@ class DestaquesPage {
     addr.className = 'top-card__addr';
     addr.textContent = b.address || b.city || '';
 
+    // Estrelas
     const starsWrap = document.createElement('div');
     starsWrap.className = 'top-card__stars';
     starsWrap.innerHTML = `
-      <span class="dc-stars-wrap">
-        <span class="dc-stars-base" aria-hidden="true">★★★★★</span>
-        <span class="dc-stars-fill" style="width:${fillPct}%" aria-hidden="true">★★★★★</span>
-      </span>
+      ${BarbershopService.criarEstrelasHTML(score)}
       <span class="dc-rating-num">${score.toFixed(1)}</span>
-      <span class="top-card__likes">👍 ${likes}</span>`;
+      <button type="button" class="top-card__likes" data-action="barbershop-like"
+              aria-label="Curtir barbearia" title="Curtir barbearia">
+        <span class="tcl-ico">👍</span><span class="dc-count">${likes}</span>
+      </button>`;
 
     info.appendChild(nome);
     info.appendChild(addr);
     info.appendChild(starsWrap);
 
-    // ── Badge ─────────────────────────────────────────────
+    // ── Badge + botão favorito (coluna no canto superior direito) ──
+    const actions = document.createElement('div');
+    actions.className = 'top-card__actions';
+
     const badge = document.createElement('span');
     badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
     badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+    actions.appendChild(badge);
+
+    if (b?.id) {
+      actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+    }
 
     card.appendChild(rank);
     card.appendChild(avatar);
     card.appendChild(info);
-    card.appendChild(badge);
+    card.appendChild(actions);
 
     return card;
   }
