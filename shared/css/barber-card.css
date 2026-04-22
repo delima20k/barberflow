@@ -1129,9 +1129,9 @@
 
 /* Sobrescreve posição/gap quando é brand dentro de .barber-card */
 .barber-card .card-actions-brand {
-  top: 0.3rem;
+  top: 5px;
   right: 0.3rem;
-  gap: 0.6rem;
+  gap: 0.8rem;
 }
 
 /* Botão favorito afastado 1.5rem da borda direita do card */
@@ -1152,7 +1152,7 @@
   line-height: 1;
 }
 .card-brand-logo {
-  height: 72px;
+  height: 86px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -1172,13 +1172,17 @@
   border-left: 2px solid rgba(212,175,55,.3);
 }
 
-/* tela-barbeiros: reduz espaço entre header e conteúdo */
+/* tela-barbeiros: logo a 0.5rem do botão voltar */
 #tela-barbeiros .tela-topo {
   padding-top: 4px;
   padding-bottom: 0;
 }
 #tela-barbeiros .tela-topo + .content {
-  margin-top: 6px;
+  margin-top: 0;
+  padding-top: 0;
+}
+#tela-barbeiros .destaques-hero {
+  margin-top: 0.5rem;
 }
 
 /* Parágrafo descritivo da tela Barbeiros */
