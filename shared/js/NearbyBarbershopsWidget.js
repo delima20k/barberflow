@@ -111,9 +111,16 @@ class NearbyBarbershopsWidget {
       } catch (_) { /* sem GPS */ }
 
       // Fallback: busca todas ordenadas por popularidade
-      if (!lista) lista = await BarbershopRepository.getAll(20);
+      // Usa !lista?.length para cobrir GPS com lista vazia ([] é truthy)
+      if (!lista?.length) lista = await BarbershopRepository.getAll(20);
 
       el.innerHTML = '';
+
+      // Normaliza logo_path para URL completa (igual a initHomeTodas)
+      lista = lista.map(b => ({
+        ...b,
+        logo_path: b.logo_path ? SupabaseService.getLogoUrl(b.logo_path) : null,
+      }));
 
       // Agrupa em pares — cada coluna tem 2 cards
       for (let i = 0; i < lista.length; i += 2) {
@@ -605,8 +612,9 @@ class NearbyBarbershopsWidget {
       </button>`;
 
     info.appendChild(nome);
-    info.appendChild(sub);
     info.appendChild(starsRow);
+    // Endereço abaixo das estrelas (conforme solicitado)
+    info.appendChild(sub);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
