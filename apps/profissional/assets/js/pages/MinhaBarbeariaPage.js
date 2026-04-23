@@ -96,6 +96,20 @@ class MinhaBarbeariaPage {
       cfgAddProd:    q('mb-cfg-add-produto'),
       cfgSalvar:      q('mb-config-salvar'),
       cfgMsg:         q('mb-config-msg'),
+      // Config panel — campos editáveis (lápis)
+      cfgWhats:          q('mb-cfg-whats'),
+      cfgWhatsDisplay:   q('mb-cfg-whats-display'),
+      cfgWhatsLapis:     q('mb-cfg-whats-lapis'),
+      cfgFounded:        q('mb-cfg-founded'),
+      cfgFoundedDisplay: q('mb-cfg-desde-display'),
+      cfgFoundedLapis:   q('mb-cfg-desde-lapis'),
+      // Info card (tela principal)
+      infoCard:          q('mb-info-card'),
+      infoNome:          q('mb-info-nome'),
+      infoRua:           q('mb-info-rua'),
+      infoCidade:        q('mb-info-cidade'),
+      infoDesde:         q('mb-info-desde'),
+      infoWhats:         q('mb-info-whats'),
       // GPS sub-painel
       gpsFechar:      q('mb-gps-fechar'),
       gpsCep:         q('gps-cep'),
@@ -130,6 +144,9 @@ class MinhaBarbeariaPage {
     this.#refs.gpsBtnBuscar?.addEventListener('click', () => this.#buscarCep());
     this.#refs.gpsBtnGps?.addEventListener('click',    () => this.#ativarGps());
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
+    // Campos editáveis com lápis
+    this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#toggleEditable('whats'));
+    this.#refs.cfgFoundedLapis?.addEventListener('click', () => this.#toggleEditable('founded'));
   }
 
   // ── Carregamento principal ───────────────────────────────────
@@ -162,6 +179,7 @@ class MinhaBarbeariaPage {
       this.#renderPortfolio(portfolio);
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
+      this.#renderInfoCard(shop);
 
     } catch (err) {
       console.error('[MinhaBarbeariaPage] erro:', err);
@@ -172,7 +190,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, owner_id, name, address, city, state, zip_code, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude')
+      .select('id, owner_id, name, address, city, state, zip_code, neighborhood, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude, whatsapp, founded_year')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
@@ -394,6 +412,25 @@ class MinhaBarbeariaPage {
       if (url) this.#refs.cfgLogoImg.src = url;
     }
 
+    // Campos editáveis lápis
+    const whats = shop.whatsapp ?? '';
+    if (this.#refs.cfgWhats) {
+      this.#refs.cfgWhats.value = whats;
+      this.#refs.cfgWhats.style.display = 'none';
+    }
+    if (this.#refs.cfgWhatsDisplay)
+      this.#refs.cfgWhatsDisplay.textContent = whats || 'Não informado';
+    this.#refs.cfgWhatsLapis?.classList.remove('mb-cfg-lapis-ativo');
+
+    const founded = shop.founded_year ? String(shop.founded_year) : '';
+    if (this.#refs.cfgFounded) {
+      this.#refs.cfgFounded.value = founded;
+      this.#refs.cfgFounded.style.display = 'none';
+    }
+    if (this.#refs.cfgFoundedDisplay)
+      this.#refs.cfgFoundedDisplay.textContent = founded || 'Não informado';
+    this.#refs.cfgFoundedLapis?.classList.remove('mb-cfg-lapis-ativo');
+
     const lista = this.#refs.cfgProdutos;
     if (!lista) return;
     lista.innerHTML = '';
@@ -431,20 +468,35 @@ class MinhaBarbeariaPage {
     if (msg) msg.textContent = '';
 
     try {
-      const nome = this.#refs.cfgNome?.value?.trim();
-      if (nome) {
-        const { error } = await SupabaseService.barbershops()
-          .update({ name: nome })
-          .eq('id', this.#barbershopId);
-        if (error) throw error;
-      }
+      const nome        = (this.#refs.cfgNome?.value     ?? '').trim();
+      const whatsapp    = (this.#refs.cfgWhats?.value    ?? '').trim() || null;
+      const foundedRaw  = (this.#refs.cfgFounded?.value  ?? '').trim();
+      const foundedYear = foundedRaw ? (parseInt(foundedRaw, 10) || null) : null;
+
+      const payload = { whatsapp, founded_year: foundedYear };
+      if (nome) payload.name = nome;
+
+      const { error } = await SupabaseService.barbershops()
+        .update(payload)
+        .eq('id', this.#barbershopId);
+      if (error) throw error;
 
       await this.#salvarProdutos();
 
-      if (msg) msg.textContent = '✅ Alterações salvas!';
-      if (nome) {
-        if (this.#refs.nome) this.#refs.nome.textContent = nome;
+      // Fechar campos editáveis e atualizar exibição
+      this.#fecharEditable('whats');
+      this.#fecharEditable('founded');
+
+      // Atualizar cache + info card
+      if (this.#shopData) {
+        if (nome) this.#shopData.name = nome;
+        this.#shopData.whatsapp     = whatsapp;
+        this.#shopData.founded_year = foundedYear;
+        this.#renderInfoCard(this.#shopData);
       }
+
+      if (msg) msg.textContent = '✅ Alterações salvas!';
+      if (nome && this.#refs.nome) this.#refs.nome.textContent = nome;
       setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarConfiguracoes erro:', err);
@@ -686,6 +738,7 @@ class MinhaBarbeariaPage {
     const num      = this.#refs.gpsNumero?.value.trim()                ?? '';
     const cidadeUf = this.#refs.gpsCidade?.value.trim()                ?? '';
     const comp     = this.#refs.gpsComplemento?.value.trim()           ?? '';
+    const bairro   = this.#refs.gpsBairro?.value.trim()                ?? '';
 
     if (!rua) { this.#mostrarGpsMsg('Informe o CEP para preencher o endereço.', 'erro'); return; }
     if (!num) {
@@ -703,10 +756,11 @@ class MinhaBarbeariaPage {
 
     const payload = {
       address,
-      city:       city  || null,
-      state:      state || null,
-      zip_code:   cep   || null,
-      updated_at: new Date().toISOString(),
+      city:         city    || null,
+      state:        state   || null,
+      zip_code:     cep     || null,
+      neighborhood: bairro  || null,
+      updated_at:   new Date().toISOString(),
     };
     if (this.#coordsGps) {
       payload.latitude  = this.#coordsGps.lat;
@@ -726,11 +780,13 @@ class MinhaBarbeariaPage {
       if (this.#shopData) {
         Object.assign(this.#shopData, {
           address, city: city||null, state: state||null, zip_code: cep||null,
+          neighborhood: bairro || null,
         });
         if (this.#coordsGps) {
           this.#shopData.latitude  = this.#coordsGps.lat;
           this.#shopData.longitude = this.#coordsGps.lng;
         }
+        this.#renderInfoCard(this.#shopData);
       }
 
       this.#mostrarGpsMsg('✅ Endereço salvo! Sua barbearia já aparece no mapa.', 'ok');
@@ -761,6 +817,75 @@ class MinhaBarbeariaPage {
 
   static #escapeAttr(str) {
     return String(str ?? '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ── Card de informações (endereço + contato + fundação) ─────
+
+  #renderInfoCard(shop) {
+    const { infoCard, infoNome, infoRua, infoCidade, infoDesde, infoWhats } = this.#refs;
+    if (!infoCard) return;
+
+    const temDados = shop.address || shop.city || shop.whatsapp || shop.founded_year;
+    if (!temDados) { infoCard.hidden = true; return; }
+
+    if (infoNome) infoNome.textContent = shop.name ?? '';
+
+    if (infoRua) {
+      infoRua.textContent = shop.address || '';
+      infoRua.hidden = !shop.address;
+    }
+
+    if (infoCidade) {
+      const partes = [shop.neighborhood, shop.city, shop.state].filter(Boolean);
+      infoCidade.textContent = partes.join(' · ');
+      infoCidade.hidden = partes.length === 0;
+    }
+
+    if (infoDesde) {
+      infoDesde.textContent = shop.founded_year ? `Desde ${shop.founded_year}` : '';
+      infoDesde.hidden = !shop.founded_year;
+    }
+
+    if (infoWhats) {
+      infoWhats.textContent = shop.whatsapp
+        ? `📲 Para mais informações: WhatsApp ${shop.whatsapp}` : '';
+      infoWhats.hidden = !shop.whatsapp;
+    }
+
+    infoCard.hidden = false;
+  }
+
+  // ── Campos editáveis com lápis ───────────────────────────────
+
+  #toggleEditable(field) {
+    const inputRef   = field === 'whats' ? this.#refs.cfgWhats       : this.#refs.cfgFounded;
+    const displayRef = field === 'whats' ? this.#refs.cfgWhatsDisplay : this.#refs.cfgFoundedDisplay;
+    const lapisRef   = field === 'whats' ? this.#refs.cfgWhatsLapis   : this.#refs.cfgFoundedLapis;
+    if (!inputRef) return;
+
+    const abrir = inputRef.style.display === 'none';
+    if (abrir) {
+      inputRef.style.display = '';
+      if (displayRef) displayRef.style.display = 'none';
+      lapisRef?.classList.add('mb-cfg-lapis-ativo');
+      inputRef.focus();
+    } else {
+      this.#fecharEditable(field);
+    }
+  }
+
+  #fecharEditable(field) {
+    const inputRef   = field === 'whats' ? this.#refs.cfgWhats       : this.#refs.cfgFounded;
+    const displayRef = field === 'whats' ? this.#refs.cfgWhatsDisplay : this.#refs.cfgFoundedDisplay;
+    const lapisRef   = field === 'whats' ? this.#refs.cfgWhatsLapis   : this.#refs.cfgFoundedLapis;
+    if (!inputRef) return;
+    const val = inputRef.value.trim();
+    if (displayRef) {
+      displayRef.style.display = '';
+      displayRef.textContent   = val || 'Não informado';
+    }
+    inputRef.style.display = 'none';
+    lapisRef?.classList.remove('mb-cfg-lapis-ativo');
   }
 
   #mostrarSkeleton() {

@@ -800,6 +800,18 @@
         <div id="mb-servicos-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
+      <!-- Card de informações da barbearia (endereço + contato + fundação) -->
+      <div id="mb-info-card" class="mb-info-card" hidden>
+        <div class="mb-info-header">
+          <span class="mb-info-icon">📍</span>
+          <p class="mb-info-nome" id="mb-info-nome"></p>
+        </div>
+        <p class="mb-info-linha" id="mb-info-rua"></p>
+        <p class="mb-info-linha" id="mb-info-cidade"></p>
+        <p class="mb-info-linha mb-info-desde" id="mb-info-desde" hidden></p>
+        <p class="mb-info-linha mb-info-whats" id="mb-info-whats" hidden></p>
+      </div>
+
     </div>
   </main>
 
@@ -922,6 +934,30 @@
           <p class="mb-config-secao-label">Nome do Salão</p>
           <input type="text" id="mb-cfg-nome" class="mb-config-input"
                  placeholder="Nome da barbearia" maxlength="80">
+        </div>
+
+        <!-- WhatsApp para contato -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">WhatsApp para contato</p>
+          <div class="mb-cfg-editable-row">
+            <span id="mb-cfg-whats-display" class="mb-cfg-display-val">Não informado</span>
+            <input type="tel" id="mb-cfg-whats" class="mb-config-input"
+                   placeholder="(11) 99999-9999" maxlength="20" style="display:none">
+            <button class="mb-cfg-lapis-btn" id="mb-cfg-whats-lapis"
+                    type="button" aria-label="Editar WhatsApp">✏️</button>
+          </div>
+        </div>
+
+        <!-- Barbearia desde (ano de fundação) -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Barbearia desde (ano)</p>
+          <div class="mb-cfg-editable-row">
+            <span id="mb-cfg-desde-display" class="mb-cfg-display-val">Não informado</span>
+            <input type="number" id="mb-cfg-founded" class="mb-config-input"
+                   placeholder="Ex: 1999" min="1900" max="2099" style="display:none">
+            <button class="mb-cfg-lapis-btn" id="mb-cfg-desde-lapis"
+                    type="button" aria-label="Editar ano de fundação">✏️</button>
+          </div>
         </div>
 
         <!-- Formulário dinâmico de produtos/preços -->
