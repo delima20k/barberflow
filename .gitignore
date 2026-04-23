@@ -51,3 +51,4 @@ logs/
 # Build artifacts — pasta shared copiada pelo buildCommand da Vercel
 apps/cliente/shared/
 apps/profissional/shared/
+.vercel
