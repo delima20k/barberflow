@@ -849,3 +849,43 @@ dig.iniciar(); // para primeira carga
 ```
 
 ---
+
+# ANIMAÇÃO GASPAR
+
+**Quando o usuário disser "use a animação gaspar"**, aplicar exatamente esse padrão:
+
+## O que é
+Animação de mensagem em duas fases:
+1. **Entrada** — as palavras do texto aparecem uma a uma, da esquerda para direita, com fade-in escalonado (cada palavra começa em `opacity:0` e vai para `opacity:1` com atraso de 110ms entre palavras, duração de 350ms por palavra)
+2. **Saída** — após uma pausa visível, **todo o elemento** desaparece suavemente com fade-out (opacity 1→0 em 900ms, easing `ease-in`)
+
+## Localização
+`shared/js/AnimationService.js` — método estático `gaspar(el, texto, duracaoMs)`
+
+## Assinatura
+```js
+AnimationService.gaspar(el, texto, duracaoMs = 3500)
+// el        — HTMLElement que receberá e exibirá o texto
+// texto     — string da mensagem
+// duracaoMs — tempo total (ms) entre início e fim do fade-out (padrão: 3500ms)
+```
+
+## Como usar
+```js
+// Em qualquer ponto do código:
+AnimationService.gaspar(this.#refs.gpsMsg, '✅ Endereço salvo com sucesso!');
+
+// Com duração customizada:
+AnimationService.gaspar(msgEl, 'Dados atualizados!', 5000);
+```
+
+## Comportamento pós-animação
+- Após o fade-out, o elemento fica com `innerHTML = ''` e `opacity` limpo
+- Se `gaspar()` for chamado novamente enquanto está rodando, a animação anterior é cancelada limpa e a nova começa
+
+## Regras de uso
+- Usar **somente para mensagens de sucesso** — mensagens de erro usam `#mostrarGpsMsg` ou equivalente direto
+- O elemento receptor deve ter a classe `.gps-msg` ou similar com `min-height` definida para não causar layout shift
+- **Não criar keyframes CSS** para isso — a animação usa exclusivamente WAAPI (Web Animations API)
+
+---

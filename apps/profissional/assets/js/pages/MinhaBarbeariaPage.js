@@ -833,6 +833,7 @@ class MinhaBarbeariaPage {
 
     const btn = this.#refs.gpsBtnSalvar;
     if (btn) { btn.textContent = 'Salvando…'; btn.disabled = true; }
+    let _sucesso = false;
 
     try {
       const { error } = await SupabaseService.barbershops()
@@ -854,13 +855,18 @@ class MinhaBarbeariaPage {
       }
       this.#preencherGpsForm();
 
-      this.#mostrarGpsMsg('✅ Endereço salvo! Sua barbearia já aparece no mapa.', 'ok');
+      _sucesso = true;
+      AnimationService.gaspar(this.#refs.gpsMsg, '✅ Endereço salvo! Sua barbearia já aparece no mapa.');
       NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarGps:', err);
       this.#mostrarGpsMsg('Erro ao salvar. Tente novamente.', 'erro');
     } finally {
-      if (btn) { btn.textContent = 'Salvar Endereço'; btn.disabled = false; }
+      if (btn) {
+        btn.textContent = 'Salvar Endereço';
+        // Após salvo com sucesso o botão fica desabilitado (apagado) — sinal visual de "já salvo"
+        if (!_sucesso) btn.disabled = false;
+      }
     }
   }
 

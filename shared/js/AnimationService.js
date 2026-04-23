@@ -104,5 +104,55 @@ const AnimationService = (() => {
     }
   }
 
-  return Object.freeze({ animar });
+  /**
+   * Animação GASPAR — as palavras do texto aparecem uma a uma (fade-in escalonado)
+   * e depois toda a mensagem desaparece suavemente (fade-out).
+   *
+   * Uso:
+   *   AnimationService.gaspar(elemento, 'Mensagem aqui', 3500);
+   *
+   * @param {HTMLElement} el              — Elemento que exibirá a mensagem
+   * @param {string}      texto           — Texto a ser animado
+   * @param {number}      [duracaoMs=3500] — Tempo total visível antes do fade-out
+   */
+  function gaspar(el, texto, duracaoMs = 3500) {
+    if (!el || !texto) return;
+
+    // Cancela execução anterior se houver
+    if (el._gasparTimer) { clearTimeout(el._gasparTimer); el._gasparTimer = null; }
+    el.getAnimations().forEach(a => a.cancel());
+    el.style.opacity = '';
+
+    // Fase 1 — Entrada: cada palavra aparece escalonada (opacity 0 → 1)
+    const palavras         = String(texto).trim().split(/\s+/);
+    el.innerHTML           = palavras.map(p => `<span style="opacity:0">${p}</span>`).join(' ');
+    const spans            = [...el.querySelectorAll('span')];
+    const DELAY_PALAVRA_MS = 110;
+    const DUR_ENTRADA_MS   = 350;
+
+    spans.forEach((span, i) => {
+      span.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: DUR_ENTRADA_MS, delay: i * DELAY_PALAVRA_MS, fill: 'forwards', easing: 'ease-out' }
+      );
+    });
+
+    // Fase 2 — Saída: elemento some suavemente após pausa
+    const totalEntrada = spans.length * DELAY_PALAVRA_MS + DUR_ENTRADA_MS;
+    const pausa        = Math.max(duracaoMs - totalEntrada - 900, 600);
+    const DUR_SAIDA_MS = 900;
+
+    el._gasparTimer = setTimeout(() => {
+      el._gasparTimer = null;
+      el.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: DUR_SAIDA_MS, fill: 'forwards', easing: 'ease-in' }
+      ).onfinish = () => {
+        el.innerHTML     = '';
+        el.style.opacity = '';
+      };
+    }, totalEntrada + pausa);
+  }
+
+  return Object.freeze({ animar, gaspar });
 })();
