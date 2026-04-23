@@ -3396,7 +3396,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 /* Mensagens */
-.gps-msg       { font-size: .84rem; min-height: 1.4em; margin: 6px 0 10px; text-align: center; color: var(--text-on-surface, #F5E9DC); }
+.gps-msg       { font-size: .84rem; min-height: 1.4em; margin: 1rem 0 4px; text-align: center; color: var(--text-on-surface, #F5E9DC); }
 .gps-msg--ok   { color: #4caf50; }
 .gps-msg--erro { color: #e57373; }
 
@@ -3596,6 +3596,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-config-msg {
   font-size: .82rem;
   text-align: center;
-  color: var(--gold);
+  color: var(--text-on-surface, #F5E9DC);
   min-height: 1.2em;
 }

@@ -524,9 +524,8 @@ class MinhaBarbeariaPage {
         this.#renderInfoCard(this.#shopData);
       }
 
-      if (msg) msg.textContent = '✅ Alterações salvas!';
+      AnimationService.gaspar(msg, '✅ Alterações salvas com sucesso!');
       if (nome && this.#refs.nome) this.#refs.nome.textContent = nome;
-      setTimeout(() => { if (msg) msg.textContent = ''; }, 3000);
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarConfiguracoes erro:', err);
       if (msg) msg.textContent = '❌ Erro ao salvar. Tente novamente.';
