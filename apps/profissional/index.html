@@ -831,50 +831,78 @@
 
       <!-- CEP + botão Buscar -->
       <div class="gps-campo">
-        <label class="gps-label" for="gps-cep">CEP</label>
-        <div class="gps-cep-row">
-          <input class="gps-input gps-cep-input" id="gps-cep" type="text"
-                 inputmode="numeric" maxlength="9" placeholder="00000-000"
-                 autocomplete="postal-code">
-          <button class="gps-btn-buscar" id="gps-btn-buscar" type="button">Buscar</button>
+        <label class="gps-label">CEP</label>
+        <div class="mb-cfg-editable-row">
+          <span id="gps-cep-display" class="mb-cfg-display-val">Não informado</span>
+          <div id="gps-cep-row" class="gps-cep-row" style="display:none">
+            <input class="gps-input gps-cep-input" id="gps-cep" type="text"
+                   inputmode="numeric" maxlength="9" placeholder="00000-000"
+                   autocomplete="postal-code">
+            <button class="gps-btn-buscar" id="gps-btn-buscar" type="button">Buscar</button>
+          </div>
+          <button class="mb-cfg-lapis-btn" id="gps-cep-lapis"
+                  type="button" aria-label="Editar CEP">✏️</button>
         </div>
       </div>
 
-      <!-- Logradouro (auto) -->
+      <!-- Logradouro -->
       <div class="gps-campo">
-        <label class="gps-label" for="gps-logradouro">Rua / Avenida</label>
-        <input class="gps-input" id="gps-logradouro" type="text"
-               placeholder="Preenchido automaticamente" readonly>
+        <label class="gps-label">Rua / Avenida</label>
+        <div class="mb-cfg-editable-row">
+          <span id="gps-rua-display" class="mb-cfg-display-val">—</span>
+          <input class="gps-input" id="gps-logradouro" type="text"
+                 placeholder="Rua / Avenida" style="display:none">
+          <button class="mb-cfg-lapis-btn" id="gps-rua-lapis"
+                  type="button" aria-label="Editar rua">✏️</button>
+        </div>
       </div>
 
-      <!-- Bairro (auto) -->
+      <!-- Bairro -->
       <div class="gps-campo">
-        <label class="gps-label" for="gps-bairro">Bairro</label>
-        <input class="gps-input" id="gps-bairro" type="text"
-               placeholder="Preenchido automaticamente" readonly>
+        <label class="gps-label">Bairro</label>
+        <div class="mb-cfg-editable-row">
+          <span id="gps-bairro-display" class="mb-cfg-display-val">—</span>
+          <input class="gps-input" id="gps-bairro" type="text"
+                 placeholder="Bairro" style="display:none">
+          <button class="mb-cfg-lapis-btn" id="gps-bairro-lapis"
+                  type="button" aria-label="Editar bairro">✏️</button>
+        </div>
       </div>
 
-      <!-- Cidade / Estado (auto) -->
+      <!-- Cidade / Estado -->
       <div class="gps-campo">
-        <label class="gps-label" for="gps-cidade">Cidade / Estado</label>
-        <input class="gps-input" id="gps-cidade" type="text"
-               placeholder="Preenchido automaticamente" readonly>
+        <label class="gps-label">Cidade / Estado</label>
+        <div class="mb-cfg-editable-row">
+          <span id="gps-cidade-display" class="mb-cfg-display-val">—</span>
+          <input class="gps-input" id="gps-cidade" type="text"
+                 placeholder="Cidade / Estado" style="display:none">
+          <button class="mb-cfg-lapis-btn" id="gps-cidade-lapis"
+                  type="button" aria-label="Editar cidade">✏️</button>
+        </div>
       </div>
 
       <!-- Complemento -->
       <div class="gps-campo">
-        <label class="gps-label" for="gps-complemento">
-          Complemento <span class="gps-opcional">(opcional)</span>
-        </label>
-        <input class="gps-input" id="gps-complemento" type="text"
-               maxlength="60" placeholder="Sala, Loja, etc.">
+        <label class="gps-label">Complemento <span class="gps-opcional">(opcional)</span></label>
+        <div class="mb-cfg-editable-row">
+          <span id="gps-comp-display" class="mb-cfg-display-val">—</span>
+          <input class="gps-input" id="gps-complemento" type="text"
+                 maxlength="60" placeholder="Sala, Loja, etc." style="display:none">
+          <button class="mb-cfg-lapis-btn" id="gps-comp-lapis"
+                  type="button" aria-label="Editar complemento">✏️</button>
+        </div>
       </div>
 
-      <!-- Número (menor, por último) -->
+      <!-- Número -->
       <div class="gps-campo">
-        <label class="gps-label" for="gps-numero">Número</label>
-        <input class="gps-input gps-input-sm" id="gps-numero" type="text"
-               inputmode="numeric" maxlength="10" placeholder="Ex: 245">
+        <label class="gps-label">Número</label>
+        <div class="mb-cfg-editable-row">
+          <span id="gps-num-display" class="mb-cfg-display-val">—</span>
+          <input class="gps-input gps-input-sm" id="gps-numero" type="text"
+                 inputmode="numeric" maxlength="10" placeholder="Ex: 245" style="display:none">
+          <button class="mb-cfg-lapis-btn" id="gps-num-lapis"
+                  type="button" aria-label="Editar número">✏️</button>
+        </div>
       </div>
 
       <!-- Linha GPS + Salvar -->
@@ -932,8 +960,13 @@
         <!-- Nome do salão -->
         <div class="mb-config-secao">
           <p class="mb-config-secao-label">Nome do Salão</p>
-          <input type="text" id="mb-cfg-nome" class="mb-config-input"
-                 placeholder="Nome da barbearia" maxlength="80">
+          <div class="mb-cfg-editable-row">
+            <span id="mb-cfg-nome-display" class="mb-cfg-display-val">Não informado</span>
+            <input type="text" id="mb-cfg-nome" class="mb-config-input"
+                   placeholder="Nome da barbearia" maxlength="80" style="display:none">
+            <button class="mb-cfg-lapis-btn" id="mb-cfg-nome-lapis"
+                    type="button" aria-label="Editar nome">✏️</button>
+          </div>
         </div>
 
         <!-- WhatsApp para contato -->

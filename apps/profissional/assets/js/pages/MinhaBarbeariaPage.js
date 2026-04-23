@@ -110,19 +110,35 @@ class MinhaBarbeariaPage {
       infoCidade:        q('mb-info-cidade'),
       infoDesde:         q('mb-info-desde'),
       infoWhats:         q('mb-info-whats'),
+      // Config panel — nome lápis
+      cfgNomeDisplay: q('mb-cfg-nome-display'),
+      cfgNomeLapis:   q('mb-cfg-nome-lapis'),
       // GPS sub-painel
-      gpsFechar:      q('mb-gps-fechar'),
-      gpsCep:         q('gps-cep'),
-      gpsBtnBuscar:   q('gps-btn-buscar'),
-      gpsLogradouro:  q('gps-logradouro'),
-      gpsBairro:      q('gps-bairro'),
-      gpsCidade:      q('gps-cidade'),
-      gpsNumero:      q('gps-numero'),
-      gpsComplemento: q('gps-complemento'),
-      gpsBtnGps:      q('gps-btn-gps'),
-      gpsCoordsT:     q('gps-coords-txt'),
-      gpsMsg:         q('gps-msg'),
-      gpsBtnSalvar:   q('gps-btn-salvar'),
+      gpsFechar:        q('mb-gps-fechar'),
+      gpsCep:           q('gps-cep'),
+      gpsCepDisplay:    q('gps-cep-display'),
+      gpsCepLapis:      q('gps-cep-lapis'),
+      gpsCepRow:        q('gps-cep-row'),
+      gpsBtnBuscar:     q('gps-btn-buscar'),
+      gpsLogradouro:    q('gps-logradouro'),
+      gpsRuaDisplay:    q('gps-rua-display'),
+      gpsRuaLapis:      q('gps-rua-lapis'),
+      gpsBairro:        q('gps-bairro'),
+      gpsBairroDisplay: q('gps-bairro-display'),
+      gpsBairroLapis:   q('gps-bairro-lapis'),
+      gpsCidade:        q('gps-cidade'),
+      gpsCidadeDisplay: q('gps-cidade-display'),
+      gpsCidadeLapis:   q('gps-cidade-lapis'),
+      gpsNumero:        q('gps-numero'),
+      gpsNumDisplay:    q('gps-num-display'),
+      gpsNumLapis:      q('gps-num-lapis'),
+      gpsComplemento:   q('gps-complemento'),
+      gpsCompDisplay:   q('gps-comp-display'),
+      gpsCompLapis:     q('gps-comp-lapis'),
+      gpsBtnGps:        q('gps-btn-gps'),
+      gpsCoordsT:       q('gps-coords-txt'),
+      gpsMsg:           q('gps-msg'),
+      gpsBtnSalvar:     q('gps-btn-salvar'),
     };
   }
 
@@ -144,9 +160,17 @@ class MinhaBarbeariaPage {
     this.#refs.gpsBtnBuscar?.addEventListener('click', () => this.#buscarCep());
     this.#refs.gpsBtnGps?.addEventListener('click',    () => this.#ativarGps());
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
-    // Campos editáveis com lápis
-    this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#toggleEditable('whats'));
-    this.#refs.cfgFoundedLapis?.addEventListener('click', () => this.#toggleEditable('founded'));
+    // Campos editáveis (lápis) — Config
+    this.#refs.cfgNomeLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis));
+    this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.cfgWhats,   this.#refs.cfgWhatsDisplay,   this.#refs.cfgWhatsLapis));
+    this.#refs.cfgFoundedLapis?.addEventListener('click', () => this.#_toggleEl(this.#refs.cfgFounded, this.#refs.cfgFoundedDisplay, this.#refs.cfgFoundedLapis));
+    // Campos editáveis (lápis) — GPS
+    this.#refs.gpsCepLapis?.addEventListener('click',    () => this.#_toggleCepRow());
+    this.#refs.gpsRuaLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.gpsLogradouro,  this.#refs.gpsRuaDisplay,     this.#refs.gpsRuaLapis,    '—'));
+    this.#refs.gpsBairroLapis?.addEventListener('click', () => this.#_toggleEl(this.#refs.gpsBairro,      this.#refs.gpsBairroDisplay,  this.#refs.gpsBairroLapis, '—'));
+    this.#refs.gpsCidadeLapis?.addEventListener('click', () => this.#_toggleEl(this.#refs.gpsCidade,      this.#refs.gpsCidadeDisplay,  this.#refs.gpsCidadeLapis, '—'));
+    this.#refs.gpsNumLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.gpsNumero,      this.#refs.gpsNumDisplay,     this.#refs.gpsNumLapis,    '—'));
+    this.#refs.gpsCompLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.gpsComplemento, this.#refs.gpsCompDisplay,    this.#refs.gpsCompLapis,   '—'));
   }
 
   // ── Carregamento principal ───────────────────────────────────
@@ -401,7 +425,11 @@ class MinhaBarbeariaPage {
   }
 
   #preencherConfigPanel(shop, servicos) {
-    if (this.#refs.cfgNome) this.#refs.cfgNome.value = shop.name ?? '';
+    // Nome (lápis)
+    const nome = shop.name ?? '';
+    if (this.#refs.cfgNome) { this.#refs.cfgNome.value = nome; this.#refs.cfgNome.style.display = 'none'; }
+    if (this.#refs.cfgNomeDisplay) this.#refs.cfgNomeDisplay.textContent = nome || 'Não informado';
+    this.#refs.cfgNomeLapis?.classList.remove('mb-cfg-lapis-ativo');
 
     if (shop.cover_path && this.#refs.cfgCapaImg) {
       const url = SupabaseService.getLogoUrl(shop.cover_path);
@@ -484,8 +512,9 @@ class MinhaBarbeariaPage {
       await this.#salvarProdutos();
 
       // Fechar campos editáveis e atualizar exibição
-      this.#fecharEditable('whats');
-      this.#fecharEditable('founded');
+      this.#_fecharEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis);
+      this.#_fecharEl(this.#refs.cfgWhats,   this.#refs.cfgWhatsDisplay,   this.#refs.cfgWhatsLapis);
+      this.#_fecharEl(this.#refs.cfgFounded, this.#refs.cfgFoundedDisplay, this.#refs.cfgFoundedLapis);
 
       // Atualizar cache + info card
       if (this.#shopData) {
@@ -657,17 +686,43 @@ class MinhaBarbeariaPage {
     const btn = this.#refs.gpsBtnGps;
     if (ct)  ct.textContent  = '';
     if (btn) { btn.textContent = '📍 Ativar GPS'; btn.disabled = false; }
+    // Fecha todos os campos GPS (mostra display, esconde input)
+    this.#_fecharCepRow();
+    const camposGps = [
+      [this.#refs.gpsLogradouro,  this.#refs.gpsRuaDisplay,     this.#refs.gpsRuaLapis],
+      [this.#refs.gpsBairro,      this.#refs.gpsBairroDisplay,  this.#refs.gpsBairroLapis],
+      [this.#refs.gpsCidade,      this.#refs.gpsCidadeDisplay,  this.#refs.gpsCidadeLapis],
+      [this.#refs.gpsNumero,      this.#refs.gpsNumDisplay,     this.#refs.gpsNumLapis],
+      [this.#refs.gpsComplemento, this.#refs.gpsCompDisplay,    this.#refs.gpsCompLapis],
+    ];
+    camposGps.forEach(([inp, disp, lap]) => {
+      if (inp) { inp.style.display = 'none'; inp.value = ''; }
+      if (disp) disp.textContent = '—';
+      lap?.classList.remove('mb-cfg-lapis-ativo');
+    });
+
     if (!s) return;
-    if (s.zip_code && this.#refs.gpsCep) {
-      const raw = s.zip_code.replace(/\D/g, '');
-      this.#refs.gpsCep.value = raw.length === 8
-        ? raw.replace(/(\d{5})(\d{3})/, '$1-$2')
-        : s.zip_code;
-    }
-    if (s.address && this.#refs.gpsLogradouro)
-      this.#refs.gpsLogradouro.value = s.address;
-    if (s.city && this.#refs.gpsCidade)
-      this.#refs.gpsCidade.value = s.state ? `${s.city} / ${s.state}` : s.city;
+
+    // CEP
+    const rawCep = (s.zip_code ?? '').replace(/\D/g, '');
+    const fmtCep = rawCep.length === 8 ? rawCep.replace(/(\d{5})(\d{3})/, '$1-$2') : (s.zip_code ?? '');
+    if (this.#refs.gpsCep) this.#refs.gpsCep.value = fmtCep;
+    if (this.#refs.gpsCepDisplay) this.#refs.gpsCepDisplay.textContent = fmtCep || 'Não informado';
+
+    // Logradouro — exibe endereço salvo; input inicia vazio para re-edição limpa
+    if (this.#refs.gpsRuaDisplay) this.#refs.gpsRuaDisplay.textContent = s.address || '—';
+
+    // Bairro
+    const bairro = s.neighborhood ?? '';
+    if (this.#refs.gpsBairro) this.#refs.gpsBairro.value = bairro;
+    if (this.#refs.gpsBairroDisplay) this.#refs.gpsBairroDisplay.textContent = bairro || '—';
+
+    // Cidade / Estado
+    const cidadeVal = s.city ? (s.state ? `${s.city} / ${s.state}` : s.city) : '';
+    if (this.#refs.gpsCidade) this.#refs.gpsCidade.value = cidadeVal;
+    if (this.#refs.gpsCidadeDisplay) this.#refs.gpsCidadeDisplay.textContent = cidadeVal || '—';
+
+    // Coordenadas
     if (s.latitude && s.longitude) {
       this.#coordsGps = { lat: +s.latitude, lng: +s.longitude };
       if (ct) ct.textContent = `${this.#coordsGps.lat.toFixed(5)}, ${this.#coordsGps.lng.toFixed(5)}`;
@@ -691,12 +746,20 @@ class MinhaBarbeariaPage {
       if (!res.ok) throw new Error('http');
       const d = await res.json();
       if (d.erro) { this.#mostrarGpsMsg('CEP não encontrado.', 'erro'); return; }
-      if (this.#refs.gpsLogradouro) this.#refs.gpsLogradouro.value = d.logradouro ?? '';
-      if (this.#refs.gpsBairro)     this.#refs.gpsBairro.value     = d.bairro     ?? '';
-      if (this.#refs.gpsCidade)     this.#refs.gpsCidade.value     = d.localidade && d.uf
-        ? `${d.localidade} / ${d.uf}` : (d.localidade ?? '');
+      // Atualiza inputs e displays dos campos auto-preenchidos
+      const rua    = d.logradouro ?? '';
+      const bairro = d.bairro     ?? '';
+      const cidade = d.localidade && d.uf ? `${d.localidade} / ${d.uf}` : (d.localidade ?? '');
+      if (this.#refs.gpsLogradouro)    this.#refs.gpsLogradouro.value                = rua;
+      if (this.#refs.gpsRuaDisplay)    this.#refs.gpsRuaDisplay.textContent          = rua    || '—';
+      if (this.#refs.gpsBairro)        this.#refs.gpsBairro.value                    = bairro;
+      if (this.#refs.gpsBairroDisplay) this.#refs.gpsBairroDisplay.textContent       = bairro || '—';
+      if (this.#refs.gpsCidade)        this.#refs.gpsCidade.value                    = cidade;
+      if (this.#refs.gpsCidadeDisplay) this.#refs.gpsCidadeDisplay.textContent       = cidade || '—';
+      // Fecha CEP; abre Número automaticamente para o usuário preencher
+      this.#_fecharCepRow();
       this.#mostrarGpsMsg('', '');
-      this.#refs.gpsNumero?.focus();
+      this.#_toggleEl(this.#refs.gpsNumero, this.#refs.gpsNumDisplay, this.#refs.gpsNumLapis, '—');
     } catch {
       this.#mostrarGpsMsg('Não foi possível consultar o CEP.', 'erro');
     } finally {
@@ -740,16 +803,17 @@ class MinhaBarbeariaPage {
     const comp     = this.#refs.gpsComplemento?.value.trim()           ?? '';
     const bairro   = this.#refs.gpsBairro?.value.trim()                ?? '';
 
-    if (!rua) { this.#mostrarGpsMsg('Informe o CEP para preencher o endereço.', 'erro'); return; }
-    if (!num) {
-      this.#mostrarGpsMsg('Informe o número do estabelecimento.', 'erro');
-      this.#refs.gpsNumero?.focus(); return;
+    // Mantém endereço existente se logradouro não foi editado
+    const address = rua
+      ? [rua, num, comp].filter(Boolean).join(', ')
+      : (this.#shopData?.address ?? null);
+
+    if (!address) {
+      this.#mostrarGpsMsg('Informe o CEP e o logradouro para configurar o endereço.', 'erro'); return;
     }
     if (!this.#barbershopId) {
       this.#mostrarGpsMsg('Barbearia não encontrada.', 'erro'); return;
     }
-
-    const address = [rua, num, comp].filter(Boolean).join(', ');
     const [city, state] = cidadeUf.includes('/')
       ? cidadeUf.split('/').map(s => s.trim())
       : [cidadeUf.trim(), ''];
@@ -776,7 +840,7 @@ class MinhaBarbeariaPage {
         .eq('id', this.#barbershopId);
       if (error) throw error;
 
-      // Atualiza cache local para que o banner e outros renders sejam coerentes
+      // Atualiza cache e re-preenche painel (fecha todos os lápis, mostra valores salvos)
       if (this.#shopData) {
         Object.assign(this.#shopData, {
           address, city: city||null, state: state||null, zip_code: cep||null,
@@ -788,6 +852,7 @@ class MinhaBarbeariaPage {
         }
         this.#renderInfoCard(this.#shopData);
       }
+      this.#preencherGpsForm();
 
       this.#mostrarGpsMsg('✅ Endereço salvo! Sua barbearia já aparece no mapa.', 'ok');
       NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
@@ -855,37 +920,55 @@ class MinhaBarbeariaPage {
     infoCard.hidden = false;
   }
 
-  // ── Campos editáveis com lápis ───────────────────────────────
+  // ── Lápis — genérico ─────────────────────────────────────────
 
-  #toggleEditable(field) {
-    const inputRef   = field === 'whats' ? this.#refs.cfgWhats       : this.#refs.cfgFounded;
-    const displayRef = field === 'whats' ? this.#refs.cfgWhatsDisplay : this.#refs.cfgFoundedDisplay;
-    const lapisRef   = field === 'whats' ? this.#refs.cfgWhatsLapis   : this.#refs.cfgFoundedLapis;
-    if (!inputRef) return;
-
-    const abrir = inputRef.style.display === 'none';
+  #_toggleEl(inputEl, displayEl, lapisEl, placeholder = 'Não informado') {
+    if (!inputEl) return;
+    const abrir = inputEl.style.display === 'none';
     if (abrir) {
-      inputRef.style.display = '';
-      if (displayRef) displayRef.style.display = 'none';
-      lapisRef?.classList.add('mb-cfg-lapis-ativo');
-      inputRef.focus();
+      inputEl.style.display = '';
+      if (displayEl) displayEl.style.display = 'none';
+      lapisEl?.classList.add('mb-cfg-lapis-ativo');
+      inputEl.focus?.();
     } else {
-      this.#fecharEditable(field);
+      this.#_fecharEl(inputEl, displayEl, lapisEl, placeholder);
     }
   }
 
-  #fecharEditable(field) {
-    const inputRef   = field === 'whats' ? this.#refs.cfgWhats       : this.#refs.cfgFounded;
-    const displayRef = field === 'whats' ? this.#refs.cfgWhatsDisplay : this.#refs.cfgFoundedDisplay;
-    const lapisRef   = field === 'whats' ? this.#refs.cfgWhatsLapis   : this.#refs.cfgFoundedLapis;
-    if (!inputRef) return;
-    const val = inputRef.value.trim();
-    if (displayRef) {
-      displayRef.style.display = '';
-      displayRef.textContent   = val || 'Não informado';
+  #_fecharEl(inputEl, displayEl, lapisEl, placeholder = 'Não informado') {
+    if (!inputEl) return;
+    const val = inputEl.value?.trim() ?? '';
+    if (displayEl) {
+      displayEl.style.display = '';
+      displayEl.textContent   = val || placeholder;
     }
-    inputRef.style.display = 'none';
-    lapisRef?.classList.remove('mb-cfg-lapis-ativo');
+    inputEl.style.display = 'none';
+    lapisEl?.classList.remove('mb-cfg-lapis-ativo');
+  }
+
+  // CEP: container row em vez do input direto
+  #_toggleCepRow() {
+    const row = this.#refs.gpsCepRow;
+    if (!row) return;
+    const abrir = row.style.display === 'none';
+    if (abrir) {
+      row.style.display = '';
+      if (this.#refs.gpsCepDisplay) this.#refs.gpsCepDisplay.style.display = 'none';
+      this.#refs.gpsCepLapis?.classList.add('mb-cfg-lapis-ativo');
+      this.#refs.gpsCep?.focus();
+    } else {
+      this.#_fecharCepRow();
+    }
+  }
+
+  #_fecharCepRow() {
+    const val = this.#refs.gpsCep?.value.trim() ?? '';
+    if (this.#refs.gpsCepDisplay) {
+      this.#refs.gpsCepDisplay.style.display = '';
+      this.#refs.gpsCepDisplay.textContent   = val || 'Não informado';
+    }
+    if (this.#refs.gpsCepRow) this.#refs.gpsCepRow.style.display = 'none';
+    this.#refs.gpsCepLapis?.classList.remove('mb-cfg-lapis-ativo');
   }
 
   #mostrarSkeleton() {

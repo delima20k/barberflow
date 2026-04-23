@@ -1375,3 +1375,5 @@
   flex: 1;
   margin: 0;
 }
+.mb-cfg-editable-row .gps-input { flex: 1; margin: 0; }
+.mb-cfg-editable-row .gps-cep-row { flex: 1; }
