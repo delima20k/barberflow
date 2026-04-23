@@ -300,7 +300,7 @@ class SupabaseService {
   static storageAvatars()         { return SupabaseService.#getClient().storage.from('avatars'); }
 
   /** Bucket de logos e capas de barbearias */
-  static storageLogos()           { return SupabaseService.#getClient().storage.from('barbershops'); }
+  static storageBarbershops()           { return SupabaseService.#getClient().storage.from('barbershops'); }
 
   /**
    * Retorna a URL pública de um avatar.
@@ -317,7 +317,7 @@ class SupabaseService {
    * @returns {string}
    */
   static getLogoUrl(path) {
-    return SupabaseService.storageLogos().getPublicUrl(path).data.publicUrl;
+    return SupabaseService.storageBarbershops().getPublicUrl(path).data.publicUrl;
   }
 
   /**

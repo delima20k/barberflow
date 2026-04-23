@@ -662,6 +662,33 @@ class MinhaBarbeariaPage {
     }
   }
 
+  // ── Upload de imagem da barbearia (método base DRY) ─────────
+
+  /**
+   * Faz upload de uma imagem para o bucket 'barbershops' e atualiza
+   * o campo correspondente no banco.
+   *
+   * @param {File}   file      — arquivo selecionado
+   * @param {string} nomeArq  — nome do arquivo sem extensão (ex: 'cover', 'logo')
+   * @param {string} campo    — coluna a atualizar (ex: 'cover_path', 'logo_path')
+   * @returns {Promise<{url: string, path: string}>}
+   */
+  async #uploadImagemBarbearia(file, nomeArq, campo) {
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const path = `barbershops/${this.#barbershopId}/${nomeArq}.${ext}`;
+
+    const { error: upErr } = await SupabaseService.storageBarbershops()
+      .upload(path, file, { contentType: file.type, upsert: true });
+    if (upErr) throw upErr;
+
+    const { error: dbErr } = await SupabaseService.barbershops()
+      .update({ [campo]: path })
+      .eq('id', this.#barbershopId);
+    if (dbErr) throw dbErr;
+
+    return { url: SupabaseService.getLogoUrl(path), path };
+  }
+
   // ── Upload de capa ───────────────────────────────────────────
 
   async #onUploadCapa(e) {
@@ -670,20 +697,7 @@ class MinhaBarbeariaPage {
     if (!file || !this.#barbershopId) return;
 
     try {
-      const ext  = file.name.split('.').pop().toLowerCase();
-      const path = `barbershops/${this.#barbershopId}/cover.${ext}`;
-
-      const { error: upErr } = await SupabaseService.client.storage
-        .from('barbershops')
-        .upload(path, file, { contentType: file.type, upsert: true });
-      if (upErr) throw upErr;
-
-      const { error: dbErr } = await SupabaseService.barbershops()
-        .update({ cover_path: path })
-        .eq('id', this.#barbershopId);
-      if (dbErr) throw dbErr;
-
-      const url = SupabaseService.getLogoUrl(path);
+      const { url, path } = await this.#uploadImagemBarbearia(file, 'cover', 'cover_path');
       if (url) {
         if (this.#refs.cfgCapaImg) this.#refs.cfgCapaImg.src = url;
         if (this.#refs.coverImg)   this.#refs.coverImg.src   = url;
@@ -702,20 +716,7 @@ class MinhaBarbeariaPage {
     if (!file || !this.#barbershopId) return;
 
     try {
-      const ext  = file.name.split('.').pop().toLowerCase();
-      const path = `barbershops/${this.#barbershopId}/logo.${ext}`;
-
-      const { error: upErr } = await SupabaseService.client.storage
-        .from('barbershops')
-        .upload(path, file, { contentType: file.type, upsert: true });
-      if (upErr) throw upErr;
-
-      const { error: dbErr } = await SupabaseService.barbershops()
-        .update({ logo_path: path })
-        .eq('id', this.#barbershopId);
-      if (dbErr) throw dbErr;
-
-      const url = SupabaseService.getLogoUrl(path);
+      const { url } = await this.#uploadImagemBarbearia(file, 'logo', 'logo_path');
       if (url && this.#refs.cfgLogoImg) this.#refs.cfgLogoImg.src = url;
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadLogo erro:', err);
