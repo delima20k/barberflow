@@ -3154,11 +3154,25 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-content {
   padding-top: 0;
 }
+/* Título boas-vindas animado */
+.mb-boas-vindas {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  text-align: center;
+  margin: 0.5rem 0 0;
+  min-height: 1.4em;
+  letter-spacing: .3px;
+  background: transparent;
+  border: none;
+}
+
 .mb-nome-titulo {
   font-size: 1.35rem;
   font-weight: 800;
   color: var(--text);
-  margin: 1.5rem 0 12px;
+  text-align: center;
+  margin: 4px 0 12px;
   min-height: 1.6rem;
 }
 

@@ -32,6 +32,7 @@ class MinhaBarbeariaPage {
   #shopData     = null;   // dados da barbearia (pré-preenchimento GPS)
   #coordsGps    = null;   // coordenadas GPS capturadas no sub-painel
   #digGps       = null;   // instância DigText para o p.gps-dig
+  #digBoasVindas= null;   // instância DigText para o h1#mb-boas-vindas
   #refs         = {};
 
   constructor() {}
@@ -58,10 +59,24 @@ class MinhaBarbeariaPage {
       ], { velocidade: 36, pausaFinal: 3200, loop: true });
     }
 
+    // Animação "dig" boas-vindas — anima uma vez ao entrar na tela
+    const boasVindasEl = document.getElementById('mb-boas-vindas');
+    if (boasVindasEl && typeof DigText !== 'undefined') {
+      this.#digBoasVindas = new DigText(boasVindasEl,
+        ['Bem-vindo à Sua Barbearia ✂️'],
+        { velocidade: 48, loop: false }
+      );
+    }
+
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
                     this.#telaEl.classList.contains('entrando-lento');
-      if (ativa && !this.#carregou) this.#carregar();
+      if (ativa) {
+        this.#digBoasVindas?.iniciar();
+        if (!this.#carregou) this.#carregar();
+      } else {
+        this.#digBoasVindas?.parar();
+      }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
 
