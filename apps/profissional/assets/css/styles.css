@@ -1300,14 +1300,14 @@
    MINHA BARBEARIA — Card de Informações (endereço + contato)
 ================================================================ */
 .mb-info-card {
-  background: var(--card, #fff);
-  border: 1px solid var(--gold-border, rgba(212,175,55,.22));
+  background: transparent;
+  border: none;
   border-radius: var(--r-lg, 18px);
-  padding: 16px;
-  margin-top: 20px;
+  padding: 8px 4px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .mb-info-card[hidden] { display: none; }
 
@@ -1315,20 +1315,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
-.mb-info-icon { font-size: 1.1rem; flex-shrink: 0; }
+.mb-info-icon { font-size: .9rem; flex-shrink: 0; }
 .mb-info-nome {
-  font-size: 1rem;
+  font-size: .82rem;
   font-weight: 700;
   color: var(--text, #2b1b12);
   margin: 0;
 }
 .mb-info-linha {
-  font-size: .85rem;
+  font-size: .75rem;
   color: var(--text-muted, #6b5a4a);
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 .mb-info-linha[hidden] { display: none; }
 .mb-info-desde {
