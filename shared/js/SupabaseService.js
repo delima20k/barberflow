@@ -299,8 +299,8 @@ class SupabaseService {
   /** Bucket de avatares de usuários */
   static storageAvatars()         { return SupabaseService.#getClient().storage.from('avatars'); }
 
-  /** Bucket de logos de barbearias */
-  static storageLogos()           { return SupabaseService.#getClient().storage.from('logos'); }
+  /** Bucket de logos e capas de barbearias */
+  static storageLogos()           { return SupabaseService.#getClient().storage.from('barbershops'); }
 
   /**
    * Retorna a URL pública de um avatar.

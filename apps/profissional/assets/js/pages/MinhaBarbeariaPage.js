@@ -636,7 +636,7 @@ class MinhaBarbeariaPage {
       const path = `stories/videos/${perfil.id}/${Date.now()}.${ext}`;
 
       const { error: upErr } = await SupabaseService.client.storage
-        .from('logos')
+        .from('stories')
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) throw upErr;
 
@@ -674,7 +674,7 @@ class MinhaBarbeariaPage {
       const path = `barbershops/${this.#barbershopId}/cover.${ext}`;
 
       const { error: upErr } = await SupabaseService.client.storage
-        .from('logos')
+        .from('barbershops')
         .upload(path, file, { contentType: file.type, upsert: true });
       if (upErr) throw upErr;
 
@@ -706,7 +706,7 @@ class MinhaBarbeariaPage {
       const path = `barbershops/${this.#barbershopId}/logo.${ext}`;
 
       const { error: upErr } = await SupabaseService.client.storage
-        .from('logos')
+        .from('barbershops')
         .upload(path, file, { contentType: file.type, upsert: true });
       if (upErr) throw upErr;
 
