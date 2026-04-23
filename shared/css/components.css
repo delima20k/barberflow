@@ -3168,12 +3168,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 .mb-nome-titulo {
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: 2rem;
+  font-weight: 400;
   color: var(--text);
   text-align: center;
-  margin: 2px 0 10px;
+  margin: 0.5rem 0 10px;
   min-height: 1.6rem;
+  line-height: 1.2;
 }
 
 /* ── Stories scroll (3 cards fixos visíveis) ──────────── */
@@ -3741,7 +3742,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
    FONTESALAO — Picker de fonte para o nome da barbearia
 ================================================================ */
 .fs-picker {
-  margin: 6px 0 2px;
+  margin: 8px 0 4px;
 }
 
 /* Botão toggle */
@@ -3749,61 +3750,89 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   all: unset;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: .78rem;
+  gap: 6px;
+  font-size: .82rem;
   font-weight: 600;
   color: var(--gold, #D4AF37);
   cursor: pointer;
-  padding: 4px 8px;
-  border: 1px solid rgba(212,175,55,.35);
+  padding: 6px 12px;
+  border: 1px solid rgba(212,175,55,.45);
   border-radius: 20px;
   -webkit-tap-highlight-color: transparent;
   transition: background .15s;
 }
 .fs-picker__toggle:active,
-.fs-picker__toggle--aberto { background: rgba(212,175,55,.12); }
+.fs-picker__toggle--aberto { background: rgba(212,175,55,.15); }
+
+/* Painel dropdown (lista + botão confirmar) */
+.fs-picker__painel {
+  margin-top: 8px;
+  border: 1px solid rgba(212,175,55,.3);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card, #22110a);
+}
 
 /* Lista de fontes */
 .fs-picker__lista {
   list-style: none;
-  margin: 6px 0 0;
+  margin: 0;
   padding: 0;
-  background: var(--surface, #1a0800);
-  border: 1px solid rgba(212,175,55,.25);
-  border-radius: 10px;
-  overflow: hidden;
 }
 
 /* Item */
 .fs-picker__item {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 10px 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
   cursor: pointer;
   transition: background .12s;
-}
-.fs-picker__item:not(:last-child) {
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.07);
 }
 .fs-picker__item:active,
-.fs-picker__item:hover { background: rgba(212,175,55,.1); }
-.fs-picker__item--ativo { background: rgba(212,175,55,.18); }
-.fs-picker__item--ativo::after {
-  content: '✓';
+.fs-picker__item:hover { background: rgba(212,175,55,.12); }
+.fs-picker__item--ativo { background: rgba(212,175,55,.22); }
+.fs-picker__item--ativo .fs-picker__check { opacity: 1; }
+
+/* Checkmark lateral */
+.fs-picker__check {
   margin-left: auto;
   color: var(--gold, #D4AF37);
-  font-size: .8rem;
+  font-size: 1rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity .15s;
+  flex-shrink: 0;
 }
 
 /* Nome da fonte (preview na própria fonte) */
 .fs-picker__nome {
-  font-size: 1.1rem;
-  color: var(--text-on-surface, #F5E9DC);
+  font-size: 1.35rem;
+  color: #F5E9DC;
+  line-height: 1.1;
 }
 
 /* Descrição */
 .fs-picker__desc {
-  font-size: .7rem;
-  color: var(--text-muted, #8a6a50);
+  font-size: .75rem;
+  color: #b08060;
+  display: block;
+  margin-top: 2px;
+}
+
+/* Bloco texto do item */
+.fs-picker__txt {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Botão confirmar dentro do painel */
+.fs-picker__confirmar {
+  display: block;
+  width: 100%;
+  margin: 0;
+  border-radius: 0;
+  padding: 12px 0;
+  font-size: .9rem;
 }
