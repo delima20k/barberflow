@@ -3593,6 +3593,39 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── btnFlow ───────────────────────────────────────────────────
+   Botão padrão do sistema — mesmo formato dos botões +GPS e +Mais.
+   Variantes: .btn-flow (gold preenchido / ação primária)
+              .btn-flow--outline (contorno gold / ação secundária)
+   Uso: <button class="btn-flow">Label</button>
+──────────────────────────────────────────────────────────────── */
+.btn-flow {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  border-radius: var(--r-sm, 8px);
+  font-size: .88rem;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s, border-color .15s;
+  background: var(--gold, #c9872a);
+  border: 2px solid var(--gold, #c9872a);
+  color: #1a0800;
+}
+.btn-flow:active,
+.btn-flow:hover  { background: #d49534; border-color: #d49534; }
+
+.btn-flow--outline {
+  background: transparent;
+  border: 2px solid var(--gold, #c9872a);
+  color: var(--gold, #c9872a);
+}
+.btn-flow--outline:active,
+.btn-flow--outline:hover { background: var(--gold, #c9872a); color: #1a0800; }
+
 /* Botão salvar */
 .mb-config-salvar {
   margin-top: 4px;

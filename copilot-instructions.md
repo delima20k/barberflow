@@ -862,6 +862,30 @@ Animação de mensagem em duas fases:
 ## Localização
 `shared/js/AnimationService.js` — método estático `gaspar(el, texto, duracaoMs)`
 
+## Botão padrão — btnFlow
+
+Classe CSS `btn-flow` — formato unificado do sistema, mesmo shape dos botões +GPS e +Mais.
+
+```html
+<!-- Ação primária (gold preenchido) -->
+<button class="btn-flow">Label</button>
+
+<!-- Ação secundária (contorno gold) -->
+<button class="btn-flow btn-flow--outline">Label</button>
+```
+
+**Estilo base** (ambas as variantes):
+- `padding: 10px 0` · `border-radius: var(--r-sm, 8px)`
+- `font-size: .88rem` · `font-weight: 700` · `letter-spacing: .4px`
+- `border: 2px solid var(--gold)` · `width: 100%` (display block)
+
+**Variante padrão** `.btn-flow`: fundo gold preenchido, texto `#1a0800` (preto)  
+**Variante outline** `.btn-flow--outline`: fundo transparente, texto e borda gold; ao hover preenche com gold
+
+> Sempre que o usuário pedir um botão com estilo **btnFlow**, usar `class="btn-flow"` (ou `btn-flow btn-flow--outline` para outline). A classe está em `shared/css/components.css`.
+
+---
+
 ## Assinatura
 ```js
 AnimationService.gaspar(el, texto, duracaoMs = 3500, classeExtra = '')
