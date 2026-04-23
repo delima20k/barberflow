@@ -112,27 +112,27 @@ class FonteSalao {
   // ─────────────────────────────────────────────────────────
   static criarPicker(containerEl, barbershopId, fontAtual, onSelect) {
     if (!containerEl) return;
+    if (containerEl.querySelector('.fs-picker')) return; // evita duplicar
 
-    // Evita duplicar
-    if (containerEl.querySelector('.fs-picker')) return;
-
+    // Rastreia a key selecionada (pendente de confirmação)
     let keyPendente = fontAtual ?? null;
 
+    // ── Wrapper principal ─────────────────────────────────
     const wrapper = document.createElement('div');
     wrapper.className = 'fs-picker';
 
-    // ── Botão toggle ──────────────────────────────────────
-    const btn = document.createElement('button');
-    btn.type        = 'button';
-    btn.className   = 'fs-picker__toggle';
-    btn.textContent = '✏️ Fonte do Nome';
+    // ── Botão toggle (abre/fecha painel) ──────────────────
+    const btnToggle = document.createElement('button');
+    btnToggle.type        = 'button';
+    btnToggle.className   = 'fs-picker__toggle';
+    btnToggle.textContent = '✏️ Fonte do Nome';
 
-    // ── Painel dropdown (lista + confirmar) ───────────────
+    // ── Painel dropdown ───────────────────────────────────
     const painel = document.createElement('div');
     painel.className = 'fs-picker__painel';
     painel.hidden    = true;
 
-    // Lista de fontes
+    // ── Lista de opções ───────────────────────────────────
     const lista = document.createElement('ul');
     lista.className = 'fs-picker__lista';
 
@@ -143,7 +143,6 @@ class FonteSalao {
       li.className = 'fs-picker__item';
       if (def.key === keyPendente) li.classList.add('fs-picker__item--ativo');
 
-      // Bloco de texto (nome + descrição)
       const txt = document.createElement('span');
       txt.className = 'fs-picker__txt';
 
@@ -159,15 +158,15 @@ class FonteSalao {
       txt.appendChild(nomeTxt);
       txt.appendChild(descTxt);
 
-      // Checkmark lateral
       const check = document.createElement('span');
       check.className   = 'fs-picker__check';
       check.textContent = '✓';
+      check.setAttribute('aria-hidden', 'true');
 
       li.appendChild(txt);
       li.appendChild(check);
 
-      // Clicar no item apenas seleciona — não salva ainda
+      // Clicar apenas destaca o item — não persiste ainda
       li.addEventListener('click', () => {
         lista.querySelectorAll('.fs-picker__item--ativo')
              .forEach(el => el.classList.remove('fs-picker__item--ativo'));
@@ -179,32 +178,45 @@ class FonteSalao {
     });
 
     // ── Botão confirmar ───────────────────────────────────
-    const confirmar = document.createElement('button');
-    confirmar.type      = 'button';
-    confirmar.className = 'btn-flow fs-picker__confirmar';
-    confirmar.textContent = '✓ Confirmar Fonte';
+    const btnConfirmar = document.createElement('button');
+    btnConfirmar.type      = 'button';
+    btnConfirmar.className = 'btn-flow fs-picker__confirmar';
+    btnConfirmar.textContent = '✓ Confirmar Fonte';
 
-    confirmar.addEventListener('click', () => {
-      // Fechar painel
+    btnConfirmar.addEventListener('click', () => {
+      // Não faz nada se nenhuma fonte foi escolhida
+      if (!keyPendente) return;
+
+      // Fecha o painel imediatamente
       painel.hidden = true;
-      btn.classList.remove('fs-picker__toggle--aberto');
+      btnToggle.classList.remove('fs-picker__toggle--aberto');
 
-      // Salvar e notificar
+      // Notifica o chamador (atualiza DOM, cache local etc.)
       onSelect?.(keyPendente);
-      if (barbershopId && keyPendente) FonteSalao.salvar(barbershopId, keyPendente);
+
+      // Persiste no Supabase — só se mudou
+      if (barbershopId && keyPendente !== fontAtual) {
+        btnConfirmar.disabled = true;
+        FonteSalao.salvar(barbershopId, keyPendente)
+          .then(() => { fontAtual = keyPendente; })
+          .catch(err => {
+            console.error('[FonteSalao] Erro ao salvar font_key:', err);
+          })
+          .finally(() => { btnConfirmar.disabled = false; });
+      }
     });
 
     painel.appendChild(lista);
-    painel.appendChild(confirmar);
+    painel.appendChild(btnConfirmar);
 
     // ── Toggle abre / fecha painel ────────────────────────
-    btn.addEventListener('click', () => {
+    btnToggle.addEventListener('click', () => {
       const aberto = !painel.hidden;
       painel.hidden = aberto;
-      btn.classList.toggle('fs-picker__toggle--aberto', !aberto);
+      btnToggle.classList.toggle('fs-picker__toggle--aberto', !aberto);
     });
 
-    wrapper.appendChild(btn);
+    wrapper.appendChild(btnToggle);
     wrapper.appendChild(painel);
     containerEl.appendChild(wrapper);
   }

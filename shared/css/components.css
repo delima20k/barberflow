@@ -3827,12 +3827,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: column;
 }
 
-/* Botão confirmar dentro do painel */
+/* Botão confirmar dentro do painel — herda layout de .btn-flow */
 .fs-picker__confirmar {
-  display: block;
-  width: 100%;
-  margin: 0;
   border-radius: 0;
+  border-top: 1px solid rgba(212,175,55,.2);
   padding: 12px 0;
   font-size: .9rem;
 }
