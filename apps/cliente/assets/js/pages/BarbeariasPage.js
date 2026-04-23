@@ -109,6 +109,7 @@ class BarbeariasPage {
     const nome = document.createElement('p');
     nome.className   = 'barber-name';
     nome.textContent = b.name || 'Barbearia';
+    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
 
     const likes    = Number(b.likes_count    ?? 0);
     const starsRow = document.createElement('div');

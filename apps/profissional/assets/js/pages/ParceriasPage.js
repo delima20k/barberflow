@@ -124,6 +124,7 @@ class ParceriasPage {
     const nome = document.createElement('p');
     nome.className   = 'barber-name';
     nome.textContent = b.name || 'Barbearia';
+    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
 
     const sub = document.createElement('p');
     sub.className   = 'barber-sub';

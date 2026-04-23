@@ -120,6 +120,7 @@ class DestaquesPage {
     const nome = document.createElement('p');
     nome.className = 'top-card__nome';
     nome.textContent = b.name;
+    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
 
     const addr = document.createElement('p');
     addr.className = 'top-card__addr';

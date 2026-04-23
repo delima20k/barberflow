@@ -64,7 +64,7 @@ class MinhaBarbeariaPage {
     const boasVindasEl = document.getElementById('mb-boas-vindas');
     if (boasVindasEl && typeof DigText !== 'undefined') {
       this.#digBoasVindas = new DigText(boasVindasEl,
-        ['Bem-vindo à Sua Barbearia ✂️'],
+        ['Bem-vindo à Sua Barbearia'],
         { velocidade: 48, loop: false }
       );
     }
@@ -242,7 +242,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, owner_id, name, address, city, state, zip_code, neighborhood, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude, whatsapp, founded_year')
+      .select('id, owner_id, name, address, city, state, zip_code, neighborhood, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude, whatsapp, founded_year, font_key')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
@@ -316,7 +316,10 @@ class MinhaBarbeariaPage {
   #renderCabecalho(shop) {
     const { nome } = this.#refs;
 
-    if (nome)      nome.textContent      = shop.name ?? '';
+    if (nome) {
+      nome.textContent = shop.name ?? '';
+      if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, shop.font_key);
+    }
 
     if (shop.cover_path) {
       const url = SupabaseService.getLogoUrl(shop.cover_path);
@@ -491,6 +494,17 @@ class MinhaBarbeariaPage {
     if (!lista) return;
     lista.innerHTML = '';
     servicos.forEach(s => this.#adicionarLinhaProduto(s));
+
+    // Picker de fonte do nome
+    if (typeof FonteSalao !== 'undefined') {
+      const pickerEl = document.getElementById('mb-cfg-fonte-picker');
+      if (pickerEl && !pickerEl.querySelector('.fs-picker')) {
+        FonteSalao.criarPicker(pickerEl, this.#barbershopId, shop.font_key, key => {
+          if (this.#shopData) this.#shopData.font_key = key;
+          if (this.#refs.nome) FonteSalao.aplicarFonte(this.#refs.nome, key);
+        });
+      }
+    }
   }
 
   #adicionarLinhaProduto(produto = null) {
@@ -553,7 +567,11 @@ class MinhaBarbeariaPage {
       }
 
       AnimationService.gaspar(msg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
-      if (nome && this.#refs.nome) this.#refs.nome.textContent = nome;
+      if (nome && this.#refs.nome) {
+        this.#refs.nome.textContent = nome;
+        if (this.#shopData?.font_key && typeof FonteSalao !== 'undefined')
+          FonteSalao.aplicarFonte(this.#refs.nome, this.#shopData.font_key);
+      }
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarConfiguracoes erro:', err);
       if (msg) msg.textContent = '❌ Erro ao salvar. Tente novamente.';

@@ -235,8 +235,7 @@ class NearbyBarbershopsWidget {
         // ── Nome ──────────────────────────────────────────
         const nome = document.createElement('p');
         nome.className = 'dc-nome';
-        nome.textContent = b.name;
-
+        nome.textContent = b.name;        if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
         // ── Rodapé do card: usa .top-card__stars (estrelas + num + likes clicável) ──
         const starsRow = document.createElement('div');
         starsRow.className = 'top-card__stars';
@@ -628,6 +627,7 @@ class NearbyBarbershopsWidget {
     const nome = document.createElement('p');
     nome.className   = 'barber-name';
     nome.textContent = b.name;
+    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
 
     const sub = document.createElement('p');
     sub.className   = 'barber-addr';

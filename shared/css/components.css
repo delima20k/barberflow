@@ -3172,7 +3172,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-weight: 800;
   color: var(--text);
   text-align: center;
-  margin: 4px 0 12px;
+  margin: 2px 0 10px;
   min-height: 1.6rem;
 }
 
@@ -3735,4 +3735,75 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   text-align: center;
   color: var(--text-on-surface, #F5E9DC);
   min-height: 1.2em;
+}
+
+/* ================================================================
+   FONTESALAO — Picker de fonte para o nome da barbearia
+================================================================ */
+.fs-picker {
+  margin: 6px 0 2px;
+}
+
+/* Botão toggle */
+.fs-picker__toggle {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--gold, #D4AF37);
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: 20px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.fs-picker__toggle:active,
+.fs-picker__toggle--aberto { background: rgba(212,175,55,.12); }
+
+/* Lista de fontes */
+.fs-picker__lista {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  background: var(--surface, #1a0800);
+  border: 1px solid rgba(212,175,55,.25);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Item */
+.fs-picker__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.fs-picker__item:not(:last-child) {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.fs-picker__item:active,
+.fs-picker__item:hover { background: rgba(212,175,55,.1); }
+.fs-picker__item--ativo { background: rgba(212,175,55,.18); }
+.fs-picker__item--ativo::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--gold, #D4AF37);
+  font-size: .8rem;
+}
+
+/* Nome da fonte (preview na própria fonte) */
+.fs-picker__nome {
+  font-size: 1.1rem;
+  color: var(--text-on-surface, #F5E9DC);
+}
+
+/* Descrição */
+.fs-picker__desc {
+  font-size: .7rem;
+  color: var(--text-muted, #8a6a50);
 }

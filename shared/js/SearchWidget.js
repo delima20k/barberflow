@@ -327,6 +327,7 @@ class SearchWidget {
     const nome = document.createElement('p');
     nome.className  = 'barber-name';
     nome.textContent = b.name;
+    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
 
     const sub = document.createElement('p');
     sub.className  = 'barber-sub';
