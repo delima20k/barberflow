@@ -148,6 +148,7 @@ class BarbeariasPage {
       row.appendChild(actions);
     }
 
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
     return row;
   }
 

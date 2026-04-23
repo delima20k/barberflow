@@ -26,7 +26,7 @@ class BarbershopRepository {
 
   // Campos base usados na maioria das consultas
   static #SELECT_BASIC =
-    'id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count, rating_score, likes_count, dislikes_count, font_key';
+    'id, name, address, city, latitude, longitude, logo_path, cover_path, is_open, rating_avg, rating_count, rating_score, likes_count, dislikes_count, font_key';
 
   // ═══════════════════════════════════════════════════════════
   // BARBEARIAS
@@ -89,7 +89,7 @@ class BarbershopRepository {
    */
   static async getFeatured(limit = 6) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
+      .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
       .order('likes_count',  { ascending: false })
@@ -108,7 +108,7 @@ class BarbershopRepository {
    */
   static async getTopRated(limit = 50) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, name, address, city, logo_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
+      .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
       .order('rating_avg',   { ascending: false })
@@ -201,7 +201,7 @@ class BarbershopRepository {
   static async search(query, limit = 20) {
     const q = query.trim();
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg, font_key')
+      .select('id, name, address, city, zip_code, logo_path, cover_path, is_open, rating_avg, font_key')
       .eq('is_active', true)
       .or(`name.ilike.%${q}%,address.ilike.%${q}%,city.ilike.%${q}%,zip_code.ilike.%${q}%`)
       .limit(limit);

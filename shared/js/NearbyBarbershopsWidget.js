@@ -265,6 +265,7 @@ class NearbyBarbershopsWidget {
 
         item.appendChild(card);
         item.appendChild(addr);
+        if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path);
         el.appendChild(item);
         cardsEls.push(card);
       });
@@ -669,6 +670,7 @@ class NearbyBarbershopsWidget {
       row.appendChild(actions);
     }
 
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
     return row;
   }
 }

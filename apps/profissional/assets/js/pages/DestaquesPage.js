@@ -159,6 +159,7 @@ class DestaquesPage {
     card.appendChild(info);
     card.appendChild(actions);
 
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path);
     return card;
   }
 

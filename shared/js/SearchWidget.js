@@ -354,6 +354,7 @@ class SearchWidget {
     row.appendChild(avatarWrap);
     row.appendChild(info);
     row.appendChild(meta);
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
     return row;
   }
 
