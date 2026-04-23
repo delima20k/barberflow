@@ -3153,6 +3153,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Layout geral ──────────────────────────────────────── */
 .mb-content {
   padding-top: 0;
+  margin-top: 0;
+  gap: 6px; /* sobrescreve --space-section (32px) do .content */
+}
+/* sec-title dentro da tela minha barbearia: margem mínima */
+.mb-content .sec-title {
+  margin: 2px 0 0;
 }
 /* Título boas-vindas animado */
 .mb-boas-vindas {
@@ -3172,7 +3178,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-weight: 400;
   color: var(--text);
   text-align: center;
-  margin: 0.5rem 0 10px;
+  margin: 8px 0 0;
   min-height: 1.6rem;
   line-height: 1.2;
 }
@@ -3180,7 +3186,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Stories scroll (3 cards fixos visíveis) ──────────── */
 .mb-stories-scroll {
   padding: 0;
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 /* ── Card 1: upload ────────────────────────────────────── */
@@ -3255,7 +3261,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-btns-row {
   display: flex;
   gap: 10px;
-  margin: 14px 0 6px;
+  margin: 0;
 }
 .mb-gps-btn,
 .mb-mais-btn {
@@ -3289,7 +3295,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
    Barra dourada/marrom com texto esq + botão dir + slide do conteúdo
 ================================================================ */
 .gi-wrapper {
-  margin: 6px 0 0;
+  margin: 0;
 }
 
 /* Linha com label esq + barra + toggle dir */
