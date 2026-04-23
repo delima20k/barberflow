@@ -850,6 +850,74 @@ dig.iniciar(); // para primeira carga
 
 ---
 
+# ANIMAÇÃO guardaIten — Gaveta animada
+
+**Quando o usuário disser "use a animação guardaIten"**, aplicar exatamente esse padrão.
+
+## O que é
+Componente que esconde/revela um elemento com uma barra (traço) dourada/marrom animada.
+
+- Barra cresce da **direita para a esquerda** ao abrir
+- Texto esquerdo **desaparece letra a letra** conforme a barra cresce
+- Conteúdo **desce** de dentro da barra (slide down)
+- Ao fechar: conteúdo sobe, barra encolhe, texto esquerdo retorna letra a letra
+
+## Localização
+`shared/js/GuardaIten.js` — classe `GuardaIten`  
+CSS: `shared/css/components.css` — classes `.gi-*`
+
+## HTML necessário
+
+```html
+<div class="gi-wrapper" id="meu-guarda">
+  <div class="gi-header">
+    <span class="gi-txt-esq" id="meu-gi-esq"></span>
+    <div  class="gi-barra"   id="meu-gi-barra"></div>
+    <button class="gi-toggle" id="meu-gi-toggle" type="button"></button>
+  </div>
+  <div class="gi-seta" id="meu-gi-seta" hidden></div>
+  <div class="gi-conteudo" id="meu-gi-conteudo">
+    <!-- Elemento que será ocultado/revelado -->
+  </div>
+</div>
+```
+
+## Instanciação JS
+
+```js
+new GuardaIten(document.getElementById('meu-guarda'), {
+  txtEsqFechado:  'Mostrar Botões',   // texto esq quando fechado
+  txtEsqAberto:   'Fechar Botões',    // texto esq quando aberto
+  txtDirFechado:  '+Abrir',           // botão toggle fechado
+  txtDirAberto:   '−Fechar',          // botão toggle aberto
+  elementoOculto: document.querySelector('#meu-guarda .elemento'),  // elemento a esconder/revelar
+});
+```
+
+## Parâmetros configuráveis
+
+| Parâmetro | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `txtEsqFechado` | string | `'Mostrar'` | Texto esquerdo — estado fechado |
+| `txtEsqAberto` | string | `'Fechar'` | Texto esquerdo — estado aberto |
+| `txtDirFechado` | string | `'+Abrir'` | Botão toggle — estado fechado |
+| `txtDirAberto` | string | `'−Fechar'` | Botão toggle — estado aberto |
+| `elementoOculto` | HTMLElement | `null` | Elemento DOM a esconder/revelar |
+| `durBarra` | number | `520` | ms — duração do crescimento da barra |
+| `durConteudo` | number | `340` | ms — duração do slide do conteúdo |
+| `durLetra` | number | `28` | ms por letra (apagar/restaurar texto esq) |
+
+## API pública
+
+```js
+const gi = new GuardaIten(wrapper, opts);
+gi.abrir();     // abre com animação
+gi.fechar();    // fecha com animação
+gi.alternar();  // toggle
+```
+
+---
+
 # ANIMAÇÃO GASPAR
 
 **Quando o usuário disser "use a animação gaspar"**, aplicar exatamente esse padrão:

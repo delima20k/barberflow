@@ -773,10 +773,20 @@
 
       </div><!-- /stories-scroll -->
 
-      <!-- ── Linha de botões: GPS (esq) + Mais (dir) ──────── -->
-      <div class="mb-btns-row">
-        <button class="mb-gps-btn" id="mb-gps-btn" aria-label="Configurar localização">+GPS</button>
-        <button class="mb-mais-btn" id="mb-mais-btn" aria-label="Mais opções">+ Mais</button>
+      <!-- ── GuardaIten: gaveta que revela os botões +GPS e +Mais ── -->
+      <div class="gi-wrapper" id="mb-gi-botoes">
+        <div class="gi-header">
+          <span class="gi-txt-esq" id="mb-gi-txt-esq"></span>
+          <div  class="gi-barra"   id="mb-gi-barra"></div>
+          <button class="gi-toggle" id="mb-gi-toggle" type="button"></button>
+        </div>
+        <div class="gi-seta" id="mb-gi-seta" hidden></div>
+        <div class="gi-conteudo" id="mb-gi-conteudo">
+          <div class="mb-btns-row">
+            <button class="mb-gps-btn"  id="mb-gps-btn"  aria-label="Configurar localização">+GPS</button>
+            <button class="mb-mais-btn" id="mb-mais-btn" aria-label="Mais opções">+ Mais</button>
+          </div>
+        </div>
       </div>
 
       <!-- KPIs -->
@@ -1712,6 +1722,8 @@
 <script src="/shared/js/MapWidget.js"></script>
 <!-- Widget de pesquisa dinâmica -->
 <script src="/shared/js/SearchWidget.js"></script>
+<!-- Gaveta animada (revela/esconde elementos) -->
+<script src="/shared/js/GuardaIten.js"></script>
 <!-- Módulo de mapa premium -->
 <script src="/shared/js/MapPanelModule.js"></script>
 <!-- Módulo de bússola e orientação -->

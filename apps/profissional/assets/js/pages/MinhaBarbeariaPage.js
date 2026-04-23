@@ -33,6 +33,7 @@ class MinhaBarbeariaPage {
   #coordsGps    = null;   // coordenadas GPS capturadas no sub-painel
   #digGps       = null;   // instância DigText para o p.gps-dig
   #digBoasVindas= null;   // instância DigText para o h1#mb-boas-vindas
+  #guardaBotoes = null;   // instância GuardaIten para a gaveta de botões
   #refs         = {};
 
   constructor() {}
@@ -66,6 +67,18 @@ class MinhaBarbeariaPage {
         ['Bem-vindo à Sua Barbearia ✂️'],
         { velocidade: 48, loop: false }
       );
+    }
+
+    // GuardaIten — gaveta que revela os botões +GPS e +Mais
+    const giWrapper = document.getElementById('mb-gi-botoes');
+    if (giWrapper && typeof GuardaIten !== 'undefined') {
+      this.#guardaBotoes = new GuardaIten(giWrapper, {
+        txtEsqFechado:  'Mostrar Botões',
+        txtEsqAberto:   'Fechar Botões',
+        txtDirFechado:  '+Abrir',
+        txtDirAberto:   '−Fechar',
+        elementoOculto: document.querySelector('#mb-gi-botoes .mb-btns-row'),
+      });
     }
 
     new MutationObserver(() => {
