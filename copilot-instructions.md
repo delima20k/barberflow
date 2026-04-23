@@ -864,18 +864,19 @@ Animação de mensagem em duas fases:
 
 ## Assinatura
 ```js
-AnimationService.gaspar(el, texto, duracaoMs = 3500)
-// el        — HTMLElement que receberá e exibirá o texto
-// texto     — string da mensagem
-// duracaoMs — tempo total (ms) entre início e fim do fade-out (padrão: 3500ms)
+AnimationService.gaspar(el, texto, duracaoMs = 3500, classeExtra = '')
+// el          — HTMLElement que receberá e exibirá o texto
+// texto       — string da mensagem
+// duracaoMs   — tempo total (ms) entre início e fim do fade-out (padrão: 3500ms)
+// classeExtra — classe CSS aplicada durante a animação e removida no fim (ex: 'gaspar-ok')
 ```
 
 ## Como usar
 ```js
-// Em qualquer ponto do código:
-AnimationService.gaspar(this.#refs.gpsMsg, '✅ Endereço salvo com sucesso!');
+// Sucesso — fundo branco, texto preto, borda verde (classe .gaspar-ok em components.css)
+AnimationService.gaspar(this.#refs.gpsMsg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
 
-// Com duração customizada:
+// Mensagem simples sem fundo especial
 AnimationService.gaspar(msgEl, 'Dados atualizados!', 5000);
 ```
 
