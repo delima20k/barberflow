@@ -524,7 +524,7 @@ class MinhaBarbeariaPage {
         this.#renderInfoCard(this.#shopData);
       }
 
-      AnimationService.gaspar(msg, '✅ Alterações salvas com sucesso!');
+      AnimationService.gaspar(msg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
       if (nome && this.#refs.nome) this.#refs.nome.textContent = nome;
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarConfiguracoes erro:', err);
@@ -855,7 +855,7 @@ class MinhaBarbeariaPage {
       this.#preencherGpsForm();
 
       _sucesso = true;
-      AnimationService.gaspar(this.#refs.gpsMsg, '✅ Endereço salvo! Sua barbearia já aparece no mapa.');
+      AnimationService.gaspar(this.#refs.gpsMsg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
       NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarGps:', err);

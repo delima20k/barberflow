@@ -110,18 +110,22 @@ const AnimationService = (() => {
    *
    * Uso:
    *   AnimationService.gaspar(elemento, 'Mensagem aqui', 3500);
+   *   AnimationService.gaspar(elemento, 'Mensagem aqui', 3500, 'gaspar-ok');
    *
-   * @param {HTMLElement} el              — Elemento que exibirá a mensagem
-   * @param {string}      texto           — Texto a ser animado
+   * @param {HTMLElement} el               — Elemento que exibirá a mensagem
+   * @param {string}      texto            — Texto a ser animado
    * @param {number}      [duracaoMs=3500] — Tempo total visível antes do fade-out
+   * @param {string}      [classeExtra=''] — Classe CSS aplicada durante a animação (removida no fim)
    */
-  function gaspar(el, texto, duracaoMs = 3500) {
+  function gaspar(el, texto, duracaoMs = 3500, classeExtra = '') {
     if (!el || !texto) return;
 
     // Cancela execução anterior se houver
     if (el._gasparTimer) { clearTimeout(el._gasparTimer); el._gasparTimer = null; }
     el.getAnimations().forEach(a => a.cancel());
     el.style.opacity = '';
+    if (el._gasparClasse) { el.classList.remove(el._gasparClasse); el._gasparClasse = null; }
+    if (classeExtra) { el.classList.add(classeExtra); el._gasparClasse = classeExtra; }
 
     // Fase 1 — Entrada: cada palavra aparece escalonada (opacity 0 → 1)
     const palavras         = String(texto).trim().split(/\s+/);
@@ -150,6 +154,7 @@ const AnimationService = (() => {
       ).onfinish = () => {
         el.innerHTML     = '';
         el.style.opacity = '';
+        if (el._gasparClasse) { el.classList.remove(el._gasparClasse); el._gasparClasse = null; }
       };
     }, totalEntrada + pausa);
   }
