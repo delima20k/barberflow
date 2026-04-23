@@ -3661,6 +3661,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .barber-card--com-capa {
   position: relative;
   overflow: hidden;
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
 }
 /* Overlay escuro para manter legibilidade do conteúdo */
 .barber-card--com-capa::before {

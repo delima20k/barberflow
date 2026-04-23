@@ -34,9 +34,7 @@ class CapaBarbearia {
     const url = SupabaseService.getLogoUrl(coverPath);
     if (!url) return;
 
-    el.style.backgroundImage    = `url('${url}')`;
-    el.style.backgroundSize     = 'cover';
-    el.style.backgroundPosition = 'center top';
+    el.style.backgroundImage = `url('${url}')`;
     el.classList.add(CapaBarbearia.#CLASSE);
   }
 

@@ -687,6 +687,7 @@ class MinhaBarbeariaPage {
       if (url) {
         if (this.#refs.cfgCapaImg) this.#refs.cfgCapaImg.src = url;
         if (this.#refs.coverImg)   this.#refs.coverImg.src   = url;
+        if (this.#shopData)        this.#shopData.cover_path = path;
       }
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadCapa erro:', err);
