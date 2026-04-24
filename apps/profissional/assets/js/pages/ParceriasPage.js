@@ -367,15 +367,15 @@ class ParceriasPage {
   /** Card fav-card (350×220) para barbearia favorita — mesmo padrão de tela-favoritas. */
   #criarFavCard(b) {
     const card = document.createElement('div');
-    card.className = 'fav-card' + (b.logo_path ? '' : ' fav-card--sem-img');
+    const temImagem = !!(b.cover_path || b.logo_path);
+    card.className = 'fav-card' + (temImagem ? '' : ' fav-card--sem-img');
     card.dataset.id = b.id;
 
-    const r     = Math.round(Number(b.rating_avg ?? 0));
-    const stars = '★'.repeat(r) + '☆'.repeat(5 - r);
+    const r      = Math.round(Number(b.rating_avg ?? 0));
+    const stars  = '★'.repeat(r) + '☆'.repeat(5 - r);
     const aberto = b.is_open;
 
     card.innerHTML = `
-      ${b.logo_path ? `<img class="fav-card__img" src="${b.logo_path}" alt="${b.name ?? ''}" loading="lazy">` : ''}
       <div class="fav-card__overlay">
         <div class="fav-card__badge-row">
           <span class="badge${aberto ? '' : ' closed'}">${aberto ? 'Aberta' : 'Fechada'}</span>
@@ -384,6 +384,21 @@ class ParceriasPage {
         <p class="fav-card__nome">${b.name ?? ''}</p>
         <p class="fav-card__addr">${b.address ?? ''}</p>
       </div>`;
+
+    // cover_path → background-image de alta qualidade (preferido)
+    // logo_path  → fallback quando não há capa
+    if (b.cover_path && typeof CapaBarbearia !== 'undefined') {
+      CapaBarbearia.aplicarCapa(card, b.cover_path);
+    } else if (b.logo_path) {
+      const url = (typeof SupabaseService !== 'undefined')
+        ? SupabaseService.getLogoUrl(b.logo_path)
+        : b.logo_path;
+      if (url) {
+        card.style.backgroundImage = `url('${url}')`;
+        card.style.backgroundSize  = 'cover';
+        card.style.backgroundPosition = 'center';
+      }
+    }
 
     return card;
   }

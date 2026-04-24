@@ -140,7 +140,7 @@ class ProfileRepository {
 
     // Etapa 2: buscar dados reais das barbearias
     const { data, error: e2 } = await SupabaseService.barbershops()
-      .select('id, name, address, is_open, rating_avg, logo_path')
+      .select('id, name, address, is_open, rating_avg, logo_path, cover_path')
       .in('id', ids);
 
     if (e2) throw e2;
