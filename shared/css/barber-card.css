@@ -1474,6 +1474,13 @@
   );
 }
 
+/* ── fav-card COM logo (fallback): fundo cover sem filtro forte ── */
+.fav-card.barber-card--com-logo {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
 /* ── FAVORITAS — hero (h1 + h2) ── */
 .fav-hero {
   text-align: center;
