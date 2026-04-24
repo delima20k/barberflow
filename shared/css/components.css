@@ -3570,6 +3570,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Linha: capa + ícone lado a lado ── */
 .mb-cfg-media-row {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   padding: 0;
   gap: 3.3vw;
