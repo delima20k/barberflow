@@ -3641,7 +3641,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: column;
   gap: 6px;
   align-self: stretch;
-  margin-right: 3.33vw;
+  margin-right: 3.33%;
   padding: 0;
 }
 
