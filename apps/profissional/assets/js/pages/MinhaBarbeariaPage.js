@@ -34,6 +34,7 @@ class MinhaBarbeariaPage {
   #digGps       = null;   // instância DigText para o p.gps-dig
   #digBoasVindas= null;   // instância DigText para o h1#mb-boas-vindas
   #guardaBotoes = null;   // instância GuardaIten para a gaveta de botões
+  #mediaP2P     = new MediaP2P(); // preview local P2P — upload adiado para o save
   #refs         = {};
 
   constructor() {}
@@ -454,6 +455,8 @@ class MinhaBarbeariaPage {
     this.#subTelaAtiva.setAttribute('aria-hidden', 'true');
     this.#subTelaAtiva = null;
     this.#digGps?.parar();
+    // Revoga todos os blobs P2P pendentes ao fechar o painel (libera memória)
+    this.#mediaP2P.cancelarTodos();
   }
 
   #preencherConfigPanel(shop, servicos) {
@@ -530,6 +533,7 @@ class MinhaBarbeariaPage {
     if (produto?.image_path)    row.dataset.imagePath = produto.image_path;
     if (produto?.id)            row.dataset.produtoId = produto.id;
     if (produto?.duration_min)  row.dataset.duracao   = produto.duration_min;
+    row.dataset.mediaUid = uid;  // permite que #salvarProdutoUnico localize o pendente P2P
 
     row.innerHTML = `
       <li class="mb-prod-li mb-prod-li--img">
@@ -560,7 +564,10 @@ class MinhaBarbeariaPage {
     `;
 
     row.querySelector('.mb-prod-remove')
-       .addEventListener('click', () => row.remove());
+       .addEventListener('click', () => {
+         this.#mediaP2P.cancelar(uid); // revoga blob URL pendente antes de remover
+         row.remove();
+       });
 
     row.querySelector(`#${uid}`)
        .addEventListener('change', e => this.#onUploadImagemItem(e, row, uid));
@@ -571,29 +578,27 @@ class MinhaBarbeariaPage {
     lista.appendChild(row);
   }
 
-  /** Upload de imagem de um item da lista de serviços. */
+  /**
+   * Seleção de imagem de um item — usa MediaP2P para preview local imediato.
+   * O arquivo fica pendente em memória; o upload real ocorre em #salvarProdutoUnico.
+   */
   async #onUploadImagemItem(e, row, uid) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || !this.#barbershopId) return;
-    try {
-      const ext  = file.name.split('.').pop().toLowerCase();
-      const path = `${this.#barbershopId}/services/${uid}.${ext}`;
-      const { error } = await SupabaseService.storageBarbershops()
-        .upload(path, file, { contentType: file.type, upsert: true });
-      if (error) throw error;
-      const url = SupabaseService.getLogoUrl(path);
-      if (url) {
-        row.querySelector('.mb-cfg-prod-img-preview').src = url;
-        row.dataset.imagePath = path;
-      }
-    } catch (err) {
-      LoggerService.error('[MinhaBarbeariaPage] upload imagem item:', err);
-      NotificationService?.mostrarToast('Erro', 'Falha ao enviar imagem.', 'sistema');
-    }
+    if (!file) return;
+
+    const blobUrl = await this.#mediaP2P.registrar(file, uid);
+    if (!blobUrl) return; // usuário cancelou a confirmação
+
+    row.querySelector('.mb-cfg-prod-img-preview').src = blobUrl;
+    // Remove imagePath salvo anteriormente (será atualizado após upload real no save)
+    delete row.dataset.imagePath;
   }
 
-  /** Salva individualmente um item da lista de serviços. */
+  /**
+   * Salva individualmente um item da lista de serviços.
+   * Se houver arquivo P2P pendente, faz o upload real antes de salvar no banco.
+   */
   async #salvarProdutoUnico(row) {
     const btn  = row.querySelector('.mb-prod-salvar-btn');
     const nome = row.querySelector('.mb-cfg-prod-nome')?.value?.trim();
@@ -607,8 +612,19 @@ class MinhaBarbeariaPage {
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
 
     try {
+      const uid   = row.dataset.mediaUid;
       const preco = parseFloat(row.querySelector('.mb-cfg-prod-preco')?.value || '0');
       const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
+
+      // ── Upload P2P: envia o arquivo local agora que o usuário confirmou salvar ──
+      if (uid && this.#mediaP2P.temPendente(uid)) {
+        const ext  = this.#mediaP2P.extensaoPendente(uid);
+        const path = `${this.#barbershopId}/services/${uid}.${ext}`;
+        row.dataset.imagePath = await this.#mediaP2P.fazerUpload(uid, path);
+        // Atualiza preview com URL do storage (substitui o blob URL revogado)
+        const urlStorage = SupabaseService.getLogoUrl(row.dataset.imagePath);
+        if (urlStorage) row.querySelector('.mb-cfg-prod-img-preview').src = urlStorage;
+      }
 
       const entry = {
         barbershop_id: this.#barbershopId,

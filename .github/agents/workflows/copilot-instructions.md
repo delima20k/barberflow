@@ -10,7 +10,7 @@ Especialista em:
 - Arquitetura de software escalável
 - Engenharia de performance e redução de custo
 - WebRTC (P2P) para otimização de mídia
-- Engenharia de banco de dados (PostgreSQL)
+- Engenharia de banco de dados (PostgreSQL)DELIMA, REFATORE E REVISE  TUDO QUE VC ACABOU DE FASER E SE  ENCONTRA ERRO OU DUPLICAÇÃO ARRUME, E ANALIZA SE ESTA ORIENTADO A OBJETO.E ESCALAVEL
 
 A partir de agora, todo novo código funcional deve seguir o método Test-Driven Development (TDD).
 
@@ -826,5 +826,87 @@ dig.iniciar(); // para primeira carga
   50%       { opacity: 0; }
 }
 ```
+
+---
+
+## funp2p — Padrão P2P de Preview Local de Mídia
+
+**Classe:** `MediaP2P` (`shared/js/MediaP2P.js`)
+
+**Conceito:** Em vez de fazer upload imediato ao Supabase ao selecionar um arquivo, o sistema usa o arquivo local do dispositivo do usuário para preview instantâneo via `URL.createObjectURL()`. O upload real só ocorre quando o usuário confirmar o salvamento.
+
+### Fluxo P2P:
+1. **Seleção** → `registrar(file, uid)` — exibe confirmação, cria Blob URL, armazena pendente
+2. **Preview** → `<img src="blob:...">` — zero latência de rede
+3. **Salvar item** → `fazerUpload(uid, storagePath)` — faz upload real, revoga Blob URL
+4. **Remover/Fechar** → `cancelar(uid)` ou `cancelarTodos()` — revoga Blob URL sem upload
+
+### API da classe:
+
+| Método | Quando chamar |
+|---|---|
+| `await registrar(file, uid)` | Ao selecionar arquivo (evento `change` do `<input type="file">`) |
+| `await fazerUpload(uid, path)` | Ao clicar "Salvar item" (se `temPendente(uid)` for true) |
+| `extensaoPendente(uid)` | Para montar o `storagePath` antes de `fazerUpload` |
+| `temPendente(uid)` | Para verificar se deve fazer upload antes de salvar no banco |
+| `cancelar(uid)` | No listener `remove` de um item da lista |
+| `cancelarTodos()` | No método `#fecharSub()` ou equivalente ao fechar o painel |
+
+### Integração em páginas (ex: MinhaBarbeariaPage.js):
+
+```js
+// 1. Declarar campo privado na classe da página
+#mediaP2P = new MediaP2P();
+
+// 2. Ao criar o row, armazenar o uid no dataset
+row.dataset.mediaUid = uid;
+
+// 3. No listener change do input file:
+async #onUploadImagemItem(e, row, uid) {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  const blobUrl = await this.#mediaP2P.registrar(file, uid);
+  if (!blobUrl) return; // usuário cancelou
+  row.querySelector('.mb-cfg-prod-img-preview').src = blobUrl;
+  delete row.dataset.imagePath; // será definido após upload real
+}
+
+// 4. No listener remove do item:
+.addEventListener('click', () => {
+  this.#mediaP2P.cancelar(uid);
+  row.remove();
+});
+
+// 5. No início do #salvarProdutoUnico (antes do DB upsert):
+const uid = row.dataset.mediaUid;
+if (uid && this.#mediaP2P.temPendente(uid)) {
+  const ext  = this.#mediaP2P.extensaoPendente(uid);
+  const path = `${this.#barbershopId}/services/${uid}.${ext}`;
+  row.dataset.imagePath = await this.#mediaP2P.fazerUpload(uid, path);
+  const urlStorage = SupabaseService.getLogoUrl(row.dataset.imagePath);
+  if (urlStorage) row.querySelector('.mb-cfg-prod-img-preview').src = urlStorage;
+}
+
+// 6. No método de fechar o painel:
+#fecharSub() {
+  // ... lógica de fechar ...
+  this.#mediaP2P.cancelarTodos(); // libera memória de todos os pendentes
+}
+```
+
+### Carregamento no HTML:
+Incluir **antes** do script da página que usa `MediaP2P`:
+```html
+<script src="/shared/js/MediaP2P.js"></script>
+<script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
+```
+
+### Regras importantes:
+- **Não usar `sanitizar()`** no `blobUrl` — é URL interna gerada pelo browser, não entrada do usuário
+- **`data-mediaUid`** no row é a bridge entre `#adicionarLinhaProduto` e `#salvarProdutoUnico`
+- **Sempre verificar `temPendente()`** antes de `fazerUpload()` (itens pré-existentes não têm pendente)
+- **Blob URLs são revogados automaticamente** pelo `MediaP2P` — nunca chamar `revokeObjectURL` externamente
+- A confirmação via `window.confirm()` atende ao requisito de "push de confirmação de uso de arquivos do próprio aparelho"
 
 ---
