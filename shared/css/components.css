@@ -3572,7 +3572,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   align-items: flex-start;
   padding: 0;
-  gap: 0;
+  gap: 3.3vw;
 }
 
 /* Coluna da capa: 45vw — margens: 3.33vw esquerda e direita */
