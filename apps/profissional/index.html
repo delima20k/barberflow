@@ -1669,6 +1669,69 @@
 
 </div><!-- #app -->
 
+  <!-- ============================================================
+       TELA — BARBEARIA (perfil público)
+  ============================================================ -->
+  <main id="tela-barbearia" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+
+    <!-- Skeleton -->
+    <div id="bp-skeleton">
+      <div style="width:100%;height:200px;background:var(--card-alt,rgba(255,255,255,.06));"></div>
+      <div style="padding:52px 20px 0">
+        <div class="bp-skeleton-linha" style="width:55%"></div>
+        <div class="bp-skeleton-linha" style="width:70%"></div>
+        <div class="bp-skeleton-linha" style="width:40%"></div>
+      </div>
+    </div>
+
+    <!-- Conteúdo real -->
+    <div id="bp-conteudo" hidden>
+      <!-- Capa + logo -->
+      <div class="bp-capa-wrap">
+        <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
+        <div class="bp-logo-wrap">
+          <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
+        </div>
+      </div>
+
+      <!-- Info -->
+      <div class="bp-info-wrap">
+        <h1 id="bp-nome" class="bp-nome"></h1>
+        <p  id="bp-endereco" class="bp-endereco"></p>
+        <div class="bp-meta-row">
+          <span id="bp-badge" class="bp-badge"></span>
+          <span id="bp-rating" class="bp-rating"></span>
+          <span id="bp-likes" class="bp-likes"></span>
+          <span id="bp-desde" class="bp-desde"></span>
+        </div>
+        <div class="bp-acoes">
+          <a id="bp-whats-btn" class="bp-whats-btn" href="#" target="_blank" rel="noopener" hidden>
+            💬 WhatsApp
+          </a>
+          <button id="bp-fav-btn" class="bp-fav-btn" data-action="barbershop-favorite"
+                  aria-label="Favoritar barbearia">
+            ♥ Favoritar
+          </button>
+        </div>
+      </div>
+
+      <!-- Serviços -->
+      <div class="bp-secao">
+        <p class="bp-secao-titulo">Serviços</p>
+        <div id="bp-servicos-lista"></div>
+      </div>
+
+      <!-- Portfólio -->
+      <div class="bp-secao">
+        <p class="bp-secao-titulo">Portfólio</p>
+        <div id="bp-portfolio-grid" class="bp-portfolio-grid" hidden></div>
+      </div>
+    </div>
+  </main>
+
 <!-- Supabase SDK (CDN) -->
 <script src="/shared/js/supabase.min.js"></script>
 <!-- Logger centralizado — deve preceder todos os outros scripts -->
@@ -1756,6 +1819,7 @@
 <script src="assets/js/pages/AgendaPage.js"></script>
 <script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
 <script src="assets/js/pages/CriarBarbeariaPage.js"></script>
+<script src="/shared/js/BarbeariaPage.js"></script>
 <script src="assets/js/pages/ParceriasPage.js"></script>
 <script src="assets/js/pages/FinancasPage.js"></script>
 <script src="assets/js/pages/GpsPage.js"></script>

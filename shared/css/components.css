@@ -4077,3 +4077,203 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 12px 0;
   font-size: .9rem;
 }
+
+/* ================================================================
+   BARBEARIA PAGE — Perfil público de uma barbearia
+================================================================ */
+
+/* Capa topo */
+.bp-capa-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: var(--card);
+}
+.bp-capa-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+/* Logo sobreposto à capa */
+.bp-logo-wrap {
+  position: absolute;
+  bottom: -36px;
+  left: 20px;
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--gold, #D4AF37);
+  background: var(--card);
+  box-shadow: 0 4px 16px rgba(0,0,0,.55);
+}
+.bp-logo-wrap img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+/* Área de info abaixo da capa */
+.bp-info-wrap {
+  padding: 44px 20px 16px;
+}
+.bp-nome {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--gold, #D4AF37);
+  margin: 0 0 4px;
+}
+.bp-endereco {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+.bp-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.bp-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.bp-badge--open   { background: rgba(72,200,120,.2); color: #48c878; }
+.bp-badge--closed { background: rgba(200,60,60,.18); color: #e05555; }
+.bp-rating, .bp-likes, .bp-desde {
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+
+/* Botões de ação */
+.bp-acoes {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0 0;
+  flex-wrap: wrap;
+}
+.bp-whats-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--r-md, 10px);
+  background: #25D366;
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+}
+.bp-fav-btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 14px;
+  border-radius: var(--r-md, 10px);
+  border: 1px solid var(--gold-border, rgba(212,175,55,.3));
+  color: var(--gold, #D4AF37);
+  font-size: .85rem;
+}
+
+/* Seções internas */
+.bp-secao {
+  padding: 16px 20px 0;
+}
+.bp-secao-titulo {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin: 0 0 10px;
+}
+
+/* Serviços */
+.bp-serv-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(212,175,55,.1);
+}
+.bp-serv-img {
+  width: 52px; height: 52px;
+  border-radius: var(--r-sm, 8px);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255,255,255,.05);
+}
+.bp-serv-img--vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+.bp-serv-info {
+  flex: 1;
+  min-width: 0;
+}
+.bp-serv-nome {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 2px;
+}
+.bp-serv-meta {
+  font-size: .74rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.bp-serv-preco {
+  font-size: .92rem;
+  font-weight: 800;
+  color: var(--gold, #D4AF37);
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* Portfólio 3×N */
+.bp-portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding-bottom: 16px;
+}
+.bp-port-item {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--r-sm, 8px);
+  background: rgba(255,255,255,.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+.bp-port-item img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+/* Estados */
+.bp-vazio { color: var(--text-muted); font-size: .84rem; padding: 8px 0; }
+.bp-erro  { color: #e05555; text-align: center; padding: 32px 20px; font-size: .9rem; }
+
+/* Skeleton */
+.bp-skeleton-linha {
+  height: 14px;
+  border-radius: 8px;
+  background: var(--card-alt, rgba(255,255,255,.06));
+  margin-bottom: 10px;
+  animation: bp-pulse 1.4s ease-in-out infinite;
+}
+@keyframes bp-pulse {
+  0%, 100% { opacity: .5; }
+  50%       { opacity: 1; }
+}
+

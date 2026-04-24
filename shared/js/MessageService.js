@@ -49,9 +49,16 @@ class MessageService {
    * @returns {{ ok: boolean, data: object|null, error: string|null }}
    */
   static async enviarMensagem(recipientId, content, storyRefId = null) {
-    if (!recipientId || !content?.trim()) {
-      return { ok: false, data: null, error: 'Dados inválidos' };
+    // Valida recipientId como UUID
+    if (!InputValidator.uuid(recipientId).ok) {
+      return { ok: false, data: null, error: 'Destinatário inválido' };
     }
+    // Valida e sanitiza conteúdo — previne XSS e limita tamanho
+    const check = InputValidator.textoLivre(content, 2000, true);
+    if (!check.ok) {
+      return { ok: false, data: null, error: check.msg ?? 'Mensagem inválida' };
+    }
+    const safeContent = check.valor;
 
     const uid = await MessageService.#uid();
 
@@ -61,7 +68,7 @@ class MessageService {
         id:           crypto.randomUUID(),
         sender_id:    'demo',
         recipient_id: recipientId,
-        content:      content.trim(),
+        content:      safeContent,
         is_read:      false,
         story_ref_id: storyRefId,
         created_at:   new Date().toISOString(),
@@ -74,7 +81,7 @@ class MessageService {
       .insert({
         sender_id:    uid,
         recipient_id: recipientId,
-        content:      content.trim(),
+        content:      safeContent,
         is_read:      false,
         story_ref_id: storyRefId ?? null,
       })
@@ -157,9 +164,15 @@ class MessageService {
    * @returns {{ ok: boolean, data: object|null, error: string|null }}
    */
   static async enviarComentarioStory(storyId, ownerId, content) {
-    if (!storyId || !ownerId || !content?.trim()) {
+    // Valida IDs como UUIDs e conteúdo
+    if (!InputValidator.uuid(storyId).ok || !InputValidator.uuid(ownerId).ok) {
       return { ok: false, data: null, error: 'Dados inválidos' };
     }
+    const check = InputValidator.textoLivre(content, 1000, true);
+    if (!check.ok) {
+      return { ok: false, data: null, error: check.msg ?? 'Comentário inválido' };
+    }
+    const safeContent = check.valor;
 
     const uid = await MessageService.#uid();
 
@@ -169,7 +182,7 @@ class MessageService {
         story_id:     storyId,
         sender_id:    'demo',
         recipient_id: ownerId,
-        content:      content.trim(),
+        content:      safeContent,
         created_at:   new Date().toISOString(),
       };
       return { ok: true, data: mock, error: null };
@@ -180,7 +193,7 @@ class MessageService {
         story_id:     storyId,
         sender_id:    uid,
         recipient_id: ownerId,
-        content:      content.trim(),
+        content:      safeContent,
       })
       .select()
       .single();
