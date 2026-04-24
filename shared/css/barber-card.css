@@ -1449,6 +1449,31 @@
   background: linear-gradient(135deg, #1a0800 0%, #2d1200 100%);
 }
 
+/* ── fav-card COM capa: imagem nítida e cobrindo o card todo ── */
+
+/* Centraliza melhor em cards landscape e satura a imagem */
+.fav-card.barber-card--com-capa {
+  background-position: center center;
+  filter: contrast(1.13) saturate(1.2);
+}
+
+/* Suprime o ::before duplicado do barber-card--com-capa —
+   o fav-card__overlay já fornece o gradiente de legibilidade */
+.fav-card.barber-card--com-capa::before {
+  display: none;
+}
+
+/* Overlay mais leve: texto legível embaixo, imagem aparece acima */
+.fav-card.barber-card--com-capa .fav-card__overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,.80) 0%,
+    rgba(0,0,0,.42) 46%,
+    rgba(0,0,0,.08) 72%,
+    transparent 100%
+  );
+}
+
 /* ── FAVORITAS — hero (h1 + h2) ── */
 .fav-hero {
   text-align: center;
