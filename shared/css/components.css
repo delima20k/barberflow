@@ -3567,11 +3567,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   letter-spacing: .5px;
 }
 
-/* ── Linha: capa (45vw) + ícone lado a lado ── */
+/* ── Linha: capa + ícone lado a lado com margens explícitas ── */
 .mb-cfg-media-row {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  padding: 0 3.3vw;       /* margem esquerda e direita: 3.3% */
+  gap: 3.4vw;             /* espaço central: 3.4% */
 }
 
 /* Coluna da capa: 45% da viewport */
@@ -3628,16 +3629,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-color: #1a0800;
 }
 
-/* Coluna do ícone: ocupa o espaço restante e estica na mesma altura da capa */
+/* Coluna do ícone: 45vw, mesma largura que a capa */
 .mb-config-icone-col {
-  flex: 1;
+  width: 45vw;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
   align-self: stretch;
 }
 
-/* Wrap do ícone + botão lado a lado */
+/* Wrap do ícone + botão lado a lado — gradiente marrom→ouro */
 .mb-config-icone-wrap {
   display: flex;
   flex-direction: row;
@@ -3645,8 +3647,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 10px;
   padding: 10px;
   border-radius: var(--r-lg, 12px);
-  background: transparent;
-  border: 1px solid var(--gold-border);
+  background: linear-gradient(135deg, #3d1e08 0%, #7a4a1a 45%, #c9872a 100%);
+  border: 1px solid rgba(212,175,55,.22);
   height: 100%;
   box-sizing: border-box;
 }
@@ -3665,13 +3667,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: cover;
 }
 
-/* Botão de upload logo — outline gold, ao lado do círculo */
+/* Botão de upload logo — fundo transparente, borda gold, mais estreito */
 .mb-config-upload-btn--logo {
-  flex: 1;
+  flex: 0 0 auto;
   width: auto;
-  padding: 9px 8px;
-  font-size: .78rem;
-  white-space: nowrap;
+  padding: 8px 10px;
+  font-size: .74rem;
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
   background: transparent;
   border-color: var(--gold, #D4AF37);
   color: var(--gold, #D4AF37);
