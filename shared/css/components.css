@@ -3675,10 +3675,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 0;
-  min-width: 0;
-  width: 0;           /* força o flex a calcular sem herdar 100% */
-  padding: 4px 6px;   /* vertical: 7px × 0.6 = 4px (40% menor) */
+  flex: none;
+  width: 70px;
+  height: 40px;
+  padding: 0;
   font-size: .7rem;
   white-space: normal;
   word-break: break-word;
