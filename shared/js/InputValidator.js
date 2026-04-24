@@ -158,12 +158,6 @@ class InputValidator {
   // ── Sanitização XSS ───────────────────────────────────────
 
   /**
-   * Sanitiza string para exibição segura em HTML (previne XSS).
-   * Use SEMPRE antes de inserir dados do usuário via innerHTML.
-   * @param {string} str
-   * @returns {string}
-   */
-  /**
    * Codifica caracteres especiais de HTML para uso seguro em **innerHTML**.
    *
    * ⚠️  REGRAS DE USO — leia antes de usar:

@@ -105,6 +105,10 @@ class MessageService {
    * @returns {{ ok: boolean, data: Array, error: string|null }}
    */
   static async buscarConversa(otherUserId, limit = 50, offset = 0) {
+    if (!InputValidator.uuid(otherUserId).ok) {
+      return { ok: false, data: [], error: 'Interlocutor inválido' };
+    }
+
     const uid = await MessageService.#uid();
 
     if (!uid) {
@@ -138,6 +142,7 @@ class MessageService {
    * @returns {{ ok: boolean }}
    */
   static async marcarLido(senderId) {
+    if (!InputValidator.uuid(senderId).ok) return { ok: false };
     const uid = await MessageService.#uid();
     if (!uid) return { ok: true };
 
@@ -214,7 +219,7 @@ class MessageService {
    * @returns {{ ok: boolean, data: Array, error: string|null }}
    */
   static async buscarComentariosStory(storyId, limit = 30) {
-    if (!storyId) return { ok: false, data: [], error: 'storyId inválido' };
+    if (!InputValidator.uuid(storyId).ok) return { ok: false, data: [], error: 'storyId inválido' };
 
     const { data: story } = await SupabaseService.stories()
       .select('id, expires_at')
@@ -255,6 +260,7 @@ class MessageService {
    * @returns {{ ok: boolean }}
    */
   static async apagarComentario(commentId) {
+    if (!InputValidator.uuid(commentId).ok) return { ok: false };
     const { error } = await SupabaseService.storyComments()
       .delete()
       .eq('id', commentId);
