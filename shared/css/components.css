@@ -3584,6 +3584,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 8px;
   margin-left: 3.33vw;
   margin-right: 3.33vw;
+  padding: 0;
 }
 
 /* Preview de upload da capa */
@@ -3640,6 +3641,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 6px;
   align-self: stretch;
   margin-right: 3.33vw;
+  padding: 0;
 }
 
 /* Wrap do ícone + botão lado a lado — gradiente marrom→ouro */
