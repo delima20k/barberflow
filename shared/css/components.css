@@ -3558,7 +3558,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 /* Seções */
-.mb-config-secao { display: flex; flex-direction: column; gap: 8px; }
+.mb-config-secao { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .mb-config-secao-label {
   font-size: .78rem;
   font-weight: 700;
