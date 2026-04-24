@@ -41,6 +41,8 @@ class Router {
   static TELAS_PUBLICAS = new Set([
     // Telas compartilhadas (cliente + profissional)
     'inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques',
+    // Perfil público de barbearia — acessível a qualquer visitante sem login
+    'barbearia',
     // Fluxo de cadastro profissional (visitante ainda não tem conta)
     'planos-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'termos-legais',
   ]);

@@ -1667,10 +1667,10 @@
     </footer>
   </main>
 
-</div><!-- #app -->
-
   <!-- ============================================================
        TELA — BARBEARIA (perfil público)
+       DEVE ficar dentro de #app para que o Router e o CSS de .tela
+       funcionem corretamente (posição, animações, z-index).
   ============================================================ -->
   <main id="tela-barbearia" class="tela">
     <div class="tela-topo">
@@ -1731,6 +1731,8 @@
       </div>
     </div>
   </main>
+
+</div><!-- #app -->
 
 <!-- Supabase SDK (CDN) -->
 <script src="/shared/js/supabase.min.js"></script>

@@ -163,6 +163,22 @@ class InputValidator {
    * @param {string} str
    * @returns {string}
    */
+  /**
+   * Codifica caracteres especiais de HTML para uso seguro em **innerHTML**.
+   *
+   * ⚠️  REGRAS DE USO — leia antes de usar:
+   *   ✅  CORRETO → element.innerHTML = sanitizar(dado)
+   *   ❌  ERRADO  → element.textContent = sanitizar(dado)
+   *       (textContent já é seguro por natureza; sanitizar() causaria
+   *        "D'Água" virar "D&#x27;Água" visível na tela)
+   *   ❌  ERRADO  → salvar sanitizar(dado) no banco de dados
+   *       (o banco deve guardar o texto original; o Supabase/PostgREST usa
+   *        queries parametrizadas e não tem risco de SQL injection aqui;
+   *        use textoLivre() para validar antes de inserir)
+   *
+   * @param {string} str — texto a codificar
+   * @returns {string}   — texto com &amp; < > " ' / escapados para HTML
+   */
   static sanitizar(str) {
     if (typeof str !== 'string') return '';
     return str
@@ -178,15 +194,22 @@ class InputValidator {
   // ── Validação de dados da camada de persistência ──────────
 
   /**
-   * Valida e sanitiza texto livre (notas, bio, endereços).
-   * Remove null-bytes (previne ataques de truncamento de string no banco);
-   * rejeita se exceder maxLen.
-   * Strings SQL-like (aspas, "--") são aceitas — o Supabase/PostgREST usa
-   * queries parametrizadas e nunca interpola o valor no SQL.
+   * Valida e sanitiza texto livre (mensagens, notas, bio, endereços).
+   *
+   * ✅  Use ANTES de salvar no banco de dados — retorna o texto original limpo.
+   * ✅  Use ANTES de exibir via textContent (o valor já é seguro).
+   * ❌  NÃO use sanitizar() para banco — retorna texto HTML-encoded, que seria
+   *     armazenado com entidades como D&#x27;Água em vez de D'Água.
+   *
+   * Remove null-bytes (previne ataques de truncamento de string no banco).
+   * Strings com aspas e "--" são aceitas — o Supabase/PostgREST usa queries
+   * parametrizadas e NUNCA interpola o valor diretamente no SQL.
+   *
    * @param {string}  str
    * @param {number}  [maxLen=500]
    * @param {boolean} [obrigatorio=false]
    * @returns {{ ok: boolean, msg: string, valor: string }}
+   *          valor = texto original limpo (sem HTML encoding)
    */
   static textoLivre(str, maxLen = 500, obrigatorio = false) {
     // Remove null-bytes (U+0000) que podem causar truncamento inesperado
