@@ -3654,6 +3654,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border: 1px solid rgba(212,175,55,.22);
   height: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 .mb-config-icone-circulo {
   width: 68px;
@@ -3670,29 +3671,34 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: cover;
 }
 
-/* Botão de upload logo — transparente, borda gold, 40% menos alto */
-.mb-config-upload-btn--logo {
-  display: inline-flex;
+/* Botão logo — círculo absoluto canto inferior direito (igual ao da capa) */
+.mb-config-icone-wrap .mb-config-upload-btn--logo {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
   align-items: center;
   justify-content: center;
-  flex: none;
-  width: 30px;
-  height: 15px;
-  padding: 0;
-  font-size: .7rem;
-  white-space: normal;
-  word-break: break-word;
-  text-align: center;
-  line-height: 1.2;
-  background: transparent;
-  border-color: var(--gold, #D4AF37);
-  color: var(--gold, #D4AF37);
-}
-.mb-config-upload-btn--logo:active,
-.mb-config-upload-btn--logo:hover {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
   background: var(--gold, #D4AF37);
-  border-color: var(--gold, #D4AF37);
+  border: 2px solid #1a0800;
   color: #1a0800;
+  box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  transition: transform .15s, background .15s;
+  flex: none;
+  white-space: nowrap;
+}
+.mb-config-icone-wrap .mb-config-upload-btn--logo:active,
+.mb-config-icone-wrap .mb-config-upload-btn--logo:hover {
+  transform: scale(.9);
+  background: #f0c040;
+  border-color: #1a0800;
 }
 
 /* Botão de upload — estilo btnFlow, borda mínima */
