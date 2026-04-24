@@ -205,8 +205,8 @@ const AuthUI = (() => {
       mu.textContent = '';
       const small = document.createElement('small');
       small.id          = 'menu-user-sub';
-      small.textContent = InputValidator.sanitizar(email);
-      mu.appendChild(document.createTextNode(InputValidator.sanitizar(nome) + ' '));
+      small.textContent = email;
+      mu.appendChild(document.createTextNode(nome + ' '));
       mu.appendChild(small);
     }
 

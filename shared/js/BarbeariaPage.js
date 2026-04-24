@@ -1,38 +1,37 @@
-﻿'use strict';
+'use strict';
 
 // =============================================================
-// BarbeariaPage.js â€” Perfil pÃºblico de uma barbearia (POO, Singleton)
+// BarbeariaPage.js — Perfil público de uma barbearia (OOP)
 //
 // Responsabilidades:
-//   - Exibir capa, logo, nome, endereÃ§o, rating, serviÃ§os, portfÃ³lio
-//   - BotÃµes: favoritar, WhatsApp
-//   - AcessÃ­vel de qualquer card com [data-barbershop-id]
-//   - Sanitiza saÃ­das HTML via InputValidator.sanitizar()
-//   - SeguranÃ§a: IDs validados como UUID antes de qualquer uso;
-//                dados exibidos via textContent (sem innerHTML nÃ£o sanitizado)
+//   - Exibir capa, logo, nome, endereço, rating, serviços, portfólio
+//   - Botões: favoritar, WhatsApp
+//   - Acessível de qualquer card com [data-barbershop-id]
+//   - Exibe dado bruto do banco — sem prefixos/emojis adicionados pelo JS
+//   - Segurança: IDs validados como UUID; innerHTML protegido por sanitizar()
 //
-// DependÃªncias: BarbershopRepository.js, SupabaseService.js,
+// Dependências: BarbershopRepository.js, SupabaseService.js,
 //               FonteSalao.js, InputValidator.js, LoggerService.js
 // =============================================================
 
 class BarbeariaPage {
 
-  // â”€â”€ Estado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Estado ────────────────────────────────────────────────
   #telaEl      = null;
   #shopId      = null;   // UUID da barbearia atual
-  #shopIdCache = null;   // Ãºltimo ID renderizado (evita re-fetch na volta)
+  #shopIdCache = null;   // último ID renderizado (evita re-fetch na volta)
   #carregando  = false;  // mutex contra fetches paralelos
 
-  // â”€â”€ Refs DOM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
 
   constructor() {}
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // PÃšBLICA
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
+  // PÚBLICA
+  // ══════════════════════════════════════════════════════════
 
-  /** Liga a tela e registra os listeners. Chamar uma vez apÃ³s o DOM estar pronto. */
+  /** Liga a tela e registra os listeners. Chamar uma vez após o DOM estar pronto. */
   bind() {
     this.#telaEl = document.getElementById('tela-barbearia');
     if (!this.#telaEl) return;
@@ -44,22 +43,21 @@ class BarbeariaPage {
 
   /**
    * Navega para o perfil da barbearia identificada por `id`.
-   * Chamado pelo listener global ou externamente (ex.: deep-link).
-   * @param {string} id â€” UUID da barbearia
+   * @param {string} id — UUID da barbearia
    */
   abrirPorId(id) {
     if (!InputValidator.uuid(id).ok) return;
-    this.#shopId    = id;
-    this.#carregando = false;   // garante re-fetch em nova navegaÃ§Ã£o
+    this.#shopId     = id;
+    this.#carregando = false;  // garante re-fetch em nova navegação
     this.#mostrarSkeleton();
     if (typeof App !== 'undefined') App.nav('barbearia');
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // INICIALIZAÃ‡ÃƒO
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
+  // INICIALIZAÇÃO
+  // ══════════════════════════════════════════════════════════
 
-  /** Faz cache de todos os nÃ³s DOM usados pelos renders. */
+  /** Faz cache de todos os nós DOM usados pelos renders. */
   #cacheRefs() {
     const q = sel => this.#telaEl.querySelector(sel);
     this.#refs = {
@@ -90,9 +88,8 @@ class BarbeariaPage {
   }
 
   /**
-   * Registra listener global de clique para qualquer card com
-   * [data-barbershop-id]. Usa capture para interceptar antes de botÃµes
-   * de aÃ§Ã£o ([data-action]) dentro do card.
+   * Listener global: intercepta cliques em qualquer card [data-barbershop-id].
+   * Usa capture para agir antes dos botões de ação ([data-action]) dentro do card.
    */
   #bindListenerGlobal() {
     document.addEventListener('click', e => {
@@ -101,7 +98,7 @@ class BarbeariaPage {
 
       const id = card.dataset.barbershopId;
       if (!InputValidator.uuid(id).ok) {
-        LoggerService.warn('[BarbeariaPage] ID invÃ¡lido interceptado:', id);
+        LoggerService.warn('[BarbeariaPage] ID inválido interceptado:', id);
         return;
       }
 
@@ -110,14 +107,14 @@ class BarbeariaPage {
     }, true);
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
   // CARREGAMENTO
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
 
   async #carregar() {
     if (this.#carregando) return;
 
-    // Mesma barbearia jÃ¡ renderizada â€” apenas exibe conteÃºdo sem re-fetch
+    // Mesma barbearia já renderizada — apenas exibe conteúdo sem re-fetch
     if (this.#shopId === this.#shopIdCache) {
       this.#mostrarConteudo();
       return;
@@ -125,7 +122,6 @@ class BarbeariaPage {
 
     this.#carregando = true;
     try {
-      // Todos os fetches em paralelo para minimizar latÃªncia
       const [shop, servicos, portfolio] = await Promise.all([
         BarbershopRepository.getById(this.#shopId),
         BarbeariaPage.#fetchServicos(this.#shopId),
@@ -144,9 +140,9 @@ class BarbeariaPage {
     }
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // FETCHERS (estÃ¡ticos â€” sem acesso a this)
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
+  // FETCHERS (estáticos — sem acesso a this)
+  // ══════════════════════════════════════════════════════════
 
   static async #fetchServicos(id) {
     try {
@@ -174,9 +170,9 @@ class BarbeariaPage {
     } catch { return []; }
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // RENDERS â€” cada mÃ©todo tem uma responsabilidade Ãºnica
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
+  // RENDERS — cada método tem responsabilidade única (SRP)
+  // ══════════════════════════════════════════════════════════
 
   #renderizar(shop, servicos, portfolio) {
     this.#renderCapa(shop);
@@ -187,7 +183,7 @@ class BarbeariaPage {
     this.#mostrarConteudo();
   }
 
-  /** Capa e logo da barbearia. */
+  /** Capa e logo da barbearia. Usa .src — não innerHTML, sem risco XSS. */
   #renderCapa(shop) {
     if (this.#refs.capaImg) {
       const path = shop.cover_path ?? shop.logo_path;
@@ -195,12 +191,16 @@ class BarbeariaPage {
     }
     if (this.#refs.logoImg && shop.logo_path) {
       this.#refs.logoImg.src = SupabaseService.getLogoUrl(shop.logo_path);
-      // textContent nÃ£o interpreta HTML â€” nÃ£o precisa de sanitizar()
+      // textContent/alt são seguros por natureza — não usar sanitizar()
       this.#refs.logoImg.alt = shop.name ?? '';
     }
   }
 
-  /** Nome, endereÃ§o, badge, rating, likes, ano de fundaÃ§Ã£o. */
+  /**
+   * Nome, endereço, badge, rating, likes, ano de fundação.
+   * REGRA: textContent recebe o valor ORIGINAL do banco — sem prefixos/emojis.
+   * Emojis decorativos (⭐, 👍) devem estar APENAS no HTML estático ou no CSS.
+   */
   #renderInfo(shop) {
     if (this.#refs.nome) {
       this.#refs.nome.textContent = shop.name ?? '';
@@ -215,17 +215,20 @@ class BarbeariaPage {
       this.#refs.badge.className   = `bp-badge ${shop.is_open ? 'bp-badge--open' : 'bp-badge--closed'}`;
     }
     if (this.#refs.rating) {
+      // Valor bruto — sem "⭐". Decoração fica no HTML/CSS.
       this.#refs.rating.textContent = Number(shop.rating_avg ?? 0).toFixed(1);
     }
     if (this.#refs.likes) {
+      // Valor bruto — sem "👍". Decoração fica no HTML/CSS.
       this.#refs.likes.textContent = Number(shop.likes_count ?? 0);
     }
     if (this.#refs.since && shop.founded_year) {
+      // Valor bruto — sem "Desde". Decoração fica no HTML/CSS.
       this.#refs.since.textContent = shop.founded_year;
     }
   }
 
-  /** BotÃµes WhatsApp e Favoritar. */
+  /** Botões WhatsApp e Favoritar. */
   #renderAcoes(shop) {
     if (this.#refs.whatsBtn) {
       if (shop.whatsapp) {
@@ -241,25 +244,27 @@ class BarbeariaPage {
     }
   }
 
-  /** Lista de serviÃ§os: imagem â†’ nome â†’ duraÃ§Ã£o â†’ preÃ§o. */
+  /**
+   * Lista de serviços.
+   * sanitizar() é CORRETO aqui — valores vão para innerHTML.
+   */
   #renderServicos(lista) {
     const el = this.#refs.servicosLista;
     if (!el) return;
 
     if (!lista.length) {
-        el.innerHTML = '<p class="bp-vazio">Nenhum servi\u00e7o cadastrado.</p>';
+      el.innerHTML = '<p class="bp-vazio">Nenhum servi\u00e7o cadastrado.</p>';
       return;
     }
 
     const s = InputValidator.sanitizar;
     el.innerHTML = lista.map(sv => {
       const imgUrl  = sv.image_path ? SupabaseService.getLogoUrl(sv.image_path) : null;
-      // sanitizar() Ã© correto aqui pois o valor vai para innerHTML
       const imgHtml = imgUrl
         ? `<img src="${s(imgUrl)}" alt="${s(sv.name ?? '')}" class="bp-serv-img" loading="lazy" onerror="this.style.display='none'">`
         : `<div class="bp-serv-img bp-serv-img--vazio"></div>`;
       const meta  = sv.duration_min ? `${Number(sv.duration_min)} min` : '';
-      const preco = `R$ ${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
+      const preco = `R$\u00a0${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
 
       return `
         <div class="bp-serv-row">
@@ -273,7 +278,10 @@ class BarbeariaPage {
     }).join('');
   }
 
-  /** Grade 3Ã—N de fotos do portfÃ³lio. */
+  /**
+   * Grade de portfólio.
+   * sanitizar() é CORRETO aqui — valores vão para innerHTML (src e alt).
+   */
   #renderPortfolio(lista) {
     const el = this.#refs.portfolioGrid;
     if (!el) return;
@@ -286,20 +294,20 @@ class BarbeariaPage {
     const s = InputValidator.sanitizar;
     el.hidden    = false;
     el.innerHTML = lista.map(img => {
-      if (!img.thumbnail_path) return `<div class="bp-port-item bp-port-item--vazio"></div>`;
+      if (!img.thumbnail_path) return '<div class="bp-port-item bp-port-item--vazio"></div>';
       const url = SupabaseService.getPortfolioThumbUrl?.(img.thumbnail_path)
                ?? SupabaseService.getLogoUrl(img.thumbnail_path) ?? '';
       return `<div class="bp-port-item">
         <img src="${s(url)}" alt="${s(img.title ?? '')}" loading="lazy"
-             onerror="this.outerHTML='<div class=bp-port-item bp-port-item--vazio></div>'"
+             onerror="this.outerHTML='<div class=\u0022bp-port-item bp-port-item--vazio\u0022></div>'">
       </div>`;
     }).join('');
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ══════════════════════════════════════════════════════════
   // CONTROLE DE VISIBILIDADE
-  // Estes mÃ©todos gerenciam APENAS o DOM â€” nenhum estado de negÃ³cio.
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Apenas gerenciam o DOM — nenhum estado de negócio aqui.
+  // ══════════════════════════════════════════════════════════
 
   #mostrarSkeleton() {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = false;
@@ -314,7 +322,7 @@ class BarbeariaPage {
   #mostrarErro() {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = true;
     if (this.#refs.conteudo) {
-      this.#refs.conteudo.hidden   = false;
+      this.#refs.conteudo.hidden    = false;
       this.#refs.conteudo.innerHTML = '<p class="bp-erro">N\u00e3o foi poss\u00edvel carregar a barbearia.</p>';
     }
   }
