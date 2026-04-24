@@ -3667,15 +3667,20 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: cover;
 }
 
-/* Botão de upload logo — fundo transparente, borda gold, mais estreito */
+/* Botão de upload logo — cabe no espaço restante ao lado do círculo */
 .mb-config-upload-btn--logo {
-  flex: 0 0 auto;
-  width: auto;
-  padding: 8px 10px;
-  font-size: .74rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;           /* força o flex a calcular sem herdar 100% */
+  padding: 7px 6px;
+  font-size: .7rem;
   white-space: normal;
   word-break: break-word;
   text-align: center;
+  line-height: 1.2;
   background: transparent;
   border-color: var(--gold, #D4AF37);
   color: var(--gold, #D4AF37);
