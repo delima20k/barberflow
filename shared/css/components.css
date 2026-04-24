@@ -3622,7 +3622,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-weight: 900;
   line-height: 1;
   background: var(--gold, #D4AF37);
-  border: 2px solid #1a0800;
+  border: 1px solid #1a0800;
   color: #1a0800;
   box-shadow: 0 2px 8px rgba(0,0,0,.45);
   transition: transform .15s, background .15s;
@@ -3654,10 +3654,29 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 10px;
   border-radius: var(--r-lg, 12px);
   background: linear-gradient(135deg, #3d1e08 0%, #7a4a1a 45%, #c9872a 100%);
+  background-size: cover;
+  background-position: center;
   border: 1px solid rgba(212,175,55,.22);
   height: 100%;
   box-sizing: border-box;
   position: relative;
+  overflow: hidden;
+}
+/* Camada borrada do logo como fundo */
+.mb-config-icone-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  background-image: inherit;
+  background-size: cover;
+  background-position: center;
+  filter: blur(10px);
+  opacity: 0.45;
+  z-index: 0;
+}
+.mb-config-icone-wrap > * {
+  position: relative;
+  z-index: 1;
 }
 .mb-config-icone-circulo {
   width: 68px;
@@ -3690,7 +3709,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-weight: 900;
   line-height: 1;
   background: var(--gold, #D4AF37);
-  border: 2px solid #1a0800;
+  border: 1px solid #1a0800;
   color: #1a0800;
   box-shadow: 0 2px 8px rgba(0,0,0,.45);
   transition: transform .15s, background .15s;

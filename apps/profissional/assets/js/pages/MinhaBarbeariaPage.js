@@ -119,6 +119,7 @@ class MinhaBarbeariaPage {
       cfgCapaImg:    q('mb-cfg-capa-img'),
       cfgLogoInput:  q('mb-cfg-logo-input'),
       cfgLogoImg:    q('mb-cfg-logo-img'),
+      cfgIconeWrap:  q('mb-cfg-icone-wrap'),
       cfgNome:       q('mb-cfg-nome'),
       cfgProdutos:   q('mb-cfg-produtos-lista'),
       cfgAddProd:    q('mb-cfg-add-produto'),
@@ -468,7 +469,10 @@ class MinhaBarbeariaPage {
     }
     if (shop.logo_path && this.#refs.cfgLogoImg) {
       const url = SupabaseService.getLogoUrl(shop.logo_path);
-      if (url) this.#refs.cfgLogoImg.src = url;
+      if (url) {
+        this.#refs.cfgLogoImg.src = url;
+        if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${url}')`;
+      }
     }
 
     // Campos editáveis lápis
@@ -717,7 +721,10 @@ class MinhaBarbeariaPage {
 
     try {
       const { url } = await this.#uploadImagemBarbearia(file, 'logo', 'logo_path');
-      if (url && this.#refs.cfgLogoImg) this.#refs.cfgLogoImg.src = url;
+      if (url && this.#refs.cfgLogoImg) {
+        this.#refs.cfgLogoImg.src = url;
+        if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${url}')`;
+      }
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadLogo erro:', err);
     }
