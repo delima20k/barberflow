@@ -3571,24 +3571,22 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-cfg-media-row {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
-  height: 380px;
-  padding: 3.33% 3.33% 5px 3.33%;
-  gap: 3.3vw;
+  padding: 0 3.33% 0 3.33%;
+  gap: 3.33%;
   box-sizing: border-box;
 }
 
-/* Coluna da capa: 45vw — margens: 3.33vw esquerda e direita */
+/* Coluna da capa */
 .mb-cfg-capa-col {
-  width: 45vw;
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-left: 3.33vw;
-  margin-right: 3.33vw;
   padding: 0;
+  margin: 0;
 }
 
 /* Preview de upload da capa */
@@ -3636,16 +3634,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-color: #1a0800;
 }
 
-/* Coluna do ícone: 45vw — margem direita: 3.33vw */
+/* Coluna do ícone */
 .mb-config-icone-col {
-  width: 45vw;
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  align-self: stretch;
-  margin-right: 3.33%;
+  gap: 8px;
   padding: 0;
+  margin: 0;
 }
 
 /* Wrap do ícone + botão lado a lado — gradiente marrom→ouro */
