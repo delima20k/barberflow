@@ -50,7 +50,10 @@ class BarbeariaPage {
     this.#shopId     = id;
     this.#carregando = false;  // garante re-fetch em nova navegação
     this.#mostrarSkeleton();
-    if (typeof App !== 'undefined') App.nav('barbearia');
+    const router = (typeof App !== 'undefined' && App)
+                || (typeof Pro !== 'undefined' && Pro)
+                || null;
+    if (router) router.nav('barbearia');
   }
 
   // ══════════════════════════════════════════════════════════
