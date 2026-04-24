@@ -675,7 +675,7 @@ class MinhaBarbeariaPage {
    */
   async #uploadImagemBarbearia(file, nomeArq, campo) {
     const ext  = file.name.split('.').pop().toLowerCase();
-    const path = `barbershops/${this.#barbershopId}/${nomeArq}.${ext}`;
+    const path = `${this.#barbershopId}/${nomeArq}.${ext}`;
 
     const { error: upErr } = await SupabaseService.storageBarbershops()
       .upload(path, file, { contentType: file.type, upsert: true });
