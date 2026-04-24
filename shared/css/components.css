@@ -3567,21 +3567,23 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   letter-spacing: .5px;
 }
 
-/* ── Linha: capa + ícone lado a lado com margens explícitas ── */
+/* ── Linha: capa + ícone lado a lado ── */
 .mb-cfg-media-row {
   display: flex;
   align-items: flex-start;
-  padding: 0 3.3vw;       /* margem esquerda e direita: 3.3% */
-  gap: 3.4vw;             /* espaço central: 3.4% */
+  padding: 0;
+  gap: 0;
 }
 
-/* Coluna da capa: 45% da viewport */
+/* Coluna da capa: 45vw — margens: 3.33vw esquerda e direita */
 .mb-cfg-capa-col {
   width: 45vw;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-left: 3.33vw;
+  margin-right: 3.33vw;
 }
 
 /* Preview de upload da capa */
@@ -3629,7 +3631,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-color: #1a0800;
 }
 
-/* Coluna do ícone: 45vw, mesma largura que a capa */
+/* Coluna do ícone: 45vw — margem direita: 3.33vw */
 .mb-config-icone-col {
   width: 45vw;
   flex-shrink: 0;
@@ -3637,6 +3639,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: column;
   gap: 6px;
   align-self: stretch;
+  margin-right: 3.33vw;
 }
 
 /* Wrap do ícone + botão lado a lado — gradiente marrom→ouro */
@@ -3667,7 +3670,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: cover;
 }
 
-/* Botão de upload logo — cabe no espaço restante ao lado do círculo */
+/* Botão de upload logo — transparente, borda gold, 40% menos alto */
 .mb-config-upload-btn--logo {
   display: inline-flex;
   align-items: center;
@@ -3675,7 +3678,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex: 1 1 0;
   min-width: 0;
   width: 0;           /* força o flex a calcular sem herdar 100% */
-  padding: 7px 6px;
+  padding: 4px 6px;   /* vertical: 7px × 0.6 = 4px (40% menor) */
   font-size: .7rem;
   white-space: normal;
   word-break: break-word;
