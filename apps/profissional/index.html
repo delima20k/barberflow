@@ -943,27 +943,33 @@
       <h2 class="mb-cfg-titulo-pg">Configurações</h2>
       <div class="mb-config-body">
 
-        <!-- Upload imagem principal (capa) -->
+        <!-- Visual da barbearia: capa + ícone lado a lado -->
         <div class="mb-config-secao">
-          <p class="mb-config-secao-label">Imagem Principal (Capa)</p>
-          <div class="mb-config-upload-wrap mb-config-upload-wrap--capa" id="mb-cfg-capa-preview">
-            <img id="mb-cfg-capa-img" src="/shared/img/Logo01.png" alt="Capa">
-            <label class="mb-config-upload-btn" for="mb-cfg-capa-input" aria-label="Alterar imagem de capa">＋</label>
-            <input type="file" id="mb-cfg-capa-input" accept="image/*" style="display:none">
-          </div>
-        </div>
+          <p class="mb-config-secao-label">Visual da Barbearia</p>
+          <div class="mb-cfg-media-row">
 
-        <!-- Upload ícone circular -->
-        <div class="mb-config-secao">
-          <p class="mb-config-secao-label">Ícone Circular (Logo)</p>
-          <div class="mb-config-icone-wrap">
-            <div class="mb-config-icone-circulo" id="mb-cfg-logo-preview">
-              <img id="mb-cfg-logo-img" src="/shared/img/Logo01.png" alt="Logo">
+            <!-- Capa: 45% da tela -->
+            <div class="mb-cfg-capa-col">
+              <div class="mb-config-upload-wrap" id="mb-cfg-capa-preview">
+                <img id="mb-cfg-capa-img" src="/shared/img/Logo01.png" alt="Capa">
+              </div>
+              <label class="mb-config-upload-btn" for="mb-cfg-capa-input" aria-label="Alterar imagem de capa">
+                📷 Alterar capa
+              </label>
+              <input type="file" id="mb-cfg-capa-input" accept="image/*" style="display:none">
             </div>
-            <label class="mb-config-upload-btn" for="mb-cfg-logo-input">
-              🖼 Alterar logo
-            </label>
-            <input type="file" id="mb-cfg-logo-input" accept="image/*" style="display:none">
+
+            <!-- Ícone circular (logo) -->
+            <div class="mb-config-icone-wrap">
+              <div class="mb-config-icone-circulo" id="mb-cfg-logo-preview">
+                <img id="mb-cfg-logo-img" src="/shared/img/Logo01.png" alt="Logo">
+              </div>
+              <label class="mb-config-upload-btn" for="mb-cfg-logo-input" aria-label="Alterar logo circular">
+                🖼 Alterar logo
+              </label>
+              <input type="file" id="mb-cfg-logo-input" accept="image/*" style="display:none">
+            </div>
+
           </div>
         </div>
 

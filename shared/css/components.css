@@ -3544,7 +3544,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: 1.15rem;
   font-weight: 900;
   color: var(--text);
-  margin: 4px 0 24px;
+  margin: 0;
+  padding: 0;
   letter-spacing: .3px;
 }
 
@@ -3566,10 +3567,27 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   letter-spacing: .5px;
 }
 
+/* ── Linha: capa (45vw) + ícone lado a lado ── */
+.mb-cfg-media-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+/* Coluna da capa: 45% da viewport */
+.mb-cfg-capa-col {
+  width: 45vw;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 /* Preview de upload da capa */
 .mb-config-upload-wrap {
   position: relative;
-  height: 120px;
+  width: 100%;
+  height: calc(45vw * 0.63);   /* proporção ~16:10 */
   border-radius: var(--r-lg, 12px);
   overflow: hidden;
   background: var(--card);
@@ -3582,40 +3600,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: block;
 }
 
-/* Botão círculo + no canto inferior direito da capa */
-.mb-config-upload-wrap--capa .mb-config-upload-btn {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: 50%;
+/* Coluna do ícone: ocupa o espaço restante, centralizado */
+.mb-config-icone-wrap {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  font-weight: 900;
-  line-height: 1;
-  background: var(--gold, #D4AF37);
-  border: 2.5px solid #1a0800;
-  color: #1a0800;
-  box-shadow: 0 2px 8px rgba(0,0,0,.45);
-  -webkit-tap-highlight-color: transparent;
-  transition: transform .15s, background .15s;
-  cursor: pointer;
-}
-.mb-config-upload-wrap--capa .mb-config-upload-btn:active,
-.mb-config-upload-wrap--capa .mb-config-upload-btn:hover {
-  transform: scale(.9);
-  background: #f0c040;
-}
-
-/* Preview ícone circular */
-.mb-config-icone-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
+  padding-top: 2px;
 }
 .mb-config-icone-circulo {
   width: 68px;
@@ -3632,26 +3625,28 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: cover;
 }
 
-/* Botão de upload */
+/* Botão de upload — estilo btnFlow, borda mínima */
 .mb-config-upload-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: var(--r-full, 100px);
-  background: transparent;
-  border: 1.5px solid var(--gold);
-  color: var(--gold);
-  font-size: .8rem;
+  display: block;
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--gold, #c9872a);
+  border: 1px solid var(--gold, #c9872a);   /* borda mais fina possível */
+  color: #1a0800;
+  font-size: .82rem;
   font-weight: 700;
+  letter-spacing: .3px;
+  text-align: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background .15s, color .15s;
+  transition: background .15s, border-color .15s;
+  box-sizing: border-box;
 }
 .mb-config-upload-btn:active,
 .mb-config-upload-btn:hover {
-  background: var(--gold);
-  color: #1a0800;
+  background: #d49534;
+  border-color: #d49534;
 }
 
 /* ================================================================
