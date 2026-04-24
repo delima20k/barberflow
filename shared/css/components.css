@@ -3664,25 +3664,56 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
+  /* nitidez visual da imagem de fundo */
+  filter: contrast(1.06) saturate(1.1);
 }
+
 /* Overlay escuro para manter legibilidade do conteúdo */
 .barber-card--com-capa::before {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    135deg,
-    rgba(0,0,0,.62) 0%,
-    rgba(26,8,0,.78) 100%
+    160deg,
+    rgba(0,0,0,.55) 0%,
+    rgba(10,4,0,.82) 100%
   );
   border-radius: inherit;
   z-index: 0;
   pointer-events: none;
 }
+
 /* Garante que filhos diretos fiquem acima do overlay */
 .barber-card--com-capa > * {
   position: relative;
   z-index: 1;
+}
+
+/* ── Textos brancos quando há capa ── */
+.barber-card--com-capa .barber-name,
+.barber-card--com-capa .barber-sub,
+.barber-card--com-capa .barber-owner-badge,
+.barber-card--com-capa .dc-nome,
+.barber-card--com-capa .dc-addr,
+.barber-card--com-capa .top-card__nome,
+.barber-card--com-capa .top-card__addr,
+.barber-card--com-capa .top-card__rank,
+.barber-card--com-capa .card-title,
+.barber-card--com-capa .card-sub,
+.barber-card--com-capa h3,
+.barber-card--com-capa h4,
+.barber-card--com-capa p,
+.barber-card--com-capa span:not([class*="badge"]):not([class*="stars"]):not([class*="gold"]):not(.dc-count) {
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.65);
+}
+
+/* Muted → cinza claro (legível no escuro) */
+.barber-card--com-capa .barber-sub,
+.barber-card--com-capa .dc-addr,
+.barber-card--com-capa .top-card__addr {
+  color: rgba(255,255,255,.78);
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
 }
 
 /* Input de texto (nome) */
