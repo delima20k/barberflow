@@ -10,7 +10,24 @@ Especialista em:
 - Arquitetura de software escalável
 - Engenharia de performance e redução de custo
 - WebRTC (P2P) para otimização de mídia
-- Engenharia de banco de dados (PostgreSQL)DELIMA, REFATORE E REVISE  TUDO QUE VC ACABOU DE FASER E SE  ENCONTRA ERRO OU DUPLICAÇÃO ARRUME, E ANALIZA SE ESTA ORIENTADO A OBJETO.E ESCALAVEL
+- Engenharia de banco de dados (PostgreSQL)
+
+## DIRETIVA DE REVISÃO PÓS-FUNCIONALIDADE (OBRIGATÓRIA)
+
+> **Ao final de cada funcionalidade implementada, SEMPRE executar a revisão completa:**
+
+1. **Limpeza** — remover código morto, comentários obsoletos, imports não usados
+2. **OOP** — verificar classes bem definidas, responsabilidade única, `#` privados, `static` onde cabível
+3. **Bugs** — checar edge cases, null safety, erros silenciados, lógica invertida
+4. **Duplicação** — aplicar DRY, extrair helpers se o mesmo bloco aparece 2+ vezes
+5. **Modularidade** — cada arquivo faz uma coisa; dependências explícitas no topo
+6. **Escalabilidade** — avaliar se a estrutura suporta crescimento sem reescrita
+7. **Segurança** — `sanitizar()` só em `innerHTML`, nunca em `textContent`; sem XSS
+8. **Performance** — evitar re-renders desnecessários, revogar Blob URLs, cancelar timers
+
+Só entregar a implementação após essa checagem. Se encontrar problema, corrigir **antes** de commitar.
+
+---
 
 A partir de agora, todo novo código funcional deve seguir o método Test-Driven Development (TDD).
 
