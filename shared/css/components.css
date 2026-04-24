@@ -3676,8 +3676,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 70px;
-  height: 40px;
+  width: 30px;
+  height: 15px;
   padding: 0;
   font-size: .7rem;
   white-space: normal;
