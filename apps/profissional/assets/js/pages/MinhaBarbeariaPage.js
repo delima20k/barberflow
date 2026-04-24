@@ -515,19 +515,56 @@ class MinhaBarbeariaPage {
     const lista = this.#refs.cfgProdutos;
     if (!lista) return;
 
+    const uid = `prod-img-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+    const imgSrc = produto?.image_path
+      ? (SupabaseService.getLogoUrl(produto.image_path) || '/shared/img/Logo01.png')
+      : '/shared/img/Logo01.png';
+
     const row = document.createElement('div');
     row.className = 'mb-cfg-produto-row';
     row.innerHTML = `
-      <input type="text"   class="mb-cfg-prod-nome"  placeholder="Nome do serviço / produto"
-             value="${produto ? MinhaBarbeariaPage.#escapeAttr(produto.name) : ''}" maxlength="60">
-      <input type="number" class="mb-cfg-prod-preco" placeholder="Preço (R$)" min="0" step="0.01"
-             value="${produto ? Number(produto.price).toFixed(2) : ''}">
-      <input type="number" class="mb-cfg-prod-dur"   placeholder="Duração (min)" min="1"
-             value="${produto ? (produto.duration_min ?? '') : ''}">
-      <button class="mb-cfg-prod-remove" aria-label="Remover">✕</button>
+      <div class="mb-cfg-prod-img-wrap">
+        <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
+        <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Imagem do item">＋</label>
+        <input type="file" id="${uid}" accept="image/*" style="display:none">
+      </div>
+      <div class="mb-cfg-prod-fields">
+        <input type="text" class="mb-cfg-prod-nome" placeholder="Nome do serviço / produto"
+               value="${produto ? MinhaBarbeariaPage.#escapeAttr(produto.name) : ''}" maxlength="60">
+        <div class="mb-cfg-prod-nums-row">
+          <input type="number" class="mb-cfg-prod-preco" placeholder="R$" min="0" step="0.01"
+                 value="${produto ? Number(produto.price).toFixed(2) : ''}">
+          <input type="number" class="mb-cfg-prod-dur" placeholder="min" min="1"
+                 value="${produto ? (produto.duration_min ?? '') : ''}">
+          <button class="mb-cfg-prod-remove" aria-label="Remover">✕</button>
+        </div>
+      </div>
     `;
+
+    if (produto?.image_path) row.dataset.imagePath = produto.image_path;
+    if (produto?.id)         row.dataset.produtoId  = produto.id;
+
     row.querySelector('.mb-cfg-prod-remove').addEventListener('click', () => row.remove());
-    if (produto?.id) row.dataset.produtoId = produto.id;
+    row.querySelector(`#${uid}`).addEventListener('change', async e => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file || !this.#barbershopId) return;
+      try {
+        const ext  = file.name.split('.').pop().toLowerCase();
+        const path = `${this.#barbershopId}/services/${uid}.${ext}`;
+        const { error } = await SupabaseService.storageBarbershops()
+          .upload(path, file, { contentType: file.type, upsert: true });
+        if (error) throw error;
+        const url = SupabaseService.getLogoUrl(path);
+        if (url) {
+          row.querySelector('.mb-cfg-prod-img-preview').src = url;
+          row.dataset.imagePath = path;
+        }
+      } catch (err) {
+        console.error('[MinhaBarbeariaPage] upload imagem item erro:', err);
+      }
+    });
+
     lista.appendChild(row);
   }
 
@@ -602,7 +639,8 @@ class MinhaBarbeariaPage {
         duration_min:  dur,
         is_active:     true,
       };
-      if (row.dataset.produtoId) entry.id = row.dataset.produtoId;
+      if (row.dataset.produtoId) entry.id          = row.dataset.produtoId;
+      if (row.dataset.imagePath) entry.image_path  = row.dataset.imagePath;
       upserts.push(entry);
     });
 

@@ -3831,30 +3831,83 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 8px;
 }
 .mb-cfg-produto-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: 6px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(212,175,55,.12);
+}
+/* Área de imagem do item */
+.mb-cfg-prod-img-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-md, 10px);
+  overflow: hidden;
+  background: rgba(255,255,255,.06);
+  border: 1px dashed rgba(212,175,55,.4);
+}
+.mb-cfg-prod-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mb-cfg-prod-img-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--gold, #D4AF37);
+  border: 1px solid #1a0800;
+  color: #1a0800;
+  font-size: .9rem;
+  font-weight: 900;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}
+/* Coluna de campos do item */
+.mb-cfg-prod-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.mb-cfg-prod-nums-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
 }
 .mb-cfg-prod-nome,
 .mb-cfg-prod-preco,
 .mb-cfg-prod-dur {
-  padding: 9px 10px;
-  background: var(--card);
-  border: 1.5px solid var(--gold-border);
-  border-radius: var(--r-md, 10px);
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(212,175,55,.3);
+  border-radius: 0;
   color: var(--text);
   font-size: .82rem;
   outline: none;
   min-width: 0;
   box-sizing: border-box;
   transition: border-color .18s;
+  width: 100%;
 }
 .mb-cfg-prod-nome:focus,
 .mb-cfg-prod-preco:focus,
-.mb-cfg-prod-dur:focus { border-color: var(--gold); }
+.mb-cfg-prod-dur:focus { border-bottom-color: var(--gold); }
 .mb-cfg-prod-preco,
-.mb-cfg-prod-dur { width: 72px; }
+.mb-cfg-prod-dur { width: 70px; flex-shrink: 0; }
 .mb-cfg-prod-remove {
   all: unset;
   cursor: pointer;
