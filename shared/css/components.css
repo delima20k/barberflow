@@ -3828,22 +3828,48 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-cfg-produtos-lista {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
+
+/* ── Item de produto/serviço: <ul> com <li> em coluna ── */
 .mb-cfg-produto-row {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(212,175,55,.12);
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid rgba(212,175,55,.15);
+  border-radius: var(--r-md, 10px);
+  background: rgba(255,255,255,.03);
 }
+
+/* LI genérico */
+.mb-prod-li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(212,175,55,.08);
+}
+.mb-prod-li:last-child { border-bottom: none; padding-bottom: 0; }
+
+/* LI da imagem: layout horizontal — foto à esquerda, botão remover à direita */
+.mb-prod-li--img {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* LI de ação (botão salvar) — sem separador */
+.mb-prod-li--acao { padding-top: 10px; }
+
 /* Área de imagem do item */
 .mb-cfg-prod-img-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: var(--r-md, 10px);
   overflow: hidden;
   background: rgba(255,255,255,.06);
@@ -3873,42 +3899,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   cursor: pointer;
   line-height: 1;
 }
-/* Coluna de campos do item */
-.mb-cfg-prod-fields {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.mb-cfg-prod-nums-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-}
-.mb-cfg-prod-nome,
-.mb-cfg-prod-preco,
-.mb-cfg-prod-dur {
-  padding: 6px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(212,175,55,.3);
-  border-radius: 0;
-  color: var(--text);
-  font-size: .82rem;
-  outline: none;
-  min-width: 0;
-  box-sizing: border-box;
-  transition: border-color .18s;
-  width: 100%;
-}
-.mb-cfg-prod-nome:focus,
-.mb-cfg-prod-preco:focus,
-.mb-cfg-prod-dur:focus { border-bottom-color: var(--gold); }
-.mb-cfg-prod-preco,
-.mb-cfg-prod-dur { width: 70px; flex-shrink: 0; }
-.mb-cfg-prod-remove {
+
+/* Botão remover item */
+.mb-prod-remove {
   all: unset;
   cursor: pointer;
   width: 28px;
@@ -3916,13 +3909,67 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: var(--text-muted, #888);
   font-size: 1rem;
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
   transition: color .15s;
+  flex-shrink: 0;
 }
-.mb-cfg-prod-remove:active { color: #e44; }
+.mb-prod-remove:active { color: #e44; }
+
+/* Label de campo */
+.mb-prod-label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: var(--gold, #D4AF37);
+  text-transform: uppercase;
+}
+
+/* Inputs sem fundo e sem borda */
+.mb-cfg-prod-nome,
+.mb-cfg-prod-preco {
+  padding: 2px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--text, #F5E9DC);
+  font-size: .9rem;
+  outline: none;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.mb-cfg-prod-nome::placeholder,
+.mb-cfg-prod-preco::placeholder { color: rgba(245,233,220,.35); }
+
+/* Linha preço: prefixo R$ + input */
+.mb-prod-preco-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mb-prod-preco-prefix {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  flex-shrink: 0;
+}
+.mb-cfg-prod-preco { flex: 1; }
+
+/* Botão salvar item — btn-flow transparente c/ borda marrom+dourada */
+.mb-prod-salvar-btn {
+  background: transparent !important;
+  border: 2px solid #7B3F00 !important;
+  box-shadow: 0 0 0 1px var(--gold, #D4AF37) !important;
+  color: var(--gold, #D4AF37) !important;
+}
+.mb-prod-salvar-btn:hover,
+.mb-prod-salvar-btn:active {
+  background: rgba(212,175,55,.08) !important;
+  border-color: #8B4513 !important;
+}
 
 /* Botão adicionar item */
 .mb-config-add-btn {

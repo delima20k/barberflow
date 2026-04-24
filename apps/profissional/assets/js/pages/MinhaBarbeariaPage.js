@@ -515,57 +515,125 @@ class MinhaBarbeariaPage {
     const lista = this.#refs.cfgProdutos;
     if (!lista) return;
 
-    const uid = `prod-img-${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+    const uid   = `prod-img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const uidN  = `${uid}-nome`;
+    const uidP  = `${uid}-preco`;
     const imgSrc = produto?.image_path
       ? (SupabaseService.getLogoUrl(produto.image_path) || '/shared/img/Logo01.png')
       : '/shared/img/Logo01.png';
+    const precoVal = produto ? Number(produto.price).toFixed(2) : '';
+    const nomeVal  = produto ? MinhaBarbeariaPage.#escapeAttr(produto.name ?? '') : '';
 
-    const row = document.createElement('div');
+    const row = document.createElement('ul');
     row.className = 'mb-cfg-produto-row';
+
+    if (produto?.image_path)    row.dataset.imagePath = produto.image_path;
+    if (produto?.id)            row.dataset.produtoId = produto.id;
+    if (produto?.duration_min)  row.dataset.duracao   = produto.duration_min;
+
     row.innerHTML = `
-      <div class="mb-cfg-prod-img-wrap">
-        <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
-        <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Imagem do item">＋</label>
-        <input type="file" id="${uid}" accept="image/*" style="display:none">
-      </div>
-      <div class="mb-cfg-prod-fields">
-        <input type="text" class="mb-cfg-prod-nome" placeholder="Nome do serviço / produto"
-               value="${produto ? MinhaBarbeariaPage.#escapeAttr(produto.name) : ''}" maxlength="60">
-        <div class="mb-cfg-prod-nums-row">
-          <input type="number" class="mb-cfg-prod-preco" placeholder="R$" min="0" step="0.01"
-                 value="${produto ? Number(produto.price).toFixed(2) : ''}">
-          <input type="number" class="mb-cfg-prod-dur" placeholder="min" min="1"
-                 value="${produto ? (produto.duration_min ?? '') : ''}">
-          <button class="mb-cfg-prod-remove" aria-label="Remover">✕</button>
+      <li class="mb-prod-li mb-prod-li--img">
+        <div class="mb-cfg-prod-img-wrap">
+          <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
+          <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+          <input type="file" id="${uid}" accept="image/*" style="display:none">
         </div>
-      </div>
+        <button class="mb-prod-remove" type="button" aria-label="Remover item">✕</button>
+      </li>
+      <li class="mb-prod-li">
+        <label class="mb-prod-label" for="${uidN}">Nome</label>
+        <input type="text" id="${uidN}" class="mb-cfg-prod-nome"
+               placeholder="Nome do serviço / produto"
+               value="${nomeVal}" maxlength="60">
+      </li>
+      <li class="mb-prod-li">
+        <label class="mb-prod-label" for="${uidP}">Preço</label>
+        <div class="mb-prod-preco-row">
+          <span class="mb-prod-preco-prefix">R$</span>
+          <input type="number" id="${uidP}" class="mb-cfg-prod-preco"
+                 placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+        </div>
+      </li>
+      <li class="mb-prod-li mb-prod-li--acao">
+        <button class="btn-flow mb-prod-salvar-btn" type="button">Salvar item</button>
+      </li>
     `;
 
-    if (produto?.image_path) row.dataset.imagePath = produto.image_path;
-    if (produto?.id)         row.dataset.produtoId  = produto.id;
+    row.querySelector('.mb-prod-remove')
+       .addEventListener('click', () => row.remove());
 
-    row.querySelector('.mb-cfg-prod-remove').addEventListener('click', () => row.remove());
-    row.querySelector(`#${uid}`).addEventListener('change', async e => {
-      const file = e.target.files?.[0];
-      e.target.value = '';
-      if (!file || !this.#barbershopId) return;
-      try {
-        const ext  = file.name.split('.').pop().toLowerCase();
-        const path = `${this.#barbershopId}/services/${uid}.${ext}`;
-        const { error } = await SupabaseService.storageBarbershops()
-          .upload(path, file, { contentType: file.type, upsert: true });
-        if (error) throw error;
-        const url = SupabaseService.getLogoUrl(path);
-        if (url) {
-          row.querySelector('.mb-cfg-prod-img-preview').src = url;
-          row.dataset.imagePath = path;
-        }
-      } catch (err) {
-        console.error('[MinhaBarbeariaPage] upload imagem item erro:', err);
-      }
-    });
+    row.querySelector(`#${uid}`)
+       .addEventListener('change', e => this.#onUploadImagemItem(e, row, uid));
+
+    row.querySelector('.mb-prod-salvar-btn')
+       .addEventListener('click', () => this.#salvarProdutoUnico(row));
 
     lista.appendChild(row);
+  }
+
+  /** Upload de imagem de um item da lista de serviços. */
+  async #onUploadImagemItem(e, row, uid) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !this.#barbershopId) return;
+    try {
+      const ext  = file.name.split('.').pop().toLowerCase();
+      const path = `${this.#barbershopId}/services/${uid}.${ext}`;
+      const { error } = await SupabaseService.storageBarbershops()
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (error) throw error;
+      const url = SupabaseService.getLogoUrl(path);
+      if (url) {
+        row.querySelector('.mb-cfg-prod-img-preview').src = url;
+        row.dataset.imagePath = path;
+      }
+    } catch (err) {
+      LoggerService.error('[MinhaBarbeariaPage] upload imagem item:', err);
+      NotificationService?.mostrarToast('Erro', 'Falha ao enviar imagem.', 'sistema');
+    }
+  }
+
+  /** Salva individualmente um item da lista de serviços. */
+  async #salvarProdutoUnico(row) {
+    const btn  = row.querySelector('.mb-prod-salvar-btn');
+    const nome = row.querySelector('.mb-cfg-prod-nome')?.value?.trim();
+
+    if (!nome) {
+      NotificationService?.mostrarToast('Atenção', 'Informe o nome do item.', 'sistema');
+      return;
+    }
+    if (!this.#barbershopId) return;
+
+    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+    try {
+      const preco = parseFloat(row.querySelector('.mb-cfg-prod-preco')?.value || '0');
+      const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
+
+      const entry = {
+        barbershop_id: this.#barbershopId,
+        name:          nome,
+        price:         isNaN(preco) ? 0 : preco,
+        duration_min:  isNaN(dur)   ? 30 : dur,
+        is_active:     true,
+      };
+      if (row.dataset.produtoId) entry.id          = row.dataset.produtoId;
+      if (row.dataset.imagePath) entry.image_path  = row.dataset.imagePath;
+
+      const { data, error } = await SupabaseService.services()
+        .upsert(entry, { onConflict: 'id' })
+        .select('id')
+        .single();
+      if (error) throw error;
+
+      if (data?.id) row.dataset.produtoId = data.id;
+      NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
+    } catch (err) {
+      LoggerService.error('[MinhaBarbeariaPage] salvarProdutoUnico:', err);
+      NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o item.', 'sistema');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar item'; }
+    }
   }
 
   // ── Salvar configurações ─────────────────────────────────────
@@ -629,14 +697,14 @@ class MinhaBarbeariaPage {
     lista.querySelectorAll('.mb-cfg-produto-row').forEach(row => {
       const nome  = row.querySelector('.mb-cfg-prod-nome')?.value?.trim();
       const preco = parseFloat(row.querySelector('.mb-cfg-prod-preco')?.value || '0');
-      const dur   = parseInt(row.querySelector('.mb-cfg-prod-dur')?.value || '30', 10);
+      const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
       if (!nome) return;
 
       const entry = {
         barbershop_id: this.#barbershopId,
         name:          nome,
-        price:         preco,
-        duration_min:  dur,
+        price:         isNaN(preco) ? 0 : preco,
+        duration_min:  isNaN(dur)   ? 30 : dur,
         is_active:     true,
       };
       if (row.dataset.produtoId) entry.id          = row.dataset.produtoId;

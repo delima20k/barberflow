@@ -215,13 +215,13 @@ class BarbeariaPage {
       this.#refs.badge.className   = `bp-badge ${shop.is_open ? 'bp-badge--open' : 'bp-badge--closed'}`;
     }
     if (this.#refs.rating) {
-      this.#refs.rating.textContent = `â­ ${Number(shop.rating_avg ?? 0).toFixed(1)}`;
+      this.#refs.rating.textContent = Number(shop.rating_avg ?? 0).toFixed(1);
     }
     if (this.#refs.likes) {
-      this.#refs.likes.textContent = `ðŸ‘ ${Number(shop.likes_count ?? 0)}`;
+      this.#refs.likes.textContent = Number(shop.likes_count ?? 0);
     }
     if (this.#refs.since && shop.founded_year) {
-      this.#refs.since.textContent = `Desde ${shop.founded_year}`;
+      this.#refs.since.textContent = shop.founded_year;
     }
   }
 
@@ -247,7 +247,7 @@ class BarbeariaPage {
     if (!el) return;
 
     if (!lista.length) {
-      el.innerHTML = '<p class="bp-vazio">Nenhum serviÃ§o cadastrado.</p>';
+        el.innerHTML = '<p class="bp-vazio">Nenhum servi\u00e7o cadastrado.</p>';
       return;
     }
 
@@ -257,7 +257,7 @@ class BarbeariaPage {
       // sanitizar() Ã© correto aqui pois o valor vai para innerHTML
       const imgHtml = imgUrl
         ? `<img src="${s(imgUrl)}" alt="${s(sv.name ?? '')}" class="bp-serv-img" loading="lazy" onerror="this.style.display='none'">`
-        : `<div class="bp-serv-img bp-serv-img--vazio">âœ‚ï¸</div>`;
+        : `<div class="bp-serv-img bp-serv-img--vazio"></div>`;
       const meta  = sv.duration_min ? `${Number(sv.duration_min)} min` : '';
       const preco = `R$ ${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
 
@@ -286,12 +286,12 @@ class BarbeariaPage {
     const s = InputValidator.sanitizar;
     el.hidden    = false;
     el.innerHTML = lista.map(img => {
-      if (!img.thumbnail_path) return `<div class="bp-port-item">âœ‚ï¸</div>`;
+      if (!img.thumbnail_path) return `<div class="bp-port-item bp-port-item--vazio"></div>`;
       const url = SupabaseService.getPortfolioThumbUrl?.(img.thumbnail_path)
                ?? SupabaseService.getLogoUrl(img.thumbnail_path) ?? '';
       return `<div class="bp-port-item">
         <img src="${s(url)}" alt="${s(img.title ?? '')}" loading="lazy"
-             onerror="this.outerHTML='<div class=bp-port-item>âœ‚ï¸</div>'">
+             onerror="this.outerHTML='<div class=bp-port-item bp-port-item--vazio></div>'"
       </div>`;
     }).join('');
   }
@@ -315,7 +315,7 @@ class BarbeariaPage {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = true;
     if (this.#refs.conteudo) {
       this.#refs.conteudo.hidden   = false;
-      this.#refs.conteudo.innerHTML = '<p class="bp-erro">NÃ£o foi possÃ­vel carregar a barbearia.</p>';
+      this.#refs.conteudo.innerHTML = '<p class="bp-erro">N\u00e3o foi poss\u00edvel carregar a barbearia.</p>';
     }
   }
 }
