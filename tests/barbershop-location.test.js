@@ -51,11 +51,12 @@ function criarRepo({ data = null, error = null } = {}) {
   })();
 
   const supabaseMock = { barbershops: fn(() => builder) };
-  const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
+  const apiMock      = { from: fn(() => builder) };
+  const sandbox = vm.createContext({ console, SupabaseService: supabaseMock, ApiService: apiMock });
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/BarbershopRepository.js');
 
-  return { BarbershopRepository: sandbox.BarbershopRepository, builder, supabaseMock };
+  return { BarbershopRepository: sandbox.BarbershopRepository, builder, supabaseMock, apiMock };
 }
 
 /**
@@ -102,7 +103,7 @@ suite('BarbershopRepository.updateLocation', () => {
       latitude: -23.55, longitude: -46.63,
       address: 'Rua Teste, 100', city: 'São Paulo', state: 'SP', zip_code: '01310-100',
     };
-    const { BarbershopRepository, builder, supabaseMock } = criarRepo({ data: shopData });
+    const { BarbershopRepository, builder, apiMock } = criarRepo({ data: shopData });
 
     // Prepara o builder de update: .eq().single() resolve o shopData
     builder.update.mockReturnValue(builder);
@@ -113,7 +114,7 @@ suite('BarbershopRepository.updateLocation', () => {
       UUID_OWNER, -23.55, -46.63, 'Rua Teste, 100', 'São Paulo', 'SP', '01310-100'
     );
 
-    assert.ok(supabaseMock.barbershops.calls.length >= 1, 'deve chamar SupabaseService.barbershops()');
+    assert.ok(apiMock.from.calls.length >= 1, 'deve chamar ApiService.from()');
     assert.ok(builder.update.calls.length >= 1, 'deve chamar .update()');
     assert.deepEqual(result, shopData);
   });

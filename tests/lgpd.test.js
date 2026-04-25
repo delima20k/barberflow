@@ -5,7 +5,7 @@ const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
 
 /**
- * Verifica que `actual` contém TODAS as propriedades de `partial`.
+ * Verifica que `actual` contÃ©m TODAS as propriedades de `partial`.
  * Equivalente ao expect.objectContaining() do Jest.
  */
 function assertContains(actual, partial, msg = '') {
@@ -22,7 +22,7 @@ function assertContains(actual, partial, msg = '') {
 const USER_ID = 'test-user-uuid-4321';
 
 /**
- * Cria um query builder mockado que suporta os padrões usados pelo LgpdService:
+ * Cria um query builder mockado que suporta os padrÃµes usados pelo LgpdService:
  *   select().eq().{single|maybeSingle}()
  *   upsert()
  *   insert()
@@ -43,7 +43,7 @@ function criarQueryBuilder(result = { data: null, error: null }) {
     insert: fn().mockResolvedValue(result),
     upsert: fn().mockResolvedValue(result),
     update: fn().mockReturnValue(updateChain),
-    // Expõe chains para assertivas internas
+    // ExpÃµe chains para assertivas internas
     _select:   selectChain,
     _selectEq: selectEqChain,
     _update:   updateChain,
@@ -51,8 +51,8 @@ function criarQueryBuilder(result = { data: null, error: null }) {
 }
 
 /**
- * Fábrica principal de testes.
- * Cria sandbox VM isolado com LgpdService carregado e mocks configuráveis.
+ * FÃ¡brica principal de testes.
+ * Cria sandbox VM isolado com LgpdService carregado e mocks configurÃ¡veis.
  *
  * @param {{ deletionResult, profileResult, consentResult, accessLogResult, sessionStoragePreload }}
  */
@@ -77,7 +77,7 @@ function criarLgpdService({
 
   const loggerMock = { warn: fn(), error: fn(), info: fn() };
 
-  // sessionStorage stub com pré-carga — simula o cache entre chamadas
+  // sessionStorage stub com prÃ©-carga â€” simula o cache entre chamadas
   const store = { ...sessionStoragePreload };
   const sessionStorageMock = {
     getItem:    fn(k => store[k] ?? null),
@@ -106,21 +106,21 @@ function criarLgpdService({
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 1 — exportarDados()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 1 â€” exportarDados()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — exportarDados()', () => {
+suite('LgpdService â€” exportarDados()', () => {
 
-  test('userId vazio → { ok: false }', async () => {
+  test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
     const result = await LgpdService.exportarDados('');
     assert.strictEqual(result.ok, false);
     assert.match(String(result.error), /userId/);
   });
 
-  test('Supabase ok → retorna perfil + consentimento + exportadoEm', async () => {
-    const perfilData  = { id: USER_ID, full_name: 'João', phone: '11999' };
+  test('Supabase ok â†’ retorna perfil + consentimento + exportadoEm', async () => {
+    const perfilData  = { id: USER_ID, full_name: 'JoÃ£o', phone: '11999' };
     const consentData = { plan_type: 'client', aceitou_termos: true, version: 1 };
     const { LgpdService } = criarLgpdService({
       profileResult: { data: perfilData,  error: null },
@@ -135,7 +135,7 @@ suite('LgpdService — exportarDados()', () => {
     assert.strictEqual(typeof result.dados.exportadoEm, 'string');
   });
 
-  test('Consentimento inexistente → ok:true, consentimento:null', async () => {
+  test('Consentimento inexistente â†’ ok:true, consentimento:null', async () => {
     const { LgpdService } = criarLgpdService({
       profileResult: { data: { id: USER_ID }, error: null },
       consentResult: { data: null, error: null },
@@ -147,7 +147,7 @@ suite('LgpdService — exportarDados()', () => {
     assert.strictEqual(result.dados.consentimento, null);
   });
 
-  test('Erro no Supabase → { ok: false, error }', async () => {
+  test('Erro no Supabase â†’ { ok: false, error }', async () => {
     const { LgpdService } = criarLgpdService({
       profileResult: { data: null, error: { message: 'connection refused' } },
     });
@@ -173,22 +173,22 @@ suite('LgpdService — exportarDados()', () => {
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 2 — solicitarExclusao()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 2 â€” solicitarExclusao()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — solicitarExclusao()', () => {
+suite('LgpdService â€” solicitarExclusao()', () => {
 
-  test('userId vazio → { ok: false }', async () => {
+  test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
-    assert.strictEqual((await LgpdService.solicitarExclusao('')).ok), false);
+    assert.strictEqual((await LgpdService.solicitarExclusao('')).ok, false);
   });
 
-  test('Upsert ok → { ok: true }', async () => {
+  test('Upsert ok â†’ { ok: true }', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: null, error: null },
     });
-    assert.strictEqual((await LgpdService.solicitarExclusao(USER_ID)).ok), true);
+    assert.strictEqual((await LgpdService.solicitarExclusao(USER_ID)).ok, true);
   });
 
   test('Chama upsert com status "pending", motivo correto e onConflict por user_id', async () => {
@@ -203,7 +203,7 @@ suite('LgpdService — solicitarExclusao()', () => {
     assertContains(upsertArgs[1], { onConflict: 'user_id' });
   });
 
-  test('Motivo padrão é "user_request"', async () => {
+  test('Motivo padrÃ£o Ã© "user_request"', async () => {
     const { LgpdService, deletionBuilder } = criarLgpdService({
       deletionResult: { error: null },
     });
@@ -213,7 +213,7 @@ suite('LgpdService — solicitarExclusao()', () => {
     assertContains(deletionBuilder.upsert.calls[0][0], { motivo: 'user_request' });
   });
 
-  test('Erro no Supabase → { ok: false, error }', async () => {
+  test('Erro no Supabase â†’ { ok: false, error }', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: null, error: { message: 'unique violation' } },
     });
@@ -225,70 +225,70 @@ suite('LgpdService — solicitarExclusao()', () => {
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 3 — exclusaoPendente()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 3 â€” exclusaoPendente()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — exclusaoPendente()', () => {
+suite('LgpdService â€” exclusaoPendente()', () => {
 
-  test('userId vazio → false', async () => {
+  test('userId vazio â†’ false', async () => {
     const { LgpdService } = criarLgpdService();
-    assert.strictEqual(await LgpdService.exclusaoPendente('')), false);
+    assert.strictEqual(await LgpdService.exclusaoPendente(''), false);
   });
 
-  test('Sem registro no banco → false', async () => {
+  test('Sem registro no banco â†’ false', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: null, error: null },
     });
-    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID)), false);
+    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID), false);
   });
 
-  test('status "pending" → true', async () => {
+  test('status "pending" â†’ true', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: { status: 'pending' }, error: null },
     });
-    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID)), true);
+    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID), true);
   });
 
-  test('status "completed" → false', async () => {
+  test('status "completed" â†’ false', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: { status: 'completed' }, error: null },
     });
-    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID)), false);
+    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID), false);
   });
 
-  test('status "cancelled" → false', async () => {
+  test('status "cancelled" â†’ false', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: { status: 'cancelled' }, error: null },
     });
-    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID)), false);
+    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID), false);
   });
 
-  test('Erro de rede → false (fail open, não derruba o app)', async () => {
+  test('Erro de rede â†’ false (fail open, nÃ£o derruba o app)', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: null, error: { message: 'network timeout' } },
     });
-    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID)), false);
+    assert.strictEqual(await LgpdService.exclusaoPendente(USER_ID), false);
   });
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 4 — cancelarExclusao()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 4 â€” cancelarExclusao()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — cancelarExclusao()', () => {
+suite('LgpdService â€” cancelarExclusao()', () => {
 
-  test('userId vazio → { ok: false }', async () => {
+  test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
-    assert.strictEqual((await LgpdService.cancelarExclusao('')).ok), false);
+    assert.strictEqual((await LgpdService.cancelarExclusao('')).ok, false);
   });
 
-  test('Sucesso → { ok: true }', async () => {
+  test('Sucesso â†’ { ok: true }', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { error: null },
     });
-    assert.strictEqual((await LgpdService.cancelarExclusao(USER_ID)).ok), true);
+    assert.strictEqual((await LgpdService.cancelarExclusao(USER_ID)).ok, true);
   });
 
   test('Chama update({ status: "cancelled" }) filtrado por user_id', async () => {
@@ -298,11 +298,14 @@ suite('LgpdService — cancelarExclusao()', () => {
 
     await LgpdService.cancelarExclusao(USER_ID);
 
-    assert.deepStrictEqual(deletionBuilder.update.calls[deletionBuilder.update.calls.length-1], [{ status: 'cancelled' }]);
-    assert.deepStrictEqual(deletionBuilder._update.eq.calls[deletionBuilder._update.eq.calls.length-1], ['user_id', USER_ID]);
+    const updateArgs = deletionBuilder.update.calls[deletionBuilder.update.calls.length-1];
+    assertContains(updateArgs[0], { status: 'cancelled' });
+    const eqArgs = deletionBuilder._update.eq.calls[deletionBuilder._update.eq.calls.length-1];
+    assert.strictEqual(eqArgs[0], 'user_id');
+    assert.strictEqual(eqArgs[1], USER_ID);
   });
 
-  test('Erro no Supabase → { ok: false, error }', async () => {
+  test('Erro no Supabase â†’ { ok: false, error }', async () => {
     const { LgpdService } = criarLgpdService({
       deletionResult: { data: null, error: { message: 'row not found' } },
     });
@@ -313,25 +316,25 @@ suite('LgpdService — cancelarExclusao()', () => {
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 5 — registrarConsentimentoCliente()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 5 â€” registrarConsentimentoCliente()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — registrarConsentimentoCliente()', () => {
+suite('LgpdService â€” registrarConsentimentoCliente()', () => {
 
-  test('userId vazio → { ok: false }', async () => {
+  test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
-    assert.strictEqual((await LgpdService.registrarConsentimentoCliente('')).ok), false);
+    assert.strictEqual((await LgpdService.registrarConsentimentoCliente('')).ok, false);
   });
 
-  test('Upsert ok → { ok: true }', async () => {
+  test('Upsert ok â†’ { ok: true }', async () => {
     const { LgpdService } = criarLgpdService({
       consentResult: { error: null },
     });
-    assert.strictEqual((await LgpdService.registrarConsentimentoCliente(USER_ID)).ok), true);
+    assert.strictEqual((await LgpdService.registrarConsentimentoCliente(USER_ID)).ok, true);
   });
 
-  test('Após sucesso, grava flag de consentimento no sessionStorage', async () => {
+  test('ApÃ³s sucesso, grava flag de consentimento no sessionStorage', async () => {
     const { LgpdService, sessionStorage: ss } = criarLgpdService({
       consentResult: { error: null },
     });
@@ -353,7 +356,7 @@ suite('LgpdService — registrarConsentimentoCliente()', () => {
     assertContains(upsertArgs[1], { onConflict: 'user_id' });
   });
 
-  test('Erro no Supabase → { ok: false, error }', async () => {
+  test('Erro no Supabase â†’ { ok: false, error }', async () => {
     const { LgpdService } = criarLgpdService({
       consentResult: { data: null, error: { message: 'constraint violation' } },
     });
@@ -364,18 +367,18 @@ suite('LgpdService — registrarConsentimentoCliente()', () => {
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 6 — verificarConsentimentoCliente()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 6 â€” verificarConsentimentoCliente()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — verificarConsentimentoCliente()', () => {
+suite('LgpdService â€” verificarConsentimentoCliente()', () => {
 
-  test('userId vazio → false', async () => {
+  test('userId vazio â†’ false', async () => {
     const { LgpdService } = criarLgpdService();
-    assert.strictEqual(await LgpdService.verificarConsentimentoCliente('')), false);
+    assert.strictEqual(await LgpdService.verificarConsentimentoCliente(''), false);
   });
 
-  test('Cache sessionStorage ativo → true sem consultar Supabase', async () => {
+  test('Cache sessionStorage ativo â†’ true sem consultar Supabase', async () => {
     const { LgpdService, supabaseMock } = criarLgpdService({
       sessionStoragePreload: { bf_client_consent: '1' },
     });
@@ -386,7 +389,7 @@ suite('LgpdService — verificarConsentimentoCliente()', () => {
     assert.strictEqual(supabaseMock.legalConsents.calls.length, 0);
   });
 
-  test('aceitou_termos=true → retorna true e salva flag no cache', async () => {
+  test('aceitou_termos=true â†’ retorna true e salva flag no cache', async () => {
     const { LgpdService, sessionStorage: ss } = criarLgpdService({
       consentResult: { data: { aceitou_termos: true }, error: null },
     });
@@ -397,7 +400,7 @@ suite('LgpdService — verificarConsentimentoCliente()', () => {
     assert.deepStrictEqual(ss.setItem.calls[ss.setItem.calls.length-1], ['bf_client_consent', '1']);
   });
 
-  test('aceitou_termos=false → retorna false, não grava cache', async () => {
+  test('aceitou_termos=false â†’ retorna false, nÃ£o grava cache', async () => {
     const { LgpdService, sessionStorage: ss } = criarLgpdService({
       consentResult: { data: { aceitou_termos: false }, error: null },
     });
@@ -408,29 +411,29 @@ suite('LgpdService — verificarConsentimentoCliente()', () => {
     assert.strictEqual(ss.setItem.calls.length, 0);
   });
 
-  test('Sem registro → false', async () => {
+  test('Sem registro â†’ false', async () => {
     const { LgpdService } = criarLgpdService({
       consentResult: { data: null, error: null },
     });
-    assert.strictEqual(await LgpdService.verificarConsentimentoCliente(USER_ID)), false);
+    assert.strictEqual(await LgpdService.verificarConsentimentoCliente(USER_ID), false);
   });
 
-  test('Erro de rede → false (fail open)', async () => {
+  test('Erro de rede â†’ false (fail open)', async () => {
     const { LgpdService } = criarLgpdService({
       consentResult: { data: null, error: { message: 'timeout' } },
     });
-    assert.strictEqual(await LgpdService.verificarConsentimentoCliente(USER_ID)), false);
+    assert.strictEqual(await LgpdService.verificarConsentimentoCliente(USER_ID), false);
   });
 
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BLOCO 7 — registrarAcesso()
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// BLOCO 7 â€” registrarAcesso()
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService — registrarAcesso()', () => {
+suite('LgpdService â€” registrarAcesso()', () => {
 
-  test('Parâmetros inválidos → insert não é chamado', () => {
+  test('ParÃ¢metros invÃ¡lidos â†’ insert nÃ£o Ã© chamado', () => {
     const { LgpdService, accessLogBuilder } = criarLgpdService();
 
     LgpdService.registrarAcesso('',      'profiles', 'read');
@@ -440,7 +443,7 @@ suite('LgpdService — registrarAcesso()', () => {
     assert.strictEqual(accessLogBuilder.insert.calls.length, 0);
   });
 
-  test('Parâmetros válidos → insert chamado com user_id, recurso e acao', () => {
+  test('ParÃ¢metros vÃ¡lidos â†’ insert chamado com user_id, recurso e acao', () => {
     const { LgpdService, accessLogBuilder } = criarLgpdService();
 
     LgpdService.registrarAcesso(USER_ID, 'appointments', 'read');
@@ -448,7 +451,7 @@ suite('LgpdService — registrarAcesso()', () => {
     assertContains(accessLogBuilder.insert.calls[0][0], { user_id: USER_ID, recurso: 'appointments', acao: 'read' });
   });
 
-  test('Erro no insert é silenciado — não lança exceção', async () => {
+  test('Erro no insert Ã© silenciado â€” nÃ£o lanÃ§a exceÃ§Ã£o', async () => {
     const { LgpdService, accessLogBuilder } = criarLgpdService();
     accessLogBuilder.insert.mockRejectedValue(new Error('permission denied'));
 
@@ -456,10 +459,10 @@ suite('LgpdService — registrarAcesso()', () => {
     await Promise.resolve(); // flush microtask do .catch()
   });
 
-  test('É fire-and-forget — método retorna void imediatamente', () => {
+  test('Ã‰ fire-and-forget â€” mÃ©todo retorna void imediatamente', () => {
     const { LgpdService } = criarLgpdService();
     const retorno = LgpdService.registrarAcesso(USER_ID, 'profiles', 'read');
-    // Não deve ser uma Promise
+    // NÃ£o deve ser uma Promise
     assert.strictEqual(retorno, undefined);
   });
 

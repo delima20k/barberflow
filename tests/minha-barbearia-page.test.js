@@ -117,6 +117,14 @@ function criarPagina({ comTelaEl = true } = {}) {
     AuthService:     { getPerfil: fn().mockReturnValue(null) },
     SupabaseService: {},
     NotificationService: { mostrarToast: fn() },
+    MediaP2P: class MediaP2P {
+      cancelarTodos()          {}
+      cancelar()               {}
+      registrar()              { return Promise.resolve('blob:fake'); }
+      temPendente()            { return false; }
+      extensaoPendente()       { return 'jpg'; }
+      fazerUpload()            { return Promise.resolve('path/to/file.jpg'); }
+    },
   });
 
   carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');

@@ -187,7 +187,7 @@ suite('Router — nav()', () => {
     router.nav('perfil');
 
     assert.strictEqual(router._telaAtual, 'inicio');
-    assert.deepStrictEqual(router._historico, []);
+    assert.strictEqual(router._historico.length, 0);
     // _atualizarUI('inicio') foi chamado via sincronizarUI
     assert.strictEqual(viewMock.sincronizarUI.calls.length, 1);
     // Aba sai pela esquerda — home está por baixo
@@ -221,7 +221,8 @@ suite('Router — nav()', () => {
     router.nav('perfil');
 
     assert.strictEqual(router._telaAtual, 'perfil');
-    assert.deepStrictEqual(router._historico, ['inicio']);
+    assert.strictEqual(router._historico.length, 1);
+    assert.strictEqual(router._historico[0], 'inicio');
   });
 
   test('nav("perfil") de "inicio" → animação não-carrossel: home não sai', () => {
@@ -298,7 +299,8 @@ suite('Router — push()', () => {
     router.push('login');
 
     assert.strictEqual(router._telaAtual, 'login');
-    assert.deepStrictEqual(router._historico, ['inicio']);
+    assert.strictEqual(router._historico.length, 1);
+    assert.strictEqual(router._historico[0], 'inicio');
   });
 
   test('push("login") de "inicio" → animação: home não sai (null), login entra', () => {
@@ -358,7 +360,7 @@ suite('Router — voltar()', () => {
     router.voltar();
 
     assert.strictEqual(router._telaAtual, 'inicio');
-    assert.deepStrictEqual(router._historico, []);
+    assert.strictEqual(router._historico.length, 0);
   });
 
   test('voltar() de "perfil" → animação: perfil sai ESQUERDA, home já está por baixo', () => {
