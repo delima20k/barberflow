@@ -31,7 +31,9 @@ class ApiQuery {
    * Quando chamado após insert/update/delete, adiciona ?select= para retornar as colunas.
    */
   select(fields) {
-    if (fields) this.#params.set('select', fields);
+    // PostgREST rejeita espaços nos nomes de coluna (URLSearchParams codifica como +).
+    // Normaliza removendo espaços ao redor de vírgulas e no início/fim.
+    if (fields) this.#params.set('select', fields.replace(/\s*,\s*/g, ',').trim());
     return this;
   }
 

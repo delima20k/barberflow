@@ -77,7 +77,19 @@ suite('ApiService.from() — GET', () => {
     assert.equal(opts.method, 'GET');
   });
 
-  test('headers sem JWT: só apikey, sem Authorization', async () => {
+  test('select() remove espaços após vírgulas (PostgREST rejeita espaços)', async () => {
+    let url;
+    const sb = criarSandbox(async (u) => { url = u; return resOk([])(); });
+
+    await sb.ApiService.from('services').select('id, name, price, duration_min');
+
+    const decoded = decodeURIComponent(url);
+    assert.ok(!decoded.includes('id, name'), `espaços presentes (${decoded})`);
+    assert.ok(decoded.includes('select=id,name,price,duration_min'), `sem espaços (${decoded})`);
+  });
+
+
+  test('headers sem JWT: apenas apikey presente', async () => {
     let headers;
     const sb = criarSandbox(async (u, o) => { headers = o.headers; return resOk([])(); });
 
