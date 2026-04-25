@@ -22,6 +22,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 |---|---|---|---|
 | `ApiQuery` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Query builder thenable sobre fetch nativo (interno — use ApiService.from()) |
 | `ApiService` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Ponto único de acesso à API REST PostgREST. Substitui Supabase SDK para CRUD |
+| `Agendamento` | [shared/js/Agendamento.js](shared/js/Agendamento.js) | model | Entidade de domínio de agendamento. Inclui validar(), estados (isPendente/isConfirmado/isCancelado/isConcluido) e isFuturo() |
 | `AppointmentRepository` | [shared/js/AppointmentRepository.js](shared/js/AppointmentRepository.js) | repository | CRUD de agendamentos. Valida UUIDs e aplica allowlist de campos |
 | `AppState` | [shared/js/AppState.js](shared/js/AppState.js) | infra | Estado global da aplicação compartilhado entre os dois apps |
 | `AuthController` | [shared/js/AuthController.js](shared/js/AuthController.js) | controller | Binding dos formulários de login, cadastro e recuperação de senha |
@@ -83,7 +84,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 |---|---|---|---|
 | `BarberFlowCliente` | [apps/cliente/assets/js/app.js](apps/cliente/assets/js/app.js) | infra | App raiz do cliente. Estende Router, instancia Pages, orquestra navegação |
 | `AppBootstrap` | [apps/cliente/assets/js/AppBootstrap.js](apps/cliente/assets/js/AppBootstrap.js) | infra | Inicialização do app cliente: autenticação, SW, splash |
-| `Cliente` | [apps/cliente/assets/js/Cliente.js](apps/cliente/assets/js/Cliente.js) | model | Entidade de domínio do cliente. Encapsula dados do perfil (role='client') |
+| `Cliente` | [shared/js/Cliente.js](shared/js/Cliente.js) | model | Entidade de domínio do cliente. Encapsula dados do perfil (role='client'). Inclui validar(), nomeCompleto(), possuiLocalizacao() |
 | `ClienteController` | [apps/cliente/assets/js/ClienteController.js](apps/cliente/assets/js/ClienteController.js) | controller | Binding de formulários e botões do perfil cliente. Delega ao ClienteService |
 | `ClienteRepository` | [apps/cliente/assets/js/ClienteRepository.js](apps/cliente/assets/js/ClienteRepository.js) | repository | Acesso a dados do cliente em profiles com filtro role='client'. Valida UUIDs e allowlist |
 | `ClienteService` | [apps/cliente/assets/js/ClienteService.js](apps/cliente/assets/js/ClienteService.js) | service | Regras de negócio do cliente: carregar perfil (com cache), atualizar, favoritos, histórico |

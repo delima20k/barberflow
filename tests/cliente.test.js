@@ -53,7 +53,7 @@ function criarSandbox(fetchMock, jwtToken = null, repoStubs = {}) {
 
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/ApiService.js');
-  carregar(sandbox, 'apps/cliente/assets/js/Cliente.js');
+  carregar(sandbox, 'shared/js/Cliente.js');
   carregar(sandbox, 'apps/cliente/assets/js/ClienteRepository.js');
   carregar(sandbox, 'apps/cliente/assets/js/ClienteService.js');
   return sandbox;

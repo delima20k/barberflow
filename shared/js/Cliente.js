@@ -2,13 +2,14 @@
 
 // =============================================================
 // Cliente.js — Entidade de domínio para usuário com role='client'.
-// Modela os dados do perfil do cliente logado.
-// Sem dependências externas — apenas encapsula os dados do banco.
+// Modela os dados do perfil do cliente e encapsula regras da entidade.
+//
+// Dependências: InputValidator.js (carregado antes)
 //
 // Uso:
-//   const cliente = Cliente.fromRow(row);
-//   cliente.nome; // → 'João Silva'
-//   cliente.isAtivo(); // → true
+//   const c = Cliente.fromRow(row);
+//   const { ok, erros } = c.validar();
+//   c.nomeCompleto(); // → 'João Silva'
 // =============================================================
 
 class Cliente {
@@ -61,12 +62,57 @@ class Cliente {
   get genero()     { return this.#genero; }
   get criadoEm()   { return this.#criadoEm; }
 
+  // ── Validação ─────────────────────────────────────────────
+
+  /**
+   * Valida os dados da entidade sem lançar exceção.
+   * Regras:
+   *   - nome obrigatório (mínimo 2 caracteres)
+   *   - telefone, quando presente, deve ter formato BR (DDD + número)
+   * @returns {{ ok: boolean, erros: string[] }}
+   */
+  validar() {
+    const erros = [];
+
+    const rNome = InputValidator.nome(this.#nome);
+    if (!rNome.ok) erros.push(rNome.msg);
+
+    if (this.#telefone !== null && this.#telefone !== '') {
+      const rTel = InputValidator.telefone(this.#telefone);
+      if (!rTel.ok) erros.push(rTel.msg);
+    }
+
+    return { ok: erros.length === 0, erros };
+  }
+
+  // ── Métodos de domínio ────────────────────────────────────
+
   /** @returns {boolean} */
   isAtivo() { return this.#ativo === true; }
 
   /**
-   * Retorna representação plana do cliente (útil para formulários e logs).
-   * Não expõe dados sensíveis adicionais.
+   * Retorna o nome com espaços extras removidos e letra maiúscula após espaço.
+   * @returns {string}
+   */
+  nomeCompleto() {
+    return (this.#nome ?? '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .map((p) => p.length ? p[0].toUpperCase() + p.slice(1) : p)
+      .join(' ');
+  }
+
+  /**
+   * Indica se o cliente possui CEP cadastrado (usado como fallback de geolocalização).
+   * @returns {boolean}
+   */
+  possuiLocalizacao() {
+    return this.#cep !== null && this.#cep !== '';
+  }
+
+  /**
+   * Representação plana da entidade (útil para formulários e logs).
    * @returns {object}
    */
   toJSON() {
