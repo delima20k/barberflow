@@ -5,39 +5,81 @@ const fs   = require('fs');
 const path = require('path');
 
 // =============================================================
-// DevServer — Servidor de desenvolvimento BarberFlow (OOP)
+// server.js — Servidor de desenvolvimento BarberFlow
 //
-// Responsabilidades:
-//   - Servir arquivos estáticos com MIME types corretos
-//   - Aplicar security headers OWASP em todas as respostas
-//   - Rate limiting em memória (200 req/min por IP)
-//   - Bloquear path traversal
-//   - Inicializar via DevServer.iniciar()
+// Arquitetura em camadas (cada classe tem responsabilidade única):
+//   RateLimiter       — controle de requisições por IP
+//   SecurityMiddleware — headers OWASP + MIME types + path traversal
+//   StaticFileHandler  — normalização de URL + leitura de arquivo
+//   DevServer          — coordenação, bootstrap e banner
+//
+// Ponto de entrada: DevServer.iniciar()
 // =============================================================
 
-class DevServer {
+// ─────────────────────────────────────────────────────────────
+// RateLimiter — controle de taxa de requisições por IP
+// ─────────────────────────────────────────────────────────────
+class RateLimiter {
 
-  // ── Configuração ──────────────────────────────────────────
-  static #PORT = 3000;
-  static #ROOT = __dirname;
+  // Em dev: 2000 req/min (páginas HTML) — assets estáticos isentos.
+  // Em produção use Vercel Edge Middleware ou Cloudflare.
+  static #MAX = 2000;
+  static #WIN = 60_000; // 1 minuto (ms)
+  static #map = new Map(); // IP → { count, resetAt }
 
-  static #MIME = Object.freeze({
-    '.html' : 'text/html; charset=utf-8',
-    '.css'  : 'text/css; charset=utf-8',
-    '.js'   : 'application/javascript; charset=utf-8',
-    '.json' : 'application/json',
-    '.svg'  : 'image/svg+xml',
-    '.png'  : 'image/png',
-    '.jpg'  : 'image/jpeg',
-    '.jpeg' : 'image/jpeg',
-    '.ico'  : 'image/x-icon',
-    '.webp' : 'image/webp',
-    '.woff2': 'font/woff2',
-    '.woff' : 'font/woff',
-  });
+  // Extensões isentas de rate-limit (assets estáticos sem estado)
+  static #ISENTOS = new Set([
+    '.js', '.css', '.json', '.svg', '.png', '.jpg', '.jpeg',
+    '.ico', '.webp', '.woff', '.woff2', '.map',
+  ]);
 
-  // ── Security headers (OWASP) ──────────────────────────────
-  static #SECURITY_HEADERS = Object.freeze({
+  /**
+   * Verifica e incrementa o rate limit para um IP.
+   * Retorna true se a requisição deve prosseguir, false se deve ser bloqueada.
+   * Assets estáticos (ext em #ISENTOS) são sempre permitidos.
+   * @param {string} ip
+   * @param {string} ext — extensão do arquivo (ex: '.js', '.html', '')
+   * @returns {boolean}
+   */
+  static check(ip, ext) {
+    if (RateLimiter.#ISENTOS.has(ext)) return true;
+    const now   = Date.now();
+    const entry = RateLimiter.#map.get(ip);
+    if (!entry || now > entry.resetAt) {
+      RateLimiter.#map.set(ip, { count: 1, resetAt: now + RateLimiter.#WIN });
+      return true;
+    }
+    if (entry.count >= RateLimiter.#MAX) return false;
+    entry.count++;
+    return true;
+  }
+
+  /**
+   * Remove entradas expiradas para evitar leak de memória.
+   * Deve ser chamado periodicamente (ex: a cada 5 minutos).
+   */
+  static limpar() {
+    const now = Date.now();
+    for (const [ip, entry] of RateLimiter.#map) {
+      if (now > entry.resetAt) RateLimiter.#map.delete(ip);
+    }
+  }
+
+  /**
+   * Inicia o timer de limpeza automática.
+   * @param {number} [intervaloMs=300_000] — padrão: 5 minutos
+   */
+  static iniciarLimpeza(intervaloMs = 5 * 60_000) {
+    setInterval(() => RateLimiter.limpar(), intervaloMs);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SecurityMiddleware — headers OWASP, MIME types, path traversal
+// ─────────────────────────────────────────────────────────────
+class SecurityMiddleware {
+
+  static #HEADERS = Object.freeze({
     'X-Content-Type-Options'  : 'nosniff',
     'X-Frame-Options'         : 'SAMEORIGIN',
     'Referrer-Policy'         : 'strict-origin-when-cross-origin',
@@ -54,86 +96,71 @@ class DevServer {
     ].join('; '),
   });
 
-  // ── Rate limiting (em memória) ────────────────────────────
-  // Em dev: 2000 req/min (páginas HTML) — arquivos estáticos isentos.
-  // Em produção use Vercel Edge Middleware ou Cloudflare.
-  static #RATE_MAX = 2000;
-  static #RATE_WIN = 60_000; // 1 minuto (ms)
-  static #ipRate   = new Map(); // IP → { count, resetAt }
-
-  // Extensões isentas de rate-limit (assets estáticos sem estado)
-  static #RATE_ISENTOS = new Set([
-    '.js', '.css', '.json', '.svg', '.png', '.jpg', '.jpeg',
-    '.ico', '.webp', '.woff', '.woff2', '.map',
-  ]);
-
-  // ── Instância do servidor ─────────────────────────────────
-  static #server = null;
-
-  // ── Público ───────────────────────────────────────────────
+  static #MIME = Object.freeze({
+    '.html' : 'text/html; charset=utf-8',
+    '.css'  : 'text/css; charset=utf-8',
+    '.js'   : 'application/javascript; charset=utf-8',
+    '.json' : 'application/json',
+    '.svg'  : 'image/svg+xml',
+    '.png'  : 'image/png',
+    '.jpg'  : 'image/jpeg',
+    '.jpeg' : 'image/jpeg',
+    '.ico'  : 'image/x-icon',
+    '.webp' : 'image/webp',
+    '.woff2': 'font/woff2',
+    '.woff' : 'font/woff',
+  });
 
   /**
-   * Inicia o servidor na porta configurada.
-   * Ponto de entrada único — chame apenas DevServer.iniciar().
+   * Retorna o Content-Type para uma extensão de arquivo.
+   * @param {string} ext — ex: '.html', '.js'
+   * @returns {string}
    */
-  static iniciar() {
-    DevServer.#server = http.createServer((req, res) => DevServer.#handle(req, res));
-
-    // Limpa entradas de rate-limit expiradas a cada 5 minutos
-    setInterval(() => DevServer.#limparRate(), 5 * 60_000);
-
-    DevServer.#server.listen(DevServer.#PORT, '0.0.0.0', () => DevServer.#banner());
+  static contentType(ext) {
+    return SecurityMiddleware.#MIME[ext] ?? 'application/octet-stream';
   }
 
-  // ── Privados ──────────────────────────────────────────────
+  /**
+   * Verifica se um filePath está dentro do root (protege contra path traversal).
+   * @param {string} filePath — caminho absoluto resolvido
+   * @param {string} root     — diretório raiz absoluto
+   * @returns {boolean} true se seguro
+   */
+  static dentroDoRoot(filePath, root) {
+    return filePath.startsWith(root + path.sep) || filePath === root;
+  }
 
-  /** Handler principal de cada requisição HTTP. */
-  static #handle(req, res) {
-    const clientIp = req.socket.remoteAddress ?? '0.0.0.0';
-    const ext      = path.extname(req.url.split('?')[0]).toLowerCase();
-    const isAsset  = DevServer.#RATE_ISENTOS.has(ext);
-
-    if (!isAsset && !DevServer.#checkRate(clientIp)) {
-      DevServer.#responder(res, 429, 'text/plain', '429 Too Many Requests',
-        { 'Retry-After': '60' });
-      DevServer.#log(429, req.url);
-      return;
-    }
-
-    const urlPath  = DevServer.#normalizarUrl(req.url);
-    const filePath = path.join(DevServer.#ROOT, urlPath);
-
-    // Bloqueia path traversal fora do ROOT
-    if (!filePath.startsWith(DevServer.#ROOT + path.sep) && filePath !== DevServer.#ROOT) {
-      DevServer.#responder(res, 403, 'text/plain', '403 Forbidden');
-      DevServer.#log(403, req.url);
-      return;
-    }
-
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        if (err.code === 'ENOENT') {
-          DevServer.#responder(res, 404, 'text/plain', `404 — Arquivo não encontrado: ${urlPath}`);
-          DevServer.#log(404, req.url);
-        } else {
-          DevServer.#responder(res, 500, 'text/plain', '500 Internal Server Error');
-          DevServer.#log(500, req.url);
-        }
-        return;
-      }
-
-      const fileExt      = path.extname(filePath).toLowerCase();
-      const mimeType     = DevServer.#MIME[fileExt] ?? 'application/octet-stream';
-      // HTML: no-store desabilita bfcache. Outros assets: no-cache para revalidação.
-      const cacheControl = fileExt === '.html' ? 'no-store' : 'no-cache';
-
-      DevServer.#responder(res, 200, mimeType, data, { 'Cache-Control': cacheControl });
-      DevServer.#log(200, req.url);
+  /**
+   * Envia resposta HTTP com security headers aplicados em todas as situações.
+   * @param {import('http').ServerResponse} res
+   * @param {number} status
+   * @param {string} contentType
+   * @param {string|Buffer} body
+   * @param {object} [extraHeaders={}]
+   */
+  static responder(res, status, contentType, body, extraHeaders = {}) {
+    res.writeHead(status, {
+      ...SecurityMiddleware.#HEADERS,
+      'Content-Type': contentType,
+      ...extraHeaders,
     });
+    res.end(body);
   }
+}
 
-  /** Normaliza URL: remove query string, resolve diretórios. */
-  static #normalizarUrl(rawUrl) {
+// ─────────────────────────────────────────────────────────────
+// StaticFileHandler — normalização de URL e leitura de arquivo
+// ─────────────────────────────────────────────────────────────
+class StaticFileHandler {
+
+  /**
+   * Normaliza URL bruta para um caminho de arquivo relativo.
+   * Remove query string, resolve raiz para index.html, adiciona index.html
+   * em diretórios sem extensão.
+   * @param {string} rawUrl
+   * @returns {string}
+   */
+  static normalizarUrl(rawUrl) {
     let p = decodeURIComponent(rawUrl.split('?')[0]);
     if (p === '/') return '/index.html';
     if (!path.extname(p)) {
@@ -143,35 +170,79 @@ class DevServer {
     return p;
   }
 
-  /** Envia resposta com security headers em todas as situações. */
-  static #responder(res, status, contentType, body, extraHeaders = {}) {
-    res.writeHead(status, {
-      ...DevServer.#SECURITY_HEADERS,
-      'Content-Type': contentType,
-      ...extraHeaders,
+  /**
+   * Serve um arquivo do sistema de arquivos, aplicando MIME e cache headers.
+   * Chama o callback com (err, data, mimeType, cacheControl).
+   * @param {string} filePath — caminho absoluto do arquivo
+   * @param {function} cb     — cb(err, data, mimeType, cacheControl)
+   */
+  static ler(filePath, cb) {
+    fs.readFile(filePath, (err, data) => {
+      if (err) { cb(err, null, null, null); return; }
+      const ext          = path.extname(filePath).toLowerCase();
+      const mimeType     = SecurityMiddleware.contentType(ext);
+      // HTML: no-store desabilita bfcache. Outros assets: no-cache para revalidação.
+      const cacheControl = ext === '.html' ? 'no-store' : 'no-cache';
+      cb(null, data, mimeType, cacheControl);
     });
-    res.end(body);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// DevServer — coordenador: bootstrap, roteamento e banner
+// ─────────────────────────────────────────────────────────────
+class DevServer {
+
+  static #PORT   = 3000;
+  static #ROOT   = __dirname;
+  static #server = null;
+
+  /**
+   * Inicia o servidor na porta configurada.
+   * Ponto de entrada único — chame apenas DevServer.iniciar().
+   */
+  static iniciar() {
+    RateLimiter.iniciarLimpeza();
+    DevServer.#server = http.createServer((req, res) => DevServer.#handle(req, res));
+    DevServer.#server.listen(DevServer.#PORT, '0.0.0.0', () => DevServer.#banner());
   }
 
-  /** Verifica e incrementa o rate limit para um IP. */
-  static #checkRate(ip) {
-    const now   = Date.now();
-    const entry = DevServer.#ipRate.get(ip);
-    if (!entry || now > entry.resetAt) {
-      DevServer.#ipRate.set(ip, { count: 1, resetAt: now + DevServer.#RATE_WIN });
-      return true;
-    }
-    if (entry.count >= DevServer.#RATE_MAX) return false;
-    entry.count++;
-    return true;
-  }
+  /** Handler principal — delega às camadas especializadas. */
+  static #handle(req, res) {
+    const clientIp = req.socket.remoteAddress ?? '0.0.0.0';
+    const ext      = path.extname(req.url.split('?')[0]).toLowerCase();
 
-  /** Remove entradas de rate-limit expiradas para evitar leak de memória. */
-  static #limparRate() {
-    const now = Date.now();
-    for (const [ip, entry] of DevServer.#ipRate) {
-      if (now > entry.resetAt) DevServer.#ipRate.delete(ip);
+    if (!RateLimiter.check(clientIp, ext)) {
+      SecurityMiddleware.responder(res, 429, 'text/plain', '429 Too Many Requests',
+        { 'Retry-After': '60' });
+      DevServer.#log(429, req.url);
+      return;
     }
+
+    const urlPath  = StaticFileHandler.normalizarUrl(req.url);
+    const filePath = path.join(DevServer.#ROOT, urlPath);
+
+    if (!SecurityMiddleware.dentroDoRoot(filePath, DevServer.#ROOT)) {
+      SecurityMiddleware.responder(res, 403, 'text/plain', '403 Forbidden');
+      DevServer.#log(403, req.url);
+      return;
+    }
+
+    StaticFileHandler.ler(filePath, (err, data, mimeType, cacheControl) => {
+      if (err) {
+        if (err.code === 'ENOENT') {
+          SecurityMiddleware.responder(res, 404, 'text/plain',
+            `404 — Arquivo não encontrado: ${urlPath}`);
+          DevServer.#log(404, req.url);
+        } else {
+          SecurityMiddleware.responder(res, 500, 'text/plain', '500 Internal Server Error');
+          DevServer.#log(500, req.url);
+        }
+        return;
+      }
+      SecurityMiddleware.responder(res, 200, mimeType, data, { 'Cache-Control': cacheControl });
+      DevServer.#log(200, req.url);
+    });
   }
 
   /** Loga requisições com cor por status code. */
