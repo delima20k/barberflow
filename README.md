@@ -1,37 +1,255 @@
-# BarberFlow — Backend Supabase
+# BarberFlow
 
 Sistema de barbearia com agendamento, fila ao vivo, portfólio e stories.  
-Backend 100% Supabase — banco PostgreSQL, Auth, Storage e Edge Functions.
+Dois PWAs independentes (cliente e profissional), arquitetura em camadas DDD, servidor Node.js local e banco PostgreSQL gerenciado pelo Supabase.
+
+---
+
+## Visão geral da arquitetura
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     FRONTEND (Browser / TWA)                  │
+│                                                               │
+│  apps/cliente/          apps/profissional/                    │
+│  ├─ Router (SPA)        ├─ Router (SPA)                       │
+│  ├─ Pages / Widgets     ├─ Pages / Widgets                    │
+│  └─ Controllers         └─ Controllers                        │
+│                                                               │
+│         shared/js/ — camada de serviços e repositórios        │
+│  ┌─────────────────────────────────────────────────┐          │
+│  │  ApiService (infra)   ← CRUD via PostgREST REST  │          │
+│  │  SupabaseService (infra) ← Auth / Realtime / Storage │     │
+│  │  *Repository (infra)  ← acesso a dados por domínio   │     │
+│  │  *Service (application) ← regras de negócio          │     │
+│  │  Entidades domain: Barbearia, Profissional, Servico… │     │
+│  └─────────────────────────────────────────────────┘          │
+└──────────────────────────────────────────────────────────────┘
+                              │  fetch (HTTPS)
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  SUPABASE CLOUD / LOCAL                        │
+│  PostgreSQL (PostgREST REST API)  ← ApiService               │
+│  Auth (JWT + refresh tokens)      ← SupabaseService           │
+│  Storage (avatares, mídias)       ← SupabaseService           │
+│  Realtime (fila ao vivo)          ← SupabaseService           │
+│  Edge Functions (Deno)            ← chamadas diretas           │
+└──────────────────────────────────────────────────────────────┘
+
+Ambiente de desenvolvimento:
+  node server.js  →  http://localhost:3000  (serve arquivos estáticos)
+  supabase start  →  stack local via Docker (PostgreSQL, Auth, Studio)
+```
 
 ---
 
 ## Estrutura do projeto
 
 ```
-barbeFow-TWAapk/
+barberflow/
 ├── apps/
-│   ├── cliente/          ← PWA app cliente (TWA APK)
-│   └── profissional/     ← PWA app profissional (TWA APK)
+│   ├── cliente/                ← PWA app cliente (TWA APK)
+│   │   ├── index.html
+│   │   ├── manifest.json
+│   │   ├── sw.js               ← Service Worker (cache v107+)
+│   │   ├── vercel.json
+│   │   └── assets/
+│   │       └── js/             ← classes do app cliente (Router, Pages, Controllers)
+│   └── profissional/           ← PWA app profissional (TWA APK)
+│       ├── index.html
+│       ├── manifest.json
+│       ├── sw.js               ← Service Worker (cache v90+)
+│       ├── vercel.json
+│       └── assets/
+│           └── js/             ← classes do app profissional
 ├── shared/
-│   ├── css/              ← Design system compartilhado
-│   ├── js/               ← Router base POO
-│   └── img/              ← Imagens compartilhadas
+│   ├── css/                    ← Design system compartilhado (tokens, components)
+│   ├── js/                     ← Camadas domain / application / infra / interfaces
+│   │   ├── ApiService.js       ← Query builder + cliente HTTP PostgREST (infra)
+│   │   ├── SupabaseService.js  ← Auth, Realtime, Storage via SDK (infra)
+│   │   ├── AppState.js         ← Estado global compartilhado (infra)
+│   │   ├── Router.js           ← SPA base com animações padronizadas (infra)
+│   │   ├── InputValidator.js   ← Validação e sanitização centralizada (infra)
+│   │   ├── Barbearia.js        ← Entidade de domínio (domain)
+│   │   ├── Profissional.js     ← Entidade de domínio (domain)
+│   │   ├── Servico.js          ← Entidade de domínio (domain)
+│   │   ├── Agendamento.js      ← Entidade de domínio (domain)
+│   │   ├── Cliente.js          ← Entidade de domínio (domain)
+│   │   ├── *Repository.js      ← Acesso a dados por domínio (infra)
+│   │   ├── *Service.js         ← Regras de negócio (application)
+│   │   └── ...
+│   ├── fonts/
+│   └── img/
 ├── supabase/
-│   ├── config.toml       ← Configuração local do Supabase CLI
-│   ├── migrations/       ← SQL versionado (aplicar em ordem)
-│   ├── seeds/            ← Dados de desenvolvimento
-│   └── functions/        ← Edge Functions Deno/TypeScript
+│   ├── config.toml             ← Configuração local do Supabase CLI
+│   ├── migrations/             ← SQL versionado (aplicar em ordem)
+│   ├── seeds/                  ← Dados de desenvolvimento
+│   └── functions/              ← Edge Functions Deno/TypeScript
+├── tests/                      ← Testes automatizados (node:test + node:assert)
+│   ├── _helpers.js             ← fn() spy + carregar() sandbox VM
+│   ├── architecture.test.js
+│   ├── domain.test.js
+│   ├── entities.test.js
+│   └── *.test.js
 ├── .github/
-│   └── workflows/        ← CI/CD automático
-├── .env.example          ← Variáveis de ambiente (não commitar o .env!)
+│   └── workflows/              ← CI/CD automático
+├── CLASS_REGISTRY.md           ← Catálogo de todas as classes com camada DDD
+├── .env.example
 ├── .gitignore
-├── server.js             ← Servidor de dev local (Node.js, zero deps)
+├── server.js                   ← Servidor Node.js de desenvolvimento (zero deps)
+├── vercel.json                 ← Configuração de deploy (Vercel)
 └── README.md
 ```
 
 ---
 
-## Migrations
+## Backend — Node.js (`server.js`)
+
+O `server.js` é o servidor de desenvolvimento local. Escrito em Node.js puro (zero dependências externas), serve todos os arquivos estáticos com segurança OWASP e rate limiting por IP.
+
+### Arquitetura em camadas
+
+O servidor foi refatorado em quatro classes com responsabilidade única:
+
+| Classe | Responsabilidade |
+|---|---|
+| `RateLimiter` | Controla requisições por IP (2.000 req/min). Assets estáticos (`.js`, `.css`, `.svg`…) são isentos. Limpeza periódica evita leak de memória. |
+| `SecurityMiddleware` | Aplica headers de segurança OWASP (CSP, HSTS, X-Frame-Options…), valida MIME types e impede path traversal (acesso fora da raiz do projeto). |
+| `StaticFileHandler` | Normaliza URLs, resolve `index.html` em rotas SPA e lê arquivos com MIME type e cache-control corretos. |
+| `DevServer` | Ponto de entrada (`DevServer.iniciar()`). Orquestra os três middlewares, define a porta (`3000`) e exibe o banner de inicialização. |
+
+### Responsabilidades que **não** são do servidor Node.js
+
+Em produção, `server.js` é substituído pela Vercel (configurada em `vercel.json`). A lógica de dados, autenticação e regras de negócio vivem inteiramente nas camadas `shared/js/` e no Supabase — o servidor não faz proxy nem detém nenhum estado da aplicação.
+
+### Rodar o servidor local
+
+```bash
+node server.js
+# → http://localhost:3000
+```
+
+---
+
+## Frontend
+
+### Organização
+
+Dois PWAs completamente independentes, cada um com seu próprio `index.html`, `manifest.json`, `sw.js` e pasta `assets/js/`. Ambos compartilham o mesmo design system e a mesma camada de dados via `shared/`.
+
+```
+apps/cliente/assets/js/
+├── app.js                    ← BarberFlowCliente extends Router
+├── AppBootstrap.js           ← inicialização (auth, SW, splash)
+├── ClienteController.js      ← binding de formulários (interfaces)
+├── ClienteRepository.js      ← dados do cliente (infra)
+├── ClienteService.js         ← regras de negócio do cliente (application)
+└── pages/                    ← uma classe por tela (interfaces)
+
+apps/profissional/assets/js/
+├── app.js                    ← BarberFlowProfissional extends Router
+├── AppBootstrap.js
+├── MonetizationGuard.js      ← guard de plano/monetização (infra)
+├── PlanosService.js          ← seleção e ativação de planos (application)
+├── LegalConsentService.js    ← LGPD + termos (application)
+├── controllers/              ← binding DOM (interfaces)
+└── pages/                    ← uma classe por tela (interfaces)
+```
+
+### Navegação e animações (Router SPA)
+
+Todo app herda de `shared/js/Router.js`. A navegação segue um contrato único:
+
+| Método | Comportamento |
+|---|---|
+| `App.nav('tela')` | Carrossel: tela atual sai pela direita, nova entra pela esquerda |
+| `App.push('tela')` | Mesmo carrossel — usado para fluxos de auth (login → cadastro) |
+| `App.voltar()` | Fecha a tela atual pela esquerda e retorna ao home (histórico limpo) |
+
+O `home` permanece sempre por baixo de todas as abas para evitar recarregamento.
+
+### Service Workers
+
+Cada app possui um SW independente com versionamento explícito:
+
+| App | Versão atual do cache |
+|---|---|
+| `apps/cliente/sw.js` | `barberflow-cliente-v107` |
+| `apps/profissional/sw.js` | `barberflow-profissional-v90` |
+
+> **Regra:** bumpar a versão sempre que qualquer arquivo em `shared/` for modificado.
+
+### Camada de domínio (`shared/js/`)
+
+Entidades puras de domínio (sem dependências externas). Cada uma expõe `static fromRow(row)`, `validar()` e `toJSON()`:
+
+| Entidade | Arquivo | Descrição |
+|---|---|---|
+| `Barbearia` | `shared/js/Barbearia.js` | Barbearia com validação de nome, cidade e coordenadas |
+| `Profissional` | `shared/js/Profissional.js` | Profissional com roles: `barber`, `owner`, `manager` |
+| `Servico` | `shared/js/Servico.js` | Serviço/tratamento com validação de preço e duração |
+| `Agendamento` | `shared/js/Agendamento.js` | Agendamento com estados (pendente/confirmado/cancelado/concluído) |
+| `Cliente` | `shared/js/Cliente.js` | Perfil do cliente com validação e localização |
+
+---
+
+## Integração Supabase
+
+O Supabase fornece quatro serviços usados pelo projeto:
+
+### 1. PostgreSQL — via `ApiService` (CRUD)
+
+`shared/js/ApiService.js` substitui o Supabase JS SDK para todas as operações de leitura e escrita. Implementa um query builder fluente sobre `fetch` nativo — sem dependência de pacote externo.
+
+```js
+// Exemplo de uso (em qualquer *Repository.js)
+const { data, error } = await ApiService.from('barbershops')
+  .select('id, name, city, lat, lng')
+  .eq('is_active', true)
+  .order('rating_score', { ascending: false })
+  .limit(10);
+```
+
+O `ApiService` lê automaticamente o JWT da sessão persistida pelo SDK Supabase no `localStorage` e o injeta como `Authorization: Bearer <token>` em toda requisição.
+
+### 2. Auth — via `SupabaseService`
+
+`shared/js/SupabaseService.js` encapsula o Supabase JS SDK para autenticação (login, cadastro, logout, refresh de sessão). O JWT gerado é consumido pelo `ApiService` para autorizar as chamadas PostgREST.
+
+### 3. Storage — via `SupabaseService`
+
+Upload e geração de URLs públicas de avatares, capas, portfólio e stories. URLs são geradas por `ApiService.getAvatarUrl()`, `getLogoUrl()` e `getPortfolioThumbUrl()`.
+
+### 4. Realtime — via `SupabaseService`
+
+Fila de atendimento ao vivo (`QueueRepository`) e notificações em tempo real (`NotificationService`) via Supabase Realtime subscriptions.
+
+### Row Level Security (RLS)
+
+Todo acesso ao banco é controlado por políticas RLS definidas na migration `20260406000003_rls_policies.sql`. O cliente nunca acessa dados de outros usuários — o banco rejeita a requisição na camada de banco de dados antes de chegar à aplicação.
+
+### Edge Functions (Deno)
+
+Lógica server-side que não pode ser executada no browser:
+
+| Function | Rota | Descrição |
+|---|---|---|
+| `nearby-barbershops` | `POST /functions/v1/nearby-barbershops` | Barbearias num raio por coordenadas (PostGIS) |
+| `queue-status` | `GET /functions/v1/queue-status?barbershop_id=` | Status da fila ao vivo |
+
+```js
+// Chamada de Edge Function a partir do frontend
+const res = await fetch(`${SUPABASE_URL}/functions/v1/nearby-barbershops`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}` },
+  body: JSON.stringify({ latitude: -23.5613, longitude: -46.6570, radius_km: 2 })
+});
+const { data } = await res.json();
+```
+
+---
+
+## Banco de dados — Migrations
 
 | Arquivo | Descrição |
 |---|---|
@@ -218,13 +436,28 @@ const { data } = await res.json()
 
 ## 9. Boas práticas
 
+**Banco de dados:**
 - **Nunca** salvar vídeos ou imagens no banco — use Supabase Storage
 - **Sempre** criar migrations com timestamp no nome (`supabase migration new`)
 - **Nunca** commitar `.env` — apenas `.env.example`
-- Para RLS: toda tabela nova deve ter `alter table ... enable row level security`
-- Índices: criar apenas onde há filtros frequentes (`where`, `join`, `order by`)
-- Colunas `jsonb`: usar apenas para dados variáveis sem schema fixo (ex: notificações)
+- Toda tabela nova deve ter `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`
+- Índices: criar apenas onde há filtros frequentes (`WHERE`, `JOIN`, `ORDER BY`)
+- Colunas `jsonb`: usar apenas para dados sem schema fixo (ex: notificações)
 - Contadores (`likes_count`, `views_count`): manter desnormalizados para evitar `COUNT(*)`
+
+**Arquitetura e código:**
+- Toda nova classe deve ser registrada em `CLASS_REGISTRY.md` com a camada DDD correta
+- Entidades de domínio (`domain`) não devem ter dependências de `ApiService`, `fetch` ou DOM
+- `ApiService` é o único ponto de acesso ao PostgREST — nunca usar `fetch` diretamente em Services ou Pages
+- `SupabaseService` é exclusivo para Auth, Storage e Realtime
+- `sanitizar()` somente em `innerHTML`, nunca em `textContent`
+- Bumpar a versão do SW sempre que arquivos em `shared/` forem modificados
+
+**Testes:**
+- TDD obrigatório: escrever o teste antes da implementação
+- Usar apenas `node:test` + `node:assert/strict` — nenhuma biblioteca de teste externa
+- Isolar cada teste em `vm.createContext` separado (sem estado compartilhado)
+- Commitar apenas com 0 falhas: `node --test tests/**/*.test.js`
 
 ---
 
