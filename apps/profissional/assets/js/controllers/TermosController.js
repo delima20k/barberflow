@@ -48,37 +48,24 @@ class TermosController {
     const btn    = document.getElementById('tl-btn-continuar');
     const erroEl = document.getElementById('tl-erro');
 
-    // Valida checkbox novamente por segurança (defesa em profundidade)
+    // Defesa em profundidade: revalida checkbox antes de prosseguir
     const aceiteConfirmado = !!document.getElementById('tl-cb-termos')?.checked;
     if (!aceiteConfirmado) return;
 
     if (btn) btn.classList.add('tl-btn--carregando');
     if (erroEl) erroEl.style.display = 'none';
 
+    const destino  = sessionStorage.getItem('bf_termo_destino') || 'cadastro';
+    const planType = MonetizationGuard.planoSelecionado || 'trial';
+    const flags    = {
+      direitos_autorais:   true,
+      uso_arquivos:        true,
+      uso_midias_internas: true,
+      uso_gps:             true,
+    };
+
     try {
-      const destino  = sessionStorage.getItem('bf_termo_destino') || 'cadastro';
-      const planType = MonetizationGuard.planoSelecionado || 'trial';
-      const flags    = {
-        direitos_autorais:   true,
-        uso_arquivos:        true,
-        uso_midias_internas: true,
-        uso_gps:             true,
-      };
-
-      const user = await SupabaseService.getUser();
-
-      if (!user) {
-        // Fluxo pré-cadastro: salva aceite pendente, segue para cadastro
-        LegalConsentService.marcarAceitePendente(planType, flags);
-        sessionStorage.removeItem('bf_termo_destino');
-        this.#pushFn(destino);
-        return;
-      }
-
-      // Fluxo pós-login: registra aceite direto no banco
-      const { ok, error: erroResp } = await LegalConsentService.registrarAceite(
-        user.id, planType, flags
-      );
+      const { ok, error: erroResp } = await LegalConsentService.processarAceite(planType, flags);
       if (!ok) throw new Error(erroResp || 'Erro ao registrar aceite.');
 
       sessionStorage.removeItem('bf_termo_destino');

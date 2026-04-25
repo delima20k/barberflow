@@ -1,45 +1,6 @@
 'use strict';
 
 // =============================================================
-// MonetizationGuard — controla acesso a funções pagas
-// =============================================================
-class MonetizationGuard {
-
-  static #TIPO_KEY  = 'bf_tipo';
-  static #PLANO_KEY = 'bf_plano';
-
-  static get tipoUsuario()     { return sessionStorage.getItem(MonetizationGuard.#TIPO_KEY);  }
-  static get planoSelecionado(){ return sessionStorage.getItem(MonetizationGuard.#PLANO_KEY); }
-
-  /**
-   * Salva tipo de usuário e plano escolhidos na sessionStorage.
-   */
-  static setPlan(tipo, plano) {
-    sessionStorage.setItem(MonetizationGuard.#TIPO_KEY,  tipo);
-    sessionStorage.setItem(MonetizationGuard.#PLANO_KEY, plano);
-  }
-
-  /**
-   * Se o usuário já escolheu um plano → executa cb.
-   * Caso contrário → redireciona para a tela de tipo de usuário.
-   * @param {Function} cb
-   */
-  static exigirPlano(cb) {
-    if (MonetizationGuard.planoSelecionado) {
-      cb();
-    } else {
-      if (typeof Pro !== 'undefined') Pro.push('planos-pro');
-    }
-  }
-
-  /** Limpa seleção (chamado após cadastro concluído ou logout). */
-  static limpar() {
-    sessionStorage.removeItem(MonetizationGuard.#TIPO_KEY);
-    sessionStorage.removeItem(MonetizationGuard.#PLANO_KEY);
-  }
-}
-
-// =============================================================
 // BarberFlowProfissional — App principal (slim)
 // =============================================================
 /**

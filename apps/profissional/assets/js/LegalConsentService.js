@@ -156,6 +156,42 @@ class LegalConsentService {
     sessionStorage.removeItem(LegalConsentService.#CACHE_KEY);
     sessionStorage.removeItem(LegalConsentService.#PENDENTE_KEY);
   }
+
+  // ──────────────────────────────────────────────────────────
+  // PROCESSAR ACEITE (fachada para TermosController)
+  // ──────────────────────────────────────────────────────────
+
+  /**
+   * Ponto único de decisão de aceite: detecta se o usuário está logado
+   * e escolhe o fluxo correto (registrar no banco ou salvar como pendente).
+   *
+   * Uso pelo TermosController:
+   *   const { ok, usuario } = await LegalConsentService.processarAceite(planType, flags);
+   *   if (ok) push(destino);
+   *
+   * @param {string} planType — 'trial' | 'mensal' | 'trimestral'
+   * @param {{ direitos_autorais?: boolean, uso_arquivos?: boolean, uso_midias_internas?: boolean, uso_gps?: boolean }} flags
+   * @returns {Promise<{ ok: boolean, usuario: object|null, error?: string }>}
+   */
+  static async processarAceite(planType, flags = {}) {
+    try {
+      const user = await SupabaseService.getUser();
+
+      if (!user) {
+        // Fluxo pré-cadastro: persiste aceite e aguarda criação de conta
+        LegalConsentService.marcarAceitePendente(planType, flags);
+        return { ok: true, usuario: null };
+      }
+
+      // Fluxo pós-login: registra direto no banco
+      const resultado = await LegalConsentService.registrarAceite(user.id, planType, flags);
+      return { ...resultado, usuario: user };
+    } catch (e) {
+      LoggerService.error('[LegalConsentService] processarAceite:', e?.message);
+      return { ok: false, usuario: null, error: e?.message || 'Erro ao processar aceite.' };
+    }
+  }
 }
+
 
 

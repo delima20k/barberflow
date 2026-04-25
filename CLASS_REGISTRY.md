@@ -107,10 +107,11 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
-| `MonetizationGuard` | [apps/profissional/assets/js/app.js](apps/profissional/assets/js/app.js) | infra | Guard de monetização: verifica plano ativo antes de liberar funcionalidades Pro |
+| `MonetizationGuard` | [apps/profissional/assets/js/MonetizationGuard.js](apps/profissional/assets/js/MonetizationGuard.js) | infra | Guard de monetização: persiste tipo de usuário e plano em sessionStorage, exige plano para acesso a funcionalidades Pro |
 | `BarberFlowProfissional` | [apps/profissional/assets/js/app.js](apps/profissional/assets/js/app.js) | infra | App raiz do profissional. Estende Router, orquestra Pages e navegação |
 | `AppBootstrap` | [apps/profissional/assets/js/AppBootstrap.js](apps/profissional/assets/js/AppBootstrap.js) | infra | Inicialização do app profissional: autenticação, SW, splash |
-| `LegalConsentService` | [apps/profissional/assets/js/LegalConsentService.js](apps/profissional/assets/js/LegalConsentService.js) | service | Gerencia aceite de termos legais pelo profissional (LGPD + T&C) |
+| `LegalConsentService` | [apps/profissional/assets/js/LegalConsentService.js](apps/profissional/assets/js/LegalConsentService.js) | service | Gerencia aceite de termos legais (LGPD + T&C). Inclui processarAceite() — ponto único de decisão: usuário logado registra no banco, pré-cadastro salva como pendente |
+| `PlanosService` | [apps/profissional/assets/js/PlanosService.js](apps/profissional/assets/js/PlanosService.js) | service | Regras de negócio para seleção de planos: selecionarTipo() e iniciarFluxo(). Delega ao MonetizationGuard e PaymentFlowHandler |
 | `CadastroController` | [apps/profissional/assets/js/controllers/CadastroController.js](apps/profissional/assets/js/controllers/CadastroController.js) | controller | Binding do formulário de cadastro do profissional |
 | `PlanosController` | [apps/profissional/assets/js/controllers/PlanosController.js](apps/profissional/assets/js/controllers/PlanosController.js) | controller | Binding da tela de seleção de plano |
 | `TermosController` | [apps/profissional/assets/js/controllers/TermosController.js](apps/profissional/assets/js/controllers/TermosController.js) | controller | Binding da tela de termos legais |

@@ -73,7 +73,7 @@ class PlanosController {
     });
   }
 
-  // ── Lógica de negócio (extraída do app.js) ────────────────
+  // ── DOM puro ──────────────────────────────────────────────
 
   #alternarTipoPlano(tipo) {
     const eBarbeiro = tipo === 'barbeiro';
@@ -91,32 +91,33 @@ class PlanosController {
       : 'Plano Profissional para Barbearias';
   }
 
+  /** Delega a regra de tipo ao PlanosService e reage ao resultado. */
   #selecionarTipoUsuario(tipo) {
-    if (tipo === 'barbearia') {
+    const { podeAvancar } = PlanosService.selecionarTipo(tipo);
+    if (!podeAvancar) {
       this.#mostrarToastEmBreve();
       return;
     }
-    sessionStorage.setItem('bf_tipo', tipo);
     this.#pushFn('planos-barbeiro');
   }
 
+  /** Delega fluxo de plano legado ao PlanosService. */
   #selecionarPlano(plano) {
     const tipo = sessionStorage.getItem('bf_tipo') || 'barbeiro';
-    MonetizationGuard.setPlan(tipo, plano);
-    PaymentFlowHandler.iniciarFluxo(
-      plano,
+    PlanosService.iniciarFluxo(
+      tipo, plano,
       () => this.#pushFn('cadastro'),
       (msg) => {
         LoggerService.warn('[PlanosController] Pagamento falhou:', msg);
         this.#pushFn('cadastro');
-      }
+      },
     );
   }
 
+  /** Delega fluxo Pro ao PlanosService. */
   #selecionarPlanoPro(tipo, plano) {
-    MonetizationGuard.setPlan(tipo, plano);
-    PaymentFlowHandler.iniciarFluxo(
-      plano,
+    PlanosService.iniciarFluxo(
+      tipo, plano,
       () => {
         sessionStorage.setItem('bf_termo_destino', 'cadastro');
         this.#pushFn('termos-legais');
@@ -125,7 +126,7 @@ class PlanosController {
         LoggerService.warn('[PlanosController]', msg);
         sessionStorage.setItem('bf_termo_destino', 'cadastro');
         this.#pushFn('termos-legais');
-      }
+      },
     );
   }
 
