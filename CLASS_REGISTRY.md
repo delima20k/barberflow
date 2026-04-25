@@ -40,6 +40,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `GuardaIten` | [shared/js/GuardaIten.js](shared/js/GuardaIten.js) | infra | Guard de itens de menu/tela com base em role e estado do usuário |
 | `GuestMode` | [shared/js/GuestMode.js](shared/js/GuestMode.js) | infra | Modo visitante — acesso parcial sem autenticação |
 | `InputValidator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Validação e sanitização centralizada: email, senha, UUID, CPF, CNPJ, texto livre, payload allowlist |
+| `Validator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Alias público de `InputValidator`. Use `Validator.email()`, `Validator.telefone()`, `Validator.escaparFiltroPostgREST()` etc. |
 | `LgpdService` | [shared/js/LgpdService.js](shared/js/LgpdService.js) | application | Gerencia consentimento LGPD do usuário (aceite de termos) |
 | `LoggerService` | [shared/js/LoggerService.js](shared/js/LoggerService.js) | infra | Logger centralizado com níveis (debug/info/warn/error) e controle de ambiente |
 | `LogoGlow` | [shared/js/LogoGlow.js](shared/js/LogoGlow.js) | interfaces | Efeito de brilho (glow) animado no logotipo |

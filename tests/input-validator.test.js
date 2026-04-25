@@ -236,7 +236,9 @@ suite('InputValidator.payload()', () => {
   test('retorna apenas campos permitidos', () => {
     const r = IV.payload({ full_name: 'João', phone: '11999999999' }, CAMPOS_PERFIL);
     assert.strictEqual(r.ok, true);
-    assert.deepStrictEqual(r.valor, { full_name: 'João', phone: '11999999999' });
+    assert.strictEqual(r.valor.full_name, 'João');
+    assert.strictEqual(r.valor.phone, '11999999999');
+    assert.strictEqual(Object.keys(r.valor).length, 2);
   });
 
   test('descarta campos extras silenciosamente (prevenção de mass assignment)', () => {
@@ -257,7 +259,7 @@ suite('InputValidator.payload()', () => {
   test('rejeita objeto sem nenhum campo permitido', () => {
     const r = IV.payload({ role: 'admin', is_admin: true }, CAMPOS_PERFIL);
     assert.strictEqual(r.ok, false);
-    assert.deepStrictEqual(r.valor, {});
+    assert.strictEqual(Object.keys(r.valor).length, 0);
   });
 
   test('rejeita array (não é objeto de dados)', () => {

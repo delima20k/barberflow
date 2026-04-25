@@ -326,3 +326,7 @@ class InputValidator {
     return str.trim().replace(/[,()\"]/g, '');
   }
 }
+
+// Alias público — permite usar Validator.email(), Validator.telefone(), etc.
+// sem precisar referenciar o nome interno InputValidator.
+const Validator = InputValidator;
