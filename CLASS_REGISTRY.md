@@ -42,6 +42,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `GeoService` | [shared/js/GeoService.js](shared/js/GeoService.js) | application | Geolocalização: GPS, CEP fallback, cálculo de distância |
 | `GuardaIten` | [shared/js/GuardaIten.js](shared/js/GuardaIten.js) | infra | Guard de itens de menu/tela com base em role e estado do usuário |
 | `GuestMode` | [shared/js/GuestMode.js](shared/js/GuestMode.js) | infra | Modo visitante — acesso parcial sem autenticação |
+| `DataProcessor` | [shared/js/DataProcessor.js](shared/js/DataProcessor.js) | infra | Pipeline de validação, sanitização e normalização de dados: `validateCPF`, `validateEmail`, `validatePhone`, `sanitizeInput`, `sanitizeOutput`, `normalizeData`, `processInput`, `processOutput`. Delega validação ao `InputValidator`. |
 | `InputValidator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Validação e sanitização centralizada: email, senha, UUID, CPF, CNPJ, texto livre, payload allowlist |
 | `Validator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Alias público de `InputValidator`. Use `Validator.email()`, `Validator.telefone()`, `Validator.escaparFiltroPostgREST()` etc. |
 | `LgpdService` | [shared/js/LgpdService.js](shared/js/LgpdService.js) | application | Gerencia consentimento LGPD do usuário (aceite de termos) |
