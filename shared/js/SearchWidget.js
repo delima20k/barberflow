@@ -176,15 +176,16 @@ class SearchWidget {
   static async #buscar(termo) {
     SearchWidget.#renderLoading();
 
+    const t = InputValidator.escaparFiltroPostgREST(termo);
     try {
       const { data, error } = await SupabaseService.barbershops()
         .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg')
         .eq('is_active', true)
         .or(
-          `name.ilike.%${termo}%,` +
-          `address.ilike.%${termo}%,` +
-          `city.ilike.%${termo}%,` +
-          `zip_code.ilike.%${termo}%`
+          `name.ilike.%${t}%,` +
+          `address.ilike.%${t}%,` +
+          `city.ilike.%${t}%,` +
+          `zip_code.ilike.%${t}%`
         )
         .order('rating_avg', { ascending: false })
         .limit(SearchWidget.#LIMIT);

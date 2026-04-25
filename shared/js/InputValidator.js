@@ -166,9 +166,11 @@ class InputValidator {
    *       (textContent já é seguro por natureza; sanitizar() causaria
    *        "D'Água" virar "D&#x27;Água" visível na tela)
    *   ❌  ERRADO  → salvar sanitizar(dado) no banco de dados
-   *       (o banco deve guardar o texto original; o Supabase/PostgREST usa
-   *        queries parametrizadas e não tem risco de SQL injection aqui;
-   *        use textoLivre() para validar antes de inserir)
+   *       (o banco deve guardar o texto original; INSERT/UPDATE no Supabase
+   *        usa queries parametrizadas e não tem risco de SQL injection;
+   *        use textoLivre() para validar antes de inserir.
+   *        ⚠️ Exceção: input interpolado em .or()/.filter() requer
+   *        escaparFiltroPostgREST() — essas strings NÃO são parametrizadas.)
    *
    * @param {string} str — texto a codificar
    * @returns {string}   — texto com &amp; < > " ' / escapados para HTML
@@ -196,8 +198,9 @@ class InputValidator {
    *     armazenado com entidades como D&#x27;Água em vez de D'Água.
    *
    * Remove null-bytes (previne ataques de truncamento de string no banco).
-   * Strings com aspas e "--" são aceitas — o Supabase/PostgREST usa queries
-   * parametrizadas e NUNCA interpola o valor diretamente no SQL.
+   * Strings com aspas e "--" são aceitas — INSERT/UPDATE no Supabase usa
+   * queries parametrizadas. ⚠️ Exceção: input interpolado em .or()/.filter()
+   * requer escaparFiltroPostgREST() antes da interpolação.
    *
    * @param {string}  str
    * @param {number}  [maxLen=500]
@@ -292,5 +295,34 @@ class InputValidator {
       if (!r.ok) return r;
     }
     return { ok: true, msg: '' };
+  }
+
+  // ── Escaping para filtros PostgREST ───────────────────────
+
+  /**
+   * Remove caracteres especiais da sintaxe de filtro do PostgREST.
+   *
+   * O PostgREST usa queries parametrizadas para INSERT/UPDATE e para
+   * métodos como .eq()/.in()/.gte() — esses são seguros por padrão.
+   * Porém, o argumento de .or() e .filter() é uma **string de filtro bruta**
+   * interpretada pelo parser do PostgREST. Interpolação direta de input de
+   * usuário nessa string permite manipular a lógica de filtro
+   * (PostgREST filter injection).
+   *
+   * Chars removidos (têm significado especial na filter syntax do PostgREST):
+   *   ','  — separador de condições OR
+   *   '('  — abertura de agrupamento
+   *   ')'  — fechamento de agrupamento
+   *   '"'  — delimitador de valor
+   *
+   * ✅  Use ANTES de interpolar input de usuário em .or() ou .filter().
+   * ❌  NÃO use para dados destinados a INSERT/UPDATE — esses são seguros.
+   *
+   * @param {string} str — termo de busca vindo do usuário
+   * @returns {string}   — string segura para interpolação em filtros PostgREST
+   */
+  static escaparFiltroPostgREST(str) {
+    if (typeof str !== 'string') return '';
+    return str.trim().replace(/[,()\"]/g, '');
   }
 }

@@ -199,7 +199,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async search(query, limit = 20) {
-    const q = query.trim();
+    const q = InputValidator.escaparFiltroPostgREST(query);
     const { data, error } = await SupabaseService.barbershops()
       .select('id, name, address, city, zip_code, logo_path, cover_path, is_open, rating_avg, font_key')
       .eq('is_active', true)
