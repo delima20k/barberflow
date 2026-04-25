@@ -395,35 +395,6 @@ class SupabaseService {
     return data;
   }
 
-  /**
-   * Retorna todas as barbearias ativas, ordenadas por avaliação.
-   * @param {number} [limit=20]
-   * @returns {Promise<object[]>}
-   */
-  static async getBarbers(limit = 20) {
-    const { data, error } = await SupabaseService.barbershops()
-      .select('id, name, address, city, latitude, longitude, logo_path, is_open, rating_avg')
-      .eq('is_active', true)
-      .order('rating_avg', { ascending: false })
-      .limit(limit);
-    if (error) SupabaseService.#erro('getBarbers', error);
-    return data ?? [];
-  }
-
-  /**
-   * Cria um novo agendamento.
-   * @param {object} dados — { client_id, professional_id, barbershop_id, service_id, scheduled_at, duration_min, price_charged, notes? }
-   * @returns {Promise<{ id: string }>}
-   */
-  static async createAppointment(dados) {
-    const { data, error } = await SupabaseService.appointments()
-      .insert(dados)
-      .select('id')
-      .single();
-    if (error) SupabaseService.#erro('createAppointment', error);
-    return data;
-  }
-
   // ═══════════════════════════════════════════════════════════
   // DIAGNÓSTICO — use no console DevTools para debugar 401
   // Disponível APENAS em localhost — bloqueado em produção.
