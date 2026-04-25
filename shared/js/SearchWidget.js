@@ -178,7 +178,7 @@ class SearchWidget {
 
     const t = InputValidator.escaparFiltroPostgREST(termo);
     try {
-      const { data, error } = await SupabaseService.barbershops()
+      const { data, error } = await ApiService.from('barbershops')
         .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg')
         .eq('is_active', true)
         .or(

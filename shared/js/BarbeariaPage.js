@@ -149,7 +149,7 @@ class BarbeariaPage {
 
   static async #fetchServicos(id) {
     try {
-      const { data, error } = await SupabaseService.services()
+      const { data, error } = await ApiService.from('services')
         .select('id, name, price, duration_min, image_path')
         .eq('barbershop_id', id)
         .eq('is_active', true)
@@ -161,7 +161,7 @@ class BarbeariaPage {
 
   static async #fetchPortfolio(id) {
     try {
-      const { data, error } = await SupabaseService.portfolioImages()
+      const { data, error } = await ApiService.from('portfolio_images')
         .select('id, thumbnail_path, title')
         .eq('owner_id', id)
         .eq('owner_type', 'barbershop')
@@ -190,10 +190,10 @@ class BarbeariaPage {
   #renderCapa(shop) {
     if (this.#refs.capaImg) {
       const path = shop.cover_path ?? shop.logo_path;
-      if (path) this.#refs.capaImg.src = SupabaseService.getLogoUrl(path);
+      if (path) this.#refs.capaImg.src = ApiService.getLogoUrl(path);
     }
     if (this.#refs.logoImg && shop.logo_path) {
-      this.#refs.logoImg.src = SupabaseService.getLogoUrl(shop.logo_path);
+      this.#refs.logoImg.src = ApiService.getLogoUrl(shop.logo_path);
       // textContent/alt são seguros por natureza — não usar sanitizar()
       this.#refs.logoImg.alt = shop.name ?? '';
     }
@@ -262,7 +262,7 @@ class BarbeariaPage {
 
     const s = InputValidator.sanitizar;
     el.innerHTML = lista.map(sv => {
-      const imgUrl  = sv.image_path ? SupabaseService.getLogoUrl(sv.image_path) : null;
+      const imgUrl  = sv.image_path ? ApiService.getLogoUrl(sv.image_path) : null;
       const imgHtml = imgUrl
         ? `<img src="${s(imgUrl)}" alt="${s(sv.name ?? '')}" class="bp-serv-img" loading="lazy" onerror="this.style.display='none'">`
         : `<div class="bp-serv-img bp-serv-img--vazio"></div>`;
@@ -298,8 +298,8 @@ class BarbeariaPage {
     el.hidden    = false;
     el.innerHTML = lista.map(img => {
       if (!img.thumbnail_path) return '<div class="bp-port-item bp-port-item--vazio"></div>';
-      const url = SupabaseService.getPortfolioThumbUrl?.(img.thumbnail_path)
-               ?? SupabaseService.getLogoUrl(img.thumbnail_path) ?? '';
+      const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path)
+               ?? ApiService.getLogoUrl(img.thumbnail_path) ?? '';
       return `<div class="bp-port-item">
         <img src="${s(url)}" alt="${s(img.title ?? '')}" loading="lazy"
              onerror="this.outerHTML='<div class=\u0022bp-port-item bp-port-item--vazio\u0022></div>'">

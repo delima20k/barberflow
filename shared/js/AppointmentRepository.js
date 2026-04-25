@@ -6,7 +6,7 @@
 // Nenhuma lógica de negócio aqui — apenas acesso a dados.
 //
 // Reutilizável pelos apps cliente e profissional.
-// Dependências: SupabaseService.js
+// Dependências: ApiService.js
 // =============================================================
 
 class AppointmentRepository {
@@ -32,7 +32,7 @@ class AppointmentRepository {
    * @returns {Promise<object[]>}
    */
   static async getByProfessional(professionalId, inicio, fim) {
-    const { data, error } = await SupabaseService.appointments()
+    const { data, error } = await ApiService.from('appointments')
       .select(AppointmentRepository.#SELECT_LIST)
       .eq('professional_id', professionalId)
       .gte('scheduled_at', inicio.toISOString())
@@ -106,7 +106,7 @@ class AppointmentRepository {
    * @returns {Promise<object[]>}
    */
   static async getByCliente(clientId) {
-    const { data, error } = await SupabaseService.appointments()
+    const { data, error } = await ApiService.from('appointments')
       .select(AppointmentRepository.#SELECT_LIST)
       .eq('client_id', clientId)
       .gte('scheduled_at', new Date().toISOString())
@@ -136,7 +136,7 @@ class AppointmentRepository {
     const validos = ['pending', 'confirmed', 'in_progress', 'done', 'cancelled', 'no_show'];
     if (!validos.includes(status)) throw new Error(`Status inválido: ${status}`);
 
-    const { data, error } = await SupabaseService.appointments()
+    const { data, error } = await ApiService.from('appointments')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('id, status')
@@ -182,7 +182,7 @@ class AppointmentRepository {
     // Substitui notes pela versão sanitizada
     if ('notes' in (payload ?? {})) payloadFiltrado.notes = notasSanitizadas;
 
-    const { data, error } = await SupabaseService.appointments()
+    const { data, error } = await ApiService.from('appointments')
       .insert(payloadFiltrado)
       .select('id')
       .single();

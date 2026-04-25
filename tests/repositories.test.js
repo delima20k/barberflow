@@ -34,49 +34,50 @@ function criarQueryBuilder(result) {
 function criarAppointmentRepo({ data = null, error = null } = {}) {
   const result         = { data, error };
   const apptBuilder    = criarQueryBuilder(result);
-  const supabaseMock   = { appointments: fn(() => apptBuilder) };
+  const apiMock        = { from: fn().mockReturnValue(apptBuilder) };
 
-  const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
+  const sandbox = vm.createContext({ console, ApiService: apiMock });
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/AppointmentRepository.js');
 
-  return { AppointmentRepository: sandbox.AppointmentRepository, apptBuilder, supabaseMock };
+  return { AppointmentRepository: sandbox.AppointmentRepository, apptBuilder, apiMock };
 }
 
 function criarProfileRepo({ data = null, error = null } = {}) {
   const result        = { data, error };
   const profBuilder   = criarQueryBuilder(result);
-  const favBuilder    = criarQueryBuilder(result);
   const storeMock     = { upload: fn().mockResolvedValue({ error: null }) };
+  const apiMock       = {
+    from:          fn().mockReturnValue(profBuilder),
+    getAvatarUrl:  fn(() => 'https://cdn.example.com/avatar.jpg'),
+  };
   const supabaseMock  = {
-    profiles:    fn(() => profBuilder),
-    favorites:   fn(() => favBuilder),
     storageAvatars: fn(() => storeMock),
-    getAvatarUrl:   fn(() => 'https://cdn.example.com/avatar.jpg'),
   };
 
-  const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
+  const sandbox = vm.createContext({ console, ApiService: apiMock, SupabaseService: supabaseMock });
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/ProfileRepository.js');
 
-  return { ProfileRepository: sandbox.ProfileRepository, profBuilder, favBuilder, supabaseMock };
+  return { ProfileRepository: sandbox.ProfileRepository, profBuilder, apiMock };
 }
 
 function criarQueueRepo({ data = null, error = null } = {}) {
   const result       = { data, error };
   const queueBuilder = criarQueryBuilder(result);
   const chairBuilder = criarQueryBuilder(result);
+  const apiMock      = {
+    from: fn((table) => table === 'chairs' ? chairBuilder : queueBuilder),
+  };
   const supabaseMock = {
-    queueEntries: fn(() => queueBuilder),
-    chairs:       fn(() => chairBuilder),
-    channel:      fn(() => ({ on: fn().mockReturnThis(), subscribe: fn() })),
+    channel: fn(() => ({ on: fn().mockReturnThis(), subscribe: fn() })),
   };
 
-  const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
+  const sandbox = vm.createContext({ console, ApiService: apiMock, SupabaseService: supabaseMock });
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/QueueRepository.js');
 
-  return { QueueRepository: sandbox.QueueRepository, queueBuilder, supabaseMock };
+  return { QueueRepository: sandbox.QueueRepository, queueBuilder, apiMock };
 }
 
 function criarBarbershopRepo({ data = null, error = null } = {}) {
@@ -84,17 +85,19 @@ function criarBarbershopRepo({ data = null, error = null } = {}) {
   const shopBuilder   = criarQueryBuilder(result);
   const interBuilder  = criarQueryBuilder(result);
   const pubBuilder    = criarQueryBuilder(result);
-  const supabaseMock  = {
-    barbershops:            fn(() => shopBuilder),
-    barbershopInteractions: fn(() => interBuilder),
-    profilesPublic:         fn(() => pubBuilder),
+  const apiMock       = {
+    from: fn((table) => {
+      if (table === 'barbershop_interactions') return interBuilder;
+      if (table === 'profiles_public')        return pubBuilder;
+      return shopBuilder;
+    }),
   };
 
-  const sandbox = vm.createContext({ console, SupabaseService: supabaseMock });
+  const sandbox = vm.createContext({ console, ApiService: apiMock });
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/BarbershopRepository.js');
 
-  return { BarbershopRepository: sandbox.BarbershopRepository, shopBuilder, interBuilder, supabaseMock };
+  return { BarbershopRepository: sandbox.BarbershopRepository, shopBuilder, interBuilder, apiMock };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -346,7 +349,7 @@ suite('BarbershopRepository.getNearby()', () => {
   test('executa query com coordenadas válidas', async () => {
     const { BarbershopRepository, shopBuilder } = criarBarbershopRepo({ data: [] });
     const r = await BarbershopRepository.getNearby(-23.5505, -46.6333, 3);
-    assert.strictEqual(Array.isArray(r)), true);
+    assert.strictEqual(Array.isArray(r), true);
     assert.ok(shopBuilder.select.calls.length > 0);
   });
 

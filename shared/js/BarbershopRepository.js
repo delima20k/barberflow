@@ -5,7 +5,7 @@
 // Abstrai todas as queries Supabase das tabelas barbershops e
 // profiles_public. Nenhuma lógica de negócio aqui — apenas acesso a dados.
 //
-// Dependências: SupabaseService.js
+// Dependências: ApiService.js
 // =============================================================
 
 // Repositório responsável por todas as operações de leitura de barbearias e barbeiros.
@@ -38,7 +38,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getAll(limit = 10) {
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
       .order('likes_count',  { ascending: false })
@@ -68,7 +68,7 @@ class BarbershopRepository {
     const latD = radiusKm / 111.0;
     const lonD = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
 
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
       .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
@@ -88,7 +88,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getFeatured(limit = 6) {
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
@@ -107,7 +107,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getTopRated(limit = 50) {
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
@@ -148,7 +148,7 @@ class BarbershopRepository {
     if (state   !== undefined && state   !== null) payload.state    = state;
     if (zipCode !== undefined && zipCode !== null) payload.zip_code = zipCode;
 
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .update(payload)
       .eq('owner_id', ownerId)
       .single();
@@ -163,7 +163,7 @@ class BarbershopRepository {
    * @returns {Promise<object>}
    */
   static async getById(id) {
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select('*')
       .eq('id', id)
       .single();
@@ -180,7 +180,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getAllByCortes(limit = 60) {
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select(BarbershopRepository.#SELECT_BASIC)
       .eq('is_active', true)
       .order('likes_count',  { ascending: false })
@@ -200,7 +200,7 @@ class BarbershopRepository {
    */
   static async search(query, limit = 20) {
     const q = InputValidator.escaparFiltroPostgREST(query);
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select('id, name, address, city, zip_code, logo_path, cover_path, is_open, rating_avg, font_key')
       .eq('is_active', true)
       .or(`name.ilike.%${q}%,address.ilike.%${q}%,city.ilike.%${q}%,zip_code.ilike.%${q}%`)
@@ -220,7 +220,7 @@ class BarbershopRepository {
    * @returns {Promise<object[]>}
    */
   static async getBarbers(limit = 10) {
-    const { data, error } = await SupabaseService.profilesPublic()
+    const { data, error } = await ApiService.from('profiles_public')
       .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count')
       .eq('role', 'professional')
       .in('pro_type', ['barbeiro', 'barbearia'])
@@ -254,7 +254,7 @@ class BarbershopRepository {
     if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) throw new Error('Tabela barbershop_interactions indisponível.');
 
     // Upsert garante idempotência: não falha se o registro já existir
-    const { error } = await SupabaseService.barbershopInteractions()
+    const { error } = await ApiService.from('barbershop_interactions')
       .upsert(
         { barbershop_id: barbershopId, user_id: userId, type },
         { onConflict: 'barbershop_id,user_id,type', ignoreDuplicates: true }
@@ -283,7 +283,7 @@ class BarbershopRepository {
 
     if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) throw new Error('Tabela barbershop_interactions indisponível.');
 
-    const { error } = await SupabaseService.barbershopInteractions()
+    const { error } = await ApiService.from('barbershop_interactions')
       .delete()
       .eq('barbershop_id', barbershopId)
       .eq('user_id', userId)
@@ -304,7 +304,7 @@ class BarbershopRepository {
   static async getUserInteractions(userId, barbershopIds) {
     if (!userId || !barbershopIds.length) return [];
     if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) return [];
-    const { data, error } = await SupabaseService.barbershopInteractions()
+    const { data, error } = await ApiService.from('barbershop_interactions')
       .select('barbershop_id, type')
       .eq('user_id', userId)
       .in('barbershop_id', barbershopIds);
@@ -323,7 +323,7 @@ class BarbershopRepository {
    * @returns {Promise<{likes_count:number, dislikes_count:number, rating_score:number}|null>}
    */
   static async getStats(barbershopId) {
-    const { data, error } = await SupabaseService.barbershops()
+    const { data, error } = await ApiService.from('barbershops')
       .select('likes_count, dislikes_count, rating_score')
       .eq('id', barbershopId)
       .maybeSingle();
@@ -341,7 +341,7 @@ class BarbershopRepository {
   static async getInteractionCountsAll(barbershopIds) {
     if (!barbershopIds?.length) return {};
     if (BarbershopRepository.#INTERACTIONS_UNAVAILABLE) return {};
-    const { data, error } = await SupabaseService.barbershopInteractions()
+    const { data, error } = await ApiService.from('barbershop_interactions')
       .select('barbershop_id, type')
       .in('barbershop_id', barbershopIds)
       .in('type', ['like', 'dislike']);

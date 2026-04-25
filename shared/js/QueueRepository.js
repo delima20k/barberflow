@@ -6,7 +6,7 @@
 // e o canal Realtime para atualização sem reload.
 //
 // Reutilizável pelos apps cliente e profissional.
-// Dependências: SupabaseService.js
+// Dependências: ApiService.js, SupabaseService.js (Realtime)
 // =============================================================
 
 class QueueRepository {
@@ -32,7 +32,7 @@ class QueueRepository {
    * @returns {Promise<object[]>}
    */
   static async getByBarbershop(barbershopId) {
-    const { data, error } = await SupabaseService.queueEntries()
+    const { data, error } = await ApiService.from('queue_entries')
       .select(QueueRepository.#SELECT_LIST)
       .eq('barbershop_id', barbershopId)
       .in('status', ['waiting', 'in_service'])
@@ -48,7 +48,7 @@ class QueueRepository {
    * @returns {Promise<object[]>}
    */
   static async getCadeiras(barbershopId) {
-    const { data, error } = await SupabaseService.chairs()
+    const { data, error } = await ApiService.from('chairs')
       .select('id, label, status, professional:professionals!professional_id(profile:profiles!id(full_name))')
       .eq('barbershop_id', barbershopId)
       .neq('status', 'inativa')
@@ -79,7 +79,7 @@ class QueueRepository {
     if (status === 'in_service') patch.served_at = new Date().toISOString();
     if (status === 'done')       patch.done_at   = new Date().toISOString();
 
-    const { data, error } = await SupabaseService.queueEntries()
+    const { data, error } = await ApiService.from('queue_entries')
       .update(patch)
       .eq('id', id)
       .select('id, status, position')
@@ -108,7 +108,7 @@ class QueueRepository {
     const { ok, msg, valor: payloadFiltrado } = InputValidator.payload(payload, camposPermitidos);
     if (!ok) throw new TypeError(`[QueueRepository] ${msg}`);
 
-    const { data, error } = await SupabaseService.queueEntries()
+    const { data, error } = await ApiService.from('queue_entries')
       .insert(payloadFiltrado)
       .select('id, position')
       .single();

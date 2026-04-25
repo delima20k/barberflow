@@ -96,7 +96,7 @@ class FonteSalao {
   // ─────────────────────────────────────────────────────────
   static async salvar(barbershopId, key) {
     if (!barbershopId) return;
-    const { error } = await SupabaseService.barbershops()
+    const { error } = await ApiService.from('barbershops')
       .update({ font_key: key ?? null })
       .eq('id', barbershopId);
     if (error) throw error;

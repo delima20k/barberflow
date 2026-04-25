@@ -308,7 +308,7 @@ class SupabaseService {
    * @returns {string}
    */
   static getAvatarUrl(path) {
-    return SupabaseService.storageAvatars().getPublicUrl(path).data.publicUrl;
+    return ApiService.getAvatarUrl(path);
   }
 
   /**
@@ -317,7 +317,7 @@ class SupabaseService {
    * @returns {string}
    */
   static getLogoUrl(path) {
-    return SupabaseService.storageBarbershops().getPublicUrl(path).data.publicUrl;
+    return ApiService.getLogoUrl(path);
   }
 
   /**
@@ -326,7 +326,7 @@ class SupabaseService {
    * @returns {string}
    */
   static getPortfolioThumbUrl(path) {
-    return SupabaseService.#getClient().storage.from('portfolio').getPublicUrl(path).data.publicUrl;
+    return ApiService.getPortfolioThumbUrl(path);
   }
 
   // ── Realtime ──────────────────────────────────────────────

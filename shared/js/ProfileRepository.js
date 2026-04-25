@@ -5,7 +5,7 @@
 // Abstrai todas as queries Supabase das tabelas profiles e favorites.
 // Nenhuma lógica de negócio — apenas acesso e persistência de dados.
 //
-// Dependências: SupabaseService.js
+// Dependências: ApiService.js
 // =============================================================
 
 // Repositório responsável por perfis, favoritos e upload de avatar.
@@ -39,7 +39,7 @@ class ProfileRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
-    const { data, error } = await SupabaseService.profiles()
+    const { data, error } = await ApiService.from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
@@ -78,7 +78,7 @@ class ProfileRepository {
       dadosFiltrados.address = r.valor;
     }
 
-    const { error } = await SupabaseService.profiles()
+    const { error } = await ApiService.from('profiles')
       .update({ ...dadosFiltrados, updated_at: new Date().toISOString() })
       .eq('id', userId);
 
@@ -109,7 +109,7 @@ class ProfileRepository {
 
     await ProfileRepository.update(userId, { avatar_path: path });
 
-    const publicUrl = SupabaseService.getAvatarUrl(path);
+    const publicUrl = ApiService.getAvatarUrl(path);
     return publicUrl + '?t=' + Date.now();
   }
 
@@ -128,7 +128,7 @@ class ProfileRepository {
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
     // Etapa 1: buscar IDs das barbearias favoritas do usuário
-    const { data: ints, error: e1 } = await SupabaseService.barbershopInteractions()
+    const { data: ints, error: e1 } = await ApiService.from('barbershop_interactions')
       .select('barbershop_id')
       .eq('user_id', userId)
       .eq('type', 'favorite');
@@ -139,7 +139,7 @@ class ProfileRepository {
     if (!ids.length) return [];
 
     // Etapa 2: buscar dados reais das barbearias
-    const { data, error: e2 } = await SupabaseService.barbershops()
+    const { data, error: e2 } = await ApiService.from('barbershops')
       .select('id, name, address, is_open, rating_avg, logo_path, cover_path')
       .in('id', ids);
 
@@ -155,7 +155,7 @@ class ProfileRepository {
    * @returns {Promise<boolean>}
    */
   static async toggleFavorite(userId, barbershopId) {
-    const { data: existing } = await SupabaseService.barbershopInteractions()
+    const { data: existing } = await ApiService.from('barbershop_interactions')
       .select('id')
       .eq('user_id', userId)
       .eq('barbershop_id', barbershopId)
@@ -188,7 +188,7 @@ class ProfileRepository {
     if (ProfileRepository.#FAV_PROS_UNAVAILABLE) return [];
 
     // 1. IDs dos barbeiros favoritos
-    const { data: favs, error: e1 } = await SupabaseService.favoriteProfessionals()
+    const { data: favs, error: e1 } = await ApiService.from('favorite_professionals')
       .select('professional_id')
       .eq('user_id', userId);
 
@@ -200,7 +200,7 @@ class ProfileRepository {
     if (!ids.length) return [];
 
     // 2. Dados dos profissionais (professionals.id === profiles.id — FK/PK compartilhado)
-    const { data: pros, error: e2 } = await SupabaseService.professionals()
+    const { data: pros, error: e2 } = await ApiService.from('professionals')
       .select('id, avatar_path, rating_avg, specialties')
       .in('id', ids);
 
@@ -208,7 +208,7 @@ class ProfileRepository {
     if (!pros?.length) return [];
 
     // 3. Perfis (nome + avatar_path) — mesmo id usado em professionals
-    const { data: profs } = await SupabaseService.profilesPublic()
+    const { data: profs } = await ApiService.from('profiles_public')
       .select('id, full_name, avatar_path')
       .in('id', ids);
     const profilesMap = {};
@@ -229,7 +229,7 @@ class ProfileRepository {
    */
   static async toggleFavoriteBarber(userId, professionalId) {
     // 1. Tenta DELETE com .select() para saber quantas linhas foram afetadas
-    const { data: deleted, error: delErr } = await SupabaseService.favoriteProfessionals()
+    const { data: deleted, error: delErr } = await ApiService.from('favorite_professionals')
       .delete()
       .eq('user_id', userId)
       .eq('professional_id', professionalId)
@@ -239,7 +239,7 @@ class ProfileRepository {
     if (Array.isArray(deleted) && deleted.length > 0) return false;
 
     // 2. Não existia (ou estava invisível ao usuário) — tenta INSERT
-    const { error: insErr } = await SupabaseService.favoriteProfessionals()
+    const { error: insErr } = await ApiService.from('favorite_professionals')
       .insert({ user_id: userId, professional_id: professionalId });
 
     if (insErr) {
@@ -269,7 +269,7 @@ class ProfileRepository {
   static async toggleProfessionalLike(userId, professionalId) {
     if (ProfileRepository.#PRO_LIKES_UNAVAILABLE) throw new Error('Tabela professional_likes indisponível. Aplique as migrations pendentes.');
 
-    const { data: existing, error: selErr } = await SupabaseService.professionalLikes()
+    const { data: existing, error: selErr } = await ApiService.from('professional_likes')
       .select('id')
       .eq('user_id', userId)
       .eq('professional_id', professionalId)
@@ -281,7 +281,7 @@ class ProfileRepository {
     }
 
     if (existing) {
-      const { error } = await SupabaseService.professionalLikes()
+      const { error } = await ApiService.from('professional_likes')
         .delete()
         .eq('user_id', userId)
         .eq('professional_id', professionalId);
@@ -289,7 +289,7 @@ class ProfileRepository {
       return false;
     }
 
-    const { error } = await SupabaseService.professionalLikes()
+    const { error } = await ApiService.from('professional_likes')
       .insert({ user_id: userId, professional_id: professionalId });
     if (error) throw error;
     return true;
@@ -302,7 +302,7 @@ class ProfileRepository {
    */
   static async getUserProfessionalLikes(userId) {
     if (ProfileRepository.#PRO_LIKES_UNAVAILABLE) return new Set();
-    const { data, error } = await SupabaseService.professionalLikes()
+    const { data, error } = await ApiService.from('professional_likes')
       .select('professional_id')
       .eq('user_id', userId);
     if (error) {
@@ -319,7 +319,7 @@ class ProfileRepository {
    */
   static async getUserProfessionalFavs(userId) {
     if (ProfileRepository.#FAV_PROS_UNAVAILABLE) return new Set();
-    const { data, error } = await SupabaseService.favoriteProfessionals()
+    const { data, error } = await ApiService.from('favorite_professionals')
       .select('professional_id')
       .eq('user_id', userId);
     if (error) {
@@ -337,7 +337,7 @@ class ProfileRepository {
    * @returns {Promise<number>}
    */
   static async getProfessionalLikeCount(professionalId) {
-    const { data, error } = await SupabaseService.professionals()
+    const { data, error } = await ApiService.from('professionals')
       .select('rating_count')
       .eq('id', professionalId)
       .maybeSingle();
@@ -355,7 +355,7 @@ class ProfileRepository {
   static async getProfessionalLikeCountsDirect(professionalIds) {
     if (!professionalIds?.length) return {};
     if (ProfileRepository.#PRO_LIKES_UNAVAILABLE) return {};
-    const { data, error } = await SupabaseService.professionalLikes()
+    const { data, error } = await ApiService.from('professional_likes')
       .select('professional_id')
       .in('professional_id', professionalIds);
     if (error) {
