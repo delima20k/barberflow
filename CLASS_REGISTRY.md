@@ -23,6 +23,9 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `ApiQuery` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Query builder thenable sobre fetch nativo (interno — use ApiService.from()) |
 | `ApiService` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Ponto único de acesso à API REST PostgREST. Substitui Supabase SDK para CRUD |
 | `Agendamento` | [shared/js/Agendamento.js](shared/js/Agendamento.js) | domain | Entidade de domínio de agendamento. Inclui validar(), estados (isPendente/isConfirmado/isCancelado/isConcluido) e isFuturo() |
+| `Barbearia` | [shared/js/Barbearia.js](shared/js/Barbearia.js) | domain | Entidade de domínio de barbearia. Inclui validar(), possuiLocalizacao(), isAtiva(), toJSON() |
+| `Profissional` | [shared/js/Profissional.js](shared/js/Profissional.js) | domain | Entidade de domínio de profissional. Roles: barber/owner/manager. Inclui validar(), isAtivo(), toJSON() |
+| `Servico` | [shared/js/Servico.js](shared/js/Servico.js) | domain | Entidade de domínio de serviço/tratamento. Inclui validar(), isAtivo(), temPreco(), toJSON() |
 | `AppointmentRepository` | [shared/js/AppointmentRepository.js](shared/js/AppointmentRepository.js) | infra | CRUD de agendamentos. Valida UUIDs e aplica allowlist de campos |
 | `AppState` | [shared/js/AppState.js](shared/js/AppState.js) | infra | Estado global da aplicação compartilhado entre os dois apps |
 | `AuthController` | [shared/js/AuthController.js](shared/js/AuthController.js) | interfaces | Binding dos formulários de login, cadastro e recuperação de senha |
@@ -126,3 +129,14 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `MinhaBarbeariaPage` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage.js) | interfaces | Tela de gerenciamento da barbearia própria (serviços, mídias, configurações) |
 | `ParceriasPage` | [apps/profissional/assets/js/pages/ParceriasPage.js](apps/profissional/assets/js/pages/ParceriasPage.js) | interfaces | Tela de parcerias disponíveis para o profissional |
 | `QueueWidget` | [apps/profissional/assets/js/pages/QueueWidget.js](apps/profissional/assets/js/pages/QueueWidget.js) | interfaces | Fila de atendimento em tempo real com cadeiras e status |
+
+---
+
+## server.js
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `RateLimiter` | [server.js](server.js) | infra | Controle de taxa de requisições por IP (2000 req/min). Assets estáticos isentos. `static check(ip, ext)` |
+| `SecurityMiddleware` | [server.js](server.js) | infra | Headers de segurança OWASP, MIME types e proteção contra path traversal. `static dentroDoRoot()`, `static contentType()` |
+| `StaticFileHandler` | [server.js](server.js) | infra | Normalização de URL e leitura de arquivo estático com MIME e cache-control. `static normalizarUrl()`, `static ler()` |
+| `DevServer` | [server.js](server.js) | infra | Servidor HTTP de desenvolvimento. Orquestra os 3 middlewares. `static iniciar()` |
