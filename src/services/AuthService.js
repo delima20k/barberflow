@@ -18,7 +18,6 @@
 // Nunca acessa o banco diretamente — usa o Supabase Auth Admin API.
 // =============================================================
 
-const InputValidator  = require('../infra/InputValidator');
 const BaseService     = require('../infra/BaseService');
 const PasswordService = require('../infra/PasswordService');
 
@@ -50,8 +49,7 @@ class AuthService extends BaseService {
    * @throws {Error{status:401}} credenciais inválidas (mensagem genérica)
    */
   async login(email, senha) {
-    const rEmail = InputValidator.email(email);
-    if (!rEmail.ok) throw this._erro(`email: ${rEmail.msg}`);
+    this._email('email', email);
     if (!senha?.trim()) throw this._erro('Senha obrigatória.');
 
     const { data, error } = await this.#supabase.auth.signInWithPassword({
@@ -162,8 +160,7 @@ class AuthService extends BaseService {
    * @throws {Error{status:400}} formato de e-mail inválido
    */
   async solicitarResetSenha(email) {
-    const rEmail = InputValidator.email(email);
-    if (!rEmail.ok) throw this._erro(`email: ${rEmail.msg}`);
+    this._email('email', email);
 
     // Resultado e erros ignorados intencionalmente — anti-enumeração:
     // nunca confirmar se o e-mail existe ou não no banco de dados.

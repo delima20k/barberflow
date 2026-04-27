@@ -9,7 +9,6 @@
 // Usa @supabase/supabase-js com service_role key.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
 const BaseRepository  = require('../infra/BaseRepository');
 
 class BarbeariaRepository extends BaseRepository {
@@ -59,8 +58,7 @@ class BarbeariaRepository extends BaseRepository {
    * @returns {Promise<object[]>}
    */
   async getNearby(lat, lng, latDelta, lngDelta, limit = 30) {
-    const rCoord = InputValidator.coordenada(lat, lng);
-    if (!rCoord.ok) throw new TypeError(`[BarbeariaRepository] ${rCoord.msg}`);
+    this._validarCoordenada(lat, lng);
 
     const { data, error } = await this.#supabase
       .from('barbershops')

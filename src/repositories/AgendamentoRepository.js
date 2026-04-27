@@ -9,7 +9,6 @@
 // Usa @supabase/supabase-js com service_role key.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
 const BaseRepository  = require('../infra/BaseRepository');
 
 class AgendamentoRepository extends BaseRepository {

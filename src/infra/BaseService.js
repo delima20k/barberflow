@@ -66,6 +66,48 @@ class BaseService {
     if (!r.ok) throw Object.assign(new Error(`${campo}: ${r.msg}`), { status: 400 });
   }
 
+  /**
+   * Valida e-mail. Lança Error{status:400} se inválido.
+   * @param {string} campo
+   * @param {string} valor
+   */
+  _email(campo, valor) {
+    const r = InputValidator.email(valor);
+    if (!r.ok) throw Object.assign(new Error(`${campo}: ${r.msg}`), { status: 400 });
+  }
+
+  /**
+   * Valida nome (full_name). Lança Error{status:400} se inválido.
+   * @param {string} campo
+   * @param {string} valor
+   * @param {number} [minLen=2]
+   */
+  _nome(campo, valor, minLen = 2) {
+    const r = InputValidator.nome(valor, minLen);
+    if (!r.ok) throw Object.assign(new Error(`${campo}: ${r.msg}`), { status: 400 });
+  }
+
+  /**
+   * Valida telefone. Lança Error{status:400} se inválido e obrigatório.
+   * @param {string}  campo
+   * @param {string}  valor
+   * @param {boolean} [obrigatorio=false]
+   */
+  _telefone(campo, valor, obrigatorio = false) {
+    const r = InputValidator.telefone(valor, obrigatorio);
+    if (!r.ok) throw Object.assign(new Error(`${campo}: ${r.msg}`), { status: 400 });
+  }
+
+  /**
+   * Valida par de coordenadas geográficas. Lança Error{status:400} se inválido.
+   * @param {number} lat
+   * @param {number} lng
+   */
+  _coordenada(lat, lng) {
+    const r = InputValidator.coordenada(lat, lng);
+    if (!r.ok) throw Object.assign(new Error(r.msg), { status: 400 });
+  }
+
   // ── Factory de erro ──────────────────────────────────────────
 
   /**

@@ -8,9 +8,8 @@
 // Contém validação de negócio e orquestração.
 // =============================================================
 
-const Cliente        = require('../entities/Cliente');
-const InputValidator = require('../infra/InputValidator');
-const BaseService    = require('../infra/BaseService');
+const Cliente     = require('../entities/Cliente');
+const BaseService = require('../infra/BaseService');
 
 class ClienteService extends BaseService {
 
@@ -53,14 +52,8 @@ class ClienteService extends BaseService {
     // Valida campos de texto livre antes de persistir
     if ('bio' in dados)      dados.bio      = this._texto('bio',     dados.bio,     300);
     if ('address' in dados)  dados.address  = this._texto('address', dados.address, 200);
-    if ('full_name' in dados) {
-      const r = InputValidator.nome(dados.full_name);
-      if (!r.ok) throw this._erro(`full_name: ${r.msg}`);
-    }
-    if ('phone' in dados && dados.phone) {
-      const r = InputValidator.telefone(dados.phone);
-      if (!r.ok) throw this._erro(`phone: ${r.msg}`);
-    }
+    if ('full_name' in dados) this._nome('full_name', dados.full_name);
+    if ('phone' in dados && dados.phone) this._telefone('phone', dados.phone);
 
     const row = await this.#clienteRepository.update(id, dados);
     return Cliente.fromRow(row);

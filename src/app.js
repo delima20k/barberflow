@@ -16,8 +16,8 @@ const compression = require('compression');
 const pinoHttp   = require('pino-http');
 const supabase   = require('./infra/SupabaseClient');
 const logger     = require('./infra/LoggerService');
-const { limiterGeral, limiterAuth, limiterEscrita } = require('./infra/RateLimitMiddleware');
-const requestTimeout = require('./infra/RequestTimeoutMiddleware');
+const RateLimitMiddleware    = require('./infra/RateLimitMiddleware');
+const RequestTimeoutMiddleware = require('./infra/RequestTimeoutMiddleware');
 
 // ── Repositories ──────────────────────────────────────────────
 const ClienteRepository      = require('./repositories/ClienteRepository');
@@ -84,13 +84,13 @@ function criarApp() {
   }));
 
   // Rate limiting geral (proteção contra DDoS / abuso)
-  app.use('/api/', limiterGeral);
+  app.use('/api/', RateLimitMiddleware.geral);
 
   // Rate limiting extra em rotas de escrita
-  app.use('/api/', limiterEscrita);
+  app.use('/api/', RateLimitMiddleware.escrita);
 
   // Timeout por requisição (30s padrão)
-  app.use(requestTimeout);
+  app.use(RequestTimeoutMiddleware.handle);
 
   app.use(cors({
     origin(origin, callback) {
@@ -126,7 +126,7 @@ function criarApp() {
   const authService         = new AuthService(supabase);
 
   // ── Rate limiting extra em rotas de autenticação ────────────
-  app.use('/api/auth', limiterAuth);
+  app.use('/api/auth', RateLimitMiddleware.auth);
 
   // ── Rotas ────────────────────────────────────────────────────
   app.use('/api/clientes',      criarClienteController(clienteService));

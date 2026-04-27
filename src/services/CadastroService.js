@@ -8,8 +8,7 @@
 // Nunca acessa o banco diretamente — delega ao AuthRepository.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
-const BaseService    = require('../infra/BaseService');
+const BaseService = require('../infra/BaseService');
 
 class CadastroService extends BaseService {
 
@@ -39,13 +38,9 @@ class CadastroService extends BaseService {
   async cadastrarPerfil(userId, dados) {
     this._uuid('userId', userId ?? '');
 
-    const rNome = InputValidator.nome(dados?.full_name ?? '');
-    if (!rNome.ok) throw this._erro(`full_name: ${rNome.msg}`);
+    this._nome('full_name', dados?.full_name ?? '');
 
-    if (dados?.phone) {
-      const rTel = InputValidator.telefone(dados.phone);
-      if (!rTel.ok) throw this._erro(`phone: ${rTel.msg}`);
-    }
+    if (dados?.phone) this._telefone('phone', dados.phone);
 
     const perfil = await this.#authRepository.criarPerfil(userId, {
       full_name: dados.full_name.trim(),

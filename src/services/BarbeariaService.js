@@ -8,9 +8,8 @@
 // Aplica filtro Haversine sobre bounding-box, ordenação por distância.
 // =============================================================
 
-const Barbearia      = require('../entities/Barbearia');
-const InputValidator = require('../infra/InputValidator');
-const BaseService    = require('../infra/BaseService');
+const Barbearia   = require('../entities/Barbearia');
+const BaseService = require('../infra/BaseService');
 
 class BarbeariaService extends BaseService {
 
@@ -44,8 +43,7 @@ class BarbeariaService extends BaseService {
    * @returns {Promise<Array<{barbearia: Barbearia, distanciaKm: number}>>}
    */
   async listarProximas(lat, lng, raioKm = 5) {
-    const rCoord = InputValidator.coordenada(lat, lng);
-    if (!rCoord.ok) throw this._erro(rCoord.msg);
+    this._coordenada(lat, lng);
 
     if (typeof raioKm !== 'number' || !isFinite(raioKm) || raioKm <= 0 || raioKm > 100)
       throw this._erro('raioKm deve ser um número entre 0 e 100.');

@@ -69,6 +69,16 @@ class BaseRepository {
     if (!r.ok) throw new TypeError(`[${this.#nome}] ${campo}: ${r.msg}`);
     return r.valor;
   }
+
+  /**
+   * Valida par de coordenadas geográficas. Lança TypeError se inválido.
+   * @param {number} lat
+   * @param {number} lng
+   */
+  _validarCoordenada(lat, lng) {
+    const r = InputValidator.coordenada(lat, lng);
+    if (!r.ok) throw new TypeError(`[${this.#nome}] ${r.msg}`);
+  }
 }
 
 module.exports = BaseRepository;

@@ -17,51 +17,45 @@
 const rateLimit = require('express-rate-limit');
 const logger    = require('./LoggerService');
 
-/** Formata resposta padrão para rate limit atingido. */
-function onRateLimitReached(req, res) {
-  logger.warn({ ip: req.ip, path: req.path }, 'Rate limit atingido');
-  res.status(429).json({
-    ok:    false,
-    error: 'Muitas requisições. Tente novamente em instantes.',
+class RateLimitMiddleware {
+
+  /** @param {import('express').Request} req @param {import('express').Response} res */
+  static #onLimitReached(req, res) {
+    logger.warn({ ip: req.ip, path: req.path }, 'Rate limit atingido');
+    res.status(429).json({
+      ok:    false,
+      error: 'Muitas requisições. Tente novamente em instantes.',
+    });
+  }
+
+  /** Limiter geral — todas as rotas /api/*. 300 req/min por IP. */
+  static geral = rateLimit({
+    windowMs:        60 * 1000,
+    max:             300,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    handler:         (req, res) => RateLimitMiddleware.#onLimitReached(req, res),
+    skip:            (req) => req.method === 'GET' && req.path === '/api/health',
+  });
+
+  /** Limiter de autenticação — login, cadastro, recuperação. 10 req/15min por IP. */
+  static auth = rateLimit({
+    windowMs:        15 * 60 * 1000,
+    max:             10,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    handler:         (req, res) => RateLimitMiddleware.#onLimitReached(req, res),
+  });
+
+  /** Limiter de escrita — POST / PATCH / DELETE (exceto auth). 60 req/min por IP. */
+  static escrita = rateLimit({
+    windowMs:        60 * 1000,
+    max:             60,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    handler:         (req, res) => RateLimitMiddleware.#onLimitReached(req, res),
+    skip:            (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS',
   });
 }
 
-/**
- * Limiter geral — todas as rotas /api/*.
- * 300 requisições por minuto por IP.
- */
-const limiterGeral = rateLimit({
-  windowMs:         60 * 1000,
-  max:              300,
-  standardHeaders:  'draft-7',
-  legacyHeaders:    false,
-  handler:          onRateLimitReached,
-  skip: (req) => req.method === 'GET' && req.path === '/api/health',
-});
-
-/**
- * Limiter de autenticação — rotas de login, cadastro, recuperação.
- * 10 requisições por 15 minutos por IP.
- */
-const limiterAuth = rateLimit({
-  windowMs:         15 * 60 * 1000,
-  max:              10,
-  standardHeaders:  'draft-7',
-  legacyHeaders:    false,
-  handler:          onRateLimitReached,
-});
-
-/**
- * Limiter de escrita — POST / PATCH / DELETE (exceto auth).
- * 60 requisições por minuto por IP.
- */
-const limiterEscrita = rateLimit({
-  windowMs:         60 * 1000,
-  max:              60,
-  standardHeaders:  'draft-7',
-  legacyHeaders:    false,
-  handler:          onRateLimitReached,
-  skip: (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS',
-});
-
-module.exports = { limiterGeral, limiterAuth, limiterEscrita };
+module.exports = RateLimitMiddleware;

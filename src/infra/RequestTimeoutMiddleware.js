@@ -13,30 +13,36 @@
 
 const logger = require('./LoggerService');
 
-const TIMEOUT_MS = parseInt(
-  process.env.REQUEST_TIMEOUT_MS ?? process.env.TIMEOUT_MS ?? '30000',
-  10,
-);
+class RequestTimeoutMiddleware {
 
-/**
- * Middleware de timeout por requisição.
- * Responde 503 se a rota não responder dentro do limite.
- * @param {import('express').Request}  req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-function requestTimeout(req, res, next) {
-  const timer = setTimeout(() => {
-    if (res.headersSent) return;
-    logger.warn({ method: req.method, path: req.path, timeoutMs: TIMEOUT_MS }, 'Request timeout');
-    res.status(503).json({ ok: false, error: 'Serviço temporariamente indisponível (timeout).' });
-  }, TIMEOUT_MS);
+  static #TIMEOUT_MS = parseInt(
+    process.env.REQUEST_TIMEOUT_MS ?? process.env.TIMEOUT_MS ?? '30000',
+    10,
+  );
 
-  // Limpa o timer assim que a resposta for enviada
-  res.on('finish', () => clearTimeout(timer));
-  res.on('close',  () => clearTimeout(timer));
+  /**
+   * Middleware de timeout por requisição.
+   * Responde 503 se a rota não responder dentro do limite.
+   * @param {import('express').Request}      req
+   * @param {import('express').Response}     res
+   * @param {import('express').NextFunction} next
+   */
+  static handle(req, res, next) {
+    const timer = setTimeout(() => {
+      if (res.headersSent) return;
+      logger.warn(
+        { method: req.method, path: req.path, timeoutMs: RequestTimeoutMiddleware.#TIMEOUT_MS },
+        'Request timeout',
+      );
+      res.status(503).json({ ok: false, error: 'Serviço temporariamente indisponível (timeout).' });
+    }, RequestTimeoutMiddleware.#TIMEOUT_MS);
 
-  next();
+    // Limpa o timer assim que a resposta for enviada
+    res.on('finish', () => clearTimeout(timer));
+    res.on('close',  () => clearTimeout(timer));
+
+    next();
+  }
 }
 
-module.exports = requestTimeout;
+module.exports = RequestTimeoutMiddleware;
