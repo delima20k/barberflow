@@ -142,6 +142,31 @@ class AgendamentoRepository extends BaseRepository {
   async cancelar(id) {
     return this.atualizarStatus(id, 'cancelled');
   }
+
+  /**
+   * Busca agendamentos ativos de um profissional em uma janela de tempo.
+   * Usado pelo service para detecção de conflito de horário.
+   * Filtra apenas status ativos: pending, confirmed, in_progress.
+   *
+   * @param {string} professionalId
+   * @param {Date}   janelaBaixo — início da janela de consulta
+   * @param {Date}   janelaCima  — fim da janela de consulta
+   * @returns {Promise<Array<{id: string, scheduled_at: string, duration_min: number, status: string}>>}
+   */
+  async getConflitos(professionalId, janelaBaixo, janelaCima) {
+    this._validarUuid('professionalId', professionalId);
+
+    const { data, error } = await this.#supabase
+      .from('appointments')
+      .select('id, scheduled_at, duration_min, status')
+      .eq('professional_id', professionalId)
+      .in('status', ['pending', 'confirmed', 'in_progress'])
+      .gte('scheduled_at', janelaBaixo.toISOString())
+      .lte('scheduled_at', janelaCima.toISOString());
+
+    if (error) throw error;
+    return data ?? [];
+  }
 }
 
 module.exports = AgendamentoRepository;

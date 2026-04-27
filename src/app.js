@@ -40,6 +40,7 @@ const ComunicacaoService  = require('./services/ComunicacaoService');
 const FilaService         = require('./services/FilaService');
 const LgpdService         = require('./services/LgpdService');
 const CadastroService     = require('./services/CadastroService');
+const UserService         = require('./services/UserService');
 
 // ── Controllers ───────────────────────────────────────────────
 const criarClienteController      = require('./controllers/ClienteController');
@@ -51,6 +52,7 @@ const criarComunicacaoController   = require('./controllers/ComunicacaoControlle
 const criarFilaController          = require('./controllers/FilaController');
 const criarLgpdController          = require('./controllers/LgpdController');
 const criarAuthController          = require('./controllers/AuthController');
+const criarUserController          = require('./controllers/UserController');
 
 // ── Origens permitidas (CORS) ──────────────────────────────────
 const ALLOWED_ORIGINS = new Set([
@@ -119,6 +121,7 @@ function criarApp() {
   const filaService         = new FilaService(filaRepo);
   const lgpdService         = new LgpdService(lgpdRepo);
   const cadastroService     = new CadastroService(authRepo);
+  const userService         = new UserService(clienteRepo);
 
   // ── Rate limiting extra em rotas de autenticação ────────────
   app.use('/api/auth', limiterAuth);
@@ -133,6 +136,7 @@ function criarApp() {
   app.use('/api/fila',          criarFilaController(filaService));
   app.use('/api/lgpd',          criarLgpdController(lgpdService));
   app.use('/api/auth',          criarAuthController(cadastroService));
+  app.use('/api/usuarios',      criarUserController(userService));
 
   // ── Health check com ping real no banco ─────────────────────
   app.get('/api/health', async (_req, res) => {

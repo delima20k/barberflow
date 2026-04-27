@@ -7,14 +7,15 @@
 // Nunca acessa o banco diretamente — delega ao LgpdRepository.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseService = require('../infra/BaseService');
 
-class LgpdService {
+class LgpdService extends BaseService {
 
   #lgpdRepository;
 
   /** @param {import('../repositories/LgpdRepository')} lgpdRepository */
   constructor(lgpdRepository) {
+    super('LgpdService');
     this.#lgpdRepository = lgpdRepository;
   }
 
@@ -24,9 +25,7 @@ class LgpdService {
    * @returns {Promise<{ aceitou: boolean, dados: object|null }>}
    */
   async verificarConsentimento(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('userId', userId);
     const aceite = await this.#lgpdRepository.verificarAceite(userId);
     return { aceitou: aceite !== null, dados: aceite };
   }
@@ -38,11 +37,10 @@ class LgpdService {
    * @returns {Promise<object>}
    */
   async registrarConsentimento(userId, dados) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('userId', userId);
 
     if (!dados?.version?.trim())
-      throw Object.assign(new Error('version é obrigatório.'), { status: 400 });
+      throw this._erro('version é obrigatório.');
 
     return this.#lgpdRepository.registrarAceite(userId, dados);
   }
@@ -54,13 +52,9 @@ class LgpdService {
    * @returns {Promise<object>}
    */
   async solicitarExclusaoDados(userId, motivo) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
-    const rMot = InputValidator.textoLivre(motivo ?? '', 1000, true);
-    if (!rMot.ok) throw Object.assign(new Error(`motivo: ${rMot.msg}`), { status: 400 });
-
-    return this.#lgpdRepository.solicitarExclusao(userId, rMot.valor);
+    this._uuid('userId', userId);
+    const motivoSanitizado = this._texto('motivo', motivo ?? '', 1000, true);
+    return this.#lgpdRepository.solicitarExclusao(userId, motivoSanitizado);
   }
 
   /**
@@ -69,13 +63,11 @@ class LgpdService {
    * @returns {Promise<object>}
    */
   async registrarLogAcesso(dados) {
-    const rBy  = InputValidator.uuid(dados?.accessed_by);
-    const rTgt = InputValidator.uuid(dados?.target_user_id);
-    if (!rBy.ok)  throw Object.assign(new Error(`accessed_by: ${rBy.msg}`),  { status: 400 });
-    if (!rTgt.ok) throw Object.assign(new Error(`target_user_id: ${rTgt.msg}`), { status: 400 });
+    this._uuid('accessed_by', dados?.accessed_by);
+    this._uuid('target_user_id', dados?.target_user_id);
 
     if (!dados.data_type?.trim() || !dados.purpose?.trim())
-      throw Object.assign(new Error('data_type e purpose são obrigatórios.'), { status: 400 });
+      throw this._erro('data_type e purpose são obrigatórios.');
 
     return this.#lgpdRepository.registrarLogAcesso(dados);
   }

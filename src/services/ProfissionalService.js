@@ -7,15 +7,16 @@
 // Nunca acessa o banco diretamente — delega ao ProfissionalRepository.
 // =============================================================
 
-const Profissional   = require('../entities/Profissional');
-const InputValidator = require('../infra/InputValidator');
+const Profissional = require('../entities/Profissional');
+const BaseService  = require('../infra/BaseService');
 
-class ProfissionalService {
+class ProfissionalService extends BaseService {
 
   #profissionalRepository;
 
   /** @param {import('../repositories/ProfissionalRepository')} profissionalRepository */
   constructor(profissionalRepository) {
+    super('ProfissionalService');
     this.#profissionalRepository = profissionalRepository;
   }
 
@@ -25,11 +26,10 @@ class ProfissionalService {
    * @returns {Promise<Profissional>}
    */
   async buscarProfissional(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('id', id);
 
     const row = await this.#profissionalRepository.getById(id);
-    if (!row) throw Object.assign(new Error('Profissional não encontrado.'), { status: 404 });
+    if (!row) throw this._erro('Profissional não encontrado.', 404);
 
     return Profissional.fromRow(row);
   }
@@ -40,9 +40,7 @@ class ProfissionalService {
    * @returns {Promise<Profissional[]>}
    */
   async listarPorBarbearia(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('barbershopId', barbershopId);
     const rows = await this.#profissionalRepository.getByBarbershop(barbershopId);
     return rows.map(r => Profissional.fromRow(r));
   }
@@ -53,9 +51,7 @@ class ProfissionalService {
    * @returns {Promise<object[]>}
    */
   async listarCadeiras(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('barbershopId', barbershopId);
     return this.#profissionalRepository.getCadeiras(barbershopId);
   }
 
@@ -65,9 +61,7 @@ class ProfissionalService {
    * @returns {Promise<object[]>}
    */
   async listarPortfolio(professionalId) {
-    const rId = InputValidator.uuid(professionalId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('professionalId', professionalId);
     return this.#profissionalRepository.getPortfolio(professionalId);
   }
 
@@ -78,16 +72,13 @@ class ProfissionalService {
    * @returns {Promise<object>}
    */
   async adicionarPortfolioImagem(professionalId, dados) {
-    const rId = InputValidator.uuid(professionalId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('professionalId', professionalId);
 
     if (!dados?.image_url?.trim())
-      throw Object.assign(new Error('image_url é obrigatório.'), { status: 400 });
+      throw this._erro('image_url é obrigatório.');
 
     if (typeof dados.caption === 'string') {
-      const rCap = InputValidator.textoLivre(dados.caption, 300);
-      if (!rCap.ok) throw Object.assign(new Error(`caption: ${rCap.msg}`), { status: 400 });
-      dados.caption = rCap.valor;
+      dados.caption = this._texto('caption', dados.caption, 300);
     }
 
     return this.#profissionalRepository.addPortfolioImage(professionalId, dados);
@@ -100,11 +91,8 @@ class ProfissionalService {
    * @returns {Promise<boolean>}
    */
   async removerPortfolioImagem(imageId, professionalId) {
-    const rImg = InputValidator.uuid(imageId);
-    const rPro = InputValidator.uuid(professionalId);
-    if (!rImg.ok) throw Object.assign(new Error(rImg.msg), { status: 400 });
-    if (!rPro.ok) throw Object.assign(new Error(rPro.msg), { status: 400 });
-
+    this._uuid('imageId', imageId);
+    this._uuid('professionalId', professionalId);
     return this.#profissionalRepository.removePortfolioImage(imageId, professionalId);
   }
 }

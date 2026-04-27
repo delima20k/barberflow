@@ -10,13 +10,15 @@
 
 const Barbearia      = require('../entities/Barbearia');
 const InputValidator = require('../infra/InputValidator');
+const BaseService    = require('../infra/BaseService');
 
-class BarbeariaService {
+class BarbeariaService extends BaseService {
 
   #barbeariaRepository;
 
   /** @param {import('../repositories/BarbeariaRepository')} barbeariaRepository */
   constructor(barbeariaRepository) {
+    super('BarbeariaService');
     this.#barbeariaRepository = barbeariaRepository;
   }
 
@@ -26,11 +28,10 @@ class BarbeariaService {
    * @returns {Promise<Barbearia>}
    */
   async buscarBarbearia(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('id', id);
 
     const row = await this.#barbeariaRepository.getById(id);
-    if (!row) throw Object.assign(new Error('Barbearia não encontrada.'), { status: 404 });
+    if (!row) throw this._erro('Barbearia não encontrada.', 404);
 
     return Barbearia.fromRow(row);
   }
@@ -44,10 +45,10 @@ class BarbeariaService {
    */
   async listarProximas(lat, lng, raioKm = 5) {
     const rCoord = InputValidator.coordenada(lat, lng);
-    if (!rCoord.ok) throw Object.assign(new Error(rCoord.msg), { status: 400 });
+    if (!rCoord.ok) throw this._erro(rCoord.msg);
 
     if (typeof raioKm !== 'number' || !isFinite(raioKm) || raioKm <= 0 || raioKm > 100)
-      throw Object.assign(new Error('raioKm deve ser um número entre 0 e 100.'), { status: 400 });
+      throw this._erro('raioKm deve ser um número entre 0 e 100.');
 
     // Deltas para bounding-box (aproximação linear)
     const latDelta = raioKm / 111.0;
@@ -72,9 +73,7 @@ class BarbeariaService {
    * @returns {Promise<object[]>}
    */
   async listarServicos(barbeariaId) {
-    const rId = InputValidator.uuid(barbeariaId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('barbeariaId', barbeariaId);
     return this.#barbeariaRepository.getServicos(barbeariaId);
   }
 
@@ -84,9 +83,7 @@ class BarbeariaService {
    * @returns {Promise<Barbearia[]>}
    */
   async listarFavoritas(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('userId', userId);
     const rows = await this.#barbeariaRepository.getFavoritas(userId);
     return rows.filter(Boolean).map(r => Barbearia.fromRow(r));
   }
@@ -99,15 +96,9 @@ class BarbeariaService {
    * @returns {Promise<object>}
    */
   async registrarInteracao(barbeariaId, userId, tipo) {
-    const rBid = InputValidator.uuid(barbeariaId);
-    if (!rBid.ok) throw Object.assign(new Error(rBid.msg), { status: 400 });
-    const rUid = InputValidator.uuid(userId);
-    if (!rUid.ok) throw Object.assign(new Error(rUid.msg), { status: 400 });
-
-    const tiposValidos = ['like', 'favorite', 'visit'];
-    const rTipo = InputValidator.enumValido(tipo, tiposValidos);
-    if (!rTipo.ok) throw Object.assign(new Error(rTipo.msg), { status: 400 });
-
+    this._uuid('barbeariaId', barbeariaId);
+    this._uuid('userId', userId);
+    this._enum('tipo', tipo, ['like', 'favorite', 'visit']);
     return this.#barbeariaRepository.addInteracao(barbeariaId, userId, tipo);
   }
 

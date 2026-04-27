@@ -10,13 +10,15 @@
 
 const Cliente        = require('../entities/Cliente');
 const InputValidator = require('../infra/InputValidator');
+const BaseService    = require('../infra/BaseService');
 
-class ClienteService {
+class ClienteService extends BaseService {
 
   #clienteRepository;
 
   /** @param {import('../repositories/ClienteRepository')} clienteRepository */
   constructor(clienteRepository) {
+    super('ClienteService');
     this.#clienteRepository = clienteRepository;
   }
 
@@ -26,50 +28,38 @@ class ClienteService {
    * @returns {Promise<Cliente>}
    */
   async buscarCliente(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('id', id);
 
     const row = await this.#clienteRepository.getById(id);
-    if (!row) throw Object.assign(new Error('Cliente não encontrado.'), { status: 404 });
+    if (!row) throw this._erro('Cliente não encontrado.', 404);
 
     return Cliente.fromRow(row);
   }
 
   /**
    * Atualiza dados do perfil do cliente.
-   * Apenas o próprio cliente pode atualizar seus dados (verificado pelo controller).
+   * Apenas o próprio cliente pode atualizar seus dados.
    * @param {string} id      — UUID do perfil
    * @param {object} dados   — campos a atualizar
    * @param {string} userId  — ID do usuário autenticado (autorização)
    * @returns {Promise<Cliente>}
    */
   async atualizarCliente(id, dados, userId) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('id', id);
 
     // Regra de negócio: cliente só pode editar o próprio perfil
-    if (id !== userId) {
-      throw Object.assign(new Error('Não autorizado a editar este perfil.'), { status: 403 });
-    }
+    if (id !== userId) throw this._erro('Não autorizado a editar este perfil.', 403);
 
     // Valida campos de texto livre antes de persistir
-    if ('bio' in dados) {
-      const r = InputValidator.textoLivre(dados.bio, 300);
-      if (!r.ok) throw Object.assign(new Error(`bio: ${r.msg}`), { status: 400 });
-      dados.bio = r.valor;
-    }
-    if ('address' in dados) {
-      const r = InputValidator.textoLivre(dados.address, 200);
-      if (!r.ok) throw Object.assign(new Error(`address: ${r.msg}`), { status: 400 });
-      dados.address = r.valor;
-    }
+    if ('bio' in dados)      dados.bio      = this._texto('bio',     dados.bio,     300);
+    if ('address' in dados)  dados.address  = this._texto('address', dados.address, 200);
     if ('full_name' in dados) {
       const r = InputValidator.nome(dados.full_name);
-      if (!r.ok) throw Object.assign(new Error(`full_name: ${r.msg}`), { status: 400 });
+      if (!r.ok) throw this._erro(`full_name: ${r.msg}`);
     }
     if ('phone' in dados && dados.phone) {
       const r = InputValidator.telefone(dados.phone);
-      if (!r.ok) throw Object.assign(new Error(`phone: ${r.msg}`), { status: 400 });
+      if (!r.ok) throw this._erro(`phone: ${r.msg}`);
     }
 
     const row = await this.#clienteRepository.update(id, dados);
@@ -82,9 +72,7 @@ class ClienteService {
    * @returns {Promise<object|null>}
    */
   async buscarPerfilPublico(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('id', id);
     return this.#clienteRepository.getPerfilPublico(id);
   }
 }

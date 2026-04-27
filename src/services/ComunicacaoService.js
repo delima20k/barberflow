@@ -7,14 +7,15 @@
 // Nunca acessa o banco diretamente — delega ao ComunicacaoRepository.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseService = require('../infra/BaseService');
 
-class ComunicacaoService {
+class ComunicacaoService extends BaseService {
 
   #comunicacaoRepository;
 
   /** @param {import('../repositories/ComunicacaoRepository')} comunicacaoRepository */
   constructor(comunicacaoRepository) {
+    super('ComunicacaoService');
     this.#comunicacaoRepository = comunicacaoRepository;
   }
 
@@ -25,9 +26,7 @@ class ComunicacaoService {
    * @returns {Promise<object[]>}
    */
   async listarNotificacoes(userId, limit = 30) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('userId', userId);
     return this.#comunicacaoRepository.getNotificacoes(userId, limit);
   }
 
@@ -38,12 +37,8 @@ class ComunicacaoService {
    * @returns {Promise<object>}
    */
   async marcarNotificacaoLida(notificationId, userId) {
-    const rNot = InputValidator.uuid(notificationId);
-    if (!rNot.ok) throw Object.assign(new Error(rNot.msg), { status: 400 });
-
-    const rUsr = InputValidator.uuid(userId);
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
-
+    this._uuid('notificationId', notificationId);
+    this._uuid('userId', userId);
     return this.#comunicacaoRepository.marcarLida(notificationId, userId);
   }
 
@@ -55,31 +50,28 @@ class ComunicacaoService {
    * @returns {Promise<object[]>}
    */
   async listarConversa(userId, contatoId, limit = 50) {
-    const rUsr = InputValidator.uuid(userId);
-    const rCon = InputValidator.uuid(contatoId);
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
-    if (!rCon.ok) throw Object.assign(new Error(rCon.msg), { status: 400 });
-
+    this._uuid('userId', userId);
+    this._uuid('contatoId', contatoId);
     return this.#comunicacaoRepository.getConversa(userId, contatoId, limit);
   }
 
   /**
    * Envia mensagem direta.
+   * Regra de negócio: não é possível enviar mensagem para si mesmo.
    * @param {string} userId
    * @param {string} destinatarioId
    * @param {string} conteudo
    * @returns {Promise<object>}
    */
   async enviarMensagem(userId, destinatarioId, conteudo) {
-    const rUsr = InputValidator.uuid(userId);
-    const rDst = InputValidator.uuid(destinatarioId);
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
-    if (!rDst.ok) throw Object.assign(new Error(rDst.msg), { status: 400 });
+    this._uuid('userId', userId);
+    this._uuid('destinatarioId', destinatarioId);
 
-    const rTxt = InputValidator.textoLivre(conteudo?.trim() ?? '', 2000, true);
-    if (!rTxt.ok) throw Object.assign(new Error(`conteudo: ${rTxt.msg}`), { status: 400 });
+    if (userId === destinatarioId)
+      throw this._erro('Não é possível enviar mensagem para si mesmo.');
 
-    return this.#comunicacaoRepository.enviarMensagem(userId, destinatarioId, rTxt.valor);
+    const texto = this._texto('conteudo', conteudo?.trim() ?? '', 2000, true);
+    return this.#comunicacaoRepository.enviarMensagem(userId, destinatarioId, texto);
   }
 }
 

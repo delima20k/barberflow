@@ -149,6 +149,22 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `BaseRepository` | [src/infra/BaseRepository.js](src/infra/BaseRepository.js) | infra | Classe base para todos os repositórios backend. Fornece _validarUuid(campo, valor), _validarEmail(valor) e _validarPayload(dados, campos) para eliminar duplicação do padrão InputValidator. |
+| `BaseService` | [src/infra/BaseService.js](src/infra/BaseService.js) | infra | Classe base para todos os services backend. Fornece _uuid(campo, valor), _texto(campo, valor, maxLen, obrig), _enum(campo, valor, opcoes), _erro(msg, status) para eliminar duplicação do padrão InputValidator nos services. |
+
+## src/services/ (Node.js — backend)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `AgendamentoService` | [src/services/AgendamentoService.js](src/services/AgendamentoService.js) | application | Regras de negócio de agendamentos. Verifica conflito de horário em criarAgendamento, ownership em atualizarStatus/cancelar, transições de status via #validarTransicao. |
+| `BarbeariaService` | [src/services/BarbeariaService.js](src/services/BarbeariaService.js) | application | Regras de negócio de barbearias. Filtro Haversine sobre bounding-box, listagem de serviços, favoritos e interações. |
+| `CadastroService` | [src/services/CadastroService.js](src/services/CadastroService.js) | application | Cadastro pós-signUp: upsert de perfil, criação de barbearia para tipo 'barbearia'. |
+| `ClienteService` | [src/services/ClienteService.js](src/services/ClienteService.js) | application | Regras de negócio de clientes. Busca por ID, atualização (ownership check: id === userId), perfil público. |
+| `ComunicacaoService` | [src/services/ComunicacaoService.js](src/services/ComunicacaoService.js) | application | Mensagens e notificações. Bloqueia auto-mensagem (userId === destinatarioId), valida conteúdo. |
+| `FilaService` | [src/services/FilaService.js](src/services/FilaService.js) | application | Fila de espera. Entrada/saída com validação de chair_id e notes, status restrito a #STATUS_VALIDOS. |
+| `LgpdService` | [src/services/LgpdService.js](src/services/LgpdService.js) | application | Conformidade LGPD: verificarConsentimento, registrarConsentimento, solicitarExclusaoDados (sanitiza motivo), registrarLogAcesso. |
+| `ProfissionalService` | [src/services/ProfissionalService.js](src/services/ProfissionalService.js) | application | Regras de negócio de profissionais. Busca, listagem por barbearia, cadeiras, portfólio (add/remove). |
+| `SocialService` | [src/services/SocialService.js](src/services/SocialService.js) | application | Interações sociais. Stories (CRUD), likes e favoritos via toggle. |
+| `UserService` | [src/services/UserService.js](src/services/UserService.js) | application | Serviço transversal de usuário. buscarPorEmail (via RPC segura) e buscarPerfilPublico. Delega ao ClienteRepository. |
 
 ---
 

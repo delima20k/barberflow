@@ -8,37 +8,37 @@
 // Contém validação de negócio, regras de status e orquestração.
 // =============================================================
 
-const Agendamento    = require('../entities/Agendamento');
-const InputValidator = require('../infra/InputValidator');
+const Agendamento = require('../entities/Agendamento');
+const BaseService = require('../infra/BaseService');
 
-class AgendamentoService {
+class AgendamentoService extends BaseService {
 
   #agendamentoRepository;
 
   /** @param {import('../repositories/AgendamentoRepository')} agendamentoRepository */
   constructor(agendamentoRepository) {
+    super('AgendamentoService');
     this.#agendamentoRepository = agendamentoRepository;
   }
 
   /**
    * Lista agendamentos de um profissional em um período.
-   * @param {string} professionalId
+   * @param {string}      professionalId
    * @param {Date|string} inicio
    * @param {Date|string} fim
    * @returns {Promise<Agendamento[]>}
    */
   async listarPorProfissional(professionalId, inicio, fim) {
-    const rId = InputValidator.uuid(professionalId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('professionalId', professionalId);
 
     const dtInicio = new Date(inicio);
     const dtFim    = new Date(fim);
 
     if (isNaN(dtInicio.getTime()) || isNaN(dtFim.getTime()))
-      throw Object.assign(new Error('Datas de início e fim inválidas.'), { status: 400 });
+      throw this._erro('Datas de início e fim inválidas.');
 
     if (dtInicio > dtFim)
-      throw Object.assign(new Error('Data de início deve ser anterior à data de fim.'), { status: 400 });
+      throw this._erro('Data de início deve ser anterior à data de fim.');
 
     const rows = await this.#agendamentoRepository.getByProfissional(professionalId, dtInicio, dtFim);
     return rows.map(r => Agendamento.fromRow(r));
@@ -50,15 +50,14 @@ class AgendamentoService {
    * @returns {Promise<Agendamento[]>}
    */
   async listarPorCliente(clientId) {
-    const rId = InputValidator.uuid(clientId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('clientId', clientId);
     const rows = await this.#agendamentoRepository.getByCliente(clientId);
     return rows.map(r => Agendamento.fromRow(r));
   }
 
   /**
    * Cria um novo agendamento após validação completa.
+   * Verifica conflito de horário antes de persistir.
    * @param {object} dados
    * @returns {Promise<Agendamento>}
    */
@@ -66,7 +65,10 @@ class AgendamentoService {
     // Valida via entidade (inclui regras de domínio)
     const ag = Agendamento.fromRow(dados);
     const { ok, erros } = ag.validar();
-    if (!ok) throw Object.assign(new Error(erros.join('; ')), { status: 400 });
+    if (!ok) throw this._erro(erros.join('; '));
+
+    // Regra de negócio: profissional não pode ter dois agendamentos simultâneos
+    await this.#verificarSlotDisponivel(ag.professionalId, ag.scheduledAt, ag.durationMin);
 
     const row = await this.#agendamentoRepository.criar(dados);
     return Agendamento.fromRow(row);
@@ -74,22 +76,26 @@ class AgendamentoService {
 
   /**
    * Atualiza o status de um agendamento.
-   * Aplica regras de transição de estados válidos.
+   * Verifica propriedade (ownership) e regras de transição.
    * @param {string} id
    * @param {string} novoStatus
-   * @param {string} userId — ID do usuário autenticado
+   * @param {string} userId — ID do usuário autenticado (JWT)
    * @returns {Promise<Agendamento>}
    */
   async atualizarStatus(id, novoStatus, userId) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
+    this._uuid('id', id);
+    this._uuid('userId', userId);
+    this._enum('status', novoStatus, Agendamento.statusValidos);
 
-    const rStatus = InputValidator.enumValido(novoStatus, Agendamento.statusValidos);
-    if (!rStatus.ok) throw Object.assign(new Error(`status: ${rStatus.msg}`), { status: 400 });
-
-    // Busca atual para verificar regras de transição
     const atual = await this.#agendamentoRepository.getById(id);
-    if (!atual) throw Object.assign(new Error('Agendamento não encontrado.'), { status: 404 });
+    if (!atual) throw this._erro('Agendamento não encontrado.', 404);
+
+    // Regra de negócio: apenas o cliente ou o profissional podem modificar
+    const isCliente      = atual.client?.id      === userId;
+    const isProfissional = atual.professional?.id === userId;
+    if (!isCliente && !isProfissional) {
+      throw this._erro('Não autorizado a modificar este agendamento.', 403);
+    }
 
     AgendamentoService.#validarTransicao(atual.status, novoStatus);
 
@@ -109,6 +115,35 @@ class AgendamentoService {
   }
 
   // ── Privados ──────────────────────────────────────────────
+
+  /**
+   * Verifica se o profissional tem disponibilidade no horário solicitado.
+   * Consulta o repositório por conflitos no período e aplica overlap check em JS.
+   * @param {string}      professionalId
+   * @param {Date|string} scheduledAt
+   * @param {number}      durationMin
+   */
+  async #verificarSlotDisponivel(professionalId, scheduledAt, durationMin) {
+    const inicio = new Date(scheduledAt);
+    const fim    = new Date(inicio.getTime() + durationMin * 60_000);
+
+    // Janela de consulta: até 8h antes do início para capturar agendamentos longos
+    const janelaBaixo = new Date(inicio.getTime() - 8 * 3_600_000);
+
+    const existentes = await this.#agendamentoRepository.getConflitos(
+      professionalId, janelaBaixo, fim,
+    );
+
+    for (const ag of existentes) {
+      const agInicio = new Date(ag.scheduled_at);
+      const agFim    = new Date(agInicio.getTime() + (ag.duration_min ?? 30) * 60_000);
+
+      // Overlap: NOT (novo termina antes do existente começar OU novo começa depois do existente terminar)
+      if (!(fim <= agInicio || inicio >= agFim)) {
+        throw this._erro('Horário não disponível: conflito com outro agendamento.', 409);
+      }
+    }
+  }
 
   /**
    * Valida transições de status permitidas.

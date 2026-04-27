@@ -7,9 +7,9 @@
 // Nunca acessa o banco diretamente — delega ao FilaRepository.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseService = require('../infra/BaseService');
 
-class FilaService {
+class FilaService extends BaseService {
 
   static #STATUS_VALIDOS = ['waiting', 'in_service', 'done', 'cancelled'];
 
@@ -17,6 +17,7 @@ class FilaService {
 
   /** @param {import('../repositories/FilaRepository')} filaRepository */
   constructor(filaRepository) {
+    super('FilaService');
     this.#filaRepository = filaRepository;
   }
 
@@ -26,9 +27,7 @@ class FilaService {
    * @returns {Promise<object[]>}
    */
   async verFila(barbeariaId) {
-    const rId = InputValidator.uuid(barbeariaId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('barbeariaId', barbeariaId);
     return this.#filaRepository.getFila(barbeariaId);
   }
 
@@ -40,21 +39,11 @@ class FilaService {
    * @returns {Promise<object>}
    */
   async entrarFila(barbeariaId, userId, dados = {}) {
-    const rShop = InputValidator.uuid(barbeariaId);
-    const rUsr  = InputValidator.uuid(userId);
-    if (!rShop.ok) throw Object.assign(new Error(rShop.msg), { status: 400 });
-    if (!rUsr.ok)  throw Object.assign(new Error(rUsr.msg),  { status: 400 });
+    this._uuid('barbeariaId', barbeariaId);
+    this._uuid('userId', userId);
 
-    if (dados.notes) {
-      const rNotes = InputValidator.textoLivre(dados.notes, 200);
-      if (!rNotes.ok) throw Object.assign(new Error(`notes: ${rNotes.msg}`), { status: 400 });
-      dados.notes = rNotes.valor;
-    }
-
-    if (dados.chair_id) {
-      const rChair = InputValidator.uuid(dados.chair_id);
-      if (!rChair.ok) throw Object.assign(new Error(`chair_id: ${rChair.msg}`), { status: 400 });
-    }
+    if (dados.notes)    dados.notes    = this._texto('notes', dados.notes, 200);
+    if (dados.chair_id) this._uuid('chair_id', dados.chair_id);
 
     return this.#filaRepository.entrar(barbeariaId, userId, dados);
   }
@@ -66,11 +55,8 @@ class FilaService {
    * @returns {Promise<boolean>}
    */
   async sairFila(entradaId, userId) {
-    const rEnt = InputValidator.uuid(entradaId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rEnt.ok) throw Object.assign(new Error(rEnt.msg), { status: 400 });
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
-
+    this._uuid('entradaId', entradaId);
+    this._uuid('userId', userId);
     return this.#filaRepository.sair(entradaId, userId);
   }
 
@@ -81,12 +67,8 @@ class FilaService {
    * @returns {Promise<object>}
    */
   async atualizarStatusEntrada(entradaId, novoStatus) {
-    const rId = InputValidator.uuid(entradaId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
-    const rStatus = InputValidator.enumValido(novoStatus, FilaService.#STATUS_VALIDOS);
-    if (!rStatus.ok) throw Object.assign(new Error(`status: ${rStatus.msg}`), { status: 400 });
-
+    this._uuid('entradaId', entradaId);
+    this._enum('status', novoStatus, FilaService.#STATUS_VALIDOS);
     return this.#filaRepository.atualizarStatus(entradaId, novoStatus);
   }
 }

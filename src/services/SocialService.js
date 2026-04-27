@@ -7,9 +7,9 @@
 // Nunca acessa o banco diretamente — delega ao SocialRepository.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseService = require('../infra/BaseService');
 
-class SocialService {
+class SocialService extends BaseService {
 
   static #TIPOS_STORY_VALIDOS = ['image', 'video'];
 
@@ -17,6 +17,7 @@ class SocialService {
 
   /** @param {import('../repositories/SocialRepository')} socialRepository */
   constructor(socialRepository) {
+    super('SocialService');
     this.#socialRepository = socialRepository;
   }
 
@@ -28,9 +29,7 @@ class SocialService {
    * @returns {Promise<object[]>}
    */
   async listarStories(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('barbershopId', barbershopId);
     return this.#socialRepository.getStoriesByBarbershop(barbershopId);
   }
 
@@ -42,22 +41,15 @@ class SocialService {
    * @returns {Promise<object>}
    */
   async criarStory(userId, barbershopId, dados) {
-    const rUser = InputValidator.uuid(userId);
-    const rShop = InputValidator.uuid(barbershopId);
-    if (!rUser.ok) throw Object.assign(new Error(rUser.msg), { status: 400 });
-    if (!rShop.ok) throw Object.assign(new Error(rShop.msg), { status: 400 });
+    this._uuid('userId', userId);
+    this._uuid('barbershopId', barbershopId);
 
     if (!dados?.media_url?.trim())
-      throw Object.assign(new Error('media_url é obrigatório.'), { status: 400 });
+      throw this._erro('media_url é obrigatório.');
 
-    const rType = InputValidator.enumValido(dados.type, SocialService.#TIPOS_STORY_VALIDOS);
-    if (!rType.ok) throw Object.assign(new Error(`type: ${rType.msg}`), { status: 400 });
+    this._enum('type', dados.type, SocialService.#TIPOS_STORY_VALIDOS);
 
-    if (dados.caption) {
-      const rCap = InputValidator.textoLivre(dados.caption, 300);
-      if (!rCap.ok) throw Object.assign(new Error(`caption: ${rCap.msg}`), { status: 400 });
-      dados.caption = rCap.valor;
-    }
+    if (dados.caption) dados.caption = this._texto('caption', dados.caption, 300);
 
     return this.#socialRepository.createStory({
       barbershop_id: barbershopId,
@@ -75,11 +67,8 @@ class SocialService {
    * @returns {Promise<boolean>}
    */
   async deletarStory(storyId, userId) {
-    const rStr = InputValidator.uuid(storyId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rStr.ok) throw Object.assign(new Error(rStr.msg), { status: 400 });
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
-
+    this._uuid('storyId', storyId);
+    this._uuid('userId', userId);
     return this.#socialRepository.deleteStory(storyId, userId);
   }
 
@@ -91,15 +80,10 @@ class SocialService {
    * @returns {Promise<object>}
    */
   async comentarStory(storyId, userId, texto) {
-    const rStr = InputValidator.uuid(storyId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rStr.ok) throw Object.assign(new Error(rStr.msg), { status: 400 });
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
-
-    const rTxt = InputValidator.textoLivre(texto, 500, true);
-    if (!rTxt.ok) throw Object.assign(new Error(`texto: ${rTxt.msg}`), { status: 400 });
-
-    return this.#socialRepository.addComment(storyId, userId, rTxt.valor);
+    this._uuid('storyId', storyId);
+    this._uuid('userId', userId);
+    const conteudo = this._texto('texto', texto, 500, true);
+    return this.#socialRepository.addComment(storyId, userId, conteudo);
   }
 
   // ── Likes ─────────────────────────────────────────────────
@@ -111,10 +95,8 @@ class SocialService {
    * @returns {Promise<{ curtido: boolean }>}
    */
   async toggleLike(professionalId, userId) {
-    const rPro = InputValidator.uuid(professionalId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rPro.ok) throw Object.assign(new Error(rPro.msg), { status: 400 });
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
+    this._uuid('professionalId', professionalId);
+    this._uuid('userId', userId);
 
     const deletados = await this.#socialRepository.deleteLike(professionalId, userId);
 
@@ -134,10 +116,8 @@ class SocialService {
    * @returns {Promise<{ favoritado: boolean }>}
    */
   async toggleFavorite(professionalId, userId) {
-    const rPro = InputValidator.uuid(professionalId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rPro.ok) throw Object.assign(new Error(rPro.msg), { status: 400 });
-    if (!rUsr.ok) throw Object.assign(new Error(rUsr.msg), { status: 400 });
+    this._uuid('professionalId', professionalId);
+    this._uuid('userId', userId);
 
     const deletados = await this.#socialRepository.deleteFavorite(professionalId, userId);
 
@@ -154,9 +134,7 @@ class SocialService {
    * @returns {Promise<object[]>}
    */
   async listarFavoritos(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('userId', userId);
     return this.#socialRepository.getFavoritesByUser(userId);
   }
 }

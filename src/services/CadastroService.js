@@ -9,13 +9,15 @@
 // =============================================================
 
 const InputValidator = require('../infra/InputValidator');
+const BaseService    = require('../infra/BaseService');
 
-class CadastroService {
+class CadastroService extends BaseService {
 
   #authRepository;
 
   /** @param {import('../repositories/AuthRepository')} authRepository */
   constructor(authRepository) {
+    super('CadastroService');
     this.#authRepository = authRepository;
   }
 
@@ -35,15 +37,14 @@ class CadastroService {
    * @returns {Promise<{ perfil: object, barbearia: object|null }>}
    */
   async cadastrarPerfil(userId, dados) {
-    const rId = InputValidator.uuid(userId ?? '');
-    if (!rId.ok) throw Object.assign(new Error('userId inválido.'), { status: 400 });
+    this._uuid('userId', userId ?? '');
 
     const rNome = InputValidator.nome(dados?.full_name ?? '');
-    if (!rNome.ok) throw Object.assign(new Error(`full_name: ${rNome.msg}`), { status: 400 });
+    if (!rNome.ok) throw this._erro(`full_name: ${rNome.msg}`);
 
     if (dados?.phone) {
       const rTel = InputValidator.telefone(dados.phone);
-      if (!rTel.ok) throw Object.assign(new Error(`phone: ${rTel.msg}`), { status: 400 });
+      if (!rTel.ok) throw this._erro(`phone: ${rTel.msg}`);
     }
 
     const perfil = await this.#authRepository.criarPerfil(userId, {
@@ -54,10 +55,8 @@ class CadastroService {
     // Cria barbearia apenas para dono de barbearia com nome informado
     let barbearia = null;
     if (dados.pro_type === 'barbearia' && dados.barbearia?.trim()) {
-      const rBarb = InputValidator.textoLivre(dados.barbearia, 100, true);
-      if (!rBarb.ok) throw Object.assign(new Error(`barbearia: ${rBarb.msg}`), { status: 400 });
-
-      barbearia = await this.#authRepository.criarBarbearia(userId, rBarb.valor);
+      const nomeBarbearia = this._texto('barbearia', dados.barbearia, 100, true);
+      barbearia = await this.#authRepository.criarBarbearia(userId, nomeBarbearia);
     }
 
     return { perfil, barbearia };
@@ -69,9 +68,7 @@ class CadastroService {
    * @returns {Promise<object|null>}
    */
   async buscarPerfilPublico(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw Object.assign(new Error(rId.msg), { status: 400 });
-
+    this._uuid('userId', userId);
     return this.#authRepository.getPerfilPublico(userId);
   }
 }
