@@ -11,7 +11,7 @@ const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
 
-const UUID_USER = 'u0000000-0000-4000-8000-000000000001';
+const UUID_USER = '00000000-0000-4000-8000-000000000001';
 const UUID_PRO1 = 'p0000000-0000-4000-8000-000000000001';
 const UUID_PRO2 = 'p0000000-0000-4000-8000-000000000002';
 
