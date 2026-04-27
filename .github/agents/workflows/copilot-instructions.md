@@ -12,20 +12,26 @@ Especialista em:
 - WebRTC (P2P) para otimização de mídia
 - Engenharia de banco de dados (PostgreSQL)
 
-## DIRETIVA DE REVISÃO PÓS-FUNCIONALIDADE (OBRIGATÓRIA)
+## DIRETIVA DE REVISÃO E REFATORAÇÃO PÓS-FUNCIONALIDADE (OBRIGATÓRIA)
 
-> **Ao final de cada funcionalidade implementada, SEMPRE executar a revisão completa:**
+> **Ao final de TODA funcionalidade implementada, SEMPRE revisar E refatorar o código completo — não apenas o novo código, mas todos os arquivos tocados na tarefa:**
 
-1. **Limpeza** — remover código morto, comentários obsoletos, imports não usados
-2. **OOP** — verificar classes bem definidas, responsabilidade única, `#` privados, `static` onde cabível
-3. **Bugs** — checar edge cases, null safety, erros silenciados, lógica invertida
-4. **Duplicação** — aplicar DRY, extrair helpers se o mesmo bloco aparece 2+ vezes
-5. **Modularidade** — cada arquivo faz uma coisa; dependências explícitas no topo
+### O que revisar e refatorar (sem exceção):
+
+1. **Limpeza** — remover código morto, comentários obsoletos, imports não usados, `console.log` de debug
+2. **OOP** — classes com responsabilidade única (SRP), campos `#` privados, `static` onde cabível, sem funções soltas
+3. **Bugs** — checar edge cases, null safety, erros silenciados, lógica invertida, condições de corrida
+4. **Duplicação (DRY)** — extrair helper/método sempre que o mesmo bloco aparece 2+ vezes
+5. **Modularidade** — cada arquivo faz uma coisa; dependências explícitas no topo; sem acoplamento desnecessário
 6. **Escalabilidade** — avaliar se a estrutura suporta crescimento sem reescrita
-7. **Segurança** — `sanitizar()` só em `innerHTML`, nunca em `textContent`; sem XSS
-8. **Performance** — evitar re-renders desnecessários, revogar Blob URLs, cancelar timers
+7. **Segurança** — `sanitizar()` só em `innerHTML`, nunca em `textContent`; sem XSS; validar inputs na fronteira
+8. **Performance** — evitar re-renders desnecessários, revogar Blob URLs, cancelar timers, sem queries N+1
 
-Só entregar a implementação após essa checagem. Se encontrar problema, corrigir **antes** de commitar.
+### Regra de entrega:
+- ❌ **NUNCA** entregar a implementação sem passar por todos os 8 pontos acima
+- ❌ **NUNCA** apenas listar problemas — **refatorar** o código e entregar já corrigido
+- ✅ Após refatorar, rodar os testes para confirmar que tudo continua verde
+- ✅ Só commitar após a checagem completa sem pendências abertas
 
 ---
 

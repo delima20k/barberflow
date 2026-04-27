@@ -3,15 +3,24 @@
 // =============================================================
 // AuthMiddleware.js — Middleware Express de autenticação JWT.
 //
-// Verifica o token Bearer no header Authorization via Supabase.
-// Anexa o usuário autenticado em req.user.
+// Estratégia de verificação (em ordem de prioridade):
+//
+//   1. LOCAL (zero latência): se SUPABASE_JWT_SECRET estiver configurado,
+//      verifica o JWT do Supabase Auth diretamente com TokenService —
+//      sem nenhuma chamada HTTP ao Supabase.
+//
+//   2. REDE (fallback): se o secret não estiver disponível,
+//      usa supabase.auth.getUser(token) para verificação remota.
+//
+// req.user sempre terá: { id: string, email: string }
 //
 // Uso:
 //   router.use(AuthMiddleware.verificar);
 //   router.get('/rota', AuthMiddleware.verificar, handler);
 // =============================================================
 
-const supabase = require('./SupabaseClient');
+const supabase    = require('./SupabaseClient');
+const TokenService = require('./TokenService');
 
 class AuthMiddleware {
 
@@ -27,15 +36,31 @@ class AuthMiddleware {
     }
 
     const token = auth.slice(7);
-    const { data, error } = await supabase.auth.getUser(token);
 
+    // ── Prioridade 1: verificação local (sem latência de rede) ───────────────
+    // Disponível quando SUPABASE_JWT_SECRET está configurado no ambiente.
+    // Supabase JWT: sub = userId, email = email do usuário.
+    if (process.env.SUPABASE_JWT_SECRET) {
+      try {
+        const payload = TokenService.verificarSupabase(token);
+        req.user = { id: payload.sub, email: payload.email ?? '' };
+        return next();
+      } catch {
+        return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
+      }
+    }
+
+    // ── Prioridade 2: verificação por rede (fallback) ────────────────────────
+    // Usado quando SUPABASE_JWT_SECRET não está disponível (ex: ambiente CI).
+    const { data, error } = await supabase.auth.getUser(token);
     if (error || !data?.user) {
       return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
     }
 
-    req.user = data.user;
+    req.user = { id: data.user.id, email: data.user.email ?? '' };
     next();
   }
 }
 
 module.exports = AuthMiddleware;
+

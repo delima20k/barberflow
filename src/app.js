@@ -41,6 +41,7 @@ const FilaService         = require('./services/FilaService');
 const LgpdService         = require('./services/LgpdService');
 const CadastroService     = require('./services/CadastroService');
 const UserService         = require('./services/UserService');
+const AuthService         = require('./services/AuthService');
 
 // ── Controllers ───────────────────────────────────────────────
 const criarClienteController      = require('./controllers/ClienteController');
@@ -122,6 +123,7 @@ function criarApp() {
   const lgpdService         = new LgpdService(lgpdRepo);
   const cadastroService     = new CadastroService(authRepo);
   const userService         = new UserService(clienteRepo);
+  const authService         = new AuthService(supabase);
 
   // ── Rate limiting extra em rotas de autenticação ────────────
   app.use('/api/auth', limiterAuth);
@@ -135,7 +137,7 @@ function criarApp() {
   app.use('/api/comunicacao',   criarComunicacaoController(comunicacaoService));
   app.use('/api/fila',          criarFilaController(filaService));
   app.use('/api/lgpd',          criarLgpdController(lgpdService));
-  app.use('/api/auth',          criarAuthController(cadastroService));
+  app.use('/api/auth',          criarAuthController(cadastroService, authService));
   app.use('/api/usuarios',      criarUserController(userService));
 
   // ── Health check com ping real no banco ─────────────────────

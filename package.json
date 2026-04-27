@@ -1,13 +1,13 @@
 {
   "scripts": {
-    "api":          "node api.js",
-    "start":        "node api.js",
-    "start:pm2":    "pm2 start ecosystem.config.js --env production",
-    "reload:pm2":   "pm2 reload ecosystem.config.js --update-env",
-    "stop:pm2":     "pm2 stop barberflow-api",
-    "logs:pm2":     "pm2 logs barberflow-api",
-    "dev":          "node server.js",
-    "test":         "jest"
+    "api": "node api.js",
+    "start": "node api.js",
+    "start:pm2": "pm2 start ecosystem.config.js --env production",
+    "reload:pm2": "pm2 reload ecosystem.config.js --update-env",
+    "stop:pm2": "pm2 stop barberflow-api",
+    "logs:pm2": "pm2 logs barberflow-api",
+    "dev": "node server.js",
+    "test": "jest"
   },
   "devDependencies": {
     "jest": "^29.7.0",
@@ -15,12 +15,14 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",
+    "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.4.1",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0"
   }

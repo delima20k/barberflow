@@ -148,14 +148,24 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
+| `AuthMiddleware` | [src/infra/AuthMiddleware.js](src/infra/AuthMiddleware.js) | infra | Middleware JWT. Verificação local via TokenService.verificarSupabase() (zero latência) com fallback para rede se SUPABASE_JWT_SECRET ausente. Popula req.user = { id, email }. |
 | `BaseRepository` | [src/infra/BaseRepository.js](src/infra/BaseRepository.js) | infra | Classe base para todos os repositórios backend. Fornece _validarUuid(campo, valor), _validarEmail(valor) e _validarPayload(dados, campos) para eliminar duplicação do padrão InputValidator. |
 | `BaseService` | [src/infra/BaseService.js](src/infra/BaseService.js) | infra | Classe base para todos os services backend. Fornece _uuid(campo, valor), _texto(campo, valor, maxLen, obrig), _enum(campo, valor, opcoes), _erro(msg, status) para eliminar duplicação do padrão InputValidator nos services. |
+| `PasswordService` | [src/infra/PasswordService.js](src/infra/PasswordService.js) | infra | Hashing e validação de senhas com bcryptjs. validarForca() (síncrono), hash() e verificar() (assíncronos). NUNCA retorna senha original. Rounds configuráveis via BCRYPT_ROUNDS (padrão: 12). |
+| `TokenService` | [src/infra/TokenService.js](src/infra/TokenService.js) | infra | Geração e verificação de JWTs customizados (access: 15min, refresh: 7d) + verificação local de tokens Supabase Auth sem chamada de rede (verificarSupabase). Algoritmo fixo HS256. |
+
+## src/repositories/ (Node.js — backend)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `RefreshTokenRepository` | [src/repositories/RefreshTokenRepository.js](src/repositories/RefreshTokenRepository.js) | infra | Armazenamento de refresh tokens customizados. Persiste apenas SHA-256 hash (nunca o token em claro). Métodos: salvar(), buscar(), revogar(), revogarTodos(). |
 
 ## src/services/ (Node.js — backend)
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `AgendamentoService` | [src/services/AgendamentoService.js](src/services/AgendamentoService.js) | application | Regras de negócio de agendamentos. Verifica conflito de horário em criarAgendamento, ownership em atualizarStatus/cancelar, transições de status via #validarTransicao. |
+| `AuthService` | [src/services/AuthService.js](src/services/AuthService.js) | application | Orquestração de autenticação via Supabase Auth Admin API. login(), renovarToken(), logout() (tolerante), alterarSenha() (valida força via PasswordService), solicitarResetSenha() (anti-enumeração). |
 | `BarbeariaService` | [src/services/BarbeariaService.js](src/services/BarbeariaService.js) | application | Regras de negócio de barbearias. Filtro Haversine sobre bounding-box, listagem de serviços, favoritos e interações. |
 | `CadastroService` | [src/services/CadastroService.js](src/services/CadastroService.js) | application | Cadastro pós-signUp: upsert de perfil, criação de barbearia para tipo 'barbearia'. |
 | `ClienteService` | [src/services/ClienteService.js](src/services/ClienteService.js) | application | Regras de negócio de clientes. Busca por ID, atualização (ownership check: id === userId), perfil público. |
