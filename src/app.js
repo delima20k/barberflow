@@ -11,7 +11,13 @@
 
 const express    = require('express');
 const cors       = require('cors');
+const helmet     = require('helmet');
+const compression = require('compression');
+const pinoHttp   = require('pino-http');
 const supabase   = require('./infra/SupabaseClient');
+const logger     = require('./infra/LoggerService');
+const { limiterGeral, limiterAuth, limiterEscrita } = require('./infra/RateLimitMiddleware');
+const requestTimeout = require('./infra/RequestTimeoutMiddleware');
 
 // ── Repositories ──────────────────────────────────────────────
 const ClienteRepository      = require('./repositories/ClienteRepository');
@@ -59,6 +65,30 @@ function criarApp() {
   const app = express();
 
   // ── Middlewares globais ──────────────────────────────────────
+
+  // Segurança: headers HTTP defensivos (OWASP)
+  app.use(helmet());
+
+  // Compressão gzip/deflate — reduz banda em ~70%
+  app.use(compression());
+
+  // Log estruturado de cada requisição (pino)
+  app.use(pinoHttp({
+    logger,
+    // Não loga health check para não poluir
+    autoLogging: { ignore: (req) => req.url === '/api/health' },
+    customLogLevel: (_req, res) => res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
+  }));
+
+  // Rate limiting geral (proteção contra DDoS / abuso)
+  app.use('/api/', limiterGeral);
+
+  // Rate limiting extra em rotas de escrita
+  app.use('/api/', limiterEscrita);
+
+  // Timeout por requisição (30s padrão)
+  app.use(requestTimeout);
+
   app.use(cors({
     origin(origin, callback) {
       // Sem origin (ex: curl) ou origem permitida
@@ -90,6 +120,9 @@ function criarApp() {
   const lgpdService         = new LgpdService(lgpdRepo);
   const cadastroService     = new CadastroService(authRepo);
 
+  // ── Rate limiting extra em rotas de autenticação ────────────
+  app.use('/api/auth', limiterAuth);
+
   // ── Rotas ────────────────────────────────────────────────────
   app.use('/api/clientes',      criarClienteController(clienteService));
   app.use('/api/agendamentos',  criarAgendamentoController(agendamentoService));
@@ -101,9 +134,17 @@ function criarApp() {
   app.use('/api/lgpd',          criarLgpdController(lgpdService));
   app.use('/api/auth',          criarAuthController(cadastroService));
 
-  // ── Health check ─────────────────────────────────────────────
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, env: process.env.APP_ENV ?? 'development' });
+  // ── Health check com ping real no banco ─────────────────────
+  app.get('/api/health', async (_req, res) => {
+    try {
+      // Ping real: consulta 1 linha para confirmar conexão com o banco
+      const { error } = await supabase.from('profiles').select('id').limit(1);
+      if (error) throw error;
+      res.json({ ok: true, db: 'up', env: process.env.APP_ENV ?? 'development' });
+    } catch (err) {
+      logger.error({ err }, 'Health check falhou — banco inacessível');
+      res.status(503).json({ ok: false, db: 'down', error: 'Banco de dados inacessível.' });
+    }
   });
 
   // ── 404 para rotas não mapeadas ──────────────────────────────
@@ -113,9 +154,21 @@ function criarApp() {
 
   // ── Handler de erros global (Express 5: captura erros async) ─
   // eslint-disable-next-line no-unused-vars
-  app.use((err, _req, res, _next) => {
+  app.use((err, req, res, _next) => {
     const status = err.status ?? 500;
-    res.status(status).json({ ok: false, error: err.message ?? 'Erro interno.' });
+    const IS_PROD = process.env.APP_ENV === 'production';
+
+    // Loga o erro completo no servidor
+    if (status >= 500) {
+      logger.error({ err, method: req.method, path: req.path }, 'Erro interno');
+    }
+
+    // Em produção: NUNCA expõe detalhes internos ao cliente
+    const mensagem = IS_PROD && status >= 500
+      ? 'Erro interno do servidor.'
+      : (err.message ?? 'Erro interno.');
+
+    res.status(status).json({ ok: false, error: mensagem });
   });
 
   return app;
