@@ -148,6 +148,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
+| `R2Client` | [src/infra/R2Client.js](src/infra/R2Client.js) | infra | Cliente Cloudflare R2 (S3-compatible). Singleton via getInstance(). Gera presigned PUT URLs para upload P2P direto browser→R2. Métodos: presignedPut(), head(), delete(), publicUrl(). |
 | `AuthMiddleware` | [src/infra/AuthMiddleware.js](src/infra/AuthMiddleware.js) | infra | Middleware JWT. Verificação local via TokenService.verificarSupabase() (zero latência) com fallback para rede se SUPABASE_JWT_SECRET ausente. Popula req.user = { id, email }. |
 | `BaseRepository` | [src/infra/BaseRepository.js](src/infra/BaseRepository.js) | infra | Classe base para todos os repositórios backend. Fornece _validarUuid, _validarEmail, _validarPayload, _validarTexto, _validarCoordenada para eliminar duplicação do padrão InputValidator. |
 | `BaseService` | [src/infra/BaseService.js](src/infra/BaseService.js) | infra | Classe base para todos os services backend. Fornece _uuid, _texto, _enum, _email, _nome, _telefone, _coordenada, _erro para eliminar duplicação do padrão InputValidator nos services. |
@@ -168,6 +169,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
+| `MediaManager` | [src/services/MediaManager.js](src/services/MediaManager.js) | application | Sistema híbrido de mídia P2P+R2+Supabase. Contextos: stories/avatars/services/portfolio. Gera presigned URL, valida HMAC token, HEAD-verifica R2, salva metadata em media_files. Métodos: gerarUrlPresigned(), confirmarUpload(), deletar(), listar(), publicUrl(). |
 | `AgendamentoService` | [src/services/AgendamentoService.js](src/services/AgendamentoService.js) | application | Regras de negócio de agendamentos. Verifica conflito de horário em criarAgendamento, ownership em atualizarStatus/cancelar, transições de status via #validarTransicao. |
 | `AuthService` | [src/services/AuthService.js](src/services/AuthService.js) | application | Orquestração de autenticação via Supabase Auth Admin API. login(), renovarToken(), logout() (tolerante), alterarSenha() (valida força via PasswordService), solicitarResetSenha() (anti-enumeração). |
 | `BarbeariaService` | [src/services/BarbeariaService.js](src/services/BarbeariaService.js) | application | Regras de negócio de barbearias. Filtro Haversine sobre bounding-box, listagem de serviços, favoritos e interações. |

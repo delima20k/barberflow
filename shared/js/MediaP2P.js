@@ -1,57 +1,73 @@
 'use strict';
 
 // =============================================================
-// MediaP2P.js — Preview local P2P de arquivos do dispositivo
+// MediaP2P.js — Upload híbrido P2P via Cloudflare R2 (BFF presigned)
 //
-// Conceito P2P aplicado ao PWA:
-//   Em vez de enviar o arquivo ao servidor imediatamente (upload
-//   custoso e inútil se o item for descartado), o sistema usa
-//   diretamente o arquivo do próprio dispositivo do usuário:
+// ARQUITETURA:
+//   PRIMÁRIO — P2P (presigned URL):
+//     O browser faz PUT direto ao R2 via URL gerada pelo BFF.
+//     O arquivo NUNCA passa pelo servidor Express.
 //
-//   1. Usuário seleciona imagem  → registrar()
-//      - Solicita permissão/confirmação de acesso ao arquivo
-//      - Cria Blob URL local (URL.createObjectURL) — ZERO latência
-//      - Arquivo fica "pendente" na memória, sem ir ao servidor
+//   FALLBACK  — R2 CDN permanente:
+//     Após confirmação, o arquivo está disponível via URL pública.
 //
-//   2. Usuário confirma ("Salvar item") → fazerUpload()
-//      - Só agora o arquivo vai ao Supabase Storage
-//      - Blob URL é revogado (liberação de memória garantida)
+//   METADATA — Supabase:
+//     BFF salva path + publicUrl na tabela media_files após confirmação.
 //
-//   3. Usuário descarta o item → cancelar()
-//      - Blob URL é revogado sem nunca ter feito upload
+// FLUXO COMPLETO:
+//   1. registrar(file, uid)             → Blob URL local (preview imediato, zero latência)
+//   2. fazerUpload(uid, contexto, meta) → P2P: browser → R2 via presigned URL
+//                                          confirma ao BFF → metadata salvo no Supabase
+//   3. cancelar(uid)                    → revoga Blob URL sem upload
 //
-// Vantagens:
-//   - Preview instantâneo (sem round-trip de rede)
-//   - Sem uploads de itens descartados (economia de storage)
-//   - Ciclo de vida de Blob URLs gerenciado (sem memory leak)
-//   - Confirmação explícita antes de acessar arquivo local (UX segura)
+// CONFIGURAÇÃO:
+//   Antes de usar, configurar a URL do BFF Express:
+//     MediaP2P.configurar('https://api.barberflow.app');
+//   Ou setar window.BFF_URL antes de carregar o script.
 //
-// Uso típico (MinhaBarbeariaPage):
-//   const p2p = new MediaP2P();
-//   const blob = await p2p.registrar(file, uid);   // preview imediato
-//   imgEl.src = blob;                               // exibe localmente
-//   // ... usuário edita nome/preço ...
-//   const path = await p2p.fazerUpload(uid, storagePath); // ao salvar
-//
-// Dependências: SupabaseService.js
+// Contextos: stories | avatars | services | portfolio
+// Dependência: SupabaseService (para obter JWT da sessão)
 // =============================================================
 
 class MediaP2P {
 
+  /**
+   * URL base do BFF Express.
+   * Configurável via MediaP2P.configurar() ou window.BFF_URL.
+   * @type {string}
+   */
+  static #BFF_URL = typeof window !== 'undefined'
+    ? ((window.BFF_URL ?? '').replace(/\/$/, ''))
+    : '';
+
   /** @type {Map<string, { file: File, blobUrl: string }>} */
   #pendentes = new Map();
+
+  // ══════════════════════════════════════════════════════════
+  // CONFIG
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Configura a URL base do BFF para todos os uploads.
+   * Chamar uma vez durante a inicialização do app (antes de qualquer upload).
+   * @param {string} bffUrl — ex: 'https://api.barberflow.app'
+   */
+  static configurar(bffUrl) {
+    MediaP2P.#BFF_URL = (bffUrl ?? '').replace(/\/$/, '');
+  }
 
   // ══════════════════════════════════════════════════════════
   // PÚBLICA
   // ══════════════════════════════════════════════════════════
 
   /**
-   * Registra um arquivo local para preview imediato (P2P).
-   * Exibe confirmação de acesso ao arquivo do dispositivo antes de prosseguir.
+   * Registra um arquivo local para preview imediato (P2P local).
+   * Solicita confirmação antes de acessar o arquivo do dispositivo.
+   * O arquivo fica pendente em memória — nenhum byte vai ao servidor.
    *
-   * @param {File}   file - Arquivo selecionado pelo usuário
-   * @param {string} uid  - Chave única do item (ex: "prod-img-1714000000-ab3f")
-   * @returns {Promise<string|null>} Blob URL para usar em <img src>, ou null se o usuário cancelar
+   * @param {File}   file — arquivo selecionado pelo usuário
+   * @param {string} uid  — chave única do item (ex: "prod-img-1714000000-ab3f")
+   * @returns {Promise<string|null>} Blob URL para usar em <img src>, ou null se cancelado
    */
   async registrar(file, uid) {
     if (!(file instanceof File)) return null;
@@ -59,7 +75,6 @@ class MediaP2P {
     const aceito = await this.#pedirPermissao(file.name);
     if (!aceito) return null;
 
-    // Revoga blob anterior do mesmo uid (troca de imagem no mesmo item)
     this.#revogar(uid);
 
     const blobUrl = URL.createObjectURL(file);
@@ -68,27 +83,73 @@ class MediaP2P {
   }
 
   /**
-   * Faz upload do arquivo pendente ao Supabase Storage.
-   * Deve ser chamado apenas quando o usuário confirmar o salvamento do item.
-   * Revoga o Blob URL após upload bem-sucedido (libera memória).
+   * Faz o upload P2P ao Cloudflare R2 via URL presigned gerada pelo BFF.
+   * O arquivo sobe DIRETO do browser para o R2 — servidor fora do caminho dos bytes.
+   * Após o upload, confirma ao BFF que persiste os metadados no Supabase.
+   * Revoga o Blob URL após conclusão (libera memória).
    *
-   * @param {string} uid         - Chave do item (a mesma passada em registrar())
-   * @param {string} storagePath - Caminho destino no bucket (ex: "shopId/services/uid.webp")
-   * @returns {Promise<string>}  - storagePath confirmado (para salvar em image_path)
-   * @throws {Error}             - Se não houver pendente ou se o upload falhar
+   * @param {string} uid        — chave do item (a mesma passada em registrar())
+   * @param {string} contexto   — 'stories' | 'avatars' | 'services' | 'portfolio'
+   * @param {object} [metadata] — dados extras opcionais (ex: { barbershopId })
+   * @returns {Promise<{ path: string, publicUrl: string }>}
+   *   path      — chave no R2 (armazenar no DB, ex: services/uuid/uuid.webp)
+   *   publicUrl — URL pública CDN R2 (usar diretamente em <img src>)
+   * @throws {Error} se não houver pendente, falha no presigned URL ou falha no upload
    */
-  async fazerUpload(uid, storagePath) {
+  async fazerUpload(uid, contexto, metadata = {}) {
     const pendente = this.#pendentes.get(uid);
-    if (!pendente) throw new Error(`[MediaP2P] Nenhum arquivo pendente para uid "${uid}"`);
+    if (!pendente) {
+      throw new Error(`[MediaP2P] Nenhum arquivo pendente para uid "${uid}"`);
+    }
 
     const { file } = pendente;
-    const { error } = await SupabaseService.storageBarbershops()
-      .upload(storagePath, file, { contentType: file.type, upsert: true });
+    const token    = await this.#obterToken();
 
-    if (error) throw error;
+    // ── Etapa 1: solicitar URL presigned ao BFF ──────────────────
+    const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/media/presigned`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ contexto, contentType: file.type }),
+    });
 
-    this.#revogar(uid);   // libera memória após upload concluído
-    return storagePath;
+    if (!presResp.ok) {
+      const { error } = await presResp.json().catch(() => ({}));
+      throw new Error(`[MediaP2P] Falha ao obter URL presigned: ${error ?? presResp.status}`);
+    }
+
+    const { uploadUrl, path, publicUrl, token: hmac, expiresAt } = await presResp.json();
+
+    // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
+    const uploadResp = await fetch(uploadUrl, {
+      method:  'PUT',
+      headers: { 'Content-Type': file.type },
+      body:    file,
+    });
+
+    if (!uploadResp.ok) {
+      throw new Error(`[MediaP2P] Falha no upload ao R2: HTTP ${uploadResp.status}`);
+    }
+
+    // ── Etapa 3: confirmar ao BFF → salva metadata no Supabase ───
+    const confResp = await fetch(`${MediaP2P.#BFF_URL}/api/media/confirmar`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ path, contexto, token: hmac, expiresAt, metadata }),
+    });
+
+    if (!confResp.ok) {
+      const { error } = await confResp.json().catch(() => ({}));
+      throw new Error(`[MediaP2P] Falha na confirmação: ${error ?? confResp.status}`);
+    }
+
+    this.#revogar(uid); // libera memória após conclusão bem-sucedida
+    return { path, publicUrl };
   }
 
   /**
@@ -102,7 +163,6 @@ class MediaP2P {
 
   /**
    * Retorna a extensão do arquivo pendente (ex: "jpg", "webp").
-   * Útil para montar o storagePath antes de chamar fazerUpload().
    * @param {string} uid
    * @returns {string} extensão sem ponto, lowercase; "jpg" como fallback
    */
@@ -114,8 +174,17 @@ class MediaP2P {
   }
 
   /**
+   * Retorna o MIME type do arquivo pendente.
+   * @param {string} uid
+   * @returns {string} MIME type; "image/jpeg" como fallback
+   */
+  contentTypePendente(uid) {
+    return this.#pendentes.get(uid)?.file?.type ?? 'image/jpeg';
+  }
+
+  /**
    * Cancela um arquivo pendente sem fazer upload.
-   * Revogar o Blob URL evita memory leak.
+   * Revoga o Blob URL para evitar memory leak.
    * Chamar ao remover um item da lista.
    * @param {string} uid
    */
@@ -150,21 +219,28 @@ class MediaP2P {
 
   /**
    * Solicita confirmação do usuário antes de acessar o arquivo local.
-   * Retorna true se o usuário aceitar.
-   *
-   * Substituir por modal customizado se quiser UI mais rica.
-   *
    * @param {string} nomeArquivo
    * @returns {Promise<boolean>}
    */
   async #pedirPermissao(nomeArquivo) {
     return new Promise(resolve => {
-      // Usa confirm() nativo — leve, sem dependências externas
-      // Em PWA no mobile isso dispara o diálogo do sistema
       const aceito = window.confirm(
         `Usar "${nomeArquivo}" do seu dispositivo como imagem do item?`
       );
       resolve(aceito);
     });
+  }
+
+  /**
+   * Obtém o JWT da sessão atual para autorizar as chamadas ao BFF.
+   * @returns {Promise<string>}
+   * @throws {Error} se não houver sessão ativa
+   */
+  async #obterToken() {
+    if (typeof SupabaseService !== 'undefined') {
+      const session = await SupabaseService.getSession().catch(() => null);
+      if (session?.access_token) return session.access_token;
+    }
+    throw new Error('[MediaP2P] Usuário não autenticado. Faça login antes de fazer upload.');
   }
 }

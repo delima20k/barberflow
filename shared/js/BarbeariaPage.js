@@ -262,7 +262,7 @@ class BarbeariaPage {
 
     const s = InputValidator.sanitizar;
     el.innerHTML = lista.map(sv => {
-      const imgUrl  = sv.image_path ? ApiService.getLogoUrl(sv.image_path) : null;
+      const imgUrl  = sv.image_path || null;
       const imgHtml = imgUrl
         ? `<img src="${s(imgUrl)}" alt="${s(sv.name ?? '')}" class="bp-serv-img" loading="lazy" onerror="this.style.display='none'">`
         : `<div class="bp-serv-img bp-serv-img--vazio"></div>`;

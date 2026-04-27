@@ -14,6 +14,8 @@
     "jimp": "^1.6.1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1037.0",
+    "@aws-sdk/s3-request-presigner": "^3.1037.0",
     "@supabase/supabase-js": "^2.104.1",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",

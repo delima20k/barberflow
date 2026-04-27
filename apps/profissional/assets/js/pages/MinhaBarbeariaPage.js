@@ -521,9 +521,7 @@ class MinhaBarbeariaPage {
     const uid   = `prod-img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const uidN  = `${uid}-nome`;
     const uidP  = `${uid}-preco`;
-    const imgSrc = produto?.image_path
-      ? (SupabaseService.getLogoUrl(produto.image_path) || '/shared/img/Logo01.png')
-      : '/shared/img/Logo01.png';
+    const imgSrc = produto?.image_path || '/shared/img/Logo01.png';
     const precoVal = produto ? Number(produto.price).toFixed(2) : '';
     const nomeVal  = produto ? MinhaBarbeariaPage.#escapeAttr(produto.name ?? '') : '';
 
@@ -616,14 +614,13 @@ class MinhaBarbeariaPage {
       const preco = parseFloat(row.querySelector('.mb-cfg-prod-preco')?.value || '0');
       const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
 
-      // ── Upload P2P: envia o arquivo local agora que o usuário confirmou salvar ──
+      // ── Upload P2P: envia direto ao R2 via URL presigned ──────────────────────
       if (uid && this.#mediaP2P.temPendente(uid)) {
-        const ext  = this.#mediaP2P.extensaoPendente(uid);
-        const path = `${this.#barbershopId}/services/${uid}.${ext}`;
-        row.dataset.imagePath = await this.#mediaP2P.fazerUpload(uid, path);
-        // Atualiza preview com URL do storage (substitui o blob URL revogado)
-        const urlStorage = SupabaseService.getLogoUrl(row.dataset.imagePath);
-        if (urlStorage) row.querySelector('.mb-cfg-prod-img-preview').src = urlStorage;
+        const { publicUrl } = await this.#mediaP2P.fazerUpload(
+          uid, 'services', { barbershopId: this.#barbershopId }
+        );
+        row.dataset.imagePath = publicUrl;
+        if (publicUrl) row.querySelector('.mb-cfg-prod-img-preview').src = publicUrl;
       }
 
       const entry = {
