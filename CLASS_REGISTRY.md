@@ -144,6 +144,12 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `Servico` | [src/entities/Servico.js](src/entities/Servico.js) | domain | Espelho backend de shared/js/Servico.js. Inclui validar(), isAtivo(), temPreco(), toJSON(). |
 | `User` | [src/entities/User.js](src/entities/User.js) | domain | Entidade do usuário autenticado (auth.users + role de profiles). Campo #passwordHash armazena apenas bcrypt hash. Inclui validar(), isAtivo(), isEmailVerificado(), hasRole(), isAdmin(). toJSON() nunca serializa o hash. |
 
+## src/infra/ (Node.js — backend)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BaseRepository` | [src/infra/BaseRepository.js](src/infra/BaseRepository.js) | infra | Classe base para todos os repositórios backend. Fornece _validarUuid(campo, valor), _validarEmail(valor) e _validarPayload(dados, campos) para eliminar duplicação do padrão InputValidator. |
+
 ---
 
 ## server.js

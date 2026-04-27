@@ -8,14 +8,16 @@
 // Sem lógica de negócio — apenas acesso e persistência.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const InputValidator  = require('../infra/InputValidator');
+const BaseRepository  = require('../infra/BaseRepository');
 
-class ComunicacaoRepository {
+class ComunicacaoRepository extends BaseRepository {
 
   #supabase;
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('ComunicacaoRepository');
     this.#supabase = supabase;
   }
 
@@ -28,8 +30,7 @@ class ComunicacaoRepository {
    * @returns {Promise<object[]>}
    */
   async getNotificacoes(userId, limit = 30) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[ComunicacaoRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('notifications')
@@ -49,10 +50,8 @@ class ComunicacaoRepository {
    * @returns {Promise<object>}
    */
   async marcarLida(notificationId, userId) {
-    const rNot = InputValidator.uuid(notificationId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rNot.ok) throw new TypeError(`[ComunicacaoRepository] notificationId: ${rNot.msg}`);
-    if (!rUsr.ok) throw new TypeError(`[ComunicacaoRepository] userId: ${rUsr.msg}`);
+    this._validarUuid('notificationId', notificationId);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('notifications')
@@ -70,29 +69,44 @@ class ComunicacaoRepository {
 
   /**
    * Retorna a conversa entre dois usuários.
+   *
+   * Usa duas queries paralelas (uma por direção) em vez de .or() com
+   * interpolação de string. Garante zero concatenação em filtros de query.
+   *
    * @param {string} userId
    * @param {string} contatoId
    * @param {number} [limit=50]
    * @returns {Promise<object[]>}
    */
   async getConversa(userId, contatoId, limit = 50) {
-    const rUsr = InputValidator.uuid(userId);
-    const rCon = InputValidator.uuid(contatoId);
-    if (!rUsr.ok) throw new TypeError(`[ComunicacaoRepository] userId: ${rUsr.msg}`);
-    if (!rCon.ok) throw new TypeError(`[ComunicacaoRepository] contatoId: ${rCon.msg}`);
+    this._validarUuid('userId', userId);
+    this._validarUuid('contatoId', contatoId);
 
-    const { data, error } = await this.#supabase
-      .from('direct_messages')
-      .select('id, sender_id, receiver_id, content, is_read, created_at')
-      .or(
-        `and(sender_id.eq.${userId},receiver_id.eq.${contatoId}),` +
-        `and(sender_id.eq.${contatoId},receiver_id.eq.${userId})`
-      )
-      .order('created_at', { ascending: true })
-      .limit(limit);
+    const SELECT = 'id, sender_id, receiver_id, content, is_read, created_at';
 
-    if (error) throw error;
-    return data ?? [];
+    const [r1, r2] = await Promise.all([
+      this.#supabase
+        .from('direct_messages')
+        .select(SELECT)
+        .eq('sender_id', userId)
+        .eq('receiver_id', contatoId)
+        .order('created_at', { ascending: true })
+        .limit(limit),
+      this.#supabase
+        .from('direct_messages')
+        .select(SELECT)
+        .eq('sender_id', contatoId)
+        .eq('receiver_id', userId)
+        .order('created_at', { ascending: true })
+        .limit(limit),
+    ]);
+
+    if (r1.error) throw r1.error;
+    if (r2.error) throw r2.error;
+
+    return [...(r1.data ?? []), ...(r2.data ?? [])]
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .slice(0, limit);
   }
 
   /**
@@ -103,12 +117,18 @@ class ComunicacaoRepository {
    * @returns {Promise<object>}
    */
   async enviarMensagem(remetente, destinatario, conteudo) {
+    this._validarUuid('remetente', remetente);
+    this._validarUuid('destinatario', destinatario);
+
+    const rConteudo = InputValidator.textoLivre(conteudo, 2000, true);
+    if (!rConteudo.ok) throw new TypeError(`[ComunicacaoRepository] conteudo: ${rConteudo.msg}`);
+
     const { data, error } = await this.#supabase
       .from('direct_messages')
       .insert({
         sender_id:   remetente,
         receiver_id: destinatario,
-        content:     conteudo,
+        content:     rConteudo.valor,
         is_read:     false,
       })
       .select()

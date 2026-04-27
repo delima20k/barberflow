@@ -89,6 +89,26 @@ class ClienteRepository {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Busca um cliente pelo e-mail via função PostgreSQL parametrizada.
+   *
+   * Usa supabase.rpc() para garantir zero interpolação de string na query.
+   * Requer DB function: get_client_by_email(p_email text) returns profiles.
+   *
+   * @param {string} email
+   * @returns {Promise<object|null>}
+   */
+  async findByEmail(email) {
+    const rEmail = InputValidator.email(email);
+    if (!rEmail.ok) throw new TypeError(`[ClienteRepository] email: ${rEmail.msg}`);
+
+    const { data, error } = await this.#supabase
+      .rpc('get_client_by_email', { p_email: email.toLowerCase().trim() });
+
+    if (error) throw error;
+    return data ?? null;
+  }
 }
 
 module.exports = ClienteRepository;

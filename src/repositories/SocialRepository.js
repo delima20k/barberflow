@@ -54,6 +54,11 @@ class SocialRepository {
    * @returns {Promise<object>}
    */
   async createStory(dados) {
+    const rShop   = InputValidator.uuid(dados?.barbershop_id);
+    const rAuthor = InputValidator.uuid(dados?.author_id);
+    if (!rShop.ok)   throw new TypeError(`[SocialRepository] barbershop_id: ${rShop.msg}`);
+    if (!rAuthor.ok) throw new TypeError(`[SocialRepository] author_id: ${rAuthor.msg}`);
+
     const { data, error } = await this.#supabase
       .from('stories')
       .insert({
