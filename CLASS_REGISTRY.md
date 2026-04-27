@@ -152,7 +152,9 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `BaseRepository` | [src/infra/BaseRepository.js](src/infra/BaseRepository.js) | infra | Classe base para todos os repositórios backend. Fornece _validarUuid(campo, valor), _validarEmail(valor) e _validarPayload(dados, campos) para eliminar duplicação do padrão InputValidator. |
 | `BaseService` | [src/infra/BaseService.js](src/infra/BaseService.js) | infra | Classe base para todos os services backend. Fornece _uuid(campo, valor), _texto(campo, valor, maxLen, obrig), _enum(campo, valor, opcoes), _erro(msg, status) para eliminar duplicação do padrão InputValidator nos services. |
 | `PasswordService` | [src/infra/PasswordService.js](src/infra/PasswordService.js) | infra | Hashing e validação de senhas com bcryptjs. validarForca() (síncrono), hash() e verificar() (assíncronos). NUNCA retorna senha original. Rounds configuráveis via BCRYPT_ROUNDS (padrão: 12). |
+| `RoleMiddleware` | [src/infra/RoleMiddleware.js](src/infra/RoleMiddleware.js) | infra | Autorização baseada em roles. Busca profiles.role no banco se não cacheado em req.user.role. exigir(...roles) para custom, shorthands .admin/.profissional/.cliente. _comSupabase(db, ...roles) para testes. 401/403/503. |
 | `TokenService` | [src/infra/TokenService.js](src/infra/TokenService.js) | infra | Geração e verificação de JWTs customizados (access: 15min, refresh: 7d) + verificação local de tokens Supabase Auth sem chamada de rede (verificarSupabase). Algoritmo fixo HS256. |
+| `ValidationMiddleware` | [src/infra/ValidationMiddleware.js](src/infra/ValidationMiddleware.js) | infra | Validação declarativa de inputs por schema. corpo()/params()/query() retornam middleware. Tipos: uuid, email, nome, telefone, texto (sanitiza), enum, numero, booleano. 400 com { ok, error, erros[] } ao falhar. |
 
 ## src/repositories/ (Node.js — backend)
 
