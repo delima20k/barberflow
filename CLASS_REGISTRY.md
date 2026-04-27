@@ -22,9 +22,9 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 |---|---|---|---|
 | `ApiQuery` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Query builder thenable sobre fetch nativo (interno — use ApiService.from()) |
 | `ApiService` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Ponto único de acesso à API REST PostgREST. Substitui Supabase SDK para CRUD |
-| `Agendamento` | [shared/js/Agendamento.js](shared/js/Agendamento.js) | domain | Entidade de domínio de agendamento. Inclui validar(), estados (isPendente/isConfirmado/isCancelado/isConcluido) e isFuturo() |
+| `Agendamento` | [shared/js/Agendamento.js](shared/js/Agendamento.js) | domain | Entidade de domínio de agendamento. Inclui validar(), estados (isPendente/isConfirmado/isEmAndamento/isCancelado/isConcluido/isNoShow) e isFuturo() |
 | `Barbearia` | [shared/js/Barbearia.js](shared/js/Barbearia.js) | domain | Entidade de domínio de barbearia. Inclui validar(), possuiLocalizacao(), isAtiva(), toJSON() |
-| `Profissional` | [shared/js/Profissional.js](shared/js/Profissional.js) | domain | Entidade de domínio de profissional. Roles: barber/owner/manager. Inclui validar(), isAtivo(), toJSON() |
+| `Profissional` | [shared/js/Profissional.js](shared/js/Profissional.js) | domain | Entidade de domínio de profissional. Roles: barber/owner/manager. Inclui validar(), isAtivo(), isOwner(), isManager(), isBarber(), toJSON() |
 | `Servico` | [shared/js/Servico.js](shared/js/Servico.js) | domain | Entidade de domínio de serviço/tratamento. Inclui validar(), isAtivo(), temPreco(), toJSON() |
 | `AppointmentRepository` | [shared/js/AppointmentRepository.js](shared/js/AppointmentRepository.js) | infra | CRUD de agendamentos. Valida UUIDs e aplica allowlist de campos |
 | `AppState` | [shared/js/AppState.js](shared/js/AppState.js) | infra | Estado global da aplicação compartilhado entre os dois apps |
@@ -130,6 +130,19 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `MinhaBarbeariaPage` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage.js) | interfaces | Tela de gerenciamento da barbearia própria (serviços, mídias, configurações) |
 | `ParceriasPage` | [apps/profissional/assets/js/pages/ParceriasPage.js](apps/profissional/assets/js/pages/ParceriasPage.js) | interfaces | Tela de parcerias disponíveis para o profissional |
 | `QueueWidget` | [apps/profissional/assets/js/pages/QueueWidget.js](apps/profissional/assets/js/pages/QueueWidget.js) | interfaces | Fila de atendimento em tempo real com cadeiras e status |
+
+---
+
+## src/entities/ (Node.js — backend)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `Agendamento` | [src/entities/Agendamento.js](src/entities/Agendamento.js) | domain | Espelho backend de shared/js/Agendamento.js. Inclui validar(), isEmAndamento(), isNoShow() e demais estados. |
+| `Barbearia` | [src/entities/Barbearia.js](src/entities/Barbearia.js) | domain | Espelho backend de shared/js/Barbearia.js. Inclui validar(), isAtiva(), possuiLocalizacao(), toJSON(). |
+| `Cliente` | [src/entities/Cliente.js](src/entities/Cliente.js) | domain | Espelho backend de shared/js/Cliente.js. Representa profiles (role=client). Inclui validar(), isAtivo(), nomeCompleto(), toJSON(). |
+| `Profissional` | [src/entities/Profissional.js](src/entities/Profissional.js) | domain | Espelho backend de shared/js/Profissional.js. Inclui validar(), isAtivo(), isOwner(), isManager(), isBarber(), toJSON(). |
+| `Servico` | [src/entities/Servico.js](src/entities/Servico.js) | domain | Espelho backend de shared/js/Servico.js. Inclui validar(), isAtivo(), temPreco(), toJSON(). |
+| `User` | [src/entities/User.js](src/entities/User.js) | domain | Entidade do usuário autenticado (auth.users + role de profiles). Campo #passwordHash armazena apenas bcrypt hash. Inclui validar(), isAtivo(), isEmailVerificado(), hasRole(), isAdmin(). toJSON() nunca serializa o hash. |
 
 ---
 

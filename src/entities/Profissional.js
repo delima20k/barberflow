@@ -69,6 +69,12 @@ class Profissional {
   /** @returns {boolean} */
   isOwner() { return this.#role === 'owner'; }
 
+  /** @returns {boolean} */
+  isManager() { return this.#role === 'manager'; }
+
+  /** @returns {boolean} */
+  isBarber() { return this.#role === 'barber'; }
+
   /** @returns {object} */
   toJSON() {
     return {

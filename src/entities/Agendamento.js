@@ -111,10 +111,16 @@ class Agendamento {
   isConfirmado() { return this.#status === 'confirmed'; }
 
   /** @returns {boolean} */
+  isEmAndamento() { return this.#status === 'in_progress'; }
+
+  /** @returns {boolean} */
   isCancelado() { return this.#status === 'cancelled'; }
 
   /** @returns {boolean} */
   isConcluido() { return this.#status === 'done'; }
+
+  /** @returns {boolean} */
+  isNoShow() { return this.#status === 'no_show'; }
 
   /** @returns {object} */
   toJSON() {
