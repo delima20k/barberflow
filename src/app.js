@@ -43,7 +43,8 @@ const CadastroService     = require('./services/CadastroService');
 const UserService         = require('./services/UserService');
 const AuthService         = require('./services/AuthService');
 const R2Client            = require('./infra/R2Client');
-const MediaManager        = require('./services/MediaManager');
+const MediaManager              = require('./services/MediaManager');
+const SecureMediaAccessService  = require('./services/SecureMediaAccessService');
 
 // ── Controllers ───────────────────────────────────────────────
 const criarClienteController      = require('./controllers/ClienteController');
@@ -57,6 +58,7 @@ const criarLgpdController          = require('./controllers/LgpdController');
 const criarAuthController          = require('./controllers/AuthController');
 const criarUserController          = require('./controllers/UserController');
 const criarMediaController         = require('./controllers/MediaController');
+const criarSecureMediaController   = require('./controllers/SecureMediaController');
 
 // ── Origens permitidas (CORS) ──────────────────────────────────
 const ALLOWED_ORIGINS = new Set([
@@ -129,6 +131,7 @@ function criarApp() {
   const authService         = new AuthService(supabase);
   const r2Client            = R2Client.getInstance();
   const mediaManager        = new MediaManager(r2Client, supabase);
+  const secureMediaAccess   = new SecureMediaAccessService(r2Client, supabase);
 
   // ── Rate limiting extra em rotas de autenticação ────────────
   app.use('/api/auth', RateLimitMiddleware.auth);
@@ -145,6 +148,7 @@ function criarApp() {
   app.use('/api/auth',          criarAuthController(cadastroService, authService));
   app.use('/api/usuarios',      criarUserController(userService));
   app.use('/api/media',         criarMediaController(mediaManager));
+  app.use('/api/media/secure',  criarSecureMediaController(secureMediaAccess));
 
   // ── Health check com ping real no banco ─────────────────────
   app.get('/api/health', async (_req, res) => {

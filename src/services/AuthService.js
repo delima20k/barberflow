@@ -20,6 +20,7 @@
 
 const BaseService     = require('../infra/BaseService');
 const PasswordService = require('../infra/PasswordService');
+const TokenService    = require('../infra/TokenService');
 
 class AuthService extends BaseService {
 
@@ -169,6 +170,36 @@ class AuthService extends BaseService {
     } catch {
       // Silencioso
     }
+  }
+
+  // ── Validação de token (uso no SecureMediaAccessService) ──────────
+
+  /**
+   * Valida um JWT do Supabase Auth e retorna o usuário autenticado.
+   * Tenta verificação local (zero latência) com fallback para rede.
+   *
+   * @param {string} token — Bearer token do Supabase Auth
+   * @returns {Promise<{ id: string, email: string }>}
+   * @throws {Error{status:401}} token ausente, inválido ou expirado
+   */
+  async validateUser(token) {
+    if (!token?.trim()) throw this._erro('Token de autenticação ausente.', 401);
+
+    // Verificação local (zero latência) quando SUPABASE_JWT_SECRET está disponível
+    if (process.env.SUPABASE_JWT_SECRET) {
+      try {
+        const payload = TokenService.verificarSupabase(token);
+        return { id: payload.sub, email: payload.email ?? '' };
+      } catch {
+        throw this._erro('Token inválido ou expirado.', 401);
+      }
+    }
+
+    // Fallback: verificação por rede (quando SUPABASE_JWT_SECRET não está configurado)
+    const { data, error } = await this.#supabase.auth.getUser(token);
+    if (error || !data?.user) throw this._erro('Token inválido ou expirado.', 401);
+
+    return { id: data.user.id, email: data.user.email ?? '' };
   }
 }
 

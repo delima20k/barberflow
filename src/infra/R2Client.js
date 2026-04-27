@@ -20,6 +20,7 @@
 const {
   S3Client,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
 } = require('@aws-sdk/client-s3');
@@ -68,7 +69,23 @@ class R2Client {
     R2Client.#instance ??= new R2Client();
     return R2Client.#instance;
   }
+  // ── Download P2P (URL assinada de leitura) ────────────────────
 
+  /**
+   * Gera URL de download assinada de curta duração (private bucket).
+   * O arquivo nunca fica público — acesso apenas com esta URL temporal.
+   *
+   * @param {string} path        — chave no bucket
+   * @param {number} [expiresIn] — segundos até a URL expirar (padrão: 60s)
+   * @returns {Promise<string>}  — URL de download assinada
+   */
+  async presignedGet(path, expiresIn = 60) {
+    const cmd = new GetObjectCommand({
+      Bucket: this.#bucket,
+      Key:    path,
+    });
+    return getSignedUrl(this.#s3, cmd, { expiresIn });
+  }
   // ── Upload P2P ──────────────────────────────────────────────
 
   /**
