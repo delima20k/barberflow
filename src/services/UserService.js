@@ -11,8 +11,7 @@
 // Nunca acessa o banco diretamente — delega ao ClienteRepository.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
-const BaseService    = require('../infra/BaseService');
+const BaseService = require('../infra/BaseService');
 
 class UserService extends BaseService {
 
@@ -31,8 +30,7 @@ class UserService extends BaseService {
    * @returns {Promise<object>}
    */
   async buscarPorEmail(email) {
-    const r = InputValidator.email(email);
-    if (!r.ok) throw this._erro(`email: ${r.msg}`);
+    this._email('email', email);
 
     const perfil = await this.#clienteRepository.findByEmail(email);
     if (!perfil) throw this._erro('Usuário não encontrado.', 404);
