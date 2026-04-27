@@ -10,8 +10,9 @@
 // =============================================================
 
 const InputValidator = require('../infra/InputValidator');
+const BaseRepository  = require('../infra/BaseRepository');
 
-class AgendamentoRepository {
+class AgendamentoRepository extends BaseRepository {
 
   #supabase;
 
@@ -31,6 +32,7 @@ class AgendamentoRepository {
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('AgendamentoRepository');
     this.#supabase = supabase;
   }
 
@@ -42,8 +44,7 @@ class AgendamentoRepository {
    * @returns {Promise<object[]>}
    */
   async getByProfissional(professionalId, inicio, fim) {
-    const rId = InputValidator.uuid(professionalId);
-    if (!rId.ok) throw new TypeError(`[AgendamentoRepository] professionalId: ${rId.msg}`);
+    this._validarUuid('professionalId', professionalId);
 
     const { data, error } = await this.#supabase
       .from('appointments')
@@ -64,8 +65,7 @@ class AgendamentoRepository {
    * @returns {Promise<object[]>}
    */
   async getByCliente(clientId, limit = 20) {
-    const rId = InputValidator.uuid(clientId);
-    if (!rId.ok) throw new TypeError(`[AgendamentoRepository] clientId: ${rId.msg}`);
+    this._validarUuid('clientId', clientId);
 
     const { data, error } = await this.#supabase
       .from('appointments')
@@ -84,8 +84,7 @@ class AgendamentoRepository {
    * @returns {Promise<object>}
    */
   async getById(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[AgendamentoRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('appointments')
@@ -103,8 +102,7 @@ class AgendamentoRepository {
    * @returns {Promise<object>}
    */
   async criar(dados) {
-    const { ok, msg, valor } = InputValidator.payload(dados, AgendamentoRepository.#CAMPOS_CRIACAO);
-    if (!ok) throw new TypeError(`[AgendamentoRepository] ${msg}`);
+    const valor = this._validarPayload(dados, AgendamentoRepository.#CAMPOS_CRIACAO);
 
     const { data, error } = await this.#supabase
       .from('appointments')
@@ -123,8 +121,7 @@ class AgendamentoRepository {
    * @returns {Promise<object>}
    */
   async atualizarStatus(id, status) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[AgendamentoRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('appointments')

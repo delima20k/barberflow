@@ -9,14 +9,15 @@
 // Usa @supabase/supabase-js com service_role key.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseRepository = require('../infra/BaseRepository');
 
-class ClienteRepository {
+class ClienteRepository extends BaseRepository {
 
   #supabase;
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('ClienteRepository');
     this.#supabase = supabase;
   }
 
@@ -32,8 +33,7 @@ class ClienteRepository {
    * @returns {Promise<object>}
    */
   async getById(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[ClienteRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('profiles')
@@ -53,11 +53,9 @@ class ClienteRepository {
    * @returns {Promise<object>}
    */
   async update(id, dados) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[ClienteRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
-    const { ok, msg, valor } = InputValidator.payload(dados, ClienteRepository.#CAMPOS_ATUALIZAVEIS);
-    if (!ok) throw new TypeError(`[ClienteRepository] ${msg}`);
+    const valor = this._validarPayload(dados, ClienteRepository.#CAMPOS_ATUALIZAVEIS);
 
     const { data, error } = await this.#supabase
       .from('profiles')
@@ -77,8 +75,7 @@ class ClienteRepository {
    * @returns {Promise<object|null>}
    */
   async getPerfilPublico(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[ClienteRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('profiles_public')
@@ -100,8 +97,7 @@ class ClienteRepository {
    * @returns {Promise<object|null>}
    */
   async findByEmail(email) {
-    const rEmail = InputValidator.email(email);
-    if (!rEmail.ok) throw new TypeError(`[ClienteRepository] email: ${rEmail.msg}`);
+    this._validarEmail(email);
 
     const { data, error } = await this.#supabase
       .rpc('get_client_by_email', { p_email: email.toLowerCase().trim() });

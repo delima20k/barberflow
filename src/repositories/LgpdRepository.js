@@ -8,14 +8,15 @@
 // Sem lógica de negócio — apenas acesso e persistência.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseRepository = require('../infra/BaseRepository');
 
-class LgpdRepository {
+class LgpdRepository extends BaseRepository {
 
   #supabase;
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('LgpdRepository');
     this.#supabase = supabase;
   }
 
@@ -25,8 +26,7 @@ class LgpdRepository {
    * @returns {Promise<object|null>}
    */
   async verificarAceite(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[LgpdRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('legal_consents')
@@ -47,6 +47,8 @@ class LgpdRepository {
    * @returns {Promise<object>}
    */
   async registrarAceite(userId, dados) {
+    this._validarUuid('userId', userId);
+
     const { data, error } = await this.#supabase
       .from('legal_consents')
       .insert({
@@ -69,11 +71,14 @@ class LgpdRepository {
    * @returns {Promise<object>}
    */
   async solicitarExclusao(userId, motivo) {
+    this._validarUuid('userId', userId);
+    const motivoSanitizado = this._validarTexto('motivo', motivo, 1000, true);
+
     const { data, error } = await this.#supabase
       .from('data_deletion_requests')
       .insert({
         user_id: userId,
-        reason:  motivo,
+        reason:  motivoSanitizado,
         status:  'pending',
       })
       .select()
@@ -89,6 +94,9 @@ class LgpdRepository {
    * @returns {Promise<object>}
    */
   async registrarLogAcesso(dados) {
+    this._validarUuid('accessed_by', dados?.accessed_by);
+    this._validarUuid('target_user_id', dados?.target_user_id);
+
     const { data, error } = await this.#supabase
       .from('data_access_log')
       .insert({

@@ -9,14 +9,15 @@
 // Sem lógica de negócio — apenas acesso e persistência.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseRepository = require('../infra/BaseRepository');
 
-class SocialRepository {
+class SocialRepository extends BaseRepository {
 
   #supabase;
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('SocialRepository');
     this.#supabase = supabase;
   }
 
@@ -28,8 +29,7 @@ class SocialRepository {
    * @returns {Promise<object[]>}
    */
   async getStoriesByBarbershop(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw new TypeError(`[SocialRepository] barbershopId: ${rId.msg}`);
+    this._validarUuid('barbershopId', barbershopId);
 
     const now = new Date().toISOString();
 
@@ -54,10 +54,8 @@ class SocialRepository {
    * @returns {Promise<object>}
    */
   async createStory(dados) {
-    const rShop   = InputValidator.uuid(dados?.barbershop_id);
-    const rAuthor = InputValidator.uuid(dados?.author_id);
-    if (!rShop.ok)   throw new TypeError(`[SocialRepository] barbershop_id: ${rShop.msg}`);
-    if (!rAuthor.ok) throw new TypeError(`[SocialRepository] author_id: ${rAuthor.msg}`);
+    this._validarUuid('barbershop_id', dados?.barbershop_id);
+    this._validarUuid('author_id', dados?.author_id);
 
     const { data, error } = await this.#supabase
       .from('stories')
@@ -83,10 +81,8 @@ class SocialRepository {
    * @returns {Promise<boolean>}
    */
   async deleteStory(storyId, authorId) {
-    const rStory  = InputValidator.uuid(storyId);
-    const rAuthor = InputValidator.uuid(authorId);
-    if (!rStory.ok)  throw new TypeError(`[SocialRepository] storyId: ${rStory.msg}`);
-    if (!rAuthor.ok) throw new TypeError(`[SocialRepository] authorId: ${rAuthor.msg}`);
+    this._validarUuid('storyId', storyId);
+    this._validarUuid('authorId', authorId);
 
     const { error } = await this.#supabase
       .from('stories')
@@ -106,9 +102,13 @@ class SocialRepository {
    * @returns {Promise<object>}
    */
   async addComment(storyId, userId, texto) {
+    this._validarUuid('storyId', storyId);
+    this._validarUuid('userId', userId);
+    const conteudo = this._validarTexto('texto', texto, 500, true);
+
     const { data, error } = await this.#supabase
       .from('story_comments')
-      .insert({ story_id: storyId, user_id: userId, content: texto })
+      .insert({ story_id: storyId, user_id: userId, content: conteudo })
       .select()
       .single();
 
@@ -125,6 +125,9 @@ class SocialRepository {
    * @returns {Promise<number>} — 0 se não existia, 1 se deletou
    */
   async deleteLike(professionalId, userId) {
+    this._validarUuid('professionalId', professionalId);
+    this._validarUuid('userId', userId);
+
     const { data, error } = await this.#supabase
       .from('professional_likes')
       .delete()
@@ -143,6 +146,9 @@ class SocialRepository {
    * @returns {Promise<boolean>}
    */
   async addLike(professionalId, userId) {
+    this._validarUuid('professionalId', professionalId);
+    this._validarUuid('userId', userId);
+
     const { error } = await this.#supabase
       .from('professional_likes')
       .insert({ professional_id: professionalId, user_id: userId });
@@ -158,8 +164,7 @@ class SocialRepository {
    * @returns {Promise<string[]>}
    */
   async getLikesByUser(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[SocialRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('professional_likes')
@@ -179,6 +184,9 @@ class SocialRepository {
    * @returns {Promise<number>}
    */
   async deleteFavorite(professionalId, userId) {
+    this._validarUuid('professionalId', professionalId);
+    this._validarUuid('userId', userId);
+
     const { data, error } = await this.#supabase
       .from('favorite_professionals')
       .delete()
@@ -197,6 +205,9 @@ class SocialRepository {
    * @returns {Promise<boolean>}
    */
   async addFavorite(professionalId, userId) {
+    this._validarUuid('professionalId', professionalId);
+    this._validarUuid('userId', userId);
+
     const { error } = await this.#supabase
       .from('favorite_professionals')
       .insert({ professional_id: professionalId, user_id: userId });
@@ -211,8 +222,7 @@ class SocialRepository {
    * @returns {Promise<object[]>}
    */
   async getFavoritesByUser(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[SocialRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('favorite_professionals')

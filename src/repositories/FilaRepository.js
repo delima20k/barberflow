@@ -8,9 +8,9 @@
 // Sem lógica de negócio — apenas acesso e persistência.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseRepository = require('../infra/BaseRepository');
 
-class FilaRepository {
+class FilaRepository extends BaseRepository {
 
   #supabase;
 
@@ -22,6 +22,7 @@ class FilaRepository {
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('FilaRepository');
     this.#supabase = supabase;
   }
 
@@ -31,8 +32,7 @@ class FilaRepository {
    * @returns {Promise<object[]>}
    */
   async getFila(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw new TypeError(`[FilaRepository] barbershopId: ${rId.msg}`);
+    this._validarUuid('barbershopId', barbershopId);
 
     const { data, error } = await this.#supabase
       .from('queue_entries')
@@ -51,8 +51,7 @@ class FilaRepository {
    * @returns {Promise<object|null>}
    */
   async getEntrada(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[FilaRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('queue_entries')
@@ -72,6 +71,9 @@ class FilaRepository {
    * @returns {Promise<object>}
    */
   async entrar(barbershopId, userId, dados = {}) {
+    this._validarUuid('barbershopId', barbershopId);
+    this._validarUuid('userId', userId);
+
     const { data, error } = await this.#supabase
       .from('queue_entries')
       .insert({
@@ -95,10 +97,8 @@ class FilaRepository {
    * @returns {Promise<boolean>}
    */
   async sair(entradaId, userId) {
-    const rEnt = InputValidator.uuid(entradaId);
-    const rUsr = InputValidator.uuid(userId);
-    if (!rEnt.ok) throw new TypeError(`[FilaRepository] entradaId: ${rEnt.msg}`);
-    if (!rUsr.ok) throw new TypeError(`[FilaRepository] userId: ${rUsr.msg}`);
+    this._validarUuid('entradaId', entradaId);
+    this._validarUuid('userId', userId);
 
     const { error } = await this.#supabase
       .from('queue_entries')
@@ -117,8 +117,7 @@ class FilaRepository {
    * @returns {Promise<object>}
    */
   async atualizarStatus(entradaId, novoStatus) {
-    const rId = InputValidator.uuid(entradaId);
-    if (!rId.ok) throw new TypeError(`[FilaRepository] entradaId: ${rId.msg}`);
+    this._validarUuid('entradaId', entradaId);
 
     const { data, error } = await this.#supabase
       .from('queue_entries')

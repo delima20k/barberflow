@@ -8,14 +8,15 @@
 // Responsável pela criação de perfil pós-signUp.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseRepository = require('../infra/BaseRepository');
 
-class AuthRepository {
+class AuthRepository extends BaseRepository {
 
   #supabase;
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('AuthRepository');
     this.#supabase = supabase;
   }
 
@@ -28,8 +29,7 @@ class AuthRepository {
    * @returns {Promise<object>}
    */
   async criarPerfil(userId, dados) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[AuthRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('profiles')
@@ -51,8 +51,7 @@ class AuthRepository {
    * @returns {Promise<object>}
    */
   async criarBarbearia(ownerId, nome) {
-    const rId = InputValidator.uuid(ownerId);
-    if (!rId.ok) throw new TypeError(`[AuthRepository] ownerId: ${rId.msg}`);
+    this._validarUuid('ownerId', ownerId);
 
     const { data, error } = await this.#supabase
       .from('barbershops')
@@ -75,8 +74,7 @@ class AuthRepository {
    * @returns {Promise<object|null>}
    */
   async getPerfilPublico(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[AuthRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('profiles_public')

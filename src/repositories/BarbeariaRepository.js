@@ -10,8 +10,9 @@
 // =============================================================
 
 const InputValidator = require('../infra/InputValidator');
+const BaseRepository  = require('../infra/BaseRepository');
 
-class BarbeariaRepository {
+class BarbeariaRepository extends BaseRepository {
 
   #supabase;
 
@@ -24,6 +25,7 @@ class BarbeariaRepository {
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('BarbeariaRepository');
     this.#supabase = supabase;
   }
 
@@ -33,8 +35,7 @@ class BarbeariaRepository {
    * @returns {Promise<object>}
    */
   async getById(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[BarbeariaRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('barbershops')
@@ -81,8 +82,7 @@ class BarbeariaRepository {
    * @returns {Promise<object[]>}
    */
   async getServicos(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw new TypeError(`[BarbeariaRepository] barbershopId: ${rId.msg}`);
+    this._validarUuid('barbershopId', barbershopId);
 
     const { data, error } = await this.#supabase
       .from('services')
@@ -101,8 +101,7 @@ class BarbeariaRepository {
    * @returns {Promise<object[]>}
    */
   async getFavoritas(userId) {
-    const rId = InputValidator.uuid(userId);
-    if (!rId.ok) throw new TypeError(`[BarbeariaRepository] userId: ${rId.msg}`);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('favorite_barbershops')
@@ -121,10 +120,8 @@ class BarbeariaRepository {
    * @returns {Promise<object>}
    */
   async addInteracao(barbershopId, userId, tipo) {
-    const rBid = InputValidator.uuid(barbershopId);
-    if (!rBid.ok) throw new TypeError(`[BarbeariaRepository] barbershopId: ${rBid.msg}`);
-    const rUid = InputValidator.uuid(userId);
-    if (!rUid.ok) throw new TypeError(`[BarbeariaRepository] userId: ${rUid.msg}`);
+    this._validarUuid('barbershopId', barbershopId);
+    this._validarUuid('userId', userId);
 
     const { data, error } = await this.#supabase
       .from('barbershop_interactions')

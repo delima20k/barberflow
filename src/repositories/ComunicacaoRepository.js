@@ -8,7 +8,6 @@
 // Sem lógica de negócio — apenas acesso e persistência.
 // =============================================================
 
-const InputValidator  = require('../infra/InputValidator');
 const BaseRepository  = require('../infra/BaseRepository');
 
 class ComunicacaoRepository extends BaseRepository {
@@ -120,15 +119,14 @@ class ComunicacaoRepository extends BaseRepository {
     this._validarUuid('remetente', remetente);
     this._validarUuid('destinatario', destinatario);
 
-    const rConteudo = InputValidator.textoLivre(conteudo, 2000, true);
-    if (!rConteudo.ok) throw new TypeError(`[ComunicacaoRepository] conteudo: ${rConteudo.msg}`);
+    const conteudoSanitizado = this._validarTexto('conteudo', conteudo, 2000, true);
 
     const { data, error } = await this.#supabase
       .from('direct_messages')
       .insert({
         sender_id:   remetente,
         receiver_id: destinatario,
-        content:     rConteudo.valor,
+        content:     conteudoSanitizado,
         is_read:     false,
       })
       .select()

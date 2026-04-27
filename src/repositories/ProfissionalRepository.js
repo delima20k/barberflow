@@ -9,9 +9,9 @@
 // Usa @supabase/supabase-js com service_role key.
 // =============================================================
 
-const InputValidator = require('../infra/InputValidator');
+const BaseRepository = require('../infra/BaseRepository');
 
-class ProfissionalRepository {
+class ProfissionalRepository extends BaseRepository {
 
   #supabase;
 
@@ -24,6 +24,7 @@ class ProfissionalRepository {
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
   constructor(supabase) {
+    super('ProfissionalRepository');
     this.#supabase = supabase;
   }
 
@@ -34,8 +35,7 @@ class ProfissionalRepository {
    * @returns {Promise<object|null>}
    */
   async getById(id) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[ProfissionalRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
     const { data, error } = await this.#supabase
       .from('professionals')
@@ -53,8 +53,7 @@ class ProfissionalRepository {
    * @returns {Promise<object[]>}
    */
   async getByBarbershop(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw new TypeError(`[ProfissionalRepository] barbershopId: ${rId.msg}`);
+    this._validarUuid('barbershopId', barbershopId);
 
     const { data, error } = await this.#supabase
       .from('professionals')
@@ -74,11 +73,9 @@ class ProfissionalRepository {
    * @returns {Promise<object>}
    */
   async update(id, dados) {
-    const rId = InputValidator.uuid(id);
-    if (!rId.ok) throw new TypeError(`[ProfissionalRepository] id: ${rId.msg}`);
+    this._validarUuid('id', id);
 
-    const { ok, msg, valor } = InputValidator.payload(dados, ProfissionalRepository.#CAMPOS_ATUALIZAVEIS);
-    if (!ok) throw new TypeError(`[ProfissionalRepository] ${msg}`);
+    const valor = this._validarPayload(dados, ProfissionalRepository.#CAMPOS_ATUALIZAVEIS);
 
     const { data, error } = await this.#supabase
       .from('professionals')
@@ -97,8 +94,7 @@ class ProfissionalRepository {
    * @returns {Promise<object[]>}
    */
   async getCadeiras(barbershopId) {
-    const rId = InputValidator.uuid(barbershopId);
-    if (!rId.ok) throw new TypeError(`[ProfissionalRepository] barbershopId: ${rId.msg}`);
+    this._validarUuid('barbershopId', barbershopId);
 
     const { data, error } = await this.#supabase
       .from('chairs')
@@ -117,8 +113,7 @@ class ProfissionalRepository {
    * @returns {Promise<object[]>}
    */
   async getPortfolio(professionalId) {
-    const rId = InputValidator.uuid(professionalId);
-    if (!rId.ok) throw new TypeError(`[ProfissionalRepository] professionalId: ${rId.msg}`);
+    this._validarUuid('professionalId', professionalId);
 
     const { data, error } = await this.#supabase
       .from('portfolio_images')
@@ -137,8 +132,7 @@ class ProfissionalRepository {
    * @returns {Promise<object>}
    */
   async addPortfolioImage(professionalId, dados) {
-    const rId = InputValidator.uuid(professionalId);
-    if (!rId.ok) throw new TypeError(`[ProfissionalRepository] professionalId: ${rId.msg}`);
+    this._validarUuid('professionalId', professionalId);
 
     const { data, error } = await this.#supabase
       .from('portfolio_images')
@@ -162,10 +156,8 @@ class ProfissionalRepository {
    * @returns {Promise<boolean>}
    */
   async removePortfolioImage(imageId, professionalId) {
-    const rImg = InputValidator.uuid(imageId);
-    const rPro = InputValidator.uuid(professionalId);
-    if (!rImg.ok) throw new TypeError(`[ProfissionalRepository] imageId: ${rImg.msg}`);
-    if (!rPro.ok) throw new TypeError(`[ProfissionalRepository] professionalId: ${rPro.msg}`);
+    this._validarUuid('imageId', imageId);
+    this._validarUuid('professionalId', professionalId);
 
     const { error } = await this.#supabase
       .from('portfolio_images')
