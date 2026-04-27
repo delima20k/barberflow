@@ -89,6 +89,30 @@ class R2Client {
     return getSignedUrl(this.#s3, cmd, { expiresIn });
   }
 
+  // ── Upload server-side ──────────────────────────────────────
+
+  /**
+   * Envia um buffer diretamente ao R2 a partir do servidor.
+   * Use quando o arquivo já está no servidor (ex: upload seguro com criptografia).
+   * Para uploads P2P (browser → R2), use presignedPut() em vez deste método.
+   *
+   * @param {string} path        — chave no bucket
+   * @param {Buffer} buffer      — conteúdo a enviar
+   * @param {string} contentType — MIME type
+   * @returns {Promise<void>}
+   */
+  async putBuffer(path, buffer, contentType) {
+    await this.#s3.send(
+      new PutObjectCommand({
+        Bucket:        this.#bucket,
+        Key:           path,
+        Body:          buffer,
+        ContentType:   contentType,
+        ContentLength: buffer.length,
+      })
+    );
+  }
+
   // ── Verificação ─────────────────────────────────────────────
 
   /**

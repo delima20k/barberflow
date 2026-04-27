@@ -169,6 +169,8 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
+| `ChunkService` | [src/services/ChunkService.js](src/services/ChunkService.js) | application | Divisão e recomposição de buffers em chunks com SHA-256 por chunk. Valida hashes antes do merge (anti-adulteração). Métodos: split(), merge(). timingSafeEqual nas comparações. Usado em conjunto com EncryptionService. |
+| `EncryptionService` | [src/services/EncryptionService.js](src/services/EncryptionService.js) | application | Criptografia simétrica autenticada AES-256-GCM. Chave e IV aleatórios por arquivo (zero reutilização). Métodos: encrypt(buffer) → EncryptedResult, decrypt(EncryptedResult) → Buffer. Falha loudly se authTag, key ou IV estiverem incorretos. |
 | `MediaManager` | [src/services/MediaManager.js](src/services/MediaManager.js) | application | Sistema híbrido de mídia P2P+R2+Supabase. Contextos: stories/avatars/services/portfolio. Gera presigned URL, valida HMAC token, HEAD-verifica R2, salva metadata em media_files. Métodos: gerarUrlPresigned(), confirmarUpload(), deletar(), listar(), publicUrl(). |
 | `AgendamentoService` | [src/services/AgendamentoService.js](src/services/AgendamentoService.js) | application | Regras de negócio de agendamentos. Verifica conflito de horário em criarAgendamento, ownership em atualizarStatus/cancelar, transições de status via #validarTransicao. |
 | `AuthService` | [src/services/AuthService.js](src/services/AuthService.js) | application | Orquestração de autenticação via Supabase Auth Admin API. login(), renovarToken(), logout() (tolerante), alterarSenha() (valida força via PasswordService), solicitarResetSenha() (anti-enumeração). |

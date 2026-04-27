@@ -37,8 +37,10 @@
 // Dependências: R2Client, BaseService, InputValidator
 // =============================================================
 
-const crypto      = require('crypto');
-const BaseService = require('../infra/BaseService');
+const crypto           = require('crypto');
+const BaseService      = require('../infra/BaseService');
+const EncryptionService = require('./EncryptionService');
+const ChunkService      = require('./ChunkService');
 
 // ── Mapeamento MIME → extensão de arquivo ──────────────────────
 const MIME_PARA_EXT = Object.freeze({
@@ -83,18 +85,26 @@ class MediaManager extends BaseService {
   /** @type {string} */
   #signingSecret;
 
+  /** @type {EncryptionService} */
+  #encryption;
+
+  /** @type {ChunkService} */
+  #chunks;
+
   /**
    * @param {import('../infra/R2Client')} r2Client  — instância do R2Client
    * @param {import('@supabase/supabase-js').SupabaseClient} supabase
    */
   constructor(r2Client, supabase) {
     super('MediaManager');
-    this.#r2       = r2Client;
-    this.#supabase = supabase;
+    this.#r2            = r2Client;
+    this.#supabase      = supabase;
     this.#signingSecret = process.env.MEDIA_SIGNING_SECRET ?? '';
     if (!this.#signingSecret) {
       throw new Error('[MediaManager] MEDIA_SIGNING_SECRET é obrigatório no .env');
     }
+    this.#encryption = new EncryptionService();
+    this.#chunks     = new ChunkService(); // 1 MB por chunk (padrão)
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -224,6 +234,93 @@ class MediaManager extends BaseService {
     }
 
     return { id: data.id, path, publicUrl, tamanhoBytes };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // Upload seguro (server-side, criptografado)
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Upload server-side com criptografia AES-256-GCM + validação por chunks.
+   *
+   * DIFERENÇA DO FLUXO P2P:
+   *   - O arquivo transita pelo servidor Express (não é P2P)
+   *   - O servidor criptografa antes de armazenar no R2
+   *   - Zero plaintext no R2 — apenas ciphertext
+   *   - Metadados de criptografia ficam em media_files.metadata.cripto
+   *
+   * FLUXO INTERNO:
+   *   1. Valida inputs (contexto, ownerId, contentType, tamanho)
+   *   2. EncryptionService.encrypt(buffer)  → ciphertext + { key, iv, authTag }
+   *   3. ChunkService.split(ciphertext)     → valida integridade dos chunks
+   *   4. ChunkService.merge(chunks)         → reconstrói (valida hashes)
+   *   5. R2Client.putBuffer(path, merged)   → envia ciphertext ao R2
+   *   6. Supabase: persiste metadados + cripto
+   *
+   * AVISO DE SEGURANÇA — gestão de chaves em produção:
+   *   A chave `cripto.key` é salva em media_files.metadata.
+   *   EM PRODUÇÃO: substitua pelo ID de uma chave em um KMS
+   *   (AWS KMS, Cloudflare Workers Secrets, HashiCorp Vault, etc.)
+   *   e NUNCA armazene a chave no mesmo lugar que o ciphertext.
+   *
+   * @param {object} params
+   * @param {Buffer} params.buffer      — Conteúdo em plaintext
+   * @param {string} params.contexto    — 'stories' | 'avatars' | 'services' | 'portfolio'
+   * @param {string} params.ownerId     — UUID do usuário autenticado
+   * @param {string} params.contentType — MIME type original do arquivo
+   * @param {object} [params.metadata]  — Dados extras livres
+   * @returns {Promise<{id: string, path: string, tamanhoBytes: number}>}
+   */
+  async processarUploadSeguro({ buffer, contexto, ownerId, contentType, metadata = {} }) {
+    if (!Buffer.isBuffer(buffer)) throw this._erro('buffer deve ser um Buffer.', 400);
+    this._uuid('ownerId', ownerId);
+    this._enum('contexto', contexto, Object.keys(CONTEXTOS));
+
+    const cfg = CONTEXTOS[contexto];
+    if (!cfg.mimes.has(contentType)) {
+      throw this._erro(`Tipo de arquivo não permitido para "${contexto}": ${contentType}`, 415);
+    }
+    if (buffer.length > cfg.maxBytes) {
+      throw this._erro(
+        `Arquivo excede o limite de ${cfg.maxBytes / 1024 / 1024} MB para "${contexto}".`,
+        413
+      );
+    }
+
+    // ── Etapa 1: criptografar (plaintext → ciphertext) ─────────────
+    const { data: ciphertext, key, iv, authTag } = this.#encryption.encrypt(buffer);
+
+    // ── Etapa 2: dividir em chunks e validar integridade ───────────
+    const chunks = this.#chunks.split(ciphertext);
+    const merged = this.#chunks.merge(chunks); // lança se qualquer hash falhar
+
+    // ── Etapa 3: enviar ciphertext ao R2 ───────────────────────────
+    const ext  = MIME_PARA_EXT[contentType] ?? 'bin';
+    const path = `${contexto}/${ownerId}/${crypto.randomUUID()}.enc.${ext}`;
+    await this.#r2.putBuffer(path, merged, 'application/octet-stream');
+
+    // ── Etapa 4: persistir metadados (ciphertext path + cripto) ────
+    const { data, error } = await this.#supabase
+      .from('media_files')
+      .insert({
+        owner_id:      ownerId,
+        contexto,
+        path,
+        public_url:    '', // arquivos criptografados não têm URL pública direta
+        content_type:  'application/octet-stream',
+        tamanho_bytes: merged.length,
+        metadata: {
+          contentTypeOriginal: contentType,
+          cripto: { key, iv, authTag }, // ⚠️ substituir por KMS key ID em produção
+          ...Object.keys(metadata).length > 0 ? metadata : {},
+        },
+      })
+      .select('id')
+      .single();
+
+    if (error) throw Object.assign(new Error(error.message), { status: 500 });
+
+    return { id: data.id, path, tamanhoBytes: merged.length };
   }
 
   // ══════════════════════════════════════════════════════════════
