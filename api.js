@@ -3,71 +3,56 @@
 // =============================================================
 // api.js — Ponto de entrada do servidor de API BarberFlow.
 //
-// Responsabilidades:
-//   1. Carregar variáveis de ambiente
-//   2. Suporte a cluster (1 worker por CPU) em produção
-//   3. Graceful shutdown: aguarda requests ativos antes de fechar
+// Processo único e stateless — sem node:cluster.
+// A escala horizontal é responsabilidade do orquestrador externo:
+//   - PM2:        ecosystem.config.js  (fork mode, N instâncias)
+//   - Docker:     Dockerfile + réplicas
+//   - Kubernetes: Deployment com replicas + HPA
+//
+// Cada instância é completamente independente:
+//   - Sem memória compartilhada entre processos
+//   - Sem sessão armazenada em processo
+//   - Sem IPC entre workers
 //
 // Uso:
-//   node api.js
-//   PORT=3001 APP_ENV=production node api.js
+//   node api.js                        (desenvolvimento)
+//   pm2 start ecosystem.config.js      (produção via PM2)
+//   docker run barberflow-api          (produção via Docker)
 // =============================================================
 
 require('dotenv').config();
 
-const cluster = require('node:cluster');
-const os      = require('node:os');
-
-const IS_PROD    = process.env.APP_ENV === 'production';
-const NUM_CPUS   = os.cpus().length;
-const PORT       = parseInt(process.env.PORT ?? '3001', 10);
-
-// ── Cluster: primary distribui carga entre workers ────────────
-if (IS_PROD && cluster.isPrimary) {
-  const logger = require('./src/infra/LoggerService');
-  logger.info({ workers: NUM_CPUS, port: PORT }, '[BarberFlow API] Iniciando cluster');
-
-  for (let i = 0; i < NUM_CPUS; i++) {
-    cluster.fork();
-  }
-
-  cluster.on('exit', (worker, code) => {
-    logger.warn({ pid: worker.process.pid, code }, '[BarberFlow API] Worker encerrado — reiniciando');
-    cluster.fork(); // Auto-restart em produção
-  });
-
-  return; // Primary não sobe servidor HTTP
-}
-
-// ── Worker (ou processo único em desenvolvimento) ──────────────
 const criarApp = require('./src/app');
 const logger   = require('./src/infra/LoggerService');
 
+const PORT = parseInt(process.env.PORT ?? '3001', 10);
+
 const app    = criarApp();
 const server = app.listen(PORT, '0.0.0.0', () => {
-  const env = process.env.APP_ENV ?? 'development';
-  logger.info({ port: PORT, env, pid: process.pid }, '[BarberFlow API] Servidor iniciado');
+  logger.info(
+    { port: PORT, env: process.env.APP_ENV ?? 'development', pid: process.pid },
+    '[BarberFlow API] Servidor iniciado',
+  );
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────
-// Aguarda requests em andamento antes de fechar.
-// Kubernetes/Vercel/PM2 enviam SIGTERM antes de encerrar o processo.
+// PM2, Kubernetes e Docker enviam SIGTERM antes de encerrar.
+// Aguardamos requests ativos antes de fechar — zero downtime deploy.
 
 const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '10000', 10);
 
 function gracefulShutdown(signal) {
-  logger.info({ signal }, '[BarberFlow API] Sinal de encerramento recebido — aguardando requests');
+  logger.info({ signal }, '[BarberFlow API] Encerrando — aguardando requests ativos');
 
   server.close((err) => {
     if (err) {
       logger.error({ err }, '[BarberFlow API] Erro ao fechar servidor');
       process.exit(1);
     }
-    logger.info('[BarberFlow API] Servidor encerrado com sucesso');
+    logger.info('[BarberFlow API] Encerrado com sucesso');
     process.exit(0);
   });
 
-  // Força encerramento se requests demorarem demais
   setTimeout(() => {
     logger.warn('[BarberFlow API] Timeout de shutdown — forçando encerramento');
     process.exit(1);
@@ -77,7 +62,6 @@ function gracefulShutdown(signal) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
 
-// Captura erros não tratados — evita crash silencioso
 process.on('uncaughtException', (err) => {
   logger.fatal({ err }, '[BarberFlow API] Exceção não tratada — encerrando');
   process.exit(1);

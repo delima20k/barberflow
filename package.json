@@ -1,8 +1,13 @@
 {
   "scripts": {
-    "api": "node api.js",
-    "dev": "node server.js",
-    "test": "jest"
+    "api":          "node api.js",
+    "start":        "node api.js",
+    "start:pm2":    "pm2 start ecosystem.config.js --env production",
+    "reload:pm2":   "pm2 reload ecosystem.config.js --update-env",
+    "stop:pm2":     "pm2 stop barberflow-api",
+    "logs:pm2":     "pm2 logs barberflow-api",
+    "dev":          "node server.js",
+    "test":         "jest"
   },
   "devDependencies": {
     "jest": "^29.7.0",
