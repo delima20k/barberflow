@@ -59,9 +59,7 @@ function criarSocialController(socialService) {
   // ── POST /api/social/stories/:id/comentarios ──────────────────────────────
   router.post('/stories/:id/comentarios', async (req, res) => {
     try {
-      const { texto } = req.body;
-      if (!texto) return res.status(400).json({ ok: false, error: 'Campo "texto" obrigatório.' });
-      const comentario = await socialService.comentarStory(req.params.id, req.user.id, texto);
+      const comentario = await socialService.comentarStory(req.params.id, req.user.id, req.body.texto);
       res.status(201).json({ ok: true, dados: comentario });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });

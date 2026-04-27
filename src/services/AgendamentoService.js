@@ -23,16 +23,17 @@ class AgendamentoService extends BaseService {
 
   /**
    * Lista agendamentos de um profissional em um período.
-   * @param {string}      professionalId
-   * @param {Date|string} inicio
-   * @param {Date|string} fim
+   * Padrão: a partir de agora até +30 dias quando não informados.
+   * @param {string}           professionalId
+   * @param {Date|string|null} [inicio] — padrão: momento atual
+   * @param {Date|string|null} [fim]    — padrão: +30 dias
    * @returns {Promise<Agendamento[]>}
    */
-  async listarPorProfissional(professionalId, inicio, fim) {
+  async listarPorProfissional(professionalId, inicio = null, fim = null) {
     this._uuid('professionalId', professionalId);
 
-    const dtInicio = new Date(inicio);
-    const dtFim    = new Date(fim);
+    const dtInicio = inicio ? new Date(inicio) : new Date();
+    const dtFim    = fim    ? new Date(fim)    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     if (isNaN(dtInicio.getTime()) || isNaN(dtFim.getTime()))
       throw this._erro('Datas de início e fim inválidas.');

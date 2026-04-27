@@ -25,7 +25,7 @@ function criarComunicacaoController(comunicacaoService) {
   // ── GET /api/comunicacao/notificacoes ─────────────────────────────────────
   router.get('/notificacoes', async (req, res) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit, 10) : 30;
+      const limit  = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
       const notifs = await comunicacaoService.listarNotificacoes(req.user.id, limit);
       res.json({ ok: true, dados: notifs });
     } catch (err) {
@@ -46,8 +46,8 @@ function criarComunicacaoController(comunicacaoService) {
   // ── GET /api/comunicacao/mensagens/:contatoId ─────────────────────────────
   router.get('/mensagens/:contatoId', async (req, res) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit, 10) : 50;
-      const msgs = await comunicacaoService.listarConversa(req.user.id, req.params.contatoId, limit);
+      const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
+      const msgs  = await comunicacaoService.listarConversa(req.user.id, req.params.contatoId, limit);
       res.json({ ok: true, dados: msgs });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });
@@ -57,11 +57,11 @@ function criarComunicacaoController(comunicacaoService) {
   // ── POST /api/comunicacao/mensagens ───────────────────────────────────────
   router.post('/mensagens', async (req, res) => {
     try {
-      const { destinatario_id, conteudo } = req.body;
-      if (!destinatario_id || !conteudo)
-        return res.status(400).json({ ok: false, error: 'destinatario_id e conteudo são obrigatórios.' });
-
-      const msg = await comunicacaoService.enviarMensagem(req.user.id, destinatario_id, conteudo);
+      const msg = await comunicacaoService.enviarMensagem(
+        req.user.id,
+        req.body.destinatario_id,
+        req.body.conteudo,
+      );
       res.status(201).json({ ok: true, dados: msg });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });

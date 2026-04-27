@@ -15,8 +15,9 @@
 //   POST /api/barbearias/:id/interacao        — registrar interação (like, favorite, visit)
 // =============================================================
 
-const { Router }     = require('express');
-const AuthMiddleware = require('../infra/AuthMiddleware');
+const { Router }           = require('express');
+const AuthMiddleware       = require('../infra/AuthMiddleware');
+const ValidationMiddleware = require('../infra/ValidationMiddleware');
 
 /**
  * Cria e retorna o router de barbearias com o service injetado.
@@ -31,14 +32,17 @@ function criarBarbeariaController(barbeariaService) {
 
   // ── GET /api/barbearias ───────────────────────────────────
   // Query params: lat (obrigatório), lng (obrigatório), raio (km, opcional)
-  router.get('/', async (req, res) => {
+  router.get('/',
+    ValidationMiddleware.query({
+      lat:  { tipo: 'numero', obrigatorio: true },
+      lng:  { tipo: 'numero', obrigatorio: true },
+      raio: { tipo: 'numero', obrigatorio: false, min: 0.1, max: 100 },
+    }),
+    async (req, res) => {
     try {
-      const lat   = parseFloat(req.query.lat);
-      const lng   = parseFloat(req.query.lng);
-      const raio  = req.query.raio ? parseFloat(req.query.raio) : 5;
-
-      if (isNaN(lat) || isNaN(lng))
-        return res.status(400).json({ ok: false, error: 'Parâmetros lat e lng são obrigatórios.' });
+      const lat  = Number(req.query.lat);
+      const lng  = Number(req.query.lng);
+      const raio = req.query.raio ? Number(req.query.raio) : undefined;  // service usa 5 por padrão
 
       const resultados = await barbeariaService.listarProximas(lat, lng, raio);
 
@@ -94,11 +98,11 @@ function criarBarbeariaController(barbeariaService) {
   });
 
   // ── POST /api/barbearias/:id/interacao ────────────────────
-  router.post('/:id/interacao', async (req, res) => {
+  router.post('/:id/interacao',
+    ValidationMiddleware.corpo({ type: { tipo: 'texto', obrigatorio: true, maxLen: 50 } }),
+    async (req, res) => {
     try {
-      const { type } = req.body;
-      if (!type) return res.status(400).json({ ok: false, error: 'Campo "type" obrigatório.' });
-      const resultado = await barbeariaService.registrarInteracao(req.params.id, req.user.id, type);
+      const resultado = await barbeariaService.registrarInteracao(req.params.id, req.user.id, req.body.type);
       res.json({ ok: true, dados: resultado });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });

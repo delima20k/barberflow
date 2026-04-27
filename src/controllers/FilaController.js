@@ -59,10 +59,7 @@ function criarFilaController(filaService) {
   // ── PATCH /api/fila/:barbeariaId/entradas/:id/status ─────────────────────
   router.patch('/:barbeariaId/entradas/:id/status', async (req, res) => {
     try {
-      const { status } = req.body;
-      if (!status) return res.status(400).json({ ok: false, error: 'Campo "status" obrigatório.' });
-
-      const entrada = await filaService.atualizarStatusEntrada(req.params.id, status);
+      const entrada = await filaService.atualizarStatusEntrada(req.params.id, req.body.status);
       res.json({ ok: true, dados: entrada });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });

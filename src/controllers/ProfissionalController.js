@@ -15,6 +15,7 @@
 
 const { Router }     = require('express');
 const AuthMiddleware = require('../infra/AuthMiddleware');
+const RoleMiddleware = require('../infra/RoleMiddleware');
 
 /**
  * @param {import('../services/ProfissionalService')} profissionalService
@@ -65,13 +66,11 @@ function criarProfissionalController(profissionalService) {
   });
 
   // ── POST /api/profissionais/:id/portfolio ─────────────────────────────────
-  router.post('/:id/portfolio', async (req, res) => {
+  // Só profissionais podem adicionar ao próprio portfólio.
+  // req.user.id é o professionalId — sem comparar com :id (previne IDOR).
+  router.post('/:id/portfolio', RoleMiddleware.profissional, async (req, res) => {
     try {
-      // Profissional só pode adicionar ao próprio portfólio
-      if (req.params.id !== req.user.id)
-        return res.status(403).json({ ok: false, error: 'Não autorizado.' });
-
-      const imagem = await profissionalService.adicionarPortfolioImagem(req.params.id, req.body);
+      const imagem = await profissionalService.adicionarPortfolioImagem(req.user.id, req.body);
       res.status(201).json({ ok: true, dados: imagem });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });
@@ -79,12 +78,10 @@ function criarProfissionalController(profissionalService) {
   });
 
   // ── DELETE /api/profissionais/:id/portfolio/:imgId ────────────────────────
-  router.delete('/:id/portfolio/:imgId', async (req, res) => {
+  // O service valida que a imagem pertence ao req.user.id informado.
+  router.delete('/:id/portfolio/:imgId', RoleMiddleware.profissional, async (req, res) => {
     try {
-      if (req.params.id !== req.user.id)
-        return res.status(403).json({ ok: false, error: 'Não autorizado.' });
-
-      await profissionalService.removerPortfolioImagem(req.params.imgId, req.params.id);
+      await profissionalService.removerPortfolioImagem(req.params.imgId, req.user.id);
       res.json({ ok: true });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });

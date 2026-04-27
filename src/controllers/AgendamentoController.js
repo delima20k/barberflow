@@ -36,11 +36,7 @@ function criarAgendamentoController(agendamentoService) {
       let agendamentos;
 
       if (professionalId) {
-        agendamentos = await agendamentoService.listarPorProfissional(
-          professionalId,
-          inicio ?? new Date().toISOString(),
-          fim    ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        );
+        agendamentos = await agendamentoService.listarPorProfissional(professionalId, inicio, fim);
       } else if (clientId) {
         agendamentos = await agendamentoService.listarPorCliente(clientId);
       } else {
@@ -69,8 +65,6 @@ function criarAgendamentoController(agendamentoService) {
   router.patch('/:id/status', async (req, res) => {
     try {
       const { status } = req.body;
-      if (!status) return res.status(400).json({ ok: false, error: 'Campo "status" obrigatório.' });
-
       const agendamento = await agendamentoService.atualizarStatus(req.params.id, status, req.user.id);
       res.json({ ok: true, dados: agendamento.toJSON() });
     } catch (err) {
