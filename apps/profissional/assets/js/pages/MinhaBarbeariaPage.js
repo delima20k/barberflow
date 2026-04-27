@@ -256,7 +256,7 @@ class MinhaBarbeariaPage {
 
   static async #fetchServicos(barbershopId) {
     const { data, error } = await SupabaseService.services()
-      .select('id, name, description, duration_min, price')
+      .select('id, name, description, duration_min, price, image_path')
       .eq('barbershop_id', barbershopId)
       .eq('is_active', true)
       .order('price', { ascending: true });
