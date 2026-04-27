@@ -11,7 +11,7 @@
 //   é detectada e a operação é abortada com erro explícito.
 //
 // PROPRIEDADES DE SEGURANÇA:
-//   - Hash SHA-256 por chunk (integridade granular)
+//   - HashService (SHA-256) por chunk — integridade granular
 //   - timingSafeEqual na comparação de hashes (anti timing-attack)
 //   - Reordenação automática por índice antes do merge
 //   - Merge falha loudly (não silencia adulterações)
@@ -26,10 +26,10 @@
 //
 // Tamanho padrão: 1 MB por chunk (ajustável no construtor).
 //
-// Dependências: node:crypto (nativa — zero dependências externas)
+// Dependências: HashService (SHA-256 — integridade por chunk)
 // =============================================================
 
-const crypto = require('node:crypto');
+const HashService = require('./HashService');
 
 const DEFAULT_CHUNK_BYTES = 1 * 1024 * 1024; // 1 MB
 
@@ -45,14 +45,19 @@ class ChunkService {
   /** @type {number} */
   #chunkSize;
 
+  /** @type {HashService} */
+  #hashService;
+
   /**
-   * @param {number} [chunkSizeBytes=1048576] — Tamanho máximo de cada chunk em bytes (padrão: 1 MB)
+   * @param {number}      [chunkSizeBytes=1048576] — Tamanho máximo de cada chunk em bytes (padrão: 1 MB)
+   * @param {HashService} [hashService]            — Dependência de integridade (injetável para testes)
    */
-  constructor(chunkSizeBytes = DEFAULT_CHUNK_BYTES) {
+  constructor(chunkSizeBytes = DEFAULT_CHUNK_BYTES, hashService = new HashService()) {
     if (!Number.isInteger(chunkSizeBytes) || chunkSizeBytes < 1) {
       throw new RangeError('[ChunkService] chunkSizeBytes deve ser um inteiro positivo');
     }
-    this.#chunkSize = chunkSizeBytes;
+    this.#chunkSize    = chunkSizeBytes;
+    this.#hashService  = hashService;
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -81,7 +86,7 @@ class ChunkService {
       chunks.push({
         index,
         data: slice,
-        hash: ChunkService.#sha256Hex(slice),
+        hash: this.#hashService.generateHash(slice),
       });
     }
 
@@ -111,7 +116,7 @@ class ChunkService {
     ChunkService.#validarSequencia(sorted);
 
     for (const chunk of sorted) {
-      ChunkService.#verificarHash(chunk);
+      this.#verificarHash(chunk);
     }
 
     return Buffer.concat(sorted.map(c => c.data));
@@ -120,15 +125,6 @@ class ChunkService {
   // ══════════════════════════════════════════════════════════════
   // PRIVADO
   // ══════════════════════════════════════════════════════════════
-
-  /**
-   * Calcula SHA-256 de um buffer e retorna em hex (64 chars).
-   * @param {Buffer} buf
-   * @returns {string}
-   */
-  static #sha256Hex(buf) {
-    return crypto.createHash('sha256').update(buf).digest('hex');
-  }
 
   /**
    * Garante que índices formam uma sequência contígua começando em 0.
@@ -146,23 +142,14 @@ class ChunkService {
   }
 
   /**
-   * Verifica o hash SHA-256 de um chunk usando comparação timing-safe.
+   * Delega validação de hash ao HashService.
+   * Lança se o hash não bater — adulteração detectada; descarta imediatamente.
    * @param {Chunk} chunk
-   * @throws {Error} se o hash não bater
    */
-  static #verificarHash(chunk) {
-    const computed = ChunkService.#sha256Hex(chunk.data);
-    const expected = typeof chunk.hash === 'string' ? chunk.hash : '';
-
-    // timingSafeEqual requer buffers do mesmo tamanho
-    // SHA-256 hex é sempre 64 chars → buffers sempre iguais
-    const bufComputed = Buffer.from(computed);
-    const bufExpected = Buffer.from(expected.padEnd(computed.length, '\0'));
-
-    const valido = bufExpected.length === bufComputed.length &&
-                   crypto.timingSafeEqual(bufComputed, bufExpected);
-
-    if (!valido) {
+  #verificarHash(chunk) {
+    try {
+      this.#hashService.validateHash(chunk.data, chunk.hash);
+    } catch {
       throw new Error(`[ChunkService] hash mismatch no chunk ${chunk.index} — adulteração detectada`);
     }
   }
