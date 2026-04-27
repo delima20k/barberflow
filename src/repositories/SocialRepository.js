@@ -153,6 +153,9 @@ class SocialRepository {
    * @returns {Promise<string[]>}
    */
   async getLikesByUser(userId) {
+    const rId = InputValidator.uuid(userId);
+    if (!rId.ok) throw new TypeError(`[SocialRepository] userId: ${rId.msg}`);
+
     const { data, error } = await this.#supabase
       .from('professional_likes')
       .select('professional_id')

@@ -69,8 +69,10 @@ class BackendApiService {
       }
 
       return { data: json?.dados ?? json, error: null };
-    } catch (_) {
-      return { data: null, error: new Error('Sem conexão com a internet.') };
+    } catch (err) {
+      // Preserva mensagem original (ex: TypeError de fetch, AbortError de timeout)
+      const msg = err?.message ?? 'Sem conexão com a internet.';
+      return { data: null, error: new Error(msg) };
     }
   }
 

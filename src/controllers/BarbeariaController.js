@@ -61,6 +61,18 @@ function criarBarbeariaController(barbeariaService) {
     }
   });
 
+  // ── GET /api/barbearias/favoritas ─────────────────────────
+  // DEVE ficar antes de /:id — senão Express captura 'favoritas'
+  // como parâmetro de rota e nunca alcança esta handler.
+  router.get('/favoritas', async (req, res) => {
+    try {
+      const favoritas = await barbeariaService.listarFavoritas(req.user.id);
+      res.json({ ok: true, dados: favoritas });
+    } catch (err) {
+      res.status(err.status ?? 500).json({ ok: false, error: err.message });
+    }
+  });
+
   // ── GET /api/barbearias/:id ───────────────────────────────
   router.get('/:id', async (req, res) => {
     try {
@@ -76,17 +88,6 @@ function criarBarbeariaController(barbeariaService) {
     try {
       const servicos = await barbeariaService.listarServicos(req.params.id);
       res.json({ ok: true, dados: servicos });
-    } catch (err) {
-      res.status(err.status ?? 500).json({ ok: false, error: err.message });
-    }
-  });
-
-  // ── GET /api/barbearias/favoritas ─────────────────────────
-  // Precisa vir antes de /:id para não ser capturado como ID
-  router.get('/favoritas', async (req, res) => {
-    try {
-      const favoritas = await barbeariaService.listarFavoritas(req.user.id);
-      res.json({ ok: true, dados: favoritas });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });
     }

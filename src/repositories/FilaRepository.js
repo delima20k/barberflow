@@ -89,9 +89,9 @@ class FilaRepository {
   }
 
   /**
-   * Remove usuário da fila (status → cancelled).
+   * Remove a entrada da fila (hard delete com verificação de ownership).
    * @param {string} entradaId
-   * @param {string} userId — verifica ownership
+   * @param {string} userId — verifica ownership via eq('user_id')
    * @returns {Promise<boolean>}
    */
   async sair(entradaId, userId) {
