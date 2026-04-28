@@ -436,7 +436,7 @@
 
 /* ── Tela Barbearia — Stories section ─────────────────────── */
 #tela-barbearia .bp-stories-section {
-  margin-top: -1rem;
+  margin-top: -2rem;
   padding: 0;
   flex-shrink: 0;
   position: relative;
