@@ -54,7 +54,7 @@ class Router {
   get telasComNav() { return new Set([]); }
 
   /** Telas que exibem o footer offline (sem login). @returns {Set<string>} */
-  get telasOffline() { return new Set(['inicio', 'pesquisa', 'destaques', 'barbearias', 'barbeiros']); }
+  get telasOffline() { return new Set(['inicio', 'pesquisa', 'destaques', 'barbearias', 'barbeiros', 'barbearia']); }
 
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")
