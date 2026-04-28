@@ -434,6 +434,13 @@
   margin-top: 1.5rem;
 }
 
+/* ── Tela Barbearia — Stories section ─────────────────────── */
+#tela-barbearia .bp-stories-section {
+  margin-top: 0.5rem;
+  padding: 0;
+  flex-shrink: 0;
+}
+
 /* ── Tela Barbearia — Hero capa ────────────────────────────── */
 #tela-barbearia .bp-capa-wrap {
   position: relative;
