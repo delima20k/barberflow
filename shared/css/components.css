@@ -440,6 +440,9 @@
   padding: 0;
   flex-shrink: 0;
 }
+#tela-barbearia .bp-stories-section .story-card {
+  background: transparent;
+}
 
 /* ── Tela Barbearia — Hero capa ────────────────────────────── */
 #tela-barbearia .bp-capa-wrap {
