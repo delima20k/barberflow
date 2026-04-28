@@ -436,9 +436,11 @@
 
 /* ── Tela Barbearia — Stories section ─────────────────────── */
 #tela-barbearia .bp-stories-section {
-  margin-top: 0.5rem;
+  margin-top: -1rem;
   padding: 0;
   flex-shrink: 0;
+  position: relative;
+  z-index: 6;
 }
 #tela-barbearia .bp-stories-section .story-card {
   background: transparent;
