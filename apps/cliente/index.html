@@ -867,13 +867,18 @@
        funcionem corretamente (posição, animações, z-index).
   ============================================================ -->
   <main id="tela-barbearia" class="tela">
-    <div class="tela-topo">
+
+    <!-- Capa hero — sempre visível; botão voltar sobreposto -->
+    <div class="bp-capa-wrap">
       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
+      <div class="bp-logo-wrap">
+        <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
+      </div>
     </div>
 
-    <!-- Skeleton -->
+    <!-- Skeleton (capa já está acima, só exibe linhas de info) -->
     <div id="bp-skeleton">
-      <div style="width:100%;height:200px;background:var(--card-alt,rgba(255,255,255,.06));"></div>
       <div style="padding:52px 20px 0">
         <div class="bp-skeleton-linha" style="width:55%"></div>
         <div class="bp-skeleton-linha" style="width:70%"></div>
@@ -883,13 +888,6 @@
 
     <!-- Conteúdo real -->
     <div id="bp-conteudo" hidden>
-      <!-- Capa + logo -->
-      <div class="bp-capa-wrap">
-        <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
-        <div class="bp-logo-wrap">
-          <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
-        </div>
-      </div>
 
       <!-- Info -->
       <div class="bp-info-wrap">
