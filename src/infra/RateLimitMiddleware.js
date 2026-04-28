@@ -56,6 +56,15 @@ class RateLimitMiddleware {
     handler:         (req, res) => RateLimitMiddleware.#onLimitReached(req, res),
     skip:            (req) => req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS',
   });
+
+  /** Limiter de anúncio P2P — POST /api/p2p/announce. 30 req/min por IP. */
+  static p2pAnnounce = rateLimit({
+    windowMs:        60 * 1000,
+    max:             30,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    handler:         (req, res) => RateLimitMiddleware.#onLimitReached(req, res),
+  });
 }
 
 module.exports = RateLimitMiddleware;

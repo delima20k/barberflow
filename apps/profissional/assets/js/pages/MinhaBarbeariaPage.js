@@ -739,7 +739,8 @@ class MinhaBarbeariaPage {
     e.target.value = '';
     if (!file || !this.#barbershopId) return;
 
-    if (file.size > 30 * 1024 * 1024) {
+    const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
+    if (file.size > MAX_BYTES) {
       NotificationService?.mostrarToast('Limite', 'O arquivo deve ter no máximo 30 MB.', 'sistema');
       return;
     }
@@ -755,20 +756,29 @@ class MinhaBarbeariaPage {
     if (addBtn) { addBtn.textContent = '⏳'; addBtn.style.pointerEvents = 'none'; }
 
     try {
-      const ext  = file.name.split('.').pop().toLowerCase();
-      const path = `stories/videos/${perfil.id}/${Date.now()}.${ext}`;
+      // ── Fluxo correto: browser → R2 via presigned URL do BFF ───
+      // 1. Registrar arquivo localmente (sem upload ainda)
+      const uid     = `story-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      const blobUrl = await this.#mediaP2P.registrar(file, uid);
+      if (!blobUrl) {
+        if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
+        return; // usuário cancelou a confirmação
+      }
 
-      const { error: upErr } = await SupabaseService.client.storage
-        .from('stories')
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) throw upErr;
+      // 2. Upload P2P: browser → R2 direto via URL presigned
+      const { publicUrl } = await this.#mediaP2P.fazerUpload(uid, 'stories', {
+        barbershopId: this.#barbershopId,
+        mediaType:    file.type.startsWith('video') ? 'video' : 'image',
+        expiresAt:    new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      });
 
+      // 3. Registrar story no banco (metadados — arquivo já está no R2)
       const { error: dbErr } = await SupabaseService.client
         .from('stories')
         .insert({
           owner_id:      perfil.id,
           barbershop_id: this.#barbershopId,
-          storage_path:  path,
+          media_url:     publicUrl,
           media_type:    file.type.startsWith('video') ? 'video' : 'image',
           expires_at:    new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         });
@@ -779,7 +789,7 @@ class MinhaBarbeariaPage {
       this.#carregar();
 
     } catch (err) {
-      console.error('[MinhaBarbeariaPage] onUploadMidia erro:', err);
+      LoggerService?.warn('[MinhaBarbeariaPage] onUploadMidia erro:', err.message);
       NotificationService?.mostrarToast('Erro', 'Falha ao enviar mídia. Tente novamente.', 'sistema');
       if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
     }

@@ -42,7 +42,9 @@ const LgpdService         = require('./services/LgpdService');
 const CadastroService     = require('./services/CadastroService');
 const UserService         = require('./services/UserService');
 const AuthService         = require('./services/AuthService');
-const R2Client            = require('./infra/R2Client');
+const R2Client                  = require('./infra/R2Client');
+const SupabaseStorageClient     = require('./infra/SupabaseStorageClient');
+const ImageProcessor            = require('./services/ImageProcessor');
 const MediaManager              = require('./services/MediaManager');
 const SecureMediaAccessService  = require('./services/SecureMediaAccessService');
 
@@ -59,6 +61,7 @@ const criarAuthController          = require('./controllers/AuthController');
 const criarUserController          = require('./controllers/UserController');
 const criarMediaController         = require('./controllers/MediaController');
 const criarSecureMediaController   = require('./controllers/SecureMediaController');
+const criarWebRTCController        = require('./controllers/WebRTCController');
 
 // ── Origens permitidas (CORS) ──────────────────────────────────
 const ALLOWED_ORIGINS = new Set([
@@ -130,7 +133,9 @@ function criarApp() {
   const userService         = new UserService(clienteRepo);
   const authService         = new AuthService(supabase);
   const r2Client            = R2Client.getInstance();
-  const mediaManager        = new MediaManager(r2Client, supabase);
+  const supabaseStorage     = new SupabaseStorageClient(supabase);
+  const imageProcessor      = new ImageProcessor();
+  const mediaManager        = new MediaManager(r2Client, supabase, { supabaseStorage });
   const secureMediaAccess   = new SecureMediaAccessService(r2Client, supabase);
 
   // ── Rate limiting extra em rotas de autenticação ────────────
@@ -147,8 +152,9 @@ function criarApp() {
   app.use('/api/lgpd',          criarLgpdController(lgpdService));
   app.use('/api/auth',          criarAuthController(cadastroService, authService));
   app.use('/api/usuarios',      criarUserController(userService));
-  app.use('/api/media',         criarMediaController(mediaManager));
+  app.use('/api/media',         criarMediaController(mediaManager, imageProcessor, supabaseStorage));
   app.use('/api/media/secure',  criarSecureMediaController(secureMediaAccess));
+  app.use('/api/p2p',           criarWebRTCController(supabase));
 
   // ── Health check com ping real no banco ─────────────────────
   app.get('/api/health', async (_req, res) => {

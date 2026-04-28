@@ -4,13 +4,16 @@
  * AvatarService — SRP: responsável EXCLUSIVAMENTE pelo avatar do usuário.
  *
  * Responsabilidades:
- *  - preview instantâneo antes do upload
- *  - compressão local (canvas)
- *  - upload para Supabase Storage
+ *  - preview instantâneo antes do upload (Blob URL local, zero latência)
+ *  - upload via BFF /api/media/upload-image?contexto=avatars
+ *    → ImageProcessor processa server-side: crop 1:1, 200×200, WebP ≤20KB, sem EXIF
  *  - atualização do profile no banco
  *  - cache local via SessionCache
  *
- * API pública:
+ * REMOVIDO: compressão por canvas local (substituída pelo ImageProcessor no BFF)
+ * REMOVIDO: upload direto ao Supabase Storage (tudo passa pelo BFF agora)
+ *
+ * API pública (inalterada):
  *   AvatarService.preview(input)
  *   AvatarService.abrirUpload(routerInstance)
  */
@@ -35,59 +38,53 @@ const AvatarService = (() => {
   }
 
   /**
-   * Comprime uma imagem para no máximo `maxKB` kilobytes.
-   * Redimensiona para máx 600px em qualquer dimensão.
-   * @param {File} file
-   * @param {number} maxKB
-   * @returns {Promise<Blob>}
-   */
-  function _comprimir(file, maxKB) {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        const max = 600;
-        if (w > max || h > max) {
-          const r = Math.min(max / w, max / h);
-          w = Math.round(w * r);
-          h = Math.round(h * r);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width  = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(b => resolve(b || file), 'image/jpeg', 0.82);
-      };
-      img.onerror = () => resolve(file);
-      img.src = URL.createObjectURL(file);
-    });
-  }
-
-  /**
-   * Faz o upload do arquivo para Supabase Storage e atualiza o profile.
-   * Delega para UserService (identidade) e ProfileRepository (persistência).
-   * Substitui o preview local pela URL pública após o upload.
+   * Faz o upload do avatar via BFF com processamento server-side.
+   *
+   * O BFF executa: ImageProcessor.processAvatar()
+   *   → crop 1:1 central → resize 200×200 → WebP ≤20KB → strip EXIF
+   * Depois salva em Supabase Storage (bucket media-images) e persiste em media_files.
+   *
    * @param {File} file
    */
-  async function _upload(file) {
+  async function _uploadViaBFF(file) {
     try {
-      if (typeof UserService === 'undefined' || typeof ProfileRepository === 'undefined') return;
+      if (typeof AuthService === 'undefined') return;
 
-      const user = UserService.getUser();
-      if (!user) return;
+      const token = AuthService.getToken?.() ?? AuthService.getPerfil?.()?.access_token;
+      if (!token) return;
 
-      const blob      = await _comprimir(file, 512);
-      const publicUrl = await ProfileRepository.updateAvatar(user.id, blob);
+      // Envia o buffer raw — o BFF faz todo o processamento
+      const arrayBuffer = await file.arrayBuffer();
+      const resp = await fetch('/api/media/upload-image?contexto=avatars', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/octet-stream',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: arrayBuffer,
+      });
 
+      if (!resp.ok) {
+        const { error } = await resp.json().catch(() => ({}));
+        throw new Error(error ?? `BFF retornou ${resp.status}`);
+      }
+
+      const { publicUrl } = await resp.json();
+
+      // Substituir o Blob URL local pela URL pública definitiva
       _aplicarSrc(publicUrl);
 
       if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
+      if (typeof ProfileRepository !== 'undefined' && typeof UserService !== 'undefined') {
+        const user = UserService.getUser?.();
+        if (user?.id) await ProfileRepository.update(user.id, { avatar_url: publicUrl });
+      }
 
       if (typeof NotificationService !== 'undefined') {
         NotificationService.mostrarToast('✅ Avatar atualizado', '', NotificationService.TIPOS.SISTEMA);
       }
     } catch (e) {
-      LoggerService.warn('[AvatarService] Erro no upload:', e.message);
+      if (typeof LoggerService !== 'undefined') LoggerService.warn('[AvatarService] Erro no upload:', e.message);
       if (typeof NotificationService !== 'undefined') {
         NotificationService.mostrarToast('Erro ao salvar avatar', e?.message ?? 'Tente novamente.', NotificationService.TIPOS.SISTEMA);
       }
@@ -100,17 +97,18 @@ const AvatarService = (() => {
    */
   function preview(input) {
     if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
+    const file     = input.files[0];
     const localUrl = URL.createObjectURL(file);
+    // Preview imediato (Blob URL local — zero latência)
     _aplicarSrc(localUrl, { filter: 'none', opacity: '1' });
-    _upload(file);
+    // Upload em background — sem bloquear a UI
+    _uploadViaBFF(file).then(() => URL.revokeObjectURL(localUrl));
   }
 
   /**
    * Verifica se o usuário está logado e, se sim, dispara o input de arquivo.
    * Caso não logado: fecha o menu e navega para a tela de login.
-   *
-   * @param {object} router — instância do Router (para fecharMenu e nav se não logado)
+   * @param {object} router — instância do Router
    */
   function abrirUpload(router) {
     const logado = typeof AppState !== 'undefined'
@@ -118,7 +116,7 @@ const AvatarService = (() => {
       : (typeof UserService !== 'undefined' ? !!UserService.getPerfil() : false);
 
     if (!logado) {
-      MenuService.fechar();
+      if (typeof MenuService !== 'undefined') MenuService.fechar();
       router.nav('login');
       return;
     }

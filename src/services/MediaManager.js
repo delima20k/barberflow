@@ -50,18 +50,26 @@ const SupabaseStorageClient = require('../infra/SupabaseStorageClient');
 
 // ── Mapeamento MIME → extensão de arquivo ──────────────────────
 const MIME_PARA_EXT = Object.freeze({
-  'image/jpeg': 'jpg',
-  'image/png':  'png',
-  'image/webp': 'webp',
-  'video/mp4':  'mp4',
-  'video/webm': 'webm',
+  'image/jpeg':  'jpg',
+  'image/png':   'png',
+  'image/webp':  'webp',
+  'video/mp4':   'mp4',
+  'video/webm':  'webm',
+  'audio/mpeg':  'mp3',
+  'audio/ogg':   'oga',
+  'audio/webm':  'weba',
+  'audio/mp4':   'm4a',
 });
 
 // ── Configuração por contexto ───────────────────────────────────
 const CONTEXTOS = Object.freeze({
   stories:   {
     maxBytes: 50 * 1024 * 1024,
-    mimes: new Set(['video/mp4', 'video/webm', 'image/jpeg', 'image/png', 'image/webp']),
+    mimes: new Set([
+      'video/mp4', 'video/webm',
+      'image/jpeg', 'image/png', 'image/webp',
+      'audio/mpeg', 'audio/ogg', 'audio/webm', 'audio/mp4',
+    ]),
   },
   avatars:   {
     maxBytes: 2 * 1024 * 1024,

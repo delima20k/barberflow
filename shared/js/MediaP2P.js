@@ -218,6 +218,87 @@ class MediaP2P {
   }
 
   /**
+   * Faz streaming progressivo de um vídeo via MediaSource API.
+   *
+   * FLUXO:
+   *   1. Inicia fetch com ReadableStream
+   *   2. Alimenta o SourceBuffer conforme chunks chegam
+   *   3. Aguarda buffer inicial de 3 segundos antes de disparar play automático
+   *   4. Continua alimentando enquanto o usuário assiste (progressive download)
+   *
+   * Compatibilidade: Chrome, Edge, Firefox ≥ MediaSource support
+   * Não suportado: iOS Safari (usa fallback para src direto)
+   *
+   * @param {string}           url     — URL do vídeo (R2 / Supabase Storage)
+   * @param {HTMLVideoElement} videoEl — elemento <video> para reproduzir
+   * @param {string}           [mime='video/mp4; codecs="avc1.42E01E, mp4a.40.2"']
+   * @returns {Promise<void>}
+   */
+  async streamVideo(url, videoEl, mime = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"') {
+    // Fallback para browsers sem suporte a MediaSource (ex: iOS Safari)
+    if (typeof MediaSource === 'undefined' || !MediaSource.isTypeSupported(mime)) {
+      videoEl.src = url;
+      return;
+    }
+
+    const ms  = new MediaSource();
+    const src = URL.createObjectURL(ms);
+    videoEl.src = src;
+
+    await new Promise((resolve, reject) => {
+      ms.addEventListener('sourceopen', resolve, { once: true });
+      ms.addEventListener('error', reject,      { once: true });
+    });
+
+    const sb = ms.addSourceBuffer(mime);
+
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      URL.revokeObjectURL(src);
+      throw new Error(`[MediaP2P.streamVideo] HTTP ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+
+    // Controla se já atingimos o buffer mínimo para iniciar play (3s)
+    let jogoAutomaticoDisparado = false;
+    // Buffer acumulado em bytes (estimativa: 500KB ≈ ~3s @1.3Mbps)
+    const BUFFER_INICIO_BYTES = 500 * 1024;
+    let bytesAcumulados = 0;
+
+    /**
+     * Aguarda o SourceBuffer terminar de processar o chunk anterior.
+     */
+    const aguardarSB = () =>
+      sb.updating
+        ? new Promise(res => sb.addEventListener('updateend', res, { once: true }))
+        : Promise.resolve();
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        await aguardarSB();
+        if (!ms.readyState.includes('ended')) ms.endOfStream();
+        URL.revokeObjectURL(src);
+        break;
+      }
+
+      await aguardarSB();
+      sb.appendBuffer(value);
+
+      bytesAcumulados += value.byteLength;
+
+      // Iniciar play após buffer inicial — sem esperar o download completo
+      if (!jogoAutomaticoDisparado && bytesAcumulados >= BUFFER_INICIO_BYTES) {
+        jogoAutomaticoDisparado = true;
+        videoEl.play().catch(() => { /* autoplay bloqueado — usuário inicia manualmente */ });
+      }
+    }
+  }
+
+  /**
    * Solicita confirmação do usuário antes de acessar o arquivo local.
    * @param {string} nomeArquivo
    * @returns {Promise<boolean>}

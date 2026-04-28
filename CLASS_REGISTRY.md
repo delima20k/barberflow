@@ -58,7 +58,10 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `MapRotationController` | [shared/js/MapOrientationModule.js](shared/js/MapOrientationModule.js) | infra | Controla a rotação do mapa conforme heading do dispositivo |
 | `MapTextAnimation` | [shared/js/MapPanelModule.js](shared/js/MapPanelModule.js) | interfaces | Animação de texto no painel do mapa |
 | `MapWidget` | [shared/js/MapWidget.js](shared/js/MapWidget.js) | interfaces | Mapa interativo com marcadores de barbearias (Leaflet) |
-| `MediaP2P` | [shared/js/MediaP2P.js](shared/js/MediaP2P.js) | application | Upload e exibição de mídia (portfólio, stories) via Supabase Storage |
+| `AvatarService` | [shared/js/AvatarService.js](shared/js/AvatarService.js) | application | Upload e exibição do avatar do usuário. Preview local com Blob URL + upload via BFF `/api/media/upload-image?contexto=avatars`. REMOVIDO: compressão canvas e upload direto ao Supabase Storage. API: preview(input), abrirUpload(router). |
+| `LazyMediaLoader` | [shared/js/LazyMediaLoader.js](shared/js/LazyMediaLoader.js) | infra | Lazy loading de mídias via IntersectionObserver. Cascata de fontes: IndexedDB → P2P WebRTC → URL direta. Atributos HTML: data-lazy-src, data-lazy-media-id, data-lazy-mime, data-lazy-poster. Métodos estáticos: iniciar(raiz?), parar(), observar(el). |
+| `MediaCacheService` | [shared/js/MediaCacheService.js](shared/js/MediaCacheService.js) | infra | Cache local de ArrayBuffers via IndexedDB (barberflow-media). TTL: 24h imagens, 1h vídeos/áudio. Índice síncrono em memória (#indices Map) para temCache() sem I/O. Métodos estáticos: salvar(mediaId, buffer, {mimeType, ttlMs}), obter(mediaId) → ArrayBuffer|null, temCache(mediaId) → boolean, limpar(maxAgeMs?) → contagem, suportado() → boolean. |
+| `MediaP2P` | [shared/js/MediaP2P.js](shared/js/MediaP2P.js) | application | Upload e exibição de mídia (portfólio, stories) via Supabase Storage. ADICIONADO: streamVideo(url, videoEl, mime?) — streaming progressivo com MediaSource API, buffer inicial de 3s antes de autoplay. |
 | `MessageService` | [shared/js/MessageService.js](shared/js/MessageService.js) | application | Mensagens em tempo real via Supabase Realtime |
 | `MessagesWidget` | [shared/js/MessagesWidget.js](shared/js/MessagesWidget.js) | interfaces | Listagem e envio de mensagens na UI |
 | `NavConfig` | [shared/js/NavConfig.js](shared/js/NavConfig.js) | infra | Configuração de rotas e itens de navegação do SPA |
@@ -80,6 +83,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `StorySwipeTransition` | [shared/js/StoryViewer.js](shared/js/StoryViewer.js) | interfaces | Transição de swipe entre stories |
 | `StoryViewer` | [shared/js/StoryViewer.js](shared/js/StoryViewer.js) | interfaces | Visualizador de stories com controles de navegação e progresso |
 | `SupabaseService` | [shared/js/SupabaseService.js](shared/js/SupabaseService.js) | infra | Wrapper do Supabase SDK. Restrito a Auth, Realtime e Storage (CRUD migrado para ApiService) |
+| `WebRTCPeerService` | [shared/js/WebRTCPeerService.js](shared/js/WebRTCPeerService.js) | application | Transferência P2P browser-to-browser via WebRTC DataChannel. iceTransportPolicy:'relay' SEMPRE (IP nunca exposto). Sinalização via Supabase Realtime broadcast 'p2p-{mediaId}'. Máx 3 peers simultâneos. Timeout 15s em receber(). Métodos estáticos: suportado(), anunciar(mediaId), receber(mediaId, opts?) → ArrayBuffer|null, enviar(mediaId, buffer). Protocolo DataChannel: chunks 16KB + chunk vazio = EOF. |
 
 ---
 
@@ -154,7 +158,8 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `BaseRepository` | [src/infra/BaseRepository.js](src/infra/BaseRepository.js) | infra | Classe base para todos os repositórios backend. Fornece _validarUuid, _validarEmail, _validarPayload, _validarTexto, _validarCoordenada para eliminar duplicação do padrão InputValidator. |
 | `BaseService` | [src/infra/BaseService.js](src/infra/BaseService.js) | infra | Classe base para todos os services backend. Fornece _uuid, _texto, _enum, _email, _nome, _telefone, _coordenada, _erro para eliminar duplicação do padrão InputValidator nos services. |
 | `PasswordService` | [src/infra/PasswordService.js](src/infra/PasswordService.js) | infra | Hashing e validação de senhas com bcryptjs. validarForca() (síncrono), hash() e verificar() (assíncronos). NUNCA retorna senha original. Rounds configuráveis via BCRYPT_ROUNDS (padrão: 12). |
-| `RateLimitMiddleware` | [src/infra/RateLimitMiddleware.js](src/infra/RateLimitMiddleware.js) | infra | Rate limiting por IP. Campos estáticos: geral (300/min), auth (10/15min), escrita (60/min). Handler privado #onLimitReached. Responde 429. |
+| `RateLimitMiddleware` | [src/infra/RateLimitMiddleware.js](src/infra/RateLimitMiddleware.js) | infra | Rate limiting por IP. Campos estáticos: geral (300/min), auth (10/15min), escrita (60/min), p2pAnnounce (30/min). Handler privado #onLimitReached. Responde 429. |
+| `TurnConfig` | [src/infra/TurnConfig.js](src/infra/TurnConfig.js) | infra | Geração de credenciais TURN efêmeras HMAC-SHA1 (compatível coturn use-auth-secret). TTL 1h. TURN_SECRET nunca exposto ao cliente. Métodos estáticos: credenciais(userId) → {username, credential}, servidoresICE(userId) → {iceServers, expiresAt}. Lança Error se TURN_SECRET ausente. Env: TURN_URL, TURNS_URL, TURN_SECRET, STUN_URL. |
 | `RequestTimeoutMiddleware` | [src/infra/RequestTimeoutMiddleware.js](src/infra/RequestTimeoutMiddleware.js) | infra | Timeout por requisição. Campo estático #TIMEOUT_MS (padrão 30s via env). handle() cancela timer no finish/close. Responde 503. |
 | `RoleMiddleware` | [src/infra/RoleMiddleware.js](src/infra/RoleMiddleware.js) | infra | Autorização baseada em roles. Busca profiles.role no banco se não cacheado em req.user.role. exigir(...roles) para custom, shorthands .admin/.profissional/.cliente. _comSupabase(db, ...roles) para testes. 401/403/503. |
 | `TokenService` | [src/infra/TokenService.js](src/infra/TokenService.js) | infra | Geração e verificação de JWTs customizados (access: 15min, refresh: 7d) + verificação local de tokens Supabase Auth sem chamada de rede (verificarSupabase). Algoritmo fixo HS256. |
@@ -193,6 +198,14 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `ProfissionalService` | [src/services/ProfissionalService.js](src/services/ProfissionalService.js) | application | Regras de negócio de profissionais. Busca, listagem por barbearia, cadeiras, portfólio (add/remove). |
 | `SocialService` | [src/services/SocialService.js](src/services/SocialService.js) | application | Interações sociais. Stories (CRUD), likes e favoritos via toggle. |
 | `UserService` | [src/services/UserService.js](src/services/UserService.js) | application | Serviço transversal de usuário. buscarPorEmail (via RPC segura) e buscarPerfilPublico. Delega ao ClienteRepository. |
+
+---
+
+## src/controllers/ (Node.js — backend)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `criarWebRTCController` | [src/controllers/WebRTCController.js](src/controllers/WebRTCController.js) | interfaces | Factory de Router Express para rotas P2P (`/api/p2p`). Rotas protegidas por JWT. POST /announce (upsert de peer com TTL 5min, rate-limit 30/min, valida UUID peerId), GET /peers/:mediaId (lista peers ativos excluindo próprio user), GET /ice-config (credenciais TURN efêmeras via TurnConfig). |
 
 ---
 
