@@ -37,10 +37,12 @@
 // Dependências: R2Client, BaseService, InputValidator
 // =============================================================
 
-const crypto           = require('crypto');
-const BaseService      = require('../infra/BaseService');
-const EncryptionService = require('./EncryptionService');
-const ChunkService      = require('./ChunkService');
+const crypto              = require('crypto');
+const BaseService         = require('../infra/BaseService');
+const EncryptionService   = require('./EncryptionService');
+const ChunkService        = require('./ChunkService');
+const HashService         = require('./HashService');
+const { FallbackService } = require('./FallbackService');
 
 // ── Mapeamento MIME → extensão de arquivo ──────────────────────
 const MIME_PARA_EXT = Object.freeze({
@@ -91,11 +93,39 @@ class MediaManager extends BaseService {
   /** @type {ChunkService} */
   #chunks;
 
+  /** @type {HashService} */
+  #hash;
+
+  /** @type {import('./PeerHealthService')|null} */
+  #peerHealth;
+
+  /** @type {import('./CacheService')|null} */
+  #cache;
+
+  /**
+   * Provedor de upload P2P.
+   * Interface: `{ upload(path: string, data: Buffer, peerUrl: string): Promise<void> }`
+   * @type {{ upload(path: string, data: Buffer, peerUrl: string): Promise<void> }|null}
+   */
+  #p2pUploader;
+
+  /**
+   * Provedor de download P2P.
+   * Interface: `{ get(path: string, peerUrl: string): Promise<Buffer|null> }`
+   * @type {{ get(path: string, peerUrl: string): Promise<Buffer|null> }|null}
+   */
+  #p2pDownloader;
+
   /**
    * @param {import('../infra/R2Client')} r2Client  — instância do R2Client
    * @param {import('@supabase/supabase-js').SupabaseClient} supabase
+   * @param {object}  [opts]
+   * @param {import('./PeerHealthService')} [opts.peerHealth]    — seleção de melhor peer
+   * @param {import('./CacheService')}      [opts.cache]         — cache TTL para ciphertext
+   * @param {{ upload(path:string, data:Buffer, peerUrl:string):Promise<void> }} [opts.p2pUploader]
+   * @param {{ get(path:string, peerUrl:string):Promise<Buffer|null> }}           [opts.p2pDownloader]
    */
-  constructor(r2Client, supabase) {
+  constructor(r2Client, supabase, opts = {}) {
     super('MediaManager');
     this.#r2            = r2Client;
     this.#supabase      = supabase;
@@ -103,8 +133,13 @@ class MediaManager extends BaseService {
     if (!this.#signingSecret) {
       throw new Error('[MediaManager] MEDIA_SIGNING_SECRET é obrigatório no .env');
     }
-    this.#encryption = new EncryptionService();
-    this.#chunks     = new ChunkService(); // 1 MB por chunk (padrão)
+    this.#encryption    = new EncryptionService();
+    this.#chunks        = new ChunkService(); // 1 MB por chunk (padrão)
+    this.#hash          = new HashService();
+    this.#peerHealth    = opts.peerHealth    ?? null;
+    this.#cache         = opts.cache         ?? null;
+    this.#p2pUploader   = opts.p2pUploader   ?? null;
+    this.#p2pDownloader = opts.p2pDownloader ?? null;
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -397,6 +432,192 @@ class MediaManager extends BaseService {
   }
 
   // ══════════════════════════════════════════════════════════════
+  // Upload integrado — Encrypt → Chunk → Hash → P2P → R2 → Supabase
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Pipeline completo de upload com criptografia, chunking e distribuição híbrida.
+   *
+   * FLUXO:
+   *   Encrypt → Chunk → Hash → P2P broadcast → Supabase metadata → R2 backup
+   *
+   * - O buffer é criptografado com AES-256-GCM antes de qualquer transmissão.
+   * - Os chunks são validados (SHA-256) antes do armazenamento.
+   * - Um hash global do merged-ciphertext é salvo para validação na descarga.
+   * - P2P é tentado se `peers` e `peerHealth`/`p2pUploader` estiverem configurados.
+   * - R2 é sempre usado como backup, independente do resultado do P2P.
+   *
+   * AVISO DE SEGURANÇA — gestão de chaves em produção:
+   *   A chave `cripto.key` é salva em media_files.metadata.
+   *   EM PRODUÇÃO: substitua pelo ID de uma chave em um KMS
+   *   (AWS KMS, Cloudflare Workers Secrets, HashiCorp Vault, etc.)
+   *
+   * @param {object}   params
+   * @param {Buffer}   params.buffer       — Plaintext a armazenar
+   * @param {string}   params.contexto     — 'stories' | 'avatars' | 'services' | 'portfolio'
+   * @param {string}   params.ownerId      — UUID do usuário autenticado
+   * @param {string}   params.contentType  — MIME type original
+   * @param {string[]} [params.peers]      — URLs dos peers P2P disponíveis
+   * @param {object}   [params.metadata]   — Dados extras livres
+   * @returns {Promise<{id: string, path: string, tamanhoBytes: number, peersUsed: string[]}>}
+   */
+  async uploadMedia({ buffer, contexto, ownerId, contentType, peers = [], metadata = {} }) {
+    if (!Buffer.isBuffer(buffer)) throw this._erro('buffer deve ser um Buffer.', 400);
+    this._uuid('ownerId', ownerId);
+    this._enum('contexto', contexto, Object.keys(CONTEXTOS));
+
+    const cfg = CONTEXTOS[contexto];
+    if (!cfg.mimes.has(contentType)) {
+      throw this._erro(`Tipo de arquivo não permitido para "${contexto}": ${contentType}`, 415);
+    }
+    if (buffer.length > cfg.maxBytes) {
+      throw this._erro(
+        `Arquivo excede o limite de ${cfg.maxBytes / 1024 / 1024} MB para "${contexto}".`,
+        413
+      );
+    }
+
+    // ── 1. Criptografar (plaintext → ciphertext) ─────────────────
+    const { data: ciphertext, key, iv, authTag } = this.#encryption.encrypt(buffer);
+
+    // ── 2. Chunk + validar integridade de cada chunk ──────────────
+    const chunks = this.#chunks.split(ciphertext);
+    const merged = this.#chunks.merge(chunks); // lança se qualquer hash SHA-256 falhar
+
+    // ── 3. Hash global do ciphertext (anti-tampering no download) ─
+    const integrity_hash = this.#hash.generateHash(merged);
+
+    // ── 4. Determinar path ────────────────────────────────────────
+    const ext  = MIME_PARA_EXT[contentType] ?? 'bin';
+    const path = `${contexto}/${ownerId}/${crypto.randomUUID()}.enc.${ext}`;
+
+    // ── 5. P2P upload (best peer) — opcional; R2 como fallback ────
+    const peersUsed = [];
+    if (this.#peerHealth && this.#p2pUploader && peers.length > 0) {
+      try {
+        const bestPeer = await this.#peerHealth.getBestPeer(peers);
+        await this.#p2pUploader.upload(path, merged, bestPeer);
+        peersUsed.push(bestPeer);
+      } catch (_) {
+        // P2P falhou — R2 garante disponibilidade
+      }
+    }
+
+    // ── 6. R2 backup (sempre) ────────────────────────────────────
+    await this.#r2.putBuffer(path, merged, 'application/octet-stream');
+
+    // ── 7. Persistir metadados no Supabase ───────────────────────
+    const { data, error } = await this.#supabase
+      .from('media_files')
+      .insert({
+        owner_id:      ownerId,
+        contexto,
+        path,
+        public_url:    '',
+        content_type:  'application/octet-stream',
+        tamanho_bytes: merged.length,
+        metadata: {
+          contentTypeOriginal: contentType,
+          cripto: { key, iv, authTag }, // ⚠️ substituir por KMS key ID em produção
+          integrity_hash,
+          chunk_count: chunks.length,
+          peers_used:  peersUsed,
+          ...Object.keys(metadata).length > 0 ? metadata : {},
+        },
+      })
+      .select('id')
+      .single();
+
+    if (error) throw Object.assign(new Error(error.message), { status: 500 });
+
+    return { id: data.id, path, tamanhoBytes: merged.length, peersUsed };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // Download integrado — P2P → Cache → R2 → Validar → Decriptar
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Pipeline completo de download com cascade de fontes, validação de integridade
+   * e decriptação do ciphertext.
+   *
+   * FLUXO:
+   *   Autorizar → Buscar metadata → P2P → Cache → R2 → ValidarHash → Decrypt
+   *
+   * - Só o dono do arquivo pode baixá-lo (ownership check antes do I/O).
+   * - O hash global é validado antes da decriptação (detecta adulteração).
+   * - O ciphertext é cacheado após o primeiro download (se CacheService injetado).
+   *
+   * @param {object} params
+   * @param {string} params.fileId  — UUID do registro em media_files
+   * @param {string} params.userId  — UUID do usuário autenticado
+   * @returns {Promise<Buffer>} Plaintext original
+   * @throws {Error{status:404}} arquivo não encontrado
+   * @throws {Error{status:403}} acesso negado — não é o dono
+   * @throws {Error{status:422}} integridade violada — ciphertext adulterado
+   * @throws {Error{status:502}} nenhuma fonte disponível (P2P + Cache + R2 falharam)
+   * @throws {Error{status:500}} erro interno (Supabase ou metadados corrompidos)
+   */
+  async downloadMedia({ fileId, userId }) {
+    this._uuid('fileId', fileId);
+    this._uuid('userId', userId);
+
+    // ── 1. Buscar metadados ───────────────────────────────────────
+    const { data, error } = await this.#supabase
+      .from('media_files')
+      .select('id, path, owner_id, metadata')
+      .eq('id', fileId)
+      .maybeSingle();
+
+    if (error) throw Object.assign(new Error(error.message), { status: 500 });
+    if (!data) throw this._erro('Arquivo não encontrado.', 404);
+
+    // ── 2. Ownership check (antes de qualquer I/O) ───────────────
+    if (data.owner_id !== userId) throw this._erro('Acesso negado.', 403);
+
+    const { path, metadata: meta } = data;
+    const cripto         = meta?.cripto;
+    const integrity_hash = meta?.integrity_hash;
+    const peers          = meta?.peers_used ?? [];
+
+    if (!cripto?.key || !cripto?.iv || !cripto?.authTag) {
+      throw this._erro('Metadados de criptografia ausentes.', 500);
+    }
+
+    // ── 3. Montar cascade de fontes ──────────────────────────────
+    // Os providers ignoram o fileId passado pelo FallbackService e usam
+    // o `path` resolvido via metadata (fechamento de variável).
+    const p2pProvider = {
+      get: (_fid) => this.#baixarDeP2P(path, peers),
+    };
+    const cacheProvider = {
+      get: (_fid) => Promise.resolve(this.#cache?.get(fileId) ?? null),
+    };
+    const r2Provider = {
+      get: (_fid) => this.#r2.getBuffer(path),
+    };
+
+    // ── 4. Cascade P2P → Cache → R2 ─────────────────────────────
+    const fallback   = new FallbackService({ p2pProvider, cacheProvider, r2Provider });
+    const ciphertext = await fallback.download(fileId);
+
+    // ── 5. Popular cache para próximas requisições ───────────────
+    if (this.#cache) this.#cache.set(fileId, ciphertext);
+
+    // ── 6. Validar integridade global (anti-tampering) ───────────
+    if (integrity_hash) {
+      try {
+        this.#hash.validateHash(ciphertext, integrity_hash);
+      } catch (_) {
+        throw this._erro('Integridade do arquivo violada — ciphertext corrompido.', 422);
+      }
+    }
+
+    // ── 7. Decriptar e retornar plaintext ────────────────────────
+    return this.#encryption.decrypt({ data: ciphertext, ...cripto });
+  }
+
+  // ══════════════════════════════════════════════════════════════
   // Helper público
   // ══════════════════════════════════════════════════════════════
 
@@ -414,6 +635,25 @@ class MediaManager extends BaseService {
   // ══════════════════════════════════════════════════════════════
   // Internos
   // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Tenta baixar um arquivo de um peer P2P selecionado via PeerHealthService.
+   * Retorna null (miss) se nenhum peer estiver disponível ou se houver falha,
+   * para que o FallbackService avance para a próxima fonte sem retry.
+   *
+   * @param {string}   path  — chave do arquivo no storage
+   * @param {string[]} peers — lista de URLs dos peers candidatos
+   * @returns {Promise<Buffer|null>}
+   */
+  async #baixarDeP2P(path, peers) {
+    if (!this.#peerHealth || !this.#p2pDownloader || peers.length === 0) return null;
+    try {
+      const bestPeer = await this.#peerHealth.getBestPeer(peers);
+      return await this.#p2pDownloader.get(path, bestPeer);
+    } catch (_) {
+      return null; // miss determinístico — FallbackService avança para Cache/R2
+    }
+  }
 
   /**
    * Gera um HMAC-SHA256 que vincula path + ownerId + expiresAt.

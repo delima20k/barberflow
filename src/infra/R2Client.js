@@ -130,6 +130,37 @@ class R2Client {
     );
   }
 
+  // ── Download server-side ────────────────────────────────────
+
+  /**
+   * Baixa um objeto do R2 e retorna o conteúdo como Buffer.
+   * Usado pelo pipeline de download server-side (MediaManager → FallbackService).
+   * Para downloads diretos pelo cliente, use presignedGet() em vez deste método.
+   *
+   * @param {string} path — chave no bucket
+   * @returns {Promise<Buffer>}
+   * @throws {Error} se o objeto não existir (GetObjectCommand lança NotFound)
+   */
+  async getBuffer(path) {
+    const { Body } = await this.#s3.send(
+      new GetObjectCommand({ Bucket: this.#bucket, Key: path })
+    );
+    return R2Client.#streamToBuffer(Body);
+  }
+
+  /**
+   * Converte um ReadableStream (Node.js) em Buffer.
+   * @param {import('stream').Readable} stream
+   * @returns {Promise<Buffer>}
+   */
+  static async #streamToBuffer(stream) {
+    const partes = [];
+    for await (const parte of stream) {
+      partes.push(Buffer.isBuffer(parte) ? parte : Buffer.from(parte));
+    }
+    return Buffer.concat(partes);
+  }
+
   // ── Verificação ─────────────────────────────────────────────
 
   /**
