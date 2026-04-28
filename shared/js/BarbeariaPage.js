@@ -21,6 +21,7 @@ class BarbeariaPage {
   #shopId      = null;   // UUID da barbearia atual
   #shopIdCache = null;   // último ID renderizado (evita re-fetch na volta)
   #carregando  = false;  // mutex contra fetches paralelos
+  #dig         = null;   // instância DigText de boas-vindas
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -78,6 +79,7 @@ class BarbeariaPage {
       portfolioGrid: q('#bp-portfolio-grid'),
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
+      boasVindas:    q('#bp-boas-vindas'),
     };
   }
 
@@ -86,7 +88,12 @@ class BarbeariaPage {
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
                     this.#telaEl.classList.contains('entrando-lento');
-      if (ativa && this.#shopId) this.#carregar();
+      if (ativa && this.#shopId) {
+        this.#carregar();
+        this.#iniciarDig();
+      } else {
+        this.#pararDig();
+      }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
 
@@ -209,6 +216,13 @@ class BarbeariaPage {
       this.#refs.nome.textContent = shop.name ?? '';
       if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(this.#refs.nome, shop.font_key);
     }
+    // Atualiza o texto do dig com o nome real da barbearia
+    if (this.#refs.boasVindas && typeof DigText !== 'undefined') {
+      const texto = `Bem-vindo à Barbearia ${shop.name ?? ''}`;
+      this.#refs.boasVindas.textContent = '';
+      this.#dig = new DigText(this.#refs.boasVindas, [texto], { velocidade: 36, loop: false });
+      this.#iniciarDig();
+    }
     if (this.#refs.endereco) {
       const addr = [shop.address, shop.city, shop.state].filter(Boolean).join(', ');
       this.#refs.endereco.textContent = addr;
@@ -328,5 +342,27 @@ class BarbeariaPage {
       this.#refs.conteudo.hidden    = false;
       this.#refs.conteudo.innerHTML = '<p class="bp-erro">N\u00e3o foi poss\u00edvel carregar a barbearia.</p>';
     }
+  }
+
+  // ── Animação de boas-vindas ────────────────────────────────
+
+  /** Inicia o dig apenas se houver instância e o elemento estiver vazio. */
+  #iniciarDig() {
+    if (!this.#dig || !this.#refs.boasVindas) return;
+    // Só anima se o texto ainda não foi exibido nesta entrada
+    if (this.#refs.boasVindas.textContent.trim() === '') {
+      this.#dig.iniciar();
+    }
+  }
+
+  /** Para o dig SEM apagar o texto — apenas cancela cursor se ainda em andamento. */
+  #pararDig() {
+    if (!this.#dig || !this.#refs.boasVindas) return;
+    const el = this.#refs.boasVindas;
+    // Preserva o texto já digitado: guarda, para (que limpa), restaura
+    const textoAtual = el.textContent;
+    this.#dig.parar();
+    el.textContent = textoAtual;
+    el.classList.remove('dig-ativo');
   }
 }
