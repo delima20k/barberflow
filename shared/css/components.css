@@ -471,14 +471,34 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-#tela-barbearia .bp-stories-titulo::after {
+#tela-barbearia .bp-stories-header::after {
   content: '';
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 8px;
-  width: 160px;
+  flex: 1;
   height: 1px;
   background: linear-gradient(to right, var(--gold, #D4AF37), transparent);
+}
+
+/* ── Tela Barbearia — Seção genérica (Barbeiros, etc.) ────── */
+#tela-barbearia .bp-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 0;
+}
+#tela-barbearia .bp-section-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold, #D4AF37), transparent);
+}
+#tela-barbearia .bp-section-titulo {
+  margin: 0;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  letter-spacing: .5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ── Tela Barbearia — Hero capa ────────────────────────────── */
@@ -511,19 +531,20 @@
   left: 0.5rem;
   z-index: 10;
 }
-/* Identidade sobreposta na base da capa: ícone (sem fundo) + nome */
+/* Identidade sobreposta no centro vertical da capa: ícone (sem fundo) + nome */
 #tela-barbearia .bp-capa-identidade {
   position: absolute;
-  bottom: 0;
+  top: 50%;
   left: 0;
   right: 0;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  padding: 14px 16px 14px 16px;
-  background: linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%);
+  padding: 0 16px;
+  background: transparent;
   z-index: 5;
 }
 #tela-barbearia .bp-capa-identidade #bp-logo {
