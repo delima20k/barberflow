@@ -68,6 +68,8 @@ class CapaBarbearia {
     const r         = Math.round(Number(b.rating_avg ?? 0));
     const stars     = '★'.repeat(r) + '☆'.repeat(5 - r);
     const aberto    = b.is_open;
+    // sanitizar() obrigatório: b.name e b.address são dados de usuário → innerHTML
+    const s = InputValidator.sanitizar;
 
     const card = document.createElement('div');
     card.className  = 'fav-card' + (temImagem ? '' : ' fav-card--sem-img');
@@ -78,8 +80,8 @@ class CapaBarbearia {
           <span class="badge${aberto ? '' : ' closed'}">${aberto ? textoAberto : textoFechado}</span>
           <span class="fav-card__stars">${stars}</span>
         </div>
-        <p class="fav-card__nome">${b.name ?? ''}</p>
-        <p class="fav-card__addr">${b.address ?? ''}</p>
+        <p class="fav-card__nome">${s(b.name ?? '')}</p>
+        <p class="fav-card__addr">${s(b.address ?? '')}</p>
       </div>`;
 
     if (b.cover_path) {

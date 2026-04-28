@@ -18,11 +18,11 @@
 // Dependências: AppState.js (carregado antes deste arquivo)
 // =============================================================
 
-const AuthGuard = (() => {
+class AuthGuard {
 
   // ── Rotas protegidas por app ───────────────────────────────
 
-  const _ROTAS_CLIENTE = new Set([
+  static #ROTAS_CLIENTE = new Set([
     'agendamento',
     'mensagens',
     'pagamento',
@@ -31,7 +31,7 @@ const AuthGuard = (() => {
     'sair',
   ]);
 
-  const _ROTAS_PRO = new Set([
+  static #ROTAS_PRO = new Set([
     'agendamento',
     'mensagens',
     'pagamento',
@@ -47,7 +47,7 @@ const AuthGuard = (() => {
    * Set de data-action values que exigem autenticação.
    * Interceptado pelo Router._bindDataAttributes e pelas Pages.
    */
-  const ACOES_PROTEGIDAS = Object.freeze(new Set([
+  static ACOES_PROTEGIDAS = Object.freeze(new Set([
     'agendar',
     'mensagem',
     'pagar',
@@ -64,24 +64,24 @@ const AuthGuard = (() => {
   // ── Helpers privados ──────────────────────────────────────
 
   /** Detecta se o app atual é o profissional. */
-  function _ehPro() {
+  static #ehPro() {
     return typeof BarberFlowProfissional !== 'undefined';
   }
 
   /** Retorna o Set de rotas protegidas do app atual. */
-  function _getRotas() {
-    return _ehPro() ? _ROTAS_PRO : _ROTAS_CLIENTE;
+  static #getRotas() {
+    return AuthGuard.#ehPro() ? AuthGuard.#ROTAS_PRO : AuthGuard.#ROTAS_CLIENTE;
   }
 
   /** Fonte única de verdade — nunca acessa DOM, nunca faz rede. */
-  function _estaLogado() {
+  static #estaLogado() {
     return typeof AppState !== 'undefined'
       ? AppState.get('isLogado') === true
       : false;
   }
 
   /** Mapa de mensagens contextuais por ação. */
-  const _MSG_POPUP = Object.freeze({
+  static #MSG_POPUP = Object.freeze({
     'like':                  'Para curtir stories, você precisa estar logado.',
     'barbershop-like':       'Para curtir barbearias, você precisa estar logado.',
     'barbershop-dislike':    'Para avaliar barbearias, você precisa estar logado.',
@@ -97,11 +97,11 @@ const AuthGuard = (() => {
    * Exibe popup centralizada de login/cadastro por 3 segundos.
    * @param {string} [acao] — usado para mensagem contextual
    */
-  function _mostrarAvisoLogin(acao) {
+  static #mostrarAvisoLogin(acao) {
     const ID = '__bf-auth-popup';
     if (document.getElementById(ID)) return;  // já visível
 
-    const msg = _MSG_POPUP[acao] ?? 'Para usar esta função, você precisa estar logado.';
+    const msg = AuthGuard.#MSG_POPUP[acao] ?? 'Para usar esta função, você precisa estar logado.';
 
     const overlay = document.createElement('div');
     overlay.id = ID;
@@ -195,8 +195,8 @@ const AuthGuard = (() => {
    * @param {object|null} router — instância do app (App ou Pro)
    * @returns {boolean}
    */
-  function requireAuth(router) {
-    if (_estaLogado()) return true;
+  static requireAuth(router) {
+    if (AuthGuard.#estaLogado()) return true;
     if (router && typeof router.push === 'function') router.push('login');
     return false;
   }
@@ -208,17 +208,17 @@ const AuthGuard = (() => {
    * @param {object|null} router — instância do app
    * @returns {boolean} true = pode navegar | false = bloqueado + redirecionado
    */
-  function permitirNav(tela, router) {
+  static permitirNav(tela, router) {
     // Fonte primária: Router.TELAS_PUBLICAS (lista branca — set estático do Router)
     // Telas públicas passam sempre, sem verificar login.
     // Qualquer outra tela exige autenticação.
     if (typeof Router !== 'undefined' && Router.TELAS_PUBLICAS instanceof Set) {
       if (Router.TELAS_PUBLICAS.has(tela)) return true;
-      return requireAuth(router);
+      return AuthGuard.requireAuth(router);
     }
     // Fallback: verifica Set de rotas protegidas por app (cliente / profissional)
-    if (!_getRotas().has(tela)) return true;
-    return requireAuth(router);
+    if (!AuthGuard.#getRotas().has(tela)) return true;
+    return AuthGuard.requireAuth(router);
   }
 
   /**
@@ -227,14 +227,11 @@ const AuthGuard = (() => {
    * @param {object|null} router
    * @returns {boolean} true = permitido | false = bloqueado + popup
    */
-  function permitirAcao(acao, router) {
-    if (!ACOES_PROTEGIDAS.has(acao)) return true;
-    if (_estaLogado()) return true;
-    _mostrarAvisoLogin(acao);
+  static permitirAcao(acao, router) {
+    if (!AuthGuard.ACOES_PROTEGIDAS.has(acao)) return true;
+    if (AuthGuard.#estaLogado()) return true;
+    AuthGuard.#mostrarAvisoLogin(acao);
     return false;
   }
-
-  return Object.freeze({ requireAuth, permitirNav, permitirAcao, ACOES_PROTEGIDAS });
-
-})();
+}
 

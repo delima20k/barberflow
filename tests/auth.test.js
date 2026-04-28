@@ -4,6 +4,34 @@ const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
 
+/**
+ * Cria um sandbox VM com globals mínimos de browser para testar
+ * módulos frontend (AppState, AuthGuard, etc.).
+ * @param {{ simularPro?: boolean }} [opts]
+ */
+function criarCtx({ simularPro = false } = {}) {
+  const globals = {
+    console,
+    setTimeout:   () => 0,
+    clearTimeout: () => {},
+    document: {
+      getElementById: () => null,
+      createElement:  () => ({
+        className: '', id: '', textContent: '', innerHTML: '',
+        dataset: {}, style: {}, children: [],
+        setAttribute: () => {}, appendChild: () => {}, append: () => {},
+        addEventListener: () => {}, classList: { add: () => {} },
+        closest: () => null, remove: () => {},
+      }),
+      body: { appendChild: () => {} },
+    },
+    App: undefined,
+    Pro: undefined,
+  };
+  if (simularPro) globals.BarberFlowProfissional = {};
+  return vm.createContext(globals);
+}
+
 /** Fábrica: contexto limpo com AppState carregado. */
 function novoAppState() {
   const s = criarCtx();
@@ -422,11 +450,12 @@ suite('AuthGuard — ações protegidas (app cliente)', () => {
   const LIVRES = ['confirmar-saida', 'story-open', 'qualquer-outra-acao'];
 
   for (const acao of PROTEGIDAS) {
-    test(`"${acao}" bloqueada para visitante — retorna false e redireciona`, () => {
+    test(`"${acao}" bloqueada para visitante — retorna false`, () => {
       const { AuthGuard } = novoGuard();
       const r = mockRouter();
       assert.strictEqual(AuthGuard.permitirAcao(acao, r), false);
-      assert.deepStrictEqual(r._calls, ['login']);
+      // Ações protegidas exibem popup mas NÃO redirecionam (comportamento correto)
+      assert.deepStrictEqual(r._calls, []);
     });
   }
 
@@ -593,7 +622,8 @@ suite('Fluxo integrado: login → ações → logout', () => {
 
     const r = mockRouter();
     assert.strictEqual(AuthGuard.permitirAcao('agendar', r), false);
-    assert.deepStrictEqual(r._calls, ['login']);
+    // Ações bloqueiam com popup; não redirecionam via router
+    assert.deepStrictEqual(r._calls, []);
   });
 
   test('geo não vaza entre sessões', () => {
