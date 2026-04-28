@@ -44,6 +44,10 @@ function criarMockStorage() {
       store.delete(path);
       return { error: null };
     },
+    upload: async (path, buffer, _opts) => {
+      store.set(path, { size: buffer.length, mimetype: _opts?.contentType ?? '' });
+      return { error: null };
+    },
   });
 
   return {
@@ -287,4 +291,47 @@ describe('SupabaseStorageClient.BUCKET_IMAGES', () => {
   it('é "media-images"', () => {
     assert.strictEqual(SupabaseStorageClient.BUCKET_IMAGES, 'media-images');
   });
+});
+
+// ─── Suite 6: upload() ────────────────────────────────────────
+
+describe('SupabaseStorageClient.upload()', () => {
+
+  it('armazena buffer no storage e não lança erro', async () => {
+    const supabase = criarMockStorage();
+    const svc      = new SupabaseStorageClient(supabase);
+    const buffer   = Buffer.from('dados-de-imagem-fake');
+
+    await assert.doesNotReject(
+      () => svc.upload('media-images', 'avatars/uid1/foto.webp', buffer, 'image/webp'),
+      'upload bem-sucedido não deve lançar erro'
+    );
+
+    // Confirma que o mock armazenou o buffer
+    assert.ok(
+      supabase._store.has('avatars/uid1/foto.webp'),
+      'arquivo deve estar no store após upload'
+    );
+  });
+
+  it('lança Error{status:500} quando Supabase retorna erro', async () => {
+    const supabase = {
+      storage: {
+        from: () => ({
+          upload: async () => ({ error: { message: 'Bucket not found' } }),
+        }),
+      },
+    };
+    const svc = new SupabaseStorageClient(supabase);
+
+    await assert.rejects(
+      () => svc.upload('media-images', 'avatars/uid1/foto.webp', Buffer.from('x'), 'image/webp'),
+      (err) => {
+        assert.strictEqual(err.status, 500, 'status deve ser 500');
+        assert.ok(err.message.includes('upload falhou'), 'mensagem deve descrever a falha');
+        return true;
+      }
+    );
+  });
+
 });

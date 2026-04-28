@@ -686,6 +686,52 @@ class MediaManager extends BaseService {
   static get contextos() {
     return Object.keys(CONTEXTOS);
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // Registro de imagem já processada server-side
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Persiste em `media_files` os metadados de uma imagem que já foi
+   * processada e armazenada externamente (ex: fluxo do ImageProcessor).
+   *
+   * Usado por MediaController após ImageProcessor + SupabaseStorageClient.upload().
+   * Não faz upload — apenas registra.
+   *
+   * @param {object} params
+   * @param {string} params.ownerId     — UUID do usuário autenticado
+   * @param {string} params.contexto    — 'avatars' | 'services' | 'portfolio'
+   * @param {string} params.path        — chave no bucket (ex: 'avatars/uid/uuid.webp')
+   * @param {string} params.publicUrl   — URL pública do arquivo
+   * @param {string} params.contentType — MIME type (ex: 'image/webp')
+   * @param {number} params.bytes       — tamanho em bytes
+   * @returns {Promise<string>} — id do registro criado
+   * @throws {Error{status:500}} em falha de banco
+   */
+  async registrarImagemProcessada({ ownerId, contexto, path, publicUrl, contentType, bytes }) {
+    this._uuid('ownerId', ownerId);
+    this._enum('contexto', contexto, Object.keys(CONTEXTOS));
+
+    const { data, error } = await this.#supabase
+      .from('media_files')
+      .insert({
+        owner_id:      ownerId,
+        contexto,
+        path,
+        public_url:    publicUrl,
+        content_type:  contentType,
+        tamanho_bytes: bytes,
+        metadata:      { storage_backend: 'supabase' },
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      throw Object.assign(new Error(error.message), { status: 500 });
+    }
+
+    return data.id;
+  }
 }
 
 module.exports = MediaManager;

@@ -149,6 +149,38 @@ class SupabaseStorageClient {
       );
     }
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // Upload server-side (buffer direto — sem P2P)
+  // ══════════════════════════════════════════════════════════════
+
+  /**
+   * Faz upload de um Buffer diretamente do servidor para o bucket.
+   * Usado após processamento server-side (ex: ImageProcessor).
+   * Para uploads P2P (browser → storage), use presignedPut().
+   *
+   * Usa `upsert: true` para permitir substituição de arquivos existentes
+   * sem erro (ex: atualização de avatar).
+   *
+   * @param {string} bucket
+   * @param {string} path        — chave no bucket (ex: 'avatars/uid/uuid.webp')
+   * @param {Buffer} buffer      — conteúdo do arquivo
+   * @param {string} contentType — MIME type (ex: 'image/webp')
+   * @returns {Promise<void>}
+   * @throws {Error{status:500}} em caso de falha de storage
+   */
+  async upload(bucket, path, buffer, contentType) {
+    const { error } = await this.#supabase.storage
+      .from(bucket)
+      .upload(path, buffer, { contentType, upsert: true });
+
+    if (error) {
+      throw Object.assign(
+        new Error(`[SupabaseStorage] upload falhou: ${error.message}`),
+        { status: 500 }
+      );
+    }
+  }
 }
 
 module.exports = SupabaseStorageClient;
