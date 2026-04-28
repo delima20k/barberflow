@@ -244,3 +244,157 @@ UPDATE barbershops b
 -- ================================================================
 -- FIM — todas as tabelas, triggers e views foram criadas/atualizadas
 -- ================================================================
+
+
+-- ────────────────────────────────────────────────────────────────
+-- 6. SERVICES.IMAGE_PATH — imagem por serviço da barbearia
+--    Migration: 20260428000001_services_image_path.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.services
+  ADD COLUMN IF NOT EXISTS image_path TEXT DEFAULT NULL;
+
+COMMENT ON COLUMN public.services.image_path IS
+  'Path no bucket barbershops para a imagem do serviço (ex: <uuid>/services/<file>.webp).';
+
+-- Políticas de storage para upload de imagens de serviços
+-- (dono da barbearia faz upload em barbershops/<barbershop_id>/services/**)
+DROP POLICY IF EXISTS "barbershops_services_owner_insert" ON storage.objects;
+CREATE POLICY "barbershops_services_owner_insert"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'barbershops' AND
+    (storage.foldername(name))[2] = 'services' AND
+    EXISTS (
+      SELECT 1 FROM public.barbershops b
+      WHERE b.id::text = (storage.foldername(name))[1]
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "barbershops_services_owner_update" ON storage.objects;
+CREATE POLICY "barbershops_services_owner_update"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'barbershops' AND
+    (storage.foldername(name))[2] = 'services' AND
+    EXISTS (
+      SELECT 1 FROM public.barbershops b
+      WHERE b.id::text = (storage.foldername(name))[1]
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "barbershops_services_owner_delete" ON storage.objects;
+CREATE POLICY "barbershops_services_owner_delete"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'barbershops' AND
+    (storage.foldername(name))[2] = 'services' AND
+    EXISTS (
+      SELECT 1 FROM public.barbershops b
+      WHERE b.id::text = (storage.foldername(name))[1]
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+-- ────────────────────────────────────────────────────────────────
+-- 7. MEDIA-BARBERSHOP BUCKET — imagens de logo/cover/banner
+--    Migration: 20260428130605_create_barbershop_bucket.sql
+-- ────────────────────────────────────────────────────────────────
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'media-barbershop',
+  'media-barbershop',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "media-barbershop: leitura pública"      ON storage.objects;
+DROP POLICY IF EXISTS "media-barbershop: upload pelo dono"     ON storage.objects;
+DROP POLICY IF EXISTS "media-barbershop: atualização pelo dono" ON storage.objects;
+DROP POLICY IF EXISTS "media-barbershop: deleção pelo dono"    ON storage.objects;
+
+CREATE POLICY "media-barbershop: leitura pública"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'media-barbershop');
+
+CREATE POLICY "media-barbershop: upload pelo dono"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'media-barbershop'
+    AND auth.role() = 'authenticated'
+    AND auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-barbershop: atualização pelo dono"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'media-barbershop'
+    AND auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-barbershop: deleção pelo dono"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'media-barbershop'
+    AND auth.uid()::text = split_part(name, '/', 2)
+  );
+
+-- ────────────────────────────────────────────────────────────────
+-- 8. P2P_PEERS — tabela de peers WebRTC para redistribuição de mídia
+--    Migration: 20260428130606_create_p2p_peers.sql
+-- ────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.p2p_peers (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  media_id   TEXT        NOT NULL,
+  peer_id    UUID        NOT NULL,
+  user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  region     TEXT        NOT NULL DEFAULT '',
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS p2p_peers_media_expires
+  ON public.p2p_peers (media_id, expires_at);
+
+CREATE INDEX IF NOT EXISTS p2p_peers_user_expires
+  ON public.p2p_peers (user_id, expires_at);
+
+ALTER TABLE public.p2p_peers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "p2p_peers: insert pelo usuário autenticado" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: insert pelo usuário autenticado"
+  ON public.p2p_peers FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "p2p_peers: select por usuários autenticados" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: select por usuários autenticados"
+  ON public.p2p_peers FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "p2p_peers: delete pelo dono" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: delete pelo dono"
+  ON public.p2p_peers FOR DELETE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "p2p_peers: update pelo dono" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: update pelo dono"
+  ON public.p2p_peers FOR UPDATE
+  USING (auth.uid() = user_id);
+
+COMMENT ON TABLE  public.p2p_peers IS 'Peers WebRTC disponíveis para redistribuição de mídia (TTL: 5 min)';
+COMMENT ON COLUMN public.p2p_peers.media_id   IS 'ID do arquivo em cache no IndexedDB do peer';
+COMMENT ON COLUMN public.p2p_peers.peer_id    IS 'UUID de sessão P2P gerado pelo frontend';
+COMMENT ON COLUMN public.p2p_peers.user_id    IS 'Usuário dono deste anúncio';
+COMMENT ON COLUMN public.p2p_peers.region     IS 'Região geográfica (opcional) para preferência local';
+COMMENT ON COLUMN public.p2p_peers.expires_at IS 'Timestamp de expiração do anúncio (5 min após announce)';
+
+-- ================================================================
+-- FIM ATUALIZADO — execute este arquivo completo no SQL Editor do Supabase:
+-- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+-- ================================================================
