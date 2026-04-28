@@ -80,6 +80,7 @@ class BarbeariaPage {
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
+      infoFixa:      document.querySelector('#bp-info-fixa'),
     };
   }
 
@@ -93,6 +94,7 @@ class BarbeariaPage {
         this.#iniciarDig();
       } else {
         this.#pararDig();
+        if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
@@ -329,15 +331,18 @@ class BarbeariaPage {
   #mostrarSkeleton() {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = false;
     if (this.#refs.conteudo) this.#refs.conteudo.hidden = true;
+    if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
   }
 
   #mostrarConteudo() {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = true;
     if (this.#refs.conteudo) this.#refs.conteudo.hidden = false;
+    if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = false;
   }
 
   #mostrarErro() {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = true;
+    if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
     if (this.#refs.conteudo) {
       this.#refs.conteudo.hidden    = false;
       this.#refs.conteudo.innerHTML = '<p class="bp-erro">N\u00e3o foi poss\u00edvel carregar a barbearia.</p>';

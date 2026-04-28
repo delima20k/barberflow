@@ -445,6 +445,76 @@
   min-height: 1.4em;
 }
 
+/* ── Info fixa da barbearia — acima do rodapé ───────────────── */
+#bp-info-fixa {
+  position: fixed;
+  bottom: var(--nav-h);
+  left: 0;
+  right: 0;
+  z-index: 900;
+  background: rgba(10, 8, 6, .90);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(212, 175, 55, .22);
+  padding: 8px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+#bp-info-fixa[hidden] { display: none; }
+.bp-endereco {
+  margin: 0;
+  font-size: .78rem;
+  color: var(--text-muted, rgba(245,233,220,.65));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bp-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bp-badge {
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.bp-badge--open   { background: rgba(50,180,80,.18); color: #4caf50; border: 1px solid rgba(76,175,80,.3); }
+.bp-badge--closed { background: rgba(220,50,50,.15); color: #e57373; border: 1px solid rgba(229,115,115,.3); }
+.bp-rating, .bp-likes, .bp-desde {
+  font-size: .72rem;
+  color: var(--text-muted, rgba(245,233,220,.6));
+}
+.bp-acoes {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.bp-whats-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  background: #25D366;
+  color: #fff;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.bp-fav-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 14px;
+  border: 1px solid var(--gold-border, rgba(212,175,55,.35));
+  border-radius: 20px;
+  font-size: .8rem;
+  color: var(--gold, #D4AF37);
+}
+
 /* ── Tela Barbearia — Stories section ─────────────────────── */
 #tela-barbearia .bp-stories-section {
   margin-top: -2rem;

@@ -734,6 +734,29 @@
   </main>
 
   <!-- ============================================================
+       INFO FIXA DA BARBEARIA — acima do rodapé
+       Fora de #tela-barbearia para não ser afetada pelo translateX da animação
+  ============================================================ -->
+  <div id="bp-info-fixa" hidden>
+    <p id="bp-endereco" class="bp-endereco"></p>
+    <div class="bp-meta-row">
+      <span id="bp-badge"  class="bp-badge"></span>
+      <span id="bp-rating" class="bp-rating"></span>
+      <span id="bp-likes"  class="bp-likes"></span>
+      <span id="bp-desde"  class="bp-desde"></span>
+    </div>
+    <div class="bp-acoes">
+      <a id="bp-whats-btn" class="bp-whats-btn" href="#" target="_blank" rel="noopener" hidden>
+        💬 WhatsApp
+      </a>
+      <button id="bp-fav-btn" class="bp-fav-btn" data-action="barbershop-favorite"
+              aria-label="Favoritar barbearia">
+        ♥ Favoritar
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================
        FOOTER NAV — SEM LOGIN (3 opções)
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav-offline">
@@ -960,26 +983,6 @@
 
     <!-- Conteúdo real -->
     <div id="bp-conteudo" hidden>
-
-      <!-- Info -->
-      <div class="bp-info-wrap">
-        <p  id="bp-endereco" class="bp-endereco"></p>
-        <div class="bp-meta-row">
-          <span id="bp-badge" class="bp-badge"></span>
-          <span id="bp-rating" class="bp-rating"></span>
-          <span id="bp-likes" class="bp-likes"></span>
-          <span id="bp-desde" class="bp-desde"></span>
-        </div>
-        <div class="bp-acoes">
-          <a id="bp-whats-btn" class="bp-whats-btn" href="#" target="_blank" rel="noopener" hidden>
-            💬 WhatsApp
-          </a>
-          <button id="bp-fav-btn" class="bp-fav-btn" data-action="barbershop-favorite"
-                  aria-label="Favoritar barbearia">
-            ♥ Favoritar
-          </button>
-        </div>
-      </div>
 
       <!-- Serviços -->
       <div class="bp-secao">
