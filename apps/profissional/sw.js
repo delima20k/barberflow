@@ -5,7 +5,7 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_NAME = 'barberflow-profissional-v33';
+  static #CACHE_NAME = 'barberflow-profissional-v34';
 
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS = [

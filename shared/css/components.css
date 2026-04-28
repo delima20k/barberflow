@@ -467,15 +467,16 @@
 /* Identidade sobreposta na base da capa: ícone (sem fundo) + nome */
 #tela-barbearia .bp-capa-identidade {
   position: absolute;
-  inset: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
-  /* padding-right: 2rem desloca o par 1rem para a esquerda do centro */
-  padding: 12px 2rem 12px 0;
-  background: rgba(0,0,0,.35);
+  padding: 14px 16px 14px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,.7) 0%, transparent 100%);
   z-index: 5;
 }
 #tela-barbearia .bp-capa-identidade #bp-logo {
