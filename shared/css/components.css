@@ -452,14 +452,11 @@
   left: 0;
   right: 0;
   z-index: 900;
-  background: rgba(10, 8, 6, .90);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(212, 175, 55, .22);
-  padding: 8px 14px 10px;
+  background: transparent;
+  padding: 4px 14px 6px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 #bp-info-fixa[hidden] { display: none; }
 .bp-endereco {
@@ -487,32 +484,6 @@
 .bp-rating, .bp-likes, .bp-desde {
   font-size: .72rem;
   color: var(--text-muted, rgba(245,233,220,.6));
-}
-.bp-acoes {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.bp-whats-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 14px;
-  background: #25D366;
-  color: #fff;
-  border-radius: 20px;
-  font-size: .8rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-.bp-fav-btn {
-  all: unset;
-  cursor: pointer;
-  padding: 4px 14px;
-  border: 1px solid var(--gold-border, rgba(212,175,55,.35));
-  border-radius: 20px;
-  font-size: .8rem;
-  color: var(--gold, #D4AF37);
 }
 
 /* ── Tela Barbearia — Stories section ─────────────────────── */
