@@ -445,6 +445,30 @@
 #tela-barbearia .bp-stories-section .story-card {
   background: transparent;
 }
+#tela-barbearia .bp-stories-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 0;
+}
+#tela-barbearia .bp-stories-titulo {
+  margin: 0;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  letter-spacing: .5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+#tela-barbearia .bp-stories-titulo::after {
+  content: '';
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  width: 160px;
+  height: 1px;
+  background: linear-gradient(to right, var(--gold, #D4AF37), transparent);
+}
 
 /* ── Tela Barbearia — Hero capa ────────────────────────────── */
 #tela-barbearia .bp-capa-wrap {
