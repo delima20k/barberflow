@@ -41,6 +41,7 @@ function criarMockR2() {
       : null,
     presignedPut: async (path) => `https://r2.mock/${path}?sig=test`,
     publicUrl:    (path) => `https://r2.mock/${path}`,
+    delete:       async (path) => { store.delete(path); },
     _store: store,
   };
 }
@@ -433,6 +434,243 @@ describe('Segurança', () => {
       () => svc.downloadMedia({ fileId: crypto.randomUUID(), userId: 'nao-e-uuid' }),
       (err) => { assert.equal(err.status, 400); return true; }
     );
+  });
+
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Suite 4: Roteamento Supabase Storage vs R2
+// Testa gerarUrlPresigned(), confirmarUpload() e deletar()
+// com roteamento correto por contexto.
+// ═══════════════════════════════════════════════════════════════
+
+process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'https://test-project.supabase.co';
+
+/**
+ * Mock do SupabaseStorageClient com store em memória.
+ * Expõe `_store` e `_semear()` para inspeção nos testes.
+ */
+function criarMockSupabaseStorage() {
+  const store = new Map(); // path → { size, mimetype }
+  return {
+    presignedPut: async (bucket, path) =>
+      `https://supabase.mock/sign/${bucket}/${path}`,
+    head: async (_bucket, path) => {
+      const meta = store.get(path);
+      return meta
+        ? { tamanhoBytes: meta.size, contentType: meta.mimetype }
+        : null;
+    },
+    publicUrl: (_bucket, path) =>
+      `https://test-project.supabase.co/storage/v1/object/public/media-images/${path}`,
+    delete: async (_bucket, path) => { store.delete(path); },
+    _store:  store,
+    _semear: (path, size, mimetype) => store.set(path, { size, mimetype }),
+  };
+}
+
+/**
+ * Cria Supabase mock com suporte a SELECT, INSERT e DELETE encadeados.
+ * `.single()` distingue INSERT (quando há payload) de SELECT (lookup por filtros.id).
+ * Expõe `_registros` para verificação de estado nos testes.
+ */
+function criarMockSupabaseComDelete() {
+  const registros = new Map();
+  return {
+    from: (_tabela) => {
+      let insertPayload = null;
+      let filtros       = {};
+      const b = {
+        insert:      (p)          => { insertPayload = p; return b; },
+        select:      ()           => b,
+        eq:          (campo, val) => { filtros[campo] = val; return b; },
+        delete:      ()           => b,
+        single:      async ()     => {
+          if (insertPayload !== null) {
+            // Operação INSERT
+            const id  = crypto.randomUUID();
+            const rec = { id, ...insertPayload };
+            registros.set(id, rec);
+            return { data: { id }, error: null };
+          }
+          // Operação SELECT — busca pelo filtro de id
+          const id  = filtros['id'];
+          const rec = registros.get(id) ?? null;
+          return { data: rec, error: rec ? null : { message: 'Not found' } };
+        },
+        maybeSingle: async () => {
+          const id  = filtros['id'];
+          const rec = registros.get(id) ?? null;
+          return { data: rec, error: null };
+        },
+      };
+      return b;
+    },
+    _registros: registros,
+  };
+}
+
+describe('Roteamento Supabase Storage vs R2', () => {
+
+  it('gerarUrlPresigned("avatars") → uploadUrl aponta para Supabase', async () => {
+    const r2             = criarMockR2();
+    const supabase       = criarMockSupabase();
+    const supabaseStorage = criarMockSupabaseStorage();
+    const svc = new MediaManager(r2, supabase, { supabaseStorage });
+
+    const result = await svc.gerarUrlPresigned({
+      contexto:    'avatars',
+      ownerId:     UUID_OWNER_A,
+      contentType: 'image/webp',
+    });
+
+    assert.ok(result.uploadUrl.includes('supabase.mock'),
+      'uploadUrl deve apontar para Supabase Storage');
+    assert.ok(!result.uploadUrl.includes('r2.mock'),
+      'uploadUrl NÃO deve apontar para R2');
+  });
+
+  it('gerarUrlPresigned("stories") → uploadUrl aponta para R2', async () => {
+    const r2             = criarMockR2();
+    const supabase       = criarMockSupabase();
+    const supabaseStorage = criarMockSupabaseStorage();
+    const svc = new MediaManager(r2, supabase, { supabaseStorage });
+
+    const result = await svc.gerarUrlPresigned({
+      contexto:    'stories',
+      ownerId:     UUID_OWNER_A,
+      contentType: 'video/mp4',
+    });
+
+    assert.ok(result.uploadUrl.includes('r2.mock'),
+      'uploadUrl deve apontar para R2');
+    assert.ok(!result.uploadUrl.includes('supabase.mock'),
+      'uploadUrl NÃO deve apontar para Supabase');
+  });
+
+  it('gerarUrlPresigned("avatars") sem supabaseStorage injetado → erro 500', async () => {
+    const svc = new MediaManager(criarMockR2(), criarMockSupabase()); // sem supabaseStorage
+
+    await assert.rejects(
+      () => svc.gerarUrlPresigned({
+        contexto:    'avatars',
+        ownerId:     UUID_OWNER_A,
+        contentType: 'image/webp',
+      }),
+      (err) => {
+        assert.equal(err.status, 500,
+          'deve lançar 500 quando supabaseStorage não foi injetado');
+        return true;
+      }
+    );
+  });
+
+  it('confirmarUpload("avatars") consulta supabaseStorage, NÃO consulta R2', async () => {
+    const r2             = criarMockR2();
+    const supabase       = criarMockSupabase();
+    const supabaseStorage = criarMockSupabaseStorage();
+    const svc = new MediaManager(r2, supabase, { supabaseStorage });
+
+    // Gerar presigned URL (registra path e token)
+    const { path, token, expiresAt } = await svc.gerarUrlPresigned({
+      contexto:    'portfolio',
+      ownerId:     UUID_OWNER_A,
+      contentType: 'image/jpeg',
+    });
+
+    // Simular upload P2P no mock do Supabase Storage
+    supabaseStorage._semear(path, 98304, 'image/jpeg');
+
+    // Confirmar — deve consultar supabaseStorage, NÃO r2
+    const result = await svc.confirmarUpload({
+      path, ownerId: UUID_OWNER_A, contexto: 'portfolio',
+      token, expiresAt, metadata: {},
+    });
+
+    assert.ok(result.id,  'deve retornar id do registro');
+    assert.ok(result.publicUrl.includes('supabase'),
+      'publicUrl deve apontar para Supabase');
+    // Garantir que R2 NÃO foi consultado
+    assert.ok(!r2._store.has(path),
+      'arquivo NÃO deve ter sido salvo no R2 store');
+  });
+
+  it('confirmarUpload("stories") consulta R2, NÃO consulta supabaseStorage', async () => {
+    const r2             = criarMockR2();
+    const supabase       = criarMockSupabase();
+    const supabaseStorage = criarMockSupabaseStorage();
+    const svc = new MediaManager(r2, supabase, { supabaseStorage });
+
+    const { path, token, expiresAt } = await svc.gerarUrlPresigned({
+      contexto:    'stories',
+      ownerId:     UUID_OWNER_A,
+      contentType: 'video/mp4',
+    });
+
+    // Simular upload P2P no R2
+    r2._store.set(path, Buffer.alloc(512 * 1024)); // 512 KB
+
+    const result = await svc.confirmarUpload({
+      path, ownerId: UUID_OWNER_A, contexto: 'stories',
+      token, expiresAt, metadata: {},
+    });
+
+    assert.ok(result.publicUrl.includes('r2.mock'),
+      'publicUrl deve apontar para R2');
+    assert.ok(!supabaseStorage._store.has(path),
+      'arquivo NÃO deve estar no Supabase Storage store');
+  });
+
+  it('deletar() imagem → remove de supabaseStorage, NÃO do R2', async () => {
+    const r2              = criarMockR2();
+    const supabase        = criarMockSupabaseComDelete();
+    const supabaseStorage = criarMockSupabaseStorage();
+    const svc = new MediaManager(r2, supabase, { supabaseStorage });
+
+    // Semear arquivos em AMBOS os stores para verificar qual foi removido
+    const fakePath = 'avatars/uid1/foto.webp';
+    supabaseStorage._semear(fakePath, 1024, 'image/webp');
+    r2._store.set(fakePath, Buffer.alloc(1024));
+
+    // Simular registro no banco com storage_backend correto
+    const fakeId = crypto.randomUUID();
+    supabase._registros.set(fakeId, {
+      id: fakeId, path: fakePath, owner_id: UUID_OWNER_A,
+      contexto: 'avatars',
+      metadata: { storage_backend: 'supabase' },
+    });
+
+    await svc.deletar(fakeId, UUID_OWNER_A);
+
+    assert.ok(!supabaseStorage._store.has(fakePath),
+      'imagem deve ter sido removida do Supabase Storage');
+    assert.ok(r2._store.has(fakePath),
+      'R2 NÃO deve ter sido tocado');
+  });
+
+  it('deletar() vídeo → remove do R2, NÃO do supabaseStorage', async () => {
+    const r2              = criarMockR2();
+    const supabase        = criarMockSupabaseComDelete();
+    const supabaseStorage = criarMockSupabaseStorage();
+    const svc = new MediaManager(r2, supabase, { supabaseStorage });
+
+    const fakePath = 'stories/uid1/video.mp4';
+    supabaseStorage._semear(fakePath, 8 * 1024 * 1024, 'video/mp4');
+    r2._store.set(fakePath, Buffer.alloc(1024));
+
+    const fakeId = crypto.randomUUID();
+    supabase._registros.set(fakeId, {
+      id: fakeId, path: fakePath, owner_id: UUID_OWNER_A,
+      contexto: 'stories',
+      metadata: { storage_backend: 'r2' },
+    });
+
+    await svc.deletar(fakeId, UUID_OWNER_A);
+
+    assert.ok(!r2._store.has(fakePath),
+      'vídeo deve ter sido removido do R2');
+    assert.ok(supabaseStorage._store.has(fakePath),
+      'Supabase Storage NÃO deve ter sido tocado');
   });
 
 });
