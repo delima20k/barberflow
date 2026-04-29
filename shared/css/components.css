@@ -443,6 +443,31 @@
   color: var(--text-muted, rgba(245,233,220,.75));
   text-align: left;
   min-height: 1.4em;
+  line-height: 1.5;
+}
+
+/* Span do nome do usuário (marrom/terra) */
+#tela-barbearia .bp-boas-vindas .bv-user {
+  color: #c8813a;
+  font-weight: 700;
+}
+
+/* Span do nome da barbearia (dourado) */
+#tela-barbearia .bp-boas-vindas .bv-shop {
+  color: var(--gold, #d4a84b);
+  font-weight: 800;
+}
+
+/* CTA de login/cadastro para visitantes */
+#tela-barbearia .bp-cta-login {
+  padding: 3px 14px 6px;
+  font-size: .78rem;
+  color: var(--gold, #d4a84b);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin: 0;
 }
 
 /* ── Info fixa da barbearia — acima do rodapé ───────────────── */
@@ -572,10 +597,10 @@
   left: 0.5rem;
   z-index: 10;
 }
-/* Identidade sobreposta na base da capa, ~10px acima da seção de stories */
+/* Identidade sobreposta na base da capa, ~20px acima da seção de stories */
 #tela-barbearia .bp-capa-identidade {
   position: absolute;
-  bottom: 10px;
+  bottom: 20px;
   left: 0;
   right: 0;
   display: flex;
@@ -3552,5 +3577,59 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LAYOUT DESKTOP — min-width: 768px
+   Só altera posicionamento/largura; UX/UI mobile permanece intacto
+══════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+
+  /* Tela barbearia — centra conteúdo em coluna estreita */
+  #tela-barbearia {
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Capa hero um pouco mais alta no desktop */
+  #tela-barbearia .bp-capa-wrap {
+    height: 240px;
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+  }
+
+  /* Boas-vindas levemente maior no desktop */
+  #tela-barbearia .bp-boas-vindas {
+    font-size: 1rem;
+    padding: 4px 20px;
+  }
+
+  #tela-barbearia .bp-cta-login {
+    font-size: .85rem;
+    padding: 4px 20px 8px;
+  }
+
+  /* Seção de stories — centraliza sem quebrar scroll */
+  #tela-barbearia .stories-scroll {
+    padding: 6px 20px 10px;
+  }
+
+  /* Seção de barbeiros — mais espaçamento lateral */
+  #tela-barbearia .bp-barbeiros-scroll {
+    padding: 6px 20px 12px;
+  }
+
+  /* Conteúdo dinâmico da barbearia — padding lateral confortável */
+  #tela-barbearia #bp-conteudo {
+    padding: 0 20px;
+  }
+
+  /* Barbeiro — centra a tela de perfil */
+  #tela-barbeiro {
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 

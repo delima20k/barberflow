@@ -116,6 +116,7 @@ class BarbeariaPage {
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
+      ctaLogin:      q('#bp-cta-login'),
       infoFixa:      document.querySelector('#bp-info-fixa'),
     };
   }
@@ -393,13 +394,58 @@ class BarbeariaPage {
       this.#refs.nome.textContent = shop.name ?? '';
       if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(this.#refs.nome, shop.font_key);
     }
-    // Atualiza o texto do dig com o nome real da barbearia
-    if (this.#refs.boasVindas && typeof DigText !== 'undefined') {
-      const texto = `Bem-vindo à Barbearia ${shop.name ?? ''}`;
+
+    // ── Boas-vindas + CTA de login ──────────────────────────
+    if (this.#refs.boasVindas) {
+      const isLogado  = typeof AppState !== 'undefined' && AppState.get('isLogado');
+      const perfil    = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
+      const nomeUser  = (perfil?.full_name ?? '').trim() || 'anônimo';
+      const nomeLoja  = shop.name ?? 'esta barbearia';
+
+      // "Olá, <span class=bv-user>Nome</span>" — textContent no span (seguro contra XSS)
+      const saudacao = document.createElement('span');
+      saudacao.textContent = `Olá, `;
+
+      const spanUser = document.createElement('span');
+      spanUser.className = 'bv-user';
+      spanUser.textContent = isLogado ? nomeUser : 'anônimo';
+
+      const divider = document.createTextNode(' — ');
+
+      const bemvindo = document.createTextNode('Bem-vindo à ');
+
+      const spanShop = document.createElement('span');
+      spanShop.className = 'bv-shop';
+      spanShop.textContent = nomeLoja;
+
       this.#refs.boasVindas.textContent = '';
-      this.#dig = new DigText(this.#refs.boasVindas, [texto], { velocidade: 36, loop: false });
-      this.#iniciarDig();
+      this.#refs.boasVindas.append(saudacao, spanUser, divider, bemvindo, spanShop);
+
+      // Anima o texto com DigText (somente texto puro via textContent — sem innerHTML)
+      if (typeof DigText !== 'undefined') {
+        const textoPlano = `Olá, ${isLogado ? nomeUser : 'anônimo'} — Bem-vindo à ${nomeLoja}`;
+        this.#refs.boasVindas.textContent = '';
+        this.#dig = new DigText(this.#refs.boasVindas, [textoPlano], { velocidade: 36, loop: false });
+        this.#iniciarDig();
+      }
     }
+
+    // ── CTA de login/cadastro (apenas para visitantes) ──────
+    if (this.#refs.ctaLogin) {
+      const isLogado = typeof AppState !== 'undefined' && AppState.get('isLogado');
+      if (isLogado) {
+        this.#refs.ctaLogin.hidden = true;
+        this.#refs.ctaLogin.textContent = '';
+      } else {
+        const router = (typeof App !== 'undefined' && App) || null;
+        this.#refs.ctaLogin.hidden = false;
+        this.#refs.ctaLogin.textContent =
+          '✂️ Faça login ou cadastre-se — agende seu corte, favorite barbearias e aproveite o BarberFlow!';
+        // Listener único por abertura de tela
+        this.#refs.ctaLogin.onclick = () => { if (router) router.nav('login'); };
+      }
+    }
+
     if (this.#refs.endereco) {
       const addr = [shop.address, shop.city, shop.state].filter(Boolean).join(', ');
       this.#refs.endereco.textContent = addr;
@@ -519,7 +565,8 @@ class BarbeariaPage {
     if (this.#refs.servicosLista) { this.#refs.servicosLista.innerHTML = ''; }
     if (this.#refs.portfolioGrid) { this.#refs.portfolioGrid.innerHTML = ''; }
     if (this.#refs.barbeirosScroll) { this.#refs.barbeirosScroll.innerHTML = ''; }
-    if (this.#refs.boasVindas)    { this.#refs.boasVindas.textContent  = ''; }
+    if (this.#refs.boasVindas) { this.#refs.boasVindas.textContent = ''; }
+    if (this.#refs.ctaLogin)   { this.#refs.ctaLogin.hidden = true; this.#refs.ctaLogin.textContent = ''; }
     // Reseta o dig para que a nova barbearia inicie a animação do zero
     this.#pararDig();
     this.#dig = null;
