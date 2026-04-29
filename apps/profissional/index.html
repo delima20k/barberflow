@@ -16,11 +16,11 @@
   <!-- Shared CSS -->
   <link rel="stylesheet" href="/shared/css/tokens.css">
   <link rel="stylesheet" href="/shared/css/components.css">
+  <link rel="stylesheet" href="/shared/css/notifications.css">
   <link rel="stylesheet" href="/shared/css/story-cards.css">
   <link rel="stylesheet" href="/shared/css/map-card.css">
   <link rel="stylesheet" href="/shared/css/barber-card.css">
   <link rel="stylesheet" href="/shared/css/button-system.css">
-  <link rel="stylesheet" href="/shared/css/notifications.css">
 
   <!-- App-specific CSS -->
   <link rel="stylesheet" href="assets/css/styles.css">
@@ -632,9 +632,7 @@
     </div>
     <div class="content">
       <div class="destaques-hero">
-        <h1 class="destaques-titulo barbeiros-h1-brand">
-          <img src="/shared/img/nomeAppBarber.png" class="destaques-logo-img" alt="BarberFlow" loading="lazy">
-        </h1>
+        <h1 class="destaques-titulo"><span class="destaques-barber">Barber</span><span class="destaques-flow">Flow</span></h1>
         <h2 class="tela-hero-subtitulo">Barbeiros Populares</h2>
         <p id="barbeiros-dig" class="search-dig" aria-live="polite"></p>
         <p class="barbeiros-intro">No BarberFlow, cada barbeiro é um artista do estilo. Profissionais verificados, avaliados pela comunidade e prontos para transformar o seu visual. Encontre aquele que combina com a sua essência e agende com 1 toque.</p>
@@ -946,27 +944,29 @@
         <!-- Visual da barbearia: capa + ícone lado a lado -->
         <div class="mb-config-secao mb-cfg-media-row">
 
-            <!-- Capa: 45% da tela — botão círculo + no canto inferior direito -->
-            <div class="mb-cfg-capa-col">
-              <p class="mb-config-secao-label">Capa da Barbearia</p>
-              <div class="mb-config-upload-wrap" id="mb-cfg-capa-preview">
-                <img id="mb-cfg-capa-img" src="/shared/img/Logo01.png" alt="Capa">
-                <label class="mb-config-upload-btn mb-config-upload-btn--circulo" for="mb-cfg-capa-input" aria-label="Alterar imagem de capa">＋</label>
-                <input type="file" id="mb-cfg-capa-input" accept="image/*" style="display:none">
-              </div>
+          <!-- Capa: botão círculo + no canto inferior direito -->
+          <div class="mb-cfg-capa-col">
+            <p class="mb-config-secao-label">Capa da Barbearia</p>
+            <div class="mb-config-upload-wrap" id="mb-cfg-capa-preview">
+              <img id="mb-cfg-capa-img" src="/shared/img/Logo01.png" alt="Capa">
+              <label class="mb-config-upload-btn mb-config-upload-btn--circulo"
+                     for="mb-cfg-capa-input" aria-label="Alterar imagem de capa">＋</label>
+              <input type="file" id="mb-cfg-capa-input" accept="image/*" style="display:none">
             </div>
+          </div>
 
-            <!-- Ícone circular (logo) -->
-            <div class="mb-config-icone-col">
-              <p class="mb-config-secao-label">Ícone do Salão</p>
-              <div class="mb-config-icone-wrap" id="mb-cfg-icone-wrap">
-                <div class="mb-config-icone-circulo" id="mb-cfg-logo-preview">
-                  <img id="mb-cfg-logo-img" src="/shared/img/Logo01.png" alt="Logo">
-                </div>
-                <label class="mb-config-upload-btn mb-config-upload-btn--logo" for="mb-cfg-logo-input" aria-label="Alterar logo circular">＋</label>
-                <input type="file" id="mb-cfg-logo-input" accept="image/*" style="display:none">
+          <!-- Ícone circular (logo) -->
+          <div class="mb-config-icone-col">
+            <p class="mb-config-secao-label">Ícone do Salão</p>
+            <div class="mb-config-icone-wrap" id="mb-cfg-icone-wrap">
+              <div class="mb-config-icone-circulo" id="mb-cfg-logo-preview">
+                <img id="mb-cfg-logo-img" src="/shared/img/Logo01.png" alt="Logo">
               </div>
+              <label class="mb-config-upload-btn mb-config-upload-btn--logo"
+                     for="mb-cfg-logo-input" aria-label="Alterar logo circular">＋</label>
+              <input type="file" id="mb-cfg-logo-input" accept="image/*" style="display:none">
             </div>
+          </div>
 
         </div>
 
@@ -1077,7 +1077,7 @@
       <p class="profile-name" id="perfil-nome">João Silva</p>
       <p class="profile-sub" id="perfil-sub">Barbeiro Profissional · 8 anos de experiência</p>
       <div class="perfil-acoes">
-        <button id="btn-perfil-criar" class="btn-perfil-criar" style="display:none" onclick="Pro.nav('criar')">
+        <button class="btn-perfil-criar" onclick="Pro.nav('criar')">
           + Criar
         </button>
         <button class="btn-perfil-editar" onclick="PerfilEditor.alternarModo(this)">
@@ -1185,9 +1185,9 @@
       <span class="nav-label">Mensagens</span>
     </button>
 
-    <button class="nav-btn" data-tela="parcerias" data-nav="parcerias" id="footer-nav-barbearia-btn">
-      <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Parcerias"></div>
-      <span class="nav-label">Parcerias</span>
+    <button class="nav-btn" data-tela="minha-barbearia" id="footer-nav-barbearia-btn" onclick="Pro.nav('minha-barbearia')">
+      <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Minha Barbearia"></div>
+      <span class="nav-label">Minha Barbearia</span>
     </button>
 
     <button class="nav-btn" data-tela="sair" onclick="Pro.navDoMenu('sair')">
@@ -1668,18 +1668,96 @@
   </main>
 
   <!-- ============================================================
-       TELA — BARBEARIA (perfil público)
-       DEVE ficar dentro de #app para que o Router e o CSS de .tela
-       funcionem corretamente (posição, animações, z-index).
+       TELA BARBEARIA — Perfil público (compartilhado com o cliente)
+       BarbeariaPage.js gerencia todo o conteúdo dinâmico.
   ============================================================ -->
   <main id="tela-barbearia" class="tela">
-    <div class="tela-topo">
+
+    <!-- Capa hero — sempre visível; botão voltar sobreposto -->
+    <div class="bp-capa-wrap">
       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
+      <div class="bp-capa-identidade">
+        <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
+        <h1 id="bp-nome" class="bp-nome"></h1>
+      </div>
     </div>
+
+    <!-- Stories da barbearia -->
+    <section class="bp-stories-section">
+      <div class="stories-scroll">
+        <div class="card-mini story-card"
+             data-story-id="60000000-0000-0000-0000-000000000001"
+             data-owner-id="00000000-0000-0000-0000-000000000001">
+          <div class="story-video-wrap" data-action="story-open">
+            <video playsinline muted loop preload="none"
+                   poster="/shared/img/icones-perfil.png" class="story-video"></video>
+            <div class="story-play-btn">&#9654;</div>
+            <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 1</p>
+            <p class="story-card-addr"></p>
+          </div>
+          <button class="story-like-btn" data-action="like">
+            <img src="/shared/img/icones_curtir.png" alt="curtir">
+            <span class="story-like-count">0</span>
+          </button>
+        </div>
+        <div class="card-mini story-card"
+             data-story-id="60000000-0000-0000-0000-000000000002"
+             data-owner-id="00000000-0000-0000-0000-000000000002">
+          <div class="story-video-wrap" data-action="story-open">
+            <video playsinline muted loop preload="none"
+                   poster="/shared/img/icones-perfil.png" class="story-video"></video>
+            <div class="story-play-btn">&#9654;</div>
+            <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 2</p>
+            <p class="story-card-addr"></p>
+          </div>
+          <button class="story-like-btn" data-action="like">
+            <img src="/shared/img/icones_curtir.png" alt="curtir">
+            <span class="story-like-count">0</span>
+          </button>
+        </div>
+        <div class="card-mini story-card"
+             data-story-id="60000000-0000-0000-0000-000000000003"
+             data-owner-id="00000000-0000-0000-0000-000000000003">
+          <div class="story-video-wrap" data-action="story-open">
+            <video playsinline muted loop preload="none"
+                   poster="/shared/img/icones-perfil.png" class="story-video"></video>
+            <div class="story-play-btn">&#9654;</div>
+            <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 3</p>
+            <p class="story-card-addr"></p>
+          </div>
+          <button class="story-like-btn" data-action="like">
+            <img src="/shared/img/icones_curtir.png" alt="curtir">
+            <span class="story-like-count">0</span>
+          </button>
+        </div>
+      </div>
+      <div class="bp-stories-header">
+        <h2 class="bp-stories-titulo">Stories</h2>
+      </div>
+      <p id="bp-boas-vindas" class="search-dig bp-boas-vindas" aria-live="polite"></p>
+      <p id="bp-cta-login" class="bp-cta-login" hidden></p>
+    </section>
+
+    <!-- Barbeiros — carrossel dinâmico; populado por BarbeariaPage.js -->
+    <section class="bp-barbeiros-secao">
+      <div class="bp-section-header">
+        <h2 class="bp-section-titulo">Barbeiros</h2>
+      </div>
+      <div id="bp-barbeiros-scroll" class="bp-barbeiros-scroll"></div>
+    </section>
 
     <!-- Skeleton -->
     <div id="bp-skeleton">
-      <div style="width:100%;height:200px;background:var(--card-alt,rgba(255,255,255,.06));"></div>
       <div style="padding:52px 20px 0">
         <div class="bp-skeleton-linha" style="width:55%"></div>
         <div class="bp-skeleton-linha" style="width:70%"></div>
@@ -1689,46 +1767,41 @@
 
     <!-- Conteúdo real -->
     <div id="bp-conteudo" hidden>
-      <!-- Capa + logo -->
-      <div class="bp-capa-wrap">
-        <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
-        <div class="bp-logo-wrap">
-          <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
-        </div>
-      </div>
-
-      <!-- Info -->
-      <div class="bp-info-wrap">
-        <h1 id="bp-nome" class="bp-nome"></h1>
-        <p  id="bp-endereco" class="bp-endereco"></p>
-        <div class="bp-meta-row">
-          <span id="bp-badge" class="bp-badge"></span>
-          <span id="bp-rating" class="bp-rating"></span>
-          <span id="bp-likes" class="bp-likes"></span>
-          <span id="bp-desde" class="bp-desde"></span>
-        </div>
-        <div class="bp-acoes">
-          <a id="bp-whats-btn" class="bp-whats-btn" href="#" target="_blank" rel="noopener" hidden>
-            💬 WhatsApp
-          </a>
-          <button id="bp-fav-btn" class="bp-fav-btn" data-action="barbershop-favorite"
-                  aria-label="Favoritar barbearia">
-            ♥ Favoritar
-          </button>
-        </div>
-      </div>
-
-      <!-- Serviços -->
       <div class="bp-secao">
         <p class="bp-secao-titulo">Serviços</p>
         <div id="bp-servicos-lista"></div>
       </div>
-
-      <!-- Portfólio -->
       <div class="bp-secao">
         <p class="bp-secao-titulo">Portfólio</p>
         <div id="bp-portfolio-grid" class="bp-portfolio-grid" hidden></div>
       </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA BARBEIRO — Perfil público de um barbeiro / profissional
+  ============================================================ -->
+  <main id="tela-barbeiro" class="tela">
+    <div class="beiro-topbar">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div id="beiro-skeleton">
+      <div class="beiro-hero-skel">
+        <div class="beiro-ava-skel"></div>
+        <div class="bp-skeleton-linha" style="width:140px;margin:0 auto"></div>
+        <div class="bp-skeleton-linha" style="width:90px;margin:0 auto"></div>
+      </div>
+    </div>
+    <div id="beiro-conteudo" hidden>
+      <div class="beiro-hero">
+        <div id="beiro-avatar-wrap" class="beiro-avatar-wrap">&#x1F488;</div>
+        <h1 id="beiro-nome" class="beiro-nome"></h1>
+        <span id="beiro-badge" class="beiro-owner-badge" hidden></span>
+      </div>
+      <div class="beiro-meta">
+        <span id="beiro-rating" class="beiro-rating"></span>
+      </div>
+      <p id="beiro-bio" class="beiro-bio" hidden></p>
     </div>
   </main>
 
@@ -1748,8 +1821,6 @@
 <script src="/shared/js/NavConfig.js"></script>
 <!-- Validação e sanitização centralizada de inputs -->
 <script src="/shared/js/InputValidator.js"></script>
-<script src="/shared/js/Cliente.js"></script>
-<script src="/shared/js/Agendamento.js"></script>
 <!-- Serviço de autenticação -->
 <script src="/shared/js/AuthService.js"></script>
   <script src="/shared/js/AuthUI.js"></script>
@@ -1784,6 +1855,20 @@
 <script src="/shared/js/GeoService.js"></script>
 <!-- Repositórios de dados (acesso Supabase) — ANTES dos widgets que os usam -->
 <script src="/shared/js/BarbershopRepository.js"></script>
+<!-- Cache em memória com TTL — necessário para CacheManager e NavigationManager -->
+<script src="/shared/js/CacheManager.js"></script>
+<!-- Gerenciamento de contexto de navegação — necessário para NavigationManager -->
+<script src="/shared/js/StateManager.js"></script>
+<!-- Pré-carregamento de recursos antes da animação de entrada -->
+<script src="/shared/js/ResourceLoader.js"></script>
+<!-- Pré-carregamento de tela antes da animação de entrada -->
+<script src="/shared/js/NavigationManager.js"></script>
+<!-- Tela pública de detalhes de barbearia -->
+<script src="/shared/js/BarbeariaPage.js"></script>
+<!-- Tela de perfil público de barbeiro -->
+<script src="/shared/js/BarbeiroPage.js"></script>
+<!-- Repositórios de dados (acesso Supabase) — ANTES dos widgets que os usam -->
+<script src="/shared/js/ProfileRepository.js"></script>
 <!-- Serviços de negócio -->
 <script src="/shared/js/BarbershopService.js"></script>
 <script src="/shared/js/ProfessionalService.js"></script>
@@ -1817,7 +1902,6 @@
 <script src="/shared/js/NotificationService.js"></script>
 <script src="/shared/js/AppointmentRepository.js"></script>
 <script src="/shared/js/QueueRepository.js"></script>
-<script src="/shared/js/ProfileRepository.js"></script>
 <script src="/shared/js/LgpdService.js"></script>
 <script src="/shared/js/PerfilEditor.js"></script>
 <script src="/shared/js/FooterScrollManager.js"></script>
@@ -1828,7 +1912,6 @@
 <script src="/shared/js/MediaP2P.js"></script>
 <script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
 <script src="assets/js/pages/CriarBarbeariaPage.js"></script>
-<script src="/shared/js/BarbeariaPage.js"></script>
 <script src="assets/js/pages/ParceriasPage.js"></script>
 <script src="assets/js/pages/FinancasPage.js"></script>
 <script src="assets/js/pages/GpsPage.js"></script>

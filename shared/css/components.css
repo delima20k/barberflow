@@ -3633,3 +3633,589 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   }
 }
 
+/* ================================================================
+   MINHA BARBEARIA — tela + painel de configurações
+================================================================ */
+
+/* ── Layout geral ──────────────────────────────────────── */
+.mb-content {
+  padding-top: 0;
+  margin-top: 0;
+  gap: 6px; /* sobrescreve --space-section (32px) do .content */
+}
+/* sec-title dentro da tela minha barbearia: margem mínima */
+.mb-content .sec-title {
+  margin: 2px 0 0;
+}
+/* Título boas-vindas animado */
+.mb-boas-vindas {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  text-align: center;
+  margin: 0.3rem 0 0;
+  min-height: 1.4em;
+  letter-spacing: .3px;
+  background: transparent;
+  border: none;
+}
+
+.mb-nome-titulo {
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--text);
+  text-align: center;
+  margin: 8px 0 0;
+  min-height: 1.6rem;
+  line-height: 1.2;
+}
+
+/* ── Stories scroll (3 cards fixos visíveis) ──────────── */
+.mb-stories-scroll {
+  padding: 0;
+  margin-bottom: 0;
+}
+
+/* ── Card 1: upload ────────────────────────────────────── */
+.mb-story-upload {
+  cursor: pointer;
+}
+/* mb-story-upload-inner herda todos os estilos de .story-video-wrap;
+   apenas garante que a imagem de capa preencha o container. */
+.mb-story-upload-inner > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Texto de quota: absoluto no canto sup. esq. do card */
+.mb-quota-txt {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  font-size: .58rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.85);
+  background: rgba(0,0,0,.45);
+  padding: 2px 6px;
+  border-radius: 20px;
+  z-index: 3;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+/* Círculo + (canto inferior direito) */
+.mb-add-btn {
+  all: unset;
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: var(--gold);
+  color: #1a0800;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 3;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 10px rgba(0,0,0,.40);
+  transition: transform .15s, background .15s;
+}
+.mb-add-btn:active { transform: scale(.88); }
+
+/* ── Slots 2 e 3: placeholder vazio ───────────────────── */
+.mb-story-slot .story-video-wrap {
+  background: var(--card);
+  border: 1.5px dashed var(--gold-border);
+}
+.mb-slot-vazio {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--gold-border);
+}
+
+/* ── Linha GPS + Mais ──────────────────────────────────── */
+.mb-btns-row {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+.mb-gps-btn,
+.mb-mais-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: var(--r-sm, 8px);
+  font-size: .88rem;
+  font-weight: 700;
+  letter-spacing: .4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s;
+}
+.mb-gps-btn {
+  background: #5c2a0e;
+  border: 2px solid #7a3a14;
+  color: #f5d9c0;
+}
+.mb-gps-btn:active,
+.mb-gps-btn:hover  { background: #7a3a14; color: #fff; }
+.mb-mais-btn {
+  background: transparent;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+}
+.mb-mais-btn:active,
+.mb-mais-btn:hover  { background: var(--gold); color: #1a0800; }
+
+/* ================================================================
+   GUARDAITEN — Gaveta animada (esconde/revela elementos)
+   Barra dourada/marrom com texto esq + botão dir + slide do conteúdo
+================================================================ */
+.gi-wrapper {
+  margin: 0;
+}
+
+/* Linha com label esq + barra + toggle dir */
+.gi-header {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  height: 26px;
+}
+
+/* Texto esquerdo */
+.gi-txt-esq {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-muted, #8a6a50);
+  white-space: nowrap;
+  padding-right: 6px;
+  flex-shrink: 0;
+  letter-spacing: .2px;
+}
+
+/* A barra — começa pequena à direita, cresce para a esquerda */
+.gi-barra {
+  height: 2px;
+  background: linear-gradient(90deg, #6b3a1f 0%, var(--gold, #D4AF37) 100%);
+  border-radius: 2px;
+  flex: 1;
+  transform-origin: right center;
+  transform: scaleX(0.18);
+  transition: transform 520ms cubic-bezier(.4,0,.2,1);
+}
+.gi-barra--aberta {
+  transform: scaleX(1);
+}
+
+/* Botão toggle (lado direito) */
+.gi-toggle {
+  all: unset;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  cursor: pointer;
+  white-space: nowrap;
+  padding-left: 6px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: .2px;
+}
+.gi-toggle:active { opacity: .7; }
+
+/* Setinha acima do toggle (visível só quando aberto) */
+.gi-seta {
+  text-align: right;
+  font-size: .62rem;
+  color: var(--gold, #D4AF37);
+  line-height: 1;
+  margin-top: -2px;
+}
+.gi-seta::after { content: '↑'; }
+
+/* Conteúdo oculto — slide de dentro da barra para baixo */
+.gi-conteudo {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition:
+    max-height 340ms cubic-bezier(.4,0,.2,1),
+    opacity    280ms ease,
+    transform  300ms ease;
+}
+.gi-conteudo--aberto {
+  max-height: 200px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ================================================================
+   TELA GPS / ENDEREÇO
+================================================================ */
+.gps-content { padding-bottom: 40px; }
+
+.gps-hero    { text-align: center; margin-bottom: 28px; padding-top: 0; }
+.gps-titulo  {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--text);
+  margin: 0 0 10px;
+  letter-spacing: .5px;
+}
+.gps-dig {
+  background: transparent !important;
+  border-left: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin-top: 4px;
+  font-size: 1rem;
+  font-family: 'Special Elite', 'Courier New', Courier, monospace;
+  color: var(--text-muted);
+  min-height: 1.5em;
+  text-align: center;
+}
+.gps-sub {
+  font-size: .88rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Campos */
+.gps-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.gps-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.gps-opcional { font-weight: 400; text-transform: none; font-size: .75rem; }
+
+/* Row CEP + Buscar */
+.gps-cep-row {
+  display: flex;
+  gap: 0;
+  width: 100%;
+}
+.gps-cep-input {
+  flex: 1;
+  border-right: none !important;
+  border-radius: var(--r-sm, 8px) 0 0 var(--r-sm, 8px) !important;
+}
+.gps-btn-buscar {
+  padding: 0 18px;
+  background: #5c2a0e;
+  border: 1.5px solid #7a3a14;
+  border-radius: 0 var(--r-sm, 8px) var(--r-sm, 8px) 0;
+  color: #f5d9c0;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.gps-btn-buscar:active { background: #7a3a14; color: #fff; }
+.gps-btn-buscar:disabled { opacity: .55; pointer-events: none; }
+
+/* Input base */
+.gps-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1.5px solid #ccc;
+  border-radius: var(--r-sm, 8px);
+  color: #1a0800;
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .15s;
+  box-sizing: border-box;
+}
+.gps-input:focus         { border-color: #7a3a14; }
+.gps-input[readonly]     { background: #f5f0eb; color: #555; cursor: default; }
+.gps-input-sm            { max-width: 130px; }
+
+/* Linha GPS + Salvar */
+.gps-gps-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 6px;
+}
+.gps-btn-gps,
+.gps-btn-salvar {
+  flex: 1;
+  padding: 11px 10px;
+  border: 2px solid var(--gold-border);
+  border-radius: var(--r-sm, 8px);
+  color: var(--gold);
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.gps-btn-gps    { background: var(--surface-2, #261508); }
+.gps-btn-salvar { background: transparent; }
+.gps-btn-gps:active,    .gps-btn-gps:hover,
+.gps-btn-salvar:active, .gps-btn-salvar:hover  { background: var(--gold); color: #1a0800; }
+.gps-btn-gps:disabled,  .gps-btn-salvar:disabled { opacity: .55; pointer-events: none; }
+
+.gps-coords-txt {
+  display: block;
+  font-size: .72rem;
+  color: var(--gold);
+  word-break: break-all;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+/* Mensagens */
+.gps-msg       { font-size: .84rem; min-height: 1.4em; margin: 1rem 0 4px; text-align: center; color: var(--text-on-surface, #F5E9DC); }
+.gps-msg--ok   { color: #4caf50; }
+.gps-msg--erro { color: #e57373; }
+
+.gaspar-ok {
+  color: #1a0800 !important;
+  font-weight: 700;
+}
+
+/* ================================================================
+   SUB-PAINÉIS — deslizam por cima de tela-minha-barbearia
+   (GPS + Configurações)
+================================================================ */
+.mb-sub-tela {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--bg, #0f0500);
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform .32s cubic-bezier(0.4,0,0.2,1);
+  scrollbar-width: none;
+  padding-top: var(--header-h);
+}
+.mb-sub-tela::-webkit-scrollbar { display: none; }
+.mb-sub-ativa { transform: translateX(0); }
+
+.mb-sub-tela .tela-topo {
+  position: static;
+}
+.mb-sub-tela .tela-topo + .content {
+  margin-top: 1.5rem;
+}
+
+/* Título da página de configurações */
+.mb-cfg-titulo-pg {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+  letter-spacing: .3px;
+}
+
+/* Body de configurações */
+.mb-config-body {
+  padding: 0 0 calc(40px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mb-config-secao { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.mb-config-secao-label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* ── Linha: capa + ícone lado a lado ── */
+.mb-cfg-media-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  padding: 0 3.33% 0 3.33%;
+  gap: 3.33%;
+  box-sizing: border-box;
+}
+
+.mb-cfg-capa-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+}
+
+.mb-config-upload-wrap {
+  position: relative;
+  width: 100%;
+  height: calc(45vw * 0.63);
+  border-radius: var(--r-lg, 12px);
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+}
+.mb-config-upload-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mb-config-upload-wrap .mb-config-upload-btn--circulo {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+  background: var(--gold, #D4AF37);
+  border: 1px solid #1a0800;
+  color: #1a0800;
+  box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  transition: transform .15s, background .15s;
+}
+.mb-config-upload-wrap .mb-config-upload-btn--circulo:active,
+.mb-config-upload-wrap .mb-config-upload-btn--circulo:hover {
+  transform: scale(.9);
+  background: #f0c040;
+  border-color: #1a0800;
+}
+
+.mb-config-icone-col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+}
+
+.mb-config-icone-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--r-lg, 12px);
+  background: linear-gradient(135deg, #3d1e08 0%, #7a4a1a 45%, #c9872a 100%);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(212,175,55,.22);
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+.mb-config-icone-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  background-image: inherit;
+  background-size: cover;
+  background-position: center;
+  filter: blur(10px);
+  opacity: 0.45;
+  z-index: 0;
+}
+.mb-config-icone-wrap > * {
+  position: relative;
+  z-index: 1;
+}
+.mb-config-icone-circulo {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid var(--gold);
+  flex-shrink: 0;
+  background: var(--card);
+}
+.mb-config-icone-circulo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mb-config-icone-wrap .mb-config-upload-btn--logo {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+  background: var(--gold, #D4AF37);
+  border: 1px solid #1a0800;
+  color: #1a0800;
+  box-shadow: 0 2px 8px rgba(0,0,0,.45);
+  transition: transform .15s, background .15s;
+  flex: none;
+  white-space: nowrap;
+}
+.mb-config-icone-wrap .mb-config-upload-btn--logo:active,
+.mb-config-icone-wrap .mb-config-upload-btn--logo:hover {
+  transform: scale(.9);
+  background: #f0c040;
+  border-color: #1a0800;
+}
+
+.mb-config-upload-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 10px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--gold, #c9872a);
+  border: 1px solid var(--gold, #c9872a);
+  color: #1a0800;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, border-color .15s;
+  box-sizing: border-box;
+}
+.mb-config-upload-btn:active,
+.mb-config-upload-btn:hover {
+  background: #d49534;
+  border-color: #d49534;
+}
+

@@ -26,12 +26,11 @@ class BarberFlowProfissional extends Router {
     'destaques',
     'barbearias',
     'barbeiros',
-    'parcerias',
-    'financas',
     'barbearia',
+    'barbeiro',
   ]);
 
-  static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros']);
+  static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'barbearia', 'barbeiro']);
 
   get telasComNav()  { return BarberFlowProfissional.#TELAS_COM_NAV;  }
   get telasOffline() { return BarberFlowProfissional.#TELAS_OFFLINE; }
@@ -47,10 +46,8 @@ class BarberFlowProfissional extends Router {
   #queueWidget;
   #barbeirosPage;
   #barbeariasPage;
-  #parceriasPage;
-  #financasPage;
-  #gpsPage;
-  #perfilBarbeariaPage;
+  #barbeariaPublicaPage;
+  #barbeiroPage;
 
   constructor() {
     super('inicio');
@@ -65,10 +62,8 @@ class BarberFlowProfissional extends Router {
     this.#queueWidget          = new QueueWidget();
     this.#barbeirosPage  = new BarbeirosPage();
     this.#barbeariasPage = new BarbeariasPage();
-    this.#parceriasPage  = new ParceriasPage();
-    this.#financasPage   = new FinancasPage();
-    this.#gpsPage        = new GpsPage();
-    this.#perfilBarbeariaPage = new BarbeariaPage();
+    this.#barbeariaPublicaPage = new BarbeariaPage();
+    this.#barbeiroPage         = new BarbeiroPage();
     this.#auth.bind();
     this.#cadastro.bind();
     this.#planos.bind();
@@ -80,10 +75,8 @@ class BarberFlowProfissional extends Router {
     this.#queueWidget.bind();
     this.#barbeirosPage.bind();
     this.#barbeariasPage.bind();
-    this.#parceriasPage.bind();
-    this.#financasPage.bind();
-    this.#gpsPage.bind();
-    this.#perfilBarbeariaPage.bind();
+    this.#barbeariaPublicaPage.bind();
+    this.#barbeiroPage.bind();
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
   }

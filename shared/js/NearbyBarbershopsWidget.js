@@ -91,56 +91,46 @@ class NearbyBarbershopsWidget {
         </div>
       </div>`).join('');
 
-    // ── 1. Carrega lista base (sem GPS, rápido e confiável) ──────────────
-    let lista = [];
     try {
-      lista = await BarbershopRepository.getAll(20);
-    } catch (err) {
-      LoggerService.error('[NearbyBarbershopsWidget] initHomeCards getAll falhou:', err);
-      // Mantém skeleton visível e sai — sem limpar
-      return;
-    }
+      let lista;
 
-    if (!lista.length) { el.innerHTML = ''; return; }
+      // Carrega favoritos em cache antes de renderizar (idempotente)
+      try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
 
-    // ── 2. Tenta enriquecer com distância GPS (opcional, sem bloquear) ───
-    try {
-      const permissao = await GeoService.verificarPermissao();
-      if (permissao === 'granted') {
-        const pos = await GeoService.obter();
-        const nearby = await BarbershopRepository.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
-        if (nearby.length) {
-          lista = nearby.map(b => ({
-            ...b,
-            distance_km: b.latitude
-              ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
-              : null,
-          }));
+      // Se GPS disponível, usa barbearias próximas (≤5km), já ordenadas por score/curtidas
+      try {
+        const permissao = await GeoService.verificarPermissao();
+        if (permissao === 'granted') {
+          const pos = await GeoService.obter();
+          lista = await BarbershopRepository.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
+          // Adiciona distância apenas para exibição no sub-texto
+          lista = lista.map(b => ({ ...b, distance_km: b.latitude
+            ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
+            : null }));
         }
+      } catch (_) { /* sem GPS */ }
+
+      // Fallback: busca todas ordenadas por popularidade
+      if (!lista) lista = await BarbershopRepository.getAll(20);
+
+      el.innerHTML = '';
+
+      // Agrupa em pares — cada coluna tem 2 cards
+      for (let i = 0; i < lista.length; i += 2) {
+        const coluna = document.createElement('div');
+        coluna.className = 'barbearias-coluna';
+        coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i]));
+        if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i + 1]));
+        el.appendChild(coluna);
       }
-    } catch (_) { /* GPS indisponível — usa getAll já carregado */ }
 
-    // ── 3. Normaliza logo_path para URL completa ─────────────────────────
-    lista = lista.map(b => ({
-      ...b,
-      logo_path: b.logo_path ? SupabaseService.getLogoUrl(b.logo_path) : null,
-    }));
+      // Restaura contadores reais para todos (inclusive anônimos)
+      BarbershopService.restaurarInteracoes([...el.querySelectorAll('[data-barbershop-id]')]);
 
-    // ── 4. Renderiza ─────────────────────────────────────────────────────
-    el.innerHTML = '';
-    for (let i = 0; i < lista.length; i += 2) {
-      const coluna = document.createElement('div');
-      coluna.className = 'barbearias-coluna';
-      coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i]));
-      if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberRow(lista[i + 1]));
-      el.appendChild(coluna);
+    } catch (err) {
+      LoggerService.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
+      el.innerHTML = '';
     }
-
-    // ── 5. Restaura interações (favoritos / likes) ───────────────────────
-    try {
-      await BarbershopService.carregarFavoritos();
-    } catch (_) { /* silencioso */ }
-    BarbershopService.restaurarInteracoes([...el.querySelectorAll('[data-barbershop-id]')]);
   }
 
   /**
@@ -236,7 +226,7 @@ class NearbyBarbershopsWidget {
         const nome = document.createElement('p');
         nome.className = 'dc-nome';
         nome.textContent = b.name;
-        if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
+
         // ── Rodapé do card: usa .top-card__stars (estrelas + num + likes clicável) ──
         const starsRow = document.createElement('div');
         starsRow.className = 'top-card__stars';
@@ -265,7 +255,6 @@ class NearbyBarbershopsWidget {
 
         item.appendChild(card);
         item.appendChild(addr);
-        if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path);
         el.appendChild(item);
         cardsEls.push(card);
       });
@@ -292,22 +281,12 @@ class NearbyBarbershopsWidget {
     const el = document.getElementById(containerId);
     if (!el) return;
 
-    // Skeleton — 2 colunas de 2 cards
-    el.innerHTML = Array(2).fill(0).map(() => `
-      <div class="barbeiros-coluna">
-        <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
-          <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
-          <div class="barber-info">
-            <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-            <p style="width:70px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
-          </div>
-        </div>
-        <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
-          <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
-          <div class="barber-info">
-            <p class="barber-name" style="width:90px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
-            <p style="width:60px;height:10px;background:var(--card-alt,#f0e8df);border-radius:6px;margin-top:6px"></p>
-          </div>
+    // Skeleton
+    el.innerHTML = Array(3).fill(0).map(() => `
+      <div class="barber-row barber-card" style="opacity:.4;pointer-events:none;">
+        <div class="avatar gold" style="background:var(--card-alt,#f0e8df)"></div>
+        <div class="barber-info">
+          <p class="barber-name" style="width:110px;height:14px;background:var(--card-alt,#f0e8df);border-radius:6px"></p>
         </div>
       </div>`).join('');
 
@@ -320,18 +299,67 @@ class NearbyBarbershopsWidget {
 
       el.innerHTML = '';
       const barbeiroCards = [];
+      lista.forEach(p => {
+        const ratingCount = parseInt(p.rating_count || 0, 10);
+        const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
 
-      // Agrupa em pares — cada coluna tem 2 cards (até 5 colunas = 10 barbeiros)
-      for (let i = 0; i < lista.length; i += 2) {
-        const coluna = document.createElement('div');
-        coluna.className = 'barbeiros-coluna';
-        coluna.appendChild(NearbyBarbershopsWidget.#criarBarberCard(lista[i]));
-        if (lista[i + 1]) coluna.appendChild(NearbyBarbershopsWidget.#criarBarberCard(lista[i + 1]));
-        el.appendChild(coluna);
-        barbeiroCards.push(...coluna.querySelectorAll('[data-professional-id]'));
+        const row = document.createElement('div');
+        row.className = 'barber-row barber-card';
+        row.dataset.professionalId = p.id;
+
+        const avatarWrap = document.createElement('div');
+        avatarWrap.className = 'avatar gold';
+        if (p.avatar_path) {
+          const img = document.createElement('img');
+          img.alt = p.full_name;
+          img.onerror = () => { avatarWrap.textContent = '💈'; };
+          img.src = SupabaseService.getAvatarUrl(p.avatar_path) || '';
+          avatarWrap.appendChild(img);
+        } else {
+          avatarWrap.textContent = '💈';
+        }
+
+        const info = document.createElement('div');
+        info.className = 'barber-info';
+
+        const nome = document.createElement('p');
+        nome.className = 'barber-name';
+        nome.textContent = p.full_name || 'Barbeiro';
+
+        // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
+        const starsRow = document.createElement('div');
+        starsRow.className = 'top-card__stars';
+        starsRow.innerHTML = `
+          ${BarbershopService.criarEstrelasHTML(ratingVal)}
+          <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
+        starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+
+        info.appendChild(nome);
+        info.appendChild(starsRow);
+
+        row.appendChild(avatarWrap);
+        row.appendChild(info);
+
+        // Canto superior direito: apenas favorito com confetes
+        const actions = document.createElement('div');
+        actions.className = 'top-card__actions';
+        actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+        row.appendChild(actions);
+
+        barbeiroCards.push(row);
+      });
+
+      // Agrupa em colunas de 2 cards (.barbeiros-coluna) para layout 2×N
+      for (let i = 0; i < barbeiroCards.length; i += 2) {
+        const col = document.createElement('div');
+        col.className = 'barbeiros-coluna';
+        col.appendChild(barbeiroCards[i]);
+        if (barbeiroCards[i + 1]) col.appendChild(barbeiroCards[i + 1]);
+        el.appendChild(col);
       }
 
       // Restaura contadores de curtidas para todos (inclusive anônimos)
+      // getProfessionalLikeCountsDirect conta de professional_likes diretamente
       try {
         const ids    = lista.map(p => p.id).filter(Boolean);
         const counts = await ProfileRepository.getProfessionalLikeCountsDirect(ids);
@@ -347,80 +375,12 @@ class NearbyBarbershopsWidget {
           }
           BarbershopService.atualizarEstrelaCard(card, val);
         });
-      } catch (_) { /* silencioso */ }
+      } catch (_) { /* silencioso — contadores do render inicial permanecem */ }
 
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
       el.innerHTML = '';
     }
-  }
-
-  /** Cria um card individual de barbeiro para o carrossel da home. */
-  static #criarBarberCard(p) {
-    const ratingCount = parseInt(p.rating_count || 0, 10);
-    const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
-
-    const row = document.createElement('div');
-    row.className = 'barber-row barber-card';
-    row.dataset.professionalId = p.id;
-
-    const avatarWrap = document.createElement('div');
-    avatarWrap.className = 'avatar gold';
-    if (p.avatar_path) {
-      const img = document.createElement('img');
-      img.alt     = p.full_name || 'Barbeiro';
-      img.loading = 'lazy';
-      img.onerror = () => { avatarWrap.textContent = '💈'; };
-      img.src     = SupabaseService.getAvatarUrl(p.avatar_path) || '';
-      avatarWrap.appendChild(img);
-    } else {
-      avatarWrap.textContent = '💈';
-    }
-
-    const info = document.createElement('div');
-    info.className = 'barber-info';
-
-    const nome = document.createElement('p');
-    nome.className   = 'barber-name';
-    nome.textContent = p.full_name || 'Barbeiro';
-    info.appendChild(nome);
-
-    if (p.pro_type === 'barbearia') {
-      const badge = document.createElement('span');
-      badge.className   = 'barber-owner-badge';
-      badge.textContent = '🏪 Tem Barbearia';
-      info.appendChild(badge);
-    }
-
-    const starsRow = document.createElement('div');
-    starsRow.className = 'top-card__stars';
-    starsRow.innerHTML = `
-      ${BarbershopService.criarEstrelasHTML(ratingVal)}
-      <span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
-    starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
-    info.appendChild(starsRow);
-
-    row.appendChild(avatarWrap);
-    row.appendChild(info);
-
-    // ── Canto superior direito: brand (logo) + favorito abaixo ──
-    const actions = document.createElement('div');
-    actions.className = 'top-card__actions card-actions-brand';
-
-    const brand = document.createElement('div');
-    brand.className = 'card-brand';
-    const brandImg = document.createElement('img');
-    brandImg.src       = '/shared/img/nomeAppBarber.png';
-    brandImg.alt       = 'BarberFlow';
-    brandImg.loading   = 'lazy';
-    brandImg.className = 'card-brand-logo';
-    brand.appendChild(brandImg);
-    actions.appendChild(brand);
-
-    actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
-    row.appendChild(actions);
-
-    return row;
   }
 
 
@@ -572,20 +532,17 @@ class NearbyBarbershopsWidget {
       if (!lista.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
-      // Normaliza logo_path para URL completa e reutiliza #criarBarberRow
+      // #criarBarberRow já normaliza logo_path para URL — sem pré-processamento
       lista.forEach(b => {
         const bc = {
           ...b,
-          logo_path: b.logo_path ? SupabaseService.getLogoUrl(b.logo_path) : null,
+          // sub-texto: cidade + cortes realizados
+          _sub: `${b.city || b.address || ''} · ${Number(b.rating_count ?? 0)} cortes`,
         };
         const row = NearbyBarbershopsWidget.#criarBarberRow(bc);
-        // Enriquece endereço com nº de cortes
-        const subEl = row.querySelector('.barber-addr');
-        const addrBase = b.address || b.city || '';
-        const cortes   = Number(b.rating_count ?? 0);
-        if (subEl) subEl.textContent = addrBase
-          ? `📍 ${addrBase} · ${cortes} cortes`
-          : cortes ? `${cortes} cortes realizados` : '';
+        // Substitui sub padrão pelo enriquecido com nº de cortes
+        const subEl = row.querySelector('.barber-sub');
+        if (subEl) subEl.textContent = bc._sub;
         el.appendChild(row);
       });
 
@@ -615,8 +572,11 @@ class NearbyBarbershopsWidget {
     avatarWrap.className = 'avatar gold';
     if (b.logo_path) {
       const img   = document.createElement('img');
-      img.src     = b.logo_path;
+      img.src     = b.logo_path.startsWith('http')
+        ? b.logo_path
+        : (SupabaseService.getLogoUrl(b.logo_path) || '');
       img.alt     = b.name;
+      img.loading = 'lazy';
       img.onerror = () => { avatarWrap.textContent = '💈'; };
       avatarWrap.appendChild(img);
     } else {
@@ -629,13 +589,12 @@ class NearbyBarbershopsWidget {
     const nome = document.createElement('p');
     nome.className   = 'barber-name';
     nome.textContent = b.name;
-    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
 
     const sub = document.createElement('p');
-    sub.className   = 'barber-addr';
-    const distStr = b.distance_km != null ? ` · ${Number(b.distance_km).toFixed(1)} km` : '';
-    const addrStr = b.address || b.city || '';
-    sub.textContent = addrStr ? `📍 ${addrStr}${distStr}` : '';
+    sub.className   = 'barber-sub';
+    const distStr = Number(b.distance_km ?? 0).toFixed(1);
+    const addrStr = b.address ?? b.city ?? 'Localização não informada';
+    sub.textContent = `📍 ${addrStr} · Barbearia · ${distStr} km`;
 
     // Rodapé padrão: top-card__stars (estrelas fill + rating + like clicável verde)
     const starsRow = document.createElement('div');
@@ -649,9 +608,8 @@ class NearbyBarbershopsWidget {
       </button>`;
 
     info.appendChild(nome);
-    info.appendChild(starsRow);
-    // Endereço abaixo das estrelas (conforme solicitado)
     info.appendChild(sub);
+    info.appendChild(starsRow);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
@@ -670,7 +628,6 @@ class NearbyBarbershopsWidget {
       row.appendChild(actions);
     }
 
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
     return row;
   }
 }
