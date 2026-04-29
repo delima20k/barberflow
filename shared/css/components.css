@@ -572,13 +572,12 @@
   left: 0.5rem;
   z-index: 10;
 }
-/* Identidade sobreposta no centro vertical da capa: ícone (sem fundo) + nome */
+/* Identidade sobreposta na base da capa, ~10px acima da seção de stories */
 #tela-barbearia .bp-capa-identidade {
   position: absolute;
-  top: 50%;
+  bottom: 10px;
   left: 0;
   right: 0;
-  transform: translateY(-50%);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -600,7 +599,7 @@
 }
 #tela-barbearia .bp-capa-identidade .bp-nome {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.85rem;
   font-weight: 800;
   color: #fff;
   text-shadow: 0 1px 6px rgba(0,0,0,.85);
