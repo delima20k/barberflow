@@ -195,7 +195,9 @@ class NearbyBarbershopsWidget {
           img.alt = b.name;
           img.loading = 'lazy';
           img.onerror = () => { avatarWrap.textContent = '💈'; };
-          img.src = SupabaseService.getLogoUrl(b.logo_path) || '';
+          img.src = b.logo_path.startsWith('http')
+            ? b.logo_path
+            : (SupabaseService.getLogoUrl(b.logo_path) || '');
           avatarWrap.appendChild(img);
         } else {
           avatarWrap.textContent = '💈';
