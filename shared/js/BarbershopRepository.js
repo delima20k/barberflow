@@ -247,16 +247,24 @@ class BarbershopRepository {
 
     const FIELDS = 'id, full_name, avatar_path, pro_type, rating_avg, rating_count';
 
-    // Tenta buscar membros vinculados ao salão
+    // Busca os IDs dos profissionais vinculados via professional_shop_links
     let members = [];
     try {
-      const { data, error } = await ApiService.from('profiles_public')
-        .select(FIELDS)
+      const { data: links, error: linkErr } = await ApiService.from('professional_shop_links')
+        .select('professional_id')
         .eq('barbershop_id', barbershopId)
-        .order('rating_count', { ascending: false })
+        .eq('is_active', true)
         .limit(20);
-      if (!error) members = data ?? [];
-    } catch { /* coluna inexistente — members permanece [] */ }
+
+      if (!linkErr && links?.length) {
+        const ids = links.map(l => l.professional_id).filter(Boolean);
+        const { data, error } = await ApiService.from('profiles_public')
+          .select(FIELDS)
+          .in('id', ids)
+          .order('rating_count', { ascending: false });
+        if (!error) members = data ?? [];
+      }
+    } catch { /* erro inesperado — members permanece [] */ }
 
     // Garante que o dono está na lista e em primeiro lugar
     if (ownerId && InputValidator.uuid(ownerId).ok) {
