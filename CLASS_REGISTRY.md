@@ -68,6 +68,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `MessageService` | [shared/js/MessageService.js](shared/js/MessageService.js) | application | Mensagens em tempo real via Supabase Realtime |
 | `MessagesWidget` | [shared/js/MessagesWidget.js](shared/js/MessagesWidget.js) | interfaces | Listagem e envio de mensagens na UI |
 | `NavConfig` | [shared/js/NavConfig.js](shared/js/NavConfig.js) | infra | Configuração de rotas e itens de navegação do SPA |
+| `NavigationManager` | [shared/js/NavigationManager.js](shared/js/NavigationManager.js) | infra | Navegação controlada com pré-carregamento. beforeNavigate inicia preload durante a animação; awaitPreload garante dados prontos antes da renderização. |
 | `NavigationViewService` | [shared/js/NavigationViewService.js](shared/js/NavigationViewService.js) | interfaces | Gerencia visibilidade da barra de navegação e transições de tela (DOM-dependent) |
 | `NearbyBarbershopsWidget` | [shared/js/NearbyBarbershopsWidget.js](shared/js/NearbyBarbershopsWidget.js) | interfaces | Lista de barbearias próximas com cards e ação de favoritar |
 | `NotificationService` | [shared/js/NotificationService.js](shared/js/NotificationService.js) | application | Notificações push e in-app via Supabase Realtime |

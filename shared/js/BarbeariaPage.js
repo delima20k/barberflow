@@ -12,7 +12,8 @@
 //
 // Dependências: BarbershopRepository.js, SupabaseService.js,
 //               FonteSalao.js, InputValidator.js, LoggerService.js,
-//               CacheManager.js, StateManager.js, ResourceLoader.js
+//               CacheManager.js, StateManager.js, ResourceLoader.js,
+//               NavigationManager.js
 // =============================================================
 
 class BarbeariaPage {
@@ -50,8 +51,9 @@ class BarbeariaPage {
   abrirPorId(id) {
     if (!InputValidator.uuid(id).ok) return;
 
-    // Atualiza contexto → invalida cache do contexto anterior + renova bust
-    StateManager.setCurrentContext(id);
+    // Inicia troca de contexto + pré-carregamento em background
+    // Os dados são buscados enquanto a animação de entrada ocorre (~320–720 ms)
+    NavigationManager.beforeNavigate(id);
     this.#shopId = id;
 
     // Limpa visualmente o conteúdo da barbearia anterior antes de mostrar skeleton
@@ -61,7 +63,7 @@ class BarbeariaPage {
     const router = (typeof App !== 'undefined' && App)
                 || (typeof Pro !== 'undefined' && Pro)
                 || null;
-    if (router) router.nav('barbearia');
+    NavigationManager.navigate(() => { if (router) router.nav('barbearia'); });
   }
 
   // ══════════════════════════════════════════════════════════
@@ -134,47 +136,61 @@ class BarbeariaPage {
     if (this.#carregando) return;
 
     // Mesma barbearia já renderizada — apenas exibe conteúdo sem re-fetch
-    if (this.#shopId === this.#shopIdCache) {
-      this.#mostrarConteudo();
-      return;
-    }
+    if (this.#shopId === this.#shopIdCache) { this.#mostrarConteudo(); return; }
 
-    // Captura o ID neste ponto — protege contra race condition:
-    // se o usuário trocar de barbearia durante o await, descartamos este resultado.
+    // Captura o ID antes de qualquer await — protege contra race condition
     const fetchId = this.#shopId;
 
-    // Verifica cache antes de ir à rede
-    const cacheShop       = CacheManager.get(`${fetchId}:shop`);
-    const cacheServicos   = CacheManager.get(`${fetchId}:servicos`);
-    const cachePortfolio  = CacheManager.get(`${fetchId}:portfolio`);
+    // Fast path (síncrono): cache completo disponível — renderiza sem rede nem mutex
+    const shopFast      = CacheManager.get(`${fetchId}:shop`);
+    const servicosFast  = CacheManager.get(`${fetchId}:servicos`);
+    const portfolioFast = CacheManager.get(`${fetchId}:portfolio`);
 
-    if (cacheShop && cacheServicos && cachePortfolio) {
-      // Stale-check: contexto pode ter mudado enquanto lemos o cache
+    if (shopFast && servicosFast && portfolioFast) {
       if (StateManager.isContextChanged(fetchId)) return;
-      this.#renderizar(cacheShop, cacheServicos, cachePortfolio);
+      this.#renderizar(shopFast, servicosFast, portfolioFast);
       this.#shopIdCache = fetchId;
       return;
     }
 
+    // Async path: mutex ativo antes de qualquer await
     this.#carregando = true;
     try {
-      const [shop, servicos, portfolio] = await Promise.all([
+      // Aguarda o pré-carregamento iniciado em abrirPorId() durante a animação.
+      // Se concluiu: cache estará populado → renderiza sem nova requisição de rede.
+      // Se falhou ou inexistente: awaitPreload sempre resolve → fallback ao fetch direto.
+      await NavigationManager.awaitPreload(fetchId);
+
+      // Stale-check: usuário pode ter trocado de barbearia durante o await
+      if (StateManager.isContextChanged(fetchId)) return;
+
+      // Verifica cache novamente após aguardar o preload
+      const shop      = CacheManager.get(`${fetchId}:shop`);
+      const servicos  = CacheManager.get(`${fetchId}:servicos`);
+      const portfolio = CacheManager.get(`${fetchId}:portfolio`);
+
+      if (shop && servicos && portfolio) {
+        this.#renderizar(shop, servicos, portfolio);
+        this.#shopIdCache = fetchId;
+        return;
+      }
+
+      // Fallback: preload falhou ou não existia → busca direto na rede
+      const [shopNet, servicosNet, portfolioNet] = await Promise.all([
         BarbershopRepository.getById(fetchId),
         BarbeariaPage.#fetchServicos(fetchId),
         BarbeariaPage.#fetchPortfolio(fetchId),
       ]);
 
-      // Stale-check: descarta resultado se o usuário já trocou de barbearia
       if (StateManager.isContextChanged(fetchId)) return;
 
-      if (!shop) { this.#mostrarErro(); return; }
+      if (!shopNet) { this.#mostrarErro(); return; }
 
-      // Armazena no cache para re-visitas sem nova requisição de rede (TTL: 5 min)
-      CacheManager.set(`${fetchId}:shop`,      shop,      5 * 60 * 1000);
-      CacheManager.set(`${fetchId}:servicos`,  servicos,  5 * 60 * 1000);
-      CacheManager.set(`${fetchId}:portfolio`, portfolio, 5 * 60 * 1000);
+      CacheManager.set(`${fetchId}:shop`,      shopNet,      5 * 60 * 1000);
+      CacheManager.set(`${fetchId}:servicos`,  servicosNet,  5 * 60 * 1000);
+      CacheManager.set(`${fetchId}:portfolio`, portfolioNet, 5 * 60 * 1000);
 
-      this.#renderizar(shop, servicos, portfolio);
+      this.#renderizar(shopNet, servicosNet, portfolioNet);
       this.#shopIdCache = fetchId;
     } catch (err) {
       if (!StateManager.isContextChanged(fetchId)) {
