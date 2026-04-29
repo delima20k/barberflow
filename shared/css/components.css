@@ -3299,3 +3299,258 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .chat-send-btn:hover { background: var(--gold-light); transform: scale(1.06); }
 .chat-send-btn svg   { width: 17px; height: 17px; }
+
+/* ── Tela Barbearia — Skeleton + Seções ─────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.bp-skeleton-linha {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--card2, rgba(255,255,255,.07)) 25%,
+    var(--card,  rgba(255,255,255,.14)) 50%,
+    var(--card2, rgba(255,255,255,.07)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  margin-bottom: 8px;
+}
+
+.bp-secao {
+  padding: 10px 14px 4px;
+}
+.bp-secao-titulo {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.bp-vazio {
+  font-size: .82rem;
+  color: var(--text-muted);
+  padding: 10px 0;
+  margin: 0;
+}
+.bp-erro {
+  font-size: .85rem;
+  color: #e07070;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+}
+
+/* ── Tela Barbearia — Seção Barbeiros (carousel) ────────── */
+.bp-barbeiros-secao {
+  padding-bottom: 6px;
+}
+
+.bp-barbeiros-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 6px 14px 10px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.bp-barbeiros-scroll::-webkit-scrollbar { display: none; }
+
+/* Card mini do barbeiro no carousel */
+.bp-barber-mini {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 8px 6px 10px;
+  border-radius: var(--r-md, 12px);
+  border: 1px solid transparent;
+  transition: border-color var(--ease, .18s), transform var(--ease, .18s);
+  -webkit-tap-highlight-color: transparent;
+}
+.bp-barber-mini:hover,
+.bp-barber-mini:focus-visible { border-color: var(--gold); transform: translateY(-2px); outline: none; }
+.bp-barber-mini:active        { transform: scale(.95); }
+
+/* Avatar circular */
+.bp-barber-mini .bm-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--card2, rgba(255,255,255,.07));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.bp-barber-mini--owner .bm-avatar { border-color: var(--gold); }
+
+/* img dentro do avatar */
+.bp-barber-mini img.bm-avatar {
+  display: block;
+}
+
+/* Nome abaixo do avatar */
+.bp-barber-mini .bm-nome {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  max-width: 82px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* Tag "Dono" */
+.bp-barber-mini .bm-owner-tag {
+  font-size: .56rem;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: 10px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+
+/* Skeleton do carousel de barbeiros */
+.bp-barber-mini--skel {
+  pointer-events: none;
+  opacity: .35;
+}
+.bp-barber-mini--skel .bm-avatar {
+  background: linear-gradient(90deg,
+    var(--card2) 25%, var(--card) 50%, var(--card2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+.bp-barber-mini--skel .bm-nome-skel {
+  width: 52px;
+  height: 9px;
+  border-radius: 4px;
+  background: linear-gradient(90deg,
+    var(--card2) 25%, var(--card) 50%, var(--card2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* ── Tela Barbeiro (BarbeiroPage) ────────────────────────── */
+#tela-barbeiro .beiro-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 6px 12px;
+  background: var(--header-bg, rgba(20,15,10,.92));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--gold-border);
+}
+
+#tela-barbeiro .beiro-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 20px 16px;
+}
+
+.beiro-avatar-wrap {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--gold);
+  background: var(--card2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+#tela-barbeiro #beiro-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.beiro-nome {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+}
+
+.beiro-owner-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.4);
+  border-radius: 20px;
+  padding: 3px 14px;
+}
+
+.beiro-meta {
+  padding: 4px 16px 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.beiro-rating {
+  font-size: .82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.beiro-bio {
+  padding: 8px 20px 24px;
+  font-size: .88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  text-align: center;
+}
+
+/* Skeleton da tela barbeiro */
+#tela-barbeiro .beiro-hero-skel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 20px 24px;
+}
+
+#tela-barbeiro .beiro-ava-skel {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(90deg,
+    var(--card2) 25%, var(--card) 50%, var(--card2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+

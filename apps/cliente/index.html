@@ -958,9 +958,14 @@
         <h2 class="bp-stories-titulo">Stories</h2>
       </div>
       <p id="bp-boas-vindas" class="search-dig bp-boas-vindas" aria-live="polite"></p>
+    </section>
+
+    <!-- Barbeiros — carrossel dinâmico; populado por BarbeariaPage.js -->
+    <section class="bp-barbeiros-secao">
       <div class="bp-section-header">
         <h2 class="bp-section-titulo">Barbeiros</h2>
       </div>
+      <div id="bp-barbeiros-scroll" class="bp-barbeiros-scroll"></div>
     </section>
 
     <!-- Skeleton (capa já está acima, só exibe linhas de info) -->
@@ -987,6 +992,40 @@
         <div id="bp-portfolio-grid" class="bp-portfolio-grid" hidden></div>
       </div>
     </div>
+  </main>
+
+  <!-- ============================================================
+       TELA BARBEIRO — Perfil público de um barbeiro / profissional
+  ============================================================ -->
+  <main id="tela-barbeiro" class="tela">
+
+    <!-- Topbar com botão voltar sempre visível -->
+    <div class="beiro-topbar">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+
+    <!-- Skeleton enquanto carrega -->
+    <div id="beiro-skeleton">
+      <div class="beiro-hero-skel">
+        <div class="beiro-ava-skel"></div>
+        <div class="bp-skeleton-linha" style="width:140px;margin:0 auto"></div>
+        <div class="bp-skeleton-linha" style="width:90px;margin:0 auto"></div>
+      </div>
+    </div>
+
+    <!-- Conteúdo real -->
+    <div id="beiro-conteudo" hidden>
+      <div class="beiro-hero">
+        <div id="beiro-avatar-wrap" class="beiro-avatar-wrap">&#x1F488;</div>
+        <h1 id="beiro-nome" class="beiro-nome"></h1>
+        <span id="beiro-badge" class="beiro-owner-badge" hidden></span>
+      </div>
+      <div class="beiro-meta">
+        <span id="beiro-rating" class="beiro-rating"></span>
+      </div>
+      <p id="beiro-bio" class="beiro-bio" hidden></p>
+    </div>
+
   </main>
 
 </div><!-- #app -->

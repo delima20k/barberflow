@@ -231,6 +231,73 @@ class BarbershopRepository {
     return data ?? [];
   }
 
+  /**
+   * Retorna os barbeiros vinculados a uma barbearia específica.
+   * Garante que o dono do salão apareça primeiro.
+   * Robusto: se a coluna barbershop_id não existir (erro 400/42P01), retorna [].
+   *
+   * @param {string} barbershopId — UUID da barbearia
+   * @param {string|null} ownerId — UUID do dono (para colocar primeiro e buscar
+   *                                separadamente caso não esteja na lista de membros)
+   * @returns {Promise<object[]>}
+   */
+  static async getBarbersByShop(barbershopId, ownerId = null) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[BarbershopRepository] barbershopId: ${r.msg}`);
+
+    const FIELDS = 'id, full_name, avatar_path, pro_type, rating_avg, rating_count';
+
+    // Tenta buscar membros vinculados ao salão
+    let members = [];
+    try {
+      const { data, error } = await ApiService.from('profiles_public')
+        .select(FIELDS)
+        .eq('barbershop_id', barbershopId)
+        .order('rating_count', { ascending: false })
+        .limit(20);
+      if (!error) members = data ?? [];
+    } catch { /* coluna inexistente — members permanece [] */ }
+
+    // Garante que o dono está na lista e em primeiro lugar
+    if (ownerId && InputValidator.uuid(ownerId).ok) {
+      const ownerInList = members.some(b => b.id === ownerId);
+      if (!ownerInList) {
+        try {
+          const { data: ownerRow } = await ApiService.from('profiles_public')
+            .select(FIELDS)
+            .eq('id', ownerId)
+            .single();
+          if (ownerRow) members.unshift(ownerRow);
+        } catch { /* perfil do dono inexistente — ignora */ }
+      } else {
+        // Move o dono para o topo sem criar novo array (sort estável)
+        members.sort((a, b) =>
+          a.id === ownerId ? -1 : b.id === ownerId ? 1 : 0
+        );
+      }
+    }
+
+    return members;
+  }
+
+  /**
+   * Busca perfil público de um barbeiro por ID (para a tela BarbeiroPage).
+   * @param {string} id — UUID do barbeiro
+   * @returns {Promise<object|null>}
+   */
+  static async getBarberById(id) {
+    const r = InputValidator.uuid(id);
+    if (!r.ok) throw new TypeError(`[BarbershopRepository] id inválido: ${r.msg}`);
+
+    const { data, error } = await ApiService.from('profiles_public')
+      .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count, bio')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+    return data ?? null;
+  }
+
   // ═══════════════════════════════════════════════════════════
   // INTERAÇÕES (like / dislike / favorite)
   // ═══════════════════════════════════════════════════════════

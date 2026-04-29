@@ -41,8 +41,8 @@ class Router {
   static TELAS_PUBLICAS = new Set([
     // Telas compartilhadas (cliente + profissional)
     'inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques',
-    // Perfil público de barbearia — acessível a qualquer visitante sem login
-    'barbearia',
+    // Perfil público de barbearia e de barbeiro — acessíveis sem login
+    'barbearia', 'barbeiro',
     // Fluxo de cadastro profissional (visitante ainda não tem conta)
     'planos-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'termos-legais',
   ]);
@@ -54,7 +54,7 @@ class Router {
   get telasComNav() { return new Set([]); }
 
   /** Telas que exibem o footer offline (sem login). @returns {Set<string>} */
-  get telasOffline() { return new Set(['inicio', 'pesquisa', 'destaques', 'barbearias', 'barbeiros', 'barbearia']); }
+  get telasOffline() { return new Set(['inicio', 'pesquisa', 'destaques', 'barbearias', 'barbeiros', 'barbearia', 'barbeiro']); }
 
   /**
    * @param {string} telaInicial — ID da tela exibida no boot (sem prefixo "tela-")

@@ -112,6 +112,7 @@ class BarbeariaPage {
       favBtn:        q('#bp-fav-btn'),
       servicosLista: q('#bp-servicos-lista'),
       portfolioGrid: q('#bp-portfolio-grid'),
+      barbeirosScroll: q('#bp-barbeiros-scroll'),
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
@@ -258,6 +259,62 @@ class BarbeariaPage {
     } catch { return []; }
   }
 
+  /**
+   * Busca os barbeiros vinculados ao salão.
+   * Garante que o dono aparecerá primeiro.
+   * @param {object} shop — objeto completo com .id e .owner_id
+   * @returns {Promise<object[]>}
+   */
+  static async #fetchBarbeiros(shop) {
+    return BarbershopRepository.getBarbersByShop(shop.id, shop.owner_id ?? null);
+  }
+
+  /**
+   * Gera HTML de um card mini de barbeiro para o carousel.
+   * Usa sanitizar() nos valores que vão para atributos HTML.
+   * @param {object} b        — linha de profiles_public
+   * @param {string} ownerId  — UUID do dono do salão
+   * @returns {string}
+   */
+  static #cardBarbeiro(b, ownerId) {
+    const s        = InputValidator.sanitizar;
+    const isOwner  = b.id === ownerId;
+    const nome     = s(b.full_name ?? 'Barbeiro');
+    const avatarUrl = b.avatar_path
+      ? s(SupabaseService.getAvatarUrl(b.avatar_path) ?? '')
+      : '';
+
+    const avatarHtml = avatarUrl
+      ? `<img src="${avatarUrl}" alt="${nome}" class="bm-avatar" loading="lazy"
+             onerror="this.parentElement.textContent='\u{1F488}'">`
+      : `<div class="bm-avatar">&#x1F488;</div>`;
+
+    const ownerTag = isOwner ? `<span class="bm-owner-tag">Dono</span>` : '';
+
+    return `
+      <div class="bp-barber-mini${isOwner ? ' bp-barber-mini--owner' : ''}"
+           data-barber-id="${s(b.id)}"
+           data-barber-owner="${isOwner ? 'true' : 'false'}"
+           role="button" tabindex="0" aria-label="${nome}">
+        ${avatarHtml}
+        <p class="bm-nome">${nome}</p>
+        ${ownerTag}
+      </div>`;
+  }
+
+  /**
+   * Gera N cards skeleton para o carousel enquanto carrega.
+   * @param {number} n
+   * @returns {string}
+   */
+  static #skeletonBarbeiros(n) {
+    return Array(n).fill(0).map(() => `
+      <div class="bp-barber-mini bp-barber-mini--skel" aria-hidden="true">
+        <div class="bm-avatar"></div>
+        <div class="bm-nome-skel"></div>
+      </div>`).join('');
+  }
+
   // ══════════════════════════════════════════════════════════
   // RENDERS — cada método tem responsabilidade única (SRP)
   // ══════════════════════════════════════════════════════════
@@ -268,7 +325,48 @@ class BarbeariaPage {
     this.#renderAcoes(shop);
     this.#renderServicos(servicos);
     this.#renderPortfolio(portfolio);
+    this.#renderBarbeiros(shop); // fire-and-forget: preenche carousel async
     this.#mostrarConteudo();
+  }
+
+  /**
+   * Preenche o carousel de barbeiros da barbearia.
+   * Chamado fire-and-forget: mostra skeleton imediatamente,
+   * depois substitui pelos cards reais assim que os dados chegam.
+   * @param {object} shop — registro completo da barbearia (inclui owner_id)
+   */
+  async #renderBarbeiros(shop) {
+    const el = this.#refs.barbeirosScroll;
+    if (!el) return;
+
+    // Skeleton imediato enquanto busca na rede
+    el.innerHTML = BarbeariaPage.#skeletonBarbeiros(3);
+
+    const cacheKey = `${shop.id}:barbeiros`;
+    let barbeiros = CacheManager.get(cacheKey);
+
+    if (!barbeiros) {
+      try {
+        barbeiros = await BarbeariaPage.#fetchBarbeiros(shop);
+        CacheManager.set(cacheKey, barbeiros, 5 * 60 * 1000);
+      } catch {
+        barbeiros = [];
+      }
+    }
+
+    // Stale-check: usuário pode ter aberto outra barbearia durante o await
+    if (this.#shopId !== shop.id) return;
+
+    if (!barbeiros.length) {
+      el.innerHTML = '';
+      const secao = el.closest('.bp-barbeiros-secao');
+      if (secao) secao.hidden = true;
+      return;
+    }
+
+    el.innerHTML = barbeiros
+      .map(b => BarbeariaPage.#cardBarbeiro(b, shop.owner_id))
+      .join('');
   }
 
   /** Capa e logo da barbearia. Usa .src — não innerHTML, sem risco XSS. */
@@ -420,6 +518,7 @@ class BarbeariaPage {
     if (this.#refs.since)    { this.#refs.since.textContent    = ''; }
     if (this.#refs.servicosLista) { this.#refs.servicosLista.innerHTML = ''; }
     if (this.#refs.portfolioGrid) { this.#refs.portfolioGrid.innerHTML = ''; }
+    if (this.#refs.barbeirosScroll) { this.#refs.barbeirosScroll.innerHTML = ''; }
     if (this.#refs.boasVindas)    { this.#refs.boasVindas.textContent  = ''; }
     // Reseta o dig para que a nova barbearia inicie a animação do zero
     this.#pararDig();
