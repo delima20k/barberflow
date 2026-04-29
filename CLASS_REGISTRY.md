@@ -31,6 +31,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `AuthController` | [shared/js/AuthController.js](shared/js/AuthController.js) | interfaces | Binding dos formulários de login, cadastro e recuperação de senha |
 | `AuthService` | [shared/js/AuthService.js](shared/js/AuthService.js) | application | Autenticação completa via Supabase Auth (login, cadastro, logout, perfil) |
 | `BarbeariaPage` | [shared/js/BarbeariaPage.js](shared/js/BarbeariaPage.js) | interfaces | Tela pública de detalhes de uma barbearia (serviços, portfólio, avaliação) |
+| `BarbeiroPage` | [shared/js/BarbeiroPage.js](shared/js/BarbeiroPage.js) | interfaces | Tela de perfil público de um barbeiro/profissional (avatar, rating, bio) |
 | `BarberPole` | [shared/js/BarberPole.js](shared/js/BarberPole.js) | interfaces | Animação decorativa do poste de barbearia |
 | `BarbershopRepository` | [shared/js/BarbershopRepository.js](shared/js/BarbershopRepository.js) | infra | CRUD de barbearias, interações (like/favorite), listagens por geolocalização |
 | `BarbershopService` | [shared/js/BarbershopService.js](shared/js/BarbershopService.js) | application | Regras de negócio para barbearias: favoritos em cache, like/dislike, delegation |
