@@ -34,6 +34,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `BarberPole` | [shared/js/BarberPole.js](shared/js/BarberPole.js) | interfaces | Animação decorativa do poste de barbearia |
 | `BarbershopRepository` | [shared/js/BarbershopRepository.js](shared/js/BarbershopRepository.js) | infra | CRUD de barbearias, interações (like/favorite), listagens por geolocalização |
 | `BarbershopService` | [shared/js/BarbershopService.js](shared/js/BarbershopService.js) | application | Regras de negócio para barbearias: favoritos em cache, like/dislike, delegation |
+| `CacheManager` | [shared/js/CacheManager.js](shared/js/CacheManager.js) | infra | Cache em memória com TTL e limpeza por escopo (clearScope). Evita stale data ao trocar de contexto. |
 | `CapaBarbearia` | [shared/js/CapaBarbearia.js](shared/js/CapaBarbearia.js) | interfaces | Upload e exibição da capa (cover) da barbearia |
 | `DeviceCompass` | [shared/js/MapOrientationModule.js](shared/js/MapOrientationModule.js) | infra | Lê orientação do dispositivo via DeviceOrientationEvent |
 | `DigText` | [shared/js/SearchWidget.js](shared/js/SearchWidget.js) | interfaces | Animação de digitação do placeholder do campo de busca |
@@ -43,6 +44,8 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `GuardaIten` | [shared/js/GuardaIten.js](shared/js/GuardaIten.js) | infra | Guard de itens de menu/tela com base em role e estado do usuário |
 | `GuestMode` | [shared/js/GuestMode.js](shared/js/GuestMode.js) | infra | Modo visitante — acesso parcial sem autenticação |
 | `DataProcessor` | [shared/js/DataProcessor.js](shared/js/DataProcessor.js) | infra | Pipeline de validação, sanitização e normalização de dados: `validateCPF`, `validateEmail`, `validatePhone`, `sanitizeInput`, `sanitizeOutput`, `normalizeData`, `processInput`, `processOutput`. Delega validação ao `InputValidator`. |
+| `ResourceLoader` | [shared/js/ResourceLoader.js](shared/js/ResourceLoader.js) | infra | Carregamento de recursos com cache-busting (?v=timestamp). Métodos: loadImage, loadVideo, fetchData, invalidateBust. |
+| `StateManager` | [shared/js/StateManager.js](shared/js/StateManager.js) | infra | Gerenciamento do contexto ativo (ex: barbearia aberta). Ao trocar contexto: invalida CacheManager.clearScope + ResourceLoader.invalidateBust. |
 | `InputValidator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Validação e sanitização centralizada: email, senha, UUID, CPF, CNPJ, texto livre, payload allowlist |
 | `Validator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Alias público de `InputValidator`. Use `Validator.email()`, `Validator.telefone()`, `Validator.escaparFiltroPostgREST()` etc. |
 | `LgpdService` | [shared/js/LgpdService.js](shared/js/LgpdService.js) | application | Gerencia consentimento LGPD do usuário (aceite de termos) |

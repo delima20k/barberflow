@@ -11,7 +11,8 @@
 //   - Segurança: IDs validados como UUID; innerHTML protegido por sanitizar()
 //
 // Dependências: BarbershopRepository.js, SupabaseService.js,
-//               FonteSalao.js, InputValidator.js, LoggerService.js
+//               FonteSalao.js, InputValidator.js, LoggerService.js,
+//               CacheManager.js, StateManager.js, ResourceLoader.js
 // =============================================================
 
 class BarbeariaPage {
@@ -48,9 +49,15 @@ class BarbeariaPage {
    */
   abrirPorId(id) {
     if (!InputValidator.uuid(id).ok) return;
-    this.#shopId     = id;
-    this.#carregando = false;  // garante re-fetch em nova navegação
+
+    // Atualiza contexto → invalida cache do contexto anterior + renova bust
+    StateManager.setCurrentContext(id);
+    this.#shopId = id;
+
+    // Limpa visualmente o conteúdo da barbearia anterior antes de mostrar skeleton
+    this.#limparConteudo();
     this.#mostrarSkeleton();
+
     const router = (typeof App !== 'undefined' && App)
                 || (typeof Pro !== 'undefined' && Pro)
                 || null;
@@ -132,21 +139,48 @@ class BarbeariaPage {
       return;
     }
 
+    // Captura o ID neste ponto — protege contra race condition:
+    // se o usuário trocar de barbearia durante o await, descartamos este resultado.
+    const fetchId = this.#shopId;
+
+    // Verifica cache antes de ir à rede
+    const cacheShop       = CacheManager.get(`${fetchId}:shop`);
+    const cacheServicos   = CacheManager.get(`${fetchId}:servicos`);
+    const cachePortfolio  = CacheManager.get(`${fetchId}:portfolio`);
+
+    if (cacheShop && cacheServicos && cachePortfolio) {
+      // Stale-check: contexto pode ter mudado enquanto lemos o cache
+      if (StateManager.isContextChanged(fetchId)) return;
+      this.#renderizar(cacheShop, cacheServicos, cachePortfolio);
+      this.#shopIdCache = fetchId;
+      return;
+    }
+
     this.#carregando = true;
     try {
       const [shop, servicos, portfolio] = await Promise.all([
-        BarbershopRepository.getById(this.#shopId),
-        BarbeariaPage.#fetchServicos(this.#shopId),
-        BarbeariaPage.#fetchPortfolio(this.#shopId),
+        BarbershopRepository.getById(fetchId),
+        BarbeariaPage.#fetchServicos(fetchId),
+        BarbeariaPage.#fetchPortfolio(fetchId),
       ]);
+
+      // Stale-check: descarta resultado se o usuário já trocou de barbearia
+      if (StateManager.isContextChanged(fetchId)) return;
 
       if (!shop) { this.#mostrarErro(); return; }
 
+      // Armazena no cache para re-visitas sem nova requisição de rede (TTL: 5 min)
+      CacheManager.set(`${fetchId}:shop`,      shop,      5 * 60 * 1000);
+      CacheManager.set(`${fetchId}:servicos`,  servicos,  5 * 60 * 1000);
+      CacheManager.set(`${fetchId}:portfolio`, portfolio, 5 * 60 * 1000);
+
       this.#renderizar(shop, servicos, portfolio);
-      this.#shopIdCache = this.#shopId;
+      this.#shopIdCache = fetchId;
     } catch (err) {
-      LoggerService.error('[BarbeariaPage] erro ao carregar:', err);
-      this.#mostrarErro();
+      if (!StateManager.isContextChanged(fetchId)) {
+        LoggerService.error('[BarbeariaPage] erro ao carregar:', err);
+        this.#mostrarErro();
+      }
     } finally {
       this.#carregando = false;
     }
@@ -199,10 +233,11 @@ class BarbeariaPage {
   #renderCapa(shop) {
     if (this.#refs.capaImg) {
       const path = shop.cover_path ?? shop.logo_path;
-      if (path) this.#refs.capaImg.src = ApiService.getLogoUrl(path);
+      // ResourceLoader.loadImage injeta ?v={bust} para evitar cache de imagem antiga
+      if (path) this.#refs.capaImg.src = ResourceLoader.loadImage(ApiService.getLogoUrl(path));
     }
     if (this.#refs.logoImg && shop.logo_path) {
-      this.#refs.logoImg.src = ApiService.getLogoUrl(shop.logo_path);
+      this.#refs.logoImg.src = ResourceLoader.loadImage(ApiService.getLogoUrl(shop.logo_path));
       // textContent/alt são seguros por natureza — não usar sanitizar()
       this.#refs.logoImg.alt = shop.name ?? '';
     }
@@ -327,6 +362,29 @@ class BarbeariaPage {
   // CONTROLE DE VISIBILIDADE
   // Apenas gerenciam o DOM — nenhum estado de negócio aqui.
   // ══════════════════════════════════════════════════════════
+
+  /**
+   * Limpa visualmente o conteúdo da barbearia anterior.
+   * Chamado em abrirPorId() — antes do skeleton — para garantir que
+   * nenhum dado antigo fica visível enquanto os novos carregam.
+   */
+  #limparConteudo() {
+    if (this.#refs.capaImg)  { this.#refs.capaImg.src  = ''; }
+    if (this.#refs.logoImg)  { this.#refs.logoImg.src  = ''; this.#refs.logoImg.alt = ''; }
+    if (this.#refs.nome)     { this.#refs.nome.textContent     = ''; }
+    if (this.#refs.endereco) { this.#refs.endereco.textContent = ''; }
+    if (this.#refs.rating)   { this.#refs.rating.textContent   = ''; }
+    if (this.#refs.likes)    { this.#refs.likes.textContent    = ''; }
+    if (this.#refs.since)    { this.#refs.since.textContent    = ''; }
+    if (this.#refs.servicosLista) { this.#refs.servicosLista.innerHTML = ''; }
+    if (this.#refs.portfolioGrid) { this.#refs.portfolioGrid.innerHTML = ''; }
+    if (this.#refs.boasVindas)    { this.#refs.boasVindas.textContent  = ''; }
+    // Reseta o dig para que a nova barbearia inicie a animação do zero
+    this.#pararDig();
+    this.#dig = null;
+    // Invalida o cache de tela para forçar re-fetch ao entrar novamente
+    this.#shopIdCache = null;
+  }
 
   #mostrarSkeleton() {
     if (this.#refs.skeleton) this.#refs.skeleton.hidden = false;
