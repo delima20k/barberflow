@@ -46,20 +46,46 @@ class BarbeariaPage {
 
   /**
    * Navega para o perfil da barbearia identificada por `id`.
+   *
+   * Fluxo (pre-render antes da animação):
+   *   1. Inicia preload dos dados em background
+   *   2. Aguarda conclusão do preload (máx. 600 ms) enquanto a tela ainda está fora de cena
+   *   3. Se cache populado → renderiza na tela oculta
+   *   4. ENTÃO navega → tela entra na tela JÁ com conteúdo pronto
+   *   5. Se preload demorou demais → navega com skeleton; #carregar() termina o trabalho
+   *
    * @param {string} id — UUID da barbearia
    */
-  abrirPorId(id) {
+  async abrirPorId(id) {
     if (!InputValidator.uuid(id).ok) return;
 
-    // Inicia troca de contexto + pré-carregamento em background
-    // Os dados são buscados enquanto a animação de entrada ocorre (~320–720 ms)
+    // Inicia troca de contexto + preload imediato
     NavigationManager.beforeNavigate(id);
     this.#shopId = id;
 
-    // Limpa visualmente o conteúdo da barbearia anterior antes de mostrar skeleton
+    // Limpa conteúdo antigo e exibe skeleton na tela (ainda oculta)
     this.#limparConteudo();
     this.#mostrarSkeleton();
 
+    // Aguarda preload ou timeout de 600 ms (não bloqueia além disso)
+    await Promise.race([
+      NavigationManager.awaitPreload(id),
+      new Promise(r => setTimeout(r, 600)),
+    ]);
+
+    // Renderiza na tela oculta se os dados chegaram a tempo e o contexto
+    // não mudou (ex: usuário abriu outra barbearia durante o await)
+    if (!StateManager.isContextChanged(id)) {
+      const shop      = CacheManager.get(`${id}:shop`);
+      const servicos  = CacheManager.get(`${id}:servicos`);
+      const portfolio = CacheManager.get(`${id}:portfolio`);
+      if (shop && servicos && portfolio) {
+        this.#renderizar(shop, servicos, portfolio);
+        this.#shopIdCache = id;
+      }
+    }
+
+    // Navega: tela entra já com conteúdo ou com skeleton (se rede lenta)
     const router = (typeof App !== 'undefined' && App)
                 || (typeof Pro !== 'undefined' && Pro)
                 || null;
