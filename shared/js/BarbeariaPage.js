@@ -373,7 +373,7 @@ class BarbeariaPage {
     // Inicia animação DigText na seção de barbeiros (reinicia a cada nova barbearia)
     if (typeof DigText !== 'undefined' && this.#refs.filaDig) {
       this.#refs.filaDig.textContent = '';
-      const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância. ✂️';
+      const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância.';
       this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
       this.#digFila.iniciar();
     }
