@@ -303,12 +303,22 @@ class SupabaseService {
   static storageBarbershops()           { return SupabaseService.#getClient().storage.from('barbershops'); }
 
   /**
-   * Retorna a URL pública de um avatar.
-   * @param {string} path — avatar_path da tabela profiles
+   * Retorna a URL pública de um avatar a partir de um path relativo.
+   * @param {string} path — avatar_path relativo
    * @returns {string}
    */
   static getAvatarUrl(path) {
     return ApiService.getAvatarUrl(path);
+  }
+
+  /**
+   * Resolve a URL pública do avatar com cache-bust e suporte a URLs completas.
+   * @param {string|null} path      — avatar_path da tabela profiles
+   * @param {string|null} updatedAt — profiles.updated_at (ISO string)
+   * @returns {string}
+   */
+  static resolveAvatarUrl(path, updatedAt = null) {
+    return ApiService.resolveAvatarUrl(path, updatedAt);
   }
 
   /**

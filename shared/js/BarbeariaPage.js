@@ -284,7 +284,7 @@ class BarbeariaPage {
     const isOwner  = b.id === ownerId;
     const nome     = s(b.full_name ?? 'Barbeiro');
     const avatarUrl = b.avatar_path
-      ? s((b.avatar_path.startsWith('http') ? b.avatar_path : SupabaseService.getAvatarUrl(b.avatar_path)) ?? '')
+      ? s(SupabaseService.resolveAvatarUrl(b.avatar_path, b.updated_at) ?? '')
       : '';
 
     const avatarHtml = avatarUrl

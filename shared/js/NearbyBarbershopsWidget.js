@@ -316,7 +316,7 @@ class NearbyBarbershopsWidget {
           const img = document.createElement('img');
           img.alt = p.full_name;
           img.onerror = () => { avatarWrap.textContent = '💈'; };
-          img.src = SupabaseService.getAvatarUrl(p.avatar_path) || '';
+          img.src = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
           avatarWrap.appendChild(img);
         } else {
           avatarWrap.textContent = '💈';

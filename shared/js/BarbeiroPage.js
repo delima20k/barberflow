@@ -142,7 +142,7 @@ class BarbeiroPage {
     if (!wrap) return;
 
     if (profile.avatar_path) {
-      const url = SupabaseService.getAvatarUrl(profile.avatar_path) ?? '';
+      const url = SupabaseService.resolveAvatarUrl(profile.avatar_path, profile.updated_at) ?? '';
       // Reutiliza <img> existente ou cria um novo
       let img = wrap.querySelector('img');
       if (!img) {

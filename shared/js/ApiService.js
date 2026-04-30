@@ -244,12 +244,29 @@ class ApiService {
   // ── URL helpers de Storage (sem SDK) ────────────────────
 
   /**
-   * Retorna a URL pública de um avatar.
-   * @param {string} path — avatar_path da tabela profiles
+   * Retorna a URL pública de um avatar a partir de um path relativo.
+   * @param {string} path — avatar_path relativo (ex: "userId/avatar.jpeg")
    * @returns {string}
    */
   static getAvatarUrl(path) {
     return path ? `${ApiService.#URL}/storage/v1/object/public/avatars/${path}` : '';
+  }
+
+  /**
+   * Resolve a URL pública do avatar garantindo:
+   *  - Suporte a paths relativos E URLs completas (OAuth, legado)
+   *  - Cache-bust derivado de updated_at para evitar imagem obsoleta no browser
+   *
+   * @param {string|null} path       — avatar_path da tabela profiles
+   * @param {string|null} updatedAt  — profiles.updated_at (ISO string)
+   * @returns {string}
+   */
+  static resolveAvatarUrl(path, updatedAt = null) {
+    if (!path) return '';
+    const base = path.startsWith('http') ? path : ApiService.getAvatarUrl(path);
+    const cleanBase = base.split('?')[0];
+    const ts = updatedAt ? new Date(updatedAt).getTime() : null;
+    return ts ? `${cleanBase}?t=${ts}` : cleanBase;
   }
 
   /**

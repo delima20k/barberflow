@@ -221,7 +221,7 @@ class BarbershopRepository {
    */
   static async getBarbers(limit = 10) {
     const { data, error } = await ApiService.from('profiles_public')
-      .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count')
+      .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count, updated_at')
       .eq('role', 'professional')
       .in('pro_type', ['barbeiro', 'barbearia'])
       .order('rating_count', { ascending: false })
@@ -245,7 +245,7 @@ class BarbershopRepository {
     const r = InputValidator.uuid(barbershopId);
     if (!r.ok) throw new TypeError(`[BarbershopRepository] barbershopId: ${r.msg}`);
 
-    const FIELDS = 'id, full_name, avatar_path, pro_type, rating_avg, rating_count';
+    const FIELDS = 'id, full_name, avatar_path, pro_type, rating_avg, rating_count, updated_at';
 
     // Busca os IDs dos profissionais vinculados via professional_shop_links
     let members = [];
@@ -298,7 +298,7 @@ class BarbershopRepository {
     if (!r.ok) throw new TypeError(`[BarbershopRepository] id inválido: ${r.msg}`);
 
     const { data, error } = await ApiService.from('profiles_public')
-      .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count, bio')
+      .select('id, full_name, avatar_path, pro_type, rating_avg, rating_count, bio, updated_at')
       .eq('id', id)
       .single();
 

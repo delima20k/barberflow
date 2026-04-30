@@ -129,7 +129,7 @@ class BarbeirosPage {
       img.alt     = p.full_name || 'Barbeiro';
       img.loading = 'lazy';
       img.onerror = () => { avatarWrap.textContent = '💈'; };
-      img.src = SupabaseService.getAvatarUrl(p.avatar_path) || '';
+      img.src = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
       avatarWrap.appendChild(img);
     } else {
       avatarWrap.textContent = '💈';
