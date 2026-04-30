@@ -3,26 +3,7 @@
    Depende de tokens.css. Inclua APÓS tokens.css.
 ============================================================ */
 
-/* ── Header Global Fixo ────────────────────────────────────── */
-#app-header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 1000;
-  height: var(--header-h);
-  padding-top: env(safe-area-inset-top);
-  padding-left: 20px;  /* era 16px → +25% */
-  padding-right: 20px; /* era 16px → +25% */
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--gold-border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px; /* era 8px → +25% */
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  overflow: hidden; /* contém o ::before */
-}
+/* ── Header Global Fixo — definição principal em shared/css/components.css (~linha 1059) ── */
 
 /* Botão hamburger */
 .header-menu-btn {
@@ -1054,27 +1035,32 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Header expandido na home (tela-inicio ativa) ────────────── */
-/* .header-stories-info fica oculto nas demais telas */
-.header-stories-info {
-  display: none;
-  width: 100%;
-  text-align: center;
-  padding-top: 6px;
-}
-
-/* Quando tela-inicio está ativa: exibe fundo, expande altura, mostra info */
-body:has(#tela-inicio.ativa) #app-header {
+/* ── Header com background-image + info Stories ──────────── */
+/* background-image fixo no #app-header */
+#app-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: auto;
+  min-height: var(--header-h);
+  padding-top: env(safe-area-inset-top);
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 14px;
   background-image: url('/shared/img/imgFundoHeader.png');
   background-size: cover;
   background-position: center;
-  height: auto;
+  border-bottom: 1px solid var(--gold-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  padding-bottom: 14px;
+  justify-content: space-between;
+  gap: 10px;
+  overflow: hidden;
 }
-/* Overlay escuro sobre a imagem para manter legibilidade */
-body:has(#tela-inicio.ativa) #app-header::before {
+/* Overlay escuro sobre a imagem */
+#app-header::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1082,23 +1068,30 @@ body:has(#tela-inicio.ativa) #app-header::before {
   pointer-events: none;
   z-index: 0;
 }
-body:has(#tela-inicio.ativa) #app-header > * {
+/* Todos os filhos ficam acima do overlay */
+#app-header > * {
   position: relative;
   z-index: 1;
 }
-body:has(#tela-inicio.ativa) .header-stories-info {
+
+/* Info Stories: h2 + h3 sempre visíveis na header */
+.header-stories-info {
   display: block;
+  width: 100%;
+  text-align: center;
+  padding-top: 6px;
 }
-body:has(#tela-inicio.ativa) .header-stories-info .sec-title {
+.header-stories-info .sec-title {
   color: #fff;
 }
-body:has(#tela-inicio.ativa) .header-stories-info .sec-title::after {
+.header-stories-info .sec-title::after {
   background: rgba(255, 255, 255, .5);
 }
-body:has(#tela-inicio.ativa) .header-stories-info .stories-tagline {
+.header-stories-info .stories-tagline {
   -webkit-text-fill-color: #fff;
   background: none;
   color: #fff;
+  margin-bottom: 0;
 }
 
 /* stories-carousel-wrap na home sobe 1rem sobre o header */
