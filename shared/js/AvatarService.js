@@ -21,7 +21,7 @@ const AvatarService = (() => {
   'use strict';
 
   /** IDs dos elementos de avatar que devem ser atualizados em tela. */
-  const AVATAR_IDS = ['menu-avatar-img', 'header-avatar-img'];
+  const AVATAR_IDS = ['menu-avatar-img', 'header-avatar-img', 'perfil-avatar-img'];
 
   /**
    * Aplica o src informado em todos os elementos de avatar da página.
@@ -77,7 +77,7 @@ const AvatarService = (() => {
       if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
       if (typeof ProfileRepository !== 'undefined' && typeof UserService !== 'undefined') {
         const user = UserService.getUser?.();
-        if (user?.id) await ProfileRepository.update(user.id, { avatar_url: publicUrl });
+        if (user?.id) await ProfileRepository.update(user.id, { avatar_path: publicUrl });
       }
 
       if (typeof NotificationService !== 'undefined') {
