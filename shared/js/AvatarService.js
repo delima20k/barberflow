@@ -34,6 +34,32 @@ const AvatarService = (() => {
   }
 
   /**
+   * Atualiza todos os elementos dinâmicos que exibem o avatar do usuário
+   * identificado por userId (cards de barbeiro renderizados em tela).
+   * @param {string} userId
+   * @param {string} url
+   */
+  function _aplicarSrcDinamico(userId, url) {
+    if (!userId) return;
+
+    // Cards bp-barber-mini em tela-barbearia (BarbeariaPage.js)
+    document.querySelectorAll(`[data-barber-id="${userId}"] .bm-avatar img`).forEach(img => {
+      img.src = url;
+    });
+
+    // Cards barber-row na home (NearbyBarbershopsWidget.initHomeBarbeiros)
+    document.querySelectorAll(`[data-professional-id="${userId}"] .avatar img`).forEach(img => {
+      img.src = url;
+    });
+
+    // BarbeiroPage — avatar aberto no painel lateral (tela-barbeiro)
+    const beiroAvatar = document.getElementById('beiro-avatar');
+    if (beiroAvatar && beiroAvatar.dataset.barberId === userId) {
+      beiroAvatar.src = url;
+    }
+  }
+
+  /**
    * Faz o upload do avatar direto ao Supabase Storage via ProfileRepository.
    * O bucket 'avatars' é acessível pelo SDK do cliente com RLS (owner = auth.uid()).
    * @param {File} file
@@ -47,6 +73,7 @@ const AvatarService = (() => {
       const publicUrl = await ProfileRepository.updateAvatar(userId, file);
 
       _aplicarSrc(publicUrl);
+      _aplicarSrcDinamico(userId, publicUrl);
       if (typeof SessionCache !== 'undefined') {
         SessionCache.salvarAvatar(publicUrl);
         // Atualiza avatar_path no perfil em cache para que o próximo reload use o path novo

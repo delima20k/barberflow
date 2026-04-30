@@ -155,6 +155,7 @@ class BarbeiroPage {
       }
       img.src = url;
       img.alt = profile.full_name ?? '';
+      img.dataset.barberId = profile.id ?? '';
     } else {
       // Sem avatar: emoji fallback
       wrap.textContent = '💈';
