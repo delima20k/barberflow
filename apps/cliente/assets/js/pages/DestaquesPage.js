@@ -145,8 +145,9 @@ class DestaquesPage {
     actions.className = 'top-card__actions';
 
     const badge = document.createElement('span');
-    badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
-    badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+    const _sfmD = typeof StatusFechamentoModal !== 'undefined' ? StatusFechamentoModal : null;
+    badge.className   = `dc-badge ${_sfmD ? _sfmD.classBadge(b.is_open, b.close_reason ?? null).replace('bp-badge','dc-badge') : (b.is_open ? 'dc-badge--open' : 'dc-badge--closed')}`;
+    badge.textContent = _sfmD ? _sfmD.labelStatus(b.is_open, b.close_reason ?? null) : (b.is_open ? 'Aberto' : 'Fechado');
     actions.appendChild(badge);
 
     if (b?.id) {

@@ -409,31 +409,22 @@ class BarbeariaPage {
     if (this.#refs.boasVindas) {
       const isLogado  = typeof AppState !== 'undefined' && AppState.get('isLogado');
       const perfil    = typeof AppState !== 'undefined' ? AppState.get('perfil') : null;
-      const nomeUser  = (perfil?.full_name ?? '').trim() || 'anônimo';
+      const nomeUser  = (perfil?.full_name ?? '').trim() || 'visitante';
       const nomeLoja  = shop.name ?? 'esta barbearia';
+      const cr        = shop.close_reason?.toLowerCase() ?? null;
 
-      // "Olá, <span class=bv-user>Nome</span>" — textContent no span (seguro contra XSS)
-      const saudacao = document.createElement('span');
-      saudacao.textContent = `Olá, `;
+      let textoPlano;
+      if (cr === 'almoco') {
+        textoPlano = `Ei, ${nomeUser}! 🍽️ Os barbeiros da ${nomeLoja} estão no almoço — mas a fila está aberta! Entre agora e garanta o próximo corte.`;
+      } else if (cr === 'janta') {
+        textoPlano = `Ei, ${nomeUser}! 🌙 Os barbeiros da ${nomeLoja} estão jantando — mas você pode entrar na fila agora e ser o próximo a ser atendido!`;
+      } else {
+        textoPlano = `Olá, ${isLogado ? nomeUser : 'visitante'} — Bem-vindo à ${nomeLoja}`;
+      }
 
-      const spanUser = document.createElement('span');
-      spanUser.className = 'bv-user';
-      spanUser.textContent = isLogado ? nomeUser : 'anônimo';
+      this.#refs.boasVindas.textContent = textoPlano;
 
-      const divider = document.createTextNode(' — ');
-
-      const bemvindo = document.createTextNode('Bem-vindo à ');
-
-      const spanShop = document.createElement('span');
-      spanShop.className = 'bv-shop';
-      spanShop.textContent = nomeLoja;
-
-      this.#refs.boasVindas.textContent = '';
-      this.#refs.boasVindas.append(saudacao, spanUser, divider, bemvindo, spanShop);
-
-      // Anima o texto com DigText (somente texto puro via textContent — sem innerHTML)
       if (typeof DigText !== 'undefined') {
-        const textoPlano = `Olá, ${isLogado ? nomeUser : 'anônimo'} — Bem-vindo à ${nomeLoja}`;
         this.#refs.boasVindas.textContent = '';
         this.#dig = new DigText(this.#refs.boasVindas, [textoPlano], { velocidade: 36, loop: false });
         this.#iniciarDig();

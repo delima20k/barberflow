@@ -218,8 +218,9 @@ class NearbyBarbershopsWidget {
         topActions.className = 'top-card__actions';
 
         const badge = document.createElement('span');
-        badge.className = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
-        badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+        const _sfm1 = typeof StatusFechamentoModal !== 'undefined' ? StatusFechamentoModal : null;
+        badge.className   = `dc-badge ${_sfm1 ? _sfm1.classBadge(b.is_open, b.close_reason ?? null).replace('bp-badge','dc-badge') : (b.is_open ? 'dc-badge--open' : 'dc-badge--closed')}`;
+        badge.textContent = _sfm1 ? _sfm1.labelStatus(b.is_open, b.close_reason ?? null) : (b.is_open ? 'Aberto' : 'Fechado');
         topActions.appendChild(badge);
 
         topActions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
@@ -625,8 +626,9 @@ class NearbyBarbershopsWidget {
       actions.className = 'top-card__actions';
 
       const badge = document.createElement('span');
-      badge.className   = b.is_open ? 'dc-badge dc-badge--open' : 'dc-badge dc-badge--closed';
-      badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+      const _sfm2 = typeof StatusFechamentoModal !== 'undefined' ? StatusFechamentoModal : null;
+      badge.className   = `dc-badge ${_sfm2 ? _sfm2.classBadge(b.is_open, b.close_reason ?? null).replace('bp-badge','dc-badge') : (b.is_open ? 'dc-badge--open' : 'dc-badge--closed')}`;
+      badge.textContent = _sfm2 ? _sfm2.labelStatus(b.is_open, b.close_reason ?? null) : (b.is_open ? 'Aberto' : 'Fechado');
       actions.appendChild(badge);
 
       actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));

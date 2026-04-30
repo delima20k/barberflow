@@ -26,7 +26,7 @@ class BarbershopRepository {
 
   // Campos base usados na maioria das consultas
   static #SELECT_BASIC =
-    'id, name, address, city, latitude, longitude, logo_path, cover_path, is_open, rating_avg, rating_count, rating_score, likes_count, dislikes_count, font_key';
+    'id, name, address, city, latitude, longitude, logo_path, cover_path, is_open, close_reason, rating_avg, rating_count, rating_score, likes_count, dislikes_count, font_key';
 
   // ═══════════════════════════════════════════════════════════
   // BARBEARIAS
@@ -89,7 +89,7 @@ class BarbershopRepository {
    */
   static async getFeatured(limit = 6) {
     const { data, error } = await ApiService.from('barbershops')
-      .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
+      .select('id, name, address, city, logo_path, cover_path, is_open, close_reason, rating_avg, rating_score, likes_count, dislikes_count, font_key')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
       .order('likes_count',  { ascending: false })
@@ -108,7 +108,7 @@ class BarbershopRepository {
    */
   static async getTopRated(limit = 50) {
     const { data, error } = await ApiService.from('barbershops')
-      .select('id, name, address, city, logo_path, cover_path, is_open, rating_avg, rating_score, likes_count, dislikes_count, font_key')
+      .select('id, name, address, city, logo_path, cover_path, is_open, close_reason, rating_avg, rating_score, likes_count, dislikes_count, font_key')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
       .order('rating_avg',   { ascending: false })
