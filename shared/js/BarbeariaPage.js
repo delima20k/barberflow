@@ -24,6 +24,7 @@ class BarbeariaPage {
   #shopIdCache = null;   // último ID renderizado (evita re-fetch na volta)
   #carregando  = false;  // mutex contra fetches paralelos
   #dig         = null;   // instância DigText de boas-vindas
+  #digFila      = null;   // instância DigText da seção de barbeiros
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -113,6 +114,7 @@ class BarbeariaPage {
       servicosLista: q('#bp-servicos-lista'),
       portfolioGrid: q('#bp-portfolio-grid'),
       barbeirosScroll: q('#bp-barbeiros-scroll'),
+      filaDig:         q('#bp-fila-dig'),
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
@@ -282,7 +284,7 @@ class BarbeariaPage {
     const isOwner  = b.id === ownerId;
     const nome     = s(b.full_name ?? 'Barbeiro');
     const avatarUrl = b.avatar_path
-      ? s(SupabaseService.getAvatarUrl(b.avatar_path) ?? '')
+      ? s((b.avatar_path.startsWith('http') ? b.avatar_path : SupabaseService.getAvatarUrl(b.avatar_path)) ?? '')
       : '';
 
     const avatarHtml = avatarUrl
@@ -368,6 +370,14 @@ class BarbeariaPage {
     el.innerHTML = barbeiros
       .map(b => BarbeariaPage.#cardBarbeiro(b, shop.owner_id))
       .join('');
+
+    // Inicia animação DigText na seção de barbeiros (reinicia a cada nova barbearia)
+    if (typeof DigText !== 'undefined' && this.#refs.filaDig) {
+      this.#refs.filaDig.textContent = '';
+      const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância. ✂️';
+      this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
+      this.#digFila.iniciar();
+    }
   }
 
   /** Capa e logo da barbearia. Usa .src — não innerHTML, sem risco XSS. */
@@ -565,6 +575,8 @@ class BarbeariaPage {
     if (this.#refs.servicosLista) { this.#refs.servicosLista.innerHTML = ''; }
     if (this.#refs.portfolioGrid) { this.#refs.portfolioGrid.innerHTML = ''; }
     if (this.#refs.barbeirosScroll) { this.#refs.barbeirosScroll.innerHTML = ''; }
+    if (this.#refs.filaDig)         { this.#refs.filaDig.textContent = ''; }
+    if (this.#digFila)              { this.#digFila.parar?.(); this.#digFila = null; }
     if (this.#refs.boasVindas) { this.#refs.boasVindas.textContent = ''; }
     if (this.#refs.ctaLogin)   { this.#refs.ctaLogin.hidden = true; this.#refs.ctaLogin.textContent = ''; }
     // Reseta o dig para que a nova barbearia inicie a animação do zero
