@@ -111,7 +111,7 @@ class NearbyBarbershopsWidget {
       } catch (_) { /* sem GPS */ }
 
       // Fallback: busca todas ordenadas por popularidade
-      if (!lista) lista = await BarbershopRepository.getAll(20);
+      if (!lista?.length) lista = await BarbershopRepository.getAll(20);
 
       el.innerHTML = '';
 
