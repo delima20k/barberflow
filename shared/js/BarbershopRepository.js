@@ -158,6 +158,22 @@ class BarbershopRepository {
   }
 
   /**
+   * Atualiza o campo is_open da barbearia.
+   * @param {string}  barbershopId — UUID da barbearia
+   * @param {boolean} isOpen
+   */
+  static async updateIsOpen(barbershopId, isOpen) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[BarbershopRepository] barbershopId: ${r.msg}`);
+
+    const { error } = await ApiService.from('barbershops')
+      .update({ is_open: Boolean(isOpen), updated_at: new Date().toISOString() })
+      .eq('id', barbershopId);
+
+    if (error) throw new Error(`[BarbershopRepository] updateIsOpen: ${error.message ?? error.code}`);
+  }
+
+  /**
    * Busca barbearia por ID.
    * @param {string} id
    * @returns {Promise<object>}

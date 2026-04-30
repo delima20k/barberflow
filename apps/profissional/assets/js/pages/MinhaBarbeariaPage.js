@@ -169,6 +169,9 @@ class MinhaBarbeariaPage {
       gpsCoordsT:       q('gps-coords-txt'),
       gpsMsg:           q('gps-msg'),
       gpsBtnSalvar:     q('gps-btn-salvar'),
+      // Status aberta/fechada
+      statusTxt:    q('mb-status-txt'),
+      statusToggle: q('mb-status-toggle'),
     };
   }
 
@@ -190,6 +193,8 @@ class MinhaBarbeariaPage {
     this.#refs.gpsBtnBuscar?.addEventListener('click', () => this.#buscarCep());
     this.#refs.gpsBtnGps?.addEventListener('click',    () => this.#ativarGps());
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
+    // Toggle de status aberta/fechada
+    this.#refs.statusToggle?.addEventListener('click', () => this.#toggleStatusAberto());
     // Campos editáveis (lápis) — Config
     this.#refs.cfgNomeLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis));
     this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.cfgWhats,   this.#refs.cfgWhatsDisplay,   this.#refs.cfgWhatsLapis));
@@ -228,6 +233,7 @@ class MinhaBarbeariaPage {
       ]);
 
       this.#renderCabecalho(shop);
+      this.#renderStatusAberto(shop.is_open);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
       this.#renderKpis(shop, portfolio.length);
       this.#renderPortfolio(portfolio);
@@ -314,6 +320,37 @@ class MinhaBarbeariaPage {
   }
 
   // ── Renders ─────────────────────────────────────────────────
+
+  // ── Status aberta / fechada ─────────────────────────────────
+
+  #renderStatusAberto(isOpen) {
+    const txt    = this.#refs.statusTxt;
+    const toggle = this.#refs.statusToggle;
+    if (!txt || !toggle) return;
+    const aberta = Boolean(isOpen);
+    txt.textContent = aberta ? 'Barbearia Aberta' : 'Barbearia Fechada';
+    txt.className   = `mb-status-txt mb-status-txt--${aberta ? 'aberta' : 'fechada'}`;
+    toggle.setAttribute('aria-checked', aberta ? 'true' : 'false');
+  }
+
+  async #toggleStatusAberto() {
+    if (!this.#barbershopId) return;
+    const toggle  = this.#refs.statusToggle;
+    if (!toggle) return;
+    const novoEstado = toggle.getAttribute('aria-checked') !== 'true';
+    // Otimismo: atualiza DOM imediatamente
+    this.#renderStatusAberto(novoEstado);
+    try {
+      await BarbershopRepository.updateIsOpen(this.#barbershopId, novoEstado);
+      if (this.#shopData) this.#shopData.is_open = novoEstado;
+    } catch (err) {
+      // Rollback visual em caso de erro
+      this.#renderStatusAberto(!novoEstado);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Erro ao salvar status', err?.message ?? '', NotificationService.TIPOS.SISTEMA);
+      }
+    }
+  }
 
   #renderCabecalho(shop) {
     const { nome } = this.#refs;
