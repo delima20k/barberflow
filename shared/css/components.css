@@ -3725,6 +3725,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-hero-header {
   position: relative;
   width: 100%;
+  margin-inline: -16px; /* cancela o padding do .content pai → full-width */
+  width: calc(100% + 32px);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
