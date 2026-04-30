@@ -194,9 +194,11 @@ const AuthUI = (() => {
 
     // Avatar — aplica URL e persiste no cache local
     if (perfil?.avatar_path) {
-      const url = perfil.avatar_path.startsWith('http')
+      const base = perfil.avatar_path.startsWith('http')
         ? perfil.avatar_path
         : SupabaseService.getAvatarUrl(perfil.avatar_path);
+      // Cache-bust garante que o browser não sirva avatar antigo após troca
+      const url = base.includes('?') ? base : base + '?t=' + (perfil.updated_at ? new Date(perfil.updated_at).getTime() : Date.now());
       _aplicarAvatar(url);
       SessionCache.salvarAvatar(url);
     }

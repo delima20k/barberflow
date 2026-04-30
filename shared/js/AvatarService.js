@@ -47,7 +47,16 @@ const AvatarService = (() => {
       const publicUrl = await ProfileRepository.updateAvatar(userId, file);
 
       _aplicarSrc(publicUrl);
-      if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
+      if (typeof SessionCache !== 'undefined') {
+        SessionCache.salvarAvatar(publicUrl);
+        // Atualiza avatar_path no perfil em cache para que o próximo reload use o path novo
+        const { perfil } = SessionCache.restaurar();
+        if (perfil) {
+          perfil.avatar_path = publicUrl;
+          perfil.updated_at  = new Date().toISOString();
+          SessionCache.salvar(perfil, null);
+        }
+      }
 
       if (typeof NotificationService !== 'undefined') {
         NotificationService.mostrarToast('✅ Avatar atualizado', '', NotificationService.TIPOS.SISTEMA);

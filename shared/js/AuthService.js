@@ -347,7 +347,7 @@ class AuthService {
     // Busca todos os campos do próprio usuário — RLS "profiles_select_own" permite
     // (auth.uid() = id). Campos sensíveis só ficam visíveis para o próprio dono.
     const { data, error } = await SupabaseService.profiles()
-      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
+      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code, updated_at')
       .eq('id', userId)
       .single();
 
