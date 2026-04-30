@@ -727,6 +727,7 @@
   <main id="tela-minha-barbearia" class="tela">
     <div class="tela-topo">
       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <span id="mb-topo-status" class="mb-topo-status status--fechada">Fechada</span>
     </div>
     <div class="content mb-content">
 
@@ -785,17 +786,17 @@
             <button class="mb-gps-btn"  id="mb-gps-btn"  aria-label="Configurar localização">+GPS</button>
             <button class="mb-mais-btn" id="mb-mais-btn" aria-label="Mais opções">+ Mais</button>
           </div>
-        </div>
-      </div>
 
-      <!-- Status da barbearia: aberta / fechada -->
-      <div class="mb-status-row" id="mb-status-row">
-        <h2 class="mb-status-txt mb-status-txt--fechada" id="mb-status-txt">Barbearia Fechada</h2>
-        <div class="mb-status-barra"></div>
-        <button class="mb-status-toggle" id="mb-status-toggle" type="button"
-                role="switch" aria-checked="false" aria-label="Abrir ou fechar barbearia">
-          <span class="mb-status-thumb"></span>
-        </button>
+          <!-- Status da barbearia: aberta / fechada -->
+          <div class="mb-status-row" id="mb-status-row">
+            <h2 class="mb-status-txt mb-status-txt--fechada" id="mb-status-txt">Barbearia Fechada</h2>
+            <div class="mb-status-barra"></div>
+            <button class="mb-status-toggle" id="mb-status-toggle" type="button"
+                    role="switch" aria-checked="false" aria-label="Abrir ou fechar barbearia">
+              <span class="mb-status-thumb"></span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- KPIs -->
@@ -1922,6 +1923,7 @@
 <script src="assets/js/pages/BarbeariasPage.js"></script>
 <script src="assets/js/pages/AgendaPage.js"></script>
 <script src="/shared/js/MediaP2P.js"></script>
+<script src="/shared/js/StatusFechamentoModal.js"></script>
 <script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
 <script src="assets/js/pages/CriarBarbeariaPage.js"></script>
 <script src="assets/js/pages/ParceriasPage.js"></script>

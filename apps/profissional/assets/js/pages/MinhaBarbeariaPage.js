@@ -172,6 +172,7 @@ class MinhaBarbeariaPage {
       // Status aberta/fechada
       statusTxt:    q('mb-status-txt'),
       statusToggle: q('mb-status-toggle'),
+      topoStatus:   q('mb-topo-status'),
     };
   }
 
@@ -233,7 +234,7 @@ class MinhaBarbeariaPage {
       ]);
 
       this.#renderCabecalho(shop);
-      this.#renderStatusAberto(shop.is_open);
+      this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
       this.#renderKpis(shop, portfolio.length);
       this.#renderPortfolio(portfolio);
@@ -250,7 +251,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, owner_id, name, address, city, state, zip_code, neighborhood, logo_path, cover_path, is_open, rating_avg, rating_count, likes_count, latitude, longitude, whatsapp, founded_year, font_key')
+      .select('id, owner_id, name, address, city, state, zip_code, neighborhood, logo_path, cover_path, is_open, close_reason, rating_avg, rating_count, likes_count, latitude, longitude, whatsapp, founded_year, font_key')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
@@ -323,29 +324,54 @@ class MinhaBarbeariaPage {
 
   // ── Status aberta / fechada ─────────────────────────────────
 
-  #renderStatusAberto(isOpen) {
+  #renderStatusAberto(isOpen, closeReason = null) {
+    const label  = StatusFechamentoModal.labelStatus(isOpen, closeReason);
+    const classe = StatusFechamentoModal.classeStatus(isOpen, closeReason);
+
     const txt    = this.#refs.statusTxt;
     const toggle = this.#refs.statusToggle;
-    if (!txt || !toggle) return;
-    const aberta = Boolean(isOpen);
-    txt.textContent = aberta ? 'Barbearia Aberta' : 'Barbearia Fechada';
-    txt.className   = `mb-status-txt mb-status-txt--${aberta ? 'aberta' : 'fechada'}`;
-    toggle.setAttribute('aria-checked', aberta ? 'true' : 'false');
+    const topo   = this.#refs.topoStatus;
+
+    if (txt) {
+      txt.textContent = `Barbearia ${label}`;
+      txt.className   = `mb-status-txt mb-status-txt--${isOpen ? 'aberta' : (closeReason ? 'pausa' : 'fechada')}`;
+    }
+    if (toggle) {
+      toggle.setAttribute('aria-checked', isOpen ? 'true' : 'false');
+    }
+    if (topo) {
+      topo.textContent = label;
+      topo.className   = `mb-topo-status ${classe}`;
+    }
   }
 
   async #toggleStatusAberto() {
     if (!this.#barbershopId) return;
-    const toggle  = this.#refs.statusToggle;
+    const toggle   = this.#refs.statusToggle;
     if (!toggle) return;
-    const novoEstado = toggle.getAttribute('aria-checked') !== 'true';
+    const eraAberta = toggle.getAttribute('aria-checked') === 'true';
+    const novoEstado = !eraAberta;
+
+    let closeReason = null;
+
+    // Se estiver fechando: perguntar o motivo
+    if (!novoEstado) {
+      const tipo = await StatusFechamentoModal.confirmarFechamento();
+      if (tipo === null) return; // cancelado pelo usuário
+      closeReason = tipo === 'normal' ? null : tipo;
+    }
+
     // Otimismo: atualiza DOM imediatamente
-    this.#renderStatusAberto(novoEstado);
+    this.#renderStatusAberto(novoEstado, closeReason);
     try {
-      await BarbershopRepository.updateIsOpen(this.#barbershopId, novoEstado);
-      if (this.#shopData) this.#shopData.is_open = novoEstado;
+      await BarbershopRepository.updateIsOpen(this.#barbershopId, novoEstado, closeReason);
+      if (this.#shopData) {
+        this.#shopData.is_open      = novoEstado;
+        this.#shopData.close_reason = novoEstado ? null : closeReason;
+      }
     } catch (err) {
       // Rollback visual em caso de erro
-      this.#renderStatusAberto(!novoEstado);
+      this.#renderStatusAberto(eraAberta, this.#shopData?.close_reason ?? null);
       if (typeof NotificationService !== 'undefined') {
         NotificationService.mostrarToast('Erro ao salvar status', err?.message ?? '', NotificationService.TIPOS.SISTEMA);
       }

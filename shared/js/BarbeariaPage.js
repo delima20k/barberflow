@@ -461,12 +461,15 @@ class BarbeariaPage {
       this.#refs.endereco.textContent = addr;
     }
     if (this.#refs.badge) {
-      this.#refs.badge.textContent = shop.is_open ? 'Aberta' : 'Fechada';
-      this.#refs.badge.className   = `bp-badge ${shop.is_open ? 'bp-badge--open' : 'bp-badge--closed'}`;
+      const labelBadge = StatusFechamentoModal.labelStatus(shop.is_open, shop.close_reason ?? null);
+      const classeBadge = StatusFechamentoModal.classeStatus(shop.is_open, shop.close_reason ?? null);
+      this.#refs.badge.textContent = labelBadge;
+      this.#refs.badge.className   = `bp-badge ${shop.is_open ? 'bp-badge--open' : (shop.close_reason ? 'bp-badge--pausa' : 'bp-badge--closed')}`;
     }
     if (this.#refs.capaStatus) {
-      this.#refs.capaStatus.textContent = shop.is_open ? 'Aberta' : 'Fechada';
-      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${shop.is_open ? 'bp-badge--open' : 'bp-badge--closed'}`;
+      const labelCapa = StatusFechamentoModal.labelStatus(shop.is_open, shop.close_reason ?? null);
+      this.#refs.capaStatus.textContent = labelCapa;
+      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${shop.is_open ? 'bp-badge--open' : (shop.close_reason ? 'bp-badge--pausa' : 'bp-badge--closed')}`;
       this.#refs.capaStatus.hidden      = false;
     }
     if (this.#refs.rating) {
