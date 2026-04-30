@@ -398,3 +398,32 @@ COMMENT ON COLUMN public.p2p_peers.expires_at IS 'Timestamp de expiração do an
 -- FIM ATUALIZADO — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
 -- ================================================================
+
+
+-- ────────────────────────────────────────────────────────────────
+-- Migration: 20260430000001 — close_reason em barbershops
+-- Motivo de fechamento: null = normal, 'almoco', 'janta'
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS close_reason TEXT DEFAULT NULL;
+
+CREATE OR REPLACE FUNCTION public.fn_clear_close_reason()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.is_open = TRUE AND OLD.is_open = FALSE THEN
+    NEW.close_reason := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_clear_close_reason ON public.barbershops;
+CREATE TRIGGER trg_clear_close_reason
+  BEFORE UPDATE ON public.barbershops
+  FOR EACH ROW EXECUTE FUNCTION public.fn_clear_close_reason();
+
+-- ================================================================
+-- FIM — execute este arquivo completo no SQL Editor do Supabase:
+-- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+-- ================================================================

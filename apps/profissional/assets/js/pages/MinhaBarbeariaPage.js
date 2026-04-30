@@ -251,7 +251,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, owner_id, name, address, city, state, zip_code, neighborhood, logo_path, cover_path, is_open, close_reason, rating_avg, rating_count, likes_count, latitude, longitude, whatsapp, founded_year, font_key')
+      .select('*')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
