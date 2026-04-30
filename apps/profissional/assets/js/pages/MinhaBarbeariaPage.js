@@ -173,6 +173,9 @@ class MinhaBarbeariaPage {
       statusTxt:    q('mb-status-txt'),
       statusToggle: q('mb-status-toggle'),
       topoStatus:   q('mb-topo-status'),
+      // Hero header
+      heroHeader:   q('mb-hero-header'),
+      heroLogo:     q('mb-hero-logo'),
     };
   }
 
@@ -380,19 +383,37 @@ class MinhaBarbeariaPage {
   }
 
   #renderCabecalho(shop) {
-    const { nome } = this.#refs;
+    const { nome, heroHeader, heroLogo, coverImg } = this.#refs;
 
     if (nome) {
       nome.textContent = shop.name ?? '';
       if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, shop.font_key);
     }
 
+    // Hero header — background-image = capa; fallback = logo
+    const bgPath = shop.cover_path || shop.logo_path;
+    if (bgPath && heroHeader) {
+      const bgUrl = SupabaseService.getLogoUrl(bgPath);
+      if (bgUrl) heroHeader.style.backgroundImage = `url('${bgUrl}')`;
+    }
+
+    // Logo/ícone ao lado do h2
+    const logoPath = shop.logo_path || shop.cover_path;
+    if (logoPath && heroLogo) {
+      const logoUrl = SupabaseService.getLogoUrl(logoPath);
+      if (logoUrl) {
+        heroLogo.src    = logoUrl;
+        heroLogo.hidden = false;
+      }
+    }
+
+    // Cover do story card (comportamento original)
     if (shop.cover_path) {
       const url = SupabaseService.getLogoUrl(shop.cover_path);
-      if (url && this.#refs.coverImg) this.#refs.coverImg.src = url;
+      if (url && coverImg) coverImg.src = url;
     } else if (shop.logo_path) {
       const url = SupabaseService.getLogoUrl(shop.logo_path);
-      if (url && this.#refs.coverImg) this.#refs.coverImg.src = url;
+      if (url && coverImg) coverImg.src = url;
     }
   }
 

@@ -725,15 +725,19 @@
        TELA — MINHA BARBEARIA
   ============================================================ -->
   <main id="tela-minha-barbearia" class="tela">
-    <div class="tela-topo">
-      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
-      <span id="mb-topo-status" class="mb-topo-status" hidden></span>
-    </div>
-    <div class="content mb-content">
-
+    <header class="mb-hero-header" id="mb-hero-header">
+      <div class="tela-topo">
+        <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+        <span id="mb-topo-status" class="mb-topo-status" hidden></span>
+      </div>
       <!-- Boas-vindas animado (dig) + Nome da barbearia -->
       <h1 id="mb-boas-vindas" class="mb-boas-vindas search-dig" aria-live="polite"></h1>
-      <h2 id="mb-nome" class="mb-nome-titulo"></h2>
+      <div class="mb-hero-nome-row">
+        <img id="mb-hero-logo" class="mb-hero-logo" src="" alt="" aria-hidden="true" hidden>
+        <h2 id="mb-nome" class="mb-nome-titulo"></h2>
+      </div>
+    </header>
+    <div class="content mb-content">
 
       <!-- ── Stories da barbearia ──────────────────────────── -->
       <p class="sec-title">Stories</p>
