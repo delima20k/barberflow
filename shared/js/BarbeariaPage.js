@@ -288,8 +288,7 @@ class BarbeariaPage {
       : '';
 
     const avatarHtml = avatarUrl
-      ? `<img src="${avatarUrl}" alt="${nome}" class="bm-avatar" loading="lazy"
-             onerror="this.parentElement.textContent='\u{1F488}'">`
+      ? `<div class="bm-avatar"><img src="${avatarUrl}" alt="${nome}" loading="lazy" onerror="this.parentElement.innerHTML='&#x1F488;'"></div>`
       : `<div class="bm-avatar">&#x1F488;</div>`;
 
     const ownerTag = isOwner ? `<span class="bm-owner-tag">Dono</span>` : '';
