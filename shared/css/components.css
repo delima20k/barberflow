@@ -3780,11 +3780,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background: rgba(255,255,255,.35);
 }
 
-/* Stories scroll sobrepõe o hero em 10px */
-.mb-stories-scroll {
+/* Wrapper injetado pelo StoriesLayout.js — sobrepõe 2rem sobre o hero */
+#tela-minha-barbearia .stories-carousel-wrap {
   position: relative;
   z-index: 2;
-  margin-top: -10px;
+  margin-top: -2rem;
+}
+
+/* Stories scroll dentro do wrapper */
+.mb-stories-scroll {
   padding-top: 0;
   padding-bottom: 0;
   padding-left: 12px;
