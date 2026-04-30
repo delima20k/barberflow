@@ -48,9 +48,8 @@ const AvatarService = (() => {
    */
   async function _uploadViaBFF(file) {
     try {
-      if (typeof AuthService === 'undefined') return;
-
-      const token = AuthService.getToken?.() ?? AuthService.getPerfil?.()?.access_token;
+      const session = await SupabaseService.getSession?.();
+      const token   = session?.access_token;
       if (!token) return;
 
       // Envia o buffer raw — o BFF faz todo o processamento
