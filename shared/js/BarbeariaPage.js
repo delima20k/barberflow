@@ -102,6 +102,7 @@ class BarbeariaPage {
     const q = sel => this.#telaEl.querySelector(sel);
     this.#refs = {
       capaImg:       q('#bp-capa'),
+      capaStatus:    q('#bp-capa-status'),
       logoImg:       q('#bp-logo'),
       nome:          q('#bp-nome'),
       endereco:      q('#bp-endereco'),
@@ -462,6 +463,11 @@ class BarbeariaPage {
     if (this.#refs.badge) {
       this.#refs.badge.textContent = shop.is_open ? 'Aberta' : 'Fechada';
       this.#refs.badge.className   = `bp-badge ${shop.is_open ? 'bp-badge--open' : 'bp-badge--closed'}`;
+    }
+    if (this.#refs.capaStatus) {
+      this.#refs.capaStatus.textContent = shop.is_open ? 'Aberta' : 'Fechada';
+      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${shop.is_open ? 'bp-badge--open' : 'bp-badge--closed'}`;
+      this.#refs.capaStatus.hidden      = false;
     }
     if (this.#refs.rating) {
       // Valor bruto — sem "⭐". Decoração fica no HTML/CSS.
