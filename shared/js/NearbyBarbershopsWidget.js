@@ -255,6 +255,7 @@ class NearbyBarbershopsWidget {
         addr.className = 'dc-addr';
         addr.textContent = b.address || b.city || '';
 
+        if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path);
         item.appendChild(card);
         item.appendChild(addr);
         el.appendChild(item);
@@ -615,6 +616,8 @@ class NearbyBarbershopsWidget {
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
+
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
 
     // Canto superior direito: badge + favorito com confetes
     if (b?.id) {
