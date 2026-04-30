@@ -3748,13 +3748,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background: rgba(255,255,255,.35);
 }
 
-/* Stories scroll sobrepõe 1rem sobre a borda inferior do hero */
+/* Stories scroll sobrepõe 2rem sobre a borda inferior do hero */
 .mb-stories-scroll {
   position: relative;
   z-index: 2;
-  margin-top: -1rem;
-  padding-top: 0;
-  padding-bottom: 0;
+  margin-top: -2rem;
+  padding: 0 12px;
 }
 
 .mb-content {
@@ -3791,7 +3790,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Stories scroll (3 cards fixos visíveis) ──────────── */
 .mb-stories-scroll {
-  padding: 0;
+  padding: 0 12px;
   margin-bottom: 0;
 }
 
