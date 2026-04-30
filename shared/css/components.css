@@ -1053,34 +1053,36 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Home Stories Header — fundo da imagem BF ────────────────── */
+/* ── Header da seção Stories nas homes ───────────────────────── */
 .home-stories-header {
-  position: relative;
-  background-image: url('/shared/img/home-stories-bg.png');
+  background-image: url('/shared/img/imgFundoHeader.png');
   background-size: cover;
   background-position: center;
-  border-radius: 14px;
+  border-radius: 12px;
+  padding: 20px 16px 16px;
+  margin-bottom: 0;
+  position: relative;
   overflow: hidden;
-  padding: 18px 16px 14px;
-  margin-inline: -16px;
 }
+/* Overlay escuro para garantir legibilidade do texto */
 .home-stories-header::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, .52);
+  background: rgba(0, 0, 0, .45);
   border-radius: inherit;
+  pointer-events: none;
 }
-.home-stories-header > * {
+.home-stories-header .sec-title,
+.home-stories-header .stories-tagline {
   position: relative;
   z-index: 1;
 }
 .home-stories-header .sec-title {
   color: #fff;
-  text-shadow: 0 1px 6px rgba(0,0,0,.7);
 }
 .home-stories-header .sec-title::after {
-  background: rgba(255,255,255,.35);
+  background: rgba(255, 255, 255, .5);
 }
 
 /* ── Stories Tagline ──────────────────────────────────────────── */
