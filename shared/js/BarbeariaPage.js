@@ -460,18 +460,19 @@ class BarbeariaPage {
       const addr = [shop.address, shop.city, shop.state].filter(Boolean).join(', ');
       this.#refs.endereco.textContent = addr;
     }
-    if (this.#refs.badge) {
-      const labelBadge = StatusFechamentoModal.labelStatus(shop.is_open, shop.close_reason ?? null);
-      const varBadge   = StatusFechamentoModal.classBadge(shop.is_open, shop.close_reason ?? null);
-      this.#refs.badge.textContent = labelBadge;
-      this.#refs.badge.className   = `bp-badge ${varBadge}`;
-    }
-    if (this.#refs.capaStatus) {
-      const labelCapa = StatusFechamentoModal.labelStatus(shop.is_open, shop.close_reason ?? null);
-      const varCapa   = StatusFechamentoModal.classBadge(shop.is_open, shop.close_reason ?? null);
-      this.#refs.capaStatus.textContent = labelCapa;
-      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${varCapa}`;
-      this.#refs.capaStatus.hidden      = false;
+    if (this.#refs.badge || this.#refs.capaStatus) {
+      const cr        = shop.close_reason ?? null;
+      const badgeLabel = StatusFechamentoModal.labelStatus(shop.is_open, cr);
+      const badgeVar   = StatusFechamentoModal.classBadge(shop.is_open, cr);
+      if (this.#refs.badge) {
+        this.#refs.badge.textContent = badgeLabel;
+        this.#refs.badge.className   = `bp-badge ${badgeVar}`;
+      }
+      if (this.#refs.capaStatus) {
+        this.#refs.capaStatus.textContent = badgeLabel;
+        this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${badgeVar}`;
+        this.#refs.capaStatus.hidden      = false;
+      }
     }
     if (this.#refs.rating) {
       // Valor bruto — sem "⭐". Decoração fica no HTML/CSS.

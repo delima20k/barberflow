@@ -334,7 +334,7 @@ class MinhaBarbeariaPage {
 
     if (txt) {
       txt.textContent = `Barbearia ${label}`;
-      txt.className   = `mb-status-txt mb-status-txt--${isOpen ? 'aberta' : (closeReason ? 'pausa' : 'fechada')}`;
+      txt.className   = `mb-status-txt mb-status-txt--${classe.replace('status--', '')}`;
     }
     if (toggle) {
       toggle.setAttribute('aria-checked', isOpen ? 'true' : 'false');
