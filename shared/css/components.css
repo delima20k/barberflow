@@ -3753,6 +3753,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: relative;
   z-index: 2;
   margin-top: -1rem;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .mb-content {
