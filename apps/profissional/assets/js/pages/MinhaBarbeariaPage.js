@@ -373,6 +373,14 @@ class MinhaBarbeariaPage {
         this.#shopData.is_open      = novoEstado;
         this.#shopData.close_reason = novoEstado ? null : closeReason;
       }
+      // Notifica outros widgets no DOM para atualizar os badges em tempo real
+      document.dispatchEvent(new CustomEvent('barberflow:statusAtualizado', {
+        detail: {
+          barbershopId: this.#barbershopId,
+          isOpen:       novoEstado,
+          closeReason:  novoEstado ? null : closeReason,
+        },
+      }));
     } catch (err) {
       // Rollback visual em caso de erro
       this.#renderStatusAberto(eraAberta, this.#shopData?.close_reason ?? null);
