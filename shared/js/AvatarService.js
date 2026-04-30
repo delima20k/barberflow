@@ -5,15 +5,11 @@
  *
  * Responsabilidades:
  *  - preview instantâneo antes do upload (Blob URL local, zero latência)
- *  - upload via BFF /api/media/upload-image?contexto=avatars
- *    → ImageProcessor processa server-side: crop 1:1, 200×200, WebP ≤20KB, sem EXIF
+ *  - upload direto ao Supabase Storage via ProfileRepository.updateAvatar()
  *  - atualização do profile no banco
  *  - cache local via SessionCache
  *
- * REMOVIDO: compressão por canvas local (substituída pelo ImageProcessor no BFF)
- * REMOVIDO: upload direto ao Supabase Storage (tudo passa pelo BFF agora)
- *
- * API pública (inalterada):
+ * API pública:
  *   AvatarService.preview(input)
  *   AvatarService.abrirUpload(routerInstance)
  */
@@ -38,46 +34,20 @@ const AvatarService = (() => {
   }
 
   /**
-   * Faz o upload do avatar via BFF com processamento server-side.
-   *
-   * O BFF executa: ImageProcessor.processAvatar()
-   *   → crop 1:1 central → resize 200×200 → WebP ≤20KB → strip EXIF
-   * Depois salva em Supabase Storage (bucket media-images) e persiste em media_files.
-   *
+   * Faz o upload do avatar direto ao Supabase Storage via ProfileRepository.
+   * O bucket 'avatars' é acessível pelo SDK do cliente com RLS (owner = auth.uid()).
    * @param {File} file
    */
   async function _uploadViaBFF(file) {
     try {
-      const session = await SupabaseService.getSession?.();
-      const token   = session?.access_token;
-      if (!token) return;
+      const user = UserService.getUser?.() ?? UserService.getUserId?.();
+      const userId = typeof user === 'string' ? user : user?.id;
+      if (!userId) return;
 
-      // Envia o buffer raw — o BFF faz todo o processamento
-      const arrayBuffer = await file.arrayBuffer();
-      const resp = await fetch('/api/media/upload-image?contexto=avatars', {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/octet-stream',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: arrayBuffer,
-      });
+      const publicUrl = await ProfileRepository.updateAvatar(userId, file);
 
-      if (!resp.ok) {
-        const { error } = await resp.json().catch(() => ({}));
-        throw new Error(error ?? `BFF retornou ${resp.status}`);
-      }
-
-      const { publicUrl } = await resp.json();
-
-      // Substituir o Blob URL local pela URL pública definitiva
       _aplicarSrc(publicUrl);
-
       if (typeof SessionCache !== 'undefined') SessionCache.salvarAvatar(publicUrl);
-      if (typeof ProfileRepository !== 'undefined' && typeof UserService !== 'undefined') {
-        const user = UserService.getUser?.();
-        if (user?.id) await ProfileRepository.update(user.id, { avatar_path: publicUrl });
-      }
 
       if (typeof NotificationService !== 'undefined') {
         NotificationService.mostrarToast('✅ Avatar atualizado', '', NotificationService.TIPOS.SISTEMA);
