@@ -1053,6 +1053,36 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
+/* ── Home Stories Header — fundo da imagem BF ────────────────── */
+.home-stories-header {
+  position: relative;
+  background-image: url('/shared/img/home-stories-bg.png');
+  background-size: cover;
+  background-position: center;
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 18px 16px 14px;
+  margin-inline: -16px;
+}
+.home-stories-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, .52);
+  border-radius: inherit;
+}
+.home-stories-header > * {
+  position: relative;
+  z-index: 1;
+}
+.home-stories-header .sec-title {
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,.7);
+}
+.home-stories-header .sec-title::after {
+  background: rgba(255,255,255,.35);
+}
+
 /* ── Stories Tagline ──────────────────────────────────────────── */
 .stories-tagline {
   font-family: var(--font-display);
