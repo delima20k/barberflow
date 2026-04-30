@@ -21,6 +21,7 @@
   gap: 10px; /* era 8px → +25% */
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  overflow: hidden; /* contém o ::before */
 }
 
 /* Botão hamburger */
@@ -1053,36 +1054,58 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Header da seção Stories nas homes ───────────────────────── */
-.home-stories-header {
+/* ── Header expandido na home (tela-inicio ativa) ────────────── */
+/* .header-stories-info fica oculto nas demais telas */
+.header-stories-info {
+  display: none;
+  width: 100%;
+  text-align: center;
+  padding-top: 6px;
+}
+
+/* Quando tela-inicio está ativa: exibe fundo, expande altura, mostra info */
+body:has(#tela-inicio.ativa) #app-header {
   background-image: url('/shared/img/imgFundoHeader.png');
   background-size: cover;
   background-position: center;
-  border-radius: 12px;
-  padding: 20px 16px 16px;
-  margin-bottom: 0;
-  position: relative;
-  overflow: hidden;
+  height: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-bottom: 14px;
 }
-/* Overlay escuro para garantir legibilidade do texto */
-.home-stories-header::before {
+/* Overlay escuro sobre a imagem para manter legibilidade */
+body:has(#tela-inicio.ativa) #app-header::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, .45);
-  border-radius: inherit;
+  background: rgba(0, 0, 0, .48);
   pointer-events: none;
+  z-index: 0;
 }
-.home-stories-header .sec-title,
-.home-stories-header .stories-tagline {
+body:has(#tela-inicio.ativa) #app-header > * {
   position: relative;
   z-index: 1;
 }
-.home-stories-header .sec-title {
+body:has(#tela-inicio.ativa) .header-stories-info {
+  display: block;
+}
+body:has(#tela-inicio.ativa) .header-stories-info .sec-title {
   color: #fff;
 }
-.home-stories-header .sec-title::after {
+body:has(#tela-inicio.ativa) .header-stories-info .sec-title::after {
   background: rgba(255, 255, 255, .5);
+}
+body:has(#tela-inicio.ativa) .header-stories-info .stories-tagline {
+  -webkit-text-fill-color: #fff;
+  background: none;
+  color: #fff;
+}
+
+/* stories-carousel-wrap na home sobe 1rem sobre o header */
+#tela-inicio .stories-carousel-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: -1rem;
 }
 
 /* ── Stories Tagline ──────────────────────────────────────────── */
