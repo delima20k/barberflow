@@ -37,14 +37,14 @@
   opacity: 1;
 }
 
-/* Logo central */
+/* Logo central — absoluta dentro do .header-top-row */
 .header-logo {
   position: absolute;
-  left: calc(70px + 1rem); /* era 56px + btn cresceu 40→50px, padding 16→20px */
+  left: 50%;
   top: 50%;
-  transform: translateY(calc(-50% + 0.3rem)) translateX(-1rem);
+  transform: translate(-50%, calc(-50% + 0.3rem));
   width: 60%;
-  height: calc(var(--header-h) * 2.10); /* auto-escala com --header-h */
+  height: calc(var(--header-h) * 2.10);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -1035,17 +1035,13 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Header com background-image + info Stories ──────────── */
-/* background-image fixo no #app-header */
+/* ── Header com background-image ──────────────────────────── */
 #app-header {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
   height: auto;
-  min-height: var(--header-h);
   padding-top: env(safe-area-inset-top);
-  padding-left: 20px;
-  padding-right: 20px;
   padding-bottom: 14px;
   background-image: url('/shared/img/imgFundoHeader.png');
   background-size: cover;
@@ -1053,11 +1049,7 @@
   border-bottom: 1px solid var(--gold-border);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  overflow: hidden;
+  flex-direction: column;
 }
 /* Overlay escuro sobre a imagem */
 #app-header::before {
@@ -1068,18 +1060,30 @@
   pointer-events: none;
   z-index: 0;
 }
-/* Todos os filhos ficam acima do overlay */
 #app-header > * {
   position: relative;
   z-index: 1;
 }
 
-/* Info Stories: h2 + h3 sempre visíveis na header */
+/* Linha superior: menu (esq) | logo (centro) | avatar (dir) */
+.header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: var(--header-h);
+  padding-left: 20px;
+  padding-right: 20px;
+  position: relative; /* base para .header-logo absolute */
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+/* Info Stories: h2 + h3 abaixo da top-row */
 .header-stories-info {
-  display: block;
   width: 100%;
   text-align: center;
-  padding-top: 6px;
+  padding: 0 16px 6px;
 }
 .header-stories-info .sec-title {
   color: #fff;
