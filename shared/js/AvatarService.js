@@ -74,6 +74,15 @@ const AvatarService = (() => {
 
       _aplicarSrc(publicUrl);
       _aplicarSrcDinamico(userId, publicUrl);
+
+      // Recarrega os cards de barbeiros em todos os containers visíveis
+      // para garantir atualização no app cliente (cards renderizados por outros usuários)
+      ['home-barbeiros-lista', 'barbeiros-lista'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && typeof NearbyBarbershopsWidget !== 'undefined') {
+          NearbyBarbershopsWidget.initHomeBarbeiros(id);
+        }
+      });
       if (typeof SessionCache !== 'undefined') {
         SessionCache.salvarAvatar(publicUrl);
         // Atualiza avatar_path no perfil em cache para que o próximo reload use o path novo
