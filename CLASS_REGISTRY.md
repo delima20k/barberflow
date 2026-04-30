@@ -82,6 +82,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `Router` | [shared/js/Router.js](shared/js/Router.js) | infra | Roteador SPA base. Gerencia navegação entre telas e estado do footer |
 | `SearchWidget` | [shared/js/SearchWidget.js](shared/js/SearchWidget.js) | interfaces | Campo de busca de barbearias com autocomplete e animação de placeholder |
 | `SessionCache` | [shared/js/SessionCache.js](shared/js/SessionCache.js) | infra | Cache de sessão em memória para dados do usuário logado |
+| `StatusFechamentoModal` | [shared/js/StatusFechamentoModal.js](shared/js/StatusFechamentoModal.js) | interfaces | Modal de confirmação de fechamento. Retorna `Promise<'normal'\|'almoco'\|'janta'\|null>`. Expõe helpers estáticos: `labelStatus(isOpen, closeReason)`, `classeStatus(...)`, `classBadge(...)`. Reutilizável em qualquer tela que precise do fluxo de fechamento. |
 | `StoriesCarousel` | [shared/js/StoriesLayout.js](shared/js/StoriesLayout.js) | interfaces | Carrossel de stories no estilo Instagram |
 | `StoriesLayout` | [shared/js/StoriesLayout.js](shared/js/StoriesLayout.js) | interfaces | Layout e renderização de stories de barbearias |
 | `StoryProgressLayer` | [shared/js/StoryViewer.js](shared/js/StoryViewer.js) | interfaces | Barra de progresso dos stories |

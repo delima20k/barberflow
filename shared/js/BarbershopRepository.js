@@ -167,9 +167,15 @@ class BarbershopRepository {
     const r = InputValidator.uuid(barbershopId);
     if (!r.ok) throw new TypeError(`[BarbershopRepository] barbershopId: ${r.msg}`);
 
+    const ALLOWED_REASONS = new Set(['almoco', 'janta', null]);
+    const reason = isOpen ? null : (closeReason ?? null);
+    if (!ALLOWED_REASONS.has(reason)) {
+      throw new TypeError(`[BarbershopRepository] updateIsOpen: closeReason inválido: "${reason}"`);
+    }
+
     const payload = {
       is_open:       Boolean(isOpen),
-      close_reason:  isOpen ? null : (closeReason ?? null),
+      close_reason:  reason,
       updated_at:    new Date().toISOString(),
     };
 

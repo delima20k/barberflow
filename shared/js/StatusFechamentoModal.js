@@ -48,6 +48,14 @@ class StatusFechamentoModal {
     return 'status--fechada';
   }
 
+  // Resolve a variante bp-badge--* para cards e badges da página barbearia
+  static classBadge(isOpen, closeReason = null) {
+    if (isOpen) return 'bp-badge--open';
+    const r = closeReason?.toLowerCase();
+    if (r === 'almoco' || r === 'janta') return 'bp-badge--pausa';
+    return 'bp-badge--closed';
+  }
+
   // ──────────────────────────────────────────────────────────
   // Exibe a modal e retorna a escolha via Promise.
   // Retorna null se o usuário cancelar.

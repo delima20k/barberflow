@@ -342,6 +342,7 @@ class MinhaBarbeariaPage {
     if (topo) {
       topo.textContent = label;
       topo.className   = `mb-topo-status ${classe}`;
+      topo.hidden      = false;
     }
   }
 

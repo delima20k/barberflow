@@ -462,14 +462,15 @@ class BarbeariaPage {
     }
     if (this.#refs.badge) {
       const labelBadge = StatusFechamentoModal.labelStatus(shop.is_open, shop.close_reason ?? null);
-      const classeBadge = StatusFechamentoModal.classeStatus(shop.is_open, shop.close_reason ?? null);
+      const varBadge   = StatusFechamentoModal.classBadge(shop.is_open, shop.close_reason ?? null);
       this.#refs.badge.textContent = labelBadge;
-      this.#refs.badge.className   = `bp-badge ${shop.is_open ? 'bp-badge--open' : (shop.close_reason ? 'bp-badge--pausa' : 'bp-badge--closed')}`;
+      this.#refs.badge.className   = `bp-badge ${varBadge}`;
     }
     if (this.#refs.capaStatus) {
       const labelCapa = StatusFechamentoModal.labelStatus(shop.is_open, shop.close_reason ?? null);
+      const varCapa   = StatusFechamentoModal.classBadge(shop.is_open, shop.close_reason ?? null);
       this.#refs.capaStatus.textContent = labelCapa;
-      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${shop.is_open ? 'bp-badge--open' : (shop.close_reason ? 'bp-badge--pausa' : 'bp-badge--closed')}`;
+      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${varCapa}`;
       this.#refs.capaStatus.hidden      = false;
     }
     if (this.#refs.rating) {
