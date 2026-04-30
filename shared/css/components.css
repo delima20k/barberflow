@@ -515,8 +515,8 @@
   padding: 2px 8px;
   border-radius: 20px;
 }
-.bp-badge--open   { background: rgba(50,180,80,.18); color: #4caf50; border: 1px solid rgba(76,175,80,.3); }
-.bp-badge--closed { background: rgba(220,50,50,.15); color: #e57373; border: 1px solid rgba(229,115,115,.3); }
+.bp-badge--open   { background: rgba(212,175,55,.14); color: var(--gold, #D4AF37); border: 1px solid rgba(212,175,55,.3); text-shadow: 0 0 6px rgba(212,175,55,.55); }
+.bp-badge--closed { background: rgba(220,50,50,.15);  color: #e57373; border: 1px solid rgba(229,115,115,.3); }
 .bp-rating, .bp-likes, .bp-desde {
   font-size: .72rem;
   color: var(--text-muted, rgba(245,233,220,.6));
@@ -1357,6 +1357,7 @@
   background: var(--gold-muted);
   color: var(--gold);
   border: 1px solid var(--gold-border);
+  text-shadow: 0 0 6px rgba(212,175,55,.5);
 }
 .badge.closed {
   background: rgba(224, 82, 82, .08);
@@ -1698,8 +1699,8 @@
   border-radius:   20px;
   letter-spacing:  .3px;
 }
-.mapa-popup__badge--open   { background: rgba(39,174,96,.22); color: #4edf8f; border: 1px solid rgba(39,174,96,.35); }
-.mapa-popup__badge--closed { background: rgba(139,37,0,.22);  color: #e07050; border: 1px solid rgba(139,37,0,.35); }
+.mapa-popup__badge--open   { background: rgba(212,175,55,.18); color: var(--gold, #D4AF37); border: 1px solid rgba(212,175,55,.35); text-shadow: 0 0 6px rgba(212,175,55,.55); }
+.mapa-popup__badge--closed { background: rgba(139,37,0,.22);   color: #e07050; border: 1px solid rgba(139,37,0,.35); }
 .mapa-popup__rating {
   font-size:       .72rem;
   color:           var(--gold);
@@ -3817,7 +3818,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   transition: color .3s;
 }
 .mb-status-txt--fechada { color: #e05252; }
-.mb-status-txt--aberta  { color: #4caf50; }
+.mb-status-txt--aberta  { color: var(--gold, #D4AF37); text-shadow: 0 0 10px rgba(212,175,55,.7); }
 
 /* Traço — mesma linguagem do gi-barra */
 .mb-status-barra {
@@ -3843,10 +3844,32 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   transition: background .3s, border-color .3s;
   box-sizing: border-box;
 }
-/* Estado "aberta" — fundo esverdeado */
+/* Estado "aberta" — mantém o mesmo marrom do OFF (toggle neutro) */
 .mb-status-toggle[aria-checked="true"] {
-  background: #1a3d1a;
-  border-color: #4caf50;
+  background: #3d1a08;
+  border-color: #7a3a14;
+}
+
+/* Label OFF / ON dentro da trilha do toggle */
+.mb-status-toggle::after {
+  content: 'OFF';
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .5rem;
+  font-weight: 800;
+  color: var(--text-muted, #8a6a50);
+  letter-spacing: .3px;
+  pointer-events: none;
+  line-height: 1;
+}
+.mb-status-toggle[aria-checked="true"]::after {
+  content: 'ON';
+  right: auto;
+  left: 5px;
+  color: var(--gold, #D4AF37);
+  text-shadow: 0 0 6px rgba(212,175,55,.7);
 }
 
 /* Bolinha (thumb) — ouro no off, ouro no on também mas se move */

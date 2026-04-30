@@ -500,8 +500,8 @@
   line-height: 1.6;
   white-space: nowrap;
 }
-.dc-badge--open   { background: rgba(80,200,80,.14);  color: #6dce6d; border: 1px solid rgba(80,200,80,.25); }
-.dc-badge--closed { background: rgba(200,80,80,.12);  color: #e07070; border: 1px solid rgba(200,80,80,.2);  }
+.dc-badge--open   { background: rgba(212,175,55,.12); color: var(--gold, #D4AF37); border: 1px solid rgba(212,175,55,.28); text-shadow: 0 0 6px rgba(212,175,55,.55); }
+.dc-badge--closed { background: rgba(200,80,80,.12);  color: #e07070; border: 1px solid rgba(200,80,80,.2); }
 
 /* ── Botões de ação — coluna direita ── */
 .dc-actions {
