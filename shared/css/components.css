@@ -1049,29 +1049,25 @@
   background: var(--bg, #111);
   border-bottom: 1px solid var(--gold-border);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
 }
 
-/* Logo com margem de 1rem do hamburger */
+/* Logo: 1rem do hamburger, fica à esquerda */
 #app-header .header-logo {
-  grid-column: 2;
-  display: flex;
-  justify-content: flex-start;
   margin-left: 1rem;
 }
 
-/* Hamburger: coluna 1 */
+/* Hamburger: já é o primeiro filho, sem ajuste necessário */
 #app-header .header-menu-btn {
-  grid-column: 1;
+  flex-shrink: 0;
 }
 
-/* Avatar: coluna 3 */
+/* Avatar: empurrado para a direita */
 #app-header .header-right {
-  grid-column: 3;
+  margin-left: auto;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
 }
 
 /* Info Stories: h2 + h3 sempre visíveis na header */
