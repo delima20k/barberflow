@@ -858,7 +858,7 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0; /* impede flex de comprimir — ativa scroll na .tela */
-  gap: var(--space-section);
+  gap: 0.5rem;
   padding: 16px;
 }
 
