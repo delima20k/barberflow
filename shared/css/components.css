@@ -1051,29 +1051,24 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
-/* Logo: junto ao hamburger, sem crescer */
-#app-header .header-logo {
-  margin-left: 0;
-  flex-shrink: 1;
-}
-#app-header .header-logo img {
+/* Logo solta direto no header */
+#app-header .header-logo-img {
   max-height: 132px;
   width: auto;
   display: block;
 }
 
-/* Hamburger: já é o primeiro filho, sem ajuste necessário */
+/* Hamburger: sem ajuste extra */
 #app-header .header-menu-btn {
   flex-shrink: 0;
 }
 
-/* Avatar: empurrado para a direita */
-#app-header .header-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
+/* Avatar: sem ajuste extra */
+#app-header .header-avatar-btn {
+  flex-shrink: 0;
 }
 
 /* Info Stories: h2 + h3 sempre visíveis na header */
