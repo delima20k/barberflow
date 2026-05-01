@@ -1053,9 +1053,15 @@
   align-items: center;
 }
 
-/* Logo: 2rem do hamburger, fica à esquerda */
+/* Logo: junto ao hamburger, sem crescer */
 #app-header .header-logo {
   margin-left: 2rem;
+  flex-shrink: 1;
+}
+#app-header .header-logo img {
+  max-height: 28px;
+  width: auto;
+  display: block;
 }
 
 /* Hamburger: já é o primeiro filho, sem ajuste necessário */
