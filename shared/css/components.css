@@ -1057,8 +1057,8 @@
 #app-header .header-logo-img {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
-  max-height: 158px;
+  transform: translateX(calc(-50% - 10px));
+  max-height: 142px;
   width: auto;
   display: block;
   pointer-events: none;
