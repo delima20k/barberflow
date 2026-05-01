@@ -1055,11 +1055,11 @@
 
 /* Logo: junto ao hamburger, sem crescer */
 #app-header .header-logo {
-  margin-left: 2rem;
+  margin-left: 0;
   flex-shrink: 1;
 }
 #app-header .header-logo img {
-  max-height: 176px;
+  max-height: 132px;
   width: auto;
   display: block;
 }
