@@ -1053,9 +1053,9 @@
   align-items: center;
 }
 
-/* Logo: 1rem do hamburger, fica à esquerda */
+/* Logo: 2rem do hamburger, fica à esquerda */
 #app-header .header-logo {
-  margin-left: 1rem;
+  margin-left: 2rem;
 }
 
 /* Hamburger: já é o primeiro filho, sem ajuste necessário */
