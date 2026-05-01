@@ -1054,11 +1054,12 @@
   align-items: center;
 }
 
-/* Logo centralizada na grade */
+/* Logo levemente à esquerda do centro */
 #app-header .header-logo {
   grid-column: 2;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-left: 8px;
 }
 
 /* Hamburger: coluna 1 */
