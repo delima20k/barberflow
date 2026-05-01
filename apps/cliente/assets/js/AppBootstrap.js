@@ -25,6 +25,7 @@ class AppBootstrap {
   static #WIDGETS_PARALELO = [
     { label: 'MapPanel',            fn: () => MapPanel.init('section-mapa')        },
     { label: 'FooterScrollManager', fn: () => FooterScrollManager.init()           },
+    { label: 'HeaderScrollBehavior', fn: () => HeaderScrollBehavior.init()          },
     { label: 'MapWidget',           fn: () => MapWidget.init('mapa-container')     },
     { label: 'GeoService.solicit',  fn: () => GeoService.solicitarNaPrimeiraVez() },
     { label: 'MapOrientationModule',fn: () => MapOrientationModule.init()          },

@@ -41,6 +41,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `DigText` | [shared/js/SearchWidget.js](shared/js/SearchWidget.js) | interfaces | Animação de digitação do placeholder do campo de busca |
 | `FonteSalao` | [shared/js/FonteSalao.js](shared/js/FonteSalao.js) | interfaces | Seletor de fonte personalizada para o nome da barbearia |
 | `FooterScrollManager` | [shared/js/FooterScrollManager.js](shared/js/FooterScrollManager.js) | interfaces | Oculta/exibe o footer conforme direção do scroll |
+| `HeaderScrollBehavior` | [shared/js/HeaderScrollBehavior.js](shared/js/HeaderScrollBehavior.js) | interfaces | Oculta header ao rolar conteúdo para baixo (quando stories-scroll toca o header), exibe ao rolar para cima |
 | `GeoService` | [shared/js/GeoService.js](shared/js/GeoService.js) | application | Geolocalização: GPS, CEP fallback, cálculo de distância |
 | `GuardaIten` | [shared/js/GuardaIten.js](shared/js/GuardaIten.js) | infra | Guard de itens de menu/tela com base em role e estado do usuário |
 | `GuestMode` | [shared/js/GuestMode.js](shared/js/GuestMode.js) | infra | Modo visitante — acesso parcial sem autenticação |
