@@ -74,13 +74,11 @@ class HeaderScrollBehavior {
   static #ocultar() {
     HeaderScrollBehavior.#oculto = true;
     HeaderScrollBehavior.#header.classList.add('header--oculto');
-    HeaderScrollBehavior.#tela.classList.add('tela-inicio--sem-header');
   }
 
   static #exibir() {
     if (!HeaderScrollBehavior.#oculto) return;
     HeaderScrollBehavior.#oculto = false;
     HeaderScrollBehavior.#header.classList.remove('header--oculto');
-    HeaderScrollBehavior.#tela.classList.remove('tela-inicio--sem-header');
   }
 }

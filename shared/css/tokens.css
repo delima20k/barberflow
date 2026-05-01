@@ -157,10 +157,6 @@ p, input, textarea, button, label, span, small, li {
 #tela-inicio {
   display: flex;
   z-index: 1;
-  transition: top 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-#tela-inicio.tela-inicio--sem-header {
-  top: 0;
 }
 #tela-inicio.ativa,
 #tela-inicio.saindo { pointer-events: auto; }
