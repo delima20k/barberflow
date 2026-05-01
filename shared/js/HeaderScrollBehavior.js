@@ -17,7 +17,7 @@
 class HeaderScrollBehavior {
 
   // ── Configuração ──────────────────────────────────────────
-  static #THRESHOLD_PX = 5;        // distância (px) para disparar ocultação
+  static #THRESHOLD_PX = 0;        // dispara exatamente ao tocar o header
 
   // ── Estado ────────────────────────────────────────────────
   static #header        = null;
