@@ -1035,18 +1035,14 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Section top-bar: apenas o header ───────────────────── */
-#app-top-bar {
+/* ── Header global fixo ──────────────────────────────────── */
+#app-header {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
   background: var(--bg, #111);
   border-bottom: 1px solid var(--gold-border);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
-}
-
-/* ── Header global ───────────────────────────────────────── */
-#app-header {
   padding-top: calc(env(safe-area-inset-top) + 10px);
   padding-left: 20px;
   padding-right: 20px;
