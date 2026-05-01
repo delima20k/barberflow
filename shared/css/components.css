@@ -1035,20 +1035,25 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Header global fixo ──────────────────────────────────── */
-#app-header {
+/* ── Section top-bar: header + títulos Stories ──────────── */
+#app-top-bar {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
-  height: auto;
-  min-height: var(--header-h);
+  background: var(--bg, #111);
+  border-bottom: 1px solid var(--gold-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header global fixo ──────────────────────────────────── */
+#app-header {
   padding-top: calc(env(safe-area-inset-top) + 10px);
   padding-left: 20px;
   padding-right: 20px;
   padding-bottom: 10px;
-  background: var(--bg, #111);
-  border-bottom: 1px solid var(--gold-border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1069,6 +1074,16 @@
 /* Avatar: sem ajuste extra */
 #app-header .header-avatar-btn {
   flex-shrink: 0;
+}
+
+/* H2 e H3 Stories abaixo do header dentro da section */
+#app-top-bar .header-stories-title {
+  text-align: center;
+  padding: 4px 20px 0;
+}
+#app-top-bar .header-stories-tagline {
+  text-align: center;
+  padding: 0 20px 10px;
 }
 
 /* Info Stories: h2 + h3 sempre visíveis na header */

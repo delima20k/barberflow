@@ -46,17 +46,21 @@
   <!-- ============================================================
        HEADER GLOBAL FIXO
   ============================================================ -->
-  <header id="app-header">
-    <button class="header-menu-btn" id="btn-menu" onclick="Pro.toggleMenu()">
-      <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
-           onerror="this.outerHTML='&#9776;'">
-    </button>
-    <img class="header-logo-img" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-    <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
-      <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
-      <span id="header-user-label">Entrar</span>
-    </button>
-  </header>
+  <section id="app-top-bar">
+    <header id="app-header">
+      <button class="header-menu-btn" id="btn-menu" onclick="Pro.toggleMenu()">
+        <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
+             onerror="this.outerHTML='&#9776;'">
+      </button>
+      <img class="header-logo-img" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
+      <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
+        <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
+        <span id="header-user-label">Entrar</span>
+      </button>
+    </header>
+    <h2 class="sec-title header-stories-title">Stories</h2>
+    <h3 class="stories-tagline header-stories-tagline">Barbearias Flow</h3>
+  </section>
 
   <!-- ============================================================
        OVERLAY MENU
@@ -273,10 +277,7 @@
     <div class="content">
 
       <!-- Stories -->
-      <div>
-        <h2 class="sec-title">Stories</h2>
-        <h3 class="stories-tagline">Barbearias Flow</h3>
-        <div class="stories-scroll">
+      <div class="stories-scroll">
 
           <div class="card-mini story-card"
                data-story-id="50000000-0000-0000-0000-000000000001"
