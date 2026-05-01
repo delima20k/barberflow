@@ -157,6 +157,8 @@ p, input, textarea, button, label, span, small, li {
 #tela-inicio {
   display: flex;
   z-index: 1;
+  top: 0;
+  padding-top: var(--header-h);
 }
 #tela-inicio.ativa,
 #tela-inicio.saindo { pointer-events: auto; }
