@@ -1035,43 +1035,42 @@
 }
 .story-play-btn.playing { opacity: 0; }
 
-/* ── Header com background-image + info Stories ──────────── */
-/* background-image fixo no #app-header */
+/* ── Header global fixo ──────────────────────────────────── */
 #app-header {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
   height: auto;
   min-height: var(--header-h);
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(env(safe-area-inset-top) + 10px);
   padding-left: 20px;
   padding-right: 20px;
-  padding-bottom: 14px;
-  background-image: url('/shared/img/imgFundoHeader.png');
-  background-size: cover;
-  background-position: center;
+  padding-bottom: 10px;
+  background: var(--bg, #111);
   border-bottom: 1px solid var(--gold-border);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  overflow: hidden;
 }
-/* Overlay escuro sobre a imagem */
-#app-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, .48);
-  pointer-events: none;
-  z-index: 0;
+
+/* Logo centralizada na grade */
+#app-header .header-logo {
+  grid-column: 2;
+  display: flex;
+  justify-content: center;
 }
-/* Todos os filhos ficam acima do overlay */
-#app-header > * {
-  position: relative;
-  z-index: 1;
+
+/* Hamburger: coluna 1 */
+#app-header .header-menu-btn {
+  grid-column: 1;
+}
+
+/* Avatar: coluna 3 */
+#app-header .header-right {
+  grid-column: 3;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Info Stories: h2 + h3 sempre visíveis na header */
