@@ -47,21 +47,22 @@
        HEADER GLOBAL FIXO
   ============================================================ -->
   <header id="app-header">
-    <div class="header-top-row">
-      <button class="header-menu-btn" id="btn-menu" onclick="Pro.toggleMenu()">
-        <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
-             onerror="this.outerHTML='&#9776;'">
-      </button>
-      <div class="header-logo">
-        <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-      </div>
-      <div class="header-right">
-        <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
-          <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
-          <span id="header-user-label">Entrar</span>
-        </button>
-      </div>
+    <button class="header-menu-btn" id="btn-menu" onclick="Pro.toggleMenu()">
+      <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
+           onerror="this.outerHTML='&#9776;'">
+    </button>
+    <div class="header-logo">
+      <img src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
     </div>
+
+    <div class="header-right">
+      <button class="header-avatar-btn" id="header-avatar-btn" onclick="Pro.irParaLogin()">
+        <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
+        <span id="header-user-label">Entrar</span>
+      </button>
+    </div>
+
+    <!-- Exibido apenas na tela-inicio via CSS :has() -->
     <div class="header-stories-info">
       <h2 class="sec-title">Stories</h2>
       <h3 class="stories-tagline">Barbearias Flow</h3>
