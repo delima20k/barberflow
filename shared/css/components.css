@@ -1054,12 +1054,12 @@
   align-items: center;
 }
 
-/* Logo levemente à esquerda do centro */
+/* Logo com margem de 1rem do hamburger */
 #app-header .header-logo {
   grid-column: 2;
   display: flex;
   justify-content: flex-start;
-  padding-left: 8px;
+  margin-left: 1rem;
 }
 
 /* Hamburger: coluna 1 */
