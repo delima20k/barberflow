@@ -20,11 +20,11 @@ class HeaderScrollBehavior {
   static #THRESHOLD_PX = 5;        // distância (px) para disparar ocultação
 
   // ── Estado ────────────────────────────────────────────────
-  static #header       = null;
+  static #header        = null;
   static #storiesScroll = null;
-  static #tela         = null;
-  static #oculto       = false;
-  static #ultimoScroll = 0;
+  static #tela          = null;
+  static #oculto        = false;
+  static #ultimoScroll  = 0;
 
   // ── API pública ───────────────────────────────────────────
 
@@ -74,11 +74,13 @@ class HeaderScrollBehavior {
   static #ocultar() {
     HeaderScrollBehavior.#oculto = true;
     HeaderScrollBehavior.#header.classList.add('header--oculto');
+    HeaderScrollBehavior.#tela.classList.add('tela-inicio--sem-header');
   }
 
   static #exibir() {
     if (!HeaderScrollBehavior.#oculto) return;
     HeaderScrollBehavior.#oculto = false;
     HeaderScrollBehavior.#header.classList.remove('header--oculto');
+    HeaderScrollBehavior.#tela.classList.remove('tela-inicio--sem-header');
   }
 }
