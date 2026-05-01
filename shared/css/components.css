@@ -1047,16 +1047,21 @@
   padding-left: 16px;
   padding-right: 16px;
   padding-bottom: 10px;
-  min-height: var(--header-h);
+  height: var(--header-h);
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 #app-header .header-logo-img {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   max-height: 176px;
   width: auto;
   display: block;
+  pointer-events: none;
 }
 
 #app-header .header-menu-btn,
