@@ -12,16 +12,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--r-md);
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   transition: opacity var(--ease), transform var(--ease);
 }
 .header-menu-btn img {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   transition: filter var(--ease), opacity var(--ease);
@@ -40,7 +40,7 @@
 /* Logo central */
 .header-logo {
   position: absolute;
-  left: calc(70px + 1rem);
+  left: calc(56px + 1rem);
   top: 50%;
   transform: translateY(calc(-50% + 0.3rem)) translateX(-1rem);
   width: 60%;
@@ -74,12 +74,12 @@
 .header-sair-btn {
   all: unset;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold-dark);
-  padding: 5px 10px;
+  padding: 4px 8px;
   border-radius: 20px;
   border: 1px solid var(--gold-border);
   background: rgba(212, 175, 55, .06);
@@ -104,8 +104,8 @@
   transition: transform var(--ease), opacity var(--ease);
 }
 .header-avatar-btn img {
-  width: 45px;
-  height: 45px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--gold-border);
@@ -122,11 +122,11 @@
 }
 .header-avatar-btn span {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 600;
   color: var(--text-dim);
   letter-spacing: 0.02em;
-  max-width: 65px;
+  max-width: 52px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1044,8 +1044,8 @@
   border-bottom: 1px solid var(--gold-border);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
   padding-top: calc(env(safe-area-inset-top) + 10px);
-  padding-left: 20px;
-  padding-right: 20px;
+  padding-left: 16px;
+  padding-right: 16px;
   padding-bottom: 10px;
   min-height: var(--header-h);
   display: flex;
@@ -1054,7 +1054,7 @@
 }
 
 #app-header .header-logo-img {
-  max-height: 132px;
+  max-height: 44px;
   width: auto;
   display: block;
 }
