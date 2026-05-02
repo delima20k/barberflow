@@ -1454,7 +1454,9 @@
 
 /* Centraliza melhor em cards landscape e satura a imagem */
 .fav-card.barber-card--com-capa {
+  background-size: cover;
   background-position: center center;
+  background-repeat: no-repeat;
   filter: contrast(1.13) saturate(1.2);
 }
 
