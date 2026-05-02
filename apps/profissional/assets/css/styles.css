@@ -1459,16 +1459,21 @@
   overflow: hidden;
 }
 
+/* Separador visual entre cadeira de produção e cadeiras de espera */
+.mb-cadeira--producao + .mb-cadeira--fila {
+  margin-left: 10px;
+}
+
 .mb-cadeira {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   flex-shrink: 0;
-  width: 58px;
-  min-width: 58px;
-  padding: 5px 4px;
-  border-radius: 8px;
+  width: 68px;
+  min-width: 68px;
+  padding: 7px 5px;
+  border-radius: 10px;
   overflow: hidden;
   pointer-events: none;
   user-select: none;
@@ -1488,8 +1493,8 @@
 }
 
 .mb-cadeira-icon {
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
@@ -1504,7 +1509,7 @@
   object-fit: cover;
 }
 .mb-cadeira-label {
-  font-size: .55rem;
+  font-size: .6rem;
   font-weight: 700;
   color: var(--text, #2b1b12);
   text-align: center;
@@ -1512,7 +1517,7 @@
 }
 .mb-cadeira--producao .mb-cadeira-label { color: var(--gold, #D4AF37); }
 .mb-cadeira-cliente {
-  font-size: .52rem;
+  font-size: .55rem;
   color: var(--text-muted, #8c7057);
   text-align: center;
   white-space: nowrap;

@@ -540,6 +540,7 @@ class MinhaBarbeariaPage {
     wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico));
     wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1));
     wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2));
+    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[2] ?? null, 3));
 
     row.appendChild(wrap);
     return row;
