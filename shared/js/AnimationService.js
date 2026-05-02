@@ -38,10 +38,20 @@ const AnimationService = (() => {
    */
   function animar(saindo, entrando, classeSaida = 'saindo', classeEntrada = 'ativa') {
 
-    // Ao navegar (qualquer direção, incluindo voltar para home),
-    // revela o header se estiver oculto.
+    // Notifica HeaderScrollBehavior para revelar o header se estiver oculto.
+    // Pré-calcula a duração da tela entrando para a revelação ser sincronizada.
     if (saindo || entrando) {
-      document.dispatchEvent(new Event('barberflow:tela-entrando'));
+      let durEntrada = 320;
+      if (entrando) {
+        const isVisivel = entrando.style.display === 'flex';
+        const fromX     = isVisivel ? _xAtual(entrando) : -100;
+        durEntrada = Math.round(
+          (classeEntrada === 'entrando-lento' ? 720 : 320) * Math.abs(fromX) / 100
+        );
+      }
+      document.dispatchEvent(
+        new CustomEvent('barberflow:tela-entrando', { detail: { dur: Math.max(durEntrada, 16) } })
+      );
     }
 
     // ── Tela que SAI ───────────────────────────────────────────────────────

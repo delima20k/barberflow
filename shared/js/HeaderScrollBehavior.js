@@ -68,7 +68,9 @@ class HeaderScrollBehavior {
   }
 
   static #bindNavEvent() {
-    document.addEventListener('barberflow:tela-entrando', () => HeaderScrollBehavior.#exibir());
+    document.addEventListener('barberflow:tela-entrando', (e) =>
+      HeaderScrollBehavior.#exibir(e.detail?.dur ?? 350)
+    );
   }
 
   static #aoRolar(tela) {
@@ -100,12 +102,37 @@ class HeaderScrollBehavior {
 
   static #ocultar() {
     HeaderScrollBehavior.#oculto = true;
-    HeaderScrollBehavior.#header.classList.add('header--oculto');
+    const header = HeaderScrollBehavior.#header;
+
+    // Se há animação WAAPI em curso (header sendo revelado), fixa a posição
+    // visual atual como inline style para a transição CSS partir dali
+    const anims = header.getAnimations();
+    if (anims.length) {
+      const m = new DOMMatrix(getComputedStyle(header).transform);
+      header.style.transform = `translateY(${m.m42.toFixed(1)}px)`;
+      anims.forEach(a => a.cancel());
+    }
+
+    header.classList.add('header--oculto');
+
+    // Limpa o inline style ao fim da transição para não interferir no próximo reveal
+    header.addEventListener('transitionend', () => {
+      header.style.transform = '';
+    }, { once: true });
   }
 
-  static #exibir() {
+  static #exibir(dur = 350) {
     if (!HeaderScrollBehavior.#oculto) return;
     HeaderScrollBehavior.#oculto = false;
-    HeaderScrollBehavior.#header.classList.remove('header--oculto');
+
+    const header = HeaderScrollBehavior.#header;
+    header.getAnimations().forEach(a => a.cancel());
+    header.classList.remove('header--oculto');
+
+    const anim = header.animate(
+      [{ transform: 'translateY(-110%)' }, { transform: 'translateY(0)' }],
+      { duration: dur, easing: 'cubic-bezier(0.4,0,0.2,1)', fill: 'forwards' }
+    );
+    anim.onfinish = () => anim.cancel();
   }
 }
