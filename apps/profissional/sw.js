@@ -5,7 +5,7 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_NAME = 'barberflow-profissional-v115';
+  static #CACHE_NAME = 'barberflow-profissional-v116';
 
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS = [
@@ -31,6 +31,7 @@ class SWProfissional {
     '/shared/js/FilaController.js',
     '/shared/js/ModalController.js',
     '/shared/js/ClienteController.js',
+    '/shared/js/PWAInstallBanner.js',
     '/shared/img/Logo01.png',
     '/shared/img/icone-do-App.png',
     '/shared/img/inicio.svg',

@@ -5121,3 +5121,74 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: .9rem;
 }
 
+/* ── PWA Install Banner ──────────────────────────────────── */
+.pwa-banner {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card, #1a1209);
+  border: 1px solid var(--gold-border, rgba(212,175,55,.3));
+  border-radius: 16px;
+  padding: 10px 14px 10px 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+  z-index: 9000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+.pwa-banner--visivel {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.pwa-banner__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.pwa-banner__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pwa-banner__texto strong {
+  font-size: .8rem;
+  color: var(--text);
+}
+.pwa-banner__sub {
+  font-size: .68rem;
+  color: var(--text-muted, #8c7057);
+}
+.pwa-banner__btn {
+  flex-shrink: 0;
+  background: var(--gold, #D4AF37);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.pwa-banner__btn:hover { opacity: .88; }
+.pwa-banner__fechar {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted, #8c7057);
+  font-size: .9rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+

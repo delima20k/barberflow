@@ -19,6 +19,11 @@ class AppBootstrap {
   // Widgets sem dependência Supabase — disparo paralelo (fire-and-forget)
   static #WIDGETS_PARALELO = [
     { label: 'ProLandingGate',       fn: () => ProLandingGate.init()                   },
+    { label: 'PWAInstallBanner',      fn: () => {
+      PWAInstallBanner.iconSrc = '/shared/img/icon-192-pro.png';
+      PWAInstallBanner.nomeApp = 'BarberFlow Pro';
+      PWAInstallBanner.init();
+    }},
     { label: 'MapPanel',             fn: () => MapPanel.init('section-mapa')            },
     { label: 'FooterScrollManager',  fn: () => FooterScrollManager.init()               },
     { label: 'HeaderScrollBehavior',  fn: () => HeaderScrollBehavior.init()              },

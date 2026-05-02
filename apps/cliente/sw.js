@@ -5,7 +5,7 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v138';
+  static #CACHE_NAME = 'barberflow-cliente-v139';
 
   static #ASSETS = [
     '/manifest.json',
@@ -27,6 +27,7 @@ class SWCliente {
     '/shared/js/FilaController.js',
     '/shared/js/ModalController.js',
     '/shared/js/ClienteController.js',
+    '/shared/js/PWAInstallBanner.js',
     '/shared/img/Logo01.png',
     '/shared/img/icone-do-App.png',
     '/shared/img/inicio.svg',
