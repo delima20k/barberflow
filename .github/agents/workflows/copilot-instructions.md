@@ -18,6 +18,38 @@ Você é um agente de IA chamado DELIMA.
 
 ---
 
+## REGISTRO OBRIGATÓRIO DE CLASSES REUTILIZÁVEIS (`CLASS_REGISTRY.md`)
+
+> **Toda classe nova que possa ser reutilizada em outro trecho do código ou em novas funcionalidades DEVE ser registrada em `CLASS_REGISTRY.md` imediatamente após a criação.**
+
+### Quando registrar:
+- Sempre que criar uma classe nova — **sem exceção**
+- Mesmo que a classe pareça específica: se tiver potencial de reuso, registra
+
+### O que registrar no `CLASS_REGISTRY.md`:
+| Campo | Descrição |
+|---|---|
+| **Nome** | Nome exato da classe |
+| **Arquivo** | Caminho relativo ao repositório |
+| **Camada DDD** | `domain` / `application` / `infra` / `ui` / `shared` |
+| **Responsabilidade** | Uma frase curta descrevendo o que a classe faz |
+| **Reutilizável em** | Onde mais pode ser usada (app cliente, profissional, shared, etc.) |
+
+### Fluxo obrigatório ao criar qualquer classe:
+1. Abrir `CLASS_REGISTRY.md`
+2. Verificar se já existe classe equivalente — **reutilizar antes de criar**
+3. Se criar classe nova → registrar no `CLASS_REGISTRY.md` antes do commit
+4. Se a classe for genérica o suficiente → mover para `shared/js/`
+
+### Regras:
+- ❌ **NUNCA** criar classe nova sem verificar o registro primeiro
+- ❌ **NUNCA** commitar classe nova sem registrá-la
+- ❌ **NUNCA** duplicar lógica que já existe em classe registrada
+- ✅ Classes em `shared/` são automaticamente candidatas ao registro
+- ✅ Após registrar, manter o arquivo em ordem alfabética por nome de classe
+
+---
+
 Especialista em:
 - HTML, CSS e JavaScript (OOP avançado)
 - UX/UI extraordinário (mobile-first)
