@@ -244,7 +244,7 @@ class MinhaBarbeariaPage {
       this.#renderCabecalho(shop);
       this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
-      this.#renderEquipe(barbeiros, shop.owner_id);
+      this.#renderEquipe(barbeiros, shop.owner_id, perfil);
       this.#renderKpis(shop, portfolio.length);
       this.#renderPortfolio(portfolio);
       this.#renderServicos(servicos);
@@ -347,32 +347,35 @@ class MinhaBarbeariaPage {
 
   // ── Equipe da barbearia ─────────────────────────────────────
 
-  #renderEquipe(barbeiros, ownerId) {
+  #renderEquipe(barbeiros, ownerId, perfilDono = null) {
     const donoCard = this.#refs.equipeDonoCard;
     const col      = this.#refs.equipeCol;
     if (!donoCard || !col) return;
 
-    const dono   = barbeiros.find(b => b.id === ownerId);
-    const equipe = barbeiros.filter(b => b.id !== ownerId);
+    const donoProf = barbeiros.find(b => b.id === ownerId);
+    const equipe   = barbeiros.filter(b => b.id !== ownerId);
 
-    // Card do dono
+    // Card do dono — usa dados do professionals; fallback = perfil logado
     donoCard.classList.remove('mb-equipe-card--skeleton');
-    const donoNome   = donoCard.querySelector('.mb-equipe-dono-nome');
-    const donoAvatar = donoCard.querySelector('.mb-equipe-dono-avatar');
+    const donoNomeEl   = donoCard.querySelector('.mb-equipe-dono-nome');
+    const donoAvatarEl = donoCard.querySelector('.mb-equipe-dono-avatar');
 
-    const nomeDono = dono?.profile?.full_name ?? 'Dono';
-    if (donoNome) donoNome.textContent = nomeDono;
+    const nomeDono   = donoProf?.profile?.full_name ?? perfilDono?.full_name   ?? 'Dono';
+    const avatarPath = donoProf?.profile?.avatar_path ?? perfilDono?.avatar_path ?? null;
+    const updatedAt  = donoProf?.profile?.updated_at  ?? perfilDono?.updated_at  ?? null;
 
-    if (dono?.profile?.avatar_path && donoAvatar) {
+    if (donoNomeEl) donoNomeEl.textContent = nomeDono;
+
+    if (avatarPath && donoAvatarEl) {
       const img    = document.createElement('img');
       img.alt      = nomeDono;
       img.loading  = 'lazy';
-      img.onerror  = () => { donoAvatar.textContent = '💈'; };
-      img.src      = SupabaseService.resolveAvatarUrl(dono.profile.avatar_path, dono.profile.updated_at) || '';
-      donoAvatar.innerHTML = '';
-      donoAvatar.appendChild(img);
-    } else if (donoAvatar) {
-      donoAvatar.textContent = '💈';
+      img.onerror  = () => { donoAvatarEl.textContent = '💈'; };
+      img.src      = SupabaseService.resolveAvatarUrl(avatarPath, updatedAt) || '';
+      donoAvatarEl.innerHTML = '';
+      donoAvatarEl.appendChild(img);
+    } else if (donoAvatarEl) {
+      donoAvatarEl.textContent = '💈';
     }
 
     // Navegar para o perfil do dono ao clicar
@@ -380,13 +383,13 @@ class MinhaBarbeariaPage {
       if (typeof App !== 'undefined') App.nav('perfil');
     });
 
-    // Coluna de barbeiros
+    // Coluna de barbeiros da equipe
     col.innerHTML = '';
     for (const b of equipe) {
       const nome   = b.profile?.full_name ?? 'Barbeiro';
       const card   = document.createElement('div');
-      card.className          = 'mb-equipe-membro-card';
-      card.dataset.barberId   = b.id;
+      card.className        = 'mb-equipe-membro-card';
+      card.dataset.barberId = b.id;
 
       const avatarEl = document.createElement('div');
       avatarEl.className = 'mb-equipe-membro-avatar';
@@ -414,9 +417,9 @@ class MinhaBarbeariaPage {
       col.appendChild(card);
     }
 
-    // Ocultar section se não houver ninguém
+    // A section é sempre visível — exibe ao menos o card do dono
     const section = document.getElementById('mb-equipe-section');
-    if (section) section.hidden = barbeiros.length === 0;
+    if (section) section.hidden = false;
   }
 
   // ── Status aberta / fechada ─────────────────────────────────
