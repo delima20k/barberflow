@@ -686,7 +686,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 2500 !important;
   height: var(--nav-h);
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--header-bg);
@@ -1039,7 +1039,7 @@
 #app-header {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 1000;
+  z-index: 3000 !important;
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   background: url('/shared/img/imgFundoHeader.png') center/cover no-repeat;
   border-bottom: 1px solid var(--gold-border);
@@ -3718,12 +3718,19 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* Minha Barbearia segue o mesmo envelope das demais telas:
    entra abaixo do header global e abaixo do rodapé na pilha visual. */
 #tela-minha-barbearia {
-  position: fixed;
-  top: var(--header-h);
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
+  position: fixed !important;
+  top: var(--header-h) !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: var(--nav-h) !important;
+  z-index: 1 !important;
+}
+
+#tela-minha-barbearia.ativa,
+#tela-minha-barbearia.entrando-lento,
+#tela-minha-barbearia.saindo,
+#tela-minha-barbearia.saindo-direita {
+  z-index: 1 !important;
 }
 
 /* Hero header: capa da barbearia como background */

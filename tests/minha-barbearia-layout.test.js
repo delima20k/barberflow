@@ -25,13 +25,23 @@ class MinhaBarbeariaLayoutCssTest {
   static deveEntrarAbaixoDaHeaderGlobal() {
     const regra = MinhaBarbeariaLayoutCssTest.#regraMinhaBarbearia();
 
-    assert.match(regra, /position:\s*fixed;/, 'deve usar o mesmo position das telas');
-    assert.match(regra, /top:\s*var\(--header-h\);/, 'deve abrir abaixo da header global');
-    assert.match(regra, /bottom:\s*0;/, 'deve manter a área rolável padrão das telas');
-    assert.match(regra, /z-index:\s*10;/, 'deve ficar abaixo da header e do rodapé');
+    assert.match(regra, /position:\s*fixed\s*!important;/, 'deve forçar o mesmo position das telas');
+    assert.match(regra, /top:\s*var\(--header-h\)\s*!important;/, 'deve forçar abertura abaixo da header global');
+    assert.match(regra, /bottom:\s*var\(--nav-h\)\s*!important;/, 'deve forçar limite acima do rodapé');
+    assert.match(regra, /z-index:\s*1\s*!important;/, 'deve forçar a tela abaixo da header e do rodapé');
+  }
+
+  static deveManterHeaderERodapeAcima() {
+    const css = MinhaBarbeariaLayoutCssTest.#lerCss();
+
+    assert.match(css, /#app-header\s*\{[^}]*z-index:\s*3000\s*!important;/s,
+      'header global deve ficar forçada acima das telas');
+    assert.match(css, /\.footer-nav\s*\{[^}]*z-index:\s*2500\s*!important;/s,
+      'rodapé global deve ficar forçado acima das telas');
   }
 }
 
 test('minha barbearia entra abaixo da header e abaixo do rodapé na pilha visual', () => {
   MinhaBarbeariaLayoutCssTest.deveEntrarAbaixoDaHeaderGlobal();
+  MinhaBarbeariaLayoutCssTest.deveManterHeaderERodapeAcima();
 });
