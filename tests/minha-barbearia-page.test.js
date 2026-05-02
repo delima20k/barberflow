@@ -16,6 +16,7 @@ function criarEl(id = '') {
   const _classes   = new Set();
   const _attrs     = {};
   const _listeners = {};
+  const _anims     = [];
 
   return {
     id,
@@ -49,6 +50,8 @@ function criarEl(id = '') {
     appendChild:      () => {},
     focus:            fn(),
     click:            fn(),
+    getAnimations:    () => [..._anims],
+    _anims,
   };
 }
 
@@ -60,6 +63,7 @@ function criarEl(id = '') {
 function criarDom() {
   const IDS = [
     'tela-minha-barbearia',
+    'app-header',
     'mb-config-panel',
     'mb-gps-panel',
     'mb-nome', 'mb-cover-img', 'mb-cover-input', 'mb-quota-txt',
@@ -103,6 +107,7 @@ function criarDom() {
  */
 function criarPagina({ comTelaEl = true } = {}) {
   const dom = criarDom();
+  const mutationObservers = [];
 
   // Se comTelaEl=false, getElementById('tela-minha-barbearia') retorna null
   // → bind() sai cedo sem registrar nada
@@ -113,7 +118,12 @@ function criarPagina({ comTelaEl = true } = {}) {
   const sandbox = vm.createContext({
     console,
     document:        documentMock,
-    MutationObserver: function(cb) { this.observe = fn(); this.disconnect = fn(); },
+    MutationObserver: function(cb) {
+      this.observe = fn();
+      this.disconnect = fn();
+      this._disparar = cb;
+      mutationObservers.push(this);
+    },
     AuthService:     { getPerfil: fn().mockReturnValue(null) },
     SupabaseService: {},
     NotificationService: { mostrarToast: fn() },
@@ -132,7 +142,7 @@ function criarPagina({ comTelaEl = true } = {}) {
   const page = new sandbox.MinhaBarbeariaPage();
   page.bind();
 
-  return { page, dom, documentMock };
+  return { page, dom, documentMock, mutationObservers };
 }
 
 // =============================================================================
@@ -159,6 +169,22 @@ suite('MinhaBarbeariaPage — bind()', () => {
     assert.strictEqual(
       Object.keys(dom.maisBtn._listeners ?? {}).length, 0,
     );
+  });
+
+  test('ao ativar tela-minha-barbearia, revela header da home', () => {
+    const { dom, mutationObservers } = criarPagina();
+    const header = dom.elMap.get('app-header');
+    const anim = { cancel: fn() };
+
+    header.classList.add('header--oculto');
+    header.style.transform = 'translateY(-110%)';
+    header._anims.push(anim);
+    dom.telaEl.classList.add('ativa');
+    mutationObservers[0]._disparar();
+
+    assert.equal(header.classList.contains('header--oculto'), false);
+    assert.equal(header.style.transform, '');
+    assert.equal(anim.cancel.calls.length, 1);
   });
 });
 

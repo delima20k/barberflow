@@ -86,6 +86,7 @@ class MinhaBarbeariaPage {
       const ativa = this.#telaEl.classList.contains('ativa') ||
                     this.#telaEl.classList.contains('entrando-lento');
       if (ativa) {
+        this.#exibirHeaderHome();
         this.#digBoasVindas?.iniciar();
         if (!this.#carregou) this.#carregar();
       } else {
@@ -95,6 +96,14 @@ class MinhaBarbeariaPage {
   }
 
   // ── DOM refs ────────────────────────────────────────────────
+
+  #exibirHeaderHome() {
+    const header = document.getElementById('app-header');
+    if (!header) return;
+    header.getAnimations?.().forEach(anim => anim.cancel());
+    header.classList.remove('header--oculto');
+    header.style.transform = '';
+  }
 
   #cacheRefs() {
     const q = id => document.getElementById(id);

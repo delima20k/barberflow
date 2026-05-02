@@ -28,20 +28,20 @@ class MinhaBarbeariaLayoutCssTest {
     assert.match(regra, /position:\s*fixed\s*!important;/, 'deve forçar o mesmo position das telas');
     assert.match(regra, /top:\s*var\(--header-h\)\s*!important;/, 'deve forçar abertura abaixo da header global');
     assert.match(regra, /bottom:\s*var\(--nav-h\)\s*!important;/, 'deve forçar limite acima do rodapé');
-    assert.match(regra, /z-index:\s*1\s*!important;/, 'deve forçar a tela abaixo da header e do rodapé');
+    assert.match(regra, /z-index:\s*900\s*!important;/, 'deve forçar a tela abaixo da header e acima da home');
   }
 
-  static deveManterHeaderERodapeAcima() {
+  static naoDeveForcarZIndexGlobal() {
     const css = MinhaBarbeariaLayoutCssTest.#lerCss();
 
-    assert.match(css, /#app-header\s*\{[^}]*z-index:\s*3000\s*!important;/s,
-      'header global deve ficar forçada acima das telas');
-    assert.match(css, /\.footer-nav\s*\{[^}]*z-index:\s*2500\s*!important;/s,
-      'rodapé global deve ficar forçado acima das telas');
+    assert.doesNotMatch(css, /#app-header\s*\{[^}]*z-index:[^;}]+!important;/s,
+      'não deve mexer no z-index global da header');
+    assert.doesNotMatch(css, /\.footer-nav\s*\{[^}]*z-index:[^;}]+!important;/s,
+      'não deve mexer no z-index global do rodapé');
   }
 }
 
 test('minha barbearia entra abaixo da header e abaixo do rodapé na pilha visual', () => {
   MinhaBarbeariaLayoutCssTest.deveEntrarAbaixoDaHeaderGlobal();
-  MinhaBarbeariaLayoutCssTest.deveManterHeaderERodapeAcima();
+  MinhaBarbeariaLayoutCssTest.naoDeveForcarZIndexGlobal();
 });
