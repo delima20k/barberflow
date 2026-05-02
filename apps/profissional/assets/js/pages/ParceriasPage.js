@@ -35,6 +35,7 @@ class ParceriasPage {
   #carregouParceiras = false;
   #carregouConvites  = false;
   #carregouFavoritos = false;
+  #favAberto         = false;
 
   constructor() {}
 
@@ -283,8 +284,6 @@ class ParceriasPage {
   // SEÇÃO 3 — FAVORITOS (lazy — expande ao clicar)
   // ═══════════════════════════════════════════════════════════
 
-  #favAberto = false;
-
   #toggleFavoritos() {
     const wrap = document.getElementById('parcerias-fav-wrap');
     const btn  = document.getElementById('parcerias-fav-toggle');
@@ -392,15 +391,16 @@ class ParceriasPage {
   }
 
   #criarBarbeiroFavRow(p) {
+    const s      = InputValidator.sanitizar;
     const perfil = p.profiles ?? {};
-    const nome   = perfil.full_name ?? 'Barbeiro';
+    const nome   = s(perfil.full_name ?? 'Barbeiro');
     const path   = perfil.avatar_path ?? p.avatar_path ?? null;
-    const avatar = path
+    const avatar = s(path
       ? (SupabaseService.getAvatarUrl(path) || '/shared/img/icones-perfil.png')
-      : '/shared/img/icones-perfil.png';
-    const r     = Math.round(Number(p.rating_avg ?? 0));
+      : '/shared/img/icones-perfil.png');
+    const r     = Math.min(5, Math.max(0, Math.round(Number(p.rating_avg ?? 0))));
     const stars = '★'.repeat(r) + '☆'.repeat(5 - r);
-    const specs = (p.specialties ?? []).slice(0, 2).join(' · ');
+    const specs = s((p.specialties ?? []).slice(0, 2).join(' · '));
 
     const row = document.createElement('div');
     row.className              = 'barber-row';
