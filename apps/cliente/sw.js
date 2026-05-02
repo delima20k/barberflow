@@ -5,7 +5,7 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v137';
+  static #CACHE_NAME = 'barberflow-cliente-v138';
 
   static #ASSETS = [
     '/manifest.json',
@@ -36,8 +36,9 @@ class SWCliente {
     '/shared/img/perfil.svg',
     '/shared/img/sair.svg',
     '/shared/img/icones-perfil.png',
-    '/shared/img/icones-cadeira-salao.png',
     '/shared/img/icones-cadeira-salao-vazia.png',
+    '/shared/img/icones-cadeira-producao.png',
+    '/shared/img/icones-cadeira-de-éspera.png',
     '/shared/img/bg-entrada.jpg',
     '/shared/img/icon-192-cliente.png',
     '/shared/img/icon-512-cliente.png',

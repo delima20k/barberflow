@@ -43,7 +43,7 @@ class Cadeira {
     const estado  = Cadeira.#ESTADOS[`${tipo}_${ocupada ? 'ocupada' : 'livre'}`] ?? 'livre';
 
     const el = document.createElement('div');
-    el.className = `cdr-cadeira cdr-cadeira--${estado}`;
+    el.className = `cdr-cadeira cdr-cadeira--${tipo} cdr-cadeira--${estado}`;
 
     // Interatividade: somente cadeiras LIVRES e com permissão
     if (!ocupada && podeInteragir && onClick) {
@@ -79,17 +79,17 @@ class Cadeira {
     const wrap = document.createElement('div');
     wrap.className = 'cdr-icon';
 
-    if (entrada?.client?.avatar_path) {
+    const avatarPath = entrada?.client?.avatar_path;
+    const url = avatarPath && (typeof SupabaseService !== 'undefined')
+      ? SupabaseService.resolveAvatarUrl(avatarPath, entrada.client.updated_at ?? null)
+      : null;
+
+    if (url) {
       const img   = document.createElement('img');
       img.alt     = entrada.client.full_name ?? '';
       img.loading = 'lazy';
-      img.src     = (typeof SupabaseService !== 'undefined')
-        ? SupabaseService.resolveAvatarUrl(entrada.client.avatar_path, entrada.client.updated_at ?? null) || ''
-        : '';
-      img.onerror = () => {
-        img.remove();
-        wrap.appendChild(Cadeira.#imagemPadrao(tipo));
-      };
+      img.src     = url;
+      img.onerror = () => { img.remove(); wrap.appendChild(Cadeira.#imagemPadrao(tipo)); };
       wrap.appendChild(img);
     } else {
       wrap.appendChild(Cadeira.#imagemPadrao(tipo));

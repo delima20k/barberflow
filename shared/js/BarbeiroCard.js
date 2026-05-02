@@ -76,13 +76,15 @@ class BarbeiroCard {
     const wrap = document.createElement('div');
     wrap.className = 'bbc-avatar';
 
-    if (avatarPath) {
+    const url = (typeof SupabaseService !== 'undefined')
+      ? SupabaseService.resolveAvatarUrl(avatarPath, updatedAt)
+      : null;
+
+    if (url) {
       const img   = document.createElement('img');
       img.alt     = nome;
       img.loading = 'lazy';
-      img.src     = (typeof SupabaseService !== 'undefined')
-        ? SupabaseService.resolveAvatarUrl(avatarPath, updatedAt) || ''
-        : '';
+      img.src     = url;
       img.onerror = () => { wrap.textContent = '💈'; };
       wrap.appendChild(img);
     } else {

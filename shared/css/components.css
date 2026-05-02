@@ -3695,6 +3695,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background: transparent;
   opacity: .55;
 }
+/* Cadeira de produção livre: borda dourada para indicar que é o posto principal */
+.cdr-cadeira--producao.cdr-cadeira--livre {
+  border-color: rgba(212,175,55,.45);
+}
 .cdr-cadeira--ocupada {
   border: 1px solid var(--border-soft, rgba(212,175,55,.15));
   background: transparent;

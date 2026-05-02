@@ -395,7 +395,8 @@ class BarbeariaPage {
       ]);
       barbeiros = b;
       filaAtiva  = f;
-    } catch {
+    } catch (err) {
+      LoggerService.warn('[BarbeariaPage] #renderBarbeiros:', err?.message);
       barbeiros = barbeiros ?? [];
       filaAtiva  = [];
     }
