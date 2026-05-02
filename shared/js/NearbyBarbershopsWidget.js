@@ -310,6 +310,7 @@ class NearbyBarbershopsWidget {
         const row = document.createElement('div');
         row.className = 'barber-row barber-card';
         row.dataset.professionalId = p.id;
+        row.dataset.barberId = p.id;
 
         const avatarWrap = document.createElement('div');
         avatarWrap.className = 'avatar gold';

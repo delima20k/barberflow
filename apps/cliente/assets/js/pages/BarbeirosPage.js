@@ -122,6 +122,7 @@ class BarbeirosPage {
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
     row.dataset.professionalId = p.id;
+    row.dataset.barberId = p.id;
 
     // ── Avatar ──────────────────────────────────────────────
     const avatarWrap = document.createElement('div');
