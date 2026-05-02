@@ -1449,7 +1449,19 @@
 }
 
 /* ── Cadeiras (irmãs do card, puramente visuais) ─── */
+/* Container externo: produção (fixa) + fila (scroll) lado a lado */
 .mb-cadeiras-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Scroll apenas nas cadeiras de espera */
+.mb-cadeiras-fila-wrap {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1460,14 +1472,9 @@
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 2px; /* evita corte do borda inferior no snap */
+  padding-bottom: 2px;
 }
-.mb-cadeiras-wrap::-webkit-scrollbar { display: none; }
-
-/* Separador visual entre cadeira de produção e cadeiras de espera */
-.mb-cadeira--producao + .mb-cadeira--fila {
-  margin-left: 10px;
-}
+.mb-cadeiras-fila-wrap::-webkit-scrollbar { display: none; }
 
 .mb-cadeira {
   display: flex;

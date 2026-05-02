@@ -531,16 +531,23 @@ class MinhaBarbeariaPage {
     if (onClick) bCard.addEventListener('click', onClick);
     row.appendChild(bCard);
 
-    // Cadeiras (irmãs)
-    const wrap       = document.createElement('div');
-    wrap.className   = 'mb-cadeiras-wrap';
-    const emServico  = filaEntradas.find(e => e.status === 'in_service') ?? null;
-    const naFila     = filaEntradas.filter(e => e.status === 'waiting');
+    // Cadeiras (container externo)
+    const wrap     = document.createElement('div');
+    wrap.className = 'mb-cadeiras-wrap';
 
+    const emServico = filaEntradas.find(e => e.status === 'in_service') ?? null;
+    const naFila    = filaEntradas.filter(e => e.status === 'waiting');
+
+    // Cadeira de produção — fixa, fora do scroll
     wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico));
-    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1));
-    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2));
-    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[2] ?? null, 3));
+
+    // Cadeiras de espera — dentro do elemento scrollável
+    const filaWrap     = document.createElement('div');
+    filaWrap.className = 'mb-cadeiras-fila-wrap';
+    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1));
+    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2));
+    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[2] ?? null, 3));
+    wrap.appendChild(filaWrap);
 
     row.appendChild(wrap);
     return row;
