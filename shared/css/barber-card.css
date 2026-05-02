@@ -1450,6 +1450,14 @@
   background: linear-gradient(135deg, #1a0800 0%, #2d1200 100%);
 }
 
+/* ── Todos os cards com capa ou logo — background base (barber-card, barber-row, destaque-card, fav-card) ── */
+.barber-card--com-capa,
+.barber-card--com-logo {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
 /* ── fav-card COM capa: imagem nítida e cobrindo o card todo ── */
 
 /* Centraliza melhor em cards landscape e satura a imagem */
