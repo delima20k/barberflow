@@ -1568,3 +1568,111 @@
   min-width: 0;
   flex-shrink: 1;
 }
+
+/* ── Barbeiros Populares (home) — cards -30% ── */
+#home-barbeiros-lista .barbeiros-coluna {
+  overflow: hidden;
+}
+#home-barbeiros-lista .barber-card,
+#home-barbeiros-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#home-barbeiros-lista .barber-card .avatar,
+#home-barbeiros-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#home-barbeiros-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── Todas as Barbearias (home) — cards -30% ── */
+#home-todas-lista {
+  overflow: hidden;
+}
+#home-todas-lista .barber-card,
+#home-todas-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#home-todas-lista .barber-card .avatar,
+#home-todas-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#home-todas-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── tela-destaques (#destaques-lista) — top-card -30% ── */
+#destaques-lista {
+  overflow: hidden;
+}
+#destaques-lista .top-card {
+  min-height: 95px;
+  padding: 10px 42px 10px 10px;
+  overflow: hidden;
+}
+#destaques-lista .top-card__avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+#destaques-lista .top-card__info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── tela-barbearias (#barbearias-page-lista) — cards -30% ── */
+#barbearias-page-lista {
+  overflow: hidden;
+}
+#barbearias-page-lista .barber-card,
+#barbearias-page-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#barbearias-page-lista .barber-card .avatar,
+#barbearias-page-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#barbearias-page-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── tela-barbeiros (#barbeiros-lista) — cards -30% ── */
+#barbeiros-lista {
+  overflow: hidden;
+}
+#barbeiros-lista .barber-card,
+#barbeiros-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#barbeiros-lista .barber-card .avatar,
+#barbeiros-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#barbeiros-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
