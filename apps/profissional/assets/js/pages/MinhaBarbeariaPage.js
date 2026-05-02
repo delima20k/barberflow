@@ -194,7 +194,6 @@ class MinhaBarbeariaPage {
       heroHeader:   q('mb-hero-header'),
       heroLogo:     q('mb-hero-logo'),
       // Equipe
-      equipeDonoCard: q('mb-equipe-dono-card'),
       equipeDonoWrap: q('mb-equipe-dono-wrap'),
       equipeCol:      q('mb-equipe-col'),
     };
@@ -357,78 +356,86 @@ class MinhaBarbeariaPage {
   // ── Equipe da barbearia ─────────────────────────────────────
 
   #renderEquipe(barbeiros, ownerId, perfilDono = null) {
-    const donoCard = this.#refs.equipeDonoCard;
+    const donoWrap = this.#refs.equipeDonoWrap;
     const col      = this.#refs.equipeCol;
-    if (!donoCard || !col) return;
+    const section  = document.getElementById('mb-equipe-section');
+    if (!donoWrap || !col) return;
 
-    const donoProf = barbeiros.find(b => b.id === ownerId);
-    const equipe   = barbeiros.filter(b => b.id !== ownerId);
+    const donoProf   = barbeiros.find(b => b.id === ownerId);
+    const equipe     = barbeiros.filter(b => b.id !== ownerId);
 
-    // Card do dono — usa dados do professionals; fallback = perfil logado
-    donoCard.classList.remove('mb-equipe-card--skeleton');
-    const donoNomeEl   = donoCard.querySelector('.mb-equipe-dono-nome');
-    const donoAvatarEl = donoCard.querySelector('.mb-equipe-dono-avatar');
-
-    const nomeDono   = donoProf?.profile?.full_name ?? perfilDono?.full_name   ?? 'Dono';
+    const nomeDono   = donoProf?.profile?.full_name   ?? perfilDono?.full_name   ?? 'Dono';
     const avatarPath = donoProf?.profile?.avatar_path ?? perfilDono?.avatar_path ?? null;
     const updatedAt  = donoProf?.profile?.updated_at  ?? perfilDono?.updated_at  ?? null;
 
-    if (donoNomeEl) donoNomeEl.textContent = nomeDono;
+    donoWrap.innerHTML = '';
+    donoWrap.appendChild(
+      MinhaBarbeariaPage.#criarCardEquipe({
+        nome: nomeDono, avatarPath, updatedAt,
+        variant: 'dono', badge: 'Dono',
+        onClick: () => { if (typeof App !== 'undefined') App.nav('perfil'); },
+      })
+    );
 
-    if (avatarPath && donoAvatarEl) {
-      const img    = document.createElement('img');
-      img.alt      = nomeDono;
-      img.loading  = 'lazy';
-      img.onerror  = () => { donoAvatarEl.textContent = '💈'; };
-      img.src      = SupabaseService.resolveAvatarUrl(avatarPath, updatedAt) || '';
-      donoAvatarEl.innerHTML = '';
-      donoAvatarEl.appendChild(img);
-    } else if (donoAvatarEl) {
-      donoAvatarEl.textContent = '💈';
-    }
-
-    // Navegar para o perfil do dono ao clicar
-    donoCard.addEventListener('click', () => {
-      if (typeof App !== 'undefined') App.nav('perfil');
-    });
-
-    // Coluna de barbeiros da equipe
     col.innerHTML = '';
     for (const b of equipe) {
-      const nome   = b.profile?.full_name ?? 'Barbeiro';
-      const card   = document.createElement('div');
-      card.className        = 'mb-equipe-membro-card';
-      card.dataset.barberId = b.id;
-
-      const avatarEl = document.createElement('div');
-      avatarEl.className = 'mb-equipe-membro-avatar';
-      if (b.profile?.avatar_path) {
-        const img   = document.createElement('img');
-        img.alt     = nome;
-        img.loading = 'lazy';
-        img.onerror = () => { avatarEl.textContent = '💈'; };
-        img.src     = SupabaseService.resolveAvatarUrl(b.profile.avatar_path, b.profile.updated_at) || '';
-        avatarEl.appendChild(img);
-      } else {
-        avatarEl.textContent = '💈';
-      }
-
-      const info = document.createElement('div');
-      info.className = 'mb-equipe-membro-info';
-
-      const nomeEl = document.createElement('p');
-      nomeEl.className   = 'mb-equipe-membro-nome';
-      nomeEl.textContent = nome;
-
-      info.appendChild(nomeEl);
-      card.appendChild(avatarEl);
-      card.appendChild(info);
-      col.appendChild(card);
+      col.appendChild(
+        MinhaBarbeariaPage.#criarCardEquipe({
+          nome:       b.profile?.full_name   ?? 'Barbeiro',
+          avatarPath: b.profile?.avatar_path ?? null,
+          updatedAt:  b.profile?.updated_at  ?? null,
+          variant:    'membro',
+        })
+      );
     }
 
-    // A section é sempre visível — exibe ao menos o card do dono
-    const section = document.getElementById('mb-equipe-section');
     if (section) section.hidden = false;
+  }
+
+  // ── Factory de cards de equipe ─────────────────────────────
+
+  static #criarAvatarEl(avatarPath, updatedAt, nome, mod = 'sm') {
+    const wrap = document.createElement('div');
+    wrap.className = `mb-equipe-avatar mb-equipe-avatar--${mod}`;
+    if (avatarPath) {
+      const img   = document.createElement('img');
+      img.alt     = nome;
+      img.loading = 'lazy';
+      img.src     = SupabaseService.resolveAvatarUrl(avatarPath, updatedAt) || '';
+      img.onerror = () => { wrap.textContent = '💈'; };
+      wrap.appendChild(img);
+    } else {
+      wrap.textContent = '💈';
+    }
+    return wrap;
+  }
+
+  static #criarCardEquipe({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null }) {
+    const card = document.createElement('div');
+    card.className = `mb-equipe-card mb-equipe-card--${variant}`;
+
+    card.appendChild(
+      MinhaBarbeariaPage.#criarAvatarEl(avatarPath, updatedAt, nome, variant === 'dono' ? 'lg' : 'sm')
+    );
+
+    const info = document.createElement('div');
+    info.className = 'mb-equipe-card-info';
+
+    const nomeEl = document.createElement('p');
+    nomeEl.className   = 'mb-equipe-card-nome';
+    nomeEl.textContent = nome;
+    info.appendChild(nomeEl);
+
+    if (badge) {
+      const badgeEl = document.createElement('span');
+      badgeEl.className   = 'mb-equipe-card-badge';
+      badgeEl.textContent = badge;
+      info.appendChild(badgeEl);
+    }
+
+    card.appendChild(info);
+    if (onClick) card.addEventListener('click', onClick);
+    return card;
   }
 
   // ── Status aberta / fechada ─────────────────────────────────

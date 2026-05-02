@@ -1304,6 +1304,7 @@
 ================================================================ */
 .mb-equipe-section {
   margin-top: 4px;
+  overflow: hidden;
 }
 
 /* Header: titulo a esquerda, botao a direita */
@@ -1335,48 +1336,80 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  overflow: hidden;
 }
 
-/* Card do DONO */
-.mb-equipe-dono-wrap {
-  grid-column: 1 / -1;
-}
+/* Dono: ocupa a linha inteira */
+.mb-equipe-dono-wrap { grid-column: 1 / -1; }
 
-.mb-equipe-dono-card {
+/* Membros: filhos entram direto no grid */
+.mb-equipe-col { display: contents; }
+
+/* ── Card base — compartilhado por dono e membro ─── */
+.mb-equipe-card {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 10px;
   background: transparent;
-  border: 1.5px solid var(--gold, #D4AF37);
   border-radius: var(--r-md, 12px);
+  overflow: hidden;
+  transition: box-shadow .2s, transform .2s;
+}
+
+/* ── Variante dono ─── */
+.mb-equipe-card--dono {
+  border: 1.5px solid var(--gold, #D4AF37);
   padding: 10px 14px;
   min-height: 66px;
   box-shadow: 0 3px 10px rgba(212,175,55,.13);
   cursor: pointer;
-  transition: box-shadow .2s, transform .2s;
 }
-.mb-equipe-dono-card:hover {
+.mb-equipe-card--dono:hover {
   box-shadow: 0 6px 18px rgba(212,175,55,.24);
   transform: translateY(-1px);
 }
 
-.mb-equipe-dono-avatar {
-  width: 42px;
-  height: 42px;
+/* ── Variante membro ─── */
+.mb-equipe-card--membro {
+  border: 1px solid var(--border-soft, rgba(212,175,55,.12));
+  padding: 8px 10px;
+  min-height: 52px;
+  cursor: pointer;
+}
+.mb-equipe-card--membro:hover {
+  box-shadow: 0 3px 10px rgba(212,175,55,.16);
+  transform: translateY(-1px);
+}
+
+/* ── Avatar base ─── */
+.mb-equipe-avatar {
   border-radius: 50%;
   background: var(--card2, #f0e8d8);
-  border: 2px solid var(--gold, #D4AF37);
   overflow: hidden;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.mb-equipe-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Tamanhos de avatar ─── */
+.mb-equipe-avatar--lg {
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--gold, #D4AF37);
   font-size: 1.1rem;
 }
-.mb-equipe-dono-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.mb-equipe-avatar--sm {
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--border-soft, rgba(212,175,55,.18));
+  font-size: .9rem;
+}
 
-.mb-equipe-dono-info {
+/* ── Info: nome + badge ─── */
+.mb-equipe-card-info {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1385,7 +1418,7 @@
   min-width: 0;
 }
 
-.mb-equipe-dono-nome {
+.mb-equipe-card-nome {
   font-size: .76rem;
   font-weight: 700;
   color: var(--text, #2b1b12);
@@ -1394,8 +1427,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.mb-equipe-card--membro .mb-equipe-card-nome {
+  font-size: .7rem;
+  font-weight: 600;
+}
 
-.mb-equipe-dono-badge {
+.mb-equipe-card-badge {
   font-size: .62rem;
   font-weight: 700;
   color: var(--gold, #D4AF37);
@@ -1407,56 +1444,9 @@
   flex-shrink: 0;
 }
 
-/* Cards dos demais membros (2 por linha via grid pai) */
-.mb-equipe-col {
-  display: contents;
-}
-
-.mb-equipe-membro-card {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: transparent;
-  border: 1px solid var(--border-soft, rgba(212,175,55,.12));
-  border-radius: var(--r-md, 12px);
-  padding: 8px 10px;
-  min-height: 52px;
-  cursor: pointer;
-  transition: box-shadow .2s, transform .2s;
-}
-.mb-equipe-membro-card:hover {
-  box-shadow: 0 3px 10px rgba(212,175,55,.16);
-  transform: translateY(-1px);
-}
-
-.mb-equipe-membro-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--card2, #f0e8d8);
-  border: 1.5px solid var(--border-soft, rgba(212,175,55,.18));
-  overflow: hidden;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .9rem;
-}
-.mb-equipe-membro-avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-.mb-equipe-membro-info { flex: 1; min-width: 0; }
-.mb-equipe-membro-nome {
-  font-size: .7rem;
-  font-weight: 600;
-  color: var(--text, #2b1b12);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /* Skeleton */
-.mb-equipe-card--skeleton .mb-equipe-dono-avatar,
+.mb-equipe-card--skeleton .mb-equipe-avatar,
+.mb-equipe-card--skeleton .mb-equipe-card-nome { background: var(--card2, #f0e8d8); border-radius: 4px; color: transparent; }
 .mb-equipe-card--skeleton .mb-equipe-dono-nome { background: var(--card2, #f0e8d8); border-radius: 4px; color: transparent; }
 
 /* ================================================================
