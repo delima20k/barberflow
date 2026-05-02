@@ -73,6 +73,7 @@ const AnimationService = (() => {
 
     // ── Tela que ENTRA ────────────────────────────────────────────────────
     if (entrando) {
+      document.dispatchEvent(new Event('barberflow:tela-entrando'));
       const isVisible = entrando.style.display === 'flex';
       const fromX     = isVisible ? _xAtual(entrando) : -100;
       const baseDur   = classeEntrada === 'entrando-lento' ? 720 : 320;

@@ -46,6 +46,8 @@ class HeaderScrollBehavior {
       'tela-minha-barbearia',
       '.mb-stories-scroll'
     );
+
+    HeaderScrollBehavior.#bindNavEvent();
   }
 
   // ── Privados ──────────────────────────────────────────────
@@ -59,6 +61,10 @@ class HeaderScrollBehavior {
     HeaderScrollBehavior.#telas.set(tela, { storiesEl, ultimoScroll });
 
     tela.addEventListener('scroll', () => HeaderScrollBehavior.#aoRolar(tela), { passive: true });
+  }
+
+  static #bindNavEvent() {
+    document.addEventListener('barberflow:tela-entrando', () => HeaderScrollBehavior.#exibir());
   }
 
   static #aoRolar(tela) {
