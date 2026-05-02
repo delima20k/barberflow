@@ -73,9 +73,19 @@ class HeaderScrollBehavior {
 
   static #bindNavEvent() {
     document.addEventListener('barberflow:tela-entrando', () => {
-      // Header sempre revela na velocidade própria (não herda a duração da tela),
-      // evitando o gap de 0–64px visível durante animações lentas de carrossel.
-      HeaderScrollBehavior.#exibir(200);
+      // Revela o header INSTANTANEAMENTE ao navegar para qualquer tela.
+      // Desabilita a transition CSS para evitar o gap visual de 0-64px
+      // enquanto o header ainda estava animando de volta.
+      const header = HeaderScrollBehavior.#header;
+      if (header) {
+        header.getAnimations().forEach(a => a.cancel());
+        header.style.transition = 'none';
+        header.classList.remove('header--oculto');
+        header.style.transform  = '';
+        HeaderScrollBehavior.#oculto = false;
+        void header.offsetHeight; // força reflow antes de restaurar a transition
+        header.style.transition = '';
+      }
       // Atualiza linha de base de scroll de todas as telas registradas para
       // evitar comparação falsa na primeira rolagem após re-entrar em uma
       // tela com posição de scroll preservada.

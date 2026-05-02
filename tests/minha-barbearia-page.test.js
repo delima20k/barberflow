@@ -171,20 +171,23 @@ suite('MinhaBarbeariaPage — bind()', () => {
     );
   });
 
-  test('ao ativar tela-minha-barbearia, revela header da home', () => {
+  test('ao ativar tela-minha-barbearia, NÃO manipula o header diretamente', () => {
+    // HeaderScrollBehavior é responsável por revelar o header via snap instantâneo.
+    // MinhaBarbeariaPage não deve interferir para evitar race condition com WAAPI.
     const { dom, mutationObservers } = criarPagina();
     const header = dom.elMap.get('app-header');
-    const anim = { cancel: fn() };
 
     header.classList.add('header--oculto');
     header.style.transform = 'translateY(-110%)';
-    header._anims.push(anim);
     dom.telaEl.classList.add('ativa');
     mutationObservers[0]._disparar();
 
-    assert.equal(header.classList.contains('header--oculto'), false);
-    assert.equal(header.style.transform, '');
-    assert.equal(anim.cancel.calls.length, 1);
+    // header--oculto deve permanecer intacto (HeaderScrollBehavior cuida disso)
+    assert.equal(header.classList.contains('header--oculto'), true,
+      'MinhaBarbeariaPage não deve remover header--oculto — responsabilidade do HeaderScrollBehavior');
+    // transform não deve ser apagado pelo page controller
+    assert.equal(header.style.transform, 'translateY(-110%)',
+      'MinhaBarbeariaPage não deve alterar header.style.transform');
   });
 });
 

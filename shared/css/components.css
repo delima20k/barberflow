@@ -3715,29 +3715,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Layout geral ──────────────────────────────────────── */
 
-/* Minha Barbearia segue o mesmo envelope das demais telas:
-   entra abaixo do header global e abaixo do rodapé na pilha visual. */
-#tela-minha-barbearia {
-  position: fixed !important;
-  top: var(--header-h) !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: var(--nav-h) !important;
-  z-index: 900 !important;
-}
-
-#tela-minha-barbearia.ativa,
-#tela-minha-barbearia.entrando-lento,
-#tela-minha-barbearia.saindo,
-#tela-minha-barbearia.saindo-direita {
-  z-index: 900 !important;
-}
-
 /* Hero header: capa da barbearia como background */
 .mb-hero-header {
   position: relative;
   width: 100%;
-  margin-inline: 0;
+  margin-inline: -16px; /* cancela o padding do .content pai → full-width */
+  width: calc(100% + 32px);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
