@@ -35,6 +35,8 @@ class MinhaBarbeariaPage {
   #barbershopId = null;
   #isOwner      = false;  // true se o usuário é dono da barbearia
   #shopData     = null;   // dados da barbearia (pré-preenchimento GPS)
+  #servicos     = [];     // serviços da barbearia — reutilizados nas modais de corte
+  #profissionalId = null; // UUID do profissional logado (para sentar na fila)
   #coordsGps    = null;   // coordenadas GPS capturadas no sub-painel
   #digGps       = null;   // instância DigText para o p.gps-dig
   #digBoasVindas= null;   // instância DigText para o h1#mb-boas-vindas
@@ -255,21 +257,26 @@ class MinhaBarbeariaPage {
       const shop = await MinhaBarbeariaPage.#fetchMinhaBarbearia(perfil.id);
       if (!shop) { this.#mostrarVazio(); return; }
 
-      this.#barbershopId = shop.id;
-      this.#isOwner      = shop.owner_id === perfil.id;
-      this.#shopData     = shop;
+      this.#barbershopId   = shop.id;
+      this.#isOwner        = shop.owner_id === perfil.id;
+      this.#shopData       = shop;
+      this.#profissionalId = perfil.id;
 
-      const [servicos, stories, quotaHoje, barbeiros] = await Promise.all([
+      const [servicos, stories, quotaHoje, barbeiros, filaEntradas] = await Promise.all([
         MinhaBarbeariaPage.#fetchServicos(shop.id),
         MinhaBarbeariaPage.#fetchStoriesAtivos(shop.id),
         MinhaBarbeariaPage.#fetchQuotaHoje(perfil.id, shop.id),
         MinhaBarbeariaPage.#fetchBarbeiros(shop.id),
+        CadeiraService.getFilaAtiva(shop.id),
       ]);
+
+      // Armazena serviços para reuso nos re-renders das cadeiras
+      this.#servicos = servicos;
 
       this.#renderCabecalho(shop);
       this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
-      this.#renderEquipe(barbeiros, shop.owner_id, perfil);
+      this.#renderEquipe(barbeiros, shop.owner_id, perfil, filaEntradas);
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
@@ -355,7 +362,7 @@ class MinhaBarbeariaPage {
 
   // ── Equipe da barbearia ─────────────────────────────────────
 
-  #renderEquipe(barbeiros, ownerId, perfilDono = null) {
+  #renderEquipe(barbeiros, ownerId, perfilDono = null, filaEntradas = []) {
     const donoWrap = this.#refs.equipeDonoWrap;
     const col      = this.#refs.equipeCol;
     const section  = document.getElementById('mb-equipe-section');
@@ -368,28 +375,173 @@ class MinhaBarbeariaPage {
     const avatarPath = donoProf?.profile?.avatar_path ?? perfilDono?.avatar_path ?? null;
     const updatedAt  = donoProf?.profile?.updated_at  ?? perfilDono?.updated_at  ?? null;
 
+    // Fila filtrada por profissional
+    const filaDonoId     = donoProf?.id ?? ownerId;
+    const filaDonoEntradas = filaEntradas.filter(e => e.professional?.id === filaDonoId);
+
     donoWrap.innerHTML = '';
     donoWrap.appendChild(
       MinhaBarbeariaPage.#criarBarbeiroRow({
         nome: nomeDono, avatarPath, updatedAt,
         variant: 'dono', badge: 'Dono',
-        onClick: () => { if (typeof App !== 'undefined') App.nav('perfil'); },
+        onClick:         () => { if (typeof App !== 'undefined') App.nav('perfil'); },
+        filaEntradas:    filaDonoEntradas,
+        isOwner:         this.#isOwner,
+        professionalId:  filaDonoId,
+        onCadeiraClick:  (tipo, ocupada, entrada) =>
+          this.#onCadeiraClick(tipo, ocupada, entrada, filaDonoId),
       })
     );
 
     col.innerHTML = '';
     for (const b of equipe) {
+      const filaB = filaEntradas.filter(e => e.professional?.id === b.id);
       col.appendChild(
         MinhaBarbeariaPage.#criarBarbeiroRow({
-          nome:       b.profile?.full_name   ?? 'Barbeiro',
-          avatarPath: b.profile?.avatar_path ?? null,
-          updatedAt:  b.profile?.updated_at  ?? null,
-          variant:    'membro',
+          nome:           b.profile?.full_name   ?? 'Barbeiro',
+          avatarPath:     b.profile?.avatar_path ?? null,
+          updatedAt:      b.profile?.updated_at  ?? null,
+          variant:        'membro',
+          filaEntradas:   filaB,
+          isOwner:        this.#isOwner,
+          professionalId: b.id,
+          onCadeiraClick: (tipo, ocupada, entrada) =>
+            this.#onCadeiraClick(tipo, ocupada, entrada, b.id),
         })
       );
     }
 
     if (section) section.hidden = false;
+  }
+
+  /**
+   * Re-fetcha fila e barbeiros e atualiza a seção de equipe.
+   */
+  async #reRenderEquipe() {
+    if (!this.#barbershopId) return;
+    try {
+      const perfil = AuthService.getPerfil();
+      const [barbeiros, filaEntradas] = await Promise.all([
+        MinhaBarbeariaPage.#fetchBarbeiros(this.#barbershopId),
+        CadeiraService.getFilaAtiva(this.#barbershopId),
+      ]);
+      this.#renderEquipe(barbeiros, this.#shopData?.owner_id ?? '', perfil, filaEntradas);
+    } catch (err) {
+      LoggerService.warn('[MinhaBarbeariaPage] #reRenderEquipe erro:', err);
+    }
+  }
+
+  /**
+   * Gerencia o clique do dono em uma cadeira.
+   * @param {'producao'|'fila'} tipo
+   * @param {boolean}    ocupada     true se há cliente nessa cadeira
+   * @param {object|null} entrada    queue_entry atual (se ocupada)
+   * @param {string}     professionalId  UUID do barbeiro dono da cadeira
+   */
+  async #onCadeiraClick(tipo, ocupada, entrada, professionalId) {
+    if (!this.#isOwner) return;
+
+    // ── Cadeira ocupada em produção → finalizar ──────────────
+    if (tipo === 'producao' && ocupada && entrada) {
+      await this.#fluxoFinalizar(entrada);
+      return;
+    }
+
+    // ── Cadeira vazia (produção ou fila) → sentar ────────────
+    await this.#fluxoSentar(tipo, professionalId);
+  }
+
+  /**
+   * Fluxo completo: seleção de cliente → seleção de cortes → sentar.
+   * @param {'producao'|'fila'} tipo
+   * @param {string} professionalId
+   */
+  async #fluxoSentar(tipo, professionalId) {
+    // 1. Busca clientes conhecidos
+    let clientes;
+    try {
+      clientes = await CadeiraService.getClientesConhecidos(this.#barbershopId);
+    } catch (_) {
+      clientes = [];
+    }
+
+    // Exclui clientes já sentados em qualquer cadeira desta barbearia
+    let jaAssentados = new Set();
+    try {
+      const filaAtiva = await CadeiraService.getFilaAtiva(this.#barbershopId);
+      filaAtiva.forEach(e => {
+        if (e.status === 'in_service' || e.status === 'waiting') {
+          if (e.client?.id) jaAssentados.add(e.client.id);
+        }
+      });
+    } catch (_) { /* ignora */ }
+
+    const clientesDisponiveis = clientes.filter(c => !jaAssentados.has(c.id));
+
+    // 2. Modal: selecionar cliente
+    const clienteSel = await ClienteSeletorModal.abrir(clientesDisponiveis);
+    if (!clienteSel) return;
+
+    // 3. Modal: selecionar cortes
+    const serviceIds = await CorteModal.abrir({
+      servicos:    this.#servicos,
+      clienteNome: clienteSel.full_name,
+    });
+    if (!serviceIds) return;
+
+    // 4. Sentar
+    try {
+      await CadeiraService.sentar({
+        barbershopId:   this.#barbershopId,
+        professionalId,
+        clientId:       clienteSel.id,
+        serviceIds,
+        tipo,
+      });
+      NotificationService.mostrarToast(
+        'Cliente sentado',
+        `${clienteSel.full_name} foi para a cadeira.`,
+        NotificationService.TIPOS.SISTEMA,
+      );
+      await this.#reRenderEquipe();
+    } catch (err) {
+      LoggerService.error('[MinhaBarbeariaPage] erro ao sentar:', err);
+      NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível sentar o cliente.', NotificationService.TIPOS.SISTEMA);
+    }
+  }
+
+  /**
+   * Fluxo completo: confirmação → finalizar → notificar próximo.
+   * @param {object} entrada  queue_entry em in_service
+   */
+  async #fluxoFinalizar(entrada) {
+    // Descobre o próximo na fila para exibir na modal
+    let proximoNome = null;
+    try {
+      const filaAtiva = await CadeiraService.getFilaAtiva(this.#barbershopId);
+      const waiting   = filaAtiva
+        .filter(e => e.status === 'waiting')
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      proximoNome = waiting[0]?.client?.full_name ?? null;
+    } catch (_) { /* ignora — modal mostra "Fila vazia" */ }
+
+    const clienteNome = entrada?.client?.full_name ?? 'Cliente';
+    const confirmado  = await FinalizarCorteModal.abrir({ clienteNome, proximoNome });
+    if (!confirmado) return;
+
+    try {
+      const { proximoNome: nomeChamado } = await CadeiraService.finalizar(
+        entrada.id, this.#barbershopId
+      );
+      const msg = nomeChamado
+        ? `Próximo chamado: ${nomeChamado}`
+        : 'Fila vazia agora.';
+      NotificationService.mostrarToast('Corte finalizado', msg, NotificationService.TIPOS.SISTEMA);
+      await this.#reRenderEquipe();
+    } catch (err) {
+      LoggerService.error('[MinhaBarbeariaPage] erro ao finalizar:', err);
+      NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível finalizar.', NotificationService.TIPOS.SISTEMA);
+    }
   }
 
   // ── Factory: componentes de equipe ─────────────────────────
@@ -451,14 +603,26 @@ class MinhaBarbeariaPage {
   }
 
   /**
-   * Cadeira visual (sem interação).
+   * Cadeira visual com interação opcional (somente para o dono).
    * @param {'producao'|'fila'} tipo
-   * @param {object|null}       entrada  queue_entry com { client, status }
-   * @param {number}            posicao  exibido como #N nas cadeiras de fila
+   * @param {object|null}       entrada   queue_entry com { client, status }
+   * @param {number}            posicao   exibido como #N nas cadeiras de fila
+   * @param {object}            [opts]    { isOwner, onClickVazia, onClickOcupada }
    */
-  static #criarCadeiraEl(tipo, entrada = null, posicao = 1) {
+  static #criarCadeiraEl(tipo, entrada = null, posicao = 1, opts = {}) {
+    const { isOwner = false, onClickVazia = null, onClickOcupada = null } = opts;
+    const ocupada = !!entrada;
+
     const cadeira = document.createElement('div');
-    cadeira.className = `mb-cadeira mb-cadeira--${tipo}${entrada ? '' : ' mb-cadeira--vazia'}`;
+    cadeira.className = `mb-cadeira mb-cadeira--${tipo}${ocupada ? '' : ' mb-cadeira--vazia'}`;
+
+    if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
+      cadeira.classList.add('mb-cadeira--interativa');
+      cadeira.addEventListener('click', () => ocupada
+        ? onClickOcupada(entrada)
+        : onClickVazia()
+      );
+    }
 
     // Ícone — avatar do cliente ou imagem da cadeira
     const iconWrap = document.createElement('div');
@@ -520,9 +684,12 @@ class MinhaBarbeariaPage {
 
   /**
    * Row horizontal completa: card do barbeiro + 3 cadeiras visuais.
-   * @param {object[]} filaEntradas  queue_entries filtradas para este barbeiro
+   * @param {object[]}  filaEntradas    queue_entries filtradas para este barbeiro
+   * @param {boolean}   isOwner         true se o usuário logado é dono
+   * @param {string}    professionalId  UUID do barbeiro desta row
+   * @param {Function}  onCadeiraClick  (tipo, ocupada, entrada) => void
    */
-  static #criarBarbeiroRow({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null, cortes = null, filaEntradas = [] }) {
+  static #criarBarbeiroRow({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null, cortes = null, filaEntradas = [], isOwner = false, professionalId = null, onCadeiraClick = null }) {
     const row = document.createElement('div');
     row.className = `mb-barbeiro-row mb-barbeiro-row--${variant}`;
 
@@ -538,15 +705,27 @@ class MinhaBarbeariaPage {
     const emServico = filaEntradas.find(e => e.status === 'in_service') ?? null;
     const naFila    = filaEntradas.filter(e => e.status === 'waiting');
 
+    // Opções de interatividade — só ativas para o dono
+    const optsProducao = {
+      isOwner,
+      onClickVazia:   onCadeiraClick ? () => onCadeiraClick('producao', false, null) : null,
+      onClickOcupada: onCadeiraClick ? (e) => onCadeiraClick('producao', true, e)    : null,
+    };
+    const optsFilaFn = (pos) => ({
+      isOwner,
+      onClickVazia: onCadeiraClick ? () => onCadeiraClick('fila', false, null) : null,
+      onClickOcupada: null, // cadeiras de fila não têm ação de finalizar
+    });
+
     // Cadeira de produção — fixa, fora do scroll
-    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico));
+    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico, 0, optsProducao));
 
     // Cadeiras de espera — dentro do elemento scrollável
     const filaWrap     = document.createElement('div');
     filaWrap.className = 'mb-cadeiras-fila-wrap';
-    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1));
-    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2));
-    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[2] ?? null, 3));
+    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1, optsFilaFn(1)));
+    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2, optsFilaFn(2)));
+    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[2] ?? null, 3, optsFilaFn(3)));
     wrap.appendChild(filaWrap);
 
     row.appendChild(wrap);
