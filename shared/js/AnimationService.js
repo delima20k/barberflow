@@ -18,6 +18,22 @@ const AnimationService = (() => {
   const EASE = 'cubic-bezier(0.4,0,0.2,1)';
 
   /**
+   * Calcula a duração e a posição inicial da animação de entrada de uma tela.
+   * Deve ser chamado ANTES de cancelar animações WAAPI em curso.
+   * @returns {{ dur: number, fromX: number }}
+   */
+  function _calcDurEntrada(entrando, classeEntrada) {
+    if (!entrando) return { dur: 320, fromX: -100 };
+    const isVisivel = entrando.style.display === 'flex';
+    const fromX     = isVisivel ? _xAtual(entrando) : -100;
+    const dur       = Math.max(
+      Math.round((classeEntrada === 'entrando-lento' ? 720 : 320) * Math.abs(fromX) / 100),
+      16
+    );
+    return { dur, fromX };
+  }
+
+  /**
    * Lê o translateX atual do elemento em percentual relativo à sua largura.
    * Funciona mesmo enquanto uma animação WAAPI está rodando.
    * @param {HTMLElement} el
@@ -39,18 +55,13 @@ const AnimationService = (() => {
   function animar(saindo, entrando, classeSaida = 'saindo', classeEntrada = 'ativa') {
 
     // Notifica HeaderScrollBehavior para revelar o header se estiver oculto.
-    // Pré-calcula a duração da tela entrando para a revelação ser sincronizada.
+    // _calcDurEntrada deve ser chamado AQUI, antes de cancelar animações.
+    const entradaInfo = _calcDurEntrada(entrando, classeEntrada);
     if (saindo || entrando) {
-      let durEntrada = 320;
-      if (entrando) {
-        const isVisivel = entrando.style.display === 'flex';
-        const fromX     = isVisivel ? _xAtual(entrando) : -100;
-        durEntrada = Math.round(
-          (classeEntrada === 'entrando-lento' ? 720 : 320) * Math.abs(fromX) / 100
-        );
-      }
       document.dispatchEvent(
-        new CustomEvent('barberflow:tela-entrando', { detail: { dur: Math.max(durEntrada, 16) } })
+        new CustomEvent('barberflow:tela-entrando', {
+          detail: { dur: entradaInfo.dur }
+        })
       );
     }
 
@@ -89,11 +100,7 @@ const AnimationService = (() => {
 
     // ── Tela que ENTRA ────────────────────────────────────────────────────
     if (entrando) {
-      const isVisible = entrando.style.display === 'flex';
-      const fromX     = isVisible ? _xAtual(entrando) : -100;
-      const baseDur   = classeEntrada === 'entrando-lento' ? 720 : 320;
-      const dist      = Math.abs(fromX) / 100;
-      const dur       = Math.round(baseDur * dist);
+      const { dur, fromX } = entradaInfo;  // calculado antes de cancelar WAAPI
 
       entrando.getAnimations().forEach(a => a.cancel());
       entrando.classList.remove('saindo', 'saindo-direita', 'ativa', 'entrando-lento');
@@ -110,7 +117,6 @@ const AnimationService = (() => {
           ],
           { duration: dur, easing: EASE, fill: 'both' }
         );
-
         a.onfinish = () => {
           a.cancel();
           entrando.style.display = '';

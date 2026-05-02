@@ -103,22 +103,28 @@ class HeaderScrollBehavior {
   static #ocultar() {
     HeaderScrollBehavior.#oculto = true;
     const header = HeaderScrollBehavior.#header;
+    const anims  = header.getAnimations();
 
-    // Se há animação WAAPI em curso (header sendo revelado), fixa a posição
-    // visual atual como inline style para a transição CSS partir dali
-    const anims = header.getAnimations();
     if (anims.length) {
-      const m = new DOMMatrix(getComputedStyle(header).transform);
-      header.style.transform = `translateY(${m.m42.toFixed(1)}px)`;
+      // WAAPI de reveal em curso — lê posição visual atual, cancela e esconde
+      // com WAAPI próprio (inline style quebraria a cascata CSS)
+      const m       = new DOMMatrix(getComputedStyle(header).transform);
+      const headerH = header.offsetHeight || 1;
+      const curPct  = (m.m42 / headerH) * 100;
       anims.forEach(a => a.cancel());
+      header.classList.add('header--oculto');
+      const a = header.animate(
+        [
+          { transform: `translateY(${curPct.toFixed(1)}%)` },
+          { transform: 'translateY(-110%)' },
+        ],
+        { duration: 250, easing: 'cubic-bezier(0.4,0,0.2,1)', fill: 'forwards' }
+      );
+      a.onfinish = () => a.cancel();
+    } else {
+      // Estado de repouso — transição CSS cuida tudo
+      header.classList.add('header--oculto');
     }
-
-    header.classList.add('header--oculto');
-
-    // Limpa o inline style ao fim da transição para não interferir no próximo reveal
-    header.addEventListener('transitionend', () => {
-      header.style.transform = '';
-    }, { once: true });
   }
 
   static #exibir(dur = 350) {
@@ -128,6 +134,8 @@ class HeaderScrollBehavior {
     const header = HeaderScrollBehavior.#header;
     header.getAnimations().forEach(a => a.cancel());
     header.classList.remove('header--oculto');
+
+    if (dur < 16) return;  // distância residual insignificante
 
     const anim = header.animate(
       [{ transform: 'translateY(-110%)' }, { transform: 'translateY(0)' }],
