@@ -80,10 +80,14 @@ class ProLandingGate {
   static #mostrar() {
     const el = document.getElementById(ProLandingGate.#EL_ID);
     if (!el) return;
-    // Força reflow antes de adicionar classe para garantir transição CSS
     el.style.display = 'flex';
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => el.classList.add('gate-ativo'));
+      requestAnimationFrame(() => {
+        el.classList.add('gate-ativo');
+        // Inicializa BarberPole dentro do card
+        const polo = el.querySelector('#lg-polo');
+        if (polo && typeof BarberPole !== 'undefined') new BarberPole(polo);
+      });
     });
   }
 

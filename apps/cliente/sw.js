@@ -5,7 +5,7 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v135';
+  static #CACHE_NAME = 'barberflow-cliente-v136';
 
   static #ASSETS = [
     '/manifest.json',
@@ -18,6 +18,8 @@ class SWCliente {
     '/shared/js/NavigationViewService.js',
     '/shared/js/Router.js',
     '/shared/js/BarberPole.js',
+    '/shared/js/SplashService.js',
+    '/shared/js/ClienteLandingGate.js',
     '/shared/img/Logo01.png',
     '/shared/img/icone-do-App.png',
     '/shared/img/inicio.svg',
@@ -29,6 +31,10 @@ class SWCliente {
     '/shared/img/icones-perfil.png',
     '/shared/img/icones-cadeira-salao.png',
     '/shared/img/icones-cadeira-salao-vazia.png',
+    '/shared/img/bg-entrada.jpg',
+    '/shared/img/icon-192-cliente.png',
+    '/shared/img/icon-512-cliente.png',
+    '/shared/img/login.svg',
   ];
 
   // ── Instala e pré-cacheia assets ──────────────────────────

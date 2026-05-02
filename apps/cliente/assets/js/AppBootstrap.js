@@ -23,6 +23,7 @@ class AppBootstrap {
 
   // Widgets sem dependência Supabase — disparo paralelo (fire-and-forget)
   static #WIDGETS_PARALELO = [
+    { label: 'ClienteLandingGate',  fn: () => ClienteLandingGate.init()            },
     { label: 'MapPanel',            fn: () => MapPanel.init('section-mapa')        },
     { label: 'FooterScrollManager', fn: () => FooterScrollManager.init()           },
     { label: 'HeaderScrollBehavior', fn: () => HeaderScrollBehavior.init()          },

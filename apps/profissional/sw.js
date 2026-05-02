@@ -5,7 +5,7 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_NAME = 'barberflow-profissional-v112';
+  static #CACHE_NAME = 'barberflow-profissional-v113';
 
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS = [
@@ -19,6 +19,8 @@ class SWProfissional {
     '/shared/js/NavigationViewService.js',
     '/shared/js/Router.js',
     '/shared/js/BarberPole.js',
+    '/shared/js/SplashService.js',
+    '/shared/js/ProLandingGate.js',
     '/shared/js/PaymentFlowHandler.js',
     '/shared/img/Logo01.png',
     '/shared/img/icone-do-App.png',
@@ -31,6 +33,9 @@ class SWProfissional {
     '/shared/img/icones-cadeira-producao.png',
     '/shared/img/icones-cadeira-de-éspera.png',
     '/shared/img/login.svg',
+    '/shared/img/bg-entrada.jpg',
+    '/shared/img/icon-192-pro.png',
+    '/shared/img/icon-512-pro.png',
   ];
 
   // ── Instala e pré-cacheia assets (falhas individuais não bloqueiam) ──

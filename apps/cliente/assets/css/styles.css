@@ -87,3 +87,88 @@
   60%  { opacity: 0.18; }
   100% { transform: scale(2.85); opacity: 0;    }
 }
+
+/* ── Cliente Landing Gate ─────────────────────────────────── */
+#cliente-landing-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+#cliente-landing-gate.gate-ativo  { opacity: 1; }
+#cliente-landing-gate.gate-saindo { opacity: 0; }
+
+#cliente-landing-gate .lg-backdrop {
+  position: absolute;
+  inset: 0;
+  background-image: url('/shared/img/bg-entrada.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+#cliente-landing-gate .lg-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 5, 2, .52);
+}
+
+#cliente-landing-gate .lg-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 28px 26px;
+  width: calc(100% - 48px);
+  max-width: 340px;
+  background: rgba(10, 5, 2, .78);
+  border: 1px solid rgba(212, 175, 55, .42);
+  border-radius: var(--r-lg, 20px);
+  box-shadow: 0 0 40px rgba(212, 175, 55, .18), 0 16px 48px rgba(0,0,0,.5);
+  text-align: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+#cliente-landing-gate .lg-logo-nome {
+  height: calc(var(--header-h, 64px) * 1.8);
+  width: auto;
+  max-width: 70%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 14px rgba(212,175,55,.55)) brightness(1.1);
+}
+
+#cliente-landing-gate .lg-subtitulo {
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+}
+
+#cliente-landing-gate .lg-descricao {
+  font-size: .8rem;
+  color: rgba(245, 233, 220, .75);
+  margin: 4px 0 10px;
+  line-height: 1.5;
+}
+
+#cliente-landing-gate .lg-polo-wrap {
+  height: 9rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin: 4px 0;
+}
+#cliente-landing-gate .lg-polo-wrap .barber-pole {
+  transform: scale(0.38);
+  transform-origin: top center;
+}
