@@ -307,14 +307,14 @@ class MinhaBarbeariaPage {
   static async #fetchBarbeiros(barbershopId) {
     try {
       const { data, error } = await SupabaseService.client
-        .from('professionals')
-        .select('id, barbershop_id, profile:profiles!id(full_name, avatar_path, updated_at)')
+        .from('professional_shop_links')
+        .select('professional:professionals!professional_id(id, profile:profiles!id(full_name, avatar_path, updated_at))')
         .eq('barbershop_id', barbershopId)
         .eq('is_active', true)
         .limit(20);
 
       if (error) return [];
-      return data ?? [];
+      return (data ?? []).map(link => link.professional).filter(Boolean);
     } catch (_) { return []; }
   }
 
