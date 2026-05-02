@@ -176,6 +176,10 @@ class MinhaBarbeariaPage {
       // Hero header
       heroHeader:   q('mb-hero-header'),
       heroLogo:     q('mb-hero-logo'),
+      // Equipe
+      equipeDonoCard: q('mb-equipe-dono-card'),
+      equipeDonoWrap: q('mb-equipe-dono-wrap'),
+      equipeCol:      q('mb-equipe-col'),
     };
   }
 
@@ -229,16 +233,18 @@ class MinhaBarbeariaPage {
       this.#isOwner      = shop.owner_id === perfil.id;
       this.#shopData     = shop;
 
-      const [servicos, portfolio, stories, quotaHoje] = await Promise.all([
+      const [servicos, portfolio, stories, quotaHoje, barbeiros] = await Promise.all([
         MinhaBarbeariaPage.#fetchServicos(shop.id),
         MinhaBarbeariaPage.#fetchPortfolio(shop.id),
         MinhaBarbeariaPage.#fetchStoriesAtivos(shop.id),
         MinhaBarbeariaPage.#fetchQuotaHoje(perfil.id, shop.id),
+        MinhaBarbeariaPage.#fetchBarbeiros(shop.id),
       ]);
 
       this.#renderCabecalho(shop);
       this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
+      this.#renderEquipe(barbeiros, shop.owner_id);
       this.#renderKpis(shop, portfolio.length);
       this.#renderPortfolio(portfolio);
       this.#renderServicos(servicos);
@@ -273,6 +279,20 @@ class MinhaBarbeariaPage {
 
     if (error) throw error;
     return data ?? [];
+  }
+
+  static async #fetchBarbeiros(barbershopId) {
+    try {
+      const { data, error } = await SupabaseService.client
+        .from('professionals')
+        .select('id, barbershop_id, profile:profiles!id(full_name, avatar_path, updated_at)')
+        .eq('barbershop_id', barbershopId)
+        .eq('is_active', true)
+        .limit(20);
+
+      if (error) return [];
+      return data ?? [];
+    } catch (_) { return []; }
   }
 
   static async #fetchPortfolio(barbershopId) {
@@ -324,6 +344,80 @@ class MinhaBarbeariaPage {
   }
 
   // ── Renders ─────────────────────────────────────────────────
+
+  // ── Equipe da barbearia ─────────────────────────────────────
+
+  #renderEquipe(barbeiros, ownerId) {
+    const donoCard = this.#refs.equipeDonoCard;
+    const col      = this.#refs.equipeCol;
+    if (!donoCard || !col) return;
+
+    const dono   = barbeiros.find(b => b.id === ownerId);
+    const equipe = barbeiros.filter(b => b.id !== ownerId);
+
+    // Card do dono
+    donoCard.classList.remove('mb-equipe-card--skeleton');
+    const donoNome   = donoCard.querySelector('.mb-equipe-dono-nome');
+    const donoAvatar = donoCard.querySelector('.mb-equipe-dono-avatar');
+
+    const nomeDono = dono?.profile?.full_name ?? 'Dono';
+    if (donoNome) donoNome.textContent = nomeDono;
+
+    if (dono?.profile?.avatar_path && donoAvatar) {
+      const img    = document.createElement('img');
+      img.alt      = nomeDono;
+      img.loading  = 'lazy';
+      img.onerror  = () => { donoAvatar.textContent = '💈'; };
+      img.src      = SupabaseService.resolveAvatarUrl(dono.profile.avatar_path, dono.profile.updated_at) || '';
+      donoAvatar.innerHTML = '';
+      donoAvatar.appendChild(img);
+    } else if (donoAvatar) {
+      donoAvatar.textContent = '💈';
+    }
+
+    // Navegar para o perfil do dono ao clicar
+    donoCard.addEventListener('click', () => {
+      if (typeof App !== 'undefined') App.nav('perfil');
+    });
+
+    // Coluna de barbeiros
+    col.innerHTML = '';
+    for (const b of equipe) {
+      const nome   = b.profile?.full_name ?? 'Barbeiro';
+      const card   = document.createElement('div');
+      card.className          = 'mb-equipe-membro-card';
+      card.dataset.barberId   = b.id;
+
+      const avatarEl = document.createElement('div');
+      avatarEl.className = 'mb-equipe-membro-avatar';
+      if (b.profile?.avatar_path) {
+        const img   = document.createElement('img');
+        img.alt     = nome;
+        img.loading = 'lazy';
+        img.onerror = () => { avatarEl.textContent = '💈'; };
+        img.src     = SupabaseService.resolveAvatarUrl(b.profile.avatar_path, b.profile.updated_at) || '';
+        avatarEl.appendChild(img);
+      } else {
+        avatarEl.textContent = '💈';
+      }
+
+      const info = document.createElement('div');
+      info.className = 'mb-equipe-membro-info';
+
+      const nomeEl = document.createElement('p');
+      nomeEl.className   = 'mb-equipe-membro-nome';
+      nomeEl.textContent = nome;
+
+      info.appendChild(nomeEl);
+      card.appendChild(avatarEl);
+      card.appendChild(info);
+      col.appendChild(card);
+    }
+
+    // Ocultar section se não houver ninguém
+    const section = document.getElementById('mb-equipe-section');
+    if (section) section.hidden = barbeiros.length === 0;
+  }
 
   // ── Status aberta / fechada ─────────────────────────────────
 
