@@ -45,12 +45,6 @@ class HeaderScrollBehavior {
       '#tela-inicio .stories-scroll:not(.mb-stories-scroll)'
     );
 
-    // tela-minha-barbearia com .mb-stories-scroll
-    HeaderScrollBehavior.#tentarRegistrar(
-      'tela-minha-barbearia',
-      '.mb-stories-scroll'
-    );
-
     HeaderScrollBehavior.#bindNavEvent();
   }
 

@@ -14,7 +14,7 @@ Especialista em:
 
 ## DIRETIVA DE REVISÃO E REFATORAÇÃO PÓS-FUNCIONALIDADE (OBRIGATÓRIA)
 
-> **Ao final de TODA funcionalidade implementada, SEMPRE revisar E refatorar o código completo — não apenas o novo código, mas todos os arquivos tocados na tarefa:**
+> **Ao final de TODA funcionalidade implementada, SEMPRE revisar E refatorar SOMENTE os arquivos que foram criados ou modificados na tarefa. NUNCA revisar ou tocar em arquivos que não foram alterados.**
 
 ### O que revisar e refatorar (sem exceção):
 
@@ -30,6 +30,8 @@ Especialista em:
 ### Regra de entrega:
 - ❌ **NUNCA** entregar a implementação sem passar por todos os 8 pontos acima
 - ❌ **NUNCA** apenas listar problemas — **refatorar** o código e entregar já corrigido
+- ❌ **NUNCA** revisar ou modificar arquivos que não foram tocados na tarefa atual
+- ✅ Escopo da revisão = exatamente os arquivos criados/editados nessa tarefa, nada mais
 - ✅ Após refatorar, rodar os testes para confirmar que tudo continua verde
 - ✅ Só commitar após a checagem completa sem pendências abertas
 
