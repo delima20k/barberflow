@@ -163,6 +163,12 @@ p, input, textarea, button, label, span, small, li {
 #tela-inicio.ativa,
 #tela-inicio.saindo { pointer-events: auto; }
 
+/* Minha Barbearia: mesma regra para suportar HeaderScrollBehavior */
+#tela-minha-barbearia {
+  top: 0;
+  padding-top: var(--header-h);
+}
+
 /* Classes de estado — display gerenciado pelo WAAPI em Router._animar()
    Sem animation: aqui; o JS usa Web Animations API para permitir
    interrupção fluida no meio da animação. */
