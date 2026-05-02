@@ -68,14 +68,27 @@ class HeaderScrollBehavior {
   }
 
   static #bindNavEvent() {
-    document.addEventListener('barberflow:tela-entrando', (e) =>
-      HeaderScrollBehavior.#exibir(e.detail?.dur ?? 350)
-    );
+    document.addEventListener('barberflow:tela-entrando', (e) => {
+      HeaderScrollBehavior.#exibir(e.detail?.dur ?? 350);
+      // Atualiza linha de base de scroll de todas as telas registradas para
+      // evitar comparação falsa na primeira rolagem após re-entrar em uma
+      // tela com posição de scroll preservada.
+      for (const [tela, estado] of HeaderScrollBehavior.#telas) {
+        estado.ultimoScroll = tela.scrollTop;
+      }
+    });
   }
 
   static #aoRolar(tela) {
     const estado = HeaderScrollBehavior.#telas.get(tela);
     if (!estado) return;
+
+    // tela-inicio fica visível atrás de outras telas (z-index:1) e pode
+    // receber eventos de scroll por inércia mesmo durante uma transição.
+    // Ignorar seu scroll quando outra tela estiver em primeiro plano.
+    if (tela.id === 'tela-inicio' &&
+        document.querySelector('.tela.ativa, .tela.entrando-lento')) return;
+
     const scrollAtual = tela.scrollTop;
     const baixo       = scrollAtual > estado.ultimoScroll;
     estado.ultimoScroll = scrollAtual;
@@ -128,10 +141,14 @@ class HeaderScrollBehavior {
   }
 
   static #exibir(dur = 350) {
-    if (!HeaderScrollBehavior.#oculto) return;
+    const header = HeaderScrollBehavior.#header;
+    // Sincroniza o flag com o estado CSS para cobrir dessincronizações
+    // (ex: classe adicionada externamente sem atualizar #oculto).
+    const visualmente_oculto = HeaderScrollBehavior.#oculto ||
+                               header.classList.contains('header--oculto');
+    if (!visualmente_oculto) return;
     HeaderScrollBehavior.#oculto = false;
 
-    const header = HeaderScrollBehavior.#header;
     header.getAnimations().forEach(a => a.cancel());
     header.classList.remove('header--oculto');
 
