@@ -38,6 +38,12 @@ const AnimationService = (() => {
    */
   function animar(saindo, entrando, classeSaida = 'saindo', classeEntrada = 'ativa') {
 
+    // Ao navegar (qualquer direção, incluindo voltar para home),
+    // revela o header se estiver oculto.
+    if (saindo || entrando) {
+      document.dispatchEvent(new Event('barberflow:tela-entrando'));
+    }
+
     // ── Tela que SAI ───────────────────────────────────────────────────────
     if (saindo) {
       const fromX = _xAtual(saindo);
@@ -73,7 +79,6 @@ const AnimationService = (() => {
 
     // ── Tela que ENTRA ────────────────────────────────────────────────────
     if (entrando) {
-      document.dispatchEvent(new Event('barberflow:tela-entrando'));
       const isVisible = entrando.style.display === 'flex';
       const fromX     = isVisible ? _xAtual(entrando) : -100;
       const baseDur   = classeEntrada === 'entrando-lento' ? 720 : 320;

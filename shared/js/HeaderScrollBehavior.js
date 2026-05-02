@@ -19,8 +19,9 @@ class HeaderScrollBehavior {
   static #THRESHOLD_PX = 0;   // dispara exatamente ao tocar o header
 
   // ── Estado global (header é único) ────────────────────────
-  static #header = null;
-  static #oculto = false;
+  static #header      = null;
+  static #oculto      = false;
+  static #inicializado = false;
 
   // ── Telas registradas: Map<telaEl, { storiesEl, ultimoScroll }> ──
   static #telas = new Map();
@@ -32,6 +33,9 @@ class HeaderScrollBehavior {
    * Registra automaticamente as telas conhecidas se existirem no DOM.
    */
   static init() {
+    if (HeaderScrollBehavior.#inicializado) return;
+    HeaderScrollBehavior.#inicializado = true;
+
     HeaderScrollBehavior.#header = document.getElementById('app-header');
     if (!HeaderScrollBehavior.#header) return;
 
@@ -68,7 +72,8 @@ class HeaderScrollBehavior {
   }
 
   static #aoRolar(tela) {
-    const estado      = HeaderScrollBehavior.#telas.get(tela);
+    const estado = HeaderScrollBehavior.#telas.get(tela);
+    if (!estado) return;
     const scrollAtual = tela.scrollTop;
     const baixo       = scrollAtual > estado.ultimoScroll;
     estado.ultimoScroll = scrollAtual;
