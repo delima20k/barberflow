@@ -1456,8 +1456,13 @@
   gap: 6px;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px; /* evita corte do borda inferior no snap */
 }
+.mb-cadeiras-wrap::-webkit-scrollbar { display: none; }
 
 /* Separador visual entre cadeira de produção e cadeiras de espera */
 .mb-cadeira--producao + .mb-cadeira--fila {
@@ -1478,6 +1483,7 @@
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
+  scroll-snap-align: start;
 }
 .mb-cadeira--producao {
   border: 1.5px solid var(--gold, #D4AF37);
