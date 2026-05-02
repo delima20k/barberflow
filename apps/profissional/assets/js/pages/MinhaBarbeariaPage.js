@@ -22,10 +22,13 @@
 class MinhaBarbeariaPage {
 
   // ── Estado ─────────────────────────────────────────────────
-  #telaEl       = null;
-  #panelEl      = null;   // mb-config-panel
-  #gpsPanelEl   = null;   // mb-gps-panel
-  #subTelaAtiva = null;   // sub-painel aberto no momento
+  #telaEl          = null;
+  #panelEl         = null;   // mb-config-panel
+  #gpsPanelEl      = null;   // mb-gps-panel
+  #convitePanelEl  = null;   // mb-convite-panel
+  #subTelaAtiva    = null;   // sub-painel aberto no momento
+  #conviteBarbeiroId = null;
+  #conviteTipo       = 'porcentagem';
   #carregou     = false;
   #barbershopId = null;
   #isOwner      = false;  // true se o usuário é dono da barbearia
@@ -43,8 +46,9 @@ class MinhaBarbeariaPage {
 
   bind() {
     this.#telaEl    = document.getElementById('tela-minha-barbearia');
-    this.#panelEl   = document.getElementById('mb-config-panel');
-    this.#gpsPanelEl= document.getElementById('mb-gps-panel');
+    this.#panelEl        = document.getElementById('mb-config-panel');
+    this.#gpsPanelEl     = document.getElementById('mb-gps-panel');
+    this.#convitePanelEl = document.getElementById('mb-convite-panel');
     if (!this.#telaEl) return;
 
     this.#cacheRefs();
@@ -108,12 +112,23 @@ class MinhaBarbeariaPage {
       maisBtn:       q('mb-mais-btn'),
       slot2:         q('mb-story-slot-2'),
       slot3:         q('mb-story-slot-3'),
-      kpiRating:     q('mb-kpi-rating'),
-      kpiClientes:   q('mb-kpi-clientes'),
-      kpiPortfolio:  q('mb-kpi-portfolio'),
-      kpiLikes:      q('mb-kpi-likes'),
-      portfolioGrid: q('mb-portfolio-grid'),
       servicosLista: q('mb-servicos-lista'),
+      // Convite barbeiro
+      convidarBtn:        q('mb-equipe-convidar-btn'),
+      conviteFechar:      q('mb-convite-fechar'),
+      conviteInput:       q('mb-convite-input'),
+      conviteBtnBuscar:   q('mb-convite-btn-buscar'),
+      conviteResultado:   q('mb-convite-resultado'),
+      conviteTipoSecao:   q('mb-convite-tipo-secao'),
+      conviteCondSecao:   q('mb-convite-condicoes-secao'),
+      conviteEnviarSec:   q('mb-convite-enviar-secao'),
+      conviteBtnEnviar:   q('mb-convite-btn-enviar'),
+      conviteFeedback:    q('mb-convite-feedback'),
+      convitePct:         q('mb-convite-pct'),
+      conviteAluguel:     q('mb-convite-aluguel'),
+      convitePctWrap:     q('mb-convite-pct-wrap'),
+      conviteAluguelWrap: q('mb-convite-aluguel-wrap'),
+      conviteMsgTexto:    q('mb-convite-msg'),
       // Config panel
       cfgFechar:     q('mb-config-fechar'),
       cfgCapaInput:  q('mb-cfg-capa-input'),
@@ -186,15 +201,25 @@ class MinhaBarbeariaPage {
   // ── Eventos ─────────────────────────────────────────────────
 
   #bindEventos() {
-    this.#refs.maisBtn?.addEventListener('click', () => this.#abrirSub('config'));
-    this.#refs.gpsBtn?.addEventListener('click',  () => this.#abrirSub('gps'));
+    this.#refs.maisBtn?.addEventListener('click',     () => this.#abrirSub('config'));
+    this.#refs.gpsBtn?.addEventListener('click',      () => this.#abrirSub('gps'));
+    this.#refs.convidarBtn?.addEventListener('click', () => this.#abrirSub('convite'));
     this.#refs.addBtn?.addEventListener('click',  () => this.#refs.coverInput?.click());
     this.#refs.cfgFechar?.addEventListener('click',    () => this.#fecharSub());
+    this.#refs.conviteFechar?.addEventListener('click',() => this.#fecharSub());
     this.#refs.coverInput?.addEventListener('change',  e => this.#onUploadMidia(e));
     this.#refs.cfgCapaInput?.addEventListener('change',e => this.#onUploadCapa(e));
     this.#refs.cfgLogoInput?.addEventListener('change',e => this.#onUploadLogo(e));
     this.#refs.cfgAddProd?.addEventListener('click',   () => this.#adicionarLinhaProduto());
     this.#refs.cfgSalvar?.addEventListener('click',    () => this.#salvarConfiguracoes());
+    // Convite — busca
+    this.#refs.conviteBtnBuscar?.addEventListener('click', () => this.#buscarBarbeiro());
+    this.#refs.conviteInput?.addEventListener('keydown',   e => { if (e.key === 'Enter') this.#buscarBarbeiro(); });
+    this.#refs.conviteBtnEnviar?.addEventListener('click', () => this.#enviarConvite());
+    // Convite — selecionar tipo
+    document.querySelectorAll('[data-tipo]').forEach(btn => {
+      btn.addEventListener('click', () => this.#selecionarTipoConvite(btn.dataset.tipo));
+    });
     // GPS sub-painel
     this.#refs.gpsFechar?.addEventListener('click',    () => this.#fecharSub());
     this.#refs.gpsCep?.addEventListener('input',       e  => this.#onCepInput(e));
@@ -233,9 +258,8 @@ class MinhaBarbeariaPage {
       this.#isOwner      = shop.owner_id === perfil.id;
       this.#shopData     = shop;
 
-      const [servicos, portfolio, stories, quotaHoje, barbeiros] = await Promise.all([
+      const [servicos, stories, quotaHoje, barbeiros] = await Promise.all([
         MinhaBarbeariaPage.#fetchServicos(shop.id),
-        MinhaBarbeariaPage.#fetchPortfolio(shop.id),
         MinhaBarbeariaPage.#fetchStoriesAtivos(shop.id),
         MinhaBarbeariaPage.#fetchQuotaHoje(perfil.id, shop.id),
         MinhaBarbeariaPage.#fetchBarbeiros(shop.id),
@@ -245,8 +269,6 @@ class MinhaBarbeariaPage {
       this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
       this.#renderEquipe(barbeiros, shop.owner_id, perfil);
-      this.#renderKpis(shop, portfolio.length);
-      this.#renderPortfolio(portfolio);
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
@@ -568,38 +590,6 @@ class MinhaBarbeariaPage {
     });
   }
 
-  #renderKpis(shop, portfolioCount) {
-    const { kpiRating, kpiClientes, kpiLikes, kpiPortfolio } = this.#refs;
-    if (kpiRating)    kpiRating.textContent    = Number(shop.rating_avg  ?? 0).toFixed(1);
-    if (kpiClientes)  kpiClientes.textContent  = String(shop.rating_count ?? 0);
-    if (kpiLikes)     kpiLikes.textContent     = MinhaBarbeariaPage.#formatarNumero(shop.likes_count ?? 0);
-    if (kpiPortfolio) kpiPortfolio.textContent = String(portfolioCount);
-  }
-
-  #renderPortfolio(lista) {
-    const grid = this.#refs.portfolioGrid;
-    if (!grid) return;
-
-    if (!lista.length) {
-      grid.innerHTML = `<div class="port-item port-item--vazio">
-        <span style="font-size:1rem;color:var(--text-muted);">Sem fotos ainda</span>
-      </div>`;
-      return;
-    }
-
-    grid.innerHTML = lista.map(img => {
-      if (!img.thumbnail_path) {
-        return `<div class="port-item" title="${img.title ?? ''}">✂️</div>`;
-      }
-      const url = SupabaseService.getPortfolioThumbUrl(img.thumbnail_path) || '';
-      return `<div class="port-item" title="${img.title ?? ''}">
-        <img src="${url}" alt="${img.title ?? ''}" loading="lazy"
-             style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-sm);"
-             onerror="this.outerHTML='<div class=port-item>✂️</div>'">
-      </div>`;
-    }).join('');
-  }
-
   #renderServicos(lista) {
     const el = this.#refs.servicosLista;
     if (!el) return;
@@ -628,7 +618,8 @@ class MinhaBarbeariaPage {
   // ── Sub-painéis (Config + GPS) ───────────────────────────────
 
   #abrirSub(id) {
-    const el = id === 'config' ? this.#panelEl : this.#gpsPanelEl;
+    const map = { config: this.#panelEl, gps: this.#gpsPanelEl, convite: this.#convitePanelEl };
+    const el  = map[id];
     if (!el) return;
     this.#subTelaAtiva = el;
     el.classList.add('mb-sub-ativa');
@@ -637,6 +628,7 @@ class MinhaBarbeariaPage {
       this.#preencherGpsForm();
       this.#digGps?.iniciar();
     }
+    if (id === 'convite') this.#resetarConvite();
   }
 
   #fecharSub() {
@@ -647,6 +639,149 @@ class MinhaBarbeariaPage {
     this.#digGps?.parar();
     // Revoga todos os blobs P2P pendentes ao fechar o painel (libera memória)
     this.#mediaP2P.cancelarTodos();
+  }
+
+  // ── Painel Convidar Barbeiro ────────────────────────────────
+
+  #resetarConvite() {
+    this.#conviteBarbeiroId = null;
+    this.#conviteTipo = 'porcentagem';
+    if (this.#refs.conviteInput)    this.#refs.conviteInput.value = '';
+    if (this.#refs.conviteResultado) this.#refs.conviteResultado.innerHTML = '';
+    if (this.#refs.conviteTipoSecao)  this.#refs.conviteTipoSecao.hidden = true;
+    if (this.#refs.conviteCondSecao)  this.#refs.conviteCondSecao.hidden = true;
+    if (this.#refs.conviteEnviarSec)  this.#refs.conviteEnviarSec.hidden = true;
+    if (this.#refs.conviteFeedback)   this.#refs.conviteFeedback.textContent = '';
+    if (this.#refs.convitePct)        this.#refs.convitePct.value = '';
+    if (this.#refs.conviteAluguel)    this.#refs.conviteAluguel.value = '';
+    if (this.#refs.conviteMsgTexto)   this.#refs.conviteMsgTexto.value = '';
+    document.querySelectorAll('[data-tipo]').forEach(btn => {
+      btn.classList.toggle('mb-convite-tipo-btn--ativo', btn.dataset.tipo === 'porcentagem');
+    });
+    if (this.#refs.convitePctWrap)     this.#refs.convitePctWrap.hidden = false;
+    if (this.#refs.conviteAluguelWrap) this.#refs.conviteAluguelWrap.hidden = true;
+  }
+
+  async #buscarBarbeiro() {
+    const query = this.#refs.conviteInput?.value?.trim();
+    const el    = this.#refs.conviteResultado;
+    if (!el || !query) return;
+
+    el.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);padding:8px 0;">Buscando\u2026</p>';
+
+    try {
+      const { data, error } = await SupabaseService.client
+        .from('profiles')
+        .select('id, full_name, avatar_path, updated_at')
+        .ilike('full_name', `%${query}%`)
+        .eq('role', 'profissional')
+        .limit(8);
+
+      if (error) throw error;
+
+      el.innerHTML = '';
+      if (!data?.length) {
+        el.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);padding:8px 0;">Nenhum barbeiro encontrado.</p>';
+        return;
+      }
+
+      data.forEach(p => {
+        const item = document.createElement('div');
+        item.className   = 'mb-convite-barb-card';
+        item.dataset.id  = p.id;
+
+        const avatarEl = document.createElement('div');
+        avatarEl.className = 'mb-convite-barb-avatar';
+        if (p.avatar_path) {
+          const img   = document.createElement('img');
+          img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
+          img.alt     = p.full_name ?? '';
+          img.loading = 'lazy';
+          img.onerror = () => { avatarEl.textContent = '\u2982'; };
+          avatarEl.appendChild(img);
+        } else {
+          avatarEl.textContent = '\u2982';
+        }
+
+        const info = document.createElement('div');
+        info.innerHTML = `<p class="mb-convite-barb-nome">${InputValidator.sanitizar(p.full_name ?? '')}</p>`;
+
+        item.appendChild(avatarEl);
+        item.appendChild(info);
+        item.addEventListener('click', () => this.#selecionarBarbeiro(p.id));
+        el.appendChild(item);
+      });
+    } catch {
+      el.innerHTML = '<p style="font-size:.8rem;color:var(--danger);padding:8px 0;">Erro ao buscar. Tente novamente.</p>';
+    }
+  }
+
+  #selecionarBarbeiro(id) {
+    this.#conviteBarbeiroId = id;
+    document.querySelectorAll('.mb-convite-barb-card').forEach(el => {
+      el.classList.toggle('mb-convite-barb-card--selecionado', el.dataset.id === id);
+    });
+    if (this.#refs.conviteTipoSecao)  this.#refs.conviteTipoSecao.hidden = false;
+    if (this.#refs.conviteCondSecao)  this.#refs.conviteCondSecao.hidden = false;
+    if (this.#refs.conviteEnviarSec)  this.#refs.conviteEnviarSec.hidden = false;
+  }
+
+  #selecionarTipoConvite(tipo) {
+    this.#conviteTipo = tipo;
+    document.querySelectorAll('[data-tipo]').forEach(btn => {
+      btn.classList.toggle('mb-convite-tipo-btn--ativo', btn.dataset.tipo === tipo);
+    });
+    if (this.#refs.convitePctWrap)     this.#refs.convitePctWrap.hidden     = (tipo !== 'porcentagem');
+    if (this.#refs.conviteAluguelWrap) this.#refs.conviteAluguelWrap.hidden = (tipo !== 'cadeira');
+  }
+
+  async #enviarConvite() {
+    if (!this.#conviteBarbeiroId || !this.#barbershopId) return;
+
+    const feedbackEl = this.#refs.conviteFeedback;
+    const btn        = this.#refs.conviteBtnEnviar;
+    if (btn) btn.disabled = true;
+
+    const tipo = this.#conviteTipo;
+    const pct  = tipo === 'porcentagem'
+      ? Number(this.#refs.convitePct?.value   || 0)
+      : null;
+    const rent = tipo === 'cadeira'
+      ? Number(this.#refs.conviteAluguel?.value || 0)
+      : null;
+    const msgTexto  = this.#refs.conviteMsgTexto?.value?.trim() || null;
+    const tipoLabel = tipo === 'cadeira' ? '[Aluguel de Cadeira]' : '[% dos Cortes]';
+    const mensagem  = msgTexto ? `${tipoLabel} ${msgTexto}` : tipoLabel;
+
+    try {
+      const { error } = await SupabaseService.client
+        .from('barbershop_invites')
+        .insert({
+          barbershop_id:  this.#barbershopId,
+          barbeiro_id:    this.#conviteBarbeiroId,
+          commission_pct: pct ?? rent,
+          message:        mensagem,
+          status:         'pendente',
+        });
+
+      if (error) throw error;
+
+      if (feedbackEl) {
+        feedbackEl.textContent = '\u2705 Convite enviado com sucesso!';
+        feedbackEl.style.color = 'var(--success, #3caf6a)';
+      }
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Convite enviado! \ud83d\udce9', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      }
+      this.#conviteBarbeiroId = null;
+    } catch {
+      if (feedbackEl) {
+        feedbackEl.textContent = 'Erro ao enviar. Tente novamente.';
+        feedbackEl.style.color = 'var(--danger, #e05050)';
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   #preencherConfigPanel(shop, servicos) {

@@ -799,7 +799,10 @@
 
       <!-- ── Equipe da barbearia ───────────────────────────── -->
       <section class="mb-equipe-section" id="mb-equipe-section">
-        <p class="sec-title">Equipe</p>
+        <div class="mb-equipe-header">
+          <p class="sec-title">Equipe</p>
+          <button class="mb-equipe-convidar-btn" id="mb-equipe-convidar-btn" type="button">+ Barbeiros</button>
+        </div>
         <div class="mb-equipe-layout">
           <!-- Card do dono — gerado por JS; placeholder skeleton -->
           <div class="mb-equipe-dono-wrap" id="mb-equipe-dono-wrap">
@@ -815,28 +818,6 @@
           <div class="mb-equipe-col" id="mb-equipe-col"></div>
         </div>
       </section>
-
-      <!-- KPIs -->
-      <div class="kpi-grid">
-        <div class="kpi"><span class="kpi-icon">⭐</span><span id="mb-kpi-rating"   class="kpi-val">…</span><span class="kpi-lbl">Avaliação</span></div>
-        <div class="kpi"><span class="kpi-icon">👥</span><span id="mb-kpi-clientes" class="kpi-val">…</span><span class="kpi-lbl">Avaliações</span></div>
-        <div class="kpi"><span class="kpi-icon">📸</span><span id="mb-kpi-portfolio" class="kpi-val">…</span><span class="kpi-lbl">Portfólio</span></div>
-        <div class="kpi"><span class="kpi-icon">❤️</span><span id="mb-kpi-likes"    class="kpi-val">…</span><span class="kpi-lbl">Curtidas</span></div>
-      </div>
-
-      <!-- Portfólio -->
-      <div>
-        <p class="sec-title">Portfólio</p>
-        <div id="mb-portfolio-grid" class="portfolio-grid"></div>
-        <button class="btn btn-outline btn-full" style="margin-top:12px;"
-                data-nav="destaques">Ver portfólio completo</button>
-      </div>
-
-      <!-- Serviços / Produtos -->
-      <div>
-        <p class="sec-title">Serviços &amp; Produtos</p>
-        <div id="mb-servicos-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
 
       <!-- Card de informações da barbearia (endereço + contato + fundação) -->
       <div id="mb-info-card" class="mb-info-card" hidden>
@@ -1054,6 +1035,74 @@
       </div><!-- /mb-config-body -->
     </div><!-- /content -->
   </div><!-- /mb-config-panel -->
+
+  <!-- ============================================================
+       SUB-PAINEL — CONVIDAR BARBEIRO
+  ============================================================ -->
+  <div id="mb-convite-panel" class="mb-sub-tela" aria-hidden="true">
+    <div class="tela-topo">
+      <button class="btn-voltar" id="mb-convite-fechar" aria-label="Voltar">Voltar</button>
+      <h2 class="tela-topo__titulo">Convidar Barbeiro</h2>
+    </div>
+    <div class="content mb-config-body">
+
+      <!-- Busca -->
+      <div class="mb-config-secao">
+        <p class="mb-config-secao-label">Buscar Barbeiro</p>
+        <div class="mb-convite-busca-row">
+          <input id="mb-convite-input" class="mb-config-input" type="text"
+                 placeholder="Nome ou telefone do barbeiro..." autocomplete="off" maxlength="80">
+          <button id="mb-convite-btn-buscar" class="btn btn-gold btn-sm" type="button">Buscar</button>
+        </div>
+        <div id="mb-convite-resultado" class="mb-convite-resultado"></div>
+      </div>
+
+      <!-- Tipo de parceria -->
+      <div class="mb-config-secao" id="mb-convite-tipo-secao" hidden>
+        <p class="mb-config-secao-label">Tipo de Parceria</p>
+        <div class="mb-convite-tipo-grid">
+          <button class="mb-convite-tipo-btn mb-convite-tipo-btn--ativo"
+                  data-tipo="porcentagem" type="button">
+            <span class="mb-convite-tipo-icon">✂️</span>
+            <strong>% dos Cortes</strong>
+            <small>Porcentagem de cada serviço</small>
+          </button>
+          <button class="mb-convite-tipo-btn"
+                  data-tipo="cadeira" type="button">
+            <span class="mb-convite-tipo-icon">🪑</span>
+            <strong>Aluguel de Cadeira</strong>
+            <small>Valor fixo mensal</small>
+          </button>
+        </div>
+      </div>
+
+      <!-- Condições -->
+      <div class="mb-config-secao" id="mb-convite-condicoes-secao" hidden>
+        <div id="mb-convite-pct-wrap">
+          <p class="mb-config-secao-label">Porcentagem (%)</p>
+          <input id="mb-convite-pct" class="mb-config-input" type="number"
+                 min="1" max="99" step="1" placeholder="Ex: 40">
+        </div>
+        <div id="mb-convite-aluguel-wrap" hidden>
+          <p class="mb-config-secao-label">Valor Mensal (R$)</p>
+          <input id="mb-convite-aluguel" class="mb-config-input" type="number"
+                 min="0" step="0.01" placeholder="Ex: 800,00">
+        </div>
+        <div style="margin-top:12px;">
+          <p class="mb-config-secao-label">Mensagem (opcional)</p>
+          <textarea id="mb-convite-msg" class="mb-config-input" rows="3"
+                    maxlength="300" placeholder="Uma mensagem para o barbeiro..."></textarea>
+        </div>
+      </div>
+
+      <!-- Enviar -->
+      <div id="mb-convite-enviar-secao" hidden>
+        <button id="mb-convite-btn-enviar" class="btn-flow" type="button">📩 Enviar Convite</button>
+        <p id="mb-convite-feedback" class="mb-config-msg" style="margin-top:8px;"></p>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /mb-convite-panel -->
 
   <!-- ============================================================
        TELA — CRIAR BARBEARIA

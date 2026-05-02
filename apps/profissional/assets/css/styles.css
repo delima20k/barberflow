@@ -1306,42 +1306,64 @@
   margin-top: 4px;
 }
 
-/* Layout principal: card do dono à esquerda + coluna à direita */
-.mb-equipe-layout {
+/* Header: titulo a esquerda, botao a direita */
+.mb-equipe-header {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mb-equipe-header .sec-title { margin: 0; }
+
+.mb-equipe-convidar-btn {
+  all: unset;
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  background: rgba(212,175,55,.1);
+  border: 1px solid rgba(212,175,55,.3);
+  border-radius: var(--r-full, 99px);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background .18s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mb-equipe-convidar-btn:hover { background: rgba(212,175,55,.2); }
+
+/* Grid 2 colunas; dono ocupa linha inteira */
+.mb-equipe-layout {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
-/* ── Card do DONO (destaque, mais alto) ────────────────────── */
+/* Card do DONO */
 .mb-equipe-dono-wrap {
-  flex-shrink: 0;
-  width: 120px;
+  grid-column: 1 / -1;
 }
 
 .mb-equipe-dono-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   background: transparent;
   border: 1.5px solid var(--gold, #D4AF37);
-  border-radius: var(--r-lg, 18px);
-  padding: 16px 10px 14px;
-  min-height: 160px;
-  box-shadow: 0 4px 14px rgba(212,175,55,.15);
+  border-radius: var(--r-md, 12px);
+  padding: 10px 14px;
+  min-height: 66px;
+  box-shadow: 0 3px 10px rgba(212,175,55,.13);
   cursor: pointer;
   transition: box-shadow .2s, transform .2s;
 }
 .mb-equipe-dono-card:hover {
-  box-shadow: 0 8px 22px rgba(212,175,55,.28);
-  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(212,175,55,.24);
+  transform: translateY(-1px);
 }
 
 .mb-equipe-dono-avatar {
-  width: 62px;
-  height: 62px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--card2, #f0e8d8);
   border: 2px solid var(--gold, #D4AF37);
@@ -1350,73 +1372,66 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.1rem;
 }
-.mb-equipe-dono-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.mb-equipe-dono-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .mb-equipe-dono-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  text-align: center;
-}
-
-.mb-equipe-dono-nome {
-  font-size: .82rem;
-  font-weight: 700;
-  color: var(--text, #2b1b12);
-  margin: 0;
-  line-height: 1.3;
-  word-break: break-word;
-}
-
-.mb-equipe-dono-badge {
-  font-size: .68rem;
-  font-weight: 700;
-  color: var(--gold, #D4AF37);
-  background: rgba(212,175,55,.12);
-  border: 1px solid rgba(212,175,55,.3);
-  border-radius: var(--r-full, 99px);
-  padding: 2px 8px;
-  letter-spacing: .3px;
-  text-transform: uppercase;
-}
-
-/* ── Coluna de barbeiros ───────────────────────────────────── */
-.mb-equipe-col {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
   flex: 1;
   min-width: 0;
 }
 
-/* Card individual dos barbeiros da equipe */
+.mb-equipe-dono-nome {
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--text, #2b1b12);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mb-equipe-dono-badge {
+  font-size: .62rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.3);
+  border-radius: var(--r-full, 99px);
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Cards dos demais membros (2 por linha via grid pai) */
+.mb-equipe-col {
+  display: contents;
+}
+
 .mb-equipe-membro-card {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   background: transparent;
   border: 1px solid var(--border-soft, rgba(212,175,55,.12));
   border-radius: var(--r-md, 12px);
-  padding: 10px 12px;
-  min-height: 60px;
+  padding: 8px 10px;
+  min-height: 52px;
   cursor: pointer;
   transition: box-shadow .2s, transform .2s;
 }
 .mb-equipe-membro-card:hover {
-  box-shadow: 0 4px 12px rgba(212,175,55,.18);
+  box-shadow: 0 3px 10px rgba(212,175,55,.16);
   transform: translateY(-1px);
 }
 
 .mb-equipe-membro-avatar {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--card2, #f0e8d8);
   border: 1.5px solid var(--border-soft, rgba(212,175,55,.18));
@@ -1425,20 +1440,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: .9rem;
 }
-.mb-equipe-membro-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.mb-equipe-membro-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-.mb-equipe-membro-info {
-  flex: 1;
-  min-width: 0;
-}
+.mb-equipe-membro-info { flex: 1; min-width: 0; }
 .mb-equipe-membro-nome {
-  font-size: .8rem;
+  font-size: .7rem;
   font-weight: 600;
   color: var(--text, #2b1b12);
   margin: 0;
@@ -1446,15 +1454,96 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.mb-equipe-membro-role {
-  font-size: .68rem;
-  color: var(--text-muted, #6b5a4a);
-  margin: 0;
-}
 
-/* Skeleton loading */
+/* Skeleton */
 .mb-equipe-card--skeleton .mb-equipe-dono-avatar,
 .mb-equipe-card--skeleton .mb-equipe-dono-nome { background: var(--card2, #f0e8d8); border-radius: 4px; color: transparent; }
+
+/* ================================================================
+   CONVITE DE BARBEIRO — sub-painel
+================================================================ */
+.mb-convite-busca-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-top: 6px;
+}
+.mb-convite-busca-row .mb-config-input { flex: 1; }
+
+.mb-convite-resultado {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mb-convite-barb-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s;
+}
+.mb-convite-barb-card:hover,
+.mb-convite-barb-card.mb-convite-barb-card--selecionado {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212,175,55,.18);
+}
+.mb-convite-barb-card--selecionado::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--gold);
+  font-weight: 900;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.mb-convite-barb-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--card2);
+  border: 1.5px solid var(--border-soft);
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.mb-convite-barb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.mb-convite-barb-nome { font-size: .82rem; font-weight: 600; color: var(--text); margin: 0; }
+.mb-convite-barb-sub  { font-size: .7rem; color: var(--text-muted); margin: 0; }
+
+.mb-convite-tipo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mb-convite-tipo-btn {
+  all: unset;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--card);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-md);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s;
+  box-sizing: border-box;
+}
+.mb-convite-tipo-btn strong { font-size: .78rem; color: var(--text); display: block; }
+.mb-convite-tipo-btn small  { font-size: .66rem; color: var(--text-muted); }
+.mb-convite-tipo-icon { font-size: 1.4rem; }
+.mb-convite-tipo-btn--ativo {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212,175,55,.18);
+}
+.mb-convite-tipo-btn--ativo strong { color: var(--gold); }
 
 /* ================================================================
    FIM — EQUIPE DA BARBEARIA
