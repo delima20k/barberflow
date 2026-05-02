@@ -132,14 +132,15 @@ suite('HeaderScrollBehavior — barberflow:tela-entrando', () => {
     assert.equal(header.classList.contains('header--oculto'), false);
   });
 
-  test('evento tela-entrando revela header mesmo com dessincronização de estado', () => {
+  test('evento tela-entrando NÃO executa animação se header já está visível', () => {
     const { sandbox, header, dispararNavEvent } = criarSandbox();
     sandbox.HeaderScrollBehavior.init();
 
-    header.classList.add('header--oculto');
+    // header já está visível (sem classe, sem flag oculto)
     dispararNavEvent(320);
 
-    assert.equal(header.classList.contains('header--oculto'), false);
+    assert.equal(header._anims.length, 0,
+      'não deve disparar WAAPI se o header já está visível');
   });
 
   test('evento tela-entrando atualiza ultimoScroll para scrollTop atual', () => {

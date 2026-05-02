@@ -39,10 +39,13 @@ class HeaderScrollBehavior {
     HeaderScrollBehavior.#header = document.getElementById('app-header');
     if (!HeaderScrollBehavior.#header) return;
 
-    // tela-inicio com .stories-scroll (primeiro filho, não o mb-)
+    // tela-inicio com .stories-scroll (não o mb-)
+    // somentePrimeiroPlano=true porque tela-inicio tem z-index:1 permanente e
+    // pode receber eventos de scroll por inércia atrás de outras telas.
     HeaderScrollBehavior.#tentarRegistrar(
       'tela-inicio',
-      '#tela-inicio .stories-scroll:not(.mb-stories-scroll)'
+      '#tela-inicio .stories-scroll:not(.mb-stories-scroll)',
+      { somentePrimeiroPlano: true }
     );
 
     HeaderScrollBehavior.#bindNavEvent();
@@ -50,13 +53,20 @@ class HeaderScrollBehavior {
 
   // ── Privados ──────────────────────────────────────────────
 
-  static #tentarRegistrar(telaId, storiesSelector) {
+  /**
+   * @param {string}  telaId
+   * @param {string}  storiesSelector
+   * @param {object}  [opts]
+   * @param {boolean} [opts.somentePrimeiroPlano=false] — ignora scroll quando outra
+   *   tela estiver em primeiro plano (útil para telas com z-index:1 permanente).
+   */
+  static #tentarRegistrar(telaId, storiesSelector, { somentePrimeiroPlano = false } = {}) {
     const tela = document.getElementById(telaId);
     if (!tela) return;
 
-    const storiesEl    = document.querySelector(storiesSelector) ?? null;
+    const storiesEl    = document.querySelector(storiesSelector);
     const ultimoScroll = tela.scrollTop;
-    HeaderScrollBehavior.#telas.set(tela, { storiesEl, ultimoScroll });
+    HeaderScrollBehavior.#telas.set(tela, { storiesEl, ultimoScroll, somentePrimeiroPlano });
 
     tela.addEventListener('scroll', () => HeaderScrollBehavior.#aoRolar(tela), { passive: true });
   }
@@ -77,10 +87,9 @@ class HeaderScrollBehavior {
     const estado = HeaderScrollBehavior.#telas.get(tela);
     if (!estado) return;
 
-    // tela-inicio fica visível atrás de outras telas (z-index:1) e pode
-    // receber eventos de scroll por inércia mesmo durante uma transição.
-    // Ignorar seu scroll quando outra tela estiver em primeiro plano.
-    if (tela.id === 'tela-inicio' &&
+    // Telas com somentePrimeiroPlano=true ficam atrás de outras (z-index:1) e
+    // podem receber eventos de scroll por inércia. Ignorar nesses casos.
+    if (estado.somentePrimeiroPlano &&
         document.querySelector('.tela.ativa, .tela.entrando-lento')) return;
 
     const scrollAtual = tela.scrollTop;
@@ -136,11 +145,12 @@ class HeaderScrollBehavior {
 
   static #exibir(dur = 350) {
     const header = HeaderScrollBehavior.#header;
+    if (!header) return;
     // Sincroniza o flag com o estado CSS para cobrir dessincronizações
     // (ex: classe adicionada externamente sem atualizar #oculto).
-    const visualmente_oculto = HeaderScrollBehavior.#oculto ||
-                               header.classList.contains('header--oculto');
-    if (!visualmente_oculto) return;
+    const visualmenteOculto = HeaderScrollBehavior.#oculto ||
+                              header.classList.contains('header--oculto');
+    if (!visualmenteOculto) return;
     HeaderScrollBehavior.#oculto = false;
 
     header.getAnimations().forEach(a => a.cancel());
