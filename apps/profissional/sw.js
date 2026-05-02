@@ -5,7 +5,7 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_NAME = 'barberflow-profissional-v107';
+  static #CACHE_NAME = 'barberflow-profissional-v108';
 
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS = [
@@ -28,8 +28,8 @@ class SWProfissional {
     '/shared/img/perfil.svg',
     '/shared/img/sair.svg',
     '/shared/img/icones-perfil.png',
-    '/shared/img/icones-cadeira-salao.png',
-    '/shared/img/icones-cadeira-salao-vazia.png',
+    '/shared/img/icones-cadeira-producao.png',
+    '/shared/img/icones-cadeira-de-éspera.png',
     '/shared/img/login.svg',
   ];
 
