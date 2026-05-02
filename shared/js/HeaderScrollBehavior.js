@@ -72,8 +72,10 @@ class HeaderScrollBehavior {
   }
 
   static #bindNavEvent() {
-    document.addEventListener('barberflow:tela-entrando', (e) => {
-      HeaderScrollBehavior.#exibir(e.detail?.dur ?? 350);
+    document.addEventListener('barberflow:tela-entrando', () => {
+      // Header sempre revela na velocidade própria (não herda a duração da tela),
+      // evitando o gap de 0–64px visível durante animações lentas de carrossel.
+      HeaderScrollBehavior.#exibir(200);
       // Atualiza linha de base de scroll de todas as telas registradas para
       // evitar comparação falsa na primeira rolagem após re-entrar em uma
       // tela com posição de scroll preservada.
