@@ -4,7 +4,7 @@
 // MinhaBarbeariaPage.js — Tela "Minha Barbearia"
 //
 // Responsabilidades:
-//  • Exibir KPIs, stories ativos, portfólio e serviços/produtos.
+//  • Exibir stories ativos, equipe e serviços da barbearia.
 //  • 1º story-card = card de upload de mídia (vídeo/imagem).
 //    - Dono da barbearia: até 3 vídeos/dia.
 //    - Barbeiro convidado: até 1 vídeo/dia.
@@ -12,7 +12,9 @@
 //    - CEP + ViaCEP, GPS nativo, salva endereço no Supabase.
 //  • Botão + Mais → sub-painel configurações (slide sobre a tela).
 //    - Upload capa, upload logo circular, nome, serviços/produtos.
-//    - Salva no Supabase.
+//  • Botão + Barbeiros → sub-painel convidar barbeiro.
+//    - Busca por nome, seleção de tipo de parceria (% ou cadeira),
+//      e envio de convite pela tabela barbershop_invites.
 //
 // Dependências: BarbershopRepository.js, BarbershopService.js,
 //               AuthService.js, SupabaseService.js,
@@ -216,8 +218,8 @@ class MinhaBarbeariaPage {
     this.#refs.conviteBtnBuscar?.addEventListener('click', () => this.#buscarBarbeiro());
     this.#refs.conviteInput?.addEventListener('keydown',   e => { if (e.key === 'Enter') this.#buscarBarbeiro(); });
     this.#refs.conviteBtnEnviar?.addEventListener('click', () => this.#enviarConvite());
-    // Convite — selecionar tipo
-    document.querySelectorAll('[data-tipo]').forEach(btn => {
+    // Convite — selecionar tipo (escopado ao painel)
+    this.#convitePanelEl?.querySelectorAll('[data-tipo]').forEach(btn => {
       btn.addEventListener('click', () => this.#selecionarTipoConvite(btn.dataset.tipo));
     });
     // GPS sub-painel
@@ -311,21 +313,6 @@ class MinhaBarbeariaPage {
         .eq('barbershop_id', barbershopId)
         .eq('is_active', true)
         .limit(20);
-
-      if (error) return [];
-      return data ?? [];
-    } catch (_) { return []; }
-  }
-
-  static async #fetchPortfolio(barbershopId) {
-    try {
-      const { data, error } = await SupabaseService.portfolioImages()
-        .select('id, thumbnail_path, title, likes_count')
-        .eq('owner_id', barbershopId)
-        .eq('owner_type', 'barbershop')
-        .eq('status', 'active')
-        .order('likes_count', { ascending: false })
-        .limit(6);
 
       if (error) return [];
       return data ?? [];
@@ -655,7 +642,7 @@ class MinhaBarbeariaPage {
     if (this.#refs.convitePct)        this.#refs.convitePct.value = '';
     if (this.#refs.conviteAluguel)    this.#refs.conviteAluguel.value = '';
     if (this.#refs.conviteMsgTexto)   this.#refs.conviteMsgTexto.value = '';
-    document.querySelectorAll('[data-tipo]').forEach(btn => {
+    this.#convitePanelEl?.querySelectorAll('[data-tipo]').forEach(btn => {
       btn.classList.toggle('mb-convite-tipo-btn--ativo', btn.dataset.tipo === 'porcentagem');
     });
     if (this.#refs.convitePctWrap)     this.#refs.convitePctWrap.hidden = false;
@@ -697,10 +684,10 @@ class MinhaBarbeariaPage {
           img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
           img.alt     = p.full_name ?? '';
           img.loading = 'lazy';
-          img.onerror = () => { avatarEl.textContent = '\u2982'; };
+          img.onerror = () => { avatarEl.textContent = '💈'; };
           avatarEl.appendChild(img);
         } else {
-          avatarEl.textContent = '\u2982';
+          avatarEl.textContent = '💈';
         }
 
         const info = document.createElement('div');
@@ -718,7 +705,7 @@ class MinhaBarbeariaPage {
 
   #selecionarBarbeiro(id) {
     this.#conviteBarbeiroId = id;
-    document.querySelectorAll('.mb-convite-barb-card').forEach(el => {
+    this.#refs.conviteResultado?.querySelectorAll('.mb-convite-barb-card').forEach(el => {
       el.classList.toggle('mb-convite-barb-card--selecionado', el.dataset.id === id);
     });
     if (this.#refs.conviteTipoSecao)  this.#refs.conviteTipoSecao.hidden = false;
@@ -728,7 +715,7 @@ class MinhaBarbeariaPage {
 
   #selecionarTipoConvite(tipo) {
     this.#conviteTipo = tipo;
-    document.querySelectorAll('[data-tipo]').forEach(btn => {
+    this.#convitePanelEl?.querySelectorAll('[data-tipo]').forEach(btn => {
       btn.classList.toggle('mb-convite-tipo-btn--ativo', btn.dataset.tipo === tipo);
     });
     if (this.#refs.convitePctWrap)     this.#refs.convitePctWrap.hidden     = (tipo !== 'porcentagem');
@@ -740,15 +727,25 @@ class MinhaBarbeariaPage {
 
     const feedbackEl = this.#refs.conviteFeedback;
     const btn        = this.#refs.conviteBtnEnviar;
-    if (btn) btn.disabled = true;
 
     const tipo = this.#conviteTipo;
-    const pct  = tipo === 'porcentagem'
-      ? Number(this.#refs.convitePct?.value   || 0)
-      : null;
-    const rent = tipo === 'cadeira'
-      ? Number(this.#refs.conviteAluguel?.value || 0)
-      : null;
+    const pct  = tipo === 'porcentagem' ? Number(this.#refs.convitePct?.value  || 0) : null;
+    const rent = tipo === 'cadeira'     ? Number(this.#refs.conviteAluguel?.value || 0) : null;
+
+    // Validação: campo obrigatório não pode ser zero
+    const valorInvalido = (tipo === 'porcentagem' && (pct  <= 0 || pct  > 99))
+                       || (tipo === 'cadeira'     && (rent <= 0));
+    if (valorInvalido) {
+      if (feedbackEl) {
+        feedbackEl.textContent = tipo === 'porcentagem'
+          ? 'Informe a porcentagem (1–99%).'
+          : 'Informe o valor mensal de aluguel.';
+        feedbackEl.style.color = 'var(--danger, #e05050)';
+      }
+      return;
+    }
+
+    if (btn) btn.disabled = true;
     const msgTexto  = this.#refs.conviteMsgTexto?.value?.trim() || null;
     const tipoLabel = tipo === 'cadeira' ? '[Aluguel de Cadeira]' : '[% dos Cortes]';
     const mensagem  = msgTexto ? `${tipoLabel} ${msgTexto}` : tipoLabel;
