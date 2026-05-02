@@ -3449,12 +3449,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .bp-barbeiros-scroll {
   display: flex;
-  overflow-x: auto;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 6px 14px 10px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  overflow-x: hidden;
 }
 .bp-barbeiros-scroll::-webkit-scrollbar { display: none; }
 
@@ -3552,6 +3550,233 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
+}
+
+/* ── BarbeiroCard (.bbc-*) ──────────────────────────────── */
+.bbc-card {
+  flex-shrink: 0;
+  width: 72px;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 6px;
+  border-radius: 10px;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bbc-card--owner .bbc-avatar { border-color: var(--gold, #D4AF37); }
+
+.bbc-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card2, rgba(255,255,255,.07));
+  font-size: 1.4rem;
+  border: 2px solid transparent;
+  flex-shrink: 0;
+}
+.bbc-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+.bbc-nome {
+  font-size: .63rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  max-width: 68px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.bbc-owner-tag {
+  font-size: .54rem;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.35);
+  border-radius: 10px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+
+/* Skeleton */
+.bbc-card--skel {
+  pointer-events: none;
+  opacity: .35;
+}
+.bbc-card--skel .bbc-avatar {
+  background: linear-gradient(90deg,
+    var(--card2) 25%, var(--card) 50%, var(--card2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+.bbc-nome-skel {
+  width: 44px;
+  height: 9px;
+  border-radius: 4px;
+  background: linear-gradient(90deg,
+    var(--card2) 25%, var(--card) 50%, var(--card2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* ── Cadeira pública (.cdr-*) ───────────────────────────── */
+/* Row: [BarbeiroCard] [Cadeira produção] [Cadeiras de fila] */
+.cdr-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.cdr-row--skel { opacity: .35; pointer-events: none; }
+
+.cdr-cadeiras-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cdr-fila-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.cdr-fila-wrap::-webkit-scrollbar { display: none; }
+
+.cdr-cadeira {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 64px;
+  min-width: 64px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  scroll-snap-align: start;
+}
+.cdr-cadeira--livre {
+  border: 1px dashed var(--border-soft, rgba(212,175,55,.22));
+  background: transparent;
+  opacity: .55;
+}
+.cdr-cadeira--ocupada {
+  border: 1px solid var(--border-soft, rgba(212,175,55,.15));
+  background: transparent;
+}
+.cdr-cadeira--em_producao {
+  border: 1.5px solid var(--gold, #D4AF37);
+  background: rgba(212,175,55,.06);
+}
+
+/* Cadeira interativa (cliente pode entrar na fila) */
+.cdr-cadeira--interativa {
+  pointer-events: auto;
+  cursor: pointer;
+  opacity: 1;
+  transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+}
+.cdr-cadeira--interativa:hover {
+  opacity: .88;
+  transform: scale(1.06);
+  box-shadow: 0 2px 10px rgba(212,175,55,.22);
+}
+.cdr-cadeira--interativa:active {
+  transform: scale(.96);
+  opacity: .75;
+}
+.cdr-cadeira--interativa:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Skeleton */
+.cdr-cadeira--skel {
+  border: 1px dashed var(--border-soft, rgba(212,175,55,.12));
+  background: linear-gradient(90deg,
+    var(--card2) 25%, var(--card) 50%, var(--card2) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  opacity: .35;
+  height: 88px;
+}
+
+/* Ícone / avatar dentro da cadeira */
+.cdr-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card2, rgba(255,255,255,.07));
+  flex-shrink: 0;
+}
+.cdr-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+.cdr-cadeira--em_producao .cdr-icon { border: 1.5px solid var(--gold, #D4AF37); }
+
+/* Rótulo de estado */
+.cdr-label {
+  font-size: .59rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+}
+.cdr-cadeira--em_producao .cdr-label { color: var(--gold, #D4AF37); }
+
+/* Nome do cliente na cadeira */
+.cdr-cliente {
+  font-size: .53rem;
+  color: var(--text-muted, #8c7057);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 /* ── Tela Barbeiro (BarbeiroPage) ────────────────────────── */

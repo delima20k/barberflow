@@ -25,6 +25,8 @@ class BarbeariaPage {
   #carregando  = false;  // mutex contra fetches paralelos
   #dig         = null;   // instância DigText de boas-vindas
   #digFila      = null;   // instância DigText da seção de barbeiros
+  #servicos     = [];     // serviços em cache para os handlers de cadeira
+  #shopData     = null;   // objeto completo da barbearia atual
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -274,48 +276,76 @@ class BarbeariaPage {
   }
 
   /**
-   * Gera HTML de um card mini de barbeiro para o carousel.
-   * Usa sanitizar() nos valores que vão para atributos HTML.
-   * @param {object} b        — linha de profiles_public
-   * @param {string} ownerId  — UUID do dono do salão
-   * @returns {string}
+   * Cria uma row de barbeiro: BarbeiroCard + cadeira de produção + cadeiras de fila.
+   * @param {object}      opts
+   * @param {object}      opts.barbeiro
+   * @param {boolean}     opts.isOwner
+   * @param {object[]}    opts.filaEntradas       entradas filtradas para este barbeiro
+   * @param {boolean}     opts.podeInteragir
+   * @param {Function|null} opts.onCadeiraVaziaClick  callback de clique em cadeira vazia
+   * @returns {HTMLDivElement}
    */
-  static #cardBarbeiro(b, ownerId) {
-    const s        = InputValidator.sanitizar;
-    const isOwner  = b.id === ownerId;
-    const nome     = s(b.full_name ?? 'Barbeiro');
-    const avatarUrl = b.avatar_path
-      ? s(SupabaseService.resolveAvatarUrl(b.avatar_path, b.updated_at) ?? '')
-      : '';
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onCadeiraVaziaClick }) {
+    const row = document.createElement('div');
+    row.className = 'cdr-row';
 
-    const avatarHtml = avatarUrl
-      ? `<div class="bm-avatar"><img src="${avatarUrl}" alt="${nome}" loading="lazy" onerror="this.parentElement.innerHTML='&#x1F488;'"></div>`
-      : `<div class="bm-avatar">&#x1F488;</div>`;
+    row.appendChild(BarbeiroCard.criar({
+      nome:       barbeiro.full_name ?? 'Barbeiro',
+      avatarPath: barbeiro.avatar_path ?? null,
+      updatedAt:  barbeiro.updated_at ?? null,
+      isOwner,
+    }));
 
-    const ownerTag = isOwner ? `<span class="bm-owner-tag">Dono</span>` : '';
+    const wrap = document.createElement('div');
+    wrap.className = 'cdr-cadeiras-wrap';
 
-    return `
-      <div class="bp-barber-mini${isOwner ? ' bp-barber-mini--owner' : ''}"
-           data-barber-id="${s(b.id)}"
-           data-barber-owner="${isOwner ? 'true' : 'false'}"
-           role="button" tabindex="0" aria-label="${nome}">
-        ${avatarHtml}
-        <p class="bm-nome">${nome}</p>
-        ${ownerTag}
-      </div>`;
+    // Cadeira de produção (atendimento)
+    const emServico = filaEntradas.find(e => e.status === 'in_service') ?? null;
+    wrap.appendChild(Cadeira.criar({
+      tipo:           'producao',
+      entrada:        emServico,
+      posicao:        0,
+      podeInteragir:  podeInteragir && !emServico,
+      onClick:        (!emServico && onCadeiraVaziaClick) ? onCadeiraVaziaClick : null,
+    }));
+
+    // Cadeiras de fila (até 3 posições visíveis)
+    const naFila   = filaEntradas.filter(e => e.status === 'waiting');
+    const filaWrap = document.createElement('div');
+    filaWrap.className = 'cdr-fila-wrap';
+    for (let i = 0; i < 3; i++) {
+      const e = naFila[i] ?? null;
+      filaWrap.appendChild(Cadeira.criar({
+        tipo:          'fila',
+        entrada:       e,
+        posicao:       i + 1,
+        podeInteragir: podeInteragir && !e,
+        onClick:       (!e && onCadeiraVaziaClick) ? onCadeiraVaziaClick : null,
+      }));
+    }
+    wrap.appendChild(filaWrap);
+    row.appendChild(wrap);
+    return row;
   }
 
   /**
-   * Gera N cards skeleton para o carousel enquanto carrega.
-   * @param {number} n
-   * @returns {string}
+   * Row skeleton para exibição enquanto dados carregam.
+   * @returns {HTMLDivElement}
    */
-  static #skeletonBarbeiros(n) {
-    return Array(n).fill(0).map(() => `
-      <div class="bp-barber-mini bp-barber-mini--skel" aria-hidden="true">
-        <div class="bm-avatar"></div>
-        <div class="bm-nome-skel"></div>
-      </div>`).join('');
+  static #criarSkeletonRow() {
+    const row = document.createElement('div');
+    row.className = 'cdr-row cdr-row--skel';
+    row.setAttribute('aria-hidden', 'true');
+    row.appendChild(BarbeiroCard.criarSkeleton());
+    const wrap = document.createElement('div');
+    wrap.className = 'cdr-cadeiras-wrap';
+    for (let i = 0; i < 4; i++) {
+      const c = document.createElement('div');
+      c.className = 'cdr-cadeira cdr-cadeira--skel';
+      wrap.appendChild(c);
+    }
+    row.appendChild(wrap);
+    return row;
   }
 
   // ══════════════════════════════════════════════════════════
@@ -323,6 +353,8 @@ class BarbeariaPage {
   // ══════════════════════════════════════════════════════════
 
   #renderizar(shop, servicos, portfolio) {
+    this.#servicos = servicos;
+    this.#shopData = shop;
     this.#renderCapa(shop);
     this.#renderInfo(shop);
     this.#renderAcoes(shop);
@@ -333,31 +365,42 @@ class BarbeariaPage {
   }
 
   /**
-   * Preenche o carousel de barbeiros da barbearia.
-   * Chamado fire-and-forget: mostra skeleton imediatamente,
-   * depois substitui pelos cards reais assim que os dados chegam.
+   * Preenche a section de barbeiros com rows interativas.
+   * Cada row contém BarbeiroCard + cadeiras de produção e fila.
+   * Clientes autenticados podem clicar em cadeiras vazias para entrar na fila.
+   * Chamado fire-and-forget (e no re-render pós-entrada).
    * @param {object} shop — registro completo da barbearia (inclui owner_id)
    */
   async #renderBarbeiros(shop) {
     const el = this.#refs.barbeirosScroll;
     if (!el) return;
 
-    // Skeleton imediato enquanto busca na rede
-    el.innerHTML = BarbeariaPage.#skeletonBarbeiros(3);
+    // Skeleton imediato: 3 rows placeholder
+    el.innerHTML = '';
+    for (let i = 0; i < 3; i++) el.appendChild(BarbeariaPage.#criarSkeletonRow());
 
     const cacheKey = `${shop.id}:barbeiros`;
     let barbeiros = CacheManager.get(cacheKey);
+    let filaAtiva = [];
 
-    if (!barbeiros) {
-      try {
-        barbeiros = await BarbeariaPage.#fetchBarbeiros(shop);
-        CacheManager.set(cacheKey, barbeiros, 5 * 60 * 1000);
-      } catch {
-        barbeiros = [];
-      }
+    try {
+      const [b, f] = await Promise.all([
+        barbeiros
+          ? Promise.resolve(barbeiros)
+          : BarbeariaPage.#fetchBarbeiros(shop).then(data => {
+              CacheManager.set(cacheKey, data, 5 * 60 * 1000);
+              return data;
+            }),
+        FilaController.getFilaAtiva(shop.id),
+      ]);
+      barbeiros = b;
+      filaAtiva  = f;
+    } catch {
+      barbeiros = barbeiros ?? [];
+      filaAtiva  = [];
     }
 
-    // Stale-check: usuário pode ter aberto outra barbearia durante o await
+    // Stale-check: usuário pode ter navegado para outra barbearia durante o await
     if (this.#shopId !== shop.id) return;
 
     if (!barbeiros.length) {
@@ -367,16 +410,61 @@ class BarbeariaPage {
       return;
     }
 
-    el.innerHTML = barbeiros
-      .map(b => BarbeariaPage.#cardBarbeiro(b, shop.owner_id))
-      .join('');
+    const podeInteragir = ClienteController.podeInteragir();
 
-    // Inicia animação DigText na seção de barbeiros (reinicia a cada nova barbearia)
+    el.innerHTML = '';
+    for (const b of barbeiros) {
+      const filaB = filaAtiva.filter(e => e.professional?.id === b.id);
+      el.appendChild(BarbeariaPage.#criarRow({
+        barbeiro:           b,
+        isOwner:            b.id === shop.owner_id,
+        filaEntradas:       filaB,
+        podeInteragir,
+        onCadeiraVaziaClick: podeInteragir
+          ? () => this.#onCadeiraClick(b.id)
+          : null,
+      }));
+    }
+
+    // Inicia animação DigText na seção de barbeiros
     if (typeof DigText !== 'undefined' && this.#refs.filaDig) {
       this.#refs.filaDig.textContent = '';
       const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância.';
       this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
       this.#digFila.iniciar();
+    }
+  }
+
+  /**
+   * Handler de clique em uma cadeira vazia.
+   * Abre o modal de seleção de serviços e registra o cliente na fila.
+   * @param {string} professionalId UUID do barbeiro da cadeira
+   */
+  async #onCadeiraClick(professionalId) {
+    if (!ClienteController.podeInteragir()) return;
+
+    const serviceIds = await ModalController.abrirSelecaoServicos({ servicos: this.#servicos });
+    if (!serviceIds?.length) return;
+
+    try {
+      await ClienteController.entrarNaFila({
+        barbershopId:   this.#shopId,
+        professionalId,
+        serviceIds,
+      });
+      NotificationService.mostrarToast(
+        'Na fila!',
+        'Você entrou na fila. Aguarde sua vez.',
+        NotificationService.TIPOS.SISTEMA,
+      );
+      if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
+    } catch (err) {
+      LoggerService.error('[BarbeariaPage] erro ao entrar na fila:', err);
+      NotificationService.mostrarToast(
+        'Erro',
+        err?.message ?? 'Não foi possível entrar na fila.',
+        NotificationService.TIPOS.SISTEMA,
+      );
     }
   }
 
@@ -585,6 +673,8 @@ class BarbeariaPage {
     this.#dig = null;
     // Invalida o cache de tela para forçar re-fetch ao entrar novamente
     this.#shopIdCache = null;
+    this.#servicos    = [];
+    this.#shopData    = null;
   }
 
   #mostrarSkeleton() {
