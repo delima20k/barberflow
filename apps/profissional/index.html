@@ -804,18 +804,38 @@
           <button class="mb-equipe-convidar-btn" id="mb-equipe-convidar-btn" type="button">+ Barbeiros</button>
         </div>
         <div class="mb-equipe-layout">
-          <!-- Card do dono — esqueleto visual até JS carregar -->
-          <div class="mb-equipe-dono-wrap" id="mb-equipe-dono-wrap">
-            <div class="mb-equipe-card mb-equipe-card--dono mb-equipe-card--skeleton" aria-label="Dono da barbearia">
-              <div class="mb-equipe-avatar mb-equipe-avatar--lg"></div>
-              <div class="mb-equipe-card-info">
-                <p class="mb-equipe-card-nome">…</p>
-                <span class="mb-equipe-card-badge">Dono</span>
+          <!-- Dono — esqueleto visual até JS carregar -->
+          <div id="mb-equipe-dono-wrap">
+            <div class="mb-barbeiro-row mb-barbeiro-row--dono mb-barbeiro-row--skeleton" aria-label="Dono da barbearia">
+              <div class="mb-barbeiro-card">
+                <div class="mb-equipe-avatar mb-equipe-avatar--lg"></div>
+                <p class="mb-barbeiro-nome">…</p>
+                <span class="mb-barbeiro-badge">Dono</span>
+              </div>
+              <div class="mb-cadeiras-wrap">
+                <div class="mb-cadeira mb-cadeira--producao mb-cadeira--vazia">
+                  <div class="mb-cadeira-icon">
+                    <img src="/shared/img/icones-cadeira-producao.png" alt="Cadeira em produção" loading="lazy">
+                  </div>
+                  <span class="mb-cadeira-label">Livre</span>
+                </div>
+                <div class="mb-cadeira mb-cadeira--fila mb-cadeira--vazia">
+                  <div class="mb-cadeira-icon">
+                    <img src="/shared/img/icones-cadeira-de-éspera.png" alt="Cadeira de espera" loading="lazy">
+                  </div>
+                  <span class="mb-cadeira-label">—</span>
+                </div>
+                <div class="mb-cadeira mb-cadeira--fila mb-cadeira--vazia">
+                  <div class="mb-cadeira-icon">
+                    <img src="/shared/img/icones-cadeira-de-éspera.png" alt="Cadeira de espera" loading="lazy">
+                  </div>
+                  <span class="mb-cadeira-label">—</span>
+                </div>
               </div>
             </div>
           </div>
-          <!-- Coluna de barbeiros — injetada por JS -->
-          <div class="mb-equipe-col" id="mb-equipe-col"></div>
+          <!-- Membros — injetados por JS -->
+          <div id="mb-equipe-col"></div>
         </div>
       </section>
 

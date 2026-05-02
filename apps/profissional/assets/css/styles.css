@@ -1332,57 +1332,91 @@
 .mb-equipe-convidar-btn:hover { background: rgba(212,175,55,.2); }
 
 /* Grid 2 colunas; dono ocupa linha inteira */
+/* ── Layout principal: empilha uma row por barbeiro ─── */
 .mb-equipe-layout {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   overflow: hidden;
 }
 
-/* Dono: ocupa a linha inteira */
-.mb-equipe-dono-wrap { grid-column: 1 / -1; }
+/* Dono: wraper que ocupa a largura toda */
+.mb-equipe-dono-wrap { display: contents; }
 
-/* Membros: filhos entram direto no grid */
+/* Membros: filhos entram direto no flex-column */
 .mb-equipe-col { display: contents; }
 
-/* ── Card base — compartilhado por dono e membro ─── */
-.mb-equipe-card {
+/* ── Row por barbeiro: card (coluna) + cadeiras ─── */
+.mb-barbeiro-row {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
-  background: transparent;
+  gap: 8px;
   border-radius: var(--r-md, 12px);
+  padding: 8px 10px;
   overflow: hidden;
   transition: box-shadow .2s, transform .2s;
 }
-
-/* ── Variante dono ─── */
-.mb-equipe-card--dono {
+.mb-barbeiro-row--dono {
   border: 1.5px solid var(--gold, #D4AF37);
-  padding: 10px 14px;
-  min-height: 66px;
   box-shadow: 0 3px 10px rgba(212,175,55,.13);
+  min-height: 72px;
   cursor: pointer;
 }
-.mb-equipe-card--dono:hover {
+.mb-barbeiro-row--dono:hover {
   box-shadow: 0 6px 18px rgba(212,175,55,.24);
   transform: translateY(-1px);
 }
-
-/* ── Variante membro ─── */
-.mb-equipe-card--membro {
+.mb-barbeiro-row--membro {
   border: 1px solid var(--border-soft, rgba(212,175,55,.12));
-  padding: 8px 10px;
-  min-height: 52px;
+  min-height: 60px;
   cursor: pointer;
 }
-.mb-equipe-card--membro:hover {
-  box-shadow: 0 3px 10px rgba(212,175,55,.16);
+.mb-barbeiro-row--membro:hover {
+  box-shadow: 0 3px 10px rgba(212,175,55,.14);
   transform: translateY(-1px);
 }
 
-/* ── Avatar base ─── */
+/* ── Card do barbeiro (coluna esquerda) ─── */
+.mb-barbeiro-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 60px;
+  min-width: 60px;
+  overflow: hidden;
+}
+.mb-barbeiro-nome {
+  font-size: .65rem;
+  font-weight: 700;
+  color: var(--text, #2b1b12);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  margin: 0;
+}
+.mb-barbeiro-badge {
+  font-size: .56rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.3);
+  border-radius: var(--r-full, 99px);
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.mb-barbeiro-cortes {
+  font-size: .58rem;
+  color: var(--text-muted, #8c7057);
+  text-align: center;
+}
+
+/* ── Avatar base (compartilhado) ─── */
 .mb-equipe-avatar {
   border-radius: 50%;
   background: var(--card2, #f0e8d8);
@@ -1401,6 +1435,12 @@
   border: 2px solid var(--gold, #D4AF37);
   font-size: 1.1rem;
 }
+.mb-equipe-avatar--md {
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--border-soft, rgba(212,175,55,.25));
+  font-size: 1rem;
+}
 .mb-equipe-avatar--sm {
   width: 30px;
   height: 30px;
@@ -1408,46 +1448,84 @@
   font-size: .9rem;
 }
 
-/* ── Info: nome + badge ─── */
-.mb-equipe-card-info {
+/* ── Cadeiras (irmãs do card, puramente visuais) ─── */
+.mb-cadeiras-wrap {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
-.mb-equipe-card-nome {
-  font-size: .76rem;
+.mb-cadeira {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 58px;
+  min-width: 58px;
+  padding: 5px 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mb-cadeira--producao {
+  border: 1.5px solid var(--gold, #D4AF37);
+  background: rgba(212,175,55,.06);
+}
+.mb-cadeira--fila {
+  border: 1px solid var(--border-soft, rgba(212,175,55,.15));
+  background: transparent;
+}
+.mb-cadeira--vazia {
+  border-style: dashed;
+  opacity: .42;
+}
+
+.mb-cadeira-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card2, #f0e8d8);
+  flex-shrink: 0;
+}
+.mb-cadeira-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mb-cadeira-label {
+  font-size: .55rem;
   font-weight: 700;
   color: var(--text, #2b1b12);
-  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+.mb-cadeira--producao .mb-cadeira-label { color: var(--gold, #D4AF37); }
+.mb-cadeira-cliente {
+  font-size: .52rem;
+  color: var(--text-muted, #8c7057);
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.mb-equipe-card--membro .mb-equipe-card-nome {
-  font-size: .7rem;
-  font-weight: 600;
+  width: 100%;
 }
 
-.mb-equipe-card-badge {
-  font-size: .62rem;
-  font-weight: 700;
-  color: var(--gold, #D4AF37);
-  background: rgba(212,175,55,.12);
-  border: 1px solid rgba(212,175,55,.3);
-  border-radius: var(--r-full, 99px);
-  padding: 2px 7px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* Skeleton */
-.mb-equipe-card--skeleton .mb-equipe-avatar,
-.mb-equipe-card--skeleton .mb-equipe-card-nome { background: var(--card2, #f0e8d8); border-radius: 4px; color: transparent; }
-.mb-equipe-card--skeleton .mb-equipe-dono-nome { background: var(--card2, #f0e8d8); border-radius: 4px; color: transparent; }
+/* ── Skeleton ─── */
+.mb-barbeiro-row--skeleton .mb-equipe-avatar,
+.mb-barbeiro-row--skeleton .mb-barbeiro-nome,
+.mb-barbeiro-row--skeleton .mb-cadeira-icon { background: var(--card2, #f0e8d8); border-radius: 4px; color: transparent; }
+.mb-barbeiro-row--skeleton .mb-cadeira-icon img { display: none; }
 
 /* ================================================================
    CONVITE DE BARBEIRO — sub-painel

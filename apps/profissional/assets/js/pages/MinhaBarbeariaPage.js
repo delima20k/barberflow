@@ -370,7 +370,7 @@ class MinhaBarbeariaPage {
 
     donoWrap.innerHTML = '';
     donoWrap.appendChild(
-      MinhaBarbeariaPage.#criarCardEquipe({
+      MinhaBarbeariaPage.#criarBarbeiroRow({
         nome: nomeDono, avatarPath, updatedAt,
         variant: 'dono', badge: 'Dono',
         onClick: () => { if (typeof App !== 'undefined') App.nav('perfil'); },
@@ -380,7 +380,7 @@ class MinhaBarbeariaPage {
     col.innerHTML = '';
     for (const b of equipe) {
       col.appendChild(
-        MinhaBarbeariaPage.#criarCardEquipe({
+        MinhaBarbeariaPage.#criarBarbeiroRow({
           nome:       b.profile?.full_name   ?? 'Barbeiro',
           avatarPath: b.profile?.avatar_path ?? null,
           updatedAt:  b.profile?.updated_at  ?? null,
@@ -392,8 +392,15 @@ class MinhaBarbeariaPage {
     if (section) section.hidden = false;
   }
 
-  // ── Factory de cards de equipe ─────────────────────────────
+  // ── Factory: componentes de equipe ─────────────────────────
 
+  /**
+   * Avatar circular reutilizável.
+   * @param {string|null} avatarPath
+   * @param {string|null} updatedAt
+   * @param {string}      nome
+   * @param {'lg'|'md'|'sm'} mod
+   */
   static #criarAvatarEl(avatarPath, updatedAt, nome, mod = 'sm') {
     const wrap = document.createElement('div');
     wrap.className = `mb-equipe-avatar mb-equipe-avatar--${mod}`;
@@ -410,32 +417,132 @@ class MinhaBarbeariaPage {
     return wrap;
   }
 
-  static #criarCardEquipe({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null }) {
+  /**
+   * Card em coluna (avatar + nome + badge) — filho esquerdo da row.
+   */
+  static #criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge = null, cortes = null }) {
     const card = document.createElement('div');
-    card.className = `mb-equipe-card mb-equipe-card--${variant}`;
+    card.className = 'mb-barbeiro-card';
 
     card.appendChild(
-      MinhaBarbeariaPage.#criarAvatarEl(avatarPath, updatedAt, nome, variant === 'dono' ? 'lg' : 'sm')
+      MinhaBarbeariaPage.#criarAvatarEl(avatarPath, updatedAt, nome, variant === 'dono' ? 'lg' : 'md')
     );
 
-    const info = document.createElement('div');
-    info.className = 'mb-equipe-card-info';
-
     const nomeEl = document.createElement('p');
-    nomeEl.className   = 'mb-equipe-card-nome';
+    nomeEl.className   = 'mb-barbeiro-nome';
     nomeEl.textContent = nome;
-    info.appendChild(nomeEl);
+    card.appendChild(nomeEl);
 
     if (badge) {
       const badgeEl = document.createElement('span');
-      badgeEl.className   = 'mb-equipe-card-badge';
+      badgeEl.className   = 'mb-barbeiro-badge';
       badgeEl.textContent = badge;
-      info.appendChild(badgeEl);
+      card.appendChild(badgeEl);
     }
 
-    card.appendChild(info);
-    if (onClick) card.addEventListener('click', onClick);
+    if (cortes != null) {
+      const cortesEl = document.createElement('span');
+      cortesEl.className   = 'mb-barbeiro-cortes';
+      cortesEl.textContent = `${cortes} cortes`;
+      card.appendChild(cortesEl);
+    }
+
     return card;
+  }
+
+  /**
+   * Cadeira visual (sem interação).
+   * @param {'producao'|'fila'} tipo
+   * @param {object|null}       entrada  queue_entry com { client, status }
+   * @param {number}            posicao  exibido como #N nas cadeiras de fila
+   */
+  static #criarCadeiraEl(tipo, entrada = null, posicao = 1) {
+    const cadeira = document.createElement('div');
+    cadeira.className = `mb-cadeira mb-cadeira--${tipo}${entrada ? '' : ' mb-cadeira--vazia'}`;
+
+    // Ícone — avatar do cliente ou imagem da cadeira
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'mb-cadeira-icon';
+
+    if (entrada?.client?.avatar_path) {
+      const img   = document.createElement('img');
+      img.alt     = entrada.client.full_name ?? '';
+      img.loading = 'lazy';
+      img.src     = SupabaseService.resolveAvatarUrl(
+        entrada.client.avatar_path,
+        entrada.client.updated_at ?? null
+      ) || '';
+      img.onerror = () => {
+        img.remove();
+        iconWrap.appendChild(MinhaBarbeariaPage.#cadeiraImgEl(tipo));
+      };
+      iconWrap.appendChild(img);
+    } else {
+      iconWrap.appendChild(MinhaBarbeariaPage.#cadeiraImgEl(tipo));
+    }
+    cadeira.appendChild(iconWrap);
+
+    // Label de estado
+    const label = document.createElement('span');
+    label.className = 'mb-cadeira-label';
+    if (tipo === 'producao') {
+      label.textContent = entrada ? 'Atendendo' : 'Livre';
+    } else {
+      label.textContent = entrada ? `#${posicao}` : '—';
+    }
+    cadeira.appendChild(label);
+
+    // Nome do cliente (se houver)
+    if (entrada?.client?.full_name) {
+      const cli = document.createElement('span');
+      cli.className   = 'mb-cadeira-cliente';
+      cli.textContent = entrada.client.full_name;
+      cadeira.appendChild(cli);
+    }
+
+    return cadeira;
+  }
+
+  /**
+   * Imagem estática da cadeira conforme tipo.
+   * Produção → icones-cadeira-producao.png
+   * Fila     → icones-cadeira-de-éspera.png
+   */
+  static #cadeiraImgEl(tipo) {
+    const img = document.createElement('img');
+    img.alt     = tipo === 'producao' ? 'Cadeira em produção' : 'Cadeira de espera';
+    img.loading = 'lazy';
+    img.src     = tipo === 'producao'
+      ? '/shared/img/icones-cadeira-producao.png'
+      : '/shared/img/icones-cadeira-de-éspera.png';
+    return img;
+  }
+
+  /**
+   * Row horizontal completa: card do barbeiro + 3 cadeiras visuais.
+   * @param {object[]} filaEntradas  queue_entries filtradas para este barbeiro
+   */
+  static #criarBarbeiroRow({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null, cortes = null, filaEntradas = [] }) {
+    const row = document.createElement('div');
+    row.className = `mb-barbeiro-row mb-barbeiro-row--${variant}`;
+
+    // Card do barbeiro (coluna esquerda)
+    const bCard = MinhaBarbeariaPage.#criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge, cortes });
+    if (onClick) bCard.addEventListener('click', onClick);
+    row.appendChild(bCard);
+
+    // Cadeiras (irmãs)
+    const wrap       = document.createElement('div');
+    wrap.className   = 'mb-cadeiras-wrap';
+    const emServico  = filaEntradas.find(e => e.status === 'in_service') ?? null;
+    const naFila     = filaEntradas.filter(e => e.status === 'waiting');
+
+    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico));
+    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1));
+    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2));
+
+    row.appendChild(wrap);
+    return row;
   }
 
   // ── Status aberta / fechada ─────────────────────────────────
