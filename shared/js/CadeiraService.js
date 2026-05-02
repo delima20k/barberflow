@@ -8,12 +8,12 @@
 //
 // Dependências: ApiService.js, QueueRepository.js,
 //               InputValidator.js, LoggerService.js
+//
+// NOTA DE CAMADA: esta classe é application — não toca DOM.
+// Quem chama (interfaces) é responsável por re-renders/eventos.
 // =============================================================
 
 class CadeiraService {
-
-  // Evento disparado após qualquer mutação de cadeira
-  static #EVT_CADEIRA = 'barberflow:cadeira-atualizada';
 
   // ═══════════════════════════════════════════════════════════
   // LEITURA
@@ -117,7 +117,6 @@ class CadeiraService {
       await CadeiraService.#salvarServicos(entrada.id, barbershopId, serviceIds);
     }
 
-    CadeiraService.#dispatch(barbershopId);
     return entrada;
   }
 
@@ -146,7 +145,6 @@ class CadeiraService {
       await CadeiraService.#notificarProximo(proximo, barbershopId);
     }
 
-    CadeiraService.#dispatch(barbershopId);
     return {
       proximoClienteId: proximo?.client?.id   ?? null,
       proximoNome:      proximo?.client?.full_name ?? null,
@@ -215,13 +213,4 @@ class CadeiraService {
     }
   }
 
-  /**
-   * Despacha CustomEvent para que outros componentes reajam.
-   * @param {string} barbershopId
-   */
-  static #dispatch(barbershopId) {
-    document.dispatchEvent(
-      new CustomEvent(CadeiraService.#EVT_CADEIRA, { detail: { barbershopId } })
-    );
-  }
 }
