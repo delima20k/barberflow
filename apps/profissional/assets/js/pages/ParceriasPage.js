@@ -403,8 +403,10 @@ class ParceriasPage {
     const specs = (p.specialties ?? []).slice(0, 2).join(' · ');
 
     const row = document.createElement('div');
-    row.className   = 'barber-row';
-    row.dataset.id  = p.id;
+    row.className              = 'barber-row';
+    row.dataset.id             = p.id;
+    row.dataset.barberId       = p.id;
+    row.dataset.professionalId = p.id;
     row.innerHTML = `
       <div class="avatar gold">
         <img src="${avatar}" alt="${nome}" loading="lazy" onerror="this.outerHTML='✂️'">
