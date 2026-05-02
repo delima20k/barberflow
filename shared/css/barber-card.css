@@ -1546,3 +1546,25 @@
 @media (max-width: 380px) {
   .fav-card { flex: 0 0 calc(100vw - 2.5rem); height: 200px; }
 }
+
+/* ── Populares e Mais Próximas — cards 20% menores ── */
+#home-barbearias-lista .barbearias-coluna {
+  overflow: hidden;
+}
+#home-barbearias-lista .barber-card,
+#home-barbearias-lista .barber-row {
+  min-height: 118px;
+  padding: 14px 88px 14px 11px;
+  overflow: hidden;
+}
+#home-barbearias-lista .barber-card .avatar,
+#home-barbearias-lista .barber-row .avatar {
+  width: 45px;
+  height: 45px;
+  flex-shrink: 0;
+}
+#home-barbearias-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
