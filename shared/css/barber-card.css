@@ -1553,14 +1553,14 @@
 }
 #home-barbearias-lista .barber-card,
 #home-barbearias-lista .barber-row {
-  min-height: 118px;
-  padding: 14px 88px 14px 11px;
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
   overflow: hidden;
 }
 #home-barbearias-lista .barber-card .avatar,
 #home-barbearias-lista .barber-row .avatar {
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
 }
 #home-barbearias-lista .barber-info {
