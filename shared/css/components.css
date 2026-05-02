@@ -934,8 +934,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 0.8rem;
-  margin-bottom: 0.4rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.6rem;
 }
 
 /* O sec-title dentro de sec-header não usa a linha decorativa */
