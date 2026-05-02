@@ -1676,3 +1676,103 @@
   min-width: 0;
   flex-shrink: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Cards com imagem de fundo — texto branco + endereço no rodapé
+   Cobre: Populares/Próximas, Barbeiros, Todas, tela-destaques,
+          tela-barbearias, tela-barbeiros
+═══════════════════════════════════════════════════════════════ */
+
+/* — stretch para empurrar endereço ao rodapé — */
+#home-barbearias-lista .barber-card--com-capa,
+#home-barbearias-lista .barber-card--com-logo,
+#home-barbeiros-lista  .barber-card--com-capa,
+#home-barbeiros-lista  .barber-card--com-logo,
+#home-todas-lista      .barber-card--com-capa,
+#home-todas-lista      .barber-card--com-logo,
+#barbearias-page-lista .barber-card--com-capa,
+#barbearias-page-lista .barber-card--com-logo,
+#barbeiros-lista       .barber-card--com-capa,
+#barbeiros-lista       .barber-card--com-logo {
+  align-items: stretch;
+}
+
+/* — .barber-info em coluna para push via margin-top auto — */
+#home-barbearias-lista .barber-card--com-capa .barber-info,
+#home-barbearias-lista .barber-card--com-logo .barber-info,
+#home-barbeiros-lista  .barber-card--com-capa .barber-info,
+#home-barbeiros-lista  .barber-card--com-logo .barber-info,
+#home-todas-lista      .barber-card--com-capa .barber-info,
+#home-todas-lista      .barber-card--com-logo .barber-info,
+#barbearias-page-lista .barber-card--com-capa .barber-info,
+#barbearias-page-lista .barber-card--com-logo .barber-info,
+#barbeiros-lista       .barber-card--com-capa .barber-info,
+#barbeiros-lista       .barber-card--com-logo .barber-info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* — nome: branco — */
+#home-barbearias-lista .barber-card--com-capa .barber-name,
+#home-barbearias-lista .barber-card--com-logo .barber-name,
+#home-barbeiros-lista  .barber-card--com-capa .barber-name,
+#home-barbeiros-lista  .barber-card--com-logo .barber-name,
+#home-todas-lista      .barber-card--com-capa .barber-name,
+#home-todas-lista      .barber-card--com-logo .barber-name,
+#barbearias-page-lista .barber-card--com-capa .barber-name,
+#barbearias-page-lista .barber-card--com-logo .barber-name,
+#barbeiros-lista       .barber-card--com-capa .barber-name,
+#barbeiros-lista       .barber-card--com-logo .barber-name {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+
+/* — endereço: branco + empurrado ao rodapé — */
+#home-barbearias-lista .barber-card--com-capa .barber-sub,
+#home-barbearias-lista .barber-card--com-logo .barber-sub,
+#home-barbeiros-lista  .barber-card--com-capa .barber-sub,
+#home-barbeiros-lista  .barber-card--com-logo .barber-sub,
+#home-todas-lista      .barber-card--com-capa .barber-sub,
+#home-todas-lista      .barber-card--com-logo .barber-sub,
+#barbearias-page-lista .barber-card--com-capa .barber-sub,
+#barbearias-page-lista .barber-card--com-logo .barber-sub,
+#barbeiros-lista       .barber-card--com-capa .barber-sub,
+#barbeiros-lista       .barber-card--com-logo .barber-sub {
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  margin-top: auto;
+}
+
+/* — tela-destaques: top-card stretch — */
+#destaques-lista .top-card.barber-card--com-capa,
+#destaques-lista .top-card.barber-card--com-logo {
+  align-items: stretch;
+}
+
+/* — tela-destaques: top-card__info em coluna — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__info,
+#destaques-lista .top-card.barber-card--com-logo .top-card__info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* — tela-destaques: nome branco — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__nome,
+#destaques-lista .top-card.barber-card--com-logo .top-card__nome {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+
+/* — tela-destaques: endereço branco + rodapé — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__addr,
+#destaques-lista .top-card.barber-card--com-logo .top-card__addr {
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  margin-top: auto;
+}
+
+/* — tela-destaques: rank branco — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__rank,
+#destaques-lista .top-card.barber-card--com-logo .top-card__rank {
+  color: rgba(255,255,255,.7);
+}
