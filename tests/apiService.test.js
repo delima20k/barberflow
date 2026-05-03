@@ -314,3 +314,47 @@ suite('ApiService — URL helpers de Storage', () => {
     assert.equal(sb.ApiService.getPortfolioThumbUrl(null), '');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+suite('ApiService.resolveAvatarUrl()', () => {
+
+  test('path relativo → aponta para bucket avatars', () => {
+    const sb  = criarSandbox(async () => resOk([])());
+    const url = sb.ApiService.resolveAvatarUrl('uuid/avatar.jpeg');
+    assert.ok(url.includes('/storage/v1/object/public/avatars/'));
+    assert.ok(url.includes('uuid/avatar.jpeg'));
+  });
+
+  test('URL completa (http) → usada diretamente sem alterar o path', () => {
+    const sb       = criarSandbox(async () => resOk([])());
+    const fullUrl  = 'https://jfvjisqnzapxxagkbxcu.supabase.co/storage/v1/object/public/media-images/avatars/uuid/file.webp';
+    const resolved = sb.ApiService.resolveAvatarUrl(fullUrl);
+    assert.ok(resolved.startsWith('https://'), 'deve manter protocolo https');
+    assert.ok(resolved.includes('media-images'), 'deve manter bucket media-images');
+    assert.ok(!resolved.includes('avatars/avatars'), 'não deve duplicar prefixo de bucket');
+  });
+
+  test('adiciona cache-bust ?t= quando updatedAt é fornecido', () => {
+    const sb  = criarSandbox(async () => resOk([])());
+    const ts  = new Date('2025-01-01T00:00:00.000Z').getTime();
+    const url = sb.ApiService.resolveAvatarUrl('uuid/avatar.jpeg', '2025-01-01T00:00:00.000Z');
+    assert.ok(url.includes(`?t=${ts}`), `cache-bust esperado ?t=${ts}, recebido: ${url}`);
+  });
+
+  test('URL completa + updatedAt → cache-bust adicionado sem duplicar ?', () => {
+    const sb      = criarSandbox(async () => resOk([])());
+    const fullUrl = 'https://supabase.co/storage/v1/object/public/media-images/avatars/uid/file.webp';
+    const ts      = new Date('2025-06-01T00:00:00.000Z').getTime();
+    const result  = sb.ApiService.resolveAvatarUrl(fullUrl, '2025-06-01T00:00:00.000Z');
+    assert.ok(result.includes(`?t=${ts}`), `esperado ?t=${ts}`);
+    assert.ok(!result.includes('??'), 'não deve conter ?? duplo');
+  });
+
+  test('path null ou vazio → retorna string vazia', () => {
+    const sb = criarSandbox(async () => resOk([])());
+    assert.equal(sb.ApiService.resolveAvatarUrl(null), '');
+    assert.equal(sb.ApiService.resolveAvatarUrl(''), '');
+    assert.equal(sb.ApiService.resolveAvatarUrl(undefined), '');
+  });
+});

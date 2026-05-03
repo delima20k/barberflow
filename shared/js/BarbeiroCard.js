@@ -20,11 +20,13 @@ class BarbeiroCard {
    * @param {string|null} opts.avatarPath
    * @param {string|null} [opts.updatedAt]
    * @param {boolean}     [opts.isOwner=false]
+   * @param {string|null} [opts.barberId=null]
    * @returns {HTMLDivElement}
    */
-  static criar({ nome, avatarPath, updatedAt = null, isOwner = false }) {
+  static criar({ nome, avatarPath, updatedAt = null, isOwner = false, barberId = null }) {
     const card = document.createElement('div');
     card.className = `bbc-card${isOwner ? ' bbc-card--owner' : ''}`;
+    if (barberId) card.dataset.barberId = barberId;
 
     card.appendChild(BarbeiroCard.#criarAvatar(nome, avatarPath, updatedAt));
 

@@ -299,7 +299,52 @@ CREATE POLICY "barbershops_services_owner_delete"
   );
 
 -- ────────────────────────────────────────────────────────────────
--- 7. MEDIA-BARBERSHOP BUCKET — imagens de logo/cover/banner
+-- 7. MEDIA-IMAGES BUCKET — avatars, services, portfolio (BFF pipeline)
+--    Migration: 20260428121847_create_storage_buckets.sql
+-- ────────────────────────────────────────────────────────────────
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'media-images',
+  'media-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "media-images: leitura pública"     ON storage.objects;
+DROP POLICY IF EXISTS "media-images: upload pelo dono"    ON storage.objects;
+DROP POLICY IF EXISTS "media-images: atualização pelo dono" ON storage.objects;
+DROP POLICY IF EXISTS "media-images: deleção pelo dono"   ON storage.objects;
+
+CREATE POLICY "media-images: leitura pública"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'media-images');
+
+CREATE POLICY "media-images: upload pelo dono"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'media-images' AND
+    auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-images: atualização pelo dono"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'media-images' AND
+    auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-images: deleção pelo dono"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'media-images' AND
+    auth.uid()::text = split_part(name, '/', 2)
+  );
+
+-- ────────────────────────────────────────────────────────────────
+-- 8. MEDIA-BARBERSHOP BUCKET — imagens de logo/cover/banner
 --    Migration: 20260428130605_create_barbershop_bucket.sql
 -- ────────────────────────────────────────────────────────────────
 
@@ -345,7 +390,7 @@ CREATE POLICY "media-barbershop: deleção pelo dono"
   );
 
 -- ────────────────────────────────────────────────────────────────
--- 8. P2P_PEERS — tabela de peers WebRTC para redistribuição de mídia
+-- 9. P2P_PEERS — tabela de peers WebRTC para redistribuição de mídia
 --    Migration: 20260428130606_create_p2p_peers.sql
 -- ────────────────────────────────────────────────────────────────
 
@@ -395,7 +440,7 @@ COMMENT ON COLUMN public.p2p_peers.region     IS 'Região geográfica (opcional)
 COMMENT ON COLUMN public.p2p_peers.expires_at IS 'Timestamp de expiração do anúncio (5 min após announce)';
 
 -- ────────────────────────────────────────────────────────────────
--- 9. PROFILES.EMAIL — coluna email em profiles, sincronizada com auth.users
+-- 10. PROFILES.EMAIL — coluna email em profiles, sincronizada com auth.users
 --    Migration: 20260503000001_profiles_email.sql
 -- ────────────────────────────────────────────────────────────────
 

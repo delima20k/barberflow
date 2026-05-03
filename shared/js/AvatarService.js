@@ -42,8 +42,8 @@ const AvatarService = (() => {
   function _aplicarSrcDinamico(userId, url) {
     if (!userId) return;
 
-    // Cards bp-barber-mini em tela-barbearia (BarbeariaPage.js)
-    document.querySelectorAll(`[data-barber-id="${userId}"] .bm-avatar img`).forEach(img => {
+    // Cards BarbeiroCard em tela-barbearia (BarbeariaPage.js) — classe .bbc-avatar
+    document.querySelectorAll(`[data-barber-id="${userId}"] .bbc-avatar img`).forEach(img => {
       img.src = url;
     });
 

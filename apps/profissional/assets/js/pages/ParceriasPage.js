@@ -396,7 +396,7 @@ class ParceriasPage {
     const nome   = s(perfil.full_name ?? 'Barbeiro');
     const path   = perfil.avatar_path ?? p.avatar_path ?? null;
     const avatar = s(path
-      ? (SupabaseService.getAvatarUrl(path) || '/shared/img/icones-perfil.png')
+      ? (SupabaseService.resolveAvatarUrl(path) || '/shared/img/icones-perfil.png')
       : '/shared/img/icones-perfil.png');
     const r     = Math.min(5, Math.max(0, Math.round(Number(p.rating_avg ?? 0))));
     const stars = '★'.repeat(r) + '☆'.repeat(5 - r);
