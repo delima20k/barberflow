@@ -89,6 +89,19 @@ class PlanosController {
     if (sub) sub.textContent = eBarbeiro
       ? 'Plano Profissional para Barbeiros'
       : 'Plano Profissional para Barbearias';
+
+    // Persiste imediatamente para que getProType() retorne o valor correto no cadastro
+    sessionStorage.setItem('bf_tipo', tipo);
+
+    // Se o usuário já está logado e escolheu 'barbearia', atualiza o nav do footer
+    // sem reload — caso seja barbeiro que ainda não criou barbearia mas quer navegar
+    if (!eBarbeiro && typeof AuthService !== 'undefined') {
+      const perfil = AuthService.getPerfil?.();
+      if (perfil && perfil.pro_type !== 'barbearia') {
+        AuthService.patchPerfil({ pro_type: 'barbearia' });
+        AuthService._atualizarUI(AuthService.getPerfil(), null);
+      }
+    }
   }
 
   /** Delega a regra de tipo ao PlanosService e reage ao resultado. */
