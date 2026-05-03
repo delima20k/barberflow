@@ -99,7 +99,7 @@ class PlanosController {
       const perfil = AuthService.getPerfil?.();
       if (perfil && perfil.pro_type !== 'barbearia') {
         AuthService.patchPerfil({ pro_type: 'barbearia' });
-        AuthService._atualizarUI(AuthService.getPerfil(), null);
+        AuthService._atualizarUI?.(AuthService.getPerfil(), null);
       }
     }
   }
