@@ -6,7 +6,7 @@
 // Responsabilidade ÚNICA: gerenciar o ciclo de vida de um cliente
 // nas cadeiras (sentar → atender → finalizar) e notificar a fila.
 //
-// Dependências: ApiService.js, QueueRepository.js,
+// Dependências: ApiService.js, BackendApiService.js, QueueRepository.js,
 //               InputValidator.js, LoggerService.js
 //
 // NOTA DE CAMADA: esta classe é application — não toca DOM.

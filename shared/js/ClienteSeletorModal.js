@@ -11,7 +11,7 @@
 //   const cliente = await ClienteSeletorModal.abrir(favoritos, { excluirIds });
 //   // cliente: { id, full_name, avatar_path } | null (cancelado)
 //
-// Dependências: SupabaseService.js (resolveAvatarUrl), ApiService.js
+// Dependências: SupabaseService.js (resolveAvatarUrl), BackendApiService.js
 // =============================================================
 
 class ClienteSeletorModal {
