@@ -10,7 +10,6 @@
 // =============================================================
 
 const express    = require('express');
-const cors       = require('cors');
 const helmet     = require('helmet');
 const compression = require('compression');
 const pinoHttp   = require('pino-http');
@@ -83,20 +82,33 @@ function criarApp() {
 
   // ── Middlewares globais ──────────────────────────────────────
 
-  // CORS primeiro — deve ser o primeiro middleware para garantir que headers
-  // Access-Control-Allow-* chegam ao browser antes de qualquer outra coisa,
-  // incluindo o helmet que pode sobrescrever ou conflitar com CORS.
-  app.use(cors({
-    origin(origin, callback) {
-      // Sem origin (ex: curl) ou origem permitida
-      if (!origin || ALLOWED_ORIGINS.has(origin)) return callback(null, true);
-      callback(new Error('Origem não permitida.'));
-    },
-    credentials: true,
-  }));
+  // CORS manual — mais confiável que o cors() npm package.
+  // O cors() npm usa callback(new Error) quando a origem não bate,
+  // gerando um 500 SEM headers CORS — browser interpreta como CORS error.
+  // Este middleware explicita cada header e sempre responde OPTIONS com 200.
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin',      origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+    }
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      return res.sendStatus(200);
+    }
+    next();
+  });
 
-  // Segurança: headers HTTP defensivos (OWASP)
-  app.use(helmet());
+  // Segurança: headers HTTP defensivos (OWASP).
+  // crossOriginResourcePolicy: cross-origin — permite fetch() de outros domínios
+  // (padrão same-origin do helmet v8 conflitava com CORS em ambientes CDN).
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy:   false,
+  }));
 
   // Compressão gzip/deflate — reduz banda em ~70%
   app.use(compression());
