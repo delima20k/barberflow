@@ -46,6 +46,8 @@ class ApiQuery {
   gte(col, val)        { this.#params.append(col, `gte.${val}`);             return this; }
   lte(col, val)        { this.#params.append(col, `lte.${val}`);             return this; }
   in(col, vals)        { this.#params.append(col, `in.(${vals.join(',')})`); return this; }
+  ilike(col, val)      { this.#params.append(col, `ilike.${val}`);           return this; }
+  like(col, val)       { this.#params.append(col, `like.${val}`);            return this; }
   or(filterStr)        { this.#params.set('or',   `(${filterStr})`);         return this; }
   is(col, val)         { this.#params.append(col, `is.${val}`);              return this; }
   not(col, op, val)    { this.#params.append(col, `not.${op}.${val}`);       return this; }

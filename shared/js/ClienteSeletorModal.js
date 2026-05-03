@@ -38,7 +38,7 @@ class ClienteSeletorModal {
             <p class="csm-titulo">Selecionar cliente</p>
             <button class="csm-fechar" aria-label="Fechar">✕</button>
           </div>
-          <input class="csm-busca" type="search" placeholder="Buscar por nome…" autocomplete="off" />
+          <input class="csm-busca" type="search" placeholder="Buscar por nome ou e-mail…" autocomplete="off" />
           <p class="csm-secao-label" id="csm-label">Favoritos da barbearia</p>
           <ul class="csm-lista" role="listbox" aria-label="Clientes"></ul>
         </div>`;
@@ -128,15 +128,17 @@ class ClienteSeletorModal {
   // ── Privados ────────────────────────────────────────────────
 
   /**
-   * Busca usuários no Supabase por nome (role = client ou professional).
+   * Busca usuários no Supabase por nome OU email (role = client ou professional).
+   * Usa o operador `or` do PostgREST: or=(full_name.ilike.*,email.ilike.*)
    * @param {string}   termo
    * @param {Set}      excluirIds
    * @returns {Promise<{id,full_name,avatar_path,updated_at}[]>}
    */
   static async #buscar(termo, excluirIds) {
+    const t = termo.replace(/'/g, "''"); // escapa aspas simples para o PostgREST or-filter
     const { data, error } = await ApiService.from('profiles')
-      .select('id, full_name, avatar_path, updated_at, role')
-      .ilike('full_name', `%${termo}%`)
+      .select('id, full_name, avatar_path, updated_at')
+      .or(`full_name.ilike.%${t}%,email.ilike.%${t}%`)
       .in('role', ['client', 'professional'])
       .eq('is_active', true)
       .limit(20);
