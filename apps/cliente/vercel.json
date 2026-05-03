@@ -17,6 +17,12 @@
       ]
     },
     {
+      "source": "/cliente/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
       "source": "/shared/css/:path*",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
@@ -62,6 +68,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/index.html" }
+    { "source": "/cliente/",       "destination": "/index.html" },
+    { "source": "/cliente/:path*", "destination": "/:path*"     },
+    { "source": "/",               "destination": "/index.html" }
   ]
 }

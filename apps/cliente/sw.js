@@ -5,11 +5,12 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v144';
+  static #CACHE_NAME = 'barberflow-cliente-v145';
 
   // Paths relativos ao deploy no Vercel (/cliente/) e assets shared (/shared/)
   // Falhas individuais não bloqueiam a instalação (Promise.allSettled)
   static #ASSETS = [
+    '/cliente/',
     '/cliente/manifest.json',
     '/cliente/assets/css/styles.css',
     '/cliente/assets/js/app.js',
@@ -82,12 +83,16 @@ class SWCliente {
       e.respondWith(
         fetch(e.request)
           .then(response => {
+            // Não cacheia respostas de erro (4xx/5xx) — poderia "petrificar" um 404
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const clone = response.clone();
             caches.open(SWCliente.#CACHE_NAME).then(cache => cache.put(e.request, clone));
             return response;
           })
           .catch(async () => {
-            const cached = await caches.match(e.request);
+            // Tenta cache exato; se não existir, usa o app shell /cliente/
+            const cached = await caches.match(e.request)
+              || await caches.match('/cliente/');
             return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
           })
       );
