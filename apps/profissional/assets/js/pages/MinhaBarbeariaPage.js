@@ -624,26 +624,43 @@ class MinhaBarbeariaPage {
       );
     }
 
-    // Ícone — avatar do cliente ou imagem da cadeira
+    // Ícone — imagem da cadeira sempre visível; avatar do cliente flutua acima
     const iconWrap = document.createElement('div');
     iconWrap.className = 'mb-cadeira-icon';
 
-    if (entrada?.client?.avatar_path) {
-      const img   = document.createElement('img');
-      img.alt     = entrada.client.full_name ?? '';
-      img.loading = 'lazy';
-      img.src     = SupabaseService.resolveAvatarUrl(
-        entrada.client.avatar_path,
-        entrada.client.updated_at ?? null
-      ) || '';
-      img.onerror = () => {
-        img.remove();
-        iconWrap.appendChild(MinhaBarbeariaPage.#cadeiraImgEl(tipo));
-      };
-      iconWrap.appendChild(img);
-    } else {
-      iconWrap.appendChild(MinhaBarbeariaPage.#cadeiraImgEl(tipo));
+    // Imagem da cadeira — sempre como fundo
+    const imgFundo = MinhaBarbeariaPage.#cadeiraImgEl(tipo);
+    imgFundo.className = 'mb-cadeira-img-fundo';
+    iconWrap.appendChild(imgFundo);
+
+    // Se há cliente: avatar flutuante + badge de posição
+    if (ocupada) {
+      const avatarWrap = document.createElement('div');
+      avatarWrap.className = 'mb-cadeira-avatar-cli';
+
+      const avatarPath = entrada.client?.avatar_path;
+      if (avatarPath) {
+        const img   = document.createElement('img');
+        img.alt     = entrada.client?.full_name ?? '';
+        img.loading = 'lazy';
+        img.src     = SupabaseService.resolveAvatarUrl(
+          avatarPath, entrada.client?.updated_at ?? null
+        ) || '';
+        img.onerror = () => { avatarWrap.textContent = '💈'; };
+        avatarWrap.appendChild(img);
+      } else {
+        avatarWrap.textContent = '💈';
+      }
+      iconWrap.appendChild(avatarWrap);
+
+      if (tipo === 'fila' && posicao > 0) {
+        const badge = document.createElement('span');
+        badge.className   = 'mb-cadeira-pos-badge';
+        badge.textContent = `#${posicao}`;
+        iconWrap.appendChild(badge);
+      }
     }
+
     cadeira.appendChild(iconWrap);
 
     // Label de estado
@@ -652,17 +669,9 @@ class MinhaBarbeariaPage {
     if (tipo === 'producao') {
       label.textContent = entrada ? 'Atendendo' : 'Livre';
     } else {
-      label.textContent = entrada ? `#${posicao}` : '—';
+      label.textContent = entrada ? entrada.client?.full_name?.split(' ')[0] ?? `#${posicao}` : '+';
     }
     cadeira.appendChild(label);
-
-    // Nome do cliente (se houver)
-    if (entrada?.client?.full_name) {
-      const cli = document.createElement('span');
-      cli.className   = 'mb-cadeira-cliente';
-      cli.textContent = entrada.client.full_name;
-      cadeira.appendChild(cli);
-    }
 
     return cadeira;
   }
@@ -720,12 +729,21 @@ class MinhaBarbeariaPage {
     // Cadeira de produção — fixa, fora do scroll
     wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico, 0, optsProducao));
 
-    // Cadeiras de espera — dentro do elemento scrollável
+    // Cadeiras de espera — dinâmicas: uma por cliente na fila + sempre 1 vazia no final
     const filaWrap     = document.createElement('div');
     filaWrap.className = 'mb-cadeiras-fila-wrap';
-    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[0] ?? null, 1, optsFilaFn(1)));
-    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[1] ?? null, 2, optsFilaFn(2)));
-    filaWrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('fila', naFila[2] ?? null, 3, optsFilaFn(3)));
+
+    naFila.forEach((entrada, i) => {
+      filaWrap.appendChild(
+        MinhaBarbeariaPage.#criarCadeiraEl('fila', entrada, i + 1, optsFilaFn(i + 1))
+      );
+    });
+
+    // Cadeira vazia sempre ao final — permite adicionar o próximo
+    filaWrap.appendChild(
+      MinhaBarbeariaPage.#criarCadeiraEl('fila', null, naFila.length + 1, optsFilaFn(naFila.length + 1))
+    );
+
     wrap.appendChild(filaWrap);
 
     row.appendChild(wrap);
