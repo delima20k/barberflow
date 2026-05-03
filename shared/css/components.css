@@ -4875,7 +4875,81 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: column;
   gap: 8px;
 }
+/* ── Card-view: item de serviço salvo (estilo CorteModal, tema escuro) ── */
 .mb-cfg-produto-row {
+  /* wrapper sem visual próprio — children controlam o estilo */
+}
+
+.mb-prod-card-view {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md, 10px);
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(212,175,55,.18);
+  cursor: pointer;
+  transition: background .15s;
+}
+.mb-prod-card-view:hover { background: rgba(212,175,55,.08); }
+
+.mb-prod-card-img-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(212,175,55,.2);
+}
+.mb-prod-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.mb-prod-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mb-prod-card-nome {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mb-prod-card-meta {
+  font-size: .75rem;
+  color: var(--gold, #D4AF37);
+}
+.mb-prod-card-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.mb-prod-card-edit-btn {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: .82rem;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.mb-prod-card-edit-btn:active { background: rgba(255,255,255,.1); }
+
+/* ── Form-view: painel de edição/criação do item ── */
+.mb-prod-form-view {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -4884,14 +4958,18 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-radius: var(--r-md, 10px);
   background: rgba(255,255,255,.03);
 }
+.mb-prod-form-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-/* Linha principal: imagem + campos lado a lado */
+/* Linha principal dentro do form: imagem + campos lado a lado */
 .mb-prod-li--painel {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
   gap: 12px;
-  list-style: none;
   width: 100%;
 }
 
@@ -4909,18 +4987,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 3px;
-}
-
-/* Botão de ação (salvar) ocupa linha inteira abaixo */
-.mb-prod-li--acao {
-  list-style: none;
-  width: 100%;
-}
-
-/* Botão remover fica no topo direito da linha painel */
-.mb-prod-li--painel .mb-prod-remove {
-  align-self: flex-start;
-  margin-top: 0;
 }
 /* Label dos campos do item */
 .mb-prod-label {

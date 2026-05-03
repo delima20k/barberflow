@@ -1168,55 +1168,97 @@ class MinhaBarbeariaPage {
     const lista = this.#refs.cfgProdutos;
     if (!lista) return;
 
-    const uid   = `prod-img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const uidN  = `${uid}-nome`;
-    const uidP  = `${uid}-preco`;
-    const imgSrc = produto?.image_path || '/shared/img/Logo01.png';
+    const uid      = `prod-img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const uidN     = `${uid}-nome`;
+    const uidP     = `${uid}-preco`;
+    const imgSrc   = produto?.image_path || '/shared/img/Logo01.png';
     const precoVal = produto ? Number(produto.price).toFixed(2) : '';
     const nomeVal  = produto ? MinhaBarbeariaPage.#escapeAttr(produto.name ?? '') : '';
+    const isSaved  = !!produto?.id;
 
-    const row = document.createElement('ul');
+    // Meta text para o card (estilo CorteModal)
+    const precoFmt = produto?.price != null
+      ? Number(produto.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : '';
+    const durTxt  = produto?.duration_min ? `${produto.duration_min} min` : '';
+    const metaTxt = [precoFmt, durTxt].filter(Boolean).join(' · ');
+
+    const row = document.createElement('div');
     row.className = 'mb-cfg-produto-row';
 
     if (produto?.image_path)    row.dataset.imagePath = produto.image_path;
-    if (produto?.id)            row.dataset.produtoId = produto.id;
-    if (produto?.duration_min)  row.dataset.duracao   = produto.duration_min;
-    row.dataset.mediaUid = uid;  // permite que #salvarProdutoUnico localize o pendente P2P
+    if (produto?.id)            row.dataset.produtoId  = produto.id;
+    if (produto?.duration_min)  row.dataset.duracao    = produto.duration_min;
+    row.dataset.mediaUid = uid;
 
     row.innerHTML = `
-      <li class="mb-prod-li mb-prod-li--painel">
-        <div class="mb-cfg-prod-img-wrap">
-          <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
-          <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
-          <input type="file" id="${uid}" accept="image/*" style="display:none">
+      <div class="mb-prod-card-view"${isSaved ? '' : ' hidden'}>
+        <div class="mb-prod-card-img-wrap">
+          <img class="mb-prod-card-img" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="" loading="lazy">
         </div>
-        <div class="mb-cfg-prod-fields">
-          <div class="mb-cfg-prod-field-group">
-            <label class="mb-prod-label" for="${uidN}">Nome</label>
-            <input type="text" id="${uidN}" class="mb-cfg-prod-nome"
-                   placeholder="Nome do serviço / produto"
-                   value="${nomeVal}" maxlength="60">
+        <div class="mb-prod-card-info">
+          <span class="mb-prod-card-nome">${MinhaBarbeariaPage.#escapeAttr(produto?.name ?? '')}</span>
+          <span class="mb-prod-card-meta">${metaTxt}</span>
+        </div>
+        <div class="mb-prod-card-btns">
+          <button class="mb-prod-card-edit-btn" type="button" aria-label="Editar item">✏️</button>
+          <button class="mb-prod-remove" type="button" aria-label="Remover item">✕</button>
+        </div>
+      </div>
+      <div class="mb-prod-form-view"${isSaved ? ' hidden' : ''}>
+        <div class="mb-prod-li--painel">
+          <div class="mb-cfg-prod-img-wrap">
+            <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
+            <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+            <input type="file" id="${uid}" accept="image/*" style="display:none">
           </div>
-          <div class="mb-cfg-prod-field-group">
-            <label class="mb-prod-label" for="${uidP}">Preço</label>
-            <div class="mb-prod-preco-row">
-              <span class="mb-prod-preco-prefix">R$</span>
-              <input type="number" id="${uidP}" class="mb-cfg-prod-preco"
-                     placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+          <div class="mb-cfg-prod-fields">
+            <div class="mb-cfg-prod-field-group">
+              <label class="mb-prod-label" for="${uidN}">Nome</label>
+              <input type="text" id="${uidN}" class="mb-cfg-prod-nome"
+                     placeholder="Nome do serviço / produto"
+                     value="${nomeVal}" maxlength="60">
+            </div>
+            <div class="mb-cfg-prod-field-group">
+              <label class="mb-prod-label" for="${uidP}">Preço</label>
+              <div class="mb-prod-preco-row">
+                <span class="mb-prod-preco-prefix">R$</span>
+                <input type="number" id="${uidP}" class="mb-cfg-prod-preco"
+                       placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+              </div>
             </div>
           </div>
         </div>
-        <button class="mb-prod-remove" type="button" aria-label="Remover item">✕</button>
-      </li>
-      <li class="mb-prod-li mb-prod-li--acao">
-        <button class="btn-flow mb-prod-salvar-btn" type="button">Salvar item</button>
-      </li>
+        <div class="mb-prod-form-acoes">
+          <button class="btn-flow mb-prod-salvar-btn" type="button">Salvar item</button>
+          <button class="btn-flow btn-flow--outline mb-prod-form-cancel-btn" type="button"${!isSaved ? ' hidden' : ''}>Cancelar</button>
+        </div>
+      </div>
     `;
 
+    const cardView = row.querySelector('.mb-prod-card-view');
+    const formView = row.querySelector('.mb-prod-form-view');
+
+    // Remover definitivo (card ✕)
     row.querySelector('.mb-prod-remove')
        .addEventListener('click', () => {
-         this.#mediaP2P.cancelar(uid); // revoga blob URL pendente antes de remover
+         this.#mediaP2P.cancelar(uid);
          row.remove();
+       });
+
+    // Editar: abre form
+    row.querySelector('.mb-prod-card-edit-btn')
+       .addEventListener('click', () => {
+         cardView.hidden = true;
+         formView.hidden = false;
+       });
+
+    // Cancelar edição: volta ao card
+    row.querySelector('.mb-prod-form-cancel-btn')
+       .addEventListener('click', () => {
+         this.#mediaP2P.cancelar(uid);
+         cardView.hidden = false;
+         formView.hidden = true;
        });
 
     row.querySelector(`#${uid}`)
@@ -1292,6 +1334,34 @@ class MinhaBarbeariaPage {
       if (error) throw error;
 
       if (data?.id) row.dataset.produtoId = data.id;
+
+      // Atualiza card-view com os novos dados e volta para ele
+      const nomeInput  = row.querySelector('.mb-cfg-prod-nome');
+      const precoInput = row.querySelector('.mb-cfg-prod-preco');
+      const cardNome   = row.querySelector('.mb-prod-card-nome');
+      const cardMeta   = row.querySelector('.mb-prod-card-meta');
+      const cardImg    = row.querySelector('.mb-prod-card-img');
+      const cardView   = row.querySelector('.mb-prod-card-view');
+      const formView   = row.querySelector('.mb-prod-form-view');
+
+      if (cardNome) cardNome.textContent = nome;
+      if (cardMeta) {
+        const preco = parseFloat(precoInput?.value || '0');
+        const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
+        const pFmt  = preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        cardMeta.textContent = [pFmt, dur ? `${dur} min` : ''].filter(Boolean).join(' · ');
+      }
+      if (cardImg && row.dataset.imagePath) {
+        cardImg.src = row.dataset.imagePath;
+      }
+      if (cardView && formView) {
+        // Garante que o botão cancelar exista para próximas edições
+        const cancelBtn = row.querySelector('.mb-prod-form-cancel-btn');
+        if (cancelBtn) cancelBtn.hidden = false;
+        cardView.hidden = false;
+        formView.hidden = true;
+      }
+
       NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
 
       // Atualiza cache de serviços para aparecer na modal das cadeiras
