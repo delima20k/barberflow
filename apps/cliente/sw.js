@@ -5,7 +5,7 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v143';
+  static #CACHE_NAME = 'barberflow-cliente-v144';
 
   // Paths relativos ao deploy no Vercel (/cliente/) e assets shared (/shared/)
   // Falhas individuais não bloqueiam a instalação (Promise.allSettled)

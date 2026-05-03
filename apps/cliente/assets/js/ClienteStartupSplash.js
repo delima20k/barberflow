@@ -84,7 +84,7 @@ class ClienteStartupSplash {
       <div class="cs-conteudo">
         <img
           class="cs-logo"
-          src="assets/img/logoCliente.png"
+          src="/shared/img/icon-512-cliente.png"
           alt="BarberFlow Cliente"
           onerror="this.style.display='none'"
         >
