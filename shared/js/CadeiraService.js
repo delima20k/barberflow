@@ -96,8 +96,7 @@ class CadeiraService {
 
     const { data, error } = await ApiService.from('profiles')
       .select('id, full_name, avatar_path, updated_at')
-      .in('id', [...ids])
-      .eq('is_active', true);
+      .in('id', [...ids]);
 
     if (error) throw error;
     return (data ?? []).map(p => ({

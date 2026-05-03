@@ -254,4 +254,25 @@ class BackendApiService {
   static listarServicos(barbeariaId) {
     return BackendApiService.#req('GET', `/api/barbearias/${barbeariaId}/servicos`);
   }
+
+  // ── Media ─────────────────────────────────────────────────
+
+  /**
+   * Envia buffer binário ao BFF com autenticação.
+   * Retorna o Response nativo para que o caller inspecione .ok e leia .json().
+   * @param {string} path — ex: '/api/media/upload-image?contexto=avatars'
+   * @param {ArrayBuffer} buffer
+   * @returns {Promise<Response>}
+   */
+  static async uploadBinario(path, buffer) {
+    const jwt = BackendApiService.#jwt();
+    return fetch(`${BackendApiService.#BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {}),
+      },
+      body: buffer,
+    });
+  }
 }

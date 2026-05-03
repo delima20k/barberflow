@@ -128,23 +128,37 @@ class ClienteSeletorModal {
   // ── Privados ────────────────────────────────────────────────
 
   /**
-   * Busca usuários no Supabase por nome OU email (role = client ou professional).
-   * Usa o operador `or` do PostgREST: or=(full_name.ilike.*,email.ilike.*)
-   * @param {string}   termo
-   * @param {Set}      excluirIds
+   * Busca usuários no Supabase por nome OU email.
+   * Tenta `or(full_name.ilike + email.ilike)` primeiro; se a coluna email
+   * ainda não existir no banco (migration pendente), cai silenciosamente para
+   * busca apenas por full_name — sem erro visível ao usuário.
+   * Não filtra por role nem por is_active: campos podem estar nulos em cadastros novos.
+   * @param {string} termo
+   * @param {Set}    excluirIds
    * @returns {Promise<{id,full_name,avatar_path,updated_at}[]>}
    */
   static async #buscar(termo, excluirIds) {
-    const t = termo.replace(/'/g, "''"); // escapa aspas simples para o PostgREST or-filter
-    const { data, error } = await ApiService.from('profiles')
-      .select('id, full_name, avatar_path, updated_at')
-      .or(`full_name.ilike.%${t}%,email.ilike.%${t}%`)
-      .in('role', ['client', 'professional'])
-      .eq('is_active', true)
-      .limit(20);
+    const t = termo.replace(/'/g, "''");
 
-    if (error) throw error;
-    return (data ?? [])
+    let resultado;
+    try {
+      const { data, error } = await ApiService.from('profiles')
+        .select('id, full_name, avatar_path, updated_at')
+        .or(`full_name.ilike.%${t}%,email.ilike.%${t}%`)
+        .limit(20);
+      if (error) throw error;
+      resultado = data ?? [];
+    } catch (_) {
+      // Fallback: coluna email ausente — busca só por nome
+      const { data, error } = await ApiService.from('profiles')
+        .select('id, full_name, avatar_path, updated_at')
+        .ilike('full_name', `%${t}%`)
+        .limit(20);
+      if (error) throw error;
+      resultado = data ?? [];
+    }
+
+    return resultado
       .filter(p => !excluirIds.has(p.id))
       .map(p => ({
         id:          p.id,

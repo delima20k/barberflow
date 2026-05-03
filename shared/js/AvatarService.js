@@ -5,8 +5,8 @@
  *
  * Responsabilidades:
  *  - preview instantâneo antes do upload (Blob URL local, zero latência)
- *  - upload direto ao Supabase Storage via ProfileRepository.updateAvatar()
- *  - atualização do profile no banco
+ *  - upload via BFF /api/media/upload-image?contexto=avatars
+ *    (pipeline server-side: crop 1:1 + resize 200×200 + WebP ≤20KB)
  *  - cache local via SessionCache
  *
  * API pública:
@@ -60,17 +60,34 @@ const AvatarService = (() => {
   }
 
   /**
-   * Faz o upload do avatar direto ao Supabase Storage via ProfileRepository.
-   * O bucket 'avatars' é acessível pelo SDK do cliente com RLS (owner = auth.uid()).
+   * Envia o arquivo como buffer binário para o BFF, que executa o pipeline
+   * server-side: crop 1:1 central → resize 200×200 → WebP ≤20KB.
+   * Retorna a publicUrl processada.
+   * @param {File} file
+   * @returns {Promise<string>} publicUrl
+   */
+  async function _enviarParaBFF(file) {
+    const buffer = await file.arrayBuffer();
+    const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer);
+    if (!res.ok) {
+      const corpo = await res.json().catch(() => ({}));
+      throw new Error(corpo.error ?? `Upload falhou (${res.status})`);
+    }
+    const { publicUrl } = await res.json();
+    return publicUrl;
+  }
+
+  /**
+   * Faz o upload do avatar via BFF com pipeline de otimização server-side.
    * @param {File} file
    */
   async function _uploadViaBFF(file) {
     try {
-      const user = UserService.getUser?.() ?? UserService.getUserId?.();
+      const user   = UserService.getUser?.() ?? UserService.getUserId?.();
       const userId = typeof user === 'string' ? user : user?.id;
       if (!userId) return;
 
-      const publicUrl = await ProfileRepository.updateAvatar(userId, file);
+      const publicUrl = await _enviarParaBFF(file);
 
       _aplicarSrc(publicUrl);
       _aplicarSrcDinamico(userId, publicUrl);

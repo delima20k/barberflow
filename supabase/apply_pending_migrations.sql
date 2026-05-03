@@ -394,6 +394,69 @@ COMMENT ON COLUMN public.p2p_peers.user_id    IS 'Usuário dono deste anúncio';
 COMMENT ON COLUMN public.p2p_peers.region     IS 'Região geográfica (opcional) para preferência local';
 COMMENT ON COLUMN public.p2p_peers.expires_at IS 'Timestamp de expiração do anúncio (5 min após announce)';
 
+-- ────────────────────────────────────────────────────────────────
+-- 9. PROFILES.EMAIL — coluna email em profiles, sincronizada com auth.users
+--    Migration: 20260503000001_profiles_email.sql
+-- ────────────────────────────────────────────────────────────────
+
+-- 9.1 Adiciona coluna (idempotente)
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS email text;
+
+-- 9.2 Retroalimenta registros existentes
+UPDATE public.profiles p
+SET    email = u.email
+FROM   auth.users u
+WHERE  p.id = u.id
+  AND  p.email IS NULL;
+
+-- 9.3 Índice para busca rápida (ilike)
+CREATE INDEX IF NOT EXISTS idx_profiles_email
+  ON public.profiles (email);
+
+-- 9.4 Atualiza trigger de criação de usuário para copiar email
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, phone, role, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'phone', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'client'),
+    NEW.email
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET email = EXCLUDED.email;
+  RETURN NEW;
+END;
+$$;
+
+-- 9.5 Função para sincronizar email quando o usuário altera o e-mail no Auth
+CREATE OR REPLACE FUNCTION public.sync_profile_email()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.profiles
+  SET    email = NEW.email
+  WHERE  id = NEW.id;
+  RETURN NEW;
+END;
+$$;
+
+-- 9.6 Trigger de sincronização de email
+DROP TRIGGER IF EXISTS on_auth_user_email_updated ON auth.users;
+CREATE TRIGGER on_auth_user_email_updated
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.sync_profile_email();
+
 -- ================================================================
 -- FIM ATUALIZADO — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
