@@ -169,6 +169,65 @@ class TokenService {
       );
     }
   }
+
+  // ── Admin token ───────────────────────────────────────────
+
+  static #segredoAdmin() {
+    const s = process.env.ADMIN_JWT_SECRET;
+    if (!s) throw Object.assign(new Error('ADMIN_JWT_SECRET não configurado.'), { status: 500 });
+    return s;
+  }
+
+  /**
+   * Gera token JWT exclusivo para o admin da dashboard.
+   * Usa secret próprio (ADMIN_JWT_SECRET) — completamente separado
+   * dos tokens Supabase Auth e dos tokens de usuário.
+   *
+   * @param {{ email: string }} payload
+   * @returns {string} JWT assinado com HS256, validade 4h
+   * @throws {Error{status:400}} se email ausente
+   */
+  static gerarAdmin(payload) {
+    if (!payload?.email) {
+      throw Object.assign(new Error('payload.email é obrigatório.'), { status: 400 });
+    }
+    return jwt.sign(
+      { email: payload.email, type: 'admin' },
+      TokenService.#segredoAdmin(),
+      {
+        expiresIn:  '4h',
+        issuer:     TokenService.#ISSUER,
+        algorithm:  TokenService.#ALGORITHM,
+      }
+    );
+  }
+
+  /**
+   * Verifica token de admin.
+   * Rejeita explicitamente qualquer token cujo `type` não seja 'admin' —
+   * tokens de usuário Supabase jamais passam aqui.
+   *
+   * @param {string} token
+   * @returns {{ email: string, type: 'admin' }}
+   * @throws {Error{status:401}} token inválido, expirado ou tipo errado
+   */
+  static verificarAdmin(token) {
+    try {
+      const payload = jwt.verify(token, TokenService.#segredoAdmin(), {
+        issuer:     TokenService.#ISSUER,
+        algorithms: [TokenService.#ALGORITHM],
+      });
+      if (payload.type !== 'admin') {
+        throw new Error('Tipo de token inválido.');
+      }
+      return payload;
+    } catch (err) {
+      throw Object.assign(
+        new Error('Token de admin inválido ou expirado.'),
+        { status: 401, cause: err }
+      );
+    }
+  }
 }
 
 module.exports = TokenService;

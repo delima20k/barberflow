@@ -30,6 +30,7 @@ const ComunicacaoRepository  = require('./repositories/ComunicacaoRepository');
 const FilaRepository         = require('./repositories/FilaRepository');
 const LgpdRepository         = require('./repositories/LgpdRepository');
 const AuthRepository         = require('./repositories/AuthRepository');
+const AdminRepository        = require('./repositories/AdminRepository');
 
 // ── Services ──────────────────────────────────────────────────
 const ClienteService      = require('./services/ClienteService');
@@ -43,6 +44,7 @@ const LgpdService         = require('./services/LgpdService');
 const CadastroService     = require('./services/CadastroService');
 const UserService         = require('./services/UserService');
 const AuthService         = require('./services/AuthService');
+const AdminService        = require('./services/AdminService');
 const R2Client                  = require('./infra/R2Client');
 const SupabaseStorageClient     = require('./infra/SupabaseStorageClient');
 const ImageProcessor            = require('./services/ImageProcessor');
@@ -63,6 +65,7 @@ const criarUserController          = require('./controllers/UserController');
 const criarMediaController         = require('./controllers/MediaController');
 const criarSecureMediaController   = require('./controllers/SecureMediaController');
 const criarWebRTCController        = require('./controllers/WebRTCController');
+const criarAdminController         = require('./controllers/AdminController');
 
 // ── Origens permitidas (CORS) ──────────────────────────────────
 const ALLOWED_ORIGINS = new Set([
@@ -134,6 +137,8 @@ function criarApp() {
   const cadastroService     = new CadastroService(authRepo);
   const userService         = new UserService(clienteRepo, searchRepo);
   const authService         = new AuthService(supabase);
+  const adminRepo           = new AdminRepository(supabase);
+  const adminService        = new AdminService(adminRepo);
   const r2Client            = R2Client.getInstance();
   const supabaseStorage     = new SupabaseStorageClient(supabase);
   const imageProcessor      = new ImageProcessor();
@@ -157,6 +162,7 @@ function criarApp() {
   app.use('/api/media',         criarMediaController(mediaManager, imageProcessor, supabaseStorage));
   app.use('/api/media/secure',  criarSecureMediaController(secureMediaAccess));
   app.use('/api/p2p',           criarWebRTCController(supabase));
+  app.use('/api/admin',         criarAdminController(adminService));
 
   // ── Health check com ping real no banco ─────────────────────
   app.get('/api/health', async (_req, res) => {
