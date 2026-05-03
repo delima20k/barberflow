@@ -61,7 +61,7 @@ class CadeiraService {
 
   /**
    * Retorna perfis de usuários que favoritaram a barbearia OU o barbeiro.
-   * Usa RPC PostgreSQL com SECURITY DEFINER — ignora RLS sem expor service_role.
+   * Delega ao BFF via BackendApiService — sem acesso direto ao Supabase.
    * @param {string} barbershopId
    * @param {string} professionalId
    * @returns {Promise<{id:string, full_name:string, avatar_path:string|null, updated_at:string|null}[]>}
@@ -72,10 +72,10 @@ class CadeiraService {
     if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
     if (!rProf.ok) throw new TypeError(`[CadeiraService] professionalId: ${rProf.msg}`);
 
-    const { data, error } = await ApiService.rpc('get_clientes_favoritos_modal', {
-      p_barbershop_id:   barbershopId,
-      p_professional_id: professionalId,
-    });
+    const { data, error } = await BackendApiService.getClientesFavoritosModal(
+      barbershopId,
+      professionalId,
+    );
     if (error) throw error;
     return (data ?? []).map(p => ({
       id:          p.id,

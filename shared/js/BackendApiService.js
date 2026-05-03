@@ -45,17 +45,19 @@ class BackendApiService {
 
   /**
    * Executa uma requisição HTTP para o backend Node.js.
-   * @param {string} method
-   * @param {string} path — ex: '/api/profissionais/uuid-aqui'
-   * @param {object} [body]
+   * @param {string}      method
+   * @param {string}      path   — ex: '/api/users/uuid-aqui'
+   * @param {object}      [body]
+   * @param {AbortSignal} [signal] — cancelamento via AbortController
    * @returns {Promise<{ data: any, error: Error|null }>}
    */
-  static async #req(method, path, body = undefined) {
+  static async #req(method, path, body = undefined, signal = undefined) {
     try {
       const res = await fetch(`${BackendApiService.#BASE_URL}${path}`, {
         method,
         headers: BackendApiService.#headers(),
         body:    body !== undefined ? JSON.stringify(body) : undefined,
+        ...(signal ? { signal } : {}),
       });
 
       const json = await res.json().catch(() => ({}));
@@ -70,7 +72,8 @@ class BackendApiService {
 
       return { data: json?.dados ?? json, error: null };
     } catch (err) {
-      // Preserva mensagem original (ex: TypeError de fetch, AbortError de timeout)
+      // AbortError: cancelamento intencional — propaga para o caller tratar
+      if (err?.name === 'AbortError') return { data: null, error: err };
       const msg = err?.message ?? 'Sem conexão com a internet.';
       return { data: null, error: new Error(msg) };
     }
@@ -241,13 +244,28 @@ class BackendApiService {
   // ── Usuários / Modal de clientes ─────────────────────────
 
   /**
-   * Busca usuários por nome. Usado no modal de seleção de cliente.
-   * @param {string} termo
-   * @param {number} [limite=20]
+   * Busca unificada de usuários por nome, e-mail ou nome da barbearia.
+   * Sem termo + barbershopId/professionalId → retorna favoritos do barbeiro.
+   *
+   * @param {string} term
+   * @param {object} [opts]
+   * @param {string|null} [opts.role]           — 'client'|'professional'|null
+   * @param {number}      [opts.limit=20]       — máx. resultados (1–50)
+   * @param {number}      [opts.offset=0]       — paginação
+   * @param {string}      [opts.barbershopId]   — UUID da barbearia (sem term)
+   * @param {string}      [opts.professionalId] — UUID do barbeiro  (sem term)
+   * @param {AbortSignal} [opts.signal]         — cancelamento via AbortController
    */
-  static buscarClientes(termo, limite = 20) {
-    const qs = new URLSearchParams({ termo, limite: String(limite) });
-    return BackendApiService.#req('GET', `/api/usuarios/buscar?${qs}`);
+  static searchUsers(term, { role, limit = 20, offset = 0, barbershopId, professionalId, signal } = {}) {
+    const qs = new URLSearchParams({
+      term:   String(term),
+      limit:  String(Math.min(Math.max(1, Number(limit)),  50)),
+      offset: String(Math.max(0, Number(offset))),
+    });
+    if (role)           qs.set('role',           role);
+    if (barbershopId)   qs.set('barbershopId',   barbershopId);
+    if (professionalId) qs.set('professionalId', professionalId);
+    return BackendApiService.#req('GET', `/api/users/search?${qs}`, undefined, signal);
   }
 
   /**
@@ -257,7 +275,7 @@ class BackendApiService {
    */
   static getClientesFavoritosModal(barbershopId, professionalId) {
     const qs = new URLSearchParams({ barbershopId, professionalId });
-    return BackendApiService.#req('GET', `/api/usuarios/favoritos-modal?${qs}`);
+    return BackendApiService.#req('GET', `/api/users/favorites-modal?${qs}`);
   }
 
   // ── Buscas (já em Node.js) ────────────────────────────────

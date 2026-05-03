@@ -19,6 +19,9 @@ class ClienteSeletorModal {
   // Debounce da busca (ms)
   static #DEBOUNCE_MS = 350;
 
+  // AbortController da busca em andamento — cancelado antes de cada nova busca
+  static #abortCtrl = null;
+
   // ──────────────────────────────────────────────────────────
   // Exibe a modal.
   // @param {Array<{id,full_name,avatar_path}>} favoritos  — lista inicial
@@ -111,6 +114,9 @@ class ClienteSeletorModal {
 
       function _fechar(resultado) {
         clearTimeout(_timer);
+        // Cancela busca em andamento ao fechar — evita setState em modal removida
+        ClienteSeletorModal.#abortCtrl?.abort();
+        ClienteSeletorModal.#abortCtrl = null;
         document.removeEventListener('keydown', onKey);
         overlay.classList.add('csm-overlay--saindo');
         setTimeout(() => overlay.remove(), 220);
@@ -128,17 +134,26 @@ class ClienteSeletorModal {
   // ── Privados ────────────────────────────────────────────────
 
   /**
-   * Busca usuários por nome via RPC PostgreSQL com SECURITY DEFINER.
-   * Ignora RLS sem precisar do BFF ou da service_role key no frontend.
+   * Busca usuários por nome/email via BFF (BackendApiService.searchUsers).
+   * Cancela a requisição anterior com AbortController antes de disparar nova.
+   * AbortError é silenciado — não exibe erro para busca cancelada pelo próprio usuário.
    * @param {string} termo
    * @param {Set}    excluirIds
    * @returns {Promise<{id,full_name,avatar_path,updated_at}[]>}
    */
   static async #buscar(termo, excluirIds) {
-    const { data, error } = await ApiService.rpc('buscar_perfis_por_nome', {
-      p_termo:  termo,
-      p_limite: 20,
+    // Cancela requisição anterior se ainda estiver em andamento
+    ClienteSeletorModal.#abortCtrl?.abort();
+    ClienteSeletorModal.#abortCtrl = new AbortController();
+    const { signal } = ClienteSeletorModal.#abortCtrl;
+
+    const { data, error } = await BackendApiService.searchUsers(termo, {
+      limit: 20,
+      signal,
     });
+
+    // Busca cancelada (nova digitação) — retorna vazio silenciosamente
+    if (error?.name === 'AbortError') return [];
     if (error) throw error;
 
     return (data ?? [])
