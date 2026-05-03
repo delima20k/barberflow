@@ -63,41 +63,26 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_ids UUID[];
 BEGIN
-  -- Coleta IDs de quem favoritou a barbearia
-  SELECT ARRAY_AGG(DISTINCT bi.user_id)
-  INTO   v_ids
-  FROM   public.barbershop_interactions bi
-  WHERE  bi.barbershop_id = p_barbershop_id
-    AND  bi.type = 'favorite';
-
-  -- Adiciona IDs de quem favoritou o barbeiro
-  SELECT ARRAY_AGG(DISTINCT fp.user_id)
-  INTO   v_ids
-  FROM   public.favorite_professionals fp
-  WHERE  fp.professional_id = p_professional_id
-  UNION ALL
-  SELECT UNNEST(v_ids);
-
-  -- Recolhe lista unificada e deduplica
-  SELECT ARRAY_AGG(DISTINCT uid)
-  INTO   v_ids
-  FROM   UNNEST(v_ids) AS uid;
-
-  IF v_ids IS NULL OR array_length(v_ids, 1) = 0 THEN
-    RETURN;
-  END IF;
-
   RETURN QUERY
-    SELECT
+    SELECT DISTINCT
       p.id,
       p.full_name,
       p.avatar_path,
       p.updated_at
     FROM public.profiles p
-    WHERE p.id = ANY(v_ids)
+    WHERE p.id IN (
+      -- Quem favoritou a barbearia
+      SELECT bi.user_id
+      FROM   public.barbershop_interactions bi
+      WHERE  bi.barbershop_id = p_barbershop_id
+        AND  bi.type = 'favorite'
+      UNION
+      -- Quem favoritou o barbeiro
+      SELECT fp.user_id
+      FROM   public.favorite_professionals fp
+      WHERE  fp.professional_id = p_professional_id
+    )
     ORDER BY p.full_name;
 END;
 $$;
