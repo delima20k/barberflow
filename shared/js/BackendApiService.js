@@ -13,13 +13,13 @@
 // =============================================================
 class BackendApiService {
 
-  // Em produção: 'https://api.barberflow.app'
+  // Em produção: 'https://barberflow.vercel.app'
   // Em desenvolvimento: 'http://localhost:3001'
   static #BASE_URL = (() => {
     const { hostname } = window.location;
     return (hostname === 'localhost' || hostname === '127.0.0.1')
       ? 'http://localhost:3001'
-      : 'https://api.barberflow.app';
+      : 'https://barberflow.vercel.app';
   })();
 
   // Chave de armazenamento do JWT pelo SDK Supabase v2
