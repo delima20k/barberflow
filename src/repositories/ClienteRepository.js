@@ -105,6 +105,70 @@ class ClienteRepository extends BaseRepository {
     if (error) throw error;
     return data ?? null;
   }
+
+  /**
+   * Busca perfis por nome (full_name ilike). Usado no modal de seleção de cliente.
+   * Usa service_role — ignora RLS. Não expõe dados sensíveis.
+   * @param {string} termo
+   * @param {number} [limite=20]
+   * @returns {Promise<object[]>}
+   */
+  async buscarPorNome(termo, limite = 20) {
+    if (!termo || typeof termo !== 'string') throw new TypeError('[ClienteRepository] termo inválido');
+
+    const { data, error } = await this.#supabase
+      .from('profiles')
+      .select('id, full_name, avatar_path, updated_at')
+      .ilike('full_name', `%${termo}%`)
+      .limit(Math.min(limite, 50));
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  /**
+   * Retorna perfis de usuários que favoritaram a barbearia OU o barbeiro.
+   * Usa service_role — ignora RLS de barbershop_interactions e favorite_professionals.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<object[]>}
+   */
+  async getClientesFavoritosModal(barbershopId, professionalId) {
+    this._validarUuid('barbershopId', barbershopId);
+    this._validarUuid('professionalId', professionalId);
+
+    const ids = new Set();
+
+    // Quem favoritou a barbearia
+    const { data: shopFavs } = await this.#supabase
+      .from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    // Quem favoritou o barbeiro
+    const { data: profFavs } = await this.#supabase
+      .from('favorite_professionals')
+      .select('user_id')
+      .eq('professional_id', professionalId);
+    (profFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    if (!ids.size) return [];
+
+    const { data, error } = await this.#supabase
+      .from('profiles')
+      .select('id, full_name, avatar_path, updated_at')
+      .in('id', [...ids]);
+
+    if (error) throw error;
+    return (data ?? []).map(p => ({
+      id:          p.id,
+      full_name:   p.full_name   ?? 'Cliente',
+      avatar_path: p.avatar_path ?? null,
+      updated_at:  p.updated_at  ?? null,
+    }));
+  }
 }
 
 module.exports = ClienteRepository;

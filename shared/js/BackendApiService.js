@@ -238,6 +238,28 @@ class BackendApiService {
     return BackendApiService.#req('GET', `/api/auth/perfil-publico/${userId}`);
   }
 
+  // ── Usuários / Modal de clientes ─────────────────────────
+
+  /**
+   * Busca usuários por nome. Usado no modal de seleção de cliente.
+   * @param {string} termo
+   * @param {number} [limite=20]
+   */
+  static buscarClientes(termo, limite = 20) {
+    const qs = new URLSearchParams({ termo, limite: String(limite) });
+    return BackendApiService.#req('GET', `/api/usuarios/buscar?${qs}`);
+  }
+
+  /**
+   * Retorna perfis de quem favoritou a barbearia ou o barbeiro.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   */
+  static getClientesFavoritosModal(barbershopId, professionalId) {
+    const qs = new URLSearchParams({ barbershopId, professionalId });
+    return BackendApiService.#req('GET', `/api/usuarios/favoritos-modal?${qs}`);
+  }
+
   // ── Buscas (já em Node.js) ────────────────────────────────
 
   /** @param {string} id */

@@ -51,6 +51,32 @@ class UserService extends BaseService {
 
     return perfil;
   }
+
+  /**
+   * Busca perfis por nome. Usado no modal de seleção de cliente (profissional).
+   * @param {string} termo
+   * @param {number} [limite=20]
+   * @returns {Promise<object[]>}
+   */
+  async buscarPorNome(termo, limite = 20) {
+    if (!termo || typeof termo !== 'string' || !termo.trim()) {
+      throw this._erro('Termo de busca inválido.', 400);
+    }
+    return this.#clienteRepository.buscarPorNome(termo.trim(), limite);
+  }
+
+  /**
+   * Retorna perfis de quem favoritou a barbearia ou o barbeiro.
+   * Usado no modal de seleção de cliente.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<object[]>}
+   */
+  async getClientesFavoritosModal(barbershopId, professionalId) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('professionalId', professionalId);
+    return this.#clienteRepository.getClientesFavoritosModal(barbershopId, professionalId);
+  }
 }
 
 module.exports = UserService;
