@@ -70,6 +70,8 @@ const criarAdminController         = require('./controllers/AdminController');
 // ── Origens permitidas (CORS) ──────────────────────────────────
 const ALLOWED_ORIGINS = new Set([
   'https://barberflow.vercel.app',
+  'https://barberflow-cliente.vercel.app',
+  'https://barberflow-profissional.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
   'http://localhost:3000',
@@ -87,6 +89,17 @@ function criarApp() {
   // Compressão gzip/deflate — reduz banda em ~70%
   app.use(compression());
 
+  // CORS antes dos rate limiters — preflights OPTIONS devem receber os
+  // headers Access-Control-Allow-* sem serem barrados por rate limiting
+  app.use(cors({
+    origin(origin, callback) {
+      // Sem origin (ex: curl) ou origem permitida
+      if (!origin || ALLOWED_ORIGINS.has(origin)) return callback(null, true);
+      callback(new Error('Origem não permitida.'));
+    },
+    credentials: true,
+  }));
+
   // Log estruturado de cada requisição (pino)
   app.use(pinoHttp({
     logger,
@@ -103,15 +116,6 @@ function criarApp() {
 
   // Timeout por requisição (30s padrão)
   app.use(RequestTimeoutMiddleware.handle);
-
-  app.use(cors({
-    origin(origin, callback) {
-      // Sem origin (ex: curl) ou origem permitida
-      if (!origin || ALLOWED_ORIGINS.has(origin)) return callback(null, true);
-      callback(new Error('Origem não permitida.'));
-    },
-    credentials: true,
-  }));
   app.use(express.json({ limit: '50kb' }));
 
   // ── DI: instâncias ───────────────────────────────────────────
