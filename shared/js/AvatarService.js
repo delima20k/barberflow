@@ -78,7 +78,20 @@ const AvatarService = (() => {
   }
 
   /**
+   * Fallback: upload direto ao bucket 'avatars' via Supabase Storage (sem BFF).
+   * Usado quando o BFF falha (bucket media-images ausente, CORS, timeout, etc.).
+   * @param {File}   file
+   * @param {string} userId
+   * @returns {Promise<string>} publicUrl
+   */
+  async function _uploadFallback(file, userId) {
+    const url = await ProfileRepository.updateAvatar(userId, file);
+    return url;
+  }
+
+  /**
    * Faz o upload do avatar via BFF com pipeline de otimização server-side.
+   * Se o BFF falhar, executa fallback direto ao bucket 'avatars'.
    * @param {File} file
    */
   async function _uploadViaBFF(file) {
@@ -87,10 +100,19 @@ const AvatarService = (() => {
       const userId = typeof user === 'string' ? user : user?.id;
       if (!userId) return;
 
-      const publicUrl = await _enviarParaBFF(file);
-
-      // Persiste avatar_path no banco — sem isso o avatar some no próximo reload
-      await ProfileRepository.update(userId, { avatar_path: publicUrl });
+      let publicUrl;
+      try {
+        publicUrl = await _enviarParaBFF(file);
+        // Persiste avatar_path no banco — sem isso o avatar some no próximo reload
+        await ProfileRepository.update(userId, { avatar_path: publicUrl });
+      } catch (bffErr) {
+        // BFF indisponível (bucket ausente, CORS, timeout) — fallback direto ao Storage
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[AvatarService] BFF falhou, usando fallback Storage:', bffErr.message);
+        }
+        publicUrl = await _uploadFallback(file, userId);
+        // ProfileRepository.updateAvatar já persiste o avatar_path internamente
+      }
 
       _aplicarSrc(publicUrl);
       _aplicarSrcDinamico(userId, publicUrl);
