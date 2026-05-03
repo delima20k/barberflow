@@ -135,30 +135,6 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     CLIENTE LANDING GATE — Boas-vindas / primeiro acesso
-     Controlado por ClienteLandingGate.js
-══════════════════════════════════════════════════════════════ -->
-<div id="cliente-landing-gate" style="display:none;">
-  <div class="lg-backdrop"></div>
-  <div class="lg-card">
-    <img class="lg-logo-nome" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
-    <h2 class="lg-subtitulo">CLIENTE</h2>
-    <div class="lg-polo-wrap"><div id="clg-polo"></div></div>
-    <p class="lg-descricao">Descubra barbearias e agende com 1 toque</p>
-    <div class="lg-btns">
-      <button class="btn lg-btn-primary" onclick="ClienteLandingGate.irParaHome()">
-        <img src="/shared/img/inicio.svg" alt="">
-        Explorar barbearias
-      </button>
-      <button class="btn lg-btn-secondary" onclick="ClienteLandingGate.irParaLogin()">
-        <img src="/shared/img/login.svg" alt="">
-        Entrar / Cadastrar
-      </button>
-    </div>
-  </div>
-</div>
-
 <div id="app">
 
   <!-- ============================================================
@@ -1078,8 +1054,6 @@
 <script src="/shared/js/UserService.js"></script>
 <script src="/shared/js/AvatarService.js"></script>
 <script src="/shared/js/SplashService.js"></script>
-<!-- Gate de boas-vindas — primeiro acesso cliente -->
-<script src="/shared/js/ClienteLandingGate.js"></script>
 <!-- Estado global reativo -->
 <script src="/shared/js/AppState.js"></script>
 <!-- Modo visitante: bloqueia visualmente botões de ação para usuários não logados -->
