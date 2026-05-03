@@ -151,6 +151,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `MinhaBarbeariaPage` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage.js) | interfaces | Tela de gerenciamento da barbearia própria (serviços, mídias, configurações) |
 | `ParceriasPage` | [apps/profissional/assets/js/pages/ParceriasPage.js](apps/profissional/assets/js/pages/ParceriasPage.js) | interfaces | Tela de parcerias disponíveis para o profissional |
 | `QueueWidget` | [apps/profissional/assets/js/pages/QueueWidget.js](apps/profissional/assets/js/pages/QueueWidget.js) | interfaces | Fila de atendimento em tempo real com cadeiras e status |
+| `ProfissionalStartupSplash` | [apps/profissional/assets/js/ProfissionalStartupSplash.js](apps/profissional/assets/js/ProfissionalStartupSplash.js) | interfaces | Splash fullscreen de abertura do PWA profissional (session-scoped, BarberPole, auto-fecha 2.5s). Exclusivo do app profissional |
 
 ---
 

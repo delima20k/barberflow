@@ -1984,3 +1984,37 @@
 }
 .mb-cfg-editable-row .gps-input { flex: 1; margin: 0; }
 .mb-cfg-editable-row .gps-cep-row { flex: 1; }
+
+/* ================================================================
+   PROFISSIONAL STARTUP SPLASH — ps-*
+================================================================ */
+.ps-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background-image: url('/cliente/assets/img/imgFundoSplash.png');
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  opacity: 0; transition: opacity 0.35s ease;
+}
+.ps-overlay::before { content: ''; position: absolute; inset: 0; background: rgba(10,5,0,0.48); }
+.ps-overlay.cs-ativo  { opacity: 1; }
+.ps-overlay.cs-saindo { opacity: 0; }
+.ps-conteudo {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.ps-logo {
+  width: 140px; height: 140px; object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(212,175,55,0.7));
+  animation: psFloat 3s ease-in-out infinite;
+}
+.ps-nome {
+  font-size: 1.6rem; font-weight: 800; letter-spacing: 4px; text-transform: uppercase;
+  color: var(--gold, #D4AF37); margin: 0; text-shadow: 0 0 18px rgba(212,175,55,0.5);
+}
+.ps-polo-wrap { height: 9rem; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; }
+.ps-polo-wrap .barber-pole { transform: scale(0.38); transform-origin: top center; }
+.ps-boas-vindas {
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 2px;
+  color: rgba(245,233,220,0.8); text-transform: uppercase; margin: 0;
+}
+@keyframes psFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
