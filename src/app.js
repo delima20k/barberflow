@@ -83,14 +83,9 @@ function criarApp() {
 
   // ── Middlewares globais ──────────────────────────────────────
 
-  // Segurança: headers HTTP defensivos (OWASP)
-  app.use(helmet());
-
-  // Compressão gzip/deflate — reduz banda em ~70%
-  app.use(compression());
-
-  // CORS antes dos rate limiters — preflights OPTIONS devem receber os
-  // headers Access-Control-Allow-* sem serem barrados por rate limiting
+  // CORS primeiro — deve ser o primeiro middleware para garantir que headers
+  // Access-Control-Allow-* chegam ao browser antes de qualquer outra coisa,
+  // incluindo o helmet que pode sobrescrever ou conflitar com CORS.
   app.use(cors({
     origin(origin, callback) {
       // Sem origin (ex: curl) ou origem permitida
@@ -99,6 +94,12 @@ function criarApp() {
     },
     credentials: true,
   }));
+
+  // Segurança: headers HTTP defensivos (OWASP)
+  app.use(helmet());
+
+  // Compressão gzip/deflate — reduz banda em ~70%
+  app.use(compression());
 
   // Log estruturado de cada requisição (pino)
   app.use(pinoHttp({
