@@ -457,12 +457,12 @@ class MinhaBarbeariaPage {
    * @param {string} professionalId
    */
   async #fluxoSentar(tipo, professionalId) {
-    // 1. Busca clientes conhecidos
-    let clientes;
+    // 1. Busca clientes que favoritaram esta barbearia ou este barbeiro
+    let favoritos;
     try {
-      clientes = await CadeiraService.getClientesConhecidos(this.#barbershopId);
+      favoritos = await CadeiraService.getClientesFavoritos(this.#barbershopId, professionalId);
     } catch (_) {
-      clientes = [];
+      favoritos = [];
     }
 
     // Exclui clientes já sentados em qualquer cadeira desta barbearia
@@ -476,10 +476,10 @@ class MinhaBarbeariaPage {
       });
     } catch (_) { /* ignora */ }
 
-    const clientesDisponiveis = clientes.filter(c => !jaAssentados.has(c.id));
+    const favoritosDisponiveis = favoritos.filter(c => !jaAssentados.has(c.id));
 
-    // 2. Modal: selecionar cliente
-    const clienteSel = await ClienteSeletorModal.abrir(clientesDisponiveis);
+    // 2. Modal: selecionar cliente (favoritos iniciais + busca global no input)
+    const clienteSel = await ClienteSeletorModal.abrir(favoritosDisponiveis, { excluirIds: jaAssentados });
     if (!clienteSel) return;
 
     // 3. Modal: selecionar cortes
@@ -616,17 +616,26 @@ class MinhaBarbeariaPage {
     const cadeira = document.createElement('div');
     cadeira.className = `mb-cadeira mb-cadeira--${tipo}${ocupada ? '' : ' mb-cadeira--vazia'}`;
 
-    if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
-      cadeira.classList.add('mb-cadeira--interativa');
-      cadeira.addEventListener('click', () => ocupada
-        ? onClickOcupada(entrada)
-        : onClickVazia()
-      );
-    }
-
     // Ícone — imagem da cadeira sempre visível; avatar do cliente flutua acima
     const iconWrap = document.createElement('div');
     iconWrap.className = 'mb-cadeira-icon';
+
+    // Click restrito apenas ao ícone (não à cadeira inteira)
+    if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
+      cadeira.classList.add('mb-cadeira--interativa');
+      const handler = () => ocupada ? onClickOcupada(entrada) : onClickVazia();
+      iconWrap.addEventListener('click', handler);
+      iconWrap.setAttribute('role', 'button');
+      iconWrap.setAttribute('tabindex', '0');
+      iconWrap.setAttribute('aria-label',
+        tipo === 'producao'
+          ? (ocupada ? 'Finalizar atendimento' : 'Sentar cliente em produção')
+          : (ocupada ? `Cliente #${posicao}` : 'Adicionar cliente na fila')
+      );
+      iconWrap.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
+      });
+    }
 
     // Imagem da cadeira — sempre como fundo
     const imgFundo = MinhaBarbeariaPage.#cadeiraImgEl(tipo);

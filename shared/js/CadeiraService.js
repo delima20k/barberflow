@@ -59,6 +59,55 @@ class CadeiraService {
     return QueueRepository.getByBarbershop(barbershopId);
   }
 
+  /**
+   * Retorna perfis de usuários que favoritaram a barbearia OU o barbeiro.
+   * Fonte: barbershop_interactions (type='favorite') + favorite_professionals.
+   * Falhas silenciosas por tabela para manter resiliência.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<{id:string, full_name:string, avatar_path:string|null, updated_at:string|null}[]>}
+   */
+  static async getClientesFavoritos(barbershopId, professionalId) {
+    const rShop = InputValidator.uuid(barbershopId);
+    const rProf = InputValidator.uuid(professionalId);
+    if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
+    if (!rProf.ok) throw new TypeError(`[CadeiraService] professionalId: ${rProf.msg}`);
+
+    const ids = new Set();
+
+    // Usuários que favoritaram a barbearia
+    try {
+      const { data } = await ApiService.from('barbershop_interactions')
+        .select('user_id')
+        .eq('barbershop_id', barbershopId)
+        .eq('type', 'favorite');
+      (data ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+    } catch (_) { /* silencioso — tabela pode não ter dados */ }
+
+    // Usuários que favoritaram o barbeiro
+    try {
+      const { data } = await ApiService.from('favorite_professionals')
+        .select('user_id')
+        .eq('professional_id', professionalId);
+      (data ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+    } catch (_) { /* silencioso — tabela pode não existir */ }
+
+    if (!ids.size) return [];
+
+    const { data, error } = await ApiService.from('profiles')
+      .select('id, full_name, avatar_path, updated_at')
+      .in('id', [...ids])
+      .eq('is_active', true);
+
+    if (error) throw error;
+    return (data ?? []).map(p => ({
+      id:          p.id,
+      full_name:   p.full_name   ?? 'Cliente',
+      avatar_path: p.avatar_path ?? null,
+      updated_at:  p.updated_at  ?? null,
+    }));
+  }
+
   // ═══════════════════════════════════════════════════════════
   // ESCRITA
   // ═══════════════════════════════════════════════════════════

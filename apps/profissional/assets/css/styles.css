@@ -1609,17 +1609,23 @@
 
 /* ── Interatividade do dono ──────────────────────────────── */
 .mb-cadeira--interativa {
-  pointer-events: auto; /* habilita clique nas interativas */
+  /* pointer-events continua none na cadeira — só o ícone é clicável */
+  transition: transform .15s ease, opacity .15s ease;
+}
+
+/* Somente o ícone da cadeira responde ao clique */
+.mb-cadeira--interativa .mb-cadeira-icon {
+  pointer-events: auto;
   cursor: pointer;
-  transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+  transition: transform .15s ease, opacity .15s ease, filter .15s ease;
 }
-.mb-cadeira--interativa:hover {
+.mb-cadeira--interativa .mb-cadeira-icon:hover {
   opacity: .88;
-  transform: scale(1.06);
-  box-shadow: 0 2px 10px rgba(212,175,55,.22);
+  transform: scale(1.1);
+  filter: drop-shadow(0 2px 8px rgba(212,175,55,.5));
 }
-.mb-cadeira--interativa:active {
-  transform: scale(.96);
+.mb-cadeira--interativa .mb-cadeira-icon:active {
+  transform: scale(.94);
   opacity: .75;
 }
 
@@ -1703,6 +1709,15 @@
   font-size: .9rem;
   color: var(--text, #2b1b12);
   outline: none;
+  flex-shrink: 0;
+}
+.csm-secao-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-muted, #8c7057);
+  padding: 0 18px 4px;
   flex-shrink: 0;
 }
 

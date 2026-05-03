@@ -3,24 +3,31 @@
 // =============================================================
 // ClienteSeletorModal.js — Modal de seleção de cliente.
 //
-// Responsabilidade ÚNICA: exibir lista de clientes conhecidos
-// e retornar o cliente selecionado via Promise.
+// Responsabilidade ÚNICA: exibir favoritos da barbearia/barbeiro
+// e permitir busca global de qualquer usuário (client ou professional)
+// por nome, retornando o selecionado via Promise.
 //
 // Uso:
-//   const cliente = await ClienteSeletorModal.abrir(clientes);
+//   const cliente = await ClienteSeletorModal.abrir(favoritos, { excluirIds });
 //   // cliente: { id, full_name, avatar_path } | null (cancelado)
 //
-// Dependências: SupabaseService.js (resolveAvatarUrl)
+// Dependências: SupabaseService.js (resolveAvatarUrl), ApiService.js
 // =============================================================
 
 class ClienteSeletorModal {
 
+  // Debounce da busca (ms)
+  static #DEBOUNCE_MS = 350;
+
   // ──────────────────────────────────────────────────────────
-  // Exibe a modal com a lista de clientes.
-  // @param {Array<{id:string, full_name:string, avatar_path:string|null}>} clientes
-  // @returns {Promise<{id,full_name,avatar_path}|null>}
+  // Exibe a modal.
+  // @param {Array<{id,full_name,avatar_path}>} favoritos  — lista inicial
+  // @param {object} [opts]
+  // @param {Set<string>} [opts.excluirIds]  — IDs a excluir dos resultados
   // ──────────────────────────────────────────────────────────
-  static abrir(clientes) {
+  static abrir(favoritos, opts = {}) {
+    const { excluirIds = new Set() } = opts;
+
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'csm-overlay';
@@ -31,39 +38,69 @@ class ClienteSeletorModal {
             <p class="csm-titulo">Selecionar cliente</p>
             <button class="csm-fechar" aria-label="Fechar">✕</button>
           </div>
-          <input class="csm-busca" type="text" placeholder="Buscar por nome…" autocomplete="off" />
-          <ul class="csm-lista" role="listbox" aria-label="Clientes disponíveis">
-            ${clientes.length
-              ? ''
-              : '<li class="csm-vazio">Nenhum cliente atendido ainda.</li>'
-            }
-          </ul>
+          <input class="csm-busca" type="search" placeholder="Buscar por nome…" autocomplete="off" />
+          <p class="csm-secao-label" id="csm-label">Favoritos da barbearia</p>
+          <ul class="csm-lista" role="listbox" aria-label="Clientes"></ul>
         </div>`;
 
       const listaEl  = overlay.querySelector('.csm-lista');
       const buscaEl  = overlay.querySelector('.csm-busca');
+      const labelEl  = overlay.querySelector('#csm-label');
 
-      // Constrói os itens
-      const todosItens = clientes.map(c => ClienteSeletorModal.#criarItem(c));
-      todosItens.forEach(el => listaEl.appendChild(el));
+      // ── Renderiza lista de itens ───────────────────────────
+      const renderLista = (itens, vazio = 'Nenhum resultado.') => {
+        listaEl.innerHTML = '';
+        if (!itens.length) {
+          const li = document.createElement('li');
+          li.className   = 'csm-vazio';
+          li.textContent = vazio;
+          listaEl.appendChild(li);
+          return;
+        }
+        itens
+          .filter(c => !excluirIds.has(c.id))
+          .forEach(c => listaEl.appendChild(ClienteSeletorModal.#criarItem(c)));
+      };
 
-      // Eventos de seleção
+      // Exibe favoritos na abertura
+      renderLista(favoritos, 'Nenhum favorito ainda. Use a busca acima.');
+
+      // Eventos de seleção (delegação)
       listaEl.addEventListener('click', e => {
         const item = e.target.closest('[data-cliente-id]');
         if (!item) return;
-        const id     = item.dataset.clienteId;
-        const nome   = item.dataset.clienteNome;
-        const avatar = item.dataset.clienteAvatar || null;
-        _fechar({ id, full_name: nome, avatar_path: avatar });
+        _fechar({
+          id:          item.dataset.clienteId,
+          full_name:   item.dataset.clienteNome,
+          avatar_path: item.dataset.clienteAvatar || null,
+        });
       });
 
-      // Filtro de busca
+      // ── Busca async com debounce ───────────────────────────
+      let _timer = null;
       buscaEl.addEventListener('input', () => {
-        const termo = buscaEl.value.trim().toLowerCase();
-        todosItens.forEach(el => {
-          const nome = el.dataset.clienteNome?.toLowerCase() ?? '';
-          el.hidden = termo.length > 0 && !nome.includes(termo);
-        });
+        clearTimeout(_timer);
+        const termo = buscaEl.value.trim();
+
+        if (!termo) {
+          labelEl.textContent = 'Favoritos da barbearia';
+          renderLista(favoritos, 'Nenhum favorito ainda. Use a busca acima.');
+          return;
+        }
+
+        labelEl.textContent = 'Buscando…';
+        _timer = setTimeout(() => ClienteSeletorModal.#buscar(termo, excluirIds)
+          .then(resultados => {
+            labelEl.textContent = resultados.length
+              ? `${resultados.length} resultado${resultados.length > 1 ? 's' : ''}`
+              : 'Nenhum resultado';
+            renderLista(resultados);
+          })
+          .catch(() => {
+            labelEl.textContent = 'Erro na busca';
+            listaEl.innerHTML = '<li class="csm-vazio">Erro ao buscar. Tente novamente.</li>';
+          }),
+        ClienteSeletorModal.#DEBOUNCE_MS);
       });
 
       // Fechar
@@ -73,6 +110,7 @@ class ClienteSeletorModal {
       document.addEventListener('keydown', onKey);
 
       function _fechar(resultado) {
+        clearTimeout(_timer);
         document.removeEventListener('keydown', onKey);
         overlay.classList.add('csm-overlay--saindo');
         setTimeout(() => overlay.remove(), 220);
@@ -90,8 +128,33 @@ class ClienteSeletorModal {
   // ── Privados ────────────────────────────────────────────────
 
   /**
-   * Cria um <li> representando um cliente na lista.
-   * @param {{id:string, full_name:string, avatar_path:string|null}} cliente
+   * Busca usuários no Supabase por nome (role = client ou professional).
+   * @param {string}   termo
+   * @param {Set}      excluirIds
+   * @returns {Promise<{id,full_name,avatar_path,updated_at}[]>}
+   */
+  static async #buscar(termo, excluirIds) {
+    const { data, error } = await ApiService.from('profiles')
+      .select('id, full_name, avatar_path, updated_at, role')
+      .ilike('full_name', `%${termo}%`)
+      .in('role', ['client', 'professional'])
+      .eq('is_active', true)
+      .limit(20);
+
+    if (error) throw error;
+    return (data ?? [])
+      .filter(p => !excluirIds.has(p.id))
+      .map(p => ({
+        id:          p.id,
+        full_name:   p.full_name   ?? 'Usuário',
+        avatar_path: p.avatar_path ?? null,
+        updated_at:  p.updated_at  ?? null,
+      }));
+  }
+
+  /**
+   * Cria um <li> representando um usuário na lista.
+   * @param {{id,full_name,avatar_path,updated_at}} cliente
    * @returns {HTMLLIElement}
    */
   static #criarItem(cliente) {
@@ -111,7 +174,7 @@ class ClienteSeletorModal {
       img.alt     = cliente.full_name;
       img.loading = 'lazy';
       img.src     = (typeof SupabaseService !== 'undefined')
-        ? SupabaseService.resolveAvatarUrl(cliente.avatar_path, null) || ''
+        ? SupabaseService.resolveAvatarUrl(cliente.avatar_path, cliente.updated_at ?? null) || ''
         : '';
       img.onerror = () => { avatarEl.textContent = ClienteSeletorModal.#inicial(cliente.full_name); };
       avatarEl.appendChild(img);
@@ -126,19 +189,15 @@ class ClienteSeletorModal {
     li.appendChild(avatarEl);
     li.appendChild(nomeEl);
 
-    // Acessibilidade — teclado
     li.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        li.click();
-      }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); li.click(); }
     });
 
     return li;
   }
 
   /**
-   * Retorna a inicial maiúscula do nome para o placeholder de avatar.
+   * Inicial maiúscula para placeholder de avatar sem foto.
    * @param {string} nome
    * @returns {string}
    */
