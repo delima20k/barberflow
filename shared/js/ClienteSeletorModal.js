@@ -128,13 +128,17 @@ class ClienteSeletorModal {
   // ── Privados ────────────────────────────────────────────────
 
   /**
-   * Busca usuários por nome via BFF (service_role — ignora RLS).
+   * Busca usuários por nome via RPC PostgreSQL com SECURITY DEFINER.
+   * Ignora RLS sem precisar do BFF ou da service_role key no frontend.
    * @param {string} termo
    * @param {Set}    excluirIds
    * @returns {Promise<{id,full_name,avatar_path,updated_at}[]>}
    */
   static async #buscar(termo, excluirIds) {
-    const { data, error } = await BackendApiService.buscarClientes(termo, 20);
+    const { data, error } = await ApiService.rpc('buscar_perfis_por_nome', {
+      p_termo:  termo,
+      p_limite: 20,
+    });
     if (error) throw error;
 
     return (data ?? [])
