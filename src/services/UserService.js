@@ -7,20 +7,30 @@
 // Responsável por operações cross-cutting sobre usuários:
 //   - busca por e-mail (find-by-email via RPC seguro)
 //   - perfil público
+//   - busca unificada (nome / email / barbearia) com paginação
+//   - clientes favoritos do barbeiro
 //
-// Nunca acessa o banco diretamente — delega ao ClienteRepository.
+// Nunca acessa o banco diretamente — delega aos repositórios.
 // =============================================================
 
 const BaseService = require('../infra/BaseService');
 
+/** Limite máximo aceito pelo serviço (barreira de negócio). */
+const LIMITE_MAXIMO = 50;
+
 class UserService extends BaseService {
 
   #clienteRepository;
+  #searchRepository;
 
-  /** @param {import('../repositories/ClienteRepository')} clienteRepository */
-  constructor(clienteRepository) {
+  /**
+   * @param {import('../repositories/ClienteRepository')} clienteRepository
+   * @param {import('../repositories/SearchRepository')}  searchRepository
+   */
+  constructor(clienteRepository, searchRepository) {
     super('UserService');
     this.#clienteRepository = clienteRepository;
+    this.#searchRepository  = searchRepository ?? null;
   }
 
   /**
@@ -76,6 +86,67 @@ class UserService extends BaseService {
     this._uuid('barbershopId', barbershopId);
     this._uuid('professionalId', professionalId);
     return this.#clienteRepository.getClientesFavoritosModal(barbershopId, professionalId);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Busca unificada (SearchRepository)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Busca unificada de usuários: por nome, e-mail ou nome da barbearia.
+   * Quando não há termo, retorna os favoritos do barbeiro informado.
+   *
+   * Regras:
+   *   - term presente          → busca via RPC search_users (1 query com JOIN)
+   *   - term ausente + barberIds → retorna favoritos via RPC get_clientes_favoritos_modal
+   *   - nenhum dos dois        → lança 400
+   *
+   * @param {object}      filters
+   * @param {string}      [filters.term]           — texto a buscar
+   * @param {string|null} [filters.role]            — 'client' | 'professional' | null
+   * @param {number}      [filters.limit=20]        — resultados por página (máx 50)
+   * @param {number}      [filters.offset=0]        — deslocamento de paginação
+   * @param {string}      [filters.barbershopId]    — UUID da barbearia (sem term)
+   * @param {string}      [filters.professionalId]  — UUID do barbeiro   (sem term)
+   * @returns {Promise<object[]>}
+   */
+  async searchUsers({
+    term,
+    role         = null,
+    limit        = 20,
+    offset       = 0,
+    barbershopId = null,
+    professionalId = null,
+  } = {}) {
+    if (!this.#searchRepository) {
+      throw this._erro('SearchRepository não configurado.', 500);
+    }
+
+    const termNorm = typeof term === 'string' ? term.trim() : '';
+    const lim      = Math.min(Math.max(1, Number(limit)  || 20), LIMITE_MAXIMO);
+    const off      = Math.max(0, Number(offset) || 0);
+
+    if (termNorm) {
+      // Busca textual — nome, e-mail ou nome da barbearia
+      return this.#searchRepository.searchUsers({
+        term:   termNorm,
+        role:   role ?? null,
+        limit:  lim,
+        offset: off,
+      });
+    }
+
+    if (barbershopId && professionalId) {
+      // Sem texto → retorna favoritos do barbeiro
+      this._uuid('barbershopId',   barbershopId);
+      this._uuid('professionalId', professionalId);
+      return this.#searchRepository.getFavoriteClients(barbershopId, professionalId);
+    }
+
+    throw this._erro(
+      'Informe um termo de busca ou os IDs da barbearia e do barbeiro.',
+      400
+    );
   }
 }
 

@@ -188,6 +188,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `RefreshTokenRepository` | [src/repositories/RefreshTokenRepository.js](src/repositories/RefreshTokenRepository.js) | infra | Armazenamento de refresh tokens customizados. Persiste apenas SHA-256 hash (nunca o token em claro). Métodos: salvar(), buscar(), revogar(), revogarTodos(). |
+| `SearchRepository` | [src/repositories/SearchRepository.js](src/repositories/SearchRepository.js) | infra | Busca de usuários via RPC PostgreSQL. `searchUsers({ term, role, limit, offset })` → RPC `search_users` (JOIN profiles + barbershops, 1 query parametrizada, zero SQL injection). `getFavoriteClients(barbershopId, professionalId)` → RPC `get_clientes_favoritos_modal`. Reutilizável em qualquer módulo que precise buscar usuários. |
 
 ## src/services/ (Node.js — backend)
 
@@ -215,7 +216,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `LgpdService` | [src/services/LgpdService.js](src/services/LgpdService.js) | application | Conformidade LGPD: verificarConsentimento, registrarConsentimento, solicitarExclusaoDados (sanitiza motivo), registrarLogAcesso. |
 | `ProfissionalService` | [src/services/ProfissionalService.js](src/services/ProfissionalService.js) | application | Regras de negócio de profissionais. Busca, listagem por barbearia, cadeiras, portfólio (add/remove). |
 | `SocialService` | [src/services/SocialService.js](src/services/SocialService.js) | application | Interações sociais. Stories (CRUD), likes e favoritos via toggle. |
-| `UserService` | [src/services/UserService.js](src/services/UserService.js) | application | Serviço transversal de usuário. buscarPorEmail (via RPC segura) e buscarPerfilPublico. Delega ao ClienteRepository. |
+| `UserService` | [src/services/UserService.js](src/services/UserService.js) | application | Serviço transversal de usuário. `buscarPorEmail` (RPC segura), `buscarPerfilPublico`, `buscarPorNome`, `getClientesFavoritosModal` e `searchUsers({ term, role, limit, offset, barbershopId, professionalId })` — busca unificada com fallback para favoritos quando sem termo. Delega a ClienteRepository e SearchRepository. |
 
 ---
 

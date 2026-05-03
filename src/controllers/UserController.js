@@ -1,12 +1,13 @@
 // =============================================================
-// UserController.js — Rotas Express para /api/usuarios.
+// UserController.js — Rotas Express para /api/users.
 // Camada: interfaces
 //
 // Rotas:
-//   GET /api/usuarios/buscar?termo=...&limite=...  — busca por nome (auth)
-//   GET /api/usuarios/favoritos-modal?barbershopId=...&professionalId=... (auth)
-//   GET /api/usuarios/:id       — busca perfil público por UUID
-//   GET /api/usuarios/email/:e  — busca usuário por e-mail (requer auth)
+//   GET /api/users/search?term=...&limit=...&offset=...&role=...
+//                        [&barbershopId=...&professionalId=...]
+//   GET /api/users/favorites-modal?barbershopId=...&professionalId=...
+//   GET /api/users/:id       — perfil público por UUID
+//   GET /api/users/email/:e  — busca por e-mail (requer auth)
 // =============================================================
 
 const { Router }     = require('express');
@@ -19,38 +20,54 @@ const AuthMiddleware = require('../infra/AuthMiddleware');
 function criarUserController(userService) {
   const router = Router();
 
-  // ── GET /api/usuarios/buscar ──────────────────────────────
-  // DEVE vir antes de /:id para não ser capturado como parâmetro.
-  // Requer auth: apenas profissionais logados usam esta busca.
-  router.get('/buscar', AuthMiddleware.verificar, async (req, res) => {
-    try {
-      const termo  = String(req.query.termo ?? '').trim();
-      const limite = Math.min(Number(req.query.limite) || 20, 50);
-      if (!termo) return res.status(400).json({ ok: false, error: 'Parâmetro "termo" obrigatório.' });
-
-      const resultado = await userService.buscarPorNome(termo, limite);
-      res.json({ ok: true, dados: resultado });
-    } catch (err) {
-      res.status(err.status ?? 500).json({ ok: false, error: err.message });
-    }
-  });
-
-  // ── GET /api/usuarios/favoritos-modal ─────────────────────
+  // ── GET /api/users/search ─────────────────────────────────
+  // Busca unificada: por nome, email ou nome da barbearia.
+  // Sem term + barbershopId/professionalId → retorna favoritos.
   // DEVE vir antes de /:id.
-  router.get('/favoritos-modal', AuthMiddleware.verificar, async (req, res) => {
+  router.get('/search', AuthMiddleware.verificar, async (req, res) => {
     try {
-      const { barbershopId, professionalId } = req.query;
+      const term           = String(req.query.term           ?? '').trim();
+      const role           = req.query.role           ? String(req.query.role).trim()           : null;
+      const barbershopId   = req.query.barbershopId   ? String(req.query.barbershopId).trim()   : null;
+      const professionalId = req.query.professionalId ? String(req.query.professionalId).trim() : null;
+      const limit          = Math.min(Number(req.query.limit)  || 20, 50);
+      const offset         = Math.max(Number(req.query.offset) || 0,   0);
+
+      const resultado = await userService.searchUsers({
+        term, role, limit, offset, barbershopId, professionalId,
+      });
+
+      res.json({ ok: true, dados: resultado, total: resultado.length });
+    } catch (err) {
+      res.status(err.status ?? 500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // ── GET /api/users/favorites-modal ───────────────────────
+  // Retorna clientes favoritos para o modal de cadeiras.
+  // DEVE vir antes de /:id.
+  router.get('/favorites-modal', AuthMiddleware.verificar, async (req, res) => {
+    try {
+      const barbershopId   = String(req.query.barbershopId   ?? '').trim();
+      const professionalId = String(req.query.professionalId ?? '').trim();
+
       if (!barbershopId || !professionalId) {
-        return res.status(400).json({ ok: false, error: 'barbershopId e professionalId obrigatórios.' });
+        return res.status(400).json({
+          ok: false,
+          error: 'Parâmetros "barbershopId" e "professionalId" são obrigatórios.',
+        });
       }
-      const resultado = await userService.getClientesFavoritosModal(barbershopId, professionalId);
+
+      const resultado = await userService.getClientesFavoritosModal(
+        barbershopId, professionalId
+      );
       res.json({ ok: true, dados: resultado });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });
     }
   });
 
-  // ── GET /api/usuarios/:id ─────────────────────────────────
+  // ── GET /api/users/:id ────────────────────────────────────
   router.get('/:id', async (req, res) => {
     try {
       const perfil = await userService.buscarPerfilPublico(req.params.id);
@@ -60,7 +77,7 @@ function criarUserController(userService) {
     }
   });
 
-  // ── GET /api/usuarios/email/:email ────────────────────────
+  // ── GET /api/users/email/:email ───────────────────────────
   router.get('/email/:email', AuthMiddleware.verificar, async (req, res) => {
     try {
       const perfil = await userService.buscarPorEmail(req.params.email);
@@ -74,3 +91,4 @@ function criarUserController(userService) {
 }
 
 module.exports = criarUserController;
+

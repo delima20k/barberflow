@@ -21,6 +21,7 @@ const RequestTimeoutMiddleware = require('./infra/RequestTimeoutMiddleware');
 
 // ── Repositories ──────────────────────────────────────────────
 const ClienteRepository      = require('./repositories/ClienteRepository');
+const SearchRepository       = require('./repositories/SearchRepository');
 const AgendamentoRepository  = require('./repositories/AgendamentoRepository');
 const BarbeariaRepository    = require('./repositories/BarbeariaRepository');
 const ProfissionalRepository = require('./repositories/ProfissionalRepository');
@@ -112,6 +113,7 @@ function criarApp() {
 
   // ── DI: instâncias ───────────────────────────────────────────
   const clienteRepo      = new ClienteRepository(supabase);
+  const searchRepo        = new SearchRepository(supabase);
   const agendamentoRepo  = new AgendamentoRepository(supabase);
   const barbeariaRepo    = new BarbeariaRepository(supabase);
   const profissionalRepo = new ProfissionalRepository(supabase);
@@ -130,7 +132,7 @@ function criarApp() {
   const filaService         = new FilaService(filaRepo);
   const lgpdService         = new LgpdService(lgpdRepo);
   const cadastroService     = new CadastroService(authRepo);
-  const userService         = new UserService(clienteRepo);
+  const userService         = new UserService(clienteRepo, searchRepo);
   const authService         = new AuthService(supabase);
   const r2Client            = R2Client.getInstance();
   const supabaseStorage     = new SupabaseStorageClient(supabase);
@@ -151,7 +153,7 @@ function criarApp() {
   app.use('/api/fila',          criarFilaController(filaService));
   app.use('/api/lgpd',          criarLgpdController(lgpdService));
   app.use('/api/auth',          criarAuthController(cadastroService, authService));
-  app.use('/api/usuarios',      criarUserController(userService));
+  app.use('/api/users',         criarUserController(userService));
   app.use('/api/media',         criarMediaController(mediaManager, imageProcessor, supabaseStorage));
   app.use('/api/media/secure',  criarSecureMediaController(secureMediaAccess));
   app.use('/api/p2p',           criarWebRTCController(supabase));
