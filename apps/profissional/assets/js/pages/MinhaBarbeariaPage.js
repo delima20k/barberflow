@@ -1184,27 +1184,29 @@ class MinhaBarbeariaPage {
     row.dataset.mediaUid = uid;  // permite que #salvarProdutoUnico localize o pendente P2P
 
     row.innerHTML = `
-      <li class="mb-prod-li mb-prod-li--img">
+      <li class="mb-prod-li mb-prod-li--painel">
         <div class="mb-cfg-prod-img-wrap">
           <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
           <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
           <input type="file" id="${uid}" accept="image/*" style="display:none">
         </div>
-        <button class="mb-prod-remove" type="button" aria-label="Remover item">✕</button>
-      </li>
-      <li class="mb-prod-li">
-        <label class="mb-prod-label" for="${uidN}">Nome</label>
-        <input type="text" id="${uidN}" class="mb-cfg-prod-nome"
-               placeholder="Nome do serviço / produto"
-               value="${nomeVal}" maxlength="60">
-      </li>
-      <li class="mb-prod-li">
-        <label class="mb-prod-label" for="${uidP}">Preço</label>
-        <div class="mb-prod-preco-row">
-          <span class="mb-prod-preco-prefix">R$</span>
-          <input type="number" id="${uidP}" class="mb-cfg-prod-preco"
-                 placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+        <div class="mb-cfg-prod-fields">
+          <div class="mb-cfg-prod-field-group">
+            <label class="mb-prod-label" for="${uidN}">Nome</label>
+            <input type="text" id="${uidN}" class="mb-cfg-prod-nome"
+                   placeholder="Nome do serviço / produto"
+                   value="${nomeVal}" maxlength="60">
+          </div>
+          <div class="mb-cfg-prod-field-group">
+            <label class="mb-prod-label" for="${uidP}">Preço</label>
+            <div class="mb-prod-preco-row">
+              <span class="mb-prod-preco-prefix">R$</span>
+              <input type="number" id="${uidP}" class="mb-cfg-prod-preco"
+                     placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+            </div>
+          </div>
         </div>
+        <button class="mb-prod-remove" type="button" aria-label="Remover item">✕</button>
       </li>
       <li class="mb-prod-li mb-prod-li--acao">
         <button class="btn-flow mb-prod-salvar-btn" type="button">Salvar item</button>
@@ -1291,6 +1293,11 @@ class MinhaBarbeariaPage {
 
       if (data?.id) row.dataset.produtoId = data.id;
       NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
+
+      // Atualiza cache de serviços para aparecer na modal das cadeiras
+      if (this.#barbershopId) {
+        this.#servicos = await MinhaBarbeariaPage.#fetchServicos(this.#barbershopId).catch(() => this.#servicos);
+      }
     } catch (err) {
       LoggerService.error('[MinhaBarbeariaPage] salvarProdutoUnico:', err);
       NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o item.', 'sistema');

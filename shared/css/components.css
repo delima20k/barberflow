@@ -4877,11 +4877,68 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .mb-cfg-produto-row {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(212,175,55,.18);
+  border-radius: var(--r-md, 10px);
+  background: rgba(255,255,255,.03);
+}
+
+/* Linha principal: imagem + campos lado a lado */
+.mb-prod-li--painel {
+  display: flex;
   flex-direction: row;
   align-items: flex-start;
+  gap: 12px;
+  list-style: none;
+  width: 100%;
+}
+
+/* Container dos campos (nome + preço) */
+.mb-prod-li--painel .mb-cfg-prod-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(212,175,55,.12);
+  min-width: 0;
+}
+
+/* Grupo label + input em coluna */
+.mb-cfg-prod-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Botão de ação (salvar) ocupa linha inteira abaixo */
+.mb-prod-li--acao {
+  list-style: none;
+  width: 100%;
+}
+
+/* Botão remover fica no topo direito da linha painel */
+.mb-prod-li--painel .mb-prod-remove {
+  align-self: flex-start;
+  margin-top: 0;
+}
+/* Label dos campos do item */
+.mb-prod-label {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-muted, rgba(255,255,255,.45));
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+/* Linha preço: prefixo + input */
+.mb-prod-preco-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mb-prod-preco-prefix {
+  font-size: .82rem;
+  color: var(--text-muted, rgba(255,255,255,.45));
 }
 /* Área de imagem do item */
 .mb-cfg-prod-img-wrap {
