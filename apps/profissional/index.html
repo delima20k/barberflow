@@ -2052,5 +2052,24 @@
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
 
 <!-- Modal de Chat — MessagesWidget -->
+
+<!-- Gatilho de 10 cliques no nome para abrir o painel admin -->
+<script>
+(function () {
+  var el = document.getElementById('header-user-label');
+  if (!el) return;
+  var cliques = 0, timer = null;
+  el.addEventListener('click', function () {
+    cliques++;
+    clearTimeout(timer);
+    if (cliques >= 10) {
+      cliques = 0;
+      window.open('/admin.html', '_blank', 'noopener,noreferrer');
+    } else {
+      timer = setTimeout(function () { cliques = 0; }, 2000);
+    }
+  });
+}());
+</script>
 </body>
 </html>
