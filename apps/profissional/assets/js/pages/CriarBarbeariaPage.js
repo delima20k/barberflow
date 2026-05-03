@@ -121,9 +121,17 @@ class CriarBarbeariaPage {
       if (error) throw error;
 
       // Atualiza pro_type no banco — barbeiro agora é dono de barbearia
-      await SupabaseService.profiles()
+      // NOTA: requer a migration 20260503000004 (permite 'barbeiro' → 'barbearia'
+      //       quando barbershops.owner_id = id AND is_active = true).
+      const { error: errProType } = await SupabaseService.profiles()
         .update({ pro_type: 'barbearia' })
         .eq('id', perfil.id);
+      if (errProType) throw errProType;
+
+      // Sincroniza perfil em memória e SessionCache para evitar regressão no próximo reload
+      if (typeof AuthService !== 'undefined') {
+        AuthService.patchPerfil({ pro_type: 'barbearia' });
+      }
 
       // Atualiza UI imediatamente sem precisar de reload
       this.#atualizarUIPosCriacao();

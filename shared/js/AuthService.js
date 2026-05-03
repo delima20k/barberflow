@@ -226,6 +226,19 @@ class AuthService {
   static getPerfil() { return AuthService.#perfil; }
 
   /**
+   * Atualiza campos específicos do perfil em memória e no SessionCache.
+   * Usado por fluxos que modificam o perfil no DB sem precisar recarregar tudo.
+   * @param {object} campos — ex: { pro_type: 'barbearia' }
+   */
+  static patchPerfil(campos) {
+    if (!AuthService.#perfil) return;
+    Object.assign(AuthService.#perfil, campos);
+    // Salva no SessionCache para persistir no próximo reload (Camada 2)
+    const user = typeof AppState !== 'undefined' ? AppState.get('user') : null;
+    if (user) SessionCache.salvar(AuthService.#perfil, user);
+  }
+
+  /**
    * Escuta mudanças de sessão em tempo real.
    * Chame uma vez no constructor do App.
    */

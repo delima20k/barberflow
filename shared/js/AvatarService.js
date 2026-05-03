@@ -89,6 +89,9 @@ const AvatarService = (() => {
 
       const publicUrl = await _enviarParaBFF(file);
 
+      // Persiste avatar_path no banco — sem isso o avatar some no próximo reload
+      await ProfileRepository.update(userId, { avatar_path: publicUrl });
+
       _aplicarSrc(publicUrl);
       _aplicarSrcDinamico(userId, publicUrl);
 
