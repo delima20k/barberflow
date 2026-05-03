@@ -4,7 +4,7 @@
   "description": "Agende, acompanhe a fila e descubra barbearias perto de você",
   "id": "com.barberflow.cliente",
   "start_url": "/cliente/",
-  "scope": "/",
+  "scope": "/cliente/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0a0a0a",

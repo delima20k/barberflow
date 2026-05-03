@@ -5,12 +5,15 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_NAME = 'barberflow-cliente-v141';
+  static #CACHE_NAME = 'barberflow-cliente-v142';
 
+  // Paths relativos ao deploy no Vercel (/cliente/) e assets shared (/shared/)
+  // Falhas individuais não bloqueiam a instalação (Promise.allSettled)
   static #ASSETS = [
-    '/manifest.json',
-    '/assets/css/styles.css',
-    '/assets/js/app.js',
+    '/cliente/manifest.json',
+    '/cliente/assets/css/styles.css',
+    '/cliente/assets/js/app.js',
+    '/cliente/assets/js/ClienteStartupSplash.js',
     '/shared/css/tokens.css',
     '/shared/css/components.css',
     '/shared/js/LoggerService.js',
@@ -19,7 +22,6 @@ class SWCliente {
     '/shared/js/Router.js',
     '/shared/js/BarberPole.js',
     '/shared/js/SplashService.js',
-    '/shared/js/ClienteLandingGate.js',
     '/shared/js/QueueRepository.js',
     '/shared/js/CorteModal.js',
     '/shared/js/BarbeiroCard.js',
@@ -39,19 +41,19 @@ class SWCliente {
     '/shared/img/icones-perfil.png',
     '/shared/img/icones-cadeira-salao-vazia.png',
     '/shared/img/icones-cadeira-producao.png',
-    '/shared/img/icones-cadeira-de-éspera.png',
+    '/shared/img/icones-cadeira-de-\u00e9spera.png',
     '/shared/img/bg-entrada.jpg',
     '/shared/img/icon-192-cliente.png',
     '/shared/img/icon-512-cliente.png',
     '/shared/img/login.svg',
   ];
 
-  // ── Instala e pré-cacheia assets ──────────────────────────
+  // ── Instala e pré-cacheia assets (falhas individuais não bloqueiam) ──
   static install(e) {
     e.waitUntil(
-      caches.open(SWCliente.#CACHE_NAME)
-        .then(cache => cache.addAll(SWCliente.#ASSETS))
-        .then(() => self.skipWaiting())
+      caches.open(SWCliente.#CACHE_NAME).then(cache =>
+        Promise.allSettled(SWCliente.#ASSETS.map(url => cache.add(url)))
+      ).then(() => self.skipWaiting())
     );
   }
 
