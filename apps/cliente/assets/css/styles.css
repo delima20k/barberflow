@@ -172,3 +172,80 @@
   transform: scale(0.38);
   transform-origin: top center;
 }
+
+/* ── Startup Splash (ClienteStartupSplash.js) ─────────────── */
+.cs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url('../img/imgFundoSplash.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.cs-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 5, 0, 0.48);
+}
+.cs-overlay.cs-ativo  { opacity: 1; }
+.cs-overlay.cs-saindo { opacity: 0; }
+
+.cs-conteudo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cs-logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.7));
+  animation: csFloat 3s ease-in-out infinite;
+}
+
+.cs-nome {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+  text-shadow: 0 0 18px rgba(212, 175, 55, 0.5);
+}
+
+.cs-polo-wrap {
+  height: 9rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.cs-polo-wrap .barber-pole {
+  transform: scale(0.38);
+  transform-origin: top center;
+}
+
+.cs-boas-vindas {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: rgba(245, 233, 220, 0.8);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+@keyframes csFloat {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-8px); }
+}

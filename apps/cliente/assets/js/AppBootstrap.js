@@ -23,6 +23,7 @@ class AppBootstrap {
 
   // Widgets sem dependência Supabase — disparo paralelo (fire-and-forget)
   static #WIDGETS_PARALELO = [
+    { label: 'ClienteStartupSplash', fn: () => ClienteStartupSplash.init()         },
     { label: 'ClienteLandingGate',  fn: () => ClienteLandingGate.init()            },
     { label: 'PWAInstallBanner',     fn: () => {
       PWAInstallBanner.iconSrc = '/shared/img/icon-192-cliente.png';
