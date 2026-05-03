@@ -46,6 +46,23 @@ class PWAInstallBanner {
   /** Nome do app exibido no banner (definir antes de init). */
   static nomeApp = 'BarberFlow';
 
+  // ── Captura eventos o mais cedo possível (ao definir a classe) ──────
+  // beforeinstallprompt pode disparar ANTES do DOMContentLoaded.
+  // O static block garante que o listener esteja ativo desde o parsing.
+  static {
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      PWAInstallBanner.#deferred = e;
+      // Atualiza o botão se o banner já foi injetado
+      PWAInstallBanner.#atualizarBotao();
+    });
+
+    window.addEventListener('appinstalled', () => {
+      PWAInstallBanner.#instalado = true;
+      PWAInstallBanner.#fechar(true);
+    });
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
   // ═══════════════════════════════════════════════════════════
@@ -56,20 +73,6 @@ class PWAInstallBanner {
    */
   static init() {
     if (PWAInstallBanner.#estaInstalado()) return;
-
-    // Captura prompt nativo (Android/Chrome)
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      PWAInstallBanner.#deferred = e;
-      // Atualiza botão se o banner já estiver injetado
-      PWAInstallBanner.#atualizarBotao();
-    });
-
-    // Após instalação bem-sucedida — esconde definitivamente
-    window.addEventListener('appinstalled', () => {
-      PWAInstallBanner.#instalado = true;
-      PWAInstallBanner.#fechar();
-    });
 
     // Injeta o banner no body (flutuante, fora do fluxo de telas)
     PWAInstallBanner.#injetar();
