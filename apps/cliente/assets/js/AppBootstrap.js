@@ -101,7 +101,8 @@ class AppBootstrap {
   }
 
   /**
-   * Verifica consentimento e exibe o overlay se ainda não houver.
+   * Registra o consentimento LGPD silenciosamente ao autenticar.
+   * Os termos ficam disponíveis no menu lateral (TermsPage) a qualquer momento.
    * @param {string} userId
    * @private
    */
@@ -109,34 +110,10 @@ class AppBootstrap {
     if (typeof LgpdService === 'undefined') return;
     try {
       const consentiu = await LgpdService.verificarConsentimentoCliente(userId);
-      if (!consentiu) AppBootstrap.#mostrarOverlayConsentimento(userId);
+      if (!consentiu) await LgpdService.registrarConsentimentoCliente(userId);
     } catch (e) {
-      LoggerService.warn('[AppBootstrap] Falha ao verificar consentimento LGPD:', e?.message);
+      LoggerService.warn('[AppBootstrap] Falha ao registrar consentimento LGPD:', e?.message);
     }
-  }
-
-  /**
-   * Exibe o overlay de consentimento e vincula os botões de aceitar/recusar.
-   * @param {string} userId
-   * @private
-   */
-  static #mostrarOverlayConsentimento(userId) {
-    const overlay = document.getElementById('lgpd-consent-overlay');
-    if (!overlay) return;
-
-    overlay.removeAttribute('hidden');
-
-    document.getElementById('lgpd-aceitar-btn')?.addEventListener('click', async () => {
-      const result = await LgpdService.registrarConsentimentoCliente(userId);
-      if (result.ok) overlay.setAttribute('hidden', '');
-    }, { once: true });
-
-    document.getElementById('lgpd-recusar-btn')?.addEventListener('click', () => {
-      // Não aceitou — encerra a sessão e recarrega a página
-      AuthService.logout()
-        .catch(() => {})
-        .finally(() => location.reload());
-    }, { once: true });
   }
 
   static #registrarSW() {

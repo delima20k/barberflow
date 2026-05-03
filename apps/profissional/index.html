@@ -99,7 +99,79 @@
         <span>Início</span>
       </li>
     </ul>
+    <footer class="menu-footer">
+      <button id="btn-ver-termos" class="menu-footer-link" type="button">
+        Lei LGPD e direitos autorais musicais
+      </button>
+    </footer>
   </nav>
+
+  <!-- ============================================================
+       Overlay de Termos Informativos — Lei LGPD e Direitos Autorais
+       Acessado via rodapé do menu lateral (TermsPage.js).
+  ============================================================ -->
+  <div id="termos-info-overlay" hidden role="dialog" aria-modal="true"
+       aria-labelledby="termos-info-titulo">
+    <div class="termos-info-card">
+      <div class="termos-info-header">
+        <h1 id="termos-info-titulo">Lei LGPD e Direitos Autorais Musicais</h1>
+        <button id="termos-info-fechar" class="termos-info-fechar" type="button" aria-label="Fechar">✕</button>
+      </div>
+      <div class="termos-info-corpo">
+
+        <!-- 1. LGPD -->
+        <div class="termos-info-secao">
+          <h2 class="termos-info-secao-titulo">🔒 Lei Geral de Proteção de Dados <span class="termos-info-badge">Lei 13.709/2018</span></h2>
+          <p>O BarberFlow trata seus dados pessoais em conformidade com a Lei Geral de Proteção de Dados (LGPD). O tratamento ocorre com base no seu consentimento explícito (Art. 7, inciso I) para as finalidades descritas abaixo.</p>
+          <p><strong>Dados coletados e suas finalidades:</strong></p>
+          <ul>
+            <li><strong>Nome, e-mail e telefone</strong> — identificação e comunicação</li>
+            <li><strong>Localização (GPS)</strong> — exibição e descoberta da barbearia</li>
+            <li><strong>Fotos, vídeos e arquivos</strong> — publicações, stories e imagens de perfil</li>
+            <li><strong>Histórico de agendamentos</strong> — gestão da agenda profissional</li>
+          </ul>
+          <p>Nenhum dado é vendido ou compartilhado com terceiros sem seu consentimento. Todos os registros são protegidos por controle de acesso no banco de dados (RLS — Row Level Security), garantindo que apenas você acessa seus próprios dados.</p>
+        </div>
+
+        <!-- 2. DIREITOS DO TITULAR -->
+        <div class="termos-info-secao">
+          <h2 class="termos-info-secao-titulo">⚖️ Seus Direitos <span class="termos-info-badge">Art. 18 LGPD</span></h2>
+          <ul>
+            <li><strong>Portabilidade:</strong> exporte seus dados em formato estruturado nas configurações do perfil.</li>
+            <li><strong>Exclusão:</strong> solicite a exclusão completa de sua conta e dados nas configurações. A remoção é processada em até 30 dias.</li>
+            <li><strong>Revogação:</strong> você pode cancelar um pedido de exclusão enquanto pendente.</li>
+            <li><strong>Transparência:</strong> todos os acessos aos seus dados são registrados em log de auditoria (Art. 37, LGPD).</li>
+          </ul>
+        </div>
+
+        <!-- 3. SEGURANÇA -->
+        <div class="termos-info-secao">
+          <h2 class="termos-info-secao-titulo">🛡️ Segurança dos Dados <span class="termos-info-badge">Art. 46 LGPD</span></h2>
+          <p>Os dados são armazenados em infraestrutura segura com as seguintes proteções:</p>
+          <ul>
+            <li>Controle de acesso por linha (RLS) — apenas o titular lê e altera seus registros</li>
+            <li>Autenticação JWT com expiração de sessão</li>
+            <li>Operações administrativas restritas ao backend com chave de serviço privada</li>
+            <li>Log de auditoria para exportações e modificações de dados pessoais</li>
+          </ul>
+        </div>
+
+        <!-- 4. DIREITOS AUTORAIS DE CONTEÚDO -->
+        <div class="termos-info-secao">
+          <h2 class="termos-info-secao-titulo">©️ Direitos Autorais de Conteúdo</h2>
+          <p>Ao utilizar o BarberFlow, você declara que fotos, vídeos, textos e demais conteúdos enviados são de sua autoria ou possuem autorização legal de uso. Você é inteiramente responsável por qualquer violação de direitos autorais causada por conteúdo publicado em sua conta.</p>
+          <p>Vídeos e imagens compartilhados internamente na plataforma para exibição em stories são utilizados exclusivamente dentro do contexto da plataforma, sem compartilhamento externo sem ação do usuário.</p>
+        </div>
+
+        <!-- 5. DIREITOS AUTORAIS MUSICAIS (PLACEHOLDER) -->
+        <div class="termos-info-secao">
+          <h2 class="termos-info-secao-titulo">🎵 Direitos Autorais Musicais em Stories</h2>
+          <div class="termos-info-placeholder">Em breve — Esta seção conterá os termos de uso de músicas disponíveis na plataforma para criação de stories. Atualmente, somente músicas de domínio público ou com licença livre são permitidas.</div>
+        </div>
+
+      </div><!-- .termos-info-corpo -->
+    </div><!-- .termos-info-card -->
+  </div><!-- #termos-info-overlay -->
 
   <!-- ============================================================
        OVERLAY — LANDING GATE (Boas-vindas / primeiro acesso)
@@ -2025,6 +2097,7 @@
 <script src="/shared/js/AppointmentRepository.js"></script>
 <script src="/shared/js/QueueRepository.js"></script>
 <script src="/shared/js/LgpdService.js"></script>
+<script src="/shared/js/TermsPage.js"></script>
 <script src="/shared/js/PerfilEditor.js"></script>
 <script src="/shared/js/FooterScrollManager.js"></script>
 <script src="/shared/js/HeaderScrollBehavior.js"></script>

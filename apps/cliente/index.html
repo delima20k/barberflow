@@ -40,100 +40,74 @@
     #tela-inicio { display: flex !important; }
   </style>
 
-  <!-- LGPD — Overlay de consentimento -->
-  <style>
-    #lgpd-consent-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 10000;
-      background: rgba(0,0,0,.88);
-      align-items: center;
-      justify-content: center;
-      padding: 1.25rem;
-    }
-    #lgpd-consent-overlay:not([hidden]) { display: flex; }
-    .lgpd-card {
-      background: #1a120a;
-      border: 1px solid rgba(212,175,55,.25);
-      border-radius: 1rem;
-      padding: 1.75rem 1.5rem;
-      max-width: 420px;
-      width: 100%;
-      color: #F5E9DC;
-      font-size: .93rem;
-      line-height: 1.55;
-    }
-    .lgpd-card h2 {
-      margin: 0 0 .75rem;
-      font-size: 1.15rem;
-      color: #D4AF37;
-    }
-    .lgpd-card p { margin: 0 0 .75rem; }
-    .lgpd-card ul {
-      margin: 0 0 .75rem;
-      padding-left: 1.25rem;
-    }
-    .lgpd-card a { color: #D4AF37; }
-    .lgpd-card .lgpd-actions {
-      display: flex;
-      flex-direction: column;
-      gap: .6rem;
-      margin-top: 1.25rem;
-    }
-    .lgpd-card .lgpd-aceitar {
-      background: #D4AF37;
-      color: #1a120a;
-      border: none;
-      border-radius: .6rem;
-      padding: .75rem;
-      font-weight: 700;
-      font-size: .95rem;
-      cursor: pointer;
-    }
-    .lgpd-card .lgpd-recusar {
-      background: transparent;
-      color: rgba(245,233,220,.5);
-      border: 1px solid rgba(245,233,220,.2);
-      border-radius: .6rem;
-      padding: .65rem;
-      font-size: .85rem;
-      cursor: pointer;
-    }
-  </style>
 </head>
 <body>
 
 <!-- ══════════════════════════════════════════════════════════════
-     LGPD — Consentimento explícito (Art. 7, I — Lei 13.709/2018)
-     Exibido na primeira sessão autenticada.
-     Controlado por AppBootstrap + LgpdService.
+     Overlay de Termos Informativos — Lei LGPD e Direitos Autorais
+     Acessado via rodapé do menu lateral (TermsPage.js).
 ══════════════════════════════════════════════════════════════ -->
-<div id="lgpd-consent-overlay" role="dialog" aria-modal="true"
-     aria-labelledby="lgpd-consent-titulo" hidden>
-  <div class="lgpd-card">
-    <h2 id="lgpd-consent-titulo">Antes de continuar</h2>
-    <p>Para usar o BarberFlow, você autoriza o uso dos seus dados pessoais
-       conforme nossa
-       <a href="https://barberflow.app/privacidade" target="_blank" rel="noopener noreferrer">
-         Política de Privacidade</a> (LGPD — Lei 13.709/2018).</p>
-    <ul>
-      <li>Nome, e-mail e telefone para identificação</li>
-      <li>Localização para mostrar barbearias próximas</li>
-      <li>Histórico de agendamentos para facilitar futuras reservas</li>
-    </ul>
-    <p>Você pode solicitar a exclusão dos seus dados a qualquer momento
-       nas configurações do perfil.</p>
-    <div class="lgpd-actions">
-      <button id="lgpd-aceitar-btn" class="lgpd-aceitar" type="button">
-        Aceitar e continuar
-      </button>
-      <button id="lgpd-recusar-btn" class="lgpd-recusar" type="button">
-        Não aceitar (sair da conta)
-      </button>
+<div id="termos-info-overlay" hidden role="dialog" aria-modal="true"
+     aria-labelledby="termos-info-titulo">
+  <div class="termos-info-card">
+    <div class="termos-info-header">
+      <h1 id="termos-info-titulo">Lei LGPD e Direitos Autorais Musicais</h1>
+      <button id="termos-info-fechar" class="termos-info-fechar" type="button" aria-label="Fechar">✕</button>
     </div>
-  </div>
-</div>
+    <div class="termos-info-corpo">
+
+      <!-- 1. LGPD ─────────────────────────────────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">🔒 Lei Geral de Proteção de Dados <span class="termos-info-badge">Lei 13.709/2018</span></h2>
+        <p>O BarberFlow trata seus dados pessoais em conformidade com a Lei Geral de Proteção de Dados (LGPD). O tratamento ocorre com base no seu consentimento explícito (Art. 7, inciso I) para as finalidades descritas abaixo.</p>
+        <p><strong>Dados coletados e suas finalidades:</strong></p>
+        <ul>
+          <li><strong>Nome, e-mail e telefone</strong> — identificação e comunicação</li>
+          <li><strong>Localização (GPS)</strong> — exibição de barbearias próximas</li>
+          <li><strong>Histórico de agendamentos</strong> — facilitar futuras reservas</li>
+          <li><strong>Foto de perfil</strong> — personalização da conta</li>
+        </ul>
+        <p>Nenhum dado é vendido ou compartilhado com terceiros sem seu consentimento. Todos os registros são protegidos por controle de acesso no banco de dados (RLS — Row Level Security), garantindo que apenas você acessa seus próprios dados.</p>
+      </div>
+
+      <!-- 2. DIREITOS DO TITULAR ──────────────────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">⚖️ Seus Direitos <span class="termos-info-badge">Art. 18 LGPD</span></h2>
+        <ul>
+          <li><strong>Portabilidade:</strong> exporte seus dados em formato estruturado nas configurações do perfil.</li>
+          <li><strong>Exclusão:</strong> solicite a exclusão completa de sua conta e dados pessoais nas configurações do perfil. A remoção efetiva é processada em até 30 dias.</li>
+          <li><strong>Revogação de consentimento:</strong> você pode cancelar um pedido de exclusão enquanto ele ainda estiver pendente.</li>
+          <li><strong>Transparência:</strong> todos os acessos aos seus dados são registrados em log de auditoria (Art. 37, LGPD).</li>
+        </ul>
+      </div>
+
+      <!-- 3. SEGURANÇA ─────────────────────────────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">🛡️ Segurança dos Dados <span class="termos-info-badge">Art. 46 LGPD</span></h2>
+        <p>Os dados são armazenados em infraestrutura segura com as seguintes proteções:</p>
+        <ul>
+          <li>Controle de acesso por linha (RLS) — apenas o titular lê e altera seus registros</li>
+          <li>Autenticação JWT com expiração de sessão</li>
+          <li>Operações administrativas restritas ao backend com chave de serviço privada</li>
+          <li>Log de auditoria para todas as exportações e modificações de dados pessoais</li>
+        </ul>
+      </div>
+
+      <!-- 4. DIREITOS AUTORAIS DE CONTEÚDO ───────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">©️ Direitos Autorais de Conteúdo</h2>
+        <p>Ao utilizar o BarberFlow, você declara que fotos, vídeos, textos e demais conteúdos enviados são de sua autoria ou possuem autorização legal de uso. Você é inteiramente responsável por qualquer violação de direitos autorais causada por conteúdo publicado em sua conta.</p>
+      </div>
+
+      <!-- 5. DIREITOS AUTORAIS MUSICAIS (PLACEHOLDER) ────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">🎵 Direitos Autorais Musicais em Stories</h2>
+        <div class="termos-info-placeholder">Em breve — Esta seção conterá os termos de uso de músicas disponíveis na plataforma para criação de stories por usuários profissionais. Atualmente, somente músicas de domínio público ou com licença livre são permitidas.</div>
+      </div>
+
+    </div><!-- .termos-info-corpo -->
+  </div><!-- .termos-info-card -->
+</div><!-- #termos-info-overlay -->
 
 <div id="app">
 
@@ -193,6 +167,11 @@
         <span>Início</span>
       </li>
     </ul>
+    <footer class="menu-footer">
+      <button id="btn-ver-termos" class="menu-footer-link" type="button">
+        Lei LGPD e direitos autorais musicais
+      </button>
+    </footer>
   </nav>
 
   <!-- ============================================================
@@ -1110,6 +1089,7 @@
 <script src="/shared/js/MessagesWidget.js"></script>
 <script src="/shared/js/NotificationService.js"></script>
 <script src="/shared/js/LgpdService.js"></script>
+<script src="/shared/js/TermsPage.js"></script>
 <script src="/shared/js/PerfilEditor.js"></script>
 <script src="/shared/js/FooterScrollManager.js"></script>
 <script src="/shared/js/HeaderScrollBehavior.js"></script>

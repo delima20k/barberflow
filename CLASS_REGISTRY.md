@@ -51,6 +51,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `InputValidator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Validação e sanitização centralizada: email, senha, UUID, CPF, CNPJ, texto livre, payload allowlist |
 | `Validator` | [shared/js/InputValidator.js](shared/js/InputValidator.js) | infra | Alias público de `InputValidator`. Use `Validator.email()`, `Validator.telefone()`, `Validator.escaparFiltroPostgREST()` etc. |
 | `LgpdService` | [shared/js/LgpdService.js](shared/js/LgpdService.js) | application | Gerencia consentimento LGPD do usuário (aceite de termos) |
+| `TermsPage` | [shared/js/TermsPage.js](shared/js/TermsPage.js) | interfaces | Overlay informativo de Lei LGPD e direitos autorais musicais. Aberto via rodapé do menu lateral em ambos os apps. Métodos estáticos: init(), abrir(), fechar(). |
 | `LoggerService` | [shared/js/LoggerService.js](shared/js/LoggerService.js) | infra | Logger centralizado com níveis (debug/info/warn/error) e controle de ambiente |
 | `LogoGlow` | [shared/js/LogoGlow.js](shared/js/LogoGlow.js) | interfaces | Efeito de brilho (glow) animado no logotipo |
 | `LogoutScreen` | [shared/js/LogoutScreen.js](shared/js/LogoutScreen.js) | interfaces | Tela de confirmação e execução de logout |
