@@ -71,6 +71,7 @@ const ALLOWED_ORIGINS = new Set([
   'https://barberflow.vercel.app',
   'https://barberflow-cliente.vercel.app',
   'https://barberflow-profissional.vercel.app',
+  'https://barberflow-pro-one.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
   'http://localhost:3000',
