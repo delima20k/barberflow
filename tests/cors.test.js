@@ -153,14 +153,14 @@ suite('CORS — consistência com src/app.js', () => {
     );
   });
 
-  test('vercel.json contém entry CORS para barberflow-pro-one.vercel.app', () => {
+  test('vercel.json NÃO contém headers CORS estáticos — Express é a única autoridade', () => {
     const vercelJson = fs.readFileSync(
       path.resolve(__dirname, '../vercel.json'),
       'utf8',
     );
     assert.ok(
-      vercelJson.includes('barberflow-pro-one'),
-      'vercel.json deve ter entrada CORS para barberflow-pro-one.vercel.app',
+      !vercelJson.includes('"Access-Control-Allow-Origin"'),
+      'vercel.json não deve injetar Access-Control-Allow-Origin estático — CORS delegado ao Express',
     );
   });
 });

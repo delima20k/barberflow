@@ -75,14 +75,14 @@ suite('BackendApiService — consistência cross-file', () => {
     );
   });
 
-  test('vercel.json possui entry CORS para barberflow-pro-one.vercel.app', () => {
+  test('vercel.json possui barberflow-pro-one.vercel.app no CSP connect-src', () => {
     const vercelJson = fs.readFileSync(
       path.resolve(__dirname, '../vercel.json'),
       'utf8',
     );
     assert.ok(
       vercelJson.includes('barberflow-pro-one'),
-      'vercel.json deve ter entrada CORS para barberflow-pro-one.vercel.app',
+      'vercel.json deve ter barberflow-pro-one.vercel.app no connect-src do CSP',
     );
   });
 });

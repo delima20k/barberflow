@@ -2,66 +2,6 @@
   "version": 2,
   "headers": [
     {
-      "source": "/api/(.*)",
-      "has": [{ "type": "header", "key": "origin", "value": "https://barberflow-profissional\\.vercel\\.app" }],
-      "headers": [
-        { "key": "Access-Control-Allow-Origin",      "value": "https://barberflow-profissional.vercel.app" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Methods",     "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers",     "value": "Content-Type,Authorization,apikey,x-client-info" },
-        { "key": "Access-Control-Max-Age",           "value": "86400" },
-        { "key": "Vary",                             "value": "Origin" }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "has": [{ "type": "header", "key": "origin", "value": "https://barberflow-pro-one\\.vercel\\.app" }],
-      "headers": [
-        { "key": "Access-Control-Allow-Origin",      "value": "https://barberflow-pro-one.vercel.app" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Methods",     "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers",     "value": "Content-Type,Authorization,apikey,x-client-info" },
-        { "key": "Access-Control-Max-Age",           "value": "86400" },
-        { "key": "Vary",                             "value": "Origin" }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "has": [{ "type": "header", "key": "origin", "value": "https://barberflow-cliente\\.vercel\\.app" }],
-      "headers": [
-        { "key": "Access-Control-Allow-Origin",      "value": "https://barberflow-cliente.vercel.app" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Methods",     "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers",     "value": "Content-Type,Authorization,apikey,x-client-info" },
-        { "key": "Access-Control-Max-Age",           "value": "86400" },
-        { "key": "Vary",                             "value": "Origin" }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "has": [{ "type": "header", "key": "origin", "value": "https://barberflow\\.app" }],
-      "headers": [
-        { "key": "Access-Control-Allow-Origin",      "value": "https://barberflow.app" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Methods",     "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers",     "value": "Content-Type,Authorization,apikey,x-client-info" },
-        { "key": "Access-Control-Max-Age",           "value": "86400" },
-        { "key": "Vary",                             "value": "Origin" }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "has": [{ "type": "header", "key": "origin", "value": "https://www\\.barberflow\\.app" }],
-      "headers": [
-        { "key": "Access-Control-Allow-Origin",      "value": "https://www.barberflow.app" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Methods",     "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers",     "value": "Content-Type,Authorization,apikey,x-client-info" },
-        { "key": "Access-Control-Max-Age",           "value": "86400" },
-        { "key": "Vary",                             "value": "Origin" }
-      ]
-    },
-    {
       "source": "/cliente/sw.js",
       "headers": [
         { "key": "Service-Worker-Allowed", "value": "/cliente/" },
@@ -118,7 +58,7 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(), microphone=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://barberflow.vercel.app https://barberflow-cliente.vercel.app https://barberflow-profissional.vercel.app https://androidpublisher.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://barberflow.vercel.app https://barberflow-api.vercel.app https://barberflow-cliente.vercel.app https://barberflow-profissional.vercel.app https://barberflow-pro-one.vercel.app https://androidpublisher.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'" }
       ]
     }
   ],
