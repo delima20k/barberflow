@@ -9,6 +9,24 @@
   ],
   "headers": [
     {
+      "source": "/api/(.*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "origin",
+          "value": "(?<origin>https://barberflow\\.vercel\\.app|https://barberflow-cliente\\.vercel\\.app|https://barberflow-profissional\\.vercel\\.app|https://barberflow\\.app|https://www\\.barberflow\\.app|http://localhost:3000|http://localhost:3001)"
+        }
+      ],
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",      "value": ":origin" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Methods",     "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers",     "value": "Content-Type,Authorization,apikey,x-client-info" },
+        { "key": "Access-Control-Max-Age",           "value": "86400" },
+        { "key": "Vary",                             "value": "Origin" }
+      ]
+    },
+    {
       "source": "/cliente/sw.js",
       "headers": [
         { "key": "Service-Worker-Allowed", "value": "/cliente/" },
@@ -76,7 +94,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api.js"
+      "destination": "/api"
     },
     { "source": "/cliente/",                 "destination": "/apps/cliente/index.html"      },
     { "source": "/cliente/:path*",           "destination": "/apps/cliente/:path*"          },
