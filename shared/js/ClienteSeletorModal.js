@@ -96,12 +96,19 @@ class ClienteSeletorModal {
       // ── Carrega favoritos via API ─────────────────────────
       CadeiraService.getClientesFavoritos(barbershopId, professionalId)
         .then(lista => {
-                  const filtrados = (lista ?? []).filter(c => !excluirIds.has(c.id));
+          const filtrados = (lista ?? []).filter(c => !excluirIds.has(c.id));
+          console.log('usuarios recebidos:', filtrados);
           ClienteSeletorModal.#favoritosCache = filtrados;
-          labelEl.textContent = 'Favoritos da barbearia';
-          ClienteSeletorModal.#renderLista(listaEl, filtrados, 'Nenhum favorito ainda. Use a busca acima.', false);
+          labelEl.textContent = filtrados.length > 0 ? 'Favoritos da barbearia' : 'Favoritos';
+          if (filtrados.length > 0) {
+            ClienteSeletorModal.#renderLista(listaEl, filtrados, 'Nenhum favorito ainda. Use a busca acima.', false);
+          } else {
+            ClienteSeletorModal.#renderVazio(listaEl, 'Nenhum favorito ainda. Use a busca acima.');
+          }
         })
-        .catch(() => {
+        .catch(err => {
+          console.log('usuarios recebidos:', []);
+          console.error('[ClienteSeletorModal] erro ao carregar favoritos:', err);
           labelEl.textContent = 'Favoritos';
           ClienteSeletorModal.#renderVazio(listaEl, 'Não foi possível carregar favoritos. Use a busca acima.');
         });
@@ -228,11 +235,13 @@ class ClienteSeletorModal {
 
     if (erro) {
       if (erro.name === 'AbortError') return; // cancelado pelo usuário — silencia
+      console.error('[ClienteSeletorModal] erro na busca:', erro);
       if (labelEl) labelEl.textContent = 'Erro na busca';
       if (listaEl) ClienteSeletorModal.#renderVazio(listaEl, 'Erro ao buscar. Tente novamente.');
       return;
     }
 
+    console.log('usuarios recebidos:', itens);
     ClienteSeletorModal.#totalResultados = total;
     ClienteSeletorModal.#offset          = offset;
 

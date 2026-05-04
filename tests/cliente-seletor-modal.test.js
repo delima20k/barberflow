@@ -215,7 +215,7 @@ function criarSandbox({
     ),
   };
 
-  // searchUsers retorna { data, error } ou pode simular paginação com total
+  // searchUsers retorna { data, total, error } — mesmo formato de BackendApiService.#req
   const BackendApiService = {
     searchUsers: fn().mockImplementation((_term, _opts) => {
       const r = Array.isArray(searchRetorno)
@@ -223,11 +223,12 @@ function criarSandbox({
         : searchRetorno;
       if (!r.error) {
         return Promise.resolve({
-          data:  { dados: r.data ?? [], total: searchTotal || (r.data?.length ?? 0) },
+          data:  r.data ?? [],
+          total: searchTotal || (r.data?.length ?? 0),
           error: null,
         });
       }
-      return Promise.resolve({ data: null, error: r.error });
+      return Promise.resolve({ data: null, total: null, error: r.error });
     }),
   };
 
@@ -510,7 +511,8 @@ suite('ClienteSeletorModal — busca por texto', () => {
     // Segunda página — novos 20 com IDs diferentes
     sandbox.BackendApiService.searchUsers = fn().mockImplementation(() =>
       Promise.resolve({
-        data:  { dados: criarUsuarios(PAGE, PAGE), total: 45 },
+        data:  criarUsuarios(PAGE, PAGE),
+        total: 45,
         error: null,
       }),
     );
