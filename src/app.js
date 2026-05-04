@@ -69,7 +69,6 @@ const criarAdminController         = require('./controllers/AdminController');
 // ── Origens permitidas (CORS) ──────────────────────────────────
 const ALLOWED_ORIGINS = new Set([
   'https://barberflow.vercel.app',
-  'https://barberflow-app.vercel.app',
   'https://barberflow-cliente.vercel.app',
   'https://barberflow-profissional.vercel.app',
   'https://barberflow-pro-one.vercel.app',

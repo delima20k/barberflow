@@ -19,7 +19,6 @@ const path            = require('node:path');
 // ─── Origens autorizadas (espelho de src/app.js ALLOWED_ORIGINS) ──────────────
 const ALLOWED_ORIGINS = new Set([
   'https://barberflow.vercel.app',
-  'https://barberflow-app.vercel.app',
   'https://barberflow-cliente.vercel.app',
   'https://barberflow-profissional.vercel.app',
   'https://barberflow-pro-one.vercel.app',
@@ -64,7 +63,6 @@ suite('CORS — origens do frontend de produção', () => {
   const ORIGENS_FRONTEND = [
     'https://barberflow-pro-one.vercel.app',       // app profissional (deployment atual)
     'https://barberflow-profissional.vercel.app',  // app profissional (URL alternativa)
-    'https://barberflow-app.vercel.app',           // app (origin fixo retornado em produção)
     'https://barberflow-cliente.vercel.app',       // app cliente
     'https://barberflow.vercel.app',               // API / monorepo
     'https://barberflow.app',                      // domínio próprio
