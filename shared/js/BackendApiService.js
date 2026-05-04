@@ -241,43 +241,6 @@ class BackendApiService {
     return BackendApiService.#req('GET', `/api/auth/perfil-publico/${userId}`);
   }
 
-  // ── Usuários / Modal de clientes ─────────────────────────
-
-  /**
-   * Busca unificada de usuários por nome, e-mail ou nome da barbearia.
-   * Sem termo + barbershopId/professionalId → retorna favoritos do barbeiro.
-   *
-   * @param {string} term
-   * @param {object} [opts]
-   * @param {string|null} [opts.role]           — 'client'|'professional'|null
-   * @param {number}      [opts.limit=20]       — máx. resultados (1–50)
-   * @param {number}      [opts.offset=0]       — paginação
-   * @param {string}      [opts.barbershopId]   — UUID da barbearia (sem term)
-   * @param {string}      [opts.professionalId] — UUID do barbeiro  (sem term)
-   * @param {AbortSignal} [opts.signal]         — cancelamento via AbortController
-   */
-  static searchUsers(term, { role, limit = 20, offset = 0, barbershopId, professionalId, signal } = {}) {
-    const qs = new URLSearchParams({
-      term:   String(term),
-      limit:  String(Math.min(Math.max(1, Number(limit)),  50)),
-      offset: String(Math.max(0, Number(offset))),
-    });
-    if (role)           qs.set('role',           role);
-    if (barbershopId)   qs.set('barbershopId',   barbershopId);
-    if (professionalId) qs.set('professionalId', professionalId);
-    return BackendApiService.#req('GET', `/api/users/search?${qs}`, undefined, signal);
-  }
-
-  /**
-   * Retorna perfis de quem favoritou a barbearia ou o barbeiro.
-   * @param {string} barbershopId
-   * @param {string} professionalId
-   */
-  static getClientesFavoritosModal(barbershopId, professionalId) {
-    const qs = new URLSearchParams({ barbershopId, professionalId });
-    return BackendApiService.#req('GET', `/api/users/favorites-modal?${qs}`);
-  }
-
   // ── Buscas (já em Node.js) ────────────────────────────────
 
   /** @param {string} id */

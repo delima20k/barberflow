@@ -218,11 +218,12 @@ class ApiService {
 
   /**
    * Chama uma função PostgreSQL via PostgREST RPC.
-   * @param {string} fn    — nome da função
-   * @param {object} body  — parâmetros
+   * @param {string}      fn     — nome da função
+   * @param {object}      body   — parâmetros
+   * @param {AbortSignal} [signal] — cancelamento via AbortController
    * @returns {Promise<{data: any, error: Error|null}>}
    */
-  static async rpc(fn, body = {}) {
+  static async rpc(fn, body = {}, signal = undefined) {
     const headers = {
       ...ApiService.#headers(),
       'Content-Type': 'application/json',
@@ -231,6 +232,7 @@ class ApiService {
     try {
       const res = await fetch(`${ApiService.#URL}/rest/v1/rpc/${fn}`, {
         method: 'POST', headers, body: JSON.stringify(body),
+        ...(signal ? { signal } : {}),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -238,7 +240,8 @@ class ApiService {
       }
       const text = await res.text();
       return { data: text ? JSON.parse(text) : null, error: null };
-    } catch (_) {
+    } catch (err) {
+      if (err?.name === 'AbortError') return { data: null, error: err };
       return { data: null, error: new Error('Sem conexão com a internet.') };
     }
   }

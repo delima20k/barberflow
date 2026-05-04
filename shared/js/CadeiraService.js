@@ -6,7 +6,7 @@
 // Responsabilidade ÚNICA: gerenciar o ciclo de vida de um cliente
 // nas cadeiras (sentar → atender → finalizar) e notificar a fila.
 //
-// Dependências: ApiService.js, BackendApiService.js, QueueRepository.js,
+// Dependências: ApiService.js, UserRepository.js, QueueRepository.js,
 //               InputValidator.js, LoggerService.js
 //
 // NOTA DE CAMADA: esta classe é application — não toca DOM.
@@ -61,7 +61,7 @@ class CadeiraService {
 
   /**
    * Retorna perfis de usuários que favoritaram a barbearia OU o barbeiro.
-   * Delega ao BFF via BackendApiService — sem acesso direto ao Supabase.
+   * Delega ao Supabase via UserRepository — sem backend intermediário.
    * @param {string} barbershopId
    * @param {string} professionalId
    * @returns {Promise<{id:string, full_name:string, email:string|null, avatar_path:string|null, updated_at:string|null}[]>}
@@ -72,7 +72,7 @@ class CadeiraService {
     if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
     if (!rProf.ok) throw new TypeError(`[CadeiraService] professionalId: ${rProf.msg}`);
 
-    const { data, error } = await BackendApiService.getClientesFavoritosModal(
+    const { data, error } = await UserRepository.getFavoritosModal(
       barbershopId,
       professionalId,
     );

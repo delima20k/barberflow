@@ -215,9 +215,9 @@ function criarSandbox({
     ),
   };
 
-  // searchUsers retorna { data, total, error } — mesmo formato de BackendApiService.#req
-  const BackendApiService = {
-    searchUsers: fn().mockImplementation((_term, _opts) => {
+  // buscarUsuarios retorna { data, total, error } — via UserRepository
+  const UserRepository = {
+    buscarUsuarios: fn().mockImplementation((_term, _opts) => {
       const r = Array.isArray(searchRetorno)
         ? { data: searchRetorno, error: null }
         : searchRetorno;
@@ -247,14 +247,14 @@ function criarSandbox({
       abort() { this.signal.aborted = true; }
     },
     CadeiraService,
-    BackendApiService,
+    UserRepository,
     SupabaseService,
     InputValidator: { uuid: (v) => ({ ok: /^[0-9a-f-]{36}$/i.test(v), msg: 'UUID inválido' }) },
   });
 
   carregar(sandbox, 'shared/js/ClienteSeletorModal.js');
 
-  return { sandbox, doc, CadeiraService, BackendApiService };
+  return { sandbox, doc, CadeiraService, UserRepository };
 }
 
 // ─── Helpers para inspecionar a modal montada ─────────────────────────────────
@@ -294,23 +294,23 @@ function coletarVazios(el) {
 suite('ClienteSeletorModal — validação de parâmetros', () => {
 
   test('UUID inválido para barbershopId lança TypeError antes de qualquer chamada de rede', () => {
-    const { sandbox, BackendApiService, CadeiraService } = criarSandbox();
+    const { sandbox, UserRepository, CadeiraService } = criarSandbox();
     assert.throws(
       () => sandbox.ClienteSeletorModal.abrir({ barbershopId: 'invalido', professionalId: UUID_PROF }),
       err => err.name === 'TypeError',
     );
     assert.strictEqual(CadeiraService.getClientesFavoritos.calls.length, 0, 'não deve chamar API');
-    assert.strictEqual(BackendApiService.searchUsers.calls.length, 0, 'não deve chamar API');
+    assert.strictEqual(UserRepository.buscarUsuarios.calls.length, 0, 'não deve chamar API');
   });
 
   test('UUID inválido para professionalId lança TypeError antes de qualquer chamada de rede', () => {
-    const { sandbox, BackendApiService, CadeiraService } = criarSandbox();
+    const { sandbox, UserRepository, CadeiraService } = criarSandbox();
     assert.throws(
       () => sandbox.ClienteSeletorModal.abrir({ barbershopId: UUID_SHOP, professionalId: 'invalido' }),
       err => err.name === 'TypeError',
     );
     assert.strictEqual(CadeiraService.getClientesFavoritos.calls.length, 0);
-    assert.strictEqual(BackendApiService.searchUsers.calls.length, 0);
+    assert.strictEqual(UserRepository.buscarUsuarios.calls.length, 0);
   });
 
   test('abrir() sem parâmetros lança TypeError', () => {
@@ -399,17 +399,15 @@ suite('ClienteSeletorModal — erro no carregamento de favoritos', () => {
 
 suite('ClienteSeletorModal — busca por texto', () => {
 
-  test('input com 1 char → BackendApiService.searchUsers NÃO é chamado', async () => {
-    const { sandbox, BackendApiService } = criarSandbox({
+  test('input com 1 char → UserRepository.buscarUsuarios NÃO é chamado', async () => {
+    const { sandbox, UserRepository } = criarSandbox({
       favoritosRetorno: { data: [], error: null },
     });
     sandbox.ClienteSeletorModal.abrir({ barbershopId: UUID_SHOP, professionalId: UUID_PROF });
     await new Promise(r => setImmediate(r));
-    // simula evento de input com 1 char
-    BackendApiService.searchUsers.mockClear();
-    // buscaEl ainda não existe no DOM mock simples — testamos a lógica
-    // verificando que calls ainda está em 0 após abrir
-    assert.strictEqual(BackendApiService.searchUsers.calls.length, 0, 'não deve buscar ainda');
+    UserRepository.buscarUsuarios.mockClear();
+    // verificamos que não houve chamada antes do debounce
+    assert.strictEqual(UserRepository.buscarUsuarios.calls.length, 0, 'não deve buscar ainda');
   });
 
   test('busca com 5 itens e total=5 → NÃO exibe botão "Ver mais"', async () => {
@@ -478,18 +476,18 @@ suite('ClienteSeletorModal — busca por texto', () => {
 
   test('buscar segunda página (offset=20) → chama API com offset=20', async () => {
     const resultados = criarUsuarios(PAGE);
-    const { sandbox, BackendApiService } = criarSandbox({
+    const { sandbox, UserRepository } = criarSandbox({
       favoritosRetorno: { data: [], error: null },
       searchRetorno:    { data: resultados, error: null },
       searchTotal:      45,
     });
     sandbox.ClienteSeletorModal.abrir({ barbershopId: UUID_SHOP, professionalId: UUID_PROF });
     await new Promise(r => setImmediate(r));
-    BackendApiService.searchUsers.mockClear();
+    UserRepository.buscarUsuarios.mockClear();
     // Segunda página
     await sandbox.ClienteSeletorModal.buscarParaTeste('alan', new Set(), PAGE, UUID_SHOP, UUID_PROF);
-    assert.strictEqual(BackendApiService.searchUsers.calls.length, 1);
-    const [_term, opts] = BackendApiService.searchUsers.calls[0];
+    assert.strictEqual(UserRepository.buscarUsuarios.calls.length, 1);
+    const [_term, opts] = UserRepository.buscarUsuarios.calls[0];
     assert.strictEqual(opts.offset, PAGE, 'deve passar offset=20 na segunda página');
   });
 
@@ -509,7 +507,7 @@ suite('ClienteSeletorModal — busca por texto', () => {
     assert.strictEqual(itensPag1.length, PAGE, 'página 1: 20 itens');
 
     // Segunda página — novos 20 com IDs diferentes
-    sandbox.BackendApiService.searchUsers = fn().mockImplementation(() =>
+    sandbox.UserRepository.buscarUsuarios = fn().mockImplementation(() =>
       Promise.resolve({
         data:  criarUsuarios(PAGE, PAGE),
         total: 45,

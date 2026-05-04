@@ -272,14 +272,12 @@ class ClienteSeletorModal {
   }
 
   /**
-   * Chama BackendApiService.searchUsers e normaliza o retorno.
+   * Chama UserRepository.buscarUsuarios e normaliza o retorno.
    * @returns {Promise<{ itens: Array, total: number, erro: Error|null }>}
    */
   static async #buscarPaginado(termo, excluirIds, offset, signal) {
-    const { data, total: backendTotal, error } = await BackendApiService.searchUsers(termo, {
-      barbershopId:   ClienteSeletorModal.#barbershopId,
-      professionalId: ClienteSeletorModal.#professionalId,
-      limit:          ClienteSeletorModal.#PAGE_SIZE,
+    const { data, total: backendTotal, error } = await UserRepository.buscarUsuarios(termo, {
+      limit:  ClienteSeletorModal.#PAGE_SIZE,
       offset,
       signal,
     });

@@ -81,6 +81,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `ProfessionalService` | [shared/js/ProfessionalService.js](shared/js/ProfessionalService.js) | application | Regras de negócio para profissionais: likes em cache, listing, filtros |
 | `ProLandingGate` | [shared/js/ProLandingGate.js](shared/js/ProLandingGate.js) | infra | Guard de landing do app profissional (monetização/plano) |
 | `QueueRepository` | [shared/js/QueueRepository.js](shared/js/QueueRepository.js) | infra | CRUD de fila de atendimento e cadeiras. Realtime via Supabase SDK |
+| `UserRepository` | [shared/js/UserRepository.js](shared/js/UserRepository.js) | infra | Busca de usuários e favoritos direto no Supabase via `ApiService.rpc()`. Métodos estáticos: `buscarUsuarios(termo, {limit,offset,signal})` → `{data,total,error}`, `getFavoritosModal(barbershopId, professionalId)` → `{data,error}`. Fallback automático para queries diretas quando RPC não existe. |
 | `Router` | [shared/js/Router.js](shared/js/Router.js) | infra | Roteador SPA base. Gerencia navegação entre telas e estado do footer |
 | `SearchWidget` | [shared/js/SearchWidget.js](shared/js/SearchWidget.js) | interfaces | Campo de busca de barbearias com autocomplete e animação de placeholder |
 | `SessionCache` | [shared/js/SessionCache.js](shared/js/SessionCache.js) | infra | Cache de sessão em memória para dados do usuário logado |
