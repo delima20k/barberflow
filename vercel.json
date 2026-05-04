@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["src/**"] }
+    }
+  ],
   "headers": [
     {
       "source": "/cliente/sw.js",
@@ -67,6 +74,10 @@
     { "source": "/profissional", "destination": "/profissional/", "permanent": false }
   ],
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api.js"
+    },
     { "source": "/cliente/",                 "destination": "/apps/cliente/index.html"      },
     { "source": "/cliente/:path*",           "destination": "/apps/cliente/:path*"          },
     { "source": "/profissional/",            "destination": "/apps/profissional/index.html" },

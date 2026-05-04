@@ -27,48 +27,58 @@ const logger   = require('./src/infra/LoggerService');
 
 const PORT = parseInt(process.env.PORT ?? '3001', 10);
 
-const app    = criarApp();
-const server = app.listen(PORT, '0.0.0.0', () => {
-  logger.info(
-    { port: PORT, env: process.env.APP_ENV ?? 'development', pid: process.pid },
-    '[BarberFlow API] Servidor iniciado',
-  );
-});
+const app = criarApp();
 
-// ── Graceful shutdown ─────────────────────────────────────────
-// PM2, Kubernetes e Docker enviam SIGTERM antes de encerrar.
-// Aguardamos requests ativos antes de fechar — zero downtime deploy.
+// ── Vercel serverless ─────────────────────────────────────────
+// O Vercel usa @vercel/node para empacotar este arquivo como uma
+// Lambda. A função exportada é chamada diretamente para cada
+// request — app.listen() não é invocado nesse contexto.
+module.exports = app;
 
-const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '10000', 10);
-
-function gracefulShutdown(signal) {
-  logger.info({ signal }, '[BarberFlow API] Encerrando — aguardando requests ativos');
-
-  server.close((err) => {
-    if (err) {
-      logger.error({ err }, '[BarberFlow API] Erro ao fechar servidor');
-      process.exit(1);
-    }
-    logger.info('[BarberFlow API] Encerrado com sucesso');
-    process.exit(0);
+// ── Local / Docker / PM2 ──────────────────────────────────────
+// Quando executado diretamente (node api.js), inicia o servidor
+// HTTP e registra os handlers de shutdown graceful.
+if (require.main === module) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    logger.info(
+      { port: PORT, env: process.env.APP_ENV ?? 'development', pid: process.pid },
+      '[BarberFlow API] Servidor iniciado',
+    );
   });
 
-  setTimeout(() => {
-    logger.warn('[BarberFlow API] Timeout de shutdown — forçando encerramento');
+  // PM2, Kubernetes e Docker enviam SIGTERM antes de encerrar.
+  // Aguardamos requests ativos antes de fechar — zero downtime deploy.
+  const SHUTDOWN_TIMEOUT_MS = parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? '10000', 10);
+
+  function gracefulShutdown(signal) {
+    logger.info({ signal }, '[BarberFlow API] Encerrando — aguardando requests ativos');
+
+    server.close((err) => {
+      if (err) {
+        logger.error({ err }, '[BarberFlow API] Erro ao fechar servidor');
+        process.exit(1);
+      }
+      logger.info('[BarberFlow API] Encerrado com sucesso');
+      process.exit(0);
+    });
+
+    setTimeout(() => {
+      logger.warn('[BarberFlow API] Timeout de shutdown — forçando encerramento');
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS).unref();
+  }
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+
+  process.on('uncaughtException', (err) => {
+    logger.fatal({ err }, '[BarberFlow API] Exceção não tratada — encerrando');
     process.exit(1);
-  }, SHUTDOWN_TIMEOUT_MS).unref();
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    logger.fatal({ reason }, '[BarberFlow API] Promise rejeitada não tratada — encerrando');
+    process.exit(1);
+  });
 }
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
-
-process.on('uncaughtException', (err) => {
-  logger.fatal({ err }, '[BarberFlow API] Exceção não tratada — encerrando');
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason) => {
-  logger.fatal({ reason }, '[BarberFlow API] Promise rejeitada não tratada — encerrando');
-  process.exit(1);
-});
 
