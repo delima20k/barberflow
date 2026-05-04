@@ -457,29 +457,23 @@ class MinhaBarbeariaPage {
    * @param {string} professionalId
    */
   async #fluxoSentar(tipo, professionalId) {
-    // 1. Busca clientes que favoritaram esta barbearia ou este barbeiro
-    let favoritos;
-    try {
-      favoritos = await CadeiraService.getClientesFavoritos(this.#barbershopId, professionalId);
-    } catch (_) {
-      favoritos = [];
-    }
-
-    // Exclui clientes já sentados em qualquer cadeira desta barbearia
+    // 1. Calcula IDs já sentados para excluir da modal
     let jaAssentados = new Set();
     try {
       const filaAtiva = await CadeiraService.getFilaAtiva(this.#barbershopId);
       filaAtiva.forEach(e => {
-        if (e.status === 'in_service' || e.status === 'waiting') {
-          if (e.client?.id) jaAssentados.add(e.client.id);
+        if ((e.status === 'in_service' || e.status === 'waiting') && e.client?.id) {
+          jaAssentados.add(e.client.id);
         }
       });
-    } catch (_) { /* ignora */ }
+    } catch (_) { /* ignora — modal abre sem exclusões */ }
 
-    const favoritosDisponiveis = favoritos.filter(c => !jaAssentados.has(c.id));
-
-    // 2. Modal: selecionar cliente (favoritos iniciais + busca global no input)
-    const clienteSel = await ClienteSeletorModal.abrir(favoritosDisponiveis, { excluirIds: jaAssentados });
+    // 2. Modal: carrega favoritos e busca internamente via API
+    const clienteSel = await ClienteSeletorModal.abrir({
+      barbershopId:   this.#barbershopId,
+      professionalId,
+      excluirIds:     jaAssentados,
+    });
     if (!clienteSel) return;
 
     // 3. Modal: selecionar cortes
