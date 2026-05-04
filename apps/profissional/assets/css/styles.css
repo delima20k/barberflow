@@ -1758,9 +1758,25 @@
   height: 100%;
   object-fit: cover;
 }
+.csm-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
 .csm-nome {
   font-size: .9rem;
   color: var(--text, #2b1b12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.csm-email {
+  font-size: .72rem;
+  color: var(--text-muted, #8c7057);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .csm-vazio,
 .crtm-vazio {

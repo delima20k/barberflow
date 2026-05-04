@@ -64,7 +64,7 @@ class CadeiraService {
    * Delega ao BFF via BackendApiService — sem acesso direto ao Supabase.
    * @param {string} barbershopId
    * @param {string} professionalId
-   * @returns {Promise<{id:string, full_name:string, avatar_path:string|null, updated_at:string|null}[]>}
+   * @returns {Promise<{id:string, full_name:string, email:string|null, avatar_path:string|null, updated_at:string|null}[]>}
    */
   static async getClientesFavoritos(barbershopId, professionalId) {
     const rShop = InputValidator.uuid(barbershopId);
@@ -80,6 +80,7 @@ class CadeiraService {
     return (data ?? []).map(p => ({
       id:          p.id,
       full_name:   p.full_name   ?? 'Cliente',
+      email:       p.email       ?? null,
       avatar_path: p.avatar_path ?? null,
       updated_at:  p.updated_at  ?? null,
     }));

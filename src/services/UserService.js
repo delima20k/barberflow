@@ -108,7 +108,7 @@ class UserService extends BaseService {
    * @param {number}      [filters.offset=0]        — deslocamento de paginação
    * @param {string}      [filters.barbershopId]    — UUID da barbearia (sem term)
    * @param {string}      [filters.professionalId]  — UUID do barbeiro   (sem term)
-   * @returns {Promise<object[]>}
+   * @returns {Promise<{ itens: object[], total: number }>}
    */
   async searchUsers({
     term,
@@ -142,7 +142,6 @@ class UserService extends BaseService {
       this._uuid('professionalId', professionalId);
       return this.#searchRepository.getFavoriteClients(barbershopId, professionalId);
     }
-
     throw this._erro(
       'Informe um termo de busca ou os IDs da barbearia e do barbeiro.',
       400

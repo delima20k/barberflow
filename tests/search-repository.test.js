@@ -104,22 +104,66 @@ test('searchUsers — offset negativo é normalizado para 0', async () => {
   assert.equal(params.p_offset, 0);
 });
 
-test('searchUsers — retorna array mapeado com campos esperados', async () => {
+test('searchUsers — retorna { itens, total } com campos esperados', async () => {
   const row = {
     id: UUID_A, full_name: 'Ana Silva', email: 'ana@x.com',
     role: 'client', avatar_path: '/img/ana.jpg',
     barbershop_name: null, updated_at: '2025-01-01T00:00:00Z',
+    total_count: 1,
   };
   const supabase = mockSupabase({ data: [row] });
   const repo     = new SearchRepository(supabase);
 
   const result = await repo.searchUsers({ term: 'ana' });
 
-  assert.equal(result.length, 1);
-  assert.equal(result[0].id,        UUID_A);
-  assert.equal(result[0].full_name, 'Ana Silva');
-  assert.equal(result[0].email,     'ana@x.com');
-  assert.equal(result[0].role,      'client');
+  // Deve retornar objeto com itens e total
+  assert.ok(Array.isArray(result.itens), 'result.itens deve ser array');
+  assert.equal(result.total,           1);
+  assert.equal(result.itens.length,    1);
+  assert.equal(result.itens[0].id,        UUID_A);
+  assert.equal(result.itens[0].full_name, 'Ana Silva');
+  assert.equal(result.itens[0].email,     'ana@x.com');
+  assert.equal(result.itens[0].role,      'client');
+});
+
+test('searchUsers — total vem de total_count da primeira row', async () => {
+  const rows = Array.from({ length: 5 }, (_, i) => ({
+    id: `a1b2c3d4-e5f6-4890-abcd-ef123456789${i}`,
+    full_name: `User ${i}`, email: `u${i}@x.com`, role: 'client',
+    avatar_path: null, barbershop_name: null, updated_at: null,
+    total_count: 42, // total real — maior que o tamanho da página
+  }));
+  const supabase = mockSupabase({ data: rows });
+  const repo     = new SearchRepository(supabase);
+
+  const result = await repo.searchUsers({ term: 'user' });
+
+  assert.equal(result.total, 42, 'total deve vir de total_count, não do tamanho da página');
+  assert.equal(result.itens.length, 5);
+});
+
+test('searchUsers — fallback quando RPC não existe (código PGRST202)', async () => {
+  // Simula banco sem a RPC: rpc() retorna erro PGRST202;
+  // fallback usa query direta via .from('profiles')
+  const rpcError = Object.assign(new Error('Could not find the function'), { code: 'PGRST202' });
+  const profileRows = [{ id: UUID_A, full_name: 'Fallback User', email: 'fb@x.com', role: 'client', avatar_path: null, updated_at: null }];
+
+  const supabase = {
+    rpc: fn().mockResolvedValue({ data: null, error: rpcError }),
+    from: fn().mockReturnThis(),
+    select: fn().mockReturnThis(),
+    ilike: fn().mockReturnThis(),
+    eq:    fn().mockReturnThis(),
+    order: fn().mockReturnThis(),
+    range: fn().mockResolvedValue({ data: profileRows, error: null, count: 1 }),
+  };
+
+  const repo   = new SearchRepository(supabase);
+  const result = await repo.searchUsers({ term: 'fallback' });
+
+  assert.ok(Array.isArray(result.itens), 'itens deve ser array no fallback');
+  assert.equal(result.itens.length, 1);
+  assert.equal(result.itens[0].full_name, 'Fallback User');
 });
 
 test('searchUsers — term vazio lança TypeError', async () => {
@@ -150,8 +194,8 @@ test('searchUsers — role inválida lança TypeError', async () => {
   );
 });
 
-test('searchUsers — erro do Supabase é propagado', async () => {
-  const supabase = mockSupabase({ data: null, error: new Error('DB error') });
+test('searchUsers — erro do Supabase é propagado (código genérico)', async () => {
+  const supabase = mockSupabase({ data: null, error: Object.assign(new Error('DB error'), { code: '500' }) });
   const repo     = new SearchRepository(supabase);
 
   await assert.rejects(
@@ -177,25 +221,29 @@ test('getFavoriteClients — chama rpc("get_clientes_favoritos_modal") com UUIDs
   assert.equal(params.p_professional_id, UUID_B);
 });
 
-test('getFavoriteClients — retorna array de favoritos mapeado', async () => {
-  const row = { id: UUID_B, full_name: 'Carlos', avatar_path: null, updated_at: null };
+test('getFavoriteClients — retorna { itens, total } de favoritos mapeado', async () => {
+  const row = { id: UUID_B, full_name: 'Carlos', email: 'carlos@x.com', avatar_path: null, updated_at: null };
   const supabase = mockSupabase({ data: [row] });
   const repo     = new SearchRepository(supabase);
 
   const result = await repo.getFavoriteClients(UUID_A, UUID_B);
 
-  assert.equal(result.length, 1);
-  assert.equal(result[0].id,        UUID_B);
-  assert.equal(result[0].full_name, 'Carlos');
+  assert.ok(Array.isArray(result.itens), 'result.itens deve ser array');
+  assert.equal(result.total,             1);
+  assert.equal(result.itens.length,      1);
+  assert.equal(result.itens[0].id,        UUID_B);
+  assert.equal(result.itens[0].full_name, 'Carlos');
+  assert.equal(result.itens[0].email,     'carlos@x.com');
 });
 
 test('getFavoriteClients — full_name null usa "Cliente" como fallback', async () => {
-  const row = { id: UUID_B, full_name: null, avatar_path: null, updated_at: null };
+  const row = { id: UUID_B, full_name: null, email: null, avatar_path: null, updated_at: null };
   const supabase = mockSupabase({ data: [row] });
   const repo     = new SearchRepository(supabase);
 
-  const [fav] = await repo.getFavoriteClients(UUID_A, UUID_B);
-  assert.equal(fav.full_name, 'Cliente');
+  const { itens } = await repo.getFavoriteClients(UUID_A, UUID_B);
+  assert.equal(itens[0].full_name, 'Cliente');
+  assert.equal(itens[0].email,     null);
 });
 
 test('getFavoriteClients — barbershopId inválido lança TypeError', async () => {

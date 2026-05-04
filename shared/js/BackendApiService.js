@@ -67,15 +67,15 @@ class BackendApiService {
           new Error(json?.error ?? `HTTP ${res.status}`),
           { status: res.status }
         );
-        return { data: null, error: err };
+        return { data: null, total: null, error: err };
       }
 
-      return { data: json?.dados ?? json, error: null };
+      return { data: json?.dados ?? json, total: json?.total ?? null, error: null };
     } catch (err) {
       // AbortError: cancelamento intencional — propaga para o caller tratar
-      if (err?.name === 'AbortError') return { data: null, error: err };
+      if (err?.name === 'AbortError') return { data: null, total: null, error: err };
       const msg = err?.message ?? 'Sem conexão com a internet.';
-      return { data: null, error: new Error(msg) };
+      return { data: null, total: null, error: new Error(msg) };
     }
   }
 

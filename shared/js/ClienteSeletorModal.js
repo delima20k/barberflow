@@ -14,7 +14,7 @@
 //     professionalId,
 //     excluirIds,      // Set<string> opcional — IDs a omitir
 //   });
-//   // cliente: { id, full_name, avatar_path } | null (cancelado)
+//   // cliente: { id, full_name, email, avatar_path } | null (cancelado)
 //
 // Dependências:
 //   CadeiraService.js    — getClientesFavoritos()
@@ -49,7 +49,7 @@ class ClienteSeletorModal {
   // @param {string}      opts.barbershopId
   // @param {string}      opts.professionalId
   // @param {Set<string>} [opts.excluirIds=new Set()]
-  // @returns {Promise<{id,full_name,avatar_path}|null>}
+  // @returns {Promise<{id,full_name,email,avatar_path}|null>}
   // ─────────────────────────────────────────────────────────
   static abrir({ barbershopId, professionalId, excluirIds = new Set() } = {}) {
     // Validação de entrada — falha rápida antes de qualquer chamada de rede
@@ -96,7 +96,7 @@ class ClienteSeletorModal {
       // ── Carrega favoritos via API ─────────────────────────
       CadeiraService.getClientesFavoritos(barbershopId, professionalId)
         .then(lista => {
-          const filtrados = (lista ?? []).filter(c => !excluirIds.has(c.id));
+                  const filtrados = (lista ?? []).filter(c => !excluirIds.has(c.id));
           ClienteSeletorModal.#favoritosCache = filtrados;
           labelEl.textContent = 'Favoritos da barbearia';
           ClienteSeletorModal.#renderLista(listaEl, filtrados, 'Nenhum favorito ainda. Use a busca acima.', false);
@@ -120,6 +120,7 @@ class ClienteSeletorModal {
         _fechar({
           id:          item.dataset.clienteId,
           full_name:   item.dataset.clienteNome,
+          email:       item.dataset.clienteEmail || null,
           avatar_path: item.dataset.clienteAvatar || null,
         });
       });
@@ -266,7 +267,8 @@ class ClienteSeletorModal {
    * @returns {Promise<{ itens: Array, total: number, erro: Error|null }>}
    */
   static async #buscarPaginado(termo, excluirIds, offset, signal) {
-    const { data, error } = await BackendApiService.searchUsers(termo, {
+    const { data, total: backendTotal, error } = await BackendApiService.searchUsers(termo, {
+      role:           'client',
       barbershopId:   ClienteSeletorModal.#barbershopId,
       professionalId: ClienteSeletorModal.#professionalId,
       limit:          ClienteSeletorModal.#PAGE_SIZE,
@@ -276,15 +278,17 @@ class ClienteSeletorModal {
 
     if (error) return { itens: [], total: 0, erro: error };
 
-    // Backend retorna { dados: [], total: N } ou diretamente o array
-    const lista = data?.dados ?? data ?? [];
-    const total = typeof data?.total === 'number' ? data.total : lista.length;
+    // data é o array de itens (BackendApiService.#req retorna json.dados ?? json)
+    const lista = Array.isArray(data) ? data : [];
+    // backendTotal vem de json.total propagado por #req; fallback para tamanho da lista
+    const total = typeof backendTotal === 'number' ? backendTotal : lista.length;
 
     const itens = lista
-      .filter(p => !excluirIds.has(p.id))
+      .filter(p => !(excluirIds ?? new Set()).has(p.id))
       .map(p => ({
         id:          p.id,
         full_name:   p.full_name   ?? 'Usuário',
+        email:       p.email       ?? null,
         avatar_path: p.avatar_path ?? null,
         updated_at:  p.updated_at  ?? null,
       }));
@@ -377,6 +381,7 @@ class ClienteSeletorModal {
     li.setAttribute('tabindex', '0');
     li.dataset.clienteId     = cliente.id;
     li.dataset.clienteNome   = cliente.full_name;
+    li.dataset.clienteEmail  = cliente.email  ?? '';
     li.dataset.clienteAvatar = cliente.avatar_path ?? '';
 
     const avatarEl = document.createElement('div');
@@ -395,12 +400,23 @@ class ClienteSeletorModal {
       avatarEl.textContent = ClienteSeletorModal.#inicial(cliente.full_name);
     }
 
+    const infoEl  = document.createElement('div');
+    infoEl.className = 'csm-info';
+
     const nomeEl       = document.createElement('span');
     nomeEl.className   = 'csm-nome';
     nomeEl.textContent = cliente.full_name;
+    infoEl.appendChild(nomeEl);
+
+    if (cliente.email) {
+      const emailEl       = document.createElement('span');
+      emailEl.className   = 'csm-email';
+      emailEl.textContent = cliente.email;
+      infoEl.appendChild(emailEl);
+    }
 
     li.appendChild(avatarEl);
-    li.appendChild(nomeEl);
+    li.appendChild(infoEl);
 
     li.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); li.click(); }

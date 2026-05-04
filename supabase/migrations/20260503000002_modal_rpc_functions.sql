@@ -56,6 +56,7 @@ CREATE OR REPLACE FUNCTION public.get_clientes_favoritos_modal(
 RETURNS TABLE (
   id          UUID,
   full_name   TEXT,
+  email       TEXT,
   avatar_path TEXT,
   updated_at  TIMESTAMPTZ
 )
@@ -68,6 +69,7 @@ BEGIN
     SELECT DISTINCT
       p.id,
       p.full_name,
+      p.email,
       p.avatar_path,
       p.updated_at
     FROM public.profiles p

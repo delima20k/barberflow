@@ -57,7 +57,7 @@ class SearchRepository extends BaseRepository {
    * @param {string|null} [opts.role]  — 'client' | 'professional' | null (sem filtro)
    * @param {number}      [opts.limit] — máx. resultados (1–50; default 20)
    * @param {number}      [opts.offset]— paginação (≥0; default 0)
-   * @returns {Promise<SearchUserResult[]>}
+   * @returns {Promise<{ itens: SearchUserResult[], total: number }>}
    */
   async searchUsers({ term, role = null, limit = LIMITE_PADRAO, offset = 0 } = {}) {
     this.#validarTerm(term);
@@ -72,8 +72,15 @@ class SearchRepository extends BaseRepository {
       p_offset: off,
     });
 
+    // Fallback: quando a RPC ainda não existe no banco (antes de migration)
+    if (error && SearchRepository.#ehErroProcedureNaoExiste(error)) {
+      return this.#searchUsersFallback(term.trim(), role, lim, off);
+    }
     if (error) throw error;
-    return (data ?? []).map(SearchRepository.#mapearUsuario);
+
+    const rows  = data ?? [];
+    const total = rows.length > 0 ? Number(rows[0].total_count ?? rows.length) : 0;
+    return { itens: rows.map(SearchRepository.#mapearUsuario), total };
   }
 
   /**
@@ -84,7 +91,7 @@ class SearchRepository extends BaseRepository {
    *
    * @param {string} barbershopId   — UUID da barbearia
    * @param {string} professionalId — UUID do profissional
-   * @returns {Promise<FavoriteClientResult[]>}
+   * @returns {Promise<{ itens: FavoriteClientResult[], total: number }>}
    */
   async getFavoriteClients(barbershopId, professionalId) {
     this._validarUuid('barbershopId',   barbershopId);
@@ -95,8 +102,96 @@ class SearchRepository extends BaseRepository {
       p_professional_id: professionalId,
     });
 
+    // Fallback: quando a RPC ainda não existe no banco (antes de migration)
+    if (error && SearchRepository.#ehErroProcedureNaoExiste(error)) {
+      return this.#getFavoriteClientsFallback(barbershopId, professionalId);
+    }
     if (error) throw error;
-    return (data ?? []).map(SearchRepository.#mapearFavorito);
+
+    const itens = (data ?? []).map(SearchRepository.#mapearFavorito);
+    return { itens, total: itens.length };
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PRIVADO — Fallbacks (quando RPC ainda não existe no banco)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Verifica se o erro indica que a procedure não existe no banco.
+   * Códigos: PGRST202 (PostgREST), 42883 (PostgreSQL UNDEFINED_FUNCTION).
+   * @param {object} error
+   * @returns {boolean}
+   */
+  static #ehErroProcedureNaoExiste(error) {
+    if (!error) return false;
+    const code = String(error.code ?? '');
+    const msg  = String(error.message ?? '').toLowerCase();
+    return code === 'PGRST202' || code === '42883'
+      || msg.includes('could not find the function') || msg.includes('does not exist');
+  }
+
+  /**
+   * Fallback para searchUsers: query direta quando RPC search_users não existe.
+   * Só busca em full_name (sem email). Após migration, a RPC assume automaticamente.
+   * @returns {Promise<{ itens: SearchUserResult[], total: number }>}
+   */
+  async #searchUsersFallback(term, role, limit, offset) {
+    let query = this.#supabase
+      .from('profiles')
+      .select('id, full_name, email, role, avatar_path, updated_at', { count: 'exact' })
+      .ilike('full_name', `%${term}%`)
+      .eq('is_active', true)
+      .order('full_name')
+      .range(offset, offset + limit - 1);
+
+    if (role) query = query.eq('role', role);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    const itens = (data ?? []).map(row => ({
+      id:              row.id,
+      full_name:       row.full_name   ?? null,
+      email:           row.email       ?? null,
+      role:            row.role        ?? null,
+      avatar_path:     row.avatar_path ?? null,
+      barbershop_name: null,
+      updated_at:      row.updated_at  ?? null,
+    }));
+    return { itens, total: count ?? itens.length };
+  }
+
+  /**
+   * Fallback para getFavoriteClients: queries diretas quando RPC não existe.
+   * @returns {Promise<{ itens: FavoriteClientResult[], total: number }>}
+   */
+  async #getFavoriteClientsFallback(barbershopId, professionalId) {
+    const ids = new Set();
+
+    const { data: shopFavs } = await this.#supabase
+      .from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    const { data: profFavs } = await this.#supabase
+      .from('favorite_professionals')
+      .select('user_id')
+      .eq('professional_id', professionalId);
+    (profFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    if (!ids.size) return { itens: [], total: 0 };
+
+    const { data, error } = await this.#supabase
+      .from('profiles')
+      .select('id, full_name, email, avatar_path, updated_at')
+      .in('id', [...ids])
+      .order('full_name');
+
+    if (error) throw error;
+    const itens = (data ?? []).map(SearchRepository.#mapearFavorito);
+    return { itens, total: itens.length };
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -180,6 +275,7 @@ class SearchRepository extends BaseRepository {
     return {
       id:          row.id,
       full_name:   row.full_name   ?? 'Cliente',
+      email:       row.email       ?? null,
       avatar_path: row.avatar_path ?? null,
       updated_at:  row.updated_at  ?? null,
     };
@@ -201,6 +297,7 @@ class SearchRepository extends BaseRepository {
  * @typedef {object} FavoriteClientResult
  * @property {string}      id
  * @property {string}      full_name
+ * @property {string|null} email
  * @property {string|null} avatar_path
  * @property {string|null} updated_at
  */

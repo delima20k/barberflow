@@ -531,6 +531,162 @@ CREATE TRIGGER trg_clear_close_reason
   BEFORE UPDATE ON public.barbershops
   FOR EACH ROW EXECUTE FUNCTION public.fn_clear_close_reason();
 
+-- ────────────────────────────────────────────────────────────────
+-- 11. MODAL SELETOR DE CLIENTES — RPCs SECURITY DEFINER
+--     Migration: 20260503000002_modal_rpc_functions.sql
+-- ────────────────────────────────────────────────────────────────
+
+-- 11.1 Busca de perfis por nome (input de busca da modal)
+CREATE OR REPLACE FUNCTION public.buscar_perfis_por_nome(
+  p_termo  TEXT,
+  p_limite INT DEFAULT 20
+)
+RETURNS TABLE (
+  id          UUID,
+  full_name   TEXT,
+  email       TEXT,
+  avatar_path TEXT,
+  updated_at  TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  p_limite := GREATEST(1, LEAST(p_limite, 50));
+  RETURN QUERY
+    SELECT p.id, p.full_name, p.email, p.avatar_path, p.updated_at
+    FROM   public.profiles p
+    WHERE  p.full_name ILIKE '%' || p_termo || '%'
+       AND p.is_active = TRUE
+    ORDER BY p.full_name
+    LIMIT  p_limite;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.buscar_perfis_por_nome(TEXT, INT) TO authenticated;
+
+-- 11.2 Favoritos da modal (quem favoritou a barbearia ou o barbeiro)
+CREATE OR REPLACE FUNCTION public.get_clientes_favoritos_modal(
+  p_barbershop_id   UUID,
+  p_professional_id UUID
+)
+RETURNS TABLE (
+  id          UUID,
+  full_name   TEXT,
+  email       TEXT,
+  avatar_path TEXT,
+  updated_at  TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT DISTINCT
+      p.id,
+      p.full_name,
+      p.email,
+      p.avatar_path,
+      p.updated_at
+    FROM public.profiles p
+    WHERE p.id IN (
+      SELECT bi.user_id
+      FROM   public.barbershop_interactions bi
+      WHERE  bi.barbershop_id = p_barbershop_id
+        AND  bi.type = 'favorite'
+      UNION
+      SELECT fp.user_id
+      FROM   public.favorite_professionals fp
+      WHERE  fp.professional_id = p_professional_id
+    )
+    ORDER BY p.full_name;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_clientes_favoritos_modal(UUID, UUID) TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 12. BUSCA UNIFICADA — search_users (com total_count para paginação)
+--     Migration: 20260503000003_search_indexes_and_rpc.sql
+-- ────────────────────────────────────────────────────────────────
+
+-- 12.1 Índices de performance
+CREATE INDEX IF NOT EXISTS idx_profiles_full_name_lower
+  ON public.profiles (LOWER(full_name));
+
+CREATE INDEX IF NOT EXISTS idx_profiles_email_lower
+  ON public.profiles (LOWER(email));
+
+CREATE INDEX IF NOT EXISTS idx_profiles_fts
+  ON public.profiles
+  USING GIN (
+    to_tsvector(
+      'portuguese',
+      COALESCE(full_name, '') || ' ' || COALESCE(email, '')
+    )
+  );
+
+CREATE INDEX IF NOT EXISTS idx_barbershops_name_lower
+  ON public.barbershops (LOWER(name));
+
+-- 12.2 RPC search_users com total_count
+--
+-- Retorna resultados paginados e total_count (via window function),
+-- calculado ANTES do LIMIT/OFFSET — reflete o total real do WHERE.
+CREATE OR REPLACE FUNCTION public.search_users(
+  p_term   TEXT    DEFAULT NULL,
+  p_role   TEXT    DEFAULT NULL,
+  p_limit  INTEGER DEFAULT 20,
+  p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id              UUID,
+  full_name       TEXT,
+  email           TEXT,
+  role            TEXT,
+  avatar_path     TEXT,
+  barbershop_name TEXT,
+  updated_at      TIMESTAMPTZ,
+  total_count     BIGINT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    p.id,
+    p.full_name,
+    p.email,
+    p.role,
+    p.avatar_path,
+    b.name  AS barbershop_name,
+    p.updated_at,
+    COUNT(*) OVER() AS total_count
+  FROM public.profiles p
+  LEFT JOIN public.barbershops b
+    ON  b.owner_id  = p.id
+    AND b.is_active = TRUE
+  WHERE
+    (
+      p_term IS NULL
+      OR p.full_name ILIKE '%' || p_term || '%'
+      OR p.email     ILIKE '%' || p_term || '%'
+      OR b.name      ILIKE '%' || p_term || '%'
+    )
+    AND (p_role IS NULL OR p.role = p_role)
+    AND p.is_active = TRUE
+  ORDER BY
+    CASE WHEN p_term IS NOT NULL AND p.full_name ILIKE p_term || '%' THEN 0 ELSE 1 END,
+    p.full_name
+  LIMIT  GREATEST(1, LEAST(p_limit,  50))
+  OFFSET GREATEST(0, p_offset);
+$$;
+
+GRANT EXECUTE ON FUNCTION public.search_users(TEXT, TEXT, INTEGER, INTEGER) TO authenticated;
+
 -- ================================================================
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new

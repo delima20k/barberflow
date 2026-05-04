@@ -158,13 +158,14 @@ class ClienteRepository extends BaseRepository {
 
     const { data, error } = await this.#supabase
       .from('profiles')
-      .select('id, full_name, avatar_path, updated_at')
+      .select('id, full_name, email, avatar_path, updated_at')
       .in('id', [...ids]);
 
     if (error) throw error;
     return (data ?? []).map(p => ({
       id:          p.id,
       full_name:   p.full_name   ?? 'Cliente',
+      email:       p.email       ?? null,
       avatar_path: p.avatar_path ?? null,
       updated_at:  p.updated_at  ?? null,
     }));

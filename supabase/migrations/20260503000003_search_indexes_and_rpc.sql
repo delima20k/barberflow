@@ -59,7 +59,8 @@ RETURNS TABLE (
   role            TEXT,
   avatar_path     TEXT,
   barbershop_name TEXT,
-  updated_at      TIMESTAMPTZ
+  updated_at      TIMESTAMPTZ,
+  total_count     BIGINT
 )
 LANGUAGE sql
 STABLE
@@ -73,7 +74,9 @@ AS $$
     p.role,
     p.avatar_path,
     b.name  AS barbershop_name,
-    p.updated_at
+    p.updated_at,
+    -- total de linhas que batem o WHERE, calculado ANTES do LIMIT/OFFSET
+    COUNT(*) OVER() AS total_count
   FROM public.profiles p
   LEFT JOIN public.barbershops b
     ON  b.owner_id  = p.id

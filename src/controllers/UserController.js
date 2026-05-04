@@ -33,11 +33,11 @@ function criarUserController(userService) {
       const limit          = Math.min(Number(req.query.limit)  || 20, 50);
       const offset         = Math.max(Number(req.query.offset) || 0,   0);
 
-      const resultado = await userService.searchUsers({
+      const { itens, total } = await userService.searchUsers({
         term, role, limit, offset, barbershopId, professionalId,
       });
 
-      res.json({ ok: true, dados: resultado, total: resultado.length });
+      res.json({ ok: true, dados: itens, total });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });
     }
