@@ -5,8 +5,8 @@
 // BackendApiService (shared/js/).
 //
 // Verifica que a URL base da API aponta para o projeto Vercel
-// correto (barberflow-api.vercel.app) e não para o Next.js
-// em barberflow.vercel.app.
+// correto (barberflow-profissional.vercel.app) e não para
+// projetos de terceiros.
 // =============================================================
 
 const { suite, test } = require('node:test');
@@ -23,32 +23,23 @@ const SRC = fs.readFileSync(
 
 suite('BackendApiService — BASE_URL de produção', () => {
 
-  test('usa barberflow-api.vercel.app como URL base de produção', () => {
+  test('usa barberflow-profissional.vercel.app como URL base de produção', () => {
     assert.ok(
-      SRC.includes('barberflow-api.vercel.app'),
-      'BackendApiService deve apontar para barberflow-api.vercel.app',
+      SRC.includes('barberflow-profissional.vercel.app'),
+      'BackendApiService deve apontar para barberflow-profissional.vercel.app',
     );
   });
 
-  test('NÃO usa barberflow.vercel.app (projeto Next.js errado) como URL base', () => {
-    // barberflow.vercel.app pode aparecer em comentários explicativos — tudo bem.
-    // O que não pode é aparecer como VALOR retornado pela lógica de produção.
-    // A forma mais segura de testar: o bloco de retorno de produção não contém
-    // a URL antiga como string ativa.
+  test('NÃO usa barberflow-api.vercel.app (projeto de terceiro) como URL base', () => {
     const linhaRetornoProducao = SRC
       .split('\n')
       .find(l =>
-        l.includes('barberflow.vercel.app') &&
-        !l.trim().startsWith('//') &&          // não é comentário
-        !l.includes('barberflow-api') &&        // não é a nova URL
-        !l.includes('barberflow-cliente') &&
-        !l.includes('barberflow-profissional') &&
-        !l.includes('barberflow-pro-one'),
+        l.includes('barberflow-api.vercel.app') &&
+        !l.trim().startsWith('//'),
       );
-
     assert.ok(
       !linhaRetornoProducao,
-      `Encontrada referência ativa para barberflow.vercel.app (projeto errado): "${linhaRetornoProducao}"`,
+      `Encontrada referência ativa para barberflow-api.vercel.app (projeto de terceiro): "${linhaRetornoProducao}"`,
     );
   });
 
