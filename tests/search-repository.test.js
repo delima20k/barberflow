@@ -146,17 +146,21 @@ test('searchUsers — fallback quando RPC não existe (código PGRST202)', async
   // Simula banco sem a RPC: rpc() retorna erro PGRST202;
   // fallback usa query direta via .from('profiles')
   const rpcError = Object.assign(new Error('Could not find the function'), { code: 'PGRST202' });
-  const profileRows = [{ id: UUID_A, full_name: 'Fallback User', email: 'fb@x.com', role: 'client', avatar_path: null, updated_at: null }];
+  const profileRows = [
+    { id: UUID_A, full_name: 'Fallback User', email: 'fb@x.com', role: 'client', avatar_path: null, updated_at: null },
+  ];
 
-  const supabase = {
-    rpc: fn().mockResolvedValue({ data: null, error: rpcError }),
-    from: fn().mockReturnThis(),
-    select: fn().mockReturnThis(),
-    ilike: fn().mockReturnThis(),
-    eq:    fn().mockReturnThis(),
-    order: fn().mockReturnThis(),
-    range: fn().mockResolvedValue({ data: profileRows, error: null, count: 1 }),
+  // Builder encadeável compatível com node:test (sem mockReturnThis do Jest)
+  const rangeResult = { data: profileRows, error: null, count: 1 };
+  const builder = {
+    select: () => builder,
+    ilike:  () => builder,
+    eq:     () => builder,
+    order:  () => builder,
+    range:  () => Promise.resolve(rangeResult),
   };
+  const rpcSpy = fn().mockResolvedValue({ data: null, error: rpcError });
+  const supabase = { rpc: rpcSpy, from: () => builder };
 
   const repo   = new SearchRepository(supabase);
   const result = await repo.searchUsers({ term: 'fallback' });
