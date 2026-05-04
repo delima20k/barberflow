@@ -97,7 +97,6 @@ class ClienteSeletorModal {
       CadeiraService.getClientesFavoritos(barbershopId, professionalId)
         .then(lista => {
           const filtrados = (lista ?? []).filter(c => !excluirIds.has(c.id));
-          console.log('usuarios recebidos:', filtrados);
           ClienteSeletorModal.#favoritosCache = filtrados;
           labelEl.textContent = filtrados.length > 0 ? 'Favoritos da barbearia' : 'Favoritos';
           if (filtrados.length > 0) {
@@ -107,7 +106,6 @@ class ClienteSeletorModal {
           }
         })
         .catch(err => {
-          console.log('usuarios recebidos:', []);
           console.error('[ClienteSeletorModal] erro ao carregar favoritos:', err);
           labelEl.textContent = 'Favoritos';
           ClienteSeletorModal.#renderVazio(listaEl, 'Não foi possível carregar favoritos. Use a busca acima.');
@@ -241,7 +239,6 @@ class ClienteSeletorModal {
       return;
     }
 
-    console.log('usuarios recebidos:', itens);
     ClienteSeletorModal.#totalResultados = total;
     ClienteSeletorModal.#offset          = offset;
 
