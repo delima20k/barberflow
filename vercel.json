@@ -2,6 +2,31 @@
   "version": 2,
   "headers": [
     {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/" },
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/css/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/js/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/img/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
       "source": "/cliente/sw.js",
       "headers": [
         { "key": "Service-Worker-Allowed", "value": "/cliente/" },
@@ -71,6 +96,9 @@
       "source": "/api/(.*)",
       "destination": "/api"
     },
+    { "source": "/sw.js",           "destination": "/apps/profissional/sw.js"         },
+    { "source": "/manifest.json",   "destination": "/apps/profissional/manifest.json"  },
+    { "source": "/assets/:path*",   "destination": "/apps/profissional/assets/:path*"  },
     { "source": "/",                         "destination": "/apps/profissional/index.html" },
     { "source": "/cliente/",                 "destination": "/apps/cliente/index.html"      },
     { "source": "/cliente/:path*",           "destination": "/apps/cliente/:path*"          },
