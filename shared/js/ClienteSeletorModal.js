@@ -268,7 +268,6 @@ class ClienteSeletorModal {
    */
   static async #buscarPaginado(termo, excluirIds, offset, signal) {
     const { data, total: backendTotal, error } = await BackendApiService.searchUsers(termo, {
-      role:           'client',
       barbershopId:   ClienteSeletorModal.#barbershopId,
       professionalId: ClienteSeletorModal.#professionalId,
       limit:          ClienteSeletorModal.#PAGE_SIZE,
