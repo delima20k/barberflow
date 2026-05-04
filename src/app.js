@@ -87,8 +87,6 @@ function criarApp() {
   // Não usa o pacote cors() npm: quando a origem não bate ele lança
   // callback(new Error), gerando 500 SEM headers — browser vê CORS error.
   app.use((req, res, next) => {
-    console.log('CORS middleware executado:', req.method, req.path, '| Origin:', req.headers.origin);
-
     const origin = req.headers.origin;
     if (origin && ALLOWED_ORIGINS.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
