@@ -58,7 +58,7 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(), microphone=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://barberflow.vercel.app https://barberflow-api.vercel.app https://barberflow-cliente.vercel.app https://barberflow-profissional.vercel.app https://barberflow-pro-one.vercel.app https://androidpublisher.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://barberflow.vercel.app https://barberflow-profissional.vercel.app https://barberflow-pro-one.vercel.app https://barberflow-cliente.vercel.app https://androidpublisher.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'" }
       ]
     }
   ],
@@ -71,6 +71,7 @@
       "source": "/api/(.*)",
       "destination": "/api"
     },
+    { "source": "/",                         "destination": "/apps/profissional/index.html" },
     { "source": "/cliente/",                 "destination": "/apps/cliente/index.html"      },
     { "source": "/cliente/:path*",           "destination": "/apps/cliente/:path*"          },
     { "source": "/profissional/",            "destination": "/apps/profissional/index.html" },
