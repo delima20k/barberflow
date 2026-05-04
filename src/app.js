@@ -78,6 +78,13 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:3001',
 ]);
 
+function origemPermitida(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Permite URLs de preview da Vercel (ex: barberflow-xxx-delima20ks-projects.vercel.app)
+  try { return new URL(origin).hostname.endsWith('.vercel.app'); } catch { return false; }
+}
+
 function criarApp() {
   const app = express();
 
@@ -89,7 +96,7 @@ function criarApp() {
   // callback(new Error), gerando 500 SEM headers — browser vê CORS error.
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && ALLOWED_ORIGINS.has(origin)) {
+    if (origemPermitida(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Vary', 'Origin');

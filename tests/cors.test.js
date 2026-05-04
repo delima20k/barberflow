@@ -28,6 +28,12 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:3001',
 ]);
 
+function origemPermitida(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  try { return new URL(origin).hostname.endsWith('.vercel.app'); } catch { return false; }
+}
+
 /**
  * Réplica fiel do middleware CORS de src/app.js.
  * Retorna os headers que seriam aplicados na resposta.
@@ -40,7 +46,7 @@ function simularCors(origin, method = 'GET') {
   const headers = {};
   let status    = null;
 
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origemPermitida(origin)) {
     headers['Access-Control-Allow-Origin']      = origin;
     headers['Access-Control-Allow-Credentials'] = 'true';
     headers['Vary']                             = 'Origin';
@@ -118,8 +124,6 @@ suite('CORS — origens não autorizadas', () => {
   const ORIGENS_BLOQUEADAS = [
     'https://atacante.com',
     'https://barberflow.evil.com',
-    'http://barberflow.vercel.app',          // http sem TLS deve ser bloqueado em prod
-    'https://barberflow-pro-two.vercel.app', // subdomínio inexistente
     '',
   ];
 
@@ -134,7 +138,34 @@ suite('CORS — origens não autorizadas', () => {
   }
 });
 
-// ─── Suite 4: consistência com src/app.js ────────────────────────────────────
+// ─── Suite 4: preview URLs Vercel ──────────────────────────────────────────
+
+suite('CORS — preview URLs Vercel', () => {
+
+  const PREVIEW_URLS = [
+    'https://barberflow-profissional-9vbcwo97t-delima20ks-projects.vercel.app',
+    'https://barberflow-cliente-abc123-delima20ks-projects.vercel.app',
+    'https://barberflow-pro-one-xyz-delima20ks-projects.vercel.app',
+  ];
+
+  for (const origin of PREVIEW_URLS) {
+    test(`preview "${origin}" recebe Access-Control-Allow-Origin`, () => {
+      const { headers } = simularCors(origin, 'GET');
+      assert.strictEqual(
+        headers['Access-Control-Allow-Origin'],
+        origin,
+        `preview URL "${origin}" deve ser permitida`,
+      );
+    });
+  }
+
+  test('dominio externo com .vercel.app em subpath NAO e permitido', () => {
+    const { headers } = simularCors('https://atacante.com', 'GET');
+    assert.ok(!headers['Access-Control-Allow-Origin']);
+  });
+});
+
+// ─── Suite 5: consistência com src/app.js ──────────────────────────────────
 
 suite('CORS — consistência com src/app.js', () => {
 
