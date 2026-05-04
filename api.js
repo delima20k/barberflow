@@ -20,7 +20,8 @@
 //   docker run barberflow-api          (produção via Docker)
 // =============================================================
 
-require('dotenv').config();
+// Na Vercel as variáveis já estão em process.env — dotenv só é necessário localmente
+if (!process.env.VERCEL) require('dotenv').config();
 
 const criarApp = require('./src/app');
 const logger   = require('./src/infra/LoggerService');
