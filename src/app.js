@@ -82,23 +82,27 @@ function criarApp() {
 
   // ── Middlewares globais ──────────────────────────────────────
 
-  // CORS — middleware manual, mais confiável que o pacote cors() npm.
-  // O cors() npm lança callback(new Error) quando a origem não bate,
-  // gerando um 500 SEM headers CORS — browser interpreta como CORS error.
-  // Este middleware explicita cada header e sempre responde OPTIONS com 200.
+  // CORS — middleware global aplicado antes de todas as rotas.
+  // Trata preflight (OPTIONS) respondendo imediatamente com 200.
+  // Não usa o pacote cors() npm: quando a origem não bate ele lança
+  // callback(new Error), gerando 500 SEM headers — browser vê CORS error.
   app.use((req, res, next) => {
+    console.log('CORS middleware executado:', req.method, req.path, '| Origin:', req.headers.origin);
+
     const origin = req.headers.origin;
     if (origin && ALLOWED_ORIGINS.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Vary', 'Origin');
     }
+
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
       res.setHeader('Access-Control-Max-Age', '86400');
-      return res.sendStatus(200);
+      return res.status(200).end();
     }
+
     next();
   });
 
