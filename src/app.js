@@ -82,30 +82,23 @@ function criarApp() {
 
   // ── Middlewares globais ──────────────────────────────────────
 
-  // CORS — dupla camada para máxima compatibilidade:
-  //   • Vercel edge (vercel.json headers): adiciona os cabeçalhos na CDN ANTES
-  //     do Lambda ser invocado, garantindo que OPTIONS nunca passe sem headers.
-  //   • Este middleware: aplica headers em dev local (sem CDN) e sempre retorna
-  //     200 para OPTIONS (status obrigatório no preflight).
-  //
-  // Em produção no Vercel (process.env.VERCEL === '1') a CDN já seta os headers;
-  // o middleware pula o setHeader para não duplicar (duplicar Access-Control-Allow-Origin
-  // causa falha CORS no browser pois aparece como "value1, value2" inválido).
+  // CORS — middleware manual, mais confiável que o pacote cors() npm.
+  // O cors() npm lança callback(new Error) quando a origem não bate,
+  // gerando um 500 SEM headers CORS — browser interpreta como CORS error.
+  // Este middleware explicita cada header e sempre responde OPTIONS com 200.
   app.use((req, res, next) => {
-    if (!process.env.VERCEL) {
-      const origin = req.headers.origin;
-      if (origin && ALLOWED_ORIGINS.has(origin)) {
-        res.setHeader('Access-Control-Allow-Origin',      origin);
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Vary', 'Origin');
-      }
-      if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
-        res.setHeader('Access-Control-Max-Age', '86400');
-      }
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin',      origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
     }
-    if (req.method === 'OPTIONS') return res.sendStatus(200);
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      return res.sendStatus(200);
+    }
     next();
   });
 
