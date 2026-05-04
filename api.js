@@ -20,8 +20,12 @@
 //   docker run barberflow-api          (produção via Docker)
 // =============================================================
 
-// Na Vercel as variáveis já estão em process.env — dotenv só é necessário localmente
-if (!process.env.VERCEL) require('dotenv').config();
+// Na Vercel as variáveis já estão em process.env — dotenv só é necessário localmente.
+// O eval() impede o bundler (@vercel/nft) de incluir dotenv no bundle serverless.
+if (!process.env.VERCEL) {
+  // eslint-disable-next-line no-eval
+  eval("require('dotenv').config()");
+}
 
 const criarApp = require('./src/app');
 const logger   = require('./src/infra/LoggerService');
