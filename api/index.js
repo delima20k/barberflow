@@ -11,4 +11,7 @@
 //   node api.js
 // =============================================================
 
-module.exports = require('../api');
+// Na Vercel as env vars já estão injetadas — não precisa de dotenv.
+// Importa o Express app diretamente, evitando o api.js (que carrega dotenv para dev local).
+const criarApp = require('../src/app');
+module.exports = criarApp();
