@@ -110,9 +110,7 @@ class BarbeariaRepository extends BaseRepository {
     return (data ?? [])
       .map(row => row.barbershops)
       .filter(Boolean)
-      .sort((a, b) =>
-        (a.name ?? '').toLowerCase().localeCompare((b.name ?? '').toLowerCase(), 'pt-BR')
-      );
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'pt-BR'));
   }
 
   /**

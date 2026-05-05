@@ -673,7 +673,7 @@ class MinhaBarbeariaPage {
     if (tipo === 'producao') {
       label.textContent = entrada ? 'Atendendo' : 'Livre';
     } else {
-      label.textContent = entrada ? entrada.client?.full_name?.split(' ')[0] ?? `#${posicao}` : '+';
+      label.textContent = entrada ? entrada.client?.full_name?.split(' ')[0] ?? entrada.guest_name ?? `#${posicao}` : '+';
     }
     cadeira.appendChild(label);
 

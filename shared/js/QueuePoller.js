@@ -159,7 +159,17 @@ class QueuePoller {
 
     if (!minha) return;
 
-    const posicaoAtual = minha.position ?? null;
+    // Rank dinâmico: posição do cliente na fila ativa ordenada por position.
+    // Inclui entradas in_service + waiting para que a saída de um
+    // in_service (done) reduza o rank de quem está esperando.
+    const filaAtiva = fila
+      .filter((e) => e.status === 'waiting' || e.status === 'in_service')
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+    const idxAtivo = filaAtiva.findIndex(
+      (e) => (e.client_id ?? e.user_id) === QueuePoller.#clientId,
+    );
+    const posicaoAtual = idxAtivo >= 0 ? idxAtivo + 1 : null;
     const posAnterior  = QueuePoller.#posicaoAnterior;
 
     const avancou = posAnterior !== null
@@ -176,12 +186,12 @@ class QueuePoller {
         if (ehSuaVez) {
           NotificationService.mostrarToast('É a sua vez!', 'O barbeiro está pronto para atendê-lo.', tipo);
         } else if (avancou) {
-          const rank = fila
+          const rankWaiting = fila
             .filter((e) => e.status === 'waiting')
             .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
             .findIndex((e) => (e.client_id ?? e.user_id) === QueuePoller.#clientId);
 
-          const posDisplay = rank >= 0 ? rank + 1 : posicaoAtual;
+          const posDisplay = rankWaiting >= 0 ? rankWaiting + 1 : posicaoAtual;
           NotificationService.mostrarToast(
             'Fila avançou',
             `Você está na posição ${posDisplay} da fila.`,

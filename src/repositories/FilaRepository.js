@@ -15,9 +15,9 @@ class FilaRepository extends BaseRepository {
   #supabase;
 
   static #SELECT_ENTRADA = `
-    id, barbershop_id, user_id, chair_id, status, position, notes, created_at,
-    profile:profiles!user_id(full_name, avatar_path),
-    chair:chairs!chair_id(name)
+    id, barbershop_id, client_id, chair_id, status, position, guest_name, check_in_at, served_at, done_at,
+    client:profiles!client_id(id, full_name, avatar_path, updated_at),
+    chair:chairs!chair_id(id, label, status)
   `;
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
@@ -78,9 +78,8 @@ class FilaRepository extends BaseRepository {
       .from('queue_entries')
       .insert({
         barbershop_id: barbershopId,
-        user_id:       userId,
+        client_id:     userId,
         chair_id:      dados.chair_id ?? null,
-        notes:         dados.notes    ?? null,
         status:        'waiting',
       })
       .select(FilaRepository.#SELECT_ENTRADA)
@@ -104,7 +103,7 @@ class FilaRepository extends BaseRepository {
       .from('queue_entries')
       .delete()
       .eq('id', entradaId)
-      .eq('user_id', userId);
+      .eq('client_id', userId);
 
     if (error) throw error;
     return true;
