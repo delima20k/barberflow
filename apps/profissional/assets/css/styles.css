@@ -1786,6 +1786,63 @@
   font-size: .85rem;
 }
 
+/* ── Seção de cliente anônimo (walk-in) ──────────────────── */
+.csm-anon-section {
+  padding: 8px 12px 0;
+  flex-shrink: 0;
+}
+.csm-item--anon {
+  border: 1px solid var(--gold, #D4AF37);
+  border-radius: 8px;
+  background: rgba(212,175,55,.07);
+  cursor: pointer;
+}
+.csm-item--anon:hover  { background: rgba(212,175,55,.16); }
+.csm-item--anon:active { background: rgba(212,175,55,.25); }
+
+/* Formulário de nome walk-in */
+.csm-anon-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--gold, #D4AF37);
+  border-radius: 8px;
+  background: rgba(212,175,55,.05);
+}
+.csm-anon-form-titulo {
+  font-size: .82rem;
+  color: var(--text-muted, #8c7057);
+  margin: 0;
+}
+.csm-anon-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--gold, #D4AF37);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text, #2b1b12);
+  font-size: .9rem;
+  box-sizing: border-box;
+}
+.csm-anon-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(212,175,55,.25);
+}
+.csm-anon-confirm {
+  background: var(--gold, #D4AF37);
+  color: #2b1b12;
+}
+.csm-anon-confirm:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.csm-anon-voltar {
+  background: transparent;
+  color: var(--text-muted, #8c7057);
+  border: 1px solid var(--border-soft, rgba(212,175,55,.2));
+}
+
 /* Lista de serviços (CorteModal) */
 .crtm-lista {
   list-style: none;

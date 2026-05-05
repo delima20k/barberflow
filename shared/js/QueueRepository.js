@@ -12,7 +12,7 @@
 class QueueRepository {
 
   static #SELECT_LIST =
-    `id, position, status, check_in_at, served_at,
+    `id, position, status, check_in_at, served_at, guest_name,
      client:profiles!client_id(id, full_name, avatar_path),
      professional:professionals!professional_id(id,
        profile:profiles!id(full_name)),
@@ -100,11 +100,17 @@ class QueueRepository {
     const rShop = InputValidator.uuid(payload?.barbershop_id);
     if (!rShop.ok) throw new TypeError(`[QueueRepository] barbershop_id: ${rShop.msg}`);
 
-    const rClient = InputValidator.uuid(payload?.client_id);
-    if (!rClient.ok) throw new TypeError(`[QueueRepository] client_id: ${rClient.msg}`);
+    // client_id é opcional quando guest_name está definido (cliente walk-in sem cadastro)
+    const clientIdPresente = payload?.client_id !== null && payload?.client_id !== undefined;
+    if (clientIdPresente) {
+      const rClient = InputValidator.uuid(payload.client_id);
+      if (!rClient.ok) throw new TypeError(`[QueueRepository] client_id: ${rClient.msg}`);
+    } else if (!payload?.guest_name?.trim()) {
+      throw new TypeError('[QueueRepository] client_id ou guest_name é obrigatório.');
+    }
 
     // Allowlist de campos — descarta campos extras silenciosamente
-    const camposPermitidos = ['barbershop_id', 'client_id', 'professional_id', 'chair_id', 'position'];
+    const camposPermitidos = ['barbershop_id', 'client_id', 'professional_id', 'chair_id', 'position', 'guest_name'];
     const { ok, msg, valor: payloadFiltrado } = InputValidator.payload(payload, camposPermitidos);
     if (!ok) throw new TypeError(`[QueueRepository] ${msg}`);
 

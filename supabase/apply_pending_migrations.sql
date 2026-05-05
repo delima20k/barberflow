@@ -687,6 +687,16 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.search_users(TEXT, TEXT, INTEGER, INTEGER) TO authenticated;
 
+-- ────────────────────────────────────────────────────────────────
+-- 13. CLIENTES WALK-IN — guest_name em queue_entries
+--     Migration: 20260505000001_queue_entries_guest_name.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.queue_entries ADD COLUMN IF NOT EXISTS guest_name TEXT;
+
+COMMENT ON COLUMN public.queue_entries.guest_name IS
+  'Nome avulso informado pelo barbeiro para cliente sem cadastro (walk-in).';
+
 -- ================================================================
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new

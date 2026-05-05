@@ -78,6 +78,7 @@ class ClienteSeletorModal {
           <input class="csm-busca" type="search"
                  placeholder="Buscar por nome ou e-mail…"
                  autocomplete="off" minlength="2" />
+          <div class="csm-anon-section" id="csm-anon-sec"></div>
           <p class="csm-secao-label" id="csm-label">Carregando favoritos…</p>
           <ul class="csm-lista" role="listbox" aria-label="Clientes"></ul>
         </div>`;
@@ -85,10 +86,28 @@ class ClienteSeletorModal {
       const listaEl  = overlay.querySelector('.csm-lista');
       const buscaEl  = overlay.querySelector('.csm-busca');
       const labelEl  = overlay.querySelector('#csm-label');
+      const anonSecEl = overlay.querySelector('#csm-anon-sec');
 
       // Guarda referências no estado estático para uso em buscarParaTeste()
       ClienteSeletorModal.#listaEl = listaEl;
       ClienteSeletorModal.#labelEl = labelEl;
+
+      // ── Funções do fluxo anônimo ──────────────────────────
+      const restaurarAnon = () => {
+        anonSecEl.innerHTML = '';
+        anonSecEl.appendChild(
+          ClienteSeletorModal.#criarItemAnonimo(() => mostrarFormAnon())
+        );
+      };
+
+      const mostrarFormAnon = () => {
+        ClienteSeletorModal.#renderFormAnonimo(anonSecEl, {
+          onConfirm: (nome) => _fechar({ id: null, full_name: nome, anonymous: true }),
+          onVoltar:  restaurarAnon,
+        });
+      };
+
+      restaurarAnon(); // card anônimo sempre visível
 
       // ── Skeleton de loading inicial ────────────────────────
       ClienteSeletorModal.#renderLoading(listaEl);
@@ -426,6 +445,104 @@ class ClienteSeletorModal {
     });
 
     return li;
+  }
+
+  /**
+   * Cria o card "BarberFlow Anonimato" para clientes sem cadastro.
+   * @param {Function} onClick  chamado quando o card é clicado
+   * @returns {HTMLDivElement}
+   */
+  static #criarItemAnonimo(onClick) {
+    const card = document.createElement('div');
+    card.className = 'csm-item csm-item--anon';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', 'Adicionar cliente sem cadastro');
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'csm-avatar';
+    const img   = document.createElement('img');
+    img.src     = '/shared/img/icon-192.png';
+    img.alt     = 'BarberFlow';
+    img.loading = 'lazy';
+    avatarEl.appendChild(img);
+
+    const infoEl = document.createElement('div');
+    infoEl.className = 'csm-info';
+    const nomeEl       = document.createElement('span');
+    nomeEl.className   = 'csm-nome';
+    nomeEl.textContent = 'BarberFlow Anonimato';
+    const subEl        = document.createElement('span');
+    subEl.className    = 'csm-email';
+    subEl.textContent  = 'Cliente sem cadastro';
+    infoEl.appendChild(nomeEl);
+    infoEl.appendChild(subEl);
+
+    card.appendChild(avatarEl);
+    card.appendChild(infoEl);
+
+    card.addEventListener('click', onClick);
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+    });
+
+    return card;
+  }
+
+  /**
+   * Substitui a seção anônima por um formulário de nome walk-in.
+   * @param {Element}  anonSecEl
+   * @param {object}   opts
+   * @param {Function} opts.onConfirm  chamado com (nome: string)
+   * @param {Function} opts.onVoltar   chamado ao clicar em Voltar
+   */
+  static #renderFormAnonimo(anonSecEl, { onConfirm, onVoltar }) {
+    anonSecEl.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'csm-anon-form';
+
+    const titulo       = document.createElement('p');
+    titulo.className   = 'csm-anon-form-titulo';
+    titulo.textContent = 'Informe o nome do cliente:';
+
+    const input        = document.createElement('input');
+    input.className    = 'csm-anon-input';
+    input.type         = 'text';
+    input.placeholder  = 'Nome do cliente…';
+    input.maxLength    = 80;
+    input.autocomplete = 'off';
+
+    const confirmarBtn        = document.createElement('button');
+    confirmarBtn.className    = 'csm-anon-confirm csm-btn';
+    confirmarBtn.type         = 'button';
+    confirmarBtn.textContent  = 'Confirmar e Sentar';
+    confirmarBtn.disabled     = true;
+
+    const voltarBtn       = document.createElement('button');
+    voltarBtn.className   = 'csm-anon-voltar csm-btn';
+    voltarBtn.type        = 'button';
+    voltarBtn.textContent = '← Voltar';
+
+    input.addEventListener('input', () => {
+      confirmarBtn.disabled = input.value.trim().length === 0;
+    });
+
+    confirmarBtn.addEventListener('click', () => {
+      const nome = input.value.trim();
+      if (!nome) return;
+      onConfirm(nome);
+    });
+
+    voltarBtn.addEventListener('click', onVoltar);
+
+    wrapper.appendChild(titulo);
+    wrapper.appendChild(input);
+    wrapper.appendChild(confirmarBtn);
+    wrapper.appendChild(voltarBtn);
+    anonSecEl.appendChild(wrapper);
+
+    requestAnimationFrame(() => input.focus());
   }
 
   /**

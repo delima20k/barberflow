@@ -483,12 +483,13 @@ class MinhaBarbeariaPage {
     });
     if (!serviceIds) return;
 
-    // 4. Sentar
+    // 4. Sentar (cliente cadastrado ou walk-in anônimo)
     try {
       await CadeiraService.sentar({
         barbershopId:   this.#barbershopId,
         professionalId,
-        clientId:       clienteSel.id,
+        clientId:       clienteSel.anonymous ? null : clienteSel.id,
+        guestName:      clienteSel.anonymous ? clienteSel.full_name : undefined,
         serviceIds,
         tipo,
       });

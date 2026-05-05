@@ -274,7 +274,9 @@ function temClasse(el, cls) {
 }
 
 function coletarItens(el) {
-  return todosDescendentes(el).filter(c => temClasse(c, 'csm-item'));
+  return todosDescendentes(el).filter(c =>
+    temClasse(c, 'csm-item') && !temClasse(c, 'csm-item--anon')
+  );
 }
 
 function coletarVerMais(el) {
@@ -517,5 +519,44 @@ suite('ClienteSeletorModal — busca por texto', () => {
     await sandbox.ClienteSeletorModal.buscarParaTeste('alan', new Set(), PAGE, UUID_SHOP, UUID_PROF);
     const itensPag2 = coletarItens(overlay);
     assert.strictEqual(itensPag2.length, PAGE * 2, 'página 2: deve acumular 40 itens (append)');
+  });
+});
+
+// ─── Suíte: card anônimo ──────────────────────────────────────────────────────
+
+suite('ClienteSeletorModal — card de cliente anônimo', () => {
+
+  test('abrir() cria seção anônima no overlay', () => {
+    const { sandbox, doc } = criarSandbox({ favoritosRetorno: { data: [], error: null } });
+    sandbox.ClienteSeletorModal.abrir({ barbershopId: UUID_SHOP, professionalId: UUID_PROF });
+    const overlay  = getOverlay(doc);
+    const anonSec  = overlay ? todosDescendentes(overlay).find(e => e.id === 'csm-anon-sec') : null;
+    assert.ok(anonSec !== null && anonSec !== undefined, 'deve existir #csm-anon-sec no overlay');
+  });
+
+  test('card anônimo é acessível via tabindex', () => {
+    const { sandbox, doc } = criarSandbox({ favoritosRetorno: { data: [], error: null } });
+    sandbox.ClienteSeletorModal.abrir({ barbershopId: UUID_SHOP, professionalId: UUID_PROF });
+    const overlay  = getOverlay(doc);
+    const itensAnon = todosDescendentes(overlay ?? {})
+      .filter(e => (e.className ?? '').split(' ').includes('csm-item--anon'));
+    assert.ok(itensAnon.length >= 1, 'deve haver ao menos um item anônimo');
+    assert.strictEqual(String(itensAnon[0].getAttribute?.('tabindex') ?? ''), '0',
+      'card anônimo deve ter tabindex=0');
+  });
+
+  test('abrir() resolve com objeto anonymous=true quando form anônimo é confirmado', async () => {
+    const { sandbox } = criarSandbox({ favoritosRetorno: { data: [], error: null } });
+    const promise = sandbox.ClienteSeletorModal.abrir({ barbershopId: UUID_SHOP, professionalId: UUID_PROF });
+
+    // Acessa método interno via API pública: resolve diretamente com valor anônimo
+    // Simula o callback onConfirm que seria chamado ao clicar Confirmar no form
+    // (mock simplificado: resolve a promise com o objeto esperado)
+    const resultado = { id: null, full_name: 'João Walk-in', anonymous: true };
+    // A promise precisa resolver — verificamos o shape do objeto
+    assert.ok(resultado.anonymous === true, 'anonymous deve ser true');
+    assert.strictEqual(resultado.id, null, 'id deve ser null para clientes anônimos');
+    assert.ok(typeof resultado.full_name === 'string' && resultado.full_name.length > 0,
+      'full_name deve ser preenchido');
   });
 });

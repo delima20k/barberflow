@@ -60,10 +60,11 @@ class Cadeira {
     el.appendChild(Cadeira.#criarIconWrap(tipo, entrada));
     el.appendChild(Cadeira.#criarLabel(tipo, entrada, posicao, estado));
 
-    if (entrada?.client?.full_name) {
+    const nomeExibido = entrada?.guest_name ?? entrada?.client?.full_name;
+    if (nomeExibido) {
       const nome       = document.createElement('span');
       nome.className   = 'cdr-cliente';
-      nome.textContent = entrada.client.full_name;
+      nome.textContent = nomeExibido;
       el.appendChild(nome);
     }
 
@@ -78,6 +79,13 @@ class Cadeira {
   static #criarIconWrap(tipo, entrada) {
     const wrap = document.createElement('div');
     wrap.className = 'cdr-icon';
+
+    // Cliente walk-in (sem cadastro): exibe logo do app
+    const isWalkIn = entrada?.guest_name && !entrada?.client?.id;
+    if (isWalkIn) {
+      wrap.appendChild(Cadeira.#imagemAppIcon());
+      return wrap;
+    }
 
     const avatarPath = entrada?.client?.avatar_path;
     const url = avatarPath && (typeof SupabaseService !== 'undefined')
@@ -108,6 +116,17 @@ class Cadeira {
     img.src     = tipo === 'producao'
       ? '/shared/img/icones-cadeira-producao.png'
       : '/shared/img/icones-cadeira-de-éspera.png';
+    return img;
+  }
+
+  /**
+   * Ícone do app BarberFlow — usado para clientes walk-in anônimos.
+   */
+  static #imagemAppIcon() {
+    const img   = document.createElement('img');
+    img.alt     = 'BarberFlow';
+    img.loading = 'lazy';
+    img.src     = '/shared/img/icon-192.png';
     return img;
   }
 

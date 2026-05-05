@@ -96,20 +96,28 @@ class CadeiraService {
    * - 'fila':     cria entrada com status='waiting', position=próximo disponível
    *
    * @param {object} opts
-   * @param {string}   opts.barbershopId
-   * @param {string}   opts.professionalId  UUID do barbeiro responsável
-   * @param {string}   opts.clientId
-   * @param {string[]} opts.serviceIds      IDs dos serviços escolhidos
+   * @param {string}        opts.barbershopId
+   * @param {string}        opts.professionalId  UUID do barbeiro responsável
+   * @param {string|null}   opts.clientId        UUID do cliente cadastrado; null para walk-in
+   * @param {string}        [opts.guestName]     Nome avulso (obrigatório quando clientId=null)
+   * @param {string[]}      opts.serviceIds      IDs dos serviços escolhidos
    * @param {'producao'|'fila'} opts.tipo
    * @returns {Promise<object>}  entrada criada
    */
-  static async sentar({ barbershopId, professionalId, clientId, serviceIds, tipo }) {
+  static async sentar({ barbershopId, professionalId, clientId, guestName, serviceIds, tipo }) {
     const rShop  = InputValidator.uuid(barbershopId);
     const rProf  = InputValidator.uuid(professionalId);
-    const rCli   = InputValidator.uuid(clientId);
     if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
     if (!rProf.ok) throw new TypeError(`[CadeiraService] professionalId: ${rProf.msg}`);
-    if (!rCli.ok)  throw new TypeError(`[CadeiraService] clientId: ${rCli.msg}`);
+
+    // clientId pode ser null para clientes walk-in (sem cadastro)
+    if (clientId !== null && clientId !== undefined) {
+      const rCli = InputValidator.uuid(clientId);
+      if (!rCli.ok) throw new TypeError(`[CadeiraService] clientId: ${rCli.msg}`);
+    } else if (!guestName?.trim()) {
+      throw new Error('[CadeiraService] clientId ou guestName é obrigatório.');
+    }
+
     if (!['producao', 'fila'].includes(tipo)) throw new Error(`[CadeiraService] tipo inválido: ${tipo}`);
 
     // Calcula próxima posição livre para as cadeiras de espera
@@ -125,8 +133,9 @@ class CadeiraService {
     const payload = {
       barbershop_id:   barbershopId,
       professional_id: professionalId,
-      client_id:       clientId,
     };
+    if (clientId)         payload.client_id  = clientId;
+    if (guestName?.trim()) payload.guest_name = guestName.trim();
     if (tipo === 'fila') {
       payload.position = position;
     }
