@@ -120,6 +120,7 @@ class ClienteRepository extends BaseRepository {
       .from('profiles')
       .select('id, full_name, avatar_path, updated_at')
       .ilike('full_name', `%${termo}%`)
+      .order('full_name', { ascending: true })
       .limit(Math.min(limite, 50));
 
     if (error) throw error;
@@ -151,7 +152,8 @@ class ClienteRepository extends BaseRepository {
     const { data, error } = await this.#supabase
       .from('profiles')
       .select('id, full_name, email, avatar_path, updated_at')
-      .in('id', [...ids]);
+      .in('id', [...ids])
+      .order('full_name', { ascending: true });
 
     if (error) throw error;
     return (data ?? []).map(p => ({

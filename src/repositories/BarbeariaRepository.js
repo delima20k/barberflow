@@ -107,7 +107,10 @@ class BarbeariaRepository extends BaseRepository {
       .eq('user_id', userId);
 
     if (error) throw error;
-    return (data ?? []).map(row => row.barbershops);
+    return (data ?? [])
+      .map(row => row.barbershops)
+      .filter(Boolean)
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'pt-BR'));
   }
 
   /**

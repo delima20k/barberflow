@@ -104,6 +104,7 @@ class UserRepository {
     const { data, error } = await ApiService.from('profiles')
       .select('id,full_name,email,avatar_path,updated_at')
       .ilike('full_name', `%${term}%`)
+      .order('full_name', { ascending: true })
       .range(offset, offset + limit - 1);
 
     if (error) return { data: [], total: 0, error };

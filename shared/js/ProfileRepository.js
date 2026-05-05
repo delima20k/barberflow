@@ -141,7 +141,8 @@ class ProfileRepository {
     // Etapa 2: buscar dados reais das barbearias
     const { data, error: e2 } = await ApiService.from('barbershops')
       .select('id, name, address, is_open, rating_avg, logo_path, cover_path')
-      .in('id', ids);
+      .in('id', ids)
+      .order('name', { ascending: true });
 
     if (e2) throw e2;
     return data ?? [];
@@ -217,7 +218,11 @@ class ProfileRepository {
     return pros.map(p => ({
       ...p,
       profiles: profilesMap[p.id] ?? null,
-    }));
+    })).sort((a, b) => {
+      const na = (a.profiles?.full_name ?? '').toLowerCase();
+      const nb = (b.profiles?.full_name ?? '').toLowerCase();
+      return na.localeCompare(nb, 'pt-BR');
+    });
   }
 
   /**
