@@ -227,28 +227,59 @@ class AdminTabUsuarios {
     }
   }
 
+  /**
+   * Agrupa uma lista de usuários por letra inicial do nome.
+   * Retorna Map<string, object[]> ordenado alfabeticamente.
+   * @param {object[]} lista
+   * @returns {Map<string, object[]>}
+   */
+  static #agruparPorLetra(lista) {
+    const grupos = new Map();
+    for (const item of lista) {
+      const letra = (item.full_name ?? item.email ?? '?')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .charAt(0)
+        .toUpperCase() || '#';
+      if (!grupos.has(letra)) grupos.set(letra, []);
+      grupos.get(letra).push(item);
+    }
+    return new Map([...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'pt-BR')));
+  }
+
   /** @param {object[]} usuarios */
   #renderizarTabela(usuarios) {
     if (!usuarios.length) {
       this.#tbodyEl.innerHTML = '<tr><td colspan="6" class="adm-vazio">Nenhum usuário encontrado.</td></tr>';
       return;
     }
-    this.#tbodyEl.innerHTML = usuarios.map(u => `
-      <tr>
-        <td>${this.#escapar(u.full_name ?? '—')}</td>
-        <td>${this.#escapar(u.email     ?? '—')}</td>
-        <td><span class="adm-badge adm-badge--role">${this.#escapar(u.role ?? '—')}</span></td>
-        <td>${this.#escapar(u.pro_type  ?? '—')}</td>
-        <td>${this.#formatarData(u.created_at)}</td>
-        <td>
-          <button class="btn btn--danger btn--sm adm-btn-excluir"
-                  data-id="${this.#escapar(u.id)}"
-                  data-nome="${this.#escapar(u.full_name ?? u.email)}">
-            Excluir
-          </button>
-        </td>
-      </tr>
-    `).join('');
+
+    const grupos = AdminTabUsuarios.#agruparPorLetra(usuarios);
+    const linhas = [];
+
+    grupos.forEach((itens, letra) => {
+      linhas.push(`<tr class="adm-tr-letra"><td colspan="6" class="adm-td-letra">${letra}</td></tr>`);
+      itens.forEach(u => {
+        linhas.push(`
+          <tr>
+            <td>${this.#escapar(u.full_name ?? '—')}</td>
+            <td>${this.#escapar(u.email     ?? '—')}</td>
+            <td><span class="adm-badge adm-badge--role">${this.#escapar(u.role ?? '—')}</span></td>
+            <td>${this.#escapar(u.pro_type  ?? '—')}</td>
+            <td>${this.#formatarData(u.created_at)}</td>
+            <td>
+              <button class="btn btn--danger btn--sm adm-btn-excluir"
+                      data-id="${this.#escapar(u.id)}"
+                      data-nome="${this.#escapar(u.full_name ?? u.email)}">
+                Excluir
+              </button>
+            </td>
+          </tr>`);
+      });
+    });
+
+    this.#tbodyEl.innerHTML = linhas.join('');
 
     this.#tbodyEl.querySelectorAll('.adm-btn-excluir').forEach(btn => {
       btn.addEventListener('click', () => this.#confirmarExcluir(btn.dataset.id, btn.dataset.nome));
@@ -408,27 +439,59 @@ class AdminTabBarbeiros {
     }
   }
 
+  /**
+   * Agrupa a lista de barbeiros por letra inicial do nome.
+   * @param {object[]} lista
+   * @returns {Map<string, object[]>}
+   */
+  static #agruparPorLetra(lista) {
+    const grupos = new Map();
+    for (const item of lista) {
+      const letra = (item.full_name ?? item.email ?? '?')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .charAt(0)
+        .toUpperCase() || '#';
+      if (!grupos.has(letra)) grupos.set(letra, []);
+      grupos.get(letra).push(item);
+    }
+    return new Map([...grupos.entries()].sort(([a], [b]) => a.localeCompare(b, 'pt-BR')));
+  }
+
   /** @param {object[]} barbeiros */
   #renderizarTabela(barbeiros) {
     if (!barbeiros.length) {
       this.#tbodyEl.innerHTML = '<tr><td colspan="5" class="adm-vazio">Nenhum barbeiro encontrado.</td></tr>';
       return;
     }
-    this.#tbodyEl.innerHTML = barbeiros.map(b => `
-      <tr>
-        <td>${this.#escapar(b.full_name ?? '—')}</td>
-        <td>${this.#escapar(b.email     ?? '—')}</td>
-        <td><span class="adm-badge adm-badge--pro-type">${this.#escapar(b.pro_type ?? '—')}</span></td>
-        <td>${this.#formatarData(b.created_at)}</td>
-        <td>
-          <button class="btn btn--danger btn--sm adm-btn-excluir"
-                  data-id="${this.#escapar(b.id)}"
-                  data-nome="${this.#escapar(b.full_name ?? b.email)}">
-            Excluir
-          </button>
-        </td>
-      </tr>
-    `).join('');
+
+    const grupos = AdminTabBarbeiros.#agruparPorLetra(barbeiros);
+    this.#tbodyEl.innerHTML = '';
+
+    grupos.forEach((itens, letra) => {
+      const sepRow = document.createElement('tr');
+      sepRow.className = 'adm-tr-letra';
+      sepRow.innerHTML = `<td colspan="5" class="adm-td-letra">${letra}</td>`;
+      this.#tbodyEl.appendChild(sepRow);
+
+      itens.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${this.#escapar(b.full_name ?? '—')}</td>
+            <td>${this.#escapar(b.email     ?? '—')}</td>
+            <td><span class="adm-badge adm-badge--pro-type">${this.#escapar(b.pro_type ?? '—')}</span></td>
+            <td>${this.#formatarData(b.created_at)}</td>
+            <td>
+              <button class="btn btn--danger btn--sm adm-btn-excluir"
+                      data-id="${this.#escapar(b.id)}"
+                      data-nome="${this.#escapar(b.full_name ?? b.email)}">
+                Excluir
+              </button>
+            </td>`;
+        this.#tbodyEl.appendChild(tr);
+      });
+    });
 
     this.#tbodyEl.querySelectorAll('.adm-btn-excluir').forEach(btn => {
       btn.addEventListener('click', () => this.#confirmarExcluir(btn.dataset.id, btn.dataset.nome));

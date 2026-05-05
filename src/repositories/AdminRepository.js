@@ -73,7 +73,7 @@ class AdminRepository extends BaseRepository {
     let query = this.#supabase
       .from('profiles')
       .select('id, full_name, email, role, pro_type, is_active, created_at')
-      .order('created_at', { ascending: false })
+      .order('full_name', { ascending: true })
       .range(offset, offset + limit - 1);
 
     if (role) query = query.eq('role', role);

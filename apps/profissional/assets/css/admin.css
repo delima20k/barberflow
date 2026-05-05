@@ -292,6 +292,22 @@ html, body {
 .adm-table tr:last-child td { border-bottom: none; }
 .adm-table tr:hover td { background: var(--gold-muted); }
 
+/* ── Separador de letra (agrupamento alfabético) ──────────── */
+.adm-tr-letra { pointer-events: none; }
+.adm-tr-letra:hover td { background: transparent !important; }
+.adm-td-letra {
+  padding: 6px 16px 4px;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--gold, #c8963e);
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border-soft);
+  border-top: 2px solid var(--border-soft);
+  user-select: none;
+}
+
 .adm-carregando,
 .adm-vazio {
   text-align: center;
