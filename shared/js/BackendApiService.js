@@ -192,6 +192,18 @@ class BackendApiService {
     return BackendApiService.#req('PATCH', `/api/fila/${barbeariaId}/entradas/${entradaId}/status`, { status });
   }
 
+  /**
+   * Retorna o estado atual da fila com suporte a polling condicional.
+   * Quando `since` é fornecido e não há mudanças, o backend retorna
+   * { semMudancas: true } — o campo é preservado no wrapper { data, error }.
+   * @param {string}      barbeariaId
+   * @param {string|null} [since] — ISO timestamp da última resposta recebida
+   */
+  static buscarEstadoFila(barbeariaId, since = null) {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+    return BackendApiService.#req('GET', `/api/fila/${barbeariaId}/estado${qs}`);
+  }
+
   // ── Barbearias (interações) ───────────────────────────────
 
   /** @param {string} barbeariaId @param {{ type: string }} dados */

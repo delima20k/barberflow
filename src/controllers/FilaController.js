@@ -66,6 +66,26 @@ function criarFilaController(filaService) {
     }
   });
 
+  // ── GET /api/fila/:barbeariaId/estado ─────────────────────────────────────
+  // Polling condicional: aceita ?since=<ISO> para retornar { semMudancas: true }
+  // quando não há alterações desde o timestamp fornecido — evita re-renders.
+  router.get('/:barbeariaId/estado', async (req, res) => {
+    try {
+      const since     = req.query.since ?? null;
+      const resultado = await filaService.estadoFila(req.params.barbeariaId, since);
+
+      // Sempre retorna dentro de `dados` para o #req do BackendApiService
+      // mapear corretamente (json?.dados ?? json → data).
+      if (resultado.semMudancas) {
+        return res.json({ ok: true, dados: { semMudancas: true } });
+      }
+
+      res.json({ ok: true, dados: resultado });
+    } catch (err) {
+      res.status(err.status ?? 500).json({ ok: false, error: err.message });
+    }
+  });
+
   return router;
 }
 

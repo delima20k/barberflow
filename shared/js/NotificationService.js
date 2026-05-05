@@ -420,6 +420,12 @@ class NotificationService {
     };
 
     NotificationService.#salvarLocal(notif);
+
+    // Alerta sonoro para notificações de atualização de fila
+    if (notifBanco.type === 'queue_update' && typeof QueuePoller !== 'undefined') {
+      QueuePoller.tocarSom();
+    }
+
     NotificationService.mostrarToast(
       notif.titulo,
       notif.body,

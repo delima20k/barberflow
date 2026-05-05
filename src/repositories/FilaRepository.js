@@ -129,6 +129,41 @@ class FilaRepository extends BaseRepository {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Retorna a fila ativa junto com o timestamp da última mudança.
+   * Usado pelo endpoint de polling para respostas condicionais.
+   * @param {string} barbeariaId
+   * @returns {Promise<{fila: object[], ultimaMudanca: string|null}>}
+   */
+  async getEstado(barbeariaId) {
+    this._validarUuid('barbeariaId', barbeariaId);
+
+    const [filaResult, tsResult] = await Promise.all([
+      this.#supabase
+        .from('queue_entries')
+        .select(FilaRepository.#SELECT_ENTRADA)
+        .eq('barbershop_id', barbeariaId)
+        .in('status', ['waiting', 'in_service'])
+        .order('position', { ascending: true }),
+
+      this.#supabase
+        .from('queue_entries')
+        .select('done_at, check_in_at')
+        .eq('barbershop_id', barbeariaId)
+        .order('done_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (filaResult.error) throw filaResult.error;
+
+    const fila = filaResult.data ?? [];
+    const ultima = tsResult.data;
+    const ultimaMudanca = ultima?.done_at ?? ultima?.check_in_at ?? null;
+
+    return { fila, ultimaMudanca };
+  }
 }
 
 module.exports = FilaRepository;

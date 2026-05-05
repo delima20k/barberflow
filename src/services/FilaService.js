@@ -71,6 +71,27 @@ class FilaService extends BaseService {
     this._enum('status', novoStatus, FilaService.#STATUS_VALIDOS);
     return this.#filaRepository.atualizarStatus(entradaId, novoStatus);
   }
+
+  /**
+   * Retorna o estado atual da fila com suporte a polling condicional.
+   * Se `since` for fornecido e não houver mudanças desde esse timestamp,
+   * retorna { semMudancas: true } para evitar re-renders desnecessários.
+   *
+   * @param {string}      barbeariaId
+   * @param {string|null} since — ISO timestamp da última resposta recebida pelo cliente
+   * @returns {Promise<{semMudancas:true}|{semMudancas:false, fila:object[], ultimaMudanca:string|null}>}
+   */
+  async estadoFila(barbeariaId, since = null) {
+    this._uuid('barbeariaId', barbeariaId);
+
+    const { fila, ultimaMudanca } = await this.#filaRepository.getEstado(barbeariaId);
+
+    if (since && ultimaMudanca && new Date(ultimaMudanca) <= new Date(since)) {
+      return { semMudancas: true };
+    }
+
+    return { semMudancas: false, fila, ultimaMudanca };
+  }
 }
 
 module.exports = FilaService;

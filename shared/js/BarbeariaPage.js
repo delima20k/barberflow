@@ -139,6 +139,7 @@ class BarbeariaPage {
         this.#iniciarDig();
       } else {
         this.#pararDig();
+        QueuePoller.parar();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
@@ -463,6 +464,13 @@ class BarbeariaPage {
         NotificationService.TIPOS.SISTEMA,
       );
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
+
+      const perfil = AuthService.getPerfil();
+      if (perfil?.id) {
+        QueuePoller.iniciar(this.#shopId, perfil.id, () => {
+          if (this.#shopData) this.#renderBarbeiros(this.#shopData);
+        });
+      }
     } catch (err) {
       LoggerService.error('[BarbeariaPage] erro ao entrar na fila:', err);
       NotificationService.mostrarToast(

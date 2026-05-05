@@ -209,24 +209,11 @@ class CadeiraService {
    * @param {object} entrada  queue_entry com embed client
    * @param {string} barbershopId
    */
-  static async #notificarProximo(entrada, barbershopId) {
-    const clientId = entrada?.client?.id;
-    if (!clientId) return;
-
-    try {
-      await ApiService.from('notifications')
-        .insert({
-          user_id:      clientId,
-          barbershop_id: barbershopId,
-          tipo:         'fila_avancou',
-          titulo:       'É a sua vez!',
-          corpo:        'O barbeiro está pronto para te atender. Dirija-se à cadeira.',
-          lida:         false,
-          created_at:   new Date().toISOString(),
-        });
-    } catch (err) {
-      LoggerService.warn('[CadeiraService] falha ao notificar próximo:', err);
-    }
+  static async #notificarProximo(entrada, _barbershopId) {
+    // Notificação gerenciada pelo trigger trg_notify_queue_on_done no banco.
+    // O trigger insere em public.notifications para TODOS os clientes em espera
+    // usando SECURITY DEFINER — sem necessidade de INSERT aqui.
+    LoggerService.info('[CadeiraService] Finalização registrada — trigger DB notifica a fila.');
   }
 
   /**
