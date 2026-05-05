@@ -62,6 +62,18 @@ class ProfessionalService {
   static isFavorito(proId)  { return !!proId && ProfessionalService.#FAV_IDS.has(proId); }
   static isCurtido(proId)   { return !!proId && ProfessionalService.#LIKE_IDS.has(proId); }
 
+  /**
+   * Limpa o cache de favoritos e curtidas de barbeiros.
+   * Deve ser chamado no logout para evitar que dados de um usuário
+   * apareçam para outro usuário na mesma sessão de navegação.
+   */
+  static limparCache() {
+    ProfessionalService.#FAV_IDS   = new Set();
+    ProfessionalService.#LIKE_IDS  = new Set();
+    ProfessionalService.#CARREGADO = false;
+    ProfessionalService.#PROMISE   = null;
+  }
+
   // ═══════════════════════════════════════════════════════════
   // CÁLCULO DE ESTRELAS A PARTIR DE CURTIDAS
   // ═══════════════════════════════════════════════════════════

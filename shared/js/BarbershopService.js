@@ -53,6 +53,17 @@ class BarbershopService {
   }
 
   /**
+   * Limpa o cache de favoritos de barbearias.
+   * Deve ser chamado no logout para evitar que dados de um usuário
+   * apareçam para outro usuário na mesma sessão de navegação.
+   */
+  static limparCache() {
+    BarbershopService.#FAV_IDS      = new Set();
+    BarbershopService.#FAV_CARREGADO = false;
+    BarbershopService.#FAV_PROMISE   = null;
+  }
+
+  /**
    * Cria o botão de favorito padronizado para qualquer card de barbearia.
    * O card ancestral DEVE ter `data-barbershop-id`.
    * @param {string} barbershopId

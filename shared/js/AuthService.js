@@ -215,6 +215,10 @@ class AuthService {
     if (typeof LegalConsentService !== 'undefined') LegalConsentService.limparCache();
     // Limpa cache de consentimento LGPD do app cliente
     if (typeof LgpdService !== 'undefined') LgpdService.limparCache();
+    // Limpa cache de favoritos/curtidas — evita que dados de um usuário
+    // apareçam para outro usuário na mesma sessão de navegação (SPA sem reload)
+    if (typeof BarbershopService  !== 'undefined') BarbershopService.limparCache();
+    if (typeof ProfessionalService !== 'undefined') ProfessionalService.limparCache();
     AuthService._limparUI();
   }
 
