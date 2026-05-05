@@ -1376,6 +1376,26 @@
     </button>
   </nav>
 
+  <!-- ============================================================
+       INFO FIXA DA BARBEARIA — acima do rodapé
+       Fora de #tela-barbearia para não ser afetada pelo translateX da animação
+  ============================================================ -->
+  <div id="bp-info-fixa" hidden>
+    <p id="bp-endereco" class="bp-endereco"></p>
+    <div class="bp-meta-row">
+      <span id="bp-badge"  class="bp-badge"></span>
+      <span id="bp-rating" class="bp-rating"></span>
+      <div id="bp-likes-wrap" class="bp-likes-wrap" data-barbershop-id="" data-likes="0" data-dislikes="0">
+        <button id="bp-likes" type="button" class="top-card__likes"
+                data-action="barbershop-like"
+                aria-label="Curtir barbearia" aria-pressed="false">
+          <span class="tcl-ico">👍</span>
+          <span class="dc-count">0</span>
+        </button>
+      </div>
+      <span id="bp-desde"  class="bp-desde"></span>
+    </div>
+  </div>
 
   <!-- ============================================================
        TELA — TIPO DE USUÁRIO (escolha antes dos planos)

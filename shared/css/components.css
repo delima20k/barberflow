@@ -656,6 +656,10 @@
   font-size: .72rem;
   color: var(--text-muted, rgba(245,233,220,.6));
 }
+.bp-likes-wrap {
+  display: inline-flex;
+  align-items: center;
+}
 
 /* ── Tela Barbearia — Stories section ─────────────────────── */
 #tela-barbearia .bp-stories-section {

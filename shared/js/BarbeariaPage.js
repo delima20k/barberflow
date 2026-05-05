@@ -101,17 +101,20 @@ class BarbeariaPage {
 
   /** Faz cache de todos os nós DOM usados pelos renders. */
   #cacheRefs() {
-    const q = sel => this.#telaEl.querySelector(sel);
+    const q  = sel => this.#telaEl.querySelector(sel);
+    const dq = sel => document.querySelector(sel);
     this.#refs = {
       capaImg:       q('#bp-capa'),
       capaStatus:    q('#bp-capa-status'),
       logoImg:       q('#bp-logo'),
       nome:          q('#bp-nome'),
-      endereco:      q('#bp-endereco'),
-      badge:         q('#bp-badge'),
-      rating:        q('#bp-rating'),
-      likes:         q('#bp-likes'),
-      since:         q('#bp-desde'),
+      // Os elementos abaixo vivem em #bp-info-fixa, fora de #tela-barbearia
+      endereco:      dq('#bp-endereco'),
+      badge:         dq('#bp-badge'),
+      rating:        dq('#bp-rating'),
+      likes:         dq('#bp-likes'),
+      likesWrap:     dq('#bp-likes-wrap'),
+      since:         dq('#bp-desde'),
       whatsBtn:      q('#bp-whats-btn'),
       favBtn:        q('#bp-fav-btn'),
       servicosLista: q('#bp-servicos-lista'),
@@ -122,7 +125,7 @@ class BarbeariaPage {
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
       ctaLogin:      q('#bp-cta-login'),
-      infoFixa:      document.querySelector('#bp-info-fixa'),
+      infoFixa:      dq('#bp-info-fixa'),
     };
   }
 
@@ -559,9 +562,17 @@ class BarbeariaPage {
       // Valor bruto — sem "⭐". Decoração fica no HTML/CSS.
       this.#refs.rating.textContent = Number(shop.rating_avg ?? 0).toFixed(1);
     }
+    const likesCount = Number(shop.likes_count ?? 0);
+    if (this.#refs.likesWrap) {
+      this.#refs.likesWrap.dataset.barbershopId = this.#shopId;
+      this.#refs.likesWrap.dataset.likes        = likesCount;
+      this.#refs.likesWrap.dataset.dislikes     = Number(shop.dislikes_count ?? 0);
+    }
     if (this.#refs.likes) {
-      // Valor bruto — sem "👍". Decoração fica no HTML/CSS.
-      this.#refs.likes.textContent = Number(shop.likes_count ?? 0);
+      const cnt = this.#refs.likes.querySelector('.dc-count');
+      if (cnt) cnt.textContent = likesCount;
+      this.#refs.likes.classList.remove('ativo');
+      this.#refs.likes.setAttribute('aria-pressed', 'false');
     }
     if (this.#refs.since && shop.founded_year) {
       // Valor bruto — sem "Desde". Decoração fica no HTML/CSS.
@@ -569,8 +580,9 @@ class BarbeariaPage {
     }
   }
 
-  /** Botões WhatsApp e Favoritar. */
+  /** Botões WhatsApp, Favoritar e assegura delegation de like. */
   #renderAcoes(shop) {
+    BarbershopService.assegurarDelegacao();
     if (this.#refs.whatsBtn) {
       if (shop.whatsapp) {
         const digits = shop.whatsapp.replace(/\D/g, '');
@@ -670,7 +682,17 @@ class BarbeariaPage {
     if (this.#refs.nome)     { this.#refs.nome.textContent     = ''; }
     if (this.#refs.endereco) { this.#refs.endereco.textContent = ''; }
     if (this.#refs.rating)   { this.#refs.rating.textContent   = ''; }
-    if (this.#refs.likes)    { this.#refs.likes.textContent    = ''; }
+    if (this.#refs.likesWrap) {
+      this.#refs.likesWrap.dataset.barbershopId = '';
+      this.#refs.likesWrap.dataset.likes    = '0';
+      this.#refs.likesWrap.dataset.dislikes = '0';
+    }
+    if (this.#refs.likes) {
+      const cnt = this.#refs.likes.querySelector('.dc-count');
+      if (cnt) cnt.textContent = '0';
+      this.#refs.likes.classList.remove('ativo');
+      this.#refs.likes.setAttribute('aria-pressed', 'false');
+    }
     if (this.#refs.since)    { this.#refs.since.textContent    = ''; }
     if (this.#refs.servicosLista) { this.#refs.servicosLista.innerHTML = ''; }
     if (this.#refs.portfolioGrid) { this.#refs.portfolioGrid.innerHTML = ''; }

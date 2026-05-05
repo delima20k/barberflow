@@ -100,6 +100,15 @@ class BarbershopService {
   }
 
   /**
+   * Assegura que a delegation global de interações de barbearia está ativa.
+   * Chame uma vez ao inicializar qualquer página que use botões de like/fav.
+   * Idempotente.
+   */
+  static assegurarDelegacao() {
+    BarbershopService.#instalarDelegation();
+  }
+
+  /**
    * Instala UM listener global (idempotente) para qualquer botão
    * .card-fav-btn em toda a aplicação — funciona na home, na lista
    * de barbearias e em qualquer tela futura.
