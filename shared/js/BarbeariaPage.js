@@ -679,6 +679,16 @@ class BarbeariaPage {
     if (this.#digFila)              { this.#digFila.parar?.(); this.#digFila = null; }
     if (this.#refs.boasVindas) { this.#refs.boasVindas.textContent = ''; }
     if (this.#refs.ctaLogin)   { this.#refs.ctaLogin.hidden = true; this.#refs.ctaLogin.textContent = ''; }
+    if (this.#refs.favBtn) {
+      this.#refs.favBtn.dataset.barbershopId = '';
+      this.#refs.favBtn.classList.remove('ativo');
+      const ico = this.#refs.favBtn.querySelector('.cfb-ico');
+      if (ico) ico.textContent = '☆';
+      this.#refs.favBtn.setAttribute('aria-pressed', 'false');
+      this.#refs.favBtn.title = 'Adicionar aos favoritos';
+      this.#refs.favBtn.disabled = false;
+      this.#refs.favBtn.removeAttribute('aria-disabled');
+    }
     // Reseta o dig para que a nova barbearia inicie a animação do zero
     this.#pararDig();
     this.#dig = null;

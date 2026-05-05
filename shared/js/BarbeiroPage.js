@@ -258,6 +258,8 @@ class BarbeiroPage {
       if (ico) ico.textContent = '☆';
       this.#refs.favBtn.setAttribute('aria-pressed', 'false');
       this.#refs.favBtn.title = 'Adicionar aos favoritos';
+      this.#refs.favBtn.disabled = false;
+      this.#refs.favBtn.removeAttribute('aria-disabled');
     }
   }
 
