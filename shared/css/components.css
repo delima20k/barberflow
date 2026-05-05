@@ -3964,6 +3964,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: space-between;
 }
+/* Grupo de ações no lado direito do topbar (curtida + favorito) */
+#tela-barbeiro .beiro-topbar .beiro-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Botão favoritar no topbar do barbeiro (lado direito) */
 #tela-barbeiro .beiro-topbar #beiro-fav-btn {
   position: static;

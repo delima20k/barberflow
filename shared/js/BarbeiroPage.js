@@ -103,6 +103,7 @@ class BarbeiroPage {
       rating:     q('#beiro-rating'),
       bio:        q('#beiro-bio'),
       favBtn:     q('#beiro-fav-btn'),
+      likeBtn:    q('#beiro-like-btn'),
     };
   }
 
@@ -136,6 +137,7 @@ class BarbeiroPage {
     this.#renderRating(profile);
     this.#renderBio(profile);
     this.#renderFavBtn(profile);
+    this.#renderLikeBtn(profile);
     this.#mostrarConteudo();
   }
 
@@ -220,6 +222,22 @@ class BarbeiroPage {
     btn.removeAttribute('aria-disabled');
   }
 
+  /** Atualiza estado do botão de curtida na página de detalhe. */
+  #renderLikeBtn(profile) {
+    const btn = this.#refs.likeBtn;
+    if (!btn || !profile?.id) return;
+    btn.dataset.professionalId = profile.id;
+    const count = Number(profile.rating_count ?? 0);
+    const ativo = typeof ProfessionalService !== 'undefined'
+      ? ProfessionalService.isCurtido(profile.id)
+      : false;
+    btn.classList.toggle('ativo', ativo);
+    const cnt = btn.querySelector('.dc-count');
+    if (cnt) cnt.textContent = Math.max(0, count);
+    btn.setAttribute('aria-pressed', String(ativo));
+    btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
+  }
+
   // ══════════════════════════════════════════════════════════
   // FETCHER (estático — sem acesso a this)
   // ══════════════════════════════════════════════════════════
@@ -260,6 +278,14 @@ class BarbeiroPage {
       this.#refs.favBtn.title = 'Adicionar aos favoritos';
       this.#refs.favBtn.disabled = false;
       this.#refs.favBtn.removeAttribute('aria-disabled');
+    }
+    if (this.#refs.likeBtn) {
+      this.#refs.likeBtn.dataset.professionalId = '';
+      this.#refs.likeBtn.classList.remove('ativo');
+      const cnt = this.#refs.likeBtn.querySelector('.dc-count');
+      if (cnt) cnt.textContent = '0';
+      this.#refs.likeBtn.setAttribute('aria-pressed', 'false');
+      this.#refs.likeBtn.title = 'Curtir barbeiro';
     }
   }
 
