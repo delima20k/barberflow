@@ -21,6 +21,18 @@ class CadastroController {
     this.#bindMascaras();
   }
 
+  /**
+   * Mostra ou oculta o campo "Nome da barbearia" de acordo com o tipo
+   * escolhido na tela de planos (bf_tipo no sessionStorage).
+   * Deve ser chamado toda vez que a tela de cadastro se tornar visível.
+   */
+  ajustarFormularioPorTipo() {
+    const tipo   = sessionStorage.getItem('bf_tipo') || 'barbeiro';
+    const campo  = document.getElementById('cad-field-barbearia');
+    if (!campo) return;
+    campo.style.display = tipo === 'barbearia' ? '' : 'none';
+  }
+
   // ── Privados ──────────────────────────────────────────────
 
   #bindDocToggle() {

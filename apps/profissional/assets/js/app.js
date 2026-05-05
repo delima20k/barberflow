@@ -85,6 +85,16 @@ class BarberFlowProfissional extends Router {
   irParaLogin() { this.nav('login'); }
 
   /**
+   * Intercepta push para ajustar o formulário de cadastro conforme o tipo
+   * selecionado (barbeiro / barbearia) antes de exibir a tela.
+   * @override
+   */
+  push(tela) {
+    if (tela === 'cadastro') this.#cadastro.ajustarFormularioPorTipo();
+    super.push(tela);
+  }
+
+  /**
    * Navega para a tela de planos — ponto de entrada do cadastro.
    * Sempre mostra os planos antes de criar conta.
    */
