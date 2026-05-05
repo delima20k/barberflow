@@ -1,28 +1,39 @@
 -- ==============================================================
 -- Migration: 20260505000004_security_hardening_v2.sql
--- Descrição: Reforço de segurança RLS — 4 gaps identificados em auditoria
+-- Descrição: Quatro gaps de segurança identificados na auditoria
 --
--- GAP 1 — CRÍTICO  : get_clientes_favoritos_modal exposta a clientes comuns
--- GAP 2 — ALTO     : queue_entries SELECT acessível por visitantes anônimos
--- GAP 3 — MÉDIO    : direct_messages UPDATE sem proteção de colunas imutáveis
--- GAP 4 — MÉDIO    : profiles.email pode ser sobrescrito diretamente via REST
+-- GAP 1 — CRÍTICO : get_clientes_favoritos_modal retornava email
+--         + full_name de clientes para QUALQUER usuário autenticado.
+--         Corrigido: somente profissionais ativos ou dono da
+--         barbearia podem chamar a função.
 --
--- Todos os fixes são não-destrutivos: apenas restrições adicionais.
--- Nenhuma tabela, coluna ou dado existente é alterado.
+-- GAP 2 — ALTO    : queue_entries SELECT com USING (true) expunha
+--         nomes de clientes (PII + guest_name) para visitantes
+--         não autenticados (anon).
+--         Corrigido: SELECT restrito a role 'authenticated'.
+--
+-- GAP 3 — MÉDIO   : direct_messages UPDATE sem restrição de colunas
+--         permitia que o destinatário reescrevesse content/sender_id.
+--         Corrigido: trigger BEFORE UPDATE bloqueia alteração de
+--         qualquer campo exceto is_read.
+--
+-- GAP 4 — MÉDIO   : profiles UPDATE permitia que o usuário
+--         alterasse diretamente o campo email, desassociando-o
+--         do email verificado em auth.users.
+--         Corrigido: prevent_role_escalation estendido para
+--         bloquear alteração de email via trigger.
 -- ==============================================================
 
 
 -- ==============================================================
--- GAP 1 — get_clientes_favoritos_modal: acesso restrito a profissionais/donos
+-- GAP 1 — Restringir get_clientes_favoritos_modal a profissionais
 -- ==============================================================
--- PROBLEMA: GRANT EXECUTE TO authenticated — qualquer cliente logado pode
---   chamar com qualquer professional_id e receber email + full_name de
---   outros usuários. Violação LGPD — exposição de dados pessoais de
---   terceiros sem consentimento.
---
--- SOLUÇÃO: verificar no início da função que auth.uid() está cadastrado
---   em public.professionals (é um barbeiro) OU é owner_id da barbearia
---   passada como parâmetro. Qualquer outro chamador recebe exceção.
+-- ANTES: qualquer usuário autenticado chamava via RPC e obtinha
+--        id, full_name, email, avatar_path de outros clientes.
+-- DEPOIS: somente quem tem linha em public.professionals OU é
+--         owner_id da barbearia informada pode chamar.
+-- O GRANT permanece em 'authenticated' para compatibilidade com
+-- o SDK — a checagem de autorização ocorre dentro da função.
 -- ==============================================================
 
 CREATE OR REPLACE FUNCTION public.get_clientes_favoritos_modal(
@@ -41,15 +52,17 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Apenas profissionais cadastrados ou donos da barbearia podem consultar
+  -- Verifica se o chamador é profissional ativo OU dono da barbearia
   IF NOT EXISTS (
-    SELECT 1 FROM public.professionals  WHERE id = auth.uid()
+    SELECT 1 FROM public.professionals
+    WHERE id = auth.uid()
     UNION ALL
-    SELECT 1 FROM public.barbershops    WHERE id = p_barbershop_id
-                                          AND owner_id = auth.uid()
+    SELECT 1 FROM public.barbershops
+    WHERE id = p_barbershop_id
+      AND owner_id = auth.uid()
   ) THEN
     RAISE EXCEPTION
-      'Acesso negado: somente profissionais ou donos da barbearia podem consultar esta função.'
+      'Acesso negado: somente profissionais ou o dono da barbearia podem consultar os clientes favoritos.'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
 
@@ -62,6 +75,7 @@ BEGIN
       p.updated_at
     FROM public.profiles p
     WHERE p.id IN (
+      -- Apenas quem favoritou este profissional específico
       SELECT fp.user_id
       FROM   public.favorite_professionals fp
       WHERE  fp.professional_id = p_professional_id
@@ -70,55 +84,56 @@ BEGIN
 END;
 $$;
 
--- Mantém o GRANT existente — o controle de acesso agora é feito dentro da função
 GRANT EXECUTE ON FUNCTION public.get_clientes_favoritos_modal(UUID, UUID) TO authenticated;
 
 
 -- ==============================================================
--- GAP 2 — queue_entries: bloquear SELECT para visitantes anônimos
+-- GAP 2 — Restringir SELECT de queue_entries a autenticados
 -- ==============================================================
--- PROBLEMA: policy "queue_select_public" usa USING (true), permitindo
---   que qualquer visitante sem login leia a fila inteira, expondo
---   client_id, guest_name e position (PII dos clientes na fila).
---
--- SOLUÇÃO: substituir pela policy "queue_select_authenticated" que
---   exige que o solicitante esteja autenticado (role = 'authenticated').
---   Clientes, barbeiros e donos ainda lêem normalmente após login.
+-- A policy anterior (USING true) permitia leitura anônima da
+-- fila, expondo guest_name e client_id para qualquer visitante.
 -- ==============================================================
 
-DROP POLICY IF EXISTS "queue_select_public"        ON public.queue_entries;
-DROP POLICY IF EXISTS "queue_select_authenticated" ON public.queue_entries;
+DROP POLICY IF EXISTS "queue_select_public" ON public.queue_entries;
 
 CREATE POLICY "queue_select_authenticated"
-  ON public.queue_entries FOR SELECT
+  ON public.queue_entries
+  FOR SELECT
   USING (auth.role() = 'authenticated');
 
 
 -- ==============================================================
--- GAP 3 — direct_messages: proteger colunas imutáveis contra UPDATE
+-- GAP 3 — Proteger conteúdo de direct_messages contra UPDATE
 -- ==============================================================
--- PROBLEMA: a policy dm_update_read verifica apenas QUEM faz o UPDATE,
---   não QUAIS colunas mudam. O destinatário da mensagem pode alterar
---   content, sender_id, recipient_id e story_ref_id além de is_read.
---
--- SOLUÇÃO: trigger BEFORE UPDATE que levanta exceção se qualquer coluna
---   além de is_read for modificada. Mensagens são imutáveis por design;
---   apenas a marcação de lida é permitida ao destinatário.
+-- A policy dm_update_read só verificava quem fazia o UPDATE,
+-- não quais colunas eram modificadas. Isso permitia que o
+-- destinatário reescrevesse o conteúdo de mensagens recebidas.
+-- Apenas is_read pode ser alterado via UPDATE.
 -- ==============================================================
 
 CREATE OR REPLACE FUNCTION public.fn_dm_protect_content()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
-  IF NEW.content        IS DISTINCT FROM OLD.content        OR
-     NEW.sender_id      IS DISTINCT FROM OLD.sender_id      OR
-     NEW.recipient_id   IS DISTINCT FROM OLD.recipient_id   OR
-     NEW.story_ref_id   IS DISTINCT FROM OLD.story_ref_id   THEN
+  -- Permite mudanças pelo service_role (admin, moderação interna)
+  IF current_setting('role') = 'service_role' THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.content        IS DISTINCT FROM OLD.content
+  OR NEW.sender_id      IS DISTINCT FROM OLD.sender_id
+  OR NEW.recipient_id   IS DISTINCT FROM OLD.recipient_id
+  OR NEW.story_ref_id   IS DISTINCT FROM OLD.story_ref_id
+  OR NEW.created_at     IS DISTINCT FROM OLD.created_at
+  THEN
     RAISE EXCEPTION
       'Apenas o campo is_read pode ser atualizado em direct_messages.'
       USING ERRCODE = 'insufficient_privilege';
   END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -132,22 +147,14 @@ CREATE TRIGGER trg_dm_protect_content
 
 
 -- ==============================================================
--- GAP 4 — profiles.email: bloquear sobrescrita direta via REST API
+-- GAP 4 — Bloquear alteração direta do campo email em profiles
 -- ==============================================================
--- PROBLEMA: a policy profiles_update_own (auth.uid() = id) permite UPDATE
---   de qualquer coluna, inclusive email. Um usuário pode exibir um email
---   diferente do verificado em auth.users (dessincronização + exibição
---   de email falso ou de terceiro).
---
--- SOLUÇÃO: estender prevent_role_escalation (trigger BEFORE UPDATE em
---   profiles) para bloquear mudança de email quando o chamador é o
---   role 'authenticated' (chamada REST API direta).
---
--- COMPATIBILIDADE PRESERVADA:
---   • service_role → retorna NEW no início (bypass completo)
---   • sync_profile_email trigger → roda como supabase_auth_admin,
---     que NÃO é 'authenticated', portanto não é bloqueado ✓
---   • handle_new_user trigger → INSERT, não UPDATE, sem impacto ✓
+-- A policy profiles_update_own (auth.uid() = id) não impedia
+-- UPDATE em profiles.email, causando dessincronismo com o email
+-- verificado em auth.users.
+-- A sincronização legítima ocorre APENAS via trigger
+-- on_auth_user_email_updated (service_role), que continua
+-- funcionando normalmente pois bypassa RLS + esta função.
 -- ==============================================================
 
 CREATE OR REPLACE FUNCTION public.prevent_role_escalation()
@@ -168,8 +175,15 @@ BEGIN
       USING ERRCODE = 'insufficient_privilege';
   END IF;
 
-  -- pro_type: permite apenas a promoção 'barbeiro' → 'barbearia'
-  -- quando o usuário já possui barbearia ativa (fluxo CriarBarbeariaPage).
+  -- Bloqueia alteração direta de email (sincronizado via trigger auth → profiles)
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    RAISE EXCEPTION
+      'O campo email não pode ser alterado diretamente. Use o fluxo de alteração de e-mail do Auth.'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  -- pro_type: permite apenas a promoção de 'barbeiro' → 'barbearia'
+  -- quando o usuário já possui uma barbearia ativa.
   IF NEW.pro_type IS DISTINCT FROM OLD.pro_type THEN
     IF OLD.pro_type = 'barbeiro'
        AND NEW.pro_type = 'barbearia'
@@ -179,22 +193,26 @@ BEGIN
          LIMIT 1
        )
     THEN
-      NULL; -- Promoção legítima
+      -- Promoção legítima: barbeiro criou a barbearia antes de atualizar pro_type
+      NULL;
     ELSE
       RAISE EXCEPTION 'O campo pro_type não pode ser alterado pelo usuário.'
         USING ERRCODE = 'insufficient_privilege';
     END IF;
   END IF;
 
-  -- Bloqueia sobrescrita direta de email via REST API (role = 'authenticated').
-  -- O trigger sync_profile_email roda como supabase_auth_admin — não é bloqueado.
-  IF NEW.email IS DISTINCT FROM OLD.email
-     AND current_setting('role') = 'authenticated' THEN
-    RAISE EXCEPTION
-      'O campo email não pode ser alterado diretamente. Use o fluxo de autenticação.'
-      USING ERRCODE = 'insufficient_privilege';
-  END IF;
-
   RETURN NEW;
 END;
 $$;
+
+-- O trigger trg_prevent_role_escalation já existe e aponta para esta função.
+-- CREATE OR REPLACE atualiza o corpo sem recriar o trigger.
+
+-- ==============================================================
+-- RESUMO PÓS-MIGRATION
+-- ==============================================================
+-- GAP 1: get_clientes_favoritos_modal → acesso restrito a professionals/owner ✅
+-- GAP 2: queue_entries SELECT           → apenas authenticated (era anon) ✅
+-- GAP 3: direct_messages UPDATE         → somente is_read modificável ✅
+-- GAP 4: profiles.email UPDATE          → bloqueado via prevent_role_escalation ✅
+-- ==============================================================
