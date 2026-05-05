@@ -77,8 +77,10 @@ class BarbershopService {
     btn.dataset.action = 'barbershop-favorite';
     btn.setAttribute('aria-label', 'Favoritar barbearia');
     btn.setAttribute('aria-pressed', String(ativo));
-    btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+    btn.title = ativo ? 'Já favoritado' : 'Adicionar aos favoritos';
     btn.innerHTML = `<span class="cfb-ico">${ativo ? '⭐' : '☆'}</span>`;
+    // Nos cards o botão é add-only: desabilita quando já favoritado
+    if (ativo) { btn.disabled = true; btn.setAttribute('aria-disabled', 'true'); }
     BarbershopService.#instalarDelegation();
     return btn;
   }
@@ -104,6 +106,9 @@ class BarbershopService {
       if (btnFav) {
         const guard = typeof AuthGuard !== 'undefined' ? AuthGuard.permitirAcao('barbershop-favorite', router) : true;
         if (!guard) return;
+        // Fora da página de detalhe, o botão é add-only: ignora clique se já ativo
+        const naTelaDetalhe = btnFav.closest('#tela-barbearia') !== null;
+        if (!naTelaDetalhe && btnFav.classList.contains('ativo')) return;
         BarbershopService.toggleBarbershopFavorite(btn);
       } else if (btnLike) {
         if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('barbershop-like', router)) return;
@@ -519,14 +524,28 @@ class BarbershopService {
    * @private
    */
   static #sincronizarBotoesFavorito(barbershopId, ativo) {
-    document.querySelectorAll(`[data-barbershop-id="${CSS.escape(barbershopId)}"]`).forEach(card => {
-      card.querySelectorAll('[data-action="barbershop-favorite"]').forEach(btn => {
+    document.querySelectorAll(`[data-barbershop-id="${CSS.escape(barbershopId)}"]`).forEach(el => {
+      // el pode ser o próprio botão de detalhe (bp-fav-btn tem data-barbershop-id diretamente)
+      // ou um card container que contém botões de ação como filhos.
+      const btns = el.dataset.action === 'barbershop-favorite'
+        ? [el]
+        : [...el.querySelectorAll('[data-action="barbershop-favorite"]')];
+      btns.forEach(btn => {
         btn.classList.toggle('ativo', ativo);
         btn.setAttribute('aria-pressed', String(ativo));
-        btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
         // Troca ícone só em botões que usam .cfb-ico (card-fav-btn)
         const ico = btn.querySelector('.cfb-ico');
         if (ico) ico.textContent = ativo ? '⭐' : '☆';
+        // Fora da página de detalhe: add-only — desabilita quando favoritado
+        const naTelaDetalhe = btn.closest('#tela-barbearia') !== null;
+        if (!naTelaDetalhe) {
+          btn.disabled = ativo;
+          btn.title = ativo ? 'Já favoritado' : 'Adicionar aos favoritos';
+          if (ativo) btn.setAttribute('aria-disabled', 'true');
+          else       btn.removeAttribute('aria-disabled');
+        } else {
+          btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+        }
       });
     });
   }
@@ -691,6 +710,13 @@ class BarbershopService {
             BarbershopService.#FAV_IDS.add(barbershop_id);
             const ico = btn.querySelector('.cfb-ico');
             if (ico) ico.textContent = '⭐';
+            // Nos cards (fora da página de detalhe) o botão é add-only
+            const naTelaDetalhe = btn.closest('#tela-barbearia') !== null;
+            if (!naTelaDetalhe) {
+              btn.disabled = true;
+              btn.title = 'Já favoritado';
+              btn.setAttribute('aria-disabled', 'true');
+            }
           }
         }
       });

@@ -753,6 +753,21 @@
   padding: 3px 10px;
   pointer-events: none;
 }
+/* Botão favoritar sobreposto na capa da barbearia (abaixo do badge de status) */
+#tela-barbearia .bp-capa-wrap #bp-fav-btn {
+  position: absolute;
+  top: 2.4rem;
+  right: 0.65rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, .35);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 /* Identidade sobreposta na base da capa, ~20px acima da seção de stories */
 #tela-barbearia .bp-capa-identidade {
   position: absolute;
@@ -3945,6 +3960,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* Botão favoritar no topbar do barbeiro (lado direito) */
+#tela-barbeiro .beiro-topbar #beiro-fav-btn {
+  position: static;
+  font-size: 1.3rem;
+  background: transparent;
+  flex-shrink: 0;
 }
 
 #tela-barbeiro .beiro-hero {

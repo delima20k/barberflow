@@ -138,8 +138,10 @@ class ProfessionalService {
     btn.dataset.action = 'professional-favorite';
     btn.setAttribute('aria-label', 'Favoritar barbeiro');
     btn.setAttribute('aria-pressed', String(ativo));
-    btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+    btn.title = ativo ? 'Já favoritado' : 'Adicionar aos favoritos';
     btn.innerHTML = `<span class="cfb-ico">${ativo ? '⭐' : '☆'}</span>`;
+    // Nos cards o botão é add-only: desabilita quando já favoritado
+    if (ativo) { btn.disabled = true; btn.setAttribute('aria-disabled', 'true'); }
     ProfessionalService.#instalarDelegation();
     return btn;
   }
@@ -165,7 +167,12 @@ class ProfessionalService {
       if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao(acao, router)) return;
 
       if (btnLike) ProfessionalService.#toggleLike(btn);
-      else         ProfessionalService.#toggleFavorito(btn);
+      else {
+        // Fora da página de detalhe, o botão é add-only: ignora clique se já ativo
+        const naTelaDetalhe = btnFav.closest('#tela-barbeiro') !== null;
+        if (!naTelaDetalhe && btnFav.classList.contains('ativo')) return;
+        ProfessionalService.#toggleFavorito(btn);
+      }
     }, true);
   }
 
@@ -241,8 +248,13 @@ class ProfessionalService {
    * @private
    */
   static #sincronizarBotoes(proId, action, ativo, novoTotal = null) {
-    document.querySelectorAll(`[data-professional-id="${CSS.escape(proId)}"]`).forEach(card => {
-      card.querySelectorAll(`[data-action="${action}"]`).forEach(btn => {
+    document.querySelectorAll(`[data-professional-id="${CSS.escape(proId)}"]`).forEach(el => {
+      // el pode ser o próprio botão de detalhe (beiro-fav-btn tem data-professional-id
+      // diretamente) ou um card container que contém botões de ação como filhos.
+      const btns = el.dataset.action === action
+        ? [el]
+        : [...el.querySelectorAll(`[data-action="${action}"]`)];
+      btns.forEach(btn => {
         btn.classList.toggle('ativo', ativo);
         btn.setAttribute('aria-pressed', String(ativo));
 
@@ -252,21 +264,30 @@ class ProfessionalService {
           if (cnt && novoTotal !== null) cnt.textContent = novoTotal;
           btn.title = ativo ? 'Remover curtida' : 'Curtir barbeiro';
 
-          // Legado (.bc-rating)
+          // Legado (.bc-rating) — busca no container (el); harmless se el === btn
           const total = novoTotal ?? (parseInt(cnt?.textContent || '0', 10));
-          const starsEl = card.querySelector('.bc-stars');
-          const valEl   = card.querySelector('.bc-rating-val');
-          const cntEl   = card.querySelector('.bc-rating-cnt');
+          const starsEl = el.querySelector('.bc-stars');
+          const valEl   = el.querySelector('.bc-rating-val');
+          const cntEl   = el.querySelector('.bc-rating-cnt');
           if (starsEl) starsEl.textContent = ProfessionalService.renderStars(total);
           if (valEl)   valEl.textContent   = ProfessionalService.estrelasPorCurtidas(total).toFixed(1);
           if (cntEl)   cntEl.textContent   = `(${total})`;
 
           // Padrão tc-star unificado — delegado ao método central
-          BarbershopService.atualizarEstrelaCard(card, ProfessionalService.estrelasPorCurtidas(total));
+          BarbershopService.atualizarEstrelaCard(el, ProfessionalService.estrelasPorCurtidas(total));
         } else {
           const ico = btn.querySelector('.cfb-ico');
           if (ico) ico.textContent = ativo ? '⭐' : '☆';
-          btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+          // Fora da página de detalhe: add-only — desabilita quando favoritado
+          const naTelaDetalhe = btn.closest('#tela-barbeiro') !== null;
+          if (!naTelaDetalhe) {
+            btn.disabled = ativo;
+            btn.title = ativo ? 'Já favoritado' : 'Adicionar aos favoritos';
+            if (ativo) btn.setAttribute('aria-disabled', 'true');
+            else       btn.removeAttribute('aria-disabled');
+          } else {
+            btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+          }
         }
       });
     });

@@ -582,6 +582,15 @@ class BarbeariaPage {
     }
     if (this.#refs.favBtn) {
       this.#refs.favBtn.dataset.barbershopId = this.#shopId;
+      // Na página de detalhe o toggle é completo (favoritar e desfavoritar)
+      const ativo = BarbershopService.isFavorito(this.#shopId);
+      this.#refs.favBtn.classList.toggle('ativo', ativo);
+      const ico = this.#refs.favBtn.querySelector('.cfb-ico');
+      if (ico) ico.textContent = ativo ? '⭐' : '☆';
+      this.#refs.favBtn.setAttribute('aria-pressed', String(ativo));
+      this.#refs.favBtn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+      this.#refs.favBtn.disabled = false;
+      this.#refs.favBtn.removeAttribute('aria-disabled');
     }
   }
 

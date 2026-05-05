@@ -102,6 +102,7 @@ class BarbeiroPage {
       badge:      q('#beiro-badge'),
       rating:     q('#beiro-rating'),
       bio:        q('#beiro-bio'),
+      favBtn:     q('#beiro-fav-btn'),
     };
   }
 
@@ -134,6 +135,7 @@ class BarbeiroPage {
     this.#renderBadge();
     this.#renderRating(profile);
     this.#renderBio(profile);
+    this.#renderFavBtn(profile);
     this.#mostrarConteudo();
   }
 
@@ -199,6 +201,25 @@ class BarbeiroPage {
     }
   }
 
+  /** Atualiza estado do botão de favoritar na página de detalhe. */
+  #renderFavBtn(profile) {
+    const btn = this.#refs.favBtn;
+    if (!btn || !profile?.id) return;
+    // O botão fica no topbar (fora de [data-professional-id]); o ID vai direto nele
+    // para que btn.closest('[data-professional-id]') funcione na delegação
+    btn.dataset.professionalId = profile.id;
+    const ativo = typeof ProfessionalService !== 'undefined'
+      ? ProfessionalService.isFavorito(profile.id)
+      : false;
+    btn.classList.toggle('ativo', ativo);
+    const ico = btn.querySelector('.cfb-ico');
+    if (ico) ico.textContent = ativo ? '⭐' : '☆';
+    btn.setAttribute('aria-pressed', String(ativo));
+    btn.title = ativo ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+    btn.disabled = false;
+    btn.removeAttribute('aria-disabled');
+  }
+
   // ══════════════════════════════════════════════════════════
   // FETCHER (estático — sem acesso a this)
   // ══════════════════════════════════════════════════════════
@@ -230,6 +251,14 @@ class BarbeiroPage {
     if (this.#refs.badge)      { this.#refs.badge.textContent   = ''; this.#refs.badge.hidden = true; }
     if (this.#refs.rating)     { this.#refs.rating.textContent  = ''; }
     if (this.#refs.bio)        { this.#refs.bio.textContent     = ''; this.#refs.bio.hidden = true; }
+    if (this.#refs.favBtn) {
+      this.#refs.favBtn.dataset.professionalId = '';
+      this.#refs.favBtn.classList.remove('ativo');
+      const ico = this.#refs.favBtn.querySelector('.cfb-ico');
+      if (ico) ico.textContent = '☆';
+      this.#refs.favBtn.setAttribute('aria-pressed', 'false');
+      this.#refs.favBtn.title = 'Adicionar aos favoritos';
+    }
   }
 
   #mostrarSkeleton() {

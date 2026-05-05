@@ -251,6 +251,13 @@ class AuthService {
     // e um callback que retorna Promise dispara o erro
     // "message channel closed before a response was received".
     SupabaseService.onAuthChange((event, session) => {
+      // Ao entrar com qualquer usuário, limpa cache de favoritos/curtidas do
+      // usuário anterior — evita que dados de cache stale apareçam para o
+      // novo usuário antes do carregamento do banco.
+      if (event === 'SIGNED_IN') {
+        if (typeof BarbershopService  !== 'undefined') BarbershopService.limparCache();
+        if (typeof ProfessionalService !== 'undefined') ProfessionalService.limparCache();
+      }
       if (session?.user) {
         AuthService._carregarPerfil(session.user.id)
           .then(async perfil => {
