@@ -73,9 +73,14 @@ class ApiQuery {
   // ── Modificadores de resultado ───────────────────────────
 
   /** Retorna objeto único; erro se 0 ou múltiplas linhas. */
-  single()      { this.#single = true;                    return this; }
-  /** Retorna objeto único ou null sem erro quando 0 linhas. */
-  maybeSingle() { this.#single = true; this.#maybe = true; return this; }
+  single()      { this.#single = true; return this; }
+  /**
+   * Retorna objeto único ou null sem erro quando 0 linhas.
+   * Não envia `Accept: application/vnd.pgrst.object+json` para evitar
+   * o 406 de rede no console quando nenhuma linha é encontrada.
+   * Busca como array com limit=1 e retorna o primeiro elemento ou null.
+   */
+  maybeSingle() { this.#maybe = true; this.#params.set('limit', '1'); return this; }
 
   // ── Mutações ─────────────────────────────────────────────
 
@@ -103,7 +108,9 @@ class ApiQuery {
   async #exec() {
     const headers = { ...this.#getHeaders() };
 
-    // Accept para objeto único (single / maybeSingle)
+    // Accept para objeto único — apenas .single(), nunca .maybeSingle()
+    // .maybeSingle() busca como array e extrai o primeiro elemento em código,
+    // evitando o 406 de rede quando 0 linhas são retornadas.
     if (this.#single) headers['Accept'] = 'application/vnd.pgrst.object+json';
 
     // Prefer: return=representation para mutations que devolvem dados
@@ -138,7 +145,7 @@ class ApiQuery {
       return { data: null, error: new Error('Sem conexão com a internet.') };
     }
 
-    // maybeSingle: sem linhas não é erro
+    // maybeSingle: sem linhas não é erro — extrai primeiro elemento do array
     if (this.#maybe && (res.status === 406 || res.status === 404)) {
       return { data: null, error: null };
     }
@@ -156,6 +163,13 @@ class ApiQuery {
 
     const text = await res.text();
     const data = text ? JSON.parse(text) : null;
+
+    // maybeSingle: resposta é array com limit=1 — retorna primeiro elemento ou null
+    if (this.#maybe) {
+      const arr = Array.isArray(data) ? data : (data ? [data] : []);
+      return { data: arr[0] ?? null, error: null };
+    }
+
     return { data, error: null };
   }
 
