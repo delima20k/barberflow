@@ -168,13 +168,7 @@ class SearchRepository extends BaseRepository {
   async #getFavoriteClientsFallback(barbershopId, professionalId) {
     const ids = new Set();
 
-    const { data: shopFavs } = await this.#supabase
-      .from('barbershop_interactions')
-      .select('user_id')
-      .eq('barbershop_id', barbershopId)
-      .eq('type', 'favorite');
-    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
-
+    // Apenas quem favoritou este profissional específico
     const { data: profFavs } = await this.#supabase
       .from('favorite_professionals')
       .select('user_id')

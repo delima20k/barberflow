@@ -223,28 +223,37 @@ class ProfileRepository {
   /**
    * Alterna barbeiro favorito.
    * Estratégia à prova de race conditions:
-   *  - DELETE-first → retorna linhas afetadas
-   *  - Se 0 linhas afetadas → INSERT; se der 23505 (duplicate) considera sucesso
+   *  - SELECT first para detectar existência sem depender de RETURNING do DELETE
+   *  - DELETE se existia; INSERT se não existia (23505 = corrida, trata como sucesso)
    * @returns {Promise<boolean>} true se adicionado, false se removido
    */
   static async toggleFavoriteBarber(userId, professionalId) {
-    // 1. Tenta DELETE com .select() para saber quantas linhas foram afetadas
-    const { data: deleted, error: delErr } = await ApiService.from('favorite_professionals')
-      .delete()
+    // 1. Verifica se o favorito já existe
+    const { data: existing, error: selErr } = await ApiService.from('favorite_professionals')
+      .select('professional_id')
       .eq('user_id', userId)
       .eq('professional_id', professionalId)
-      .select();
+      .maybeSingle();
 
-    if (delErr) throw delErr;
-    if (Array.isArray(deleted) && deleted.length > 0) return false;
+    if (selErr) throw selErr;
 
-    // 2. Não existia (ou estava invisível ao usuário) — tenta INSERT
+    if (existing) {
+      // 2a. Existe → DELETE
+      const { error: delErr } = await ApiService.from('favorite_professionals')
+        .delete()
+        .eq('user_id', userId)
+        .eq('professional_id', professionalId);
+
+      if (delErr) throw delErr;
+      return false; // removido
+    }
+
+    // 2b. Não existe → INSERT
     const { error: insErr } = await ApiService.from('favorite_professionals')
       .insert({ user_id: userId, professional_id: professionalId });
 
     if (insErr) {
-      // 23505 = duplicate_key | 409 status | mensagens de duplicata
-      // Qualquer uma dessas situações significa "já está favoritado" — trata como sucesso.
+      // 23505 = duplicate_key — corrida de escrita; trata como "já favoritado"
       const code    = String(insErr.code    ?? '');
       const status  = Number(insErr.status  ?? 0);
       const message = String(insErr.message ?? '').toLowerCase();
@@ -255,7 +264,7 @@ class ProfileRepository {
                    || message.includes('already exists');
       if (!isDup) throw insErr;
     }
-    return true;
+    return true; // adicionado
   }
 
   // ═══════════════════════════════════════════════════════════
