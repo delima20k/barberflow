@@ -3959,20 +3959,36 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 6px 12px;
-  background: var(--header-bg, rgba(20,15,10,.92));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--gold-border);
+  padding: 6px 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-/* Grupo de ações no lado direito do topbar (curtida + favorito) */
+/* btn-voltar: canto esquerdo, seta ← via ::before */
+#tela-barbeiro .beiro-topbar .btn-voltar {
+  position: static;
+  top: auto;
+  left: auto;
+  margin-left: 1rem;
+}
+#tela-barbeiro .beiro-topbar .btn-voltar::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-left: 2.5px solid var(--gold);
+  border-bottom: 2.5px solid var(--gold);
+  transform: rotate(45deg);
+  background: transparent;
+  filter: none;
+}
+/* Grupo de ações no lado direito (curtida + favorito) */
 #tela-barbeiro .beiro-topbar .beiro-topbar-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: 1rem;
 }
 
 /* Botão favoritar no topbar do barbeiro (lado direito) */
