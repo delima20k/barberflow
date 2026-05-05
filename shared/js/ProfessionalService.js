@@ -21,6 +21,10 @@ class ProfessionalService {
   static #LIKE_IDS     = new Set();
   static #CARREGADO    = false;
   static #PROMISE      = null;
+  // Contador de geração: incrementado a cada limparCache() para invalidar
+  // qualquer Promise in-flight e evitar que dados da sessão anterior
+  // sobrescrevam o cache da nova sessão (race condition).
+  static #GEN          = 0;
   static #DELEGATION   = false;
 
   /**
@@ -31,20 +35,31 @@ class ProfessionalService {
     if (ProfessionalService.#CARREGADO && !force) {
       return { favs: ProfessionalService.#FAV_IDS, likes: ProfessionalService.#LIKE_IDS };
     }
-    if (ProfessionalService.#PROMISE) return ProfessionalService.#PROMISE;
+    // force=true ignora Promise em voo e inicia nova busca
+    if (!force && ProfessionalService.#PROMISE) return ProfessionalService.#PROMISE;
+
+    // Captura a geração atual — a Promise só grava no cache se ainda for válida
+    const gen = ProfessionalService.#GEN;
 
     ProfessionalService.#PROMISE = (async () => {
       try {
         const user = await SupabaseService.getUser?.();
+        if (gen !== ProfessionalService.#GEN) {
+          return { favs: ProfessionalService.#FAV_IDS, likes: ProfessionalService.#LIKE_IDS };
+        }
         if (!user?.id) {
-          ProfessionalService.#FAV_IDS  = new Set();
-          ProfessionalService.#LIKE_IDS = new Set();
+          ProfessionalService.#FAV_IDS   = new Set();
+          ProfessionalService.#LIKE_IDS  = new Set();
+          ProfessionalService.#CARREGADO = true; // evita re-fetches para usuário anônimo
           return { favs: ProfessionalService.#FAV_IDS, likes: ProfessionalService.#LIKE_IDS };
         }
         const [favs, likes] = await Promise.allSettled([
           ProfileRepository.getUserProfessionalFavs(user.id),
           ProfileRepository.getUserProfessionalLikes(user.id),
         ]);
+        if (gen !== ProfessionalService.#GEN) {
+          return { favs: ProfessionalService.#FAV_IDS, likes: ProfessionalService.#LIKE_IDS };
+        }
         ProfessionalService.#FAV_IDS  = favs.status  === 'fulfilled' ? favs.value  : new Set();
         ProfessionalService.#LIKE_IDS = likes.status === 'fulfilled' ? likes.value : new Set();
         ProfessionalService.#CARREGADO = true;
@@ -64,10 +79,11 @@ class ProfessionalService {
 
   /**
    * Limpa o cache de favoritos e curtidas de barbeiros.
-   * Deve ser chamado no logout para evitar que dados de um usuário
-   * apareçam para outro usuário na mesma sessão de navegação.
+   * Incrementa #GEN para invalidar qualquer Promise in-flight, evitando
+   * que dados da sessão anterior sobrescrevam o cache após a troca de usuário.
    */
   static limparCache() {
+    ProfessionalService.#GEN++;
     ProfessionalService.#FAV_IDS   = new Set();
     ProfessionalService.#LIKE_IDS  = new Set();
     ProfessionalService.#CARREGADO = false;

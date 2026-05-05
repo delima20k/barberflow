@@ -18,6 +18,10 @@ class BarbershopService {
   static #FAV_IDS = new Set();
   static #FAV_CARREGADO = false;
   static #FAV_PROMISE = null;
+  // Contador de geração: incrementado a cada limparCache() para invalidar
+  // qualquer Promise in-flight e evitar que dados da sessão anterior
+  // sobrescrevam o cache da nova sessão (race condition).
+  static #FAV_GEN = 0;
   static #DELEGATION_ATIVA = false;
 
   /**
@@ -27,14 +31,23 @@ class BarbershopService {
    */
   static async carregarFavoritos(force = false) {
     if (BarbershopService.#FAV_CARREGADO && !force) return BarbershopService.#FAV_IDS;
-    if (BarbershopService.#FAV_PROMISE) return BarbershopService.#FAV_PROMISE;
+    if (!force && BarbershopService.#FAV_PROMISE) return BarbershopService.#FAV_PROMISE;
+
+    // Captura a geração atual — a Promise só grava no cache se ainda for válida
+    const gen = BarbershopService.#FAV_GEN;
 
     BarbershopService.#FAV_PROMISE = (async () => {
       try {
         const user = await SupabaseService.getUser?.();
-        if (!user?.id) { BarbershopService.#FAV_IDS = new Set(); return BarbershopService.#FAV_IDS; }
+        if (gen !== BarbershopService.#FAV_GEN) return BarbershopService.#FAV_IDS; // sessão mudou
+        if (!user?.id) {
+          BarbershopService.#FAV_IDS      = new Set();
+          BarbershopService.#FAV_CARREGADO = true; // evita re-fetches para usuário anônimo
+          return BarbershopService.#FAV_IDS;
+        }
         const favs = await ProfileRepository.getFavorites(user.id);
-        BarbershopService.#FAV_IDS = new Set((favs ?? []).map(f => f.id).filter(Boolean));
+        if (gen !== BarbershopService.#FAV_GEN) return BarbershopService.#FAV_IDS; // sessão mudou
+        BarbershopService.#FAV_IDS      = new Set((favs ?? []).map(f => f.id).filter(Boolean));
         BarbershopService.#FAV_CARREGADO = true;
         return BarbershopService.#FAV_IDS;
       } catch (e) {
@@ -54,10 +67,11 @@ class BarbershopService {
 
   /**
    * Limpa o cache de favoritos de barbearias.
-   * Deve ser chamado no logout para evitar que dados de um usuário
-   * apareçam para outro usuário na mesma sessão de navegação.
+   * Incrementa #FAV_GEN para invalidar qualquer Promise in-flight, evitando
+   * que dados da sessão anterior sobrescrevam o cache após a troca de usuário.
    */
   static limparCache() {
+    BarbershopService.#FAV_GEN++;
     BarbershopService.#FAV_IDS      = new Set();
     BarbershopService.#FAV_CARREGADO = false;
     BarbershopService.#FAV_PROMISE   = null;

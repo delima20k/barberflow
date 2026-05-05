@@ -96,3 +96,54 @@ suite('BarbershopService.isFavorito()', () => {
     assert.strictEqual(sb.BarbershopService.isFavorito(null), false);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BarbershopService — Race condition: limparCache durante Promise in-flight
+// ─────────────────────────────────────────────────────────────────────────────
+suite('BarbershopService.limparCache() — race condition', () => {
+
+  test('limparCache() antes de getUser() resolver descarta dados do usuário anterior', async () => {
+    // Controla quando getUser() resolve (simula lentidão de rede)
+    let resolverGetUser;
+    const getUserDelay = new Promise(res => { resolverGetUser = res; });
+
+    const SupabaseService   = { getUser: fn().mockReturnValue(getUserDelay) };
+    const ProfileRepository = { getFavorites: fn().mockResolvedValue([{ id: UUID_BS1 }]) };
+    const sb = vm.createContext({
+      console, Error, TypeError, Promise, Set,
+      SupabaseService, ProfileRepository,
+      LoggerService: { warn: fn() },
+    });
+    carregar(sb, 'shared/js/BarbershopService.js');
+
+    // 1. Inicia carregarFavoritos (Promise in-flight aguardando getUser)
+    const promessa = sb.BarbershopService.carregarFavoritos();
+
+    // 2. Limpa cache ANTES do getUser() resolver (nova sessão)
+    sb.BarbershopService.limparCache();
+
+    // 3. Resolve getUser() para simular resposta atrasada da rede
+    resolverGetUser({ id: UUID_USER });
+
+    // 4. Aguarda a Promise terminar
+    await promessa;
+
+    // 5. O cache deve permanecer limpo — dados antigos NÃO devem ter sobrescrito
+    assert.strictEqual(sb.BarbershopService.isFavorito(UUID_BS1), false,
+      'dados da sessão anterior não devem aparecer após limparCache()');
+  });
+
+  test('nova sessão após limparCache() carrega corretamente os dados corretos', async () => {
+    const sb = criarSandbox({ favIds: [UUID_BS1] });
+
+    // Carrega favoritos do usuário A
+    await sb.BarbershopService.carregarFavoritos();
+    assert.strictEqual(sb.BarbershopService.isFavorito(UUID_BS1), true);
+
+    // Simula troca de usuário: limpar cache e nova chamada deve retornar vazio
+    // (mock ainda retorna [UUID_BS1], mas após limparCache novo fetch ocorrerá)
+    sb.BarbershopService.limparCache();
+    assert.strictEqual(sb.BarbershopService.isFavorito(UUID_BS1), false,
+      'cache deve estar limpo imediatamente após limparCache()');
+  });
+});
