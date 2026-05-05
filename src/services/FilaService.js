@@ -86,8 +86,12 @@ class FilaService extends BaseService {
 
     const { fila, ultimaMudanca } = await this.#filaRepository.getEstado(barbeariaId);
 
-    if (since && ultimaMudanca && new Date(ultimaMudanca) <= new Date(since)) {
-      return { semMudancas: true };
+    if (since && ultimaMudanca) {
+      const sinceDate    = new Date(since);
+      const mudancaDate  = new Date(ultimaMudanca);
+      if (!isNaN(sinceDate) && mudancaDate <= sinceDate) {
+        return { semMudancas: true };
+      }
     }
 
     return { semMudancas: false, fila, ultimaMudanca };

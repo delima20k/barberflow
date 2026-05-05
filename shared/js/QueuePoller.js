@@ -200,11 +200,12 @@ class QueuePoller {
    * Não lança exceção — falhas são silenciosas.
    */
   static #tocarSom() {
+    let ctx = null;
     try {
       const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
       if (!AudioCtx) return;
 
-      const ctx = new AudioCtx();
+      ctx = new AudioCtx();
 
       const tocar = (frequencia, inicio, duracao) => {
         const osc = ctx.createOscillator();
@@ -229,7 +230,8 @@ class QueuePoller {
       // Fecha o contexto após os tons terminarem
       setTimeout(() => ctx.close().catch(() => {}), 500);
     } catch {
-      // Web Audio não disponível ou bloqueado pelo navegador — ignora silenciosamente
+      // Web Audio não disponível ou bloqueado pelo navegador — fecha contexto se aberto
+      ctx?.close().catch(() => {});
     }
   }
 

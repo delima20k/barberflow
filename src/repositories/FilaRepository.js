@@ -157,6 +157,8 @@ class FilaRepository extends BaseRepository {
     ]);
 
     if (filaResult.error) throw filaResult.error;
+    // tsResult.error é não-fatal: timestamp indisponível apenas desativa o cache condicional
+    if (tsResult.error) LoggerService?.warn?.('[FilaRepository] getEstado ts query:', tsResult.error.message);
 
     const fila = filaResult.data ?? [];
     const ultima = tsResult.data;

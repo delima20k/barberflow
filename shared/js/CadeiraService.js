@@ -158,8 +158,8 @@ class CadeiraService {
 
   /**
    * Finaliza o atendimento de uma entrada.
-   * Marca como 'done', busca o próximo waiting e notifica via
-   * insert na tabela notifications.
+   * Marca como 'done' e retorna o próximo cliente na fila.
+   * As notificações são enviadas pelo trigger `trg_notify_queue_on_done` no banco.
    *
    * @param {string} entradaId
    * @param {string} barbershopId
@@ -173,16 +173,11 @@ class CadeiraService {
 
     await QueueRepository.updateStatus(entradaId, 'done');
 
-    // Busca próximo cliente na fila
-    const filaAtiva  = await CadeiraService.getFilaAtiva(barbershopId);
-    const proximo    = CadeiraService.#proximoNaFila(filaAtiva);
-
-    if (proximo) {
-      await CadeiraService.#notificarProximo(proximo, barbershopId);
-    }
+    const filaAtiva = await CadeiraService.getFilaAtiva(barbershopId);
+    const proximo   = CadeiraService.#proximoNaFila(filaAtiva);
 
     return {
-      proximoClienteId: proximo?.client?.id   ?? null,
+      proximoClienteId: proximo?.client?.id       ?? null,
       proximoNome:      proximo?.client?.full_name ?? null,
     };
   }

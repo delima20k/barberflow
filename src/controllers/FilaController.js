@@ -5,7 +5,8 @@
 // Camada: interfaces
 //
 // Rotas:
-//   GET    /api/fila/:barbeariaId                    — estado da fila
+//   GET    /api/fila/:barbeariaId                    — lista fila ativa
+//   GET    /api/fila/:barbeariaId/estado             — polling condicional (?since=)
 //   POST   /api/fila/:barbeariaId/entrar             — entrar na fila
 //   DELETE /api/fila/:barbeariaId/entradas/:id/sair  — sair da fila
 //   PATCH  /api/fila/:barbeariaId/entradas/:id/status — avançar status

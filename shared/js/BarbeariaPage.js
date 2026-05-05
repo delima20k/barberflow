@@ -468,7 +468,10 @@ class BarbeariaPage {
       const perfil = AuthService.getPerfil();
       if (perfil?.id) {
         QueuePoller.iniciar(this.#shopId, perfil.id, () => {
-          if (this.#shopData) this.#renderBarbeiros(this.#shopData);
+          if (this.#shopData) {
+            this.#renderBarbeiros(this.#shopData)
+              .catch(err => LoggerService.warn('[BarbeariaPage] QueuePoller re-render falhou:', err));
+          }
         });
       }
     } catch (err) {
