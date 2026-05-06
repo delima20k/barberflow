@@ -19,14 +19,16 @@
 class BarbeariaPage {
 
   // ── Estado ────────────────────────────────────────────────
-  #telaEl      = null;
-  #shopId      = null;   // UUID da barbearia atual
-  #shopIdCache = null;   // último ID renderizado (evita re-fetch na volta)
-  #carregando  = false;  // mutex contra fetches paralelos
-  #dig         = null;   // instância DigText de boas-vindas
-  #digFila      = null;   // instância DigText da seção de barbeiros
-  #servicos     = [];     // serviços em cache para os handlers de cadeira
-  #shopData     = null;   // objeto completo da barbearia atual
+  #telaEl           = null;
+  #shopId           = null;   // UUID da barbearia atual
+  #shopIdCache      = null;   // último ID renderizado (evita re-fetch na volta)
+  #carregando       = false;  // mutex contra fetches paralelos
+  #dig              = null;   // instância DigText de boas-vindas
+  #digFila          = null;   // instância DigText da seção de barbeiros
+  #servicos         = [];     // serviços em cache para os handlers de cadeira
+  #shopData         = null;   // objeto completo da barbearia atual
+  #canalFila        = null;   // canal Supabase Realtime de queue_entries
+  #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -140,6 +142,7 @@ class BarbeariaPage {
       } else {
         this.#pararDig();
         QueuePoller.parar();
+        this.#pararRealtimeFila();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
@@ -366,6 +369,7 @@ class BarbeariaPage {
     this.#renderServicos(servicos);
     this.#renderPortfolio(portfolio);
     this.#renderBarbeiros(shop); // fire-and-forget: preenche carousel async
+    this.#iniciarRealtimeFila(shop);
     this.#mostrarConteudo();
   }
 
@@ -432,12 +436,100 @@ class BarbeariaPage {
       }));
     }
 
+    // QueuePoller fallback: garante polling ativo se cliente já está na fila ao abrir a página
+    const perfilPoller = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    if (perfilPoller?.id) {
+      const minhaEntrada = filaAtiva.find(
+        e => (e.client_id ?? e.user_id) === perfilPoller.id,
+      );
+      if (minhaEntrada) {
+        QueuePoller.iniciar(shop.id, perfilPoller.id, () => {
+          if (this.#shopData?.id === shop.id) {
+            this.#renderBarbeiros(this.#shopData).catch(() => {});
+          }
+        });
+      }
+    }
+
     // Inicia animação DigText na seção de barbeiros
     if (typeof DigText !== 'undefined' && this.#refs.filaDig) {
       this.#refs.filaDig.textContent = '';
       const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância.';
       this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
       this.#digFila.iniciar();
+    }
+  }
+
+  /**
+   * Inicia canal Supabase Realtime ouvindo INSERT/UPDATE/DELETE em
+   * queue_entries da barbearia atual. Re-renderiza as cadeiras em tempo real.
+   * Guard por shop.id — evita reconexão se a barbearia não mudou.
+   * @param {object} shop
+   */
+  #iniciarRealtimeFila(shop) {
+    if (!shop?.id) return;
+    if (this.#canalFilaShopId === shop.id && this.#canalFila) return;
+
+    this.#pararRealtimeFila();
+
+    try {
+      this.#canalFila = SupabaseService.channel(`fila:${shop.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event:  '*',
+            schema: 'public',
+            table:  'queue_entries',
+            filter: `barbershop_id=eq.${shop.id}`,
+          },
+          (payload) => this.#onFilaRealtime(payload, shop),
+        )
+        .subscribe();
+      this.#canalFilaShopId = shop.id;
+    } catch (_) {
+      // Realtime indisponível — app continua via QueuePoller
+    }
+  }
+
+  /**
+   * Para o canal Realtime da fila e limpa referências.
+   */
+  #pararRealtimeFila() {
+    if (this.#canalFila) {
+      try { SupabaseService.removeChannel(this.#canalFila); } catch (_) {}
+      this.#canalFila       = null;
+      this.#canalFilaShopId = null;
+    }
+  }
+
+  /**
+   * Callback disparado pelo Realtime ao detectar mudança em queue_entries.
+   * Re-renderiza cadeiras e dispara confirmação de presença se o cliente
+   * foi promovido para in_service.
+   * @param {object} payload — payload do Supabase Realtime
+   * @param {object} shop
+   */
+  async #onFilaRealtime(payload, shop) {
+    if (this.#shopId !== shop.id) return;
+    if (!this.#shopData) return;
+
+    // Re-renderiza as cadeiras instantaneamente
+    await this.#renderBarbeiros(shop).catch(() => {});
+
+    // Detecta se este cliente foi promovido para in_service
+    const entrada = payload?.new;
+    if (!entrada?.id || entrada.status !== 'in_service') return;
+
+    const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    if (!perfil?.id) return;
+
+    const esteCliente = (entrada.client_id ?? entrada.user_id) === perfil.id;
+    if (!esteCliente) return;
+
+    // CadeiraConfirmacaoService tem guard interno — não reabre se já processado
+    if (typeof CadeiraConfirmacaoService !== 'undefined') {
+      const nome = perfil.full_name ?? '';
+      CadeiraConfirmacaoService.iniciarFluxo(entrada.id, nome).catch(() => {});
     }
   }
 
