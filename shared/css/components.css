@@ -3954,6 +3954,151 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   width: 100%;
 }
 
+/* ── Confirmação de presença — borda visual da cadeira de produção ── */
+/* Amarelo/dourado: cliente confirmou presença ("Sim, estou!") */
+.cdr-cadeira--confirmada {
+  outline: 2.5px solid #D4A017;
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+/* Marrom: cliente não respondeu após o grace de 5 min (ausente) */
+.cdr-cadeira--ausente {
+  outline: 2.5px solid #7B4F2E;
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* ── Modais de confirmação de presença (ConfirmacaoCorteModal) ── */
+.ccm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.ccm-overlay--visivel { opacity: 1; }
+.ccm-overlay--saindo  { opacity: 0; }
+.ccm-card {
+  background: var(--surface, #1a1a2e);
+  border-radius: 18px;
+  padding: 2rem 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+}
+.ccm-icone { font-size: 2.4rem; line-height: 1; }
+.ccm-titulo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gold, #D4A017);
+  margin: 0;
+}
+.ccm-corpo {
+  font-size: .93rem;
+  color: var(--text, #e8d5c0);
+  margin: 0;
+  line-height: 1.5;
+}
+.ccm-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin-top: .5rem;
+}
+.ccm-btn {
+  padding: .7rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.ccm-btn:active { opacity: .75; }
+.ccm-btn--sim  { background: var(--gold, #D4A017); color: #1a1a2e; }
+.ccm-btn--nao  { background: var(--surface-alt, #2a2a3e); color: var(--text, #e8d5c0); border: 1px solid rgba(255,255,255,.1); }
+
+/* ── Modal de cliente ausente (ClienteAusenteModal) — visão do barbeiro ── */
+.cam-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.cam-overlay--visivel { opacity: 1; }
+.cam-overlay--saindo  { opacity: 0; }
+.cam-card {
+  background: var(--surface, #1a1a2e);
+  border-radius: 18px;
+  padding: 2rem 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+  position: relative;
+}
+.cam-fechar {
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  background: none;
+  border: none;
+  color: var(--text-muted, #8c7057);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: .25rem;
+}
+.cam-icone { font-size: 2.4rem; line-height: 1; }
+.cam-titulo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gold, #D4A017);
+  margin: 0;
+}
+.cam-corpo {
+  font-size: .93rem;
+  color: var(--text, #e8d5c0);
+  margin: 0;
+  line-height: 1.5;
+}
+.cam-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin-top: .5rem;
+}
+.cam-btn {
+  padding: .7rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.cam-btn:active { opacity: .75; }
+.cam-btn--remover  { background: #c0392b; color: #fff; }
+.cam-btn--mensagem { background: var(--surface-alt, #2a2a3e); color: var(--gold, #D4A017); border: 1px solid var(--gold, #D4A017); }
+
 /* ── Tela Barbeiro (BarbeiroPage) ────────────────────────── */
 #tela-barbeiro .beiro-topbar {
   position: sticky;

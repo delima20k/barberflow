@@ -231,6 +231,8 @@ class MinhaBarbeariaPage {
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
     // Toggle de status aberta/fechada
     this.#refs.statusToggle?.addEventListener('click', () => this.#toggleStatusAberto());
+    // Notificação de cliente ausente (enviada pelo trigger via notifications table)
+    document.addEventListener('barberflow:notificacao-nova', e => this.#onClienteAusente(e));
     // Campos editáveis (lápis) — Config
     this.#refs.cfgNomeLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis));
     this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.cfgWhats,   this.#refs.cfgWhatsDisplay,   this.#refs.cfgWhatsLapis));
@@ -540,6 +542,67 @@ class MinhaBarbeariaPage {
     }
   }
 
+  /**
+   * Handler do evento barberflow:notificacao-nova.
+   * Quando a notificação é do tipo 'client_absent', abre ClienteAusenteModal
+   * para o barbeiro escolher entre remover o cliente ou enviar mensagem.
+   * @param {CustomEvent} e
+   */
+  async #onClienteAusente(e) {
+    const notif = e?.detail?.notif;
+    if (!notif?.dados?.client_absent) return;
+
+    // Só reage se a notificação pertence à barbearia ativa
+    if (notif.dados.barbershop_id && notif.dados.barbershop_id !== this.#barbershopId) return;
+
+    const clienteNome = notif.dados.client_name ?? 'Cliente';
+    const entradaId   = notif.dados.entry_id ?? null;
+
+    const acao = await ClienteAusenteModal.abrir({ clienteNome });
+
+    if (acao === 'remover') {
+      try {
+        if (entradaId) {
+          await CadeiraService.finalizar(entradaId, this.#barbershopId);
+        }
+        NotificationService.mostrarToast(
+          'Cliente removido',
+          'Próximo cliente chamado.',
+          NotificationService.TIPOS.SISTEMA,
+        );
+        await this.#reRenderEquipe();
+      } catch (err) {
+        LoggerService.error('[MinhaBarbeariaPage] erro ao remover cliente ausente:', err);
+        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível remover.', NotificationService.TIPOS.SISTEMA);
+      }
+      return;
+    }
+
+    if (acao === 'mensagem') {
+      try {
+        // Busca client_id da entrada para enviar mensagem
+        const filaAtiva = await CadeiraService.getFilaAtiva(this.#barbershopId);
+        const entrada   = entradaId ? filaAtiva.find(e => e.id === entradaId) : null;
+        const clientId  = entrada?.client?.id ?? null;
+
+        if (clientId && typeof MessageService !== 'undefined') {
+          await MessageService.enviarMensagem(
+            clientId,
+            `Olá ${clienteNome}! Sua vez chegou. Você está a caminho?`,
+          );
+          NotificationService.mostrarToast(
+            'Mensagem enviada',
+            `Perguntamos ao ${clienteNome} se está a caminho.`,
+            NotificationService.TIPOS.SISTEMA,
+          );
+        }
+      } catch (err) {
+        LoggerService.error('[MinhaBarbeariaPage] erro ao enviar mensagem:', err);
+        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível enviar.', NotificationService.TIPOS.SISTEMA);
+      }
+    }
+  }
+
   // ── Factory: componentes de equipe ─────────────────────────
 
   /**
@@ -600,17 +663,24 @@ class MinhaBarbeariaPage {
 
   /**
    * Cadeira visual com interação opcional (somente para o dono).
-   * @param {'producao'|'fila'} tipo
-   * @param {object|null}       entrada   queue_entry com { client, status }
-   * @param {number}            posicao   exibido como #N nas cadeiras de fila
-   * @param {object}            [opts]    { isOwner, onClickVazia, onClickOcupada }
+   * @param {'producao'|'fila'}                  tipo
+   * @param {object|null}                        entrada     queue_entry com { client, status }
+   * @param {number}                             posicao     exibido como #N nas cadeiras de fila
+   * @param {object}                             [opts]      { isOwner, onClickVazia, onClickOcupada }
+   * @param {'yes'|'no_waiting'|'absent'|null}   [confirmacao]  estado de confirmação de presença
    */
-  static #criarCadeiraEl(tipo, entrada = null, posicao = 1, opts = {}) {
+  static #criarCadeiraEl(tipo, entrada = null, posicao = 1, opts = {}, confirmacao = null) {
     const { isOwner = false, onClickVazia = null, onClickOcupada = null } = opts;
     const ocupada = !!entrada;
 
     const cadeira = document.createElement('div');
     cadeira.className = `mb-cadeira mb-cadeira--${tipo}${ocupada ? '' : ' mb-cadeira--vazia'}`;
+
+    // Borda visual de confirmação de presença (apenas cadeira de produção ocupada)
+    if (tipo === 'producao' && ocupada) {
+      if (confirmacao === 'yes')    cadeira.classList.add('cdr-cadeira--confirmada');
+      else if (confirmacao === 'absent') cadeira.classList.add('cdr-cadeira--ausente');
+    }
 
     // Ícone — imagem da cadeira sempre visível; avatar do cliente flutua acima
     const iconWrap = document.createElement('div');
@@ -732,7 +802,7 @@ class MinhaBarbeariaPage {
     });
 
     // Cadeira de produção — fixa, fora do scroll
-    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico, 0, optsProducao));
+    wrap.appendChild(MinhaBarbeariaPage.#criarCadeiraEl('producao', emServico, 0, optsProducao, emServico?.client_confirmed ?? null));
 
     // Cadeiras de espera — dinâmicas: uma por cliente na fila + sempre 1 vazia no final
     const filaWrap     = document.createElement('div');

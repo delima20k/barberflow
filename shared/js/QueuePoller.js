@@ -184,6 +184,13 @@ class QueuePoller {
       if (typeof NotificationService !== 'undefined') {
         const tipo = NotificationService.TIPOS?.SISTEMA ?? 'sistema';
         if (ehSuaVez) {
+          // Delega confirmação de presença ao CadeiraConfirmacaoService (se disponível).
+          // Ele exibe o modal interativo e gerencia o grace period de 5 min.
+          // O toast abaixo serve apenas como fallback visual caso o modal não abra.
+          if (typeof CadeiraConfirmacaoService !== 'undefined') {
+            const nomeCliente = minha.client?.full_name ?? minha.guest_name ?? '';
+            CadeiraConfirmacaoService.iniciarFluxo(minha.id, nomeCliente).catch(() => {});
+          }
           NotificationService.mostrarToast('É a sua vez!', 'O barbeiro está pronto para atendê-lo.', tipo);
         } else if (avancou) {
           const rankWaiting = fila

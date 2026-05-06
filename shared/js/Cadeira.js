@@ -30,20 +30,28 @@ class Cadeira {
 
   /**
    * Cria o elemento DOM da cadeira.
-   * @param {object}           opts
-   * @param {'producao'|'fila'} opts.tipo
-   * @param {object|null}      opts.entrada    queue_entry com { client, status }
-   * @param {number}           [opts.posicao]  número da posição na fila
-   * @param {boolean}          [opts.podeInteragir=false]
-   * @param {Function|null}    [opts.onClick]  callback de interação (somente se vazia)
+   * @param {object}                          opts
+   * @param {'producao'|'fila'}               opts.tipo
+   * @param {object|null}                     opts.entrada       queue_entry com { client, status }
+   * @param {number}                          [opts.posicao]     número da posição na fila
+   * @param {boolean}                         [opts.podeInteragir=false]
+   * @param {Function|null}                   [opts.onClick]     callback de interação (somente se vazia)
+   * @param {'yes'|'no_waiting'|'absent'|null} [opts.confirmacao] estado de confirmação de presença
    * @returns {HTMLDivElement}
    */
-  static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null }) {
+  static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null, confirmacao = null }) {
     const ocupada = !!entrada;
     const estado  = Cadeira.#ESTADOS[`${tipo}_${ocupada ? 'ocupada' : 'livre'}`] ?? 'livre';
 
     const el = document.createElement('div');
     el.className = `cdr-cadeira cdr-cadeira--${tipo} cdr-cadeira--${estado}`;
+
+    // Bordas de confirmação de presença (apenas cadeira de produção ocupada)
+    if (tipo === 'producao' && ocupada && confirmacao === 'yes') {
+      el.classList.add('cdr-cadeira--confirmada');
+    } else if (tipo === 'producao' && ocupada && confirmacao === 'absent') {
+      el.classList.add('cdr-cadeira--ausente');
+    }
 
     // Interatividade: somente cadeiras LIVRES e com permissão
     if (!ocupada && podeInteragir && onClick) {
