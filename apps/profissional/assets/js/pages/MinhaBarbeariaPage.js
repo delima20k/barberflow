@@ -614,21 +614,27 @@ class MinhaBarbeariaPage {
 
   /**
    * Handler do evento barberflow:notificacao-nova.
-   * Quando a notificação é do tipo 'client_absent', abre ClienteAusenteModal
-   * para o barbeiro escolher entre remover o cliente ou enviar mensagem.
+   * Reage a dois tipos de notificação relacionados à presença do cliente:
+   *   - 'client_not_seated' — cliente clicou "Não" pela 1ª vez (ainda não sentou)
+   *   - 'client_absent'     — cliente não confirmou após o grace de 5 min
    * @param {CustomEvent} e
    */
   async #onClienteAusente(e) {
     const notif = e?.detail?.notif;
-    if (!notif?.dados?.client_absent) return;
+
+    const ehNaoSentado = notif?.dados?.client_not_seated === true;
+    const ehAusente    = notif?.dados?.client_absent     === true;
+
+    if (!ehNaoSentado && !ehAusente) return;
 
     // Só reage se a notificação pertence à barbearia ativa
     if (notif.dados.barbershop_id && notif.dados.barbershop_id !== this.#barbershopId) return;
 
     const clienteNome = notif.dados.client_name ?? 'Cliente';
     const entradaId   = notif.dados.entry_id ?? null;
+    const modo        = ehNaoSentado ? 'nao_sentado' : 'ausente';
 
-    const acao = await ClienteAusenteModal.abrir({ clienteNome });
+    const acao = await ClienteAusenteModal.abrir({ clienteNome, modo });
 
     if (acao === 'remover') {
       try {
