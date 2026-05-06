@@ -17,10 +17,13 @@ const UUID_PROF = '6fe08135-8c1d-4580-81db-5a8cfa96e9d2';
 // ─── Factory de sandbox ───────────────────────────────────────────────────────
 
 function criarSandbox({
-  rpcRetorno   = { data: [], error: null },
-  fromRetorno  = { data: [], error: null },
+  rpcRetorno        = { data: [], error: null },
+  rpcRetornoPorNome = {},
+  fromRetorno       = { data: [], error: null },
 } = {}) {
-  const rpcSpy = fn().mockImplementation(() => Promise.resolve(rpcRetorno));
+  const rpcSpy = fn().mockImplementation((name) =>
+    Promise.resolve(rpcRetornoPorNome[name] ?? rpcRetorno),
+  );
   const fromSpy = {
     select: fn().mockReturnThis(),
     ilike:  fn().mockReturnThis(),
@@ -204,6 +207,107 @@ suite('UserRepository — getFavoritosModal', () => {
       () => sandbox.UserRepository.getFavoritosModal(UUID_SHOP, 'nao-uuid'),
       err => err.name === 'TypeError',
     );
+  });
+
+});
+
+// ─── Fallback de busca ────────────────────────────────────────────────────────
+
+const PGRST202 = Object.assign(new Error('not found'), { code: 'PGRST202' });
+
+suite('UserRepository — buscarUsuarios (fallback #buscarFallback)', () => {
+
+  test('search_users falha com PGRST202 → chama buscar_perfis_por_nome', async () => {
+    const perfisRows = [
+      { id: 'u1', full_name: 'Carla', avatar_path: null, updated_at: null },
+    ];
+    const { sandbox, ApiService } = criarSandbox({
+      rpcRetornoPorNome: {
+        search_users:           { data: null,      error: PGRST202 },
+        buscar_perfis_por_nome: { data: perfisRows, error: null    },
+      },
+    });
+
+    const { data, total, error } = await sandbox.UserRepository.buscarUsuarios('carl', { limit: 20, offset: 0 });
+
+    const nomes = ApiService.rpc.calls.map(c => c[0]);
+    assert.ok(nomes.includes('search_users'),           'deve chamar search_users primeiro');
+    assert.ok(nomes.includes('buscar_perfis_por_nome'), 'deve chamar buscar_perfis_por_nome no fallback');
+    assert.strictEqual(error,             null);
+    assert.strictEqual(data.length,       1);
+    assert.strictEqual(data[0].full_name, 'Carla');
+    assert.strictEqual(data[0].email,     null);   // RPC não retorna email → mapper usa ?? null
+    assert.strictEqual(total,             1);
+  });
+
+  test('buscar_perfis_por_nome recebe p_limite = Math.min(offset + limit, 50)', async () => {
+    const { sandbox, ApiService } = criarSandbox({
+      rpcRetornoPorNome: {
+        search_users:           { data: null, error: PGRST202 },
+        buscar_perfis_por_nome: { data: [],   error: null     },
+      },
+    });
+
+    await sandbox.UserRepository.buscarUsuarios('teste', { limit: 10, offset: 20 });
+
+    const chamada = ApiService.rpc.calls.find(c => c[0] === 'buscar_perfis_por_nome');
+    assert.ok(chamada, 'deve ter chamado buscar_perfis_por_nome');
+    assert.strictEqual(chamada[1].p_termo,  'teste');
+    assert.strictEqual(chamada[1].p_limite, Math.min(20 + 10, 50)); // 30
+  });
+
+  test('p_limite nunca excede 50 mesmo com offset + limit > 50', async () => {
+    const { sandbox, ApiService } = criarSandbox({
+      rpcRetornoPorNome: {
+        search_users:           { data: null, error: PGRST202 },
+        buscar_perfis_por_nome: { data: [],   error: null     },
+      },
+    });
+
+    await sandbox.UserRepository.buscarUsuarios('x', { limit: 20, offset: 40 });
+
+    const chamada = ApiService.rpc.calls.find(c => c[0] === 'buscar_perfis_por_nome');
+    assert.ok(chamada);
+    assert.strictEqual(chamada[1].p_limite, 50); // Math.min(40 + 20, 50) = 50
+  });
+
+  test('buscar_perfis_por_nome também falha (PGRST202) → usa query direta via from()', async () => {
+    const { sandbox, ApiService, fromSpy } = criarSandbox({
+      rpcRetornoPorNome: {
+        search_users:           { data: null, error: PGRST202 },
+        buscar_perfis_por_nome: { data: null, error: PGRST202 },
+      },
+      fromRetorno: {
+        data:  [{ id: 'u1', full_name: 'Direto', email: null, avatar_path: null, updated_at: null }],
+        error: null,
+      },
+    });
+
+    const { data, error } = await sandbox.UserRepository.buscarUsuarios('dir');
+
+    assert.strictEqual(error, null);
+    assert.ok(ApiService.from.calls.length >= 1, 'deve usar ApiService.from como último recurso');
+    assert.strictEqual(data[0].full_name, 'Direto');
+  });
+
+  test('resultado de buscar_perfis_por_nome é fatiado conforme offset e limit', async () => {
+    // RPC retorna 5 itens (offset=0, p_limite=5), pedimos offset=2, limit=3 → slice(2,5)
+    const perfisRows = Array.from({ length: 5 }, (_, i) => ({
+      id: `u${i + 1}`, full_name: `User ${i + 1}`, avatar_path: null, updated_at: null,
+    }));
+    const { sandbox } = criarSandbox({
+      rpcRetornoPorNome: {
+        search_users:           { data: null,      error: PGRST202 },
+        buscar_perfis_por_nome: { data: perfisRows, error: null    },
+      },
+    });
+
+    const { data, total } = await sandbox.UserRepository.buscarUsuarios('user', { limit: 3, offset: 2 });
+
+    assert.strictEqual(data.length,       3);
+    assert.strictEqual(data[0].full_name, 'User 3');
+    assert.strictEqual(data[2].full_name, 'User 5');
+    assert.strictEqual(total,             3);
   });
 
 });

@@ -98,9 +98,25 @@ class UserRepository {
 
   /**
    * Fallback para buscarUsuarios quando RPC search_users não existe.
-   * Busca direta na tabela profiles por full_name (ilike).
+   * 1ª tentativa: buscar_perfis_por_nome (SECURITY DEFINER, bypass de RLS).
+   * Último recurso: query direta em profiles (sujeita a RLS).
    */
   static async #buscarFallback(term, limit, offset, signal) {
+    const pLimite = Math.min(offset + limit, UserRepository.#LIMITE_MAX);
+
+    const { data: rpcData, error: rpcError } = await ApiService.rpc(
+      'buscar_perfis_por_nome',
+      { p_termo: term, p_limite: pLimite },
+      signal,
+    );
+
+    if (!rpcError) {
+      const pagina = (Array.isArray(rpcData) ? rpcData : []).slice(offset, offset + limit);
+      const itens  = pagina.map(UserRepository.#mapUsuario);
+      return { data: itens, total: itens.length, error: null };
+    }
+
+    // Último recurso: query direta (pode ser restrita por RLS)
     const { data, error } = await ApiService.from('profiles')
       .select('id,full_name,email,avatar_path,updated_at')
       .ilike('full_name', `%${term}%`)
