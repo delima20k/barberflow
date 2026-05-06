@@ -120,14 +120,18 @@ class CadeiraService {
 
     if (!['producao', 'fila'].includes(tipo)) throw new Error(`[CadeiraService] tipo inválido: ${tipo}`);
 
-    // Calcula próxima posição livre para as cadeiras de espera
-    let position = 0;
+    // Calcula próxima posição e verifica se produção está vazia (tipo='fila')
+    let position      = 0;
+    let producaoVazia = false;
     if (tipo === 'fila') {
       const filaAtual = await CadeiraService.getFilaAtiva(barbershopId);
       const waiting   = filaAtual.filter(e => e.status === 'waiting');
       position        = waiting.length > 0
         ? Math.max(...waiting.map(e => e.position ?? 0)) + 1
         : 1;
+      producaoVazia   = !filaAtual.some(
+        e => e.status === 'in_service' && e.professional?.id === professionalId,
+      );
     }
 
     const payload = {
@@ -143,8 +147,13 @@ class CadeiraService {
     // Insere via QueueRepository (valida e insere)
     const entrada = await QueueRepository.entrar(payload);
 
-    // Se for produção, muda para in_service imediatamente
+    // Produção direta → in_service imediatamente
     if (tipo === 'producao') {
+      await QueueRepository.updateStatus(entrada.id, 'in_service');
+    }
+
+    // Fila de espera com produção vazia → auto-avança para in_service
+    if (tipo === 'fila' && producaoVazia) {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
     }
 
@@ -158,14 +167,16 @@ class CadeiraService {
 
   /**
    * Finaliza o atendimento de uma entrada.
-   * Marca como 'done' e retorna o próximo cliente na fila.
+   * Marca como 'done', auto-avança o próximo waiting do mesmo barbeiro
+   * para 'in_service' e retorna seus dados.
    * As notificações são enviadas pelo trigger `trg_notify_queue_on_done` no banco.
    *
-   * @param {string} entradaId
-   * @param {string} barbershopId
+   * @param {string}      entradaId
+   * @param {string}      barbershopId
+   * @param {string|null} [professionalId]  filtra fila pelo barbeiro; null = primeiro geral
    * @returns {Promise<{proximoClienteId:string|null, proximoNome:string|null}>}
    */
-  static async finalizar(entradaId, barbershopId) {
+  static async finalizar(entradaId, barbershopId, professionalId = null) {
     const rId   = InputValidator.uuid(entradaId);
     const rShop = InputValidator.uuid(barbershopId);
     if (!rId.ok)   throw new TypeError(`[CadeiraService] entradaId: ${rId.msg}`);
@@ -174,12 +185,60 @@ class CadeiraService {
     await QueueRepository.updateStatus(entradaId, 'done');
 
     const filaAtiva = await CadeiraService.getFilaAtiva(barbershopId);
-    const proximo   = CadeiraService.#proximoNaFila(filaAtiva);
+    const filtrada  = professionalId
+      ? filaAtiva.filter(e => e.professional?.id === professionalId)
+      : filaAtiva;
+    const proximo   = CadeiraService.#proximoNaFila(filtrada);
+
+    // Auto-avança o próximo da fila de espera para produção
+    if (proximo) {
+      await QueueRepository.updateStatus(proximo.id, 'in_service');
+    }
 
     return {
       proximoClienteId: proximo?.client?.id       ?? null,
       proximoNome:      proximo?.client?.full_name ?? null,
     };
+  }
+
+  /**
+   * Sincroniza a fila ao carregar a página (ou após re-render):
+   * para cada profissional com produção vazia mas entradas `waiting`,
+   * promove automaticamente a de menor position para `in_service`.
+   *
+   * Garante que a UI nunca mostre a cadeira de produção vazia
+   * enquanto há clientes na fila de espera.
+   *
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}  fila atualizada (com promoções já aplicadas)
+   */
+  static async sincronizarFilas(barbershopId) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[CadeiraService] barbershopId: ${r.msg}`);
+
+    const filaAtiva = await CadeiraService.getFilaAtiva(barbershopId);
+
+    // Agrupa entradas por profissional
+    const grupos = new Map(); // profKey → { temInService: bool, waiting: [] }
+    for (const e of filaAtiva) {
+      const key = e.professional?.id ?? '__sem_prof__';
+      if (!grupos.has(key)) grupos.set(key, { temInService: false, waiting: [] });
+      const g = grupos.get(key);
+      if (e.status === 'in_service') g.temInService = true;
+      else if (e.status === 'waiting') g.waiting.push(e);
+    }
+
+    // Para cada grupo sem in_service: promove o primeiro waiting
+    let houveMudanca = false;
+    for (const g of grupos.values()) {
+      if (g.temInService || g.waiting.length === 0) continue;
+      const proximo = g.waiting.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0];
+      await QueueRepository.updateStatus(proximo.id, 'in_service');
+      houveMudanca = true;
+    }
+
+    // Rebusca somente se houve promoção, para retornar estado correto
+    return houveMudanca ? CadeiraService.getFilaAtiva(barbershopId) : filaAtiva;
   }
 
   // ═══════════════════════════════════════════════════════════

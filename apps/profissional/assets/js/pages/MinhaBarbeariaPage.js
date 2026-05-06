@@ -267,7 +267,7 @@ class MinhaBarbeariaPage {
         MinhaBarbeariaPage.#fetchStoriesAtivos(shop.id),
         MinhaBarbeariaPage.#fetchQuotaHoje(perfil.id, shop.id),
         MinhaBarbeariaPage.#fetchBarbeiros(shop.id),
-        CadeiraService.getFilaAtiva(shop.id),
+        CadeiraService.sincronizarFilas(shop.id),
       ]);
 
       // Armazena serviços para reuso nos re-renders das cadeiras
@@ -423,7 +423,7 @@ class MinhaBarbeariaPage {
       const perfil = AuthService.getPerfil();
       const [barbeiros, filaEntradas] = await Promise.all([
         MinhaBarbeariaPage.#fetchBarbeiros(this.#barbershopId),
-        CadeiraService.getFilaAtiva(this.#barbershopId),
+        CadeiraService.sincronizarFilas(this.#barbershopId),
       ]);
       this.#renderEquipe(barbeiros, this.#shopData?.owner_id ?? '', perfil, filaEntradas);
     } catch (err) {
@@ -510,12 +510,13 @@ class MinhaBarbeariaPage {
    * @param {object} entrada  queue_entry em in_service
    */
   async #fluxoFinalizar(entrada) {
-    // Descobre o próximo na fila para exibir na modal
+    // Descobre o próximo na fila DO MESMO BARBEIRO para exibir na modal
+    const profId = entrada?.professional?.id ?? null;
     let proximoNome = null;
     try {
       const filaAtiva = await CadeiraService.getFilaAtiva(this.#barbershopId);
       const waiting   = filaAtiva
-        .filter(e => e.status === 'waiting')
+        .filter(e => e.status === 'waiting' && (profId === null || e.professional?.id === profId))
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       proximoNome = waiting[0]?.client?.full_name ?? null;
     } catch (_) { /* ignora — modal mostra "Fila vazia" */ }
@@ -526,10 +527,10 @@ class MinhaBarbeariaPage {
 
     try {
       const { proximoNome: nomeChamado } = await CadeiraService.finalizar(
-        entrada.id, this.#barbershopId
+        entrada.id, this.#barbershopId, profId,
       );
       const msg = nomeChamado
-        ? `Próximo chamado: ${nomeChamado}`
+        ? `Em atendimento: ${nomeChamado}`
         : 'Fila vazia agora.';
       NotificationService.mostrarToast('Corte finalizado', msg, NotificationService.TIPOS.SISTEMA);
       await this.#reRenderEquipe();

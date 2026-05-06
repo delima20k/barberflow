@@ -210,9 +210,8 @@ class PWAInstallBanner {
     const b = PWAInstallBanner.#banner;
     if (!b) return;
     b.hidden = false;
-    // Force reflow para animação CSS funcionar
-    void b.offsetHeight;
-    b.classList.add('pwa-banner--visivel');
+    // requestAnimationFrame garante frame boundary sem forçar reflow síncrono
+    requestAnimationFrame(() => b.classList.add('pwa-banner--visivel'));
   }
 
   /**
