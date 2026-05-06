@@ -43,6 +43,7 @@ class MinhaBarbeariaPage {
   #guardaBotoes = null;   // instância GuardaIten para a gaveta de botões
   #mediaP2P     = new MediaP2P(); // preview local P2P — upload adiado para o save
   #canalFila    = null;   // canal Supabase Realtime de queue_entries
+  #pollingTimer = null;   // fallback polling quando Realtime indisponível
   #refs         = {};
 
   constructor() {}
@@ -441,10 +442,29 @@ class MinhaBarbeariaPage {
           },
           () => this.#reRenderEquipe(),
         )
-        .subscribe();
-    } catch (_) {
-      // Realtime indisponível — cadeiras atualizam apenas após ação manual
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            LoggerService.log('[MinhaBarbeariaPage] Realtime fila conectado');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            LoggerService.warn('[MinhaBarbeariaPage] Realtime falhou:', status, err?.message);
+            this.#iniciarPollingFallback();
+          }
+        });
+    } catch (e) {
+      LoggerService.warn('[MinhaBarbeariaPage] Realtime indisponível:', e?.message);
+      this.#iniciarPollingFallback();
     }
+  }
+
+  /**
+   * Polling de emergência: atualiza cadeiras a cada 15s se Realtime falhar.
+   */
+  #iniciarPollingFallback() {
+    if (this.#pollingTimer) return;
+    this.#pollingTimer = setInterval(
+      () => this.#barbershopId && this.#reRenderEquipe(),
+      15_000,
+    );
   }
 
   /**
@@ -454,6 +474,10 @@ class MinhaBarbeariaPage {
     if (this.#canalFila) {
       try { SupabaseService.removeChannel(this.#canalFila); } catch (_) {}
       this.#canalFila = null;
+    }
+    if (this.#pollingTimer) {
+      clearInterval(this.#pollingTimer);
+      this.#pollingTimer = null;
     }
   }
 

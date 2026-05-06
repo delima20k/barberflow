@@ -484,10 +484,17 @@ class BarbeariaPage {
           },
           (payload) => this.#onFilaRealtime(payload, shop),
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            LoggerService.log('[BarbeariaPage] Realtime fila conectado');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            LoggerService.warn('[BarbeariaPage] Realtime falhou:', status, err?.message);
+            // QueuePoller é o fallback — ativo se cliente estiver na fila
+          }
+        });
       this.#canalFilaShopId = shop.id;
-    } catch (_) {
-      // Realtime indisponível — app continua via QueuePoller
+    } catch (e) {
+      LoggerService.warn('[BarbeariaPage] Realtime indisponível:', e?.message);
     }
   }
 
