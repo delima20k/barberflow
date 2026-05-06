@@ -43,16 +43,17 @@ class CadeiraConfirmacaoService {
    * Inicia o fluxo de confirmação de presença para o cliente.
    * Guard: ignora se a entrada já foi processada (confirmada ou em grace).
    *
-   * @param {string} entradaId  UUID da queue_entry
-   * @param {string} clienteNome  nome exibido no modal
+   * @param {string}      entradaId   UUID da queue_entry
+   * @param {string}      clienteNome nome exibido no modal
+   * @param {string|null} [shopLogoUrl=null] URL pública do logo da barbearia
    * @returns {Promise<void>}
    */
-  static async iniciarFluxo(entradaId, clienteNome) {
+  static async iniciarFluxo(entradaId, clienteNome, shopLogoUrl = null) {
     if (!entradaId) return;
     if (CadeiraConfirmacaoService.#processadas.has(entradaId)) return;
     if (CadeiraConfirmacaoService.#graceAtivo.has(entradaId)) return;
 
-    // Toca som de alerta (Web Audio via QueuePoller, se disponível)
+    // Toca chime (MP3 via QueuePoller)
     if (typeof QueuePoller !== 'undefined' && typeof QueuePoller.tocarSom === 'function') {
       QueuePoller.tocarSom();
     }
@@ -62,7 +63,7 @@ class CadeiraConfirmacaoService {
 
     let resposta;
     try {
-      resposta = await ConfirmacaoCorteModal.abrir({ clienteNome });
+      resposta = await ConfirmacaoCorteModal.abrir({ clienteNome, shopLogoUrl });
     } catch (err) {
       // Modal não disponível (SSR, testes sem DOM) — silencia
       if (typeof LoggerService !== 'undefined') {
@@ -71,7 +72,7 @@ class CadeiraConfirmacaoService {
       return;
     }
 
-    await CadeiraConfirmacaoService.#processarResposta(entradaId, clienteNome, resposta);
+    await CadeiraConfirmacaoService.#processarResposta(entradaId, clienteNome, shopLogoUrl, resposta);
   }
 
   /**
@@ -115,13 +116,13 @@ class CadeiraConfirmacaoService {
    * @param {string} entradaId
    * @param {string} clienteNome
    */
-  static _dispararGrace(entradaId, clienteNome) {
+  static _dispararGrace(entradaId, clienteNome, shopLogoUrl = null) {
     CadeiraConfirmacaoService.#cancelarTimer(entradaId);
     CadeiraConfirmacaoService.#graceAtivo.delete(entradaId);
     // Remove de processadas para permitir novo fluxo (com grace_used=true)
     CadeiraConfirmacaoService.#processadas.delete(entradaId);
     // Chama o fluxo com o grace já marcado
-    CadeiraConfirmacaoService.#iniciarFluxoComGrace(entradaId, clienteNome);
+    CadeiraConfirmacaoService.#iniciarFluxoComGrace(entradaId, clienteNome, shopLogoUrl);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -130,11 +131,12 @@ class CadeiraConfirmacaoService {
 
   /**
    * Processa a resposta do modal e executa a ação adequada.
-   * @param {string} entradaId
-   * @param {string} clienteNome
+   * @param {string}      entradaId
+   * @param {string}      clienteNome
+   * @param {string|null} shopLogoUrl
    * @param {'sim'|'nao'} resposta
    */
-  static async #processarResposta(entradaId, clienteNome, resposta) {
+  static async #processarResposta(entradaId, clienteNome, shopLogoUrl, resposta) {
     if (resposta === 'sim') {
       await CadeiraConfirmacaoService.#chamarRpc(entradaId, true, false);
       // Mantém em #processadas — não reabre modal
@@ -147,18 +149,19 @@ class CadeiraConfirmacaoService {
     // Agenda grace de 5 minutos
     CadeiraConfirmacaoService.#graceAtivo.add(entradaId);
     const timerId = setTimeout(() => {
-      CadeiraConfirmacaoService._dispararGrace(entradaId, clienteNome);
+      CadeiraConfirmacaoService._dispararGrace(entradaId, clienteNome, shopLogoUrl);
     }, CadeiraConfirmacaoService.#GRACE_MS);
     CadeiraConfirmacaoService.#timers.set(entradaId, timerId);
   }
 
   /**
    * Abre modal novamente após expirar o grace, usando grace_used=true.
-   * @param {string} entradaId
-   * @param {string} clienteNome
+   * @param {string}      entradaId
+   * @param {string}      clienteNome
+   * @param {string|null} shopLogoUrl
    */
-  static async #iniciarFluxoComGrace(entradaId, clienteNome) {
-    // Toca som novamente para chamar a atenção
+  static async #iniciarFluxoComGrace(entradaId, clienteNome, shopLogoUrl = null) {
+    // Toca chime novamente para chamar a atenção
     if (typeof QueuePoller !== 'undefined' && typeof QueuePoller.tocarSom === 'function') {
       QueuePoller.tocarSom();
     }
@@ -167,7 +170,7 @@ class CadeiraConfirmacaoService {
 
     let resposta;
     try {
-      resposta = await ConfirmacaoCorteModal.abrir({ clienteNome });
+      resposta = await ConfirmacaoCorteModal.abrir({ clienteNome, shopLogoUrl });
     } catch {
       return;
     }

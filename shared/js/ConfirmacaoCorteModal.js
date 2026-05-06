@@ -18,11 +18,12 @@ class ConfirmacaoCorteModal {
 
   // ──────────────────────────────────────────────────────────
   // Exibe o modal de confirmação de presença.
-  // @param {object} opts
-  // @param {string} opts.clienteNome  nome do cliente a ser confirmado
+  // @param {object}      opts
+  // @param {string}      opts.clienteNome  nome do cliente a ser confirmado
+  // @param {string|null} [opts.shopLogoUrl] URL pública do logo da barbearia
   // @returns {Promise<'sim'|'nao'>}
   // ──────────────────────────────────────────────────────────
-  static abrir({ clienteNome }) {
+  static abrir({ clienteNome, shopLogoUrl = null }) {
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'ccm-overlay';
@@ -30,9 +31,13 @@ class ConfirmacaoCorteModal {
       overlay.setAttribute('aria-modal', 'true');
       overlay.setAttribute('aria-label', 'Confirmação de presença');
 
+      const iconeHtml = shopLogoUrl
+        ? `<img class="ccm-icone-img" src="${ConfirmacaoCorteModal.#escaparAttr(shopLogoUrl)}" alt="" onerror="this.parentElement.innerHTML='💈'">`
+        : '💈';
+
       overlay.innerHTML = `
         <div class="ccm-card">
-          <div class="ccm-icone" aria-hidden="true">💈</div>
+          <div class="ccm-icone" aria-hidden="true">${iconeHtml}</div>
           <p class="ccm-titulo">É a sua vez!</p>
           <p class="ccm-corpo">
             ${ConfirmacaoCorteModal.#escapar(clienteNome)},
@@ -71,5 +76,18 @@ class ConfirmacaoCorteModal {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  /**
+   * Escapa string para uso seguro em atributos HTML (ex: src="...").
+   * @param {string} str
+   * @returns {string}
+   */
+  static #escaparAttr(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 }

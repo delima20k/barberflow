@@ -46,26 +46,12 @@ class QueuePoller {
   static #INTERVALO_MS = 20_000;
 
   /**
-   * Contexto Web Audio reutilizável.
-   * Pre-criado no primeiro gesto do usuário para contornar a política
-   * de iOS/Android que bloqueia new AudioContext() fora de gestos.
-   * @type {AudioContext|null}
+   * Elemento <audio> reutilizável para o chime MP3.
+   * Criado uma vez — play() apenas reposiciona currentTime e dispara.
+   * Funciona em iOS/Android sem restrição de gesto pós-primeiro-toque.
+   * @type {HTMLAudioElement|null}
    */
-  static #audioCtx = null;
-
-  // Registra desbloqueio de áudio no primeiro toque/clique (executa uma vez)
-  static {
-    const desbloquear = () => {
-      if (QueuePoller.#audioCtx) return;
-      try {
-        const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
-        if (!AudioCtx) return;
-        QueuePoller.#audioCtx = new AudioCtx();
-      } catch { /* dispositivo sem suporte */ }
-    };
-    document.addEventListener('touchstart', desbloquear, { once: true, passive: true });
-    document.addEventListener('click',      desbloquear, { once: true });
-  }
+  static #audioEl = null;
 
   // ── API pública ─────────────────────────────────────────────────────────
 
@@ -201,8 +187,6 @@ class QueuePoller {
     const ehSuaVez = minha.status === 'in_service';
 
     if (avancou || ehSuaVez) {
-      QueuePoller.#tocarSom();
-
       if (typeof NotificationService !== 'undefined') {
         const tipo = NotificationService.TIPOS?.SISTEMA ?? 'sistema';
         if (ehSuaVez) {
@@ -211,7 +195,15 @@ class QueuePoller {
           // O toast abaixo serve apenas como fallback visual caso o modal não abra.
           if (typeof CadeiraConfirmacaoService !== 'undefined') {
             const nomeCliente = minha.client?.full_name ?? minha.guest_name ?? '';
-            CadeiraConfirmacaoService.iniciarFluxo(minha.id, nomeCliente).catch(() => {});
+            const shopCache   = QueuePoller.#barbershopId
+              ? (typeof CacheManager !== 'undefined'
+                  ? CacheManager.get(`${QueuePoller.#barbershopId}:shop`)
+                  : null)
+              : null;
+            const shopLogoUrl = shopCache?.logo_path
+              ? ApiService.getLogoUrl(shopCache.logo_path)
+              : null;
+            CadeiraConfirmacaoService.iniciarFluxo(minha.id, nomeCliente, shopLogoUrl).catch(() => {});
           }
           NotificationService.mostrarToast('É a sua vez!', 'O barbeiro está pronto para atendê-lo.', tipo);
         } else if (avancou) {
@@ -234,58 +226,19 @@ class QueuePoller {
   }
 
   /**
-   * Emite dois tons curtos usando Web Audio API.
-   * Reutiliza o AudioContext pré-criado no primeiro gesto do usuário.
-   * Compatível com iOS (webkit), Android Chrome e desktop.
-   * Não lança exceção — falhas são silenciosas.
+   * Toca o chime MP3 reutilizando um único elemento <audio>.
+   * Reposiciona currentTime para permitir reprodução imediata mesmo
+   * se o som anterior ainda não terminou.
+   * Silencioso em caso de bloqueio — navegador decide se permite.
    */
   static #tocarSom() {
     try {
-      const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
-      if (!AudioCtx) return;
-
-      // Cria contexto agora se o gesto não aconteceu antes (ex: desktop)
-      if (!QueuePoller.#audioCtx) {
-        QueuePoller.#audioCtx = new AudioCtx();
+      if (!QueuePoller.#audioEl) {
+        QueuePoller.#audioEl = new Audio('/shared/sounds/chime.mp3');
+        QueuePoller.#audioEl.preload = 'auto';
       }
-
-      const ctx = QueuePoller.#audioCtx;
-
-      if (ctx.state === 'suspended') {
-        ctx.resume().then(() => QueuePoller.#executarTons(ctx)).catch(() => {});
-      } else {
-        QueuePoller.#executarTons(ctx);
-      }
-    } catch {
-      // Web Audio não disponível — silencioso
-    }
-  }
-
-  /**
-   * Toca os dois tons no contexto já ativo.
-   * @param {AudioContext} ctx
-   */
-  static #executarTons(ctx) {
-    try {
-      const tocar = (frequencia, inicio, duracao) => {
-        const osc = ctx.createOscillator();
-        const env = ctx.createGain();
-
-        osc.connect(env);
-        env.connect(ctx.destination);
-
-        osc.type            = 'sine';
-        osc.frequency.value = frequencia;
-
-        env.gain.setValueAtTime(0.35, ctx.currentTime + inicio);
-        env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + duracao);
-
-        osc.start(ctx.currentTime + inicio);
-        osc.stop(ctx.currentTime + inicio + duracao + 0.05);
-      };
-
-      tocar(440, 0,    0.10); // Lá — 100 ms
-      tocar(880, 0.12, 0.08); // Lá (oitava acima) — 80 ms com 120 ms de delay
+      QueuePoller.#audioEl.currentTime = 0;
+      QueuePoller.#audioEl.play().catch(() => {});
     } catch {
       // Silencioso
     }

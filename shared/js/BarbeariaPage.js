@@ -541,7 +541,10 @@ class BarbeariaPage {
     // CadeiraConfirmacaoService tem guard interno — não reabre se já processado
     if (typeof CadeiraConfirmacaoService !== 'undefined') {
       const nome = perfil.full_name ?? '';
-      CadeiraConfirmacaoService.iniciarFluxo(entrada.id, nome).catch(() => {});
+      const shopLogoUrl = (typeof ApiService !== 'undefined' && shop?.logo_path)
+        ? ApiService.getLogoUrl(shop.logo_path)
+        : null;
+      CadeiraConfirmacaoService.iniciarFluxo(entrada.id, nome, shopLogoUrl).catch(() => {});
     }
   }
 

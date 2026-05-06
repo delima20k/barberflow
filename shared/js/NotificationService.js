@@ -247,6 +247,11 @@ class NotificationService {
     const icone = NotificationService.#ICONES[tipo] ?? '🔔';
     const cor   = NotificationService.#CORES[tipo]  ?? 'var(--gold)';
 
+    // Toca chime em toda notificação visual
+    if (typeof QueuePoller !== 'undefined') {
+      try { QueuePoller.tocarSom(); } catch (_) {}
+    }
+
     const toast = document.createElement('div');
     toast.className = 'notif-toast';
     toast.setAttribute('role', 'alert');
@@ -420,11 +425,6 @@ class NotificationService {
     };
 
     NotificationService.#salvarLocal(notif);
-
-    // Alerta sonoro para notificações de atualização de fila
-    if (notifBanco.type === 'queue_update' && typeof QueuePoller !== 'undefined') {
-      QueuePoller.tocarSom();
-    }
 
     NotificationService.mostrarToast(
       notif.titulo,

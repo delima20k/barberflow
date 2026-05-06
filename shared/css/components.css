@@ -3996,6 +3996,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   box-shadow: 0 8px 32px rgba(0,0,0,.45);
 }
 .ccm-icone { font-size: 2.4rem; line-height: 1; }
+.ccm-icone-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #c8a96e;
+  border: 2px solid var(--gold, #D4A017);
+  display: block;
+  margin: 0 auto;
+}
 .ccm-titulo {
   font-size: 1.25rem;
   font-weight: 700;
@@ -4024,8 +4034,20 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   transition: opacity .15s;
 }
 .ccm-btn:active { opacity: .75; }
-.ccm-btn--sim  { background: var(--gold, #D4A017); color: #1a1a2e; }
-.ccm-btn--nao  { background: var(--surface-alt, #2a2a3e); color: var(--text, #e8d5c0); border: 1px solid rgba(255,255,255,.1); }
+/* Sim: fundo marrom + texto dourado + borda gradiente ouro→marrom */
+.ccm-btn--sim {
+  background:
+    linear-gradient(#3d1208, #3d1208) padding-box,
+    linear-gradient(135deg, #D4A017, #7a2e0a) border-box;
+  border: 2px solid transparent;
+  color: var(--gold, #D4A017);
+}
+/* Não: fundo transparente + borda dourada + texto dourado */
+.ccm-btn--nao {
+  background: transparent;
+  border: 2px solid var(--gold, #D4A017);
+  color: var(--gold, #D4A017);
+}
 
 /* ── Modal de cliente ausente (ClienteAusenteModal) — visão do barbeiro ── */
 .cam-overlay {
