@@ -444,7 +444,7 @@ class MinhaBarbeariaPage {
         )
         .subscribe((status, err) => {
           if (status === 'SUBSCRIBED') {
-            LoggerService.log('[MinhaBarbeariaPage] Realtime fila conectado');
+            LoggerService.info('[MinhaBarbeariaPage] Realtime fila conectado');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             LoggerService.warn('[MinhaBarbeariaPage] Realtime falhou:', status, err?.message);
             this.#iniciarPollingFallback();
