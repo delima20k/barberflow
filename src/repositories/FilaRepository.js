@@ -161,7 +161,16 @@ class FilaRepository extends BaseRepository {
 
     const fila = filaResult.data ?? [];
     const ultima = tsResult.data;
-    const ultimaMudanca = ultima?.done_at ?? ultima?.check_in_at ?? null;
+
+    // Inclui served_at das entradas in_service para detectar promoção à cadeira.
+    // Sem isso, done_at ?? check_in_at não muda quando o cliente vai de waiting→in_service,
+    // fazendo o polling retornar semMudancas:true e nunca disparar o modal de confirmação.
+    const todasMudancas = [
+      ultima?.done_at,
+      ultima?.check_in_at,
+      ...fila.map(e => e.served_at).filter(Boolean),
+    ].filter(Boolean).sort();
+    const ultimaMudanca = todasMudancas.at(-1) ?? null;
 
     return { fila, ultimaMudanca };
   }

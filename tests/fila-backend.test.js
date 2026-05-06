@@ -30,6 +30,30 @@ function criarSupabaseMock({ data = null, error = null } = {}) {
   return { supabase, builder };
 }
 
+/**
+ * Mock para FilaRepository.getEstado() que retorna respostas diferentes
+ * para a query de fila (primeiro from()) e a de timestamp (segundo from()).
+ */
+function criarGetEstadoMock({ fila = [], tsDoneAt = null, tsCheckInAt = null } = {}) {
+  const filaBuilder = { select: fn(), eq: fn(), in: fn(), order: fn() };
+  for (const m of ['select', 'eq', 'in', 'order']) filaBuilder[m].mockReturnValue(filaBuilder);
+  const filaData = { data: fila, error: null };
+  Object.defineProperty(filaBuilder, 'then', {
+    get() { return Promise.resolve(filaData).then.bind(Promise.resolve(filaData)); },
+  });
+
+  const tsData = (tsDoneAt !== null || tsCheckInAt !== null)
+    ? { done_at: tsDoneAt, check_in_at: tsCheckInAt }
+    : null;
+  const tsBuilder = { select: fn(), eq: fn(), order: fn(), limit: fn(),
+    maybeSingle: fn().mockResolvedValue({ data: tsData, error: null }) };
+  for (const m of ['select', 'eq', 'order', 'limit']) tsBuilder[m].mockReturnValue(tsBuilder);
+
+  let callCount = 0;
+  const supabase = { from: fn().mockImplementation(() => { callCount++; return callCount === 1 ? filaBuilder : tsBuilder; }) };
+  return { supabase };
+}
+
 const FilaRepository = require('../src/repositories/FilaRepository');
 const FilaService    = require('../src/services/FilaService');
 
@@ -173,5 +197,49 @@ suite('FilaService.atualizarStatusEntrada()', () => {
     const { service, repo } = criarFilaService({ entrada: { id: UUID_ENTRADA, status: 'waiting' } });
     await service.atualizarStatusEntrada(UUID_ENTRADA, 'in_service');
     assert.strictEqual(repo.atualizarStatus.calls.length, 1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FilaRepository.getEstado() — ultimaMudanca inclui served_at
+// ─────────────────────────────────────────────────────────────────────────────
+
+suite('FilaRepository.getEstado()', () => {
+
+  test('served_at é usado quando é o timestamp mais recente (in_service)', async () => {
+    const servedAt = '2025-01-10T12:00:00.000Z';
+    const checkIn  = '2025-01-10T11:00:00.000Z';
+    const fila = [{ id: UUID_ENTRADA, status: 'in_service', served_at: servedAt, check_in_at: checkIn }];
+    const { supabase } = criarGetEstadoMock({ fila, tsDoneAt: null, tsCheckInAt: checkIn });
+    const repo = new FilaRepository(supabase);
+    const result = await repo.getEstado(UUID_SHOP);
+    // served_at (12h) é mais recente que check_in_at (11h) → ultimaMudanca deve ser served_at
+    assert.equal(result.ultimaMudanca, servedAt);
+  });
+
+  test('done_at é usado quando é o timestamp mais recente (serviço finalizado)', async () => {
+    const doneAt  = '2025-01-10T15:00:00.000Z';
+    const checkIn = '2025-01-10T11:00:00.000Z';
+    const fila = [{ id: UUID_ENTRADA, status: 'waiting', served_at: null, check_in_at: checkIn }];
+    const { supabase } = criarGetEstadoMock({ fila, tsDoneAt: doneAt, tsCheckInAt: checkIn });
+    const repo = new FilaRepository(supabase);
+    const result = await repo.getEstado(UUID_SHOP);
+    // done_at (15h) é mais recente que served_at (null) e check_in_at (11h)
+    assert.equal(result.ultimaMudanca, doneAt);
+  });
+
+  test('retorna null quando não há nenhum timestamp', async () => {
+    const { supabase } = criarGetEstadoMock({ fila: [], tsDoneAt: null, tsCheckInAt: null });
+    const repo = new FilaRepository(supabase);
+    const result = await repo.getEstado(UUID_SHOP);
+    assert.equal(result.ultimaMudanca, null);
+  });
+
+  test('retorna a fila corretamente', async () => {
+    const fila = [{ id: UUID_ENTRADA, status: 'waiting', served_at: null, check_in_at: '2025-01-10T11:00:00.000Z' }];
+    const { supabase } = criarGetEstadoMock({ fila });
+    const repo = new FilaRepository(supabase);
+    const result = await repo.getEstado(UUID_SHOP);
+    assert.deepEqual(result.fila, fila);
   });
 });
