@@ -303,16 +303,41 @@ class NotificationService {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Solicita permissão de notificação push do browser de forma amigável.
-   * Mostra banner antes de solicitar a permissão nativa.
+   * Solicita permissão de notificação push do browser.
+   *
+   * Comportamento:
+   *  - Permissão já definida (granted/denied) → noop.
+   *  - Banner dispensado há menos de 7 dias → noop.
+   *  - Caso contrário: tenta chamar Notification.requestPermission() diretamente,
+   *    forçando o diálogo nativo do SO. Em browsers que exigem gesto do usuário
+   *    (iOS Safari), a API lança exceção — o banner de consentimento é exibido
+   *    como fallback para que o usuário dê o gesto e a permissão seja solicitada.
    */
   static async solicitarPushPermissao() {
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'default') return;
 
-    const banner = document.getElementById('notif-push-banner');
-    if (banner) {
-      banner.hidden = false;
+    // Não insistir se o usuário dispensou nos últimos 7 dias
+    try {
+      const dispensado = Number(localStorage.getItem('bf_push_dispensado') ?? 0);
+      if (dispensado && Date.now() - dispensado < 7 * 24 * 60 * 60 * 1000) return;
+    } catch { /* storage indisponível */ }
+
+    try {
+      // Tenta forçar o diálogo nativo diretamente (Chrome, Firefox, Android WebView)
+      const resultado = await Notification.requestPermission();
+      if (resultado === 'granted') {
+        NotificationService.criar(
+          NotificationService.TIPOS.SISTEMA,
+          'Notificações ativadas! 🔔',
+          'Você receberá alertas de fila mesmo com o app em segundo plano.',
+          {}
+        );
+      }
+    } catch {
+      // iOS Safari exige gesto do usuário — exibe banner como fallback
+      const banner = document.getElementById('notif-push-banner');
+      if (banner) banner.hidden = false;
     }
   }
 

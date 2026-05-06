@@ -36,6 +36,7 @@ class AppBootstrap {
     { label: 'GeoService.solicit',  fn: () => GeoService.solicitarNaPrimeiraVez() },
     { label: 'MapOrientationModule',fn: () => MapOrientationModule.init()          },
     { label: 'MessagesWidget',      fn: () => MessagesWidget.init('msgs-lista', 'cliente') },
+    { label: 'NotifPermissao',      fn: () => NotificationService.solicitarPushPermissao() },
   ];
 
   // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention
