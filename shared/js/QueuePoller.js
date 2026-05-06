@@ -47,11 +47,34 @@ class QueuePoller {
 
   /**
    * Elemento <audio> reutilizável para o chime MP3.
-   * Criado uma vez — play() apenas reposiciona currentTime e dispara.
-   * Funciona em iOS/Android sem restrição de gesto pós-primeiro-toque.
+   * Desbloqueado no primeiro gesto do usuário para garantir playback
+   * em iOS/Android mesmo sem gesto no momento da notificação.
    * @type {HTMLAudioElement|null}
    */
   static #audioEl = null;
+
+  // Desbloqueia áudio no primeiro toque/clique do usuário.
+  // iOS e Android só permitem play() automático se o elemento
+  // foi "ativado" durante um gesto. O truque: criar, tocar (volume 0)
+  // e pausar imediatamente — depois o play() sem gesto funciona.
+  static {
+    const desbloquear = () => {
+      if (QueuePoller.#audioEl) return;
+      try {
+        const el = new Audio('/shared/sounds/chime.mp3');
+        el.preload = 'auto';
+        el.volume  = 0;
+        el.play()
+          .then(() => { el.pause(); el.currentTime = 0; el.volume = 1; })
+          .catch(() => { el.volume = 1; });
+        QueuePoller.#audioEl = el;
+      } catch { /* sem suporte — silencioso */ }
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('touchstart', desbloquear, { once: true, passive: true });
+      document.addEventListener('click',      desbloquear, { once: true });
+    }
+  }
 
   // ── API pública ─────────────────────────────────────────────────────────
 

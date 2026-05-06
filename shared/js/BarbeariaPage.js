@@ -141,7 +141,8 @@ class BarbeariaPage {
         this.#iniciarDig();
       } else {
         this.#pararDig();
-        QueuePoller.parar();
+        // QueuePoller permanece ativo em background para detectar "é sua vez"
+        // mesmo quando o usuário navega para outra tela.
         this.#pararRealtimeFila();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
