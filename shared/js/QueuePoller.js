@@ -100,9 +100,7 @@ class QueuePoller {
     QueuePoller.#ativo           = true;
 
     QueuePoller.#poll();
-    QueuePoller.#timer = setInterval(() => {
-      if (!document.hidden) QueuePoller.#poll();
-    }, QueuePoller.#INTERVALO_MS);
+    QueuePoller.#timer = setInterval(() => QueuePoller.#poll(), QueuePoller.#INTERVALO_MS);
 
     document.removeEventListener('visibilitychange', QueuePoller.#onVisibilidade);
     document.addEventListener('visibilitychange', QueuePoller.#onVisibilidade);
@@ -227,6 +225,13 @@ class QueuePoller {
               ? ApiService.getLogoUrl(shopCache.logo_path)
               : null;
             CadeiraConfirmacaoService.iniciarFluxo(minha.id, nomeCliente, shopLogoUrl).catch(() => {});
+            if (document.hidden) {
+              // App em segundo plano: notificação nativa + persiste estado para tocar som ao retornar
+              QueuePoller.#notificarNativo(nomeCliente);
+              try {
+                sessionStorage.setItem('bf_sua_vez', JSON.stringify({ ts: Date.now() }));
+              } catch { /* storage indisponível */ }
+            }
           }
           NotificationService.mostrarToast('É a sua vez!', 'O barbeiro está pronto para atendê-lo.', tipo);
         } else if (avancou) {
@@ -269,22 +274,48 @@ class QueuePoller {
 
   /**
    * Handler do evento visibilitychange.
-   * Pausa quando a aba fica oculta; retoma (com poll imediato) quando volta.
+   * Ao retornar ao foco: toca som de "sua vez" se detectado em background
+   * e faz um poll imediato para atualizar a UI.
    */
   static #onVisibilidade() {
     if (!QueuePoller.#ativo) return;
 
-    if (document.hidden) {
-      if (QueuePoller.#timer !== null) {
-        clearInterval(QueuePoller.#timer);
-        QueuePoller.#timer = null;
-      }
-    } else {
-      // Aba voltou ao foco: poll imediato + reinicia intervalo
+    if (!document.hidden) {
+      // Aba voltou ao foco: toca som se havia "sua vez" pendente + poll imediato
+      QueuePoller.#verificarRetorno();
       QueuePoller.#poll();
-      QueuePoller.#timer = setInterval(() => {
-        if (!document.hidden) QueuePoller.#poll();
-      }, QueuePoller.#INTERVALO_MS);
     }
+  }
+
+  /**
+   * Exibe notificação nativa do SO quando o app está em segundo plano.
+   * Requer permissão já concedida pelo usuário (via NotificationService.confirmarPush).
+   * @param {string} nomeCliente
+   */
+  static #notificarNativo(nomeCliente) {
+    try {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      new Notification('É a sua vez! 💈', {
+        body: `${nomeCliente || 'Você'} — seu barbeiro está pronto!`,
+        icon: '/shared/img/icon-192-cliente.png',
+        tag: 'barberflow-sua-vez',
+        renotify: true,
+      });
+    } catch { /* silencioso — sem suporte ou permissão negada */ }
+  }
+
+  /**
+   * Ao retornar ao foco, toca o chime se havia "sua vez" detectada enquanto
+   * o app estava em segundo plano (estado persistido via sessionStorage).
+   */
+  static #verificarRetorno() {
+    try {
+      const raw = sessionStorage.getItem('bf_sua_vez');
+      if (!raw) return;
+      const { ts } = JSON.parse(raw);
+      sessionStorage.removeItem('bf_sua_vez');
+      if (Date.now() - ts > 10 * 60 * 1000) return; // expirou (>10 min)
+      QueuePoller.#tocarSom();
+    } catch { /* silencioso */ }
   }
 }
