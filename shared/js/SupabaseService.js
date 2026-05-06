@@ -170,9 +170,12 @@ class SupabaseService {
       const { data: { user }, error } = await SupabaseService.#getClient().auth.getUser();
       if (error) {
         // Sem sessão ativa = visitante/pré-cadastro — não é erro real
+        // 403 = token rejeitado pelo servidor (ex: durante TOKEN_REFRESHED race condition)
+        // Ambos os casos são equivalentes a "sem sessão válida" para o app
         if (
           error.name === 'AuthSessionMissingError' ||
-          error.message?.toLowerCase().includes('session')
+          error.message?.toLowerCase().includes('session') ||
+          error.status === 403
         ) return null;
         SupabaseService.#erro('getUser', error);
       }

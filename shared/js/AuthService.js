@@ -388,10 +388,12 @@ class AuthService {
       return null;
     }
 
-    // Busca created_at do auth.users via session (já disponível localmente)
+    // Busca created_at do auth.users via getSession() (lê localStorage, sem rede).
+    // Usar getUser() aqui causaria 403 durante TOKEN_REFRESHED race condition porque
+    // o token antigo ainda pode estar em trânsito quando _carregarPerfil é chamado.
     if (data) {
-      const user = await SupabaseService.getUser();
-      data._created_at = user?.created_at || null;
+      const session = await SupabaseService.getSession().catch(() => null);
+      data._created_at = session?.user?.created_at || null;
       // Mescla extras locais como FALLBACK offline — Supabase é a fonte da verdade
       const extras = SessionCache.getExtras(userId);
       if (extras) {
