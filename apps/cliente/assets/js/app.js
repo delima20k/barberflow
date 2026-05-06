@@ -92,6 +92,17 @@ class BarberFlowCliente extends Router {
     // Inicia sessão de autenticação
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
+
+    // Listener de fila — inicia/para junto com a sessão
+    try {
+      SupabaseService.onAuthChange((event, session) => {
+        if (session?.user) {
+          QueueConfirmService.iniciar(session.user.id, 'client');
+        } else {
+          QueueConfirmService.parar();
+        }
+      });
+    } catch (_) {}
   }
 
   /** Navega para o login — chamado pelo header avatar quando deslogado. */

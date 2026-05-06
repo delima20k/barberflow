@@ -2162,6 +2162,8 @@
 <script src="assets/js/controllers/PlanosController.js"></script>
 <script src="assets/js/controllers/CadastroController.js"></script>
 <script src="assets/js/controllers/TermosController.js"></script>
+<!-- Confirmação de ausência de cliente na cadeira -->
+<script src="/shared/js/QueueConfirmService.js"></script>
 <!-- App Profissional logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
@@ -2186,5 +2188,34 @@
   });
 }());
 </script>
+
+<!-- ── Modal: Barbeiro — cliente ausente na cadeira ────────────────── -->
+<div id="modal-ausente-barbeiro"
+     class="qcs-modal-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="qcs-barbeiro-titulo"
+     aria-hidden="true"
+     hidden>
+  <div class="qcs-modal-card">
+    <div class="qcs-modal-icone">⚠️</div>
+    <h2 class="qcs-modal-titulo" id="qcs-barbeiro-titulo">Cliente não está na cadeira</h2>
+    <p class="qcs-modal-sub">
+      <strong data-qcs-cliente>O cliente</strong> informou que ainda
+      não está sentado. O que deseja fazer?
+    </p>
+    <div class="qcs-modal-acoes">
+      <button class="qcs-btn-pular"
+              onclick="QueueConfirmService.barbeiroQuerPular()">
+        ⏭️ Pular a vez
+      </button>
+      <button class="qcs-btn-aguardar"
+              onclick="QueueConfirmService.barbeiroQuerAguardar()">
+        ⏳ Aguardar o cliente
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

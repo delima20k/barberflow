@@ -79,6 +79,17 @@ class BarberFlowProfissional extends Router {
     this.#barbeiroPage.bind();
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
+
+    // Listener de ausência de cliente — inicia/para junto com a sessão
+    try {
+      SupabaseService.onAuthChange((event, session) => {
+        if (session?.user) {
+          QueueConfirmService.iniciar(session.user.id, 'professional');
+        } else {
+          QueueConfirmService.parar();
+        }
+      });
+    } catch (_) {}
   }
 
   /** Navega para o login. */

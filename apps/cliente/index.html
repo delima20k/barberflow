@@ -1147,9 +1147,39 @@
 <!-- Splash de abertura do app cliente -->
 <script src="assets/js/ClienteStartupSplash.js"></script>
 <script src="assets/js/AppBootstrap.js"></script>
+<!-- Confirmação de presença na cadeira (fila ao vivo) -->
+<script src="/shared/js/QueueConfirmService.js"></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js"></script>
 <!-- Todas as funções de UI estão em Router (POO) via App.* -->
+
+<!-- ── Modal: Cliente — confirmação de presença na cadeira ─────────── -->
+<div id="modal-cadeira-cliente"
+     class="qcs-modal-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="qcs-cliente-titulo"
+     aria-hidden="true"
+     hidden>
+  <div class="qcs-modal-card">
+    <div class="qcs-modal-icone">💈</div>
+    <h2 class="qcs-modal-titulo" id="qcs-cliente-titulo">Sua vez chegou!</h2>
+    <p class="qcs-modal-sub">
+      <strong data-qcs-barbeiro>Seu barbeiro</strong> chamou você.
+      Você já está sentado na cadeira?
+    </p>
+    <div class="qcs-modal-acoes">
+      <button class="qcs-btn-sim"
+              onclick="QueueConfirmService.clienteConfirmouPresenca()">
+        ✅ Sim, já estou sentado
+      </button>
+      <button class="qcs-btn-nao"
+              onclick="QueueConfirmService.clienteNaoSentado()">
+        ❌ Não, ainda não estou
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

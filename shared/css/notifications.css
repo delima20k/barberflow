@@ -533,3 +533,143 @@
   font-size: 0.82rem;
   color:     var(--text-dim);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   QueueConfirmService — Modais de confirmação de cadeira
+   ═══════════════════════════════════════════════════════════ */
+
+/* Overlay base ─────────────────────────────────────────────── */
+.qcs-modal-overlay {
+  position:        fixed;
+  inset:           0;
+  background:      rgba(0, 0, 0, 0.72);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         20px;
+  z-index:         9999;
+  opacity:         0;
+  transition:      opacity 0.22s ease;
+}
+
+.qcs-modal-overlay[hidden] {
+  display: none;
+}
+
+.qcs-modal-overlay.qcs-modal--visivel {
+  opacity: 1;
+}
+
+@keyframes qcs-entrada {
+  from { transform: translateY(18px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+@keyframes qcs-saida {
+  from { transform: translateY(0) scale(1);       opacity: 1; }
+  to   { transform: translateY(12px) scale(0.97); opacity: 0; }
+}
+
+.qcs-modal-overlay.qcs-modal--saindo {
+  animation: qcs-saida 0.22s ease forwards;
+}
+
+/* Card do modal ─────────────────────────────────────────────── */
+.qcs-modal-card {
+  background:    var(--card, #1a1a1a);
+  border:        1px solid var(--gold-border, rgba(212,175,55,0.25));
+  border-radius: 20px;
+  padding:       28px 24px 24px;
+  width:         100%;
+  max-width:     360px;
+  display:       flex;
+  flex-direction: column;
+  align-items:   center;
+  gap:           12px;
+  text-align:    center;
+  box-shadow:    0 12px 40px rgba(0,0,0,0.55);
+  animation:     qcs-entrada 0.26s ease forwards;
+}
+
+/* Ícone animado ────────────────────────────────────────────── */
+.qcs-modal-icone {
+  font-size:   2.8rem;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+/* Título ───────────────────────────────────────────────────── */
+.qcs-modal-titulo {
+  font-size:   1.1rem;
+  font-weight: 700;
+  color:       var(--text, #f0e6cc);
+  line-height: 1.3;
+}
+
+/* Subtítulo / descrição ────────────────────────────────────── */
+.qcs-modal-sub {
+  font-size:  0.88rem;
+  color:      var(--text-muted, #9a8c7a);
+  line-height: 1.5;
+  margin-top: -4px;
+}
+
+.qcs-modal-sub strong {
+  color:       var(--gold, #D4AF37);
+  font-weight: 600;
+}
+
+/* Grupo de botões ──────────────────────────────────────────── */
+.qcs-modal-acoes {
+  display:       flex;
+  flex-direction: column;
+  gap:           10px;
+  width:         100%;
+  margin-top:    8px;
+}
+
+/* Botão primário (ouro) ────────────────────────────────────── */
+.qcs-btn-sim,
+.qcs-btn-pular {
+  padding:       14px 20px;
+  background:    var(--gold, #D4AF37);
+  color:         var(--cta-text, #1a0800);
+  border:        none;
+  border-radius: var(--r-full, 999px);
+  font-family:   var(--font, sans-serif);
+  font-size:     0.95rem;
+  font-weight:   700;
+  cursor:        pointer;
+  width:         100%;
+  transition:    background 0.18s ease, transform 0.12s ease;
+  letter-spacing: 0.02em;
+}
+
+.qcs-btn-sim:active,
+.qcs-btn-pular:active {
+  background:  var(--gold-dark, #b8922a);
+  transform:   scale(0.97);
+}
+
+/* Botão secundário (outline ouro) ──────────────────────────── */
+.qcs-btn-nao,
+.qcs-btn-aguardar {
+  padding:       13px 20px;
+  background:    transparent;
+  color:         var(--gold, #D4AF37);
+  border:        1.5px solid var(--gold-border, rgba(212,175,55,0.4));
+  border-radius: var(--r-full, 999px);
+  font-family:   var(--font, sans-serif);
+  font-size:     0.9rem;
+  font-weight:   600;
+  cursor:        pointer;
+  width:         100%;
+  transition:    background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+
+.qcs-btn-nao:active,
+.qcs-btn-aguardar:active {
+  background:   var(--gold-muted, rgba(212,175,55,0.12));
+  border-color: var(--gold, #D4AF37);
+  transform:    scale(0.97);
+}
