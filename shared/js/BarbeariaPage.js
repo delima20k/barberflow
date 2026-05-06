@@ -176,7 +176,12 @@ class BarbeariaPage {
     if (this.#carregando) return;
 
     // Mesma barbearia já renderizada — apenas exibe conteúdo sem re-fetch
-    if (this.#shopId === this.#shopIdCache) { this.#mostrarConteudo(); return; }
+    if (this.#shopId === this.#shopIdCache) {
+      this.#mostrarConteudo();
+      // Canal pode ter sido parado ao navegar para outra tela — reinicia se necessário
+      if (this.#shopData) this.#iniciarRealtimeFila(this.#shopData);
+      return;
+    }
 
     // Captura o ID antes de qualquer await — protege contra race condition
     const fetchId = this.#shopId;

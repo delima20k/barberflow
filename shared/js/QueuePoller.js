@@ -45,6 +45,28 @@ class QueuePoller {
   /** Intervalo de polling em ms */
   static #INTERVALO_MS = 20_000;
 
+  /**
+   * Contexto Web Audio reutilizável.
+   * Pre-criado no primeiro gesto do usuário para contornar a política
+   * de iOS/Android que bloqueia new AudioContext() fora de gestos.
+   * @type {AudioContext|null}
+   */
+  static #audioCtx = null;
+
+  // Registra desbloqueio de áudio no primeiro toque/clique (executa uma vez)
+  static {
+    const desbloquear = () => {
+      if (QueuePoller.#audioCtx) return;
+      try {
+        const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
+        if (!AudioCtx) return;
+        QueuePoller.#audioCtx = new AudioCtx();
+      } catch { /* dispositivo sem suporte */ }
+    };
+    document.addEventListener('touchstart', desbloquear, { once: true, passive: true });
+    document.addEventListener('click',      desbloquear, { once: true });
+  }
+
   // ── API pública ─────────────────────────────────────────────────────────
 
   /**
@@ -213,17 +235,38 @@ class QueuePoller {
 
   /**
    * Emite dois tons curtos usando Web Audio API.
-   * Compatível com Chrome, Firefox, Safari (webkit prefix).
+   * Reutiliza o AudioContext pré-criado no primeiro gesto do usuário.
+   * Compatível com iOS (webkit), Android Chrome e desktop.
    * Não lança exceção — falhas são silenciosas.
    */
   static #tocarSom() {
-    let ctx = null;
     try {
       const AudioCtx = window.AudioContext ?? window.webkitAudioContext;
       if (!AudioCtx) return;
 
-      ctx = new AudioCtx();
+      // Cria contexto agora se o gesto não aconteceu antes (ex: desktop)
+      if (!QueuePoller.#audioCtx) {
+        QueuePoller.#audioCtx = new AudioCtx();
+      }
 
+      const ctx = QueuePoller.#audioCtx;
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(() => QueuePoller.#executarTons(ctx)).catch(() => {});
+      } else {
+        QueuePoller.#executarTons(ctx);
+      }
+    } catch {
+      // Web Audio não disponível — silencioso
+    }
+  }
+
+  /**
+   * Toca os dois tons no contexto já ativo.
+   * @param {AudioContext} ctx
+   */
+  static #executarTons(ctx) {
+    try {
       const tocar = (frequencia, inicio, duracao) => {
         const osc = ctx.createOscillator();
         const env = ctx.createGain();
@@ -243,12 +286,8 @@ class QueuePoller {
 
       tocar(440, 0,    0.10); // Lá — 100 ms
       tocar(880, 0.12, 0.08); // Lá (oitava acima) — 80 ms com 120 ms de delay
-
-      // Fecha o contexto após os tons terminarem
-      setTimeout(() => ctx.close().catch(() => {}), 500);
     } catch {
-      // Web Audio não disponível ou bloqueado pelo navegador — fecha contexto se aberto
-      ctx?.close().catch(() => {});
+      // Silencioso
     }
   }
 

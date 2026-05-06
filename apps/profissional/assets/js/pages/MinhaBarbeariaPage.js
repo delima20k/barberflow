@@ -97,7 +97,12 @@ class MinhaBarbeariaPage {
                     this.#telaEl.classList.contains('entrando-lento');
       if (ativa) {
         this.#digBoasVindas?.iniciar();
-        if (!this.#carregou) this.#carregar();
+        if (!this.#carregou) {
+          this.#carregar();
+        } else if (this.#barbershopId && !this.#canalFila) {
+          // Canal pode ter sido parado ao navegar para outra tela — reinicia
+          this.#iniciarRealtimeFila(this.#barbershopId);
+        }
       } else {
         this.#digBoasVindas?.parar();
         this.#pararRealtimeFila();
