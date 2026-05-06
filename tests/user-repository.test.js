@@ -9,7 +9,7 @@
 const { test, suite } = require('node:test');
 const assert           = require('node:assert/strict');
 const vm               = require('node:vm');
-const { fn, carregar, ROOT } = require('./_helpers');
+const { fn, carregar } = require('./_helpers');
 
 const UUID_SHOP = 'fd8b24f5-8703-4baa-9ac8-6cf3ad40e407';
 const UUID_PROF = '6fe08135-8c1d-4580-81db-5a8cfa96e9d2';
@@ -33,7 +33,6 @@ function criarSandbox({
     range:  fn().mockImplementation(() => Promise.resolve(fromRetorno)),
     then:   fn().mockImplementation(cb => Promise.resolve(fromRetorno).then(cb)),
   };
-  fromSpy.select.mockReturnThis = () => fromSpy;
 
   const ApiService = {
     rpc:  rpcSpy,
@@ -213,7 +212,7 @@ suite('UserRepository — getFavoritosModal', () => {
 
 // ─── Fallback de busca ────────────────────────────────────────────────────────
 
-const PGRST202 = Object.assign(new Error('not found'), { code: 'PGRST202' });
+const PGRST202 = Object.freeze(Object.assign(new Error('not found'), { code: 'PGRST202' }));
 
 suite('UserRepository — buscarUsuarios (fallback #buscarFallback)', () => {
 
@@ -272,7 +271,7 @@ suite('UserRepository — buscarUsuarios (fallback #buscarFallback)', () => {
   });
 
   test('buscar_perfis_por_nome também falha (PGRST202) → usa query direta via from()', async () => {
-    const { sandbox, ApiService, fromSpy } = criarSandbox({
+    const { sandbox, ApiService } = criarSandbox({
       rpcRetornoPorNome: {
         search_users:           { data: null, error: PGRST202 },
         buscar_perfis_por_nome: { data: null, error: PGRST202 },

@@ -54,13 +54,12 @@ class UserRepository {
       if (UserRepository.#ehRpcInexistente(error)) {
         return UserRepository.#buscarFallback(term, lim, off, signal);
       }
-      if (error.name === 'AbortError') return { data: [], total: 0, error };
       return { data: [], total: 0, error };
     }
 
     const rows  = Array.isArray(data) ? data : [];
     const total = rows.length > 0 ? Number(rows[0].total_count ?? rows.length) : 0;
-    const itens = rows.map(UserRepository.#mapUsuario);
+    const itens = rows.map(UserRepository.#mapPerfil);
     return { data: itens, total, error: null };
   }
 
@@ -90,7 +89,7 @@ class UserRepository {
       return { data: [], error };
     }
 
-    const itens = (Array.isArray(data) ? data : []).map(UserRepository.#mapFavorito);
+    const itens = (Array.isArray(data) ? data : []).map(UserRepository.#mapPerfil);
     return { data: itens, error: null };
   }
 
@@ -112,8 +111,13 @@ class UserRepository {
 
     if (!rpcError) {
       const pagina = (Array.isArray(rpcData) ? rpcData : []).slice(offset, offset + limit);
-      const itens  = pagina.map(UserRepository.#mapUsuario);
+      const itens  = pagina.map(UserRepository.#mapPerfil);
       return { data: itens, total: itens.length, error: null };
+    }
+
+    // AbortError: não tentar query direta — a requisição foi cancelada intencionalmente
+    if (rpcError.name === 'AbortError' || !UserRepository.#ehRpcInexistente(rpcError)) {
+      return { data: [], total: 0, error: rpcError };
     }
 
     // Último recurso: query direta (pode ser restrita por RLS)
@@ -124,7 +128,7 @@ class UserRepository {
       .range(offset, offset + limit - 1);
 
     if (error) return { data: [], total: 0, error };
-    const itens = (data ?? []).map(UserRepository.#mapUsuario);
+    const itens = (data ?? []).map(UserRepository.#mapPerfil);
     return { data: itens, total: itens.length, error: null };
   }
 
@@ -149,23 +153,12 @@ class UserRepository {
       .order('full_name');
 
     if (error) return { data: [], error };
-    const itens = (data ?? []).map(UserRepository.#mapFavorito);
+    const itens = (data ?? []).map(UserRepository.#mapPerfil);
     return { data: itens, error: null };
   }
 
-  /** Normaliza um row de usuário da RPC search_users. */
-  static #mapUsuario(row) {
-    return {
-      id:          row.id,
-      full_name:   row.full_name   ?? null,
-      email:       row.email       ?? null,
-      avatar_path: row.avatar_path ?? null,
-      updated_at:  row.updated_at  ?? null,
-    };
-  }
-
-  /** Normaliza um row de favorito da RPC get_clientes_favoritos_modal. */
-  static #mapFavorito(row) {
+  /** Normaliza qualquer row de perfil retornado por RPC ou query direta. */
+  static #mapPerfil(row) {
     return {
       id:          row.id,
       full_name:   row.full_name   ?? null,
