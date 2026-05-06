@@ -42,6 +42,7 @@ class MinhaBarbeariaPage {
   #digBoasVindas= null;   // instância DigText para o h1#mb-boas-vindas
   #guardaBotoes = null;   // instância GuardaIten para a gaveta de botões
   #mediaP2P     = new MediaP2P(); // preview local P2P — upload adiado para o save
+  #canalFila    = null;   // canal Supabase Realtime de queue_entries
   #refs         = {};
 
   constructor() {}
@@ -98,6 +99,7 @@ class MinhaBarbeariaPage {
         if (!this.#carregou) this.#carregar();
       } else {
         this.#digBoasVindas?.parar();
+        this.#pararRealtimeFila();
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
@@ -282,6 +284,7 @@ class MinhaBarbeariaPage {
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
+      this.#iniciarRealtimeFila(shop.id);
 
     } catch (err) {
       console.error('[MinhaBarbeariaPage] erro:', err);
@@ -414,6 +417,44 @@ class MinhaBarbeariaPage {
     }
 
     if (section) section.hidden = false;
+  }
+
+  /**
+   * Inicia canal Supabase Realtime ouvindo INSERT/UPDATE/DELETE em
+   * queue_entries da barbearia. Re-renderiza as cadeiras automaticamente
+   * sem que o barbeiro precise recarregar a página.
+   * @param {string} barbershopId
+   */
+  #iniciarRealtimeFila(barbershopId) {
+    if (!barbershopId) return;
+    if (this.#canalFila) return; // já ativo para esta barbearia
+
+    try {
+      this.#canalFila = SupabaseService.channel(`mb-fila:${barbershopId}`)
+        .on(
+          'postgres_changes',
+          {
+            event:  '*',
+            schema: 'public',
+            table:  'queue_entries',
+            filter: `barbershop_id=eq.${barbershopId}`,
+          },
+          () => this.#reRenderEquipe(),
+        )
+        .subscribe();
+    } catch (_) {
+      // Realtime indisponível — cadeiras atualizam apenas após ação manual
+    }
+  }
+
+  /**
+   * Para o canal Realtime da fila e limpa a referência.
+   */
+  #pararRealtimeFila() {
+    if (this.#canalFila) {
+      try { SupabaseService.removeChannel(this.#canalFila); } catch (_) {}
+      this.#canalFila = null;
+    }
   }
 
   /**
