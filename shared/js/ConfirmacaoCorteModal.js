@@ -41,8 +41,7 @@ class ConfirmacaoCorteModal {
           <div class="qcs-modal-icone" aria-hidden="true">${iconeHtml}</div>
           <p class="ccm-titulo">É a sua vez!</p>
           <p class="ccm-corpo">
-            ${ConfirmacaoCorteModal.#escapar(clienteNome)},
-            você já está sentado para o corte?
+            ${ConfirmacaoCorteModal.#escapar(clienteNome)}, você já está na cadeira, pronto para o corte!
           </p>
           <div class="ccm-acoes">
             <button class="ccm-btn ccm-btn--sim" autofocus>✅ Sim, estou!</button>

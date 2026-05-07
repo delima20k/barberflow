@@ -247,8 +247,8 @@ class NotificationService {
     const icone = NotificationService.#ICONES[tipo] ?? '🔔';
     const cor   = NotificationService.#CORES[tipo]  ?? 'var(--gold)';
 
-    // Toca chime em toda notificação visual
-    if (typeof QueuePoller !== 'undefined') {
+    // Toca chime apenas para notificações de fila/agendamento (cadeiras)
+    if (tipo === NotificationService.TIPOS.AGENDAMENTO && typeof QueuePoller !== 'undefined') {
       try { QueuePoller.tocarSom(); } catch (_) {}
     }
 

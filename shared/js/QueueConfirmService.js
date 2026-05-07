@@ -109,7 +109,7 @@ class QueueConfirmService {
    *   - impede double-modal: CadeiraConfirmacaoService#processadas bloqueia
    *     chamadas duplicadas do QueuePoller (que chega até 20s depois)
    */
-  static #onFilaUpdate(entry) {
+  static async #onFilaUpdate(entry) {
     if (!entry || entry.status !== 'in_service') return;
 
     // Evita processar a mesma entrada duas vezes
@@ -121,9 +121,39 @@ class QueueConfirmService {
     QueueConfirmService.#entryAtiva = entry;
 
     if (typeof CadeiraConfirmacaoService !== 'undefined') {
-      const nomeCliente = entry.client?.full_name ?? entry.guest_name ?? '';
-      CadeiraConfirmacaoService.iniciarFluxo(entry.id, nomeCliente).catch(() => {});
+      const nomeCliente  = entry.client?.full_name ?? entry.guest_name ?? '';
+      const shopLogoUrl  = await QueueConfirmService.#resolverLogoUrl(entry.barbershop_id);
+      CadeiraConfirmacaoService.iniciarFluxo(entry.id, nomeCliente, shopLogoUrl).catch(() => {});
     }
+  }
+
+  /**
+   * Resolve a URL pública do logo da barbearia.
+   * Cascade: CacheManager → BarbershopRepository.getById → null (silencioso).
+   * @param {string|null} shopId
+   * @returns {Promise<string|null>}
+   */
+  static async #resolverLogoUrl(shopId) {
+    if (!shopId) return null;
+
+    if (typeof CacheManager !== 'undefined') {
+      const cached = CacheManager.get(`${shopId}:shop`);
+      if (cached?.logo_path) return ApiService.getLogoUrl(cached.logo_path);
+    }
+
+    try {
+      if (typeof BarbershopRepository !== 'undefined') {
+        const shop = await BarbershopRepository.getById(shopId);
+        if (shop?.logo_path) {
+          if (typeof CacheManager !== 'undefined') {
+            CacheManager.set(`${shopId}:shop`, shop, 5 * 60 * 1000);
+          }
+          return ApiService.getLogoUrl(shop.logo_path);
+        }
+      }
+    } catch { /* rede indisponível — exibe fallback emoji */ }
+
+    return null;
   }
 
   /**
