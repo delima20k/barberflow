@@ -883,6 +883,15 @@ $$;
 GRANT EXECUTE ON FUNCTION public.confirmar_presenca_cliente(UUID, BOOLEAN, BOOLEAN)
   TO authenticated;
 
+-- ────────────────────────────────────────────────────────────────
+-- 16. REALTIME NA TABELA NOTIFICATIONS
+--     Migration: 20260507000005_notifications_realtime.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+
 -- ================================================================
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
