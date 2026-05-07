@@ -26,6 +26,7 @@ class ConfirmacaoCorteModal {
   static abrir({ clienteNome, shopLogoUrl = null }) {
     return new Promise(resolve => {
       const overlay = document.createElement('div');
+      overlay.id        = 'modal-cadeira-cliente';
       overlay.className = 'ccm-overlay';
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
@@ -37,7 +38,7 @@ class ConfirmacaoCorteModal {
 
       overlay.innerHTML = `
         <div class="ccm-card">
-          <div class="ccm-icone" aria-hidden="true">${iconeHtml}</div>
+          <div class="qcs-modal-icone" aria-hidden="true">${iconeHtml}</div>
           <p class="ccm-titulo">É a sua vez!</p>
           <p class="ccm-corpo">
             ${ConfirmacaoCorteModal.#escapar(clienteNome)},
@@ -49,14 +50,14 @@ class ConfirmacaoCorteModal {
           </div>
         </div>`;
 
-      const _fechar = (resp) => {
+      const fechar = (resp) => {
         overlay.classList.add('ccm-overlay--saindo');
         setTimeout(() => overlay.remove(), 220);
         resolve(resp);
       };
 
-      overlay.querySelector('.ccm-btn--sim').addEventListener('click', () => _fechar('sim'));
-      overlay.querySelector('.ccm-btn--nao').addEventListener('click', () => _fechar('nao'));
+      overlay.querySelector('.ccm-btn--sim').addEventListener('click', () => fechar('sim'));
+      overlay.querySelector('.ccm-btn--nao').addEventListener('click', () => fechar('nao'));
 
       document.body.appendChild(overlay);
       requestAnimationFrame(() => overlay.classList.add('ccm-overlay--visivel'));

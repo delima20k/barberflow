@@ -73,7 +73,7 @@ class NotificationService {
 
     // Conecta/desconecta Realtime junto com a sessão Supabase
     try {
-      SupabaseService.getSession().then(({ data: { session } }) => {
+      SupabaseService.getSession().then((session) => {
         if (session?.user) NotificationService.iniciarRealtime(session.user.id);
       }).catch(() => {});
     } catch (_) {

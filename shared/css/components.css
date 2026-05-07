@@ -3995,7 +3995,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: .75rem;
   box-shadow: 0 8px 32px rgba(0,0,0,.45);
 }
-.ccm-icone { font-size: 2.4rem; line-height: 1; }
+.ccm-icone,
+.qcs-modal-icone { font-size: 2.4rem; line-height: 1; }
 .ccm-icone-img {
   width: 72px;
   height: 72px;

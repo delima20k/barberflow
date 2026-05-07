@@ -31,8 +31,9 @@ class AppBootstrap {
     { label: 'MapWidget',            fn: () => MapWidget.init('mapa-container')         },
     { label: 'GeoService.solicit',   fn: () => GeoService.solicitarNaPrimeiraVez()      },
     { label: 'MapOrientationModule', fn: () => MapOrientationModule.init()              },
-    { label: 'MessagesWidget',       fn: () => MessagesWidget.init('msgs-lista', 'profissional') },
-    { label: 'NotifPermissao',       fn: () => NotificationService.solicitarPushPermissao()     },
+    { label: 'MessagesWidget',       fn: () => MessagesWidget.init('msgs-lista', 'profissional')  },
+    { label: 'NotificationService',  fn: () => NotificationService.init()                         },
+    { label: 'NotifPermissao',       fn: () => NotificationService.solicitarPushPermissao()        },
   ];
 
   // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention

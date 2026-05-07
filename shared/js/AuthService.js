@@ -251,18 +251,27 @@ class AuthService {
     // e um callback que retorna Promise dispara o erro
     // "message channel closed before a response was received".
     SupabaseService.onAuthChange((event, session) => {
-      // Ao entrar com qualquer usuário, limpa cache de favoritos/curtidas do
-      // usuário anterior — evita que dados de cache stale apareçam para o
-      // novo usuário antes do carregamento do banco.
+      // Limpa cache stale apenas em login fresco (não em restauração de sessão)
       if (event === 'SIGNED_IN') {
-        if (typeof BarbershopService  !== 'undefined') BarbershopService.limparCache();
+        if (typeof BarbershopService   !== 'undefined') BarbershopService.limparCache();
         if (typeof ProfessionalService !== 'undefined') ProfessionalService.limparCache();
       }
+
+      // Inicia Realtime tanto em login fresco (SIGNED_IN) quanto em sessão
+      // restaurada no reload (INITIAL_SESSION) — guarda interna evita duplicata
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        if (typeof NotificationService !== 'undefined') {
+          NotificationService.iniciarRealtime(session.user.id);
+        }
+      }
+
       if (session?.user) {
         AuthService._carregarPerfil(session.user.id)
           .then(async perfil => {
             if (!await AuthService._verificarRoleApp(perfil)) {
               AuthService._limparUI();
+              // Encerra canal de notificações — usuário não tem acesso a este app
+              if (typeof NotificationService !== 'undefined') NotificationService.pararRealtime();
               return;
             }
             AuthService.#perfil = perfil;
@@ -275,6 +284,7 @@ class AuthService {
       } else {
         AuthService.#perfil = null;
         AuthService._limparUI();
+        if (typeof NotificationService !== 'undefined') NotificationService.pararRealtime();
       }
     });
   }
