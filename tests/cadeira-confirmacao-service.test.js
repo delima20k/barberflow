@@ -270,3 +270,93 @@ suite('CadeiraConfirmacaoService — parar()', () => {
     assert.equal(ConfirmacaoCorteModal.abrir.calls.length, 2);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Garantia de entrega da notificação ao barbeiro
+//
+// Estes testes asseguram que ao clicar "Não" a RPC correta é sempre chamada
+// com os parâmetros esperados pelo banco para inserir na tabela notifications
+// com type='client_not_seated' — que é o único campo que MinhaBarbeariaPage
+// reconhece para abrir o modal ao barbeiro.
+// ─────────────────────────────────────────────────────────────────────────────
+
+suite('CadeiraConfirmacaoService — garantia de notificação ao barbeiro no "nao"', () => {
+
+  test('RPC sempre é chamada ao clicar Não (1ª vez)', async () => {
+    const { sandbox } = criarSandbox({ modalResposta: 'nao' });
+    const { CadeiraConfirmacaoService, ApiService } = sandbox;
+
+    await CadeiraConfirmacaoService.iniciarFluxo(ENTRY_ID, 'Carlos');
+
+    assert.equal(ApiService.rpc.calls.length, 1, 'RPC deve ser chamada exatamente 1x');
+  });
+
+  test('nome da RPC é confirmar_presenca_cliente (compatível com notif client_not_seated)', async () => {
+    const { sandbox } = criarSandbox({ modalResposta: 'nao' });
+    const { CadeiraConfirmacaoService, ApiService } = sandbox;
+
+    await CadeiraConfirmacaoService.iniciarFluxo(ENTRY_ID, 'Carlos');
+
+    const [nomeRpc] = ApiService.rpc.calls[0];
+    assert.equal(
+      nomeRpc,
+      'confirmar_presenca_cliente',
+      'deve chamar a RPC correta que insere client_not_seated no banco',
+    );
+  });
+
+  test('p_entry_id correto é enviado à RPC no "nao"', async () => {
+    const { sandbox } = criarSandbox({ modalResposta: 'nao' });
+    const { CadeiraConfirmacaoService, ApiService } = sandbox;
+
+    await CadeiraConfirmacaoService.iniciarFluxo(ENTRY_ID, 'Carlos');
+
+    const [, params] = ApiService.rpc.calls[0];
+    assert.equal(params.p_entry_id, ENTRY_ID, 'p_entry_id deve ser o UUID da entrada');
+  });
+
+  test('p_confirmado=false e p_grace_used=false na 1ª recusa (aciona inserção client_not_seated no banco)', async () => {
+    const { sandbox } = criarSandbox({ modalResposta: 'nao' });
+    const { CadeiraConfirmacaoService, ApiService } = sandbox;
+
+    await CadeiraConfirmacaoService.iniciarFluxo(ENTRY_ID, 'Carlos');
+
+    const [, params] = ApiService.rpc.calls[0];
+    assert.equal(params.p_confirmado, false, 'p_confirmado deve ser false');
+    assert.equal(params.p_grace_used, false, 'p_grace_used deve ser false na 1ª recusa');
+  });
+
+  test('RPC chamada mesmo se RPC retornar erro (não silencia falha do fluxo)', async () => {
+    const { sandbox } = criarSandbox({
+      modalResposta: 'nao',
+      rpcRetorno: { data: null, error: { message: 'db error' } },
+    });
+    const { CadeiraConfirmacaoService, ApiService } = sandbox;
+
+    // Não deve lançar exceção para o chamador
+    await assert.doesNotReject(
+      () => CadeiraConfirmacaoService.iniciarFluxo(ENTRY_ID, 'Carlos'),
+    );
+
+    // RPC deve ter sido chamada mesmo assim (tentativa garantida)
+    assert.equal(ApiService.rpc.calls.length, 1);
+  });
+
+  test('RPC é chamada com p_grace_used=true no 2º "nao" (aciona client_absent no banco)', async () => {
+    const { sandbox } = criarSandbox({ modalResposta: 'nao' });
+    const { CadeiraConfirmacaoService, ApiService } = sandbox;
+
+    // 1ª recusa
+    await CadeiraConfirmacaoService.iniciarFluxo(ENTRY_ID, 'Carlos');
+    assert.equal(ApiService.rpc.calls.length, 1);
+
+    // Grace expira → 2ª recusa
+    CadeiraConfirmacaoService._dispararGrace(ENTRY_ID, 'Carlos');
+    await new Promise(r => setImmediate(r));
+
+    assert.equal(ApiService.rpc.calls.length, 2, '2ª chamada à RPC deve ocorrer após grace');
+    const [, params2] = ApiService.rpc.calls[1];
+    assert.equal(params2.p_confirmado, false);
+    assert.equal(params2.p_grace_used, true, 'p_grace_used=true dispara client_absent no banco');
+  });
+});

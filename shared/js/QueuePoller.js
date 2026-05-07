@@ -163,7 +163,7 @@ class QueuePoller {
       const { fila, ultimaMudanca } = data ?? {};
       QueuePoller.#ultimaMudanca = ultimaMudanca ?? QueuePoller.#ultimaMudanca;
 
-      QueuePoller.#detectarMudanca(fila ?? []);
+      await QueuePoller.#detectarMudanca(fila ?? []);
 
       if (typeof QueuePoller.#onUpdate === 'function') {
         QueuePoller.#onUpdate(fila ?? []);
@@ -174,12 +174,47 @@ class QueuePoller {
   }
 
   /**
+   * Resolve a URL do logo da barbearia ativa.
+   * Ordem de prioridade:
+   *   1. Cache em memória (CacheManager) — sem rede
+   *   2. Fetch via BarbershopRepository.getById — persiste no cache para uso futuro
+   *   3. null — silencioso, modal exibe fallback emoji
+   *
+   * @returns {Promise<string|null>}
+   */
+  static async #resolverShopLogoUrl() {
+    const shopId = QueuePoller.#barbershopId;
+    if (!shopId) return null;
+
+    // 1. Cache hit
+    if (typeof CacheManager !== 'undefined') {
+      const cached = CacheManager.get(`${shopId}:shop`);
+      if (cached?.logo_path) return ApiService.getLogoUrl(cached.logo_path);
+    }
+
+    // 2. Fetch e popula o cache
+    try {
+      if (typeof BarbershopRepository !== 'undefined') {
+        const shop = await BarbershopRepository.getById(shopId);
+        if (shop?.logo_path) {
+          if (typeof CacheManager !== 'undefined') {
+            CacheManager.set(`${shopId}:shop`, shop, 5 * 60 * 1000);
+          }
+          return ApiService.getLogoUrl(shop.logo_path);
+        }
+      }
+    } catch { /* rede indisponível — exibe fallback emoji */ }
+
+    return null;
+  }
+
+  /**
    * Verifica se a posição do cliente melhorou ou se é sua vez.
    * Toca som e exibe toast quando aplicável.
    *
    * @param {object[]} fila — lista de queue_entries com status waiting/in_service
    */
-  static #detectarMudanca(fila) {
+  static async #detectarMudanca(fila) {
     if (!QueuePoller.#clientId || !Array.isArray(fila)) return;
 
     const minha = fila.find(
@@ -216,14 +251,7 @@ class QueuePoller {
           // O toast abaixo serve apenas como fallback visual caso o modal não abra.
           if (typeof CadeiraConfirmacaoService !== 'undefined') {
             const nomeCliente = minha.client?.full_name ?? minha.guest_name ?? '';
-            const shopCache   = QueuePoller.#barbershopId
-              ? (typeof CacheManager !== 'undefined'
-                  ? CacheManager.get(`${QueuePoller.#barbershopId}:shop`)
-                  : null)
-              : null;
-            const shopLogoUrl = shopCache?.logo_path
-              ? ApiService.getLogoUrl(shopCache.logo_path)
-              : null;
+            const shopLogoUrl = await QueuePoller.#resolverShopLogoUrl();
             CadeiraConfirmacaoService.iniciarFluxo(minha.id, nomeCliente, shopLogoUrl).catch(() => {});
             if (document.hidden) {
               // App em segundo plano: notificação nativa + persiste estado para tocar som ao retornar
