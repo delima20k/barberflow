@@ -826,13 +826,16 @@ class MinhaBarbeariaPage {
     // Borda visual de confirmação de presença / estado de espera (apenas cadeira de produção ocupada)
     if (tipo === 'producao' && ocupada) {
       if (emEspera)                          cadeira.classList.add('cdr-cadeira--aguardando');
-      else if (confirmacao === 'yes')        cadeira.classList.add('cdr-cadeira--confirmada');
-      else if (confirmacao === 'absent')     cadeira.classList.add('cdr-cadeira--ausente');
+      else if (confirmacao === 'yes')        cadeira.classList.add('mb-cadeira--confirmada');
+      else if (confirmacao === 'absent')     cadeira.classList.add('mb-cadeira--ausente');
     }
 
     // Ícone — imagem da cadeira sempre visível; avatar do cliente flutua acima
     const iconWrap = document.createElement('div');
     iconWrap.className = 'mb-cadeira-icon';
+    if (tipo === 'producao' && ocupada && confirmacao === 'yes') {
+      iconWrap.classList.add('mb-cadeira-icon--confirmada');
+    }
 
     // Click restrito apenas ao ícone (não à cadeira inteira)
     if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
@@ -892,7 +895,18 @@ class MinhaBarbeariaPage {
     const label = document.createElement('span');
     label.className = 'mb-cadeira-label';
     if (tipo === 'producao') {
-      label.textContent = emEspera ? 'Aguardando...' : (entrada ? 'Atendendo' : 'Livre');
+      if (!entrada) {
+        label.textContent = 'Livre';
+      } else if (emEspera) {
+        label.textContent = 'Aguardando...';
+      } else {
+        const primeiroNome = (entrada.client?.full_name ?? entrada.guest_name ?? '').split(' ')[0];
+        if (confirmacao === 'yes') {
+          label.textContent = `${primeiroNome} está cortando o cabelo`;
+        } else {
+          label.textContent = `aguardando confirmação de ${primeiroNome}`;
+        }
+      }
     } else {
       label.textContent = entrada ? entrada.client?.full_name?.split(' ')[0] ?? entrada.guest_name ?? `#${posicao}` : '+';
     }

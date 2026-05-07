@@ -1596,7 +1596,20 @@
   text-align: center;
   white-space: nowrap;
 }
-.mb-cadeira--producao .mb-cadeira-label { color: var(--gold, #D4AF37); }
+.mb-cadeira--producao .mb-cadeira-label {
+  color: var(--gold, #D4AF37);
+  white-space: normal;
+  line-height: 1.3;
+  font-size: .52rem;
+}
+/* Confirmação de presença — cadeira de produção */
+.mb-cadeira--confirmada { border: none !important; outline: none !important; }
+.mb-cadeira--confirmada .mb-cadeira-label { white-space: normal; line-height: 1.3; font-size: .52rem; }
+.mb-cadeira-icon--confirmada {
+  border: 2.5px solid #D4A017;
+  border-radius: 8px;
+  box-shadow: 0 0 8px rgba(212,175,55,.35);
+}
 .mb-cadeira-cliente {
   font-size: .55rem;
   color: var(--text-muted, #8c7057);

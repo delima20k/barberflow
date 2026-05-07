@@ -3955,11 +3955,20 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 /* ── Confirmação de presença — borda visual da cadeira de produção ── */
-/* Amarelo/dourado: cliente confirmou presença ("Sim, estou!") */
+/* Confirmado: borda dourada no ícone, sem borda no container */
 .cdr-cadeira--confirmada {
-  outline: 2.5px solid #D4A017;
-  outline-offset: 2px;
-  border-radius: inherit;
+  border: none !important;
+  outline: none !important;
+}
+.cdr-icon--confirmada {
+  border: 2.5px solid #D4A017 !important;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(212,175,55,.35);
+}
+.cdr-cadeira--confirmada .cdr-label {
+  white-space: normal;
+  line-height: 1.3;
+  font-size: .52rem;
 }
 /* Marrom: cliente não respondeu após o grace de 5 min (ausente) */
 .cdr-cadeira--ausente {

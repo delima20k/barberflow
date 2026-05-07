@@ -321,6 +321,7 @@ class BarbeariaPage {
       posicao:        0,
       podeInteragir:  podeInteragir && !emServico,
       onClick:        (!emServico && onCadeiraVaziaClick) ? onCadeiraVaziaClick : null,
+      confirmacao:    emServico?.client_confirmed ?? null,
     }));
 
     // Cadeiras de fila (até 3 posições visíveis)

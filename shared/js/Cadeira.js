@@ -65,11 +65,11 @@ class Cadeira {
       });
     }
 
-    el.appendChild(Cadeira.#criarIconWrap(tipo, entrada));
-    el.appendChild(Cadeira.#criarLabel(tipo, entrada, posicao, estado));
+    el.appendChild(Cadeira.#criarIconWrap(tipo, entrada, confirmacao));
+    el.appendChild(Cadeira.#criarLabel(tipo, entrada, posicao, estado, confirmacao));
 
     const nomeExibido = entrada?.guest_name ?? entrada?.client?.full_name;
-    if (nomeExibido) {
+    if (nomeExibido && !(tipo === 'producao' && confirmacao === 'yes')) {
       const nome       = document.createElement('span');
       nome.className   = 'cdr-cliente';
       nome.textContent = nomeExibido;
@@ -84,9 +84,12 @@ class Cadeira {
   /**
    * Ícone da cadeira: avatar do cliente ou imagem padrão.
    */
-  static #criarIconWrap(tipo, entrada) {
+  static #criarIconWrap(tipo, entrada, confirmacao = null) {
     const wrap = document.createElement('div');
     wrap.className = 'cdr-icon';
+    if (tipo === 'producao' && !!entrada && confirmacao === 'yes') {
+      wrap.classList.add('cdr-icon--confirmada');
+    }
 
     // Cliente walk-in (sem cadastro): exibe logo do app
     const isWalkIn = entrada?.guest_name && !entrada?.client?.id;
@@ -141,12 +144,17 @@ class Cadeira {
   /**
    * Label de estado da cadeira.
    */
-  static #criarLabel(tipo, entrada, posicao, estado) {
+  static #criarLabel(tipo, entrada, posicao, estado, confirmacao = null) {
     const label = document.createElement('span');
     label.className = 'cdr-label';
 
     if (tipo === 'producao') {
-      label.textContent = estado === 'em_producao' ? 'Atendendo' : 'Livre';
+      if (estado === 'em_producao' && confirmacao === 'yes') {
+        const primeiroNome = (entrada?.guest_name ?? entrada?.client?.full_name ?? '').split(' ')[0];
+        label.textContent = `${primeiroNome} está cortando o cabelo`;
+      } else {
+        label.textContent = estado === 'em_producao' ? 'Atendendo' : 'Livre';
+      }
     } else {
       label.textContent = entrada ? `#${posicao}` : '—';
     }

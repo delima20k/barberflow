@@ -12,7 +12,7 @@
 class QueueRepository {
 
   static #SELECT_LIST =
-    `id, position, status, check_in_at, served_at, guest_name,
+    `id, position, status, check_in_at, served_at, guest_name, client_confirmed,
      client:profiles!client_id(id, full_name, avatar_path, updated_at),
      professional:professionals!professional_id(id,
        profile:profiles!id(full_name)),
