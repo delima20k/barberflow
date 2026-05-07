@@ -635,24 +635,9 @@ class MinhaBarbeariaPage {
 
     const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({ ...dados, entradaId: entrada.id });
 
-    if (acao === 'chegou') {
-      BarbeiroEsperaFluxo.finalizarEspera(entrada.id);
-      await this.#reRenderEquipe();
-    } else if (acao === 'remover') {
-      BarbeiroEsperaFluxo.finalizarEspera(entrada.id);
-      try {
-        const res         = await CadeiraService.finalizar(entrada.id, this.#barbershopId) ?? {};
-        const proximoNome = res.proximoNome ?? null;
-        const msg         = proximoNome ? `Em atendimento: ${proximoNome}` : 'Fila vazia agora.';
-        NotificationService.mostrarToast('Cliente removido', msg, NotificationService.TIPOS.SISTEMA);
-        await this.#reRenderEquipe();
-      } catch (err) {
-        LoggerService.error('[MinhaBarbeariaPage] erro ao remover em espera:', err);
-        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível remover.', NotificationService.TIPOS.SISTEMA);
-      }
-    } else {
-      BarbeiroEsperaFluxo.resetarTimer(entrada.id);
-    }
+    // 'chegou' e 'remover': abrirModalCadeira já despachou barberflow:espera-resolvida
+    // → #onEsperaResolvida centraliza todo o tratamento (evita dupla chamada)
+    if (acao === 'aguardar') BarbeiroEsperaFluxo.resetarTimer(entrada.id);
   }
 
   /**
@@ -738,6 +723,9 @@ class MinhaBarbeariaPage {
     const { acao, entradaId, barbershopId } = e?.detail ?? {};
     if (barbershopId !== this.#barbershopId) return;
 
+    // Finaliza o estado de espera (idempotente: seguro se timer já chamou antes)
+    BarbeiroEsperaFluxo.finalizarEspera(entradaId);
+
     if (acao === 'remover') {
       try {
         const res         = await CadeiraService.finalizar(entradaId, this.#barbershopId) ?? {};
@@ -750,9 +738,7 @@ class MinhaBarbeariaPage {
       }
     }
 
-    if (acao === 'chegou' || acao === 'remover') {
-      await this.#reRenderEquipe();
-    }
+    await this.#reRenderEquipe();
   }
 
   // ── Factory: componentes de equipe ─────────────────────────
