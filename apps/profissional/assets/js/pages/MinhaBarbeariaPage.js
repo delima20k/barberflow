@@ -677,6 +677,29 @@ class MinhaBarbeariaPage {
         NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível enviar.', NotificationService.TIPOS.SISTEMA);
       }
     }
+
+    // Barbeiro escolheu "OK, aguardar" no modo nao_sentado (acao === null)
+    // → BarbeiroEsperaFluxo pergunta se o cliente já se sentou e,
+    //   se necessário, cancela o atendimento e chama o próximo.
+    if (acao === null && ehNaoSentado) {
+      try {
+        const resultado = await BarbeiroEsperaFluxo.iniciar({
+          clienteNome,
+          entradaId,
+          barbershopId: this.#barbershopId,
+        });
+        if (resultado.status === 'finalizado') {
+          const msg = resultado.proximoNome
+            ? `Em atendimento: ${resultado.proximoNome}`
+            : 'Fila vazia agora.';
+          NotificationService.mostrarToast('Cliente removido', msg, NotificationService.TIPOS.SISTEMA);
+          await this.#reRenderEquipe();
+        }
+      } catch (err) {
+        LoggerService.error('[MinhaBarbeariaPage] erro no fluxo de espera:', err);
+        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível processar.', NotificationService.TIPOS.SISTEMA);
+      }
+    }
   }
 
   // ── Factory: componentes de equipe ─────────────────────────
