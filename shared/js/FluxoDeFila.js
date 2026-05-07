@@ -41,6 +41,8 @@ class FluxoDeFila {
    * @param {string}       [config.id]             — id do overlay (evita duplicatas)
    * @param {string}       [config.icone='💈']     — emoji ou URL de imagem
    * @param {boolean}      [config.iconeImagem]    — true quando icone é URL de imagem
+   * @param {object}       [config.iconesDuplos]   — { app: urlStr, barbearia: urlStr|null }
+   *                                                  substitui fdf-icone por layout duplo
    * @param {string}       config.titulo
    * @param {string}       config.corpo            — HTML pré-escapado; pode conter <strong>
    * @param {Array}        config.acoes            — [{label, valor, variante}]
@@ -87,13 +89,14 @@ class FluxoDeFila {
     return new Promise(resolve => {
       const {
         id,
-        icone       = '💈',
-        iconeImagem = false,
-        titulo      = '',
-        corpo       = '',
-        acoes       = [],
-        fecharBtn   = false,
-        tocarSom    = false,
+        icone        = '💈',
+        iconeImagem  = false,
+        iconesDuplos = null,
+        titulo       = '',
+        corpo        = '',
+        acoes        = [],
+        fecharBtn    = false,
+        tocarSom     = false,
       } = config;
 
       // Remove overlay duplicado com mesmo id
@@ -128,11 +131,15 @@ class FluxoDeFila {
         card.appendChild(btnFechar);
       }
 
-      // Ícone
+      // Ícone — duplo ou simples
       const iconeEl = document.createElement('div');
-      iconeEl.className = 'fdf-icone';
       iconeEl.setAttribute('aria-hidden', 'true');
-      if (iconeImagem) {
+
+      if (iconesDuplos) {
+        iconeEl.className = 'fdf-icone-duplo';
+        iconeEl.innerHTML = FluxoDeFila.#buildIconesDuplos(iconesDuplos);
+      } else if (iconeImagem) {
+        iconeEl.className = 'fdf-icone';
         const img = document.createElement('img');
         img.className = 'fdf-icone-img';
         img.setAttribute('src', FluxoDeFila.#escaparAttr(icone));
@@ -140,6 +147,7 @@ class FluxoDeFila {
         img.setAttribute('onerror', "this.parentElement.textContent='💈'");
         iconeEl.appendChild(img);
       } else {
+        iconeEl.className = 'fdf-icone';
         iconeEl.textContent = icone;
       }
 
@@ -212,5 +220,24 @@ class FluxoDeFila {
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
+  }
+
+  /**
+   * Gera o HTML interno do layout de ícone duplo (app + barbearia).
+   * @param {{ app: string, barbearia: string|null }} param
+   * @returns {string}
+   */
+  static #buildIconesDuplos({ app, barbearia }) {
+    const appSrc  = FluxoDeFila.#escaparAttr(app);
+    const barbSrc = barbearia ? FluxoDeFila.#escaparAttr(barbearia) : null;
+
+    const barbEl = barbSrc
+      ? `<img class="fdf-icone-duplo__img fdf-icone-duplo__img--barbearia" src="${barbSrc}" alt="" onerror="this.style.display='none';this.nextElementSibling.hidden=false">`
+        + `<span class="fdf-icone-duplo__emoji" aria-hidden="true" hidden>💈</span>`
+      : `<span class="fdf-icone-duplo__emoji" aria-hidden="true">💈</span>`;
+
+    return `<img class="fdf-icone-duplo__img fdf-icone-duplo__img--app" src="${appSrc}" alt="">`
+      + `<span class="fdf-icone-duplo__seta" aria-hidden="true"><span>&#8594;</span><span>&#8592;</span></span>`
+      + barbEl;
   }
 }

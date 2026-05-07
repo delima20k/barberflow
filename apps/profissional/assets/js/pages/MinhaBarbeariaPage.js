@@ -662,7 +662,13 @@ class MinhaBarbeariaPage {
     const entradaId   = notif.dados.entry_id ?? null;
     const modo        = ehNaoSentado ? 'nao_sentado' : 'ausente';
 
-    const acao = await ClienteAusenteModal.abrir({ clienteNome, modo });
+    const logoBarbearia = this.#shopData?.logo_path
+      ? (typeof ApiService !== 'undefined'
+          ? ApiService.getLogoUrl(this.#shopData.logo_path)
+          : null)
+      : null;
+
+    const acao = await ClienteAusenteModal.abrir({ clienteNome, modo, logoBarbearia });
 
     if (acao === 'remover') {
       try {

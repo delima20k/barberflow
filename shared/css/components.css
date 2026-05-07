@@ -4083,6 +4083,44 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border: 1px solid var(--gold, #D4A017);
 }
 
+/* ── Ícone duplo (app + barbearia) — dentro do fdf-card ── */
+.fdf-icone-duplo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+}
+.fdf-icone-duplo__img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+/* Logo do app: exibida naturalmente sem círculo adicionado */
+.fdf-icone-duplo__img--app {
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.5));
+}
+/* Logo da barbearia: sem fundo forçado — mantém aparência original */
+.fdf-icone-duplo__img--barbearia {
+  border-radius: 50%;
+}
+/* Se a barbearia não tem logo, exibe emoji fallback */
+.fdf-icone-duplo__emoji {
+  font-size: 2rem;
+  line-height: 1;
+}
+/* Setas de interação entre os dois logos */
+.fdf-icone-duplo__seta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  color: var(--gold, #D4A017);
+  font-size: .65rem;
+  line-height: 1;
+  opacity: .85;
+}
+
 /* ── Modais de confirmação de presença (ConfirmacaoCorteModal) ── */
 .ccm-overlay {
   position: fixed;
