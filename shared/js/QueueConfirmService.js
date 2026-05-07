@@ -102,19 +102,28 @@ class QueueConfirmService {
 
   /**
    * Chamado quando queue_entry do cliente é atualizada.
-   * Se mudou para 'in_service' → exibe modal de confirmação.
+   * Se mudou para 'in_service' → delega ao CadeiraConfirmacaoService:
+   *   - exibe o modal dinâmico correto (ConfirmacaoCorteModal)
+   *   - garante que a RPC confirmar_presenca_cliente seja chamada com os
+   *     parâmetros esperados por MinhaBarbeariaPage (type=client_not_seated)
+   *   - impede double-modal: CadeiraConfirmacaoService#processadas bloqueia
+   *     chamadas duplicadas do QueuePoller (que chega até 20s depois)
    */
   static #onFilaUpdate(entry) {
     if (!entry || entry.status !== 'in_service') return;
 
-    // Evita abrir o modal duas vezes para a mesma entrada
+    // Evita processar a mesma entrada duas vezes
     if (
       QueueConfirmService.#entryAtiva &&
       QueueConfirmService.#entryAtiva.id === entry.id
     ) return;
 
     QueueConfirmService.#entryAtiva = entry;
-    QueueConfirmService.#mostrarModalCliente(entry);
+
+    if (typeof CadeiraConfirmacaoService !== 'undefined') {
+      const nomeCliente = entry.client?.full_name ?? entry.guest_name ?? '';
+      CadeiraConfirmacaoService.iniciarFluxo(entry.id, nomeCliente).catch(() => {});
+    }
   }
 
   /**
@@ -148,63 +157,21 @@ class QueueConfirmService {
   }
 
   /**
-   * Chamado pelo botão "SIM — Já estou sentado" no modal do cliente.
+   * Chamado pelo botão "SIM — Já estou sentado" (HTML legado).
+   * O fluxo é gerenciado por CadeiraConfirmacaoService via #onFilaUpdate.
+   * Mantido apenas para compatibilidade com botões onclick no HTML.
    */
   static clienteConfirmouPresenca() {
-    const modal = document.getElementById(QueueConfirmService.#ID_MODAL_CLIENTE);
-    QueueConfirmService.#fecharModal(modal);
     QueueConfirmService.#entryAtiva = null;
   }
 
   /**
-   * Chamado pelo botão "NÃO — Ainda não estou" no modal do cliente.
-   * Insere notificação para o barbeiro.
+   * Chamado pelo botão "NÃO — Ainda não estou" (HTML legado).
+   * O fluxo (modal dinâmico + RPC) é gerenciado por CadeiraConfirmacaoService.
+   * Mantido apenas para compatibilidade com botões onclick no HTML.
    */
-  static async clienteNaoSentado() {
-    const modal = document.getElementById(QueueConfirmService.#ID_MODAL_CLIENTE);
-    if (!modal) return;
-
-    const entryId        = modal.dataset.entryId;
-    const professionalId = modal.dataset.professionalId;
-
-    QueueConfirmService.#fecharModal(modal);
-
-    if (!professionalId) return;
-
-    // Busca nome do cliente para incluir na notificação
-    let nomeCliente = 'Um cliente';
-    try {
-      if (QueueConfirmService.#userId) {
-        const { data } = await SupabaseService.client
-          .from('profiles')
-          .select('full_name')
-          .eq('id', QueueConfirmService.#userId)
-          .single();
-        if (data?.full_name) nomeCliente = data.full_name;
-      }
-    } catch (_) {}
-
-    // Insere notificação para o barbeiro
-    try {
-      await SupabaseService.client
-        .from('notifications')
-        .insert({
-          user_id: professionalId,
-          type:    'queue_client_absent',
-          title:   '⚠️ Cliente não está na cadeira',
-          body:    `${nomeCliente} informou que ainda não está sentado. Deseja pular a vez ou aguardar?`,
-          data: {
-            tipo_acao:       'queue_client_absent',
-            entry_id:        entryId,
-            client_id:       QueueConfirmService.#userId,
-            client_nome:     nomeCliente,
-            tela:            'inicio',
-          },
-          is_read: false,
-        });
-    } catch (e) {
-      console.warn('[QueueConfirmService] Falha ao notificar barbeiro:', e?.message);
-    }
+  static clienteNaoSentado() {
+    // Delegado ao CadeiraConfirmacaoService via #onFilaUpdate
   }
 
   // ═══════════════════════════════════════════════════════════

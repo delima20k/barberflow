@@ -93,10 +93,20 @@ class BarberFlowCliente extends Router {
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
 
-    // QueueConfirmService desativado: o fluxo de confirmação de cadeira
-    // é gerenciado exclusivamente por QueuePoller + CadeiraConfirmacaoService.
-    // Manter QueueConfirmService ativo causaria dois modais simultâneos e
-    // notificações com estrutura incompatível com MinhaBarbeariaPage.
+    // Listener de fila — inicia/para junto com a sessão.
+    // QueueConfirmService fornece o canal Realtime em queue_entries (instantâneo);
+    // ao detectar in_service, delega ao CadeiraConfirmacaoService que exibe o
+    // modal dinâmico correto e chama a RPC com os parâmetros esperados por
+    // MinhaBarbeariaPage (type=client_not_seated).
+    try {
+      SupabaseService.onAuthChange((event, session) => {
+        if (session?.user) {
+          QueueConfirmService.iniciar(session.user.id, 'client');
+        } else {
+          QueueConfirmService.parar();
+        }
+      });
+    } catch (_) {}
   }
 
   /** Navega para o login — chamado pelo header avatar quando deslogado. */
