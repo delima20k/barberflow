@@ -1,93 +1,41 @@
 'use strict';
 
 // =============================================================
-// ConfirmacaoCorteModal.js — Modal de confirmação de presença
-//                            do cliente na cadeira de produção.
+// ConfirmacaoCorteModal.js — Wrapper fino sobre FluxoDeFila.
 //
-// Responsabilidade ÚNICA: perguntar ao cliente se já está sentado
-// para o corte e retornar a resposta.
+// Responsabilidade ÚNICA: configurar e delegar à FluxoDeFila
+// o modal de confirmação de presença do cliente na cadeira.
 //
 // Uso:
-//   const resp = await ConfirmacaoCorteModal.abrir({ clienteNome });
+//   const resp = await ConfirmacaoCorteModal.abrir({ clienteNome, shopLogoUrl });
 //   // resp: 'sim' | 'nao'
 //
-// Dependências: nenhuma
+// Dependências: FluxoDeFila
 // =============================================================
 
 class ConfirmacaoCorteModal {
 
-  // ──────────────────────────────────────────────────────────
-  // Exibe o modal de confirmação de presença.
-  // @param {object}      opts
-  // @param {string}      opts.clienteNome  nome do cliente a ser confirmado
-  // @param {string|null} [opts.shopLogoUrl] URL pública do logo da barbearia
-  // @returns {Promise<'sim'|'nao'>}
-  // ──────────────────────────────────────────────────────────
+  /**
+   * Exibe o modal de confirmação de presença.
+   * @param {object}      opts
+   * @param {string}      opts.clienteNome  nome do cliente a ser confirmado
+   * @param {string|null} [opts.shopLogoUrl] URL pública do logo da barbearia
+   * @returns {Promise<'sim'|'nao'>}
+   */
   static abrir({ clienteNome, shopLogoUrl = null }) {
-    return new Promise(resolve => {
-      const overlay = document.createElement('div');
-      overlay.id        = 'modal-cadeira-cliente';
-      overlay.className = 'ccm-overlay';
-      overlay.setAttribute('role', 'dialog');
-      overlay.setAttribute('aria-modal', 'true');
-      overlay.setAttribute('aria-label', 'Confirmação de presença');
-
-      const iconeHtml = shopLogoUrl
-        ? `<img class="ccm-icone-img" src="${ConfirmacaoCorteModal.#escaparAttr(shopLogoUrl)}" alt="" onerror="this.parentElement.innerHTML='💈'">`
-        : '💈';
-
-      overlay.innerHTML = `
-        <div class="ccm-card">
-          <div class="qcs-modal-icone" aria-hidden="true">${iconeHtml}</div>
-          <p class="ccm-titulo">É a sua vez!</p>
-          <p class="ccm-corpo">
-            ${ConfirmacaoCorteModal.#escapar(clienteNome)}, você já está na cadeira, pronto para o corte!
-          </p>
-          <div class="ccm-acoes">
-            <button class="ccm-btn ccm-btn--sim" autofocus>✅ Sim, estou!</button>
-            <button class="ccm-btn ccm-btn--nao">❌ Não ainda</button>
-          </div>
-        </div>`;
-
-      const fechar = (resp) => {
-        overlay.classList.add('ccm-overlay--saindo');
-        setTimeout(() => overlay.remove(), 220);
-        resolve(resp);
-      };
-
-      overlay.querySelector('.ccm-btn--sim').addEventListener('click', () => fechar('sim'));
-      overlay.querySelector('.ccm-btn--nao').addEventListener('click', () => fechar('nao'));
-
-      document.body.appendChild(overlay);
-      requestAnimationFrame(() => overlay.classList.add('ccm-overlay--visivel'));
+    const nome = FluxoDeFila.escapar(clienteNome);
+    return FluxoDeFila.abrir({
+      id:          'modal-cadeira-cliente',
+      icone:       shopLogoUrl ?? '💈',
+      iconeImagem: !!shopLogoUrl,
+      titulo:      'É a sua vez!',
+      corpo:       `${nome}, você já está na cadeira, pronto para o corte!`,
+      acoes: [
+        { label: '✅ Sim, estou!', valor: 'sim', variante: 'primario'   },
+        { label: '❌ Não ainda',   valor: 'nao', variante: 'secundario' },
+      ],
+      fecharBtn: false,
+      tocarSom:  false, // som gerenciado pelo CadeiraConfirmacaoService
     });
-  }
-
-  // ── Privados ────────────────────────────────────────────────
-
-  /**
-   * Escapa texto para inserção segura em innerHTML.
-   * @param {string} str
-   * @returns {string}
-   */
-  static #escapar(str) {
-    return String(str ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  /**
-   * Escapa string para uso seguro em atributos HTML (ex: src="...").
-   * @param {string} str
-   * @returns {string}
-   */
-  static #escaparAttr(str) {
-    return String(str ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
   }
 }

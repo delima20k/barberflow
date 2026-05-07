@@ -3968,6 +3968,106 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-radius: inherit;
 }
 
+/* ── FluxoDeFila — motor de modais push reutilizável ───────────── */
+.fdf-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.fdf-overlay--visivel { opacity: 1; }
+.fdf-overlay--saindo  { opacity: 0; transition: opacity .22s ease; }
+.fdf-card {
+  background: var(--surface, #1a1a2e);
+  border-radius: 18px;
+  padding: 2rem 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45);
+  position: relative;
+}
+.fdf-fechar {
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  background: none;
+  border: none;
+  color: var(--text-muted, #8c7057);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: .25rem;
+}
+.fdf-icone { font-size: 2.4rem; line-height: 1; }
+.fdf-icone-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #c8a96e;
+  border: 2px solid var(--gold, #D4A017);
+  display: block;
+  margin: 0 auto;
+}
+.fdf-titulo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gold, #D4A017);
+  margin: 0;
+}
+.fdf-corpo {
+  font-size: .93rem;
+  color: var(--text, #e8d5c0);
+  margin: 0;
+  line-height: 1.5;
+}
+.fdf-corpo strong { color: var(--gold, #D4A017); font-weight: 600; }
+.fdf-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  margin-top: .5rem;
+}
+.fdf-btn {
+  padding: .7rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+  width: 100%;
+}
+.fdf-btn:active { opacity: .75; }
+.fdf-btn--primario {
+  background:
+    linear-gradient(#3d1208, #3d1208) padding-box,
+    linear-gradient(135deg, #D4A017, #7a2e0a) border-box;
+  border: 2px solid transparent;
+  color: var(--gold, #D4A017);
+}
+.fdf-btn--secundario {
+  background: transparent;
+  border: 2px solid var(--gold, #D4A017);
+  color: var(--gold, #D4A017);
+}
+.fdf-btn--perigo  { background: #c0392b; color: #fff; }
+.fdf-btn--neutro  {
+  background: var(--surface-alt, #2a2a3e);
+  color: var(--gold, #D4A017);
+  border: 1px solid var(--gold, #D4A017);
+}
+
 /* ── Modais de confirmação de presença (ConfirmacaoCorteModal) ── */
 .ccm-overlay {
   position: fixed;
