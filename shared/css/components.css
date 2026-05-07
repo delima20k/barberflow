@@ -3967,6 +3967,21 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   outline-offset: 2px;
   border-radius: inherit;
 }
+/* Âmbar pulsante: barbeiro aguardando cliente se sentar */
+.cdr-cadeira--aguardando {
+  outline: 2.5px solid #F0A500;
+  outline-offset: 2px;
+  border-radius: inherit;
+  animation: cdr-espera-pulse 2s ease-in-out infinite;
+}
+.cdr-cadeira--aguardando .cdr-label,
+.cdr-cadeira--aguardando .mb-cadeira-label {
+  color: #F0A500;
+}
+@keyframes cdr-espera-pulse {
+  0%, 100% { outline-color: #F0A500; opacity: 1; }
+  50%       { outline-color: #D4AF37; opacity: .6; }
+}
 
 /* ── FluxoDeFila — motor de modais push reutilizável ───────────── */
 .fdf-overlay {

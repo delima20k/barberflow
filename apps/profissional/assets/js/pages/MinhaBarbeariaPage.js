@@ -240,7 +240,9 @@ class MinhaBarbeariaPage {
     // Toggle de status aberta/fechada
     this.#refs.statusToggle?.addEventListener('click', () => this.#toggleStatusAberto());
     // Notificação de cliente ausente (enviada pelo trigger via notifications table)
-    document.addEventListener('barberflow:notificacao-nova', e => this.#onClienteAusente(e));
+    document.addEventListener('barberflow:notificacao-nova',   e => this.#onClienteAusente(e));
+    // Resolução do fluxo de espera pelo timer recorrente
+    document.addEventListener('barberflow:espera-resolvida',   e => this.#onEsperaResolvida(e));
     // Campos editáveis (lápis) — Config
     this.#refs.cfgNomeLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis));
     this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.cfgWhats,   this.#refs.cfgWhatsDisplay,   this.#refs.cfgWhatsLapis));
@@ -271,6 +273,8 @@ class MinhaBarbeariaPage {
       this.#isOwner        = shop.owner_id === perfil.id;
       this.#shopData       = shop;
       this.#profissionalId = perfil.id;
+
+      if (typeof BarbeiroEsperaFluxo !== 'undefined') BarbeiroEsperaFluxo.restaurar();
 
       const [servicos, stories, quotaHoje, barbeiros, filaEntradas] = await Promise.all([
         MinhaBarbeariaPage.#fetchServicos(shop.id),
@@ -513,6 +517,14 @@ class MinhaBarbeariaPage {
   async #onCadeiraClick(tipo, ocupada, entrada, professionalId) {
     if (!this.#isOwner) return;
 
+    // ── Cadeira de produção em espera → verificar status ────
+    if (tipo === 'producao' && ocupada && entrada
+        && typeof BarbeiroEsperaFluxo !== 'undefined'
+        && BarbeiroEsperaFluxo.estaAguardando(entrada.id)) {
+      await this.#fluxoEspera(entrada);
+      return;
+    }
+
     // ── Cadeira ocupada em produção → finalizar ──────────────
     if (tipo === 'producao' && ocupada && entrada) {
       await this.#fluxoFinalizar(entrada);
@@ -613,6 +625,37 @@ class MinhaBarbeariaPage {
   }
 
   /**
+   * Fluxo de decisão para cadeira em estado de espera (barbeiro aguardando cliente).
+   * Aciona a modal manualmente; respostas: chegou / remover / aguardar.
+   * @param {object} entrada  queue_entry em in_service com espera ativa
+   */
+  async #fluxoEspera(entrada) {
+    const dados = BarbeiroEsperaFluxo.dadosEspera(entrada.id);
+    if (!dados) return;
+
+    const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({ ...dados, entradaId: entrada.id });
+
+    if (acao === 'chegou') {
+      BarbeiroEsperaFluxo.finalizarEspera(entrada.id);
+      await this.#reRenderEquipe();
+    } else if (acao === 'remover') {
+      BarbeiroEsperaFluxo.finalizarEspera(entrada.id);
+      try {
+        const res         = await CadeiraService.finalizar(entrada.id, this.#barbershopId) ?? {};
+        const proximoNome = res.proximoNome ?? null;
+        const msg         = proximoNome ? `Em atendimento: ${proximoNome}` : 'Fila vazia agora.';
+        NotificationService.mostrarToast('Cliente removido', msg, NotificationService.TIPOS.SISTEMA);
+        await this.#reRenderEquipe();
+      } catch (err) {
+        LoggerService.error('[MinhaBarbeariaPage] erro ao remover em espera:', err);
+        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível remover.', NotificationService.TIPOS.SISTEMA);
+      }
+    } else {
+      BarbeiroEsperaFluxo.resetarTimer(entrada.id);
+    }
+  }
+
+  /**
    * Handler do evento barberflow:notificacao-nova.
    * Reage a dois tipos de notificação relacionados à presença do cliente:
    *   - 'client_not_seated' — cliente clicou "Não" pela 1ª vez (ainda não sentou)
@@ -679,26 +722,36 @@ class MinhaBarbeariaPage {
     }
 
     // Barbeiro escolheu "OK, aguardar" no modo nao_sentado (acao === null)
-    // → BarbeiroEsperaFluxo pergunta se o cliente já se sentou e,
-    //   se necessário, cancela o atendimento e chama o próximo.
+    // → BarbeiroEsperaFluxo inicia ciclo persistente de espera.
     if (acao === null && ehNaoSentado) {
+      BarbeiroEsperaFluxo.iniciarEspera({ clienteNome, entradaId, barbershopId: this.#barbershopId });
+      await this.#reRenderEquipe();
+    }
+  }
+
+  /**
+   * Handler do evento barberflow:espera-resolvida (disparado pelo timer recorrente).
+   * Ignora evento se não pertencer à barbearia ativa.
+   * @param {CustomEvent} e
+   */
+  async #onEsperaResolvida(e) {
+    const { acao, entradaId, barbershopId } = e?.detail ?? {};
+    if (barbershopId !== this.#barbershopId) return;
+
+    if (acao === 'remover') {
       try {
-        const resultado = await BarbeiroEsperaFluxo.iniciar({
-          clienteNome,
-          entradaId,
-          barbershopId: this.#barbershopId,
-        });
-        if (resultado.status === 'finalizado') {
-          const msg = resultado.proximoNome
-            ? `Em atendimento: ${resultado.proximoNome}`
-            : 'Fila vazia agora.';
-          NotificationService.mostrarToast('Cliente removido', msg, NotificationService.TIPOS.SISTEMA);
-          await this.#reRenderEquipe();
-        }
+        const res         = await CadeiraService.finalizar(entradaId, this.#barbershopId) ?? {};
+        const proximoNome = res.proximoNome ?? null;
+        const msg         = proximoNome ? `Em atendimento: ${proximoNome}` : 'Fila vazia agora.';
+        NotificationService.mostrarToast('Cliente removido', msg, NotificationService.TIPOS.SISTEMA);
       } catch (err) {
-        LoggerService.error('[MinhaBarbeariaPage] erro no fluxo de espera:', err);
-        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível processar.', NotificationService.TIPOS.SISTEMA);
+        LoggerService.error('[MinhaBarbeariaPage] erro em onEsperaResolvida:', err);
+        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível remover.', NotificationService.TIPOS.SISTEMA);
       }
+    }
+
+    if (acao === 'chegou' || acao === 'remover') {
+      await this.#reRenderEquipe();
     }
   }
 
@@ -770,15 +823,19 @@ class MinhaBarbeariaPage {
    */
   static #criarCadeiraEl(tipo, entrada = null, posicao = 1, opts = {}, confirmacao = null) {
     const { isOwner = false, onClickVazia = null, onClickOcupada = null } = opts;
-    const ocupada = !!entrada;
+    const ocupada   = !!entrada;
+    const emEspera  = ocupada && tipo === 'producao'
+      && typeof BarbeiroEsperaFluxo !== 'undefined'
+      && BarbeiroEsperaFluxo.estaAguardando(entrada?.id);
 
     const cadeira = document.createElement('div');
     cadeira.className = `mb-cadeira mb-cadeira--${tipo}${ocupada ? '' : ' mb-cadeira--vazia'}`;
 
-    // Borda visual de confirmação de presença (apenas cadeira de produção ocupada)
+    // Borda visual de confirmação de presença / estado de espera (apenas cadeira de produção ocupada)
     if (tipo === 'producao' && ocupada) {
-      if (confirmacao === 'yes')    cadeira.classList.add('cdr-cadeira--confirmada');
-      else if (confirmacao === 'absent') cadeira.classList.add('cdr-cadeira--ausente');
+      if (emEspera)                          cadeira.classList.add('cdr-cadeira--aguardando');
+      else if (confirmacao === 'yes')        cadeira.classList.add('cdr-cadeira--confirmada');
+      else if (confirmacao === 'absent')     cadeira.classList.add('cdr-cadeira--ausente');
     }
 
     // Ícone — imagem da cadeira sempre visível; avatar do cliente flutua acima
@@ -794,7 +851,9 @@ class MinhaBarbeariaPage {
       iconWrap.setAttribute('tabindex', '0');
       iconWrap.setAttribute('aria-label',
         tipo === 'producao'
-          ? (ocupada ? 'Finalizar atendimento' : 'Sentar cliente em produção')
+          ? (emEspera    ? 'Verificar status do cliente'
+            : ocupada    ? 'Finalizar atendimento'
+            :              'Sentar cliente em produção')
           : (ocupada ? `Cliente #${posicao}` : 'Adicionar cliente na fila')
       );
       iconWrap.addEventListener('keydown', e => {
@@ -807,8 +866,8 @@ class MinhaBarbeariaPage {
     imgFundo.className = 'mb-cadeira-img-fundo';
     iconWrap.appendChild(imgFundo);
 
-    // Se há cliente: avatar flutuante + badge de posição
-    if (ocupada) {
+    // Se há cliente E não está em espera: avatar flutuante + badge de posição
+    if (ocupada && !emEspera) {
       const avatarWrap = document.createElement('div');
       avatarWrap.className = 'mb-cadeira-avatar-cli';
 
@@ -841,7 +900,7 @@ class MinhaBarbeariaPage {
     const label = document.createElement('span');
     label.className = 'mb-cadeira-label';
     if (tipo === 'producao') {
-      label.textContent = entrada ? 'Atendendo' : 'Livre';
+      label.textContent = emEspera ? 'Aguardando...' : (entrada ? 'Atendendo' : 'Livre');
     } else {
       label.textContent = entrada ? entrada.client?.full_name?.split(' ')[0] ?? entrada.guest_name ?? `#${posicao}` : '+';
     }
