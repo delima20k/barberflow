@@ -47,7 +47,7 @@ class BarbeiroEsperaFluxo {
       id:        'modal-espera-assento',
       icone:     '🪑',
       titulo:    'O cliente já está sentado?',
-      corpo:     `<strong>${nome}</strong>, você já se acomodou na cadeira?`,
+      corpo:     `<strong>${nome}</strong> já se acomodou na cadeira?`,
       acoes: [
         { label: '✅ Sim, já estou!', valor: 'sim',  variante: 'primario'   },
         { label: '❌ Ainda não',      valor: 'nao',  variante: 'secundario' },
@@ -75,7 +75,8 @@ class BarbeiroEsperaFluxo {
     if (decisao !== 'remover' || !entradaId) return { status: 'aguardando' };
 
     // ── Finalizar: remove cliente e promove próximo ─────────
-    const { proximoNome = null } = await CadeiraService.finalizar(entradaId, barbershopId);
+    const res        = await CadeiraService.finalizar(entradaId, barbershopId);
+    const proximoNome = res?.proximoNome ?? null;
     return { status: 'finalizado', proximoNome };
   }
 }
