@@ -697,6 +697,192 @@ ALTER TABLE public.queue_entries ADD COLUMN IF NOT EXISTS guest_name TEXT;
 COMMENT ON COLUMN public.queue_entries.guest_name IS
   'Nome avulso informado pelo barbeiro para cliente sem cadastro (walk-in).';
 
+-- ────────────────────────────────────────────────────────────────
+-- 14. CONFIRMAÇÃO DE PRESENÇA DO CLIENTE NA CADEIRA
+--     Migration: 20260507000003_queue_client_confirmation.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.queue_entries
+  ADD COLUMN IF NOT EXISTS client_confirmed TEXT
+    CHECK (client_confirmed IN ('yes', 'no_waiting', 'absent')),
+  ADD COLUMN IF NOT EXISTS first_no_at TIMESTAMPTZ;
+
+COMMENT ON COLUMN public.queue_entries.client_confirmed IS
+  'Estado de confirmação de presença do cliente na cadeira: yes | no_waiting | absent';
+
+COMMENT ON COLUMN public.queue_entries.first_no_at IS
+  'Timestamp do primeiro "Não" — base para cálculo do grace period de 5 min';
+
+CREATE OR REPLACE FUNCTION public.confirmar_presenca_cliente(
+  p_entry_id   UUID,
+  p_confirmado BOOLEAN,
+  p_grace_used BOOLEAN
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_entry   RECORD;
+  v_profId  UUID;
+BEGIN
+  SELECT qe.id, qe.professional_id, qe.barbershop_id,
+         p.full_name AS client_name
+  INTO v_entry
+  FROM public.queue_entries qe
+  LEFT JOIN public.profiles p ON p.id = qe.client_id
+  WHERE qe.id        = p_entry_id
+    AND qe.client_id = auth.uid()
+    AND qe.status    = 'in_service'
+  LIMIT 1;
+
+  IF v_entry IS NULL THEN
+    RETURN;
+  END IF;
+
+  v_profId := v_entry.professional_id;
+
+  IF p_confirmado THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'yes',
+        first_no_at      = NULL
+    WHERE id = p_entry_id;
+
+  ELSIF NOT p_grace_used THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'no_waiting',
+        first_no_at      = NOW()
+    WHERE id = p_entry_id;
+
+  ELSE
+    UPDATE public.queue_entries
+    SET client_confirmed = 'absent'
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_absent',
+        'Cliente ausente 🔔',
+        COALESCE(v_entry.client_name, 'Cliente') || ' não confirmou presença na cadeira.',
+        jsonb_build_object(
+          'client_absent',  true,
+          'entry_id',       p_entry_id,
+          'client_name',    COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',  v_entry.barbershop_id
+        ),
+        false,
+        NOW()
+      );
+    END IF;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.confirmar_presenca_cliente(UUID, BOOLEAN, BOOLEAN)
+  TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 15. NOTIFICAR BARBEIRO NO PRIMEIRO "NÃO" DO CLIENTE
+--     Migration: 20260507000004_notify_barber_on_first_no.sql
+-- ────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.confirmar_presenca_cliente(
+  p_entry_id   UUID,
+  p_confirmado BOOLEAN,
+  p_grace_used BOOLEAN
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_entry   RECORD;
+  v_profId  UUID;
+BEGIN
+  SELECT qe.id, qe.professional_id, qe.barbershop_id,
+         p.full_name AS client_name
+  INTO v_entry
+  FROM public.queue_entries qe
+  LEFT JOIN public.profiles p ON p.id = qe.client_id
+  WHERE qe.id        = p_entry_id
+    AND qe.client_id = auth.uid()
+    AND qe.status    = 'in_service'
+  LIMIT 1;
+
+  IF v_entry IS NULL THEN
+    RETURN;
+  END IF;
+
+  v_profId := v_entry.professional_id;
+
+  IF p_confirmado THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'yes',
+        first_no_at      = NULL
+    WHERE id = p_entry_id;
+
+  ELSIF NOT p_grace_used THEN
+    -- Primeiro "Não" — registra timestamp e notifica barbeiro imediatamente
+    UPDATE public.queue_entries
+    SET client_confirmed = 'no_waiting',
+        first_no_at      = NOW()
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_not_seated',
+        'Cliente ainda não está pronto',
+        COALESCE(v_entry.client_name, 'Cliente') || ' avisou que ainda não está sentado na cadeira.',
+        jsonb_build_object(
+          'client_not_seated', true,
+          'entry_id',          p_entry_id,
+          'client_name',       COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',     v_entry.barbershop_id
+        ),
+        false,
+        NOW()
+      );
+    END IF;
+
+  ELSE
+    -- Segundo "Não" (grace expirado) — marca ausente e notifica barbeiro
+    UPDATE public.queue_entries
+    SET client_confirmed = 'absent'
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_absent',
+        'Cliente ausente 🔔',
+        COALESCE(v_entry.client_name, 'Cliente') || ' não confirmou presença na cadeira.',
+        jsonb_build_object(
+          'client_absent',  true,
+          'entry_id',       p_entry_id,
+          'client_name',    COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',  v_entry.barbershop_id
+        ),
+        false,
+        NOW()
+      );
+    END IF;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.confirmar_presenca_cliente(UUID, BOOLEAN, BOOLEAN)
+  TO authenticated;
+
 -- ================================================================
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
