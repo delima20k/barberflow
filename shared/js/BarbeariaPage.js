@@ -473,9 +473,7 @@ class BarbeariaPage {
         if (!foiRestaurado && typeof ConfirmP2PService !== 'undefined') {
           const dadosP2P = await ConfirmP2PService.tentarPull(shop.id, perfilPoller.id).catch(() => null);
           if (dadosP2P?.entradaId) {
-            const nomeCliente = typeof AuthService !== 'undefined'
-              ? (AuthService.getPerfil?.()?.full_name ?? '')
-              : '';
+            const nomeCliente = perfilPoller?.full_name ?? '';
             CadeiraConfirmacaoService.iniciarFluxo(dadosP2P.entradaId, nomeCliente, null).catch(() => {});
           }
         }

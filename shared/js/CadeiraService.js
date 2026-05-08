@@ -150,17 +150,13 @@ class CadeiraService {
     // Produção direta → in_service imediatamente
     if (tipo === 'producao') {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
-      if (clientId && typeof ConfirmP2PService !== 'undefined') {
-        ConfirmP2PService.armazenarParaCliente(clientId, entrada.id, barbershopId);
-      }
+      CadeiraService.#armazenarEmP2P(clientId, entrada.id, barbershopId);
     }
 
     // Fila de espera com produção vazia → auto-avança para in_service
     if (tipo === 'fila' && producaoVazia) {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
-      if (clientId && typeof ConfirmP2PService !== 'undefined') {
-        ConfirmP2PService.armazenarParaCliente(clientId, entrada.id, barbershopId);
-      }
+      CadeiraService.#armazenarEmP2P(clientId, entrada.id, barbershopId);
     }
 
     // Salva serviços escolhidos (tabela queue_entry_services, se existir)
@@ -199,9 +195,7 @@ class CadeiraService {
     // Auto-avança o próximo da fila de espera para produção
     if (proximo) {
       await QueueRepository.updateStatus(proximo.id, 'in_service');
-      if (proximo.client?.id && typeof ConfirmP2PService !== 'undefined') {
-        ConfirmP2PService.armazenarParaCliente(proximo.client.id, proximo.id, barbershopId);
-      }
+      CadeiraService.#armazenarEmP2P(proximo.client?.id, proximo.id, barbershopId);
     }
 
     return {
@@ -272,6 +266,18 @@ class CadeiraService {
    * @param {object} entrada  queue_entry com embed client
    * @param {string} barbershopId
    */
+  /**
+   * Notifica o ConfirmP2PService sobre uma promoção para in_service.
+   * Guard: sem-op se clientId for nulo/vazio ou serviço indisponível.
+   * @param {string|null} clientId
+   * @param {string}      entradaId
+   * @param {string}      barbershopId
+   */
+  static #armazenarEmP2P(clientId, entradaId, barbershopId) {
+    if (!clientId || typeof ConfirmP2PService === 'undefined') return;
+    ConfirmP2PService.armazenarParaCliente(clientId, entradaId, barbershopId);
+  }
+
   static async #notificarProximo(entrada, _barbershopId) {
     // Notificação gerenciada pelo trigger trg_notify_queue_on_done no banco.
     // O trigger insere em public.notifications para TODOS os clientes em espera

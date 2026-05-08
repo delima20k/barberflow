@@ -11,7 +11,7 @@
 
 const { describe, it, before, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { fn, carregar } = require('./_helpers');
+const { carregar } = require('./_helpers');
 const vm = require('node:vm');
 
 // ── MockChannelBus ─────────────────────────────────────────────────────────
@@ -100,7 +100,6 @@ describe('ConfirmP2PService — armazenarParaCliente', () => {
   });
 
   it('ignora entradaId vazio', () => {
-    S.ConfirmP2PService.armazerarParaCliente?.('c9', '', 's1');
     S.ConfirmP2PService.armazenarParaCliente('c9', '', 's1');
     assert.equal(S.ConfirmP2PService._getCacheEntry('c9'), null);
   });
@@ -138,7 +137,6 @@ describe('ConfirmP2PService — iniciarBarber idempotência', () => {
   });
 
   it('não cria segundo canal se chamado com mesmo shopId', () => {
-    const channelSpy = fn(name => bus.channel(name));
     // Substitui temporariamente o método channel para contar chamadas
     const origChannel = bus.channel.bind(bus);
     let count = 0;
