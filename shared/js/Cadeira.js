@@ -169,13 +169,14 @@ class Cadeira {
     if (tipo === 'producao') {
       if (estado === 'em_producao') {
         const primeiroNome = (entrada?.guest_name ?? entrada?.client?.full_name ?? '').split(' ')[0];
+        const strong = document.createElement('strong');
+        strong.style.color = '#1a0f00';
+        strong.textContent = primeiroNome;
+        label.appendChild(strong);
         if (confirmacao === 'yes') {
-          label.textContent = `${primeiroNome} está cortando o cabelo`;
-        } else {
-          const strong = document.createElement('strong');
-          strong.style.color = '#1a0f00';
-          strong.textContent = primeiroNome;
-          label.appendChild(strong);
+          const sufixo = document.createElement('span');
+          sufixo.textContent = ' está cortando o cabelo';
+          label.appendChild(sufixo);
         }
       } else {
         label.textContent = 'Livre';

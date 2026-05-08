@@ -901,11 +901,13 @@ class MinhaBarbeariaPage {
         label.textContent = 'Aguardando...';
       } else {
         const primeiroNome = (entrada.client?.full_name ?? entrada.guest_name ?? '').split(' ')[0];
-        if (confirmacao === 'yes') {
-          label.textContent = `${primeiroNome} está cortando o cabelo`;
-        } else {
-          label.textContent = `aguardando confirmação de ${primeiroNome}`;
-        }
+        const strong = document.createElement('strong');
+        strong.style.color = '#1a0f00';
+        strong.textContent = primeiroNome;
+        label.appendChild(strong);
+        const sufixo = document.createElement('span');
+        sufixo.textContent = confirmacao === 'yes' ? ' está cortando o cabelo' : ' aguardando confirmação';
+        label.appendChild(sufixo);
       }
     } else {
       label.textContent = entrada ? entrada.client?.full_name?.split(' ')[0] ?? entrada.guest_name ?? `#${posicao}` : '+';

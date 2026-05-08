@@ -3904,10 +3904,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-color: rgba(212,175,55,.45);
 }
 .cdr-cadeira--ocupada {
-  border: 1.5px solid var(--gold, #D4AF37);
-  background: rgba(212,175,55,.06);
+  border: none;
+  background: transparent;
 }
-.cdr-cadeira--ocupada .cdr-icon { border: 1.5px solid var(--gold, #D4AF37); }
 .cdr-cadeira--em_producao {
   border: 1.5px solid var(--gold, #D4AF37);
   background: rgba(212,175,55,.06);
@@ -3975,8 +3974,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   text-align: center;
   white-space: nowrap;
 }
-.cdr-cadeira--em_producao .cdr-label { color: #1a0f00; }
-.cdr-cadeira--ocupada .cdr-label     { color: #1a0f00; }
+.cdr-cadeira--em_producao .cdr-label { color: var(--gold, #D4AF37); }
 
 /* Nome do cliente na cadeira */
 .cdr-cliente {
