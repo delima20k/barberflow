@@ -4036,7 +4036,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Card — glassmorphism premium ── */
 .fdf-card {
-  background: #D8C05C;
+  background: #F5E9DC;
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
   border: 1.5px solid rgba(212,175,55,.55);
