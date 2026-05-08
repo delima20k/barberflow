@@ -1617,6 +1617,7 @@
   font-size: .52rem;
   width: 100%;
 }
+.mb-cadeira--producao .mb-cadeira-icon { border: 1.5px solid var(--gold, #D4AF37); border-radius: 8px; }
 /* Confirmação de presença — cadeira de produção */
 .mb-cadeira--confirmada { border: none !important; outline: none !important; }
 .mb-cadeira--confirmada .mb-cadeira-label { white-space: normal; line-height: 1.3; font-size: .52rem; }
