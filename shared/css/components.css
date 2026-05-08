@@ -4116,6 +4116,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   justify-content: space-between;
   gap: .65rem;
   margin-top: .5rem;
+  overflow: hidden;
+  background: rgba(240,220,180,.10);
+  border-radius: 12px;
+  padding: .4rem;
 }
 /* 3 ou mais botões: empilha em coluna */
 .fdf-acoes:has(> :nth-child(3)) {
