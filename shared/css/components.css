@@ -3726,8 +3726,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── BarbeiroCard (.bbc-*) ──────────────────────────────── */
 .bbc-card {
   flex-shrink: 0;
-  width: 72px;
-  min-width: 72px;
+  width: 60px;
+  min-width: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3738,11 +3738,11 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   user-select: none;
   -webkit-user-select: none;
 }
-.bbc-card--owner .bbc-avatar { border-color: var(--gold, #D4AF37); }
+.bbc-card--owner .bbc-avatar { width: 42px; height: 42px; border-color: var(--gold, #D4AF37); }
 
 .bbc-avatar {
-  width: 52px;
-  height: 52px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
@@ -3816,11 +3816,21 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
+  padding: 8px 10px;
+  border-radius: var(--r-md, 12px);
+  overflow: hidden;
+  transition: box-shadow .2s, transform .2s;
 }
 .cdr-row--skel { opacity: .35; pointer-events: none; }
 .cdr-row--owner {
   position: relative;
+  box-shadow: 0 3px 10px rgba(212,175,55,.13);
+  min-height: 72px;
+  cursor: pointer;
+}
+.cdr-row--owner:hover {
+  box-shadow: 0 6px 18px rgba(212,175,55,.24);
+  transform: translateY(-1px);
 }
 .cdr-row--owner::after {
   content: '';
@@ -3830,6 +3840,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   right: 0;
   height: 2px;
   background: linear-gradient(90deg, #7B4F2E, #D4AF37);
+}
+/* Row de membro (sem -owner): borda suave + min-height + hover */
+.cdr-row:not(.cdr-row--owner):not(.cdr-row--skel) {
+  border: 1px solid var(--border-soft, rgba(212,175,55,.12));
+  min-height: 60px;
+}
+.cdr-row:not(.cdr-row--owner):not(.cdr-row--skel):hover {
+  box-shadow: 0 3px 10px rgba(212,175,55,.14);
+  transform: translateY(-1px);
 }
 
 .cdr-cadeiras-wrap {
@@ -3863,11 +3882,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  width: 68px;
-  min-width: 68px;
-  padding: 6px 4px;
+  position: relative;
+  width: 72px;
+  min-width: 72px;
+  padding: 7px 6px;
+  padding-top: 18px;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
@@ -3928,7 +3949,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .cdr-icon {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 8px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -3941,7 +3962,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 50%;
+  border-radius: 8px;
 }
 .cdr-cadeira--em_producao .cdr-icon { border: 1.5px solid var(--gold, #D4AF37); }
 
@@ -3974,8 +3995,36 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .cdr-icon--confirmada {
   border: 2.5px solid #D4A017 !important;
-  border-radius: 50%;
+  border-radius: 8px;
   box-shadow: 0 0 8px rgba(212,175,55,.35);
+}
+
+/* Avatar flutuante do cliente acima da imagem da cadeira */
+.cdr-avatar-cli {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--gold, #D4AF37);
+  background: var(--card2, #f0e8d8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .65rem;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.cdr-avatar-cli img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cdr-cadeira--confirmada .cdr-avatar-cli {
+  top: calc(2px + 0.5rem);
 }
 .cdr-cadeira--confirmada .cdr-label {
   white-space: normal;

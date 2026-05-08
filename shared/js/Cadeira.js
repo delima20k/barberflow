@@ -66,6 +66,7 @@ class Cadeira {
     }
 
     el.appendChild(Cadeira.#criarIconWrap(tipo, entrada, confirmacao));
+    if (ocupada) el.appendChild(Cadeira.#criarAvatarCli(entrada));
     el.appendChild(Cadeira.#criarLabel(tipo, entrada, posicao, estado, confirmacao));
 
     const nomeExibido = entrada?.guest_name ?? entrada?.client?.full_name;
@@ -82,7 +83,8 @@ class Cadeira {
   // ── Privados ────────────────────────────────────────────────
 
   /**
-   * Ícone da cadeira: avatar do cliente ou imagem padrão.
+   * Ícone da cadeira: sempre exibe a imagem padrão da cadeira.
+   * O avatar do cliente flutua acima via #criarAvatarCli (position:absolute).
    */
   static #criarIconWrap(tipo, entrada, confirmacao = null) {
     const wrap = document.createElement('div');
@@ -90,11 +92,25 @@ class Cadeira {
     if (tipo === 'producao' && !!entrada && confirmacao === 'yes') {
       wrap.classList.add('cdr-icon--confirmada');
     }
+    wrap.appendChild(Cadeira.#imagemPadrao(tipo));
+    return wrap;
+  }
 
-    // Cliente walk-in (sem cadastro): exibe logo do app
+  /**
+   * Avatar flutuante do cliente (position:absolute relativo ao .cdr-cadeira).
+   * Exibido acima da imagem da cadeira quando ocupada.
+   */
+  static #criarAvatarCli(entrada) {
+    const wrap = document.createElement('div');
+    wrap.className = 'cdr-avatar-cli';
+
     const isWalkIn = entrada?.guest_name && !entrada?.client?.id;
     if (isWalkIn) {
-      wrap.appendChild(Cadeira.#imagemAppIcon());
+      const img   = document.createElement('img');
+      img.alt     = entrada.guest_name ?? 'Cliente';
+      img.loading = 'lazy';
+      img.src     = '/shared/img/icon-192.png';
+      wrap.appendChild(img);
       return wrap;
     }
 
@@ -104,14 +120,16 @@ class Cadeira {
       : null;
 
     if (url) {
-      const img   = document.createElement('img');
-      img.alt     = entrada.client.full_name ?? '';
-      img.loading = 'lazy';
-      img.src     = url;
-      img.onerror = () => { img.remove(); wrap.appendChild(Cadeira.#imagemPadrao(tipo)); };
+      const img     = document.createElement('img');
+      img.alt       = entrada.client.full_name ?? '';
+      img.loading   = 'lazy';
+      img.src       = url;
+      const inicial = (entrada.client.full_name ?? '?').charAt(0).toUpperCase();
+      img.onerror   = () => { img.remove(); wrap.textContent = inicial; };
       wrap.appendChild(img);
     } else {
-      wrap.appendChild(Cadeira.#imagemPadrao(tipo));
+      const nome = entrada?.guest_name ?? entrada?.client?.full_name ?? '?';
+      wrap.textContent = nome.charAt(0).toUpperCase();
     }
 
     return wrap;
