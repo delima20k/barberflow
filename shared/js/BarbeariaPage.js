@@ -300,7 +300,7 @@ class BarbeariaPage {
    */
   static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onCadeiraVaziaClick }) {
     const row = document.createElement('div');
-    row.className = 'cdr-row';
+    row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
     if (barbeiro.id) row.dataset.barberId = barbeiro.id;
 
     row.appendChild(BarbeiroCard.criar({

@@ -1381,7 +1381,7 @@
   transition: box-shadow .2s, transform .2s;
 }
 .mb-barbeiro-row--dono {
-  border: 1.5px solid var(--gold, #D4AF37);
+  position: relative;
   box-shadow: 0 3px 10px rgba(212,175,55,.13);
   min-height: 72px;
   cursor: pointer;
@@ -1389,6 +1389,15 @@
 .mb-barbeiro-row--dono:hover {
   box-shadow: 0 6px 18px rgba(212,175,55,.24);
   transform: translateY(-1px);
+}
+.mb-barbeiro-row--dono::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #7B4F2E, #D4AF37);
 }
 .mb-barbeiro-row--membro {
   border: 1px solid var(--border-soft, rgba(212,175,55,.12));
@@ -1505,12 +1514,13 @@
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  width: 68px;
-  min-width: 68px;
-  padding: 7px 5px;
+  position: relative; /* âncora do avatar flutuante */
+  width: 72px;
+  min-width: 72px;
+  padding: 7px 6px;
   padding-top: 18px; /* espaço para o avatar flutuante */
   border-radius: 10px;
-  overflow: visible; /* permite avatar estourar o topo */
+  overflow: visible;
   pointer-events: none; /* desabilitado por padrão */
   user-select: none;
   -webkit-user-select: none;
@@ -1529,27 +1539,27 @@
   opacity: .42;
 }
 
-/* Ícone da cadeira — base sempre visível, suporta avatar flutuante */
+/* Ícone da cadeira — 60×60 com overflow:hidden para ampliar imagem */
 .mb-cadeira-icon {
-  position: relative;
-  width: 42px;
-  height: 42px;
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 8px;
 }
 .mb-cadeira-icon > img.mb-cadeira-img-fundo {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-  opacity: .75;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-/* Avatar do cliente flutuando acima da imagem da cadeira */
+/* Avatar do cliente flutuando acima da imagem da cadeira (âncora em .mb-cadeira) */
 .mb-cadeira-avatar-cli {
   position: absolute;
-  top: -16px;
+  top: 2px;
   left: 50%;
   transform: translateX(-50%);
   width: 28px;

@@ -3819,6 +3819,18 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 4px 0;
 }
 .cdr-row--skel { opacity: .35; pointer-events: none; }
+.cdr-row--owner {
+  position: relative;
+}
+.cdr-row--owner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #7B4F2E, #D4AF37);
+}
 
 .cdr-cadeiras-wrap {
   display: flex;
@@ -3851,8 +3863,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  width: 64px;
-  min-width: 64px;
+  width: 68px;
+  min-width: 68px;
   padding: 6px 4px;
   border-radius: 10px;
   overflow: hidden;
@@ -3914,8 +3926,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* Ícone / avatar dentro da cadeira */
 .cdr-icon {
-  width: 38px;
-  height: 38px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
