@@ -45,6 +45,10 @@ class QueueConfirmService {
 
     if (role === 'client') {
       QueueConfirmService.#iniciarListenerFila(userId);
+      // Reabre modal pendente caso o cliente tenha fechado o app sem responder
+      if (typeof CadeiraConfirmacaoService !== 'undefined') {
+        CadeiraConfirmacaoService.restaurar(userId).catch(() => {});
+      }
     } else if (role === 'professional') {
       QueueConfirmService.#iniciarListenerBarbeiro();
     }
