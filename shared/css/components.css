@@ -4039,12 +4039,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background: rgba(255,255,255,.04);
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  background-image:
-    linear-gradient(rgba(255,255,255,.04), rgba(255,255,255,.04)),
-    linear-gradient(160deg, #7B4F2E, #D4AF37);
-  background-origin: padding-box, border-box;
+  border: 1.5px solid rgba(212,175,55,.55);
   border-radius: 22px;
   padding: 2rem 1.5rem;
   max-width: 340px;
@@ -4131,7 +4126,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   width: 100%;
 }
 
-/* ── Botão base ── */
+/* ── Botão base — todos quase transparentes com borda dourada ── */
 .fdf-btn {
   flex: 1;
   padding: .6rem .75rem;
@@ -4139,27 +4134,29 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: .87rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+  background: rgba(255,255,255,.06);
+  border: 1.5px solid rgba(212,175,55,.55);
+  color: var(--gold, #D4AF37);
+  box-shadow:
+    0 2px 12px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(212,175,55,.12);
+  transition: transform .18s ease, opacity .18s ease, background .18s ease, box-shadow .18s ease;
   white-space: nowrap;
 }
-.fdf-btn:hover  { transform: scale(1.04); box-shadow: 0 4px 14px rgba(0,0,0,.28); }
+.fdf-btn:hover {
+  background: rgba(212,175,55,.12);
+  box-shadow:
+    0 6px 20px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(212,175,55,.20);
+  transform: scale(1.04);
+}
 .fdf-btn:active { transform: scale(.97); opacity: .8; }
 
-/* ── Primário — dourado fosco ── */
-.fdf-btn--primario {
-  background: rgba(212,160,23,.16);
-  border: 1.5px solid rgba(212,160,23,.42);
-  color: #f5e6b8;
-}
-.fdf-btn--primario:hover { background: rgba(212,160,23,.26); }
+/* ── Primário — texto claro quente ── */
+.fdf-btn--primario { color: #f5e6b8; }
 
-/* ── Secundário — marrom fosco ── */
-.fdf-btn--secundario {
-  background: rgba(123,79,46,.18);
-  border: 1.5px solid rgba(123,79,46,.44);
-  color: var(--text, #e8d5c0);
-}
-.fdf-btn--secundario:hover { background: rgba(123,79,46,.28); }
+/* ── Secundário — texto claro ── */
+.fdf-btn--secundario { color: var(--text, #e8d5c0); }
 
 /* ── Perigo e neutro — não alterados ── */
 .fdf-btn--perigo { background: #c0392b; border: none; color: #fff; }
