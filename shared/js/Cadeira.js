@@ -167,11 +167,18 @@ class Cadeira {
     label.className = 'cdr-label';
 
     if (tipo === 'producao') {
-      if (estado === 'em_producao' && confirmacao === 'yes') {
+      if (estado === 'em_producao') {
         const primeiroNome = (entrada?.guest_name ?? entrada?.client?.full_name ?? '').split(' ')[0];
-        label.textContent = `${primeiroNome} está cortando o cabelo`;
+        if (confirmacao === 'yes') {
+          label.textContent = `${primeiroNome} está cortando o cabelo`;
+        } else {
+          const strong = document.createElement('strong');
+          strong.style.color = '#1a0f00';
+          strong.textContent = primeiroNome;
+          label.appendChild(strong);
+        }
       } else {
-        label.textContent = estado === 'em_producao' ? 'Atendendo' : 'Livre';
+        label.textContent = 'Livre';
       }
     } else {
       label.textContent = entrada ? `#${posicao}` : '—';

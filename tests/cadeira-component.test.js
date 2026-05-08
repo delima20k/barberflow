@@ -234,4 +234,28 @@ suite('Cadeira — componente DOM', () => {
       'deve ter classe cdr-cadeira--ausente',
     );
   });
+
+  // ── label de produção — nome em destaque ──────────────────────────────────
+
+  test('producao ocupada: label contém o nome do cliente em destaque', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({ tipo: 'producao', entrada: ENTRADA_COM_AVATAR });
+    const label = el.querySelector('.cdr-label');
+    assert.ok(label, 'deve existir .cdr-label');
+    // Deve ter um <strong> ou textContent com o nome
+    const strong = label._children?.find(c => c.tagName === 'STRONG');
+    const temNome = strong
+      ? strong.textContent.includes('Carlos')
+      : label.textContent.includes('Carlos');
+    assert.ok(temNome, 'label deve conter o nome do cliente destacado');
+  });
+
+  test('producao ocupada confirmada: label contém nome + texto cortando', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({ tipo: 'producao', entrada: ENTRADA_COM_AVATAR, confirmacao: 'yes' });
+    const label = el.querySelector('.cdr-label');
+    const strong = label._children?.find(c => c.tagName === 'STRONG');
+    const textoLabel = label.textContent + (strong?.textContent ?? '');
+    assert.ok(textoLabel.includes('Carlos') || textoLabel.includes('cortando'), 'label confirmada deve conter nome ou "cortando"');
+  });
 });

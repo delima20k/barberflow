@@ -324,20 +324,27 @@ class BarbeariaPage {
       confirmacao:    emServico?.client_confirmed ?? null,
     }));
 
-    // Cadeiras de fila (até 3 posições visíveis)
+    // Cadeiras de fila — dinâmicas: ocupadas + sempre 1 vazia ao final
     const naFila   = filaEntradas.filter(e => e.status === 'waiting');
     const filaWrap = document.createElement('div');
     filaWrap.className = 'cdr-fila-wrap';
-    for (let i = 0; i < 3; i++) {
-      const e = naFila[i] ?? null;
+    naFila.forEach((e, i) => {
       filaWrap.appendChild(Cadeira.criar({
         tipo:          'fila',
         entrada:       e,
         posicao:       i + 1,
-        podeInteragir: podeInteragir && !e,
-        onClick:       (!e && onCadeiraVaziaClick) ? onCadeiraVaziaClick : null,
+        podeInteragir: false,
+        onClick:       null,
       }));
-    }
+    });
+    // Cadeira vazia sempre ao final — permite entrar na fila
+    filaWrap.appendChild(Cadeira.criar({
+      tipo:          'fila',
+      entrada:       null,
+      posicao:       naFila.length + 1,
+      podeInteragir,
+      onClick:       onCadeiraVaziaClick ?? null,
+    }));
     wrap.appendChild(filaWrap);
     row.appendChild(wrap);
     return row;
