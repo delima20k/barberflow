@@ -4114,13 +4114,21 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .fdf-corpo strong { color: var(--gold, #D4A017); font-weight: 600; }
 
-/* ── Ações — botões em linha ── */
+/* ── Ações — botões em linha (2 botões) ou coluna (3+) ── */
 .fdf-acoes {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   gap: .65rem;
   margin-top: .5rem;
+}
+/* 3 ou mais botões: empilha em coluna */
+.fdf-acoes:has(> :nth-child(3)) {
+  flex-direction: column;
+  justify-content: unset;
+}
+.fdf-acoes:has(> :nth-child(3)) .fdf-btn {
+  width: 100%;
 }
 
 /* ── Botão base ── */
