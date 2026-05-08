@@ -63,7 +63,7 @@ class BarbeiroEsperaFluxo {
       corpo:  `<strong>${nome}</strong> está esperando para ser atendido.`,
       acoes: [
         { label: '✅ Sim, chegou!',          valor: 'chegou',  variante: 'primario' },
-        { label: '🗑 Chamar próximo',         valor: 'remover', variante: 'perigo'  },
+        { label: 'Chamar próximo',             valor: 'remover', variante: 'perigo'  },
         { label: '⏳ Continuar aguardando',   valor: 'aguardar', variante: 'neutro' },
       ],
       fecharBtn: false,

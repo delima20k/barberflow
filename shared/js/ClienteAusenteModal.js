@@ -42,8 +42,8 @@ class ClienteAusenteModal {
           titulo:       'Cliente ainda não está pronto',
           corpo:        `<strong>${nome}</strong> avisou que ainda não está sentado na cadeira.`,
           acoes: [
-            { label: '✅ OK, aguardar',   valor: '_aguardar', variante: 'primario'   },
-            { label: '🗑 Chamar próximo', valor: 'remover',   variante: 'secundario' },
+            { label: 'OK, aguardar',    valor: '_aguardar', variante: 'primario'   },
+            { label: 'Chamar próximo', valor: 'remover',   variante: 'secundario' },
           ],
           fecharBtn: false,
           tocarSom:  false,

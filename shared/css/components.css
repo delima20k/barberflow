@@ -4136,7 +4136,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   min-width: 0;
   padding: .6rem .75rem;
   border-radius: 10px;
-  font-size: .87rem;
+  font-size: .75rem;
   font-weight: 600;
   cursor: pointer;
   background: rgba(255,255,255,.06);
