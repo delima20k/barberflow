@@ -4163,7 +4163,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .fdf-btn--primario { color: var(--gold, #D4A017); }
 
 /* ── Secundário — mesma cor do título ── */
-.fdf-btn--secundario { color: var(--gold, #D4A017); }
+.fdf-btn--secundario { color: #1a0f00; }
 
 /* ── Perigo e neutro — não alterados ── */
 .fdf-btn--perigo { background: #c0392b; border: none; color: #fff; }

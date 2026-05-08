@@ -1580,6 +1580,10 @@
   height: 100%;
   object-fit: cover;
 }
+/* Modo confirmada (borda amarela): avatar desce 0.5rem */
+.mb-cadeira--confirmada .mb-cadeira-avatar-cli {
+  top: calc(2px + 0.5rem);
+}
 
 /* Badge de posição (#N) */
 .mb-cadeira-pos-badge {
