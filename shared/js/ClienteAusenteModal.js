@@ -21,7 +21,7 @@
 
 class ClienteAusenteModal {
 
-  static #APP_LOGO = '/shared/img/logoLeve.png';
+  static #APP_LOGO = '/shared/img/Logo01.png';
 
   /**
    * @param {object}                   opts
