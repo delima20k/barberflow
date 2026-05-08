@@ -466,9 +466,19 @@ class BarbeariaPage {
 
       // Reabre modal de confirmação pendente caso o cliente tenha fechado o app
       // sem responder (ex: app fechado enquanto estava na cadeira de produção).
-      // Só executa se há dado salvo no localStorage — sem custo extra caso contrário.
+      // 1ª tentativa: localStorage (app já havia exibido a modal antes)
+      // 2ª tentativa: P2P pull do cache do barbeiro (app nunca exibiu a modal)
       if (typeof CadeiraConfirmacaoService !== 'undefined') {
-        CadeiraConfirmacaoService.restaurar(perfilPoller.id).catch(() => {});
+        const foiRestaurado = await CadeiraConfirmacaoService.restaurar(perfilPoller.id).catch(() => false);
+        if (!foiRestaurado && typeof ConfirmP2PService !== 'undefined') {
+          const dadosP2P = await ConfirmP2PService.tentarPull(shop.id, perfilPoller.id).catch(() => null);
+          if (dadosP2P?.entradaId) {
+            const nomeCliente = typeof AuthService !== 'undefined'
+              ? (AuthService.getPerfil?.()?.full_name ?? '')
+              : '';
+            CadeiraConfirmacaoService.iniciarFluxo(dadosP2P.entradaId, nomeCliente, null).catch(() => {});
+          }
+        }
       }
     }
 

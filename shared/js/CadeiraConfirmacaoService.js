@@ -105,13 +105,14 @@ class CadeiraConfirmacaoService {
   /**
    * Verifica se existe uma modal pendente (não respondida) e, caso a entrada
    * ainda esteja in_service no banco, reabre o fluxo de confirmação.
-   * Chamado pelo QueueConfirmService logo após iniciar o listener Realtime.
+   * Chamado pelo BarbeariaPage ao entrar na tela da barbearia.
    *
    * @param {string} userId  ID do usuário logado (filtra client_id no DB)
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} true se localStorage tinha dado (P2P não necessário),
+   *                             false se localStorage estava vazio (tentar P2P pull)
    */
   static async restaurar(userId) {
-    if (!userId) return;
+    if (!userId) return false;
 
     let dados;
     try {
@@ -123,7 +124,7 @@ class CadeiraConfirmacaoService {
       dados = null;
     }
 
-    if (!dados?.entradaId) return;
+    if (!dados?.entradaId) return false;
 
     // Confirma no DB que a entrada ainda é in_service e pertence a este usuário
     try {
@@ -136,11 +137,11 @@ class CadeiraConfirmacaoService {
 
       if (error || data?.status !== 'in_service') {
         CadeiraConfirmacaoService.#limparPendente();
-        return;
+        return false;
       }
     } catch (_) {
-      // Sem rede — mantém estado pendente para próxima tentativa
-      return;
+      // Sem rede — localStorage ainda válido; não iniciar P2P
+      return true;
     }
 
     // Entry ainda in_service e não respondida — reabrir modal
@@ -149,6 +150,7 @@ class CadeiraConfirmacaoService {
       dados.clienteNome  ?? '',
       dados.shopLogoUrl  ?? null,
     );
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════
