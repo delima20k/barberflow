@@ -4036,10 +4036,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Card — glassmorphism premium ── */
 .fdf-card {
-  background: rgba(20,10,3,.82);
+  background: rgba(240,224,195,.10);
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  border: 1px solid rgba(212,160,23,.22);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-image:
+    linear-gradient(rgba(240,224,195,.10), rgba(240,224,195,.10)),
+    linear-gradient(160deg, #7B4F2E, #D4AF37);
+  background-origin: padding-box, border-box;
   border-radius: 22px;
   padding: 2rem 1.5rem;
   max-width: 340px;
@@ -4101,7 +4106,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Corpo ── */
 .fdf-corpo {
   font-size: 1rem;
-  color: var(--text, #e8d5c0);
+  color: #1a0f00;
   margin: 0;
   line-height: 1.65;
   letter-spacing: .01em;
