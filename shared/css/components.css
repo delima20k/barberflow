@@ -4036,13 +4036,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* ── Card — glassmorphism premium ── */
 .fdf-card {
-  background: rgba(240,224,195,.10);
+  background: rgba(255,255,255,.04);
   backdrop-filter: blur(18px) saturate(1.15);
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
   border: 2px solid transparent;
   background-clip: padding-box;
   background-image:
-    linear-gradient(rgba(240,224,195,.10), rgba(240,224,195,.10)),
+    linear-gradient(rgba(255,255,255,.04), rgba(255,255,255,.04)),
     linear-gradient(160deg, #7B4F2E, #D4AF37);
   background-origin: padding-box, border-box;
   border-radius: 22px;
