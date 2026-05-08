@@ -3969,6 +3969,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   white-space: normal;
   line-height: 1.3;
   font-size: .52rem;
+  width: 100%;
 }
 /* Marrom: cliente não respondeu após o grace de 5 min (ausente) */
 .cdr-cadeira--ausente {
