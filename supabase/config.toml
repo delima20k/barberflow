@@ -100,3 +100,9 @@ verify_jwt = false
 
 [functions.queue-status]
 verify_jwt = false
+
+[functions.push-subscriptions]
+verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false

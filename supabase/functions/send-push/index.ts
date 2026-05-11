@@ -239,7 +239,8 @@ class WebPushCrypto {
 // =============================================================
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
+  // OPTIONS preflight — deve responder ANTES de qualquer validação
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: CORS })
   if (req.method !== 'POST')   return json({ error: 'Method not allowed' }, 405)
 
   // ── Autenticação do barbeiro ──────────────────────────────

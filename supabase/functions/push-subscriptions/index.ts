@@ -51,7 +51,9 @@ function parseAppId(value: unknown): 'cliente' | 'profissional' {
 // ─── Handler principal ────────────────────────────────────────
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
+  // OPTIONS preflight — deve responder ANTES de qualquer validação
+  // verify_jwt=false no config.toml garante que o gateway não bloqueie aqui
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: CORS })
 
   // ── Autenticação ──────────────────────────────────────────
   const authHeader = req.headers.get('Authorization')
