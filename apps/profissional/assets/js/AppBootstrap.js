@@ -34,6 +34,7 @@ class AppBootstrap {
     { label: 'MessagesWidget',       fn: () => MessagesWidget.init('msgs-lista', 'profissional')  },
     { label: 'NotificationService',  fn: () => NotificationService.init()                         },
     { label: 'NotifPermissao',       fn: () => NotificationService.solicitarPushPermissao()        },
+    { label: 'PushSubscription',     fn: () => AppBootstrap.#iniciarPushSubscription()             },
   ];
 
   // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention
@@ -55,6 +56,33 @@ class AppBootstrap {
     AppBootstrap.#_executarSequencial();
 
     AppBootstrap.#registrarSW();
+  }
+
+  /**
+   * Registra (ou renova) a Web Push subscription do profissional.
+   * Observa mudanças de auth para inicializar no login e revogar no logout.
+   * @private
+   */
+  static #iniciarPushSubscription() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Inicializa imediatamente se já estiver logado
+    if (typeof AppState !== 'undefined' && AppState.get('isLogado')) {
+      const userId = AppState.getUserId?.();
+      if (userId) PushSubscriptionService.init(userId, 'profissional').catch(() => {});
+    }
+
+    // Escuta mudanças futuras de auth (login / logout)
+    if (typeof AppState !== 'undefined') {
+      AppState.onAuth(isLogado => {
+        if (isLogado) {
+          const userId = AppState.getUserId?.();
+          if (userId) PushSubscriptionService.init(userId, 'profissional').catch(() => {});
+        } else {
+          PushSubscriptionService.revogar().catch(() => {});
+        }
+      });
+    }
   }
 
   /**
@@ -107,6 +135,9 @@ class AppBootstrap {
           });
 
           reg.update();
+          if ('periodicSync' in reg) {
+            reg.periodicSync.register('bf-periodic-cache-refresh', { minInterval: 24 * 60 * 60 * 1000 }).catch(() => {});
+          }
           LoggerService.info('[BarberFlow Pro] SW registrado', reg.scope);
         })
         .catch(err => LoggerService.warn('[BarberFlow Pro] SW erro', err));

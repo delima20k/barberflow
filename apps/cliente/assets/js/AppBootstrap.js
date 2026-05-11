@@ -38,6 +38,7 @@ class AppBootstrap {
     { label: 'MessagesWidget',      fn: () => MessagesWidget.init('msgs-lista', 'cliente')     },
     { label: 'NotificationService', fn: () => NotificationService.init()                        },
     { label: 'NotifPermissao',      fn: () => NotificationService.solicitarPushPermissao()     },
+    { label: 'PushSubscription',    fn: () => AppBootstrap.#iniciarPushSubscription()           },
   ];
 
   // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention
@@ -62,6 +63,64 @@ class AppBootstrap {
     AppBootstrap.#iniciarConsentimentoLGPD();
 
     AppBootstrap.#registrarSW();
+  }
+
+  /**
+   * Registra (ou renova) a Web Push subscription após o SW estar pronto.
+   * Observa mudanças de auth para inicializar no login e revogar no logout.
+   * @private
+   */
+  static #iniciarPushSubscription() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // Inicializa imediatamente se já estiver logado
+    if (typeof AppState !== 'undefined' && AppState.get('isLogado')) {
+      const userId = AppState.getUserId?.();
+      if (userId) PushSubscriptionService.init(userId, 'cliente').catch(() => {});
+    }
+
+    // Escuta mudanças futuras de auth (login / logout)
+    if (typeof AppState !== 'undefined') {
+      AppState.onAuth(isLogado => {
+        if (isLogado) {
+          const userId = AppState.getUserId?.();
+          if (userId) PushSubscriptionService.init(userId, 'cliente').catch(() => {});
+        } else {
+          PushSubscriptionService.revogar().catch(() => {});
+        }
+      });
+    }
+
+    // Ouve mensagens PUSH_NAVIGATE enviadas pelo SW (app aberto)
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data?.type !== 'PUSH_NAVIGATE') return;
+      const { barbershopId, entradaId } = e.data;
+      if (!barbershopId) return;
+      document.dispatchEvent(
+        new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
+      );
+    });
+
+    // Lida com deep-link via URL params (app fechado → openWindow com ?push_barbershop=X)
+    AppBootstrap.#processarPushDeepLink();
+  }
+
+  /**
+   * Lê parâmetros de push deep-link da URL e dispara o evento de navegação.
+   * Usado quando o usuário clica na notificação com o app fechado.
+   * @private
+   */
+  static #processarPushDeepLink() {
+    const params       = new URLSearchParams(location.search);
+    const barbershopId = params.get('push_barbershop');
+    const entradaId    = params.get('push_entrada');
+    if (!barbershopId) return;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.dispatchEvent(
+        new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
+      );
+    }, { once: true });
   }
 
   /**
@@ -132,6 +191,9 @@ class AppBootstrap {
         .then(reg => {
           LoggerService.info('[BarberFlow Cliente] SW registrado', reg.scope);
           reg.update();
+          if ('periodicSync' in reg) {
+            reg.periodicSync.register('bf-periodic-cache-refresh', { minInterval: 24 * 60 * 60 * 1000 }).catch(() => {});
+          }
         })
         .catch(err => LoggerService.warn('[BarberFlow Cliente] SW erro', err));
     });
