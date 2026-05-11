@@ -150,13 +150,13 @@ class CadeiraService {
     // Produção direta → in_service imediatamente
     if (tipo === 'producao') {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
-      CadeiraService.#armazenarEmP2P(clientId, entrada.id, barbershopId);
+      CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
     }
 
     // Fila de espera com produção vazia → auto-avança para in_service
     if (tipo === 'fila' && producaoVazia) {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
-      CadeiraService.#armazenarEmP2P(clientId, entrada.id, barbershopId);
+      CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
     }
 
     // Salva serviços escolhidos (tabela queue_entry_services, se existir)
@@ -195,7 +195,11 @@ class CadeiraService {
     // Auto-avança o próximo da fila de espera para produção
     if (proximo) {
       await QueueRepository.updateStatus(proximo.id, 'in_service');
-      CadeiraService.#armazenarEmP2P(proximo.client?.id, proximo.id, barbershopId);
+      CadeiraService.#notificarClienteInService(
+        proximo.client?.id ?? null,
+        barbershopId,
+        proximo.id,
+      );
     }
 
     return {
@@ -260,29 +264,46 @@ class CadeiraService {
     return waiting[0] ?? null;
   }
 
-  /**
-   * Insere uma row na tabela notifications para o próximo cliente da fila.
-   * O NotificationService no app cliente ouve essa tabela via Realtime.
-   * @param {object} entrada  queue_entry com embed client
-   * @param {string} barbershopId
-   */
-  /**
-   * Notifica o ConfirmP2PService sobre uma promoção para in_service.
-   * Guard: sem-op se clientId for nulo/vazio ou serviço indisponível.
-   * @param {string|null} clientId
-   * @param {string}      entradaId
-   * @param {string}      barbershopId
-   */
-  static #armazenarEmP2P(clientId, entradaId, barbershopId) {
-    if (!clientId || typeof ConfirmP2PService === 'undefined') return;
-    ConfirmP2PService.armazenarParaCliente(clientId, entradaId, barbershopId);
-  }
-
   static async #notificarProximo(entrada, _barbershopId) {
     // Notificação gerenciada pelo trigger trg_notify_queue_on_done no banco.
     // O trigger insere em public.notifications para TODOS os clientes em espera
     // usando SECURITY DEFINER — sem necessidade de INSERT aqui.
     LoggerService.info('[CadeiraService] Finalização registrada — trigger DB notifica a fila.');
+  }
+
+  /**
+   * Envia Web Push para o cliente que foi movido para in_service.
+   * Best-effort: nunca bloqueia o fluxo principal — erros são silenciados.
+   * Apenas clientes cadastrados recebem push (walk-in = clientId null).
+   *
+   * Chama a Edge Function send-push autenticada com o JWT do barbeiro.
+   * @param {string|null} clientId
+   * @param {string}      barbershopId
+   * @param {string}      entradaId
+   */
+  static #notificarClienteInService(clientId, barbershopId, entradaId) {
+    if (!clientId) return; // walk-in sem conta — sem push
+
+    // Fire-and-forget: não bloqueia o fluxo do barbeiro
+    ;(async () => {
+      try {
+        const session = await SupabaseService.getSession();
+        const token   = session?.access_token;
+        if (!token) return;
+
+        await fetch(
+          'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/send-push',
+          {
+            method:  'POST',
+            headers: {
+              'Content-Type':  'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ clientId, barbershopId, entradaId, appId: 'cliente' }),
+          },
+        );
+      } catch { /* push é best-effort — silencioso */ }
+    })();
   }
 
   /**

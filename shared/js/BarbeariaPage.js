@@ -47,6 +47,12 @@ class BarbeariaPage {
     this.#cacheRefs();
     this.#observarEntrada();
     this.#bindListenerGlobal();
+
+    // Deep-link via Web Push: abre barbearia correta quando usuário clica na notificação
+    document.addEventListener('barberflow:push-deep-link', e => {
+      const { barbershopId } = e.detail ?? {};
+      if (barbershopId) this.abrirPorId(barbershopId).catch(() => {});
+    });
   }
 
   /**
@@ -464,20 +470,6 @@ class BarbeariaPage {
         });
       }
 
-      // Reabre modal de confirmação pendente caso o cliente tenha fechado o app
-      // sem responder (ex: app fechado enquanto estava na cadeira de produção).
-      // 1ª tentativa: localStorage (app já havia exibido a modal antes)
-      // 2ª tentativa: P2P pull do cache do barbeiro (app nunca exibiu a modal)
-      if (typeof CadeiraConfirmacaoService !== 'undefined') {
-        const foiRestaurado = await CadeiraConfirmacaoService.restaurar(perfilPoller.id).catch(() => false);
-        if (!foiRestaurado && typeof ConfirmP2PService !== 'undefined') {
-          const dadosP2P = await ConfirmP2PService.tentarPull(shop.id, perfilPoller.id).catch(() => null);
-          if (dadosP2P?.entradaId) {
-            const nomeCliente = perfilPoller?.full_name ?? '';
-            CadeiraConfirmacaoService.iniciarFluxo(dadosP2P.entradaId, nomeCliente, null).catch(() => {});
-          }
-        }
-      }
     }
 
     // Inicia animação DigText na seção de barbeiros

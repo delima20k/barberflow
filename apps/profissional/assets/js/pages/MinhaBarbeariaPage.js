@@ -274,11 +274,6 @@ class MinhaBarbeariaPage {
       this.#shopData       = shop;
       this.#profissionalId = perfil.id;
 
-      // Inicia cache P2P para entregar confirmações pendentes ao cliente via Realtime
-      if (typeof ConfirmP2PService !== 'undefined') {
-        ConfirmP2PService.iniciarBarber(shop.id);
-      }
-
       if (typeof BarbeiroEsperaFluxo !== 'undefined') BarbeiroEsperaFluxo.restaurar();
 
       const [servicos, stories, quotaHoje, barbeiros, filaEntradas] = await Promise.all([

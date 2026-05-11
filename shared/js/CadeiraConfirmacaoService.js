@@ -34,7 +34,7 @@ class CadeiraConfirmacaoService {
 
   // ── Constantes ──────────────────────────────────────────────
   static #GRACE_MS = 5 * 60 * 1000; // 5 minutos
-  static #LS_KEY   = 'bf_confirmacao_pendente';
+
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO — Ciclo de vida
@@ -58,9 +58,6 @@ class CadeiraConfirmacaoService {
     if (typeof QueuePoller !== 'undefined' && typeof QueuePoller.tocarSom === 'function') {
       QueuePoller.tocarSom();
     }
-
-    // Persiste modal como pendente ANTES de abrir (guard contra fechamento brusco)
-    CadeiraConfirmacaoService.#persistirPendente(entradaId, clienteNome, shopLogoUrl);
 
     // Marca como processada antes do await para evitar race em polling duplo
     CadeiraConfirmacaoService.#processadas.add(entradaId);
@@ -98,59 +95,7 @@ class CadeiraConfirmacaoService {
       }
       CadeiraConfirmacaoService.#processadas.clear();
       CadeiraConfirmacaoService.#graceAtivo.clear();
-      CadeiraConfirmacaoService.#limparPendente();
     }
-  }
-
-  /**
-   * Verifica se existe uma modal pendente (não respondida) e, caso a entrada
-   * ainda esteja in_service no banco, reabre o fluxo de confirmação.
-   * Chamado pelo BarbeariaPage ao entrar na tela da barbearia.
-   *
-   * @param {string} userId  ID do usuário logado (filtra client_id no DB)
-   * @returns {Promise<boolean>} true se localStorage tinha dado (P2P não necessário),
-   *                             false se localStorage estava vazio (tentar P2P pull)
-   */
-  static async restaurar(userId) {
-    if (!userId) return false;
-
-    let dados;
-    try {
-      const raw = typeof localStorage !== 'undefined'
-        ? localStorage.getItem(CadeiraConfirmacaoService.#LS_KEY)
-        : null;
-      dados = raw ? JSON.parse(raw) : null;
-    } catch (_) {
-      dados = null;
-    }
-
-    if (!dados?.entradaId) return false;
-
-    // Confirma no DB que a entrada ainda é in_service e pertence a este usuário
-    try {
-      const { data, error } = await ApiService
-        .from('queue_entries')
-        .select('status')
-        .eq('id',        dados.entradaId)
-        .eq('client_id', userId)
-        .single();
-
-      if (error || data?.status !== 'in_service') {
-        CadeiraConfirmacaoService.#limparPendente();
-        return false;
-      }
-    } catch (_) {
-      // Sem rede — localStorage ainda válido; não iniciar P2P
-      return true;
-    }
-
-    // Entry ainda in_service e não respondida — reabrir modal
-    await CadeiraConfirmacaoService.iniciarFluxo(
-      dados.entradaId,
-      dados.clienteNome  ?? '',
-      dados.shopLogoUrl  ?? null,
-    );
-    return true;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -195,14 +140,12 @@ class CadeiraConfirmacaoService {
   static async #processarResposta(entradaId, clienteNome, shopLogoUrl, resposta) {
     if (resposta === 'sim') {
       await CadeiraConfirmacaoService.#chamarRpc(entradaId, true, false);
-      CadeiraConfirmacaoService.#limparPendente();
       // Mantém em #processadas — não reabre modal
       return;
     }
 
-    // Resposta "nao" — 1ª vez: usuário interagiu, limpar persistência
+    // Resposta "nao" — 1ª vez: aguarda grace period
     await CadeiraConfirmacaoService.#chamarRpc(entradaId, false, false);
-    CadeiraConfirmacaoService.#limparPendente();
 
     // Agenda grace de 5 minutos
     CadeiraConfirmacaoService.#graceAtivo.add(entradaId);
@@ -258,34 +201,6 @@ class CadeiraConfirmacaoService {
         LoggerService.error('[CadeiraConfirmacaoService] RPC exception:', err?.message);
       }
     }
-  }
-
-  /**
-   * Persiste os dados da modal pendente no localStorage.
-   * Salvo antes de abrir o modal — protege contra fechamento brusco do app.
-   * @param {string}      entradaId
-   * @param {string}      clienteNome
-   * @param {string|null} shopLogoUrl
-   */
-  static #persistirPendente(entradaId, clienteNome, shopLogoUrl) {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      localStorage.setItem(
-        CadeiraConfirmacaoService.#LS_KEY,
-        JSON.stringify({ entradaId, clienteNome, shopLogoUrl, ts: Date.now() }),
-      );
-    } catch (_) { /* localStorage indisponível (modo privado restrito) */ }
-  }
-
-  /**
-   * Remove a persistência da modal pendente.
-   * Chamado após qualquer interação do usuário com a modal.
-   */
-  static #limparPendente() {
-    try {
-      if (typeof localStorage === 'undefined') return;
-      localStorage.removeItem(CadeiraConfirmacaoService.#LS_KEY);
-    } catch (_) { /* ignora */ }
   }
 
   /**
