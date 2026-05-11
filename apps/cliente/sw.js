@@ -138,7 +138,8 @@ class SWCliente {
     const cached       = await caches.match(request);
     const fetchAndSave = fetch(request).then(res => {
       if (res && res.status === 200 && res.type !== 'opaque') {
-        caches.open(SWCliente.#CACHE_IMAGES).then(c => c.put(request, res.clone()));
+        const clone = res.clone(); // clonar ANTES de qualquer operação async
+        caches.open(SWCliente.#CACHE_IMAGES).then(c => c.put(request, clone));
       }
       return res;
     }).catch(() => null);
@@ -153,7 +154,8 @@ class SWCliente {
     const cached       = await caches.match(request);
     const fetchAndSave = fetch(request).then(res => {
       if (res && res.status === 200 && res.type !== 'opaque') {
-        caches.open(SWCliente.#CACHE_STATIC).then(c => c.put(request, res.clone()));
+        const clone = res.clone(); // clonar ANTES de qualquer operação async
+        caches.open(SWCliente.#CACHE_STATIC).then(c => c.put(request, clone));
       }
       return res;
     }).catch(() => null);
