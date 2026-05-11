@@ -241,7 +241,15 @@ class WebPushCrypto {
 serve(async (req: Request) => {
   // OPTIONS preflight — deve responder ANTES de qualquer validação
   if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: CORS })
-  if (req.method !== 'POST')   return json({ error: 'Method not allowed' }, 405)
+
+  // ── Top-level try/catch: garante headers CORS mesmo em crash ─────────
+  // Sem isso, uma exceção não tratada faz o runtime retornar 500 sem CORS,
+  // e o browser bloqueia com "No Access-Control-Allow-Origin".
+  try {
+
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+
+  console.log('[send-push] POST recebido de:', req.headers.get('origin') ?? 'sem-origin')
 
   // ── Autenticação do barbeiro ──────────────────────────────
   const authHeader = req.headers.get('Authorization')
@@ -253,8 +261,14 @@ serve(async (req: Request) => {
     Deno.env.get('SUPABASE_ANON_KEY')!,
     { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
   )
-  const { data: { user: barber }, error: authErr } = await supabaseAuth.auth.getUser()
-  if (authErr || !barber) return json({ error: 'Sessão inválida' }, 401)
+  const authResult = await supabaseAuth.auth.getUser()
+  const barber     = authResult.data?.user ?? null
+  const authErr    = authResult.error
+  if (authErr || !barber) {
+    console.warn('[send-push] auth falhou:', authErr?.message ?? 'user null')
+    return json({ error: 'Sessão inválida' }, 401)
+  }
+  console.log('[send-push] barbeiro autenticado:', barber.id)
 
   // ── Parse do body ─────────────────────────────────────────
   let body: { clientId?: string; barbershopId?: string; entradaId?: string; appId?: string }
@@ -353,4 +367,10 @@ serve(async (req: Request) => {
   }
 
   return json({ ok: true, enviados, invalidas: invalidIds.length })
+
+  } catch (err) {
+    // Exceção não tratada — loga e retorna CORS para o browser não bloquear
+    console.error('[send-push] ERRO NÃO TRATADO:', (err as Error)?.message, (err as Error)?.stack)
+    return json({ error: 'Erro interno' }, 500)
+  }
 })
