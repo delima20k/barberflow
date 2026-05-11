@@ -123,11 +123,12 @@ class AppBootstrap {
     const entradaId    = params.get('push_entrada');
     if (!barbershopId) return;
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.dispatchEvent(
-        new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
-      );
-    }, { once: true });
+    // AppBootstrap.init() é chamado de dentro de DOMContentLoaded (app.js).
+    // bind() já foi registrado antes — no constructor instanciado sincronamente.
+    // Usar addEventListener('DOMContentLoaded') aqui é noop: o evento já disparou.
+    document.dispatchEvent(
+      new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
+    );
   }
 
   /**

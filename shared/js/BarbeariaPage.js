@@ -29,6 +29,7 @@ class BarbeariaPage {
   #shopData         = null;   // objeto completo da barbearia atual
   #canalFila        = null;   // canal Supabase Realtime de queue_entries
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
+  #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -50,8 +51,10 @@ class BarbeariaPage {
 
     // Deep-link via Web Push: abre barbearia correta quando usuário clica na notificação
     document.addEventListener('barberflow:push-deep-link', e => {
-      const { barbershopId } = e.detail ?? {};
-      if (barbershopId) this.abrirPorId(barbershopId).catch(() => {});
+      const { barbershopId, entradaId } = e.detail ?? {};
+      if (!barbershopId) return;
+      if (entradaId) this.#pushEntradaId = entradaId;
+      this.abrirPorId(barbershopId).catch(() => {});
     });
   }
 
@@ -433,6 +436,9 @@ class BarbeariaPage {
     // Stale-check: usuário pode ter navegado para outra barbearia durante o await
     if (this.#shopId !== shop.id) return;
 
+    // Push deep-link: se o usuário abriu o app clicando em notificação de chamada
+    this.#dispararModalPushSeNecessario(filaAtiva, shop);
+
     if (!barbeiros.length) {
       el.innerHTML = '';
       const secao = el.closest('.bp-barbeiros-secao');
@@ -527,6 +533,34 @@ class BarbeariaPage {
       try { SupabaseService.removeChannel(this.#canalFila); } catch (_) {}
       this.#canalFila       = null;
       this.#canalFilaShopId = null;
+    }
+  }
+
+  /**
+   * Se o app foi aberto via clique em push notification de chamada para cadeira,
+   * verifica se a entrada ainda está `in_service` e aciona a modal existente.
+   * Guard: limpa `#pushEntradaId` após o primeiro disparo — não reabre em re-renders.
+   * @param {object[]} filaAtiva — entradas com status waiting|in_service
+   * @param {object}   shop
+   */
+  #dispararModalPushSeNecessario(filaAtiva, shop) {
+    const entradaId = this.#pushEntradaId;
+    if (!entradaId) return;
+
+    const entrada = filaAtiva.find(e => e.id === entradaId && e.status === 'in_service');
+    if (!entrada) return;
+
+    // Limpa antes de acionar — evita re-abertura em renders subsequentes
+    this.#pushEntradaId = null;
+
+    const perfil      = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    const nome        = perfil?.full_name ?? entrada.client?.full_name ?? entrada.guest_name ?? '';
+    const shopLogoUrl = (typeof ApiService !== 'undefined' && shop?.logo_path)
+      ? ApiService.getLogoUrl(shop.logo_path)
+      : null;
+
+    if (typeof CadeiraConfirmacaoService !== 'undefined') {
+      CadeiraConfirmacaoService.iniciarFluxo(entradaId, nome, shopLogoUrl).catch(() => {});
     }
   }
 
