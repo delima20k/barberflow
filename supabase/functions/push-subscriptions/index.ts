@@ -51,9 +51,15 @@ function parseAppId(value: unknown): 'cliente' | 'profissional' {
 // ─── Handler principal ────────────────────────────────────────
 
 serve(async (req: Request) => {
+  // DEBUG — visível em Supabase Dashboard > Functions > Logs
+  console.log('[push-subscriptions] METHOD:', req.method)
+
   // OPTIONS preflight — deve responder ANTES de qualquer validação
   // verify_jwt=false no config.toml garante que o gateway não bloqueie aqui
-  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: CORS })
+  if (req.method === 'OPTIONS') {
+    console.log('[push-subscriptions] preflight respondido com 200')
+    return new Response('ok', { status: 200, headers: CORS })
+  }
 
   // ── Autenticação ──────────────────────────────────────────
   const authHeader = req.headers.get('Authorization')
@@ -96,6 +102,7 @@ serve(async (req: Request) => {
       console.error('[push-subscriptions] upsert error:', error.message)
       return json({ error: 'Erro ao salvar subscription' }, 500)
     }
+    console.log('[push-subscriptions] upsert ok, user:', user.id)
     return json({ ok: true })
   }
 

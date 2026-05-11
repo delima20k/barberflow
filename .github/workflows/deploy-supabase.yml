@@ -27,12 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
-    # No workflow_run: só executa se o validate passou.
-    # Nos outros gatilhos (push direto, dispatch): sem restrição.
-    if: |
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+    # IMPORTANTE: if: multiline com | é inválido no GitHub Actions — o job
+    # era descartado silenciosamente em todo push. Corrigido para linha única.
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
 
     steps:

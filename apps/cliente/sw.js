@@ -331,7 +331,7 @@ class SWCliente {
     self.addEventListener('notificationclick', e => SWCliente.notificationclick(e));
     // Suporte a SKIP_WAITING via postMessage (usado pelo AppBootstrap no updatefound)
     self.addEventListener('message', e => {
-      if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+      if (e.data?.type === 'SKIP_WAITING') e.waitUntil(self.skipWaiting());
     });
   }
 }
