@@ -36,6 +36,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Valida secrets obrigatórios antes de qualquer operação — falha rápido com mensagem clara
+      - name: Verificar secrets obrigatórios
+        run: |
+          MISSING=0
+          [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && echo "❌ SUPABASE_ACCESS_TOKEN ausente"  && MISSING=1 || echo "✅ SUPABASE_ACCESS_TOKEN presente"
+          [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ]  && echo "❌ SUPABASE_PROJECT_REF ausente"   && MISSING=1 || echo "✅ SUPABASE_PROJECT_REF presente"
+          [ -z "${{ secrets.SUPABASE_DB_PASSWORD }}" ]  && echo "❌ SUPABASE_DB_PASSWORD ausente"   && MISSING=1 || echo "✅ SUPABASE_DB_PASSWORD presente"
+          [ "$MISSING" = "1" ] && echo "Configure os secrets em: Settings > Secrets > Actions" && exit 1
+          exit 0
+
       # Instala a Supabase CLI via script oficial
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1

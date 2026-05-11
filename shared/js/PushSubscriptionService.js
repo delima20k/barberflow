@@ -32,7 +32,9 @@ class PushSubscriptionService {
 
   // ── Configuração ──────────────────────────────────────────
 
-  static #VAPID_PUBLIC = 'BPQvS4bnQqv53M250L7lGOGFoPGMec8lRgd2yEpqG3oVDeksvtySFFw1VhPk6na-PYbL2ZnZAobMzjFdebaQ8vk';
+  // ⚠️ VAPID public key gerada por: node scripts/gerar-vapid-keys.js
+  // Par correspondente deve estar em Supabase Secrets: VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY
+  static #VAPID_PUBLIC = 'BEo5j2EmjmOF-g2i269onWjpSzFkwe-M8GSZxWMCLJHQNUSkYNOzacir--SFYel56cKM_kWNhSa2-mu2IGNmNP0';
 
   static #EDGE_SUBS = 'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/push-subscriptions';
   static #LS_DEVICE = 'bf_device_id';
@@ -75,7 +77,17 @@ class PushSubscriptionService {
       await PushSubscriptionService.registrar(swReg, userId, appId);
       return;
     }
-    // Subscription existente — atualiza last_used_at no backend (endpoint pode ter mudado)
+
+    // Re-registra se a subscription está expirada ou expira dentro de 24 horas.
+    // A maioria dos browsers retorna null (sem expiração), mas Chrome retorna um timestamp.
+    const JANELA_RENOVACAO_MS = 24 * 60 * 60 * 1000; // 24h antecipação
+    if (sub.expirationTime !== null && sub.expirationTime <= Date.now() + JANELA_RENOVACAO_MS) {
+      try { await sub.unsubscribe(); } catch { /* ignorar — apenas limpa o estado local */ }
+      await PushSubscriptionService.registrar(swReg, userId, appId);
+      return;
+    }
+
+    // Subscription válida — atualiza last_used_at no backend
     await PushSubscriptionService.#salvarNoBackend(sub, userId, appId);
   }
 
@@ -134,11 +146,12 @@ class PushSubscriptionService {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          endpoint: sub.endpoint,
-          p256dh:   json.keys?.p256dh   ?? '',
-          auth:     json.keys?.auth     ?? '',
-          deviceId: PushSubscriptionService.#getDeviceId(),
+          endpoint:       sub.endpoint,
+          p256dh:         json.keys?.p256dh ?? '',
+          auth:           json.keys?.auth   ?? '',
+          deviceId:       PushSubscriptionService.#getDeviceId(),
           appId,
+          expirationTime: sub.expirationTime ?? null,
         }),
       });
       if (!res.ok) {

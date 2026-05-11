@@ -61,6 +61,8 @@ class AppBootstrap {
   /**
    * Registra (ou renova) a Web Push subscription do profissional.
    * Observa mudanças de auth para inicializar no login e revogar no logout.
+   * Também escuta mensagens PUSH_NAVIGATE vindas do SW (app aberto)
+   * e processa deep-links via URL params (app fechado → openWindow).
    * @private
    */
   static #iniciarPushSubscription() {
@@ -83,6 +85,40 @@ class AppBootstrap {
         }
       });
     }
+
+    // Ouve mensagens PUSH_NAVIGATE enviadas pelo SW quando o app está aberto.
+    // O SW chama existing.postMessage({ type: 'PUSH_NAVIGATE', barbershopId, entradaId })
+    // ao invés de abrir nova aba — evita duplicidade de janelas.
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data?.type !== 'PUSH_NAVIGATE') return;
+      const { barbershopId, entradaId } = e.data;
+      if (!barbershopId) return;
+      document.dispatchEvent(
+        new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
+      );
+    });
+
+    // Lida com deep-link via URL params quando o app foi aberto pelo SW (app fechado).
+    AppBootstrap.#processarPushDeepLink();
+  }
+
+  /**
+   * Lê parâmetros de push deep-link da URL e dispara o evento de navegação.
+   * Usado quando o usuário clica na notificação com o app fechado e o SW abre
+   * uma nova janela com query params (ex: ?push_barbershop=X&push_entrada=X).
+   * @private
+   */
+  static #processarPushDeepLink() {
+    const params       = new URLSearchParams(location.search);
+    const barbershopId = params.get('push_barbershop');
+    const entradaId    = params.get('push_entrada');
+    if (!barbershopId) return;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.dispatchEvent(
+        new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
+      );
+    }, { once: true });
   }
 
   /**

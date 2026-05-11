@@ -19,8 +19,9 @@ interface SubscribeBody {
   endpoint: string
   p256dh:   string
   auth:     string
-  deviceId?: string
-  appId?:    'cliente' | 'profissional'
+  deviceId?:        string
+  appId?:           'cliente' | 'profissional'
+  expirationTime?:  number | null
 }
 
 interface DeleteBody {
@@ -79,7 +80,7 @@ serve(async (req: Request) => {
     let body: SubscribeBody
     try { body = await req.json() } catch { return json({ error: 'Body JSON inválido' }, 422) }
 
-    const { endpoint, p256dh, auth, deviceId, appId } = body
+    const { endpoint, p256dh, auth, deviceId, appId, expirationTime } = body
     if (!endpoint || !p256dh || !auth) {
       return json({ error: 'endpoint, p256dh e auth são obrigatórios' }, 422)
     }
@@ -87,15 +88,16 @@ serve(async (req: Request) => {
     const { error } = await supabase
       .from('push_subscriptions')
       .upsert({
-        user_id:      user.id,
+        user_id:         user.id,
         endpoint,
         p256dh,
-        auth_key:     auth,
-        device_id:    deviceId  ?? null,
-        app_id:       parseAppId(appId),
-        is_valid:     true,
-        last_used_at: new Date().toISOString(),
-        updated_at:   new Date().toISOString(),
+        auth_key:        auth,
+        device_id:       deviceId        ?? null,
+        app_id:          parseAppId(appId),
+        is_valid:        true,
+        last_used_at:    new Date().toISOString(),
+        updated_at:      new Date().toISOString(),
+        expiration_time: expirationTime ? new Date(expirationTime).toISOString() : null,
       }, { onConflict: 'endpoint' })
 
     if (error) {
