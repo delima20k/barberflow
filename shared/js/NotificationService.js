@@ -327,6 +327,9 @@ class NotificationService {
       // Tenta forçar o diálogo nativo diretamente (Chrome, Firefox, Android WebView)
       const resultado = await Notification.requestPermission();
       if (resultado === 'granted') {
+        // Avisa o AppBootstrap para registrar a subscription agora que a permissão foi concedida.
+        // Isso resolve o race condition: init() era chamado antes do requestPermission() completar.
+        document.dispatchEvent(new CustomEvent('bf:push-permission-granted'));
         NotificationService.criar(
           NotificationService.TIPOS.SISTEMA,
           'Notificações ativadas! 🔔',
@@ -353,6 +356,7 @@ class NotificationService {
     try {
       const resultado = await Notification.requestPermission();
       if (resultado === 'granted') {
+        document.dispatchEvent(new CustomEvent('bf:push-permission-granted'));
         NotificationService.criar(
           NotificationService.TIPOS.SISTEMA,
           'Notificações ativadas! 🔔',

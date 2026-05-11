@@ -86,6 +86,15 @@ class AppBootstrap {
       });
     }
 
+    // Quando o usuário concede permissão nesta sessão, registra a subscription.
+    // Resolve o race condition: init() era chamado antes de requestPermission() completar,
+    // saindo cedo porque Notification.permission era 'default'.
+    document.addEventListener('bf:push-permission-granted', () => {
+      if (typeof AppState === 'undefined' || !AppState.get('isLogado')) return;
+      const userId = AppState.getUserId?.();
+      if (userId) PushSubscriptionService.init(userId, 'profissional').catch(() => {});
+    }, { once: true });
+
     // Ouve mensagens PUSH_NAVIGATE enviadas pelo SW quando o app está aberto.
     // O SW chama existing.postMessage({ type: 'PUSH_NAVIGATE', barbershopId, entradaId })
     // ao invés de abrir nova aba — evita duplicidade de janelas.

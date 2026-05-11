@@ -17,13 +17,13 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v130';
-  static #CACHE_IMAGES   = 'bf-pro-images-v130';
-  static #CACHE_SHELL    = 'bf-pro-shell-v130';
+  static #CACHE_STATIC   = 'bf-pro-static-v131';
+  static #CACHE_IMAGES   = 'bf-pro-images-v131';
+  static #CACHE_SHELL    = 'bf-pro-shell-v131';
   static #CACHES_VALIDOS = new Set([
-    'bf-pro-static-v130',
-    'bf-pro-images-v130',
-    'bf-pro-shell-v130',
+    'bf-pro-static-v131',
+    'bf-pro-images-v131',
+    'bf-pro-shell-v131',
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
@@ -188,6 +188,7 @@ class SWProfissional {
   // Payload esperado (JSON cifrado pela Edge Function send-push):
   //   { title, body, icon, badge, tag, vibrate, data: { url, barbershopId, entradaId } }
   static push(e) {
+    console.log('[SW-Pro] push recebido, tem payload:', !!e.data);
     e.waitUntil((async () => {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
@@ -206,6 +207,7 @@ class SWProfissional {
       };
 
       await self.registration.showNotification(title, opts);
+      console.log('[SW-Pro] showNotification ok, tag:', opts.tag);
     })());
   }
 

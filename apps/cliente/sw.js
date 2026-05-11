@@ -17,13 +17,13 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v153';
-  static #CACHE_IMAGES    = 'bf-cli-images-v153';
-  static #CACHE_SHELL     = 'bf-cli-shell-v153';
+  static #CACHE_STATIC    = 'bf-cli-static-v154';
+  static #CACHE_IMAGES    = 'bf-cli-images-v154';
+  static #CACHE_SHELL     = 'bf-cli-shell-v154';
   static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v153',
-    'bf-cli-images-v153',
-    'bf-cli-shell-v153',
+    'bf-cli-static-v154',
+    'bf-cli-images-v154',
+    'bf-cli-shell-v154',
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
@@ -182,6 +182,7 @@ class SWCliente {
   // Payload esperado (JSON cifrado pela Edge Function send-push):
   //   { title, body, icon, badge, tag, requireInteraction, vibrate, data: { url, barbershopId, entradaId } }
   static push(e) {
+    console.log('[SW-Cliente] push recebido, tem payload:', !!e.data);
     e.waitUntil((async () => {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
@@ -201,6 +202,7 @@ class SWCliente {
       };
 
       await self.registration.showNotification(title, opts);
+      console.log('[SW-Cliente] showNotification ok, tag:', opts.tag);
     })());
   }
 

@@ -53,7 +53,10 @@ class PushSubscriptionService {
   static async init(userId, appId) {
     if (!PushSubscriptionService.#suportado()) return;
     if (!userId) return;
-    if (Notification.permission !== 'granted') return;
+    if (Notification.permission !== 'granted') {
+      console.log('[Push] init: permissão não concedida:', Notification.permission);
+      return;
+    }
 
     try {
       const reg = await navigator.serviceWorker.ready;
@@ -106,6 +109,7 @@ class PushSubscriptionService {
         PushSubscriptionService.#VAPID_PUBLIC,
       ),
     });
+    console.log('[Push] subscription criada ✓', sub.endpoint.slice(0, 50) + '...');
     await PushSubscriptionService.#salvarNoBackend(sub, userId, appId);
     return sub;
   }
@@ -156,6 +160,8 @@ class PushSubscriptionService {
       });
       if (!res.ok) {
         LoggerService.warn('[PushSubscriptionService] backend retornou', res.status);
+      } else {
+        console.log('[Push] subscription salva no backend ✓');
       }
     } catch (err) {
       // Erro de rede ou CORS — não crítico, subscription já está ativa no browser
