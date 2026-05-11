@@ -125,35 +125,47 @@ class PushSubscriptionService {
     const token = await PushSubscriptionService.#getToken();
     if (!token) return;
 
-    const json = sub.toJSON();
-    await fetch(PushSubscriptionService.#EDGE_SUBS, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        endpoint: sub.endpoint,
-        p256dh:   json.keys?.p256dh   ?? '',
-        auth:     json.keys?.auth     ?? '',
-        deviceId: PushSubscriptionService.#getDeviceId(),
-        appId,
-      }),
-    });
+    try {
+      const json = sub.toJSON();
+      const res  = await fetch(PushSubscriptionService.#EDGE_SUBS, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          endpoint: sub.endpoint,
+          p256dh:   json.keys?.p256dh   ?? '',
+          auth:     json.keys?.auth     ?? '',
+          deviceId: PushSubscriptionService.#getDeviceId(),
+          appId,
+        }),
+      });
+      if (!res.ok) {
+        LoggerService.warn('[PushSubscriptionService] backend retornou', res.status);
+      }
+    } catch (err) {
+      // Erro de rede ou CORS — não crítico, subscription já está ativa no browser
+      LoggerService.warn('[PushSubscriptionService] salvarNoBackend falhou:', err?.message);
+    }
   }
 
   static async #deletarNoBackend(endpoint) {
     const token = await PushSubscriptionService.#getToken();
     if (!token) return;
 
-    await fetch(PushSubscriptionService.#EDGE_SUBS, {
-      method:  'DELETE',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ endpoint }),
-    });
+    try {
+      await fetch(PushSubscriptionService.#EDGE_SUBS, {
+        method:  'DELETE',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ endpoint }),
+      });
+    } catch (err) {
+      LoggerService.warn('[PushSubscriptionService] deletarNoBackend falhou:', err?.message);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
