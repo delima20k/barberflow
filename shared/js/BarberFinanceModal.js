@@ -21,6 +21,13 @@ class BarberFinanceModal {
     cartao:   'Cartão',
   });
 
+  // Sufixo CSS permitido por método — sem valores livres do banco em atributos DOM
+  static #METODO_CLASSE = Object.freeze({
+    pix:      'pix',
+    dinheiro: 'dinheiro',
+    cartao:   'cartao',
+  });
+
   // ═══════════════════════════════════════════════════════════
   // API PÚBLICA
   // ═══════════════════════════════════════════════════════════
@@ -113,7 +120,8 @@ class BarberFinanceModal {
     listaEl.innerHTML = transacoes.map(t => {
       const data    = BarberFinanceModal.#formatarData(t.paid_at);
       const cliente = t.client?.full_name ? BarberFinanceModal.#escapar(t.client.full_name) : 'Walk-in';
-      const metodo  = BarberFinanceModal.#METODO_LABEL[t.payment_method] ?? t.payment_method ?? '—';
+      const metodo  = BarberFinanceModal.#METODO_LABEL[t.payment_method] ?? '—';
+      const classe  = BarberFinanceModal.#METODO_CLASSE[t.payment_method] ?? 'outro';
       const valor   = BarberFinanceModal.#formatarValor(t.amount);
 
       return `
@@ -123,7 +131,7 @@ class BarberFinanceModal {
             <span class="bfm-item-data">${data}</span>
           </div>
           <div class="bfm-item-valores">
-            <span class="bfm-item-metodo bfm-metodo--${t.payment_method ?? 'outro'}">${metodo}</span>
+            <span class="bfm-item-metodo bfm-metodo--${classe}">${metodo}</span>
             <span class="bfm-item-valor">${valor}</span>
           </div>
         </li>`;

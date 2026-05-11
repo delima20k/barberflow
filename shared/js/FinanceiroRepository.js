@@ -65,7 +65,7 @@ class FinanceiroRepository {
     if (!r.ok) throw new TypeError(`[FinanceiroRepository] barbershopId: ${r.msg}`);
 
     const { data, error } = await ApiService.from('transactions')
-      .select('professional_id, amount, professional:profiles!professional_id(full_name)')
+      .select('professional_id, amount, professional:professionals!professional_id(profile:profiles!id(full_name))')
       .eq('barbershop_id', barbershopId)
       .eq('type', 'revenue')
       .eq('status', 'paid')
@@ -78,7 +78,7 @@ class FinanceiroRepository {
     const map = new Map();
     for (const t of (data ?? [])) {
       const id   = t.professional_id;
-      const nome = t.professional?.full_name ?? 'Barbeiro';
+      const nome = t.professional?.profile?.full_name ?? 'Barbeiro';
       if (!map.has(id)) map.set(id, { professionalId: id, nome, count: 0, total: 0 });
       const g = map.get(id);
       g.count++;

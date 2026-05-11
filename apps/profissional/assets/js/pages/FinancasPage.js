@@ -24,6 +24,7 @@ class FinancasPage {
   #shopId          = null;
   #canalTransacoes = null;
   #carregando      = false;
+  #resolvendo      = false;   // guard contra chamadas concorrentes a #resolverShopId
   #refs            = {};
 
   constructor() {}
@@ -69,6 +70,9 @@ class FinancasPage {
 
   #bindFiltros() {
     this.#telaEl.querySelectorAll('.fin-btn-periodo').forEach(btn => {
+      // Estado inicial de acessibilidade
+      btn.setAttribute('aria-pressed', btn.classList.contains('fin-btn-periodo--ativo') ? 'true' : 'false');
+
       btn.addEventListener('click', () => {
         this.#telaEl.querySelectorAll('.fin-btn-periodo').forEach(b => {
           b.classList.remove('fin-btn-periodo--ativo');
@@ -94,41 +98,52 @@ class FinancasPage {
   // ══════════════════════════════════════════════════════════
 
   async #aoEntrar() {
-    if (!this.#shopId) {
+    if (!this.#shopId && !this.#resolvendo) {
       await this.#resolverShopId();
       if (!this.#shopId) return;
+    } else if (this.#resolvendo) {
+      return;
     }
     await this.#carregar();
     this.#iniciarRealtime();
   }
 
   async #resolverShopId() {
+    this.#resolvendo = true;
     try {
       const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
       if (!perfil?.id) return;
 
-      const { data, error } = await ApiService.from('barbershops')
+      // 1. Tenta como dono da barbearia
+      const { data: shopData, error: shopErr } = await ApiService.from('barbershops')
         .select('id')
         .eq('owner_id', perfil.id)
         .eq('is_active', true)
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (shopErr && shopErr.code !== 'PGRST116') throw shopErr;
 
-      // Barbeiro convidado: busca via professionals
-      if (!data) {
-        const { data: profData } = await ApiService.from('professionals')
-          .select('barbershop_id')
-          .eq('id', perfil.id)
-          .limit(1)
-          .single();
-        this.#shopId = profData?.barbershop_id ?? null;
-      } else {
-        this.#shopId = data.id;
+      if (shopData?.id) {
+        this.#shopId = shopData.id;
+        return;
       }
+
+      // 2. Barbeiro convidado: vínculo via professional_shop_links
+      //    (professionals não tem coluna barbershop_id)
+      const { data: linkData, error: linkErr } = await ApiService.from('professional_shop_links')
+        .select('barbershop_id')
+        .eq('professional_id', perfil.id)
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      if (linkErr && linkErr.code !== 'PGRST116') throw linkErr;
+      this.#shopId = linkData?.barbershop_id ?? null;
     } catch (err) {
       LoggerService.warn('[FinancasPage] erro ao resolver shopId:', err?.message);
+    } finally {
+      this.#resolvendo = false;
     }
   }
 
@@ -190,7 +205,7 @@ class FinancasPage {
 
     el.innerHTML = barbeiros.map(b => {
       const inicial = String(b.nome ?? '?').trim().charAt(0).toUpperCase() || '?';
-      const total   = `R$ ${b.total.toFixed(2).replace('.', ',')}`;
+      const total   = `R$ ${(Number(b.total) || 0).toFixed(2).replace('.', ',')}`;
       return `
         <button class="fin-barber-card"
                 data-prof-id="${FinancasPage.#escapar(b.professionalId)}"

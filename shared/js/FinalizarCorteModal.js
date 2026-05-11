@@ -79,21 +79,22 @@ class FinalizarCorteModal {
         });
       });
 
-      btnConfirmar.addEventListener('click', () => {
-        if (!metodoSelecionado) return;
-        _fechar(true);
-      });
-      overlay.querySelector('.fcm-btn--cancelar').addEventListener('click', () => _fechar(false));
-      overlay.addEventListener('click', e => { if (e.target === overlay) _fechar(false); });
-      const onKey = e => { if (e.key === 'Escape') _fechar(false); };
-      document.addEventListener('keydown', onKey);
-
-      function _fechar(confirmado) {
+      const fechar = confirmado => {
         document.removeEventListener('keydown', onKey);
         overlay.classList.add('fcm-overlay--saindo');
         setTimeout(() => overlay.remove(), 220);
         resolve({ confirmado, paymentMethod: confirmado ? metodoSelecionado : null });
-      }
+      };
+
+      const onKey = e => { if (e.key === 'Escape') fechar(false); };
+      document.addEventListener('keydown', onKey);
+
+      btnConfirmar.addEventListener('click', () => {
+        if (!metodoSelecionado) return;
+        fechar(true);
+      });
+      overlay.querySelector('.fcm-btn--cancelar').addEventListener('click', () => fechar(false));
+      overlay.addEventListener('click', e => { if (e.target === overlay) fechar(false); });
 
       document.body.appendChild(overlay);
       requestAnimationFrame(() => overlay.classList.add('fcm-overlay--visivel'));
