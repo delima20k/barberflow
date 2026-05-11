@@ -606,13 +606,25 @@ class MinhaBarbeariaPage {
     } catch (_) { /* ignora — modal mostra "Fila vazia" */ }
 
     const clienteNome = entrada?.client?.full_name ?? 'Cliente';
-    const confirmado  = await FinalizarCorteModal.abrir({ clienteNome, proximoNome });
-    if (!confirmado) return;
+    const resultado   = await FinalizarCorteModal.abrir({ clienteNome, proximoNome });
+    if (!resultado.confirmado) return;
 
     try {
       const { proximoNome: nomeChamado } = await CadeiraService.finalizar(
         entrada.id, this.#barbershopId, profId,
       );
+
+      // Registra financeiro em fire-and-forget — não bloqueia o re-render
+      if (typeof FinanceiroService !== 'undefined') {
+        FinanceiroService.registrarCorte({
+          entradaId:       entrada.id,
+          barbershopId:    this.#barbershopId,
+          professionalId:  profId ?? this.#profissionalId,
+          clientId:        entrada.client?.id ?? null,
+          paymentMethod:   resultado.paymentMethod,
+        }).catch(err => LoggerService.warn('[MinhaBarbeariaPage] financeiro:', err?.message));
+      }
+
       const msg = nomeChamado
         ? `Em atendimento: ${nomeChamado}`
         : 'Fila vazia agora.';

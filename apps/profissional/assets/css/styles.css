@@ -2181,3 +2181,400 @@
   color: rgba(245,233,220,0.8); text-transform: uppercase; margin: 0;
 }
 @keyframes psFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+
+/* ================================================================
+   FINANCAS — Dashboard financeiro
+================================================================ */
+
+/* Filtro de período */
+.fin-filtro-wrap {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 20px;
+  flex-wrap: wrap;
+}
+.fin-btn-periodo {
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-soft, rgba(212,175,55,.2));
+  background: transparent;
+  color: var(--text-muted);
+  font-size: .85rem;
+  cursor: pointer;
+  transition: all .18s;
+  font-weight: 500;
+}
+.fin-btn-periodo--ativo {
+  background: var(--gold, #D4AF37);
+  color: #1a0f00;
+  border-color: var(--gold, #D4AF37);
+  font-weight: 700;
+}
+
+/* Cards de resumo */
+.fin-resumo-grid {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.fin-card-resumo {
+  flex: 1;
+  background: var(--card, #fff9f0);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.07);
+}
+.fin-card-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin: 0 0 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.fin-card-valor {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+.fin-card-valor--destaque { color: var(--gold, #D4AF37); }
+
+/* Título de seção */
+.fin-section-titulo {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin: 0 0 12px;
+}
+
+/* Grid de barbeiros */
+.fin-barbeiros-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (min-width: 600px) {
+  .fin-barbeiros-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.fin-barber-card {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  background: var(--card, #fff9f0);
+  border-radius: 14px;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: box-shadow .18s, transform .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fin-barber-card:hover {
+  box-shadow: 0 4px 18px rgba(212,175,55,.18);
+  transform: translateY(-2px);
+}
+.fin-barber-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gold, #D4AF37);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a0f00;
+}
+.fin-barber-nome {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.fin-barber-meta {
+  font-size: .72rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.fin-barber-total {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+}
+.fin-barber-chevron {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  align-self: flex-end;
+  margin-top: auto;
+}
+
+/* Estado vazio */
+.fin-vazio-msg {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 0;
+  font-size: .9rem;
+  margin: 0;
+}
+
+/* Skeleton de carregamento */
+.fin-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fin-skel-card {
+  height: 80px;
+  border-radius: 14px;
+  background: linear-gradient(90deg,
+    var(--card2, #f0e8dc) 25%,
+    var(--card, #fff9f0) 50%,
+    var(--card2, #f0e8dc) 75%
+  );
+  background-size: 200% 100%;
+  animation: finSkeleton 1.4s infinite;
+}
+@keyframes finSkeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ================================================================
+   BarberFinanceModal
+================================================================ */
+.bfm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 9600;
+  opacity: 0;
+  transition: opacity .22s;
+}
+.bfm-overlay--visivel { opacity: 1; }
+.bfm-overlay--saindo  { opacity: 0; }
+
+.bfm-card {
+  background: var(--card, #fff9f0);
+  border-radius: 18px 18px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(32px);
+  transition: transform .22s;
+}
+.bfm-overlay--visivel .bfm-card { transform: translateY(0); }
+
+.bfm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
+}
+.bfm-header-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bfm-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gold, #D4AF37);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a0f00;
+  flex-shrink: 0;
+}
+.bfm-nome {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.bfm-periodo-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+.bfm-fechar {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 8px;
+  transition: background .15s;
+}
+.bfm-fechar:hover { background: rgba(0,0,0,.06); }
+
+.bfm-total-wrap {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-shrink: 0;
+}
+.bfm-total-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin: 0 0 2px;
+}
+.bfm-total-valor {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+}
+.bfm-skeleton-line {
+  background: linear-gradient(90deg,
+    var(--card2, #f0e8dc) 25%,
+    var(--card, #fff9f0) 50%,
+    var(--card2, #f0e8dc) 75%
+  );
+  background-size: 200% 100%;
+  animation: finSkeleton 1.4s infinite;
+  color: transparent !important;
+  border-radius: 8px;
+  min-width: 80px;
+  display: inline-block;
+}
+
+.bfm-lista-wrap {
+  flex: 1;
+  overflow-y: auto;
+}
+.bfm-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bfm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border-soft, rgba(0,0,0,.06));
+}
+.bfm-item--vazio {
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: .88rem;
+  padding: 40px 18px;
+}
+.bfm-item--skel { gap: 0; }
+.bfm-skel-line {
+  flex: 1;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--card2, #f0e8dc) 25%,
+    var(--card, #fff9f0) 50%,
+    var(--card2, #f0e8dc) 75%
+  );
+  background-size: 200% 100%;
+  animation: finSkeleton 1.4s infinite;
+}
+.bfm-skel-val {
+  width: 60px;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--card2, #f0e8dc) 25%,
+    var(--card, #fff9f0) 50%,
+    var(--card2, #f0e8dc) 75%
+  );
+  background-size: 200% 100%;
+  animation: finSkeleton 1.4s infinite;
+}
+.bfm-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bfm-item-cliente {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.bfm-item-data {
+  font-size: .75rem;
+  color: var(--text-muted);
+}
+.bfm-item-valores {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.bfm-item-valor {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.bfm-item-metodo {
+  font-size: .72rem;
+  color: var(--text-muted);
+}
+
+/* ================================================================
+   FinalizarCorteModal — Método de pagamento
+================================================================ */
+.fcm-pagamento-label {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.fcm-metodos {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.fcm-metodo {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-soft, rgba(212,175,55,.2));
+  background: transparent;
+  color: var(--text-muted);
+  font-size: .8rem;
+  cursor: pointer;
+  transition: all .18s;
+}
+.fcm-metodo:hover {
+  border-color: var(--gold, #D4AF37);
+  color: var(--text);
+}
+.fcm-metodo--ativo {
+  background: var(--gold, #D4AF37);
+  color: #1a0f00;
+  border-color: var(--gold, #D4AF37);
+  font-weight: 700;
+}
+.fcm-metodo-icone { font-size: 1.3rem; }
+.fcm-metodo-label { font-size: .77rem; font-weight: 600; }

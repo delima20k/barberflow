@@ -663,12 +663,29 @@
         <p class="parcerias-sub">Controle de ganhos, comissões e resumo financeiro.</p>
       </div>
 
-      <!-- Conteúdo será construído em breve -->
-      <div id="financas-content" style="margin-top:2rem;text-align:center;color:var(--text-muted);">
-        <img src="/shared/img/finaca.svg" alt="Finanças"
-             style="width:80px;opacity:.6;margin-bottom:1rem;">
-        <p style="font-size:.95rem;">Em breve: relatórios, extrato e gestão financeira.</p>
+      <!-- Filtro de período -->
+      <div id="fin-filtro" class="fin-filtro-wrap" role="group" aria-label="Filtro de período">
+        <button class="fin-btn-periodo fin-btn-periodo--ativo" data-periodo="hoje">Hoje</button>
+        <button class="fin-btn-periodo" data-periodo="semana">Semana</button>
+        <button class="fin-btn-periodo" data-periodo="mes">Mês</button>
+        <button class="fin-btn-periodo" data-periodo="total">Total</button>
       </div>
+
+      <!-- Cards de resumo geral -->
+      <div id="fin-resumo" class="fin-resumo-grid" aria-label="Resumo financeiro" aria-live="polite"></div>
+
+      <!-- Seção de barbeiros -->
+      <h2 id="fin-barbeiros-titulo" class="fin-section-titulo" hidden>Equipe</h2>
+      <div id="fin-barbeiros" class="fin-barbeiros-grid" aria-label="Totais por barbeiro" aria-live="polite"></div>
+
+      <!-- Estado de carregamento -->
+      <div id="fin-loading" class="fin-loading" hidden aria-hidden="true">
+        <div class="fin-skel-card"></div>
+        <div class="fin-skel-card"></div>
+      </div>
+
+      <!-- Estado vazio -->
+      <p id="fin-vazio" hidden class="fin-vazio-msg">Nenhum corte registrado neste período.</p>
     </div>
   </main>
 
@@ -2099,6 +2116,9 @@
 <script src="/shared/js/ClienteSeletorModal.js"></script>
 <script src="/shared/js/CorteModal.js"></script>
 <script src="/shared/js/FinalizarCorteModal.js"></script>
+<script src="/shared/js/FinanceiroRepository.js"></script>
+<script src="/shared/js/FinanceiroService.js"></script>
+<script src="/shared/js/BarberFinanceModal.js"></script>
 <script src="/shared/js/FluxoDeFila.js"></script>
 <script src="/shared/js/ConfirmacaoCorteModal.js"></script>
 <script src="/shared/js/ClienteAusenteModal.js"></script>
