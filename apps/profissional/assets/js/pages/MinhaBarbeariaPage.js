@@ -31,20 +31,22 @@ class MinhaBarbeariaPage {
   #subTelaAtiva    = null;   // sub-painel aberto no momento
   #conviteBarbeiroId = null;
   #conviteTipo       = 'porcentagem';
-  #carregou     = false;
-  #barbershopId = null;
-  #isOwner      = false;  // true se o usuário é dono da barbearia
-  #shopData     = null;   // dados da barbearia (pré-preenchimento GPS)
-  #servicos     = [];     // serviços da barbearia — reutilizados nas modais de corte
-  #profissionalId = null; // UUID do profissional logado (para sentar na fila)
-  #coordsGps    = null;   // coordenadas GPS capturadas no sub-painel
-  #digGps       = null;   // instância DigText para o p.gps-dig
-  #digBoasVindas= null;   // instância DigText para o h1#mb-boas-vindas
-  #guardaBotoes = null;   // instância GuardaIten para a gaveta de botões
-  #mediaP2P     = new MediaP2P(); // preview local P2P — upload adiado para o save
-  #canalFila    = null;   // canal Supabase Realtime de queue_entries
-  #pollingTimer = null;   // fallback polling quando Realtime indisponível
-  #refs         = {};
+  #carregou             = false;
+  #barbershopId         = null;
+  #isOwner              = false;  // true se o usuário é dono da barbearia
+  #shopData             = null;   // dados da barbearia (pré-preenchimento GPS)
+  #servicos             = [];     // serviços da barbearia — reutilizados nas modais de corte
+  #profissionalId       = null;   // UUID do profissional logado (para sentar na fila)
+  #coordsGps            = null;   // coordenadas GPS capturadas no sub-painel
+  #digGps               = null;   // instância DigText para o p.gps-dig
+  #digBoasVindas        = null;   // instância DigText para o h1#mb-boas-vindas
+  #guardaBotoes         = null;   // instância GuardaIten para a gaveta de botões
+  #mediaP2P             = new MediaP2P(); // preview local P2P — upload adiado para o save
+  #canalFila            = null;   // canal Supabase Realtime de queue_entries
+  #pollingTimer         = null;   // fallback polling quando Realtime indisponível
+  #renderizandoEquipe   = false;  // guard: evita re-renders simultâneos de cadeiras
+  #reRenderPendente     = false;  // sinaliza update chegado durante render em curso
+  #refs                 = {};
 
   constructor() {}
 
@@ -495,6 +497,18 @@ class MinhaBarbeariaPage {
    */
   async #reRenderEquipe() {
     if (!this.#barbershopId) return;
+
+    // Guard de concorrência: Realtime e fluxoFinalizar podem disparar ao mesmo tempo.
+    // Se já há um render em curso, marca pendente e sai — ao fim do render atual
+    // um novo ciclo é disparado automaticamente para não perder o update.
+    if (this.#renderizandoEquipe) {
+      this.#reRenderPendente = true;
+      return;
+    }
+
+    this.#renderizandoEquipe = true;
+    this.#reRenderPendente   = false;
+
     try {
       const perfil = AuthService.getPerfil();
       const [barbeiros, filaEntradas] = await Promise.all([
@@ -504,6 +518,10 @@ class MinhaBarbeariaPage {
       this.#renderEquipe(barbeiros, this.#shopData?.owner_id ?? '', perfil, filaEntradas);
     } catch (err) {
       LoggerService.warn('[MinhaBarbeariaPage] #reRenderEquipe erro:', err);
+    } finally {
+      this.#renderizandoEquipe = false;
+      // Se um update chegou enquanto renderizávamos, executa mais um ciclo agora
+      if (this.#reRenderPendente) this.#reRenderEquipe();
     }
   }
 
@@ -622,7 +640,14 @@ class MinhaBarbeariaPage {
           professionalId:  profId ?? this.#profissionalId,
           clientId:        entrada.client?.id ?? null,
           paymentMethod:   resultado.paymentMethod,
-        }).catch(err => LoggerService.warn('[MinhaBarbeariaPage] financeiro:', err?.message));
+        }).catch(err => {
+          LoggerService.warn('[MinhaBarbeariaPage] financeiro:', err?.message);
+          NotificationService.mostrarToast(
+            'Aviso financeiro',
+            'Corte finalizado, mas não foi possível registrar o valor. Tente novamente.',
+            NotificationService.TIPOS.SISTEMA,
+          );
+        });
       }
 
       const msg = nomeChamado

@@ -69,6 +69,9 @@ class FinanceiroService {
    * @returns {Promise<{geral:{count:number,total:number}, barbeiros:object[]}>}
    */
   static async getResumo(barbershopId, periodo) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[FinanceiroService] barbershopId: ${r.msg}`);
+
     const { de, ate } = FinanceiroService.#periodoParaDatas(periodo);
     const [geral, barbeiros] = await Promise.all([
       FinanceiroRepository.getTotalPeriodo(barbershopId, { de, ate }),
