@@ -109,6 +109,7 @@ class BarberFlowCliente extends Router {
           QueuePositionPresenter.iniciar();
         } else {
           QueueConfirmService.parar();
+          FilaPresencaService.parar();
           // Encerra todo o pipeline de posição ao sair da sessão.
           QueuePositionNotificationService.parar();
           QueueRealtimeNotifier.parar();

@@ -610,16 +610,12 @@ class BarbeariaPage {
     if (!serviceIds?.length) return;
 
     try {
-      await ClienteController.entrarNaFila({
+      const entrada = await ClienteController.entrarNaFila({
         barbershopId:   this.#shopId,
         professionalId,
         serviceIds,
       });
-      NotificationService.mostrarToast(
-        'Na fila!',
-        'Você entrou na fila. Aguarde sua vez.',
-        NotificationService.TIPOS.SISTEMA,
-      );
+      await FilaPresencaService.iniciarFluxo(entrada?.id, this.#shopData, professionalId);
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
 
       const perfil = AuthService.getPerfil();

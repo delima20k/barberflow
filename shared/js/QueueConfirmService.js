@@ -223,10 +223,32 @@ class QueueConfirmService {
     if (!notif) return;
 
     const dados = notif.dados ?? notif.data ?? {};
-    if (dados.tipo_acao !== 'queue_client_absent') return;
 
-    QueueConfirmService.#tocarSom();
-    QueueConfirmService.#mostrarModalBarbeiro(notif, dados);
+    switch (dados.tipo_acao) {
+      case 'queue_client_absent':
+        QueueConfirmService.#tocarSom();
+        QueueConfirmService.#mostrarModalBarbeiro(notif, dados);
+        break;
+
+      case 'client_at_shop':
+        NotificationService.mostrarToast(
+          'Cliente presente!',
+          'O cliente já está na barbearia aguardando.',
+          NotificationService.TIPOS.AGENDAMENTO
+        );
+        break;
+
+      case 'client_arriving_late':
+        NotificationService.mostrarToast(
+          'Cliente a caminho',
+          'O cliente ainda está chegando — aguarde até 5 minutos.',
+          NotificationService.TIPOS.SISTEMA
+        );
+        break;
+
+      default:
+        break;
+    }
   };
 
   /**

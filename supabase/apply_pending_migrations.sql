@@ -892,6 +892,21 @@ ALTER TABLE public.notifications REPLICA IDENTITY FULL;
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 
+-- ────────────────────────────────────────────────────────────────
+-- 16. client_confirmed: adiciona valor 'arriving' (cliente a caminho)
+--     Migration: 20260512000001_client_at_shop_presenca.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.queue_entries
+  DROP CONSTRAINT IF EXISTS queue_entries_client_confirmed_check;
+
+ALTER TABLE public.queue_entries
+  ADD CONSTRAINT queue_entries_client_confirmed_check
+  CHECK (client_confirmed IN ('yes', 'no_waiting', 'absent', 'arriving'));
+
+COMMENT ON COLUMN public.queue_entries.client_confirmed IS
+  'Estados: yes=presente(in_service) | no_waiting=ausente(in_service) | absent=grace expirado(in_service) | arriving=a caminho(waiting)';
+
 -- ================================================================
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new

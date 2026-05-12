@@ -90,6 +90,33 @@ class QueueRepository {
   }
 
   /**
+   * Atualiza o campo client_confirmed de uma entrada da fila.
+   * Usado pelo FilaPresencaService (status=waiting) e CadeiraConfirmacaoService (status=in_service).
+   *
+   * @param {string} entradaId — UUID da queue_entry
+   * @param {'yes'|'no_waiting'|'absent'|'arriving'} valor
+   * @returns {Promise<object>} — { id, client_confirmed }
+   */
+  static async updateClientConfirmed(entradaId, valor) {
+    const r = InputValidator.uuid(entradaId);
+    if (!r.ok) throw new TypeError(`[QueueRepository] entradaId: ${r.msg}`);
+
+    const validos = ['yes', 'no_waiting', 'absent', 'arriving'];
+    if (!validos.includes(valor)) {
+      throw new Error(`[QueueRepository] client_confirmed inválido: ${valor}`);
+    }
+
+    const { data, error } = await ApiService.from('queue_entries')
+      .update({ client_confirmed: valor })
+      .eq('id', entradaId)
+      .select('id, client_confirmed')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
    * Adiciona um cliente à fila.
    * Valida UUIDs obrigatórios e aplica allowlist de campos.
    * @param {object} payload — { barbershop_id, client_id, professional_id?, chair_id?, position }

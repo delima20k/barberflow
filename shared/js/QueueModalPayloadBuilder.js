@@ -124,6 +124,30 @@ class QueueModalPayloadBuilder {
     };
   }
 
+  /**
+   * Monta config para modal de confirmação de presença física.
+   * Exibido logo após o cliente entrar na fila (status=waiting).
+   *
+   * @param {object} [opts]
+   * @param {string} [opts.nomeBarbearia]
+   * @param {string} [opts.clienteNome]
+   * @returns {object} config-object para FluxoDeFila.abrir()
+   */
+  static montarPayloadPresencaFisica({ nomeBarbearia, clienteNome } = {}) {
+    const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia);
+    const nome     = FluxoDeFila.escapar(clienteNome ?? 'você');
+
+    return {
+      icone:  '🏠',
+      titulo: 'Você já está na barbearia?',
+      corpo:  `${nome}, confirme sua presença para que o barbeiro saiba que você chegou${shopPart}.`,
+      acoes:  [
+        { label: '✅ Sim, já estou!',  valor: 'sim', variante: 'primario'   },
+        { label: '🚶 Estou chegando', valor: 'nao', variante: 'secundario' },
+      ],
+    };
+  }
+
   // ═══════════════════════════════════════════════════════════
   // UMD export (Node.js / testes)
   // ═══════════════════════════════════════════════════════════
