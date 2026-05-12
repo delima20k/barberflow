@@ -10,26 +10,13 @@
 // Quem chama (interfaces) é responsável por re-renders.
 //
 // Diferença de CadeiraService:
-//   CadeiraService — dono senta um cliente (pode ser in_service)
+//   CadeiraService — dono senta um cliente (pode ser in_service); getFilaAtiva() canônico
 //   FilaController — cliente entra por conta própria (sempre waiting)
 //
 // Dependências: QueueRepository.js, InputValidator.js, LoggerService.js
 // =============================================================
 
 class FilaController {
-
-  // ═══════════════════════════════════════════════════════════
-  // LEITURA
-  // ═══════════════════════════════════════════════════════════
-
-  /**
-   * Retorna a fila ativa (waiting + in_service) de uma barbearia.
-   * @param {string} barbershopId
-   * @returns {Promise<object[]>}
-   */
-  static async getFilaAtiva(barbershopId) {
-    return QueueRepository.getByBarbershop(barbershopId);
-  }
 
   // ═══════════════════════════════════════════════════════════
   // ESCRITA
@@ -58,7 +45,7 @@ class FilaController {
     }
 
     // Calcula próxima posição com base na fila ativa atual
-    const filaAtual  = await FilaController.getFilaAtiva(barbershopId);
+    const filaAtual  = await QueueRepository.getByBarbershop(barbershopId);
     const position   = FilaController.#calcularProximaPosicao(filaAtual);
 
     const payload = {

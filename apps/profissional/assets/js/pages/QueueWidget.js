@@ -101,22 +101,18 @@ class QueueWidget {
       return;
     }
 
-    this.#cadeirasEl.innerHTML = cadeiras.map(c => {
-      const entradaNaCadeira = fila.find(e => e.chair?.id === c.id && e.status === 'in_service');
-      const nomeCliente = entradaNaCadeira?.client?.full_name ?? null;
-
-      const statusClass = c.status === 'ocupada' ? 'ocupada' : 'livre';
-      const statusLabel = c.status === 'ocupada' ? 'Atendendo' : 'Livre';
-      const nomeLinha   = nomeCliente ?? (c.status === 'ocupada' ? '—' : '—');
-
-      return `
-        <div class="chair ${statusClass}" data-chair-id="${c.id}">
-          <img src="/shared/img/icones-cadeira-salao${c.status !== 'ocupada' ? '-vazia' : ''}.png"
-               alt="${c.label}" onerror="this.outerHTML='${c.status === 'ocupada' ? '💺' : '🪑'}'">
-          <span>${nomeLinha}</span>
-          <span>${statusLabel}</span>
-        </div>`;
-    }).join('');
+    this.#cadeirasEl.innerHTML = '';
+    for (const c of cadeiras) {
+      const entrada = fila.find(e => e.chair?.id === c.id && e.status === 'in_service') ?? null;
+      const el = Cadeira.criar({
+        tipo:           'producao',
+        entrada,
+        podeInteragir:  false,
+        confirmacao:    entrada?.client_confirmed ?? null,
+      });
+      el.dataset.chairId = c.id;
+      this.#cadeirasEl.appendChild(el);
+    }
   }
 
   #renderFila(fila) {

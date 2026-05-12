@@ -17,13 +17,13 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v131';
-  static #CACHE_IMAGES   = 'bf-pro-images-v131';
-  static #CACHE_SHELL    = 'bf-pro-shell-v131';
-  static #CACHES_VALIDOS = new Set([
-    'bf-pro-static-v131',
-    'bf-pro-images-v131',
-    'bf-pro-shell-v131',
+  static #CACHE_STATIC   = 'bf-pro-static-v132';
+  static #CACHE_IMAGES   = 'bf-pro-images-v132';
+  static #CACHE_SHELL    = 'bf-pro-shell-v132';
+  static #CACHES_VALIDOS = [
+    'bf-pro-static-v132',
+    'bf-pro-images-v132',
+    'bf-pro-shell-v132',
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC

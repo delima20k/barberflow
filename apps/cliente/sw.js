@@ -17,13 +17,13 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v154';
-  static #CACHE_IMAGES    = 'bf-cli-images-v154';
-  static #CACHE_SHELL     = 'bf-cli-shell-v154';
-  static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v154',
-    'bf-cli-images-v154',
-    'bf-cli-shell-v154',
+  static #CACHE_STATIC    = 'bf-cli-static-v155';
+  static #CACHE_IMAGES    = 'bf-cli-images-v155';
+  static #CACHE_SHELL     = 'bf-cli-shell-v155';
+  static #CACHES_VALIDOS  = [
+    'bf-cli-static-v155',
+    'bf-cli-images-v155',
+    'bf-cli-shell-v155',
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
@@ -41,6 +41,7 @@ class SWCliente {
     '/shared/js/BarberPole.js',
     '/shared/js/SplashService.js',
     '/shared/js/QueueRepository.js',
+    '/shared/js/CadeiraService.js',
     '/shared/js/CorteModal.js',
     '/shared/js/BarbeiroCard.js',
     '/shared/js/Cadeira.js',

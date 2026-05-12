@@ -423,7 +423,7 @@ class BarbeariaPage {
               CacheManager.set(cacheKey, data, 5 * 60 * 1000);
               return data;
             }),
-        FilaController.getFilaAtiva(shop.id),
+        CadeiraService.getFilaAtiva(shop.id),
       ]);
       barbeiros = b;
       filaAtiva  = f;
