@@ -72,6 +72,18 @@ suite('QueueModalPayloadBuilder — montarPayloadPosicao', () => {
       'corpo deve mencionar que o cliente é o próximo da fila',
     );
   });
+
+  test('posicao 2 gera texto de "2º lugar" sem barbearia', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2);
+    assert.ok(config.corpo.includes('2'), 'corpo deve conter 2');
+    assert.ok(
+      config.corpo.includes('2º') || config.corpo.includes('lugar') || config.corpo.includes('próximos'),
+      'corpo deve mencionar posição de segundo ou "próximos"',
+    );
+    // Não deve conter fragmento de barbearia quando não fornecido
+    assert.ok(!config.corpo.includes('na <strong>'), 'não deve conter shopPart sem barbearia');
+  });
 });
 
 suite('QueueModalPayloadBuilder — montarPayloadProximoNaFila', () => {

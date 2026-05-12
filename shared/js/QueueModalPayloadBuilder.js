@@ -41,7 +41,8 @@ class QueueModalPayloadBuilder {
    * @returns {string}
    */
   static #textoCorpo(posicao, shopPart) {
-    const shop = shopPart ? ` ${shopPart.trimStart()}` : '';
+    // shopPart já contém o espaço inicial (' na <strong>...</strong>') ou é ''
+    const shop = shopPart;
     if (posicao === 1) {
       return `Sua posição foi atualizada${shop}. Você agora é o próximo da fila. `
            + 'Fique atento pois em breve será chamado.';
