@@ -130,6 +130,7 @@ p, input, textarea, button, label, span, small, li {
 #app {
   position: fixed;
   inset: 0;
+  z-index: 1; /* contexto explícito — menu-drawer (9700) e modais externos ficam acima */
   display: flex;
   flex-direction: column;
   overflow: hidden; /* corta slides fora da viewport */

@@ -59,54 +59,6 @@
   </header>
 
   <!-- ============================================================
-       OVERLAY MENU
-  ============================================================ -->
-  <div id="menu-overlay" onclick="Pro.fecharMenu()"></div>
-
-  <!-- ============================================================
-       MENU DRAWER
-  ============================================================ -->
-  <nav id="menu-drawer">
-    <div class="menu-header">
-      <div class="menu-logo">
-        <img src="/shared/img/Logo01.png" alt="BarberFlow" onerror="this.style.display='none'">
-      </div>
-      <div class="menu-avatar-wrap">
-        <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="Pro.abrirUploadAvatar()">
-          <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
-          <div class="menu-avatar-upload">📷</div>
-          <input type="file" accept="image/*" id="menu-avatar-input"
-                 style="display:none" onchange="Pro.previewAvatar(this)">
-        </div>
-        <div>
-          <p class="menu-username" id="menu-username">Visitante Profissional
-            <small id="menu-user-sub">Faça login para continuar</small>
-          </p>
-        </div>
-      </div>
-    </div>
-    <ul class="menu-list-nav">
-      <li class="menu-nav-item" onclick="Pro.irParaLogin()">
-        <img src="/shared/img/login.svg" alt="">
-        <span>Entrar</span>
-      </li>
-      <li class="menu-nav-item" onclick="Pro.irParaCadastroGuardado()">
-        <img src="/shared/img/cadastro.svg" alt="">
-        <span>Cadastro</span>
-      </li>
-      <li class="menu-nav-item" onclick="Pro.nav('inicio')">
-        <img src="/shared/img/inicio.svg" alt="">
-        <span>Início</span>
-      </li>
-    </ul>
-    <footer class="menu-footer">
-      <button id="btn-ver-termos" class="menu-footer-link" type="button">
-        Lei LGPD e direitos autorais musicais
-      </button>
-    </footer>
-  </nav>
-
-  <!-- ============================================================
        Overlay de Termos Informativos — Lei LGPD e Direitos Autorais
        Acessado via rodapé do menu lateral (TermsPage.js).
   ============================================================ -->
@@ -2043,6 +1995,52 @@
   </main>
 
 </div><!-- #app -->
+
+<!-- ============================================================
+     OVERLAY MENU + MENU DRAWER
+     Fora do #app para estar no stacking context root (acima de tudo)
+============================================================ -->
+<div id="menu-overlay" onclick="Pro.fecharMenu()"></div>
+
+<nav id="menu-drawer">
+  <div class="menu-header">
+    <div class="menu-logo">
+      <img src="/shared/img/Logo01.png" alt="BarberFlow" onerror="this.style.display='none'">
+    </div>
+    <div class="menu-avatar-wrap">
+      <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="Pro.abrirUploadAvatar()">
+        <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
+        <div class="menu-avatar-upload">📷</div>
+        <input type="file" accept="image/*" id="menu-avatar-input"
+               style="display:none" onchange="Pro.previewAvatar(this)">
+      </div>
+      <div>
+        <p class="menu-username" id="menu-username">Visitante Profissional
+          <small id="menu-user-sub">Faça login para continuar</small>
+        </p>
+      </div>
+    </div>
+  </div>
+  <ul class="menu-list-nav">
+    <li class="menu-nav-item" onclick="Pro.irParaLogin()">
+      <img src="/shared/img/login.svg" alt="">
+      <span>Entrar</span>
+    </li>
+    <li class="menu-nav-item" onclick="Pro.irParaCadastroGuardado()">
+      <img src="/shared/img/cadastro.svg" alt="">
+      <span>Cadastro</span>
+    </li>
+    <li class="menu-nav-item" onclick="Pro.nav('inicio')">
+      <img src="/shared/img/inicio.svg" alt="">
+      <span>Início</span>
+    </li>
+  </ul>
+  <footer class="menu-footer">
+    <button id="btn-ver-termos" class="menu-footer-link" type="button">
+      Lei LGPD e direitos autorais musicais
+    </button>
+  </footer>
+</nav>
 
 <!-- Supabase SDK (CDN) -->
 <script src="/shared/js/supabase.min.js"></script>
