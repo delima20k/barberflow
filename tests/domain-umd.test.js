@@ -5,10 +5,9 @@
 //
 // Verifica:
 //   1. shared/js/* são carregáveis via require() (padrão UMD)
-//   2. src/entities/* thin wrappers retornam a mesma classe
-//   3. Novos métodos Agendamento: isEmAndamento, isNoShow,
+//   2. Novos métodos Agendamento: isEmAndamento, isNoShow,
 //      static statusValidos, toJSON snake_case
-//   4. src/infra/InputValidator é o mesmo que shared/js/InputValidator
+//   3. src/infra/InputValidator é o mesmo que shared/js/InputValidator
 // =============================================================
 
 const { suite, test } = require('node:test');
