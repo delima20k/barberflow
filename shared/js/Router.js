@@ -291,7 +291,8 @@ class Router {
 
   toggleMenu()          { this._services.menu?.toggle(); }
   fecharMenu()          { this._services.menu?.fechar(); }
-  navDoMenu(tela)       { this._services.menu?.navDoMenu(tela, t => this.nav(t)); }
+  /** Navega a partir do menu — fecharParaDireita() é acionado automaticamente pelo nav(). */
+  navDoMenu(tela)       { this.nav(tela); }
 
   /* ─────────────────────────────────────────────────────────────
      STORIES — delegates para StoryViewer
