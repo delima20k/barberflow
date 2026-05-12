@@ -24,7 +24,7 @@ class SWCliente {
     'bf-cli-static-v157',
     'bf-cli-images-v157',
     'bf-cli-shell-v157',
-  ]);
+  ];
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
   static #ASSETS_STATIC = [

@@ -17,14 +17,14 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v132';
-  static #CACHE_IMAGES   = 'bf-pro-images-v132';
-  static #CACHE_SHELL    = 'bf-pro-shell-v132';
+  static #CACHE_STATIC   = 'bf-pro-static-v133';
+  static #CACHE_IMAGES   = 'bf-pro-images-v133';
+  static #CACHE_SHELL    = 'bf-pro-shell-v133';
   static #CACHES_VALIDOS = [
-    'bf-pro-static-v132',
-    'bf-pro-images-v132',
-    'bf-pro-shell-v132',
-  ]);
+    'bf-pro-static-v133',
+    'bf-pro-images-v133',
+    'bf-pro-shell-v133',
+  ];
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
   // HTML nunca entra na lista — sempre servido da rede
