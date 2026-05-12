@@ -178,6 +178,9 @@ class Router {
    * @param {string} tela — ID sem prefixo "tela-"
    */
   nav(tela) {
+    // Se o menu estiver aberto, fecha pelo lado DIREITO em sincronia com a animação da página
+    this._services.menu?.fecharParaDireita();
+
     // Toggle: clicou no ícone da aba já aberta → fecha pela ESQUERDA (igual a voltar).
     // Guard intencionalmente omitido aqui: o destino é sempre 'inicio' (tela pública).
     if (tela === this._telaAtual && tela !== 'inicio') {
@@ -242,6 +245,9 @@ class Router {
    * @param {string} tela
    */
   push(tela) {
+    // Se o menu estiver aberto, fecha pelo lado DIREITO em sincronia com a animação da página
+    this._services.menu?.fecharParaDireita();
+
     if (tela === this._telaAtual) return;
 
     // Guard de autenticação — impede acesso a telas privadas via push() direto

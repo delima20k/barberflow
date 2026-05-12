@@ -123,8 +123,8 @@ class NavConfig {
       const onclick = item.acao === 'sair'
         ? `${p}.navDoMenu('sair')`
         : item.acao === 'cadastro-pro'
-        ? `${p}.fecharMenu();${p}.irParaCadastroGuardado()`
-        : `${p}.fecharMenu();${p}.nav('${item.tela}')`;
+        ? `${p}.irParaCadastroGuardado()`
+        : `${p}.nav('${item.tela}')`;
       // data-tela permite ao Router marcar o item ativo com .ativo
       const dataTela = item.tela ? `data-tela="${item.tela}"` : '';
       return `

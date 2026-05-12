@@ -170,6 +170,10 @@
   transform: translateX(0);
   box-shadow: var(--shadow-menu), 2px 0 0 var(--gold-border);
 }
+/* Saída pelo lado direito — quando a navegação dispara com o menu aberto */
+#menu-drawer.saindo-direita {
+  transform: translateX(100%);
+}
 
 /* Header do menu */
 .menu-header {

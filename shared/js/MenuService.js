@@ -7,7 +7,8 @@
  *
  * API pública:
  *   MenuService.abrir()
- *   MenuService.fechar()
+ *   MenuService.fechar()             — fecha para a ESQUERDA (gesto do usuário)
+ *   MenuService.fecharParaDireita()  — fecha para a DIREITA (quando navegação dispara com menu aberto)
  *   MenuService.toggle()
  *   MenuService.navDoMenu(tela, navFn)   — navFn = callback de navegação (ex: tela => App.nav(tela))
  */
@@ -32,6 +33,37 @@ const MenuService = (() => {
     if (icon) icon.src = '/shared/img/icones-menu.png';
   }
 
+  /**
+   * Fecha o menu deslizando para a DIREITA — usado quando a navegação de página
+   * é disparada com o menu aberto, sincronizando visualmente com a animação das telas.
+   * É um no-op se o menu não estiver aberto.
+   */
+  function fecharParaDireita() {
+    const drawer = document.getElementById('menu-drawer');
+    if (!drawer || !drawer.classList.contains('aberto')) return;
+
+    // Oculta overlay e restaura estado do botão imediatamente
+    document.getElementById('menu-overlay')?.classList.remove('ativo');
+    const btn = document.querySelector('.header-menu-btn');
+    if (btn) btn.classList.remove('menu-aberto');
+    const icon = document.getElementById('icon-menu');
+    if (icon) icon.src = '/shared/img/icones-menu.png';
+
+    // Anima saída para a direita
+    drawer.classList.remove('aberto');
+    drawer.classList.add('saindo-direita');
+
+    // Após a transição: reposiciona para a esquerda sem animar (pronto para o próximo abrir)
+    const durStr = getComputedStyle(drawer).transitionDuration.split(',')[0];
+    const durMs  = Math.round(parseFloat(durStr) * 1000) + 32;
+    setTimeout(() => {
+      drawer.style.transition = 'none';
+      drawer.classList.remove('saindo-direita');
+      drawer.offsetHeight; // força reflow para aplicar posição instantaneamente
+      drawer.style.transition = '';
+    }, durMs);
+  }
+
   function toggle() {
     const drawer = document.getElementById('menu-drawer');
     if (!drawer) return;
@@ -39,28 +71,16 @@ const MenuService = (() => {
   }
 
   /**
-   * Fecha o drawer e navega para a tela indicada após a transição CSS concluir.
-   *
-   * Lê a duração real da transição via getComputedStyle — garante sincronismo
-   * sem depender de `transitionend` (não confiável em browsers mobile).
+   * Delega a navegação ao callback recebido do Router.
+   * O fechamento do menu (para a direita) é responsabilidade do Router.nav() / Router.push(),
+   * que chamam fecharParaDireita() automaticamente quando o menu está aberto.
    *
    * @param {string}   tela  — ID sem prefixo "tela-"
    * @param {Function} navFn — callback de navegação recebido do Router (ex: tela => App.nav(tela))
    */
   function navDoMenu(tela, navFn) {
-    const drawer = document.getElementById('menu-drawer');
-
-    if (!drawer || !drawer.classList.contains('aberto')) {
-      navFn(tela);
-      return;
-    }
-
-    const durStr = getComputedStyle(drawer).transitionDuration.split(',')[0];
-    const durMs  = Math.round(parseFloat(durStr) * 1000) + 32; // +1 frame extra
-
-    fechar();
-    setTimeout(() => navFn(tela), durMs);
+    navFn(tela);
   }
 
-  return Object.freeze({ abrir, fechar, toggle, navDoMenu });
+  return Object.freeze({ abrir, fechar, fecharParaDireita, toggle, navDoMenu });
 })();
