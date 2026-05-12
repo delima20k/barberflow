@@ -149,6 +149,30 @@
 
 .notif-toast-fechar:hover { opacity: 1; }
 
+/* Botão de ação confirmada — toast persistente */
+.notif-toast-acao {
+  display:       inline-block;
+  margin-top:    8px;
+  padding:       5px 14px;
+  background:    var(--gold);
+  color:         var(--text-inv, #1a0f0a);
+  border:        none;
+  border-radius: var(--r-sm, 6px);
+  font-size:     0.75rem;
+  font-weight:   700;
+  letter-spacing: 0.02em;
+  cursor:        pointer;
+  transition:    opacity var(--ease), transform var(--ease);
+}
+
+.notif-toast-acao:hover  { opacity: 0.88; }
+.notif-toast-acao:active { transform: scale(0.97); }
+
+/* Toast persistente não some sozinho */
+.notif-toast--persistente {
+  border-left-color: var(--gold);
+}
+
 /* ── Popup de autenticação (AuthGuard) ────────────────────── */
 .bf-auth-popup-overlay {
   position:   fixed;

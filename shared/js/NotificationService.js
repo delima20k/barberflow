@@ -234,18 +234,25 @@ class NotificationService {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Exibe um toast visual não-bloqueante no topo da tela.
-   * @param {string} titulo
-   * @param {string} [body]
-   * @param {string} [tipo] — NotificationService.TIPOS.*
-   * @param {function|null} [onClick]
+   * Exibe um toast visual no topo da tela.
+   *
+   * @param {string}        titulo
+   * @param {string}        [body]
+   * @param {string}        [tipo]      — NotificationService.TIPOS.*
+   * @param {function|null} [onClick]   — callback ao clicar no corpo
+   * @param {string|null}   [acaoLabel] — quando fornecido: exibe botão de ação
+   *                                      e desativa o auto-dismiss. O toast só
+   *                                      fecha quando o usuário clicar no botão
+   *                                      ou no ✕. Útil para mensagens que
+   *                                      exigem leitura confirmada.
    */
-  static mostrarToast(titulo, body = '', tipo = NotificationService.TIPOS.SISTEMA, onClick = null) {
+  static mostrarToast(titulo, body = '', tipo = NotificationService.TIPOS.SISTEMA, onClick = null, acaoLabel = null) {
     const container = document.getElementById('notif-toast-container');
     if (!container) return;
 
-    const icone = NotificationService.#ICONES[tipo] ?? '🔔';
-    const cor   = NotificationService.#CORES[tipo]  ?? 'var(--gold)';
+    const icone     = NotificationService.#ICONES[tipo] ?? '🔔';
+    const cor       = NotificationService.#CORES[tipo]  ?? 'var(--gold)';
+    const persistente = acaoLabel !== null && acaoLabel !== undefined;
 
     // Toca chime apenas para notificações de fila/agendamento (cadeiras)
     if (tipo === NotificationService.TIPOS.AGENDAMENTO && typeof QueuePoller !== 'undefined') {
@@ -254,6 +261,7 @@ class NotificationService {
 
     const toast = document.createElement('div');
     toast.className = 'notif-toast';
+    if (persistente) toast.classList.add('notif-toast--persistente');
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'polite');
     toast.innerHTML = `
@@ -261,20 +269,31 @@ class NotificationService {
       <div class="notif-toast-corpo">
         <p class="notif-toast-titulo">${NotificationService.#escapar(titulo)}</p>
         ${body ? `<p class="notif-toast-body">${NotificationService.#escapar(body)}</p>` : ''}
+        ${persistente ? `<button class="notif-toast-acao" type="button">${NotificationService.#escapar(acaoLabel)}</button>` : ''}
       </div>
       <button class="notif-toast-fechar" aria-label="Fechar">✕</button>
     `;
 
-    // Fechar manual
+    // Fechar via ✕
     toast.querySelector('.notif-toast-fechar').addEventListener('click', (e) => {
       e.stopPropagation();
       NotificationService.#fecharToast(toast);
     });
 
-    // Clicar no corpo
-    if (onClick) {
+    // Fechar via botão de ação (persistente)
+    if (persistente) {
+      toast.querySelector('.notif-toast-acao').addEventListener('click', (e) => {
+        e.stopPropagation();
+        NotificationService.#fecharToast(toast);
+        if (onClick) onClick();
+      });
+    }
+
+    // Clicar no corpo (modo não-persistente com callback)
+    if (onClick && !persistente) {
       toast.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('notif-toast-fechar')) onClick();
+        const alvo = e.target;
+        if (!alvo.classList.contains('notif-toast-fechar')) onClick();
       });
       toast.style.cursor = 'pointer';
     }
@@ -285,13 +304,16 @@ class NotificationService {
     void toast.offsetWidth;
     toast.classList.add('notif-toast--visivel');
 
-    // Auto-dismiss
+    // Toasts persistentes não têm auto-dismiss nem hover-dismiss
+    if (persistente) return;
+
+    // Auto-dismiss (apenas toasts não-persistentes)
     const timer = setTimeout(
       () => NotificationService.#fecharToast(toast),
       NotificationService.#TOAST_DUR
     );
 
-    // Cancela dismiss ao hover
+    // Pausa ao hover, retoma ao sair
     toast.addEventListener('mouseenter', () => clearTimeout(timer));
     toast.addEventListener('mouseleave', () => {
       setTimeout(() => NotificationService.#fecharToast(toast), 1500);
