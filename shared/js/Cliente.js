@@ -4,13 +4,20 @@
 // Cliente.js — Entidade de domínio para usuário com role='client'.
 // Modela os dados do perfil do cliente e encapsula regras da entidade.
 //
-// Dependências: InputValidator.js (carregado antes)
+// Dependências: InputValidator.js (carregado antes no browser;
+//               resolvido via require() em Node.js)
 //
 // Uso:
 //   const c = Cliente.fromRow(row);
 //   const { ok, erros } = c.validar();
 //   c.nomeCompleto(); // → 'João Silva'
 // =============================================================
+
+// Node.js: InputValidator não é global — resolve via require() automaticamente.
+// No browser, InputValidator já está no escopo global (carregado por script tag).
+if (typeof InputValidator === 'undefined' && typeof require === 'function') {
+  globalThis.InputValidator = require('./InputValidator');
+}
 
 class Cliente {
 
@@ -129,4 +136,9 @@ class Cliente {
       criadoEm:    this.#criadoEm,
     };
   }
+}
+
+// UMD — funciona tanto em browser (global) quanto em Node.js (require)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Cliente;
 }

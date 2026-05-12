@@ -23,7 +23,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `ApiQuery` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Query builder thenable sobre fetch nativo (interno — use ApiService.from()) |
 | `OfflineSyncQueue` | [shared/js/OfflineSyncQueue.js](shared/js/OfflineSyncQueue.js) | infra | Fila offline de requests pendentes via IndexedDB + Background Sync. Métodos: `static enqueue({tag,url,method,headers,body})`, `dequeue(tag)`, `concluir(id)`, `limparExpirados(maxAgeMs?)`. Banco: `barberflow-sync`, store: `queue`. Aciona `reg.sync.register(tag)` no enqueue. Reutilizável em ambos os apps. |
 | `ApiService` | [shared/js/ApiService.js](shared/js/ApiService.js) | infra | Ponto único de acesso à API REST PostgREST. Substitui Supabase SDK para CRUD |
-| `Agendamento` | [shared/js/Agendamento.js](shared/js/Agendamento.js) | domain | Entidade de domínio de agendamento. Inclui validar(), estados (isPendente/isConfirmado/isEmAndamento/isCancelado/isConcluido/isNoShow) e isFuturo() |
+| `Agendamento` | [shared/js/Agendamento.js](shared/js/Agendamento.js) | domain | Entidade de domínio de agendamento. Inclui validar(), toJSON() (snake_case), estados: isPendente/isConfirmado/isEmAndamento/isCancelado/isConcluido/isNoShow, isFuturo(). `static get statusValidos` retorna cópia do array. **Fonte única — src/entities é thin wrapper.** |
 | `Barbearia` | [shared/js/Barbearia.js](shared/js/Barbearia.js) | domain | Entidade de domínio de barbearia. Inclui validar(), possuiLocalizacao(), isAtiva(), toJSON() |
 | `Profissional` | [shared/js/Profissional.js](shared/js/Profissional.js) | domain | Entidade de domínio de profissional. Roles: barber/owner/manager. Inclui validar(), isAtivo(), isOwner(), isManager(), isBarber(), toJSON() |
 | `Servico` | [shared/js/Servico.js](shared/js/Servico.js) | domain | Entidade de domínio de serviço/tratamento. Inclui validar(), isAtivo(), temPreco(), toJSON() |
@@ -99,7 +99,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `BarberFinanceModal` | [shared/js/BarberFinanceModal.js](shared/js/BarberFinanceModal.js) | interfaces | Modal de extrato financeiro de um barbeiro: avatar + nome + período + total + lista de transações (data, cliente, método, valor). `static abrir({professionalId,professionalNome,barbershopId,periodo})` → `Promise<void>`. Skeleton enquanto carrega. |
 | `BarbeiroCard` | [shared/js/BarbeiroCard.js](shared/js/BarbeiroCard.js) | interfaces | Card visual de barbeiro: avatar circular + nome + badge "Dono". `static criar({nome,avatarPath,updatedAt,isOwner})` e `static criarSkeleton()`. Sem eventos. |
 | `Cadeira` | [shared/js/Cadeira.js](shared/js/Cadeira.js) | interfaces | Componente visual de cadeira com estados `livre`/`ocupada`/`em_producao`. Aceita `confirmacao?: 'yes'\|'no_waiting'\|'absent'\|null` — aplica borda amarela (`cdr-cadeira--confirmada`) ou marrom (`cdr-cadeira--ausente`). |
-| `FilaController` | [shared/js/FilaController.js](shared/js/FilaController.js) | application | Gerencia entrada do cliente na fila: calcula posição, chama `QueueRepository.entrar`, persiste serviços escolhidos. `static entrarNaFila({barbershopId,clientId,professionalId?,serviceIds?})`. Zero DOM. |
+| `FilaController` | [shared/js/FilaController.js](shared/js/FilaController.js) | application | Gerencia **entrada do cliente** na fila: calcula posição, chama `QueueRepository.entrar`, persiste serviços escolhidos. `static entrarNaFila({barbershopId,clientId,professionalId?,serviceIds?})`. Zero DOM. Leitura da fila ativa: usar `CadeiraService.getFilaAtiva()`. |
 | `ModalController` | [shared/js/ModalController.js](shared/js/ModalController.js) | interfaces | Adapter de modais para contexto cliente: resolve nome via `AuthService.getPerfil()` e delega a `CorteModal.abrir`. `static abrirSelecaoServicos({servicos})` → `Promise<serviceIds[]\|null>`. |
 | `ClienteController` | [shared/js/ClienteController.js](shared/js/ClienteController.js) | application | Valida role (`client`) e orquestra entrada na fila. `static podeInteragir()` e `static entrarNaFila({barbershopId,professionalId?,serviceIds?})`. Profissional visitante → false. |
 | `PWAInstallBanner` | [shared/js/PWAInstallBanner.js](shared/js/PWAInstallBanner.js) | interfaces | Banner flutuante de instalação PWA. Aparece em `tela-inicio` sempre que app não está em standalone. `static iconSrc`, `static nomeApp`, `static init()`. Suporta Android (`beforeinstallprompt`) e iOS (instrução manual). |
@@ -169,15 +169,18 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 
 ---
 
-## src/entities/ (Node.js — backend)
+## src/entities/ (Node.js — thin wrappers)
+
+> Todos os arquivos abaixo são **thin wrappers** que re-exportam a entidade canônica de `shared/js/`.
+> `module.exports = require('../../shared/js/X')` — código real vive apenas em `shared/js/`.
 
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
-| `Agendamento` | [src/entities/Agendamento.js](src/entities/Agendamento.js) | domain | Espelho backend de shared/js/Agendamento.js. Inclui validar(), isEmAndamento(), isNoShow() e demais estados. |
-| `Barbearia` | [src/entities/Barbearia.js](src/entities/Barbearia.js) | domain | Espelho backend de shared/js/Barbearia.js. Inclui validar(), isAtiva(), possuiLocalizacao(), toJSON(). |
-| `Cliente` | [src/entities/Cliente.js](src/entities/Cliente.js) | domain | Espelho backend de shared/js/Cliente.js. Representa profiles (role=client). Inclui validar(), isAtivo(), nomeCompleto(), toJSON(). |
-| `Profissional` | [src/entities/Profissional.js](src/entities/Profissional.js) | domain | Espelho backend de shared/js/Profissional.js. Inclui validar(), isAtivo(), isOwner(), isManager(), isBarber(), toJSON(). |
-| `Servico` | [src/entities/Servico.js](src/entities/Servico.js) | domain | Espelho backend de shared/js/Servico.js. Inclui validar(), isAtivo(), temPreco(), toJSON(). |
+| `Agendamento` | [src/entities/Agendamento.js](src/entities/Agendamento.js) | domain | Thin wrapper → [shared/js/Agendamento.js](shared/js/Agendamento.js). |
+| `Barbearia` | [src/entities/Barbearia.js](src/entities/Barbearia.js) | domain | Thin wrapper → [shared/js/Barbearia.js](shared/js/Barbearia.js). |
+| `Cliente` | [src/entities/Cliente.js](src/entities/Cliente.js) | domain | Thin wrapper → [shared/js/Cliente.js](shared/js/Cliente.js). |
+| `Profissional` | [src/entities/Profissional.js](src/entities/Profissional.js) | domain | Thin wrapper → [shared/js/Profissional.js](shared/js/Profissional.js). |
+| `Servico` | [src/entities/Servico.js](src/entities/Servico.js) | domain | Thin wrapper → [shared/js/Servico.js](shared/js/Servico.js). |
 | `User` | [src/entities/User.js](src/entities/User.js) | domain | Entidade do usuário autenticado (auth.users + role de profiles). Campo #passwordHash armazena apenas bcrypt hash. Inclui validar(), isAtivo(), isEmailVerificado(), hasRole(), isAdmin(). toJSON() nunca serializa o hash. |
 
 ## src/infra/ (Node.js — backend)

@@ -128,3 +128,8 @@ class Barbearia {
     };
   }
 }
+
+// UMD — funciona tanto em browser (global) quanto em Node.js (require)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Barbearia;
+}

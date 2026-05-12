@@ -330,3 +330,8 @@ class InputValidator {
 // Alias público — permite usar Validator.email(), Validator.telefone(), etc.
 // sem precisar referenciar o nome interno InputValidator.
 const Validator = InputValidator;
+
+// UMD — funciona tanto em browser (global) quanto em Node.js (require)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = InputValidator;
+}

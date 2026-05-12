@@ -5,13 +5,20 @@
 // Modela um agendamento e encapsula regras da entidade:
 // validação de campos, consultas de estado e comportamento.
 //
-// Dependências: InputValidator.js (carregado antes)
+// Dependências: InputValidator.js (carregado antes no browser;
+//               resolvido via require() em Node.js)
 //
 // Uso:
 //   const ag = Agendamento.fromRow(row);
 //   const { ok, erros } = ag.validar();
 //   ag.isFuturo(); // → true
 // =============================================================
+
+// Node.js: InputValidator não é global — resolve via require() automaticamente.
+// No browser, InputValidator já está no escopo global (carregado por script tag).
+if (typeof InputValidator === 'undefined' && typeof require === 'function') {
+  globalThis.InputValidator = require('./InputValidator');
+}
 
 class Agendamento {
 
@@ -102,13 +109,11 @@ class Agendamento {
       erros.push('scheduled_at: o agendamento deve ser no futuro.');
     }
 
-    // Duração: inteiro positivo entre 1 e 480 minutos
-    if (
-      !Number.isInteger(this.#durationMin) ||
-      this.#durationMin < 1 ||
-      this.#durationMin > 480
-    ) {
-      erros.push('duration_min: deve ser um inteiro entre 1 e 480.');
+    // Duração: obrigatória e inteiro positivo entre 1 e 480 minutos
+    if (this.#durationMin === null || this.#durationMin === undefined) {
+      erros.push('duration_min: obrigatório.');
+    } else if (!Number.isInteger(this.#durationMin) || this.#durationMin < 1 || this.#durationMin > 480) {
+      erros.push('duration_min: deve ser inteiro entre 1 e 480.');
     }
 
     // Status na allowlist
@@ -135,6 +140,12 @@ class Agendamento {
   /** @returns {boolean} */
   isConcluido()  { return this.#status === 'done'; }
 
+  /** @returns {boolean} */
+  isEmAndamento() { return this.#status === 'in_progress'; }
+
+  /** @returns {boolean} */
+  isNoShow() { return this.#status === 'no_show'; }
+
   /**
    * Retorna true se o horário agendado ainda está no futuro.
    * @returns {boolean}
@@ -151,16 +162,26 @@ class Agendamento {
    */
   toJSON() {
     return {
-      id:             this.#id,
-      clientId:       this.#clientId,
-      professionalId: this.#professionalId,
-      barbershopId:   this.#barbershopId,
-      serviceId:      this.#serviceId,
-      scheduledAt:    this.#scheduledAt?.toISOString() ?? null,
-      durationMin:    this.#durationMin,
-      status:         this.#status,
-      notes:          this.#notes,
-      priceCharged:   this.#priceCharged,
+      id:              this.#id,
+      client_id:       this.#clientId,
+      professional_id: this.#professionalId,
+      barbershop_id:   this.#barbershopId,
+      service_id:      this.#serviceId,
+      scheduled_at:    this.#scheduledAt?.toISOString() ?? null,
+      duration_min:    this.#durationMin,
+      status:          this.#status,
+      notes:           this.#notes,
+      price_charged:   this.#priceCharged,
     };
   }
+
+  /** @returns {string[]} */
+  static get statusValidos() {
+    return [...Agendamento.#STATUS_VALIDOS];
+  }
+}
+
+// UMD — funciona tanto em browser (global) quanto em Node.js (require)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Agendamento;
 }

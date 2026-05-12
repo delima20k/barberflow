@@ -85,6 +85,15 @@ class Profissional {
     return this.#isActive === true;
   }
 
+  /** Retorna true se o profissional é dono da barbearia. */
+  isOwner() { return this.#role === 'owner'; }
+
+  /** Retorna true se o profissional é gerente. */
+  isManager() { return this.#role === 'manager'; }
+
+  /** Retorna true se o profissional é barbeiro. */
+  isBarber() { return this.#role === 'barber'; }
+
   // ── Serialização ──────────────────────────────────────────
 
   /**
@@ -101,4 +110,9 @@ class Profissional {
       is_active     : this.#isActive,
     };
   }
+}
+
+// UMD — funciona tanto em browser (global) quanto em Node.js (require)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Profissional;
 }
