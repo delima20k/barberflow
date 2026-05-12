@@ -92,6 +92,56 @@ class FinanceiroService {
     return FinanceiroRepository.getTransacoesBarbeiro(barbershopId, professionalId, { de, ate });
   }
 
+  /**
+   * Retorna totais agrupados por método de pagamento para o período.
+   * @param {string} barbershopId
+   * @param {string} periodo  'hoje' | 'semana' | 'mes' | 'total'
+   * @returns {Promise<{
+   *   credito: {total:number,grossTotal:number,count:number},
+   *   debito:  {total:number,grossTotal:number,count:number},
+   *   pixDinheiro: {total:number,grossTotal:number,count:number},
+   *   totalGeral: number
+   * }>}
+   */
+  static async getResumoPorMetodoPagamento(barbershopId, periodo) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[FinanceiroService] barbershopId: ${r.msg}`);
+
+    const { de, ate } = FinanceiroService.#periodoParaDatas(periodo);
+    return FinanceiroRepository.getResumoPorMetodoPagamento(barbershopId, { de, ate });
+  }
+
+  /**
+   * Aplica desconto percentual de maquininha a todas as transações
+   * do método/período. O banco recalcula amount = gross_amount * (1 - pct/100).
+   * Apenas 'credito' e 'debito' são aceitos (cartão parcelado/débito).
+   * @param {string} barbershopId
+   * @param {string} periodo
+   * @param {string} metodo       'credito' | 'debito'
+   * @param {number} porcentagem  0 < x < 100
+   * @returns {Promise<void>}
+   */
+  static async aplicarDescontoMetodo(barbershopId, periodo, metodo, porcentagem) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[FinanceiroService] barbershopId: ${r.msg}`);
+
+    if (metodo !== 'credito' && metodo !== 'debito') {
+      throw new TypeError('[FinanceiroService] metodo deve ser "credito" ou "debito"');
+    }
+
+    const pct = Number(porcentagem);
+    if (Number.isNaN(pct) || pct <= 0 || pct >= 100) {
+      throw new TypeError('[FinanceiroService] porcentagem deve ser > 0 e < 100');
+    }
+
+    const { de, ate } = FinanceiroService.#periodoParaDatas(periodo);
+    await FinanceiroRepository.aplicarDescontoMetodo(barbershopId, metodo, { de, ate }, pct);
+
+    document.dispatchEvent(
+      new CustomEvent('barberflow:transacao-atualizada', { detail: { barbershopId } }),
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════
   // HELPERS PRIVADOS
   // ═══════════════════════════════════════════════════════════

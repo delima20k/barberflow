@@ -11,7 +11,7 @@
 //   const { confirmado, paymentMethod } =
 //     await FinalizarCorteModal.abrir({ clienteNome, proximoNome });
 //   // confirmado: true | false
-//   // paymentMethod: 'pix' | 'dinheiro' | 'cartao' | null
+  //   // paymentMethod: 'pix' | 'dinheiro' | 'credito' | 'debito' | null
 //
 // Dependências: nenhuma
 // =============================================================
@@ -21,7 +21,8 @@ class FinalizarCorteModal {
   static #METODOS = Object.freeze([
     { valor: 'pix',      icone: '⚡', label: 'PIX'     },
     { valor: 'dinheiro', icone: '💵', label: 'Dinheiro' },
-    { valor: 'cartao',   icone: '💳', label: 'Cartão'   },
+    { valor: 'credito',  icone: '💳', label: 'Crédito'  },
+    { valor: 'debito',   icone: '🏧', label: 'Débito'   },
   ]);
 
   // ──────────────────────────────────────────────────────────

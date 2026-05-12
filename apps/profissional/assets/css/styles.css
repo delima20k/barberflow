@@ -2218,6 +2218,197 @@
   margin-bottom: 24px;
 }
 .fin-card-resumo {
+
+/* ── Grid de breakdown por método de pagamento ── */
+.fin-metodos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.fin-card-metodo {
+  background: var(--card, #fff9f0);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.07);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fin-card-metodo--pix {
+  grid-column: 1 / -1;
+}
+.fin-card-metodo--total {
+  grid-column: 1 / -1;
+  border: 1.5px solid rgba(212,175,55,.35);
+}
+.fin-card-metodo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.fin-card-meta {
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Botão flutuante "Menos %" */
+.btn-float {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  border: 1.5px solid var(--gold, #D4AF37);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  background: transparent;
+  transition: box-shadow .18s, opacity .15s;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.btn-float:hover {
+  box-shadow: 0 0 0 3px rgba(212,175,55,.18);
+}
+.btn-float:active {
+  opacity: .75;
+}
+.btn-float:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+/* ================================================================
+   MenosPercentualModal
+================================================================ */
+.mpm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9700;
+  opacity: 0;
+  transition: opacity .2s;
+  padding: 20px;
+}
+.mpm-overlay--visivel { opacity: 1; }
+.mpm-overlay--saindo  { opacity: 0; }
+
+.mpm-card {
+  background: var(--card, #fff9f0);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 340px;
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transform: scale(.94);
+  transition: transform .2s;
+}
+.mpm-overlay--visivel .mpm-card { transform: scale(1); }
+
+.mpm-titulo {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+  text-align: center;
+}
+.mpm-subtitulo {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin: -8px 0 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.mpm-bruto-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card2, #f0e8dc);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.mpm-bruto-label {
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+.mpm-bruto-valor {
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.mpm-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card2, #f0e8dc);
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+.mpm-input {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}
+.mpm-input::placeholder { color: var(--text-muted); font-weight: 400; }
+.mpm-pct-sufixo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+}
+.mpm-preview {
+  font-size: .82rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+  min-height: 1.2em;
+}
+.mpm-acoes {
+  display: flex;
+  gap: 10px;
+}
+.mpm-btn {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1;
+  text-align: center;
+  padding: 12px 0;
+  border-radius: 12px;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s, transform .12s;
+}
+.mpm-btn:active { transform: scale(.97); }
+.mpm-btn--cancelar {
+  background: var(--card2, #f0e8dc);
+  color: var(--text-muted);
+}
+.mpm-btn--ok {
+  background: var(--gold, #D4AF37);
+  color: #1a0f00;
+}
+.mpm-btn--ok:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Herda os estilos legados do .fin-card-resumo para compatibilidade */
+.fin-card-resumo {
   flex: 1;
   background: var(--card, #fff9f0);
   border-radius: 14px;

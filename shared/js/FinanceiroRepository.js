@@ -23,7 +23,7 @@ class FinanceiroRepository {
    * @param {string|null} opts.clientId
    * @param {string|null} opts.queueEntryId
    * @param {number}      opts.amount          valor em reais (ex: 35.00)
-   * @param {string}      opts.paymentMethod   'pix' | 'dinheiro' | 'cartao'
+   * @param {string}      opts.paymentMethod   'pix' | 'dinheiro' | 'credito' | 'debito'
    * @returns {Promise<object>}  transação criada
    */
   static async criarTransacao({ barbershopId, professionalId, clientId, queueEntryId, amount, paymentMethod }) {
@@ -32,17 +32,19 @@ class FinanceiroRepository {
     if (!rShop.ok) throw new TypeError(`[FinanceiroRepository] barbershopId: ${rShop.msg}`);
     if (!rProf.ok) throw new TypeError(`[FinanceiroRepository] professionalId: ${rProf.msg}`);
 
+    const amountNum = Number(amount) || 0;
     const payload = {
       barbershop_id:   barbershopId,
       professional_id: professionalId,
-      amount:          Number(amount) || 0,
+      amount:          amountNum,
+      gross_amount:    amountNum,
       type:            'revenue',
       status:          'paid',
       payment_method:  paymentMethod ?? null,
       paid_at:         new Date().toISOString(),
     };
-    if (clientId)     payload.client_id       = clientId;
-    if (queueEntryId) payload.queue_entry_id  = queueEntryId;
+    if (clientId)     payload.client_id      = clientId;
+    if (queueEntryId) payload.queue_entry_id = queueEntryId;
 
     const { data, error } = await ApiService.from('transactions').insert(payload).select().single();
     if (error) throw error;
@@ -117,6 +119,87 @@ class FinanceiroRepository {
   // ═══════════════════════════════════════════════════════════
   // LEITURA — EXTRATO POR BARBEIRO
   // ═══════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════
+  // LEITURA — RESUMO POR MÉTODO DE PAGAMENTO
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Agrupa totais por método de pagamento.
+   * Métodos legados 'cartao' são mapeados para o grupo 'credito'.
+   * @param {string} barbershopId
+   * @param {{de: string, ate: string}} periodo
+   * @returns {Promise<{
+   *   credito:     {total:number, grossTotal:number, count:number},
+   *   debito:      {total:number, grossTotal:number, count:number},
+   *   pixDinheiro: {total:number, grossTotal:number, count:number},
+   *   totalGeral:  number
+   * }>}
+   */
+  static async getResumoPorMetodoPagamento(barbershopId, { de, ate }) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[FinanceiroRepository] barbershopId: ${r.msg}`);
+
+    const { data, error } = await ApiService.from('transactions')
+      .select('amount, gross_amount, payment_method')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'revenue')
+      .eq('status', 'paid')
+      .gte('paid_at', de)
+      .lte('paid_at', ate);
+
+    if (error) throw error;
+
+    const grupos = {
+      credito:     { total: 0, grossTotal: 0, count: 0 },
+      debito:      { total: 0, grossTotal: 0, count: 0 },
+      pixDinheiro: { total: 0, grossTotal: 0, count: 0 },
+    };
+
+    for (const t of (data ?? [])) {
+      const liq   = Number(t.amount)       || 0;
+      const bruto = Number(t.gross_amount) || liq;   // fallback p/ dados legados
+      const m     = t.payment_method;
+
+      let grupo;
+      if (m === 'credito' || m === 'cartao') grupo = 'credito';
+      else if (m === 'debito')               grupo = 'debito';
+      else                                   grupo = 'pixDinheiro';  // pix | dinheiro | null
+
+      grupos[grupo].total      += liq;
+      grupos[grupo].grossTotal += bruto;
+      grupos[grupo].count++;
+    }
+
+    const totalGeral = grupos.credito.total + grupos.debito.total + grupos.pixDinheiro.total;
+    return { ...grupos, totalGeral };
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ESCRITA — DESCONTO EM BATCH
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Aplica desconto percentual em todas as transações do método/período via RPC.
+   * A RPC recalcula amount = ROUND(gross_amount * (1 - pct/100), 2) no banco.
+   * @param {string} barbershopId
+   * @param {string} metodo       'credito' | 'debito'
+   * @param {{de: string, ate: string}} periodo
+   * @param {number} porcentagem  0 < x < 100
+   * @returns {Promise<void>}
+   */
+  static async aplicarDescontoMetodo(barbershopId, metodo, { de, ate }, porcentagem) {
+    const r = InputValidator.uuid(barbershopId);
+    if (!r.ok) throw new TypeError(`[FinanceiroRepository] barbershopId: ${r.msg}`);
+
+    await ApiService.rpc('aplicar_desconto_metodo', {
+      p_barbershop_id: barbershopId,
+      p_metodo:        metodo,
+      p_de:            de,
+      p_ate:           ate,
+      p_porcentagem:   porcentagem,
+    });
+  }
 
   /**
    * Lista as transações de um barbeiro específico em um período.

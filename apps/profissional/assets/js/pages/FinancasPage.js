@@ -25,6 +25,7 @@ class FinancasPage {
   #canalTransacoes = null;
   #carregando      = false;
   #resolvendo      = false;   // guard contra chamadas concorrentes a #resolverShopId
+  #dadosPorMetodo  = null;    // cache local do último breakdown
   #refs            = {};
 
   constructor() {}
@@ -86,9 +87,12 @@ class FinancasPage {
     });
   }
 
-  /** Ouve evento disparado por FinanceiroService ao finalizar corte. */
+  /** Ouve evento disparado por FinanceiroService ao finalizar ou atualizar corte. */
   #bindTransacaoEvento() {
     document.addEventListener('barberflow:transacao-criada', e => {
+      if (e.detail?.barbershopId === this.#shopId) this.#carregar();
+    });
+    document.addEventListener('barberflow:transacao-atualizada', e => {
       if (e.detail?.barbershopId === this.#shopId) this.#carregar();
     });
   }
@@ -157,11 +161,13 @@ class FinancasPage {
     this.#mostrarLoading(true);
 
     try {
-      const { geral, barbeiros } = await FinanceiroService.getResumo(
-        this.#shopId, this.#periodoAtual,
-      );
+      const [{ geral, barbeiros }, dadosPorMetodo] = await Promise.all([
+        FinanceiroService.getResumo(this.#shopId, this.#periodoAtual),
+        FinanceiroService.getResumoPorMetodoPagamento(this.#shopId, this.#periodoAtual),
+      ]);
 
-      this.#renderResumo(geral);
+      this.#dadosPorMetodo = dadosPorMetodo;
+      this.#renderResumoMetodos(dadosPorMetodo, geral);
       this.#renderBarbeiros(barbeiros);
       this.#mostrarVazio(!geral.count);
     } catch (err) {
@@ -173,21 +179,79 @@ class FinancasPage {
     }
   }
 
-  #renderResumo({ count, total }) {
+  #renderResumoMetodos({ credito, debito, pixDinheiro, totalGeral }, geral) {
     const el = this.#refs.resumo;
     if (!el) return;
 
+    const fmtValor = v => `R$ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
+
     el.innerHTML = `
-      <div class="fin-card-resumo">
-        <p class="fin-card-label">Receita total</p>
-        <p class="fin-card-valor fin-card-valor--destaque">
-          R$ ${(total).toFixed(2).replace('.', ',')}
-        </p>
-      </div>
-      <div class="fin-card-resumo">
-        <p class="fin-card-label">Cortes realizados</p>
-        <p class="fin-card-valor">${count}</p>
+      <div class="fin-metodos-grid">
+        <div class="fin-card-metodo" data-metodo="credito">
+          <div class="fin-card-metodo-header">
+            <p class="fin-card-label">Crédito</p>
+            <button
+              class="btn-float fin-btn-menos-pct"
+              data-metodo="credito"
+              type="button"
+              aria-label="Aplicar taxa em Crédito"
+              title="Aplicar taxa da maquininha"
+            >Menos %</button>
+          </div>
+          <p class="fin-card-valor">${fmtValor(credito.total)}</p>
+          <p class="fin-card-meta">${credito.count} corte${credito.count !== 1 ? 's' : ''}</p>
+        </div>
+        <div class="fin-card-metodo" data-metodo="debito">
+          <div class="fin-card-metodo-header">
+            <p class="fin-card-label">Débito</p>
+            <button
+              class="btn-float fin-btn-menos-pct"
+              data-metodo="debito"
+              type="button"
+              aria-label="Aplicar taxa em Débito"
+              title="Aplicar taxa da maquininha"
+            >Menos %</button>
+          </div>
+          <p class="fin-card-valor">${fmtValor(debito.total)}</p>
+          <p class="fin-card-meta">${debito.count} corte${debito.count !== 1 ? 's' : ''}</p>
+        </div>
+        <div class="fin-card-metodo fin-card-metodo--pix">
+          <p class="fin-card-label">PIX &amp; Dinheiro</p>
+          <p class="fin-card-valor">${fmtValor(pixDinheiro.total)}</p>
+          <p class="fin-card-meta">${pixDinheiro.count} corte${pixDinheiro.count !== 1 ? 's' : ''}</p>
+        </div>
+        <div class="fin-card-metodo fin-card-metodo--total">
+          <p class="fin-card-label">Total Geral</p>
+          <p class="fin-card-valor fin-card-valor--destaque">${fmtValor(totalGeral)}</p>
+          <p class="fin-card-meta">${geral.count} corte${geral.count !== 1 ? 's' : ''}</p>
+        </div>
       </div>`;
+
+    // Event delegation — evita rebind ao re-renderizar
+    el.querySelectorAll('.fin-btn-menos-pct').forEach(btn => {
+      btn.addEventListener('click', () => this.#onMenosPercent(btn.dataset.metodo));
+    });
+  }
+
+  async #onMenosPercent(metodo) {
+    if (!this.#dadosPorMetodo || !this.#shopId) return;
+    const grupo     = metodo === 'credito' ? this.#dadosPorMetodo.credito : this.#dadosPorMetodo.debito;
+    const valorBruto = grupo.grossTotal;
+
+    const { confirmado, porcentagem } = await MenosPercentualModal.abrir({ metodo, valorBruto });
+    if (!confirmado || porcentagem === null) return;
+
+    try {
+      await FinanceiroService.aplicarDescontoMetodo(
+        this.#shopId, this.#periodoAtual, metodo, porcentagem,
+      );
+      // barberflow:transacao-atualizada é despachado por aplicarDescontoMetodo → recarrega
+    } catch (err) {
+      LoggerService.warn('[FinancasPage] erro ao aplicar desconto:', err?.message);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Erro', 'Não foi possível aplicar a taxa. Tente novamente.', 'erro');
+      }
+    }
   }
 
   #renderBarbeiros(barbeiros) {
