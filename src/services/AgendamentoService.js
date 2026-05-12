@@ -8,7 +8,7 @@
 // Contém validação de negócio, regras de status e orquestração.
 // =============================================================
 
-const Agendamento = require('../entities/Agendamento');
+const Agendamento = require('../../shared/js/Agendamento');
 const BaseService = require('../infra/BaseService');
 
 class AgendamentoService extends BaseService {

@@ -99,45 +99,10 @@ suite('UMD — require() carrega shared/js/*', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Thin wrappers — src/entities/* e src/infra/InputValidator
+// Thin wrapper infra — src/infra/InputValidator
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Thin wrappers src/* → mesma referência que shared/js/*', () => {
-
-  test('src/entities/Agendamento === shared/js/Agendamento', () => {
-    const Shared  = require('../shared/js/Agendamento');
-    const Backend = require('../src/entities/Agendamento');
-    assert.strictEqual(Shared, Backend,
-      'src/entities/Agendamento deve ser thin wrapper de shared/js/Agendamento');
-  });
-
-  test('src/entities/Barbearia === shared/js/Barbearia', () => {
-    assert.strictEqual(
-      require('../shared/js/Barbearia'),
-      require('../src/entities/Barbearia'),
-    );
-  });
-
-  test('src/entities/Profissional === shared/js/Profissional', () => {
-    assert.strictEqual(
-      require('../shared/js/Profissional'),
-      require('../src/entities/Profissional'),
-    );
-  });
-
-  test('src/entities/Servico === shared/js/Servico', () => {
-    assert.strictEqual(
-      require('../shared/js/Servico'),
-      require('../src/entities/Servico'),
-    );
-  });
-
-  test('src/entities/Cliente === shared/js/Cliente', () => {
-    assert.strictEqual(
-      require('../shared/js/Cliente'),
-      require('../src/entities/Cliente'),
-    );
-  });
+suite('Thin wrapper src/infra → mesma referência que shared/js/*', () => {
 
   test('src/infra/InputValidator === shared/js/InputValidator', () => {
     assert.strictEqual(

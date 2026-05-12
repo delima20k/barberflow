@@ -7,7 +7,7 @@
 // Nunca acessa o banco diretamente — delega ao ProfissionalRepository.
 // =============================================================
 
-const Profissional = require('../entities/Profissional');
+const Profissional = require('../../shared/js/Profissional');
 const BaseService  = require('../infra/BaseService');
 
 class ProfissionalService extends BaseService {

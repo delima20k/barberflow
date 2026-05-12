@@ -8,7 +8,7 @@
 // Contém validação de negócio e orquestração.
 // =============================================================
 
-const Cliente     = require('../entities/Cliente');
+const Cliente     = require('../../shared/js/Cliente');
 const BaseService = require('../infra/BaseService');
 
 class ClienteService extends BaseService {

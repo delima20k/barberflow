@@ -8,7 +8,7 @@
 // Aplica filtro Haversine sobre bounding-box, ordenação por distância.
 // =============================================================
 
-const Barbearia   = require('../entities/Barbearia');
+const Barbearia   = require('../../shared/js/Barbearia');
 const BaseService = require('../infra/BaseService');
 
 class BarbeariaService extends BaseService {
