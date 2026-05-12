@@ -2736,19 +2736,20 @@
   font-weight: 600;
 }
 .fcm-metodos {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 14px;
 }
 .fcm-metodo {
   all: unset;
   box-sizing: border-box;
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 10px 4px;
+  padding: 12px 4px;
   border-radius: 12px;
   border: 1.5px solid var(--border-soft, rgba(212,175,55,.2));
   background: transparent;
