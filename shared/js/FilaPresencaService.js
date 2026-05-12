@@ -74,7 +74,7 @@ class FilaPresencaService {
     if (resposta === 'sim') {
       await FilaPresencaService.#processarSim(entradaId, professionalId, barbershopId);
     } else if (resposta === 'nao') {
-      await FilaPresencaService.#processarNao(entradaId, professionalId, barbershopId, clienteNome);
+      await FilaPresencaService.#processarNao(entradaId, professionalId, barbershopId);
     }
     // resposta null (modal fechado sem escolha) → sem ação, entry permanece em #processadas
   }
@@ -122,13 +122,7 @@ class FilaPresencaService {
    * Persiste 'yes', notifica barbeiro e exibe toast.
    */
   static async #processarSim(entradaId, professionalId, barbershopId) {
-    try {
-      await QueueRepository.updateClientConfirmed(entradaId, 'yes');
-    } catch (err) {
-      if (typeof LoggerService !== 'undefined') {
-        LoggerService.warn('[FilaPresencaService] updateClientConfirmed falhou:', err?.message);
-      }
-    }
+    await FilaPresencaService.#persistirConfirmacao(entradaId, 'yes');
 
     await FilaPresencaService.#notificarBarbeiro(
       professionalId,
@@ -151,13 +145,7 @@ class FilaPresencaService {
    * Persiste 'arriving', exibe toast e agenda timer de 5 min.
    */
   static async #processarNao(entradaId, professionalId, barbershopId) {
-    try {
-      await QueueRepository.updateClientConfirmed(entradaId, 'arriving');
-    } catch (err) {
-      if (typeof LoggerService !== 'undefined') {
-        LoggerService.warn('[FilaPresencaService] updateClientConfirmed falhou:', err?.message);
-      }
-    }
+    await FilaPresencaService.#persistirConfirmacao(entradaId, 'arriving');
 
     if (typeof NotificationService !== 'undefined') {
       NotificationService.mostrarToast(
@@ -172,6 +160,23 @@ class FilaPresencaService {
     }, FilaPresencaService.#GRACE_MS);
 
     FilaPresencaService.#timers.set(entradaId, timerId);
+  }
+
+  /**
+   * Persiste o valor de client_confirmed na fila.
+   * Silencia erros — a operação é best-effort; o estado local continua independente.
+   *
+   * @param {string} entradaId
+   * @param {'yes'|'arriving'} valor
+   */
+  static async #persistirConfirmacao(entradaId, valor) {
+    try {
+      await QueueRepository.updateClientConfirmed(entradaId, valor);
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[FilaPresencaService] updateClientConfirmed falhou:', err?.message);
+      }
+    }
   }
 
   /**

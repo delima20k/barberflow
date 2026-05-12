@@ -16,7 +16,7 @@
  *   - parar() sem ter iniciado → seguro (não lança erro)
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { suite, test } = require('node:test');
 const assert                       = require('node:assert/strict');
 const vm                           = require('node:vm');
 const { fn, carregar }             = require('./_helpers.js');
