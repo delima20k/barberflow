@@ -52,3 +52,10 @@ logs/
 apps/cliente/shared/
 apps/profissional/shared/
 .vercel
+
+# Outputs de teste — gerados automaticamente, nunca commitar
+test_output*.txt
+test_push_final.txt
+test-results*.json
+test_run.log
+Logs
