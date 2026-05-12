@@ -139,7 +139,7 @@
   display: none;
   position: fixed;
   top: var(--header-h); left: 0; right: 0; bottom: 0;
-  z-index: 1100;
+  z-index: 9699;
   background: var(--overlay);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
@@ -154,7 +154,7 @@
 #menu-drawer {
   position: fixed;
   top: var(--header-h); left: 0; bottom: 0;
-  z-index: 1200;
+  z-index: 9700;
   width: min(300px, 80vw);
   background: var(--card);
   border-right: 1px solid var(--gold-border);
