@@ -27,6 +27,9 @@ class QueuePositionNotificationService {
   /** @type {Set<string>} IDs de notificações já processadas */
   static #processadas = new Set();
 
+  /** Tamanho máximo do Set de deduplicação (evita memory leak em sessões longas) */
+  static #MAX_PROCESSADAS = 200;
+
   /** @type {Function|null} referência ao listener (para removeEventListener) */
   static #listener = null;
 
@@ -80,14 +83,29 @@ class QueuePositionNotificationService {
     if (!notif || notif.type !== 'queue_update') return;
     if (!notif.data) return;
 
-    // Deduplicação
+    // Deduplicação com cap de memória
     const notifId = notif.id;
     if (notifId && QueuePositionNotificationService.#processadas.has(notifId)) return;
-    if (notifId) QueuePositionNotificationService.#processadas.add(notifId);
+    if (notifId) {
+      if (QueuePositionNotificationService.#processadas.size >= QueuePositionNotificationService.#MAX_PROCESSADAS) {
+        // Remove o primeiro elemento (mais antigo) para manter o Set limitado
+        QueuePositionNotificationService.#processadas.delete(
+          QueuePositionNotificationService.#processadas.values().next().value,
+        );
+      }
+      QueuePositionNotificationService.#processadas.add(notifId);
+    }
 
-    const position     = notif.data.position     ?? null;
-    const isNext       = notif.data.is_next       ?? false;
-    const barbershopId = notif.data.barbershop_id ?? null;
+    // JSONB do banco pode chegar serializado como string em alguns contextos
+    const data = notif.data && typeof notif.data === 'string'
+      ? (() => { try { return JSON.parse(notif.data); } catch { return null; } })()
+      : notif.data;
+
+    if (!data) return;
+
+    const position     = data.position     ?? null;
+    const isNext       = data.is_next       ?? false;
+    const barbershopId = data.barbershop_id ?? null;
 
     if (position === null || !barbershopId) {
       LoggerService.warn('[QueuePositionNotificationService] Notif queue_update sem position ou barbershopId', notif);

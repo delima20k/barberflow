@@ -26,6 +26,9 @@ class QueueRealtimeNotifier {
   /** @type {Map<string, object>} shopId → canal Supabase */
   static #canais = new Map();
 
+  /** @type {Set<string>} shopIds com fetch em andamento (evita race condition) */
+  static #buscando = new Set();
+
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
   // ═══════════════════════════════════════════════════════════
@@ -99,6 +102,11 @@ class QueueRealtimeNotifier {
    * @param {string} barbershopId
    */
   static async #onUpdate(barbershopId) {
+    // Guarda in-flight: ignora evento se já há um fetch em andamento para este shop.
+    // Evita race condition com eventos Realtime em rajada.
+    if (QueueRealtimeNotifier.#buscando.has(barbershopId)) return;
+    QueueRealtimeNotifier.#buscando.add(barbershopId);
+
     try {
       const fila = await QueueRepository.getByBarbershop(barbershopId);
 
@@ -109,6 +117,8 @@ class QueueRealtimeNotifier {
       );
     } catch (err) {
       LoggerService.warn('[QueueRealtimeNotifier] Erro ao buscar fila:', err?.message);
+    } finally {
+      QueueRealtimeNotifier.#buscando.delete(barbershopId);
     }
   }
 

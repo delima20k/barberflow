@@ -16,6 +16,23 @@
 class QueueModalPayloadBuilder {
 
   // ═══════════════════════════════════════════════════════════
+  // PRIVADO
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Constrói a parte do corpo referente ao nome da barbearia.
+   * Centraliza o padrão DRY entre os 3 métodos públicos.
+   *
+   * @param {string|undefined} nomeBarbearia
+   * @param {string} [prefixo=' na '] — separador exibido antes do nome
+   * @returns {string} fragmento HTML escapado, ou string vazia
+   */
+  static #shopPart(nomeBarbearia, prefixo = ' na ') {
+    if (!nomeBarbearia) return '';
+    return `${prefixo}<strong>${FluxoDeFila.escapar(nomeBarbearia)}</strong>`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // PÚBLICO
   // ═══════════════════════════════════════════════════════════
 
@@ -28,9 +45,7 @@ class QueueModalPayloadBuilder {
    * @returns {object} config-object para FluxoDeFila.abrir()
    */
   static montarPayloadPosicao(posicao, { nomeBarbearia } = {}) {
-    const shopPart = nomeBarbearia
-      ? ` na <strong>${FluxoDeFila.escapar(nomeBarbearia)}</strong>`
-      : '';
+    const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia);
 
     return {
       icone:  '💈',
@@ -49,9 +64,7 @@ class QueueModalPayloadBuilder {
    * @returns {object} config-object para FluxoDeFila.abrir()
    */
   static montarPayloadProximoNaFila({ nomeBarbearia } = {}) {
-    const shopPart = nomeBarbearia
-      ? ` na <strong>${FluxoDeFila.escapar(nomeBarbearia)}</strong>`
-      : '';
+    const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia);
 
     return {
       icone:     '✂️',
@@ -72,9 +85,7 @@ class QueueModalPayloadBuilder {
    * @returns {object} config-object mínimo
    */
   static montarPayloadToast(posicao, { nomeBarbearia } = {}) {
-    const shopPart = nomeBarbearia
-      ? ` — ${FluxoDeFila.escapar(nomeBarbearia)}`
-      : '';
+    const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia, ' — ');
 
     const corpo = posicao === 1
       ? `Você é o próximo${shopPart}! Dirija-se à cadeira.`

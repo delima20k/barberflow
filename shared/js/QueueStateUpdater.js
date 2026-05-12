@@ -87,7 +87,7 @@ class QueueStateUpdater {
    * @param {object[]} evt.detail.fila
    * @param {string}   evt.detail.barbershopId
    */
-  static #onFilaAtualizada({ detail: { fila, barbershopId } }) {
+  static #onFilaAtualizada({ detail: { fila, barbershopId } = {} }) {
     const clientId = QueueStateUpdater.#clientId;
     if (!clientId || !Array.isArray(fila)) return;
 
