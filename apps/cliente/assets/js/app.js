@@ -102,8 +102,18 @@ class BarberFlowCliente extends Router {
       SupabaseService.onAuthChange((event, session) => {
         if (session?.user) {
           QueueConfirmService.iniciar(session.user.id, 'client');
+          // Inicia o pipeline de notificação visual de posição na fila.
+          // QueuePositionNotificationService ouve barberflow:notificacao-nova (trigger DB).
+          // QueuePositionPresenter ouve barberflow:fila-posicao-atualizada e abre o modal.
+          QueuePositionNotificationService.iniciar();
+          QueuePositionPresenter.iniciar();
         } else {
           QueueConfirmService.parar();
+          // Encerra todo o pipeline de posição ao sair da sessão.
+          QueuePositionNotificationService.parar();
+          QueueRealtimeNotifier.parar();
+          QueueStateUpdater.parar();
+          QueuePositionPresenter.parar();
         }
       });
     } catch (_) {}

@@ -17,13 +17,13 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v156';
-  static #CACHE_IMAGES    = 'bf-cli-images-v156';
-  static #CACHE_SHELL     = 'bf-cli-shell-v156';
+  static #CACHE_STATIC    = 'bf-cli-static-v157';
+  static #CACHE_IMAGES    = 'bf-cli-images-v157';
+  static #CACHE_SHELL     = 'bf-cli-shell-v157';
   static #CACHES_VALIDOS  = [
-    'bf-cli-static-v156',
-    'bf-cli-images-v156',
-    'bf-cli-shell-v156',
+    'bf-cli-static-v157',
+    'bf-cli-images-v157',
+    'bf-cli-shell-v157',
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
@@ -46,6 +46,7 @@ class SWCliente {
     '/shared/js/QueueRealtimeNotifier.js',
     '/shared/js/QueueStateUpdater.js',
     '/shared/js/QueuePositionNotificationService.js',
+    '/shared/js/QueuePositionPresenter.js',
     '/shared/js/CorteModal.js',
     '/shared/js/BarbeiroCard.js',
     '/shared/js/Cadeira.js',

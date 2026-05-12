@@ -62,11 +62,15 @@ suite('QueueModalPayloadBuilder — montarPayloadPosicao', () => {
     assert.ok(config.corpo.includes('&lt;script&gt;'), 'deve estar escapado');
   });
 
-  test('posicao 1 ainda usa montarPayloadPosicao sem ser "próximo"', () => {
+  test('posicao 1 exibe texto de próximo na fila (sem o número)', () => {
     const { QueueModalPayloadBuilder } = criarSandbox();
     const config = QueueModalPayloadBuilder.montarPayloadPosicao(1);
-    // posicao 1 via este método apenas — montarPayloadProximoNaFila tem texto especial
-    assert.ok(config.corpo.includes('1'), 'corpo deve conter posição 1');
+    // Nova spec: posição 1 usa "próximo da fila" em vez de mostrar o número
+    const texto = (config.titulo + config.corpo).toLowerCase();
+    assert.ok(
+      texto.includes('próximo') || texto.includes('proximo'),
+      'corpo deve mencionar que o cliente é o próximo da fila',
+    );
   });
 });
 

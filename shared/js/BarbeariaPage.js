@@ -630,6 +630,14 @@ class BarbeariaPage {
               .catch(err => LoggerService.warn('[BarbeariaPage] QueuePoller re-render falhou:', err));
           }
         });
+        // Inicia o pipeline realtime de notificação de posição para este cliente.
+        // QueueRealtimeNotifier → barberflow:fila-atualizada
+        // QueueStateUpdater    → barberflow:fila-posicao-atualizada (só quando posição muda)
+        // QueuePositionPresenter já está ativo (iniciado no onAuthChange);
+        // passa o nome da barbearia para personalizar a mensagem da modal.
+        QueueRealtimeNotifier.iniciar(this.#shopId);
+        QueueStateUpdater.iniciar(perfil.id);
+        QueuePositionPresenter.iniciar(this.#shopData?.name ?? null);
       }
     } catch (err) {
       LoggerService.error('[BarbeariaPage] erro ao entrar na fila:', err);

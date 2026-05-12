@@ -32,12 +32,35 @@ class QueueModalPayloadBuilder {
     return `${prefixo}<strong>${FluxoDeFila.escapar(nomeBarbearia)}</strong>`;
   }
 
+  /**
+   * Retorna o texto do corpo da modal de acordo com a posição do cliente.
+   * Mensagens diferenciadas por posição: 1º, 2º, 3º ou posterior.
+   *
+   * @param {number}      posicao  — rank do cliente na fila (≥1)
+   * @param {string}      shopPart — fragmento HTML do nome da barbearia (pode ser vazio)
+   * @returns {string}
+   */
+  static #textoCorpo(posicao, shopPart) {
+    const shop = shopPart ? ` ${shopPart.trimStart()}` : '';
+    if (posicao === 1) {
+      return `Sua posição foi atualizada${shop}. Você agora é o próximo da fila. `
+           + 'Fique atento pois em breve será chamado.';
+    }
+    if (posicao === 2) {
+      return `Sua posição foi atualizada para <strong>2º lugar</strong>${shop}. `
+           + 'Fique atento pois você será um dos próximos.';
+    }
+    return `Sua posição foi atualizada para <strong>${posicao}º lugar</strong>${shop}. `
+         + 'A fila avançou.';
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Monta config para modal de atualização de posição genérica.
+   * Monta config para modal de atualização de posição.
+   * Mensagem diferenciada por posição: 1º (próximo), 2º, 3º+.
    *
    * @param {number} posicao — posição atual na fila (≥1)
    * @param {object} [opts]
@@ -46,12 +69,13 @@ class QueueModalPayloadBuilder {
    */
   static montarPayloadPosicao(posicao, { nomeBarbearia } = {}) {
     const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia);
+    const corpo    = QueueModalPayloadBuilder.#textoCorpo(posicao, shopPart);
 
     return {
       icone:  '💈',
-      titulo: 'Fila atualizada',
-      corpo:  `Sua posição${shopPart} é agora <strong>${posicao}</strong>.`,
-      acoes:  [{ label: 'Ok, entendi', valor: 'ok', variante: 'primario' }],
+      titulo: 'Posição atualizada',
+      corpo,
+      acoes:  [{ label: 'Entendido', valor: 'ok', variante: 'primario' }],
     };
   }
 
