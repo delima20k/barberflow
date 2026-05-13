@@ -171,4 +171,37 @@ suite('QueueStateUpdater — detecção de mudança de posição', () => {
     ]);
     assert.equal(QueueStateUpdater.posicaoAtual(), 2);
   });
+
+  test('evento inclui posicaoAnterior no detail ao avançar', () => {
+    const { sandbox, eventosDispachados, dispararFilaAtualizada } = criarSandbox();
+    const { QueueStateUpdater } = sandbox;
+    QueueStateUpdater.iniciar(UUID_CLI);
+
+    // Primeira posição: 2
+    dispararFilaAtualizada([
+      entradaWaiting(UUID_CLI_B, 1, 'e-b'),
+      entradaWaiting(UUID_CLI,   2, UUID_ENTRY),
+    ]);
+    eventosDispachados.length = 0; // limpa
+
+    // Avança para posição 1
+    dispararFilaAtualizada([entradaWaiting(UUID_CLI, 1, UUID_ENTRY)]);
+
+    const evt = eventosDispachados.find(e => e.type === 'barberflow:fila-posicao-atualizada');
+    assert.ok(evt, 'deve ter despachado evento');
+    assert.equal(evt.detail.posicaoAnterior, 2, 'posicaoAnterior deve ser a posição anterior ao avanço');
+    assert.equal(evt.detail.position, 1, 'position deve ser a nova posição');
+  });
+
+  test('posicaoAnterior é null na primeira vez que a posição é estabelecida', () => {
+    const { sandbox, eventosDispachados, dispararFilaAtualizada } = criarSandbox();
+    const { QueueStateUpdater } = sandbox;
+    QueueStateUpdater.iniciar(UUID_CLI);
+
+    dispararFilaAtualizada([entradaWaiting(UUID_CLI, 2, UUID_ENTRY)]);
+
+    const evt = eventosDispachados.find(e => e.type === 'barberflow:fila-posicao-atualizada');
+    assert.ok(evt, 'deve ter despachado evento');
+    assert.equal(evt.detail.posicaoAnterior, null, 'na primeira vez, posicaoAnterior é null');
+  });
 });

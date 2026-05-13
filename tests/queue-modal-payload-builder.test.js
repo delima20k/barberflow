@@ -126,3 +126,69 @@ suite('QueueModalPayloadBuilder — montarPayloadToast', () => {
     );
   });
 });
+
+suite('QueueModalPayloadBuilder — montarPayloadPosicao (enriquecido)', () => {
+
+  test('inclui posicaoAnterior → posicao no corpo quando posicaoAnterior fornecido', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2, { posicaoAnterior: 4 });
+    assert.ok(config.corpo.includes('4'), 'corpo deve conter posição anterior');
+    assert.ok(config.corpo.includes('2'), 'corpo deve conter nova posição');
+  });
+
+  test('não inclui bloco de movimentação quando posicaoAnterior ausente', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2);
+    // Não deve ter seta de movimentação sem posicaoAnterior
+    assert.ok(!config.corpo.includes('→'), 'não deve incluir seta sem posicaoAnterior');
+  });
+
+  test('inclui clienteNome no titulo quando fornecido', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2, { clienteNome: 'Carlos' });
+    const textoGeral = config.titulo + config.corpo;
+    assert.ok(textoGeral.includes('Carlos'), 'deve personalizar com nome do cliente');
+  });
+
+  test('usa iconesDuplos quando shopLogoUrl fornecido', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2, {
+      shopLogoUrl: 'https://example.com/logo.png',
+    });
+    assert.ok(config.iconesDuplos, 'deve ter iconesDuplos quando shopLogoUrl presente');
+    assert.ok(config.iconesDuplos.barbearia === 'https://example.com/logo.png');
+    assert.ok(!config.icone, 'não deve ter icone simples quando iconesDuplos presente');
+  });
+
+  test('usa icone simples quando shopLogoUrl ausente', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2);
+    assert.ok(!config.iconesDuplos, 'sem shopLogoUrl não deve ter iconesDuplos');
+    assert.ok(typeof config.icone === 'string', 'deve ter icone simples como fallback');
+  });
+
+  test('botão de ação tem label "OK"', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(3);
+    assert.ok(config.acoes.length > 0, 'deve ter ao menos uma ação');
+    assert.equal(config.acoes[0].label, 'OK', 'label do botão deve ser "OK"');
+  });
+
+  test('id do overlay definido (proteção contra duplicatas)', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(2);
+    assert.ok(typeof config.id === 'string' && config.id.length > 0, 'deve ter id de overlay');
+  });
+
+  test('tocarSom true quando posicao === 1', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(1);
+    assert.equal(config.tocarSom, true, 'deve tocar som quando é o próximo');
+  });
+
+  test('tocarSom ausente/false quando posicao > 1', () => {
+    const { QueueModalPayloadBuilder } = criarSandbox();
+    const config = QueueModalPayloadBuilder.montarPayloadPosicao(3);
+    assert.ok(!config.tocarSom, 'não deve tocar som quando não é o próximo');
+  });
+});

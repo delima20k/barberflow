@@ -40,17 +40,18 @@ class Cadeira {
    * @returns {HTMLDivElement}
    */
   static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null, confirmacao = null }) {
-    const ocupada = !!entrada;
-    const estado  = Cadeira.#ESTADOS[`${tipo}_${ocupada ? 'ocupada' : 'livre'}`] ?? 'livre';
+    const ocupada           = !!entrada;
+    const estado            = Cadeira.#ESTADOS[`${tipo}_${ocupada ? 'ocupada' : 'livre'}`] ?? 'livre';
+    const isProducaoOcupada = tipo === 'producao' && ocupada;
 
     const el = document.createElement('div');
     el.className = `cdr-cadeira cdr-cadeira--${tipo} cdr-cadeira--${estado}`;
 
     // Bordas de confirmação de presença (apenas cadeira de produção ocupada)
-    if (tipo === 'producao' && ocupada && confirmacao === 'yes') {
-      el.classList.add('cdr-cadeira--confirmada');
-    } else if (tipo === 'producao' && ocupada && confirmacao === 'absent') {
-      el.classList.add('cdr-cadeira--ausente');
+    if (isProducaoOcupada) {
+      if (confirmacao === 'yes')      el.classList.add('cdr-cadeira--confirmada');
+      else if (confirmacao === 'absent')   el.classList.add('cdr-cadeira--ausente');
+      else if (confirmacao === 'arriving') el.classList.add('cdr-cadeira--aguardando');
     }
 
     // Interatividade: somente cadeiras LIVRES e com permissão
@@ -69,8 +70,10 @@ class Cadeira {
     if (ocupada) el.appendChild(Cadeira.#criarAvatarCli(entrada));
     el.appendChild(Cadeira.#criarLabel(tipo, entrada, posicao, estado, confirmacao));
 
-    const nomeExibido = entrada?.guest_name ?? entrada?.client?.full_name;
-    if (nomeExibido && !(tipo === 'producao' && confirmacao === 'yes')) {
+    // Suprime cdr-cliente quando o nome já aparece no label (yes → "cortando", arriving → "a caminho")
+    const nomeExibido    = entrada?.guest_name ?? entrada?.client?.full_name;
+    const nomeNoLabel    = isProducaoOcupada && (confirmacao === 'yes' || confirmacao === 'arriving');
+    if (nomeExibido && !nomeNoLabel) {
       const nome       = document.createElement('span');
       nome.className   = 'cdr-cliente';
       nome.textContent = nomeExibido;
@@ -176,6 +179,10 @@ class Cadeira {
         if (confirmacao === 'yes') {
           const sufixo = document.createElement('span');
           sufixo.textContent = ' está cortando o cabelo';
+          label.appendChild(sufixo);
+        } else if (confirmacao === 'arriving') {
+          const sufixo = document.createElement('span');
+          sufixo.textContent = ' a caminho';
           label.appendChild(sufixo);
         }
       } else {

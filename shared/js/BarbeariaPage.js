@@ -637,9 +637,8 @@ class BarbeariaPage {
 
   /**
    * Handler de clique na cadeira de PRODUÇÃO vazia (app cliente).
-   * Senta o cliente diretamente em in_service (sem fila de espera).
-   * Após sentar, o barbeiro responsável é o único que pode removê-lo
-   * (não há botão de saída para o cliente — MinhaBarbeariaPage controla isso).
+   * Delega o fluxo completo (modal "Onde você está?", sentar, notificação)
+   * ao ChegadaProducaoService — sem lógica de negócio aqui.
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
   async #onProducaoClick(professionalId) {
@@ -669,30 +668,20 @@ class BarbeariaPage {
     if (!serviceIds?.length) return;
 
     try {
-      const entrada = await ClienteController.sentar({
+      const entrada = await ChegadaProducaoService.iniciarFluxo({
         barbershopId:   this.#shopId,
         professionalId,
+        clientId:       perfil?.id ?? null,
         serviceIds,
+        shopData:       this.#shopData,
+        clientePerfil:  perfil,
       });
 
-      // Dispara confirmação de presença na cadeira
-      if (typeof CadeiraConfirmacaoService !== 'undefined' && entrada?.id) {
-        const nome        = perfil?.full_name ?? '';
-        const shopLogoUrl = (typeof ApiService !== 'undefined' && this.#shopData?.logo_path)
-          ? ApiService.getLogoUrl(this.#shopData.logo_path)
-          : null;
-        CadeiraConfirmacaoService.iniciarFluxo(entrada.id, nome, shopLogoUrl).catch(() => {});
-      }
+      if (!entrada) return;
 
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
-      // iniciarPresenter=false: cliente já está em produção — sem notificações de posição na fila
+      // iniciarPresenter=false: cliente está em produção — sem notificações de posição na fila
       this.#iniciarPollers(perfil?.id, false);
-
-      NotificationService.mostrarToast(
-        'Você está na cadeira!',
-        'Aguarde o barbeiro iniciar seu atendimento.',
-        NotificationService.TIPOS.SISTEMA,
-      );
     } catch (err) {
       LoggerService.error('[BarbeariaPage] erro ao sentar em produção:', err);
       NotificationService.mostrarToast(
@@ -719,7 +708,12 @@ class BarbeariaPage {
     });
     QueueRealtimeNotifier.iniciar(this.#shopId);
     QueueStateUpdater.iniciar(perfilId);
-    if (iniciarPresenter) QueuePositionPresenter.iniciar(this.#shopData?.name ?? null);
+    if (iniciarPresenter) QueuePositionPresenter.iniciar(
+      this.#shopData?.name ?? null,
+      (typeof ApiService !== 'undefined' && this.#shopData?.logo_path)
+        ? ApiService.getLogoUrl(this.#shopData.logo_path)
+        : null,
+    );
   }
 
   /** Capa e logo da barbearia. Usa .src — não innerHTML, sem risco XSS. */

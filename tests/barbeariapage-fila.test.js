@@ -67,30 +67,24 @@ suite('BarbeariaPage — cadeira de produção interativa (app cliente)', () => 
     );
   });
 
-  test('#onProducaoClick delega ao ClienteController.sentar (tipo producao encapsulado no controller)', () => {
+  test('#onProducaoClick delega ao ChegadaProducaoService.iniciarFluxo', () => {
     const idxMetodo = SRC.indexOf('async #onProducaoClick');
     assert.ok(idxMetodo > 0, 'async #onProducaoClick deve existir');
-    // Janela de 1500 chars — o guard de double-entry precede a chamada ao controller
-    const bloco = SRC.slice(idxMetodo, idxMetodo + 1500);
+    const bloco = SRC.slice(idxMetodo, idxMetodo + 1800);
     assert.ok(
-      bloco.includes('ClienteController.sentar'),
-      '#onProducaoClick deve chamar ClienteController.sentar',
-    );
-    // ClienteController.sentar deve ter tipo:'producao'
-    assert.ok(
-      SRC_CC.includes("tipo:       'producao'") || SRC_CC.includes("tipo: 'producao'"),
-      'ClienteController.sentar deve passar tipo producao ao CadeiraService',
+      bloco.includes('ChegadaProducaoService.iniciarFluxo'),
+      '#onProducaoClick deve delegar a ChegadaProducaoService.iniciarFluxo',
     );
   });
 
-  test('#onProducaoClick aciona CadeiraConfirmacaoService.iniciarFluxo após sentar', () => {
+  test('#onProducaoClick retorna cedo se ChegadaProducaoService retornar null', () => {
     const idxMetodo = SRC.indexOf('async #onProducaoClick');
     assert.ok(idxMetodo > 0);
-    // O método é longo (guard de double-entry + await); usa janela de 2500 chars
     const bloco = SRC.slice(idxMetodo, idxMetodo + 2500);
+    // Deve verificar a entrada retornada antes de prosseguir com pollers
     assert.ok(
-      bloco.includes('CadeiraConfirmacaoService'),
-      '#onProducaoClick deve acionar CadeiraConfirmacaoService.iniciarFluxo',
+      bloco.includes('if (!entrada) return'),
+      '#onProducaoClick deve retornar cedo se iniciarFluxo retornar null',
     );
   });
 

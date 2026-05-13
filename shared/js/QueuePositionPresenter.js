@@ -34,6 +34,9 @@ class QueuePositionPresenter {
   /** @type {string|null} Nome da barbearia atual (exibido na modal) */
   static #nomeBarbearia = null;
 
+  /** @type {string|null} URL do logo da barbearia (para iconesDuplos) */
+  static #shopLogoUrl = null;
+
   /** @type {Function|null} Referência ao listener (para removeEventListener) */
   static #listener = null;
 
@@ -46,13 +49,15 @@ class QueuePositionPresenter {
 
   /**
    * Inicia o presenter para o cliente atual.
-   * Idempotente: segunda chamada apenas atualiza nomeBarbearia
+   * Idempotente: segunda chamada apenas atualiza nomeBarbearia / shopLogoUrl
    * sem registrar listener duplicado.
    *
    * @param {string|null} [nomeBarbearia] — nome da barbearia a exibir na modal
+   * @param {string|null} [shopLogoUrl]   — URL do logo da barbearia
    */
-  static iniciar(nomeBarbearia = null) {
+  static iniciar(nomeBarbearia = null, shopLogoUrl = null) {
     QueuePositionPresenter.#nomeBarbearia = nomeBarbearia ?? null;
+    QueuePositionPresenter.#shopLogoUrl   = shopLogoUrl   ?? null;
 
     if (QueuePositionPresenter.#listener) return; // já ativo — só atualizou o nome
 
@@ -78,6 +83,7 @@ class QueuePositionPresenter {
       QueuePositionPresenter.#listener = null;
     }
     QueuePositionPresenter.#nomeBarbearia = null;
+    QueuePositionPresenter.#shopLogoUrl   = null;
     QueuePositionPresenter.#modalAberto   = false;
   }
 
@@ -92,11 +98,12 @@ class QueuePositionPresenter {
    *
    * @param {CustomEvent} evt
    * @param {object}  evt.detail
-   * @param {number}  evt.detail.position     — rank atual do cliente (1-based)
-   * @param {boolean} evt.detail.isNext        — true se position === 1
+   * @param {number}  evt.detail.position         — rank atual do cliente (1-based)
+   * @param {boolean} evt.detail.isNext            — true se position === 1
    * @param {string}  evt.detail.barbershopId
+   * @param {number|null} evt.detail.posicaoAnterior — posição antes da atualização
    */
-  static async #onPosicaoAtualizada({ detail: { position } = {} }) {
+  static async #onPosicaoAtualizada({ detail: { position, posicaoAnterior = null } = {} }) {
     // Guarda de posição inválida
     if (!position || position <= 0) return;
 
@@ -105,9 +112,18 @@ class QueuePositionPresenter {
 
     QueuePositionPresenter.#modalAberto = true;
     try {
+      const clienteNome = (typeof AuthService !== 'undefined')
+        ? (AuthService.getPerfil?.()?.full_name ?? null)
+        : null;
+
       const config = QueueModalPayloadBuilder.montarPayloadPosicao(
         position,
-        { nomeBarbearia: QueuePositionPresenter.#nomeBarbearia },
+        {
+          nomeBarbearia:   QueuePositionPresenter.#nomeBarbearia,
+          posicaoAnterior,
+          clienteNome,
+          shopLogoUrl:     QueuePositionPresenter.#shopLogoUrl,
+        },
       );
       await FluxoDeFila.abrir(config);
     } catch (err) {

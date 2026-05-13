@@ -65,18 +65,38 @@ class QueueModalPayloadBuilder {
    *
    * @param {number} posicao — posição atual na fila (≥1)
    * @param {object} [opts]
-   * @param {string} [opts.nomeBarbearia] — nome exibido no corpo
+   * @param {string}  [opts.nomeBarbearia]  — nome exibido no corpo
+   * @param {number|null} [opts.posicaoAnterior] — posição anterior (para mostrar movimento)
+   * @param {string|null} [opts.clienteNome]     — nome do cliente (para saudação)
+   * @param {string|null} [opts.shopLogoUrl]     — URL do logo da barbearia
    * @returns {object} config-object para FluxoDeFila.abrir()
    */
-  static montarPayloadPosicao(posicao, { nomeBarbearia } = {}) {
+  static montarPayloadPosicao(posicao, { nomeBarbearia, posicaoAnterior = null, clienteNome = null, shopLogoUrl = null } = {}) {
     const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia);
-    const corpo    = QueueModalPayloadBuilder.#textoCorpo(posicao, shopPart);
+
+    const saudacao = clienteNome
+      ? `<strong>${FluxoDeFila.escapar(clienteNome)}</strong>, você avançou na fila.<br>`
+      : '';
+
+    const movimento = (posicaoAnterior != null && posicaoAnterior > posicao)
+      ? `Cadeira: <strong>${posicaoAnterior} → ${posicao}</strong><br>`
+      : '';
+
+    const corpoBase = QueueModalPayloadBuilder.#textoCorpo(posicao, shopPart);
+    const corpo     = saudacao + movimento + corpoBase;
+
+    const iconeConfig = shopLogoUrl
+      ? { iconesDuplos: { app: '/shared/img/Logo01.png', barbearia: shopLogoUrl } }
+      : { icone: '💈' };
 
     return {
-      icone:  '💈',
-      titulo: 'Posição atualizada',
+      ...iconeConfig,
+      id:        'modal-posicao-fila',
+      titulo:    'Posição atualizada',
       corpo,
-      acoes:  [{ label: 'Entendido', valor: 'ok', variante: 'primario' }],
+      fecharBtn: false,
+      tocarSom:  posicao === 1 || undefined,
+      acoes:     [{ label: 'OK', valor: 'ok', variante: 'primario' }],
     };
   }
 

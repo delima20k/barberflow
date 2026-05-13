@@ -106,15 +106,17 @@ class QueueStateUpdater {
     // Anti-flood: só despacha se posição mudou
     if (rank === QueueStateUpdater.#posicaoAnterior) return;
 
+    const posicaoAnt = QueueStateUpdater.#posicaoAnterior;
     QueueStateUpdater.#posicaoAnterior = rank;
 
     document.dispatchEvent(
       new CustomEvent('barberflow:fila-posicao-atualizada', {
         detail: {
-          position:     rank,
-          isNext:       rank === 1,
+          position:        rank,
+          isNext:          rank === 1,
           barbershopId,
-          entradaId:    entrada.id ?? null,
+          entradaId:       entrada.id ?? null,
+          posicaoAnterior: posicaoAnt,
         },
       }),
     );

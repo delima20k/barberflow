@@ -17,11 +17,11 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v162';
+  static #CACHE_STATIC    = 'bf-cli-static-v164';
   static #CACHE_IMAGES    = 'bf-cli-images-v158';
   static #CACHE_SHELL     = 'bf-cli-shell-v158';
   static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v162',
+    'bf-cli-static-v164',
     'bf-cli-images-v158',
     'bf-cli-shell-v158',
   ]);
@@ -48,6 +48,7 @@ class SWCliente {
     '/shared/js/QueuePositionNotificationService.js',
     '/shared/js/QueuePositionPresenter.js',
     '/shared/js/FilaPresencaService.js',
+    '/shared/js/ChegadaProducaoService.js',
     '/shared/js/CorteModal.js',
     '/shared/js/BarbeiroCard.js',
     '/shared/js/Cadeira.js',

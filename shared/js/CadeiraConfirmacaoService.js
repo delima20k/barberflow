@@ -77,6 +77,18 @@ class CadeiraConfirmacaoService {
   }
 
   /**
+   * Marca uma entrada como já processada sem abrir modal.
+   * Usado pelo ChegadaProducaoService logo após sentar() para impedir
+   * que o evento Realtime (QueueConfirmService) reabra a confirmação
+   * de presença que o cliente já respondeu na ChegadaModal.
+   *
+   * @param {string} entradaId UUID da queue_entry
+   */
+  static pular(entradaId) {
+    if (entradaId) CadeiraConfirmacaoService.#processadas.add(entradaId);
+  }
+
+  /**
    * Cancela o timer de grace e limpa o estado de uma ou todas as entradas.
    * Chamado quando: barbeiro finalizou o atendimento, cliente saiu da fila,
    * ou app cliente desmontou a tela.

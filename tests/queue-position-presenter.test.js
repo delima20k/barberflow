@@ -224,3 +224,125 @@ suite('QueuePositionPresenter — abertura de modal', () => {
   });
 
 });
+
+// ─── Sandbox estendida: AuthService + posicaoAnterior ───────────────────────
+
+function criarSandboxComAuth({ clienteNome = 'Fulano', shopLogoUrl = null } = {}) {
+  const listeners           = new Map();
+  const acoesModal          = [];
+  const acoesPayloadBuilder = [];
+
+  const fluxoDeFilaMock = {
+    abrir: fn(async (_config) => { acoesModal.push(_config); return 'ok'; }),
+    escapar: (str) => String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;'),
+  };
+
+  const configFake = { titulo: 'teste', corpo: 'corpo', acoes: [] };
+  const payloadBuilderMock = {
+    montarPayloadPosicao: fn((_pos, _opts) => {
+      acoesPayloadBuilder.push({ pos: _pos, opts: _opts });
+      return configFake;
+    }),
+  };
+
+  const documentMock = {
+    _listeners: listeners,
+    addEventListener: fn((tipo, cb) => {
+      if (!listeners.has(tipo)) listeners.set(tipo, []);
+      listeners.get(tipo).push(cb);
+    }),
+    removeEventListener: fn((tipo, cb) => {
+      const lista = listeners.get(tipo) ?? [];
+      const idx   = lista.indexOf(cb);
+      if (idx !== -1) lista.splice(idx, 1);
+    }),
+    dispatchEvent: fn(() => {}),
+  };
+
+  const sandbox = vm.createContext({
+    console,
+    document:                 documentMock,
+    FluxoDeFila:              fluxoDeFilaMock,
+    QueueModalPayloadBuilder: payloadBuilderMock,
+    LoggerService:            { info: fn(), warn: fn(), error: fn() },
+    AuthService:              { getPerfil: fn(() => ({ full_name: clienteNome })) },
+    CustomEvent: class CustomEvent {
+      constructor(type, opts) { this.type = type; this.detail = opts?.detail ?? {}; }
+    },
+  });
+
+  carregar(sandbox, 'shared/js/QueuePositionPresenter.js');
+
+  function dispararPosicaoAtualizada({ position, posicaoAnterior = null, isNext = false, barbershopId = UUID_SHOP } = {}) {
+    const cbs = listeners.get('barberflow:fila-posicao-atualizada') ?? [];
+    const evt = { detail: { position, posicaoAnterior, isNext, barbershopId } };
+    for (const cb of cbs) cb(evt);
+  }
+
+  return { sandbox, acoesModal, acoesPayloadBuilder, dispararPosicaoAtualizada, shopLogoUrl };
+}
+
+// ─── Suite: enriquecimento do payload (logo + nome + posicaoAnterior) ────────
+
+suite('QueuePositionPresenter — logo, nome e posicaoAnterior', () => {
+
+  test('iniciar(nome, logoUrl) armazena shopLogoUrl e passa ao builder', () => {
+    const logoUrl = 'https://example.com/logo.png';
+    const { sandbox, acoesPayloadBuilder, dispararPosicaoAtualizada } = criarSandboxComAuth({ shopLogoUrl: logoUrl });
+    const { QueuePositionPresenter } = sandbox;
+
+    QueuePositionPresenter.iniciar('Barbearia X', logoUrl);
+    dispararPosicaoAtualizada({ position: 2 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(acoesPayloadBuilder.length, 1, 'builder deve ter sido chamado');
+      assert.equal(acoesPayloadBuilder[0].opts.shopLogoUrl, logoUrl, 'deve passar shopLogoUrl ao builder');
+    });
+  });
+
+  test('passa posicaoAnterior do evento para o builder', () => {
+    const { sandbox, acoesPayloadBuilder, dispararPosicaoAtualizada } = criarSandboxComAuth();
+    const { QueuePositionPresenter } = sandbox;
+
+    QueuePositionPresenter.iniciar('Barbearia X');
+    dispararPosicaoAtualizada({ position: 2, posicaoAnterior: 4 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(acoesPayloadBuilder.length, 1, 'builder deve ter sido chamado');
+      assert.equal(acoesPayloadBuilder[0].opts.posicaoAnterior, 4, 'deve passar posicaoAnterior ao builder');
+    });
+  });
+
+  test('passa clienteNome de AuthService.getPerfil para o builder', () => {
+    const { sandbox, acoesPayloadBuilder, dispararPosicaoAtualizada } = criarSandboxComAuth({ clienteNome: 'Carlos' });
+    const { QueuePositionPresenter } = sandbox;
+
+    QueuePositionPresenter.iniciar('Barbearia X');
+    dispararPosicaoAtualizada({ position: 3 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(acoesPayloadBuilder.length, 1, 'builder deve ter sido chamado');
+      assert.equal(acoesPayloadBuilder[0].opts.clienteNome, 'Carlos', 'deve passar clienteNome ao builder');
+    });
+  });
+
+  test('parar() reseta shopLogoUrl', () => {
+    const logoUrl = 'https://example.com/logo.png';
+    const { sandbox, acoesPayloadBuilder, dispararPosicaoAtualizada } = criarSandboxComAuth({ shopLogoUrl: logoUrl });
+    const { QueuePositionPresenter } = sandbox;
+
+    QueuePositionPresenter.iniciar('Barbearia X', logoUrl);
+    QueuePositionPresenter.parar();
+    // Reinicia sem logo
+    QueuePositionPresenter.iniciar('Barbearia X');
+    dispararPosicaoAtualizada({ position: 2 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(acoesPayloadBuilder.length, 1);
+      assert.equal(acoesPayloadBuilder[0].opts.shopLogoUrl, null, 'após parar+reiniciar sem logo, shopLogoUrl deve ser null');
+    });
+  });
+
+});
