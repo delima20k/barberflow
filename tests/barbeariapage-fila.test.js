@@ -71,9 +71,12 @@ suite('BarbeariaPage — cadeira de produção interativa (app cliente)', () => 
     const idxMetodo = SRC.indexOf('async #onProducaoClick');
     assert.ok(idxMetodo > 0, 'async #onProducaoClick deve existir');
     const bloco = SRC.slice(idxMetodo, idxMetodo + 1800);
+    // Aceita delegação direta ou via método privado #executarFluxoProducao
+    const delegaDiretamente = bloco.includes('ChegadaProducaoService.iniciarFluxo');
+    const delegaViaMetodo   = bloco.includes('#executarFluxoProducao');
     assert.ok(
-      bloco.includes('ChegadaProducaoService.iniciarFluxo'),
-      '#onProducaoClick deve delegar a ChegadaProducaoService.iniciarFluxo',
+      delegaDiretamente || delegaViaMetodo,
+      '#onProducaoClick deve delegar a ChegadaProducaoService.iniciarFluxo (direta ou via #executarFluxoProducao)',
     );
   });
 

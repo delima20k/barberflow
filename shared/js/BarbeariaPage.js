@@ -457,7 +457,10 @@ class BarbeariaPage {
       return;
     }
 
-    const podeInteragir    = ClienteController.podeInteragir();
+    const barbeariaAberta  = (typeof BarbershopAvailabilityService !== 'undefined')
+      ? BarbershopAvailabilityService.canClientClickChair(shop)
+      : (shop?.is_open === true);
+    const podeInteragir    = ClienteController.podeInteragir() && barbeariaAberta;
     const clienteLogadoId  = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
 
     el.innerHTML = '';
@@ -687,8 +690,7 @@ class BarbeariaPage {
     if (!ClienteController.podeInteragir()) return;
 
     // Guard: bloqueia entrada na fila quando barbearia está fechada ou em pausa
-    if (typeof BarbershopAvailabilityService !== 'undefined' &&
-        !BarbershopAvailabilityService.canClientJoinQueue(this.#shopData)) {
+    if (!BarbershopAvailabilityService.canClientJoinQueue(this.#shopData)) {
       NotificationService.mostrarToast(
         'Barbearia indisponível',
         BarbershopAvailabilityService.getClosedMessage(this.#shopData),
@@ -781,8 +783,7 @@ class BarbeariaPage {
     if (!ClienteController.podeInteragir()) return;
 
     // Guard: bloqueia clique quando barbearia está fechada ou em pausa
-    if (typeof BarbershopAvailabilityService !== 'undefined' &&
-        !BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
+    if (!BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
       NotificationService.mostrarToast(
         'Barbearia indisponível',
         BarbershopAvailabilityService.getClosedMessage(this.#shopData),
