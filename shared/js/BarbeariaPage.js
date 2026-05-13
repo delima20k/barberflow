@@ -630,7 +630,6 @@ class BarbeariaPage {
         professionalId,
         serviceIds,
       });
-      await FilaPresencaService.iniciarFluxo(entrada?.id, this.#shopData, professionalId);
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
 
       const perfil = AuthService.getPerfil();
