@@ -55,28 +55,15 @@ class Cadeira {
       else if (confirmacao === 'arriving') el.classList.add('cdr-cadeira--aguardando');
     }
 
-    // Interatividade: somente cadeiras LIVRES e com permissão
+    // Interatividade: cadeira livre clicável
     if (!ocupada && podeInteragir && onClick) {
-      el.classList.add('cdr-cadeira--interativa');
-      el.addEventListener('click', () => onClick());
-      el.setAttribute('role', 'button');
-      el.setAttribute('tabindex', '0');
-      el.setAttribute('aria-label', tipo === 'producao' ? 'Entrar para atendimento' : `Entrar na posição ${posicao}`);
-      el.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
-      });
+      const ariaLabel = tipo === 'producao' ? 'Entrar para atendimento' : `Entrar na posição ${posicao}`;
+      Cadeira.#tornarInterativa(el, onClick, ariaLabel);
     }
 
     // Interatividade: cadeira de produção do próprio cliente em estado 'arriving' → auto-confirmar chegada
     if (isProducaoOcupada && confirmacao === 'arriving' && podeInteragir && onArrivingClick) {
-      el.classList.add('cdr-cadeira--interativa');
-      el.addEventListener('click', () => onArrivingClick());
-      el.setAttribute('role', 'button');
-      el.setAttribute('tabindex', '0');
-      el.setAttribute('aria-label', 'Confirmar chegada na barbearia');
-      el.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onArrivingClick(); }
-      });
+      Cadeira.#tornarInterativa(el, onArrivingClick, 'Confirmar chegada na barbearia');
     }
 
     el.appendChild(Cadeira.#criarIconWrap(tipo, entrada, confirmacao));
@@ -97,6 +84,23 @@ class Cadeira {
   }
 
   // ── Privados ────────────────────────────────────────────────
+
+  /**
+   * Aplica interatividade (click + teclado + ARIA) a um elemento de cadeira.
+   * @param {HTMLDivElement} el        elemento da cadeira
+   * @param {Function}       callback  ação a executar
+   * @param {string}         ariaLabel descrição acessível
+   */
+  static #tornarInterativa(el, callback, ariaLabel) {
+    el.classList.add('cdr-cadeira--interativa');
+    el.addEventListener('click', () => callback());
+    el.setAttribute('role',       'button');
+    el.setAttribute('tabindex',   '0');
+    el.setAttribute('aria-label', ariaLabel);
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); callback(); }
+    });
+  }
 
   /**
    * Ícone da cadeira: sempre exibe a imagem padrão da cadeira.

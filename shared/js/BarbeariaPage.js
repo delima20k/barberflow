@@ -307,9 +307,10 @@ class BarbeariaPage {
    * @param {Function|null} opts.onProducaoVaziaClick    callback: clique em cadeira de produção vazia
    * @param {Function|null} opts.onCadeiraVaziaClick     callback: clique em cadeira de fila vazia (última)
    * @param {Function|null} opts.onProducaoArrivingClick callback: cliente clica na própria cadeira em arriving
+   * @param {string|null}   opts.clienteLogadoId         id do cliente autenticado (ou null)
    * @returns {HTMLDivElement}
    */
-  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null }) {
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, clienteLogadoId = null }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
@@ -325,9 +326,8 @@ class BarbeariaPage {
     wrap.className = 'cdr-cadeiras-wrap';
 
     // Cadeira de produção (atendimento)
-    const emServico       = filaEntradas.find(e => e.status === 'in_service') ?? null;
-    const clienteLogadoId = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
-    const ehMinhaEntrada  = emServico != null && (emServico.client_id ?? emServico.user_id) === clienteLogadoId;
+    const emServico      = filaEntradas.find(e => e.status === 'in_service') ?? null;
+    const ehMinhaEntrada = emServico != null && (emServico.client_id ?? emServico.user_id) === clienteLogadoId;
     wrap.appendChild(Cadeira.criar({
       tipo:            'producao',
       entrada:         emServico,
@@ -453,7 +453,8 @@ class BarbeariaPage {
       return;
     }
 
-    const podeInteragir = ClienteController.podeInteragir();
+    const podeInteragir    = ClienteController.podeInteragir();
+    const clienteLogadoId  = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
 
     el.innerHTML = '';
     for (const b of barbeiros) {
@@ -463,6 +464,7 @@ class BarbeariaPage {
         isOwner:               b.id === shop.owner_id,
         filaEntradas:          filaB,
         podeInteragir,
+        clienteLogadoId,
         onProducaoVaziaClick:     podeInteragir
           ? () => this.#onProducaoClick(b.id)
           : null,
