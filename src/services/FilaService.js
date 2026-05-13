@@ -14,11 +14,16 @@ class FilaService extends BaseService {
   static #STATUS_VALIDOS = ['waiting', 'in_service', 'done', 'cancelled'];
 
   #filaRepository;
+  #barbeariaRepository;
 
-  /** @param {import('../repositories/FilaRepository')} filaRepository */
-  constructor(filaRepository) {
+  /**
+   * @param {import('../repositories/FilaRepository')}      filaRepository
+   * @param {import('../repositories/BarbeariaRepository')} barbeariaRepository
+   */
+  constructor(filaRepository, barbeariaRepository) {
     super('FilaService');
-    this.#filaRepository = filaRepository;
+    this.#filaRepository      = filaRepository;
+    this.#barbeariaRepository = barbeariaRepository;
   }
 
   /**
@@ -41,6 +46,21 @@ class FilaService extends BaseService {
   async entrarFila(barbeariaId, userId, dados = {}) {
     this._uuid('barbeariaId', barbeariaId);
     this._uuid('userId', userId);
+
+    // Guard: verifica se a barbearia está aberta antes de inserir na fila
+    if (this.#barbeariaRepository) {
+      const shop = await this.#barbeariaRepository.getStatus(barbeariaId);
+      if (!shop || !shop.is_open) {
+        const nome  = shop?.name ?? 'A barbearia';
+        const razao = (shop?.close_reason ?? '').toLowerCase().trim();
+        let msg = `${nome} está fechada no momento.`;
+        if (razao === 'almoco') msg = `${nome} está em pausa para almoço.`;
+        if (razao === 'janta')  msg = `${nome} está em pausa para janta.`;
+        const err  = new Error(msg);
+        err.status = 403;
+        throw err;
+      }
+    }
 
     if (dados.notes)    dados.notes    = this._texto('notes', dados.notes, 200);
     if (dados.chair_id) this._uuid('chair_id', dados.chair_id);

@@ -51,22 +51,27 @@ function entradaWaiting(id, profId, position = 1, nomeCliente = 'Alice') {
 
 // ─── Factory da sandbox VM ───────────────────────────────────────────────────
 
-function criarSandbox({ filaAtiva = [], entradaNova = null } = {}) {
+function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } = {}) {
   const QueueRepository = {
     getByBarbershop: fn().mockResolvedValue(filaAtiva),
     updateStatus:    fn().mockResolvedValue({ id: 'x', status: 'done' }),
     entrar:          fn().mockResolvedValue(entradaNova ?? { id: UUID_ENTRY_NOVO, position: 1 }),
   };
 
+  const shopData = shopAberta
+    ? { is_open: true,  name: 'Barbearia Teste', close_reason: null }
+    : { is_open: false, name: 'Barbearia Teste', close_reason: null };
+
   const sandbox = vm.createContext({
     console,
     QueueRepository,
     ApiService: {
       from: fn().mockReturnValue({
-        select: fn().mockReturnThis(),
-        eq:     fn().mockReturnThis(),
-        order:  fn().mockReturnThis(),
-        limit:  fn().mockResolvedValue({ data: [], error: null }),
+        select:      fn().mockReturnThis(),
+        eq:          fn().mockReturnThis(),
+        order:       fn().mockReturnThis(),
+        limit:       fn().mockResolvedValue({ data: [], error: null }),
+        maybeSingle: fn().mockResolvedValue({ data: shopData, error: null }),
       }),
     },
     UserRepository: {
@@ -366,5 +371,59 @@ suite('CadeiraService.sentar("producao") — comportamento existente', () => {
       QR.updateStatus.calls.some(([id, st]) => id === UUID_ENTRY_NOVO && st === 'in_service'),
       'sentar("producao") deve ir direto para in_service',
     );
+  });
+});
+
+// =============================================================================
+// Suite 5 — sentar(): barbearia fechada bloqueia inserção
+// =============================================================================
+
+suite('CadeiraService.sentar() — barbearia fechada', () => {
+
+  test('lança erro 403 quando barbearia está fechada (is_open=false)', async () => {
+    const { CS } = criarSandbox({ shopAberta: false });
+
+    await assert.rejects(
+      () => CS.sentar({
+        barbershopId:   UUID_SHOP,
+        professionalId: UUID_PROF_A,
+        clientId:       UUID_CLI,
+        serviceIds:     [],
+        tipo:           'producao',
+      }),
+      (err) => err.status === 403,
+      'deve rejeitar com status 403',
+    );
+  });
+
+  test('não chama QueueRepository.entrar() quando barbearia está fechada', async () => {
+    const { CS, QR } = criarSandbox({ shopAberta: false });
+
+    await assert.rejects(() => CS.sentar({
+      barbershopId:   UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId:       UUID_CLI,
+      serviceIds:     [],
+      tipo:           'fila',
+    }));
+
+    assert.strictEqual(QR.entrar.calls.length, 0, 'entrar() não deve ser chamado');
+  });
+
+  test('procede normalmente quando barbearia está aberta (is_open=true)', async () => {
+    const { CS, QR } = criarSandbox({
+      shopAberta:  true,
+      entradaNova: { id: UUID_ENTRY_NOVO, position: 1 },
+    });
+
+    await CS.sentar({
+      barbershopId:   UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId:       UUID_CLI,
+      serviceIds:     [],
+      tipo:           'producao',
+    });
+
+    assert.strictEqual(QR.entrar.calls.length, 1, 'entrar() deve ser chamado uma vez');
   });
 });

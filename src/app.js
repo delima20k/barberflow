@@ -159,7 +159,7 @@ function criarApp() {
   const profissionalService = new ProfissionalService(profissionalRepo);
   const socialService       = new SocialService(socialRepo);
   const comunicacaoService  = new ComunicacaoService(comunicacaoRepo);
-  const filaService         = new FilaService(filaRepo);
+  const filaService         = new FilaService(filaRepo, barbeariaRepo);
   const lgpdService         = new LgpdService(lgpdRepo);
   const cadastroService     = new CadastroService(authRepo);
   const userService         = new UserService(clienteRepo, searchRepo);

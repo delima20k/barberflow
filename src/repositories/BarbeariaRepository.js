@@ -48,6 +48,26 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
+   * Retorna apenas os campos de disponibilidade de uma barbearia.
+   * Não filtra por is_active — verifica qualquer barbearia pelo ID.
+   * Retorna null quando o ID não existe.
+   * @param {string} id
+   * @returns {Promise<{is_open: boolean, close_reason: string|null, name: string}|null>}
+   */
+  async getStatus(id) {
+    this._validarUuid('id', id);
+
+    const { data, error } = await this.#supabase
+      .from('barbershops')
+      .select('is_open, close_reason, name')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ?? null;
+  }
+
+  /**
    * Busca barbearias dentro de um bounding-box geográfico.
    * O filtro de raio preciso (Haversine) é feito pelo service.
    * @param {number} lat

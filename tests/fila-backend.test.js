@@ -120,7 +120,11 @@ suite('FilaRepository.atualizarStatus()', () => {
 // FilaService
 // ─────────────────────────────────────────────────────────────────────────────
 
-function criarFilaService({ fila = [], entrada = null } = {}) {
+function criarFilaService({ fila = [], entrada = null, shopAberta = true } = {}) {
+  const shopData = shopAberta
+    ? { is_open: true,  name: 'Barbearia Teste', close_reason: null }
+    : { is_open: false, name: 'Barbearia Teste', close_reason: null };
+
   const repo = {
     getFila:         fn().mockResolvedValue(fila),
     entrar:          fn().mockResolvedValue(entrada ?? { id: UUID_ENTRADA, status: 'waiting' }),
@@ -128,7 +132,10 @@ function criarFilaService({ fila = [], entrada = null } = {}) {
     atualizarStatus: fn().mockResolvedValue({ id: UUID_ENTRADA, status: 'in_service' }),
     getEntrada:      fn().mockResolvedValue(entrada),
   };
-  return { service: new FilaService(repo), repo };
+  const barbeariaRepo = {
+    getStatus: fn().mockResolvedValue(shopData),
+  };
+  return { service: new FilaService(repo, barbeariaRepo), repo, barbeariaRepo };
 }
 
 suite('FilaService.verFila()', () => {
@@ -161,6 +168,29 @@ suite('FilaService.entrarFila()', () => {
 
   test('delega para repo.entrar() com dados válidos', async () => {
     const { service, repo } = criarFilaService();
+    await service.entrarFila(UUID_SHOP, UUID_USER, {});
+    assert.strictEqual(repo.entrar.calls.length, 1);
+  });
+});
+
+suite('FilaService.entrarFila() — barbearia fechada', () => {
+
+  test('lança 403 quando barbearia está fechada (is_open=false)', async () => {
+    const { service } = criarFilaService({ shopAberta: false });
+    await assert.rejects(
+      () => service.entrarFila(UUID_SHOP, UUID_USER, {}),
+      (err) => err.status === 403,
+    );
+  });
+
+  test('não chama repo.entrar() quando barbearia está fechada', async () => {
+    const { service, repo } = criarFilaService({ shopAberta: false });
+    await assert.rejects(() => service.entrarFila(UUID_SHOP, UUID_USER, {}));
+    assert.strictEqual(repo.entrar.calls.length, 0);
+  });
+
+  test('chama repo.entrar() quando barbearia está aberta', async () => {
+    const { service, repo } = criarFilaService({ shopAberta: true });
     await service.entrarFila(UUID_SHOP, UUID_USER, {});
     assert.strictEqual(repo.entrar.calls.length, 1);
   });

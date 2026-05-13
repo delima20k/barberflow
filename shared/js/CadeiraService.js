@@ -120,6 +120,21 @@ class CadeiraService {
 
     if (!['producao', 'fila'].includes(tipo)) throw new Error(`[CadeiraService] tipo inválido: ${tipo}`);
 
+    // Guard: verifica se a barbearia está aberta antes de inserir
+    const { data: shopStatus } = await ApiService.from('barbershops')
+      .select('is_open, close_reason, name')
+      .eq('id', barbershopId)
+      .maybeSingle();
+
+    if (shopStatus && shopStatus.is_open === false) {
+      const nome  = shopStatus.name ?? 'A barbearia';
+      const razao = (shopStatus.close_reason ?? '').toLowerCase().trim();
+      let msg = `${nome} está fechada no momento.`;
+      if (razao === 'almoco') msg = `${nome} está em pausa para almoço.`;
+      if (razao === 'janta')  msg = `${nome} está em pausa para janta.`;
+      throw Object.assign(new Error(msg), { status: 403 });
+    }
+
     // Calcula próxima posição e verifica se produção está vazia (tipo='fila')
     let position      = 0;
     let producaoVazia = false;
