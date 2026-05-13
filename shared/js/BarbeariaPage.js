@@ -623,22 +623,8 @@ class BarbeariaPage {
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
 
       const perfil = AuthService.getPerfil();
-      if (perfil?.id) {
-        QueuePoller.iniciar(this.#shopId, perfil.id, () => {
-          if (this.#shopData) {
-            this.#renderBarbeiros(this.#shopData)
-              .catch(err => LoggerService.warn('[BarbeariaPage] QueuePoller re-render falhou:', err));
-          }
-        });
-        // Inicia o pipeline realtime de notificação de posição para este cliente.
-        // QueueRealtimeNotifier → barberflow:fila-atualizada
-        // QueueStateUpdater    → barberflow:fila-posicao-atualizada (só quando posição muda)
-        // QueuePositionPresenter já está ativo (iniciado no onAuthChange);
-        // passa o nome da barbearia para personalizar a mensagem da modal.
-        QueueRealtimeNotifier.iniciar(this.#shopId);
-        QueueStateUpdater.iniciar(perfil.id);
-        QueuePositionPresenter.iniciar(this.#shopData?.name ?? null);
-      }
+      // iniciarPresenter=true: cliente está na fila de espera e precisa de notificações de posição
+      this.#iniciarPollers(perfil?.id, true);
     } catch (err) {
       LoggerService.error('[BarbeariaPage] erro ao entrar na fila:', err);
       NotificationService.mostrarToast(
@@ -659,10 +645,12 @@ class BarbeariaPage {
   async #onProducaoClick(professionalId) {
     if (!ClienteController.podeInteragir()) return;
 
+    // Perfil extraído uma vez — reutilizado no guard e no fluxo principal
+    const perfil = AuthService.getPerfil();
+
     // Guard: impede double-entry se o cliente já está na produção ou fila desta barbearia
     try {
-      const filaAtiva = await CadeiraService.getFilaAtiva(this.#shopId);
-      const perfil    = AuthService.getPerfil();
+      const filaAtiva   = await CadeiraService.getFilaAtiva(this.#shopId);
       const jaAssentado = perfil?.id && filaAtiva.some(
         e => (e.client_id ?? e.client?.id) === perfil.id &&
              (e.status === 'in_service' || e.status === 'waiting'),
@@ -688,7 +676,6 @@ class BarbeariaPage {
       });
 
       // Dispara confirmação de presença na cadeira
-      const perfil = AuthService.getPerfil();
       if (typeof CadeiraConfirmacaoService !== 'undefined' && entrada?.id) {
         const nome        = perfil?.full_name ?? '';
         const shopLogoUrl = (typeof ApiService !== 'undefined' && this.#shopData?.logo_path)
@@ -698,18 +685,8 @@ class BarbeariaPage {
       }
 
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
-
-      // Inicia pollers para manter a tela sincronizada
-      if (perfil?.id) {
-        QueuePoller.iniciar(this.#shopId, perfil.id, () => {
-          if (this.#shopData) {
-            this.#renderBarbeiros(this.#shopData)
-              .catch(err => LoggerService.warn('[BarbeariaPage] QueuePoller re-render falhou:', err));
-          }
-        });
-        QueueRealtimeNotifier.iniciar(this.#shopId);
-        QueueStateUpdater.iniciar(perfil.id);
-      }
+      // iniciarPresenter=false: cliente já está em produção — sem notificações de posição na fila
+      this.#iniciarPollers(perfil?.id, false);
 
       NotificationService.mostrarToast(
         'Você está na cadeira!',
@@ -724,6 +701,25 @@ class BarbeariaPage {
         NotificationService.TIPOS.SISTEMA,
       );
     }
+  }
+
+  /**
+   * Inicia os pollers de sincronização após o cliente entrar na fila ou na produção.
+   * @param {string|null}  perfilId         UUID do cliente logado
+   * @param {boolean}      iniciarPresenter  true = fila de espera (envia notificações de posição)
+   *                                        false = produção direta (sem notificações de posição)
+   */
+  #iniciarPollers(perfilId, iniciarPresenter) {
+    if (!perfilId) return;
+    QueuePoller.iniciar(this.#shopId, perfilId, () => {
+      if (this.#shopData) {
+        this.#renderBarbeiros(this.#shopData)
+          .catch(err => LoggerService.warn('[BarbeariaPage] QueuePoller re-render falhou:', err));
+      }
+    });
+    QueueRealtimeNotifier.iniciar(this.#shopId);
+    QueueStateUpdater.iniciar(perfilId);
+    if (iniciarPresenter) QueuePositionPresenter.iniciar(this.#shopData?.name ?? null);
   }
 
   /** Capa e logo da barbearia. Usa .src — não innerHTML, sem risco XSS. */

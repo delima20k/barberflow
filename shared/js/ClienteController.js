@@ -15,7 +15,7 @@
 //   role === 'professional'          → NÃO pode (apenas visitante)
 //   não autenticado                  → NÃO pode
 //
-// Dependências: AuthService.js, FilaController.js
+// Dependências: AuthService.js, FilaController.js, CadeiraService.js
 // =============================================================
 
 class ClienteController {
