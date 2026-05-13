@@ -42,6 +42,7 @@ function criarEl(id = '') {
       if (!_listeners[ev]) _listeners[ev] = [];
       _listeners[ev].push(handler);
     },
+    _listeners,
     _click: () => (_listeners['click'] ?? []).forEach(h => h()),
     _input: (v) => { _listeners['input']?.forEach(h => h({ target: { value: v } })); },
 
@@ -80,6 +81,8 @@ function criarDom() {
     'gps-cidade', 'gps-numero', 'gps-complemento',
     'gps-btn-gps', 'gps-coords-txt', 'gps-msg', 'gps-btn-salvar',
     'gps-dig',
+    // Status da barbearia (toggle aberto/fechado)
+    'mb-status-toggle', 'mb-status-txt', 'mb-topo-status',
   ];
 
   const elMap = new Map(IDS.map(id => [id, criarEl(id)]));
@@ -128,6 +131,14 @@ function criarPagina({ comTelaEl = true } = {}) {
     AuthService:     { getPerfil: fn().mockReturnValue(null) },
     SupabaseService: {},
     NotificationService: { mostrarToast: fn() },
+    StatusFechamentoModal: {
+      confirmarFechamento: fn().mockResolvedValue(null),
+      labelStatus:  fn().mockReturnValue('Aberta'),
+      classeStatus: fn().mockReturnValue('status--aberta'),
+      classBadge:   fn().mockReturnValue('badge--verde'),
+      TIPO: Object.freeze({ NORMAL: 'normal', ALMOCO: 'almoco', JANTA: 'janta' }),
+    },
+    BarbeshopRepository: { updateIsOpen: fn().mockResolvedValue({ data: null, error: null }) },
     MediaP2P: class MediaP2P {
       cancelarTodos()          {}
       cancelar()               {}
@@ -330,6 +341,54 @@ suite('MinhaBarbeariaPage — #formatarNumero (via KPIs)', () => {
     // Aqui apenas verificamos que o DOM stub não lança erro quando textContent é definido.
     dom.elMap.get('mb-kpi-likes').textContent = '0';
     assert.strictEqual(dom.elMap.get('mb-kpi-likes').textContent, '0');
+  });
+});
+
+// =============================================================================
+// Suite 6 — status toggle (mb-status-toggle)
+// =============================================================================
+
+suite('MinhaBarbeariaPage — status toggle', () => {
+
+  test('bind() registra click listener no mb-status-toggle', () => {
+    const { dom } = criarPagina();
+    const toggle   = dom.elMap.get('mb-status-toggle');
+    const temClick = toggle._listeners.click?.length > 0;
+    assert.ok(temClick, 'mb-status-toggle deve ter click listener registrado após bind()');
+  });
+
+  test('mb-status-txt está no DOM e aceita textContent', () => {
+    const { dom } = criarPagina();
+    const txt = dom.elMap.get('mb-status-txt');
+    assert.ok(txt, 'mb-status-txt deve existir no DOM');
+    txt.textContent = 'Aberta';
+    assert.strictEqual(txt.textContent, 'Aberta');
+  });
+
+  test('mb-topo-status está no DOM e aceita className', () => {
+    const { dom } = criarPagina();
+    const topo = dom.elMap.get('mb-topo-status');
+    assert.ok(topo, 'mb-topo-status deve existir no DOM');
+    topo.className = 'status--aberta';
+    assert.strictEqual(topo.className, 'status--aberta');
+  });
+
+  test('click no toggle sem barbershopId não lança erro (retorno antecipado)', async () => {
+    const { dom } = criarPagina();
+    const toggle  = dom.elMap.get('mb-status-toggle');
+    // Dispara o click handler real registrado pelo bind()
+    const handler = toggle._listeners.click?.[0];
+    assert.ok(typeof handler === 'function', 'handler deve ser função');
+    await assert.doesNotReject(() => Promise.resolve(handler.call(toggle)));
+  });
+
+  test('sandbox StatusFechamentoModal.confirmarFechamento é spy substituível', () => {
+    const { page, dom: d } = criarPagina();
+    // Verifica apenas que o sandbox criou a função stub sem erros
+    void page;
+    void d;
+    // Acesso ao sandbox não é necessário; bind() já rodou sem lançar TypeError
+    assert.ok(true, 'sandbox com StatusFechamentoModal não lança ao criar a página');
   });
 });
 

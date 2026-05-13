@@ -621,6 +621,17 @@ class BarbeariaPage {
   async #onCadeiraClick(professionalId) {
     if (!ClienteController.podeInteragir()) return;
 
+    // Guard: bloqueia entrada na fila quando barbearia está fechada ou em pausa
+    if (typeof BarbershopAvailabilityService !== 'undefined' &&
+        !BarbershopAvailabilityService.canClientJoinQueue(this.#shopData)) {
+      NotificationService.mostrarToast(
+        'Barbearia indisponível',
+        BarbershopAvailabilityService.getClosedMessage(this.#shopData),
+        NotificationService.TIPOS.SISTEMA,
+      );
+      return;
+    }
+
     // Guard: impede double-entry se o cliente já está em qualquer cadeira desta barbearia
     const perfil = AuthService.getPerfil();
     try {
@@ -696,6 +707,17 @@ class BarbeariaPage {
    */
   async #onProducaoClick(professionalId) {
     if (!ClienteController.podeInteragir()) return;
+
+    // Guard: bloqueia clique na cadeira de produção quando barbearia está fechada ou em pausa
+    if (typeof BarbershopAvailabilityService !== 'undefined' &&
+        !BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
+      NotificationService.mostrarToast(
+        'Barbearia indisponível',
+        BarbershopAvailabilityService.getClosedMessage(this.#shopData),
+        NotificationService.TIPOS.SISTEMA,
+      );
+      return;
+    }
 
     // Perfil extraído uma vez — reutilizado no guard e no fluxo principal
     const perfil = AuthService.getPerfil();
