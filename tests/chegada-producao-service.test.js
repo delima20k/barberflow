@@ -220,7 +220,8 @@ suite('ChegadaProducaoService — resposta "aqui"', () => {
     assert.ok(notif, 'deve inserir em notifications');
     assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
     assert.equal(notif.dados.type,    'client_at_shop');
-    assert.equal(notif.dados.dados?.tipo_acao, 'client_at_shop');
+    assert.ok(notif.dados.title,      'title deve ser fornecido (NOT NULL)');
+    assert.equal(notif.dados.data?.tipo_acao, 'client_at_shop');
   });
 
   test('exibe toast de confirmação', async () => {
@@ -289,8 +290,9 @@ suite('ChegadaProducaoService — resposta "caminho"', () => {
     assert.ok(notif, 'deve inserir em notifications');
     assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
     assert.equal(notif.dados.type,    'client_not_seated');
-    // MinhaBarbeariaPage.#onClienteAusente verifica dados.client_not_seated === true
-    assert.equal(notif.dados.dados?.client_not_seated, true);
+    assert.ok(notif.dados.title,      'title deve ser fornecido (NOT NULL)');
+    // MinhaBarbeariaPage.#onClienteAusente verifica data.client_not_seated === true
+    assert.equal(notif.dados.data?.client_not_seated, true);
   });
 
   test('exibe toast informando que barbeiro foi avisado', async () => {
@@ -382,7 +384,8 @@ suite('ChegadaProducaoService — confirmarChegada', () => {
     assert.ok(notif, 'deve inserir em notifications');
     assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
     assert.equal(notif.dados.type,    'client_at_shop');
-    assert.equal(notif.dados.dados?.tipo_acao, 'client_at_shop');
+    assert.ok(notif.dados.title,      'title deve ser fornecido (NOT NULL)');
+    assert.equal(notif.dados.data?.tipo_acao, 'client_at_shop');
   });
 
   test('exibe toast de confirmação de chegada', async () => {

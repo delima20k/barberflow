@@ -235,9 +235,12 @@ class ChegadaProducaoService {
 
   /**
    * Insere notificação em `notifications` para o barbeiro.
-   * - type='client_at_shop':    dados.tipo_acao → QueueConfirmService exibe toast
-   * - type='client_not_seated': dados.client_not_seated=true → MinhaBarbeariaPage abre modal
+   * - type='client_at_shop':    data.tipo_acao → QueueConfirmService exibe toast
+   * - type='client_not_seated': data.client_not_seated=true → MinhaBarbeariaPage abre modal
    * Silencia erros — best-effort.
+   *
+   * Colunas da tabela: user_id, type, title (NOT NULL), body, data (JSONB), is_read, created_at
+   * barbershop_id NÃO é coluna raiz — vai dentro do JSONB data.
    *
    * @param {string|null} professionalId
    * @param {string|null} barbershopId
@@ -248,15 +251,24 @@ class ChegadaProducaoService {
   static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome) {
     if (!professionalId) return;
     try {
-      const dados = type === 'client_not_seated'
-        ? { client_not_seated: true, entry_id: entradaId, client_name: clienteNome }
-        : { tipo_acao: type, entry_id: entradaId, client_name: clienteNome };
+      const nome   = clienteNome || 'Cliente';
+      const isCaminho = type === 'client_not_seated';
+
+      const title  = isCaminho ? 'Cliente a caminho' : 'Cliente na barbearia!';
+      const body   = isCaminho
+        ? `${nome} avisou que está a caminho.`
+        : `${nome} confirmou que está na barbearia.`;
+
+      const data   = isCaminho
+        ? { client_not_seated: true, entry_id: entradaId, client_name: nome, barbershop_id: barbershopId }
+        : { tipo_acao: type,         entry_id: entradaId, client_name: nome, barbershop_id: barbershopId };
 
       await ApiService.from('notifications').insert({
-        user_id:       professionalId,
-        barbershop_id: barbershopId,
+        user_id: professionalId,
         type,
-        dados,
+        title,
+        body,
+        data,
       });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {

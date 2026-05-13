@@ -327,7 +327,7 @@ class BarbeariaPage {
 
     // Cadeira de produção (atendimento)
     const emServico      = filaEntradas.find(e => e.status === 'in_service') ?? null;
-    const ehMinhaEntrada = emServico != null && (emServico.client_id ?? emServico.user_id) === clienteLogadoId;
+    const ehMinhaEntrada = emServico != null && emServico.client?.id === clienteLogadoId;
     wrap.appendChild(Cadeira.criar({
       tipo:            'producao',
       entrada:         emServico,
