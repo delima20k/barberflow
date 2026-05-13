@@ -29,6 +29,8 @@ class BarbeariaPage {
   #shopData         = null;   // objeto completo da barbearia atual
   #canalFila        = null;   // canal Supabase Realtime de queue_entries
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
+  #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)
+  #canalShopId      = null;   // shop.id do canal de status (evita reconexão desnecessária)
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
 
   // ── Refs DOM ──────────────────────────────────────────────
@@ -153,6 +155,7 @@ class BarbeariaPage {
         // QueuePoller permanece ativo em background para detectar "é sua vez"
         // mesmo quando o usuário navega para outra tela.
         this.#pararRealtimeFila();
+        this.#pararRealtimeShop();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
@@ -400,6 +403,7 @@ class BarbeariaPage {
     this.#renderPortfolio(portfolio);
     this.#renderBarbeiros(shop); // fire-and-forget: preenche carousel async
     this.#iniciarRealtimeFila(shop);
+    this.#iniciarRealtimeShop(shop);
     this.#mostrarConteudo();
   }
 
@@ -552,6 +556,67 @@ class BarbeariaPage {
   }
 
   /**
+   * Inicia canal Realtime que escuta UPDATE na barbearia atual.
+   * Mantém this.#shopData sincronizado quando o profissional abre/fecha a barbearia,
+   * garantindo que os guards de disponibilidade usem dados frescos sem reload.
+   * @param {object} shop
+   */
+  #iniciarRealtimeShop(shop) {
+    if (!shop?.id) return;
+    if (this.#canalShopId === shop.id && this.#canalShop) return;
+
+    this.#pararRealtimeShop();
+
+    try {
+      this.#canalShop = SupabaseService.channel(`shop-status:${shop.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event:  'UPDATE',
+            schema: 'public',
+            table:  'barbershops',
+            filter: `id=eq.${shop.id}`,
+          },
+          (payload) => this.#onShopRealtime(payload),
+        )
+        .subscribe();
+      this.#canalShopId = shop.id;
+    } catch (e) {
+      LoggerService.warn('[BarbeariaPage] Realtime shop indisponível:', e?.message);
+    }
+  }
+
+  /** Para o canal Realtime de status da barbearia e limpa referências. */
+  #pararRealtimeShop() {
+    if (this.#canalShop) {
+      try { SupabaseService.removeChannel(this.#canalShop); } catch (_) {}
+      this.#canalShop   = null;
+      this.#canalShopId = null;
+    }
+  }
+
+  /**
+   * Callback do Realtime de barbershops.
+   * Mescla is_open e close_reason em this.#shopData — mantém guards corretos.
+   * Atualiza também o cache para que a próxima navegação use dados frescos.
+   * @param {object} payload — payload do Supabase Realtime
+   */
+  #onShopRealtime(payload) {
+    const novo = payload?.new;
+    if (!novo || !this.#shopData) return;
+
+    this.#shopData = {
+      ...this.#shopData,
+      is_open:      novo.is_open,
+      close_reason: novo.close_reason ?? null,
+    };
+
+    // Atualiza o cache para evitar dado obsoleto na próxima navegação à mesma barbearia
+    const cached = CacheManager.get(`${this.#shopId}:shop`);
+    if (cached) CacheManager.set(`${this.#shopId}:shop`, this.#shopData, 5 * 60 * 1000);
+  }
+
+  /**
    * Se o app foi aberto via clique em push notification de chamada para cadeira,
    * verifica se a entrada ainda está `in_service` e aciona a modal existente.
    * Guard: limpa `#pushEntradaId` após o primeiro disparo — não reabre em re-renders.
@@ -632,10 +697,10 @@ class BarbeariaPage {
       return;
     }
 
-    // Guard: impede double-entry se o cliente já está em qualquer cadeira desta barbearia
-    const perfil = AuthService.getPerfil();
+    const perfil  = AuthService.getPerfil();
+    let filaAtiva = [];
     try {
-      const filaAtiva   = await CadeiraService.getFilaAtiva(this.#shopId);
+      filaAtiva = await CadeiraService.getFilaAtiva(this.#shopId);
       const jaAssentado = perfil?.id && filaAtiva.some(
         e => (e.client_id ?? e.client?.id) === perfil.id &&
              (e.status === 'in_service' || e.status === 'waiting'),
@@ -653,14 +718,22 @@ class BarbeariaPage {
     const serviceIds = await ModalController.abrirSelecaoServicos({ servicos: this.#servicos });
     if (!serviceIds?.length) return;
 
+    // Auto-promoção: se a cadeira de produção deste barbeiro está vazia, vai direto para atendimento
+    const producaoOcupada = filaAtiva.some(
+      e => e.professional?.id === professionalId && e.status === 'in_service',
+    );
+    if (!producaoOcupada) {
+      await this.#executarFluxoProducao(professionalId, perfil, serviceIds);
+      return;
+    }
+
     try {
-      const entrada = await ClienteController.entrarNaFila({
+      await ClienteController.entrarNaFila({
         barbershopId:   this.#shopId,
         professionalId,
         serviceIds,
       });
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
-
       // iniciarPresenter=true: cliente está na fila de espera e precisa de notificações de posição
       this.#iniciarPollers(perfil?.id, true);
     } catch (err) {
@@ -701,14 +774,13 @@ class BarbeariaPage {
 
   /**
    * Handler de clique na cadeira de PRODUÇÃO vazia (app cliente).
-   * Delega o fluxo completo (modal "Onde você está?", sentar, notificação)
-   * ao ChegadaProducaoService — sem lógica de negócio aqui.
+   * Aplica guards e delega o fluxo ao #executarFluxoProducao.
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
   async #onProducaoClick(professionalId) {
     if (!ClienteController.podeInteragir()) return;
 
-    // Guard: bloqueia clique na cadeira de produção quando barbearia está fechada ou em pausa
+    // Guard: bloqueia clique quando barbearia está fechada ou em pausa
     if (typeof BarbershopAvailabilityService !== 'undefined' &&
         !BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
       NotificationService.mostrarToast(
@@ -719,7 +791,6 @@ class BarbeariaPage {
       return;
     }
 
-    // Perfil extraído uma vez — reutilizado no guard e no fluxo principal
     const perfil = AuthService.getPerfil();
 
     // Guard: impede double-entry se o cliente já está na produção ou fila desta barbearia
@@ -742,6 +813,18 @@ class BarbeariaPage {
     const serviceIds = await ModalController.abrirSelecaoServicos({ servicos: this.#servicos });
     if (!serviceIds?.length) return;
 
+    await this.#executarFluxoProducao(professionalId, perfil, serviceIds);
+  }
+
+  /**
+   * Fluxo de entrada na cadeira de PRODUÇÃO.
+   * Reutilizado por #onProducaoClick (clique direto) e #onCadeiraClick
+   * (auto-promoção quando a produção está vazia).
+   * @param {string}      professionalId
+   * @param {object|null} perfil
+   * @param {string[]}    serviceIds
+   */
+  async #executarFluxoProducao(professionalId, perfil, serviceIds) {
     try {
       const entrada = await ChegadaProducaoService.iniciarFluxo({
         barbershopId:   this.#shopId,
@@ -755,7 +838,7 @@ class BarbeariaPage {
       if (!entrada) return;
 
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
-      // iniciarPresenter=false: cliente está em produção — sem notificações de posição na fila
+      // iniciarPresenter=false: cliente em produção — sem notificações de posição na fila
       this.#iniciarPollers(perfil?.id, false);
     } catch (err) {
       LoggerService.error('[BarbeariaPage] erro ao sentar em produção:', err);
