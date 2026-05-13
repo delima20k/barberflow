@@ -17,14 +17,14 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v161';
+  static #CACHE_STATIC    = 'bf-cli-static-v162';
   static #CACHE_IMAGES    = 'bf-cli-images-v158';
   static #CACHE_SHELL     = 'bf-cli-shell-v158';
-  static #CACHES_VALIDOS  = [
-    'bf-cli-static-v158',
+  static #CACHES_VALIDOS  = new Set([
+    'bf-cli-static-v162',
     'bf-cli-images-v158',
     'bf-cli-shell-v158',
-  ];
+  ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
   static #ASSETS_STATIC = [

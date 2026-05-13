@@ -24,7 +24,7 @@ class QueuePoller {
   /** @type {number|null} ID retornado por setInterval */
   static #timer = null;
 
-  /** @type {string|null} Último ultimaMudanca recebido do servidor */
+  /** @type {string|null} @deprecated não usado após migração para QueueRepository */
   static #ultimaMudanca = null;
 
   /** @type {string|null} */
@@ -138,35 +138,19 @@ class QueuePoller {
   // ── Lógica interna ───────────────────────────────────────────────────────
 
   /**
-   * Executa um ciclo de polling: chama o backend com `since` para
-   * obter a fila apenas quando houver mudanças.
+   * Executa um ciclo de polling: busca a fila ativa diretamente via
+   * QueueRepository (Supabase) — sem depender do backend do app profissional.
    */
   static async #poll() {
     if (!QueuePoller.#ativo || !QueuePoller.#barbershopId) return;
 
     try {
-      const { data, error } = await BackendApiService.buscarEstadoFila(
-        QueuePoller.#barbershopId,
-        QueuePoller.#ultimaMudanca,
-      );
+      const fila = await QueueRepository.getByBarbershop(QueuePoller.#barbershopId);
 
-      if (error) {
-        if (error.name !== 'AbortError') {
-          LoggerService.warn('[QueuePoller] Erro no poll:', error.message);
-        }
-        return;
-      }
-
-      // Sem mudanças desde o último poll → noop
-      if (data?.semMudancas) return;
-
-      const { fila, ultimaMudanca } = data ?? {};
-      QueuePoller.#ultimaMudanca = ultimaMudanca ?? QueuePoller.#ultimaMudanca;
-
-      await QueuePoller.#detectarMudanca(fila ?? []);
+      await QueuePoller.#detectarMudanca(fila);
 
       if (typeof QueuePoller.#onUpdate === 'function') {
-        QueuePoller.#onUpdate(fila ?? []);
+        QueuePoller.#onUpdate(fila);
       }
     } catch (err) {
       LoggerService.warn('[QueuePoller] Exceção inesperada no poll:', err?.message);
