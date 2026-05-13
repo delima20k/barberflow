@@ -67,4 +67,31 @@ class ClienteController {
       serviceIds,
     });
   }
+
+  /**
+   * Senta o cliente diretamente na cadeira de produção (in_service imediato).
+   * Exclusivo para clique na cadeira de produção vazia da tela-barbearia.
+   *
+   * @param {object}   opts
+   * @param {string}     opts.barbershopId
+   * @param {string}     opts.professionalId  UUID do barbeiro responsável
+   * @param {string[]}   [opts.serviceIds]    serviços escolhidos
+   * @returns {Promise<object>} entrada criada (status in_service)
+   * @throws {Error} se usuário não tiver permissão
+   */
+  static async sentar({ barbershopId, professionalId, serviceIds = [] }) {
+    if (!ClienteController.podeInteragir()) {
+      throw new Error('[ClienteController] Acesso negado: apenas clientes autenticados podem sentar na cadeira.');
+    }
+
+    const perfil = AuthService.getPerfil();
+
+    return CadeiraService.sentar({
+      barbershopId,
+      professionalId,
+      clientId:   perfil.id,
+      serviceIds,
+      tipo:       'producao',
+    });
+  }
 }
