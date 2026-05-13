@@ -175,6 +175,22 @@ suite('BarbeiroEsperaFluxo — abrirModalCadeira', () => {
     const config = abrirSpy.calls[0][0];
     assert.equal(config.id, 'modal-espera-cadeira');
   });
+
+  test('corpo menciona "está a caminho para a barbearia"', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'chegou' });
+    await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    const config = abrirSpy.calls[0][0];
+    assert.ok(config.corpo.includes('está a caminho para a barbearia'), `corpo="${config.corpo}"`);
+  });
+
+  test('contém 3 ações: chegou, remover e aguardar', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'chegou' });
+    await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    const valores = abrirSpy.calls[0][0].acoes.map(a => a.valor);
+    assert.ok(valores.includes('chegou'),  'deve ter ação chegou');
+    assert.ok(valores.includes('remover'), 'deve ter ação remover');
+    assert.ok(valores.includes('aguardar'), 'deve ter ação aguardar');
+  });
 });
 
 // ─── Suite 5: resetarTimer ────────────────────────────────────────────────────

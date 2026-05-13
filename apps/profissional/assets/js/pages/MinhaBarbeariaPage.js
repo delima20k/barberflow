@@ -536,11 +536,15 @@ class MinhaBarbeariaPage {
     if (!this.#isOwner) return;
 
     // ── Cadeira de produção em espera → verificar status ────
-    if (tipo === 'producao' && ocupada && entrada
-        && typeof BarbeiroEsperaFluxo !== 'undefined'
-        && BarbeiroEsperaFluxo.estaAguardando(entrada.id)) {
-      await this.#fluxoEspera(entrada);
-      return;
+    if (tipo === 'producao' && ocupada && entrada) {
+      const estaEmEspera = typeof BarbeiroEsperaFluxo !== 'undefined'
+        && BarbeiroEsperaFluxo.estaAguardando(entrada.id);
+      const estaArriving = entrada.client_confirmed === 'arriving';
+
+      if (estaEmEspera || estaArriving) {
+        await this.#fluxoEspera(entrada);
+        return;
+      }
     }
 
     // ── Cadeira ocupada em produção → finalizar ──────────────
@@ -664,13 +668,19 @@ class MinhaBarbeariaPage {
   /**
    * Fluxo de decisão para cadeira em estado de espera (barbeiro aguardando cliente).
    * Aciona a modal manualmente; respostas: chegou / remover / aguardar.
+   * Funciona mesmo se BarbeiroEsperaFluxo não tiver dados em memória
+   * (ex: barbeiro recarregou a página após o cliente enviar "a caminho").
    * @param {object} entrada  queue_entry em in_service com espera ativa
    */
   async #fluxoEspera(entrada) {
-    const dados = BarbeiroEsperaFluxo.dadosEspera(entrada.id);
-    if (!dados) return;
+    const dados = typeof BarbeiroEsperaFluxo !== 'undefined'
+      ? BarbeiroEsperaFluxo.dadosEspera(entrada.id)
+      : null;
 
-    const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({ ...dados, entradaId: entrada.id });
+    const clienteNome  = dados?.clienteNome  ?? entrada?.client?.full_name ?? entrada?.guest_name ?? 'Cliente';
+    const barbershopId = dados?.barbershopId ?? this.#barbershopId;
+
+    const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome, entradaId: entrada.id, barbershopId });
 
     // 'chegou' e 'remover': abrirModalCadeira já despachou barberflow:espera-resolvida
     // → #onEsperaResolvida centraliza todo o tratamento (evita dupla chamada)
@@ -778,6 +788,14 @@ class MinhaBarbeariaPage {
       } catch (err) {
         LoggerService.error('[MinhaBarbeariaPage] erro em onEsperaResolvida:', err);
         NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível remover.', NotificationService.TIPOS.SISTEMA);
+      }
+    }
+
+    if (acao === 'chegou') {
+      try {
+        await QueueRepository.updateClientConfirmed(entradaId, 'yes');
+      } catch (err) {
+        LoggerService.warn('[MinhaBarbeariaPage] erro ao confirmar chegada:', err?.message);
       }
     }
 

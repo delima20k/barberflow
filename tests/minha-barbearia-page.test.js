@@ -112,7 +112,8 @@ function criarPagina({ comTelaEl = true } = {}) {
   // Se comTelaEl=false, getElementById('tela-minha-barbearia') retorna null
   // → bind() sai cedo sem registrar nada
   const documentMock = {
-    getElementById: fn(id => comTelaEl ? (dom.elMap.get(id) ?? null) : null),
+    getElementById:   fn(id => comTelaEl ? (dom.elMap.get(id) ?? null) : null),
+    addEventListener: fn(),
   };
 
   const sandbox = vm.createContext({

@@ -60,7 +60,7 @@ class BarbeiroEsperaFluxo {
       id:     BarbeiroEsperaFluxo.#MODAL_ID,
       icone:  '🪑',
       titulo: 'O cliente já chegou para o corte?',
-      corpo:  `<strong>${nome}</strong> está esperando para ser atendido.`,
+      corpo:  `<strong>${nome}</strong> está a caminho para a barbearia.`,
       acoes: [
         { label: '✅ Sim, chegou!',          valor: 'chegou',  variante: 'primario' },
         { label: 'Chamar próximo',             valor: 'remover', variante: 'perigo'  },

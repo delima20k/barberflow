@@ -39,8 +39,8 @@ class ClienteAusenteModal {
       ? {
           id:           'modal-ausente-barbeiro',
           iconesDuplos,
-          titulo:       'Cliente ainda não está pronto',
-          corpo:        `<strong>${nome}</strong> avisou que ainda não está sentado na cadeira.`,
+          titulo:       'Cliente a caminho',
+          corpo:        `<strong>${nome}</strong> avisou que ainda está a caminho.`,
           acoes: [
             { label: 'OK, aguardar',    valor: '_aguardar', variante: 'primario'   },
             { label: 'Chamar próximo', valor: 'remover',   variante: 'secundario' },

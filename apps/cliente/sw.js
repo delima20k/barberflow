@@ -17,11 +17,11 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v167';
+  static #CACHE_STATIC    = 'bf-cli-static-v168';
   static #CACHE_IMAGES    = 'bf-cli-images-v158';
   static #CACHE_SHELL     = 'bf-cli-shell-v158';
   static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v167',
+    'bf-cli-static-v168',
     'bf-cli-images-v158',
     'bf-cli-shell-v158',
   ]);
