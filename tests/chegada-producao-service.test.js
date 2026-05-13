@@ -345,3 +345,71 @@ suite('ChegadaProducaoService — erro em sentar()', () => {
     assert.equal(resultado, null);
   });
 });
+
+// ─── confirmarChegada ─────────────────────────────────────────────────────────
+
+suite('ChegadaProducaoService — confirmarChegada', () => {
+
+  test('chama updateClientConfirmed("yes") com o entradaId correto', async () => {
+    const { sandbox } = criarSandbox();
+    const { ChegadaProducaoService, QueueRepository } = sandbox;
+
+    await ChegadaProducaoService.confirmarChegada({
+      entradaId:      ENTRY_ID,
+      professionalId: PROFESSIONAL_ID,
+      barbershopId:   BARBERSHOP_ID,
+      clienteNome:    'João Silva',
+    });
+
+    assert.equal(QueueRepository.updateClientConfirmed.calls.length, 1);
+    const [id, valor] = QueueRepository.updateClientConfirmed.calls[0];
+    assert.equal(id,    ENTRY_ID);
+    assert.equal(valor, 'yes');
+  });
+
+  test('insere notificação client_at_shop para o barbeiro', async () => {
+    const { sandbox, insertCalls } = criarSandbox();
+    const { ChegadaProducaoService } = sandbox;
+
+    await ChegadaProducaoService.confirmarChegada({
+      entradaId:      ENTRY_ID,
+      professionalId: PROFESSIONAL_ID,
+      barbershopId:   BARBERSHOP_ID,
+      clienteNome:    'João Silva',
+    });
+
+    const notif = insertCalls.find(c => c.tabela === 'notifications');
+    assert.ok(notif, 'deve inserir em notifications');
+    assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
+    assert.equal(notif.dados.type,    'client_at_shop');
+    assert.equal(notif.dados.dados?.tipo_acao, 'client_at_shop');
+  });
+
+  test('exibe toast de confirmação de chegada', async () => {
+    const { sandbox } = criarSandbox();
+    const { ChegadaProducaoService, NotificationService } = sandbox;
+
+    await ChegadaProducaoService.confirmarChegada({
+      entradaId:      ENTRY_ID,
+      professionalId: PROFESSIONAL_ID,
+      barbershopId:   BARBERSHOP_ID,
+      clienteNome:    'João Silva',
+    });
+
+    assert.equal(NotificationService.mostrarToast.calls.length, 1);
+  });
+
+  test('guard: sem entradaId retorna sem chamar nada', async () => {
+    const { sandbox } = criarSandbox();
+    const { ChegadaProducaoService, QueueRepository, NotificationService } = sandbox;
+
+    await ChegadaProducaoService.confirmarChegada({
+      entradaId:      null,
+      professionalId: PROFESSIONAL_ID,
+      barbershopId:   BARBERSHOP_ID,
+    });
+
+    assert.equal(QueueRepository.updateClientConfirmed.calls.length, 0);
+    assert.equal(NotificationService.mostrarToast.calls.length,      0);
+  });
+});

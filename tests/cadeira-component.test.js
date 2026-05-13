@@ -60,6 +60,7 @@ function criarElMock(docRef, tag = 'DIV') {
       if (!_listeners[ev]) _listeners[ev] = [];
       _listeners[ev].push(h);
     },
+    _listeners,
     querySelector: sel => {
       for (const c of _children) {
         if (matchesSel(c, sel)) return c;
@@ -257,5 +258,64 @@ suite('Cadeira — componente DOM', () => {
     const strong = label._children?.find(c => c.tagName === 'STRONG');
     const textoLabel = label.textContent + (strong?.textContent ?? '');
     assert.ok(textoLabel.includes('Carlos') || textoLabel.includes('cortando'), 'label confirmada deve conter nome ou "cortando"');
+  });
+});
+
+// ─── Suíte: onArrivingClick ───────────────────────────────────────────────────
+
+suite('Cadeira — onArrivingClick (arriving self-confirm)', () => {
+
+  test('arriving + onArrivingClick + podeInteragir → interativa e chama callback ao clicar', () => {
+    const { Cadeira } = criarSandbox();
+    const cb = fn();
+    const el = Cadeira.criar({
+      tipo:            'producao',
+      entrada:         ENTRADA_COM_AVATAR,
+      confirmacao:     'arriving',
+      podeInteragir:   true,
+      onArrivingClick: cb,
+    });
+
+    assert.ok(
+      el.classList._set.has('cdr-cadeira--interativa'),
+      'deve ter cdr-cadeira--interativa',
+    );
+    assert.equal(el.getAttribute('role'),       'button',                        'deve ter role=button');
+    assert.equal(el.getAttribute('tabindex'),   '0',                             'deve ter tabindex=0');
+    assert.equal(el.getAttribute('aria-label'), 'Confirmar chegada na barbearia','deve ter aria-label correto');
+
+    // Simula clique
+    el._listeners.click?.[0]?.();
+    assert.equal(cb.calls.length, 1, 'onArrivingClick deve ser chamado ao clicar');
+  });
+
+  test('confirmacao=yes + onArrivingClick → NÃO interativa via bloco arriving', () => {
+    const { Cadeira } = criarSandbox();
+    const cb = fn();
+    const el = Cadeira.criar({
+      tipo:            'producao',
+      entrada:         ENTRADA_COM_AVATAR,
+      confirmacao:     'yes',
+      podeInteragir:   true,
+      onArrivingClick: cb,
+    });
+
+    assert.notEqual(el.getAttribute('aria-label'), 'Confirmar chegada na barbearia',
+      'confirmacao=yes não deve ter aria-label de arriving');
+    assert.equal(cb.calls.length, 0, 'callback não deve ser chamado sem clicar');
+  });
+
+  test('arriving sem onArrivingClick → sem role=button', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({
+      tipo:            'producao',
+      entrada:         ENTRADA_COM_AVATAR,
+      confirmacao:     'arriving',
+      podeInteragir:   true,
+      onArrivingClick: null,
+    });
+
+    assert.notEqual(el.getAttribute('role'),     'button', 'sem callback não deve ter role=button');
+    assert.notEqual(el.getAttribute('tabindex'), '0',      'sem callback não deve ter tabindex=0');
   });
 });

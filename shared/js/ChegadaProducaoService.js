@@ -105,6 +105,40 @@ class ChegadaProducaoService {
     return entrada;
   }
 
+  /**
+   * Confirma a chegada do cliente quando este já está em estado 'arriving'.
+   * Persiste client_confirmed='yes' e notifica o barbeiro via client_at_shop.
+   * Best-effort: silencia erros (mesmos guardiões que #processarAqui).
+   *
+   * @param {object}      params
+   * @param {string|null} params.entradaId
+   * @param {string|null} params.professionalId
+   * @param {string|null} params.barbershopId
+   * @param {string}      [params.clienteNome='']
+   * @returns {Promise<void>}
+   */
+  static async confirmarChegada({ entradaId, professionalId, barbershopId, clienteNome } = {}) {
+    if (!entradaId) return;
+
+    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'yes');
+
+    await ChegadaProducaoService.#notificarBarbeiro(
+      professionalId,
+      barbershopId,
+      'client_at_shop',
+      entradaId,
+      clienteNome ?? '',
+    );
+
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast(
+        'Você está na barbearia!',
+        'O barbeiro foi avisado da sua chegada.',
+        NotificationService.TIPOS.SISTEMA,
+      );
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PRIVADO
   // ═══════════════════════════════════════════════════════════

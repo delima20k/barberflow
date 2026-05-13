@@ -36,10 +36,11 @@ class Cadeira {
    * @param {number}                          [opts.posicao]     número da posição na fila
    * @param {boolean}                         [opts.podeInteragir=false]
    * @param {Function|null}                   [opts.onClick]     callback de interação (somente se vazia)
-   * @param {'yes'|'no_waiting'|'absent'|null} [opts.confirmacao] estado de confirmação de presença
+   * @param {'yes'|'no_waiting'|'absent'|null} [opts.confirmacao]     estado de confirmação de presença
+   * @param {Function|null}                   [opts.onArrivingClick]  callback: cliente clica na própria cadeira em estado 'arriving'
    * @returns {HTMLDivElement}
    */
-  static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null, confirmacao = null }) {
+  static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null, confirmacao = null, onArrivingClick = null }) {
     const ocupada           = !!entrada;
     const estado            = Cadeira.#ESTADOS[`${tipo}_${ocupada ? 'ocupada' : 'livre'}`] ?? 'livre';
     const isProducaoOcupada = tipo === 'producao' && ocupada;
@@ -63,6 +64,18 @@ class Cadeira {
       el.setAttribute('aria-label', tipo === 'producao' ? 'Entrar para atendimento' : `Entrar na posição ${posicao}`);
       el.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+      });
+    }
+
+    // Interatividade: cadeira de produção do próprio cliente em estado 'arriving' → auto-confirmar chegada
+    if (isProducaoOcupada && confirmacao === 'arriving' && podeInteragir && onArrivingClick) {
+      el.classList.add('cdr-cadeira--interativa');
+      el.addEventListener('click', () => onArrivingClick());
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-label', 'Confirmar chegada na barbearia');
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onArrivingClick(); }
       });
     }
 

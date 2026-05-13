@@ -306,9 +306,10 @@ class BarbeariaPage {
    * @param {boolean}       opts.podeInteragir
    * @param {Function|null} opts.onProducaoVaziaClick    callback: clique em cadeira de produção vazia
    * @param {Function|null} opts.onCadeiraVaziaClick     callback: clique em cadeira de fila vazia (última)
+   * @param {Function|null} opts.onProducaoArrivingClick callback: cliente clica na própria cadeira em arriving
    * @returns {HTMLDivElement}
    */
-  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick }) {
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
@@ -324,14 +325,19 @@ class BarbeariaPage {
     wrap.className = 'cdr-cadeiras-wrap';
 
     // Cadeira de produção (atendimento)
-    const emServico = filaEntradas.find(e => e.status === 'in_service') ?? null;
+    const emServico       = filaEntradas.find(e => e.status === 'in_service') ?? null;
+    const clienteLogadoId = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
+    const ehMinhaEntrada  = emServico != null && (emServico.client_id ?? emServico.user_id) === clienteLogadoId;
     wrap.appendChild(Cadeira.criar({
-      tipo:           'producao',
-      entrada:        emServico,
-      posicao:        0,
-      podeInteragir:  podeInteragir && !emServico,
-      onClick:        (!emServico && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
-      confirmacao:    emServico?.client_confirmed ?? null,
+      tipo:            'producao',
+      entrada:         emServico,
+      posicao:         0,
+      podeInteragir:   podeInteragir && !emServico,
+      onClick:         (!emServico && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
+      confirmacao:     emServico?.client_confirmed ?? null,
+      onArrivingClick: (ehMinhaEntrada && emServico?.client_confirmed === 'arriving' && onProducaoArrivingClick)
+        ? () => onProducaoArrivingClick(emServico)
+        : null,
     }));
 
     // Cadeiras de fila — dinâmicas: ocupadas + sempre 1 vazia ao final
@@ -457,11 +463,14 @@ class BarbeariaPage {
         isOwner:               b.id === shop.owner_id,
         filaEntradas:          filaB,
         podeInteragir,
-        onProducaoVaziaClick:  podeInteragir
+        onProducaoVaziaClick:     podeInteragir
           ? () => this.#onProducaoClick(b.id)
           : null,
-        onCadeiraVaziaClick:   podeInteragir
+        onCadeiraVaziaClick:      podeInteragir
           ? () => this.#onCadeiraClick(b.id)
+          : null,
+        onProducaoArrivingClick:  podeInteragir
+          ? (entrada) => this.#onProducaoArrivingClick(entrada)
           : null,
       }));
     }
@@ -633,6 +642,32 @@ class BarbeariaPage {
         NotificationService.TIPOS.SISTEMA,
       );
     }
+  }
+
+  /**
+   * Exibe modal de confirmação de chegada para o cliente que já está em 'arriving'.
+   * Ao confirmar: persiste client_confirmed='yes' e notifica o barbeiro.
+   * @param {object|null} entrada queue_entry em in_service
+   */
+  async #onProducaoArrivingClick(entrada) {
+    if (!ClienteController.podeInteragir()) return;
+    const perfil   = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    const resposta = await FluxoDeFila.abrir({
+      id:        'modal-confirmar-chegada',
+      icone:     '🏠',
+      titulo:    'Você chegou?',
+      corpo:     'Avise o barbeiro que você está na barbearia!',
+      acoes:     [{ label: '✅ Sim, já cheguei!', valor: 'confirmado', variante: 'primario' }],
+      fecharBtn: true,
+    });
+    if (resposta !== 'confirmado') return;
+    await ChegadaProducaoService.confirmarChegada({
+      entradaId:      entrada?.id ?? null,
+      professionalId: entrada?.professional?.id ?? null,
+      barbershopId:   this.#shopId,
+      clienteNome:    perfil?.full_name ?? '',
+    });
+    this.#renderBarbeiros(this.#shopData).catch(() => {});
   }
 
   /**
