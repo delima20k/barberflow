@@ -9,7 +9,7 @@
  * Cenários:
  *   - modal abre com config correto (título, 2 ações: 'aqui' e 'caminho')
  *   - dismiss (null) → nenhuma operação, retorna null
- *   - 'aqui' → CadeiraService.sentar → pular → updateClientConfirmed('yes') → notif client_at_shop → toast
+ *   - 'aqui' → CadeiraService.sentar → pular → updateClientConfirmed('arriving') → notif client_at_shop → toast (barbeiro confirma 'yes' depois)
  *   - 'caminho' → CadeiraService.sentar → pular → updateClientConfirmed('arriving') → notif client_not_seated → toast
  *   - pular() chamado imediatamente após sentar (antes do await updateClientConfirmed)
  *   - sentar() rejeita → toast de erro, retorna null, sem notificação
@@ -203,7 +203,7 @@ suite('ChegadaProducaoService — resposta "aqui"', () => {
     assert.equal(pularCalls[0], ENTRY_ID);
   });
 
-  test('chama updateClientConfirmed com "yes"', async () => {
+  test('chama updateClientConfirmed com "arriving" (barbeiro confirmará depois)', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: 'aqui' });
     const { ChegadaProducaoService, QueueRepository } = sandbox;
 
@@ -212,7 +212,7 @@ suite('ChegadaProducaoService — resposta "aqui"', () => {
     assert.equal(QueueRepository.updateClientConfirmed.calls.length, 1);
     const [id, valor] = QueueRepository.updateClientConfirmed.calls[0];
     assert.equal(id,    ENTRY_ID);
-    assert.equal(valor, 'yes');
+    assert.equal(valor, 'arriving');
   });
 
   test('insere notificação client_at_shop com tipo_acao correto', async () => {

@@ -6,7 +6,7 @@
 //   Suite 1: iniciarEspera — toca som, registra estado, guard de duplicata
 //   Suite 2: estaAguardando — false antes, true depois, false após finalizar
 //   Suite 3: finalizarEspera — remove estado, chama clearInterval
-//   Suite 4: abrirModalCadeira — 3 ações + null tratado como 'aguardar'
+//   Suite 4: abrirModalCadeira — 2 botões (Sim/Não) + segundo modal após Não
 //   Suite 5: resetarTimer — cancela + reinicia sem duplicar
 //   Suite 6: localStorage — persiste ao iniciar, limpa ao finalizar, restaurar()
 //   Suite 7: barberflow:espera-resolvida — despacha com acao + barbershopId
@@ -25,8 +25,14 @@ const NOME     = 'João Silva';
 
 let _idCounter = 0;
 
-function criarSandbox({ modalResp = 'chegou', lsStore = {} } = {}) {
-  const abrirSpy       = fn().mockImplementation(() => Promise.resolve(modalResp));
+function criarSandbox({ modalResp = 'sim', modalResps = null, lsStore = {} } = {}) {
+  let _callCount = 0;
+  const _responses = modalResps ?? [modalResp];
+  const abrirSpy = fn().mockImplementation(() => {
+    const val = _callCount < _responses.length ? _responses[_callCount] : null;
+    _callCount++;
+    return Promise.resolve(val);
+  });
   const tocarSomSpy    = fn();
   const dispatchSpy    = fn();
   const setIntervalSpy = fn().mockImplementation(() => ++_idCounter);
@@ -145,51 +151,70 @@ suite('BarbeiroEsperaFluxo — finalizarEspera', () => {
 
 suite('BarbeiroEsperaFluxo — abrirModalCadeira', () => {
 
-  test('retorna "chegou" quando FluxoDeFila resolve "chegou"', async () => {
-    const { sandbox } = criarSandbox({ modalResp: 'chegou' });
+  test('retorna "chegou" quando barbeiro clica Sim', async () => {
+    const { sandbox } = criarSandbox({ modalResp: 'sim' });
     const res = await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(res, 'chegou');
   });
 
-  test('retorna "remover" quando FluxoDeFila resolve "remover"', async () => {
-    const { sandbox } = criarSandbox({ modalResp: 'remover' });
+  test('retorna "remover" quando barbeiro clica Não → Cancelar atendimento', async () => {
+    const { sandbox } = criarSandbox({ modalResps: ['nao', 'cancelar'] });
     const res = await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(res, 'remover');
   });
 
-  test('retorna "aguardar" quando FluxoDeFila resolve "aguardar"', async () => {
-    const { sandbox } = criarSandbox({ modalResp: 'aguardar' });
+  test('retorna "aguardar" quando barbeiro clica Não → Esperar mais', async () => {
+    const { sandbox } = criarSandbox({ modalResps: ['nao', 'esperar'] });
     const res = await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(res, 'aguardar');
   });
 
-  test('retorna "aguardar" quando FluxoDeFila resolve null (overlay duplicado fechado)', async () => {
+  test('retorna "aguardar" quando primeiro modal retorna null (overlay fechado por acidente)', async () => {
     const { sandbox } = criarSandbox({ modalResp: null });
     const res = await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(res, 'aguardar');
   });
 
-  test('abrirModalCadeira usa id fixo "modal-espera-cadeira"', async () => {
-    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'chegou' });
+  test('abrirModalCadeira usa id fixo "modal-espera-cadeira" no primeiro modal', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'sim' });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     const config = abrirSpy.calls[0][0];
     assert.equal(config.id, 'modal-espera-cadeira');
   });
 
-  test('corpo menciona "está a caminho para a barbearia"', async () => {
-    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'chegou' });
+  test('primeiro modal tem botões "Sim" e "Não" (exatamente 2)', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'sim' });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
-    const config = abrirSpy.calls[0][0];
-    assert.ok(config.corpo.includes('está a caminho para a barbearia'), `corpo="${config.corpo}"`);
+    const labels = abrirSpy.calls[0][0].acoes.map(a => a.label);
+    assert.ok(labels.includes('Sim'), 'deve ter botão Sim');
+    assert.ok(labels.includes('Não'), 'deve ter botão Não');
+    assert.equal(abrirSpy.calls[0][0].acoes.length, 2, 'deve ter exatamente 2 botões');
   });
 
-  test('contém 3 ações: chegou, remover e aguardar', async () => {
-    const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'chegou' });
+  test('segundo modal abre quando barbeiro clica Não', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResps: ['nao', 'esperar'] });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
-    const valores = abrirSpy.calls[0][0].acoes.map(a => a.valor);
-    assert.ok(valores.includes('chegou'),  'deve ter ação chegou');
-    assert.ok(valores.includes('remover'), 'deve ter ação remover');
-    assert.ok(valores.includes('aguardar'), 'deve ter ação aguardar');
+    assert.equal(abrirSpy.calls.length, 2, 'deve abrir 2 modais');
+  });
+
+  test('segundo modal tem "Esperar mais" e "Cancelar atendimento"', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResps: ['nao', 'esperar'] });
+    await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    const labels2 = abrirSpy.calls[1][0].acoes.map(a => a.label);
+    assert.ok(labels2.includes('Esperar mais'),         'deve ter Esperar mais');
+    assert.ok(labels2.includes('Cancelar atendimento'), 'deve ter Cancelar atendimento');
+  });
+
+  test('segundo modal tem exatamente 2 botões', async () => {
+    const { sandbox, abrirSpy } = criarSandbox({ modalResps: ['nao', 'cancelar'] });
+    await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    assert.equal(abrirSpy.calls[1][0].acoes.length, 2);
+  });
+
+  test('null no segundo modal retorna "remover" por segurança', async () => {
+    const { sandbox } = criarSandbox({ modalResps: ['nao', null] });
+    const res = await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    assert.equal(res, 'remover');
   });
 });
 
@@ -251,27 +276,27 @@ suite('BarbeiroEsperaFluxo — localStorage', () => {
 
 suite('BarbeiroEsperaFluxo — evento barberflow:espera-resolvida', () => {
 
-  test('abrirModalCadeira despacha evento com acao="chegou"', async () => {
-    const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'chegou' });
+  test('abrirModalCadeira despacha evento com acao="chegou" quando Sim', async () => {
+    const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'sim' });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(dispatchSpy.calls.length, 1, 'deve despachar 1 evento');
     assert.equal(dispatchSpy.calls[0][0].detail.acao, 'chegou');
   });
 
-  test('abrirModalCadeira despacha evento com acao="remover"', async () => {
-    const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'remover' });
+  test('abrirModalCadeira despacha evento com acao="remover" quando Não → Cancelar', async () => {
+    const { sandbox, dispatchSpy } = criarSandbox({ modalResps: ['nao', 'cancelar'] });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(dispatchSpy.calls[0][0].detail.acao, 'remover');
   });
 
-  test('abrirModalCadeira NÃO despacha evento quando acao="aguardar"', async () => {
-    const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'aguardar' });
+  test('abrirModalCadeira NÃO despacha evento quando Não → Esperar mais', async () => {
+    const { sandbox, dispatchSpy } = criarSandbox({ modalResps: ['nao', 'esperar'] });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(dispatchSpy.calls.length, 0, 'não deve despachar evento em "aguardar"');
   });
 
   test('evento contém barbershopId correto', async () => {
-    const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'chegou' });
+    const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'sim' });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(dispatchSpy.calls[0][0].detail.barbershopId, SHOP_ID);
   });

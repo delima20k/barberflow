@@ -699,14 +699,22 @@ class MinhaBarbeariaPage {
 
     const ehNaoSentado = notif?.dados?.client_not_seated === true;
     const ehAusente    = notif?.dados?.client_absent     === true;
+    const ehAtShop     = notif?.dados?.tipo_acao         === 'client_at_shop';
 
-    if (!ehNaoSentado && !ehAusente) return;
+    if (!ehNaoSentado && !ehAusente && !ehAtShop) return;
 
     // Só reage se a notificação pertence à barbearia ativa
     if (notif.dados.barbershop_id && notif.dados.barbershop_id !== this.#barbershopId) return;
 
     const clienteNome = notif.dados.client_name ?? 'Cliente';
     const entradaId   = notif.dados.entry_id ?? null;
+
+    // Cliente confirmou chegada à barbearia → barbeiro decide se está na cadeira
+    if (ehAtShop) {
+      await this.#fluxoClienteAtShop({ clienteNome, entradaId });
+      return;
+    }
+
     const modo        = ehNaoSentado ? 'nao_sentado' : 'ausente';
 
     const logoBarbearia = this.#shopData?.logo_path
@@ -762,6 +770,28 @@ class MinhaBarbeariaPage {
     // Barbeiro escolheu "OK, aguardar" no modo nao_sentado (acao === null)
     // → BarbeiroEsperaFluxo inicia ciclo persistente de espera.
     if (acao === null && ehNaoSentado) {
+      BarbeiroEsperaFluxo.iniciarEspera({ clienteNome, entradaId, barbershopId: this.#barbershopId });
+      await this.#reRenderEquipe();
+    }
+  }
+
+  /**
+   * Fluxo disparado quando cliente confirma chegada à barbearia via 'client_at_shop'.
+   * Barbeiro decide se cliente está na cadeira (Sim) ou não (Não).
+   * @param {{ clienteNome: string, entradaId: string|null }} opts
+   */
+  async #fluxoClienteAtShop({ clienteNome, entradaId }) {
+    if (!entradaId) return;
+
+    const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({
+      clienteNome,
+      entradaId,
+      barbershopId: this.#barbershopId,
+    });
+
+    // 'chegou' e 'remover': abrirModalCadeira já despachou barberflow:espera-resolvida
+    // → #onEsperaResolvida centraliza o tratamento (DB update + re-render)
+    if (acao === 'aguardar') {
       BarbeiroEsperaFluxo.iniciarEspera({ clienteNome, entradaId, barbershopId: this.#barbershopId });
       await this.#reRenderEquipe();
     }

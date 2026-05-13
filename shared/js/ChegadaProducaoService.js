@@ -170,7 +170,7 @@ class ChegadaProducaoService {
    * @param {string} clienteNome
    */
   static async #processarAqui(entradaId, professionalId, barbershopId, clienteNome) {
-    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'yes');
+    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
 
     await ChegadaProducaoService.#notificarBarbeiro(
       professionalId,
@@ -182,8 +182,8 @@ class ChegadaProducaoService {
 
     if (typeof NotificationService !== 'undefined') {
       NotificationService.mostrarToast(
-        'Você está na cadeira!',
-        'O barbeiro foi notificado da sua chegada.',
+        'Barbeiro notificado!',
+        'Aguarde o barbeiro confirmar que você está na cadeira.',
         NotificationService.TIPOS.SISTEMA,
       );
     }

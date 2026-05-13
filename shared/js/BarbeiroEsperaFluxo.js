@@ -56,27 +56,52 @@ class BarbeiroEsperaFluxo {
    */
   static async abrirModalCadeira({ clienteNome, entradaId, barbershopId }) {
     const nome = FluxoDeFila.escapar(clienteNome ?? '');
-    const raw  = await FluxoDeFila.abrir({
-      id:     BarbeiroEsperaFluxo.#MODAL_ID,
-      icone:  '🪑',
-      titulo: 'O cliente já chegou para o corte?',
-      corpo:  `<strong>${nome}</strong> está a caminho para a barbearia.`,
+
+    // Modal 1: barbeiro confirma se cliente já está na cadeira
+    const raw1 = await FluxoDeFila.abrir({
+      id:        BarbeiroEsperaFluxo.#MODAL_ID,
+      icone:     '🪑',
+      titulo:    `${nome} está na cadeira?`,
+      corpo:     `<strong>${nome}</strong> avisou que está a caminho. Já chegou e está pronto para cortar o cabelo?`,
       acoes: [
-        { label: '✅ Sim, chegou!',          valor: 'chegou',  variante: 'primario' },
-        { label: 'Chamar próximo',             valor: 'remover', variante: 'perigo'  },
-        { label: '⏳ Continuar aguardando',   valor: 'aguardar', variante: 'neutro' },
+        { label: 'Sim', valor: 'sim', variante: 'primario' },
+        { label: 'Não', valor: 'nao', variante: 'neutro'   },
       ],
       fecharBtn: false,
       tocarSom:  false,
     });
 
-    const acao = raw ?? 'aguardar';
-
-    if (acao === 'chegou' || acao === 'remover') {
-      BarbeiroEsperaFluxo.#despacharResolvida(entradaId, acao, barbershopId);
+    // Sim → confirmar chegada
+    if (raw1 === 'sim') {
+      BarbeiroEsperaFluxo.#despacharResolvida(entradaId, 'chegou', barbershopId);
+      return 'chegou';
     }
 
-    return acao;
+    // null (overlay fechado por acidente) → aguardar por segurança
+    if (raw1 !== 'nao') return 'aguardar';
+
+    // Não → Modal 2: esperar mais ou cancelar
+    const raw2 = await FluxoDeFila.abrir({
+      id:        BarbeiroEsperaFluxo.#MODAL_ID + '-opcao',
+      icone:     '⏳',
+      titulo:    'O que deseja fazer?',
+      corpo:     `Deseja esperar mais ou cancelar o atendimento de <strong>${nome}</strong>?`,
+      acoes: [
+        { label: 'Esperar mais',         valor: 'esperar',  variante: 'primario' },
+        { label: 'Cancelar atendimento', valor: 'cancelar', variante: 'perigo'   },
+      ],
+      fecharBtn: false,
+      tocarSom:  false,
+    });
+
+    // cancelar (ou null no segundo modal) → remover
+    if (raw2 === 'cancelar' || raw2 === null) {
+      BarbeiroEsperaFluxo.#despacharResolvida(entradaId, 'remover', barbershopId);
+      return 'remover';
+    }
+
+    // 'esperar' → aguardar
+    return 'aguardar';
   }
 
   /**
