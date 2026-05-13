@@ -311,13 +311,13 @@ class BarbeariaPage {
   static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
-    if (barbeiro.id) row.dataset.barberId = barbeiro.id;
 
     row.appendChild(BarbeiroCard.criar({
       nome:       barbeiro.full_name ?? 'Barbeiro',
       avatarPath: barbeiro.avatar_path ?? null,
       updatedAt:  barbeiro.updated_at ?? null,
       isOwner,
+      barberId:   barbeiro.id ?? null,
     }));
 
     const wrap = document.createElement('div');
