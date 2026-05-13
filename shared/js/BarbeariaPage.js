@@ -621,6 +621,24 @@ class BarbeariaPage {
   async #onCadeiraClick(professionalId) {
     if (!ClienteController.podeInteragir()) return;
 
+    // Guard: impede double-entry se o cliente já está em qualquer cadeira desta barbearia
+    const perfil = AuthService.getPerfil();
+    try {
+      const filaAtiva   = await CadeiraService.getFilaAtiva(this.#shopId);
+      const jaAssentado = perfil?.id && filaAtiva.some(
+        e => (e.client_id ?? e.client?.id) === perfil.id &&
+             (e.status === 'in_service' || e.status === 'waiting'),
+      );
+      if (jaAssentado) {
+        NotificationService.mostrarToast(
+          'Você já está na fila',
+          'Aguarde ser chamado pelo barbeiro.',
+          NotificationService.TIPOS.SISTEMA,
+        );
+        return;
+      }
+    } catch (_) { /* rede — deixa prosseguir; backend rejeita duplicata */ }
+
     const serviceIds = await ModalController.abrirSelecaoServicos({ servicos: this.#servicos });
     if (!serviceIds?.length) return;
 
@@ -632,7 +650,6 @@ class BarbeariaPage {
       });
       if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
 
-      const perfil = AuthService.getPerfil();
       // iniciarPresenter=true: cliente está na fila de espera e precisa de notificações de posição
       this.#iniciarPollers(perfil?.id, true);
     } catch (err) {
