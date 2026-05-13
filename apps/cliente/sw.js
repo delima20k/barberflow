@@ -17,7 +17,7 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v159';
+  static #CACHE_STATIC    = 'bf-cli-static-v160';
   static #CACHE_IMAGES    = 'bf-cli-images-v158';
   static #CACHE_SHELL     = 'bf-cli-shell-v158';
   static #CACHES_VALIDOS  = [
