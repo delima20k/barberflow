@@ -36,6 +36,7 @@ const ENTRADA_OK  = { id: ENTRY_ID, status: 'in_service', client_id: CLIENT_ID }
 
 function criarSandbox({ fluxoResposta = 'aqui', sentarRetorno = ENTRADA_OK, sentarRejeita = false } = {}) {
   const insertCalls   = [];
+  const rpcCalls      = [];
   const pularCalls    = [];
 
   const sandbox = vm.createContext({
@@ -60,7 +61,7 @@ function criarSandbox({ fluxoResposta = 'aqui', sentarRetorno = ENTRADA_OK, sent
       updateClientConfirmed: fn().mockResolvedValue(null),
     },
 
-    // ApiService chainable — insert retorna Promise diretamente
+    // ApiService: chainable para outros usos + rpc para notificações
     ApiService: {
       from: fn().mockImplementation((tabela) => ({
         insert: fn().mockImplementation((dados) => {
@@ -68,6 +69,10 @@ function criarSandbox({ fluxoResposta = 'aqui', sentarRetorno = ENTRADA_OK, sent
           return Promise.resolve({ data: null, error: null });
         }),
       })),
+      rpc: fn().mockImplementation((fn_name, args) => {
+        rpcCalls.push({ fn: fn_name, args });
+        return Promise.resolve({ data: null, error: null });
+      }),
     },
 
     AuthService: {
@@ -87,7 +92,7 @@ function criarSandbox({ fluxoResposta = 'aqui', sentarRetorno = ENTRADA_OK, sent
 
   carregar(sandbox, 'shared/js/ChegadaProducaoService.js');
 
-  return { sandbox, insertCalls, pularCalls };
+  return { sandbox, insertCalls, rpcCalls, pularCalls };
 }
 
 const ARGS_BASE = {
@@ -211,17 +216,17 @@ suite('ChegadaProducaoService — resposta "aqui"', () => {
   });
 
   test('insere notificação client_at_shop com tipo_acao correto', async () => {
-    const { sandbox, insertCalls } = criarSandbox({ fluxoResposta: 'aqui' });
+    const { sandbox, rpcCalls } = criarSandbox({ fluxoResposta: 'aqui' });
     const { ChegadaProducaoService } = sandbox;
 
     await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
 
-    const notif = insertCalls.find(c => c.tabela === 'notifications');
-    assert.ok(notif, 'deve inserir em notifications');
-    assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
-    assert.equal(notif.dados.type,    'client_at_shop');
-    assert.ok(notif.dados.title,      'title deve ser fornecido (NOT NULL)');
-    assert.equal(notif.dados.data?.tipo_acao, 'client_at_shop');
+    const call = rpcCalls.find(c => c.fn === 'notificar_barbeiro_chegada');
+    assert.ok(call, 'deve chamar RPC notificar_barbeiro_chegada');
+    assert.equal(call.args.p_professional_id, PROFESSIONAL_ID);
+    assert.equal(call.args.p_type,            'client_at_shop');
+    assert.ok(call.args.p_title,              'p_title deve ser fornecido');
+    assert.equal(call.args.p_data?.tipo_acao, 'client_at_shop');
   });
 
   test('exibe toast de confirmação', async () => {
@@ -281,18 +286,18 @@ suite('ChegadaProducaoService — resposta "caminho"', () => {
   });
 
   test('insere notificação client_not_seated com flag booleana', async () => {
-    const { sandbox, insertCalls } = criarSandbox({ fluxoResposta: 'caminho' });
+    const { sandbox, rpcCalls } = criarSandbox({ fluxoResposta: 'caminho' });
     const { ChegadaProducaoService } = sandbox;
 
     await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
 
-    const notif = insertCalls.find(c => c.tabela === 'notifications');
-    assert.ok(notif, 'deve inserir em notifications');
-    assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
-    assert.equal(notif.dados.type,    'client_not_seated');
-    assert.ok(notif.dados.title,      'title deve ser fornecido (NOT NULL)');
+    const call = rpcCalls.find(c => c.fn === 'notificar_barbeiro_chegada');
+    assert.ok(call, 'deve chamar RPC notificar_barbeiro_chegada');
+    assert.equal(call.args.p_professional_id, PROFESSIONAL_ID);
+    assert.equal(call.args.p_type,            'client_not_seated');
+    assert.ok(call.args.p_title,              'p_title deve ser fornecido');
     // MinhaBarbeariaPage.#onClienteAusente verifica data.client_not_seated === true
-    assert.equal(notif.dados.data?.client_not_seated, true);
+    assert.equal(call.args.p_data?.client_not_seated, true);
   });
 
   test('exibe toast informando que barbeiro foi avisado', async () => {
@@ -370,7 +375,7 @@ suite('ChegadaProducaoService — confirmarChegada', () => {
   });
 
   test('insere notificação client_at_shop para o barbeiro', async () => {
-    const { sandbox, insertCalls } = criarSandbox();
+    const { sandbox, rpcCalls } = criarSandbox();
     const { ChegadaProducaoService } = sandbox;
 
     await ChegadaProducaoService.confirmarChegada({
@@ -380,12 +385,12 @@ suite('ChegadaProducaoService — confirmarChegada', () => {
       clienteNome:    'João Silva',
     });
 
-    const notif = insertCalls.find(c => c.tabela === 'notifications');
-    assert.ok(notif, 'deve inserir em notifications');
-    assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
-    assert.equal(notif.dados.type,    'client_at_shop');
-    assert.ok(notif.dados.title,      'title deve ser fornecido (NOT NULL)');
-    assert.equal(notif.dados.data?.tipo_acao, 'client_at_shop');
+    const call = rpcCalls.find(c => c.fn === 'notificar_barbeiro_chegada');
+    assert.ok(call, 'deve chamar RPC notificar_barbeiro_chegada');
+    assert.equal(call.args.p_professional_id, PROFESSIONAL_ID);
+    assert.equal(call.args.p_type,            'client_at_shop');
+    assert.ok(call.args.p_title,              'p_title deve ser fornecido');
+    assert.equal(call.args.p_data?.tipo_acao, 'client_at_shop');
   });
 
   test('exibe toast de confirmação de chegada', async () => {

@@ -907,6 +907,55 @@ ALTER TABLE public.queue_entries
 COMMENT ON COLUMN public.queue_entries.client_confirmed IS
   'Estados: yes=presente(in_service) | no_waiting=ausente(in_service) | absent=grace expirado(in_service) | arriving=a caminho(waiting)';
 
+-- ────────────────────────────────────────────────────────────────
+-- 17. NOTIFICATIONS — política INSERT + RPC notificar_barbeiro_chegada
+--     Migration: 20260513000001_notificar_barbeiro_rpc.sql
+--
+-- Corrige 403 Forbidden no insert de notificações pelo app cliente:
+-- a política INSERT estava ausente neste script consolidado.
+-- O RPC com SECURITY DEFINER torna o insert robusto contra futuros
+-- ajustes de RLS.
+-- ────────────────────────────────────────────────────────────────
+
+-- Política de INSERT: qualquer usuário autenticado pode criar notificações
+DROP POLICY IF EXISTS "notifications_insert_service" ON public.notifications;
+CREATE POLICY "notifications_insert_service"
+  ON public.notifications
+  FOR INSERT
+  WITH CHECK (true);
+
+-- RPC com SECURITY DEFINER: bypassa RLS, controle feito dentro da função
+CREATE OR REPLACE FUNCTION public.notificar_barbeiro_chegada(
+  p_professional_id UUID,
+  p_type            TEXT,
+  p_title           TEXT,
+  p_body            TEXT,
+  p_data            JSONB
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_professional_id IS NULL THEN RETURN; END IF;
+  INSERT INTO public.notifications (
+    user_id, type, title, body, data, is_read, created_at
+  ) VALUES (
+    p_professional_id,
+    p_type,
+    p_title,
+    COALESCE(p_body, ''),
+    COALESCE(p_data, '{}'),
+    false,
+    NOW()
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.notificar_barbeiro_chegada(UUID, TEXT, TEXT, TEXT, JSONB)
+  TO authenticated;
+
 -- ================================================================
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new

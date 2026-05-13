@@ -34,6 +34,7 @@ function criarSandbox({ fluxoResposta = 'sim', updateRetorno = null } = {}) {
   const timers        = new Map();   // id → callback
   const clearedTimers = [];
   const insertCalls   = [];
+  const rpcCalls      = [];
 
   const configFake = {
     icone:  '🏠',
@@ -61,7 +62,7 @@ function criarSandbox({ fluxoResposta = 'sim', updateRetorno = null } = {}) {
       updateClientConfirmed: fn().mockResolvedValue(updateRetorno ?? { id: ENTRY_ID, client_confirmed: 'yes' }),
     },
 
-    // ApiService chainable — insert retorna Promise diretamente
+    // ApiService: chainable para outros usos + rpc para notificações
     ApiService: {
       from: fn().mockImplementation((tabela) => ({
         insert: fn().mockImplementation((dados) => {
@@ -69,6 +70,10 @@ function criarSandbox({ fluxoResposta = 'sim', updateRetorno = null } = {}) {
           return Promise.resolve({ data: null, error: null });
         }),
       })),
+      rpc: fn().mockImplementation((fn_name, args) => {
+        rpcCalls.push({ fn: fn_name, args });
+        return Promise.resolve({ data: null, error: null });
+      }),
     },
 
     AuthService: {
@@ -109,7 +114,7 @@ function criarSandbox({ fluxoResposta = 'sim', updateRetorno = null } = {}) {
   // Garante estado limpo a cada teste
   sandbox.FilaPresencaService.parar();
 
-  return { sandbox, timers, clearedTimers, insertCalls, configFake };
+  return { sandbox, timers, clearedTimers, insertCalls, rpcCalls, configFake };
 }
 
 // ─── Testes ───────────────────────────────────────────────────────────────────
@@ -162,15 +167,16 @@ suite('FilaPresencaService — resposta "sim"', () => {
   });
 
   test('insere notificação do tipo "client_at_shop" para o barbeiro', async () => {
-    const { sandbox, insertCalls } = criarSandbox({ fluxoResposta: 'sim' });
+    const { sandbox, rpcCalls } = criarSandbox({ fluxoResposta: 'sim' });
     const { FilaPresencaService } = sandbox;
 
     await FilaPresencaService.iniciarFluxo(ENTRY_ID, SHOP_DATA, PROFESSIONAL_ID);
 
-    const notif = insertCalls.find(c => c.tabela === 'notifications');
-    assert.ok(notif, 'deve inserir em notifications');
-    assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
-    assert.equal(notif.dados.type, 'client_at_shop');
+    const call = rpcCalls.find(c => c.fn === 'notificar_barbeiro_chegada');
+    assert.ok(call, 'deve chamar RPC notificar_barbeiro_chegada');
+    assert.equal(call.args.p_professional_id, PROFESSIONAL_ID);
+    assert.equal(call.args.p_type, 'client_at_shop');
+    assert.ok(call.args.p_title,   'p_title deve ser fornecido');
   });
 
   test('exibe toast de confirmação', async () => {
@@ -232,7 +238,7 @@ suite('FilaPresencaService — resposta "nao"', () => {
   });
 
   test('timer disparado → _dispararGrace → notifica barbeiro "client_arriving_late"', async () => {
-    const { sandbox, timers, insertCalls } = criarSandbox({ fluxoResposta: 'nao' });
+    const { sandbox, timers, rpcCalls } = criarSandbox({ fluxoResposta: 'nao' });
     const { FilaPresencaService } = sandbox;
 
     await FilaPresencaService.iniciarFluxo(ENTRY_ID, SHOP_DATA, PROFESSIONAL_ID);
@@ -242,11 +248,11 @@ suite('FilaPresencaService — resposta "nao"', () => {
     const [, cb] = [...timers.entries()][0];
     await cb(); // dispara manualmente
 
-    const notif = insertCalls.find(c =>
-      c.tabela === 'notifications' && c.dados.type === 'client_arriving_late'
+    const call = rpcCalls.find(
+      c => c.fn === 'notificar_barbeiro_chegada' && c.args.p_type === 'client_arriving_late'
     );
-    assert.ok(notif, 'deve inserir notificação "client_arriving_late"');
-    assert.equal(notif.dados.user_id, PROFESSIONAL_ID);
+    assert.ok(call, 'deve chamar RPC notificar_barbeiro_chegada com client_arriving_late');
+    assert.equal(call.args.p_professional_id, PROFESSIONAL_ID);
   });
 
   test('_dispararGrace cancela timer antes de notificar', async () => {

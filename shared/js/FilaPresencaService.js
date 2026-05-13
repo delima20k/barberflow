@@ -72,9 +72,9 @@ class FilaPresencaService {
     }
 
     if (resposta === 'sim') {
-      await FilaPresencaService.#processarSim(entradaId, professionalId, barbershopId);
+      await FilaPresencaService.#processarSim(entradaId, professionalId, barbershopId, clienteNome);
     } else if (resposta === 'nao') {
-      await FilaPresencaService.#processarNao(entradaId, professionalId, barbershopId);
+      await FilaPresencaService.#processarNao(entradaId, professionalId, barbershopId, clienteNome);
     }
     // resposta null (modal fechado sem escolha) → sem ação, entry permanece em #processadas
   }
@@ -103,13 +103,14 @@ class FilaPresencaService {
    * @param {string} professionalId
    * @param {string} barbershopId
    */
-  static _dispararGrace(entradaId, professionalId, barbershopId) {
+  static _dispararGrace(entradaId, professionalId, barbershopId, clienteNome = '') {
     FilaPresencaService.#cancelarTimer(entradaId);
     FilaPresencaService.#notificarBarbeiro(
       professionalId,
       barbershopId,
       'client_arriving_late',
-      entradaId
+      entradaId,
+      clienteNome
     ).catch(() => {});
   }
 
@@ -121,14 +122,15 @@ class FilaPresencaService {
    * Fluxo da resposta "Sim, já estou na barbearia".
    * Persiste 'yes', notifica barbeiro e exibe toast.
    */
-  static async #processarSim(entradaId, professionalId, barbershopId) {
+  static async #processarSim(entradaId, professionalId, barbershopId, clienteNome = '') {
     await FilaPresencaService.#persistirConfirmacao(entradaId, 'yes');
 
     await FilaPresencaService.#notificarBarbeiro(
       professionalId,
       barbershopId,
       'client_at_shop',
-      entradaId
+      entradaId,
+      clienteNome
     );
 
     if (typeof NotificationService !== 'undefined') {
@@ -144,7 +146,7 @@ class FilaPresencaService {
    * Fluxo da resposta "Estou chegando".
    * Persiste 'arriving', exibe toast e agenda timer de 5 min.
    */
-  static async #processarNao(entradaId, professionalId, barbershopId) {
+  static async #processarNao(entradaId, professionalId, barbershopId, clienteNome = '') {
     await FilaPresencaService.#persistirConfirmacao(entradaId, 'arriving');
 
     if (typeof NotificationService !== 'undefined') {
@@ -156,7 +158,7 @@ class FilaPresencaService {
     }
 
     const timerId = setTimeout(() => {
-      FilaPresencaService._dispararGrace(entradaId, professionalId, barbershopId);
+      FilaPresencaService._dispararGrace(entradaId, professionalId, barbershopId, clienteNome);
     }, FilaPresencaService.#GRACE_MS);
 
     FilaPresencaService.#timers.set(entradaId, timerId);
@@ -180,22 +182,45 @@ class FilaPresencaService {
   }
 
   /**
-   * Insere notificação em `notifications` para o barbeiro.
-   * Silencia erros — a notificação é best-effort.
+   * Insere notificação para o barbeiro via RPC com SECURITY DEFINER.
+   * O RPC `notificar_barbeiro_chegada` bypassa RLS, evitando 403 no insert
+   * direto pela sessão autenticada do cliente.
+   *
+   * - type='client_at_shop':       data.tipo_acao → QueueConfirmService exibe toast
+   * - type='client_arriving_late': data.barbershop_id → MinhaBarbeariaPage filtra barbearia
+   *
+   * Silencia erros — best-effort.
    *
    * @param {string|null} professionalId
    * @param {string|null} barbershopId
-   * @param {string}      type — 'client_at_shop' | 'client_arriving_late'
+   * @param {'client_at_shop'|'client_arriving_late'} type
    * @param {string}      entradaId
+   * @param {string}      [clienteNome='']
    */
-  static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId) {
+  static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome = '') {
     if (!professionalId) return;
     try {
-      await ApiService.from('notifications').insert({
-        user_id:       professionalId,
+      const nome         = clienteNome || 'Cliente';
+      const isAtShop     = type === 'client_at_shop';
+
+      const p_title = isAtShop ? 'Cliente na barbearia!' : 'Cliente ainda a caminho';
+      const p_body  = isAtShop
+        ? `${nome} confirmou que está na barbearia.`
+        : `${nome} ainda não chegou. Aguardando...`;
+
+      const p_data  = {
+        tipo_acao:    type,
+        entry_id:     entradaId,
+        client_name:  nome,
         barbershop_id: barbershopId,
-        type,
-        dados:         { entry_id: entradaId, tipo_acao: type },
+      };
+
+      await ApiService.rpc('notificar_barbeiro_chegada', {
+        p_professional_id: professionalId,
+        p_type:            type,
+        p_title,
+        p_body,
+        p_data,
       });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {

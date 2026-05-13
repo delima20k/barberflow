@@ -17,11 +17,11 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v138';
+  static #CACHE_STATIC   = 'bf-pro-static-v139';
   static #CACHE_IMAGES   = 'bf-pro-images-v133';
   static #CACHE_SHELL    = 'bf-pro-shell-v133';
   static #CACHES_VALIDOS = new Set([
-    'bf-pro-static-v138',
+    'bf-pro-static-v139',
     'bf-pro-images-v133',
     'bf-pro-shell-v133',
   ]);

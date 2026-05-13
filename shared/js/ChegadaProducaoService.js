@@ -234,13 +234,16 @@ class ChegadaProducaoService {
   }
 
   /**
-   * Insere notificação em `notifications` para o barbeiro.
+   * Insere notificação para o barbeiro via RPC com SECURITY DEFINER.
+   * O RPC `notificar_barbeiro_chegada` bypassa RLS, evitando 403 no insert
+   * direto pela sessão autenticada do cliente.
+   *
    * - type='client_at_shop':    data.tipo_acao → QueueConfirmService exibe toast
    * - type='client_not_seated': data.client_not_seated=true → MinhaBarbeariaPage abre modal
-   * Silencia erros — best-effort.
    *
-   * Colunas da tabela: user_id, type, title (NOT NULL), body, data (JSONB), is_read, created_at
-   * barbershop_id NÃO é coluna raiz — vai dentro do JSONB data.
+   * Colunas do RPC: p_professional_id, p_type, p_title, p_body, p_data (JSONB)
+   * barbershop_id vai DENTRO do JSONB p_data (lido por MinhaBarbeariaPage).
+   * Silencia erros — best-effort.
    *
    * @param {string|null} professionalId
    * @param {string|null} barbershopId
@@ -251,24 +254,24 @@ class ChegadaProducaoService {
   static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome) {
     if (!professionalId) return;
     try {
-      const nome   = clienteNome || 'Cliente';
+      const nome      = clienteNome || 'Cliente';
       const isCaminho = type === 'client_not_seated';
 
-      const title  = isCaminho ? 'Cliente a caminho' : 'Cliente na barbearia!';
-      const body   = isCaminho
+      const p_title = isCaminho ? 'Cliente a caminho' : 'Cliente na barbearia!';
+      const p_body  = isCaminho
         ? `${nome} avisou que está a caminho.`
         : `${nome} confirmou que está na barbearia.`;
 
-      const data   = isCaminho
+      const p_data  = isCaminho
         ? { client_not_seated: true, entry_id: entradaId, client_name: nome, barbershop_id: barbershopId }
         : { tipo_acao: type,         entry_id: entradaId, client_name: nome, barbershop_id: barbershopId };
 
-      await ApiService.from('notifications').insert({
-        user_id: professionalId,
-        type,
-        title,
-        body,
-        data,
+      await ApiService.rpc('notificar_barbeiro_chegada', {
+        p_professional_id: professionalId,
+        p_type:            type,
+        p_title,
+        p_body,
+        p_data,
       });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
