@@ -28,6 +28,11 @@ class GeoService {
   static #STORAGE_KEY     = 'sb-jfvjisqnzapxxagkbxcu-auth-token'; // token Supabase
   static #MAX_IDADE_BFF_MS = 60 * 60 * 1000;            // 1h — TTL posição do servidor
 
+  // ── Debug helper (ativo só quando window.GEO_DEBUG === true) ────
+  static #debug(...args) {
+    if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug(...args);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
   // ═══════════════════════════════════════════════════════════
@@ -106,16 +111,16 @@ class GeoService {
       // 1) localStorage (síncrono, sem rede)
       const posLocal = GeoService.#lerLocalStorage();
       if (posLocal) {
-        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: cache localStorage', posLocal);
+        GeoService.#debug('[GeoService] carregarDoBanco: cache localStorage', posLocal);
         return posLocal;
       }
 
       // 2) BFF autenticada
       if (typeof BffApiService !== 'undefined') {
-        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: consultando BFF');
+        GeoService.#debug('[GeoService] carregarDoBanco: consultando BFF');
         const { data, error } = await BffApiService.get('/api/v1/clientes/localizacao');
         if (!error && data?.lat != null && data?.lng != null) {
-          if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: BFF ok', data);
+          GeoService.#debug('[GeoService] carregarDoBanco: BFF ok', data);
           return { lat: data.lat, lng: data.lng };
         }
       }
@@ -272,7 +277,7 @@ class GeoService {
       }
     } catch { /* silencioso */ }
 
-    if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] #salvarNaBff', { lat, lng });
+    GeoService.#debug('[GeoService] #salvarNaBff', { lat, lng });
 
     // 2) Envia para BFF autenticada
     if (typeof BffApiService === 'undefined') return;
@@ -283,11 +288,11 @@ class GeoService {
       );
       if (!error) {
         GeoService.#ultimoSalvo = Date.now();
-        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] BFF patch ok');
+        GeoService.#debug('[GeoService] BFF patch ok');
         return;
       }
       // BFF retornou erro (ex.: offline) — enfileira para replay
-      if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] BFF offline, enfileirando IDB', error?.message);
+      GeoService.#debug('[GeoService] BFF offline, enfileirando IDB', error?.message);
       await GeoService.#enfileirarOffline(lat, lng);
     } catch {
       await GeoService.#enfileirarOffline(lat, lng);

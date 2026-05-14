@@ -36,38 +36,18 @@ class BffApiService {
    * @returns {Promise<{ data: any, total: number|null, error: Error|null }>}
    */
   static async get(path, params = {}) {
-    const url     = BffApiService.#buildUrl(path, params);
-    const ctrl    = new AbortController();
-    const timerId = setTimeout(() => ctrl.abort(), BffApiService.#TIMEOUT_MS);
-
+    const url = BffApiService.#buildUrl(path, params);
     try {
-      const res  = await fetch(url, {
-        signal:  ctrl.signal,
+      const res  = await BffApiService.#fetchComTimeout(url, {
         headers: BffApiService.#authHeaders(),
       });
-      clearTimeout(timerId);
-
       const json = await res.json().catch(() => ({}));
-
       if (!res.ok) {
-        return {
-          data:  null,
-          total: null,
-          error: new Error(json?.error ?? `HTTP ${res.status}`),
-        };
+        return { data: null, total: null, error: new Error(json?.error ?? `HTTP ${res.status}`) };
       }
-
-      return {
-        data:  json?.dados ?? json,
-        total: json?.meta?.total ?? null,
-        error: null,
-      };
+      return { data: json?.dados ?? json, total: json?.meta?.total ?? null, error: null };
     } catch (err) {
-      clearTimeout(timerId);
-      const msg = err?.name === 'AbortError'
-        ? 'Timeout: BFF não respondeu a tempo.'
-        : (err?.message ?? 'Sem conexão com a BFF.');
-      return { data: null, total: null, error: new Error(msg) };
+      return { data: null, total: null, error: BffApiService.#parseErroRede(err) };
     }
   }
 
@@ -78,35 +58,20 @@ class BffApiService {
    * @returns {Promise<{ data: any, error: Error|null }>}
    */
   static async patch(path, body) {
-    const url     = `${BffApiService.#BASE_URL}${path}`;
-    const ctrl    = new AbortController();
-    const timerId = setTimeout(() => ctrl.abort(), BffApiService.#TIMEOUT_MS);
-
+    const url = `${BffApiService.#BASE_URL}${path}`;
     try {
-      const res  = await fetch(url, {
+      const res  = await BffApiService.#fetchComTimeout(url, {
         method:  'PATCH',
-        signal:  ctrl.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          ...BffApiService.#authHeaders(),
-        },
-        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json', ...BffApiService.#authHeaders() },
+        body:    JSON.stringify(body),
       });
-      clearTimeout(timerId);
-
       const json = await res.json().catch(() => ({}));
-
       if (!res.ok) {
         return { data: null, error: new Error(json?.error ?? `HTTP ${res.status}`) };
       }
-
       return { data: json?.dados ?? null, error: null };
     } catch (err) {
-      clearTimeout(timerId);
-      const msg = err?.name === 'AbortError'
-        ? 'Timeout: BFF não respondeu a tempo.'
-        : (err?.message ?? 'Sem conexão com a BFF.');
-      return { data: null, error: new Error(msg) };
+      return { data: null, error: BffApiService.#parseErroRede(err) };
     }
   }
 
@@ -116,6 +81,38 @@ class BffApiService {
   static get baseUrl() { return BffApiService.#BASE_URL; }
 
   // ── Privados ─────────────────────────────────────────────────────
+
+  /**
+   * Executa fetch com AbortController e timeout configurado.
+   * Lança AbortError se o tempo esgotar.
+   * @param {string}      url
+   * @param {RequestInit} options
+   * @returns {Promise<Response>}
+   */
+  static async #fetchComTimeout(url, options) {
+    const ctrl    = new AbortController();
+    const timerId = setTimeout(() => ctrl.abort(), BffApiService.#TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { ...options, signal: ctrl.signal });
+      clearTimeout(timerId);
+      return res;
+    } catch (err) {
+      clearTimeout(timerId);
+      throw err;
+    }
+  }
+
+  /**
+   * Converte erro de rede/timeout em Error com mensagem amigável.
+   * @param {Error} err
+   * @returns {Error}
+   */
+  static #parseErroRede(err) {
+    const msg = err?.name === 'AbortError'
+      ? 'Timeout: BFF não respondeu a tempo.'
+      : (err?.message ?? 'Sem conexão com a BFF.');
+    return new Error(msg);
+  }
 
   /**
    * Retorna headers de autenticação se o usuário estiver logado.
