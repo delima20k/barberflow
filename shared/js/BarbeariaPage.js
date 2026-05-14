@@ -27,7 +27,7 @@ class BarbeariaPage {
   #digFila          = null;   // instância DigText da seção de barbeiros
   #servicos         = [];     // serviços em cache para os handlers de cadeira
   #shopData         = null;   // objeto completo da barbearia atual
-  #numeroBarbeiros  = 0;       // total de barbeiros ativos (usado na mensagem de fechamento)
+  #numeroBarbeiros  = 0;      // total de barbeiros ativos (usado na mensagem de fechamento)
   #canalFila        = null;   // canal Supabase Realtime de queue_entries
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
   #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)

@@ -131,7 +131,6 @@ class BarbershopAvailabilityService {
    * @returns {string}
    */
   static getClosedMessage(shopData, numeroBarbeiros = 1) {
-    const nome   = shopData?.name ?? 'A barbearia';
     const r      = BarbershopAvailabilityService.#razao(shopData);
     const plural = Number.isInteger(numeroBarbeiros) && numeroBarbeiros > 1;
 
@@ -147,6 +146,7 @@ class BarbershopAvailabilityService {
         : 'O barbeiro está em pausa para janta. Aguarde até retornar.';
     }
 
+    const nome = shopData?.name ?? 'A barbearia';
     return `A barbearia ${nome} está fechada. Aguarde ela abrir novamente.`;
   }
 
