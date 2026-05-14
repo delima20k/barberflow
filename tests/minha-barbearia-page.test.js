@@ -2,7 +2,14 @@
 const { suite, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
+const fs              = require('node:fs');
+const path            = require('node:path');
 const { fn, carregar } = require('./_helpers.js');
+
+const ROOT         = path.resolve(__dirname, '..');
+const SRC_MB_PAGE  = fs.readFileSync(
+  path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js'), 'utf8',
+);
 
 // =============================================================================
 // Helpers de DOM mock
@@ -49,6 +56,7 @@ function criarEl(id = '') {
     querySelectorAll: () => [],
     querySelector:    () => null,
     appendChild:      () => {},
+    contains:         (_node) => false,
     focus:            fn(),
     click:            fn(),
     getAnimations:    () => [..._anims],
@@ -117,6 +125,7 @@ function criarPagina({ comTelaEl = true } = {}) {
   const documentMock = {
     getElementById:   fn(id => comTelaEl ? (dom.elMap.get(id) ?? null) : null),
     addEventListener: fn(),
+    activeElement:    null,
   };
 
   const sandbox = vm.createContext({
@@ -245,6 +254,18 @@ suite('MinhaBarbeariaPage — sub-painéis (config)', () => {
     const { dom } = criarPagina();
     // cfgFechar sem ter aberto antes
     assert.doesNotThrow(() => dom.cfgFechar._click());
+  });
+
+  test('#fecharSub chama blur() no activeElement antes de definir aria-hidden=true', () => {
+    // Garante que o foco é movido para fora do painel antes de escondê-lo da AT,
+    // evitando o aria-hidden conflict (WCAG 2.1 / 4.1.3)
+    const idx = SRC_MB_PAGE.indexOf('#fecharSub() {');
+    assert.ok(idx > 0, '#fecharSub deve existir');
+    const bloco = SRC_MB_PAGE.slice(idx, idx + 400);
+    assert.ok(
+      bloco.includes('activeElement') && bloco.includes('blur'),
+      '#fecharSub deve chamar blur() no activeElement antes de setar aria-hidden=true',
+    );
   });
 });
 

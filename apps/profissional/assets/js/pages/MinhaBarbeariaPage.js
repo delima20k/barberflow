@@ -1266,6 +1266,11 @@ class MinhaBarbeariaPage {
   #fecharSub() {
     if (!this.#subTelaAtiva) return;
     this.#subTelaAtiva.classList.remove('mb-sub-ativa');
+    // Move foco para fora do painel antes de definir aria-hidden=true,
+    // evitando aria-hidden conflict (WCAG 2.1 / 4.1.3)
+    if (this.#subTelaAtiva.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
     this.#subTelaAtiva.setAttribute('aria-hidden', 'true');
     this.#subTelaAtiva = null;
     this.#digGps?.parar();

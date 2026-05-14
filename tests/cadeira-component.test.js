@@ -319,3 +319,63 @@ suite('Cadeira — onArrivingClick (arriving self-confirm)', () => {
     assert.notEqual(el.getAttribute('tabindex'), '0',      'sem callback não deve ter tabindex=0');
   });
 });
+
+// ─── Suíte: clique com barbearia fechada (podeInteragir=false) ────────────────
+
+suite('Cadeira — clique com barbearia fechada (podeInteragir=false)', () => {
+
+  test('onClick dispara mesmo com podeInteragir=false', () => {
+    const { Cadeira } = criarSandbox();
+    const cb = fn();
+    const el = Cadeira.criar({
+      tipo:          'producao',
+      entrada:       null,
+      podeInteragir: false,
+      onClick:       cb,
+    });
+    el._listeners.click?.[0]?.();
+    assert.equal(cb.calls.length, 1, 'onClick deve disparar mesmo com podeInteragir=false');
+  });
+
+  test('NÃO tem cdr-cadeira--interativa quando podeInteragir=false', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({
+      tipo:          'producao',
+      entrada:       null,
+      podeInteragir: false,
+      onClick:       fn(),
+    });
+    assert.ok(
+      !el.classList._set.has('cdr-cadeira--interativa'),
+      'NÃO deve ter cdr-cadeira--interativa quando podeInteragir=false',
+    );
+  });
+
+  test('tem cdr-cadeira--interativa quando podeInteragir=true e onClick definido', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({
+      tipo:          'producao',
+      entrada:       null,
+      podeInteragir: true,
+      onClick:       fn(),
+    });
+    assert.ok(
+      el.classList._set.has('cdr-cadeira--interativa'),
+      'deve ter cdr-cadeira--interativa quando podeInteragir=true',
+    );
+  });
+
+  test('sem onClick e podeInteragir=false → sem listener de click', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({
+      tipo:          'producao',
+      entrada:       null,
+      podeInteragir: false,
+      onClick:       null,
+    });
+    assert.strictEqual(
+      (el._listeners.click ?? []).length, 0,
+      'sem onClick não deve registrar click handler',
+    );
+  });
+});

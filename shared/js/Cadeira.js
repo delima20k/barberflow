@@ -56,9 +56,16 @@ class Cadeira {
     }
 
     // Interatividade: cadeira livre clicável
-    if (!ocupada && podeInteragir && onClick) {
-      const ariaLabel = tipo === 'producao' ? 'Entrar para atendimento' : `Entrar na posição ${posicao}`;
-      Cadeira.#tornarInterativa(el, onClick, ariaLabel);
+    // Quando podeInteragir=true → visual completo (classe CSS + ARIA de botão)
+    // Quando podeInteragir=false mas onClick existe → apenas click silencioso
+    //   (ex: barbearia fechada — clique abre modal de aviso sem affordance visual)
+    if (!ocupada && onClick) {
+      if (podeInteragir) {
+        const ariaLabel = tipo === 'producao' ? 'Entrar para atendimento' : `Entrar na posição ${posicao}`;
+        Cadeira.#tornarInterativa(el, onClick, ariaLabel);
+      } else {
+        el.addEventListener('click', () => onClick());
+      }
     }
 
     // Interatividade: cadeira de produção do próprio cliente em estado 'arriving' → auto-confirmar chegada

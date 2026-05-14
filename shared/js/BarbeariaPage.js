@@ -459,11 +459,15 @@ class BarbeariaPage {
       return;
     }
 
-    const barbeariaAberta  = (typeof BarbershopAvailabilityService !== 'undefined')
+    const barbeariaAberta      = (typeof BarbershopAvailabilityService !== 'undefined')
       ? BarbershopAvailabilityService.canClientClickChair(shop)
       : (shop?.is_open === true);
-    const podeInteragir    = ClienteController.podeInteragir() && barbeariaAberta;
-    const clienteLogadoId  = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
+    const clientePodeInteragir = ClienteController.podeInteragir();
+    // podeInteragir controla apenas o affordance visual (CSS interativo)
+    // Os callbacks são passados sempre que o cliente pode interagir,
+    // independente do estado da barbearia, para que o modal de "fechada" apareça
+    const podeInteragir        = clientePodeInteragir && barbeariaAberta;
+    const clienteLogadoId      = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
 
     el.innerHTML = '';
     for (const b of barbeiros) {
@@ -474,13 +478,13 @@ class BarbeariaPage {
         filaEntradas:          filaB,
         podeInteragir,
         clienteLogadoId,
-        onProducaoVaziaClick:     podeInteragir
+        onProducaoVaziaClick:     clientePodeInteragir
           ? () => this.#onProducaoClick(b.id)
           : null,
-        onCadeiraVaziaClick:      podeInteragir
+        onCadeiraVaziaClick:      clientePodeInteragir
           ? () => this.#onCadeiraClick(b.id)
           : null,
-        onProducaoArrivingClick:  podeInteragir
+        onProducaoArrivingClick:  clientePodeInteragir
           ? (entrada) => this.#onProducaoArrivingClick(entrada)
           : null,
       }));

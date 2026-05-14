@@ -185,6 +185,38 @@ suite('BarbeariaPage — modal barbearia fechada', () => {
   });
 });
 
+suite('BarbeariaPage — callbacks com barbearia fechada', () => {
+
+  test('renderBarbeiros extrai clientePodeInteragir separado de podeInteragir', () => {
+    assert.ok(
+      SRC.includes('clientePodeInteragir'),
+      'renderBarbeiros deve extrair clientePodeInteragir para passar callbacks independentemente de barbeariaAberta',
+    );
+  });
+
+  test('onProducaoVaziaClick usa clientePodeInteragir (não podeInteragir)', () => {
+    // Após a correção, os callbacks devem usar clientePodeInteragir para que
+    // sejam passados mesmo quando a barbearia está fechada (para exibir modal)
+    const idxCallback = SRC.indexOf('onProducaoVaziaClick:');
+    assert.ok(idxCallback > 0, 'onProducaoVaziaClick deve existir');
+    const trecho = SRC.slice(idxCallback, idxCallback + 120);
+    assert.ok(
+      trecho.includes('clientePodeInteragir'),
+      'onProducaoVaziaClick deve usar clientePodeInteragir no ternário',
+    );
+  });
+
+  test('onCadeiraVaziaClick usa clientePodeInteragir (não podeInteragir)', () => {
+    const idxCallback = SRC.indexOf('onCadeiraVaziaClick:');
+    assert.ok(idxCallback > 0, 'onCadeiraVaziaClick deve existir');
+    const trecho = SRC.slice(idxCallback, idxCallback + 120);
+    assert.ok(
+      trecho.includes('clientePodeInteragir'),
+      'onCadeiraVaziaClick deve usar clientePodeInteragir no ternário',
+    );
+  });
+});
+
 suite('BarbeariaPage — realtime shop re-render', () => {
 
   test('#onShopRealtime chama #renderBarbeiros após atualizar shopData', () => {
