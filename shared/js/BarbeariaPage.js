@@ -199,9 +199,11 @@ class BarbeariaPage {
     if (this.#shopId === this.#shopIdCache) {
       this.#mostrarConteudo();
       // Canais podem ter sido parados ao navegar para outra tela — reinicia todos
-      if (this.#shopData) this.#iniciarRealtimeFila(this.#shopData);
-      if (this.#shopData) this.#iniciarRealtimeShop(this.#shopData);
-      if (this.#shopId)   this.#iniciarPollingShop(this.#shopId);
+      if (this.#shopData) {
+        this.#iniciarRealtimeFila(this.#shopData);
+        this.#iniciarRealtimeShop(this.#shopData);
+        this.#iniciarPollingShop(this.#shopId);
+      }
       return;
     }
 
@@ -667,7 +669,7 @@ class BarbeariaPage {
     // Só re-renderiza se houve mudança real
     if (data.is_open === this.#shopData.is_open) return;
 
-    // Simula payload Realtime para reutilizar a lógica centralizada de #onShopRealtime
+    // Delega para #onShopRealtime — reutiliza atualização de estado, cache e re-render
     this.#onShopRealtime({ new: data });
   }
 
@@ -680,6 +682,9 @@ class BarbeariaPage {
   #onShopRealtime(payload) {
     const novo = payload?.new;
     if (!novo || !this.#shopData) return;
+
+    // Guarda contra payload parcial do Realtime (sem is_open definido)
+    if (novo.is_open === undefined) return;
 
     this.#shopData = {
       ...this.#shopData,
