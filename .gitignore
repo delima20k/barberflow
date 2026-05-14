@@ -58,4 +58,16 @@ test_output*.txt
 test_push_final.txt
 test-results*.json
 test_run.log
+test_files.txt
+test_node_output.txt
+
+# Arquivos acidentais na raiz — sem extensão, gerados por agentes ou IDE
+# (bumps de SW, tokens de debug, artefatos de sessão)
+v[0-9]*
+fluxo
+persiste
+continua
+sem
+wrapper
+row
 Logs
