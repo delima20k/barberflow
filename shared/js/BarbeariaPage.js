@@ -32,7 +32,12 @@ class BarbeariaPage {
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
   #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)
   #canalShopId      = null;   // shop.id do canal de status (evita reconexão desnecessária)
+  #timerShopPoll    = null;   // timer de polling periódico de status (fallback quando Realtime falha)
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
+
+  // ── Constantes ────────────────────────────────────────────
+  /** Intervalo de polling de status da barbearia em ms (fallback para Realtime). */
+  static #SHOP_POLL_MS = 20_000;
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -157,6 +162,7 @@ class BarbeariaPage {
         // mesmo quando o usuário navega para outra tela.
         this.#pararRealtimeFila();
         this.#pararRealtimeShop();
+        this.#pararPollingShop();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
@@ -192,8 +198,10 @@ class BarbeariaPage {
     // Mesma barbearia já renderizada — apenas exibe conteúdo sem re-fetch
     if (this.#shopId === this.#shopIdCache) {
       this.#mostrarConteudo();
-      // Canal pode ter sido parado ao navegar para outra tela — reinicia se necessário
+      // Canais podem ter sido parados ao navegar para outra tela — reinicia todos
       if (this.#shopData) this.#iniciarRealtimeFila(this.#shopData);
+      if (this.#shopData) this.#iniciarRealtimeShop(this.#shopData);
+      if (this.#shopId)   this.#iniciarPollingShop(this.#shopId);
       return;
     }
 
@@ -405,6 +413,7 @@ class BarbeariaPage {
     this.#renderBarbeiros(shop); // fire-and-forget: preenche carousel async
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
+    this.#iniciarPollingShop(shop.id);
     this.#mostrarConteudo();
   }
 
@@ -588,7 +597,11 @@ class BarbeariaPage {
           },
           (payload) => this.#onShopRealtime(payload),
         )
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            LoggerService.warn('[BarbeariaPage] Realtime shop falhou:', status, err?.message);
+          }
+        });
       this.#canalShopId = shop.id;
     } catch (e) {
       LoggerService.warn('[BarbeariaPage] Realtime shop indisponível:', e?.message);
@@ -602,6 +615,60 @@ class BarbeariaPage {
       this.#canalShop   = null;
       this.#canalShopId = null;
     }
+  }
+
+  // ── Polling de status da barbearia (fallback quando Realtime falha) ───
+
+  /**
+   * Inicia polling periódico de status da barbearia.
+   * Serve como fallback quando o canal Realtime de barbershops não entrega eventos.
+   * @param {string} shopId
+   */
+  #iniciarPollingShop(shopId) {
+    this.#pararPollingShop();
+    this.#timerShopPoll = setInterval(
+      () => this.#pollShopStatus(shopId).catch(() => {}),
+      BarbeariaPage.#SHOP_POLL_MS,
+    );
+  }
+
+  /** Para o polling periódico de status da barbearia e limpa o timer. */
+  #pararPollingShop() {
+    if (this.#timerShopPoll !== null) {
+      clearInterval(this.#timerShopPoll);
+      this.#timerShopPoll = null;
+    }
+  }
+
+  /**
+   * Poll único: busca is_open e close_reason do banco.
+   * Se o status mudou em relação a this.#shopData, notifica via #onShopRealtime.
+   * Para o polling automaticamente quando a barbearia já está aberta
+   * (Realtime assume o controle para mudanças subsequentes).
+   * @param {string} shopId
+   */
+  async #pollShopStatus(shopId) {
+    if (!this.#shopData || this.#shopId !== shopId) return;
+
+    // Se a barbearia já está aberta, não há necessidade de continuar polling
+    if (this.#shopData.is_open === true) {
+      this.#pararPollingShop();
+      return;
+    }
+
+    const { data } = await ApiService.from('barbershops')
+      .select('is_open, close_reason')
+      .eq('id', shopId)
+      .single();
+
+    // Stale-check: o usuário pode ter navegado para outra barbearia durante o await
+    if (!data || this.#shopId !== shopId) return;
+
+    // Só re-renderiza se houve mudança real
+    if (data.is_open === this.#shopData.is_open) return;
+
+    // Simula payload Realtime para reutilizar a lógica centralizada de #onShopRealtime
+    this.#onShopRealtime({ new: data });
   }
 
   /**

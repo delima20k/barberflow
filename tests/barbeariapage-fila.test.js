@@ -217,6 +217,116 @@ suite('BarbeariaPage — callbacks com barbearia fechada', () => {
   });
 });
 
+suite('BarbeariaPage — polling de status da barbearia (fallback Realtime)', () => {
+
+  test('fonte contém campo de instância #timerShopPoll', () => {
+    assert.ok(
+      SRC.includes('#timerShopPoll'),
+      'BarbeariaPage deve ter campo #timerShopPoll para o timer de polling',
+    );
+  });
+
+  test('fonte contém método privado #pararPollingShop', () => {
+    assert.ok(
+      SRC.includes('#pararPollingShop('),
+      'BarbeariaPage deve ter método #pararPollingShop',
+    );
+  });
+
+  test('#pararPollingShop usa clearInterval para limpar o timer', () => {
+    // Padrão único da implementação: clearInterval no campo correto
+    assert.ok(
+      SRC.includes('clearInterval(this.#timerShopPoll)'),
+      '#pararPollingShop deve chamar clearInterval(this.#timerShopPoll)',
+    );
+  });
+
+  test('fonte contém método privado #iniciarPollingShop', () => {
+    assert.ok(
+      SRC.includes('#iniciarPollingShop('),
+      'BarbeariaPage deve ter método #iniciarPollingShop',
+    );
+  });
+
+  test('#iniciarPollingShop usa setInterval para disparar polls periódicos', () => {
+    // Padrão único: atribuição do timer ao campo #timerShopPoll via setInterval
+    assert.ok(
+      SRC.includes('#timerShopPoll = setInterval('),
+      '#iniciarPollingShop deve atribuir setInterval a #timerShopPoll',
+    );
+  });
+
+  test('fonte contém método privado #pollShopStatus', () => {
+    assert.ok(
+      SRC.includes('#pollShopStatus('),
+      'BarbeariaPage deve ter método #pollShopStatus',
+    );
+  });
+
+  test('#pollShopStatus seleciona is_open e close_reason da tabela barbershops', () => {
+    // Verifica o padrão único de acesso ao banco em #pollShopStatus
+    assert.ok(
+      SRC.includes("ApiService.from('barbershops')"),
+      '#pollShopStatus deve usar ApiService.from(\'barbershops\')',
+    );
+    assert.ok(
+      SRC.includes("select('is_open, close_reason')"),
+      '#pollShopStatus deve selecionar is_open e close_reason',
+    );
+  });
+
+  test('#pollShopStatus chama #onShopRealtime quando status muda', () => {
+    const idx = SRC.indexOf('#pollShopStatus(');
+    assert.ok(idx > 0);
+    const bloco = SRC.slice(idx, idx + 700);
+    assert.ok(
+      bloco.includes('#onShopRealtime'),
+      '#pollShopStatus deve chamar #onShopRealtime ao detectar mudança',
+    );
+  });
+
+  test('#renderizar inicia polling de shop além do canal Realtime', () => {
+    // Em #renderizar, #iniciarPollingShop é chamado com shop.id (único nesse contexto)
+    assert.ok(
+      SRC.includes('#iniciarPollingShop(shop.id)'),
+      '#renderizar deve chamar #iniciarPollingShop(shop.id)',
+    );
+  });
+
+  test('#observarEntrada para polling de shop ao sair da tela', () => {
+    const idx = SRC.indexOf('#pararRealtimeShop()');
+    assert.ok(idx > 0, '#pararRealtimeShop deve existir');
+    // A parada do polling deve estar próxima da parada do Realtime
+    const bloco = SRC.slice(idx, idx + 120);
+    assert.ok(
+      bloco.includes('#pararPollingShop'),
+      '#observarEntrada deve parar o polling de shop junto com o Realtime',
+    );
+  });
+
+  test('#carregar() fast-path reinicia polling de shop além de #iniciarRealtimeFila', () => {
+    // Fix bug de navegação: ao voltar para a mesma barbearia, o polling (e o canal
+    // Realtime) de shop deve ser reiniciado — não apenas o canal de fila.
+    const idx = SRC.indexOf('#iniciarRealtimeFila(this.#shopData)');
+    assert.ok(idx > 0, 'fast-path deve reiniciar #iniciarRealtimeFila');
+    const contexto = SRC.slice(Math.max(0, idx - 50), idx + 300);
+    assert.ok(
+      contexto.includes('#iniciarPollingShop'),
+      '#carregar() fast-path deve reiniciar #iniciarPollingShop',
+    );
+  });
+
+  test('#carregar() fast-path reinicia #iniciarRealtimeShop além de fila', () => {
+    const idx = SRC.indexOf('#iniciarRealtimeFila(this.#shopData)');
+    assert.ok(idx > 0, 'fast-path deve reiniciar #iniciarRealtimeFila');
+    const contexto = SRC.slice(Math.max(0, idx - 50), idx + 300);
+    assert.ok(
+      contexto.includes('#iniciarRealtimeShop'),
+      '#carregar() fast-path deve reiniciar #iniciarRealtimeShop',
+    );
+  });
+});
+
 suite('BarbeariaPage — realtime shop re-render', () => {
 
   test('#onShopRealtime chama #renderBarbeiros após atualizar shopData', () => {
