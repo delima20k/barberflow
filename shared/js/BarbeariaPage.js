@@ -27,6 +27,7 @@ class BarbeariaPage {
   #digFila          = null;   // instância DigText da seção de barbeiros
   #servicos         = [];     // serviços em cache para os handlers de cadeira
   #shopData         = null;   // objeto completo da barbearia atual
+  #numeroBarbeiros  = 0;       // total de barbeiros ativos (usado na mensagem de fechamento)
   #canalFila        = null;   // canal Supabase Realtime de queue_entries
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
   #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)
@@ -449,6 +450,7 @@ class BarbeariaPage {
 
     // Push deep-link: se o usuário abriu o app clicando em notificação de chamada
     this.#dispararModalPushSeNecessario(filaAtiva, shop);
+    this.#numeroBarbeiros = barbeiros.length;
 
     if (!barbeiros.length) {
       el.innerHTML = '';
@@ -617,6 +619,10 @@ class BarbeariaPage {
     // Atualiza o cache para evitar dado obsoleto na próxima navegação à mesma barbearia
     const cached = CacheManager.get(`${this.#shopId}:shop`);
     if (cached) CacheManager.set(`${this.#shopId}:shop`, this.#shopData, 5 * 60 * 1000);
+
+    // Atualiza badge e re-renderiza cadeiras imediatamente (sem reload)
+    this.#atualizarBadge(this.#shopData);
+    this.#renderBarbeiros(this.#shopData).catch(() => {});
   }
 
   /**
@@ -682,6 +688,23 @@ class BarbeariaPage {
   }
 
   /**
+   * Exibe modal contextual quando a barbearia está fechada ou em pausa.
+   * Ícone, título e mensagem (singular/plural de barbeiros) via BarbershopAvailabilityService.
+   */
+  async #mostrarModalBarbeariaFechada() {
+    await FluxoDeFila.abrir({
+      id:        'barbearia-fechada',
+      icone:     BarbershopAvailabilityService.getClosedIcon(this.#shopData),
+      titulo:    BarbershopAvailabilityService.getClosedTitle(this.#shopData),
+      corpo:     FluxoDeFila.escapar(
+        BarbershopAvailabilityService.getClosedMessage(this.#shopData, this.#numeroBarbeiros),
+      ),
+      acoes:     [{ label: 'Entendi', valor: 'ok', variante: 'primario' }],
+      fecharBtn: false,
+    });
+  }
+
+  /**
    * Handler de clique em uma cadeira vazia.
    * Abre o modal de seleção de serviços e registra o cliente na fila.
    * @param {string} professionalId UUID do barbeiro da cadeira
@@ -691,11 +714,7 @@ class BarbeariaPage {
 
     // Guard: bloqueia entrada na fila quando barbearia está fechada ou em pausa
     if (!BarbershopAvailabilityService.canClientJoinQueue(this.#shopData)) {
-      NotificationService.mostrarToast(
-        'Barbearia indisponível',
-        BarbershopAvailabilityService.getClosedMessage(this.#shopData),
-        NotificationService.TIPOS.SISTEMA,
-      );
+      await this.#mostrarModalBarbeariaFechada();
       return;
     }
 
@@ -784,11 +803,7 @@ class BarbeariaPage {
 
     // Guard: bloqueia clique quando barbearia está fechada ou em pausa
     if (!BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
-      NotificationService.mostrarToast(
-        'Barbearia indisponível',
-        BarbershopAvailabilityService.getClosedMessage(this.#shopData),
-        NotificationService.TIPOS.SISTEMA,
-      );
+      await this.#mostrarModalBarbeariaFechada();
       return;
     }
 
@@ -946,20 +961,7 @@ class BarbeariaPage {
       const addr = [shop.address, shop.city, shop.state].filter(Boolean).join(', ');
       this.#refs.endereco.textContent = addr;
     }
-    if (this.#refs.badge || this.#refs.capaStatus) {
-      const cr        = shop.close_reason ?? null;
-      const badgeLabel = StatusFechamentoModal.labelStatus(shop.is_open, cr);
-      const badgeVar   = StatusFechamentoModal.classBadge(shop.is_open, cr);
-      if (this.#refs.badge) {
-        this.#refs.badge.textContent = badgeLabel;
-        this.#refs.badge.className   = `bp-badge ${badgeVar}`;
-      }
-      if (this.#refs.capaStatus) {
-        this.#refs.capaStatus.textContent = badgeLabel;
-        this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${badgeVar}`;
-        this.#refs.capaStatus.hidden      = false;
-      }
-    }
+    this.#atualizarBadge(shop);
     if (this.#refs.rating) {
       // Valor bruto — sem "⭐". Decoração fica no HTML/CSS.
       this.#refs.rating.textContent = Number(shop.rating_avg ?? 0).toFixed(1);
@@ -979,6 +981,23 @@ class BarbeariaPage {
     if (this.#refs.since && shop.founded_year) {
       // Valor bruto — sem "Desde". Decoração fica no HTML/CSS.
       this.#refs.since.textContent = shop.founded_year;
+    }
+  }
+
+  /** Atualiza o badge de status (aberta/almoço/janta/fechada) no header e na capa. */
+  #atualizarBadge(shop) {
+    if (!this.#refs.badge && !this.#refs.capaStatus) return;
+    const cr         = shop?.close_reason ?? null;
+    const badgeLabel = StatusFechamentoModal.labelStatus(shop?.is_open, cr);
+    const badgeVar   = StatusFechamentoModal.classBadge(shop?.is_open, cr);
+    if (this.#refs.badge) {
+      this.#refs.badge.textContent = badgeLabel;
+      this.#refs.badge.className   = `bp-badge ${badgeVar}`;
+    }
+    if (this.#refs.capaStatus) {
+      this.#refs.capaStatus.textContent = badgeLabel;
+      this.#refs.capaStatus.className   = `bp-capa-status bp-badge ${badgeVar}`;
+      this.#refs.capaStatus.hidden      = false;
     }
   }
 

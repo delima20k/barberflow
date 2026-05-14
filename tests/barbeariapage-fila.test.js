@@ -132,3 +132,85 @@ suite('ClienteController — método sentar()', () => {
     );
   });
 });
+
+suite('BarbeariaPage — modal barbearia fechada', () => {
+
+  test('fonte contém método privado #mostrarModalBarbeariaFechada', () => {
+    assert.ok(
+      SRC.includes('#mostrarModalBarbeariaFechada'),
+      'BarbeariaPage deve ter método #mostrarModalBarbeariaFechada',
+    );
+  });
+
+  test('bloco de #mostrarModalBarbeariaFechada contém FluxoDeFila.abrir', () => {
+    const idx = SRC.indexOf('#mostrarModalBarbeariaFechada()');
+    assert.ok(idx > 0, '#mostrarModalBarbeariaFechada deve existir');
+    const bloco = SRC.slice(idx, idx + 600);
+    assert.ok(
+      bloco.includes('FluxoDeFila.abrir'),
+      '#mostrarModalBarbeariaFechada deve chamar FluxoDeFila.abrir',
+    );
+  });
+
+  test('bloco de #mostrarModalBarbeariaFechada usa getClosedMessage e #numeroBarbeiros', () => {
+    const idx = SRC.indexOf('#mostrarModalBarbeariaFechada()');
+    assert.ok(idx > 0);
+    const bloco = SRC.slice(idx, idx + 600);
+    assert.ok(bloco.includes('getClosedMessage'),  'deve usar getClosedMessage');
+    assert.ok(bloco.includes('#numeroBarbeiros'),   'deve passar #numeroBarbeiros');
+  });
+
+  test('#onCadeiraClick e #onProducaoClick delegam a #mostrarModalBarbeariaFechada', () => {
+    const idxCadeira   = SRC.indexOf('async #onCadeiraClick');
+    const idxProducao  = SRC.indexOf('async #onProducaoClick');
+    assert.ok(idxCadeira  > 0, 'async #onCadeiraClick deve existir');
+    assert.ok(idxProducao > 0, 'async #onProducaoClick deve existir');
+    const blocoCadeira  = SRC.slice(idxCadeira,  idxCadeira  + 500);
+    const blocoProducao = SRC.slice(idxProducao, idxProducao + 500);
+    assert.ok(
+      blocoCadeira.includes('#mostrarModalBarbeariaFechada'),
+      '#onCadeiraClick deve delegar a #mostrarModalBarbeariaFechada',
+    );
+    assert.ok(
+      blocoProducao.includes('#mostrarModalBarbeariaFechada'),
+      '#onProducaoClick deve delegar a #mostrarModalBarbeariaFechada',
+    );
+  });
+
+  test('fonte contém campo #numeroBarbeiros', () => {
+    assert.ok(
+      SRC.includes('#numeroBarbeiros'),
+      'BarbeariaPage deve ter campo #numeroBarbeiros',
+    );
+  });
+});
+
+suite('BarbeariaPage — realtime shop re-render', () => {
+
+  test('#onShopRealtime chama #renderBarbeiros após atualizar shopData', () => {
+    const idx = SRC.indexOf('#onShopRealtime(payload) {');
+    assert.ok(idx > 0, '#onShopRealtime deve existir');
+    const bloco = SRC.slice(idx, idx + 800);
+    assert.ok(
+      bloco.includes('#renderBarbeiros'),
+      '#onShopRealtime deve chamar #renderBarbeiros para re-renderizar cadeiras',
+    );
+  });
+
+  test('#onShopRealtime chama #atualizarBadge', () => {
+    const idx = SRC.indexOf('#onShopRealtime(payload) {');
+    assert.ok(idx > 0);
+    const bloco = SRC.slice(idx, idx + 800);
+    assert.ok(
+      bloco.includes('#atualizarBadge'),
+      '#onShopRealtime deve chamar #atualizarBadge para atualizar o badge de status',
+    );
+  });
+
+  test('fonte contém método privado #atualizarBadge', () => {
+    assert.ok(
+      SRC.includes('#atualizarBadge('),
+      'BarbeariaPage deve ter método privado #atualizarBadge',
+    );
+  });
+});

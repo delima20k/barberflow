@@ -219,24 +219,26 @@ suite('BarbershopAvailabilityService.canClientJoinQueue()', () => {
 suite('BarbershopAvailabilityService.getClosedMessage()', () => {
   const S = criarServico();
 
-  test('mensagem de almoço contém o nome da barbearia', () => {
-    const msg = S.getClosedMessage(almoco);
-    assert.ok(msg.includes(NOME), `esperado incluir "${NOME}" — obtido: "${msg}"`);
-  });
-
-  test('mensagem de almoço diz "pausa para almoço"', () => {
+  test('mensagem de almoço (singular) menciona "almoço"', () => {
     const msg = S.getClosedMessage(almoco).toLowerCase();
     assert.ok(msg.includes('almoço'), `esperado "almoço" — obtido: "${msg}"`);
   });
 
-  test('mensagem de janta contém o nome da barbearia', () => {
-    const msg = S.getClosedMessage(janta);
-    assert.ok(msg.includes(NOME), `esperado incluir "${NOME}" — obtido: "${msg}"`);
+  test('mensagem de almoço (singular) menciona "barbeiro" e não inclui nome da barbearia', () => {
+    const msg = S.getClosedMessage(almoco);
+    assert.ok(msg.toLowerCase().includes('barbeiro'), `esperado "barbeiro" — obtido: "${msg}"`);
+    assert.ok(!msg.includes(NOME), `mensagem de almoço não deve incluir nome — obtido: "${msg}"`);
   });
 
-  test('mensagem de janta diz "pausa para janta"', () => {
+  test('mensagem de janta (singular) menciona "janta"', () => {
     const msg = S.getClosedMessage(janta).toLowerCase();
     assert.ok(msg.includes('janta'), `esperado "janta" — obtido: "${msg}"`);
+  });
+
+  test('mensagem de janta (singular) menciona "barbeiro" e não inclui nome da barbearia', () => {
+    const msg = S.getClosedMessage(janta);
+    assert.ok(msg.toLowerCase().includes('barbeiro'), `esperado "barbeiro" — obtido: "${msg}"`);
+    assert.ok(!msg.includes(NOME), `mensagem de janta não deve incluir nome — obtido: "${msg}"`);
   });
 
   test('mensagem fechada normal não menciona almoço nem janta', () => {
@@ -255,27 +257,38 @@ suite('BarbershopAvailabilityService.getClosedMessage()', () => {
     assert.strictEqual(typeof S.getClosedMessage(null), 'string');
   });
 
-  test('getClosedMessage(almoco) corresponde à mensagem exata do requisito', () => {
-    const msg = S.getClosedMessage(almoco);
+  test('getClosedMessage(almoco) singular — string exata', () => {
     assert.strictEqual(
-      msg,
-      `A barbearia ${NOME} está em pausa para almoço. Aguarde até reabrir.`,
+      S.getClosedMessage(almoco),
+      'O barbeiro está em pausa para almoço. Aguarde até retornar.',
     );
   });
 
-  test('getClosedMessage(janta) corresponde à mensagem exata do requisito', () => {
-    const msg = S.getClosedMessage(janta);
+  test('getClosedMessage(almoco, 2) plural — string exata', () => {
     assert.strictEqual(
-      msg,
-      `A barbearia ${NOME} está em pausa para janta. Aguarde até reabrir.`,
+      S.getClosedMessage(almoco, 2),
+      'Os barbeiros estão em pausa para almoço. Aguarde até retornarem.',
     );
   });
 
-  test('getClosedMessage(fechada) corresponde à mensagem exata do requisito', () => {
-    const msg = S.getClosedMessage(fechada);
+  test('getClosedMessage(janta) singular — string exata', () => {
     assert.strictEqual(
-      msg,
-      `A barbearia ${NOME} está fechada no momento. Aguarde ela abrir novamente.`,
+      S.getClosedMessage(janta),
+      'O barbeiro está em pausa para janta. Aguarde até retornar.',
+    );
+  });
+
+  test('getClosedMessage(janta, 3) plural — string exata', () => {
+    assert.strictEqual(
+      S.getClosedMessage(janta, 3),
+      'Os barbeiros estão em pausa para janta. Aguarde até retornarem.',
+    );
+  });
+
+  test('getClosedMessage(fechada) — string exata', () => {
+    assert.strictEqual(
+      S.getClosedMessage(fechada),
+      `A barbearia ${NOME} está fechada. Aguarde ela abrir novamente.`,
     );
   });
 });
@@ -518,5 +531,57 @@ suite('Integração BarbeariaPage — guard por status da barbearia', () => {
   test('mensagem de janta é diferente da mensagem de fechada normal', () => {
     const S = criarServico();
     assert.notStrictEqual(S.getClosedMessage(janta), S.getClosedMessage(fechada));
+  });
+});
+
+// =============================================================================
+// Suite 11 — getClosedIcon
+// =============================================================================
+
+suite('BarbershopAvailabilityService.getClosedIcon()', () => {
+  const S = criarServico();
+
+  test('retorna 🍽️ para pausa de almoço', () => {
+    assert.strictEqual(S.getClosedIcon(almoco), '🍽️');
+  });
+
+  test('retorna 🌙 para pausa de janta', () => {
+    assert.strictEqual(S.getClosedIcon(janta), '🌙');
+  });
+
+  test('retorna 🔒 para fechada normal', () => {
+    assert.strictEqual(S.getClosedIcon(fechada), '🔒');
+  });
+
+  test('retorna 🔒 para shopData null', () => {
+    assert.strictEqual(S.getClosedIcon(null), '🔒');
+  });
+
+  test('retorna 🔒 quando barbearia aberta (defensivo)', () => {
+    assert.strictEqual(S.getClosedIcon(aberta), '🔒');
+  });
+});
+
+// =============================================================================
+// Suite 12 — getClosedTitle
+// =============================================================================
+
+suite('BarbershopAvailabilityService.getClosedTitle()', () => {
+  const S = criarServico();
+
+  test('retorna "Pausa para Almoço" para pausa de almoço', () => {
+    assert.strictEqual(S.getClosedTitle(almoco), 'Pausa para Almoço');
+  });
+
+  test('retorna "Pausa para Janta" para pausa de janta', () => {
+    assert.strictEqual(S.getClosedTitle(janta), 'Pausa para Janta');
+  });
+
+  test('retorna "Barbearia Fechada" para fechada normal', () => {
+    assert.strictEqual(S.getClosedTitle(fechada), 'Barbearia Fechada');
+  });
+
+  test('retorna "Barbearia Fechada" para shopData null', () => {
+    assert.strictEqual(S.getClosedTitle(null), 'Barbearia Fechada');
   });
 });

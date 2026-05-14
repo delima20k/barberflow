@@ -118,28 +118,59 @@ class BarbershopAvailabilityService {
 
   /**
    * Retorna a mensagem de bloqueio correta para o estado atual da barbearia.
-   * Inclui o nome da barbearia no texto para maior clareza ao cliente.
+   * Mensagens de almoço e janta variam conforme o número de barbeiros (singular/plural).
+   * A mensagem de fechamento normal inclui o nome da barbearia.
    *
-   * Mensagens conforme requisito:
-   *   almoco  → "A barbearia {nome} está em pausa para almoço. Aguarde até reabrir."
-   *   janta   → "A barbearia {nome} está em pausa para janta. Aguarde até reabrir."
-   *   fechada → "A barbearia {nome} está fechada no momento. Aguarde ela abrir novamente."
+   * Mensagens (singular / plural):
+   *   almoco  → "O barbeiro / Os barbeiros estão em pausa para almoço. Aguarde até retornar(em)."
+   *   janta   → "O barbeiro / Os barbeiros estão em pausa para janta. Aguarde até retornar(em)."
+   *   fechada → "A barbearia {nome} está fechada. Aguarde ela abrir novamente."
    *
    * @param {object|null} shopData
+   * @param {number}      [numeroBarbeiros=1]  total de barbeiros ativos (determina plural)
    * @returns {string}
    */
-  static getClosedMessage(shopData) {
-    const nome = shopData?.name ?? 'A barbearia';
-    const r    = BarbershopAvailabilityService.#razao(shopData);
+  static getClosedMessage(shopData, numeroBarbeiros = 1) {
+    const nome   = shopData?.name ?? 'A barbearia';
+    const r      = BarbershopAvailabilityService.#razao(shopData);
+    const plural = Number.isInteger(numeroBarbeiros) && numeroBarbeiros > 1;
 
     if (r === BarbershopAvailabilityService.#ALMOCO) {
-      return `A barbearia ${nome} está em pausa para almoço. Aguarde até reabrir.`;
+      return plural
+        ? 'Os barbeiros estão em pausa para almoço. Aguarde até retornarem.'
+        : 'O barbeiro está em pausa para almoço. Aguarde até retornar.';
     }
 
     if (r === BarbershopAvailabilityService.#JANTA) {
-      return `A barbearia ${nome} está em pausa para janta. Aguarde até reabrir.`;
+      return plural
+        ? 'Os barbeiros estão em pausa para janta. Aguarde até retornarem.'
+        : 'O barbeiro está em pausa para janta. Aguarde até retornar.';
     }
 
-    return `A barbearia ${nome} está fechada no momento. Aguarde ela abrir novamente.`;
+    return `A barbearia ${nome} está fechada. Aguarde ela abrir novamente.`;
+  }
+
+  /**
+   * Retorna o ícone correspondente ao motivo de fechamento da barbearia.
+   * @param {object|null} shopData
+   * @returns {'🍽️'|'🌙'|'🔒'}
+   */
+  static getClosedIcon(shopData) {
+    const r = BarbershopAvailabilityService.#razao(shopData);
+    if (r === BarbershopAvailabilityService.#ALMOCO) return '🍽️';
+    if (r === BarbershopAvailabilityService.#JANTA)  return '🌙';
+    return '🔒';
+  }
+
+  /**
+   * Retorna o título correspondente ao motivo de fechamento da barbearia.
+   * @param {object|null} shopData
+   * @returns {string}
+   */
+  static getClosedTitle(shopData) {
+    const r = BarbershopAvailabilityService.#razao(shopData);
+    if (r === BarbershopAvailabilityService.#ALMOCO) return 'Pausa para Almoço';
+    if (r === BarbershopAvailabilityService.#JANTA)  return 'Pausa para Janta';
+    return 'Barbearia Fechada';
   }
 }
