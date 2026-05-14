@@ -17,11 +17,11 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v141';
+  static #CACHE_STATIC   = 'bf-pro-static-v142';
   static #CACHE_IMAGES   = 'bf-pro-images-v133';
   static #CACHE_SHELL    = 'bf-pro-shell-v133';
   static #CACHES_VALIDOS = new Set([
-    'bf-pro-static-v141',
+    'bf-pro-static-v142',
     'bf-pro-images-v133',
     'bf-pro-shell-v133',
   ]);
@@ -53,6 +53,8 @@ class SWProfissional {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
+    '/shared/js/BffApiService.js',
+    '/shared/js/BarbeariaApiClient.js',
     '/manifest.json',
   ];
 

@@ -14,9 +14,10 @@
 
 class NearbyBarbershopsWidget {
 
-  static #RAIO_KM       = 5;
-  static #el             = null;   // container raiz no HTML
-  static #buscaEncerrada = false;  // true após "nenhuma barbearia" — não rebusca
+  static #RAIO_KM                = 5;
+  static #el                     = null;   // container raiz no HTML
+  static #buscaEncerrada         = false;  // true após "nenhuma barbearia" — não rebusca
+  static #listenersGeoRegistrados = false; // guard: evita duplicar listeners em re-init SPA
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -34,9 +35,12 @@ class NearbyBarbershopsWidget {
     // Reseta a flag toda vez que a tela é re-iniciada (SPA — sem reload de página)
     NearbyBarbershopsWidget.#buscaEncerrada = false;
 
-    // Escuta eventos de GPS do GeoService — sem dependência direta
-    document.addEventListener('geo:concedido', () => NearbyBarbershopsWidget.onGPSConcedido(), { once: false });
-    document.addEventListener('geo:negado',    () => NearbyBarbershopsWidget.onGPSNegado(),    { once: false });
+    // Escuta eventos de GPS do GeoService — registra apenas uma vez (guard anti-leak em re-init SPA)
+    if (!NearbyBarbershopsWidget.#listenersGeoRegistrados) {
+      NearbyBarbershopsWidget.#listenersGeoRegistrados = true;
+      document.addEventListener('geo:concedido', () => NearbyBarbershopsWidget.onGPSConcedido(), { once: false });
+      document.addEventListener('geo:negado',    () => NearbyBarbershopsWidget.onGPSNegado(),    { once: false });
+    }
 
     const permissao = await GeoService.verificarPermissao();
 

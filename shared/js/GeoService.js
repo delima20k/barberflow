@@ -127,7 +127,7 @@ class GeoService {
 
       // 3) Supabase direto — fallback de compatibilidade
       if (typeof SupabaseService !== 'undefined') {
-        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: fallback Supabase');
+        GeoService.#debug('[GeoService] carregarDoBanco: fallback Supabase');
         const user = await SupabaseService.getUser();
         if (!user) return null;
         const { data, error } = await SupabaseService.profiles()
