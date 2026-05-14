@@ -18,11 +18,11 @@ supabase/
 
 # Dependências Node.js (não necessárias em deploy estático)
 node_modules/
-package.json
-package-lock.json
+/package.json
+/package-lock.json
 
-# Servidor de desenvolvimento local
-server.js
+# Servidor de desenvolvimento local (apenas raiz — barberflow-bff-api/server.js deve ser enviado)
+/server.js
 
 # Documentação e relatórios
 *.md
