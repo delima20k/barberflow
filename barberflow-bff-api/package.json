@@ -1,0 +1,15 @@
+{
+  "name": "@barberflow/barberflow-bff-api",
+  "version": "1.0.0",
+  "description": "API central compartilhada (BFF) para os apps cliente e profissional do BarberFlow",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}

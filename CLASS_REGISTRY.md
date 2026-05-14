@@ -75,6 +75,8 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `NavigationManager` | [shared/js/NavigationManager.js](shared/js/NavigationManager.js) | infra | Navegação controlada com pré-carregamento. beforeNavigate inicia preload durante a animação; awaitPreload garante dados prontos antes da renderização. |
 | `NavigationViewService` | [shared/js/NavigationViewService.js](shared/js/NavigationViewService.js) | interfaces | Gerencia visibilidade da barra de navegação e transições de tela (DOM-dependent) |
 | `NearbyBarbershopsWidget` | [shared/js/NearbyBarbershopsWidget.js](shared/js/NearbyBarbershopsWidget.js) | interfaces | Lista de barbearias próximas com cards e ação de favoritar |
+| `BffApiService` | [shared/js/BffApiService.js](shared/js/BffApiService.js) | infra | Cliente HTTP para a BFF (porta 3002 dev / `bff.barberflow.app` prod). Métodos estáticos: `get(path, params)` → `{ data, total, error }` (inclui Bearer quando logado); `patch(path, body)` → `{ data, error }`. Getter: `baseUrl`. Timeout 8s. |
+| `BarbeariaApiClient` | [shared/js/BarbeariaApiClient.js](shared/js/BarbeariaApiClient.js) | application | Fachada de barbearias com fallback BFF→Supabase direto. Métodos: `getNearby(lat,lng,raioKm)`, `getDestaque(limit)`, `getTodas(limit)`. Consumido por `NearbyBarbershopsWidget`. |
 | `NotificationService` | [shared/js/NotificationService.js](shared/js/NotificationService.js) | application | Notificações push e in-app via Supabase Realtime |
 | `PushSubscriptionService` | [shared/js/PushSubscriptionService.js](shared/js/PushSubscriptionService.js) | infra | Ciclo de vida da Web Push subscription (VAPID). `static init(userId, appId)` — verifica suporte, registra/renova. `static registrar(swReg, userId, appId)` — cria subscription e salva no backend. `static renovar(swReg, userId, appId)` — atualiza se já existe. `static revogar()` — unsubscribe + DELETE no backend. Persiste `bf_device_id` em localStorage. |
 | `PaymentFlowHandler` | [shared/js/PaymentFlowHandler.js](shared/js/PaymentFlowHandler.js) | application | Fluxo de pagamento: validação, redirecionamento, confirmação |
@@ -265,3 +267,61 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `DevServer` | [server.js](server.js) | infra | Servidor HTTP de desenvolvimento. Orquestra os 3 middlewares. `static iniciar()` |
 | ``ClienteStartupSplash`` | [apps/cliente/assets/js/ClienteStartupSplash.js](apps/cliente/assets/js/ClienteStartupSplash.js) | UI / Presentation | Splash fullscreen de abertura do app cliente: fundo imgFundoSplash, logo, BarberPole, boas-vindas. `static init()`, `static limparSessao()`. Exibido uma vez por sessao (sessionStorage). | App cliente apenas |
 | ``PWAInstallBanner`` | [shared/js/PWAInstallBanner.js](shared/js/PWAInstallBanner.js) | UI / Presentation | Banner de instalacao PWA: injeta proprio DOM, captura beforeinstallprompt, suporta iOS. static init(), static iconSrc, static nomeApp. | Ambos os apps |
+
+---
+
+## barberflow-bff-api/ (Node.js — API central compartilhada)
+
+Servidor Express separado (porta 3002). API central para app cliente **e** app profissional.
+Completamente independente do backend `src/` (porta 3001).
+Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dentro dos apps.
+
+### Utils
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `AppError` | [barberflow-bff-api/utils/AppError.js](barberflow-bff-api/utils/AppError.js) | infra | Erro HTTP estruturado com `#status` e `#isOperacional`. Factory methods: `badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`, `unprocessable`, `tooMany`, `internal`, `unavailable`. |
+| `ApiResponse` | [barberflow-bff-api/utils/ApiResponse.js](barberflow-bff-api/utils/ApiResponse.js) | infra | Formatos padronizados de resposta. Métodos estáticos: `success(res, dados, meta)`, `created(res, dados)`, `noContent(res)`, `fail(res, err, isProd)`, `notFound(res, msg)`, `badRequest(res, msg)`, `unauthorized(res, msg)`. |
+| `RetryHelper` | [barberflow-bff-api/utils/RetryHelper.js](barberflow-bff-api/utils/RetryHelper.js) | infra | Retry com backoff exponencial e jitter. `static async withRetry(fn, opts)`. Opções: `maxAttempts`, `baseDelayMs`, `maxDelayMs`, `jitter`, `shouldRetry`. |
+| `SupabaseClient` | [barberflow-bff-api/utils/SupabaseClient.js](barberflow-bff-api/utils/SupabaseClient.js) | infra | Singleton lazy do cliente Supabase `service_role` para a BFF. `static getInstance()`, `static _resetar()` (testes). |
+
+### Validators / Base Classes
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BaseValidator` | [barberflow-bff-api/validators/BaseValidator.js](barberflow-bff-api/validators/BaseValidator.js) | infra | Wrapper OOP sobre `shared/js/InputValidator`. Métodos estáticos que lançam `AppError(400)`: `uuid`, `email`, `texto`, `enum`, `nome`, `payload`, `coordenada`. |
+| `BaseRepository` | [barberflow-bff-api/repositories/BaseRepository.js](barberflow-bff-api/repositories/BaseRepository.js) | infra | Classe base para repositórios da BFF. `#db` (Supabase client injetado), `#nome`. Helpers: `_uuid`, `_email`, `_payload`, `_texto`, `_coordenada`, `_throwDbError`. |
+| `BaseService` | [barberflow-bff-api/services/BaseService.js](barberflow-bff-api/services/BaseService.js) | application | Classe base para serviços da BFF. Helpers: `_uuid`, `_email`, `_texto`, `_enum`, `_nome`, `_coordenada`, `_erro(msg, status)`. |
+| `BaseController` | [barberflow-bff-api/controllers/BaseController.js](barberflow-bff-api/controllers/BaseController.js) | interfaces | Classe base OOP para controllers da BFF (único `BaseController` do projeto). Métodos: `success`, `created`, `noContent`, `notFound`, `fail`, `handle(res, fn)`, `_erro`. |
+
+### Controllers
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `GeoController` | [barberflow-bff-api/controllers/GeoController.js](barberflow-bff-api/controllers/GeoController.js) | interfaces | `extends BaseController`. `GET + PATCH /api/v1/clientes/localizacao`. Auth obrigatória (`req.user.id`). Valida lat (-90 a 90) e lng (-180 a 180) no PATCH. |
+| `HealthController` | [barberflow-bff-api/controllers/HealthController.js](barberflow-bff-api/controllers/HealthController.js) | interfaces | `extends BaseController`. `handle(_req, res)` → `{ status: "up", version, env, timestamp }`. Rota pública sem autenticação. |
+| `BarbeariaController` | [barberflow-bff-api/controllers/BarbeariaController.js](barberflow-bff-api/controllers/BarbeariaController.js) | interfaces | `extends BaseController`. Endpoints públicos: `GET /barbearias` (proximas), `GET /barbearias/destaque`, `GET /barbearias/todas`. Sem autenticação. |
+
+### Repositories
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BarbeariaRepository` | [barberflow-bff-api/repositories/BarbeariaRepository.js](barberflow-bff-api/repositories/BarbeariaRepository.js) | infra | `extends BaseRepository`. Queries readonly em `barbershops`. Métodos: `getNearby(lat,lng,latDelta,lngDelta,limit)`, `getFeatured(limit)`, `getAll(limit)`. |
+| `GeoRepository` | [barberflow-bff-api/repositories/GeoRepository.js](barberflow-bff-api/repositories/GeoRepository.js) | infra | `extends BaseRepository`. CRUD de localização GPS em `profiles`. Métodos: `salvarLocalizacao(userId,lat,lng)` — PATCH last_lat/lng/location_at; `carregarLocalizacao(userId)` — SELECT last_lat, last_lng, last_location_at. |
+
+### Services
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BarbeariaService` | [barberflow-bff-api/services/BarbeariaService.js](barberflow-bff-api/services/BarbeariaService.js) | application | `extends BaseService`. Regras de negócio de barbearias: `listarProximas(lat,lng,raioKm)`, `listarDestaque(limit)`, `listarTodas(limit)`. Haversine interno enriquece `distancia_km`. |
+| `GeoService (BFF)` | [barberflow-bff-api/services/GeoService.js](barberflow-bff-api/services/GeoService.js) | application | `extends BaseService`. Orquestra save/load de localização GPS do usuário logado. Métodos: `salvar(userId,lat,lng)`, `carregar(userId)` → `{lat,lng}|null` (null se ts > 1h). |
+
+### Middlewares
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `CorsMiddleware` | [barberflow-bff-api/middlewares/cors.js](barberflow-bff-api/middlewares/cors.js) | infra | CORS configurado por ambiente. `#allowedOrigins` (Set). Aceita `*.vercel.app` para previews. `static handle(req, res, next)`. |
+| `AuthMiddleware` | [barberflow-bff-api/middlewares/auth.js](barberflow-bff-api/middlewares/auth.js) | infra | JWT Supabase Auth. Verificação local (HS256 + `SUPABASE_JWT_SECRET`) com fallback rede. Singleton `#supabase` lazy. `static async verificar`. |
+| `RateLimiterMiddleware` | [barberflow-bff-api/middlewares/rateLimiter.js](barberflow-bff-api/middlewares/rateLimiter.js) | infra | Rate limiting. `static geral` (300/min), `static auth` (10/15min), `static escrita` (60/min, skip GET/HEAD/OPTIONS). |
+| `TimeoutMiddleware` | [barberflow-bff-api/middlewares/timeout.js](barberflow-bff-api/middlewares/timeout.js) | infra | Aborta requests que excedem `REQUEST_TIMEOUT_MS` (padrão 30s). `static handle`. |
+| `ErrorHandler` | [barberflow-bff-api/middlewares/errorHandler.js](barberflow-bff-api/middlewares/errorHandler.js) | infra | Global 4-param Express error handler. Distingue `AppError` operacional de erros inesperados. `static handle(err, req, res, _next)`. |

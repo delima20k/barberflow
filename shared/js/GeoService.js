@@ -19,10 +19,14 @@
 class GeoService {
 
   static #CACHE_TTL_MS      = 5  * 60 * 1000; // 5 minutos
-  static #SALVAR_COOLDOWN_MS = 10 * 60 * 1000; // throttle: salva no banco no max 1x/10min
+  static #SALVAR_COOLDOWN_MS = 10 * 60 * 1000; // throttle: salva na BFF no max 1x/10min
   static #cache              = null;            // { lat, lng, ts }
-  static #ultimoSalvo        = null;            // Date.now() do ultimo save no banco
+  static #ultimoSalvo        = null;            // Date.now() do ultimo save na BFF
   static #watchId            = null;            // ID do watchPosition ativo (ou null)
+
+  static #LS_POSITION_KEY = 'geo:last_position';        // chave localStorage
+  static #STORAGE_KEY     = 'sb-jfvjisqnzapxxagkbxcu-auth-token'; // token Supabase
+  static #MAX_IDADE_BFF_MS = 60 * 60 * 1000;            // 1h — TTL posição do servidor
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -36,7 +40,7 @@ class GeoService {
     if (GeoService.#cacheValido()) {
       return Promise.resolve({ lat: GeoService.#cache.lat, lng: GeoService.#cache.lng });
     }
-    return GeoService.#solicitarGPS();
+    return GeoService.#solicitarGPSComRetry();
   }
 
   /**
@@ -92,24 +96,46 @@ class GeoService {
   }
 
   /**
-   * Retorna a ultima posicao salva no banco para o usuario logado.
-   * Util como fallback quando o GPS esta negado.
-   * So usa se a posicao tiver menos de 1 hora.
+   * Retorna a ultima posicao salva para o usuario logado.
+   * Prioridade: localStorage → BFF → Supabase (fallback compat).
+   * Só retorna posição com menos de 1 hora.
    * @returns {Promise<{lat: number, lng: number}|null>}
    */
   static async carregarDoBanco() {
     try {
-      const user = await SupabaseService.getUser();
-      if (!user) return null;
-      const { data, error } = await SupabaseService.profiles()
-        .select('last_lat, last_lng, last_location_at')
-        .eq('id', user.id)
-        .single();
-      if (error || !data?.last_lat || !data?.last_lng) return null;
-      // Invalida se a posicao tiver mais de 1 hora
-      const umHoraAtras = Date.now() - 60 * 60 * 1000;
-      if (new Date(data.last_location_at).getTime() < umHoraAtras) return null;
-      return { lat: Number(data.last_lat), lng: Number(data.last_lng) };
+      // 1) localStorage (síncrono, sem rede)
+      const posLocal = GeoService.#lerLocalStorage();
+      if (posLocal) {
+        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: cache localStorage', posLocal);
+        return posLocal;
+      }
+
+      // 2) BFF autenticada
+      if (typeof BffApiService !== 'undefined') {
+        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: consultando BFF');
+        const { data, error } = await BffApiService.get('/api/v1/clientes/localizacao');
+        if (!error && data?.lat != null && data?.lng != null) {
+          if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: BFF ok', data);
+          return { lat: data.lat, lng: data.lng };
+        }
+      }
+
+      // 3) Supabase direto — fallback de compatibilidade
+      if (typeof SupabaseService !== 'undefined') {
+        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] carregarDoBanco: fallback Supabase');
+        const user = await SupabaseService.getUser();
+        if (!user) return null;
+        const { data, error } = await SupabaseService.profiles()
+          .select('last_lat, last_lng, last_location_at')
+          .eq('id', user.id)
+          .single();
+        if (error || !data?.last_lat || !data?.last_lng) return null;
+        const umHoraAtras = Date.now() - GeoService.#MAX_IDADE_BFF_MS;
+        if (new Date(data.last_location_at).getTime() < umHoraAtras) return null;
+        return { lat: Number(data.last_lat), lng: Number(data.last_lng) };
+      }
+
+      return null;
     } catch {
       return null;
     }
@@ -134,7 +160,7 @@ class GeoService {
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         GeoService.#cache = { lat, lng, ts: Date.now() };
-        GeoService.#salvarNoBanco(lat, lng); // fire-and-forget, throttled
+        GeoService.#salvarNaBff(lat, lng); // fire-and-forget, throttled
         if (typeof onUpdate === 'function') onUpdate(lat, lng);
       },
       () => { /* silencioso — watchPosition continua após erro transitório */ },
@@ -163,7 +189,26 @@ class GeoService {
     );
   }
 
-  static #solicitarGPS() {
+  /**
+   * Tenta obter GPS com até 3 tentativas (timeouts: 8s, 10s, 12s).
+   * Aborta imediatamente se o usuário negou a permissão (code 1).
+   */
+  static async #solicitarGPSComRetry() {
+    const TIMEOUTS = [8000, 10000, 12000];
+    let ultimoErro;
+    for (const timeout of TIMEOUTS) {
+      try {
+        return await GeoService.#solicitarGPS(timeout);
+      } catch (err) {
+        ultimoErro = err;
+        // code 1 = permissão negada — não adianta tentar de novo
+        if (err?._code === 1) break;
+      }
+    }
+    throw ultimoErro;
+  }
+
+  static #solicitarGPS(timeoutMs = 8000) {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('GPS não disponível neste dispositivo.'));
@@ -178,13 +223,15 @@ class GeoService {
             ts:  Date.now(),
           };
           GeoService.#cache = pos;
-          GeoService.#salvarNoBanco(pos.lat, pos.lng); // fire-and-forget
+          GeoService.#salvarNaBff(pos.lat, pos.lng); // fire-and-forget
           resolve({ lat: pos.lat, lng: pos.lng });
         },
         (err) => {
-          reject(new Error(GeoService.#mensagemErro(err.code)));
+          const error = new Error(GeoService.#mensagemErro(err.code));
+          error._code = err.code;
+          reject(error);
         },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60000 }
       );
     });
   }
@@ -204,26 +251,103 @@ class GeoService {
   }
 
   /**
-   * Salva lat/lng no banco (profiles) com throttle de 10 min.
-   * Fire-and-forget — nao bloqueia o fluxo.
+   * Salva lat/lng via BFF com throttle de 10 min.
+   * Persiste em localStorage imediatamente (sem rede).
+   * Se BFF offline, enfileira no OfflineSyncQueue para replay.
+   * Fire-and-forget — não bloqueia o fluxo.
    */
-  static async #salvarNoBanco(lat, lng) {
+  static async #salvarNaBff(lat, lng) {
     if (
       GeoService.#ultimoSalvo &&
       Date.now() - GeoService.#ultimoSalvo < GeoService.#SALVAR_COOLDOWN_MS
     ) return;
+
+    // 1) Sempre persiste em localStorage (síncrono, sem rede necessária)
     try {
-      const user = await SupabaseService.getUser();
-      if (!user) return;
-      await SupabaseService.profiles()
-        .update({
-          last_lat:         lat,
-          last_lng:         lng,
-          last_location_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-      GeoService.#ultimoSalvo = Date.now();
-    } catch { /* silencioso — nao interrumpe o app */ }
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(
+          GeoService.#LS_POSITION_KEY,
+          JSON.stringify({ lat, lng, ts: Date.now() }),
+        );
+      }
+    } catch { /* silencioso */ }
+
+    if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] #salvarNaBff', { lat, lng });
+
+    // 2) Envia para BFF autenticada
+    if (typeof BffApiService === 'undefined') return;
+    try {
+      const { error } = await BffApiService.patch(
+        '/api/v1/clientes/localizacao',
+        { lat, lng },
+      );
+      if (!error) {
+        GeoService.#ultimoSalvo = Date.now();
+        if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] BFF patch ok');
+        return;
+      }
+      // BFF retornou erro (ex.: offline) — enfileira para replay
+      if (typeof window !== 'undefined' && window.GEO_DEBUG) console.debug('[GeoService] BFF offline, enfileirando IDB', error?.message);
+      await GeoService.#enfileirarOffline(lat, lng);
+    } catch {
+      await GeoService.#enfileirarOffline(lat, lng);
+    }
+    GeoService.#ultimoSalvo = Date.now();
+  }
+
+  /**
+   * Enfileira PATCH de localização no IndexedDB para replay via Background Sync.
+   * Só age se OfflineSyncQueue estiver disponível.
+   */
+  static async #enfileirarOffline(lat, lng) {
+    if (typeof OfflineSyncQueue === 'undefined') return;
+    try {
+      const token   = GeoService.#lerToken();
+      const baseUrl = typeof BffApiService !== 'undefined'
+        ? BffApiService.baseUrl
+        : 'https://bff.barberflow.app';
+      await OfflineSyncQueue.enqueue({
+        tag:     'bf-sync-queue',
+        url:     `${baseUrl}/api/v1/clientes/localizacao`,
+        method:  'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ lat, lng }),
+      });
+    } catch { /* silencioso */ }
+  }
+
+  /**
+   * Lê a posição salva em localStorage se válida (< 1h).
+   * @returns {{ lat: number, lng: number }|null}
+   */
+  static #lerLocalStorage() {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = localStorage.getItem(GeoService.#LS_POSITION_KEY);
+      if (!raw) return null;
+      const { lat, lng, ts } = JSON.parse(raw);
+      if (Date.now() - ts > GeoService.#MAX_IDADE_BFF_MS) return null;
+      return { lat, lng };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Lê o access_token JWT do localStorage (Supabase).
+   * @returns {string|null}
+   */
+  static #lerToken() {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = localStorage.getItem(GeoService.#STORAGE_KEY);
+      return raw ? (JSON.parse(raw)?.access_token ?? null) : null;
+    } catch {
+      return null;
+    }
   }
 
   /**
