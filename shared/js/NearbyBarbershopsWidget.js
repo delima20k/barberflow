@@ -9,7 +9,7 @@
 //   - Se negada/prompt: mostrar botão radondo "Ativar GPS"
 //   - Reação ao GeoService (onGPSConcedido / onGPSNegado)
 //
-// Dependências: GeoService.js, BarbershopRepository.js, BarbershopService.js
+// Dependências: GeoService.js, BarbershopRepository.js, BarbershopService.js, BffApiService.js, BarbeariaApiClient.js
 // =============================================================
 
 class NearbyBarbershopsWidget {
@@ -102,7 +102,7 @@ class NearbyBarbershopsWidget {
         const permissao = await GeoService.verificarPermissao();
         if (permissao === 'granted') {
           const pos = await GeoService.obter();
-          lista = await BarbershopRepository.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
+          lista = await BarbeariaApiClient.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
           // Adiciona distância apenas para exibição no sub-texto
           lista = lista.map(b => ({ ...b, distance_km: b.latitude
             ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
@@ -111,7 +111,7 @@ class NearbyBarbershopsWidget {
       } catch (_) { /* sem GPS */ }
 
       // Fallback: busca todas ordenadas por popularidade
-      if (!lista?.length) lista = await BarbershopRepository.getAll(20);
+      if (!lista?.length) lista = await BarbeariaApiClient.getTodas(20);
 
       el.innerHTML = '';
 
@@ -163,7 +163,7 @@ class NearbyBarbershopsWidget {
       // Pre-carrega favoritos do usuário (cache, idempotente)
       try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
 
-      const lista = await BarbershopRepository.getFeatured(6);
+      const lista = await BarbeariaApiClient.getDestaque(6);
       if (!lista.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';
@@ -407,7 +407,7 @@ class NearbyBarbershopsWidget {
   }
 
   static async #buscarBarbearias(lat, lng) {
-    return BarbershopRepository.getNearby(lat, lng, NearbyBarbershopsWidget.#RAIO_KM);
+    return BarbeariaApiClient.getNearby(lat, lng, NearbyBarbershopsWidget.#RAIO_KM);
   }
 
   static #haversine(lat1, lon1, lat2, lon2) {
@@ -533,7 +533,7 @@ class NearbyBarbershopsWidget {
       </div>`).join('');
 
     try {
-      const lista = await BarbershopRepository.getAllByCortes(60);
+      const lista = await BarbeariaApiClient.getTodas(60);
       if (!lista.length) { el.innerHTML = ''; return; }
 
       el.innerHTML = '';

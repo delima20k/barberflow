@@ -8,6 +8,23 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="BarberFlow — App do Cliente">
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://barberflow-cliente.vercel.app">
+  <meta property="og:site_name"   content="BarberFlow">
+  <meta property="og:title"       content="BarberFlow — App Cliente">
+  <meta property="og:description" content="Encontre barbearias próximas e agende seu horário com o BarberFlow.">
+  <meta property="og:image"       content="https://barberflow-cliente.vercel.app/shared/img/icon-512-cliente.png">
+  <meta property="og:image:alt"   content="BarberFlow — App Cliente">
+  <meta property="og:locale"      content="pt_BR">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card"        content="summary">
+  <meta name="twitter:title"       content="BarberFlow — App Cliente">
+  <meta name="twitter:description" content="Encontre barbearias próximas e agende seu horário com o BarberFlow.">
+  <meta name="twitter:image"       content="https://barberflow-cliente.vercel.app/shared/img/icon-512-cliente.png">
+
   <title>BarberFlow — Cliente</title>
   <link rel="manifest" href="manifest.json">
    <link rel="icon" type="image/png" href="/shared/img/icon-192-cliente.png">
@@ -1109,6 +1126,8 @@
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <!-- Widget de barbearias próximas -->
+<script src="/shared/js/BffApiService.js"></script>
+<script src="/shared/js/BarbeariaApiClient.js"></script>
 <script src="/shared/js/NearbyBarbershopsWidget.js"></script>
 <script src="/shared/js/MapWidget.js"></script>
 <!-- Widget de pesquisa dinâmica -->
