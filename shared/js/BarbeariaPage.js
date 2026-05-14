@@ -668,8 +668,9 @@ class BarbeariaPage {
     if (this.#shopId !== shop.id) return;
     if (!this.#shopData) return;
 
-    // Re-renderiza as cadeiras instantaneamente
-    await this.#renderBarbeiros(shop).catch(() => {});
+    // Re-renderiza com o estado ATUAL da barbearia (this.#shopData pode ter is_open
+    // diferente do shop capturado no closure quando o canal foi criado)
+    await this.#renderBarbeiros(this.#shopData).catch(() => {});
 
     // Detecta se este cliente foi promovido para in_service
     const entrada = payload?.new;

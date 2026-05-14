@@ -245,4 +245,18 @@ suite('BarbeariaPage — realtime shop re-render', () => {
       'BarbeariaPage deve ter método privado #atualizarBadge',
     );
   });
+
+  test('#onFilaRealtime usa this.#shopData (não shop do closure) ao chamar #renderBarbeiros', () => {
+    // Bug fix: quando o barber abre a barbearia, this.#shopData é atualizado com is_open=true.
+    // Se #onFilaRealtime passar o `shop` do closure (stale), ele ainda tem is_open=false e
+    // o re-render apaga a interatividade das cadeiras que acabou de ser habilitada.
+    const idx = SRC.indexOf('async #onFilaRealtime(');
+    assert.ok(idx > 0, '#onFilaRealtime deve existir');
+    const bloco = SRC.slice(idx, idx + 500);
+    // Deve chamar #renderBarbeiros com this.#shopData, não com o shop do closure
+    assert.ok(
+      bloco.includes('#renderBarbeiros(this.#shopData)'),
+      '#onFilaRealtime deve chamar #renderBarbeiros(this.#shopData) — não o shop do closure',
+    );
+  });
 });
