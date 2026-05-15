@@ -60,7 +60,27 @@ class AuthService {
     AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
 
     try {
-      const { user: userLogin } = await SupabaseService.signIn(email, senha);
+      let userLogin;
+
+      // ── Via BFF (preferencial: logging centralizado, tokens via servidor) ──────
+      if (typeof BffAuthClient !== 'undefined') {
+        const bff = await BffAuthClient.login(email, senha);
+        if (bff.indisponivel) {
+          // BFF indisponível — fallback transparente para Supabase direto
+          const { user } = await SupabaseService.signIn(email, senha);
+          userLogin = user;
+        } else if (bff.erro) {
+          throw new Error(bff.erro);
+        } else {
+          // Injeta sessão no SDK → dispara onAuthStateChange('SIGNED_IN')
+          await SupabaseService.setSession(bff.dados.access_token, bff.dados.refresh_token);
+          userLogin = bff.dados.user;
+        }
+      } else {
+        // Fallback: BffAuthClient não carregado (ex: primeiro boot sem rede)
+        const { user } = await SupabaseService.signIn(email, senha);
+        userLogin = user;
+      }
 
       // ═ Guard de app: bloqueia clientes no app profissional ═══════════════════
       if (AuthService.#isPro && userLogin) {
@@ -204,6 +224,10 @@ class AuthService {
 
   static async logout() {
     try {
+      // Notifica BFF (fire-and-forget: logs + invalidação server-side)
+      if (typeof BffAuthClient !== 'undefined') {
+        BffAuthClient.logout().catch(() => {/* BFF indisponível — SDK cuida da limpeza */});
+      }
       await SupabaseService.signOut();
     } catch (_) { /* ignora erro de sessão já expirada */ }
     // Remove extras locais do usuário antes de limpar o cache (precisamos do ID ainda)

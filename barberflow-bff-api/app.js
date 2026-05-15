@@ -32,6 +32,8 @@ const ErrorHandler          = require('./middlewares/errorHandler');
 const healthRoute           = require('./routes/health');
 const barbeariaRoute        = require('./routes/barbearias');
 const clienteRoute          = require('./routes/clientes');
+const clienteBffRoute       = require('./routes/clienteBff');
+const authRoute             = require('./routes/auth');
 
 function criarApp() {
   const app = express();
@@ -66,9 +68,14 @@ function criarApp() {
   v1Router.use('/health',     healthRoute);
   v1Router.use('/barbearias', barbeariaRoute);
   v1Router.use('/clientes',   clienteRoute);
+  v1Router.use('/cliente',    clienteBffRoute);
   app.use('/api/v1', v1Router);
 
-  // ── 9. Health check legado (/api/health) ─────────────────────
+  // ── 9. Auth — /api/auth/* ───────────────────────────────────────
+  // Namespace separado (não versionado) para login, logout, refresh e me.
+  app.use('/api/auth', authRoute);
+
+  // ── 10. Health check legado (/api/health) ────────────────────────
   // Mantém compatibilidade com sistemas de monitoramento existentes.
   app.use('/api/health', healthRoute);
 

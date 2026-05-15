@@ -216,6 +216,23 @@ class SupabaseService {
   }
 
   /**
+   * Injeta uma sessão existente no SDK Supabase.
+   * Usado pelo BffAuthClient após login via BFF — dispara
+   * onAuthStateChange('SIGNED_IN', session) que atualiza a UI.
+   * @param {string} accessToken
+   * @param {string} refreshToken
+   * @returns {Promise<object>} data da sessão
+   */
+  static async setSession(accessToken, refreshToken) {
+    const { data, error } = await SupabaseService.#getClient().auth.setSession({
+      access_token:  accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) SupabaseService.#erro('setSession', error);
+    return data;
+  }
+
+  /**
    * Envia e-mail de recuperação de senha.
    * @param {string} email
    */

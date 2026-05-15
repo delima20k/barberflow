@@ -17,11 +17,11 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v173';
+  static #CACHE_STATIC    = 'bf-cli-static-v174';
   static #CACHE_IMAGES    = 'bf-cli-images-v160';
   static #CACHE_SHELL     = 'bf-cli-shell-v160';
   static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v173',
+    'bf-cli-static-v174',
     'bf-cli-images-v160',
     'bf-cli-shell-v160',
   ]);
@@ -59,6 +59,7 @@ class SWCliente {
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
     '/shared/js/BffApiService.js',
+    '/shared/js/BffAuthClient.js',
     '/shared/js/BarbeariaApiClient.js',
   ];
 

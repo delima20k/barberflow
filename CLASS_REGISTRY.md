@@ -76,6 +76,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `NavigationViewService` | [shared/js/NavigationViewService.js](shared/js/NavigationViewService.js) | interfaces | Gerencia visibilidade da barra de navegação e transições de tela (DOM-dependent) |
 | `NearbyBarbershopsWidget` | [shared/js/NearbyBarbershopsWidget.js](shared/js/NearbyBarbershopsWidget.js) | interfaces | Lista de barbearias próximas com cards e ação de favoritar |
 | `BffApiService` | [shared/js/BffApiService.js](shared/js/BffApiService.js) | infra | Cliente HTTP para a BFF (porta 3002 dev / `bff.barberflow.app` prod). Métodos estáticos: `get(path, params)` → `{ data, total, error }` (inclui Bearer quando logado); `patch(path, body)` → `{ data, error }`. Getter: `baseUrl`. Timeout 8s. |
+| `BffAuthClient` | [shared/js/BffAuthClient.js](shared/js/BffAuthClient.js) | infra | Cliente HTTP para endpoints de auth da BFF. Métodos estáticos: `login(email,senha)`, `refresh(refreshToken)`, `logout()`, `me()`. Retorna `{ dados, erro, indisponivel }`. Fallback automático em `AuthService` quando `indisponivel=true`. Reutilizável em ambos os apps. |
 | `BarbeariaApiClient` | [shared/js/BarbeariaApiClient.js](shared/js/BarbeariaApiClient.js) | application | Fachada de barbearias com fallback BFF→Supabase direto. Métodos: `getNearby(lat,lng,raioKm)`, `getDestaque(limit)`, `getTodas(limit)`. Consumido por `NearbyBarbershopsWidget`. |
 | `NotificationService` | [shared/js/NotificationService.js](shared/js/NotificationService.js) | application | Notificações push e in-app via Supabase Realtime |
 | `PushSubscriptionService` | [shared/js/PushSubscriptionService.js](shared/js/PushSubscriptionService.js) | infra | Ciclo de vida da Web Push subscription (VAPID). `static init(userId, appId)` — verifica suporte, registra/renova. `static registrar(swReg, userId, appId)` — cria subscription e salva no backend. `static renovar(swReg, userId, appId)` — atualiza se já existe. `static revogar()` — unsubscribe + DELETE no backend. Persiste `bf_device_id` em localStorage. |
@@ -301,6 +302,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `GeoController` | [barberflow-bff-api/controllers/GeoController.js](barberflow-bff-api/controllers/GeoController.js) | interfaces | `extends BaseController`. `GET + PATCH /api/v1/clientes/localizacao`. Auth obrigatória (`req.user.id`). Valida lat (-90 a 90) e lng (-180 a 180) no PATCH. |
 | `HealthController` | [barberflow-bff-api/controllers/HealthController.js](barberflow-bff-api/controllers/HealthController.js) | interfaces | `extends BaseController`. `handle(_req, res)` → `{ status: "up", version, env, timestamp }`. Rota pública sem autenticação. |
 | `BarbeariaController` | [barberflow-bff-api/controllers/BarbeariaController.js](barberflow-bff-api/controllers/BarbeariaController.js) | interfaces | `extends BaseController`. Endpoints públicos: `GET /barbearias` (proximas), `GET /barbearias/destaque`, `GET /barbearias/todas`. Sem autenticação. |
+| `AuthController` | [barberflow-bff-api/controllers/AuthController.js](barberflow-bff-api/controllers/AuthController.js) | interfaces | `extends BaseController`. Handlers: `POST /api/auth/login`, `POST /api/auth/refresh` (públicos); `POST /api/auth/logout`, `GET /api/auth/me` (autenticados via `AuthMiddleware`). |
 
 ### Repositories
 
@@ -308,6 +310,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 |---|---|---|---|
 | `BarbeariaRepository` | [barberflow-bff-api/repositories/BarbeariaRepository.js](barberflow-bff-api/repositories/BarbeariaRepository.js) | infra | `extends BaseRepository`. Queries readonly em `barbershops`. Métodos: `getNearby(lat,lng,latDelta,lngDelta,limit)`, `getFeatured(limit)`, `getAll(limit)`. |
 | `GeoRepository` | [barberflow-bff-api/repositories/GeoRepository.js](barberflow-bff-api/repositories/GeoRepository.js) | infra | `extends BaseRepository`. CRUD de localização GPS em `profiles`. Métodos: `salvarLocalizacao(userId,lat,lng)` — PATCH last_lat/lng/location_at; `carregarLocalizacao(userId)` — SELECT last_lat, last_lng, last_location_at. |
+| `AuthRepository` | [barberflow-bff-api/repositories/AuthRepository.js](barberflow-bff-api/repositories/AuthRepository.js) | infra | `extends BaseRepository`. Proxy da Supabase Auth REST API via `fetch` direto (sem SDK). Métodos: `signIn(email,password)`, `refreshToken(refreshToken)`, `signOut(accessToken)`, `getPerfil(userId)`. Usa `SUPABASE_ANON_KEY` server-side. |
 
 ### Services
 
@@ -315,6 +318,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 |---|---|---|---|
 | `BarbeariaService` | [barberflow-bff-api/services/BarbeariaService.js](barberflow-bff-api/services/BarbeariaService.js) | application | `extends BaseService`. Regras de negócio de barbearias: `listarProximas(lat,lng,raioKm)`, `listarDestaque(limit)`, `listarTodas(limit)`. Haversine interno enriquece `distancia_km`. |
 | `GeoService (BFF)` | [barberflow-bff-api/services/GeoService.js](barberflow-bff-api/services/GeoService.js) | application | `extends BaseService`. Orquestra save/load de localização GPS do usuário logado. Métodos: `salvar(userId,lat,lng)`, `carregar(userId)` → `{lat,lng}|null` (null se ts > 1h). |
+| `AuthBffService` | [barberflow-bff-api/services/AuthBffService.js](barberflow-bff-api/services/AuthBffService.js) | application | `extends BaseService`. Valida inputs, mascara dados nos logs, delega ao `AuthRepository`. Métodos: `login(email,password)`, `refresh(refreshToken)`, `logout(userId,accessToken)`, `me(user)`. |
 
 ### Middlewares
 
