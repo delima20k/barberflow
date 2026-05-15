@@ -67,6 +67,9 @@ class ClienteService {
    * @returns {Promise<object[]>}
    */
   static async carregarHistorico(userId, limit = 20) {
+    const bff = await AgendaBffClient.listar();
+    if (!bff.erro && bff.dados !== null) return bff.dados;
+    // Fallback: BFF indisponível ou erro inesperado → PostgREST direto
     return ClienteRepository.getHistorico(userId, limit);
   }
 

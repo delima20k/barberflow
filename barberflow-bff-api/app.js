@@ -7,17 +7,19 @@
 // Não inicia o servidor (isso cabe ao server.js).
 //
 // Ordem dos middlewares:
-//   1. CORS          — antes de tudo (trata preflight OPTIONS)
-//   2. Helmet        — headers de segurança OWASP
-//   3. Compression   — gzip
-//   4. Logger HTTP   — pino-http
-//   5. Rate limit    — geral + escrita
-//   6. Timeout       — 30s padrão
-//   7. Body parser   — JSON (50kb)
-//   8. Rotas v1      — /api/v1/*
-//   9. Health legado — /api/health (compatibilidade com monitoramento)
-//  10. 404 handler
-//  11. Error handler global
+//   1. CORS           — antes de tudo (trata preflight OPTIONS)
+//   2. Helmet         — headers de segurança OWASP
+//   3. Compression    — gzip
+//   4. Logger HTTP    — pino-http
+//   5. Rate limit     — geral + escrita
+//   6. Timeout        — 30s padrão
+//   7. Body parser    — JSON (50kb)
+//   8. Rotas v1       — /api/v1/*
+//   9. Auth           — /api/auth/*
+//  10. Agendamentos   — /api/agendamentos/*
+//  11. Health legado  — /api/health (compatibilidade com monitoramento)
+//  12. 404 handler
+//  13. Error handler global
 // ================================================================
 
 const express    = require('express');
@@ -34,6 +36,7 @@ const barbeariaRoute        = require('./routes/barbearias');
 const clienteRoute          = require('./routes/clientes');
 const clienteBffRoute       = require('./routes/clienteBff');
 const authRoute             = require('./routes/auth');
+const agendamentosRoute     = require('./routes/agendamentos');
 
 function criarApp() {
   const app = express();
@@ -75,16 +78,19 @@ function criarApp() {
   // Namespace separado (não versionado) para login, logout, refresh e me.
   app.use('/api/auth', authRoute);
 
-  // ── 10. Health check legado (/api/health) ────────────────────────
+  // ── 10. Agendamentos — /api/agendamentos/* ───────────────────────
+  app.use('/api/agendamentos', agendamentosRoute);
+
+  // ── 11. Health check legado (/api/health) ────────────────────────
   // Mantém compatibilidade com sistemas de monitoramento existentes.
   app.use('/api/health', healthRoute);
 
-  // ── 10. 404 ──────────────────────────────────────────────────
+  // ── 12. 404 ──────────────────────────────────────────────────
   app.use((_req, res) => {
     res.status(404).json({ ok: false, error: 'Rota não encontrada.' });
   });
 
-  // ── 11. Error handler global ─────────────────────────────────
+  // ── 13. Error handler global ─────────────────────────────────
   app.use(ErrorHandler.handle);
 
   return app;
