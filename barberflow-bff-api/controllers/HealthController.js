@@ -27,7 +27,7 @@ class HealthController extends BaseController {
     this.success(res, {
       status:    'up',
       version:   HealthController.#VERSION,
-      env:       process.env.APP_ENV ?? 'development',
+      env:       (process.env.APP_ENV ?? 'development').trim(),
       timestamp: new Date().toISOString(),
     });
   }
