@@ -102,7 +102,7 @@ class BaseRepository {
   /**
    * Lança AppError(500) com mensagem segura.
    * Nunca expõe detalhes internos do banco ao cliente.
-   * @param {object} _err     — erro retornado pelo Supabase (não exposto)
+   * @param {object} error    — erro retornado pelo Supabase (nunca exposto ao cliente)
    * @param {string} [ctx=''] — contexto para a mensagem interna
    * @throws {AppError}
    */

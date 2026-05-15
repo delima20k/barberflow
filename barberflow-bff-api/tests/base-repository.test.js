@@ -24,7 +24,7 @@ class TestRepository extends BaseRepository {
   }
 
   exposeThrowDbError(error, ctx) {
-    return this._throwDbError(error, ctx);
+    this._throwDbError(error, ctx);
   }
 }
 
