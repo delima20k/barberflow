@@ -37,6 +37,8 @@ class CorsMiddleware {
    */
   static handle(req, res, next) {
     const origin = req.headers.origin;
+    // TODO: remover logs após estabilização produção
+    console.log('[CORS] Origin:', origin);
 
     if (CorsMiddleware.#isAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);

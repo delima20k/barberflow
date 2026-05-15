@@ -1,6 +1,8 @@
 'use strict';
 
-const ENV = process.env.APP_ENV ?? process.env.NODE_ENV ?? 'development';
+const ENV = process.env.APP_ENV
+  ?? process.env.NODE_ENV
+  ?? (process.env.VERCEL ? 'production' : 'development');
 
 const AMBIENTES = {
   development: () => require('./environments/development'),
