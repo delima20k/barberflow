@@ -52,7 +52,6 @@ const ARQUIVOS_CRITICOS = [
   'app.js',
   'server.js',
   'api/index.js',
-  'api/v1/router.js',
   'config/index.js',
   'config/environments/production.js',
   'config/environments/development.js',
@@ -173,8 +172,9 @@ secao('4. Chain de imports (resolução de módulos)');
 
 const CADEIA = [
   { de: 'api/index.js',       importa: '../app' },
-  { de: 'app.js',             importa: './api/v1/router' },
   { de: 'app.js',             importa: './routes/health' },
+  { de: 'app.js',             importa: './routes/barbearias' },
+  { de: 'app.js',             importa: './routes/clientes' },
   { de: 'app.js',             importa: './middlewares/cors' },
   { de: 'app.js',             importa: './middlewares/logger' },
   { de: 'app.js',             importa: './middlewares/rateLimiter' },

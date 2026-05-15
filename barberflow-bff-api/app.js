@@ -29,8 +29,9 @@ const { loggerMiddleware }  = require('./middlewares/logger');
 const RateLimiterMiddleware = require('./middlewares/rateLimiter');
 const TimeoutMiddleware     = require('./middlewares/timeout');
 const ErrorHandler          = require('./middlewares/errorHandler');
-const v1Router              = require('./api/v1/router');
 const healthRoute           = require('./routes/health');
+const barbeariaRoute        = require('./routes/barbearias');
+const clienteRoute          = require('./routes/clientes');
 
 function criarApp() {
   const app = express();
@@ -61,6 +62,10 @@ function criarApp() {
   app.use(express.json({ limit: '50kb' }));
 
   // ── 8. Rotas v1 ──────────────────────────────────────────────
+  const v1Router = express.Router();
+  v1Router.use('/health',     healthRoute);
+  v1Router.use('/barbearias', barbeariaRoute);
+  v1Router.use('/clientes',   clienteRoute);
   app.use('/api/v1', v1Router);
 
   // ── 9. Health check legado (/api/health) ─────────────────────

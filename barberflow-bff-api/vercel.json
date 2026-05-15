@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "app.js,config/**,controllers/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,api/v1/**"
+      "includeFiles": "app.js,config/**,controllers/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**"
     }
   },
   "rewrites": [
