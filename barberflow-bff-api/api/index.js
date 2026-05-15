@@ -12,4 +12,28 @@
 
 const criarApp = require('../app');
 
-module.exports = criarApp();
+// ── Bootstrap logging (stdout estruturado — visível nos logs da Vercel) ──
+const _meta = {
+  startedAt:   new Date().toISOString(),
+  nodeVersion: process.version,
+  env:         process.env.APP_ENV ?? process.env.NODE_ENV ?? 'production',
+  vercel:      !!process.env.VERCEL,
+  region:      process.env.VERCEL_REGION ?? 'unknown',
+};
+process.stdout.write(JSON.stringify({ level: 'info', msg: '[BFF] Inicializando', ..._meta }) + '\n');
+
+let _app;
+try {
+  _app = criarApp();
+  process.stdout.write(JSON.stringify({ level: 'info', msg: '[BFF] App criado com sucesso', ..._meta }) + '\n');
+} catch (err) {
+  process.stderr.write(JSON.stringify({
+    level: 'fatal',
+    msg:   '[BFF] Falha crítica ao criar app — deploy com erro',
+    err:   { message: err.message, stack: err.stack },
+    ..._meta,
+  }) + '\n');
+  throw err;
+}
+
+module.exports = _app;

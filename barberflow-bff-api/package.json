@@ -6,10 +6,25 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js"
+    "test": "node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js tests/barbearia.test.js tests/geo.test.js",
+    "validate:bff": "node scripts/validate-bff.js"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.104.1",
+    "compression": "^1.8.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.4.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^13.0.0"
   },
   "private": true
 }
