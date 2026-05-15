@@ -17,11 +17,11 @@
 // =============================================================
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v175';
+  static #CACHE_STATIC    = 'bf-cli-static-v176';
   static #CACHE_IMAGES    = 'bf-cli-images-v160';
   static #CACHE_SHELL     = 'bf-cli-shell-v160';
   static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v175',
+    'bf-cli-static-v176',
     'bf-cli-images-v160',
     'bf-cli-shell-v160',
   ]);
@@ -62,6 +62,9 @@ class SWCliente {
     '/shared/js/BffAuthClient.js',
     '/shared/js/AgendaBffClient.js',
     '/shared/js/BarbeariaApiClient.js',
+    '/shared/js/GeoService.js',
+    '/shared/js/MapWidget.js',
+    '/shared/js/NearbyBarbershopsWidget.js',
   ];
 
   // Imagens — pré-cacheadas em CACHE_IMAGES

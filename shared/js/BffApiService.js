@@ -18,12 +18,9 @@ class BffApiService {
 
   static #BASE_URL = (() => {
     const { hostname } = window.location;
-    const url = (hostname === 'localhost' || hostname === '127.0.0.1')
+    return (hostname === 'localhost' || hostname === '127.0.0.1')
       ? 'http://localhost:3002'
       : 'https://bff.berberflow.shop';
-    console.log('[ENV] FRONTEND URL:', window.location.origin);
-    console.log('[ENV] BFF URL:', url);
-    return url;
   })();
 
   static #TIMEOUT_MS   = 8000;
