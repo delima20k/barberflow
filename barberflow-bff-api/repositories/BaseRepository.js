@@ -106,7 +106,9 @@ class BaseRepository {
    * @param {string} [ctx=''] — contexto para a mensagem interna
    * @throws {AppError}
    */
-  _throwDbError(_err, ctx = '') {
+  _throwDbError(error, ctx = '') {
+    // TODO: remover log após estabilização produção
+    console.error('[BFF DB ERROR]', { repo: this.#nome, op: ctx, error });
     const msg = ctx
       ? `[${this.#nome}] ${ctx}: falha no banco de dados.`
       : `[${this.#nome}] falha no banco de dados.`;

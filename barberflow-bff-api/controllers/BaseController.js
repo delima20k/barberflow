@@ -99,6 +99,8 @@ class BaseController {
     try {
       await fn();
     } catch (err) {
+      // TODO: remover log após estabilização produção
+      console.error('[BFF ERROR]', err);
       if (!res.headersSent) this.fail(res, err);
     }
   }
