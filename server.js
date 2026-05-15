@@ -90,7 +90,7 @@ class SecurityMiddleware {
       "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' http://localhost:3002 https://bff.barberflow.app https://*.supabase.co wss://*.supabase.co https://androidpublisher.googleapis.com https://oauth2.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://viacep.com.br",
+      "connect-src 'self' http://localhost:3002 https://bff.berberflow.shop https://app.berberflow.shop https://pro.berberflow.shop https://*.supabase.co wss://*.supabase.co https://androidpublisher.googleapis.com https://oauth2.googleapis.com https://cdn.jsdelivr.net https://unpkg.com https://viacep.com.br",
       "worker-src 'self'",
       "manifest-src 'self'",
     ].join('; '),

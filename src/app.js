@@ -74,6 +74,9 @@ const ALLOWED_ORIGINS = new Set([
   'https://barberflow-pro-one.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
+  // Domínios oficiais berberflow.shop
+  'https://app.berberflow.shop',
+  'https://pro.berberflow.shop',
   'http://localhost:3000',
   'http://localhost:3001',
 ]);

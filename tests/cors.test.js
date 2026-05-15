@@ -24,6 +24,9 @@ const ALLOWED_ORIGINS = new Set([
   'https://barberflow-pro-one.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
+  // Domínios oficiais berberflow.shop
+  'https://app.berberflow.shop',
+  'https://pro.berberflow.shop',
   'http://localhost:3000',
   'http://localhost:3001',
 ]);
@@ -67,12 +70,14 @@ function simularCors(origin, method = 'GET') {
 suite('CORS — origens do frontend de produção', () => {
 
   const ORIGENS_FRONTEND = [
-    'https://barberflow-pro-one.vercel.app',       // app profissional (deployment atual)
+    'https://barberflow-pro-one.vercel.app',       // app profissional (deployment Vercel)
     'https://barberflow-profissional.vercel.app',  // app profissional (URL alternativa)
-    'https://barberflow-cliente.vercel.app',       // app cliente
+    'https://barberflow-cliente.vercel.app',       // app cliente (Vercel)
     'https://barberflow.vercel.app',               // API / monorepo
-    'https://barberflow.app',                      // domínio próprio
-    'https://www.barberflow.app',                  // www
+    'https://barberflow.app',                      // domínio antigo
+    'https://www.barberflow.app',                  // www antigo
+    'https://app.berberflow.shop',                 // app cliente (domínio oficial)
+    'https://pro.berberflow.shop',                 // app profissional (domínio oficial)
   ];
 
   for (const origin of ORIGENS_FRONTEND) {
@@ -181,6 +186,18 @@ suite('CORS — consistência com src/app.js', () => {
     assert.ok(
       src.includes('barberflow-pro-one.vercel.app'),
       'barberflow-pro-one.vercel.app deve estar em ALLOWED_ORIGINS em src/app.js',
+    );
+  });
+
+  test('src/app.js contém domínios oficiais berberflow.shop', () => {
+    const src = fs.readFileSync(APP_PATH, 'utf8');
+    assert.ok(
+      src.includes('app.berberflow.shop'),
+      'app.berberflow.shop deve estar em ALLOWED_ORIGINS em src/app.js',
+    );
+    assert.ok(
+      src.includes('pro.berberflow.shop'),
+      'pro.berberflow.shop deve estar em ALLOWED_ORIGINS em src/app.js',
     );
   });
 

@@ -26,6 +26,9 @@ const ALLOWED_ORIGINS = new Set([
   'https://barberflow.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
+  // Domínios oficiais berberflow.shop
+  'https://app.berberflow.shop',
+  'https://pro.berberflow.shop',
 ]);
 
 function buildCors(req: Request): Record<string, string> {

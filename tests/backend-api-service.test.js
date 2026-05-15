@@ -4,9 +4,8 @@
 // backend-api-service.test.js — Teste de regressão para
 // BackendApiService (shared/js/).
 //
-// Verifica que a URL base da API aponta para o projeto Vercel
-// correto (barberflow-profissional.vercel.app) e não para
-// projetos de terceiros.
+// Verifica que a URL base da API aponta para o domínio oficial
+// correto (pro.berberflow.shop) e não para projetos de terceiros.
 // =============================================================
 
 const { suite, test } = require('node:test');
@@ -23,10 +22,10 @@ const SRC = fs.readFileSync(
 
 suite('BackendApiService — BASE_URL de produção', () => {
 
-  test('usa barberflow-profissional.vercel.app como URL base de produção', () => {
+  test('usa pro.berberflow.shop como URL base de produção', () => {
     assert.ok(
-      SRC.includes('barberflow-profissional.vercel.app'),
-      'BackendApiService deve apontar para barberflow-profissional.vercel.app',
+      SRC.includes('pro.berberflow.shop'),
+      'BackendApiService deve apontar para pro.berberflow.shop',
     );
   });
 
@@ -55,25 +54,29 @@ suite('BackendApiService — BASE_URL de produção', () => {
 
 suite('BackendApiService — consistência cross-file', () => {
 
-  test('src/app.js ALLOWED_ORIGINS inclui barberflow-pro-one.vercel.app', () => {
+  test('src/app.js ALLOWED_ORIGINS inclui domínios oficiais berberflow.shop', () => {
     const appSrc = fs.readFileSync(
       path.resolve(__dirname, '../src/app.js'),
       'utf8',
     );
     assert.ok(
-      appSrc.includes('barberflow-pro-one.vercel.app'),
-      'src/app.js ALLOWED_ORIGINS deve incluir barberflow-pro-one.vercel.app',
+      appSrc.includes('app.berberflow.shop'),
+      'src/app.js ALLOWED_ORIGINS deve incluir app.berberflow.shop',
+    );
+    assert.ok(
+      appSrc.includes('pro.berberflow.shop'),
+      'src/app.js ALLOWED_ORIGINS deve incluir pro.berberflow.shop',
     );
   });
 
-  test('vercel.json possui barberflow-pro-one.vercel.app no CSP connect-src', () => {
+  test('vercel.json possui bff.berberflow.shop no CSP connect-src', () => {
     const vercelJson = fs.readFileSync(
       path.resolve(__dirname, '../vercel.json'),
       'utf8',
     );
     assert.ok(
-      vercelJson.includes('barberflow-pro-one'),
-      'vercel.json deve ter barberflow-pro-one.vercel.app no connect-src do CSP',
+      vercelJson.includes('bff.berberflow.shop'),
+      'vercel.json deve ter bff.berberflow.shop no connect-src do CSP',
     );
   });
 });

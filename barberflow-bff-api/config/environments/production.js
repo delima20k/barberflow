@@ -11,9 +11,12 @@ module.exports = {
       // App cliente
       'https://barberflow-cliente.vercel.app',
       'https://barberflow-cliente-one.vercel.app',
-      // Domínio principal
+      // Domínio principal antigo
       'https://barberflow.app',
       'https://www.barberflow.app',
+      // Domínios oficiais berberflow.shop
+      'https://app.berberflow.shop',
+      'https://pro.berberflow.shop',
     ],
   },
   timeoutMs: parseInt(process.env.REQUEST_TIMEOUT_MS ?? '30000', 10),
