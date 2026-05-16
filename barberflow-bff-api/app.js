@@ -37,8 +37,25 @@ const clienteRoute          = require('./routes/clientes');
 const clienteBffRoute       = require('./routes/clienteBff');
 const authRoute             = require('./routes/auth');
 const agendamentosRoute     = require('./routes/agendamentos');
+const notificacoesRoute     = require('./routes/notificacoes');
+
+/**
+ * Valida variáveis de ambiente obrigatórias no startup.
+ * Falha cedo com mensagem clara em vez de 500 no primeiro request.
+ * Pulado em ambiente de teste (APP_ENV=test) para não quebrar a suite.
+ */
+function _validarEnv() {
+  if (process.env.APP_ENV === 'test') return;
+  const ausentes = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_ANON_KEY']
+    .filter(k => !process.env[k]);
+  if (ausentes.length > 0) {
+    throw new Error(`[BFF] Variáveis obrigatórias ausentes: ${ausentes.join(', ')}`);
+  }
+}
 
 function criarApp() {
+  _validarEnv();
+
   const app = express();
 
   // Confia no primeiro proxy da cadeia (Vercel/CDN) para que req.ip
@@ -72,10 +89,11 @@ function criarApp() {
 
   // ── 8. Rotas v1 ──────────────────────────────────────────────
   const v1Router = express.Router();
-  v1Router.use('/health',     healthRoute);
-  v1Router.use('/barbearias', barbeariaRoute);
-  v1Router.use('/clientes',   clienteRoute);
-  v1Router.use('/cliente',    clienteBffRoute);
+  v1Router.use('/health',        healthRoute);
+  v1Router.use('/barbearias',    barbeariaRoute);
+  v1Router.use('/clientes',      clienteRoute);
+  v1Router.use('/cliente',       clienteBffRoute);
+  v1Router.use('/notificacoes',  notificacoesRoute);
   app.use('/api/v1', v1Router);
 
   // ── 9. Auth — /api/auth/* ───────────────────────────────────────

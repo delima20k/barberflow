@@ -245,6 +245,10 @@ class MinhaBarbeariaPage {
     document.addEventListener('barberflow:notificacao-nova',   e => this.#onClienteAusente(e));
     // Resolução do fluxo de espera pelo timer recorrente
     document.addEventListener('barberflow:espera-resolvida',   e => this.#onEsperaResolvida(e));
+    // Ação silenciosa de botão de push notification (Android)
+    document.addEventListener('barberflow:push-action',        e => this.#handlePushAction(e.detail));
+    // Push notification com app fechado/iOS: abre modal existente
+    document.addEventListener('barberflow:push-show-modal',    e => this.#handlePushShowModal(e.detail));
     // Campos editáveis (lápis) — Config
     this.#refs.cfgNomeLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis));
     this.#refs.cfgWhatsLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.cfgWhats,   this.#refs.cfgWhatsDisplay,   this.#refs.cfgWhatsLapis));
@@ -795,6 +799,59 @@ class MinhaBarbeariaPage {
       BarbeiroEsperaFluxo.iniciarEspera({ clienteNome, entradaId, barbershopId: this.#barbershopId });
       await this.#reRenderEquipe();
     }
+  }
+
+  /**
+   * Executa ação silenciosa ao toque em botão da push notification (Android).
+   * Não abre modal — ação já foi escolhida diretamente na notificação.
+   * @param {{ acao: string, entradaId: string, barbershopId: string, pushType: string, clienteNome: string }} detail
+   */
+  async #handlePushAction({ acao, entradaId, barbershopId, clienteNome } = {}) {
+    if (!entradaId || !acao) return;
+    if (barbershopId && barbershopId !== this.#barbershopId) return;
+
+    BarbeiroEsperaFluxo.finalizarEspera(entradaId);
+
+    if (acao === 'remover') {
+      try {
+        const res         = await CadeiraService.finalizar(entradaId, this.#barbershopId) ?? {};
+        const proximoNome = res.proximoNome ?? null;
+        const msg         = proximoNome ? `Em atendimento: ${proximoNome}` : 'Fila vazia agora.';
+        NotificationService.mostrarToast('Cliente removido', msg, NotificationService.TIPOS.SISTEMA);
+        await this.#reRenderEquipe();
+      } catch (err) {
+        LoggerService.error('[MinhaBarbeariaPage] handlePushAction remover:', err);
+        NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível remover.', NotificationService.TIPOS.SISTEMA);
+      }
+      return;
+    }
+
+    if (acao === 'aguardar') {
+      BarbeiroEsperaFluxo.iniciarEspera({
+        clienteNome:  clienteNome ?? 'Cliente',
+        entradaId,
+        barbershopId: this.#barbershopId,
+      });
+      await this.#reRenderEquipe();
+      return;
+    }
+
+    if (acao === 'chegou') {
+      const nome = clienteNome ?? 'Cliente';
+      NotificationService.mostrarToast('Cliente confirmado', `${nome} está na cadeira!`, NotificationService.TIPOS.SISTEMA);
+      await this.#reRenderEquipe();
+    }
+  }
+
+  /**
+   * Abre a modal existente ao toque no corpo da push notification (iOS + Android).
+   * Reutiliza #fluxoClienteAtShop para ambos os pushType.
+   * @param {{ pushType: string, entradaId: string, barbershopId: string, clienteNome: string }} detail
+   */
+  #handlePushShowModal({ pushType, entradaId, barbershopId, clienteNome } = {}) {
+    if (!entradaId || !pushType) return;
+    if (barbershopId && barbershopId !== this.#barbershopId) return;
+    this.#fluxoClienteAtShop({ clienteNome: clienteNome ?? 'Cliente', entradaId });
   }
 
   /**

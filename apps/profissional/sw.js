@@ -17,11 +17,11 @@
 // =============================================================
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v145';
+  static #CACHE_STATIC   = 'bf-pro-static-v146';
   static #CACHE_IMAGES   = 'bf-pro-images-v135';
   static #CACHE_SHELL    = 'bf-pro-shell-v135';
   static #CACHES_VALIDOS = new Set([
-    'bf-pro-static-v145',
+    'bf-pro-static-v146',
     'bf-pro-images-v135',
     'bf-pro-shell-v135',
   ]);
@@ -209,35 +209,81 @@ class SWProfissional {
         data:               payload.data  ?? {},
       };
 
+      // Adiciona botões de ação para notificações de chegada do cliente (Android)
+      const pushType = opts.data?.pushType;
+      if (pushType === 'client_not_seated') {
+        opts.actions            = [
+          { action: 'aguardar', title: '\u2705 Aguardar' },
+          { action: 'remover',  title: '\u274c Chamar próximo' },
+        ];
+        opts.requireInteraction = true;
+      } else if (pushType === 'client_at_shop') {
+        opts.actions            = [
+          { action: 'chegou',   title: '\u2705 Está aqui' },
+          { action: 'aguardar', title: '\u23f3 Aguardar' },
+        ];
+        opts.requireInteraction = true;
+      }
+
       await self.registration.showNotification(title, opts);
       console.log('[SW-Pro] showNotification ok, tag:', opts.tag);
     })());
   }
 
-  // ── Clique na notificação: foca aba existente ou abre nova ───────────
+  // ── Clique na notificação: botão de ação (Android) ou toque no corpo (iOS + Android) ───
   static notificationclick(e) {
     e.notification.close();
 
-    const data      = e.notification.data ?? {};
-    const targetUrl = data.url ?? '/';
+    const data = e.notification.data ?? {};
+    const acao = e.action; // string vazia = toque no corpo; 'aguardar'|'remover'|'chegou' = botão
 
     e.waitUntil(
       self.clients
         .matchAll({ type: 'window', includeUncontrolled: true })
         .then(clientList => {
-          // Reutiliza aba já aberta do app profissional
-          const existing = clientList.find(c =>
-            c.url.includes(self.location.origin),
-          );
+          const existing = clientList.find(c => c.url.includes(self.location.origin));
+
+          if (acao) {
+            // Botão de ação clicado (Android) — execução silenciosa no app
+            if (existing) {
+              existing.postMessage({
+                type:         'PUSH_ACTION',
+                acao,
+                entradaId:    data.entradaId    ?? null,
+                barbershopId: data.barbershopId ?? null,
+                pushType:     data.pushType     ?? null,
+                clienteNome:  data.clienteNome  ?? null,
+              });
+              return existing.focus();
+            }
+            const params = new URLSearchParams({
+              push_action: acao,
+              push_entry:  data.entradaId    ?? '',
+              push_shop:   data.barbershopId ?? '',
+              push_type:   data.pushType     ?? '',
+              push_nome:   data.clienteNome  ?? '',
+            });
+            return self.clients.openWindow(`/profissional/?${params}`);
+          }
+
+          // Toque no corpo da notificação (iOS Safari + Android) — abre a modal existente
           if (existing) {
             existing.postMessage({
-              type:         'PUSH_NAVIGATE',
-              barbershopId: data.barbershopId ?? null,
+              type:         'PUSH_SHOW_MODAL',
+              pushType:     data.pushType     ?? null,
               entradaId:    data.entradaId    ?? null,
+              barbershopId: data.barbershopId ?? null,
+              clienteNome:  data.clienteNome  ?? null,
             });
             return existing.focus();
           }
-          return self.clients.openWindow(targetUrl);
+          const params = new URLSearchParams({
+            push_type:  data.pushType     ?? '',
+            push_entry: data.entradaId    ?? '',
+            push_shop:  data.barbershopId ?? '',
+            push_nome:  data.clienteNome  ?? '',
+          });
+          return self.clients.openWindow(`/profissional/?${params}`);
         }),
     );
   }

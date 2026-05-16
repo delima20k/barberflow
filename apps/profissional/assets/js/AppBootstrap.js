@@ -95,16 +95,40 @@ class AppBootstrap {
       if (userId) PushSubscriptionService.init(userId, 'profissional').catch(() => {});
     }, { once: true });
 
-    // Ouve mensagens PUSH_NAVIGATE enviadas pelo SW quando o app está aberto.
-    // O SW chama existing.postMessage({ type: 'PUSH_NAVIGATE', barbershopId, entradaId })
-    // ao invés de abrir nova aba — evita duplicidade de janelas.
+    // Ouve mensagens do SW quando o app está aberto.
     navigator.serviceWorker.addEventListener('message', e => {
-      if (e.data?.type !== 'PUSH_NAVIGATE') return;
-      const { barbershopId, entradaId } = e.data;
-      if (!barbershopId) return;
-      document.dispatchEvent(
-        new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
-      );
+      if (e.data?.type === 'PUSH_NAVIGATE') {
+        const { barbershopId, entradaId } = e.data;
+        if (!barbershopId) return;
+        document.dispatchEvent(
+          new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
+        );
+        return;
+      }
+
+      if (e.data?.type === 'PUSH_ACTION') {
+        document.dispatchEvent(new CustomEvent('barberflow:push-action', {
+          detail: {
+            acao:        e.data.acao        ?? null,
+            entradaId:   e.data.entradaId   ?? null,
+            barbershopId: e.data.barbershopId ?? null,
+            pushType:    e.data.pushType    ?? null,
+            clienteNome: e.data.clienteNome ?? null,
+          },
+        }));
+        return;
+      }
+
+      if (e.data?.type === 'PUSH_SHOW_MODAL') {
+        document.dispatchEvent(new CustomEvent('barberflow:push-show-modal', {
+          detail: {
+            pushType:    e.data.pushType     ?? null,
+            entradaId:   e.data.entradaId    ?? null,
+            barbershopId: e.data.barbershopId ?? null,
+            clienteNome: e.data.clienteNome  ?? null,
+          },
+        }));
+      }
     });
 
     // Lida com deep-link via URL params quando o app foi aberto pelo SW (app fechado).
@@ -121,11 +145,41 @@ class AppBootstrap {
     const params       = new URLSearchParams(location.search);
     const barbershopId = params.get('push_barbershop');
     const entradaId    = params.get('push_entrada');
-    if (!barbershopId) return;
+    const pushAction   = params.get('push_action');
+    const pushType     = params.get('push_type');
+    const pushEntry    = params.get('push_entry');
+    const pushShop     = params.get('push_shop');
+    const pushNome     = params.get('push_nome');
 
-    // AppBootstrap.init() é chamado de dentro de DOMContentLoaded (app.js).
-    // bind() já foi registrado antes — no constructor instanciado sincronamente.
-    // Usar addEventListener('DOMContentLoaded') aqui é noop: o evento já disparou.
+    // Botão de ação clicado com app fechado (Android)
+    if (pushAction && pushEntry) {
+      document.dispatchEvent(new CustomEvent('barberflow:push-action', {
+        detail: {
+          acao:        pushAction,
+          entradaId:   pushEntry,
+          barbershopId: pushShop ?? null,
+          pushType:    pushType  ?? null,
+          clienteNome: pushNome  ? decodeURIComponent(pushNome) : null,
+        },
+      }));
+      return;
+    }
+
+    // Toque no corpo da notificação com app fechado (iOS + Android)
+    if (pushType && pushEntry) {
+      document.dispatchEvent(new CustomEvent('barberflow:push-show-modal', {
+        detail: {
+          pushType,
+          entradaId:   pushEntry,
+          barbershopId: pushShop ?? null,
+          clienteNome: pushNome  ? decodeURIComponent(pushNome) : null,
+        },
+      }));
+      return;
+    }
+
+    // Deep-link de navegação legado (PUSH_NAVIGATE)
+    if (!barbershopId) return;
     document.dispatchEvent(
       new CustomEvent('barberflow:push-deep-link', { detail: { barbershopId, entradaId } }),
     );

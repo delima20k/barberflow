@@ -273,6 +273,17 @@ class ChegadaProducaoService {
         p_body,
         p_data,
       });
+
+      // Envia Web Push ao barbeiro via BFF (fire-and-forget — não bloqueia o fluxo).
+      if (typeof BffApiService !== 'undefined') {
+        BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
+          professionalId,
+          entradaId,
+          barbershopId,
+          type,
+          clienteNome: nome,
+        }).catch(() => {});
+      }
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[ChegadaProducaoService] notificarBarbeiro falhou:', err?.message);

@@ -75,6 +75,30 @@ class BffApiService {
     }
   }
 
+  /**
+   * Executa POST autenticado na BFF com timeout e retorno estruturado.
+   * @param {string} path   — ex: '/api/v1/notificacoes/push-barbeiro'
+   * @param {object} body   — payload JSON
+   * @returns {Promise<{ data: any, error: Error|null }>}
+   */
+  static async post(path, body) {
+    const url = `${BffApiService.#BASE_URL}${path}`;
+    try {
+      const res  = await BffApiService.#fetchComTimeout(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', ...BffApiService.#authHeaders() },
+        body:    JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { data: null, error: new Error(json?.error ?? `HTTP ${res.status}`) };
+      }
+      return { data: json?.dados ?? null, error: null };
+    } catch (err) {
+      return { data: null, error: BffApiService.#parseErroRede(err) };
+    }
+  }
+
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──
 
   /** @returns {string} URL base da BFF */

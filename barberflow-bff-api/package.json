@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js tests/barbearia.test.js tests/geo.test.js",
+    "test": "node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js tests/barbearia.test.js tests/geo.test.js tests/push-barbeiro.test.js",
     "validate:bff": "node scripts/validate-bff.js"
   },
   "engines": {
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",
+    "web-push": "^3.6.7",
     "compression": "^1.8.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
