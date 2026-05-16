@@ -1,7 +1,9 @@
 'use strict';
 
-const rateLimit      = require('express-rate-limit');
-const { logger }     = require('./logger');
+const rateLimit  = require('express-rate-limit');
+const { logger } = require('./logger');
+
+const IS_PROD = process.env.APP_ENV === 'production';
 
 /**
  * RateLimiterMiddleware — Rate limiting por IP para o BFF.
@@ -32,6 +34,8 @@ class RateLimiterMiddleware {
     max:             10,
     standardHeaders: 'draft-7',
     legacyHeaders:   false,
+    // Pula fora de produção — o limite é projetado apenas para produção.
+    skip:            () => !IS_PROD,
     handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
   });
 

@@ -15,6 +15,7 @@ const config = require('../config');
 class CorsMiddleware {
 
   static #allowedOrigins = new Set(config.cors.allowedOrigins);
+  static #isProducao     = process.env.APP_ENV === 'production';
 
   /**
    * Verifica se a origem é permitida.
@@ -24,11 +25,16 @@ class CorsMiddleware {
   static #isAllowed(origin) {
     if (!origin) return false;
     if (CorsMiddleware.#allowedOrigins.has(origin)) return true;
-    try {
-      return new URL(origin).hostname.endsWith('.vercel.app');
-    } catch {
-      return false;
+    // Previews de PR via Vercel — permitido apenas fora de produção.
+    // Em produção, somente origens explícitas de config/environments/production.js.
+    if (!CorsMiddleware.#isProducao) {
+      try {
+        return new URL(origin).hostname.endsWith('.vercel.app');
+      } catch {
+        return false;
+      }
     }
+    return false;
   }
 
   /**
@@ -37,8 +43,6 @@ class CorsMiddleware {
    */
   static handle(req, res, next) {
     const origin = req.headers.origin;
-    // TODO: remover logs após estabilização produção
-    console.log('[CORS] Origin:', origin);
 
     if (CorsMiddleware.#isAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);

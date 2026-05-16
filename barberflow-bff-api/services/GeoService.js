@@ -13,8 +13,8 @@ const BaseService = require('./BaseService');
  */
 class GeoService extends BaseService {
 
-  /** TTL máximo de uma posição salva para ser considerada válida: 1 hora */
-  static #MAX_IDADE_MS = 60 * 60 * 1000;
+  /** TTL máximo de uma posição salva — configurável via GEO_TTL_MS (padrão: 1 hora). */
+  static #MAX_IDADE_MS = Number(process.env.GEO_TTL_MS) || 60 * 60 * 1000;
 
   /** @type {import('../repositories/GeoRepository')} */
   #repo;

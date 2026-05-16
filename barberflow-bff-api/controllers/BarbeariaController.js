@@ -35,11 +35,10 @@ class BarbeariaController extends BaseController {
       const lat   = BarbeariaController.#parseCoord(req.query.lat,  'lat');
       const lng   = BarbeariaController.#parseCoord(req.query.lng,  'lng');
       const raio  = BarbeariaController.#parseLimit(req.query.raio, 'raio', 5, 100, 5);
-      // TODO: remover log após estabilização produção
-      console.log('[BARBEARIAS]', { lat, lng, raio });
 
       const lista = await this.#service.listarProximas(lat, lng, raio);
 
+      this.cachePublico(res, 30, 60);
       this.success(res, lista, { total: lista.length });
     });
   }
@@ -54,6 +53,7 @@ class BarbeariaController extends BaseController {
 
       const lista = await this.#service.listarDestaque(limit);
 
+      this.cachePublico(res, 60, 300);
       this.success(res, lista, { total: lista.length });
     });
   }
@@ -68,6 +68,7 @@ class BarbeariaController extends BaseController {
 
       const lista = await this.#service.listarTodas(limit);
 
+      this.cachePublico(res, 60, 300);
       this.success(res, lista, { total: lista.length });
     });
   }

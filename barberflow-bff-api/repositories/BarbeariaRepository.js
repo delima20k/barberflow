@@ -19,6 +19,14 @@ class BarbeariaRepository extends BaseRepository {
     'rating_avg, rating_count, rating_score, ' +
     'likes_count, dislikes_count, font_key';
 
+  /** Ordem de relevância aplicada em todas as listagens. */
+  static #ORDER_PADRAO = Object.freeze(['rating_score', 'rating_avg', 'likes_count']);
+
+  static #ordenar(query) {
+    return BarbeariaRepository.#ORDER_PADRAO
+      .reduce((q, col) => q.order(col, { ascending: false }), query);
+  }
+
   /**
    * @param {import('@supabase/supabase-js').SupabaseClient} db
    */
@@ -42,17 +50,16 @@ class BarbeariaRepository extends BaseRepository {
   async getNearby(lat, lng, latDelta, lngDelta, limit = 50) {
     this._coordenada(lat, lng);
 
-    const { data, error } = await this._db
-      .from('barbershops')
-      .select(BarbeariaRepository.#SELECT)
-      .eq('is_active', true)
-      .gte('latitude',  lat - latDelta)
-      .lte('latitude',  lat + latDelta)
-      .gte('longitude', lng - lngDelta)
-      .lte('longitude', lng + lngDelta)
-      .order('rating_score', { ascending: false })
-      .order('likes_count',  { ascending: false })
-      .limit(limit);
+    const { data, error } = await BarbeariaRepository.#ordenar(
+      this._db
+        .from('barbershops')
+        .select(BarbeariaRepository.#SELECT)
+        .eq('is_active', true)
+        .gte('latitude',  lat - latDelta)
+        .lte('latitude',  lat + latDelta)
+        .gte('longitude', lng - lngDelta)
+        .lte('longitude', lng + lngDelta),
+    ).limit(limit);
 
     if (error) this._throwDbError(error, 'getNearby');
     return data ?? [];
@@ -64,14 +71,12 @@ class BarbeariaRepository extends BaseRepository {
    * @returns {Promise<object[]>}
    */
   async getFeatured(limit = 6) {
-    const { data, error } = await this._db
-      .from('barbershops')
-      .select(BarbeariaRepository.#SELECT)
-      .eq('is_active', true)
-      .order('rating_score', { ascending: false })
-      .order('likes_count',  { ascending: false })
-      .order('rating_avg',   { ascending: false })
-      .limit(limit);
+    const { data, error } = await BarbeariaRepository.#ordenar(
+      this._db
+        .from('barbershops')
+        .select(BarbeariaRepository.#SELECT)
+        .eq('is_active', true),
+    ).limit(limit);
 
     if (error) this._throwDbError(error, 'getFeatured');
     return data ?? [];
@@ -84,14 +89,12 @@ class BarbeariaRepository extends BaseRepository {
    * @returns {Promise<object[]>}
    */
   async getAll(limit = 60) {
-    const { data, error } = await this._db
-      .from('barbershops')
-      .select(BarbeariaRepository.#SELECT)
-      .eq('is_active', true)
-      .order('likes_count',  { ascending: false })
-      .order('rating_score', { ascending: false })
-      .order('rating_avg',   { ascending: false })
-      .limit(limit);
+    const { data, error } = await BarbeariaRepository.#ordenar(
+      this._db
+        .from('barbershops')
+        .select(BarbeariaRepository.#SELECT)
+        .eq('is_active', true),
+    ).limit(limit);
 
     if (error) this._throwDbError(error, 'getAll');
     return data ?? [];

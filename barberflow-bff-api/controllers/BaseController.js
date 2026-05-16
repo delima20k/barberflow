@@ -1,7 +1,8 @@
 'use strict';
 
-const ApiResponse = require('../utils/ApiResponse');
-const AppError    = require('../utils/AppError');
+const ApiResponse    = require('../utils/ApiResponse');
+const AppError       = require('../utils/AppError');
+const { logger }     = require('../middlewares/logger');
 
 /**
  * BaseController — Classe base para controllers do BFF.
@@ -99,10 +100,22 @@ class BaseController {
     try {
       await fn();
     } catch (err) {
-      // TODO: remover log após estabilização produção
-      console.error('[BFF ERROR]', err);
+      logger.error({ err }, '[BFF] erro no handler');
       if (!res.headersSent) this.fail(res, err);
     }
+  }
+
+  // ── Cache ────────────────────────────────────────────────────────
+
+  /**
+   * Define Cache-Control para respostas públicas — deve ser chamado
+   * antes de success() / created() para garantir que o header seja enviado.
+   * @param {import('express').Response} res
+   * @param {number} [maxAge=60]  — segundos de cache fresco
+   * @param {number} [swr=300]    — segundos de stale-while-revalidate
+   */
+  cachePublico(res, maxAge = 60, swr = 300) {
+    res.setHeader('Cache-Control', `public, max-age=${maxAge}, stale-while-revalidate=${swr}`);
   }
 
   // ── Factory de erro ──────────────────────────────────────────────

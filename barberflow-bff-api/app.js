@@ -10,7 +10,7 @@
 //   1. CORS           — antes de tudo (trata preflight OPTIONS)
 //   2. Helmet         — headers de segurança OWASP
 //   3. Compression    — gzip
-//   4. Logger HTTP    — pino-http
+//   4. Logger HTTP    — pino-http + X-Response-Time
 //   5. Rate limit     — geral + escrita
 //   6. Timeout        — 30s padrão
 //   7. Body parser    — JSON (50kb)
@@ -41,20 +41,24 @@ const agendamentosRoute     = require('./routes/agendamentos');
 function criarApp() {
   const app = express();
 
+  // Confia no primeiro proxy da cadeia (Vercel/CDN) para que req.ip
+  // reflita o IP real do cliente — necessário para rate limiting eficaz.
+  app.set('trust proxy', 1);
+
   // ── 1. CORS ──────────────────────────────────────────────────
   app.use(CorsMiddleware.handle);
 
   // ── 2. Helmet (headers OWASP) ────────────────────────────────
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    crossOriginOpenerPolicy:   false,
   }));
 
   // ── 3. Compression ───────────────────────────────────────────
   app.use(compression());
 
-  // ── 4. Logger HTTP ───────────────────────────────────────────
+  // ── 4. Logger HTTP + Response-Time ──────────────────────────
   app.use(loggerMiddleware);
+  app.use(TimeoutMiddleware.responseTime);
 
   // ── 5. Rate limiting ─────────────────────────────────────────
   app.use('/api/', RateLimiterMiddleware.geral);
@@ -75,7 +79,8 @@ function criarApp() {
   app.use('/api/v1', v1Router);
 
   // ── 9. Auth — /api/auth/* ───────────────────────────────────────
-  // Namespace separado (não versionado) para login, logout, refresh e me.
+  // Rate limit específico para auth (10 req / 15 min por IP) — previne brute force.
+  app.use('/api/auth', RateLimiterMiddleware.auth);
   app.use('/api/auth', authRoute);
 
   // ── 10. Agendamentos — /api/agendamentos/* ───────────────────────

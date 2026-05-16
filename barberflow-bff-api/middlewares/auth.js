@@ -1,6 +1,7 @@
 'use strict';
 
-const jwt = require('jsonwebtoken');
+const jwt            = require('jsonwebtoken');
+const SupabaseClient = require('../utils/SupabaseClient');
 
 /**
  * AuthMiddleware — Verificação de JWT do Supabase Auth.
@@ -14,25 +15,6 @@ const jwt = require('jsonwebtoken');
 class AuthMiddleware {
 
   static #ALGORITHM = 'HS256';
-
-  /** Singleton do cliente Supabase para fallback remoto (criado sob demanda). */
-  static #supabase = null;
-
-  /**
-   * Retorna (ou cria) singleton do cliente Supabase.
-   * @returns {import('@supabase/supabase-js').SupabaseClient}
-   */
-  static #getSupabase() {
-    if (!AuthMiddleware.#supabase) {
-      const { createClient } = require('@supabase/supabase-js');
-      AuthMiddleware.#supabase = createClient(
-        process.env.SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { persistSession: false, autoRefreshToken: false } },
-      );
-    }
-    return AuthMiddleware.#supabase;
-  }
 
   /**
    * Middleware que verifica o Bearer token e popula req.user.
@@ -59,10 +41,9 @@ class AuthMiddleware {
       }
     }
 
-    // ── Fallback: verificação por rede ───────────────────────────
+    // ── Fallback: verificação por rede (usa o singleton compartilhado) ────
     try {
-      const supabase        = AuthMiddleware.#getSupabase();
-      const { data, error } = await supabase.auth.getUser(token);
+      const { data, error } = await SupabaseClient.getInstance().auth.getUser(token);
       if (error || !data?.user) {
         return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
       }

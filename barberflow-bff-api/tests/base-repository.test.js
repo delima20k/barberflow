@@ -5,7 +5,7 @@
 //
 // Cobre:
 //   - _throwDbError: lança AppError(500) com mensagem correta
-//   - _throwDbError: loga o erro original do Supabase via console.error
+//   - _throwDbError: loga o erro original do Supabase via logger.error
 //   - _throwDbError: inclui nome do repositório e contexto na mensagem
 // =============================================================
 
@@ -16,6 +16,7 @@ process.env.APP_ENV = 'development';
 
 const BaseRepository = require('../repositories/BaseRepository');
 const AppError       = require('../utils/AppError');
+const { logger }     = require('../middlewares/logger');
 
 // ── Subclasse concreta para acessar métodos protegidos ───────────
 class TestRepository extends BaseRepository {
@@ -44,28 +45,28 @@ suite('BaseRepository — _throwDbError', () => {
     );
   });
 
-  test('loga o erro real do Supabase via console.error', () => {
+  test('loga o erro real do Supabase via logger.error (não console.error)', () => {
     const repo   = new TestRepository();
     const logado = [];
-    const orig   = console.error;
-    console.error = (...args) => logado.push(args);
+    const orig   = logger.error.bind(logger);
+    logger.error = (obj, msg) => logado.push([obj, msg]);
 
     try {
       repo.exposeThrowDbError({ message: 'supabase error', code: 'P0001' }, 'getNearby');
     } catch {
       // esperado — testamos apenas o log
     } finally {
-      console.error = orig;
+      logger.error = orig;
     }
 
-    assert.strictEqual(logado.length, 1, 'console.error deve ter sido chamado uma vez');
-    assert.strictEqual(logado[0][0], '[BFF DB ERROR]', 'primeiro argumento deve ser [BFF DB ERROR]');
+    assert.strictEqual(logado.length, 1, 'logger.error deve ter sido chamado uma vez');
+    assert.strictEqual(logado[0][1], '[BFF] erro de banco', 'mensagem deve ser [BFF] erro de banco');
     assert.strictEqual(
-      logado[0][1]?.error?.message,
+      logado[0][0]?.err?.message,
       'supabase error',
       'erro original do Supabase deve estar no log',
     );
-    assert.strictEqual(logado[0][1]?.op, 'getNearby', 'operação deve estar no log');
+    assert.strictEqual(logado[0][0]?.op, 'getNearby', 'operação deve estar no log');
   });
 
   test('mensagem do AppError inclui nome do repositório e contexto', () => {

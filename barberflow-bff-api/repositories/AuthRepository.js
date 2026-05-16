@@ -2,6 +2,7 @@
 
 const BaseRepository = require('./BaseRepository');
 const AppError       = require('../utils/AppError');
+const RetryHelper    = require('../utils/RetryHelper');
 
 // ================================================================
 // AuthRepository — Acesso à Supabase Auth REST API e tabela profiles.
@@ -16,18 +17,22 @@ const AppError       = require('../utils/AppError');
 // com a ANON_KEY do servidor (nunca exposta ao browser).
 // ================================================================
 
+// Lidas uma vez ao carregar o módulo — imutáveis, sem risco de sobrescrita entre instâncias.
+const AUTH_URL = process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL}/auth/v1` : null;
+const ANON_KEY = process.env.SUPABASE_ANON_KEY ?? null;
+
 class AuthRepository extends BaseRepository {
 
-  static #AUTH_URL = null;
-  static #ANON_KEY = null;
+  static #RETRY_CONFIG = {
+    maxAttempts: 2,
+    baseDelayMs: 300,
+    shouldRetry:  (err) => !(err instanceof AppError) || err.status >= 500,
+  };
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} db */
   constructor(db) {
     super('AuthRepository', db);
-    AuthRepository.#AUTH_URL = `${process.env.SUPABASE_URL}/auth/v1`;
-    AuthRepository.#ANON_KEY = process.env.SUPABASE_ANON_KEY;
-
-    if (!AuthRepository.#AUTH_URL || !AuthRepository.#ANON_KEY) {
+    if (!AUTH_URL || !ANON_KEY) {
       throw new Error('[AuthRepository] SUPABASE_URL e SUPABASE_ANON_KEY são obrigatórios.');
     }
   }
@@ -37,7 +42,7 @@ class AuthRepository extends BaseRepository {
   static #baseHeaders() {
     return {
       'Content-Type': 'application/json',
-      'apikey':       AuthRepository.#ANON_KEY,
+      'apikey':       ANON_KEY,
     };
   }
 
@@ -51,6 +56,29 @@ class AuthRepository extends BaseRepository {
 
   // ── Chamadas de Auth ─────────────────────────────────────────────
 
+  // Fetch + retry + parse compartilhado por signIn e refreshToken.
+  static async #fetchToken(url, body) {
+    return RetryHelper.withRetry(
+      async () => {
+        const res  = await fetch(url, {
+          method:  'POST',
+          headers: AuthRepository.#baseHeaders(),
+          body:    JSON.stringify(body),
+          signal:  AbortSignal.timeout(10_000),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw AuthRepository.#parseAuthError(json, res.status);
+        return {
+          access_token:  json.access_token,
+          refresh_token: json.refresh_token,
+          expires_at:    json.expires_at,
+          user:          { id: json.user?.id, email: json.user?.email },
+        };
+      },
+      AuthRepository.#RETRY_CONFIG,
+    );
+  }
+
   /**
    * Autentica email + senha via Supabase Auth REST.
    * @param {string} email
@@ -58,23 +86,10 @@ class AuthRepository extends BaseRepository {
    * @returns {Promise<{ access_token, refresh_token, expires_at, user }>}
    */
   async signIn(email, password) {
-    const url = `${AuthRepository.#AUTH_URL}/token?grant_type=password`;
-    const res = await fetch(url, {
-      method:  'POST',
-      headers: AuthRepository.#baseHeaders(),
-      body:    JSON.stringify({ email, password }),
-    });
-
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw AuthRepository.#parseAuthError(json, res.status);
-
-    console.info('[AUTH] login ok', { userId: json.user?.id });
-    return {
-      access_token:  json.access_token,
-      refresh_token: json.refresh_token,
-      expires_at:    json.expires_at,
-      user:          { id: json.user?.id, email: json.user?.email },
-    };
+    return AuthRepository.#fetchToken(
+      `${AUTH_URL}/token?grant_type=password`,
+      { email, password },
+    );
   }
 
   /**
@@ -83,23 +98,10 @@ class AuthRepository extends BaseRepository {
    * @returns {Promise<{ access_token, refresh_token, expires_at, user }>}
    */
   async refreshToken(refreshToken) {
-    const url = `${AuthRepository.#AUTH_URL}/token?grant_type=refresh_token`;
-    const res = await fetch(url, {
-      method:  'POST',
-      headers: AuthRepository.#baseHeaders(),
-      body:    JSON.stringify({ refresh_token: refreshToken }),
-    });
-
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw AuthRepository.#parseAuthError(json, res.status);
-
-    console.info('[AUTH] refresh ok', { userId: json.user?.id });
-    return {
-      access_token:  json.access_token,
-      refresh_token: json.refresh_token,
-      expires_at:    json.expires_at,
-      user:          { id: json.user?.id, email: json.user?.email },
-    };
+    return AuthRepository.#fetchToken(
+      `${AUTH_URL}/token?grant_type=refresh_token`,
+      { refresh_token: refreshToken },
+    );
   }
 
   /**
@@ -107,13 +109,14 @@ class AuthRepository extends BaseRepository {
    * @param {string} accessToken — token do usuário a ser invalidado
    */
   async signOut(accessToken) {
-    const url = `${AuthRepository.#AUTH_URL}/logout?scope=local`;
+    const url = `${AUTH_URL}/logout?scope=local`;
     const res = await fetch(url, {
       method:  'POST',
       headers: {
         ...AuthRepository.#baseHeaders(),
         'Authorization': `Bearer ${accessToken}`,
       },
+      signal: AbortSignal.timeout(10_000),
     });
 
     // 204 = sucesso; qualquer outro 2xx também aceito
@@ -121,8 +124,6 @@ class AuthRepository extends BaseRepository {
       const json = await res.json().catch(() => ({}));
       throw AuthRepository.#parseAuthError(json, res.status);
     }
-
-    console.info('[AUTH] logout ok');
   }
 
   // ── Queries de perfil ────────────────────────────────────────────

@@ -24,6 +24,12 @@ class AgendamentoBffService extends BaseService {
     no_show:     [],
   };
 
+  /**
+   * Janela retroativa de busca de conflitos — cobre a duração máxima de um serviço.
+   * Permite detectar agendamentos anteriores cujo término se sobreponha ao novo horário.
+   */
+  static #JANELA_CONFLITO_MS = 8 * 3_600_000;
+
   /** @type {import('../repositories/AgendamentoRepository')} */
   #repo;
 
@@ -120,8 +126,7 @@ class AgendamentoBffService extends BaseService {
   async #verificarConflito(professionalId, scheduledAt, durationMin) {
     const inicio     = scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt);
     const fim        = new Date(inicio.getTime() + durationMin * 60_000);
-    // Janela de busca ampla para capturar agendamentos que iniciem antes mas terminem depois
-    const janelaBaixo = new Date(inicio.getTime() - 8 * 3_600_000);
+    const janelaBaixo = new Date(inicio.getTime() - AgendamentoBffService.#JANELA_CONFLITO_MS);
 
     const existentes = await this.#repo.getConflitos(professionalId, janelaBaixo, fim);
 

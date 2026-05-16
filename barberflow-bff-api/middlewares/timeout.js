@@ -12,6 +12,23 @@ const config     = require('../config');
 class TimeoutMiddleware {
 
   /**
+   * Injeta o header X-Response-Time (ms) antes de cada resposta.
+   * @type {import('express').RequestHandler}
+   */
+  static responseTime(req, res, next) {
+    const start   = process.hrtime.bigint();
+    const origEnd = res.end.bind(res);
+    res.end = function (...args) {
+      if (!res.headersSent) {
+        const ms = Number(process.hrtime.bigint() - start) / 1e6;
+        res.setHeader('X-Response-Time', `${ms.toFixed(2)}ms`);
+      }
+      return origEnd(...args);
+    };
+    next();
+  }
+
+  /**
    * @type {import('express').RequestHandler}
    */
   static handle(req, res, next) {

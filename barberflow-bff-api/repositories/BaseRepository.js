@@ -1,7 +1,8 @@
 'use strict';
 
-const BaseValidator = require('../validators/BaseValidator');
-const AppError      = require('../utils/AppError');
+const BaseValidator  = require('../validators/BaseValidator');
+const AppError       = require('../utils/AppError');
+const { logger }     = require('../middlewares/logger');
 
 /**
  * BaseRepository — Classe base para repositórios do BFF.
@@ -107,8 +108,7 @@ class BaseRepository {
    * @throws {AppError}
    */
   _throwDbError(error, ctx = '') {
-    // TODO: remover log após estabilização produção
-    console.error('[BFF DB ERROR]', { repo: this.#nome, op: ctx, error });
+    logger.error({ repo: this.#nome, op: ctx, err: error }, '[BFF] erro de banco');
     const msg = ctx
       ? `[${this.#nome}] ${ctx}: falha no banco de dados.`
       : `[${this.#nome}] falha no banco de dados.`;

@@ -86,7 +86,7 @@ class AgendamentoRepository extends BaseRepository {
     const { data, error } = await this._db
       .from('appointments')
       .insert(payload)
-      .select()
+      .select(AgendamentoRepository.#SELECT)
       .single();
 
     if (error) this._throwDbError(error, 'criar');
@@ -106,7 +106,7 @@ class AgendamentoRepository extends BaseRepository {
       .from('appointments')
       .update({ status })
       .eq('id', id)
-      .select()
+      .select(AgendamentoRepository.#SELECT)
       .single();
 
     if (error) this._throwDbError(error, 'atualizarStatus');

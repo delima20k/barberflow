@@ -122,7 +122,9 @@ suite('CorsMiddleware — compatibilidade origens antigas (additive)', () => {
     });
   }
 
-  test('preview *.vercel.app é permitida', () => {
+  test('preview *.vercel.app genérica é bloqueada em produção (segurança)', () => {
+    // Em produção, apenas origens explícitas são aceitas.
+    // O wildcard *.vercel.app é restrito a ambientes não-produção.
     const origin = 'https://barberflow-pro-one-abc123-delima20ks-projects.vercel.app';
     const { req, res, next, captured } = criarMocks({
       headers: { origin },
@@ -131,7 +133,11 @@ suite('CorsMiddleware — compatibilidade origens antigas (additive)', () => {
 
     CorsMiddleware.handle(req, res, next);
 
-    assert.strictEqual(captured.headers['Access-Control-Allow-Origin'], origin);
+    assert.strictEqual(
+      captured.headers['Access-Control-Allow-Origin'],
+      undefined,
+      'wildcard *.vercel.app não deve ser permitida em produção',
+    );
   });
 });
 
