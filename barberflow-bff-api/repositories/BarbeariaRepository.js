@@ -37,9 +37,9 @@ class BarbeariaRepository extends BaseRepository {
   // ── Consultas ────────────────────────────────────────────────────
 
   /**
-   * Busca barbearias dentro de um raio geográfico via PostGIS ST_DWithin.
-   * Retorna resultados já ordenados por distância real (em metros).
-   * Requer: migration 20260517000001_postgis_barbershops.sql aplicada.
+   * Busca barbearias dentro de um raio geográfico.
+   * Tenta PostGIS ST_DWithin via RPC (se migration aplicada);
+   * em caso de falha por RPC inexistente, usa bounding-box como fallback.
    *
    * @param {number} lat
    * @param {number} lng
@@ -57,7 +57,38 @@ class BarbeariaRepository extends BaseRepository {
       limit_val:   limit,
     });
 
-    if (error) this._throwDbError(error, 'getNearby');
+    if (!error) return data ?? [];
+
+    // Se a migration PostGIS ainda não foi aplicada, usa bounding-box
+    const semRpc =
+      error.code === '42883' ||                           // undefined_function (PostgreSQL)
+      String(error.message ?? '').includes('Could not find the function') ||
+      String(error.message ?? '').includes('does not exist');
+
+    if (!semRpc) this._throwDbError(error, 'getNearby');
+
+    return this.#getNearbyFallback(lat, lng, raioKm, limit);
+  }
+
+  /**
+   * Fallback bounding-box para quando PostGIS não está disponível.
+   * Remove a necessidade de migração para o app funcionar.
+   */
+  async #getNearbyFallback(lat, lng, raioKm, limit) {
+    const latD = raioKm / 111.0;
+    const lonD = raioKm / (111.0 * Math.cos(lat * Math.PI / 180));
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select(BarbeariaRepository.#SELECT)
+      .eq('is_active', true)
+      .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
+      .gte('longitude', lng - lonD).lte('longitude', lng + lonD)
+      .order('rating_score', { ascending: false })
+      .order('likes_count',  { ascending: false })
+      .limit(limit);
+
+    if (error) this._throwDbError(error, 'getNearby (fallback)');
     return data ?? [];
   }
 
