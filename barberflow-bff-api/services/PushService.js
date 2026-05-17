@@ -52,9 +52,17 @@ class PushService {
 
     if (!subs?.length) return { enviados: 0, invalidas: 0 };
 
+    const isCaminho = type === 'client_not_seated';
+    const title     = isCaminho
+      ? 'Cliente a caminho 🚶'
+      : 'Cliente na barbearia! ✅';
+    const body      = isCaminho
+      ? `${clienteNome} está a caminho da barbearia.`
+      : `${clienteNome} confirmou que está na barbearia.`;
+
     const payload = JSON.stringify({
-      title: 'Cliente chegou!',
-      body:  clienteNome,
+      title,
+      body,
       icon:  '/shared/img/icon-192.png',
       badge: '/shared/img/badge-72.png',
       tag:   `chegada-${entradaId}`,
@@ -87,6 +95,8 @@ class PushService {
             .from('push_subscriptions')
             .update({ is_valid: false })
             .eq('endpoint', sub.endpoint);
+        } else {
+          console.error('[PushService] sendNotification falhou:', err?.statusCode, err?.message);
         }
       }
     }));

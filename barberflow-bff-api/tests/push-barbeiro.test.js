@@ -248,6 +248,122 @@ suite('PushService — enviarAoBarbeiro()', () => {
     assert.ok(atualizacoes.length > 0);
     assert.strictEqual(atualizacoes[0]?.is_valid, false);
   });
+
+  // ── Bug 2: payload deve diferenciar title/body por type ──────────────────
+
+  test('type client_at_shop: title e body refletem que cliente está na barbearia', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payloadStr) => {
+        chamadas.push(JSON.parse(payloadStr));
+        return { statusCode: 201 };
+      },
+    };
+    const sbMock = {
+      from: () => {
+        const q = { select: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+        return q;
+      },
+    };
+
+    const svc = new PushService(sbMock, wpMock);
+    await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+      type:        'client_at_shop',
+      clienteNome: 'Ana',
+    });
+
+    assert.strictEqual(chamadas.length, 1);
+    assert.ok(
+      chamadas[0].title.includes('barbearia') || chamadas[0].title.includes('✅'),
+      `title deve indicar que o cliente está na barbearia, recebido: "${chamadas[0].title}"`,
+    );
+    assert.ok(
+      chamadas[0].body.includes('Ana'),
+      `body deve conter o nome do cliente, recebido: "${chamadas[0].body}"`,
+    );
+    assert.ok(
+      chamadas[0].body.toLowerCase().includes('barbearia') || chamadas[0].body.toLowerCase().includes('confirm'),
+      `body deve indicar confirmação de chegada, recebido: "${chamadas[0].body}"`,
+    );
+  });
+
+  test('type client_not_seated: title e body refletem que cliente está a caminho', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payloadStr) => {
+        chamadas.push(JSON.parse(payloadStr));
+        return { statusCode: 201 };
+      },
+    };
+    const sbMock = {
+      from: () => {
+        const q = { select: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+        return q;
+      },
+    };
+
+    const svc = new PushService(sbMock, wpMock);
+    await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+      type:        'client_not_seated',
+      clienteNome: 'Bruno',
+    });
+
+    assert.strictEqual(chamadas.length, 1);
+    assert.ok(
+      chamadas[0].title.includes('caminho') || chamadas[0].title.includes('🚶'),
+      `title deve indicar que o cliente está a caminho, recebido: "${chamadas[0].title}"`,
+    );
+    assert.ok(
+      chamadas[0].body.includes('Bruno'),
+      `body deve conter o nome do cliente, recebido: "${chamadas[0].body}"`,
+    );
+    assert.ok(
+      chamadas[0].body.toLowerCase().includes('caminho') || chamadas[0].body.toLowerCase().includes('chegando'),
+      `body deve indicar que está a caminho, recebido: "${chamadas[0].body}"`,
+    );
+  });
+
+  // ── Bug 1: erros não-410/404 não devem crashar e devem ser logados ────────
+
+  test('sendNotification com erro 500: não lança exceção, retorna enviados:0 invalidas:0', async () => {
+    const errosLogados = [];
+    const consoleOriginal = console.error;
+    console.error = (...args) => errosLogados.push(args.join(' '));
+
+    try {
+      const wpMock500 = {
+        setVapidDetails:  () => {},
+        sendNotification: async () => {
+          const err = new Error('Internal Server Error');
+          err.statusCode = 500;
+          throw err;
+        },
+      };
+      const sbMock500 = {
+        from: () => {
+          const q = { select: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+          return q;
+        },
+      };
+
+      const svc = new PushService(sbMock500, wpMock500);
+      const resultado = await svc.enviarAoBarbeiro({
+        professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+        type:        'client_at_shop',
+        clienteNome: 'Cláudia',
+      });
+
+      assert.strictEqual(resultado.enviados,  0, 'enviados deve ser 0 após erro');
+      assert.strictEqual(resultado.invalidas, 0, 'invalidas deve ser 0 — não é expiração de subscription');
+      assert.ok(errosLogados.length > 0, 'erro deve ser logado via console.error');
+    } finally {
+      console.error = consoleOriginal;
+    }
+  });
 });
 
 // =================================================================

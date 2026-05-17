@@ -222,6 +222,19 @@ class FilaPresencaService {
         p_body,
         p_data,
       });
+
+      // Envia Web Push ao barbeiro via BFF (fire-and-forget).
+      // client_arriving_late mapeado para client_not_seated (tipo aceito pelo BFF).
+      if (typeof BffApiService !== 'undefined') {
+        const bffType = type === 'client_at_shop' ? 'client_at_shop' : 'client_not_seated';
+        BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
+          professionalId,
+          entradaId,
+          barbershopId,
+          type:        bffType,
+          clienteNome: nome,
+        }).catch(() => {});
+      }
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[FilaPresencaService] notificarBarbeiro falhou:', err?.message);
