@@ -75,8 +75,12 @@ class AuthMiddleware {
         const payload = jwt.verify(token, secret, { algorithms: [AuthMiddleware.#ALGORITHM] });
         req.user = { id: payload.sub, email: payload.email ?? '' };
         return next();
-      } catch {
-        return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
+      } catch (err) {
+        // JsonWebTokenError('invalid algorithm'): token é RS256, emitido após a migração
+        // do Supabase para JWT Signing Keys. Cai no fallback de rede para verificação correta.
+        if (err.name !== 'JsonWebTokenError' || err.message !== 'invalid algorithm') {
+          return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
+        }
       }
     }
 

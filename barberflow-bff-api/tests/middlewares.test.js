@@ -1,7 +1,8 @@
 'use strict';
 
-const { suite, test } = require('node:test');
-const assert          = require('node:assert/strict');
+const { suite, test, before, after } = require('node:test');
+const assert                         = require('node:assert/strict');
+const jwt                            = require('jsonwebtoken');
 
 const { criarMocks, gerarTokenSupa, UUID_TEST, SUPA_SECRET } = require('./_helpers');
 
@@ -246,4 +247,70 @@ suite('AppError — class e factory methods', () => {
     assert.strictEqual(err.message, 'ID inválido.');
   });
 
+});
+
+// ─── AuthMiddleware — token RS256 (fallback rede) ────────────────
+// Cobre o caso de migração do Supabase para JWT Signing Keys (RS256).
+// jwt.verify com algorithms: ['HS256'] lança JsonWebTokenError('invalid algorithm')
+// para tokens RS256 → middleware deve cair no fallback de rede em vez de retornar 401.
+
+suite('AuthMiddleware — token RS256 (fallback rede)', () => {
+  const { generateKeyPairSync } = require('node:crypto');
+  const SupabaseClient = require('../utils/SupabaseClient');
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+
+  let _origGetInstance;
+  before(() => { _origGetInstance = SupabaseClient.getInstance.bind(SupabaseClient); });
+  after(()  => { SupabaseClient.getInstance = _origGetInstance; });
+
+  test('RS256 + getUser válido → next() chamado e req.user preenchido', async () => {
+    const rs256Token = jwt.sign(
+      { sub: UUID_TEST, email: 'rs256@barberflow.com' },
+      privateKey,
+      { algorithm: 'RS256', expiresIn: '1h' },
+    );
+
+    SupabaseClient.getInstance = () => ({
+      auth: {
+        getUser: async () => ({
+          data: { user: { id: UUID_TEST, email: 'rs256@barberflow.com' } },
+          error: null,
+        }),
+      },
+    });
+
+    const { req, res, next, captured } = criarMocks({
+      headers: { authorization: `Bearer ${rs256Token}` },
+    });
+    await AuthMiddleware.verificar(req, res, next);
+
+    assert.strictEqual(captured.status, null, 'não deve retornar status de erro');
+    assert.strictEqual(next.calls.length, 1, 'next() deve ser chamado');
+    assert.strictEqual(req.user?.id, UUID_TEST);
+    assert.strictEqual(req.user?.email, 'rs256@barberflow.com');
+  });
+
+  test('RS256 + getUser retorna erro → 401', async () => {
+    // Usa iat diferente para garantir token distinto (não confundir com cache do teste anterior)
+    const rs256Token = jwt.sign(
+      { sub: UUID_TEST, email: 'rs256@barberflow.com', iat: Math.floor(Date.now() / 1000) + 2 },
+      privateKey,
+      { algorithm: 'RS256', expiresIn: '1h' },
+    );
+
+    SupabaseClient.getInstance = () => ({
+      auth: {
+        getUser: async () => ({ data: null, error: new Error('token inválido') }),
+      },
+    });
+
+    const { req, res, next, captured } = criarMocks({
+      headers: { authorization: `Bearer ${rs256Token}` },
+    });
+    await AuthMiddleware.verificar(req, res, next);
+
+    assert.strictEqual(captured.status, 401);
+    assert.strictEqual(captured.body?.ok, false);
+    assert.strictEqual(next.calls.length, 0);
+  });
 });
