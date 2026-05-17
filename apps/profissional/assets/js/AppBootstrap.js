@@ -16,6 +16,8 @@
 
 class AppBootstrap {
 
+  static #initialized = false; // guard: evita dupla inicialização
+
   // Widgets sem dependência Supabase — disparo paralelo (fire-and-forget)
   static #WIDGETS_PARALELO = [
     { label: 'ProfissionalStartupSplash', fn: () => ProfissionalStartupSplash.init()   },
@@ -47,6 +49,9 @@ class AppBootstrap {
   ];
 
   static init() {
+    if (AppBootstrap.#initialized) return;
+    AppBootstrap.#initialized = true;
+
     // 1. Widgets sem Supabase: disparo simultâneo (não bloqueiam a UI)
     AppBootstrap.#WIDGETS_PARALELO.forEach(({ label, fn }) => {
       try { fn(); } catch (e) { LoggerService.warn(`[AppBootstrap] ${label} falhou:`, e?.message); }

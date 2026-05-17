@@ -24,6 +24,7 @@ class GeoService {
   static #ultimoSalvo        = null;            // Date.now() do ultimo save na BFF
   static #salvandoNaBff      = false;           // lock: evita chamadas concorrentes ao patch
   static #watchId            = null;            // ID do watchPosition ativo (ou null)
+  static #solicitando        = false;           // guard: evita solicitarNaPrimeiraVez() duplicado
 
   static #LS_POSITION_KEY = 'geo:last_position';        // chave localStorage
   static #STORAGE_KEY     = 'sb-jfvjisqnzapxxagkbxcu-auth-token'; // token Supabase
@@ -72,6 +73,8 @@ class GeoService {
    * - Se negado agora: tenta fallback do banco (ultima posicao salva)
    */
   static async solicitarNaPrimeiraVez() {
+    if (GeoService.#solicitando) return;
+    GeoService.#solicitando = true;
     if (!navigator.geolocation) {
       GeoService.#tentarFallbackBanco();
       return;

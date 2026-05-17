@@ -18,6 +18,7 @@ class NearbyBarbershopsWidget {
   static #el                     = null;   // container raiz no HTML
   static #buscaEncerrada         = false;  // true após "nenhuma barbearia" — não rebusca
   static #listenersGeoRegistrados = false; // guard: evita duplicar listeners em re-init SPA
+  static #carregando             = false;  // guard: evita #carregar() concorrente (race condition)
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -38,8 +39,8 @@ class NearbyBarbershopsWidget {
     // Escuta eventos de GPS do GeoService — registra apenas uma vez (guard anti-leak em re-init SPA)
     if (!NearbyBarbershopsWidget.#listenersGeoRegistrados) {
       NearbyBarbershopsWidget.#listenersGeoRegistrados = true;
-      document.addEventListener('geo:concedido', () => NearbyBarbershopsWidget.onGPSConcedido(), { once: false });
-      document.addEventListener('geo:negado',    () => NearbyBarbershopsWidget.onGPSNegado(),    { once: false });
+      document.addEventListener('geo:concedido', () => NearbyBarbershopsWidget.onGPSConcedido(), { once: true });
+      document.addEventListener('geo:negado',    () => NearbyBarbershopsWidget.onGPSNegado(),    { once: true });
     }
 
     const permissao = await GeoService.verificarPermissao();
@@ -394,10 +395,12 @@ class NearbyBarbershopsWidget {
 
 
   static async #carregar() {
-    NearbyBarbershopsWidget.#buscaEncerrada = false;
-    NearbyBarbershopsWidget.#atualizarContador(-1); // estado: buscando
-    NearbyBarbershopsWidget.#renderLoading();
+    if (NearbyBarbershopsWidget.#carregando) return;
+    NearbyBarbershopsWidget.#carregando = true;
     try {
+      NearbyBarbershopsWidget.#buscaEncerrada = false;
+      NearbyBarbershopsWidget.#atualizarContador(-1); // estado: buscando
+      NearbyBarbershopsWidget.#renderLoading();
       const pos   = await GeoService.obter();
       const lista = await NearbyBarbershopsWidget.#buscarBarbearias(pos.lat, pos.lng);
       NearbyBarbershopsWidget.#atualizarContador(lista.length);
@@ -406,7 +409,9 @@ class NearbyBarbershopsWidget {
         : NearbyBarbershopsWidget.#renderVazio();
     } catch (_err) {
       // silencioso — se GPS falhar o hint original não está mais, limpa
-      NearbyBarbershopsWidget.#el.innerHTML = '';
+      if (NearbyBarbershopsWidget.#el) NearbyBarbershopsWidget.#el.innerHTML = '';
+    } finally {
+      NearbyBarbershopsWidget.#carregando = false;
     }
   }
 
