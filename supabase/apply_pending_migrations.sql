@@ -1159,6 +1159,38 @@ AS $$
   LIMIT limit_val;
 $$;
 
+-- ────────────────────────────────────────────────────────────────
+-- 20. BARBERSHOPS — colunas opcionais garantidas idempotentemente
+--     Migration: 20260517000004_barbershops_missing_columns.sql
+--
+-- Adiciona IF NOT EXISTS: likes_count, dislikes_count, rating_score,
+-- font_key, close_reason — colunas adicionadas por migrations de Abril
+-- que podem não existir em instâncias Supabase mais antigas.
+-- Também garante a policy de leitura pública para a role anon.
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS likes_count     INTEGER       NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS dislikes_count  INTEGER       NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rating_score    NUMERIC(3,1)  NOT NULL DEFAULT 0.0,
+  ADD COLUMN IF NOT EXISTS font_key        TEXT,
+  ADD COLUMN IF NOT EXISTS close_reason    TEXT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename  = 'barbershops'
+      AND policyname = 'anon_select_active_barbershops'
+  ) THEN
+    CREATE POLICY "anon_select_active_barbershops"
+      ON public.barbershops
+      FOR SELECT
+      TO anon
+      USING (is_active = TRUE);
+  END IF;
+END $$;
+
 -- ================================================================
 -- FIM FINAL — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
