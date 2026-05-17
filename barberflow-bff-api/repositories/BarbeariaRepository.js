@@ -129,7 +129,10 @@ class BarbeariaRepository extends BaseRepository {
       .order('rating_count', { ascending: false })
       .limit(limit);
 
-    if (error) this._throwDbError(error, 'getFeatured (fallback)');
+    if (error) {
+      this._warn('getFeatured (fallback)', error);
+      this._throwDbError(error, 'getFeatured (fallback)');
+    }
     return data ?? [];
   }
 
