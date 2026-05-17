@@ -7,6 +7,7 @@
 
 const { describe, it, before, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
+const { fn } = require('./_helpers.js');
 
 // ── Minimal DOM/BOM shim ─────────────────────────────────────
 function makeBOMShim() {
@@ -34,9 +35,25 @@ function makeBOMShim() {
     configurable: true,
   });
 
-  global.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+  global.requestAnimationFrame = (cb) => setTimeout(cb, 0);
 
   let bodyChildren = [];
+
+  // getElementById com busca recursiva — encontra elementos aninhados (ex: botão dentro do banner)
+  const _getElementById = (id) => {
+    function buscar(lista) {
+      for (const el of lista) {
+        if (el.id === id) return el;
+        if (el._children?.length) {
+          const achado = buscar(el._children);
+          if (achado) return achado;
+        }
+      }
+      return null;
+    }
+    return buscar(bodyChildren);
+  };
+
   global.document = {
     body: {
       appendChild: (el) => { bodyChildren.push(el); },
@@ -45,7 +62,7 @@ function makeBOMShim() {
       const el = {
         tag,
         id: '', className: '', hidden: false,
-        _attrs: {}, _classes: new Set(), _children: [],
+        _attrs: {}, _classes: new Set(), _children: [], _events: {},
         classList: {
           add:    (...c) => c.forEach(x => el._classes.add(x)),
           remove: (...c) => c.forEach(x => el._classes.delete(x)),
@@ -53,13 +70,19 @@ function makeBOMShim() {
         },
         setAttribute:    (k, v) => { el._attrs[k] = v; },
         getAttribute:    (k)    => el._attrs[k] ?? null,
-        addEventListener: () => {},
+        // Armazena listeners para permitir disparo programático em testes
+        addEventListener: (evt, cb) => {
+          el._events[evt] = el._events[evt] ?? [];
+          el._events[evt].push(cb);
+        },
+        // Disparo de click programático (usado nos testes de instalação)
+        click: () => (el._events['click'] ?? []).forEach(cb => cb()),
         appendChild:     (child) => { el._children.push(child); },
         get offsetHeight() { return 0; },
       };
       return el;
     },
-    getElementById:   (id) => bodyChildren.find(c => c.id === id) ?? null,
+    getElementById:   _getElementById,
     querySelector:    () => null,
     querySelectorAll: () => [],
   };
@@ -73,6 +96,8 @@ function makeBOMShim() {
       Object.keys(winListeners).forEach(k => delete winListeners[k]);
       global.window.matchMedia = () => ({ matches: false });
       navigator.standalone = undefined;
+      // Restaura getElementById após testes que o sobrescrevem manualmente
+      document.getElementById = _getElementById;
     },
   };
 }
@@ -139,5 +164,64 @@ describe('PWAInstallBanner (shared)', () => {
       shim.winListeners['appinstalled'].length > 0,
       'deve escutar appinstalled'
     );
+  });
+
+  // ── Novos testes: botão instalável e fluxo de userChoice ──
+
+  it('botão instalar está oculto antes do evento beforeinstallprompt', () => {
+    PWAInstallBanner.init();
+    const btn = document.getElementById('pwa-install-btn');
+    assert.ok(btn, 'botão pwa-install-btn deve existir no DOM');
+    assert.equal(btn.hidden, true, 'botão deve estar oculto enquanto app não é instalável');
+  });
+
+  it('botão instalar fica visível ao receber evento beforeinstallprompt', () => {
+    PWAInstallBanner.init();
+    const fakeEvent = {
+      preventDefault: fn(),
+      prompt:         fn().mockResolvedValue(undefined),
+      userChoice:     Promise.resolve({ outcome: 'dismissed' }),
+    };
+    (shim.winListeners['beforeinstallprompt'] ?? []).forEach(cb => cb(fakeEvent));
+
+    const btn = document.getElementById('pwa-install-btn');
+    assert.equal(btn?.hidden, false, 'botão deve aparecer quando app é instalável');
+  });
+
+  it('prompt() é chamado ao clicar no botão instalar', async () => {
+    PWAInstallBanner.init();
+    const promptMock = fn().mockResolvedValue(undefined);
+    const fakeEvent = {
+      preventDefault: fn(),
+      prompt:         promptMock,
+      userChoice:     Promise.resolve({ outcome: 'dismissed' }),
+    };
+    (shim.winListeners['beforeinstallprompt'] ?? []).forEach(cb => cb(fakeEvent));
+
+    const btn = document.getElementById('pwa-install-btn');
+    btn?.click();
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    assert.equal(promptMock.calls.length, 1, 'prompt() deve ser chamado exatamente uma vez ao clicar');
+  });
+
+  it('banner é fechado quando usuário recusa o prompt (outcome dismissed)', async () => {
+    PWAInstallBanner.init();
+    const fakeEvent = {
+      preventDefault: fn(),
+      prompt:         fn().mockResolvedValue(undefined),
+      userChoice:     Promise.resolve({ outcome: 'dismissed' }),
+    };
+    (shim.winListeners['beforeinstallprompt'] ?? []).forEach(cb => cb(fakeEvent));
+
+    const btn = document.getElementById('pwa-install-btn');
+    btn?.click();
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const banner = document.getElementById('pwa-install-banner');
+    const visivel = banner?._classes.has('pwa-banner--visivel');
+    assert.equal(visivel, false, 'banner não deve permanecer visível após o usuário recusar');
   });
 });

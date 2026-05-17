@@ -39,6 +39,12 @@ class PWAInstallBanner {
   /** Instalado com sucesso — não exibir mais. */
   static #instalado = false;
 
+  /** Referência direta ao botão de instalação. */
+  static #btnInstalar = null;
+
+  /** Controla se o banner deve ser mostrado (cancela rAF pendente se fechado antes de pintar). */
+  static #aberto = false;
+
   // ── Configuráveis por app ─────────────────────────────────
   /** Caminho do ícone exibido no banner (definir antes de init). */
   static iconSrc = '/shared/img/icon-192-cliente.png';
@@ -157,10 +163,10 @@ class PWAInstallBanner {
     btnInstalar.textContent  = 'Instalar';
     btnInstalar.addEventListener('click', () => PWAInstallBanner.#instalar());
 
-    // No iOS não há prompt — esconde o botão de instalação
-    if (PWAInstallBanner.#isIOS()) {
-      btnInstalar.hidden = true;
-    }
+    // Botão fica oculto até beforeinstallprompt confirmar que o app é instalável.
+    // Em iOS não há prompt nativo — instrução manual é o único caminho.
+    btnInstalar.hidden = true;
+    PWAInstallBanner.#btnInstalar = btnInstalar;
 
     const btnFechar = document.createElement('button');
     btnFechar.className   = 'pwa-banner__fechar';
@@ -209,8 +215,7 @@ class PWAInstallBanner {
    * depois da injeção do banner.
    */
   static #atualizarBotao() {
-    const btn = document.getElementById('pwa-install-btn');
-    if (btn) btn.hidden = false;
+    if (PWAInstallBanner.#btnInstalar) PWAInstallBanner.#btnInstalar.hidden = false;
   }
 
   /**
@@ -220,8 +225,12 @@ class PWAInstallBanner {
     const b = PWAInstallBanner.#banner;
     if (!b) return;
     b.hidden = false;
-    // requestAnimationFrame garante frame boundary sem forçar reflow síncrono
-    requestAnimationFrame(() => b.classList.add('pwa-banner--visivel'));
+    PWAInstallBanner.#aberto = true;
+    // requestAnimationFrame garante frame boundary sem forçar reflow síncrono.
+    // Verifica #aberto para cancelar se #fechar() for chamado antes do paint.
+    requestAnimationFrame(() => {
+      if (PWAInstallBanner.#aberto) b.classList.add('pwa-banner--visivel');
+    });
   }
 
   /**
@@ -231,6 +240,7 @@ class PWAInstallBanner {
   static #fechar(permanente = false) {
     const b = PWAInstallBanner.#banner;
     if (!b) return;
+    PWAInstallBanner.#aberto = false;
     b.classList.remove('pwa-banner--visivel');
     const onEnd = () => {
       b.hidden = true;
@@ -254,6 +264,9 @@ class PWAInstallBanner {
       if (outcome === 'accepted') {
         PWAInstallBanner.#instalado = true;
         PWAInstallBanner.#fechar(true);
+      } else {
+        // Usuário recusou — fecha o banner sem marcar como instalado
+        PWAInstallBanner.#fechar();
       }
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
