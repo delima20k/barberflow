@@ -294,7 +294,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `BaseValidator` | [barberflow-bff-api/validators/BaseValidator.js](barberflow-bff-api/validators/BaseValidator.js) | infra | Wrapper OOP sobre `shared/js/InputValidator`. Métodos estáticos que lançam `AppError(400)`: `uuid`, `email`, `texto`, `enum`, `nome`, `payload`, `coordenada`. |
-| `BaseRepository` | [barberflow-bff-api/repositories/BaseRepository.js](barberflow-bff-api/repositories/BaseRepository.js) | infra | Classe base para repositórios da BFF. `#db` (Supabase client injetado), `#nome`. Helpers: `_uuid`, `_email`, `_payload`, `_texto`, `_coordenada`, `_throwDbError`. |
+| `BaseRepository` | [barberflow-bff-api/repositories/BaseRepository.js](barberflow-bff-api/repositories/BaseRepository.js) | infra | Classe base para repositórios da BFF. `#db` (Supabase client injetado), `#nome`. Helpers: `_uuid`, `_email`, `_payload`, `_texto`, `_coordenada`, `_throwDbError`, `_warn`. |
 | `BaseService` | [barberflow-bff-api/services/BaseService.js](barberflow-bff-api/services/BaseService.js) | application | Classe base para serviços da BFF. Helpers: `_uuid`, `_email`, `_texto`, `_enum`, `_nome`, `_coordenada`, `_erro(msg, status)`. |
 | `BaseController` | [barberflow-bff-api/controllers/BaseController.js](barberflow-bff-api/controllers/BaseController.js) | interfaces | Classe base OOP para controllers da BFF (único `BaseController` do projeto). Métodos: `success`, `created`, `noContent`, `notFound`, `fail`, `handle(res, fn)`, `_erro`. |
 

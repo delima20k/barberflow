@@ -13,25 +13,24 @@ process.env.SUPABASE_ANON_KEY         = 'test-anon-key';
 // ── Stub do SupabaseClient — deve vir ANTES do require('../app') ──
 // Sobrescreve getInstance para retornar um cliente falso que
 // responde todas as queries com { data: [], error: null }.
+// mockDb exposto no escopo de módulo para permitir override em testes de fallback.
 const SupabaseClient = require('../utils/SupabaseClient');
-{
-  const qb = () => {
-    const q = {
-      select:  () => q,
-      eq:      () => q,
-      gte:     () => q,
-      lte:     () => q,
-      order:   () => q,
-      limit:   () => Promise.resolve({ data: [], error: null }),
-    };
-    return q;
+const _qb = () => {
+  const q = {
+    select:  () => q,
+    eq:      () => q,
+    gte:     () => q,
+    lte:     () => q,
+    order:   () => q,
+    limit:   () => Promise.resolve({ data: [], error: null }),
   };
-  const mockDb = {
-    from: qb,
-    rpc:  () => Promise.resolve({ data: [], error: null }),
-  };
-  SupabaseClient.getInstance = () => mockDb;
-}
+  return q;
+};
+const mockDb = {
+  from: _qb,
+  rpc:  () => Promise.resolve({ data: [], error: null }),
+};
+SupabaseClient.getInstance = () => mockDb;
 
 const criarApp = require('../app');
 
@@ -181,6 +180,64 @@ suite('BarbeariaController — GET /api/v1/barbearias/todas', () => {
 
   test('400 com limit não numérico', async () => {
     const { status, body } = await get('/api/v1/barbearias/todas?limit=xyz');
+    assert.strictEqual(status, 400);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('400 com limit = 0 (abaixo do mínimo)', async () => {
+    const { status, body } = await get('/api/v1/barbearias/todas?limit=0');
+    assert.strictEqual(status, 400);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('400 com limit = 101 (acima do máximo)', async () => {
+    const { status, body } = await get('/api/v1/barbearias/todas?limit=101');
+    assert.strictEqual(status, 400);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('200 com array vazio quando banco não tem barbearias', async () => {
+    const { status, body } = await get('/api/v1/barbearias/todas');
+    assert.strictEqual(status, 200);
+    assert.ok(Array.isArray(body.dados));
+  });
+
+});
+
+suite('BarbeariaController — GET /api/v1/barbearias (fallback bounding-box)', () => {
+
+  // Guarda referência original do mock de rpc para restaurar após a suíte
+  let rpcOriginal;
+
+  before(() => {
+    rpcOriginal  = mockDb.rpc;
+    // Simula RPC indisponível (PostGIS não instalado — PGRST202)
+    mockDb.rpc = () => Promise.resolve({
+      data:  null,
+      error: {
+        code:    'PGRST202',
+        message: 'Could not find the function public.get_barbershops_nearby(lat, limit_val, lng, raio_metros) in the schema cache',
+      },
+    });
+  });
+
+  after(() => {
+    mockDb.rpc = rpcOriginal;
+  });
+
+  test('retorna 200 mesmo quando RPC falha (fallback bounding-box ativo)', async () => {
+    const { status, body } = await get('/api/v1/barbearias?lat=-15.79&lng=-47.88');
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+  });
+
+  test('retorna array em dados via fallback', async () => {
+    const { body } = await get('/api/v1/barbearias?lat=-15.79&lng=-47.88');
+    assert.ok(Array.isArray(body.dados), 'dados deve ser array mesmo via fallback');
+  });
+
+  test('400 com raio abaixo do mínimo permitido (< 5)', async () => {
+    const { status, body } = await get('/api/v1/barbearias?lat=-15.79&lng=-47.88&raio=1');
     assert.strictEqual(status, 400);
     assert.strictEqual(body.ok, false);
   });

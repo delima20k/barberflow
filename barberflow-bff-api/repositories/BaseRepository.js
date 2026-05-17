@@ -114,6 +114,16 @@ class BaseRepository {
       : `[${this.#nome}] falha no banco de dados.`;
     throw AppError.internal(msg);
   }
+
+  /**
+   * Loga aviso não-fatal (ex: fallback de serviço degradado).
+   * Não lança exceção — uso exclusivo para degradação controlada.
+   * @param {string} ctx   — contexto da operação
+   * @param {object} error — erro original (nunca exposto ao cliente)
+   */
+  _warn(ctx, error) {
+    logger.warn({ repo: this.#nome, op: ctx, err: error }, '[BFF] fallback ativado');
+  }
 }
 
 module.exports = BaseRepository;
