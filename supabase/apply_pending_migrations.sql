@@ -1068,3 +1068,98 @@ $$;
 -- FIM — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
 -- ================================================================
+
+
+-- ────────────────────────────────────────────────────────────────
+-- 19. POSTGIS — busca de barbearias por proximidade geográfica
+--     Migration: 20260517000001_postgis_barbershops.sql
+--
+-- Habilita PostGIS, adiciona coluna geom, popula dados existentes,
+-- cria índice GIST e a RPC get_barbershops_nearby usada pelo BFF.
+-- Idempotente: todas as operações usam IF NOT EXISTS / CREATE OR REPLACE.
+-- ────────────────────────────────────────────────────────────────
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+ALTER TABLE barbershops
+  ADD COLUMN IF NOT EXISTS geom GEOMETRY(Point, 4326);
+
+UPDATE barbershops
+SET geom = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+WHERE latitude  IS NOT NULL
+  AND longitude IS NOT NULL
+  AND geom      IS NULL;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_barbershops_geom
+  ON barbershops USING GIST (geom);
+
+CREATE OR REPLACE FUNCTION sync_barbershop_geom()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL THEN
+    NEW.geom = ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_barbershop_geom ON barbershops;
+CREATE TRIGGER trg_sync_barbershop_geom
+  BEFORE INSERT OR UPDATE OF latitude, longitude ON barbershops
+  FOR EACH ROW EXECUTE FUNCTION sync_barbershop_geom();
+
+CREATE OR REPLACE FUNCTION get_barbershops_nearby(
+  lat         DOUBLE PRECISION,
+  lng         DOUBLE PRECISION,
+  raio_metros DOUBLE PRECISION,
+  limit_val   INT DEFAULT 50
+)
+RETURNS TABLE (
+  id             UUID,
+  name           TEXT,
+  address        TEXT,
+  city           TEXT,
+  latitude       DOUBLE PRECISION,
+  longitude      DOUBLE PRECISION,
+  logo_path      TEXT,
+  cover_path     TEXT,
+  is_open        BOOLEAN,
+  close_reason   TEXT,
+  rating_avg     NUMERIC,
+  rating_count   INT,
+  rating_score   NUMERIC,
+  likes_count    INT,
+  dislikes_count INT,
+  font_key       TEXT,
+  distancia_m    DOUBLE PRECISION
+)
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    b.id, b.name, b.address, b.city,
+    b.latitude, b.longitude,
+    b.logo_path, b.cover_path,
+    b.is_open, b.close_reason,
+    b.rating_avg, b.rating_count, b.rating_score,
+    b.likes_count, b.dislikes_count, b.font_key,
+    ST_Distance(
+      b.geom::geography,
+      ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography
+    ) AS distancia_m
+  FROM barbershops b
+  WHERE
+    b.is_active = TRUE
+    AND b.geom IS NOT NULL
+    AND ST_DWithin(
+      b.geom::geography,
+      ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography,
+      raio_metros
+    )
+  ORDER BY distancia_m ASC
+  LIMIT limit_val;
+$$;
+
+-- ================================================================
+-- FIM FINAL — execute este arquivo completo no SQL Editor do Supabase:
+-- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+-- ================================================================
