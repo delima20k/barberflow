@@ -47,7 +47,10 @@ class BarbeariaApiClient {
       error?.message,
     );
 
-    return BarbershopRepository.getNearby(lat, lng, raioKm).catch(() => []);
+    return BarbershopRepository.getNearby(lat, lng, raioKm).catch((e) => {
+      LoggerService.warn('[BarbeariaApiClient] getNearby: fallback Supabase falhou.', e?.message);
+      return [];
+    });
   }
 
   /**
@@ -69,12 +72,15 @@ class BarbeariaApiClient {
       error?.message,
     );
 
-    return BarbershopRepository.getFeatured(limit).catch(() => []);
+    return BarbershopRepository.getFeatured(limit).catch((e) => {
+      LoggerService.warn('[BarbeariaApiClient] getDestaque: fallback Supabase falhou.', e?.message);
+      return [];
+    });
   }
 
   /**
    * Lista todas as barbearias ativas por popularidade.
-   * Fallback para BarboshopRepository.getAllByCortes() se BFF falhar.
+   * Fallback para BarbershopRepository.getAll() se BFF falhar.
    *
    * @param {number} [limit=60]
    * @returns {Promise<object[]>}
@@ -91,7 +97,10 @@ class BarbeariaApiClient {
       error?.message,
     );
 
-    return BarbershopRepository.getAllByCortes(limit).catch(() => []);
+    return BarbershopRepository.getAll(limit).catch((e) => {
+      LoggerService.warn('[BarbeariaApiClient] getTodas: fallback Supabase falhou.', e?.message);
+      return [];
+    });
   }
 
   // ── Privados ─────────────────────────────────────────────────────
