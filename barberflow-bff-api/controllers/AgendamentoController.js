@@ -22,13 +22,17 @@ class AgendamentoController extends BaseController {
   }
 
   /**
-   * GET /api/agendamentos
-   * Lista os agendamentos do usuário autenticado.
+   * GET /api/agendamentos[?cursor=<scheduled_at>&limit=20]
+   * Lista os agendamentos do usuário autenticado com cursor pagination.
+   * Retorna { items: [...], nextCursor: string|null }.
    */
   async listar(req, res) {
     await this.handle(res, async () => {
-      const dados = await this.#service.listar(req.user.id);
-      this.success(res, dados);
+      const cursor = req.query.cursor ?? undefined;
+      const limit  = req.query.limit ? Math.min(Number(req.query.limit) || 20, 100) : 20;
+
+      const resultado = await this.#service.listar(req.user.id, { cursor, limit });
+      this.success(res, resultado.items, { nextCursor: resultado.nextCursor });
     });
   }
 

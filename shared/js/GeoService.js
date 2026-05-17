@@ -279,8 +279,8 @@ class GeoService {
 
     GeoService.#debug('[GeoService] #salvarNaBff', { lat, lng });
 
-    // 2) Envia para BFF autenticada
-    if (typeof BffApiService === 'undefined') return;
+    // 2) Envia para BFF autenticada — só se houver token válido
+    if (typeof BffApiService === 'undefined' || !BffApiService.temTokenValido()) return;
     try {
       const { error } = await BffApiService.patch(
         '/api/v1/clientes/localizacao',

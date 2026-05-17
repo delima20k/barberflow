@@ -50,7 +50,10 @@ class PushService {
       .eq('app_id',   'profissional')
       .eq('is_valid', true);
 
-    if (!subs?.length) return { enviados: 0, invalidas: 0 };
+    if (!subs?.length) {
+      console.warn('[PushService] Nenhuma subscription válida para profissional:', professionalId);
+      return { enviados: 0, invalidas: 0 };
+    }
 
     const isCaminho = type === 'client_not_seated';
     const title     = isCaminho

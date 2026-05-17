@@ -108,6 +108,34 @@ class BaseService {
     if (!r.ok) throw Object.assign(new Error(r.msg), { status: 400 });
   }
 
+  // ── Validação de contrato de repositório (duck-typing) ──────
+
+  /**
+   * Valida que o objeto injetado implementa os métodos esperados.
+   * Lança TypeError imediatamente no construtor da subclasse — falha
+   * cedo e com mensagem clara em vez de TypeError tardio em runtime.
+   *
+   * @param {object}   repo    — repositório injetado
+   * @param {string[]} metodos — lista de nomes de método exigidos
+   * @throws {TypeError} se qualquer método estiver ausente ou não for função
+   *
+   * @example
+   *   constructor(repo) {
+   *     super('BarbeariaService');
+   *     this._validarRepo(repo, ['getNearby', 'getFeatured', 'getAll']);
+   *     this.#repo = repo;
+   *   }
+   */
+  _validarRepo(repo, metodos) {
+    for (const m of metodos) {
+      if (typeof repo?.[m] !== 'function') {
+        throw new TypeError(
+          `[${this.constructor.name}] o repositório injetado deve implementar o método "${m}()".`
+        );
+      }
+    }
+  }
+
   // ── Factory de erro ──────────────────────────────────────────
 
   /**

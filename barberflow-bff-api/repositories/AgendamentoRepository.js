@@ -1,6 +1,7 @@
 'use strict';
 
 const BaseRepository = require('./BaseRepository');
+const AppError       = require('../utils/AppError');
 
 /**
  * AgendamentoRepository — Acesso a dados de agendamentos via Supabase.
@@ -37,23 +38,38 @@ class AgendamentoRepository extends BaseRepository {
   }
 
   /**
-   * Lista agendamentos do cliente em ordem cronológica decrescente.
+   * Lista agendamentos do cliente com suporte a cursor pagination.
    * @param {string} clientId — UUID do cliente
-   * @param {number} [limit=50]
-   * @returns {Promise<object[]>}
+   * @param {object} [opts]
+   * @param {string} [opts.cursor]  — valor de `scheduled_at` da última linha da página anterior
+   * @param {number} [opts.limit=20]
+   * @returns {Promise<{ items: object[], nextCursor: string|null }>}
    */
-  async getByCliente(clientId, limit = 50) {
+  async getByCliente(clientId, { cursor, limit = 20 } = {}) {
     this._uuid('client_id', clientId);
 
-    const { data, error } = await this._db
+    const pageSize = Math.min(Math.max(1, limit), 100);
+
+    let query = this._db
       .from('appointments')
       .select(AgendamentoRepository.#SELECT)
       .eq('client_id', clientId)
       .order('scheduled_at', { ascending: false })
-      .limit(limit);
+      .limit(pageSize + 1); // +1 para detectar se há próxima página
 
+    if (cursor) query = query.lt('scheduled_at', cursor);
+
+    const { data, error } = await query;
     if (error) this._throwDbError(error, 'getByCliente');
-    return data ?? [];
+
+    const rows    = data ?? [];
+    const hasMore = rows.length > pageSize;
+    const items   = hasMore ? rows.slice(0, pageSize) : rows;
+
+    return {
+      items,
+      nextCursor: hasMore ? items[items.length - 1].scheduled_at : null,
+    };
   }
 
   /**
@@ -76,21 +92,36 @@ class AgendamentoRepository extends BaseRepository {
   }
 
   /**
-   * Cria um novo agendamento.
+   * Cria um agendamento via RPC atômica (resolve race condition).
+   * A função PostgreSQL `criar_agendamento_atomico` usa advisory lock
+   * por profissional e verifica conflitos dentro da mesma transação.
    * @param {object} dados — campos validados pelo serviço
-   * @returns {Promise<object>}
+   * @returns {Promise<object>} — agendamento com joins completos
    */
-  async criar(dados) {
-    const payload = this._payload(dados, AgendamentoRepository.#CAMPOS_CRIACAO);
+  async criarAtomico(dados) {
+    const p = this._payload(dados, AgendamentoRepository.#CAMPOS_CRIACAO);
 
     const { data, error } = await this._db
-      .from('appointments')
-      .insert(payload)
-      .select(AgendamentoRepository.#SELECT)
+      .rpc('criar_agendamento_atomico', {
+        p_client_id:       p.client_id,
+        p_professional_id: p.professional_id,
+        p_barbershop_id:   p.barbershop_id,
+        p_service_id:      p.service_id,
+        p_scheduled_at:    p.scheduled_at,
+        p_duration_min:    p.duration_min,
+        p_notes:           p.notes          ?? null,
+        p_price_charged:   p.price_charged  ?? null,
+      })
       .single();
 
-    if (error) this._throwDbError(error, 'criar');
-    return data;
+    // P0001 = exceção definida pelo usuário (SCHEDULE_CONFLICT)
+    if (error?.code === 'P0001') {
+      throw AppError.conflict('Horário não disponível: conflito com agendamento existente.');
+    }
+    if (error) this._throwDbError(error, 'criarAtomico');
+
+    // Busca com joins completos (RPC retorna apenas colunas brutas)
+    return this.getById(data.id);
   }
 
   /**
@@ -115,6 +146,7 @@ class AgendamentoRepository extends BaseRepository {
 
   /**
    * Busca agendamentos do profissional em uma janela de tempo para verificar conflitos.
+   * Mantido para uso direto (ex: diagnóstico, admin) — criação usa criarAtomico().
    * @param {string} professionalId
    * @param {Date}   inicio — início da janela de busca
    * @param {Date}   fim    — fim da janela

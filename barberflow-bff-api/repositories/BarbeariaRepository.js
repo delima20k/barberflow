@@ -37,29 +37,25 @@ class BarbeariaRepository extends BaseRepository {
   // ── Consultas ────────────────────────────────────────────────────
 
   /**
-   * Busca barbearias dentro de um bounding-box geográfico.
-   * Filtro Haversine preciso é aplicado na camada de serviço.
+   * Busca barbearias dentro de um raio geográfico via PostGIS ST_DWithin.
+   * Retorna resultados já ordenados por distância real (em metros).
+   * Requer: migration 20260517000001_postgis_barbershops.sql aplicada.
    *
    * @param {number} lat
    * @param {number} lng
-   * @param {number} latDelta
-   * @param {number} lngDelta
+   * @param {number} raioKm
    * @param {number} [limit=50]
    * @returns {Promise<object[]>}
    */
-  async getNearby(lat, lng, latDelta, lngDelta, limit = 50) {
+  async getNearby(lat, lng, raioKm, limit = 50) {
     this._coordenada(lat, lng);
 
-    const { data, error } = await BarbeariaRepository.#ordenar(
-      this._db
-        .from('barbershops')
-        .select(BarbeariaRepository.#SELECT)
-        .eq('is_active', true)
-        .gte('latitude',  lat - latDelta)
-        .lte('latitude',  lat + latDelta)
-        .gte('longitude', lng - lngDelta)
-        .lte('longitude', lng + lngDelta),
-    ).limit(limit);
+    const { data, error } = await this._db.rpc('get_barbershops_nearby', {
+      lat,
+      lng,
+      raio_metros: raioKm * 1000,
+      limit_val:   limit,
+    });
 
     if (error) this._throwDbError(error, 'getNearby');
     return data ?? [];

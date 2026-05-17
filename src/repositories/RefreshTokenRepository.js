@@ -48,31 +48,35 @@ class RefreshTokenRepository extends BaseRepository {
    * Persiste novo refresh token (armazena apenas o hash SHA-256).
    *
    * @param {string}  userId
-   * @param {string}  token       — token em texto puro (será hashed internamente)
+   * @param {string}  token        — token em texto puro (será hashed internamente)
    * @param {Date}    expiresAt
    * @param {string}  [deviceHint] — ex: 'iOS 18 / iPhone 15 Pro'
    * @param {string}  [ipAddress]  — IP do cliente
-   * @returns {Promise<{ id: string }>}
+   * @param {string}  [familyId]   — UUID da família de tokens; null = novo login (DB gera UUID)
+   * @returns {Promise<{ id: string, familyId: string }>}
    */
-  async salvar(userId, token, expiresAt, deviceHint = null, ipAddress = null) {
+  async salvar(userId, token, expiresAt, deviceHint = null, ipAddress = null, familyId = null) {
     this._validarUuid('userId', userId);
     if (!token)                          throw new TypeError('token é obrigatório.');
     if (!(expiresAt instanceof Date))    throw new TypeError('expiresAt deve ser uma instância de Date.');
 
+    const row = {
+      user_id:     userId,
+      token_hash:  RefreshTokenRepository.#hashToken(token),
+      expires_at:  expiresAt.toISOString(),
+      device_hint: deviceHint,
+      ip_address:  ipAddress ?? null,
+    };
+    if (familyId) row.family_id = familyId;  // omitir → DB usa DEFAULT gen_random_uuid()
+
     const { data, error } = await this.#supabase
       .from('refresh_tokens')
-      .insert({
-        user_id:     userId,
-        token_hash:  RefreshTokenRepository.#hashToken(token),
-        expires_at:  expiresAt.toISOString(),
-        device_hint: deviceHint,
-        ip_address:  ipAddress ?? null,
-      })
-      .select('id')
+      .insert(row)
+      .select('id, family_id')
       .single();
 
     if (error) throw error;
-    return data;
+    return { id: data.id, familyId: data.family_id };
   }
 
   // ── Leitura ───────────────────────────────────────────────
@@ -105,7 +109,50 @@ class RefreshTokenRepository extends BaseRepository {
       id:        data.id,
       userId:    data.user_id,
       expiresAt: data.expires_at,
+      familyId:  data.family_id,
     };
+  }
+
+  // ── Cascade revocation ────────────────────────────────────────
+
+  /**
+   * Busca o family_id de um token, MESMO se já revogado.
+   * Usado na detecção de compromisso: se o token foi revogado e alguém
+   * tenta reutilizá-lo, encontramos a família e revogamos tudo.
+   *
+   * @param {string} token — token em texto puro
+   * @returns {Promise<string | null>} familyId ou null se token não existe
+   */
+  async buscarFamiliaId(token) {
+    if (!token) return null;
+
+    const { data, error } = await this.#supabase
+      .from('refresh_tokens')
+      .select('family_id')
+      .eq('token_hash', RefreshTokenRepository.#hashToken(token))
+      .maybeSingle();
+
+    if (error) throw error;
+    return data?.family_id ?? null;
+  }
+
+  /**
+   * Revoga TODOS os tokens de uma família (cascade revocation).
+   * Chamado quando um token já revogado é reutilizado — sinal de compromisso.
+   *
+   * @param {string} familyId — UUID da família
+   * @returns {Promise<void>}
+   */
+  async revogarFamilia(familyId) {
+    if (!familyId) return;
+
+    const { error } = await this.#supabase
+      .from('refresh_tokens')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('family_id', familyId)
+      .is('revoked_at', null);
+
+    if (error) throw error;
   }
 
   // ── Revogação ─────────────────────────────────────────────

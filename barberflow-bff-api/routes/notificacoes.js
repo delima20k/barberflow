@@ -15,6 +15,8 @@ const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+} else {
+  console.error('[BFF] ⚠️  VAPID_PUBLIC_KEY ou VAPID_PRIVATE_KEY não configuradas — Web Push DESATIVADO. Configure-as nas variáveis de ambiente do Vercel.');
 }
 
 const db   = SupabaseClient.getInstance();

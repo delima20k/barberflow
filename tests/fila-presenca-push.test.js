@@ -170,3 +170,31 @@ suite('FilaPresencaService — BFF push no fluxo _dispararGrace', () => {
     assert.strictEqual(body.clienteNome, 'Maria');
   });
 });
+
+// ─── BFF push: erro logado via LoggerService ─────────────────────────────────
+
+suite('FilaPresencaService — BFF push: erro logado via LoggerService', () => {
+
+  test('loga warn quando BffApiService retorna erro em iniciarFluxo', async () => {
+    const { sandbox } = criarSandbox({
+      BffApiService: {
+        post: fn().mockImplementation(() =>
+          Promise.resolve({ data: null, error: new Error('VAPID não configurado') }),
+        ),
+      },
+    });
+    const { FilaPresencaService, LoggerService } = sandbox;
+
+    await FilaPresencaService.iniciarFluxo(
+      ENTRY_ID,
+      { id: BARBERSHOP_ID, name: 'Barbearia Test' },
+      PROFESSIONAL_ID,
+    );
+    await new Promise(r => setTimeout(r, 0));
+
+    const logado = LoggerService.warn.calls.some(args =>
+      args.some(a => typeof a === 'string' && a.includes('push-barbeiro')),
+    );
+    assert.ok(logado, 'LoggerService.warn deve ser chamado quando BFF retorna erro');
+  });
+});

@@ -9,8 +9,11 @@ const Agendamento = require('../../shared/js/Agendamento');
 /**
  * AgendamentoBffService — Regras de negócio para agendamentos no BFF.
  *
- * Responsabilidade única: orquestrar validação, checagem de conflitos
- * e transições de estado antes de delegar ao repositório.
+ * Responsabilidade única: orquestrar validação e transições de estado
+ * antes de delegar ao repositório.
+ *
+ * Race condition resolvida: criarAtomico() usa RPC PostgreSQL com
+ * advisory lock por profissional — sem double-booking possível.
  */
 class AgendamentoBffService extends BaseService {
 
@@ -23,12 +26,6 @@ class AgendamentoBffService extends BaseService {
     cancelled:   [],
     no_show:     [],
   };
-
-  /**
-   * Janela retroativa de busca de conflitos — cobre a duração máxima de um serviço.
-   * Permite detectar agendamentos anteriores cujo término se sobreponha ao novo horário.
-   */
-  static #JANELA_CONFLITO_MS = 8 * 3_600_000;
 
   /** @type {import('../repositories/AgendamentoRepository')} */
   #repo;
@@ -44,18 +41,22 @@ class AgendamentoBffService extends BaseService {
   // ── Públicos ──────────────────────────────────────────────────────
 
   /**
-   * Lista os agendamentos do cliente autenticado.
+   * Lista os agendamentos do cliente autenticado com cursor pagination.
    * @param {string} clientId — UUID do cliente (extraído do JWT)
-   * @returns {Promise<object[]>}
+   * @param {object} [opts]
+   * @param {string} [opts.cursor]   — cursor da página anterior (scheduled_at)
+   * @param {number} [opts.limit=20]
+   * @returns {Promise<{ items: object[], nextCursor: string|null }>}
    */
-  async listar(clientId) {
+  async listar(clientId, opts = {}) {
     this._uuid('client_id', clientId);
-    return this.#repo.getByCliente(clientId);
+    return this.#repo.getByCliente(clientId, opts);
   }
 
   /**
    * Cria um novo agendamento para o cliente autenticado.
-   * Valida UUIDs, entidade, e detecta conflito de horário.
+   * Valida UUIDs e entidade; a verificação de conflito de horário
+   * é delegada à RPC atômica no banco (sem race condition).
    * @param {object} dados    — body do request (sem client_id)
    * @param {string} clientId — UUID injetado do JWT
    * @returns {Promise<object>}
@@ -74,10 +75,8 @@ class AgendamentoBffService extends BaseService {
     const { ok, erros } = ag.validar();
     if (!ok) throw AppError.badRequest(erros.join('; '));
 
-    // Verificação de conflito de horário com o profissional
-    await this.#verificarConflito(ag.professionalId, ag.scheduledAt, ag.durationMin);
-
-    return this.#repo.criar(payload);
+    // RPC atômica: verifica conflito + insere na mesma transação (sem race condition)
+    return this.#repo.criarAtomico(payload);
   }
 
   /**
@@ -116,30 +115,6 @@ class AgendamentoBffService extends BaseService {
   }
 
   // ── Privados ──────────────────────────────────────────────────────
-
-  /**
-   * Verifica se há conflito de horário para o profissional.
-   * @param {string} professionalId
-   * @param {Date}   scheduledAt
-   * @param {number} durationMin
-   */
-  async #verificarConflito(professionalId, scheduledAt, durationMin) {
-    const inicio     = scheduledAt instanceof Date ? scheduledAt : new Date(scheduledAt);
-    const fim        = new Date(inicio.getTime() + durationMin * 60_000);
-    const janelaBaixo = new Date(inicio.getTime() - AgendamentoBffService.#JANELA_CONFLITO_MS);
-
-    const existentes = await this.#repo.getConflitos(professionalId, janelaBaixo, fim);
-
-    for (const ag of existentes) {
-      const agInicio = new Date(ag.scheduled_at);
-      const agFim    = new Date(agInicio.getTime() + (ag.duration_min ?? 30) * 60_000);
-
-      const sobreposicao = !(fim <= agInicio || inicio >= agFim);
-      if (sobreposicao) {
-        throw AppError.conflict('Horário não disponível: conflito com agendamento existente.');
-      }
-    }
-  }
 
   /**
    * Valida se a transição de status é permitida pela máquina de estados.

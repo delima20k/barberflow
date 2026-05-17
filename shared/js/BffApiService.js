@@ -149,15 +149,32 @@ class BffApiService {
 
   /**
    * Lê o access_token JWT do localStorage (Supabase).
+   * Retorna null se ausente ou se o token já expirou.
    * @returns {string|null}
    */
   static #getToken() {
     try {
       const raw = localStorage.getItem(BffApiService.#STORAGE_KEY);
-      return raw ? (JSON.parse(raw)?.access_token ?? null) : null;
+      if (!raw) return null;
+      const parsed    = JSON.parse(raw);
+      const token     = parsed?.access_token ?? null;
+      const expiresAt = parsed?.expires_at;   // Unix timestamp em segundos
+      if (!token) return null;
+      // Rejeita token expirado (30s de buffer para clock skew)
+      if (expiresAt && Date.now() / 1000 > expiresAt - 30) return null;
+      return token;
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Retorna true se há um token válido (não expirado) no localStorage.
+   * Usado por GeoService e similares para evitar chamadas sem auth.
+   * @returns {boolean}
+   */
+  static temTokenValido() {
+    return BffApiService.#getToken() !== null;
   }
 
   /**

@@ -99,7 +99,24 @@ function criarBuilder() {
 
 // ── Stub SupabaseClient antes de carregar o app ──────────────────
 const SupabaseClient = require('../utils/SupabaseClient');
-SupabaseClient.getInstance = () => ({ from: () => criarBuilder() });
+
+// Builder para chamadas .rpc() — simula criar_agendamento_atomico
+function criarRpcBuilder() {
+  const b = {};
+  b.single = () => {
+    if (mockCfg.conflitos.length > 0) {
+      // P0001 = SCHEDULE_CONFLICT (mapeado para 409 no AgendamentoRepository)
+      return Promise.resolve({ data: null, error: { code: 'P0001', message: 'SCHEDULE_CONFLICT' } });
+    }
+    return Promise.resolve({ data: mockCfg.criado, error: null });
+  };
+  return b;
+}
+
+SupabaseClient.getInstance = () => ({
+  from: () => criarBuilder(),
+  rpc:  () => criarRpcBuilder(),
+});
 
 const criarApp = require('../app');
 

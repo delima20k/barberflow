@@ -25,7 +25,8 @@ class BarbeariaService extends BaseService {
   // ── Listagens ────────────────────────────────────────────────────
 
   /**
-   * Lista barbearias próximas aplicando filtro Haversine.
+   * Lista barbearias próximas via PostGIS ST_DWithin (banco filtra e ordena).
+   * Requer: migration 20260517000001_postgis_barbershops.sql aplicada.
    * @param {number} lat
    * @param {number} lng
    * @param {number} [raioKm=5]
@@ -35,18 +36,13 @@ class BarbeariaService extends BaseService {
     this._coordenada(lat, lng);
     BarbeariaService.#validarRaio(raioKm);
 
-    const latDelta = raioKm / 111.0;
-    const lngDelta = raioKm / (111.0 * Math.cos(lat * Math.PI / 180));
+    const rows = await this.#repo.getNearby(lat, lng, raioKm);
 
-    const rows = await this.#repo.getNearby(lat, lng, latDelta, lngDelta);
-
-    return rows
-      .map(row => ({
-        ...row,
-        distancia_km: BarbeariaService.#haversine(lat, lng, row.latitude, row.longitude),
-      }))
-      .filter(item => item.distancia_km <= raioKm)
-      .sort((a, b) => a.distancia_km - b.distancia_km);
+    // Converte distancia_m (metros, retornada pelo PostGIS) para distancia_km
+    return rows.map(row => ({
+      ...row,
+      distancia_km: row.distancia_m != null ? row.distancia_m / 1000 : null,
+    }));
   }
 
   /**
@@ -70,24 +66,6 @@ class BarbeariaService extends BaseService {
   }
 
   // ── Privados ─────────────────────────────────────────────────────
-
-  /**
-   * Calcula distância Haversine entre dois pontos em km.
-   * @param {number} lat1 @param {number} lng1
-   * @param {number} lat2 @param {number} lng2
-   * @returns {number}
-   */
-  static #haversine(lat1, lng1, lat2, lng2) {
-    if (lat2 == null || lng2 == null) return Infinity;
-    const R  = 6371;
-    const dL = (lat2 - lat1) * Math.PI / 180;
-    const dO = (lng2 - lng1) * Math.PI / 180;
-    const a  = Math.sin(dL / 2) ** 2 +
-               Math.cos(lat1 * Math.PI / 180) *
-               Math.cos(lat2 * Math.PI / 180) *
-               Math.sin(dO / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
 
   /**
    * Valida raio em km. Lança AppError(400) se inválido.

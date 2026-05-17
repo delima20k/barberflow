@@ -53,10 +53,7 @@ class PushSubscriptionService {
   static async init(userId, appId) {
     if (!PushSubscriptionService.#suportado()) return;
     if (!userId) return;
-    if (Notification.permission !== 'granted') {
-      console.log('[Push] init: permissão não concedida:', Notification.permission);
-      return;
-    }
+    if (Notification.permission !== 'granted') return;
 
     try {
       const reg = await navigator.serviceWorker.ready;

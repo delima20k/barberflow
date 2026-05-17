@@ -1,7 +1,7 @@
 'use strict';
 
 // =============================================================
-// MediaManager.js — Sistema híbrido de mídia reusável.
+// MediaManager.js — Facade de mídia híbrida.
 // Camada: application
 //
 // ARQUITETURA HÍBRIDA — ROTEAMENTO POR CONTEXTO:
@@ -25,10 +25,10 @@
 // FLUXO P2P COMPLETO:
 //   1. Frontend → POST /api/media/presigned
 //      Recebe: { uploadUrl, path, publicUrl, token, expiresAt }
-//   2. Frontend → PUT uploadUrl (direto ao R2, sem servidor)
-//      P2P: browser ↔ R2, servidor fora do caminho dos bytes
+//   2. Frontend → PUT uploadUrl (direto ao R2/Supabase, sem servidor)
+//      P2P: browser ↔ storage, servidor fora do caminho dos bytes
 //   3. Frontend → POST /api/media/confirmar
-//      Servidor: verifica HMAC + HEAD no R2 + salva em media_files
+//      Servidor: verifica HMAC + HEAD no storage + salva em media_files
 //
 // CONTEXTOS SUPORTADOS:
 //   stories | avatars | services | portfolio
@@ -37,16 +37,16 @@
 //   Um único MediaManager serve todos os casos de uso de mídia.
 //   Diferencie pelo parâmetro `contexto`.
 //
-// Dependências: R2Client, BaseService, InputValidator
+// Dependências: StorageService, BaseService, EncryptionService, etc.
 // =============================================================
 
-const crypto                = require('crypto');
-const BaseService           = require('../infra/BaseService');
-const EncryptionService     = require('./EncryptionService');
-const ChunkService          = require('./ChunkService');
-const HashService           = require('./HashService');
-const { FallbackService }   = require('./FallbackService');
-const SupabaseStorageClient = require('../infra/SupabaseStorageClient');
+const crypto              = require('crypto');
+const BaseService         = require('../infra/BaseService');
+const StorageService      = require('./StorageService');
+const EncryptionService   = require('./EncryptionService');
+const ChunkService        = require('./ChunkService');
+const HashService         = require('./HashService');
+const { FallbackService } = require('./FallbackService');
 
 // ── Mapeamento MIME → extensão de arquivo ──────────────────────
 const MIME_PARA_EXT = Object.freeze({
@@ -88,29 +88,10 @@ const CONTEXTOS = Object.freeze({
 // Janela de validade da URL presigned (5 minutos)
 const PRESIGNED_EXPIRES_SECS = 300;
 
-// ── Roteamento de storage por contexto ─────────────────────────
-// Imagens estáticas (avatars, services, portfolio) → Supabase Storage
-//   Benefícios: RLS nativa, image transforms, sem config adicional de CDN.
-// Vídeos/áudio (stories) → Cloudflare R2
-//   Benefícios: sem limite de tamanho, egress gratuito, CDN global.
-const CONTEXTO_BACKEND = Object.freeze({
-  avatars:   'supabase',
-  services:  'supabase',
-  portfolio: 'supabase',
-  stories:   'r2',
-});
-
-// Bucket Supabase Storage para cada contexto de imagem
-const CONTEXTO_BUCKET = Object.freeze({
-  avatars:   SupabaseStorageClient.BUCKET_IMAGES,
-  services:  SupabaseStorageClient.BUCKET_IMAGES,
-  portfolio: SupabaseStorageClient.BUCKET_IMAGES,
-});
-
 class MediaManager extends BaseService {
 
-  /** @type {import('../infra/R2Client')} */
-  #r2;
+  /** @type {StorageService} */
+  #storage;
 
   /** @type {import('@supabase/supabase-js').SupabaseClient} */
   #supabase;
@@ -148,14 +129,6 @@ class MediaManager extends BaseService {
   #p2pDownloader;
 
   /**
-   * Cliente Supabase Storage para upload/download de imagens estáticas.
-   * Injetado via opts.supabaseStorage. Obrigatório para contextos 'avatars',
-   * 'services' e 'portfolio'; opcional para 'stories' (usa R2).
-   * @type {import('../infra/SupabaseStorageClient')|null}
-   */
-  #supabaseStorage;
-
-  /**
    * @param {import('../infra/R2Client')} r2Client  — instância do R2Client
    * @param {import('@supabase/supabase-js').SupabaseClient} supabase
    * @param {object}  [opts]
@@ -167,20 +140,19 @@ class MediaManager extends BaseService {
    */
   constructor(r2Client, supabase, opts = {}) {
     super('MediaManager');
-    this.#r2              = r2Client;
-    this.#supabase        = supabase;
-    this.#signingSecret   = process.env.MEDIA_SIGNING_SECRET ?? '';
+    this.#storage        = new StorageService(r2Client, opts.supabaseStorage ?? null);
+    this.#supabase       = supabase;
+    this.#signingSecret  = process.env.MEDIA_SIGNING_SECRET ?? '';
     if (!this.#signingSecret) {
       throw new Error('[MediaManager] MEDIA_SIGNING_SECRET é obrigatório no .env');
     }
-    this.#encryption       = new EncryptionService();
-    this.#chunks           = new ChunkService(); // 1 MB por chunk (padrão)
-    this.#hash             = new HashService();
-    this.#peerHealth       = opts.peerHealth       ?? null;
-    this.#cache            = opts.cache            ?? null;
-    this.#p2pUploader      = opts.p2pUploader      ?? null;
-    this.#p2pDownloader    = opts.p2pDownloader    ?? null;
-    this.#supabaseStorage  = opts.supabaseStorage  ?? null;
+    this.#encryption     = new EncryptionService();
+    this.#chunks         = new ChunkService(); // 1 MB por chunk (padrão)
+    this.#hash           = new HashService();
+    this.#peerHealth     = opts.peerHealth    ?? null;
+    this.#cache          = opts.cache         ?? null;
+    this.#p2pUploader    = opts.p2pUploader   ?? null;
+    this.#p2pDownloader  = opts.p2pDownloader ?? null;
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -220,19 +192,8 @@ class MediaManager extends BaseService {
     const expiresAt = Math.floor(Date.now() / 1000) + PRESIGNED_EXPIRES_SECS;
     const token     = this.#assinarToken(path, ownerId, expiresAt);
 
-    let uploadUrl, publicUrl;
-
-    if (this.#ehSupabase(contexto)) {
-      // Imagens → Supabase Storage (RLS nativa, image transforms)
-      this.#garantirSupabaseStorage(contexto);
-      const bucket = CONTEXTO_BUCKET[contexto];
-      uploadUrl = await this.#supabaseStorage.presignedPut(bucket, path);
-      publicUrl = this.#supabaseStorage.publicUrl(bucket, path);
-    } else {
-      // Vídeos/áudio → Cloudflare R2 (sem limite de tamanho, egress gratuito)
-      uploadUrl = await this.#r2.presignedPut(path, contentType, PRESIGNED_EXPIRES_SECS);
-      publicUrl = this.#r2.publicUrl(path);
-    }
+    const uploadUrl = await this.#storage.presignedPut(contexto, path, contentType, PRESIGNED_EXPIRES_SECS);
+    const publicUrl = this.#storage.publicUrl(contexto, path);
 
     return { uploadUrl, path, publicUrl, token, expiresAt };
   }
@@ -282,13 +243,7 @@ class MediaManager extends BaseService {
     }
 
     // ── Verificar upload no storage correto (HEAD) ───────────────
-    let info;
-    if (this.#ehSupabase(contexto)) {
-      this.#garantirSupabaseStorage(contexto);
-      info = await this.#supabaseStorage.head(CONTEXTO_BUCKET[contexto], path);
-    } else {
-      info = await this.#r2.head(path);
-    }
+    const info = await this.#storage.head(contexto, path);
 
     if (!info) {
       throw this._erro('Arquivo não encontrado no storage. Realize o upload antes de confirmar.', 404);
@@ -300,26 +255,19 @@ class MediaManager extends BaseService {
     const cfg = CONTEXTOS[contexto];
     if (tamanhoBytes > cfg.maxBytes) {
       // Remove o arquivo para não consumir quota
-      if (this.#ehSupabase(contexto)) {
-        await this.#supabaseStorage.delete(CONTEXTO_BUCKET[contexto], path).catch(() => {});
-      } else {
-        await this.#r2.delete(path).catch(() => {});
-      }
+      await this.#storage.delete(contexto, path).catch(() => {});
       throw this._erro(
         `Arquivo excede o limite de ${cfg.maxBytes / 1024 / 1024} MB para "${contexto}".`,
         413
       );
     }
 
-    // Montar publicUrl de acordo com o storage usado
-    const publicUrl = this.#ehSupabase(contexto)
-      ? this.#supabaseStorage.publicUrl(CONTEXTO_BUCKET[contexto], path)
-      : this.#r2.publicUrl(path);
+    const publicUrl = this.#storage.publicUrl(contexto, path);
 
     // Salvar qual backend foi usado — lido por deletar() para rotear a deleção
     const metadataFinal = {
       ...metadata,
-      storage_backend: CONTEXTO_BACKEND[contexto],
+      storage_backend: this.#storage.backendPara(contexto),
     };
 
     // ── Persistir metadados no Supabase ────────────────────────────
@@ -368,14 +316,7 @@ class MediaManager extends BaseService {
     if (error || !data) throw this._erro('Mídia não encontrada.', 404);
     if (data.owner_id !== ownerId) throw this._erro('Acesso negado.', 403);
 
-    // Rotear deleção pelo backend registrado nos metadados
-    const backend = data.metadata?.storage_backend ?? CONTEXTO_BACKEND[data.contexto] ?? 'r2';
-    if (backend === 'supabase') {
-      this.#garantirSupabaseStorage(data.contexto);
-      await this.#supabaseStorage.delete(CONTEXTO_BUCKET[data.contexto], data.path);
-    } else {
-      await this.#r2.delete(data.path);
-    }
+    await this.#storage.delete(data.contexto, data.path);
 
     await this.#supabase.from('media_files').delete().eq('id', mediaId);
   }
@@ -496,7 +437,7 @@ class MediaManager extends BaseService {
     }
 
     // ── 6. R2 backup (sempre) ────────────────────────────────────
-    await this.#r2.putBuffer(path, merged, 'application/octet-stream');
+    await this.#storage.putBuffer(path, merged, 'application/octet-stream');
 
     // ── 7. Persistir metadados no Supabase ───────────────────────
     const { data, error } = await this.#supabase
@@ -586,7 +527,7 @@ class MediaManager extends BaseService {
       get: (_fid) => Promise.resolve(this.#cache?.get(fileId) ?? null),
     };
     const r2Provider = {
-      get: (_fid) => this.#r2.getBuffer(path),
+      get: (_fid) => this.#storage.getBuffer(path),
     };
 
     // ── 4. Cascade P2P → Cache → R2 ─────────────────────────────
@@ -615,13 +556,13 @@ class MediaManager extends BaseService {
 
   /**
    * Retorna a URL pública de um path no R2.
-   * Conveniente para montar URLs sem acessar o R2Client diretamente.
+   * Conveniente para montar URLs sem acessar R2Client diretamente.
    *
    * @param {string} path
    * @returns {string}
    */
   publicUrl(path) {
-    return this.#r2.publicUrl(path);
+    return this.#storage.publicUrl('stories', path);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -644,30 +585,6 @@ class MediaManager extends BaseService {
       return await this.#p2pDownloader.get(path, bestPeer);
     } catch (_) {
       return null; // miss determinístico — FallbackService avança para Cache/R2
-    }
-  }
-
-  // ── Helpers de roteamento ────────────────────────────────────
-
-  /**
-   * Retorna `true` se o contexto usa Supabase Storage (imagens).
-   * @param {string} contexto
-   */
-  #ehSupabase(contexto) {
-    return CONTEXTO_BACKEND[contexto] === 'supabase';
-  }
-
-  /**
-   * Garante que `#supabaseStorage` foi injetado para o contexto de imagem.
-   * Lança 500 com mensagem descritiva se não foi injetado.
-   * @param {string} contexto
-   */
-  #garantirSupabaseStorage(contexto) {
-    if (!this.#supabaseStorage) {
-      throw this._erro(
-        `[MediaManager] supabaseStorage não foi injetado (necessário para contexto "${contexto}").`,
-        500
-      );
     }
   }
 

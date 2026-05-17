@@ -254,7 +254,7 @@ class ChegadaProducaoService {
   static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome) {
     if (!professionalId) return;
     try {
-      const nome      = clienteNome || 'Cliente';
+      const nome      = clienteNome?.trim() || 'Cliente';
       const isCaminho = type === 'client_not_seated';
 
       const p_title = isCaminho ? 'Cliente a caminho' : 'Cliente na barbearia!';
@@ -282,6 +282,10 @@ class ChegadaProducaoService {
           barbershopId,
           type,
           clienteNome: nome,
+        }).then(({ error }) => {
+          if (error && typeof LoggerService !== 'undefined') {
+            LoggerService.warn('[ChegadaProducaoService] push-barbeiro falhou:', error?.message);
+          }
         }).catch(() => {});
       }
     } catch (err) {

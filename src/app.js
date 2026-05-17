@@ -48,6 +48,7 @@ const R2Client                  = require('./infra/R2Client');
 const SupabaseStorageClient     = require('./infra/SupabaseStorageClient');
 const ImageProcessor            = require('./services/ImageProcessor');
 const MediaManager              = require('./services/MediaManager');
+const PeerHealthService         = require('./services/PeerHealthService');
 const SecureMediaAccessService  = require('./services/SecureMediaAccessService');
 
 // ── Controllers ───────────────────────────────────────────────
@@ -172,7 +173,8 @@ function criarApp() {
   const r2Client            = R2Client.getInstance();
   const supabaseStorage     = new SupabaseStorageClient(supabase);
   const imageProcessor      = new ImageProcessor();
-  const mediaManager        = new MediaManager(r2Client, supabase, { supabaseStorage });
+  const peerHealth          = new PeerHealthService();
+  const mediaManager        = new MediaManager(r2Client, supabase, { supabaseStorage, peerHealth });
   const secureMediaAccess   = new SecureMediaAccessService(r2Client, supabase);
 
   // ── Rate limiting extra em rotas de autenticação ────────────
@@ -205,6 +207,29 @@ function criarApp() {
       logger.error({ err }, 'Health check falhou — banco inacessível');
       res.status(503).json({ ok: false, db: 'down', error: 'Banco de dados inacessível.' });
     }
+  });
+
+  // ── Health check da rede P2P ──────────────────────────────────
+  // Rota pública (sem auth) para monitoramento externo (UptimeRobot, Grafana).
+  // Lê PEER_URLS do env (URLs separadas por vírgula).
+  // Não expõe IPs privados — apenas URL de peer e status de disponibilidade.
+  app.get('/api/health/peers', async (_req, res) => {
+    const raw   = process.env.PEER_URLS ?? '';
+    const peers = raw.split(',').map(u => u.trim()).filter(Boolean);
+
+    if (peers.length === 0) {
+      return res.json({ ok: true, peers: [], healthy: 0, total: 0 });
+    }
+
+    const resultados = await Promise.all(
+      peers.map(async (url) => ({
+        url,
+        healthy: await peerHealth.isAvailable(url),
+      })),
+    );
+
+    const healthy = resultados.filter(r => r.healthy).length;
+    res.json({ ok: healthy > 0, peers: resultados, healthy, total: peers.length });
   });
 
   // ── 404 para rotas não mapeadas ──────────────────────────────

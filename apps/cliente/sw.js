@@ -15,15 +15,19 @@
 // Periodic Background Sync:
 //   bf-periodic-cache-refresh → atualiza silenciosamente CACHE_STATIC
 // =============================================================
+// Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
+// A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
+const SW_CLI_VERSION = '20260517';
+
 class SWCliente {
 
-  static #CACHE_STATIC    = 'bf-cli-static-v177';
-  static #CACHE_IMAGES    = 'bf-cli-images-v160';
-  static #CACHE_SHELL     = 'bf-cli-shell-v160';
+  static #CACHE_STATIC    = `bf-cli-static-${SW_CLI_VERSION}`;
+  static #CACHE_IMAGES    = `bf-cli-images-${SW_CLI_VERSION}`;
+  static #CACHE_SHELL     = `bf-cli-shell-${SW_CLI_VERSION}`;
   static #CACHES_VALIDOS  = new Set([
-    'bf-cli-static-v177',
-    'bf-cli-images-v160',
-    'bf-cli-shell-v160',
+    `bf-cli-static-${SW_CLI_VERSION}`,
+    `bf-cli-images-${SW_CLI_VERSION}`,
+    `bf-cli-shell-${SW_CLI_VERSION}`,
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC

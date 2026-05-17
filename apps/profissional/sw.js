@@ -15,15 +15,19 @@
 // Periodic Background Sync:
 //   bf-periodic-cache-refresh → atualiza silenciosamente CACHE_STATIC
 // =============================================================
+// Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
+// A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
+const SW_PRO_VERSION = '20260517';
+
 class SWProfissional {
 
-  static #CACHE_STATIC   = 'bf-pro-static-v146';
-  static #CACHE_IMAGES   = 'bf-pro-images-v135';
-  static #CACHE_SHELL    = 'bf-pro-shell-v135';
+  static #CACHE_STATIC   = `bf-pro-static-${SW_PRO_VERSION}`;
+  static #CACHE_IMAGES   = `bf-pro-images-${SW_PRO_VERSION}`;
+  static #CACHE_SHELL    = `bf-pro-shell-${SW_PRO_VERSION}`;
   static #CACHES_VALIDOS = new Set([
-    'bf-pro-static-v146',
-    'bf-pro-images-v135',
-    'bf-pro-shell-v135',
+    `bf-pro-static-${SW_PRO_VERSION}`,
+    `bf-pro-images-${SW_PRO_VERSION}`,
+    `bf-pro-shell-${SW_PRO_VERSION}`,
   ]);
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC

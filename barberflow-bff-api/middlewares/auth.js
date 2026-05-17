@@ -4,11 +4,49 @@ const jwt            = require('jsonwebtoken');
 const SupabaseClient = require('../utils/SupabaseClient');
 
 /**
+ * Cache TTL simples para o path de fallback (sem SUPABASE_JWT_SECRET).
+ * Evita round-trips repetidos ao Supabase Auth para o mesmo token.
+ * TTL: 5 minutos. Máximo: 1000 entradas (tokens simultâneos).
+ */
+class TtlCache {
+  #map = new Map();
+  #ttl;
+  #max;
+
+  constructor(ttlMs, max = 1000) {
+    this.#ttl = ttlMs;
+    this.#max = max;
+  }
+
+  get(key) {
+    const entry = this.#map.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.exp) { this.#map.delete(key); return undefined; }
+    return entry.val;
+  }
+
+  set(key, val) {
+    if (this.#map.size >= this.#max) {
+      // Remove a entrada mais antiga (primeiro elemento do Map)
+      this.#map.delete(this.#map.keys().next().value);
+    }
+    this.#map.set(key, { val, exp: Date.now() + this.#ttl });
+  }
+
+  delete(key) {
+    this.#map.delete(key);
+  }
+}
+
+const fallbackCache = new TtlCache(5 * 60 * 1000); // 5 minutos
+
+/**
  * AuthMiddleware — Verificação de JWT do Supabase Auth.
  *
  * Estratégia (ordem de prioridade):
  *   1. LOCAL (zero latência): SUPABASE_JWT_SECRET → verifica HS256 localmente.
- *   2. REDE (fallback): sem secret → usa supabase.auth.getUser(token).
+ *   2. REDE com cache (fallback): sem secret → usa supabase.auth.getUser(token)
+ *      com cache TTL de 5min para evitar round-trips repetidos.
  *
  * Após autenticação bem-sucedida, popula req.user = { id, email }.
  */
@@ -41,13 +79,22 @@ class AuthMiddleware {
       }
     }
 
-    // ── Fallback: verificação por rede (usa o singleton compartilhado) ────
+    // ── Fallback: verificação por rede com cache TTL ──────────────
     try {
+      const cached = fallbackCache.get(token);
+      if (cached) {
+        req.user = cached;
+        return next();
+      }
+
       const { data, error } = await SupabaseClient.getInstance().auth.getUser(token);
       if (error || !data?.user) {
         return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
       }
-      req.user = { id: data.user.id, email: data.user.email ?? '' };
+
+      const user = { id: data.user.id, email: data.user.email ?? '' };
+      fallbackCache.set(token, user);
+      req.user = user;
       return next();
     } catch {
       return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });

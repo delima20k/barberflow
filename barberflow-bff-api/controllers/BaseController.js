@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto         = require('node:crypto');
 const ApiResponse    = require('../utils/ApiResponse');
 const AppError       = require('../utils/AppError');
 const { logger }     = require('../middlewares/logger');
@@ -116,6 +117,32 @@ class BaseController {
    */
   cachePublico(res, maxAge = 60, swr = 300) {
     res.setHeader('Cache-Control', `public, max-age=${maxAge}, stale-while-revalidate=${swr}`);
+  }
+
+  /**
+   * Gera ETag SHA-1 baseado no conteúdo e seta o header.
+   * Retorna true se o cliente já tem a versão atual (If-None-Match bate) —
+   * nesse caso o handler deve responder 304 e encerrar.
+   *
+   * Uso:
+   *   const dados = await svc.listar();
+   *   if (this.etag(req, res, dados)) return;
+   *   this.cachePublico(res, 60, 300);
+   *   this.success(res, dados);
+   *
+   * @param {import('express').Request}  req
+   * @param {import('express').Response} res
+   * @param {*} dados
+   * @returns {boolean} — true se 304 foi enviado
+   */
+  etag(req, res, dados) {
+    const tag = `"${crypto.createHash('sha1').update(JSON.stringify(dados)).digest('hex').slice(0, 16)}"`;
+    res.setHeader('ETag', tag);
+    if (req.headers['if-none-match'] === tag) {
+      res.status(304).end();
+      return true;
+    }
+    return false;
   }
 
   // ── Factory de erro ──────────────────────────────────────────────

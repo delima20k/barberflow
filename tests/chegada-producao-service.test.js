@@ -353,6 +353,102 @@ suite('ChegadaProducaoService — erro em sentar()', () => {
   });
 });
 
+// ─── BffApiService — push-barbeiro ────────────────────────────────────────────
+
+suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
+
+  function criarSandboxComBff({ fluxoResposta = 'aqui', bffErro = null } = {}) {
+    const warnArgs = [];
+    const sandbox = vm.createContext({
+      console,
+      FluxoDeFila: {
+        abrir:   fn().mockResolvedValue(fluxoResposta),
+        escapar: (s) => String(s ?? ''),
+      },
+      CadeiraService:            { sentar: fn().mockResolvedValue(ENTRADA_OK) },
+      CadeiraConfirmacaoService: { pular: fn() },
+      QueueRepository:           { updateClientConfirmed: fn().mockResolvedValue(null) },
+      ApiService: {
+        from: fn(),
+        rpc:  fn().mockResolvedValue({ data: null, error: null }),
+      },
+      AuthService:        { getPerfil: fn().mockReturnValue(PERFIL) },
+      NotificationService: { mostrarToast: fn(), TIPOS: { AGENDAMENTO: 'agendamento', SISTEMA: 'sistema' } },
+      LoggerService: {
+        warn:  fn().mockImplementation((...args) => { warnArgs.push(args); }),
+        error: fn(),
+      },
+      BffApiService: {
+        post: fn().mockImplementation(() => Promise.resolve({ data: null, error: bffErro })),
+      },
+    });
+    carregar(sandbox, 'shared/js/ChegadaProducaoService.js');
+    return { sandbox, warnArgs };
+  }
+
+  test('chama BffApiService.post com path e type client_at_shop após resposta "aqui"', async () => {
+    const { sandbox } = criarSandboxComBff({ fluxoResposta: 'aqui' });
+    const { ChegadaProducaoService, BffApiService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
+    await new Promise(r => setTimeout(r, 0));
+
+    const chamada = BffApiService.post.calls.find(([path]) => path === '/api/v1/notificacoes/push-barbeiro');
+    assert.ok(chamada, 'BffApiService.post deve ser chamado com path push-barbeiro');
+    const [, body] = chamada;
+    assert.equal(body.professionalId, PROFESSIONAL_ID);
+    assert.equal(body.entradaId,      ENTRY_ID);
+    assert.equal(body.barbershopId,   BARBERSHOP_ID);
+    assert.equal(body.type,           'client_at_shop');
+    assert.equal(body.clienteNome,    PERFIL.full_name);
+  });
+
+  test('chama BffApiService.post com type client_not_seated após resposta "caminho"', async () => {
+    const { sandbox } = criarSandboxComBff({ fluxoResposta: 'caminho' });
+    const { ChegadaProducaoService, BffApiService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
+    await new Promise(r => setTimeout(r, 0));
+
+    const chamada = BffApiService.post.calls.find(([path]) => path === '/api/v1/notificacoes/push-barbeiro');
+    assert.ok(chamada);
+    const [, body] = chamada;
+    assert.equal(body.type, 'client_not_seated');
+  });
+
+  test('clienteNome com apenas espaços é normalizado para "Cliente"', async () => {
+    const { sandbox } = criarSandboxComBff({ fluxoResposta: 'aqui' });
+    const { ChegadaProducaoService, BffApiService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo({
+      ...ARGS_BASE,
+      clientePerfil: { id: CLIENT_ID, full_name: '   ' },
+    });
+    await new Promise(r => setTimeout(r, 0));
+
+    const chamada = BffApiService.post.calls.find(([path]) => path === '/api/v1/notificacoes/push-barbeiro');
+    assert.ok(chamada);
+    const [, body] = chamada;
+    assert.equal(body.clienteNome, 'Cliente', 'nome com apenas espaços deve virar "Cliente"');
+  });
+
+  test('loga warn via LoggerService quando BffApiService retorna erro', async () => {
+    const { sandbox, warnArgs } = criarSandboxComBff({
+      fluxoResposta: 'aqui',
+      bffErro:       new Error('VAPID não configurado'),
+    });
+    const { ChegadaProducaoService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
+    await new Promise(r => setTimeout(r, 0));
+
+    const logado = warnArgs.some(args =>
+      args.some(a => typeof a === 'string' && a.includes('push-barbeiro')),
+    );
+    assert.ok(logado, 'LoggerService.warn deve ser chamado com mensagem de erro do push-barbeiro');
+  });
+});
+
 // ─── confirmarChegada ─────────────────────────────────────────────────────────
 
 suite('ChegadaProducaoService — confirmarChegada', () => {

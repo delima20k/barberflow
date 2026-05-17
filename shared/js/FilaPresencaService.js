@@ -200,7 +200,7 @@ class FilaPresencaService {
   static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome = '') {
     if (!professionalId) return;
     try {
-      const nome         = clienteNome || 'Cliente';
+      const nome         = clienteNome?.trim() || 'Cliente';
       const isAtShop     = type === 'client_at_shop';
 
       const p_title = isAtShop ? 'Cliente na barbearia!' : 'Cliente ainda a caminho';
@@ -233,6 +233,10 @@ class FilaPresencaService {
           barbershopId,
           type:        bffType,
           clienteNome: nome,
+        }).then(({ error }) => {
+          if (error && typeof LoggerService !== 'undefined') {
+            LoggerService.warn('[FilaPresencaService] push-barbeiro falhou:', error?.message);
+          }
         }).catch(() => {});
       }
     } catch (err) {

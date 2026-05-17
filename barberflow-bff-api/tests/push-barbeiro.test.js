@@ -364,6 +364,32 @@ suite('PushService — enviarAoBarbeiro()', () => {
       console.error = consoleOriginal;
     }
   });
+
+  test('sem subscriptions válidas: emite console.warn com professionalId', async () => {
+    const warnCalls = [];
+    const origWarn  = console.warn;
+    console.warn = (...args) => warnCalls.push(args);
+    try {
+      const sbVazio = {
+        from: () => {
+          const q = { select: () => q, eq: () => q, then: (r) => r({ data: [], error: null }) };
+          return q;
+        },
+      };
+      const wpNoop = { setVapidDetails: () => {}, sendNotification: async () => {} };
+      const svc = new PushService(sbVazio, wpNoop);
+      await svc.enviarAoBarbeiro({
+        professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+        type: 'client_at_shop', clienteNome: 'Test',
+      });
+      const logou = warnCalls.some(args =>
+        args.some(a => typeof a === 'string' && a.includes(PROF_ID)),
+      );
+      assert.ok(logou, 'console.warn deve ser chamado com professionalId quando sem subscriptions');
+    } finally {
+      console.warn = origWarn;
+    }
+  });
 });
 
 // =================================================================

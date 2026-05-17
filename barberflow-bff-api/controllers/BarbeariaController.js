@@ -53,6 +53,7 @@ class BarbeariaController extends BaseController {
 
       const lista = await this.#service.listarDestaque(limit);
 
+      if (this.etag(req, res, lista)) return;
       this.cachePublico(res, 60, 300);
       this.success(res, lista, { total: lista.length });
     });
@@ -68,6 +69,7 @@ class BarbeariaController extends BaseController {
 
       const lista = await this.#service.listarTodas(limit);
 
+      if (this.etag(req, res, lista)) return;
       this.cachePublico(res, 60, 300);
       this.success(res, lista, { total: lista.length });
     });
