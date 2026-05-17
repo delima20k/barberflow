@@ -4,6 +4,12 @@ const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
 
+const UUID_ENTRY   = 'a1b2c3d4-e5f6-4890-abcd-ef1234567890';
+const UUID_CLIENTE = 'b2c3d4e5-f6a7-4901-bcde-f01234567891';
+const UUID_PROF    = 'c3d4e5f6-a7b8-4012-9def-012345678912';
+const UUID_SHOP    = 'd4e5f6a7-b8c9-4123-adea-123456789013';
+const UUID_SERVICE = 'e5f6a7b8-c9d0-4234-8fab-234567890134';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPER: Query builder fluente (substitui fn() chain)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -113,28 +119,31 @@ suite('AppointmentRepository.updateStatus()', () => {
 
   test('lança erro para SQL injection como id', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(
-      AppointmentRepository.updateStatus("'; DROP TABLE appointments; --", 'confirmed')
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      AppointmentRepository.updateStatus("'; DROP TABLE appointments; --", 'confirmed'),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para id numérico simples', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(AppointmentRepository.updateStatus('123', 'confirmed')).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(AppointmentRepository.updateStatus('123', 'confirmed'), /Identificador inválido/);
   });
 
   test('lança erro para status fora do enum', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(
-      AppointmentRepository.updateStatus(UUID_ENTRY, "confirmed' OR '1'='1")
-    ).rejects.toThrow(/Status inválido/);
+    await assert.rejects(
+      AppointmentRepository.updateStatus(UUID_ENTRY, "confirmed' OR '1'='1"),
+      /Status inválido/
+    );
   });
 
   test('lança erro para status SQL injection', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(
-      AppointmentRepository.updateStatus(UUID_ENTRY, '1; SELECT * FROM appointments')
-    ).rejects.toThrow(/Status inválido/);
+    await assert.rejects(
+      AppointmentRepository.updateStatus(UUID_ENTRY, '1; SELECT * FROM appointments'),
+      /Status inválido/
+    );
   });
 });
 
@@ -159,16 +168,18 @@ suite('AppointmentRepository.criar()', () => {
 
   test('lança erro para client_id com SQL injection', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(
-      AppointmentRepository.criar({ ...payloadValido(), client_id: "'; DROP TABLE appointments; --" })
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      AppointmentRepository.criar({ ...payloadValido(), client_id: "'; DROP TABLE appointments; --" }),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para professional_id inválido', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(
-      AppointmentRepository.criar({ ...payloadValido(), professional_id: '0 OR 1=1' })
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      AppointmentRepository.criar({ ...payloadValido(), professional_id: '0 OR 1=1' }),
+      /Identificador inválido/
+    );
   });
 
   test('descarta campos extras (previne mass assignment: role, is_admin)', async () => {
@@ -185,9 +196,10 @@ suite('AppointmentRepository.criar()', () => {
 
   test('lança erro para notes que excedem 500 caracteres', async () => {
     const { AppointmentRepository } = criarAppointmentRepo();
-    await expect(
-      AppointmentRepository.criar({ ...payloadValido(), notes: 'x'.repeat(501) })
-    ).rejects.toThrow(/Máximo de 500/);
+    await assert.rejects(
+      AppointmentRepository.criar({ ...payloadValido(), notes: 'x'.repeat(501) }),
+      /Máximo de 500/
+    );
   });
 
   test('notas com strings SQL são armazenadas intactas via queries parametrizadas', async () => {
@@ -219,14 +231,15 @@ suite('ProfileRepository.update()', () => {
 
   test('lança erro para userId com SQL injection', async () => {
     const { ProfileRepository } = criarProfileRepo();
-    await expect(
-      ProfileRepository.update("1' OR '1'='1", { full_name: 'Carlos' })
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      ProfileRepository.update("1' OR '1'='1", { full_name: 'Carlos' }),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para userId vazio', async () => {
     const { ProfileRepository } = criarProfileRepo();
-    await expect(ProfileRepository.update('', { full_name: 'Carlos' })).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(ProfileRepository.update('', { full_name: 'Carlos' }), /Identificador inválido/);
   });
 
   test('descarta campo "role" (mass assignment: tentativa de escalada de privilégio)', async () => {
@@ -246,9 +259,10 @@ suite('ProfileRepository.update()', () => {
 
   test('lança erro para bio que excede 300 caracteres', async () => {
     const { ProfileRepository } = criarProfileRepo();
-    await expect(
-      ProfileRepository.update(UUID_CLIENTE, { bio: 'x'.repeat(301) })
-    ).rejects.toThrow(/Máximo de 300/);
+    await assert.rejects(
+      ProfileRepository.update(UUID_CLIENTE, { bio: 'x'.repeat(301) }),
+      /Máximo de 300/
+    );
   });
 
   test('remove null-bytes do campo bio', async () => {
@@ -260,9 +274,10 @@ suite('ProfileRepository.update()', () => {
 
   test('lança erro quando todos os campos são bloqueados pela allowlist', async () => {
     const { ProfileRepository } = criarProfileRepo();
-    await expect(
-      ProfileRepository.update(UUID_CLIENTE, { role: 'admin', plan_type: 'pro' })
-    ).rejects.toThrow(/Nenhum campo permitido/);
+    await assert.rejects(
+      ProfileRepository.update(UUID_CLIENTE, { role: 'admin', plan_type: 'pro' }),
+      /Nenhum campo permitido/
+    );
   });
 });
 
@@ -275,9 +290,10 @@ suite('ProfileRepository.getById()', () => {
 
   test('lança erro para UUID com SQL injection', async () => {
     const { ProfileRepository } = criarProfileRepo();
-    await expect(
-      ProfileRepository.getById("'; DROP TABLE profiles; --")
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      ProfileRepository.getById("'; DROP TABLE profiles; --"),
+      /Identificador inválido/
+    );
   });
 });
 
@@ -293,16 +309,18 @@ suite('QueueRepository.updateStatus()', () => {
 
   test('lança erro para id com SQL injection', async () => {
     const { QueueRepository } = criarQueueRepo();
-    await expect(
-      QueueRepository.updateStatus("'; DROP TABLE queue_entries; --", 'done')
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      QueueRepository.updateStatus("'; DROP TABLE queue_entries; --", 'done'),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para status inválido', async () => {
     const { QueueRepository } = criarQueueRepo();
-    await expect(
-      QueueRepository.updateStatus(UUID_ENTRY, "done' UNION SELECT * FROM profiles--")
-    ).rejects.toThrow(/Status inválido/);
+    await assert.rejects(
+      QueueRepository.updateStatus(UUID_ENTRY, "done' UNION SELECT * FROM profiles--"),
+      /Status inválido/
+    );
   });
 });
 
@@ -321,16 +339,18 @@ suite('QueueRepository.entrar()', () => {
 
   test('lança erro para barbershop_id com SQL injection', async () => {
     const { QueueRepository } = criarQueueRepo();
-    await expect(
-      QueueRepository.entrar({ ...payloadValido(), barbershop_id: "'; DROP TABLE queue_entries; --" })
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      QueueRepository.entrar({ ...payloadValido(), barbershop_id: "'; DROP TABLE queue_entries; --" }),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para client_id inválido', async () => {
     const { QueueRepository } = criarQueueRepo();
-    await expect(
-      QueueRepository.entrar({ ...payloadValido(), client_id: '1 OR 1=1' })
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      QueueRepository.entrar({ ...payloadValido(), client_id: '1 OR 1=1' }),
+      /Identificador inválido/
+    );
   });
 
   test('descarta campos extras (mass assignment: admin, status, role)', async () => {
@@ -355,33 +375,33 @@ suite('BarbershopRepository.getNearby()', () => {
 
   test('lança erro para latitude NaN', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(BarbershopRepository.getNearby(NaN, -46.6333)).rejects.toThrow(/Coordenadas inválidas/);
+    await assert.rejects(BarbershopRepository.getNearby(NaN, -46.6333), /Coordenadas inválidas/);
   });
 
   test('lança erro para longitude Infinity', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(BarbershopRepository.getNearby(-23.5505, Infinity)).rejects.toThrow(/Coordenadas inválidas/);
+    await assert.rejects(BarbershopRepository.getNearby(-23.5505, Infinity), /Coordenadas inválidas/);
   });
 
   test('lança erro para latitude fora do range (-90 a 90)', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(BarbershopRepository.getNearby(91, 0)).rejects.toThrow(/Latitude fora/);
-    await expect(BarbershopRepository.getNearby(-91, 0)).rejects.toThrow(/Latitude fora/);
+    await assert.rejects(BarbershopRepository.getNearby(91, 0), /Latitude fora/);
+    await assert.rejects(BarbershopRepository.getNearby(-91, 0), /Latitude fora/);
   });
 
   test('lança erro para longitude fora do range (-180 a 180)', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(BarbershopRepository.getNearby(0, 181)).rejects.toThrow(/Longitude fora/);
+    await assert.rejects(BarbershopRepository.getNearby(0, 181), /Longitude fora/);
   });
 
   test('lança erro para radiusKm negativo', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(BarbershopRepository.getNearby(-23.5505, -46.6333, -1)).rejects.toThrow(/radiusKm fora/);
+    await assert.rejects(BarbershopRepository.getNearby(-23.5505, -46.6333, -1), /radiusKm fora/);
   });
 
   test('lança erro para radiusKm maior que 100 km', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(BarbershopRepository.getNearby(-23.5505, -46.6333, 101)).rejects.toThrow(/radiusKm fora/);
+    await assert.rejects(BarbershopRepository.getNearby(-23.5505, -46.6333, 101), /radiusKm fora/);
   });
 });
 
@@ -389,34 +409,38 @@ suite('BarbershopRepository.addInteraction()', () => {
   test('adiciona interação com parâmetros válidos', async () => {
     const { BarbershopRepository, interBuilder } = criarBarbershopRepo();
     await BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, 'like');
-    assert.ok(interBuilder.insert.calls.length > 0);
+    assert.ok(interBuilder.upsert.calls.length > 0);
   });
 
   test('lança erro para barbershopId com SQL injection', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(
-      BarbershopRepository.addInteraction("'; DROP TABLE barbershop_interactions; --", UUID_CLIENTE, 'like')
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      BarbershopRepository.addInteraction("'; DROP TABLE barbershop_interactions; --", UUID_CLIENTE, 'like'),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para userId inválido', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(
-      BarbershopRepository.addInteraction(UUID_SHOP, '0 OR 1=1', 'like')
-    ).rejects.toThrow(/Identificador inválido/);
+    await assert.rejects(
+      BarbershopRepository.addInteraction(UUID_SHOP, '0 OR 1=1', 'like'),
+      /Identificador inválido/
+    );
   });
 
   test('lança erro para type com SQL injection', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(
-      BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, "like' OR '1'='1")
-    ).rejects.toThrow(/não é um valor/);
+    await assert.rejects(
+      BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, "like' OR '1'='1"),
+      /não é um valor/
+    );
   });
 
   test('lança erro para type não permitido', async () => {
     const { BarbershopRepository } = criarBarbershopRepo();
-    await expect(
-      BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, 'admin')
-    ).rejects.toThrow(/não é um valor/);
+    await assert.rejects(
+      BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, 'admin'),
+      /não é um valor/
+    );
   });
 });

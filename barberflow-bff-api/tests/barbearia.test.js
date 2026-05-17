@@ -8,6 +8,7 @@ const http   = require('node:http');
 process.env.APP_ENV                   = 'development';
 process.env.SUPABASE_URL              = 'https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+process.env.SUPABASE_ANON_KEY         = 'test-anon-key';
 
 // ── Stub do SupabaseClient — deve vir ANTES do require('../app') ──
 // Sobrescreve getInstance para retornar um cliente falso que
@@ -25,7 +26,10 @@ const SupabaseClient = require('../utils/SupabaseClient');
     };
     return q;
   };
-  const mockDb = { from: qb };
+  const mockDb = {
+    from: qb,
+    rpc:  () => Promise.resolve({ data: [], error: null }),
+  };
   SupabaseClient.getInstance = () => mockDb;
 }
 

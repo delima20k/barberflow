@@ -26,10 +26,10 @@ suite('LoggerService', () => {
 suite('RateLimitMiddleware', () => {
 
   test('exporta limiterGeral, limiterAuth e limiterEscrita', () => {
-    const { limiterGeral, limiterAuth, limiterEscrita } = require('../src/infra/RateLimitMiddleware');
-    assert.strictEqual(typeof limiterGeral,   'function', 'limiterGeral deve ser middleware');
-    assert.strictEqual(typeof limiterAuth,    'function', 'limiterAuth deve ser middleware');
-    assert.strictEqual(typeof limiterEscrita, 'function', 'limiterEscrita deve ser middleware');
+    const RL = require('../src/infra/RateLimitMiddleware');
+    assert.strictEqual(typeof RL.geral,   'function', 'geral deve ser middleware');
+    assert.strictEqual(typeof RL.auth,    'function', 'auth deve ser middleware');
+    assert.strictEqual(typeof RL.escrita, 'function', 'escrita deve ser middleware');
   });
 });
 
@@ -38,14 +38,14 @@ suite('RateLimitMiddleware', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 suite('RequestTimeoutMiddleware', () => {
 
-  test('exporta uma função de 3 argumentos (req, res, next)', () => {
-    const middleware = require('../src/infra/RequestTimeoutMiddleware');
-    assert.strictEqual(typeof middleware, 'function');
-    assert.strictEqual(middleware.length, 3);
+  test('exporta handle como função de 3 argumentos (req, res, next)', () => {
+    const RTM = require('../src/infra/RequestTimeoutMiddleware');
+    assert.strictEqual(typeof RTM.handle, 'function');
+    assert.strictEqual(RTM.handle.length, 3);
   });
 
   test('chama next() e define timer que pode ser cancelado', (t, done) => {
-    const middleware = require('../src/infra/RequestTimeoutMiddleware');
+    const { handle } = require('../src/infra/RequestTimeoutMiddleware');
 
     const events = {};
     const res = {
@@ -55,20 +55,17 @@ suite('RequestTimeoutMiddleware', () => {
       on(event, fn) { events[event] = fn; },
     };
 
-    middleware({}, res, () => {
-      // Simula resposta bem-sucedida antes do timeout
+    handle({}, res, () => {
       if (events['finish']) events['finish']();
-      done(); // Se chegar aqui, timer foi limpo corretamente
+      done();
     });
   });
 
   test('responde 503 quando timeout expira', (t, done) => {
-    // Seta timeout muito curto via env para o teste
     process.env.REQUEST_TIMEOUT_MS = '50';
 
-    // Recarrega o módulo com o novo valor
     delete require.cache[require.resolve('../src/infra/RequestTimeoutMiddleware')];
-    const middleware = require('../src/infra/RequestTimeoutMiddleware');
+    const { handle } = require('../src/infra/RequestTimeoutMiddleware');
 
     const res = {
       headersSent: false,
@@ -79,12 +76,10 @@ suite('RequestTimeoutMiddleware', () => {
       json(b)   { this._body = b;   return this; },
     };
 
-    middleware({}, res, () => {
-      // next() chamado — aguarda o timer disparar
+    handle({}, res, () => {
       setTimeout(() => {
         assert.strictEqual(res._status, 503);
         assert.strictEqual(res._body.ok, false);
-        // Restaura
         delete process.env.REQUEST_TIMEOUT_MS;
         delete require.cache[require.resolve('../src/infra/RequestTimeoutMiddleware')];
         done();
@@ -99,9 +94,13 @@ suite('RequestTimeoutMiddleware', () => {
 suite('criarApp()', () => {
 
   test('importa e monta app sem exceção com env vars mockadas', () => {
-    // Garante que as vars obrigatórias existam (Supabase)
     process.env.SUPABASE_URL              = process.env.SUPABASE_URL              ?? 'https://mock.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'mock-key';
+    process.env.MEDIA_SIGNING_SECRET      = process.env.MEDIA_SIGNING_SECRET      ?? 'mock-media-signing-secret-32chars!!';
+    process.env.R2_ACCOUNT_ID             = process.env.R2_ACCOUNT_ID             ?? 'mock-account-id';
+    process.env.R2_ACCESS_KEY_ID          = process.env.R2_ACCESS_KEY_ID          ?? 'mock-access-key-id';
+    process.env.R2_SECRET_ACCESS_KEY      = process.env.R2_SECRET_ACCESS_KEY      ?? 'mock-secret-access-key';
+    process.env.R2_BUCKET_NAME            = process.env.R2_BUCKET_NAME            ?? 'mock-bucket';
 
     // Limpa cache para pegar o módulo atualizado
     Object.keys(require.cache)

@@ -34,6 +34,8 @@ function makeBOMShim() {
     configurable: true,
   });
 
+  global.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+
   let bodyChildren = [];
   global.document = {
     body: {

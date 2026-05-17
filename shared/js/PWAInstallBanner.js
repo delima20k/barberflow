@@ -46,21 +46,26 @@ class PWAInstallBanner {
   /** Nome do app exibido no banner (definir antes de init). */
   static nomeApp = 'BarberFlow';
 
-  // ── Captura eventos o mais cedo possível (ao definir a classe) ──────
+  // ── Handlers nomeados para permitir re-registro idempotente ─────────
   // beforeinstallprompt pode disparar ANTES do DOMContentLoaded.
-  // O static block garante que o listener esteja ativo desde o parsing.
-  static {
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      PWAInstallBanner.#deferred = e;
-      // Atualiza o botão se o banner já foi injetado
-      PWAInstallBanner.#atualizarBotao();
-    });
+  // Usar referências estáticas garante que addEventListener com a mesma
+  // função seja no-op em browsers reais (não duplica), mas ainda permite
+  // que init() re-registre após limpeza de listeners em testes.
+  static #onBeforeInstallPrompt = (e) => {
+    e.preventDefault();
+    PWAInstallBanner.#deferred = e;
+    PWAInstallBanner.#atualizarBotao();
+  };
 
-    window.addEventListener('appinstalled', () => {
-      PWAInstallBanner.#instalado = true;
-      PWAInstallBanner.#fechar(true);
-    });
+  static #onAppInstalled = () => {
+    PWAInstallBanner.#instalado = true;
+    PWAInstallBanner.#fechar(true);
+  };
+
+  // ── Registro antecipado no parsing da classe ─────────────────────────
+  static {
+    window.addEventListener('beforeinstallprompt', PWAInstallBanner.#onBeforeInstallPrompt);
+    window.addEventListener('appinstalled',         PWAInstallBanner.#onAppInstalled);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -72,6 +77,11 @@ class PWAInstallBanner {
    * Não faz nada se o app já estiver instalado (standalone).
    */
   static init() {
+    // Re-registra usando as mesmas referências — no-op em browsers reais,
+    // mas necessário em testes onde o shim de window é resetado entre casos.
+    window.addEventListener('beforeinstallprompt', PWAInstallBanner.#onBeforeInstallPrompt);
+    window.addEventListener('appinstalled',         PWAInstallBanner.#onAppInstalled);
+
     if (PWAInstallBanner.#estaInstalado()) return;
 
     // Injeta o banner no body (flutuante, fora do fluxo de telas)

@@ -9,6 +9,7 @@ const jwt    = require('jsonwebtoken');
 process.env.APP_ENV                   = 'development';
 process.env.SUPABASE_URL              = 'https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+process.env.SUPABASE_ANON_KEY         = 'test-anon-key';
 process.env.SUPABASE_JWT_SECRET       = 'test-jwt-secret-at-least-32-chars!!';
 
 const TEST_USER_ID = 'a1b2c3d4-e5f6-4890-abcd-ef1234567890';
