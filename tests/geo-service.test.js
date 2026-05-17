@@ -74,6 +74,83 @@ suite('GeoService.obter() — cache de posição', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GeoService.#salvarNaBff — guard de token, 401, lock e offline queue
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Monta sandbox com BffApiService e OfflineSyncQueue mockados.
+ * GPS sempre resolve com lat=-23.55, lng=-46.63 na primeira chamada.
+ */
+function criarSandboxComBff({ tokenValido = true, patchResult = { error: null } } = {}) {
+  const patchMock  = fn(async () => patchResult);
+  const enqueueMock = fn(async () => {});
+  const sb = vm.createContext({
+    console,
+    Error,
+    TypeError,
+    Promise,
+    CustomEvent: class CustomEvent { constructor(name) { this.type = name; } },
+    document: { dispatchEvent: fn(), addEventListener: fn() },
+    localStorage: {
+      getItem:    fn(() => null),
+      setItem:    fn(),
+      removeItem: fn(),
+    },
+    navigator: {
+      geolocation: {
+        getCurrentPosition: fn((success) =>
+          success({ coords: { latitude: -23.55, longitude: -46.63, accuracy: 10 } })
+        ),
+      },
+    },
+    OfflineSyncQueue: { enqueue: enqueueMock },
+    BffApiService: {
+      temTokenValido: fn(() => tokenValido),
+      patch:          patchMock,
+      baseUrl:        'http://localhost:3002',
+    },
+  });
+  carregar(sb, 'shared/js/GeoService.js');
+  return { sb, patchMock, enqueueMock };
+}
+
+suite('GeoService.#salvarNaBff — proteção 401 e lock', () => {
+
+  test('não chama patch quando temTokenValido() retorna false', async () => {
+    const { sb, patchMock } = criarSandboxComBff({ tokenValido: false });
+    await sb.GeoService.obter();
+    assert.strictEqual(patchMock.calls.length, 0, 'patch não deve ser chamado sem token');
+  });
+
+  test('chama patch uma vez quando token válido', async () => {
+    const { sb, patchMock } = criarSandboxComBff();
+    await sb.GeoService.obter();
+    assert.strictEqual(patchMock.calls.length, 1);
+  });
+
+  test('não enfileira no OfflineSyncQueue quando BFF retorna 401', async () => {
+    const err401 = Object.assign(new Error('HTTP 401'), { status: 401 });
+    const { sb, enqueueMock } = criarSandboxComBff({ patchResult: { error: err401 } });
+    await sb.GeoService.obter();
+    assert.strictEqual(enqueueMock.calls.length, 0, 'não deve enfileirar quando 401 (token inválido)');
+  });
+
+  test('enfileira no OfflineSyncQueue quando BFF retorna 503 (erro de rede/servidor)', async () => {
+    const err503 = Object.assign(new Error('HTTP 503'), { status: 503 });
+    const { sb, enqueueMock } = criarSandboxComBff({ patchResult: { error: err503 } });
+    await sb.GeoService.obter();
+    assert.strictEqual(enqueueMock.calls.length, 1, 'deve enfileirar para replay quando 5xx');
+  });
+
+  test('segunda chamada obter() reutiliza cache e não chama patch novamente', async () => {
+    const { sb, patchMock } = criarSandboxComBff();
+    await sb.GeoService.obter();
+    await sb.GeoService.obter(); // cache hit
+    assert.strictEqual(patchMock.calls.length, 1, 'patch deve ser chamado só uma vez');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // GeoService.verificarPermissao()
 // ─────────────────────────────────────────────────────────────────────────────
 suite('GeoService.verificarPermissao()', () => {

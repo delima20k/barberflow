@@ -22,6 +22,7 @@ class GeoService {
   static #SALVAR_COOLDOWN_MS = 10 * 60 * 1000; // throttle: salva na BFF no max 1x/10min
   static #cache              = null;            // { lat, lng, ts }
   static #ultimoSalvo        = null;            // Date.now() do ultimo save na BFF
+  static #salvandoNaBff      = false;           // lock: evita chamadas concorrentes ao patch
   static #watchId            = null;            // ID do watchPosition ativo (ou null)
 
   static #LS_POSITION_KEY = 'geo:last_position';        // chave localStorage
@@ -262,6 +263,7 @@ class GeoService {
    * Fire-and-forget — não bloqueia o fluxo.
    */
   static async #salvarNaBff(lat, lng) {
+    if (GeoService.#salvandoNaBff) return;
     if (
       GeoService.#ultimoSalvo &&
       Date.now() - GeoService.#ultimoSalvo < GeoService.#SALVAR_COOLDOWN_MS
@@ -281,23 +283,29 @@ class GeoService {
 
     // 2) Envia para BFF autenticada — só se houver token válido
     if (typeof BffApiService === 'undefined' || !BffApiService.temTokenValido()) return;
+
+    GeoService.#salvandoNaBff = true;
     try {
       const { error } = await BffApiService.patch(
         '/api/v1/clientes/localizacao',
         { lat, lng },
       );
+      GeoService.#ultimoSalvo = Date.now();
       if (!error) {
-        GeoService.#ultimoSalvo = Date.now();
         GeoService.#debug('[GeoService] BFF patch ok');
         return;
       }
-      // BFF retornou erro (ex.: offline) — enfileira para replay
+      // 401 = token inválido/expirado — não adianta enfileirar para replay
+      if (error.status === 401) {
+        GeoService.#debug('[GeoService] BFF 401 — token inválido, não enfileirando');
+        return;
+      }
+      // Erro de rede ou servidor (5xx) — enfileira para replay quando online
       GeoService.#debug('[GeoService] BFF offline, enfileirando IDB', error?.message);
       await GeoService.#enfileirarOffline(lat, lng);
-    } catch {
-      await GeoService.#enfileirarOffline(lat, lng);
+    } finally {
+      GeoService.#salvandoNaBff = false;
     }
-    GeoService.#ultimoSalvo = Date.now();
   }
 
   /**

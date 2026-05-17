@@ -67,7 +67,9 @@ class BffApiService {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return { data: null, error: new Error(json?.error ?? `HTTP ${res.status}`) };
+        const err = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, error: err };
       }
       return { data: json?.dados ?? null, error: null };
     } catch (err) {
@@ -91,7 +93,9 @@ class BffApiService {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return { data: null, error: new Error(json?.error ?? `HTTP ${res.status}`) };
+        const err = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, error: err };
       }
       return { data: json?.dados ?? null, error: null };
     } catch (err) {
@@ -149,7 +153,7 @@ class BffApiService {
 
   /**
    * Lê o access_token JWT do localStorage (Supabase).
-   * Retorna null se ausente ou se o token já expirou.
+   * Retorna null se ausente, se não houver expires_at, ou se o token estiver expirado.
    * @returns {string|null}
    */
   static #getToken() {
@@ -160,8 +164,11 @@ class BffApiService {
       const token     = parsed?.access_token ?? null;
       const expiresAt = parsed?.expires_at;   // Unix timestamp em segundos
       if (!token) return null;
-      // Rejeita token expirado (30s de buffer para clock skew)
-      if (expiresAt && Date.now() / 1000 > expiresAt - 30) return null;
+      // expires_at é obrigatório — sem ele o token é tratado como inválido
+      // (protege contra sessões malformadas que não carregam expiração).
+      if (!expiresAt) return null;
+      // Buffer de 60s para cobrir clock skew entre cliente e servidor + latência de rede
+      if (Date.now() / 1000 > expiresAt - 60) return null;
       return token;
     } catch {
       return null;
