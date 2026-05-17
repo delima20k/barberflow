@@ -3,15 +3,18 @@
  * tests/comunicacao-backend.test.js
  *
  * Testa ComunicacaoRepository e ComunicacaoService do backend Node.js.
+ * Cobre apenas: notificações.
+ *
+ * Mensagens diretas foram migradas para P2P com E2E encryption —
+ * os métodos enviarMensagem/getConversa foram removidos.
  */
 
 const { suite, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
-const UUID_USER    = '00000000-0000-4000-8000-000000000001';
-const UUID_CONTATO = '00000000-0000-4000-8000-000000000002';
-const UUID_NOTIF   = '00000000-0000-4000-8000-000000000001';
+const UUID_USER  = '00000000-0000-4000-8000-000000000001';
+const UUID_NOTIF = '00000000-0000-4000-8000-000000000001';
 
 function criarSupabaseMock({ data = null, error = null } = {}) {
   const result  = { data, error };
@@ -71,31 +74,18 @@ suite('ComunicacaoRepository.marcarLida()', () => {
   });
 });
 
-suite('ComunicacaoRepository.getConversa()', () => {
+suite('ComunicacaoRepository — métodos de mensagem removidos', () => {
 
-  test('busca tabela direct_messages', async () => {
+  test('getConversa não existe', () => {
     const { supabase } = criarSupabaseMock({ data: [] });
     const repo = new ComunicacaoRepository(supabase);
-    await repo.getConversa(UUID_USER, UUID_CONTATO);
-    assert.ok(supabase.from.calls.some(([t]) => t === 'direct_messages'));
+    assert.strictEqual(typeof repo.getConversa, 'undefined');
   });
 
-  test('retorna array vazio quando data é null', async () => {
-    const { supabase } = criarSupabaseMock({ data: null });
+  test('enviarMensagem não existe', () => {
+    const { supabase } = criarSupabaseMock({ data: [] });
     const repo = new ComunicacaoRepository(supabase);
-    const result = await repo.getConversa(UUID_USER, UUID_CONTATO);
-    assert.deepEqual(result, []);
-  });
-});
-
-suite('ComunicacaoRepository.enviarMensagem()', () => {
-
-  test('insere na tabela direct_messages', async () => {
-    const msg = { id: 'msg-1', sender_id: UUID_USER, receiver_id: UUID_CONTATO, content: 'Olá' };
-    const { supabase } = criarSupabaseMock({ data: msg });
-    const repo = new ComunicacaoRepository(supabase);
-    await repo.enviarMensagem(UUID_USER, UUID_CONTATO, 'Olá');
-    assert.ok(supabase.from.calls.some(([t]) => t === 'direct_messages'));
+    assert.strictEqual(typeof repo.enviarMensagem, 'undefined');
   });
 });
 
@@ -103,12 +93,10 @@ suite('ComunicacaoRepository.enviarMensagem()', () => {
 // ComunicacaoService
 // ─────────────────────────────────────────────────────────────────────────────
 
-function criarComunicacaoService({ notifs = [], msgs = [] } = {}) {
+function criarComunicacaoService({ notifs = [] } = {}) {
   const repo = {
     getNotificacoes: fn().mockResolvedValue(notifs),
     marcarLida:      fn().mockResolvedValue({ id: UUID_NOTIF, is_read: true }),
-    getConversa:     fn().mockResolvedValue(msgs),
-    enviarMensagem:  fn().mockResolvedValue({ id: 'msg-1' }),
   };
   return { service: new ComunicacaoService(repo), repo };
 }
@@ -148,44 +136,15 @@ suite('ComunicacaoService.marcarNotificacaoLida()', () => {
   });
 });
 
-suite('ComunicacaoService.listarConversa()', () => {
+suite('ComunicacaoService — métodos de mensagem removidos', () => {
 
-  test('lança 400 se contatoId inválido', async () => {
+  test('listarConversa não existe', () => {
     const { service } = criarComunicacaoService();
-    await assert.rejects(
-      () => service.listarConversa(UUID_USER, 'invalido'),
-      (err) => err.status === 400,
-    );
+    assert.strictEqual(typeof service.listarConversa, 'undefined');
   });
 
-  test('delega para repo.getConversa()', async () => {
-    const { service, repo } = criarComunicacaoService({ msgs: [{ id: 'msg-1' }] });
-    await service.listarConversa(UUID_USER, UUID_CONTATO);
-    assert.strictEqual(repo.getConversa.calls.length, 1);
-  });
-});
-
-suite('ComunicacaoService.enviarMensagem()', () => {
-
-  test('lança 400 quando conteúdo está vazio', async () => {
+  test('enviarMensagem não existe', () => {
     const { service } = criarComunicacaoService();
-    await assert.rejects(
-      () => service.enviarMensagem(UUID_USER, UUID_CONTATO, '   '),
-      (err) => err.status === 400,
-    );
-  });
-
-  test('lança 400 quando conteúdo excede 2000 chars', async () => {
-    const { service } = criarComunicacaoService();
-    await assert.rejects(
-      () => service.enviarMensagem(UUID_USER, UUID_CONTATO, 'x'.repeat(2001)),
-      (err) => err.status === 400,
-    );
-  });
-
-  test('delega para repo.enviarMensagem() com dados válidos', async () => {
-    const { service, repo } = criarComunicacaoService();
-    await service.enviarMensagem(UUID_USER, UUID_CONTATO, 'Olá, tudo bem?');
-    assert.strictEqual(repo.enviarMensagem.calls.length, 1);
+    assert.strictEqual(typeof service.enviarMensagem, 'undefined');
   });
 });

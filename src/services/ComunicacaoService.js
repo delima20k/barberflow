@@ -5,6 +5,9 @@
 // Camada: application
 //
 // Nunca acessa o banco diretamente — delega ao ComunicacaoRepository.
+//
+// Mensagens diretas foram migradas para P2P com E2E encryption.
+// Ver: shared/js/P2PMessageConnectionService.js
 // =============================================================
 
 const BaseService = require('../infra/BaseService');
@@ -42,37 +45,6 @@ class ComunicacaoService extends BaseService {
     return this.#comunicacaoRepository.marcarLida(notificationId, userId);
   }
 
-  /**
-   * Lista conversa com um contato.
-   * @param {string} userId
-   * @param {string} contatoId
-   * @param {number} [limit=50]
-   * @returns {Promise<object[]>}
-   */
-  async listarConversa(userId, contatoId, limit = 50) {
-    this._uuid('userId', userId);
-    this._uuid('contatoId', contatoId);
-    return this.#comunicacaoRepository.getConversa(userId, contatoId, limit);
-  }
-
-  /**
-   * Envia mensagem direta.
-   * Regra de negócio: não é possível enviar mensagem para si mesmo.
-   * @param {string} userId
-   * @param {string} destinatarioId
-   * @param {string} conteudo
-   * @returns {Promise<object>}
-   */
-  async enviarMensagem(userId, destinatarioId, conteudo) {
-    this._uuid('userId', userId);
-    this._uuid('destinatarioId', destinatarioId);
-
-    if (userId === destinatarioId)
-      throw this._erro('Não é possível enviar mensagem para si mesmo.');
-
-    const texto = this._texto('conteudo', conteudo?.trim() ?? '', 2000, true);
-    return this.#comunicacaoRepository.enviarMensagem(userId, destinatarioId, texto);
-  }
 }
 
 module.exports = ComunicacaoService;

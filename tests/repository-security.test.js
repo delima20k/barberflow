@@ -5,10 +5,11 @@
 //
 // Testes de segurança do padrão de repositório:
 //   - BaseRepository: helpers _validarUuid / _validarEmail / _validarPayload
-//   - ComunicacaoRepository.getConversa(): sem interpolação de string em .or()
-//   - ComunicacaoRepository.enviarMensagem(): validação de UUIDs
 //   - SocialRepository.createStory(): validação de barbershop_id e author_id
 //   - ClienteRepository.findByEmail(): validação de e-mail + rpc parametrizado
+//
+// ComunicacaoRepository.getConversa() e enviarMensagem() foram removidos —
+// mensagens diretas migradas para P2P com E2E encryption.
 // =============================================================
 
 const { suite, test } = require('node:test');
@@ -104,127 +105,19 @@ suite('BaseRepository — helpers de validação', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ComunicacaoRepository — getConversa()
+// ComunicacaoRepository — métodos de mensagem removidos (P2P E2E)
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ComunicacaoRepository — getConversa()', () => {
+suite('ComunicacaoRepository — métodos de mensagem removidos', () => {
 
-  test('lança TypeError para userId inválido', async () => {
+  test('getConversa não existe', () => {
     const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
-    await assert.rejects(() => repo.getConversa('nao-uuid', UUID_B), TypeError);
+    assert.strictEqual(typeof repo.getConversa, 'undefined');
   });
 
-  test('lança TypeError para contatoId inválido', async () => {
+  test('enviarMensagem não existe', () => {
     const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
-    await assert.rejects(() => repo.getConversa(UUID_A, 'nao-uuid'), TypeError);
-  });
-
-  test('NÃO usa .or() — elimina interpolação de string na query', async () => {
-    let orFoiChamado = false;
-    const b = criarBuilder({ data: [], error: null });
-    b.or = fn(() => { orFoiChamado = true; return b; });
-
-    const supa = { from: fn().mockReturnValue(b), rpc: fn() };
-    const repo = new ComunicacaoRepository(supa);
-    await repo.getConversa(UUID_A, UUID_B);
-
-    assert.equal(orFoiChamado, false, 'getConversa não deve chamar .or() com interpolação');
-  });
-
-  test('faz exatamente 2 consultas ao banco (uma por direção da conversa)', async () => {
-    let chamadas = 0;
-    const supa = {
-      from: fn(() => { chamadas++; return criarBuilder({ data: [], error: null }); }),
-      rpc: fn(),
-    };
-    const repo = new ComunicacaoRepository(supa);
-    await repo.getConversa(UUID_A, UUID_B);
-
-    assert.equal(chamadas, 2, 'deve fazer exatamente 2 consultas');
-  });
-
-  test('mescla e ordena mensagens das duas direções por created_at', async () => {
-    const msgMaisNova = {
-      id: 'm1', sender_id: UUID_A, receiver_id: UUID_B,
-      content: 'oi', created_at: '2024-01-01T10:00:00Z',
-    };
-    const msgMaisAntiga = {
-      id: 'm2', sender_id: UUID_B, receiver_id: UUID_A,
-      content: 'oi tb', created_at: '2024-01-01T09:00:00Z',
-    };
-
-    let chamada = 0;
-    const supa = {
-      from: fn(() => {
-        chamada++;
-        return criarBuilder({ data: chamada === 1 ? [msgMaisNova] : [msgMaisAntiga], error: null });
-      }),
-      rpc: fn(),
-    };
-    const repo = new ComunicacaoRepository(supa);
-    const msgs = await repo.getConversa(UUID_A, UUID_B);
-
-    assert.equal(msgs.length, 2);
-    assert.equal(msgs[0].id, 'm2', 'mensagem mais antiga deve vir primeiro');
-    assert.equal(msgs[1].id, 'm1', 'mensagem mais nova deve vir depois');
-  });
-
-  test('propaga erro do banco como exceção', async () => {
-    const erroDB = new Error('connection refused');
-    const b = criarBuilder({ data: null, error: erroDB });
-    const repo = new ComunicacaoRepository(criarSupa(b));
-
-    await assert.rejects(
-      () => repo.getConversa(UUID_A, UUID_B),
-      err => err === erroDB,
-    );
-  });
-
-  test('respeita o limite — não retorna mais mensagens que o solicitado', async () => {
-    const msgs = Array.from({ length: 5 }, (_, i) => ({
-      id: `m${i}`, created_at: `2024-01-0${i + 1}T00:00:00Z`,
-    }));
-
-    let chamada = 0;
-    const supa = {
-      from: fn(() => {
-        chamada++;
-        return criarBuilder({ data: chamada === 1 ? msgs : [], error: null });
-      }),
-      rpc: fn(),
-    };
-    const repo = new ComunicacaoRepository(supa);
-    const resultado = await repo.getConversa(UUID_A, UUID_B, 3);
-
-    assert.equal(resultado.length, 3, 'não deve ultrapassar o limit solicitado');
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ComunicacaoRepository — enviarMensagem()
-// ─────────────────────────────────────────────────────────────────────────────
-
-suite('ComunicacaoRepository — enviarMensagem()', () => {
-
-  test('lança TypeError para remetente (UUID) inválido', async () => {
-    const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
-    await assert.rejects(() => repo.enviarMensagem('invalido', UUID_B, 'olá'), TypeError);
-  });
-
-  test('lança TypeError para destinatário (UUID) inválido', async () => {
-    const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
-    await assert.rejects(() => repo.enviarMensagem(UUID_A, 'invalido', 'olá'), TypeError);
-  });
-
-  test('lança TypeError para conteúdo vazio', async () => {
-    const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
-    await assert.rejects(() => repo.enviarMensagem(UUID_A, UUID_B, ''), TypeError);
-  });
-
-  test('lança TypeError para conteúdo muito longo (> 2000 chars)', async () => {
-    const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
-    const longo = 'x'.repeat(2001);
-    await assert.rejects(() => repo.enviarMensagem(UUID_A, UUID_B, longo), TypeError);
+    assert.strictEqual(typeof repo.enviarMensagem, 'undefined');
   });
 });
 

@@ -277,33 +277,19 @@ suite('AgendamentoService — atualizarStatus com verificação de propriedade',
 });
 
 // =============================================================
-// ComunicacaoService — bloqueio de auto-mensagem
+// ComunicacaoService — mensagens diretas removidas (P2P E2E)
 // =============================================================
 
-suite('ComunicacaoService — enviarMensagem', () => {
+suite('ComunicacaoService — métodos de mensagem removidos', () => {
 
-  const repoVazio = { enviarMensagem: async () => ({ id: UUID_E }) };
-
-  test('lança Error{status:400} quando userId === destinatarioId', async () => {
-    const svc = new ComunicacaoService(repoVazio);
-    await assert.rejects(
-      () => svc.enviarMensagem(UUID_A, UUID_A, 'Oi'),
-      (err) => err.status === 400,
-    );
+  test('enviarMensagem não existe (migrado para P2P)', () => {
+    const svc = new ComunicacaoService({});
+    assert.strictEqual(typeof svc.enviarMensagem, 'undefined');
   });
 
-  test('envia mensagem com sucesso para destinatário diferente', async () => {
-    const svc = new ComunicacaoService(repoVazio);
-    const r   = await svc.enviarMensagem(UUID_A, UUID_B, 'Olá!');
-    assert.ok(r);
-  });
-
-  test('lança 400 para mensagem vazia', async () => {
-    const svc = new ComunicacaoService(repoVazio);
-    await assert.rejects(
-      () => svc.enviarMensagem(UUID_A, UUID_B, ''),
-      (err) => err.status === 400,
-    );
+  test('listarConversa não existe (migrado para P2P)', () => {
+    const svc = new ComunicacaoService({});
+    assert.strictEqual(typeof svc.listarConversa, 'undefined');
   });
 });
 

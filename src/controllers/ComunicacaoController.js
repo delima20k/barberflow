@@ -7,8 +7,9 @@
 // Rotas:
 //   GET   /api/comunicacao/notificacoes             — listar notificações
 //   PATCH /api/comunicacao/notificacoes/:id/lida    — marcar como lida
-//   GET   /api/comunicacao/mensagens/:contatoId     — conversa
-//   POST  /api/comunicacao/mensagens                — enviar mensagem
+//
+// Mensagens diretas foram migradas para P2P com E2E encryption.
+// Ver: shared/js/P2PMessageConnectionService.js
 // =============================================================
 
 const { Router }     = require('express');
@@ -38,31 +39,6 @@ function criarComunicacaoController(comunicacaoService) {
     try {
       const notif = await comunicacaoService.marcarNotificacaoLida(req.params.id, req.user.id);
       res.json({ ok: true, dados: notif });
-    } catch (err) {
-      res.status(err.status ?? 500).json({ ok: false, error: err.message });
-    }
-  });
-
-  // ── GET /api/comunicacao/mensagens/:contatoId ─────────────────────────────
-  router.get('/mensagens/:contatoId', async (req, res) => {
-    try {
-      const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined;
-      const msgs  = await comunicacaoService.listarConversa(req.user.id, req.params.contatoId, limit);
-      res.json({ ok: true, dados: msgs });
-    } catch (err) {
-      res.status(err.status ?? 500).json({ ok: false, error: err.message });
-    }
-  });
-
-  // ── POST /api/comunicacao/mensagens ───────────────────────────────────────
-  router.post('/mensagens', async (req, res) => {
-    try {
-      const msg = await comunicacaoService.enviarMensagem(
-        req.user.id,
-        req.body.destinatario_id,
-        req.body.conteudo,
-      );
-      res.status(201).json({ ok: true, dados: msg });
     } catch (err) {
       res.status(err.status ?? 500).json({ ok: false, error: err.message });
     }

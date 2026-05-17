@@ -4,8 +4,11 @@
 // ComunicacaoRepository.js — Repositório de comunicação.
 // Camada: infra
 //
-// Tabelas: notifications, direct_messages.
+// Tabelas: notifications.
 // Sem lógica de negócio — apenas acesso e persistência.
+//
+// Mensagens diretas foram migradas para P2P com E2E encryption.
+// Ver: shared/js/P2PMessageConnectionService.js
 // =============================================================
 
 const BaseRepository  = require('../infra/BaseRepository');
@@ -64,77 +67,6 @@ class ComunicacaoRepository extends BaseRepository {
     return data;
   }
 
-  // ── Mensagens Diretas ────────────────────────────────────
-
-  /**
-   * Retorna a conversa entre dois usuários.
-   *
-   * Usa duas queries paralelas (uma por direção) em vez de .or() com
-   * interpolação de string. Garante zero concatenação em filtros de query.
-   *
-   * @param {string} userId
-   * @param {string} contatoId
-   * @param {number} [limit=50]
-   * @returns {Promise<object[]>}
-   */
-  async getConversa(userId, contatoId, limit = 50) {
-    this._validarUuid('userId', userId);
-    this._validarUuid('contatoId', contatoId);
-
-    const SELECT = 'id, sender_id, receiver_id, content, is_read, created_at';
-
-    const [r1, r2] = await Promise.all([
-      this.#supabase
-        .from('direct_messages')
-        .select(SELECT)
-        .eq('sender_id', userId)
-        .eq('receiver_id', contatoId)
-        .order('created_at', { ascending: true })
-        .limit(limit),
-      this.#supabase
-        .from('direct_messages')
-        .select(SELECT)
-        .eq('sender_id', contatoId)
-        .eq('receiver_id', userId)
-        .order('created_at', { ascending: true })
-        .limit(limit),
-    ]);
-
-    if (r1.error) throw r1.error;
-    if (r2.error) throw r2.error;
-
-    return [...(r1.data ?? []), ...(r2.data ?? [])]
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-      .slice(0, limit);
-  }
-
-  /**
-   * Envia uma mensagem direta.
-   * @param {string} remetente
-   * @param {string} destinatario
-   * @param {string} conteudo
-   * @returns {Promise<object>}
-   */
-  async enviarMensagem(remetente, destinatario, conteudo) {
-    this._validarUuid('remetente', remetente);
-    this._validarUuid('destinatario', destinatario);
-
-    const conteudoSanitizado = this._validarTexto('conteudo', conteudo, 2000, true);
-
-    const { data, error } = await this.#supabase
-      .from('direct_messages')
-      .insert({
-        sender_id:   remetente,
-        receiver_id: destinatario,
-        content:     conteudoSanitizado,
-        is_read:     false,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  }
 }
 
 module.exports = ComunicacaoRepository;
