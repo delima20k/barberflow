@@ -5,13 +5,11 @@
 //
 // Responsabilidades:
 //   - Chamar a BFF (BffApiService) como fonte primária
-//   - Em caso de falha da BFF, usar fallback para Supabase direto
-//     via BarbershopRepository (zero regressão)
-//   - Guards obrigatórios: previne lat/lng undefined antes da chamada
-//   - Logs de diagnóstico quando o fallback é ativado
+//   - Se BFF indisponível: retornar [] para que o widget exiba estado vazio
+//   - Guards obrigatórios: previne lat/lng inválidos antes da chamada
 //
 // Consumidores: NearbyBarbershopsWidget
-// Dependências: BffApiService.js, BarbershopRepository.js, LoggerService.js
+// Dependências: BffApiService.js, LoggerService.js
 // =============================================================
 
 class BarbeariaApiClient {
@@ -24,7 +22,7 @@ class BarbeariaApiClient {
 
   /**
    * Lista barbearias próximas à coordenada informada.
-   * Fallback para BarbershopRepository.getNearby() se BFF falhar.
+   * BFF indisponível → retorna [] para que o widget exiba estado vazio.
    *
    * @param {number} lat
    * @param {number} lng
@@ -48,7 +46,7 @@ class BarbeariaApiClient {
 
   /**
    * Lista barbearias em destaque (top rated).
-   * Fallback para BarbershopRepository.getFeatured() se BFF falhar.
+   * BFF indisponível → retorna [] para que o widget exiba estado vazio.
    *
    * @param {number} [limit=6]
    * @returns {Promise<object[]>}
@@ -66,7 +64,7 @@ class BarbeariaApiClient {
 
   /**
    * Lista todas as barbearias ativas por popularidade.
-   * Fallback para BarbershopRepository.getAll() se BFF falhar.
+   * BFF indisponível → retorna [] para que o widget exiba estado vazio.
    *
    * @param {number} [limit=60]
    * @returns {Promise<object[]>}
