@@ -2,6 +2,7 @@
 
 const jwt            = require('jsonwebtoken');
 const SupabaseClient = require('../utils/SupabaseClient');
+const { logger }     = require('./logger');
 
 /**
  * Cache TTL simples para o path de fallback (sem SUPABASE_JWT_SECRET).
@@ -103,3 +104,14 @@ class AuthMiddleware {
 }
 
 module.exports = AuthMiddleware;
+
+// Aviso único de startup: SUPABASE_JWT_SECRET ausente significa round-trip à rede
+// em cada verificação de token (maior latência e dependência do Supabase Auth).
+// Configure esta variável no Vercel para verificação local sem latência.
+if (!process.env.SUPABASE_JWT_SECRET && process.env.APP_ENV !== 'test') {
+  logger.warn(
+    '[AuthMiddleware] SUPABASE_JWT_SECRET não configurado — ' +
+    'tokens verificados via Supabase Auth (rede). ' +
+    'Defina SUPABASE_JWT_SECRET no Vercel para verificação local e zero latência.',
+  );
+}

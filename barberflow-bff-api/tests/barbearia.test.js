@@ -38,7 +38,7 @@ let server;
 let port;
 
 before(async () => {
-  const app = criarApp();
+  const app = criarApp(mockDb);
   await new Promise((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
   });
@@ -240,6 +240,83 @@ suite('BarbeariaController — GET /api/v1/barbearias (fallback bounding-box)', 
     const { status, body } = await get('/api/v1/barbearias?lat=-15.79&lng=-47.88&raio=1');
     assert.strictEqual(status, 400);
     assert.strictEqual(body.ok, false);
+  });
+
+});
+
+// ── Suite de fallback SELECT_SAFE para getFeatured ───────────────
+// Usa servidor isolado com mock que simula colunas ausentes no banco
+// (rating_score, likes_count etc.) — verifica que #getFeaturedFallback
+// é ativado e retorna 200 em vez de 500.
+suite('BarbeariaController — GET /api/v1/barbearias/destaque (fallback SELECT_SAFE)', () => {
+
+  let server2;
+  let port2;
+
+  // Query builder que simula erro de coluna ausente (ex: migration não aplicada).
+  const _qbErro = () => {
+    const q = {
+      select: () => q,
+      eq:     () => q,
+      order:  () => q,
+      limit:  () => Promise.resolve({
+        data:  null,
+        error: { code: '42703', message: "column rating_score does not exist" },
+      }),
+    };
+    return q;
+  };
+
+  // Mock alternado: chamadas ímpares retornam erro (SELECT completo),
+  // chamadas pares retornam sucesso (SELECT_SAFE / fallback).
+  let fromCalls = 0;
+  const fallbackMockDb = {
+    from: () => {
+      fromCalls++;
+      return fromCalls % 2 === 1 ? _qbErro() : _qb();
+    },
+    rpc: () => Promise.resolve({ data: [], error: null }),
+  };
+
+  before(async () => {
+    fromCalls = 0;
+    const app2 = criarApp(fallbackMockDb);
+    await new Promise((resolve) => {
+      server2 = app2.listen(0, '127.0.0.1', resolve);
+    });
+    port2 = server2.address().port;
+  });
+
+  after(async () => {
+    await new Promise((resolve, reject) =>
+      server2.close((err) => (err ? reject(err) : resolve())),
+    );
+  });
+
+  function get2(path) {
+    return new Promise((resolve, reject) => {
+      http.get(`http://127.0.0.1:${port2}${path}`, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => {
+          try { resolve({ status: res.statusCode, body: JSON.parse(body) }); }
+          catch { resolve({ status: res.statusCode, body }); }
+        });
+      }).on('error', reject);
+    });
+  }
+
+  test('retorna 200 quando SELECT completo falha (fallback SELECT_SAFE ativo)', async () => {
+    fromCalls = 0; // garante que próxima chamada seja ímpar (erro)
+    const { status, body } = await get2('/api/v1/barbearias/destaque');
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+  });
+
+  test('retorna array em dados via fallback SELECT_SAFE', async () => {
+    fromCalls = 0;
+    const { body } = await get2('/api/v1/barbearias/destaque');
+    assert.ok(Array.isArray(body.dados), 'dados deve ser array mesmo via fallback');
   });
 
 });

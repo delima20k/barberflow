@@ -38,6 +38,7 @@ const clienteBffRoute       = require('./routes/clienteBff');
 const authRoute             = require('./routes/auth');
 const agendamentosRoute     = require('./routes/agendamentos');
 const notificacoesRoute     = require('./routes/notificacoes');
+const SupabaseClient         = require('./utils/SupabaseClient');
 
 /**
  * Valida variáveis de ambiente obrigatórias no startup.
@@ -53,8 +54,9 @@ function _validarEnv() {
   }
 }
 
-function criarApp() {
+function criarApp(db = null) {
   _validarEnv();
+  const _db = db ?? SupabaseClient.getInstance();
 
   const app = express();
 
@@ -90,8 +92,8 @@ function criarApp() {
   // ── 8. Rotas v1 ──────────────────────────────────────────────
   const v1Router = express.Router();
   v1Router.use('/health',        healthRoute);
-  v1Router.use('/barbearias',    barbeariaRoute);
-  v1Router.use('/clientes',      clienteRoute);
+  v1Router.use('/barbearias',    barbeariaRoute(_db));
+  v1Router.use('/clientes',      clienteRoute(_db));
   v1Router.use('/cliente',       clienteBffRoute);
   v1Router.use('/notificacoes',  notificacoesRoute);
   app.use('/api/v1', v1Router);

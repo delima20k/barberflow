@@ -66,40 +66,38 @@ suite('BarbeariaApiClient — getNearby', () => {
     assert.equal(mockNearby.calls.length, 0);
   });
 
-  test('BFF falha → fallback Supabase chamado → retorna dados do Supabase', async () => {
+  test('BFF falha → retorna [] sem acionar BarbershopRepository', async () => {
     const { sandbox, mockBffGet, mockNearby } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('BFF indisponível') });
-    mockNearby.mockResolvedValue(BARBEARIAS_SUPABASE);
 
     const result = await sandbox.BarbeariaApiClient.getNearby(LAT, LNG, RAIO);
 
-    assert.deepEqual(result, BARBEARIAS_SUPABASE);
-    assert.equal(mockNearby.calls.length, 1);
-    assert.deepEqual(mockNearby.calls[0], [LAT, LNG, RAIO]);
+    assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
+    assert.equal(mockNearby.calls.length, 0, 'BarbershopRepository não deve ser chamado');
   });
 
-  test('BFF falha + Supabase retorna array vazio → retorna []', async () => {
+  test('BFF falha + erro de rede → retorna [] sem acionar BarbershopRepository', async () => {
     const { sandbox, mockBffGet, mockNearby } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('timeout') });
-    mockNearby.mockResolvedValue([]);
 
     const result = await sandbox.BarbeariaApiClient.getNearby(LAT, LNG, RAIO);
 
-    assert.deepEqual(result, []);
+    assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
+    assert.equal(mockNearby.calls.length, 0, 'BarbershopRepository não deve ser chamado');
   });
 
-  test('BFF falha + Supabase lança erro → retorna [] e loga aviso do fallback', async () => {
+  test('BFF falha → retorna [] e loga aviso de BFF indisponível', async () => {
     const { sandbox, mockBffGet, mockNearby, warns } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('BFF down') });
-    mockNearby.mockRejectedValue(new Error('Supabase unavailable'));
 
     const result = await sandbox.BarbeariaApiClient.getNearby(LAT, LNG, RAIO);
 
     assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
     assert.ok(
-      warns.some(a => a[0].includes('fallback Supabase falhou')),
-      'deve logar aviso indicando que o fallback Supabase falhou',
+      warns.some(a => a[0].includes('BFF indisponível')),
+      'deve logar aviso de BFF indisponível',
     );
+    assert.equal(mockNearby.calls.length, 0, 'BarbershopRepository não deve ser chamado');
   });
 
   test('coords inválidas (NaN) → lança TypeError antes de qualquer chamada de rede', async () => {
@@ -126,30 +124,28 @@ suite('BarbeariaApiClient — getDestaque', () => {
     assert.equal(mockFeatured.calls.length, 0);
   });
 
-  test('BFF falha → BarbershopRepository.getFeatured chamado → retorna dados', async () => {
+  test('BFF falha → retorna [] sem acionar BarbershopRepository.getFeatured', async () => {
     const { sandbox, mockBffGet, mockFeatured } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('BFF down') });
-    mockFeatured.mockResolvedValue(BARBEARIAS_SUPABASE);
 
     const result = await sandbox.BarbeariaApiClient.getDestaque(6);
 
-    assert.deepEqual(result, BARBEARIAS_SUPABASE);
-    assert.equal(mockFeatured.calls.length, 1);
-    assert.deepEqual(mockFeatured.calls[0], [6]);
+    assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
+    assert.equal(mockFeatured.calls.length, 0, 'BarbershopRepository.getFeatured não deve ser chamado');
   });
 
-  test('BFF falha + Supabase lança → retorna [] e loga aviso do fallback', async () => {
+  test('BFF falha → retorna [] e loga aviso de BFF indisponível', async () => {
     const { sandbox, mockBffGet, mockFeatured, warns } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('BFF down') });
-    mockFeatured.mockRejectedValue(new Error('DB unavailable'));
 
     const result = await sandbox.BarbeariaApiClient.getDestaque(6);
 
     assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
     assert.ok(
-      warns.some(a => a[0].includes('fallback Supabase falhou')),
-      'deve logar aviso indicando que o fallback Supabase falhou',
+      warns.some(a => a[0].includes('BFF indisponível')),
+      'deve logar aviso de BFF indisponível',
     );
+    assert.equal(mockFeatured.calls.length, 0, 'BarbershopRepository não deve ser chamado');
   });
 });
 
@@ -166,29 +162,27 @@ suite('BarbeariaApiClient — getTodas', () => {
     assert.equal(mockGetAll.calls.length, 0);
   });
 
-  test('BFF falha → chama BarbershopRepository.getAll (não getAllByCortes) → retorna dados', async () => {
+  test('BFF falha → retorna [] sem acionar BarbershopRepository.getAll', async () => {
     const { sandbox, mockBffGet, mockGetAll } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('BFF down') });
-    mockGetAll.mockResolvedValue(BARBEARIAS_SUPABASE);
 
     const result = await sandbox.BarbeariaApiClient.getTodas(60);
 
-    assert.deepEqual(result, BARBEARIAS_SUPABASE);
-    assert.equal(mockGetAll.calls.length, 1, 'deve chamar BarbershopRepository.getAll');
-    assert.deepEqual(mockGetAll.calls[0], [60]);
+    assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
+    assert.equal(mockGetAll.calls.length, 0, 'BarbershopRepository.getAll não deve ser chamado');
   });
 
-  test('BFF falha + Supabase lança → retorna [] e loga aviso do fallback', async () => {
+  test('BFF falha → retorna [] e loga aviso de BFF indisponível', async () => {
     const { sandbox, mockBffGet, mockGetAll, warns } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: null, total: null, error: new Error('BFF down') });
-    mockGetAll.mockRejectedValue(new Error('DB unavailable'));
 
     const result = await sandbox.BarbeariaApiClient.getTodas(60);
 
     assert.ok(Array.isArray(result) && result.length === 0, 'deve retornar array vazio');
     assert.ok(
-      warns.some(a => a[0].includes('fallback Supabase falhou')),
-      'deve logar aviso indicando que o fallback Supabase falhou',
+      warns.some(a => a[0].includes('BFF indisponível')),
+      'deve logar aviso de BFF indisponível',
     );
+    assert.equal(mockGetAll.calls.length, 0, 'BarbershopRepository não deve ser chamado');
   });
 });

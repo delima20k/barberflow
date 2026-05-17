@@ -106,7 +106,27 @@ class BarbeariaRepository extends BaseRepository {
         .eq('is_active', true),
     ).limit(limit);
 
-    if (error) this._throwDbError(error, 'getFeatured');
+    if (!error) return data ?? [];
+
+    this._warn('getFeatured → fallback', error);
+    return this.#getFeaturedFallback(limit);
+  }
+
+  /**
+   * Fallback com colunas do schema inicial — ativo quando colunas opcionais
+   * (rating_score, likes_count, dislikes_count, font_key, close_reason)
+   * ainda não foram adicionadas ao projeto Supabase.
+   */
+  async #getFeaturedFallback(limit) {
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select(BarbeariaRepository.#SELECT_SAFE)
+      .eq('is_active', true)
+      .order('rating_avg',   { ascending: false })
+      .order('rating_count', { ascending: false })
+      .limit(limit);
+
+    if (error) this._throwDbError(error, 'getFeatured (fallback)');
     return data ?? [];
   }
 

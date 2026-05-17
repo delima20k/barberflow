@@ -42,15 +42,8 @@ class BarbeariaApiClient {
 
     if (!error && Array.isArray(data)) return data;
 
-    LoggerService.warn(
-      '[BarbeariaApiClient] getNearby: BFF falhou, usando fallback Supabase.',
-      error?.message,
-    );
-
-    return BarbershopRepository.getNearby(lat, lng, raioKm).catch((e) => {
-      LoggerService.warn('[BarbeariaApiClient] getNearby: fallback Supabase falhou.', e?.message);
-      return [];
-    });
+    LoggerService.warn('[BarbeariaApiClient] getNearby: BFF indisponível.', error?.message);
+    return [];
   }
 
   /**
@@ -67,15 +60,8 @@ class BarbeariaApiClient {
 
     if (!error && Array.isArray(data)) return data;
 
-    LoggerService.warn(
-      '[BarbeariaApiClient] getDestaque: BFF falhou, usando fallback Supabase.',
-      error?.message,
-    );
-
-    return BarbershopRepository.getFeatured(limit).catch((e) => {
-      LoggerService.warn('[BarbeariaApiClient] getDestaque: fallback Supabase falhou.', e?.message);
-      return [];
-    });
+    LoggerService.warn('[BarbeariaApiClient] getDestaque: BFF indisponível.', error?.message);
+    return [];
   }
 
   /**
@@ -92,15 +78,8 @@ class BarbeariaApiClient {
 
     if (!error && Array.isArray(data)) return data;
 
-    LoggerService.warn(
-      '[BarbeariaApiClient] getTodas: BFF falhou, usando fallback Supabase.',
-      error?.message,
-    );
-
-    return BarbershopRepository.getAll(limit).catch((e) => {
-      LoggerService.warn('[BarbeariaApiClient] getTodas: fallback Supabase falhou.', e?.message);
-      return [];
-    });
+    LoggerService.warn('[BarbeariaApiClient] getTodas: BFF indisponível.', error?.message);
+    return [];
   }
 
   // ── Privados ─────────────────────────────────────────────────────

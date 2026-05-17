@@ -1,23 +1,25 @@
 'use strict';
 
-const { Router }      = require('express');
-const AuthMiddleware  = require('../middlewares/auth');
-const SupabaseClient  = require('../utils/SupabaseClient');
-const GeoRepository   = require('../repositories/GeoRepository');
-const GeoService      = require('../services/GeoService');
-const GeoController   = require('../controllers/GeoController');
+const { Router }     = require('express');
+const AuthMiddleware = require('../middlewares/auth');
+const GeoRepository  = require('../repositories/GeoRepository');
+const GeoService     = require('../services/GeoService');
+const GeoController  = require('../controllers/GeoController');
 
-const db   = SupabaseClient.getInstance();
-const repo = new GeoRepository(db);
-const svc  = new GeoService(repo);
-const ctrl = new GeoController(svc);
+// ── Factory: recebe db injetado por criarApp() ───────────────────
+// Permite isolamento de dependências em testes (evita caching de módulo).
+module.exports = function criarClienteRoute(db) {
+  const repo = new GeoRepository(db);
+  const svc  = new GeoService(repo);
+  const ctrl = new GeoController(svc);
 
-const router = Router();
+  const router = Router();
 
-// Todas as rotas de /clientes exigem autenticação
-router.use(AuthMiddleware.verificar);
+  // Todas as rotas de /clientes exigem autenticação
+  router.use(AuthMiddleware.verificar);
 
-router.get('/localizacao',   (req, res) => ctrl.get(req, res));
-router.patch('/localizacao', (req, res) => ctrl.patch(req, res));
+  router.get('/localizacao',   (req, res) => ctrl.get(req, res));
+  router.patch('/localizacao', (req, res) => ctrl.patch(req, res));
 
-module.exports = router;
+  return router;
+};
