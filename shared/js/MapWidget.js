@@ -333,6 +333,7 @@ class MapWidget {
       const iniciais   = MapWidget.#iniciaisNome(b.name);
       const nomeSeguro = MapWidget.#escapeHtml(b.name ?? 'Barbearia');
       const enderecoSeguro = MapWidget.#escapeHtml(b.address ?? '');
+      const numeroEnderecoSeguro = MapWidget.#escapeHtml(MapWidget.#numeroEndereco(b.address));
       const cidadeSeguro = MapWidget.#escapeHtml(b.city ?? '');
       const distTexto  = b.distance_km != null
         ? b.distance_km < 1
@@ -340,9 +341,10 @@ class MapWidget {
           : `${b.distance_km.toFixed(1)} km`
         : null;
 
-      // Icone: fachada de barbearia + imagem do salao.
+      // Icone: casinha da barbearia + imagem do salao.
+      const avatarSeguro = avatarUrl ? MapWidget.#escapeHtml(avatarUrl) : null;
       const imgTag = avatarUrl
-        ? `<img src="${avatarUrl}"
+        ? `<img src="${avatarSeguro}"
                 class="mapa-shop-marker__img"
                 alt="${iniciais}"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
@@ -352,16 +354,20 @@ class MapWidget {
       const icon = L.divIcon({
         className:   '',
         html: `<div class="mapa-shop-marker">
-                 <div class="mapa-shop-marker__awning"></div>
+                 <div class="mapa-shop-marker__roof"></div>
                  <div class="mapa-shop-marker__body">
                    ${imgTag}
                    <span class="mapa-shop-marker__initials" style="${initialsStyle}">${iniciais}</span>
                  </div>
                  <div class="mapa-shop-marker__pin"></div>
+                 <div class="mapa-shop-marker__label">
+                   <span class="mapa-shop-marker__name">${nomeSeguro}</span>
+                   ${numeroEnderecoSeguro ? `<span class="mapa-shop-marker__number">Nº ${numeroEnderecoSeguro}</span>` : ''}
+                 </div>
                </div>`,
-        iconSize:    [58, 68],
-        iconAnchor:  [29, 68],
-        popupAnchor: [0, -70],
+        iconSize:    [116, 96],
+        iconAnchor:  [58, 72],
+        popupAnchor: [0, -74],
       });
 
       // ── Popup rico: avatar grande + info ──
@@ -401,10 +407,10 @@ class MapWidget {
       L.marker([b.latitude, b.longitude], { icon })
         .addTo(MapWidget.#layerBarbearias)
         .bindPopup(popup, { maxWidth: 260, minWidth: 220 })
-        .bindTooltip(nomeSeguro, {
+        .bindTooltip(`${nomeSeguro}${numeroEnderecoSeguro ? ` - Nº ${numeroEnderecoSeguro}` : ''}`, {
           permanent:  true,
           direction:  'bottom',
-          offset:     [0, 6],
+          offset:     [0, 27],
           className:  'mapa-tooltip-nome',
         });
     });
@@ -439,6 +445,17 @@ class MapWidget {
     const palavras = nome.trim().split(/\s+/).filter(Boolean);
     if (palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
     return (palavras[0][0] + palavras[1][0]).toUpperCase();
+  }
+
+  static #numeroEndereco(address) {
+    const partes = String(address ?? '')
+      .split(',')
+      .map(p => p.trim())
+      .filter(Boolean);
+    if (partes[1]) return partes[1];
+
+    const match = String(address ?? '').match(/\b\d+[A-Za-z]?\b/);
+    return match ? match[0] : '';
   }
 
   static #escapeHtml(valor) {
