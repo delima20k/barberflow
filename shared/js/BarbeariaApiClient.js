@@ -17,6 +17,11 @@ class BarbeariaApiClient {
   static #RAIO_PADRAO_KM  = 5;
   static #LIMIT_DESTAQUE  = 6;
   static #LIMIT_TODAS     = 60;
+  static #CACHE_TTL_MS    = 30 * 1000;
+  static #cache            = new Map(); // key -> { ts, data }
+  static #requestsEmAndamento = new Map(); // key -> Promise<{ data, cachear }>
+  static #ultimoAvisoMs    = 0;
+  static #AVISO_THROTTLE_MS = 60_000;
 
   // ── API pública ──────────────────────────────────────────────────
 
@@ -32,16 +37,25 @@ class BarbeariaApiClient {
   static async getNearby(lat, lng, raioKm = BarbeariaApiClient.#RAIO_PADRAO_KM) {
     BarbeariaApiClient.#validarCoordenadas(lat, lng);
 
-    const { data, error } = await BffApiService.get('/api/v1/barbearias', {
-      lat,
-      lng,
-      raio: raioKm,
+    const chave = [
+      'nearby',
+      Number(lat).toFixed(5),
+      Number(lng).toFixed(5),
+      Number(raioKm),
+    ].join(':');
+
+    return BarbeariaApiClient.#comCache(chave, async () => {
+      const { data, error } = await BffApiService.get('/api/v1/barbearias', {
+        lat,
+        lng,
+        raio: raioKm,
+      });
+
+      if (!error && Array.isArray(data)) return { data, cachear: true };
+
+      BarbeariaApiClient.#logAviso('getNearby', error?.message);
+      return { data: [], cachear: false };
     });
-
-    if (!error && Array.isArray(data)) return data;
-
-    LoggerService.warn('[BarbeariaApiClient] getNearby: BFF indisponível.', error?.message);
-    return [];
   }
 
   /**
@@ -52,14 +66,18 @@ class BarbeariaApiClient {
    * @returns {Promise<object[]>}
    */
   static async getDestaque(limit = BarbeariaApiClient.#LIMIT_DESTAQUE) {
-    const { data, error } = await BffApiService.get('/api/v1/barbearias/destaque', {
-      limit,
+    const chave = `destaque:${Number(limit)}`;
+
+    return BarbeariaApiClient.#comCache(chave, async () => {
+      const { data, error } = await BffApiService.get('/api/v1/barbearias/destaque', {
+        limit,
+      });
+
+      if (!error && Array.isArray(data)) return { data, cachear: true };
+
+      BarbeariaApiClient.#logAviso('getDestaque', error?.message);
+      return { data: [], cachear: false };
     });
-
-    if (!error && Array.isArray(data)) return data;
-
-    LoggerService.warn('[BarbeariaApiClient] getDestaque: BFF indisponível.', error?.message);
-    return [];
   }
 
   /**
@@ -70,17 +88,34 @@ class BarbeariaApiClient {
    * @returns {Promise<object[]>}
    */
   static async getTodas(limit = BarbeariaApiClient.#LIMIT_TODAS) {
-    const { data, error } = await BffApiService.get('/api/v1/barbearias/todas', {
-      limit,
+    const chave = `todas:${Number(limit)}`;
+
+    return BarbeariaApiClient.#comCache(chave, async () => {
+      const { data, error } = await BffApiService.get('/api/v1/barbearias/todas', {
+        limit,
+      });
+
+      if (!error && Array.isArray(data)) return { data, cachear: true };
+
+      BarbeariaApiClient.#logAviso('getTodas', error?.message);
+      return { data: [], cachear: false };
     });
-
-    if (!error && Array.isArray(data)) return data;
-
-    LoggerService.warn('[BarbeariaApiClient] getTodas: BFF indisponível.', error?.message);
-    return [];
   }
 
   // ── Privados ─────────────────────────────────────────────────────
+
+  /**
+   * Emite LoggerService.warn com throttle: no máximo 1 aviso por
+   * #AVISO_THROTTLE_MS para não poluir o console durante indisponibilidade.
+   * @param {string} metodo  Nome do método que detectou a falha
+   * @param {string} mensagem Detalhe do erro
+   */
+  static #logAviso(metodo, mensagem) {
+    const agora = Date.now();
+    if (agora - BarbeariaApiClient.#ultimoAvisoMs < BarbeariaApiClient.#AVISO_THROTTLE_MS) return;
+    BarbeariaApiClient.#ultimoAvisoMs = agora;
+    LoggerService.warn(`[BarbeariaApiClient] ${metodo}: BFF indisponível.`, mensagem);
+  }
 
   /**
    * Valida que lat e lng são números finitos.
@@ -94,5 +129,49 @@ class BarbeariaApiClient {
         `[BarbeariaApiClient] coordenadas inválidas: lat=${lat}, lng=${lng}`,
       );
     }
+  }
+
+  /**
+   * Deduplica requests iguais e mantém cache curto para o boot da home.
+   * @param {string} chave
+   * @param {Function} fetcher
+   * @returns {Promise<object[]>}
+   */
+  static async #comCache(chave, fetcher) {
+    const cache = BarbeariaApiClient.#cache.get(chave);
+    if (cache && Date.now() - cache.ts < BarbeariaApiClient.#CACHE_TTL_MS) {
+      return BarbeariaApiClient.#clonarLista(cache.data);
+    }
+
+    if (BarbeariaApiClient.#requestsEmAndamento.has(chave)) {
+      const resultado = await BarbeariaApiClient.#requestsEmAndamento.get(chave);
+      return BarbeariaApiClient.#clonarLista(resultado.data);
+    }
+
+    const promise = (async () => {
+      const resultado = await fetcher();
+      const data = Array.isArray(resultado?.data) ? resultado.data : [];
+      if (resultado?.cachear) {
+        BarbeariaApiClient.#cache.set(chave, { ts: Date.now(), data });
+      }
+      return { data, cachear: !!resultado?.cachear };
+    })();
+
+    BarbeariaApiClient.#requestsEmAndamento.set(chave, promise);
+    try {
+      const resultado = await promise;
+      return BarbeariaApiClient.#clonarLista(resultado.data);
+    } finally {
+      BarbeariaApiClient.#requestsEmAndamento.delete(chave);
+    }
+  }
+
+  /**
+   * Mantem um ponto unico de retorno para listas cacheadas.
+   * @param {object[]} lista
+   * @returns {object[]}
+   */
+  static #clonarLista(lista) {
+    return lista;
   }
 }
