@@ -19,6 +19,9 @@ class NearbyBarbershopsWidget {
   static #buscaEncerrada         = false;  // true após "nenhuma barbearia" — não rebusca
   static #listenersGeoRegistrados = false; // guard: evita duplicar listeners em re-init SPA
   static #carregando             = false;  // guard: evita #carregar() concorrente (race condition)
+  static #containersInicializados = new Set(); // containerId -> init ja executado
+  static #homeInicializados       = new Set(); // chave de bloco home ja renderizado
+  static #homeRequests            = new Map(); // chave de bloco home -> Promise em andamento
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -32,6 +35,8 @@ class NearbyBarbershopsWidget {
   static async init(containerId) {
     NearbyBarbershopsWidget.#el = document.getElementById(containerId);
     if (!NearbyBarbershopsWidget.#el) return;
+    if (NearbyBarbershopsWidget.#containersInicializados.has(containerId)) return;
+    NearbyBarbershopsWidget.#containersInicializados.add(containerId);
 
     // Reseta a flag toda vez que a tela é re-iniciada (SPA — sem reload de página)
     NearbyBarbershopsWidget.#buscaEncerrada = false;
@@ -76,6 +81,7 @@ class NearbyBarbershopsWidget {
   static async initHomeCards(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
+    return NearbyBarbershopsWidget.#executarHomeUnico(`cards:${containerId}`, async () => {
 
     // Skeleton — 2 colunas de 2 cards
     el.innerHTML = Array(3).fill(0).map(() => `
@@ -118,6 +124,11 @@ class NearbyBarbershopsWidget {
       // Fallback: busca todas ordenadas por popularidade
       if (!lista?.length) lista = await BarbeariaApiClient.getTodas(20);
 
+      if (!lista.length) {
+        NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbearias indisponíveis no momento.');
+        return;
+      }
+
       el.innerHTML = '';
 
       // Agrupa em pares — cada coluna tem 2 cards
@@ -134,8 +145,9 @@ class NearbyBarbershopsWidget {
 
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeCards exception:', err);
-      el.innerHTML = '';
+      NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbearias indisponíveis no momento.');
     }
+    });
   }
 
   /**
@@ -146,6 +158,7 @@ class NearbyBarbershopsWidget {
   static async initHomeDestaque(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
+    return NearbyBarbershopsWidget.#executarHomeUnico(`destaque:${containerId}`, async () => {
 
     // Skeleton 4 cards
     el.innerHTML = Array(4).fill(0).map(() => `
@@ -169,7 +182,7 @@ class NearbyBarbershopsWidget {
       try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
 
       const lista = await BarbeariaApiClient.getDestaque(6);
-      if (!lista.length) { el.innerHTML = ''; return; }
+      if (!lista.length) { NearbyBarbershopsWidget.#renderHomeVazio(el, 'Nenhum destaque disponível.'); return; }
 
       el.innerHTML = '';
       const cardsEls = [];
@@ -273,8 +286,9 @@ class NearbyBarbershopsWidget {
 
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeDestaque exception:', err);
-      el.innerHTML = '';
+      NearbyBarbershopsWidget.#renderHomeVazio(el, 'Nenhum destaque disponível.');
     }
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -301,7 +315,7 @@ class NearbyBarbershopsWidget {
 
     try {
       const lista = await BarbershopRepository.getBarbers(10);
-      if (!lista.length) { el.innerHTML = ''; return; }
+      if (!lista.length) { NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbeiros indisponíveis no momento.'); return; }
 
       // Preload interações em cache (idempotente)
       try { await ProfessionalService.carregarInteracoes(); } catch { /* silencioso */ }
@@ -389,7 +403,7 @@ class NearbyBarbershopsWidget {
 
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeBarbeiros exception:', err);
-      el.innerHTML = '';
+      NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbeiros indisponíveis no momento.');
     }
   }
 
@@ -504,6 +518,16 @@ class NearbyBarbershopsWidget {
     NearbyBarbershopsWidget.#montar(wrap);
   }
 
+  /** Estado amigável para seções da home quando lista está vazia ou BFF indisponível. */
+  static #renderHomeVazio(el, mensagem) {
+    const p = document.createElement('p');
+    p.className = 'nearby-vazio-sub';
+    p.style.cssText = 'padding:20px 16px;text-align:center;';
+    p.textContent = mensagem;
+    el.innerHTML = '';
+    el.appendChild(p);
+  }
+
   /**
    * Atualiza o texto do contador de barbearias próximas no topo da seção.
    * Procura elemento com id="nearby-contador" no DOM pai do widget.
@@ -530,6 +554,7 @@ class NearbyBarbershopsWidget {
   static async initHomeTodas(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
+    return NearbyBarbershopsWidget.#executarHomeUnico(`todas:${containerId}`, async () => {
 
     // Skeleton — 4 linhas de barber-row
     el.innerHTML = Array(4).fill(0).map(() => `
@@ -543,7 +568,7 @@ class NearbyBarbershopsWidget {
 
     try {
       const lista = await BarbeariaApiClient.getTodas(60);
-      if (!lista.length) { el.innerHTML = ''; return; }
+      if (!lista.length) { NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbearias indisponíveis no momento.'); return; }
 
       el.innerHTML = '';
       // #criarBarberRow já normaliza logo_path para URL — sem pré-processamento
@@ -565,7 +590,27 @@ class NearbyBarbershopsWidget {
 
     } catch (err) {
       LoggerService.error('[NearbyBarbershopsWidget] initHomeTodas exception:', err);
-      el.innerHTML = '';
+      NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbearias indisponíveis no momento.');
+    }
+    });
+  }
+
+  static async #executarHomeUnico(chave, tarefa) {
+    if (NearbyBarbershopsWidget.#homeInicializados.has(chave)) return;
+    if (NearbyBarbershopsWidget.#homeRequests.has(chave)) {
+      return NearbyBarbershopsWidget.#homeRequests.get(chave);
+    }
+
+    const promise = (async () => {
+      await tarefa();
+      NearbyBarbershopsWidget.#homeInicializados.add(chave);
+    })();
+
+    NearbyBarbershopsWidget.#homeRequests.set(chave, promise);
+    try {
+      return await promise;
+    } finally {
+      NearbyBarbershopsWidget.#homeRequests.delete(chave);
     }
   }
 
