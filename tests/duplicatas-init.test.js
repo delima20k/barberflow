@@ -383,3 +383,33 @@ suite('NearbyBarbershopsWidget — #nearbyResultado compartilhado', () => {
   });
 
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suite 5: NearbyBarbershopsWidget — fallback BFF indisponível
+// ─────────────────────────────────────────────────────────────────────────────
+
+suite('NearbyBarbershopsWidget — fallback BFF indisponível', () => {
+
+  const SRC_WIDGET_BFF = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'shared/js/NearbyBarbershopsWidget.js'),
+    'utf8',
+  );
+
+  test('#renderVazio aceita parâmetro bffIndisp no fonte', () => {
+    assert.ok(
+      SRC_WIDGET_BFF.includes('#renderVazio(bffIndisp'),
+      '#renderVazio deve aceitar parâmetro bffIndisp para diferenciar "BFF fora" de "sem resultados"',
+    );
+  });
+
+  test('#carregar passa BarbeariaApiClient.bffIndisponivel para #renderVazio', () => {
+    const idxCarregar = SRC_WIDGET_BFF.indexOf('static async #carregar');
+    assert.ok(idxCarregar > 0, '#carregar deve existir');
+    const bloco = SRC_WIDGET_BFF.slice(idxCarregar, idxCarregar + 1000);
+    assert.ok(
+      bloco.includes('BarbeariaApiClient.bffIndisponivel'),
+      '#carregar deve consultar BarbeariaApiClient.bffIndisponivel ao renderizar estado vazio',
+    );
+  });
+
+});

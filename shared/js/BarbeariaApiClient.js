@@ -22,8 +22,12 @@ class BarbeariaApiClient {
   static #requestsEmAndamento = new Map(); // key -> Promise<{ data, cachear }>
   static #ultimoAvisoMs    = 0;
   static #AVISO_THROTTLE_MS = 60_000;
+  static #bffFalhou        = false; // true enquanto o BFF não responde com sucesso
 
   // ── API pública ──────────────────────────────────────────────────
+
+  /** Retorna true se a última chamada ao BFF resultou em erro de rede. */
+  static get bffIndisponivel() { return BarbeariaApiClient.#bffFalhou; }
 
   /**
    * Lista barbearias próximas à coordenada informada.
@@ -51,8 +55,12 @@ class BarbeariaApiClient {
         raio: raioKm,
       });
 
-      if (!error && Array.isArray(data)) return { data, cachear: true };
+      if (!error && Array.isArray(data)) {
+        BarbeariaApiClient.#bffFalhou = false;
+        return { data, cachear: true };
+      }
 
+      BarbeariaApiClient.#bffFalhou = true;
       BarbeariaApiClient.#logAviso('getNearby', error?.message);
       return { data: [], cachear: false };
     });
@@ -73,8 +81,12 @@ class BarbeariaApiClient {
         limit,
       });
 
-      if (!error && Array.isArray(data)) return { data, cachear: true };
+      if (!error && Array.isArray(data)) {
+        BarbeariaApiClient.#bffFalhou = false;
+        return { data, cachear: true };
+      }
 
+      BarbeariaApiClient.#bffFalhou = true;
       BarbeariaApiClient.#logAviso('getDestaque', error?.message);
       return { data: [], cachear: false };
     });
@@ -95,8 +107,12 @@ class BarbeariaApiClient {
         limit,
       });
 
-      if (!error && Array.isArray(data)) return { data, cachear: true };
+      if (!error && Array.isArray(data)) {
+        BarbeariaApiClient.#bffFalhou = false;
+        return { data, cachear: true };
+      }
 
+      BarbeariaApiClient.#bffFalhou = true;
       BarbeariaApiClient.#logAviso('getTodas', error?.message);
       return { data: [], cachear: false };
     });

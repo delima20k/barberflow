@@ -139,3 +139,56 @@ suite('BarbeariaApiClient — precisão de chave de cache para getNearby', () =>
   });
 
 });
+
+// ─── suite 5: indicador de disponibilidade do BFF ────────────────────────
+
+suite('BarbeariaApiClient — indicador de disponibilidade do BFF', () => {
+
+  test('#bffFalhou existe como campo estático privado', () => {
+    assert.ok(
+      SRC.includes('#bffFalhou'),
+      '#bffFalhou deve existir como flag de estado de disponibilidade do BFF',
+    );
+  });
+
+  test('bffIndisponivel getter existe no fonte', () => {
+    assert.ok(
+      SRC.includes('static get bffIndisponivel'),
+      'bffIndisponivel deve existir como getter estático público',
+    );
+  });
+
+  test('getNearby reseta #bffFalhou para false ao obter sucesso', () => {
+    const idxGetNearby = SRC.indexOf('static async getNearby');
+    assert.ok(idxGetNearby > 0, 'getNearby deve existir');
+    const bloco = SRC.slice(idxGetNearby, idxGetNearby + 800);
+    assert.ok(
+      bloco.includes('#bffFalhou = false'),
+      'getNearby deve resetar #bffFalhou para false ao receber resposta de sucesso do BFF',
+    );
+  });
+
+  test('getNearby marca #bffFalhou como true ao falhar', () => {
+    const idxGetNearby = SRC.indexOf('static async getNearby');
+    assert.ok(idxGetNearby > 0, 'getNearby deve existir');
+    const bloco = SRC.slice(idxGetNearby, idxGetNearby + 800);
+    assert.ok(
+      bloco.includes('#bffFalhou = true'),
+      'getNearby deve marcar #bffFalhou como true quando o BFF retorna erro',
+    );
+  });
+
+  test('getDestaque e getTodas também definem #bffFalhou', () => {
+    const idxDest  = SRC.indexOf('static async getDestaque');
+    const idxTodas = SRC.indexOf('static async getTodas');
+    assert.ok(idxDest  > 0, 'getDestaque deve existir');
+    assert.ok(idxTodas > 0, 'getTodas deve existir');
+    const blocoD = SRC.slice(idxDest,  idxDest  + 600);
+    const blocoT = SRC.slice(idxTodas, idxTodas + 600);
+    assert.ok(
+      blocoD.includes('#bffFalhou') && blocoT.includes('#bffFalhou'),
+      'getDestaque e getTodas devem definir #bffFalhou para manter indicador global coerente',
+    );
+  });
+
+});

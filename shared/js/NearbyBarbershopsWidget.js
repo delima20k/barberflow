@@ -430,7 +430,7 @@ class NearbyBarbershopsWidget {
       NearbyBarbershopsWidget.#atualizarContador(lista.length);
       lista.length
         ? NearbyBarbershopsWidget.#renderLista(lista)
-        : NearbyBarbershopsWidget.#renderVazio();
+        : NearbyBarbershopsWidget.#renderVazio(BarbeariaApiClient.bffIndisponivel);
     } catch (_err) {
       // silencioso — se GPS falhar o hint original não está mais, limpa
       if (NearbyBarbershopsWidget.#el) NearbyBarbershopsWidget.#el.innerHTML = '';
@@ -509,7 +509,7 @@ class NearbyBarbershopsWidget {
   }
 
   /** Estado: nenhuma barbearia encontrada */
-  static #renderVazio() {
+  static #renderVazio(bffIndisp = false) {
     if (!NearbyBarbershopsWidget.#el) return;
 
     const wrap = document.createElement('div');
@@ -517,11 +517,15 @@ class NearbyBarbershopsWidget {
 
     const titulo = document.createElement('p');
     titulo.className = 'nearby-vazio-titulo';
-    titulo.textContent = 'Nenhuma barbearia por perto';
+    titulo.textContent = bffIndisp
+      ? 'Serviço temporariamente indisponível'
+      : 'Nenhuma barbearia por perto';
 
     const sub = document.createElement('p');
     sub.className = 'nearby-vazio-sub';
-    sub.textContent = `Não encontramos barbearias em até ${NearbyBarbershopsWidget.#RAIO_KM} km da sua localização.`;
+    sub.textContent = bffIndisp
+      ? 'Não foi possível carregar as barbearias agora. Tente novamente em instantes.'
+      : `Não encontramos barbearias em até ${NearbyBarbershopsWidget.#RAIO_KM} km da sua localização.`;
 
     wrap.appendChild(titulo);
     wrap.appendChild(sub);
