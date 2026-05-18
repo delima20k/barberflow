@@ -60,6 +60,37 @@ suite('AppBootstrap — guard #initialized', () => {
     );
   });
 
+  test('init() chamado duas vezes → widgets sequenciais não rodam em duplicidade', async () => {
+    const { sandbox } = criarSandboxBootstrap();
+    const chamadas = {
+      nearby: 0,
+      cards: 0,
+      dest: 0,
+      barbs: 0,
+      todas: 0,
+    };
+
+    sandbox.NearbyBarbershopsWidget = {
+      init:             async () => { chamadas.nearby += 1; },
+      initHomeCards:    async () => { chamadas.cards  += 1; },
+      initHomeDestaque: async () => { chamadas.dest   += 1; },
+      initHomeBarbeiros: async () => { chamadas.barbs += 1; },
+      initHomeTodas:    async () => { chamadas.todas  += 1; },
+    };
+
+    sandbox.AppBootstrap.init();
+    sandbox.AppBootstrap.init();
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.deepEqual(chamadas, {
+      nearby: 1,
+      cards: 1,
+      dest: 1,
+      barbs: 1,
+      todas: 1,
+    });
+  });
+
   test('init() chamado uma vez → GeoService.solicitarNaPrimeiraVez chamado normalmente', () => {
     const { sandbox, geoSolicit } = criarSandboxBootstrap();
 
@@ -179,6 +210,8 @@ suite('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
 
   function criarSandboxNBW() {
     const mockGetNearby = fn().mockResolvedValue([]);
+    const mockGetTodas = fn().mockResolvedValue([]);
+    const mockGetDestaque = fn().mockResolvedValue([]);
     const geoVerificar  = fn().mockResolvedValue('prompt'); // init() NÃO chama #carregar() por padrão
     const geoObter      = fn().mockResolvedValue({ lat: -23.55, lng: -46.63 });
     const { mockDocument, mockEl, eventListeners } = criarMockDocument();
@@ -193,8 +226,8 @@ suite('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
       GeoService: { verificarPermissao: geoVerificar, obter: geoObter },
       BarbeariaApiClient: {
         getNearby:   mockGetNearby,
-        getTodas:    fn().mockResolvedValue([]),
-        getDestaque: fn().mockResolvedValue([]),
+        getTodas:    mockGetTodas,
+        getDestaque: mockGetDestaque,
       },
       BarbershopService: {
         carregarFavoritos:      fn().mockResolvedValue(undefined),
@@ -207,7 +240,7 @@ suite('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
     });
 
     carregar(sandbox, 'shared/js/NearbyBarbershopsWidget.js');
-    return { sandbox, mockGetNearby, mockDocument, geoVerificar, geoObter, eventListeners };
+    return { sandbox, mockGetNearby, mockGetTodas, mockGetDestaque, mockDocument, mockEl, geoVerificar, geoObter, eventListeners };
   }
 
   test('onGPSConcedido() chamado duas vezes simultâneas → getNearby chamado apenas uma vez', async () => {
@@ -271,4 +304,82 @@ suite('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
       'getNearby deve ser chamado exatamente uma vez mesmo com race condition entre init() e geo:concedido',
     );
   });
+
+  test('initHomeDestaque() com lista vazia limpa skeleton sem erro', async () => {
+    const { sandbox, mockGetDestaque, mockEl } = criarSandboxNBW();
+    mockGetDestaque.mockResolvedValue([]);
+
+    await sandbox.NearbyBarbershopsWidget.initHomeDestaque(CONTAINER_ID);
+
+    assert.equal(mockGetDestaque.calls.length, 1);
+    assert.equal(mockEl.innerHTML, '');
+  });
+
+  test('initHomeDestaque() chamado duas vezes → getDestaque chamado apenas uma vez', async () => {
+    const { sandbox, mockGetDestaque } = criarSandboxNBW();
+
+    await sandbox.NearbyBarbershopsWidget.initHomeDestaque(CONTAINER_ID);
+    await sandbox.NearbyBarbershopsWidget.initHomeDestaque(CONTAINER_ID);
+
+    assert.equal(mockGetDestaque.calls.length, 1);
+  });
+
+  test('initHomeCards() concorrente → fallback getTodas chamado apenas uma vez', async () => {
+    const { sandbox, mockGetTodas } = criarSandboxNBW();
+
+    await Promise.all([
+      sandbox.NearbyBarbershopsWidget.initHomeCards(CONTAINER_ID),
+      sandbox.NearbyBarbershopsWidget.initHomeCards(CONTAINER_ID),
+    ]);
+
+    assert.equal(mockGetTodas.calls.length, 1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suite 4: NearbyBarbershopsWidget — #nearbyResultado compartilhado
+// ─────────────────────────────────────────────────────────────────────────────
+
+suite('NearbyBarbershopsWidget — #nearbyResultado compartilhado', () => {
+
+  const SRC_WIDGET = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'shared/js/NearbyBarbershopsWidget.js'),
+    'utf8',
+  );
+
+  test('#nearbyResultado existe como campo estático privado no fonte', () => {
+    assert.ok(
+      SRC_WIDGET.includes('#nearbyResultado'),
+      '#nearbyResultado deve existir para compartilhar resultado de #carregar() com initHomeCards()',
+    );
+  });
+
+  test('#carregar atualiza #nearbyResultado quando lista não está vazia', () => {
+    const idxCarregar = SRC_WIDGET.indexOf('static async #carregar');
+    assert.ok(idxCarregar > 0, '#carregar deve existir');
+    // Pega o bloco até o final do método (próximo método estático ou fim de classe)
+    const bloco = SRC_WIDGET.slice(idxCarregar, idxCarregar + 700);
+    assert.ok(
+      bloco.includes('#nearbyResultado'),
+      '#carregar deve atribuir #nearbyResultado após buscar barbearias',
+    );
+  });
+
+  test('initHomeCards verifica #nearbyResultado antes de chamar BarbeariaApiClient.getNearby', () => {
+    const idxCards = SRC_WIDGET.indexOf('static async initHomeCards');
+    assert.ok(idxCards > 0, 'initHomeCards deve existir');
+    // Slice maior para cobrir o skeleton HTML extenso antes do bloco de negócio
+    const blocoCards = SRC_WIDGET.slice(idxCards, idxCards + 4000);
+    const idxNearby  = blocoCards.indexOf('#nearbyResultado');
+    const idxGetNear = blocoCards.indexOf('BarbeariaApiClient.getNearby');
+    assert.ok(
+      idxNearby > 0,
+      'initHomeCards deve ler #nearbyResultado para reaproveitar resultado de #carregar()',
+    );
+    assert.ok(
+      idxGetNear < 0 || idxNearby < idxGetNear,
+      '#nearbyResultado deve ser verificado ANTES de chamar BarbeariaApiClient.getNearby em initHomeCards',
+    );
+  });
+
 });

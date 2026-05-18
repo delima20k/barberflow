@@ -22,6 +22,7 @@ class NearbyBarbershopsWidget {
   static #containersInicializados = new Set(); // containerId -> init ja executado
   static #homeInicializados       = new Set(); // chave de bloco home ja renderizado
   static #homeRequests            = new Map(); // chave de bloco home -> Promise em andamento
+  static #nearbyResultado         = null;       // { lista, lat, lng } — compartilhado entre #carregar() e initHomeCards()
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -108,21 +109,29 @@ class NearbyBarbershopsWidget {
       // Carrega favoritos em cache antes de renderizar (idempotente)
       try { await BarbershopService.carregarFavoritos(); } catch { /* silencioso */ }
 
-      // Se GPS disponível, usa barbearias próximas (≤5km), já ordenadas por score/curtidas
-      try {
-        const permissao = await GeoService.verificarPermissao();
-        if (permissao === 'granted') {
-          const pos = await GeoService.obter();
-          lista = await BarbeariaApiClient.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
-          // Adiciona distância apenas para exibição no sub-texto
-          lista = lista.map(b => ({ ...b, distance_km: b.latitude
-            ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
-            : null }));
-        }
-      } catch (_) { /* sem GPS */ }
+      // Reaproveitamento: usa resultado já carregado pelo widget de mapa (init → #carregar)
+      const _cached = NearbyBarbershopsWidget.#nearbyResultado;
+      if (_cached?.lista?.length) {
+        lista = _cached.lista.map(b => ({ ...b, distance_km: b.latitude
+          ? parseFloat(NearbyBarbershopsWidget.#haversine(_cached.lat, _cached.lng, b.latitude, b.longitude).toFixed(1))
+          : null }));
+      } else {
+        // Sem cache: busca próximas via GPS ou cai em todas
+        try {
+          const permissao = await GeoService.verificarPermissao();
+          if (permissao === 'granted') {
+            const pos = await GeoService.obter();
+            lista = await BarbeariaApiClient.getNearby(pos.lat, pos.lng, NearbyBarbershopsWidget.#RAIO_KM);
+            // Adiciona distância apenas para exibição no sub-texto
+            lista = lista.map(b => ({ ...b, distance_km: b.latitude
+              ? parseFloat(NearbyBarbershopsWidget.#haversine(pos.lat, pos.lng, b.latitude, b.longitude).toFixed(1))
+              : null }));
+          }
+        } catch (_) { /* sem GPS */ }
 
-      // Fallback: busca todas ordenadas por popularidade
-      if (!lista?.length) lista = await BarbeariaApiClient.getTodas(20);
+        // Fallback: busca todas ordenadas por popularidade
+        if (!lista?.length) lista = await BarbeariaApiClient.getTodas(20);
+      }
 
       if (!lista.length) {
         NearbyBarbershopsWidget.#renderHomeVazio(el, 'Barbearias indisponíveis no momento.');
@@ -417,6 +426,7 @@ class NearbyBarbershopsWidget {
       NearbyBarbershopsWidget.#renderLoading();
       const pos   = await GeoService.obter();
       const lista = await NearbyBarbershopsWidget.#buscarBarbearias(pos.lat, pos.lng);
+      if (lista.length) NearbyBarbershopsWidget.#nearbyResultado = { lista, lat: pos.lat, lng: pos.lng };
       NearbyBarbershopsWidget.#atualizarContador(lista.length);
       lista.length
         ? NearbyBarbershopsWidget.#renderLista(lista)

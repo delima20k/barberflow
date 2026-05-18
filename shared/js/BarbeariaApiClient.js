@@ -39,8 +39,8 @@ class BarbeariaApiClient {
 
     const chave = [
       'nearby',
-      Number(lat).toFixed(5),
-      Number(lng).toFixed(5),
+      Number(lat).toFixed(3),
+      Number(lng).toFixed(3),
       Number(raioKm),
     ].join(':');
 

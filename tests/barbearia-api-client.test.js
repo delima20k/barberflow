@@ -115,3 +115,27 @@ suite('BarbeariaApiClient — warns diretos substituídos por #logAviso', () => 
   });
 
 });
+
+// ─── suite 4: precisão da chave de cache ──────────────────────────────────
+
+suite('BarbeariaApiClient — precisão de chave de cache para getNearby', () => {
+
+  test('getNearby usa no máximo 3 casas decimais nas coordenadas da chave', () => {
+    const idxGetNearby = SRC.indexOf('static async getNearby');
+    assert.ok(idxGetNearby > 0, 'getNearby deve existir');
+    // Extrai o bloco até a abertura do #comCache
+    const bloco = SRC.slice(idxGetNearby, idxGetNearby + 500);
+
+    // Captura o valor N em toFixed(N) para lat e lng
+    const matches = [...bloco.matchAll(/\.toFixed\((\d+)\)/g)].map(m => Number(m[1]));
+    assert.ok(
+      matches.length >= 1,
+      'getNearby deve usar .toFixed() ao construir a chave de cache',
+    );
+    assert.ok(
+      matches.every(n => n <= 3),
+      `Precisão de ${matches.join('/')} casas decimais é alta demais — usar ≤ 3 para tolerar variação do GPS`,
+    );
+  });
+
+});
