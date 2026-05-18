@@ -272,7 +272,7 @@ class MessagesWidget {
         const ids = [...new Set(appts.map(a => a.professional_id))];
         const { data: perfis } = await SupabaseService.client
           .from('profiles')
-          .select('id, full_name, avatar_url, role')
+          .select('id, full_name, avatar_path, role')
           .in('id', ids);
 
         return MessagesWidget.#mapearPerfis(perfis ?? []);
@@ -286,7 +286,7 @@ class MessagesWidget {
           profiles (
             id,
             full_name,
-            avatar_url,
+            avatar_path,
             role
           )
         `)
@@ -317,7 +317,7 @@ class MessagesWidget {
         tipo:    perfil.role ?? 'usuario',
         nome:    perfil.full_name ?? 'Usuário',
         sub:     tipoLabel,
-        avatar:  perfil.avatar_url ?? null,
+        avatar:  perfil.avatar_path ?? null,
         badge:   0,
         hora:    '',
         preview: 'Toque para iniciar conversa segura',
