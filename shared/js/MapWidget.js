@@ -217,7 +217,12 @@ class MapWidget {
   static async #buscarTodasBarbearias() {
     const data = await BarbeariaApiClient.getTodas(100);
     return (data ?? [])
-      .filter(s => s.address && s.latitude && s.longitude);
+      .map(s => ({
+        ...s,
+        latitude:  Number(s.latitude),
+        longitude: Number(s.longitude),
+      }))
+      .filter(s => s.address && MapWidget.#barbeariaComMapaValido(s));
   }
 
   static #haversine(lat1, lon1, lat2, lon2) {
@@ -231,7 +236,11 @@ class MapWidget {
   /** Ajusta o viewport para mostrar todos os pins quando nao ha GPS do usuario. */
   static #ajustarBounds(lista) {
     if (!MapWidget.#mapa || !lista?.length || typeof L === 'undefined') return;
-    const pontos = lista.map(s => [Number(s.latitude), Number(s.longitude)]);
+    const pontos = lista
+      .map(s => MapWidget.#coordenadasBarbearia(s))
+      .filter(Boolean)
+      .map(({ lat, lng }) => [lat, lng]);
+    if (!pontos.length) return;
     MapWidget.#mapa.fitBounds(L.latLngBounds(pontos), {
       padding: [24, 24],
       maxZoom: MapWidget.#ZOOM_CIDADE,
@@ -327,13 +336,15 @@ class MapWidget {
     MapWidget.#layerBarbearias.clearLayers();
 
     lista.forEach(b => {
-      if (!b.latitude || !b.longitude) return;
+      const coords = MapWidget.#coordenadasBarbearia(b);
+      if (!coords) return;
 
       const avatarUrl  = MapWidget.#urlAvatar(b.logo_path);
       const iniciais   = MapWidget.#iniciaisNome(b.name);
       const nomeSeguro = MapWidget.#escapeHtml(b.name ?? 'Barbearia');
       const enderecoSeguro = MapWidget.#escapeHtml(b.address ?? '');
       const numeroEnderecoSeguro = MapWidget.#escapeHtml(MapWidget.#numeroEndereco(b.address));
+      const nomeCurtoSeguro = MapWidget.#escapeHtml(MapWidget.#textoCurto(b.name ?? 'Barbearia', 22));
       const cidadeSeguro = MapWidget.#escapeHtml(b.city ?? '');
       const distTexto  = b.distance_km != null
         ? b.distance_km < 1
@@ -361,8 +372,8 @@ class MapWidget {
                  </div>
                  <div class="mapa-shop-marker__pin"></div>
                  <div class="mapa-shop-marker__label">
-                   <span class="mapa-shop-marker__name">${nomeSeguro}</span>
-                   ${numeroEnderecoSeguro ? `<span class="mapa-shop-marker__number">Nº ${numeroEnderecoSeguro}</span>` : ''}
+                   <span class="mapa-shop-marker__name">${nomeCurtoSeguro}</span>
+                   ${numeroEnderecoSeguro ? `<span class="mapa-shop-marker__number">N&ordm; ${numeroEnderecoSeguro}</span>` : ''}
                  </div>
                </div>`,
         iconSize:    [116, 96],
@@ -371,8 +382,9 @@ class MapWidget {
       });
 
       // ── Popup rico: avatar grande + info ──
+      const popupAvatarSeguro = avatarUrl ? MapWidget.#escapeHtml(avatarUrl) : null;
       const popupImgTag = avatarUrl
-        ? `<img src="${avatarUrl}"
+        ? `<img src="${popupAvatarSeguro}"
                 class="mapa-popup__avatar-img"
                 alt="${iniciais}"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
@@ -404,11 +416,11 @@ class MapWidget {
         </div>
       </div>`;
 
-      L.marker([b.latitude, b.longitude], { icon })
+      L.marker([coords.lat, coords.lng], { icon })
         .addTo(MapWidget.#layerBarbearias)
         .bindPopup(popup, { maxWidth: 260, minWidth: 220 })
-        .bindTooltip(`${nomeSeguro}${numeroEnderecoSeguro ? ` - Nº ${numeroEnderecoSeguro}` : ''}`, {
-          permanent:  true,
+        .bindTooltip(`${nomeSeguro}${numeroEnderecoSeguro ? ` - N&ordm; ${numeroEnderecoSeguro}` : ''}`, {
+          permanent:  false,
           direction:  'bottom',
           offset:     [0, 27],
           className:  'mapa-tooltip-nome',
@@ -456,6 +468,29 @@ class MapWidget {
 
     const match = String(address ?? '').match(/\b\d+[A-Za-z]?\b/);
     return match ? match[0] : '';
+  }
+
+  static #textoCurto(valor, limite = 22) {
+    const texto = String(valor ?? '').trim().replace(/\s+/g, ' ');
+    if (texto.length <= limite) return texto;
+    return `${texto.slice(0, Math.max(0, limite - 1)).trim()}...`;
+  }
+
+  static #normalizarCoordenada(valor, min, max) {
+    const numero = Number(valor);
+    if (!isFinite(numero) || numero < min || numero > max) return null;
+    return numero;
+  }
+
+  static #coordenadasBarbearia(barbearia) {
+    const lat = MapWidget.#normalizarCoordenada(barbearia?.latitude, -90, 90);
+    const lng = MapWidget.#normalizarCoordenada(barbearia?.longitude, -180, 180);
+    if (lat === null || lng === null) return null;
+    return { lat, lng };
+  }
+
+  static #barbeariaComMapaValido(barbearia) {
+    return !!MapWidget.#coordenadasBarbearia(barbearia);
   }
 
   static #escapeHtml(valor) {

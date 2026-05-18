@@ -31,12 +31,39 @@ test('MapWidget exibe casinha com nome e numero do endereco no marcador', () => 
 
   assert.match(js, /#numeroEndereco/);
   assert.match(js, /numeroEnderecoSeguro/);
+  assert.match(js, /#textoCurto/);
+  assert.match(js, /nomeCurtoSeguro/);
   assert.match(js, /mapa-shop-marker__roof/);
   assert.match(js, /mapa-shop-marker__label/);
   assert.match(js, /mapa-shop-marker__number/);
+  assert.doesNotMatch(js, /mapa-shop-marker__addr/);
 
   assert.match(css, /\.mapa-shop-marker__roof\b/);
   assert.match(css, /\.mapa-shop-marker__label\b/);
   assert.match(css, /\.mapa-shop-marker__name\b/);
   assert.match(css, /\.mapa-shop-marker__number\b/);
+});
+
+test('MapWidget normaliza coordenadas validas sem descartar zero', () => {
+  const js = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
+
+  assert.match(js, /#normalizarCoordenada/);
+  assert.match(js, /#barbeariaComMapaValido/);
+  assert.match(js, /Number\(s\.latitude\)/);
+  assert.match(js, /Number\(s\.longitude\)/);
+  assert.doesNotMatch(js, /s\.address && s\.latitude && s\.longitude/);
+  assert.doesNotMatch(js, /if \(!b\.latitude \|\| !b\.longitude\) return/);
+});
+
+test('MapWidget usa marcador premium escuro e animado, sem avatar redondo padrao', () => {
+  const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
+  const imgRuleStart = css.indexOf('.mapa-shop-marker__img');
+  const imgRule = css.slice(imgRuleStart, css.indexOf('}', imgRuleStart));
+
+  assert.match(css, /#0F1115/);
+  assert.match(css, /#FFFFFF/);
+  assert.match(css, /@keyframes mapa-shop-marker-enter/);
+  assert.match(css, /animation: mapa-shop-marker-enter/);
+  assert.match(css, /border-radius: 8px/);
+  assert.doesNotMatch(imgRule, /border-radius:\s*50%/);
 });

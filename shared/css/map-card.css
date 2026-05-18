@@ -265,65 +265,70 @@
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  filter: drop-shadow(0 6px 12px rgba(43, 27, 18, .32));
-  transition: transform .18s ease;
+  filter: drop-shadow(0 8px 16px rgba(15, 17, 21, .3));
+  animation: mapa-shop-marker-enter .22s ease-out both;
+  transition: transform .18s ease, filter .18s ease;
   pointer-events: auto;
 }
 
-.mapa-shop-marker:hover { transform: scale(1.05); }
+.mapa-shop-marker:hover {
+  transform: translateY(-2px) scale(1.04);
+  filter: drop-shadow(0 12px 20px rgba(15, 17, 21, .36));
+}
 .mapa-shop-marker:active { transform: scale(.96); }
 
 .mapa-shop-marker__roof {
-  width: 54px;
-  height: 34px;
-  margin-bottom: -18px;
-  border: 2px solid rgba(107, 74, 50, .62);
+  width: 50px;
+  height: 30px;
+  margin-bottom: -16px;
+  border: 2px solid rgba(255, 255, 255, .92);
   border-right: 0;
   border-bottom: 0;
-  border-radius: 7px 0 0 0;
-  background: linear-gradient(135deg, #8B2500 0%, #B84A1C 54%, #D4AF37 100%);
+  border-radius: 8px 0 0 0;
+  background: linear-gradient(135deg, #0F1115 0%, #2A2E35 56%, #5A606B 100%);
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, .95),
-    0 7px 12px rgba(43, 27, 18, .2);
+    0 0 0 1px rgba(15, 17, 21, .5),
+    0 7px 12px rgba(15, 17, 21, .22);
   transform: rotate(45deg);
   z-index: 3;
 }
 
 .mapa-shop-marker__body {
   position: relative;
-  width: 52px;
-  height: 42px;
+  width: 54px;
+  height: 46px;
   margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2px solid rgba(107, 74, 50, .55);
-  border-radius: 8px 8px 6px 6px;
-  background: linear-gradient(180deg, #fff 0%, #f7efe5 100%);
+  border: 2px solid rgba(15, 17, 21, .82);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1F3F5 100%);
   box-shadow:
-    0 0 0 2px rgba(212, 160, 23, .28),
-    0 8px 14px rgba(43, 27, 18, .22);
+    0 0 0 2px rgba(255, 255, 255, .92),
+    0 8px 14px rgba(15, 17, 21, .2);
   z-index: 2;
 }
 
 .mapa-shop-marker__img {
-  width: 36px;
-  height: 30px;
-  border-radius: 7px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   object-fit: cover;
   display: block;
-  box-shadow: 0 0 0 1.5px rgba(107, 74, 50, .18);
+  background: #E8EAED;
+  box-shadow: 0 0 0 1.5px rgba(15, 17, 21, .16);
 }
 
 .mapa-shop-marker__initials {
-  width: 36px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
-  color: var(--gold-dark, #6b4a32);
-  background: rgba(212, 160, 23, .16);
+  border-radius: 8px;
+  color: #FFFFFF;
+  background: linear-gradient(180deg, #0F1115 0%, #30343B 100%);
   font-size: .78rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -334,9 +339,9 @@
   width: 12px;
   height: 12px;
   margin-top: -4px;
-  border-right: 2px solid rgba(107, 74, 50, .55);
-  border-bottom: 2px solid rgba(107, 74, 50, .55);
-  background: var(--gold, #D4AF37);
+  border-right: 2px solid rgba(15, 17, 21, .82);
+  border-bottom: 2px solid rgba(15, 17, 21, .82);
+  background: #FFFFFF;
   transform: rotate(45deg);
   border-radius: 0 0 4px 0;
   z-index: 0;
@@ -352,11 +357,11 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  border: 1px solid rgba(107, 74, 50, .22);
+  border: 1px solid rgba(15, 17, 21, .18);
   border-radius: 7px;
-  background: rgba(255, 255, 255, .96);
-  box-shadow: 0 5px 12px rgba(43, 27, 18, .14);
-  color: var(--gold-dark, #6b4a32);
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 5px 12px rgba(15, 17, 21, .16);
+  color: #0F1115;
   text-align: center;
   line-height: 1.05;
   z-index: 2;
@@ -380,7 +385,18 @@
 .mapa-shop-marker__number {
   font-size: .56rem;
   font-weight: 700;
-  color: #8B2500;
+  color: #4A4F58;
+}
+
+@keyframes mapa-shop-marker-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Tooltip and popup premium light */
