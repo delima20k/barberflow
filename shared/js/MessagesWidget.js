@@ -240,61 +240,90 @@ class MessagesWidget {
   }
 
   /**
-   * Busca lista de conversas possíveis (baseada em agendamentos/contatos).
+   * Busca lista de conversas possíveis (baseada em agendamentos).
    * Retorna array vazio se não houver dados disponíveis.
+   *
+   * Nota de esquema:
+   *   appointments.client_id       → profiles(id)       — FK direta
+   *   appointments.professional_id → professionals(id)  — NÃO profiles
+   *   professionals.id             → profiles(id)       — chave compartilhada
+   *
+   * Por isso o caso 'cliente' (precisa do perfil do profissional) usa 2 etapas:
+   *   1. busca professional_ids dos agendamentos
+   *   2. busca profiles.in('id', ids) — professionals.id === profiles.id
    */
   static async #buscarConversas() {
     try {
       const uid = await MessagesWidget.#obterUid();
       if (!uid) return [];
-
-      // Busca via SupabaseService: perfis com quem o usuário tem agendamento
       if (typeof SupabaseService === 'undefined') return [];
 
-      const tabela   = MessagesWidget.#role === 'cliente' ? 'appointments' : 'appointments';
-      const campoId  = MessagesWidget.#role === 'cliente' ? 'client_id' : 'professional_id';
-      const campoOut = MessagesWidget.#role === 'cliente' ? 'professional_id' : 'client_id';
+      if (MessagesWidget.#role === 'cliente') {
+        // Etapa 1: IDs dos profissionais com quem o cliente tem agendamento
+        const { data: appts } = await SupabaseService.client
+          .from('appointments')
+          .select('professional_id')
+          .eq('client_id', uid)
+          .limit(30);
 
+        if (!appts?.length) return [];
+
+        // Etapa 2: perfis pelo mesmo UUID (professionals.id = profiles.id)
+        const ids = [...new Set(appts.map(a => a.professional_id))];
+        const { data: perfis } = await SupabaseService.client
+          .from('profiles')
+          .select('id, full_name, avatar_url, role')
+          .in('id', ids);
+
+        return MessagesWidget.#mapearPerfis(perfis ?? []);
+      }
+
+      // role === 'profissional': client_id → profiles (FK direta, PostgREST infere)
       const { data } = await SupabaseService.client
-        .from(tabela)
+        .from('appointments')
         .select(`
-          ${campoOut},
-          profiles!appointments_${campoOut}_fkey (
+          client_id,
+          profiles (
             id,
             full_name,
             avatar_url,
             role
           )
         `)
-        .eq(campoId, uid)
+        .eq('professional_id', uid)
         .limit(30);
 
       if (!data?.length) return [];
-
-      // Deduplica por profile id
-      const vistos = new Set();
-      const conversas = [];
-      for (const row of data) {
-        const perfil = row.profiles;
-        if (!perfil || vistos.has(perfil.id)) continue;
-        vistos.add(perfil.id);
-
-        const tipoLabel = perfil.role === 'professional' ? '✂️ Profissional' : '👤 Cliente';
-        conversas.push({
-          id:          perfil.id,
-          tipo:        perfil.role ?? 'usuario',
-          nome:        perfil.full_name ?? 'Usuário',
-          sub:         tipoLabel,
-          avatar:      perfil.avatar_url ?? null,
-          badge:       0,
-          hora:        '',
-          preview:     'Toque para iniciar conversa segura',
-        });
-      }
-      return conversas;
+      return MessagesWidget.#mapearPerfis(data.map(row => row.profiles).filter(Boolean));
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Converte array de perfis Supabase em conversas deduplicadas.
+   * @param {Array<{id:string, full_name:string|null, avatar_url:string|null, role:string|null}>} perfis
+   * @returns {Array}
+   */
+  static #mapearPerfis(perfis) {
+    const vistos = new Set();
+    const conversas = [];
+    for (const perfil of perfis) {
+      if (!perfil || vistos.has(perfil.id)) continue;
+      vistos.add(perfil.id);
+      const tipoLabel = perfil.role === 'professional' ? '✂️ Profissional' : '👤 Cliente';
+      conversas.push({
+        id:      perfil.id,
+        tipo:    perfil.role ?? 'usuario',
+        nome:    perfil.full_name ?? 'Usuário',
+        sub:     tipoLabel,
+        avatar:  perfil.avatar_url ?? null,
+        badge:   0,
+        hora:    '',
+        preview: 'Toque para iniciar conversa segura',
+      });
+    }
+    return conversas;
   }
 
   /**
