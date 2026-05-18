@@ -5394,6 +5394,39 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .gps-msg--ok   { color: #4caf50; }
 .gps-msg--erro { color: #e57373; }
 
+/* ── GpsPanelMap — Mini-mapa do painel GPS ───────────────────── */
+.gps-mapa-secao    { margin-top: 1.5rem; }
+.gps-mapa-titulo   { font-size: .82rem; color: var(--text-muted, #999); text-align: center; margin-bottom: .5rem; }
+.gps-mapa-container {
+  width: 100%;
+  height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface, #1a1a1a);
+}
+
+/* Pins Leaflet customizados */
+.gps-mapa-pin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold, #D4AF37);
+  border: 2px solid #fff;
+  box-shadow: 0 0 4px rgba(0,0,0,.6);
+}
+.gps-mapa-pin--destaque {
+  width: 22px;
+  height: 22px;
+  background: #e53935;
+  border: 2px solid #fff;
+  box-shadow: 0 0 8px rgba(229,57,53,.8);
+  animation: gps-pin-pulse 1.6s ease-in-out infinite;
+}
+@keyframes gps-pin-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.3); }
+}
+
 .gaspar-ok {
   color: #1a0800 !important;
   font-weight: 700;

@@ -1316,6 +1316,14 @@ class MinhaBarbeariaPage {
     if (id === 'gps') {
       this.#preencherGpsForm();
       this.#digGps?.iniciar();
+      if (typeof GpsPanelMap !== 'undefined') {
+        GpsPanelMap.init('gps-mapa-todas');
+        GpsPanelMap.redimensionar();
+        const lat  = this.#shopData?.latitude  != null ? Number(this.#shopData.latitude)  : null;
+        const lng  = this.#shopData?.longitude != null ? Number(this.#shopData.longitude) : null;
+        const nome = this.#shopData?.name ?? this.#shopData?.trade_name ?? null;
+        GpsPanelMap.carregar(lat, lng, nome);
+      }
     }
     if (id === 'convite') this.#resetarConvite();
   }
@@ -2165,6 +2173,13 @@ class MinhaBarbeariaPage {
       }
       this.#preencherGpsForm();
       if (typeof MapWidget !== 'undefined') await MapWidget.recarregarBarbearias?.();
+      if (typeof GpsPanelMap !== 'undefined') {
+        GpsPanelMap.carregar(
+          this.#coordsGps.lat,
+          this.#coordsGps.lng,
+          this.#shopData?.name ?? this.#shopData?.trade_name ?? null
+        );
+      }
 
       _sucesso = true;
       AnimationService.gaspar(this.#refs.gpsMsg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
