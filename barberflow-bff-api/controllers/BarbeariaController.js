@@ -75,6 +75,17 @@ class BarbeariaController extends BaseController {
     });
   }
 
+  /**
+   * PATCH /api/v1/barbearias/minha/endereco
+   * Atualiza endereco e coordenadas da barbearia do usuario autenticado.
+   */
+  async salvarEndereco(req, res) {
+    await this.handle(res, async () => {
+      const atualizado = await this.#service.salvarEndereco(req.user.id, req.body ?? {});
+      this.success(res, atualizado);
+    });
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /**

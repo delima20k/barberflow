@@ -1967,6 +1967,19 @@ class MinhaBarbeariaPage {
 
   // ── GPS: pré-preenchimento e métodos ─────────────────────────
 
+  static #separarEnderecoSalvo(address) {
+    const partes = String(address ?? '')
+      .split(',')
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    return {
+      rua: partes[0] ?? '',
+      numero: partes[1] ?? '',
+      complemento: partes.slice(2).join(', '),
+    };
+  }
+
   #preencherGpsForm() {
     const s = this.#shopData;
     this.#coordsGps = null;
@@ -1998,8 +2011,15 @@ class MinhaBarbeariaPage {
     if (this.#refs.gpsCep) this.#refs.gpsCep.value = fmtCep;
     if (this.#refs.gpsCepDisplay) this.#refs.gpsCepDisplay.textContent = fmtCep || 'Não informado';
 
-    // Logradouro — exibe endereço salvo; input inicia vazio para re-edição limpa
-    if (this.#refs.gpsRuaDisplay) this.#refs.gpsRuaDisplay.textContent = s.address || '—';
+    const endereco = MinhaBarbeariaPage.#separarEnderecoSalvo(s.address);
+
+    // Logradouro, numero e complemento ficam nos inputs mesmo fechados para nao sumirem no save.
+    if (this.#refs.gpsLogradouro) this.#refs.gpsLogradouro.value = endereco.rua;
+    if (this.#refs.gpsRuaDisplay) this.#refs.gpsRuaDisplay.textContent = endereco.rua || '—';
+    if (this.#refs.gpsNumero) this.#refs.gpsNumero.value = endereco.numero;
+    if (this.#refs.gpsNumDisplay) this.#refs.gpsNumDisplay.textContent = endereco.numero || '—';
+    if (this.#refs.gpsComplemento) this.#refs.gpsComplemento.value = endereco.complemento;
+    if (this.#refs.gpsCompDisplay) this.#refs.gpsCompDisplay.textContent = endereco.complemento || '—';
 
     // Bairro
     const bairro = s.neighborhood ?? '';
@@ -2090,10 +2110,8 @@ class MinhaBarbeariaPage {
     const comp     = this.#refs.gpsComplemento?.value.trim()           ?? '';
     const bairro   = this.#refs.gpsBairro?.value.trim()                ?? '';
 
-    // Mantém endereço existente se logradouro não foi editado
-    const address = rua
-      ? [rua, num, comp].filter(Boolean).join(', ')
-      : (this.#shopData?.address ?? null);
+    // Mantem endereco existente se logradouro nao foi editado.
+    const address = rua || MinhaBarbeariaPage.#separarEnderecoSalvo(this.#shopData?.address).rua;
 
     if (!address) {
       this.#mostrarGpsMsg('Informe o CEP e o logradouro para configurar o endereço.', 'erro'); return;
@@ -2117,6 +2135,8 @@ class MinhaBarbeariaPage {
 
     const payload = {
       address,
+      numero:      num     || null,
+      complemento: comp    || null,
       city:         city    || null,
       state:        state   || null,
       zip_code:     cep     || null,
@@ -2134,8 +2154,9 @@ class MinhaBarbeariaPage {
 
       // Atualiza cache e re-preenche painel (fecha todos os lápis, mostra valores salvos)
       if (this.#shopData) {
+        const enderecoCompleto = [address, num, comp].filter(Boolean).join(', ');
         Object.assign(this.#shopData, atualizadoBanco ?? {}, {
-          address, city: city||null, state: state||null, zip_code: cep||null,
+          address: enderecoCompleto, city: city||null, state: state||null, zip_code: cep||null,
           neighborhood: bairro || null,
           latitude:  this.#coordsGps.lat,
           longitude: this.#coordsGps.lng,

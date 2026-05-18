@@ -14,7 +14,7 @@
 //   - onGPSConcedido() / onGPSNegado(): chamados pelo GeoService na boot
 //   - Ao ativar GPS pelo FAB, notifica NearbyBarbershopsWidget também
 //
-// Dependências: Leaflet.js (CDN), GeoService.js, SupabaseService.js
+// Dependências: Leaflet.js (CDN), GeoService.js, BarbeariaApiClient.js
 // =============================================================
 
 class MapWidget {
@@ -62,6 +62,7 @@ class MapWidget {
     if (permissao === 'granted') {
       await MapWidget.#carregar();
     } else {
+      await MapWidget.#carregarBarbeariasGlobais();
       MapWidget.#exibirFAB();
     }
   }
@@ -98,6 +99,10 @@ class MapWidget {
    */
   static async recarregarBarbearias() {
     if (!MapWidget.#mapa) return;
+    if (!MapWidget.#posUsuario) {
+      await MapWidget.#carregarBarbeariasGlobais();
+      return;
+    }
     await MapWidget.#carregar();
   }
 
@@ -181,32 +186,38 @@ class MapWidget {
     }
   }
 
-  /** Busca barbearias pr\u00f3ximas diretamente no banco Supabase. */
+  /** Busca barbearias com endereco cadastrado via BFF. */
   static async #buscarBarbearias(lat, lng) {
     try {
-      const R    = MapWidget.#RAIO_KM;
-      const latD = R / 111.0;
-      const lonD = R / (111.0 * Math.cos(lat * Math.PI / 180));
+      const data = await MapWidget.#buscarTodasBarbearias();
 
-      const { data, error } = await ApiService.from('barbershops')
-        .select('id, name, slug, address, city, latitude, longitude, logo_path, is_open, rating_avg, rating_count')
-        .eq('is_active', true)
-        .gte('latitude',  lat - latD).lte('latitude',  lat + latD)
-        .gte('longitude', lng - lonD).lte('longitude', lng + lonD)
-        .limit(200);
-
-      if (error) return [];
-
-      return (data ?? [])
+      return data
         .map(s => ({
           ...s,
           distance_km: parseFloat(MapWidget.#haversine(lat, lng, s.latitude, s.longitude).toFixed(2)),
         }))
-        .filter(s => s.distance_km <= R)
         .sort((a, b) => a.distance_km - b.distance_km);
     } catch {
       return [];
     }
+  }
+
+  /** Carrega todos os pins cadastrados sem depender do GPS do usuario. */
+  static async #carregarBarbeariasGlobais() {
+    try {
+      const lista = await MapWidget.#buscarTodasBarbearias();
+      MapWidget.#renderMarcadores(lista);
+      MapWidget.#ajustarBounds(lista);
+    } catch {
+      MapWidget.#renderMarcadores([]);
+    }
+  }
+
+  /** Lista barbearias ativas com endereco e coordenadas via BFF. */
+  static async #buscarTodasBarbearias() {
+    const data = await BarbeariaApiClient.getTodas(100);
+    return (data ?? [])
+      .filter(s => s.address && s.latitude && s.longitude);
   }
 
   static #haversine(lat1, lon1, lat2, lon2) {
@@ -215,6 +226,16 @@ class MapWidget {
     const a = Math.sin(dLat / 2) ** 2
             + Math.cos(lat1 * d) * Math.cos(lat2 * d) * Math.sin(dLon / 2) ** 2;
     return Rt * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  /** Ajusta o viewport para mostrar todos os pins quando nao ha GPS do usuario. */
+  static #ajustarBounds(lista) {
+    if (!MapWidget.#mapa || !lista?.length || typeof L === 'undefined') return;
+    const pontos = lista.map(s => [Number(s.latitude), Number(s.longitude)]);
+    MapWidget.#mapa.fitBounds(L.latLngBounds(pontos), {
+      padding: [24, 24],
+      maxZoom: MapWidget.#ZOOM_CIDADE,
+    });
   }
 
   /** Centraliza o mapa na posição do usuário e cria/atualiza o marcador com avatar. */
@@ -310,6 +331,9 @@ class MapWidget {
 
       const avatarUrl  = MapWidget.#urlAvatar(b.logo_path);
       const iniciais   = MapWidget.#iniciaisNome(b.name);
+      const nomeSeguro = MapWidget.#escapeHtml(b.name ?? 'Barbearia');
+      const enderecoSeguro = MapWidget.#escapeHtml(b.address ?? '');
+      const cidadeSeguro = MapWidget.#escapeHtml(b.city ?? '');
       const distTexto  = b.distance_km != null
         ? b.distance_km < 1
           ? `${(b.distance_km * 1000).toFixed(0)} m`
@@ -365,11 +389,11 @@ class MapWidget {
           <span class="mapa-popup__avatar-initials" style="${popupInitialsStyle}">${iniciais}</span>
         </div>
         <div class="mapa-popup__info">
-          <strong class="mapa-popup__nome">${b.name ?? 'Barbearia'}</strong>
+          <strong class="mapa-popup__nome">${nomeSeguro}</strong>
           <div class="mapa-popup__meta">
             ${statusHtml}${ratingHtml}
           </div>
-          ${b.address ? `<span class="mapa-popup__addr">${b.address}${b.city ? ', ' + b.city : ''}</span>` : ''}
+          ${enderecoSeguro ? `<span class="mapa-popup__addr">${enderecoSeguro}${cidadeSeguro ? ', ' + cidadeSeguro : ''}</span>` : ''}
           ${distHtml}
         </div>
       </div>`;
@@ -377,7 +401,7 @@ class MapWidget {
       L.marker([b.latitude, b.longitude], { icon })
         .addTo(MapWidget.#layerBarbearias)
         .bindPopup(popup, { maxWidth: 260, minWidth: 220 })
-        .bindTooltip(b.name ?? 'Barbearia', {
+        .bindTooltip(nomeSeguro, {
           permanent:  true,
           direction:  'bottom',
           offset:     [0, 6],
@@ -415,6 +439,15 @@ class MapWidget {
     const palavras = nome.trim().split(/\s+/).filter(Boolean);
     if (palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
     return (palavras[0][0] + palavras[1][0]).toUpperCase();
+  }
+
+  static #escapeHtml(valor) {
+    return String(valor ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // ═══════════════════════════════════════════════════════════

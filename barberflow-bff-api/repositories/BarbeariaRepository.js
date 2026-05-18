@@ -14,15 +14,20 @@ class BarbeariaRepository extends BaseRepository {
 
   /** Campos completos retornados em consultas quando migration aplicada. */
   static #SELECT =
-    'id, name, address, city, latitude, longitude, ' +
+    'id, name, address, city, state, zip_code, neighborhood, latitude, longitude, ' +
     'logo_path, cover_path, is_open, close_reason, ' +
     'rating_avg, rating_count, rating_score, ' +
     'likes_count, dislikes_count, font_key';
 
   /** Campos do schema inicial — usados em fallback quando colunas opcionais não existem. */
   static #SELECT_SAFE =
-    'id, name, address, city, latitude, longitude, ' +
+    'id, name, address, city, state, zip_code, neighborhood, latitude, longitude, ' +
     'logo_path, cover_path, is_open, rating_avg, rating_count';
+
+  /** Campos seguros para retorno apos atualizar endereco. */
+  static #SELECT_ENDERECO =
+    'id, owner_id, name, address, city, state, zip_code, neighborhood, ' +
+    'latitude, longitude, logo_path, cover_path, is_open';
 
   /** Ordem de relevância aplicada em todas as listagens. */
   static #ORDER_PADRAO = Object.freeze(['rating_score', 'rating_avg', 'likes_count']);
@@ -180,6 +185,39 @@ class BarbeariaRepository extends BaseRepository {
       this._throwDbError(error, 'getAll (fallback)');
     }
     return data ?? [];
+  }
+
+  /**
+   * Atualiza endereco e coordenadas da barbearia pertencente ao usuario autenticado.
+   * @param {string} ownerId
+   * @param {object} dados
+   * @returns {Promise<object>}
+   */
+  async updateEndereco(ownerId, dados) {
+    this._uuid('ownerId', ownerId);
+    const payload = this._payload(dados, [
+      'address',
+      'city',
+      'state',
+      'zip_code',
+      'neighborhood',
+      'latitude',
+      'longitude',
+      'updated_at',
+    ]);
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .update(payload)
+      .eq('owner_id', ownerId)
+      .select(BarbeariaRepository.#SELECT_ENDERECO)
+      .single();
+
+    if (error) {
+      this._warn('updateEndereco', error);
+      this._throwDbError(error, 'updateEndereco');
+    }
+    return data;
   }
 }
 

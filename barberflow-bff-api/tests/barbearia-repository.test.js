@@ -346,3 +346,43 @@ suite('BarbeariaRepository.getFeatured()', () => {
   });
 
 });
+
+suite('BarbeariaRepository.updateEndereco()', () => {
+
+  test('atualiza apenas campos permitidos e filtra por owner_id', async () => {
+    const updates = [];
+    const eqs = [];
+    const db = {
+      from: (table) => {
+        assert.strictEqual(table, 'barbershops');
+        const q = {
+          update: (payload) => { updates.push(payload); return q; },
+          eq: (col, val) => { eqs.push([col, val]); return q; },
+          select: () => q,
+          single: () => Promise.resolve({ data: { id: 'shop-1', ...updates[0] }, error: null }),
+        };
+        return q;
+      },
+    };
+    const repo = new BarbeariaRepository(db);
+
+    const result = await repo.updateEndereco('550e8400-e29b-41d4-a716-446655440000', {
+      address: 'Rua A, 123, Sala 2',
+      city: 'Sao Paulo',
+      state: 'SP',
+      zip_code: '01001000',
+      neighborhood: 'Centro',
+      latitude: -23.55,
+      longitude: -46.63,
+      owner_id: 'nao-deve-entrar',
+    });
+
+    assert.deepStrictEqual(eqs, [['owner_id', '550e8400-e29b-41d4-a716-446655440000']]);
+    assert.strictEqual(updates[0].address, 'Rua A, 123, Sala 2');
+    assert.strictEqual(updates[0].latitude, -23.55);
+    assert.strictEqual(updates[0].longitude, -46.63);
+    assert.ok(!Object.hasOwn(updates[0], 'owner_id'));
+    assert.strictEqual(result.id, 'shop-1');
+  });
+
+});

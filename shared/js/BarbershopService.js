@@ -295,17 +295,26 @@ class BarbershopService {
     const state        = String(dados.state ?? '').trim();
     const zipCode      = String(dados.zip_code ?? dados.zipCode ?? '').trim();
     const neighborhood = String(dados.neighborhood ?? '').trim();
+    const numero       = String(dados.numero ?? '').trim();
+    const complemento  = String(dados.complemento ?? '').trim();
 
-    return BarbershopRepository.updateLocation(
-      ownerId,
+    if (typeof BffApiService === 'undefined') {
+      throw new Error('[BarbershopService] BFF indisponivel para salvar endereco da barbearia');
+    }
+
+    const { data, error } = await BffApiService.patch('/api/v1/barbearias/minha/endereco', {
+      address,
+      numero:       numero || null,
+      complemento:  complemento || null,
       lat,
       lng,
-      address,
-      city || null,
-      state || null,
-      zipCode || null,
-      neighborhood || null
-    );
+      city:         city || null,
+      state:        state || null,
+      zip_code:     zipCode || null,
+      neighborhood: neighborhood || null,
+    });
+    if (error) throw error;
+    return data;
   }
 
   /**

@@ -174,3 +174,50 @@ suite('BarbeariaService — graceful degradation (banco falha)', () => {
   });
 
 });
+
+suite('BarbeariaService.salvarEndereco() — endereco completo da barbearia', () => {
+
+  test('normaliza numero e complemento e delega atualizacao ao repositorio', async () => {
+    let recebido = null;
+    const repo = {
+      updateEndereco: async (ownerId, payload) => {
+        recebido = { ownerId, payload };
+        return { id: 'shop-1', ...payload };
+      },
+    };
+    const svc = new BarbeariaService(repo);
+
+    const result = await svc.salvarEndereco('550e8400-e29b-41d4-a716-446655440000', {
+      address: 'Rua A',
+      numero: '123',
+      complemento: 'Sala 2',
+      city: 'Sao Paulo',
+      state: 'SP',
+      zip_code: '01001000',
+      neighborhood: 'Centro',
+      lat: -23.55,
+      lng: -46.63,
+    });
+
+    assert.strictEqual(recebido.ownerId, '550e8400-e29b-41d4-a716-446655440000');
+    assert.strictEqual(recebido.payload.address, 'Rua A, 123, Sala 2');
+    assert.strictEqual(recebido.payload.latitude, -23.55);
+    assert.strictEqual(recebido.payload.longitude, -46.63);
+    assert.strictEqual(result.address, 'Rua A, 123, Sala 2');
+  });
+
+  test('rejeita endereco sem coordenadas validas', async () => {
+    const repo = { updateEndereco: async () => ({}) };
+    const svc = new BarbeariaService(repo);
+
+    await assert.rejects(
+      () => svc.salvarEndereco('550e8400-e29b-41d4-a716-446655440000', {
+        address: 'Rua A',
+        lat: 'abc',
+        lng: -46.63,
+      }),
+      (err) => err.status === 400,
+    );
+  });
+
+});

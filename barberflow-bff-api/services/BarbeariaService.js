@@ -78,6 +78,40 @@ class BarbeariaService extends BaseService {
     }
   }
 
+  /**
+   * Salva endereco completo e coordenadas da barbearia do usuario autenticado.
+   * @param {string} userId
+   * @param {object} dados
+   * @returns {Promise<object>}
+   */
+  async salvarEndereco(userId, dados = {}) {
+    this._uuid('userId', userId);
+
+    const lat = Number(dados.lat);
+    const lng = Number(dados.lng);
+    this._coordenada(lat, lng);
+
+    const rua = this._texto('address', dados.address, 160, true);
+    const numero = this._texto('numero', dados.numero ?? '', 30, false);
+    const complemento = this._texto('complemento', dados.complemento ?? '', 80, false);
+    const city = this._texto('city', dados.city ?? '', 80, false);
+    const state = this._texto('state', dados.state ?? '', 2, false).toUpperCase();
+    const zipCode = this._texto('zip_code', dados.zip_code ?? dados.zipCode ?? '', 12, false);
+    const neighborhood = this._texto('neighborhood', dados.neighborhood ?? '', 80, false);
+    const address = [rua, numero, complemento].filter(Boolean).join(', ');
+
+    return this.#repo.updateEndereco(userId, {
+      address,
+      city: city || null,
+      state: state || null,
+      zip_code: zipCode || null,
+      neighborhood: neighborhood || null,
+      latitude: lat,
+      longitude: lng,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /**
