@@ -1090,7 +1090,7 @@ WHERE latitude  IS NOT NULL
   AND longitude IS NOT NULL
   AND geom      IS NULL;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_barbershops_geom
+CREATE INDEX IF NOT EXISTS idx_barbershops_geom
   ON barbershops USING GIST (geom);
 
 CREATE OR REPLACE FUNCTION sync_barbershop_geom()

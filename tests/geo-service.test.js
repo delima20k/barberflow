@@ -58,6 +58,25 @@ suite('GeoService.obter() — cache de posição', () => {
     assert.strictEqual(getCurrentPosition.calls.length, 1);
   });
 
+  test('chamadas concorrentes compartilham a mesma leitura GPS', async () => {
+    const getCurrentPosition = fn((success) => {
+      setImmediate(() => {
+        success({ coords: { latitude: -23.55, longitude: -46.63, accuracy: 10 } });
+      });
+    });
+    const sb = criarSandbox({
+      navigator: { geolocation: { getCurrentPosition } },
+    });
+
+    const [primeira, segunda] = await Promise.all([
+      sb.GeoService.obter(),
+      sb.GeoService.obter(),
+    ]);
+
+    assert.deepEqual(primeira, segunda);
+    assert.strictEqual(getCurrentPosition.calls.length, 1, 'GPS deve ser solicitado uma única vez');
+  });
+
   test('retorna null para lat/lng se navigator.geolocation não existe', async () => {
     const AppState = { get: fn(() => null), set: fn() };
     const sb = criarSandbox({
@@ -148,6 +167,33 @@ suite('GeoService.#salvarNaBff — proteção 401 e lock', () => {
     await sb.GeoService.obter(); // cache hit
     assert.strictEqual(patchMock.calls.length, 1, 'patch deve ser chamado só uma vez');
   });
+
+  test('chamadas concorrentes de obter() salvam localização uma única vez', async () => {
+    const patchMock = fn(async () => ({ error: null }));
+    const getCurrentPosition = fn((success) => {
+      setImmediate(() => {
+        success({ coords: { latitude: -23.55, longitude: -46.63, accuracy: 10 } });
+      });
+    });
+    const sb = criarSandbox({
+      localStorage: {
+        getItem:    fn(() => null),
+        setItem:    fn(),
+        removeItem: fn(),
+      },
+      navigator: { geolocation: { getCurrentPosition } },
+      BffApiService: {
+        temTokenValido: fn(() => true),
+        patch:          patchMock,
+        baseUrl:        'http://localhost:3002',
+      },
+    });
+
+    await Promise.all([sb.GeoService.obter(), sb.GeoService.obter()]);
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.strictEqual(patchMock.calls.length, 1, 'PATCH de localização não deve duplicar');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -190,4 +236,89 @@ suite('GeoService.verificarPermissao()', () => {
     const estado = await sb.GeoService.verificarPermissao();
     assert.strictEqual(estado, 'prompt');
   });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GeoService — regressões de localização autenticada
+// ─────────────────────────────────────────────────────────────────────────────
+suite('GeoService — regressões de localização autenticada', () => {
+
+  test('401 bloqueia retry imediato e evita loop', async () => {
+    const err401 = Object.assign(new Error('HTTP 401'), { status: 401 });
+    const { sb, patchMock } = criarSandboxComBff({ patchResult: { error: err401 } });
+
+    await sb.GeoService.obter();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(patchMock.calls.length, 1, 'primeira chamada deve tentar salvar na BFF');
+
+    sb.GeoService.limparCache();
+    await sb.GeoService.obter();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.strictEqual(
+      patchMock.calls.length,
+      1,
+      'segunda chamada imediata não deve repetir PATCH após 401',
+    );
+  });
+
+  test('não expõe token em console quando precisa enfileirar offline', async () => {
+    const tokenSecreto = 'eyJhbGciOiJIUzI1NiJ9.dGVzdA.token-nao-expor';
+    const logs = [];
+    const consoleSpy = {
+      debug: (...args) => logs.push(args),
+      info: (...args) => logs.push(args),
+      log: (...args) => logs.push(args),
+      warn: (...args) => logs.push(args),
+      error: (...args) => logs.push(args),
+    };
+    const err503 = Object.assign(new Error('HTTP 503'), { status: 503 });
+    const sb = vm.createContext({
+      console: consoleSpy,
+      Error,
+      TypeError,
+      Promise,
+      CustomEvent: class CustomEvent { constructor(name) { this.type = name; } },
+      document: { dispatchEvent: fn(), addEventListener: fn() },
+      localStorage: {
+        getItem: fn((key) => {
+          if (key !== 'sb-jfvjisqnzapxxagkbxcu-auth-token') return null;
+          return JSON.stringify({
+            access_token: tokenSecreto,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+          });
+        }),
+        setItem: fn(),
+        removeItem: fn(),
+      },
+      window: { GEO_DEBUG: true },
+      navigator: {
+        geolocation: {
+          getCurrentPosition: fn((success) => {
+            success({ coords: { latitude: -23.55, longitude: -46.63, accuracy: 10 } });
+          }),
+        },
+      },
+      OfflineSyncQueue: { enqueue: fn(async () => {}) },
+      BffApiService: {
+        temTokenValido: fn(() => true),
+        patch: fn(async () => ({ error: err503 })),
+        baseUrl: 'http://localhost:3002',
+      },
+    });
+    carregar(sb, 'shared/js/GeoService.js');
+
+    await sb.GeoService.obter();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const textos = logs
+      .flat()
+      .map((item) => (typeof item === 'string' ? item : JSON.stringify(item ?? '')));
+
+    assert.ok(
+      !textos.some((texto) => texto.includes(tokenSecreto)),
+      'token não deve aparecer em logs do console',
+    );
+  });
+
 });

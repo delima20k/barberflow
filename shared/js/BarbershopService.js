@@ -270,6 +270,45 @@ class BarbershopService {
   }
 
   /**
+   * Salva endereco e coordenadas GPS informados no painel da barbearia.
+   * Centraliza a regra para manter a pagina longe do acesso direto ao banco.
+   *
+   * @param {string} ownerId
+   * @param {{lat:number,lng:number,address:string,city?:string,state?:string,zip_code?:string,zipCode?:string,neighborhood?:string}} dados
+   * @returns {Promise<object>}
+   */
+  static async salvarEnderecoGps(ownerId, dados = {}) {
+    if (!ownerId) throw new TypeError('[BarbershopService] owner_id invalido');
+
+    const lat = Number(dados.lat);
+    const lng = Number(dados.lng);
+    if (!isFinite(lat) || !isFinite(lng)) {
+      throw new TypeError('[BarbershopService] coordenadas invalidas');
+    }
+
+    const address = String(dados.address ?? '').trim();
+    if (!address) {
+      throw new TypeError('[BarbershopService] endereco obrigatorio');
+    }
+
+    const city         = String(dados.city ?? '').trim();
+    const state        = String(dados.state ?? '').trim();
+    const zipCode      = String(dados.zip_code ?? dados.zipCode ?? '').trim();
+    const neighborhood = String(dados.neighborhood ?? '').trim();
+
+    return BarbershopRepository.updateLocation(
+      ownerId,
+      lat,
+      lng,
+      address,
+      city || null,
+      state || null,
+      zipCode || null,
+      neighborhood || null
+    );
+  }
+
+  /**
    * Consulta o ViaCEP (gratuito, sem chave) e retorna o endereço estruturado.
    * Não faz geocodificação — apenas converte CEP em logradouro/cidade/UF.
    *
@@ -294,12 +333,16 @@ class BarbershopService {
       throw new Error(`[BarbershopService] CEP ${limpo} não encontrado no ViaCEP`);
     }
 
-    const address = [resposta.logradouro, resposta.bairro].filter(Boolean).join(', ');
+    const street       = resposta.logradouro ?? '';
+    const neighborhood = resposta.bairro     ?? '';
+    const address      = [street, neighborhood].filter(Boolean).join(', ');
     return {
       address,
+      street,
+      neighborhood,
       city:     resposta.localidade ?? '',
-      state:    resposta.uf          ?? '',
-      zip_code: resposta.cep         ?? `${limpo.slice(0,5)}-${limpo.slice(5)}`,
+      state:    resposta.uf         ?? '',
+      zip_code: resposta.cep        ?? `${limpo.slice(0,5)}-${limpo.slice(5)}`,
     };
   }
 
@@ -313,7 +356,7 @@ class BarbershopService {
    */
   static async salvarLocalizacaoCep(ownerId, cep) {
     // 1. CEP → endereço estruturado
-    const { address, city, state, zip_code } = await BarbershopService.geocodificarCep(cep);
+    const { address, city, state, zip_code, neighborhood } = await BarbershopService.geocodificarCep(cep);
 
     // 2. Endereço → coordenadas via Nominatim (OpenStreetMap, gratuito, sem chave)
     const query   = encodeURIComponent(`${address}, ${city}, ${state}, Brasil`);
@@ -333,7 +376,7 @@ class BarbershopService {
 
     // 3. Persiste no banco
     return BarbershopRepository.updateLocation(
-      ownerId, coords.lat, coords.lng, address, city, state, zip_code
+      ownerId, coords.lat, coords.lng, address, city, state, zip_code, neighborhood
     );
   }
 

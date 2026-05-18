@@ -256,6 +256,104 @@
   border-top-color: rgba(107, 74, 50, .92);
 }
 
+/* Barber shop marker: small storefront with the barbershop image inside */
+.mapa-shop-marker {
+  position: relative;
+  width: 58px;
+  height: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 6px 12px rgba(43, 27, 18, .32));
+  transition: transform .18s ease;
+}
+
+.mapa-shop-marker:hover { transform: scale(1.08); }
+.mapa-shop-marker:active { transform: scale(.96); }
+
+.mapa-shop-marker__awning {
+  width: 52px;
+  height: 14px;
+  border: 1.5px solid rgba(107, 74, 50, .36);
+  border-bottom: 0;
+  border-radius: 9px 9px 3px 3px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      var(--gold, #D4AF37) 0 9px,
+      #7a3a14 9px 18px
+    );
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .95);
+  z-index: 2;
+}
+
+.mapa-shop-marker__body {
+  position: relative;
+  width: 46px;
+  height: 38px;
+  margin-top: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid rgba(107, 74, 50, .55);
+  border-radius: 8px 8px 7px 7px;
+  background: linear-gradient(180deg, #fff 0%, #f7efe5 100%);
+  box-shadow:
+    0 0 0 2px rgba(212, 160, 23, .28),
+    0 8px 14px rgba(43, 27, 18, .22);
+  z-index: 1;
+}
+
+.mapa-shop-marker__body::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  right: 6px;
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(212, 160, 23, .62);
+}
+
+.mapa-shop-marker__img {
+  width: 32px;
+  height: 26px;
+  margin-top: 5px;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 0 0 1.5px rgba(107, 74, 50, .18);
+}
+
+.mapa-shop-marker__initials {
+  width: 32px;
+  height: 26px;
+  margin-top: 5px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--gold-dark, #6b4a32);
+  background: rgba(212, 160, 23, .16);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.mapa-shop-marker__pin {
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border-right: 2px solid rgba(107, 74, 50, .55);
+  border-bottom: 2px solid rgba(107, 74, 50, .55);
+  background: var(--gold, #D4AF37);
+  transform: rotate(45deg);
+  border-radius: 0 0 4px 0;
+  z-index: 0;
+}
+
 /* Tooltip and popup premium light */
 .mapa-tooltip-nome.leaflet-tooltip {
   background: rgba(255, 255, 255, .95) !important;

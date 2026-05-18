@@ -109,6 +109,18 @@ suite('BarbeariaApiClient — getNearby', () => {
     );
     assert.equal(mockBffGet.calls.length, 0);
   });
+
+  test('chamadas repetidas com mesmos parâmetros reutilizam cache e não repetem a BFF', async () => {
+    const { sandbox, mockBffGet } = criarSandbox();
+    mockBffGet.mockResolvedValue({ data: BARBEARIAS_BFF, total: 2, error: null });
+
+    const primeira = await sandbox.BarbeariaApiClient.getNearby(LAT, LNG, RAIO);
+    const segunda  = await sandbox.BarbeariaApiClient.getNearby(LAT, LNG, RAIO);
+
+    assert.deepEqual(primeira, BARBEARIAS_BFF);
+    assert.deepEqual(segunda, BARBEARIAS_BFF);
+    assert.equal(mockBffGet.calls.length, 1, 'BFF deve ser chamada uma vez por chave');
+  });
 });
 
 // ─── Suíte: getDestaque ──────────────────────────────────────────────────────
@@ -147,6 +159,23 @@ suite('BarbeariaApiClient — getDestaque', () => {
     );
     assert.equal(mockFeatured.calls.length, 0, 'BarbershopRepository não deve ser chamado');
   });
+
+  test('chamadas concorrentes de destaque compartilham a mesma request', async () => {
+    const { sandbox, mockBffGet } = criarSandbox();
+    mockBffGet.mockImplementation(async () => {
+      await new Promise(resolve => setImmediate(resolve));
+      return { data: BARBEARIAS_BFF, total: 2, error: null };
+    });
+
+    const [primeira, segunda] = await Promise.all([
+      sandbox.BarbeariaApiClient.getDestaque(6),
+      sandbox.BarbeariaApiClient.getDestaque(6),
+    ]);
+
+    assert.deepEqual(primeira, BARBEARIAS_BFF);
+    assert.deepEqual(segunda, BARBEARIAS_BFF);
+    assert.equal(mockBffGet.calls.length, 1, 'requests concorrentes devem ser coalescidas');
+  });
 });
 
 // ─── Suíte: getTodas ─────────────────────────────────────────────────────────
@@ -184,5 +213,16 @@ suite('BarbeariaApiClient — getTodas', () => {
       'deve logar aviso de BFF indisponível',
     );
     assert.equal(mockGetAll.calls.length, 0, 'BarbershopRepository não deve ser chamado');
+  });
+
+  test('chamadas repetidas de todas reutilizam cache por limit', async () => {
+    const { sandbox, mockBffGet } = criarSandbox();
+    mockBffGet.mockResolvedValue({ data: BARBEARIAS_BFF, total: 2, error: null });
+
+    await sandbox.BarbeariaApiClient.getTodas(20);
+    await sandbox.BarbeariaApiClient.getTodas(20);
+    await sandbox.BarbeariaApiClient.getTodas(60);
+
+    assert.equal(mockBffGet.calls.length, 2, 'limits diferentes devem ter chaves separadas');
   });
 });

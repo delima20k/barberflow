@@ -129,9 +129,10 @@ class BarbershopRepository {
    * @param {string} [city]    — cidade (opcional)
    * @param {string} [state]   — UF (opcional)
    * @param {string} [zipCode] — CEP formatado (opcional)
+   * @param {string} [neighborhood] — bairro (opcional)
    * @returns {Promise<object>} — registro atualizado
    */
-  static async updateLocation(ownerId, lat, lng, address, city, state, zipCode) {
+  static async updateLocation(ownerId, lat, lng, address, city, state, zipCode, neighborhood) {
     const rOwner = InputValidator.uuid(ownerId);
     if (!rOwner.ok) throw new TypeError(`[BarbershopRepository] owner_id inválido: ${rOwner.msg}`);
 
@@ -146,7 +147,8 @@ class BarbershopRepository {
     if (address !== undefined && address !== null) payload.address  = address;
     if (city    !== undefined && city    !== null) payload.city     = city;
     if (state   !== undefined && state   !== null) payload.state    = state;
-    if (zipCode !== undefined && zipCode !== null) payload.zip_code = zipCode;
+    if (zipCode      !== undefined && zipCode      !== null) payload.zip_code     = zipCode;
+    if (neighborhood !== undefined && neighborhood !== null) payload.neighborhood = neighborhood;
 
     const { data, error } = await ApiService.from('barbershops')
       .update(payload)

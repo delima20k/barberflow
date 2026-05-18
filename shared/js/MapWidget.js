@@ -93,6 +93,15 @@ class MapWidget {
   }
 
   /**
+   * Recarrega os marcadores usando a posicao atual do usuario.
+   * Usado apos salvar a localizacao de uma barbearia no painel profissional.
+   */
+  static async recarregarBarbearias() {
+    if (!MapWidget.#mapa) return;
+    await MapWidget.#carregar();
+  }
+
+  /**
    * Acionado pelo clique no FAB. Solicita GPS, centraliza mapa e carrega
    * marcadores. Ao concluir, notifica o NearbyBarbershopsWidget (lista).
    */
@@ -307,10 +316,10 @@ class MapWidget {
           : `${b.distance_km.toFixed(1)} km`
         : null;
 
-      // ── Ícone: avatar circular + pin dourado ──
+      // Icone: fachada de barbearia + imagem do salao.
       const imgTag = avatarUrl
         ? `<img src="${avatarUrl}"
-                class="mapa-av__img"
+                class="mapa-shop-marker__img"
                 alt="${iniciais}"
                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         : '';
@@ -318,16 +327,17 @@ class MapWidget {
 
       const icon = L.divIcon({
         className:   '',
-        html: `<div class="mapa-av">
-                 <div class="mapa-av__ring">
+        html: `<div class="mapa-shop-marker">
+                 <div class="mapa-shop-marker__awning"></div>
+                 <div class="mapa-shop-marker__body">
                    ${imgTag}
-                   <span class="mapa-av__initials" style="${initialsStyle}">${iniciais}</span>
+                   <span class="mapa-shop-marker__initials" style="${initialsStyle}">${iniciais}</span>
                  </div>
-                 <div class="mapa-av__pin"></div>
+                 <div class="mapa-shop-marker__pin"></div>
                </div>`,
-        iconSize:    [48, 58],
-        iconAnchor:  [24, 58],
-        popupAnchor: [0, -62],
+        iconSize:    [58, 68],
+        iconAnchor:  [29, 68],
+        popupAnchor: [0, -70],
       });
 
       // ── Popup rico: avatar grande + info ──

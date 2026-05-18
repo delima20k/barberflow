@@ -311,7 +311,7 @@ class MinhaBarbeariaPage {
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
     const { data, error } = await SupabaseService.barbershops()
-      .select('*')
+      .select('id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at')
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
@@ -2031,14 +2031,11 @@ class MinhaBarbeariaPage {
     const btnB = this.#refs.gpsBtnBuscar;
     if (btnB) { btnB.textContent = '...'; btnB.disabled = true; }
     try {
-      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      if (!res.ok) throw new Error('http');
-      const d = await res.json();
-      if (d.erro) { this.#mostrarGpsMsg('CEP não encontrado.', 'erro'); return; }
+      const d = await BarbershopService.geocodificarCep(cep);
       // Atualiza inputs e displays dos campos auto-preenchidos
-      const rua    = d.logradouro ?? '';
-      const bairro = d.bairro     ?? '';
-      const cidade = d.localidade && d.uf ? `${d.localidade} / ${d.uf}` : (d.localidade ?? '');
+      const rua    = d.street ?? d.address ?? '';
+      const bairro = d.neighborhood ?? '';
+      const cidade = d.city && d.state ? `${d.city} / ${d.state}` : (d.city ?? '');
       if (this.#refs.gpsLogradouro)    this.#refs.gpsLogradouro.value                = rua;
       if (this.#refs.gpsRuaDisplay)    this.#refs.gpsRuaDisplay.textContent          = rua    || '—';
       if (this.#refs.gpsBairro)        this.#refs.gpsBairro.value                    = bairro;
@@ -2049,7 +2046,8 @@ class MinhaBarbeariaPage {
       this.#_fecharCepRow();
       this.#mostrarGpsMsg('', '');
       this.#_toggleEl(this.#refs.gpsNumero, this.#refs.gpsNumDisplay, this.#refs.gpsNumLapis, '—');
-    } catch {
+    } catch (err) {
+      console.warn('[MinhaBarbeariaPage] buscarCep:', err?.message ?? err);
       this.#mostrarGpsMsg('Não foi possível consultar o CEP.', 'erro');
     } finally {
       if (btnB) { btnB.textContent = 'Buscar'; btnB.disabled = false; }
@@ -2103,6 +2101,16 @@ class MinhaBarbeariaPage {
     if (!this.#barbershopId) {
       this.#mostrarGpsMsg('Barbearia não encontrada.', 'erro'); return;
     }
+    if (!this.#coordsGps) {
+      this.#mostrarGpsMsg('Ative o GPS para salvar a posição no mapa.', 'erro'); return;
+    }
+
+    const perfil = AuthService.getPerfil();
+    const ownerId = this.#shopData?.owner_id ?? perfil?.id;
+    if (!ownerId) {
+      this.#mostrarGpsMsg('Dono da barbearia não identificado.', 'erro'); return;
+    }
+
     const [city, state] = cidadeUf.includes('/')
       ? cidadeUf.split('/').map(s => s.trim())
       : [cidadeUf.trim(), ''];
@@ -2113,36 +2121,29 @@ class MinhaBarbeariaPage {
       state:        state   || null,
       zip_code:     cep     || null,
       neighborhood: bairro  || null,
-      updated_at:   new Date().toISOString(),
+      lat:          this.#coordsGps.lat,
+      lng:          this.#coordsGps.lng,
     };
-    if (this.#coordsGps) {
-      payload.latitude  = this.#coordsGps.lat;
-      payload.longitude = this.#coordsGps.lng;
-    }
 
     const btn = this.#refs.gpsBtnSalvar;
     if (btn) { btn.textContent = 'Salvando…'; btn.disabled = true; }
     let _sucesso = false;
 
     try {
-      const { error } = await SupabaseService.barbershops()
-        .update(payload)
-        .eq('id', this.#barbershopId);
-      if (error) throw error;
+      const atualizadoBanco = await BarbershopService.salvarEnderecoGps(ownerId, payload);
 
       // Atualiza cache e re-preenche painel (fecha todos os lápis, mostra valores salvos)
       if (this.#shopData) {
-        Object.assign(this.#shopData, {
+        Object.assign(this.#shopData, atualizadoBanco ?? {}, {
           address, city: city||null, state: state||null, zip_code: cep||null,
           neighborhood: bairro || null,
+          latitude:  this.#coordsGps.lat,
+          longitude: this.#coordsGps.lng,
         });
-        if (this.#coordsGps) {
-          this.#shopData.latitude  = this.#coordsGps.lat;
-          this.#shopData.longitude = this.#coordsGps.lng;
-        }
         this.#renderInfoCard(this.#shopData);
       }
       this.#preencherGpsForm();
+      if (typeof MapWidget !== 'undefined') await MapWidget.recarregarBarbearias?.();
 
       _sucesso = true;
       AnimationService.gaspar(this.#refs.gpsMsg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');

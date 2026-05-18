@@ -21,6 +21,7 @@ class GeoService {
   static #CACHE_TTL_MS      = 5  * 60 * 1000; // 5 minutos
   static #SALVAR_COOLDOWN_MS = 10 * 60 * 1000; // throttle: salva na BFF no max 1x/10min
   static #cache              = null;            // { lat, lng, ts }
+  static #gpsPromise         = null;            // Promise em andamento para coalescer obter() concorrente
   static #ultimoSalvo        = null;            // Date.now() do ultimo save na BFF
   static #salvandoNaBff      = false;           // lock: evita chamadas concorrentes ao patch
   static #watchId            = null;            // ID do watchPosition ativo (ou null)
@@ -47,7 +48,13 @@ class GeoService {
     if (GeoService.#cacheValido()) {
       return Promise.resolve({ lat: GeoService.#cache.lat, lng: GeoService.#cache.lng });
     }
-    return GeoService.#solicitarGPSComRetry();
+    if (GeoService.#gpsPromise) return GeoService.#gpsPromise;
+
+    GeoService.#gpsPromise = GeoService.#solicitarGPSComRetry()
+      .finally(() => {
+        GeoService.#gpsPromise = null;
+      });
+    return GeoService.#gpsPromise;
   }
 
   /**
@@ -354,13 +361,20 @@ class GeoService {
 
   /**
    * Lê o access_token JWT do localStorage (Supabase).
+   * Valida expiração com buffer de 60s, alinhado com BffApiService.
    * @returns {string|null}
    */
   static #lerToken() {
     try {
       if (typeof localStorage === 'undefined') return null;
       const raw = localStorage.getItem(GeoService.#STORAGE_KEY);
-      return raw ? (JSON.parse(raw)?.access_token ?? null) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const token = parsed?.access_token ?? null;
+      const expiresAt = parsed?.expires_at;
+      if (!token || !expiresAt) return null;
+      if (Date.now() / 1000 > expiresAt - 60) return null;
+      return token;
     } catch {
       return null;
     }

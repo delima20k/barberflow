@@ -102,6 +102,7 @@ suite('BarbershopRepository.updateLocation', () => {
       id: UUID_SHOP, owner_id: UUID_OWNER,
       latitude: -23.55, longitude: -46.63,
       address: 'Rua Teste, 100', city: 'São Paulo', state: 'SP', zip_code: '01310-100',
+      neighborhood: 'Bela Vista',
     };
     const { BarbershopRepository, builder, apiMock } = criarRepo({ data: shopData });
 
@@ -111,11 +112,12 @@ suite('BarbershopRepository.updateLocation', () => {
     builder.single.mockResolvedValue({ data: shopData, error: null });
 
     const result = await BarbershopRepository.updateLocation(
-      UUID_OWNER, -23.55, -46.63, 'Rua Teste, 100', 'São Paulo', 'SP', '01310-100'
+      UUID_OWNER, -23.55, -46.63, 'Rua Teste, 100', 'São Paulo', 'SP', '01310-100', 'Bela Vista'
     );
 
     assert.ok(apiMock.from.calls.length >= 1, 'deve chamar ApiService.from()');
     assert.ok(builder.update.calls.length >= 1, 'deve chamar .update()');
+    assert.equal(builder.update.calls[0][0].neighborhood, 'Bela Vista');
     assert.deepEqual(result, shopData);
   });
 
@@ -185,6 +187,51 @@ suite('BarbershopService.salvarLocalizacaoGPS', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
+suite('BarbershopService.salvarEnderecoGps', () => {
+
+  test('salva endereco completo com coordenadas e bairro', async () => {
+    const { BarbershopService, repoMock } = criarServico();
+
+    await BarbershopService.salvarEnderecoGps(UUID_OWNER, {
+      lat: -23.55,
+      lng: -46.63,
+      address: 'Rua Teste, 100',
+      city: 'São Paulo',
+      state: 'SP',
+      zip_code: '01310-100',
+      neighborhood: 'Bela Vista',
+    });
+
+    assert.equal(repoMock.updateLocation.calls.length, 1);
+    assert.deepEqual(repoMock.updateLocation.calls[0], [
+      UUID_OWNER,
+      -23.55,
+      -46.63,
+      'Rua Teste, 100',
+      'São Paulo',
+      'SP',
+      '01310-100',
+      'Bela Vista',
+    ]);
+  });
+
+  test('bloqueia salvamento sem endereco ou GPS', async () => {
+    const { BarbershopService, repoMock } = criarServico();
+
+    await assert.rejects(
+      () => BarbershopService.salvarEnderecoGps(UUID_OWNER, { lat: -23.55, lng: -46.63 }),
+      /endereco|obrigatorio/i
+    );
+
+    await assert.rejects(
+      () => BarbershopService.salvarEnderecoGps(UUID_OWNER, { address: 'Rua Teste' }),
+      /coordena|invalid/i
+    );
+
+    assert.equal(repoMock.updateLocation.calls.length, 0);
+  });
+});
+
 // SUITE 3: BarbershopService.geocodificarCep
 // ─────────────────────────────────────────────────────────────
 
@@ -209,6 +256,8 @@ suite('BarbershopService.geocodificarCep', () => {
     assert.equal(result.city,     'São Paulo');
     assert.equal(result.state,    'SP');
     assert.equal(result.zip_code, '01310-100');
+    assert.equal(result.street, 'Avenida Paulista');
+    assert.equal(result.neighborhood, 'Bela Vista');
     assert.ok(result.address.includes('Avenida Paulista'));
   });
 
@@ -278,13 +327,14 @@ suite('BarbershopService.salvarLocalizacaoCep', () => {
     assert.equal(fetchMock.calls.length, 2, 'deve fazer 2 chamadas fetch (ViaCEP + Nominatim)');
     assert.ok(repoMock.updateLocation.calls.length === 1, 'deve salvar no banco uma vez');
 
-    const [ownerId, lat, lng, address, city, state, zip] = repoMock.updateLocation.calls[0];
+    const [ownerId, lat, lng, address, city, state, zip, neighborhood] = repoMock.updateLocation.calls[0];
     assert.equal(ownerId, UUID_OWNER);
     assert.ok(Math.abs(lat - (-23.5629)) < 0.001, 'lat deve vir do Nominatim');
     assert.ok(Math.abs(lng - (-46.6544)) < 0.001, 'lng deve vir do Nominatim');
     assert.equal(city,  'São Paulo');
     assert.equal(state, 'SP');
     assert.equal(zip,   '01310-100');
+    assert.equal(neighborhood, 'Bela Vista');
   });
 
   test('lança erro se Nominatim não encontrar coords', async () => {
