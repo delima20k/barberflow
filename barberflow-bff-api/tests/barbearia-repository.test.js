@@ -297,3 +297,52 @@ suite('BarbeariaRepository.getAll()', () => {
   });
 
 });
+
+// ────────────────────────────────────────────────────────────────
+// BarbeariaRepository.getFeatured()
+// ────────────────────────────────────────────────────────────────
+
+suite('BarbeariaRepository.getFeatured()', () => {
+
+  test('usa apenas colunas e ordenacao do schema base', async () => {
+    const selects = [];
+    const orders  = [];
+    const db = {
+      from: () => {
+        const q = {
+          select: (cols) => {
+            selects.push(cols);
+            return q;
+          },
+          eq:    () => q,
+          order: (col) => {
+            orders.push(col);
+            return q;
+          },
+          limit: () => Promise.resolve({ data: [], error: null }),
+        };
+        return q;
+      },
+    };
+    const repo = new BarbeariaRepository(db);
+
+    const result = await repo.getFeatured(6);
+
+    assert.deepStrictEqual(result, []);
+    assert.strictEqual(selects.length, 1);
+    assert.ok(!selects[0].includes('rating_score'), 'SELECT nao deve depender de rating_score');
+    assert.ok(!selects[0].includes('likes_count'), 'SELECT nao deve depender de likes_count');
+    assert.deepStrictEqual(orders, ['rating_avg', 'rating_count']);
+  });
+
+  test('retorna [] quando banco esta vazio', async () => {
+    const db   = criarMockDb({ fromData: [] });
+    const repo = new BarbeariaRepository(db);
+
+    const result = await repo.getFeatured(6);
+
+    assert.ok(Array.isArray(result));
+    assert.strictEqual(result.length, 0);
+  });
+
+});

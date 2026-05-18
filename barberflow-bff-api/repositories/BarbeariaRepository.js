@@ -26,9 +26,15 @@ class BarbeariaRepository extends BaseRepository {
 
   /** Ordem de relevância aplicada em todas as listagens. */
   static #ORDER_PADRAO = Object.freeze(['rating_score', 'rating_avg', 'likes_count']);
+  static #ORDER_DESTAQUE_SAFE = Object.freeze(['rating_avg', 'rating_count']);
 
   static #ordenar(query) {
     return BarbeariaRepository.#ORDER_PADRAO
+      .reduce((q, col) => q.order(col, { ascending: false }), query);
+  }
+
+  static #ordenarDestaqueSafe(query) {
+    return BarbeariaRepository.#ORDER_DESTAQUE_SAFE
       .reduce((q, col) => q.order(col, { ascending: false }), query);
   }
 
@@ -102,10 +108,10 @@ class BarbeariaRepository extends BaseRepository {
    * @returns {Promise<object[]>}
    */
   async getFeatured(limit = 6) {
-    const { data, error } = await BarbeariaRepository.#ordenar(
+    const { data, error } = await BarbeariaRepository.#ordenarDestaqueSafe(
       this._db
         .from('barbershops')
-        .select(BarbeariaRepository.#SELECT)
+        .select(BarbeariaRepository.#SELECT_SAFE)
         .eq('is_active', true),
     ).limit(limit);
 
