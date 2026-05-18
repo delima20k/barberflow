@@ -58,7 +58,6 @@ class PWAInstallBanner {
   // função seja no-op em browsers reais (não duplica), mas ainda permite
   // que init() re-registre após limpeza de listeners em testes.
   static #onBeforeInstallPrompt = (e) => {
-    e.preventDefault();
     PWAInstallBanner.#deferred = e;
     PWAInstallBanner.#atualizarBotao();
   };
@@ -167,6 +166,7 @@ class PWAInstallBanner {
     // Em iOS não há prompt nativo — instrução manual é o único caminho.
     btnInstalar.hidden = true;
     PWAInstallBanner.#btnInstalar = btnInstalar;
+    if (PWAInstallBanner.#deferred) PWAInstallBanner.#atualizarBotao();
 
     const btnFechar = document.createElement('button');
     btnFechar.className   = 'pwa-banner__fechar';
