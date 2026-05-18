@@ -1,5 +1,6 @@
 'use strict';
 
+// Vercel serverless entry point — exporta Express app sem chamar listen().
 if (!process.env.VERCEL) {
   try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); } catch { /* opcional */ }
 }
