@@ -36,13 +36,16 @@ class BarbeariaService extends BaseService {
     this._coordenada(lat, lng);
     BarbeariaService.#validarRaio(raioKm);
 
-    const rows = await this.#repo.getNearby(lat, lng, raioKm);
-
-    // Converte distancia_m (metros, retornada pelo PostGIS) para distancia_km
-    return rows.map(row => ({
-      ...row,
-      distancia_km: row.distancia_m != null ? row.distancia_m / 1000 : null,
-    }));
+    try {
+      const rows = await this.#repo.getNearby(lat, lng, raioKm);
+      return rows.map(row => ({
+        ...row,
+        distancia_km: row.distancia_m != null ? row.distancia_m / 1000 : null,
+      }));
+    } catch (err) {
+      console.warn('[BarbeariaService] listarProximas: banco indisponível —', err.message);
+      return [];
+    }
   }
 
   /**
@@ -52,7 +55,12 @@ class BarbeariaService extends BaseService {
    */
   async listarDestaque(limit = 6) {
     BarbeariaService.#validarLimit(limit);
-    return this.#repo.getFeatured(limit);
+    try {
+      return await this.#repo.getFeatured(limit);
+    } catch (err) {
+      console.warn('[BarbeariaService] listarDestaque: banco indisponível —', err.message);
+      return [];
+    }
   }
 
   /**
@@ -62,7 +70,12 @@ class BarbeariaService extends BaseService {
    */
   async listarTodas(limit = 60) {
     BarbeariaService.#validarLimit(limit);
-    return this.#repo.getAll(limit);
+    try {
+      return await this.#repo.getAll(limit);
+    } catch (err) {
+      console.warn('[BarbeariaService] listarTodas: banco indisponível —', err.message);
+      return [];
+    }
   }
 
   // ── Privados ─────────────────────────────────────────────────────

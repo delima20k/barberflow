@@ -14,8 +14,14 @@ const config = require('../config');
  */
 class CorsMiddleware {
 
-  static #allowedOrigins = new Set(config.cors.allowedOrigins);
-  static #isProducao     = process.env.APP_ENV === 'production';
+  static #allowedOrigins = new Set([
+    ...config.cors.allowedOrigins,
+    ...(process.env.CORS_EXTRA_ORIGINS
+      ? process.env.CORS_EXTRA_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+      : []),
+  ]);
+
+  static #isProducao = process.env.APP_ENV === 'production';
 
   /**
    * Verifica se a origem é permitida.

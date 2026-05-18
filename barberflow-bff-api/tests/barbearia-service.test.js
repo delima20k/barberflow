@@ -129,3 +129,48 @@ suite('BarbeariaService.listarProximas() — validação de raio', () => {
   });
 
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BarbeariaService — graceful degradation quando banco falha
+// ─────────────────────────────────────────────────────────────────────────────
+
+suite('BarbeariaService — graceful degradation (banco falha)', () => {
+
+  const ERRO_BANCO = new Error('DB connection refused');
+
+  test('listarProximas retorna [] quando repo.getNearby lança', async () => {
+    const repo = { getNearby: async () => { throw ERRO_BANCO; } };
+    const svc  = new BarbeariaService(repo);
+    const rows = await svc.listarProximas(LAT, LNG, RAIO);
+
+    assert.deepStrictEqual(rows, [], 'deve retornar [] sem propagar exceção');
+  });
+
+  test('listarDestaque retorna [] quando repo.getFeatured lança', async () => {
+    const repo = { getFeatured: async () => { throw ERRO_BANCO; } };
+    const svc  = new BarbeariaService(repo);
+    const rows = await svc.listarDestaque(6);
+
+    assert.deepStrictEqual(rows, [], 'deve retornar [] sem propagar exceção');
+  });
+
+  test('listarTodas retorna [] quando repo.getAll lança', async () => {
+    const repo = { getAll: async () => { throw ERRO_BANCO; } };
+    const svc  = new BarbeariaService(repo);
+    const rows = await svc.listarTodas(60);
+
+    assert.deepStrictEqual(rows, [], 'deve retornar [] sem propagar exceção');
+  });
+
+  test('listarProximas com coordenadas inválidas ainda lança AppError(400) — não engole validação', async () => {
+    const repo = { getNearby: async () => [] };
+    const svc  = new BarbeariaService(repo);
+
+    await assert.rejects(
+      () => svc.listarProximas(999, 999, RAIO),
+      (err) => err.status === 400,
+      'erro de validação de coordenada NÃO deve ser silenciado pelo catch de banco',
+    );
+  });
+
+});
