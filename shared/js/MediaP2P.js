@@ -183,6 +183,15 @@ class MediaP2P {
   }
 
   /**
+   * Retorna o File pendente para upload direto sem passar pelo BFF.
+   * @param {string} uid
+   * @returns {File|null}
+   */
+  getFile(uid) {
+    return this.#pendentes.get(uid)?.file ?? null;
+  }
+
+  /**
    * Cancela um arquivo pendente sem fazer upload.
    * Revoga o Blob URL para evitar memory leak.
    * Chamar ao remover um item da lista.

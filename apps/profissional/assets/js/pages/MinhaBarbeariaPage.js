@@ -1754,13 +1754,19 @@ class MinhaBarbeariaPage {
       const preco = parseFloat(row.querySelector('.mb-cfg-prod-preco')?.value || '0');
       const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
 
-      // ── Upload P2P: envia direto ao R2 via URL presigned ──────────────────────
+      // ── Upload direto ao Supabase Storage (bucket barbershops/services/) ────
       if (uid && this.#mediaP2P.temPendente(uid)) {
-        const { publicUrl } = await this.#mediaP2P.fazerUpload(
-          uid, 'services', { barbershopId: this.#barbershopId }
-        );
+        const file        = this.#mediaP2P.getFile(uid);
+        const ext         = file.name.split('.').pop().toLowerCase();
+        const storagePath = `${this.#barbershopId}/services/${uid}.${ext}`;
+        const { error: upErr } = await SupabaseService.storageBarbershops()
+          .upload(storagePath, file, { contentType: file.type, upsert: true });
+        if (upErr) throw upErr;
+        const publicUrl = ApiService.getLogoUrl(storagePath);
         row.dataset.imagePath = publicUrl;
-        if (publicUrl) row.querySelector('.mb-cfg-prod-img-preview').src = publicUrl;
+        const prev = row.querySelector('.mb-cfg-prod-img-preview');
+        if (prev) prev.src = publicUrl;
+        this.#mediaP2P.cancelar(uid);
       }
 
       const entry = {
@@ -2005,12 +2011,14 @@ class MinhaBarbeariaPage {
     try {
       const { url, path } = await this.#uploadImagemBarbearia(file, 'cover', 'cover_path');
       if (url) {
-        if (this.#refs.cfgCapaImg) this.#refs.cfgCapaImg.src = url;
-        if (this.#refs.coverImg)   this.#refs.coverImg.src   = url;
+        const urlBust = `${url}?t=${Date.now()}`;
+        if (this.#refs.cfgCapaImg) this.#refs.cfgCapaImg.src = urlBust;
+        if (this.#refs.coverImg)   this.#refs.coverImg.src   = urlBust;
         if (this.#shopData)        this.#shopData.cover_path = path;
       }
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadCapa erro:', err);
+      NotificationService?.mostrarToast('Erro', 'Não foi possível salvar a imagem de capa.', 'sistema');
     }
   }
 
@@ -2024,11 +2032,13 @@ class MinhaBarbeariaPage {
     try {
       const { url } = await this.#uploadImagemBarbearia(file, 'logo', 'logo_path');
       if (url && this.#refs.cfgLogoImg) {
-        this.#refs.cfgLogoImg.src = url;
-        if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${url}')`;
+        const urlBust = `${url}?t=${Date.now()}`;
+        this.#refs.cfgLogoImg.src = urlBust;
+        if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${urlBust}')`;
       }
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadLogo erro:', err);
+      NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o logo.', 'sistema');
     }
   }
 
