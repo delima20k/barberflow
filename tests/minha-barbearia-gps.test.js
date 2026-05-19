@@ -18,7 +18,7 @@ test('MinhaBarbeariaPage salva endereco/GPS pela camada de service', () => {
   );
 
   assert.match(salvarGps, /BarbershopService\.salvarEnderecoGps/);
-  assert.match(salvarGps, /MapWidget\.recarregarBarbearias/);
+  assert.doesNotMatch(salvarGps, /MapWidget\.recarregarBarbearias/);
   assert.match(salvarGps, /numero:\s*num\s*\|\|\s*null/);
   assert.match(salvarGps, /complemento:\s*comp\s*\|\|\s*null/);
   assert.doesNotMatch(salvarGps, /SupabaseService\.barbershops\(\)\s*\.update/);

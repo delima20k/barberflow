@@ -305,30 +305,30 @@
 
 .mapa-shop-marker__img {
   position: absolute;
-  top: 29px;
-  left: 16px;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  top: 28px;
+  left: 6px;
+  width: 44px;
+  height: 34px;
+  border-radius: 4px;
   object-fit: cover;
   display: block;
-  box-shadow: 0 0 0 1.5px rgba(15, 17, 21, .20);
+  box-shadow: 0 0 0 1px rgba(15, 17, 21, .18);
   z-index: 1;
 }
 
 .mapa-shop-marker__initials {
   position: absolute;
-  top: 29px;
-  left: 16px;
-  width: 28px;
-  height: 28px;
+  top: 28px;
+  left: 6px;
+  width: 44px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 4px;
   color: #FFFFFF;
   background: linear-gradient(180deg, #0F1115 0%, #30343B 100%);
-  font-size: .72rem;
+  font-size: .78rem;
   font-weight: 800;
   letter-spacing: 0;
   user-select: none;

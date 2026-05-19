@@ -68,6 +68,6 @@ test('MapWidget usa marcador premium escuro e animado, sem avatar redondo padrao
   assert.match(css, /#FFFFFF/);
   assert.match(css, /@keyframes mapa-shop-marker-enter/);
   assert.match(css, /animation: mapa-shop-marker-enter/);
-  assert.match(css, /border-radius: 8px/);
+  assert.match(css, /border-radius: 4px/);
   assert.doesNotMatch(imgRule, /border-radius:\s*50%/);
 });
