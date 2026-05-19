@@ -185,15 +185,15 @@ class GpsPage {
     );
   }
 
-  // ── Salvar no Supabase ───────────────────────────────────────
+  // ── Salvar via BFF ───────────────────────────────────────────
 
   async #salvar() {
-    const cep        = this.#refs.cep?.value.replace(/\D/g, '') ?? '';
-    const rua        = this.#refs.logradouro?.value.trim()  ?? '';
-    const num        = this.#refs.numero?.value.trim()      ?? '';
-    const bairro     = this.#refs.bairro?.value.trim()      ?? '';
-    const cidadeUf   = this.#refs.cidade?.value.trim()      ?? '';
-    const comp       = this.#refs.complemento?.value.trim() ?? '';
+    const cep      = this.#refs.cep?.value.replace(/\D/g, '') ?? '';
+    const rua      = this.#refs.logradouro?.value.trim()  ?? '';
+    const num      = this.#refs.numero?.value.trim()      ?? '';
+    const bairro   = this.#refs.bairro?.value.trim()      ?? '';
+    const cidadeUf = this.#refs.cidade?.value.trim()      ?? '';
+    const comp     = this.#refs.complemento?.value.trim() ?? '';
 
     if (!rua) {
       this.#mostrarMsg('Informe o CEP para preencher o endereço.', 'erro');
@@ -205,50 +205,36 @@ class GpsPage {
       return;
     }
 
-    // Garante que temos o ID da barbearia
-    if (!this.#barbershopId) {
-      const perfil = AuthService.getPerfil();
-      if (!perfil?.id) {
-        this.#mostrarMsg('Usuário não autenticado.', 'erro');
-        return;
-      }
-      const shop = await GpsPage.#fetchShop(perfil.id);
-      if (!shop) {
-        this.#mostrarMsg('Barbearia não encontrada. Crie sua barbearia primeiro.', 'erro');
-        return;
-      }
-      this.#barbershopId = shop.id;
-    }
-
-    // Monta endereço completo (sem duplicar bairro quando já está em address)
-    const partes = [rua, num, comp].filter(Boolean);
-    const address = partes.join(', ');
     const [city, state] = cidadeUf.includes('/')
       ? cidadeUf.split('/').map(s => s.trim())
       : [cidadeUf.trim(), ''];
 
     const payload = {
-      address,
-      city:     city   || null,
-      state:    state  || null,
-      zip_code: cep    || null,
-      updated_at: new Date().toISOString(),
+      address:      rua,
+      numero:       num,
+      complemento:  comp     || undefined,
+      city:         city     || undefined,
+      state:        state    || undefined,
+      zip_code:     cep      || undefined,
+      neighborhood: bairro   || undefined,
     };
     if (this.#coords) {
-      payload.latitude  = this.#coords.lat;
-      payload.longitude = this.#coords.lng;
+      payload.lat = this.#coords.lat;
+      payload.lng = this.#coords.lng;
     }
 
     const btn = this.#refs.btnSalvar;
     if (btn) { btn.textContent = 'Salvando…'; btn.disabled = true; }
 
     try {
-      const { error } = await SupabaseService.barbershops()
-        .update(payload)
-        .eq('id', this.#barbershopId);
-      if (error) throw error;
+      const { error } = await BffApiService.patch(
+        '/api/v1/barbearias/minha/endereco',
+        payload,
+      );
+      if (error) throw new Error(error);
       this.#mostrarMsg('✅ Endereço salvo! Sua barbearia já aparece no mapa.', 'ok');
       NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
+      if (typeof MapWidget !== 'undefined') MapWidget.recarregarBarbearias?.();
     } catch (err) {
       console.error('[GpsPage] salvar:', err);
       this.#mostrarMsg('Erro ao salvar. Tente novamente.', 'erro');

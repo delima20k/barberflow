@@ -87,9 +87,9 @@ class BarbeariaService extends BaseService {
   async salvarEndereco(userId, dados = {}) {
     this._uuid('userId', userId);
 
-    const lat = Number(dados.lat);
-    const lng = Number(dados.lng);
-    this._coordenada(lat, lng);
+    const lat = dados.lat != null ? Number(dados.lat) : null;
+    const lng = dados.lng != null ? Number(dados.lng) : null;
+    if (lat !== null && lng !== null) this._coordenada(lat, lng);
 
     const rua = this._texto('address', dados.address, 160, true);
     const numero = this._texto('numero', dados.numero ?? '', 30, false);
@@ -100,16 +100,18 @@ class BarbeariaService extends BaseService {
     const neighborhood = this._texto('neighborhood', dados.neighborhood ?? '', 80, false);
     const address = [rua, numero, complemento].filter(Boolean).join(', ');
 
-    return this.#repo.updateEndereco(userId, {
+    const payload = {
       address,
-      city: city || null,
-      state: state || null,
-      zip_code: zipCode || null,
+      city:         city         || null,
+      state:        state        || null,
+      zip_code:     zipCode      || null,
       neighborhood: neighborhood || null,
-      latitude: lat,
-      longitude: lng,
-      updated_at: new Date().toISOString(),
-    });
+      updated_at:   new Date().toISOString(),
+    };
+    if (lat !== null) payload.latitude  = lat;
+    if (lng !== null) payload.longitude = lng;
+
+    return this.#repo.updateEndereco(userId, payload);
   }
 
   // ── Privados ─────────────────────────────────────────────────────
