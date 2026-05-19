@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260524';
+const SW_CLI_VERSION = '20260525';
 
 class SWCliente {
 
@@ -67,8 +67,11 @@ class SWCliente {
     '/shared/js/AgendaBffClient.js',
     '/shared/js/BarbeariaApiClient.js',
     '/shared/js/GeoService.js',
-    '/shared/js/MapWidget.js',
     '/shared/js/NearbyBarbershopsWidget.js',
+    '/shared/js/GpsBarbeariaMarker.js',
+    '/shared/js/MapWidget.js',
+    '/shared/css/map-card.css',
+    '/shared/css/map-panel.css',
   ];
 
   // Imagens — pré-cacheadas em CACHE_IMAGES

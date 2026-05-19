@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260524';
+const SW_PRO_VERSION = '20260525';
 
 class SWProfissional {
 
@@ -60,6 +60,12 @@ class SWProfissional {
     '/shared/js/BffApiService.js',
     '/shared/js/BffAuthClient.js',
     '/shared/js/BarbeariaApiClient.js',
+    '/shared/js/GeoService.js',
+    '/shared/js/NearbyBarbershopsWidget.js',
+    '/shared/js/GpsBarbeariaMarker.js',
+    '/shared/js/MapWidget.js',
+    '/shared/css/map-card.css',
+    '/shared/css/map-panel.css',
     '/manifest.json',
   ];
 
