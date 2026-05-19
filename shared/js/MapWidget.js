@@ -339,7 +339,7 @@ class MapWidget {
       const coords = MapWidget.#coordenadasBarbearia(b);
       if (!coords) return;
 
-      const avatarUrl  = MapWidget.#urlAvatar(b.logo_path);
+      const avatarUrl  = MapWidget.#urlAvatar(b.logo_path ?? b.cover_path);
       const iniciais   = MapWidget.#iniciaisNome(b.name);
       const nomeSeguro = MapWidget.#escapeHtml(b.name ?? 'Barbearia');
       const enderecoSeguro = MapWidget.#escapeHtml(b.address ?? '');
