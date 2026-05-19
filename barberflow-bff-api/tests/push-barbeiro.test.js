@@ -521,6 +521,39 @@ suite('PushService — enviarAoBarbeiro()', () => {
       console.warn = origWarn;
     }
   });
+
+  test('query Supabase retorna error → loga com console.error e retorna enviados:0', async () => {
+    const errorCalls = [];
+    const origError  = console.error;
+    console.error = (...args) => errorCalls.push(args);
+    try {
+      const sbErro = {
+        from: () => {
+          const q = {
+            select: () => q,
+            eq:     () => q,
+            in:     () => q,
+            then:   (resolve) => resolve({ data: null, error: { message: 'connection timeout', code: 'PGRST000' } }),
+          };
+          return q;
+        },
+      };
+      const wpNoop = { setVapidDetails: () => {}, sendNotification: async () => {} };
+      const svc = new PushService(sbErro, wpNoop);
+      const resultado = await svc.enviarAoBarbeiro({
+        professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+        type: 'client_not_seated', clienteNome: 'João',
+      });
+
+      assert.strictEqual(resultado.enviados, 0, 'deve retornar enviados:0 quando a query falha');
+      const logouErro = errorCalls.some(args =>
+        args.some(a => typeof a === 'string' && a.includes('connection timeout')),
+      );
+      assert.ok(logouErro, 'console.error deve ser chamado com a mensagem do erro Supabase');
+    } finally {
+      console.error = origError;
+    }
+  });
 });
 
 // =================================================================

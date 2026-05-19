@@ -65,7 +65,10 @@ class PushService {
       ? query.eq('user_id', destinatarioIds[0])
       : query.in('user_id', destinatarioIds);
 
-    const { data: subs } = await query;
+    const { data: subs, error: subsError } = await query;
+    if (subsError) {
+      console.error('[PushService] Erro ao buscar subscriptions:', subsError.message, subsError.code);
+    }
     const subsUnicas = [];
     const endpoints = new Set();
     for (const sub of subs ?? []) {

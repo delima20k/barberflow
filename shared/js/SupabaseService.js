@@ -91,6 +91,7 @@ class SupabaseService {
    * Chamado uma única vez na criação do client.
    *
    * Eventos tratados:
+   *   INITIAL_SESSION             → AppState.login(user, perfilExistente) — se houver user (reload/PWA homescreen)
    *   SIGNED_IN / TOKEN_REFRESHED → AppState.login(user, perfilExistente)
    *   SIGNED_OUT                  → AppState.logout()
    *
@@ -101,6 +102,11 @@ class SupabaseService {
       if (typeof AppState === 'undefined') return;
 
       switch (event) {
+        case 'INITIAL_SESSION':
+          // Sessão restaurada de storage (reload / abertura do PWA via homescreen).
+          // Sem user = visitante sem sessão → não autenticar.
+          if (!session?.user) break;
+          // fall-through intencional
         case 'SIGNED_IN':
         case 'TOKEN_REFRESHED':
           // Atualiza user e mantém isLogado=true; preserva perfil em cache
