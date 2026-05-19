@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260517';
+const SW_PRO_VERSION = '20260519';
 
 class SWProfissional {
 
@@ -229,6 +229,18 @@ class SWProfissional {
         opts.requireInteraction = true;
       }
 
+      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      await Promise.allSettled(clientList.map(client => client.postMessage({
+        type:         'PUSH_SHOW_MODAL',
+        pushType:     opts.data?.pushType     ?? null,
+        entradaId:    opts.data?.entradaId    ?? null,
+        barbershopId: opts.data?.barbershopId ?? null,
+        clienteNome:  opts.data?.clienteNome  ?? null,
+        statusLabel:  opts.data?.statusLabel  ?? null,
+        cadeira:      opts.data?.cadeira      ?? null,
+        cliente:      opts.data?.cliente      ?? null,
+      })));
+
       await self.registration.showNotification(title, opts);
       console.log('[SW-Pro] showNotification ok, tag:', opts.tag);
     })());
@@ -257,6 +269,9 @@ class SWProfissional {
                 barbershopId: data.barbershopId ?? null,
                 pushType:     data.pushType     ?? null,
                 clienteNome:  data.clienteNome  ?? null,
+                statusLabel:  data.statusLabel  ?? null,
+                cadeira:      data.cadeira      ?? null,
+                cliente:      data.cliente      ?? null,
               });
               return existing.focus();
             }
@@ -266,6 +281,8 @@ class SWProfissional {
               push_shop:   data.barbershopId ?? '',
               push_type:   data.pushType     ?? '',
               push_nome:   data.clienteNome  ?? '',
+              push_status: data.statusLabel  ?? '',
+              push_chair:  data.cadeira      ?? '',
             });
             return self.clients.openWindow(`/profissional/?${params}`);
           }
@@ -278,6 +295,9 @@ class SWProfissional {
               entradaId:    data.entradaId    ?? null,
               barbershopId: data.barbershopId ?? null,
               clienteNome:  data.clienteNome  ?? null,
+              statusLabel:  data.statusLabel  ?? null,
+              cadeira:      data.cadeira      ?? null,
+              cliente:      data.cliente      ?? null,
             });
             return existing.focus();
           }
@@ -286,6 +306,8 @@ class SWProfissional {
             push_entry: data.entradaId    ?? '',
             push_shop:  data.barbershopId ?? '',
             push_nome:  data.clienteNome  ?? '',
+            push_status:data.statusLabel  ?? '',
+            push_chair: data.cadeira      ?? '',
           });
           return self.clients.openWindow(`/profissional/?${params}`);
         }),

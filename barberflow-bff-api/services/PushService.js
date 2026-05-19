@@ -42,7 +42,16 @@ class PushService {
    * }} params
    * @returns {Promise<{ enviados: number, invalidas: number }>}
    */
-  async enviarAoBarbeiro({ professionalId, entradaId, barbershopId, type, clienteNome }) {
+  async enviarAoBarbeiro({
+    professionalId,
+    entradaId,
+    barbershopId,
+    type,
+    clienteNome,
+    statusLabel,
+    cadeira,
+    cliente,
+  }) {
     const { data: subs } = await this.#supabaseAdmin
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth_key')
@@ -63,6 +72,9 @@ class PushService {
       ? `${clienteNome} está a caminho da barbearia.`
       : `${clienteNome} confirmou que está na barbearia.`;
 
+    const label       = statusLabel || (isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou');
+    const cadeiraNome = cadeira || 'Cadeira de producao';
+
     const payload = JSON.stringify({
       title,
       body,
@@ -75,6 +87,10 @@ class PushService {
         entradaId,
         barbershopId,
         clienteNome,
+        statusLabel: label,
+        cadeira:     cadeiraNome,
+        destino:     'profissional',
+        cliente:     cliente ?? { id: null, nome: clienteNome },
         url:         '/profissional/',
       },
     });

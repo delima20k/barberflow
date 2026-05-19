@@ -4,6 +4,7 @@ const { suite, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http   = require('node:http');
 const jwt    = require('jsonwebtoken');
+const Module = require('node:module');
 
 // ── Env vars — ANTES de qualquer require da aplicação ────────────
 process.env.APP_ENV                   = 'test';
@@ -33,30 +34,33 @@ const mockWebPush = {
   setVapidDetails:  () => {},
   sendNotification: async () => ({ statusCode: 201 }),
 };
-const webpushKey = require.resolve('web-push');
-require.cache[webpushKey] = {
-  id: webpushKey, filename: webpushKey, loaded: true, exports: mockWebPush,
+const originalLoad = Module._load;
+Module._load = function patchedLoad(request, parent, isMain) {
+  if (request === 'web-push') return mockWebPush;
+  return originalLoad.call(this, request, parent, isMain);
 };
 
 // ── Mock Supabase ─────────────────────────────────────────────────
 // _mockEntrada pode ser mutado por testes específicos (ex: cenário 403).
-let _mockEntrada = { id: ENTRY_ID, professional_id: PROF_ID };
+let _mockEntrada = { id: ENTRY_ID, professional_id: PROF_ID, barbershop_id: SHOP_ID };
 
 const SupabaseClient = require('../utils/SupabaseClient');
 {
   const criarQB = (table) => {
     const q = {
-      _op:    null,
+      _op:      null,
+      _filters: [],
       select: () => { q._op = 'select'; return q; },
       update: (dados) => {
         q._op   = 'update';
         q._data = dados;
         return q;
       },
-      eq:     () => q,
+      eq:     (col, val) => { q._filters.push([col, val]); return q; },
       single: () => {
         if (table === 'queue_entries') {
-          return Promise.resolve({ data: _mockEntrada, error: null });
+          const ok = _mockEntrada && q._filters.every(([col, val]) => _mockEntrada[col] === val);
+          return Promise.resolve({ data: ok ? _mockEntrada : null, error: null });
         }
         return Promise.resolve({ data: null, error: null });
       },
@@ -288,6 +292,9 @@ suite('PushService — enviarAoBarbeiro()', () => {
       chamadas[0].body.toLowerCase().includes('barbearia') || chamadas[0].body.toLowerCase().includes('confirm'),
       `body deve indicar confirmação de chegada, recebido: "${chamadas[0].body}"`,
     );
+    assert.strictEqual(chamadas[0].data.statusLabel, 'Cliente ja chegou');
+    assert.strictEqual(chamadas[0].data.cadeira, 'Cadeira de producao');
+    assert.strictEqual(chamadas[0].data.destino, 'profissional');
   });
 
   test('type client_not_seated: title e body refletem que cliente está a caminho', async () => {
@@ -326,6 +333,9 @@ suite('PushService — enviarAoBarbeiro()', () => {
       chamadas[0].body.toLowerCase().includes('caminho') || chamadas[0].body.toLowerCase().includes('chegando'),
       `body deve indicar que está a caminho, recebido: "${chamadas[0].body}"`,
     );
+    assert.strictEqual(chamadas[0].data.statusLabel, 'Cliente esta a caminho');
+    assert.strictEqual(chamadas[0].data.cadeira, 'Cadeira de producao');
+    assert.strictEqual(chamadas[0].data.destino, 'profissional');
   });
 
   // ── Bug 1: erros não-410/404 não devem crashar e devem ser logados ────────
@@ -477,14 +487,27 @@ suite('POST /api/v1/notificacoes/push-barbeiro', () => {
     assert.strictEqual(status, 400);
   });
 
+  test('retorna 400 com UUID invalido', async () => {
+    const { status } = await criarReq({ ...BODY_VALIDO, entradaId: 'id-invalido' }, AUTH);
+    assert.strictEqual(status, 400);
+  });
+
   test('retorna 403 quando entradaId não pertence ao profissional', async () => {
     _mockEntrada = null;
     try {
       const { status } = await criarReq(BODY_VALIDO, AUTH);
       assert.strictEqual(status, 403);
     } finally {
-      _mockEntrada = { id: ENTRY_ID, professional_id: PROF_ID };
+      _mockEntrada = { id: ENTRY_ID, professional_id: PROF_ID, barbershop_id: SHOP_ID };
     }
+  });
+
+  test('retorna 403 quando entradaId pertence a outra barbearia', async () => {
+    const { status } = await criarReq({
+      ...BODY_VALIDO,
+      barbershopId: 'cccccccc-0000-4000-8000-000000000099',
+    }, AUTH);
+    assert.strictEqual(status, 403);
   });
 
   test('retorna 200 com ok:true e enviados numérico para dados válidos', async () => {

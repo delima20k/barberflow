@@ -46,6 +46,9 @@ class MinhaBarbeariaPage {
   #pollingTimer         = null;   // fallback polling quando Realtime indisponível
   #renderizandoEquipe   = false;  // guard: evita re-renders simultâneos de cadeiras
   #reRenderPendente     = false;  // sinaliza update chegado durante render em curso
+  #pushPendente         = [];
+  #pushModalAtiva       = new Set();
+  #pushProcessados      = new Set();
   #refs                 = {};
 
   constructor() {}
@@ -301,6 +304,7 @@ class MinhaBarbeariaPage {
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
       this.#iniciarRealtimeFila(shop.id);
+      this.#processarPushPendente();
 
     } catch (err) {
       console.error('[MinhaBarbeariaPage] erro:', err);
@@ -784,13 +788,18 @@ class MinhaBarbeariaPage {
    * Barbeiro decide se cliente está na cadeira (Sim) ou não (Não).
    * @param {{ clienteNome: string, entradaId: string|null }} opts
    */
-  async #fluxoClienteAtShop({ clienteNome, entradaId }) {
+  async #fluxoClienteAtShop({ clienteNome, entradaId, pushType = 'client_at_shop', statusLabel = null, cadeira = null }) {
     if (!entradaId) return;
 
     const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({
       clienteNome,
       entradaId,
       barbershopId: this.#barbershopId,
+      pushType,
+      statusLabel,
+      cadeira,
+      dinamico: true,
+      acaoConfirmar: pushType === 'client_not_seated' ? 'aguardar' : 'chegou',
     });
 
     // 'chegou' e 'remover': abrirModalCadeira já despachou barberflow:espera-resolvida
@@ -808,6 +817,10 @@ class MinhaBarbeariaPage {
    */
   async #handlePushAction({ acao, entradaId, barbershopId, clienteNome } = {}) {
     if (!entradaId || !acao) return;
+    if (!this.#barbershopId) {
+      this.#registrarPushPendente({ tipo: 'action', acao, entradaId, barbershopId, clienteNome });
+      return;
+    }
     if (barbershopId && barbershopId !== this.#barbershopId) return;
 
     BarbeiroEsperaFluxo.finalizarEspera(entradaId);
@@ -838,6 +851,11 @@ class MinhaBarbeariaPage {
 
     if (acao === 'chegou') {
       const nome = clienteNome ?? 'Cliente';
+      try {
+        await QueueRepository.updateClientConfirmed(entradaId, 'yes');
+      } catch (err) {
+        LoggerService.warn('[MinhaBarbeariaPage] push action chegou:', err?.message);
+      }
       NotificationService.mostrarToast('Cliente confirmado', `${nome} está na cadeira!`, NotificationService.TIPOS.SISTEMA);
       await this.#reRenderEquipe();
     }
@@ -848,10 +866,51 @@ class MinhaBarbeariaPage {
    * Reutiliza #fluxoClienteAtShop para ambos os pushType.
    * @param {{ pushType: string, entradaId: string, barbershopId: string, clienteNome: string }} detail
    */
-  #handlePushShowModal({ pushType, entradaId, barbershopId, clienteNome } = {}) {
+  async #handlePushShowModal({ pushType, entradaId, barbershopId, clienteNome, statusLabel, cadeira, cliente } = {}) {
     if (!entradaId || !pushType) return;
+    if (!this.#barbershopId) {
+      this.#registrarPushPendente({ tipo: 'modal', pushType, entradaId, barbershopId, clienteNome, statusLabel, cadeira, cliente });
+      return;
+    }
     if (barbershopId && barbershopId !== this.#barbershopId) return;
-    this.#fluxoClienteAtShop({ clienteNome: clienteNome ?? 'Cliente', entradaId });
+    const chave = this.#chavePush({ pushType, entradaId });
+    if (this.#pushModalAtiva.has(chave) || this.#pushProcessados.has(chave)) return;
+
+    this.#pushModalAtiva.add(chave);
+    try {
+      await this.#fluxoClienteAtShop({
+        clienteNome: clienteNome ?? cliente?.nome ?? 'Cliente',
+        entradaId,
+        pushType,
+        statusLabel,
+        cadeira,
+      });
+      this.#pushProcessados.add(chave);
+    } finally {
+      this.#pushModalAtiva.delete(chave);
+    }
+  }
+
+  #registrarPushPendente(detail) {
+    const chave = this.#chavePush(detail);
+    if (this.#pushPendente.some(item => this.#chavePush(item) === chave)) return;
+    this.#pushPendente.push(detail);
+  }
+
+  #processarPushPendente() {
+    if (!this.#barbershopId || this.#pushPendente.length === 0) return;
+    const pendentes = this.#pushPendente.splice(0);
+    pendentes.forEach(detail => {
+      if (detail.tipo === 'action') {
+        this.#handlePushAction(detail);
+      } else {
+        this.#handlePushShowModal(detail);
+      }
+    });
+  }
+
+  #chavePush({ pushType, entradaId, acao } = {}) {
+    return `${entradaId ?? 'sem-entrada'}:${pushType ?? acao ?? 'modal'}`;
   }
 
   /**
@@ -2172,7 +2231,6 @@ class MinhaBarbeariaPage {
         this.#renderInfoCard(this.#shopData);
       }
       this.#preencherGpsForm();
-      if (typeof MapWidget !== 'undefined') await MapWidget.recarregarBarbearias?.();
       if (typeof GpsPanelMap !== 'undefined') {
         GpsPanelMap.carregar(
           this.#coordsGps.lat,

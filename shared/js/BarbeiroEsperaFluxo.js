@@ -54,31 +54,57 @@ class BarbeiroEsperaFluxo {
    * @param {string} opts.barbershopId
    * @returns {Promise<'chegou'|'remover'|'aguardar'>}
    */
-  static async abrirModalCadeira({ clienteNome, entradaId, barbershopId }) {
-    const nome = FluxoDeFila.escapar(clienteNome ?? '');
+  static async abrirModalCadeira({
+    clienteNome,
+    entradaId,
+    barbershopId,
+    statusLabel = null,
+    cadeira = null,
+    dinamico = false,
+    acaoConfirmar = 'chegou',
+  }) {
+    const nome       = FluxoDeFila.escapar(clienteNome ?? '');
+    const statusTxt  = statusLabel ? FluxoDeFila.escapar(statusLabel) : null;
+    const cadeiraTxt = cadeira ? FluxoDeFila.escapar(cadeira) : null;
+    const corpoPush  = [
+      `<strong>${nome}</strong> ${statusTxt ? statusTxt.toLowerCase() : 'avisou que esta a caminho'}.`,
+      cadeiraTxt ? `Cadeira: <strong>${cadeiraTxt}</strong>.` : '',
+      'Confirme como deseja seguir.',
+    ].filter(Boolean).join('<br>');
 
     // Modal 1: barbeiro confirma se cliente já está na cadeira
     const raw1 = await FluxoDeFila.abrir({
       id:        BarbeiroEsperaFluxo.#MODAL_ID,
       icone:     '🪑',
-      titulo:    `${nome} está na cadeira?`,
-      corpo:     `<strong>${nome}</strong> avisou que está a caminho. Já chegou e está pronto para cortar o cabelo?`,
-      acoes: [
-        { label: 'Sim', valor: 'sim', variante: 'primario' },
-        { label: 'Não', valor: 'nao', variante: 'neutro'   },
-      ],
+      titulo:    dinamico ? (statusTxt ?? `${nome} esta a caminho`) : `${nome} está na cadeira?`,
+      corpo:     dinamico ? corpoPush : `<strong>${nome}</strong> avisou que está a caminho. Já chegou e está pronto para cortar o cabelo?`,
+      acoes: dinamico
+        ? [
+            { label: 'Confirmar recebimento', valor: 'sim', variante: 'primario' },
+            { label: 'Chamar cliente',        valor: 'nao', variante: 'perigo'   },
+          ]
+        : [
+            { label: 'Sim', valor: 'sim', variante: 'primario' },
+            { label: 'Não', valor: 'nao', variante: 'neutro'   },
+          ],
       fecharBtn: false,
       tocarSom:  false,
     });
 
     // Sim → confirmar chegada
     if (raw1 === 'sim') {
+      if (acaoConfirmar === 'aguardar') return 'aguardar';
       BarbeiroEsperaFluxo.#despacharResolvida(entradaId, 'chegou', barbershopId);
       return 'chegou';
     }
 
     // null (overlay fechado por acidente) → aguardar por segurança
     if (raw1 !== 'nao') return 'aguardar';
+
+    if (dinamico) {
+      BarbeiroEsperaFluxo.#despacharResolvida(entradaId, 'remover', barbershopId);
+      return 'remover';
+    }
 
     // Não → Modal 2: esperar mais ou cancelar
     const raw2 = await FluxoDeFila.abrir({

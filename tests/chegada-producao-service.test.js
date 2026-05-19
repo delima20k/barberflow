@@ -401,6 +401,10 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
     assert.equal(body.barbershopId,   BARBERSHOP_ID);
     assert.equal(body.type,           'client_at_shop');
     assert.equal(body.clienteNome,    PERFIL.full_name);
+    assert.equal(body.statusLabel,    'Cliente ja chegou');
+    assert.equal(body.cadeira,        'Cadeira de producao');
+    assert.equal(body.cliente?.id,    CLIENT_ID);
+    assert.equal(body.cliente?.nome,  PERFIL.full_name);
   });
 
   test('chama BffApiService.post com type client_not_seated após resposta "caminho"', async () => {
@@ -413,7 +417,9 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
     const chamada = BffApiService.post.calls.find(([path]) => path === '/api/v1/notificacoes/push-barbeiro');
     assert.ok(chamada);
     const [, body] = chamada;
-    assert.equal(body.type, 'client_not_seated');
+    assert.equal(body.type,        'client_not_seated');
+    assert.equal(body.statusLabel, 'Cliente esta a caminho');
+    assert.equal(body.cadeira,     'Cadeira de producao');
   });
 
   test('clienteNome com apenas espaços é normalizado para "Cliente"', async () => {

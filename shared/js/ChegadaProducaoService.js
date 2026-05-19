@@ -97,9 +97,9 @@ class ChegadaProducaoService {
     const clienteNome = clientePerfil?.full_name ?? '';
 
     if (resposta === 'aqui') {
-      await ChegadaProducaoService.#processarAqui(entrada.id, professionalId, barbershopId, clienteNome);
+      await ChegadaProducaoService.#processarAqui(entrada.id, professionalId, barbershopId, clienteNome, clientId);
     } else if (resposta === 'caminho') {
-      await ChegadaProducaoService.#processarCaminho(entrada.id, professionalId, barbershopId, clienteNome);
+      await ChegadaProducaoService.#processarCaminho(entrada.id, professionalId, barbershopId, clienteNome, clientId);
     }
 
     return entrada;
@@ -169,7 +169,7 @@ class ChegadaProducaoService {
    * @param {string} barbershopId
    * @param {string} clienteNome
    */
-  static async #processarAqui(entradaId, professionalId, barbershopId, clienteNome) {
+  static async #processarAqui(entradaId, professionalId, barbershopId, clienteNome, clienteId = null) {
     await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
 
     await ChegadaProducaoService.#notificarBarbeiro(
@@ -178,6 +178,7 @@ class ChegadaProducaoService {
       'client_at_shop',
       entradaId,
       clienteNome,
+      clienteId,
     );
 
     if (typeof NotificationService !== 'undefined') {
@@ -197,7 +198,7 @@ class ChegadaProducaoService {
    * @param {string} barbershopId
    * @param {string} clienteNome
    */
-  static async #processarCaminho(entradaId, professionalId, barbershopId, clienteNome) {
+  static async #processarCaminho(entradaId, professionalId, barbershopId, clienteNome, clienteId = null) {
     await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
 
     await ChegadaProducaoService.#notificarBarbeiro(
@@ -206,6 +207,7 @@ class ChegadaProducaoService {
       'client_not_seated',
       entradaId,
       clienteNome,
+      clienteId,
     );
 
     if (typeof NotificationService !== 'undefined') {
@@ -251,7 +253,7 @@ class ChegadaProducaoService {
    * @param {string}      entradaId
    * @param {string}      clienteNome
    */
-  static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome) {
+  static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome, clienteId = null) {
     if (!professionalId) return;
     try {
       const nome      = clienteNome?.trim() || 'Cliente';
@@ -282,6 +284,9 @@ class ChegadaProducaoService {
           barbershopId,
           type,
           clienteNome: nome,
+          statusLabel: isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou',
+          cadeira:     'Cadeira de producao',
+          cliente:     { id: clienteId, nome },
         }).then(({ error }) => {
           if (error && typeof LoggerService !== 'undefined') {
             LoggerService.warn('[ChegadaProducaoService] push-barbeiro falhou:', error?.message);

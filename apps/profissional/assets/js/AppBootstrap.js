@@ -119,6 +119,9 @@ class AppBootstrap {
             barbershopId: e.data.barbershopId ?? null,
             pushType:    e.data.pushType    ?? null,
             clienteNome: e.data.clienteNome ?? null,
+            statusLabel: e.data.statusLabel ?? null,
+            cadeira:     e.data.cadeira     ?? null,
+            cliente:     e.data.cliente     ?? null,
           },
         }));
         return;
@@ -131,6 +134,9 @@ class AppBootstrap {
             entradaId:   e.data.entradaId    ?? null,
             barbershopId: e.data.barbershopId ?? null,
             clienteNome: e.data.clienteNome  ?? null,
+            statusLabel: e.data.statusLabel  ?? null,
+            cadeira:     e.data.cadeira      ?? null,
+            cliente:     e.data.cliente      ?? null,
           },
         }));
       }
@@ -155,6 +161,8 @@ class AppBootstrap {
     const pushEntry    = params.get('push_entry');
     const pushShop     = params.get('push_shop');
     const pushNome     = params.get('push_nome');
+    const pushStatus   = params.get('push_status');
+    const pushChair    = params.get('push_chair');
 
     // Botão de ação clicado com app fechado (Android)
     if (pushAction && pushEntry) {
@@ -165,6 +173,8 @@ class AppBootstrap {
           barbershopId: pushShop ?? null,
           pushType:    pushType  ?? null,
           clienteNome: pushNome  ? decodeURIComponent(pushNome) : null,
+          statusLabel: pushStatus ? decodeURIComponent(pushStatus) : null,
+          cadeira:     pushChair  ? decodeURIComponent(pushChair)  : null,
         },
       }));
       return;
@@ -178,6 +188,8 @@ class AppBootstrap {
           entradaId:   pushEntry,
           barbershopId: pushShop ?? null,
           clienteNome: pushNome  ? decodeURIComponent(pushNome) : null,
+          statusLabel: pushStatus ? decodeURIComponent(pushStatus) : null,
+          cadeira:     pushChair  ? decodeURIComponent(pushChair)  : null,
         },
       }));
       return;
