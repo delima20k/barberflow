@@ -285,7 +285,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -343,6 +343,7 @@
   transform: translateX(-50%);
   padding: 2px 6px;
   border-radius: 4px;
+  background: transparent;
   font-size: .5rem;
   font-weight: 800;
   letter-spacing: .05em;
@@ -354,14 +355,13 @@
 }
 
 .mapa-shop-marker__status--aberta {
-  background: #F2B705;
-  color: #2B1B12;
-  box-shadow: 0 0 8px rgba(242, 183, 5, .65);
+  color: #F2B705;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7), 0 0 6px rgba(0, 0, 0, .4);
 }
 
 .mapa-shop-marker__status--fechado {
-  background: #C81E1E;
-  color: #fff;
+  color: #C81E1E;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7), 0 0 6px rgba(0, 0, 0, .4);
 }
 
 /* JS adiciona essa classe no touchstart do container do mapa */
@@ -420,7 +420,7 @@
 .mapa-shop-marker__number {
   font-size: .56rem;
   font-weight: 700;
-  color: #F2B705;
+  color: #6B4A32;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
 }
 
