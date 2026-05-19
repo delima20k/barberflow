@@ -697,8 +697,9 @@ class MinhaBarbeariaPage {
 
   /**
    * Handler do evento barberflow:notificacao-nova.
-   * Reage a dois tipos de notificação relacionados à presença do cliente:
-   *   - 'client_not_seated' — cliente clicou "Não" pela 1ª vez (ainda não sentou)
+   * Reage a três tipos de notificação relacionados à presença do cliente:
+   *   - 'client_at_shop'   — cliente confirmou chegada à barbearia (produção)
+   *   - 'client_not_seated' — cliente clicou "Estou a caminho" (produção)
    *   - 'client_absent'     — cliente não confirmou após o grace de 5 min
    * @param {CustomEvent} e
    */
@@ -711,19 +712,26 @@ class MinhaBarbeariaPage {
 
     if (!ehNaoSentado && !ehAusente && !ehAtShop) return;
 
-    // Só reage se a notificação pertence à barbearia ativa
-    if (notif.dados.barbershop_id && notif.dados.barbershop_id !== this.#barbershopId) return;
+    const dadosNotif   = notif.dados;
+    const clienteNome  = dadosNotif.client_name  ?? 'Cliente';
+    const entradaId    = dadosNotif.entry_id      ?? null;
+    const barbershopId = dadosNotif.barbershop_id ?? null;
 
-    const clienteNome = notif.dados.client_name ?? 'Cliente';
-    const entradaId   = notif.dados.entry_id ?? null;
-
-    // Cliente confirmou chegada à barbearia → barbeiro decide se está na cadeira
+    // Rotas de produção: delega ao #handlePushShowModal (trata null-barbershopId + dedup)
     if (ehAtShop) {
-      await this.#fluxoClienteAtShop({ clienteNome, entradaId });
+      await this.#handlePushShowModal({ pushType: 'client_at_shop', entradaId, barbershopId, clienteNome });
+      return;
+    }
+    if (ehNaoSentado) {
+      await this.#handlePushShowModal({ pushType: 'client_not_seated', entradaId, barbershopId, clienteNome });
       return;
     }
 
-    const modo        = ehNaoSentado ? 'nao_sentado' : 'ausente';
+    // ehAusente — timeout de presença (fora do escopo da cadeira de produção)
+    if (!this.#barbershopId) return;
+    if (barbershopId && barbershopId !== this.#barbershopId) return;
+
+    const modo = 'ausente';
 
     const logoBarbearia = this.#shopData?.logo_path
       ? (typeof ApiService !== 'undefined'
@@ -775,12 +783,6 @@ class MinhaBarbeariaPage {
       }
     }
 
-    // Barbeiro escolheu "OK, aguardar" no modo nao_sentado (acao === null)
-    // → BarbeiroEsperaFluxo inicia ciclo persistente de espera.
-    if (acao === null && ehNaoSentado) {
-      BarbeiroEsperaFluxo.iniciarEspera({ clienteNome, entradaId, barbershopId: this.#barbershopId });
-      await this.#reRenderEquipe();
-    }
   }
 
   /**
@@ -870,6 +872,7 @@ class MinhaBarbeariaPage {
     if (!entradaId || !pushType) return;
     if (!this.#barbershopId) {
       this.#registrarPushPendente({ tipo: 'modal', pushType, entradaId, barbershopId, clienteNome, statusLabel, cadeira, cliente });
+      if (typeof Pro !== 'undefined') Pro.nav('minha-barbearia');
       return;
     }
     if (barbershopId && barbershopId !== this.#barbershopId) return;

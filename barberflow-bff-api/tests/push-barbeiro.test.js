@@ -21,11 +21,23 @@ const ENTRY_ID  = 'aaaaaaaa-0000-4000-8000-000000000001';
 const PROF_ID   = 'bbbbbbbb-0000-4000-8000-000000000002';
 const SHOP_ID   = 'cccccccc-0000-4000-8000-000000000003';
 const CLIENT_ID = 'dddddddd-0000-4000-8000-000000000004';
+const OWNER_ID  = 'eeeeeeee-0000-4000-8000-000000000005';
 
 const MOCK_SUB = {
+  user_id:   PROF_ID,
+  app_id:    'profissional',
+  is_valid:  true,
   endpoint: 'https://fcm.googleapis.com/fcm/send/fake-token',
   p256dh:   'BFakeP256DH==',
   auth_key: 'FakeAuth==',
+};
+const OWNER_SUB = {
+  user_id:   OWNER_ID,
+  app_id:    'profissional',
+  is_valid:  true,
+  endpoint: 'https://fcm.googleapis.com/fcm/send/fake-owner-token',
+  p256dh:   'BOwnerP256DH==',
+  auth_key: 'OwnerAuth==',
 };
 
 // ── Mock web-push — injeta no require.cache ANTES de require('../app') ──
@@ -43,6 +55,8 @@ Module._load = function patchedLoad(request, parent, isMain) {
 // ── Mock Supabase ─────────────────────────────────────────────────
 // _mockEntrada pode ser mutado por testes específicos (ex: cenário 403).
 let _mockEntrada = { id: ENTRY_ID, professional_id: PROF_ID, barbershop_id: SHOP_ID };
+let _mockBarbershop = { id: SHOP_ID, owner_id: OWNER_ID };
+let _mockSubs = [MOCK_SUB];
 
 const SupabaseClient = require('../utils/SupabaseClient');
 {
@@ -56,17 +70,29 @@ const SupabaseClient = require('../utils/SupabaseClient');
         q._data = dados;
         return q;
       },
-      eq:     (col, val) => { q._filters.push([col, val]); return q; },
+      eq:     (col, val) => { q._filters.push([col, 'eq', val]); return q; },
+      in:     (col, val) => { q._filters.push([col, 'in', val]); return q; },
       single: () => {
         if (table === 'queue_entries') {
-          const ok = _mockEntrada && q._filters.every(([col, val]) => _mockEntrada[col] === val);
+          const ok = _mockEntrada && q._filters.every(([col, op, val]) => op === 'eq' && _mockEntrada[col] === val);
           return Promise.resolve({ data: ok ? _mockEntrada : null, error: null });
+        }
+        if (table === 'barbershops') {
+          const ok = _mockBarbershop && q._filters.every(([col, op, val]) => op === 'eq' && _mockBarbershop[col] === val);
+          return Promise.resolve({ data: ok ? _mockBarbershop : null, error: null });
         }
         return Promise.resolve({ data: null, error: null });
       },
       then: (resolve) => {
         if (table === 'push_subscriptions' && q._op === 'select') {
-          return resolve({ data: [MOCK_SUB], error: null });
+          const data = _mockSubs
+            .filter((row) => q._filters.every(([col, op, val]) => {
+              if (op === 'eq') return row[col] === val;
+              if (op === 'in') return Array.isArray(val) && val.includes(row[col]);
+              return true;
+            }))
+            .map(({ user_id, ...sub }) => sub);
+          return resolve({ data, error: null });
         }
         return resolve({ data: null, error: null });
       },
@@ -102,7 +128,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
           eq:     () => q,
           then:   (resolve) => {
             if (table === 'push_subscriptions' && q._op === 'select') {
-              return resolve({ data: [MOCK_SUB], error: null });
+              return resolve({ data: [MOCK_SUB].map(({ user_id, ...sub }) => sub), error: null });
             }
             return resolve({ data: null, error: null });
           },
@@ -123,6 +149,100 @@ suite('PushService — enviarAoBarbeiro()', () => {
     assert.strictEqual(chamadas.length, 1, 'sendNotification deve ser chamado exatamente 1 vez');
     assert.strictEqual(resultado.enviados, 1);
     assert.strictEqual(resultado.invalidas, 0);
+    assert.strictEqual(resultado.destinatarios, 1);
+  });
+
+  test('sem subscription do professionalId: envia para owner_id validado', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payload) => {
+        chamadas.push({ sub, payload });
+        return { statusCode: 201 };
+      },
+    };
+    const sbMock = {
+      from: (table) => {
+        const q = {
+          _op: null,
+          _filters: [],
+          select: () => { q._op = 'select'; return q; },
+          update: () => { q._op = 'update'; return q; },
+          eq: (col, val) => { q._filters.push([col, 'eq', val]); return q; },
+          in: (col, val) => { q._filters.push([col, 'in', val]); return q; },
+          then: (resolve) => {
+            if (table === 'push_subscriptions' && q._op === 'select') {
+              const rows = [OWNER_SUB].filter((row) => q._filters.every(([col, op, val]) => {
+                if (op === 'eq') return row[col] === val;
+                if (op === 'in') return val.includes(row[col]);
+                return true;
+              }));
+              return resolve({ data: rows.map(({ user_id, ...sub }) => sub), error: null });
+            }
+            return resolve({ data: null, error: null });
+          },
+        };
+        return q;
+      },
+    };
+
+    const svc = new PushService(sbMock, wpMock);
+    const resultado = await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID,
+      ownerId:        OWNER_ID,
+      entradaId:      ENTRY_ID,
+      barbershopId:   SHOP_ID,
+      type:           'client_not_seated',
+      clienteNome:    'João Silva',
+    });
+
+    assert.strictEqual(chamadas.length, 1);
+    assert.strictEqual(chamadas[0].sub.endpoint, OWNER_SUB.endpoint);
+    assert.strictEqual(resultado.enviados, 1);
+    assert.strictEqual(resultado.destinatarios, 2);
+  });
+
+  test('deduplica endpoint entre profissional e owner', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payload) => {
+        chamadas.push({ sub, payload });
+        return { statusCode: 201 };
+      },
+    };
+    const subDuplicada = { ...OWNER_SUB, endpoint: MOCK_SUB.endpoint };
+    const sbMock = {
+      from: (table) => {
+        const q = {
+          _op: null,
+          select: () => { q._op = 'select'; return q; },
+          update: () => q,
+          eq: () => q,
+          in: () => q,
+          then: (resolve) => {
+            if (table === 'push_subscriptions' && q._op === 'select') {
+              return resolve({ data: [MOCK_SUB, subDuplicada].map(({ user_id, ...sub }) => sub), error: null });
+            }
+            return resolve({ data: null, error: null });
+          },
+        };
+        return q;
+      },
+    };
+
+    const svc = new PushService(sbMock, wpMock);
+    const resultado = await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID,
+      ownerId:        OWNER_ID,
+      entradaId:      ENTRY_ID,
+      barbershopId:   SHOP_ID,
+      type:           'client_at_shop',
+      clienteNome:    'Ana',
+    });
+
+    assert.strictEqual(chamadas.length, 1);
+    assert.strictEqual(resultado.enviados, 1);
   });
 
   test('sem subscriptions: retorna enviados:0 sem chamar sendNotification', async () => {
@@ -515,6 +635,21 @@ suite('POST /api/v1/notificacoes/push-barbeiro', () => {
     assert.strictEqual(status, 200);
     assert.strictEqual(body.ok, true);
     assert.strictEqual(typeof body.dados?.enviados, 'number');
+    assert.ok(body.dados.enviados > 0);
+    assert.strictEqual(body.dados.destinatarios, 2);
+  });
+
+  test('retorna enviados>0 quando subscription está no owner_id da barbearia', async () => {
+    _mockSubs = [OWNER_SUB];
+    try {
+      const { status, body } = await criarReq(BODY_VALIDO, AUTH);
+      assert.strictEqual(status, 200);
+      assert.strictEqual(body.ok, true);
+      assert.ok(body.dados?.enviados > 0);
+      assert.strictEqual(body.dados?.destinatarios, 2);
+    } finally {
+      _mockSubs = [MOCK_SUB];
+    }
   });
 
   test('aceita type client_at_shop', async () => {

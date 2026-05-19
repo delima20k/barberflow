@@ -256,40 +256,53 @@ class ChegadaProducaoService {
    */
   static async #notificarBarbeiro(professionalId, barbershopId, type, entradaId, clienteNome, clienteId = null) {
     if (!professionalId) return;
-    try {
-      const nome      = clienteNome?.trim() || 'Cliente';
-      const isCaminho = type === 'client_not_seated';
+    const nome      = clienteNome?.trim() || 'Cliente';
+    const isCaminho = type === 'client_not_seated';
 
-      const p_title = isCaminho ? 'Cliente a caminho' : 'Cliente na barbearia!';
-      const p_body  = isCaminho
-        ? `${nome} avisou que está a caminho.`
-        : `${nome} confirmou que está na barbearia.`;
+    const p_title = isCaminho ? 'Cliente a caminho' : 'Cliente na barbearia!';
+    const p_body  = isCaminho
+      ? `${nome} avisou que está a caminho.`
+      : `${nome} confirmou que está na barbearia.`;
 
-      const p_data  = isCaminho
-        ? { client_not_seated: true, entry_id: entradaId, client_name: nome, barbershop_id: barbershopId }
-        : { tipo_acao: type,         entry_id: entradaId, client_name: nome, barbershop_id: barbershopId };
+    const p_data  = isCaminho
+      ? { client_not_seated: true, entry_id: entradaId, client_name: nome, barbershop_id: barbershopId }
+      : { tipo_acao: type,         entry_id: entradaId, client_name: nome, barbershop_id: barbershopId };
 
-      // Envia Web Push ao barbeiro via BFF antes do realtime.
-      // O push não pode depender do RPC, pois a modal em segundo plano usa Web Push/VAPID.
-      if (typeof BffApiService !== 'undefined') {
-        try {
-          BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
-            professionalId,
-            entradaId,
-            barbershopId,
-            type,
-            clienteNome: nome,
-            statusLabel: isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou',
-            cadeira:     'Cadeira de producao',
-            cliente:     { id: clienteId, nome },
-          }).then(({ error }) => {
-            if (error && typeof LoggerService !== 'undefined') {
-              LoggerService.warn('[ChegadaProducaoService] push-barbeiro falhou:', error?.message);
-            }
-          }).catch(() => {});
-        } catch { /* push é best-effort */ }
+    // Envia Web Push ao barbeiro via BFF antes do realtime.
+    // O push não pode depender do RPC, pois a modal em segundo plano usa Web Push/VAPID.
+    if (typeof BffApiService !== 'undefined') {
+      try {
+        const { data, error } = await BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
+          professionalId,
+          entradaId,
+          barbershopId,
+          type,
+          clienteNome: nome,
+          statusLabel: isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou',
+          cadeira:     'Cadeira de producao',
+          cliente:     { id: clienteId, nome },
+        });
+
+        if (error && typeof LoggerService !== 'undefined') {
+          LoggerService.warn(
+            '[ChegadaProducaoService] push-barbeiro falhou:',
+            error?.status ? `status=${error.status}` : '',
+            error?.message,
+          );
+        } else if (Number(data?.enviados ?? 0) === 0 && typeof LoggerService !== 'undefined') {
+          LoggerService.warn(
+            '[ChegadaProducaoService] push-barbeiro enviados=0:',
+            `destinatarios=${data?.destinatarios ?? 0}`,
+          );
+        }
+      } catch (err) {
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[ChegadaProducaoService] push-barbeiro falhou:', err?.message);
+        }
       }
+    }
 
+    try {
       await ApiService.rpc('notificar_barbeiro_chegada', {
         p_professional_id: professionalId,
         p_type:            type,
@@ -299,7 +312,7 @@ class ChegadaProducaoService {
       });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
-        LoggerService.warn('[ChegadaProducaoService] notificarBarbeiro falhou:', err?.message);
+        LoggerService.warn('[ChegadaProducaoService] notificarBarbeiro realtime falhou:', err?.message);
       }
     }
   }

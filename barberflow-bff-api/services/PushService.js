@@ -4,8 +4,8 @@
  * PushService (BFF) — Envia Web Push notifications a subscriptions de usuários.
  *
  * Método principal:
- *   enviarAoBarbeiro({ professionalId, entradaId, barbershopId, type, clienteNome })
- *     → Busca subscriptions válidas do barbeiro em push_subscriptions,
+ *   enviarAoBarbeiro({ professionalId, ownerId, entradaId, barbershopId, type, clienteNome })
+ *     → Busca subscriptions válidas do app profissional em push_subscriptions,
  *       envia push via VAPID para cada uma e invalida subscriptions expiradas (410/404).
  *
  * Camada: application
@@ -35,15 +35,17 @@ class PushService {
    *
    * @param {{
    *   professionalId: string,
+   *   ownerId?:       string|null,
    *   entradaId:      string,
    *   barbershopId:   string,
    *   type:           'client_not_seated' | 'client_at_shop',
    *   clienteNome:    string,
    * }} params
-   * @returns {Promise<{ enviados: number, invalidas: number }>}
+   * @returns {Promise<{ enviados: number, invalidas: number, destinatarios: number }>}
    */
   async enviarAoBarbeiro({
     professionalId,
+    ownerId = null,
     entradaId,
     barbershopId,
     type,
@@ -52,16 +54,29 @@ class PushService {
     cadeira,
     cliente,
   }) {
-    const { data: subs } = await this.#supabaseAdmin
+    const destinatarioIds = [...new Set([professionalId, ownerId].filter(Boolean))];
+    let query = this.#supabaseAdmin
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth_key')
-      .eq('user_id',  professionalId)
       .eq('app_id',   'profissional')
       .eq('is_valid', true);
 
-    if (!subs?.length) {
-      console.warn('[PushService] Nenhuma subscription válida para profissional:', professionalId);
-      return { enviados: 0, invalidas: 0 };
+    query = destinatarioIds.length === 1
+      ? query.eq('user_id', destinatarioIds[0])
+      : query.in('user_id', destinatarioIds);
+
+    const { data: subs } = await query;
+    const subsUnicas = [];
+    const endpoints = new Set();
+    for (const sub of subs ?? []) {
+      if (!sub?.endpoint || endpoints.has(sub.endpoint)) continue;
+      endpoints.add(sub.endpoint);
+      subsUnicas.push(sub);
+    }
+
+    if (!subsUnicas.length) {
+      console.warn('[PushService] Nenhuma subscription válida para destinatarios:', destinatarioIds.join(','));
+      return { enviados: 0, invalidas: 0, destinatarios: destinatarioIds.length };
     }
 
     const isCaminho = type === 'client_not_seated';
@@ -98,7 +113,7 @@ class PushService {
     let enviados  = 0;
     let invalidas = 0;
 
-    await Promise.all(subs.map(async (sub) => {
+    await Promise.all(subsUnicas.map(async (sub) => {
       const pushSub = {
         endpoint: sub.endpoint,
         keys: { p256dh: sub.p256dh, auth: sub.auth_key },
@@ -120,7 +135,7 @@ class PushService {
       }
     }));
 
-    return { enviados, invalidas };
+    return { enviados, invalidas, destinatarios: destinatarioIds.length };
   }
 }
 

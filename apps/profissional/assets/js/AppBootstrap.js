@@ -182,6 +182,7 @@ class AppBootstrap {
 
     // Toque no corpo da notificação com app fechado (iOS + Android)
     if (pushType && pushEntry) {
+      if (typeof Pro !== 'undefined') Pro.nav('minha-barbearia');
       document.dispatchEvent(new CustomEvent('barberflow:push-show-modal', {
         detail: {
           pushType,

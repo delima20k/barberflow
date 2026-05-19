@@ -359,7 +359,12 @@ suite('ChegadaProducaoService — erro em sentar()', () => {
 
 suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
 
-  function criarSandboxComBff({ fluxoResposta = 'aqui', bffErro = null, rpcRejeita = false } = {}) {
+  function criarSandboxComBff({
+    fluxoResposta = 'aqui',
+    bffErro = null,
+    bffData = { enviados: 1, destinatarios: 1 },
+    rpcRejeita = false,
+  } = {}) {
     const warnArgs = [];
     const ordem    = [];
     const sandbox = vm.createContext({
@@ -389,9 +394,11 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
         error: fn(),
       },
       BffApiService: {
-        post: fn().mockImplementation(() => {
+        post: fn().mockImplementation(async () => {
           ordem.push('push-bff');
-          return Promise.resolve({ data: null, error: bffErro });
+          await Promise.resolve();
+          ordem.push('push-bff-resolvido');
+          return { data: bffData, error: bffErro };
         }),
       },
     });
@@ -443,9 +450,9 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
     await new Promise(r => setTimeout(r, 0));
 
     assert.deepEqual(
-      ordem.slice(0, 2),
-      ['push-bff', 'persistir'],
-      'push do barbeiro deve sair antes da persistência best-effort em queue_entries',
+      ordem.slice(0, 3),
+      ['push-bff', 'push-bff-resolvido', 'persistir'],
+      'push do barbeiro deve ser aguardado antes da persistência best-effort em queue_entries',
     );
   });
 
@@ -490,6 +497,21 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
       args.some(a => typeof a === 'string' && a.includes('push-barbeiro')),
     );
     assert.ok(logado, 'LoggerService.warn deve ser chamado com mensagem de erro do push-barbeiro');
+  });
+
+  test('loga warn quando BFF retorna enviados:0', async () => {
+    const { sandbox, warnArgs } = criarSandboxComBff({
+      fluxoResposta: 'aqui',
+      bffData:       { enviados: 0, destinatarios: 1 },
+    });
+    const { ChegadaProducaoService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
+
+    const logado = warnArgs.some(args =>
+      args.some(a => typeof a === 'string' && a.includes('enviados=0')),
+    );
+    assert.ok(logado, 'LoggerService.warn deve indicar push sem envio quando enviados=0');
   });
 });
 

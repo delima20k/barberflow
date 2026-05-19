@@ -38,8 +38,9 @@ class BffApiService {
   static async get(path, params = {}) {
     const url = BffApiService.#buildUrl(path, params);
     try {
+      const authHeaders = await BffApiService.#authHeaders();
       const res  = await BffApiService.#fetchComTimeout(url, {
-        headers: BffApiService.#authHeaders(),
+        headers: authHeaders,
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -60,9 +61,10 @@ class BffApiService {
   static async patch(path, body) {
     const url = `${BffApiService.#BASE_URL}${path}`;
     try {
+      const authHeaders = await BffApiService.#authHeaders();
       const res  = await BffApiService.#fetchComTimeout(url, {
         method:  'PATCH',
-        headers: { 'Content-Type': 'application/json', ...BffApiService.#authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body:    JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
@@ -86,9 +88,10 @@ class BffApiService {
   static async post(path, body) {
     const url = `${BffApiService.#BASE_URL}${path}`;
     try {
+      const authHeaders = await BffApiService.#authHeaders();
       const res  = await BffApiService.#fetchComTimeout(url, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json', ...BffApiService.#authHeaders() },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body:    JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
@@ -144,11 +147,27 @@ class BffApiService {
 
   /**
    * Retorna headers de autenticação se o usuário estiver logado.
-   * @returns {Record<string, string>}
+   * @returns {Promise<Record<string, string>>}
    */
-  static #authHeaders() {
-    const token = BffApiService.#getToken();
+  static async #authHeaders() {
+    const token = await BffApiService.#getTokenAsync();
     return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  /**
+   * Prioriza a sessão viva do Supabase SDK e usa localStorage só como fallback.
+   * @returns {Promise<string|null>}
+   */
+  static async #getTokenAsync() {
+    try {
+      if (typeof SupabaseService !== 'undefined' && typeof SupabaseService.getSession === 'function') {
+        const session = await SupabaseService.getSession();
+        if (session?.access_token) return session.access_token;
+      }
+    } catch {
+      // Fallback abaixo mantém compatibilidade quando o SDK ainda não carregou.
+    }
+    return BffApiService.#getToken();
   }
 
   /**

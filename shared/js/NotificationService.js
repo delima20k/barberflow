@@ -489,7 +489,7 @@ class NotificationService {
 
   static #normalizarTipo(type) {
     if (!type) return NotificationService.TIPOS.SISTEMA;
-    if (type.startsWith('appointment') || type.startsWith('queue') || type === 'client_not_seated' || type === 'client_absent') return NotificationService.TIPOS.AGENDAMENTO;
+    if (type.startsWith('appointment') || type.startsWith('queue') || type === 'client_not_seated' || type === 'client_absent' || type === 'client_at_shop') return NotificationService.TIPOS.AGENDAMENTO;
     if (type.startsWith('story') || type.startsWith('promo'))       return NotificationService.TIPOS.BARBEARIA;
     if (type.startsWith('message') || type.startsWith('new_message')) return NotificationService.TIPOS.ENGAJAMENTO;
     return NotificationService.TIPOS.SISTEMA;

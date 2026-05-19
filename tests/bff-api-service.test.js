@@ -19,8 +19,9 @@ const STORAGE_KEY = 'sb-jfvjisqnzapxxagkbxcu-auth-token';
  * Monta sandbox com localStorage injetado e fetch mockado.
  * @param {Record<string,string>} lsStore  — chaves iniciais do localStorage
  * @param {Function}              fetchImpl — mock de fetch (opcional)
+ * @param {Object|null}           session — sessão Supabase mockada (opcional)
  */
-function criarSandbox(lsStore = {}, fetchImpl) {
+function criarSandbox(lsStore = {}, fetchImpl, session = null) {
   const lsMap = new Map(Object.entries(lsStore));
   const sb = vm.createContext({
     console,
@@ -40,6 +41,9 @@ function criarSandbox(lsStore = {}, fetchImpl) {
     setTimeout:   fn((cb) => { try { cb(); } catch {} }),
     clearTimeout: fn(),
     fetch: fetchImpl ?? fn(async () => ({ ok: true, status: 200, json: async () => ({}) })),
+    SupabaseService: {
+      getSession: fn().mockResolvedValue(session),
+    },
   });
   carregar(sb, 'shared/js/BffApiService.js');
   return sb;
@@ -186,6 +190,52 @@ suite('BffApiService.patch()', () => {
 // BffApiService.post() — status no erro (simetria com patch)
 // ─────────────────────────────────────────────────────────────────────────────
 suite('BffApiService.post()', () => {
+
+  test('inclui Bearer vindo de SupabaseService.getSession() antes do fallback localStorage', async () => {
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    const sb = criarSandbox({}, fetchMock, { access_token: 'tok-supabase-session' });
+
+    await sb.BffApiService.post('/api/v1/notificacoes/push-barbeiro', {});
+
+    assert.strictEqual(
+      capturedOpts[0]?.headers?.['Authorization'],
+      'Bearer tok-supabase-session',
+    );
+  });
+
+  test('mantém fallback para localStorage quando SupabaseService não tem sessão', async () => {
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    const ls = { [STORAGE_KEY]: sessao(undefined, 'tok-localstorage') };
+    const sb = criarSandbox(ls, fetchMock, null);
+
+    await sb.BffApiService.post('/api/v1/notificacoes/push-barbeiro', {});
+
+    assert.strictEqual(
+      capturedOpts[0]?.headers?.['Authorization'],
+      'Bearer tok-localstorage',
+    );
+  });
+
+  test('não inclui Authorization sem sessão Supabase nem token local válido', async () => {
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.post('/api/v1/notificacoes/push-barbeiro', {});
+
+    assert.strictEqual(capturedOpts[0]?.headers?.['Authorization'], undefined);
+  });
 
   test('retorna error.status=401 quando BFF responde 401', async () => {
     const fetchMock = fn(async () => ({
