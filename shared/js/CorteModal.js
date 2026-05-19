@@ -127,7 +127,21 @@ class CorteModal {
     label.appendChild(nomeEl);
     label.appendChild(metaEl);
 
+    const thumb = document.createElement('div');
+    thumb.className = 'crtm-img';
+    if (servico.image_path) {
+      const img = document.createElement('img');
+      img.src     = servico.image_path;
+      img.alt     = servico.name ?? '';
+      img.loading = 'lazy';
+      img.addEventListener('error', () => { thumb.classList.add('crtm-img--vazio'); img.remove(); });
+      thumb.appendChild(img);
+    } else {
+      thumb.classList.add('crtm-img--vazio');
+    }
+
     li.appendChild(chk);
+    li.appendChild(thumb);
     li.appendChild(label);
     return li;
   }
