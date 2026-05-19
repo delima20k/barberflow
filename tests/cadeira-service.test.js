@@ -52,6 +52,7 @@ function entradaWaiting(id, profId, position = 1, nomeCliente = 'Alice') {
 // ─── Factory da sandbox VM ───────────────────────────────────────────────────
 
 function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } = {}) {
+  const fetchCalls = [];
   const QueueRepository = {
     getByBarbershop: fn().mockResolvedValue(filaAtiva),
     updateStatus:    fn().mockResolvedValue({ id: 'x', status: 'done' }),
@@ -77,13 +78,20 @@ function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } 
     UserRepository: {
       getFavoritosModal: fn().mockResolvedValue({ data: [], error: null }),
     },
+    SupabaseService: {
+      getSession: fn().mockResolvedValue({ access_token: 'token-teste' }),
+    },
+    fetch: fn().mockImplementation((url, opts) => {
+      fetchCalls.push({ url, opts });
+      return Promise.resolve({ ok: true });
+    }),
     LoggerService: { info: fn(), warn: fn(), error: fn() },
   });
 
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/CadeiraService.js');
 
-  return { CS: sandbox.CadeiraService, QR: QueueRepository };
+  return { CS: sandbox.CadeiraService, QR: QueueRepository, fetchCalls };
 }
 
 // =============================================================================
@@ -371,6 +379,24 @@ suite('CadeiraService.sentar("producao") — comportamento existente', () => {
       QR.updateStatus.calls.some(([id, st]) => id === UUID_ENTRY_NOVO && st === 'in_service'),
       'sentar("producao") deve ir direto para in_service',
     );
+  });
+
+  test('notificarCliente=false suprime push send-push do app cliente', async () => {
+    const { CS, fetchCalls } = criarSandbox({
+      entradaNova: { id: UUID_ENTRY_NOVO, position: 0 },
+    });
+
+    await CS.sentar({
+      barbershopId:     UUID_SHOP,
+      professionalId:   UUID_PROF_A,
+      clientId:         UUID_CLI,
+      serviceIds:       [],
+      tipo:             'producao',
+      notificarCliente: false,
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    assert.strictEqual(fetchCalls.length, 0, 'não deve chamar Edge Function send-push do cliente');
   });
 });
 

@@ -9,8 +9,8 @@
  * Cenários:
  *   - modal abre com config correto (título, 2 ações: 'aqui' e 'caminho')
  *   - dismiss (null) → nenhuma operação, retorna null
- *   - 'aqui' → CadeiraService.sentar → pular → updateClientConfirmed('arriving') → notif client_at_shop → toast (barbeiro confirma 'yes' depois)
- *   - 'caminho' → CadeiraService.sentar → pular → updateClientConfirmed('arriving') → notif client_not_seated → toast
+ *   - 'aqui' → CadeiraService.sentar sem push cliente → pular → notif client_at_shop → updateClientConfirmed('arriving') → toast
+ *   - 'caminho' → CadeiraService.sentar sem push cliente → pular → notif client_not_seated → updateClientConfirmed('arriving') → toast
  *   - pular() chamado imediatamente após sentar (antes do await updateClientConfirmed)
  *   - sentar() rejeita → toast de erro, retorna null, sem notificação
  *   - guard: sem barbershopId → retorna null sem abrir modal
@@ -191,6 +191,7 @@ suite('ChegadaProducaoService — resposta "aqui"', () => {
     assert.equal(args.barbershopId,   BARBERSHOP_ID);
     assert.equal(args.professionalId, PROFESSIONAL_ID);
     assert.deepEqual(args.serviceIds, SERVICE_IDS);
+    assert.equal(args.notificarCliente, false);
   });
 
   test('chama CadeiraConfirmacaoService.pular com id da entrada', async () => {
@@ -261,6 +262,7 @@ suite('ChegadaProducaoService — resposta "caminho"', () => {
     assert.equal(CadeiraService.sentar.calls.length, 1);
     const args = CadeiraService.sentar.calls[0][0];
     assert.equal(args.tipo, 'producao');
+    assert.equal(args.notificarCliente, false);
   });
 
   test('chama CadeiraConfirmacaoService.pular com id da entrada', async () => {
@@ -357,8 +359,9 @@ suite('ChegadaProducaoService — erro em sentar()', () => {
 
 suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
 
-  function criarSandboxComBff({ fluxoResposta = 'aqui', bffErro = null } = {}) {
+  function criarSandboxComBff({ fluxoResposta = 'aqui', bffErro = null, rpcRejeita = false } = {}) {
     const warnArgs = [];
+    const ordem    = [];
     const sandbox = vm.createContext({
       console,
       FluxoDeFila: {
@@ -367,10 +370,17 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
       },
       CadeiraService:            { sentar: fn().mockResolvedValue(ENTRADA_OK) },
       CadeiraConfirmacaoService: { pular: fn() },
-      QueueRepository:           { updateClientConfirmed: fn().mockResolvedValue(null) },
+      QueueRepository: {
+        updateClientConfirmed: fn().mockImplementation(() => {
+          ordem.push('persistir');
+          return Promise.resolve(null);
+        }),
+      },
       ApiService: {
         from: fn(),
-        rpc:  fn().mockResolvedValue({ data: null, error: null }),
+        rpc:  rpcRejeita
+          ? fn().mockRejectedValue(new Error('RPC indisponivel'))
+          : fn().mockResolvedValue({ data: null, error: null }),
       },
       AuthService:        { getPerfil: fn().mockReturnValue(PERFIL) },
       NotificationService: { mostrarToast: fn(), TIPOS: { AGENDAMENTO: 'agendamento', SISTEMA: 'sistema' } },
@@ -379,11 +389,14 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
         error: fn(),
       },
       BffApiService: {
-        post: fn().mockImplementation(() => Promise.resolve({ data: null, error: bffErro })),
+        post: fn().mockImplementation(() => {
+          ordem.push('push-bff');
+          return Promise.resolve({ data: null, error: bffErro });
+        }),
       },
     });
     carregar(sandbox, 'shared/js/ChegadaProducaoService.js');
-    return { sandbox, warnArgs };
+    return { sandbox, warnArgs, ordem };
   }
 
   test('chama BffApiService.post com path e type client_at_shop após resposta "aqui"', async () => {
@@ -420,6 +433,31 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
     assert.equal(body.type,        'client_not_seated');
     assert.equal(body.statusLabel, 'Cliente esta a caminho');
     assert.equal(body.cadeira,     'Cadeira de producao');
+  });
+
+  test('dispara push-barbeiro antes de persistir arriving', async () => {
+    const { sandbox, ordem } = criarSandboxComBff({ fluxoResposta: 'caminho' });
+    const { ChegadaProducaoService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
+    await new Promise(r => setTimeout(r, 0));
+
+    assert.deepEqual(
+      ordem.slice(0, 2),
+      ['push-bff', 'persistir'],
+      'push do barbeiro deve sair antes da persistência best-effort em queue_entries',
+    );
+  });
+
+  test('dispara push-barbeiro mesmo quando RPC de realtime falha', async () => {
+    const { sandbox } = criarSandboxComBff({ fluxoResposta: 'caminho', rpcRejeita: true });
+    const { ChegadaProducaoService, BffApiService } = sandbox;
+
+    await ChegadaProducaoService.iniciarFluxo(ARGS_BASE);
+    await new Promise(r => setTimeout(r, 0));
+
+    const chamada = BffApiService.post.calls.find(([path]) => path === '/api/v1/notificacoes/push-barbeiro');
+    assert.ok(chamada, 'push BFF não pode depender do RPC de realtime');
   });
 
   test('clienteNome com apenas espaços é normalizado para "Cliente"', async () => {

@@ -102,9 +102,18 @@ class CadeiraService {
    * @param {string}        [opts.guestName]     Nome avulso (obrigatório quando clientId=null)
    * @param {string[]}      opts.serviceIds      IDs dos serviços escolhidos
    * @param {'producao'|'fila'} opts.tipo
+   * @param {boolean}      [opts.notificarCliente=true] envia push ao cliente ao mover para in_service
    * @returns {Promise<object>}  entrada criada
    */
-  static async sentar({ barbershopId, professionalId, clientId, guestName, serviceIds, tipo }) {
+  static async sentar({
+    barbershopId,
+    professionalId,
+    clientId,
+    guestName,
+    serviceIds,
+    tipo,
+    notificarCliente = true,
+  }) {
     const rShop  = InputValidator.uuid(barbershopId);
     const rProf  = InputValidator.uuid(professionalId);
     if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
@@ -165,13 +174,17 @@ class CadeiraService {
     // Produção direta → in_service imediatamente
     if (tipo === 'producao') {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
-      CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
+      if (notificarCliente) {
+        CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
+      }
     }
 
     // Fila de espera com produção vazia → auto-avança para in_service
     if (tipo === 'fila' && producaoVazia) {
       await QueueRepository.updateStatus(entrada.id, 'in_service');
-      CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
+      if (notificarCliente) {
+        CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
+      }
     }
 
     // Salva serviços escolhidos (tabela queue_entry_services, se existir)

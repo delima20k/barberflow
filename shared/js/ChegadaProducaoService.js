@@ -16,13 +16,13 @@
 //   4. sentar({ tipo:'producao', ... }) → entrada in_service
 //   5. CadeiraConfirmacaoService.pular(entrada.id) — bloqueia modal Realtime
 //   6. 'aqui':
-//        - updateClientConfirmed('yes')
 //        - notificação 'client_at_shop' → QueueConfirmService exibe toast no profissional
+//        - updateClientConfirmed('arriving') best-effort
 //        - toast "Você está na cadeira!"
 //   7. 'caminho':
-//        - updateClientConfirmed('arriving')
 //        - notificação 'client_not_seated' com client_not_seated:true
 //          → MinhaBarbeariaPage.#onClienteAusente abre modal "aguardar / chamar próximo"
+//        - updateClientConfirmed('arriving') best-effort
 //        - toast "O barbeiro foi avisado"
 //
 // Dependências: FluxoDeFila, CadeiraService, CadeiraConfirmacaoService,
@@ -74,6 +74,7 @@ class ChegadaProducaoService {
         clientId,
         serviceIds,
         tipo: 'producao',
+        notificarCliente: false,
       });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
@@ -163,15 +164,13 @@ class ChegadaProducaoService {
 
   /**
    * Fluxo da resposta "Já estou na barbearia".
-   * Persiste 'yes', notifica barbeiro e exibe toast.
+   * Notifica barbeiro imediatamente, persiste 'arriving' best-effort e exibe toast.
    * @param {string} entradaId
    * @param {string} professionalId
    * @param {string} barbershopId
    * @param {string} clienteNome
    */
   static async #processarAqui(entradaId, professionalId, barbershopId, clienteNome, clienteId = null) {
-    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
-
     await ChegadaProducaoService.#notificarBarbeiro(
       professionalId,
       barbershopId,
@@ -180,6 +179,8 @@ class ChegadaProducaoService {
       clienteNome,
       clienteId,
     );
+
+    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
 
     if (typeof NotificationService !== 'undefined') {
       NotificationService.mostrarToast(
@@ -192,15 +193,13 @@ class ChegadaProducaoService {
 
   /**
    * Fluxo da resposta "Estou a caminho".
-   * Persiste 'arriving', notifica barbeiro para aguardar e exibe toast.
+   * Notifica barbeiro imediatamente, persiste 'arriving' best-effort e exibe toast.
    * @param {string} entradaId
    * @param {string} professionalId
    * @param {string} barbershopId
    * @param {string} clienteNome
    */
   static async #processarCaminho(entradaId, professionalId, barbershopId, clienteNome, clienteId = null) {
-    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
-
     await ChegadaProducaoService.#notificarBarbeiro(
       professionalId,
       barbershopId,
@@ -209,6 +208,8 @@ class ChegadaProducaoService {
       clienteNome,
       clienteId,
     );
+
+    await ChegadaProducaoService.#persistirConfirmacao(entradaId, 'arriving');
 
     if (typeof NotificationService !== 'undefined') {
       NotificationService.mostrarToast(
@@ -268,6 +269,27 @@ class ChegadaProducaoService {
         ? { client_not_seated: true, entry_id: entradaId, client_name: nome, barbershop_id: barbershopId }
         : { tipo_acao: type,         entry_id: entradaId, client_name: nome, barbershop_id: barbershopId };
 
+      // Envia Web Push ao barbeiro via BFF antes do realtime.
+      // O push não pode depender do RPC, pois a modal em segundo plano usa Web Push/VAPID.
+      if (typeof BffApiService !== 'undefined') {
+        try {
+          BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
+            professionalId,
+            entradaId,
+            barbershopId,
+            type,
+            clienteNome: nome,
+            statusLabel: isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou',
+            cadeira:     'Cadeira de producao',
+            cliente:     { id: clienteId, nome },
+          }).then(({ error }) => {
+            if (error && typeof LoggerService !== 'undefined') {
+              LoggerService.warn('[ChegadaProducaoService] push-barbeiro falhou:', error?.message);
+            }
+          }).catch(() => {});
+        } catch { /* push é best-effort */ }
+      }
+
       await ApiService.rpc('notificar_barbeiro_chegada', {
         p_professional_id: professionalId,
         p_type:            type,
@@ -275,24 +297,6 @@ class ChegadaProducaoService {
         p_body,
         p_data,
       });
-
-      // Envia Web Push ao barbeiro via BFF (fire-and-forget — não bloqueia o fluxo).
-      if (typeof BffApiService !== 'undefined') {
-        BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
-          professionalId,
-          entradaId,
-          barbershopId,
-          type,
-          clienteNome: nome,
-          statusLabel: isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou',
-          cadeira:     'Cadeira de producao',
-          cliente:     { id: clienteId, nome },
-        }).then(({ error }) => {
-          if (error && typeof LoggerService !== 'undefined') {
-            LoggerService.warn('[ChegadaProducaoService] push-barbeiro falhou:', error?.message);
-          }
-        }).catch(() => {});
-      }
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[ChegadaProducaoService] notificarBarbeiro falhou:', err?.message);
