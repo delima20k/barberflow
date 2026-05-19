@@ -335,6 +335,40 @@
   z-index: 1;
 }
 
+/* Badge de status (Aberta / Fechado) — visível só ao toque no mapa */
+.mapa-shop-marker__status {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: .5rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.mapa-shop-marker__status--aberta {
+  background: #F2B705;
+  color: #2B1B12;
+  box-shadow: 0 0 8px rgba(242, 183, 5, .65);
+}
+
+.mapa-shop-marker__status--fechado {
+  background: #C81E1E;
+  color: #fff;
+}
+
+/* JS adiciona essa classe no touchstart do container do mapa */
+.mapa-container--tocando .mapa-shop-marker__status {
+  opacity: 1;
+}
+
 .mapa-shop-marker__pin {
   width: 12px;
   height: 12px;
@@ -357,13 +391,14 @@
   align-items: center;
   justify-content: center;
   gap: 1px;
-  border: 1px solid rgba(15, 17, 21, .18);
+  border: none;
   border-radius: 7px;
-  background: rgba(255, 255, 255, .97);
-  box-shadow: 0 5px 12px rgba(15, 17, 21, .16);
+  background: transparent;
+  box-shadow: none;
   color: #0F1115;
   text-align: center;
   line-height: 1.05;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, .9), 0 0 6px rgba(255, 255, 255, .6);
   z-index: 2;
 }
 
@@ -385,7 +420,8 @@
 .mapa-shop-marker__number {
   font-size: .56rem;
   font-weight: 700;
-  color: #4A4F58;
+  color: #F2B705;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
 }
 
 @keyframes mapa-shop-marker-enter {

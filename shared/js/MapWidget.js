@@ -52,6 +52,7 @@ class MapWidget {
     }
 
     MapWidget.#inicializarLeaflet();
+    MapWidget.#configurarToque();
     MapWidget.#criarFAB();
 
     // Escuta eventos de GPS do GeoService — sem dependência direta
@@ -215,7 +216,7 @@ class MapWidget {
 
   /** Lista barbearias ativas com endereco e coordenadas via BFF. */
   static async #buscarTodasBarbearias() {
-    const data = await BarbeariaApiClient.getTodas(100);
+    const data = await BarbeariaApiClient.getTodas();
     return (data ?? [])
       .map(s => ({
         ...s,
@@ -339,7 +340,7 @@ class MapWidget {
       const coords = MapWidget.#coordenadasBarbearia(b);
       if (!coords) return;
 
-      const avatarUrl  = MapWidget.#urlAvatar(b.logo_path ?? b.cover_path);
+      const avatarUrl  = MapWidget.#urlAvatar(b.cover_path ?? b.logo_path);
       const iniciais   = MapWidget.#iniciaisNome(b.name);
       const nomeSeguro = MapWidget.#escapeHtml(b.name ?? 'Barbearia');
       const enderecoSeguro = MapWidget.#escapeHtml(b.address ?? '');
@@ -362,6 +363,12 @@ class MapWidget {
         : '';
       const initialsStyle = avatarUrl ? 'display:none' : 'display:flex';
 
+      const statusClass = b.is_open === true ? 'aberta' : (b.is_open === false ? 'fechado' : '');
+      const statusTexto = b.is_open === true ? 'Aberta' : (b.is_open === false ? 'Fechado' : '');
+      const statusHtml  = statusClass
+        ? `<span class="mapa-shop-marker__status mapa-shop-marker__status--${statusClass}">${statusTexto}</span>`
+        : '';
+
       const icon = L.divIcon({
         className:   '',
         html: `<div class="mapa-shop-marker">
@@ -369,6 +376,7 @@ class MapWidget {
                    <img src="/shared/img/mapa-shop-pin.webp" class="mapa-shop-marker__bg" alt="" aria-hidden="true">
                    ${imgTag}
                    <span class="mapa-shop-marker__initials" style="${initialsStyle}">${iniciais}</span>
+                   ${statusHtml}
                  </div>
                  <div class="mapa-shop-marker__pin"></div>
                  <div class="mapa-shop-marker__label">
@@ -426,6 +434,20 @@ class MapWidget {
           className:  'mapa-tooltip-nome',
         });
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PRIVADO — Touch: classe para exibir badges de status
+  // ═══════════════════════════════════════════════════════════
+
+  static #configurarToque() {
+    if (!MapWidget.#el) return;
+    const on  = () => MapWidget.#el.classList.add('mapa-container--tocando');
+    const off = () => MapWidget.#el.classList.remove('mapa-container--tocando');
+    MapWidget.#el.addEventListener('touchstart',  on,  { passive: true });
+    MapWidget.#el.addEventListener('touchmove',   on,  { passive: true });
+    MapWidget.#el.addEventListener('touchend',    off, { passive: true });
+    MapWidget.#el.addEventListener('touchcancel', off, { passive: true });
   }
 
   // ═══════════════════════════════════════════════════════════
