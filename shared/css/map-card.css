@@ -305,11 +305,11 @@
 
 .mapa-shop-marker__img {
   position: absolute;
-  top: 28px;
-  left: 6px;
-  width: 44px;
-  height: 34px;
-  border-radius: 4px;
+  top: 26px;
+  left: 8px;
+  width: 42px;
+  height: 26px;
+  border-radius: 3px;
   object-fit: cover;
   display: block;
   box-shadow: 0 0 0 1px rgba(15, 17, 21, .18);
@@ -318,10 +318,10 @@
 
 .mapa-shop-marker__initials {
   position: absolute;
-  top: 28px;
-  left: 6px;
-  width: 44px;
-  height: 34px;
+  top: 26px;
+  left: 8px;
+  width: 42px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
