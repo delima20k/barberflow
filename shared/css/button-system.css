@@ -1,0 +1,158 @@
+/* ============================================================
+   BARBERFLOW - BUTTON SYSTEM
+   PrimaryButton, SecondaryButton, FloatingButton
+============================================================ */
+
+:root {
+  --btn-font: var(--font);
+  --btn-radius: 12px;
+  --btn-py: 12px;
+  --btn-px: 16px;
+  --btn-gap: 7px;
+  --btn-shadow: 0 4px 10px rgba(0, 0, 0, .1);
+}
+
+/* PrimaryButton and SecondaryButton share core shape */
+.btn,
+.btn--primary,
+.btn--secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--btn-gap);
+  padding: var(--btn-py) var(--btn-px);
+  border-radius: var(--btn-radius);
+  font-family: var(--btn-font);
+  font-size: clamp(14px, 1.5vw, 16px);
+  font-weight: 600;
+  line-height: 1.1;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform var(--ease), box-shadow var(--ease), background-color var(--ease), color var(--ease), border-color var(--ease), opacity var(--ease);
+}
+
+.btn:active,
+.btn--primary:active,
+.btn--secondary:active,
+.btn-voltar:active,
+.map-toggle-btn:active,
+.story-like-btn:active,
+.barber-action:active {
+  transform: scale(.98);
+}
+
+/* Primary */
+.btn-gold,
+.btn--primary,
+.barber-action {
+  background: #F2B705;
+  color: #2B1B12;
+  border-color: rgba(242, 183, 5, .95);
+  box-shadow: var(--btn-shadow);
+}
+
+.btn-gold:hover,
+.btn--primary:hover,
+.barber-action:hover {
+  background: #e0a903;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, .14);
+}
+
+/* Secondary */
+.btn-outline,
+.btn--secondary,
+.map-toggle-btn {
+  background: #FFFFFF;
+  color: #6B4A32;
+  border-color: #6B4A32;
+  box-shadow: none;
+}
+
+.btn-outline:hover,
+.btn--secondary:hover,
+.map-toggle-btn:hover {
+  background: rgba(107, 74, 50, .08);
+}
+
+/* Small action still respects visual pattern */
+.btn-sm {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-full + .btn-full {
+  margin-top: 10px;
+}
+
+/* Disabled */
+.btn:disabled,
+.btn--primary:disabled,
+.btn--secondary:disabled,
+.btn.disabled,
+.btn--disabled,
+[aria-disabled="true"] {
+  opacity: .5;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+  background: #d9d9d9;
+  color: #8a8a8a;
+  border-color: #d9d9d9;
+}
+
+/* Focus-visible for keyboard users */
+.btn:focus-visible,
+.btn--primary:focus-visible,
+.btn--secondary:focus-visible,
+.mapa-gps-fab:focus-visible,
+.nav-btn:focus-visible,
+.header-menu-btn:focus-visible,
+.header-avatar-btn:focus-visible,
+.map-toggle-btn:focus-visible {
+  outline: 2px solid #D4A017;
+  outline-offset: 2px;
+}
+
+/* FloatingButton (FAB) */
+.btn--floating,
+.mapa-gps-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+
+.mapa-gps-fab {
+  background: #FFFFFF;
+  color: #6B4A32;
+}
+
+.mapa-gps-fab:active,
+.mapa-gps-fab--carregando,
+.mapa-gps-fab--active {
+  background: #F2B705;
+  color: #2B1B12;
+  box-shadow: 0 0 0 5px rgba(242, 183, 5, .2), 0 6px 16px rgba(0, 0, 0, .22);
+}
+
+/* Keep icon/text spacing coherent across button-likes */
+.mapa-gps-fab-icon,
+.header-menu-btn img,
+.nav-btn img,
+.story-like-btn img {
+  flex-shrink: 0;
+}
+
+/* Consistent spacing where multiple actions are grouped */
+.button-group,
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

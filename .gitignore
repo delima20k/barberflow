@@ -1,0 +1,73 @@
+# ======================================================
+# .gitignore — BarberFlow
+# ======================================================
+
+# Variáveis de ambiente (NUNCA commitar)
+.env
+.env.local
+.env.production
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+supabase/functions/.cache/
+
+# Node (servidor de dev)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build / dist
+dist/
+build/
+.output/
+
+# TWA / Android APK
+build-cliente/
+build-profissional/
+*.aab
+*.apk
+android/
+*.keystore
+*.jks
+
+# Editores
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Build artifacts — pasta shared copiada pelo buildCommand da Vercel
+apps/cliente/shared/
+apps/profissional/shared/
+.vercel
+
+# Outputs de teste — gerados automaticamente, nunca commitar
+test_output*.txt
+test_push_final.txt
+test-results*.json
+test_run.log
+test_files.txt
+test_node_output.txt
+
+# Arquivos acidentais na raiz — sem extensão, gerados por agentes ou IDE
+# (bumps de SW, tokens de debug, artefatos de sessão)
+v[0-9]*
+fluxo
+persiste
+continua
+sem
+wrapper
+row
+Logs

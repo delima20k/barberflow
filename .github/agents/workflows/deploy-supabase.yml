@@ -1,0 +1,72 @@
+# ==============================================================
+# GitHub Actions: deploy-supabase.yml
+# Gatilho: após o workflow "Validate BarberFlow" concluir com
+#          sucesso na branch main — garante que testes passaram.
+# Objetivo: aplicar migrations e deploy das Edge Functions
+# Secrets obrigatórios (Settings > Secrets > Actions):
+#   - SUPABASE_ACCESS_TOKEN
+#   - SUPABASE_PROJECT_REF
+#   - SUPABASE_DB_PASSWORD
+# ==============================================================
+
+name: Deploy Supabase (main)
+
+on:
+  workflow_run:
+    workflows: ['Validate BarberFlow']
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy migrations + functions
+    runs-on: ubuntu-latest
+    environment: production
+
+    # Só executa se o workflow de validação (testes + lint) passou.
+    # Se os testes falharem, este job é cancelado automaticamente.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Instala a Supabase CLI via script oficial
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Autentica e linka o projeto remoto
+      - name: Link Supabase project
+        run: |
+          supabase link \
+            --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} \
+            --password    ${{ secrets.SUPABASE_DB_PASSWORD }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Aplica as migrations pendentes no banco remoto
+      - name: Push migrations
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Deploy de todas as Edge Functions
+      - name: Deploy Edge Functions
+        run: |
+          for dir in supabase/functions/*/; do
+            func_name=$(basename "$dir")
+            echo "Deploying function: $func_name"
+            supabase functions deploy "$func_name" --no-verify-jwt
+          done
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy summary
+        run: |
+          echo "Deploy concluído com sucesso."
+          echo "Projeto: ${{ secrets.SUPABASE_PROJECT_REF }}"
+          echo "Branch:  main"
+          echo "Data:    $(date -u)"

@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#F5E9DC">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="BarberFlow — App do Cliente">
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://app.berberflow.shop">
+  <meta property="og:site_name"   content="BarberFlow">
+  <meta property="og:title"       content="BarberFlow — App Cliente">
+  <meta property="og:description" content="Encontre barbearias próximas e agende seu horário com o BarberFlow.">
+  <meta property="og:image"       content="https://app.berberflow.shop/shared/img/icon-512-cliente.png">
+  <meta property="og:image:alt"   content="BarberFlow — App Cliente">
+  <meta property="og:locale"      content="pt_BR">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card"        content="summary">
+  <meta name="twitter:title"       content="BarberFlow — App Cliente">
+  <meta name="twitter:description" content="Encontre barbearias próximas e agende seu horário com o BarberFlow.">
+  <meta name="twitter:image"       content="https://app.berberflow.shop/shared/img/icon-512-cliente.png">
+
+  <title>BarberFlow — Cliente</title>
+  <link rel="manifest" href="manifest.json">
+   <link rel="icon" type="image/png" href="/shared/img/icon-192-cliente.png">
+   <link rel="apple-touch-icon" href="/shared/img/icon-192-cliente.png">
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="/shared/css/tokens.css">
+  <link rel="stylesheet" href="/shared/css/components.css">
+  <link rel="stylesheet" href="/shared/css/story-cards.css">
+  <link rel="stylesheet" href="/shared/css/map-card.css">
+  <link rel="stylesheet" href="/shared/css/barber-card.css">
+  <link rel="stylesheet" href="/shared/css/button-system.css">
+  <link rel="stylesheet" href="/shared/css/notifications.css">
+
+  <!-- App-specific CSS -->
+  <link rel="stylesheet" href="assets/css/styles.css">
+
+  <!-- Mapa premium -->
+  <link rel="stylesheet" href="/shared/css/map-panel.css">
+
+  <!-- Leaflet (mapa interativo) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+  <!-- Boot lock: oculta TODAS as telas instantaneamente antes de qualquer CSS externo carregar.
+       Impede FOUC (flash de telas) independente de Service Worker ou cache.
+       Removido pelo Router assim que o estado correto é aplicado. -->
+  <style id="boot-lock">
+    .tela { display: none !important; }
+    #tela-inicio { display: flex !important; }
+  </style>
+
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     Overlay de Termos Informativos — Lei LGPD e Direitos Autorais
+     Acessado via rodapé do menu lateral (TermsPage.js).
+══════════════════════════════════════════════════════════════ -->
+<div id="termos-info-overlay" hidden role="dialog" aria-modal="true"
+     aria-labelledby="termos-info-titulo">
+  <div class="termos-info-card">
+    <div class="termos-info-header">
+      <h1 id="termos-info-titulo">Lei LGPD e Direitos Autorais Musicais</h1>
+      <button id="termos-info-fechar" class="termos-info-fechar" type="button" aria-label="Fechar">✕</button>
+    </div>
+    <div class="termos-info-corpo">
+
+      <!-- 1. LGPD ─────────────────────────────────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">🔒 Lei Geral de Proteção de Dados <span class="termos-info-badge">Lei 13.709/2018</span></h2>
+        <p>O BarberFlow trata seus dados pessoais em conformidade com a Lei Geral de Proteção de Dados (LGPD). O tratamento ocorre com base no seu consentimento explícito (Art. 7, inciso I) para as finalidades descritas abaixo.</p>
+        <p><strong>Dados coletados e suas finalidades:</strong></p>
+        <ul>
+          <li><strong>Nome, e-mail e telefone</strong> — identificação e comunicação</li>
+          <li><strong>Localização (GPS)</strong> — exibição de barbearias próximas</li>
+          <li><strong>Histórico de agendamentos</strong> — facilitar futuras reservas</li>
+          <li><strong>Foto de perfil</strong> — personalização da conta</li>
+        </ul>
+        <p>Nenhum dado é vendido ou compartilhado com terceiros sem seu consentimento. Todos os registros são protegidos por controle de acesso no banco de dados (RLS — Row Level Security), garantindo que apenas você acessa seus próprios dados.</p>
+      </div>
+
+      <!-- 2. DIREITOS DO TITULAR ──────────────────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">⚖️ Seus Direitos <span class="termos-info-badge">Art. 18 LGPD</span></h2>
+        <ul>
+          <li><strong>Portabilidade:</strong> exporte seus dados em formato estruturado nas configurações do perfil.</li>
+          <li><strong>Exclusão:</strong> solicite a exclusão completa de sua conta e dados pessoais nas configurações do perfil. A remoção efetiva é processada em até 30 dias.</li>
+          <li><strong>Revogação de consentimento:</strong> você pode cancelar um pedido de exclusão enquanto ele ainda estiver pendente.</li>
+          <li><strong>Transparência:</strong> todos os acessos aos seus dados são registrados em log de auditoria (Art. 37, LGPD).</li>
+        </ul>
+      </div>
+
+      <!-- 3. SEGURANÇA ─────────────────────────────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">🛡️ Segurança dos Dados <span class="termos-info-badge">Art. 46 LGPD</span></h2>
+        <p>Os dados são armazenados em infraestrutura segura com as seguintes proteções:</p>
+        <ul>
+          <li>Controle de acesso por linha (RLS) — apenas o titular lê e altera seus registros</li>
+          <li>Autenticação JWT com expiração de sessão</li>
+          <li>Operações administrativas restritas ao backend com chave de serviço privada</li>
+          <li>Log de auditoria para todas as exportações e modificações de dados pessoais</li>
+        </ul>
+      </div>
+
+      <!-- 4. DIREITOS AUTORAIS DE CONTEÚDO ───────────────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">©️ Direitos Autorais de Conteúdo</h2>
+        <p>Ao utilizar o BarberFlow, você declara que fotos, vídeos, textos e demais conteúdos enviados são de sua autoria ou possuem autorização legal de uso. Você é inteiramente responsável por qualquer violação de direitos autorais causada por conteúdo publicado em sua conta.</p>
+      </div>
+
+      <!-- 5. DIREITOS AUTORAIS MUSICAIS (PLACEHOLDER) ────── -->
+      <div class="termos-info-secao">
+        <h2 class="termos-info-secao-titulo">🎵 Direitos Autorais Musicais em Stories</h2>
+        <div class="termos-info-placeholder">Em breve — Esta seção conterá os termos de uso de músicas disponíveis na plataforma para criação de stories por usuários profissionais. Atualmente, somente músicas de domínio público ou com licença livre são permitidas.</div>
+      </div>
+
+    </div><!-- .termos-info-corpo -->
+  </div><!-- .termos-info-card -->
+</div><!-- #termos-info-overlay -->
+
+<div id="app">
+
+  <!-- ============================================================
+       HEADER GLOBAL FIXO
+  ============================================================ -->
+  <header id="app-header">
+    <button class="header-menu-btn" id="btn-menu" onclick="App.toggleMenu()">
+      <img id="icon-menu" src="/shared/img/icones-menu.png" alt="Menu"
+           onerror="this.outerHTML='&#9776;'">
+    </button>
+    <img class="header-logo-img" src="/shared/img/LogoNomeBarberFlow.png" alt="BarberFlow">
+    <button class="header-avatar-btn" id="header-avatar-btn">
+      <img id="header-avatar-img" src="/shared/img/icones-perfil.png" alt="Perfil">
+      <span id="header-user-label">Entrar</span>
+    </button>
+  </header>
+
+  <!-- ============================================================
+       TELA — LOGIN
+  ============================================================ -->
+  <main id="tela-login" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <button class="btn-voltar" data-voltar>Voltar</button>
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <span class="login-tagline">Seu estilo, nossa arte</span>
+      </div>
+
+      <div class="auth-card">
+        <h2 class="auth-title">Entrar</h2>
+        <form id="login-form" class="login-form">
+          <div class="form-field">
+            <label>E-mail</label>
+            <input id="login-email" type="email" placeholder="seu@email.com" autocomplete="username">
+          </div>
+          <div class="form-field">
+            <label>Senha</label>
+            <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <p id="login-erro" class="form-erro"></p>
+          <button type="submit" class="btn btn-gold btn-full">Entrar</button>
+          <button type="button" class="btn btn-outline btn-full" data-push="cadastro">Criar conta gratuita</button>
+          <p class="login-link" style="text-align:center;">
+            <a href="#" data-push="esqueceu-senha">Esqueceu a senha?</a>
+          </p>
+          <p class="login-link">
+            Sou profissional &rarr;
+            <a href="#" data-navapp="https://barberflow-pro-two.vercel.app/">Acessar app profissional</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — CADASTRO
+  ============================================================ -->
+  <main id="tela-cadastro" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <button class="btn-voltar" data-voltar>Voltar</button>
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <span class="login-tagline">Crie sua conta grátis</span>
+      </div>
+
+      <div class="auth-card">
+        <h2 class="auth-title">Criar conta</h2>
+        <form id="cad-form" class="login-form">
+          <div class="form-field">
+            <label>Nome completo</label>
+            <input id="cad-nome" type="text" placeholder="Seu nome" autocomplete="name">
+          </div>
+          <div class="form-field">
+            <label>E-mail</label>
+            <input id="cad-email" type="email" placeholder="seu@email.com" autocomplete="email">
+          </div>
+          <div class="form-field">
+            <label>Telefone</label>
+            <input id="cad-tel" type="tel" placeholder="(00) 00000-0000" autocomplete="tel">
+          </div>
+          <div class="form-field">
+            <label>Senha</label>
+            <input id="cad-senha" type="password" placeholder="Crie uma senha" autocomplete="new-password">
+          </div>
+          <div class="form-field">
+            <label>Confirmar senha</label>
+            <input id="cad-senha2" type="password" placeholder="Repita a senha" autocomplete="new-password">
+          </div>
+          <p id="cad-erro" class="form-erro"></p>
+          <button type="submit" class="btn btn-gold btn-full">Criar minha conta</button>
+          <p class="login-link">
+            Já tenho conta &rarr;
+            <a href="#" data-push="login">Fazer login</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — ESQUECEU A SENHA
+  ============================================================ -->
+  <main id="tela-esqueceu-senha" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <button class="btn-voltar" data-voltar>Voltar</button>
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <span class="login-tagline">Recuperar acesso</span>
+      </div>
+
+      <div class="auth-card">
+        <h2 class="auth-title">Esqueceu a senha?</h2>
+        <form id="rec-form" class="login-form">
+          <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
+            Digite seu e-mail e enviaremos um link para criar uma nova senha.
+          </p>
+          <div class="form-field">
+            <label>E-mail cadastrado</label>
+            <input id="rec-email" type="email" placeholder="seu@email.com" autocomplete="email">
+          </div>
+          <p id="rec-erro" class="form-erro"></p>
+          <button type="submit" class="btn btn-gold btn-full">Enviar link de recuperação</button>
+          <p class="login-link">
+            Lembrei a senha &rarr;
+            <a href="#" data-push="login">Fazer login</a>
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — INÍCIO
+  ============================================================ -->
+  <main id="tela-inicio" class="tela">
+    <div class="content">
+
+      <!-- Stories -->
+      <h2 class="sec-title">Stories</h2>
+      <h3 class="stories-tagline">Barbearias Flow</h3>
+      <div class="stories-scroll">
+
+          <div class="card-mini story-card"
+               data-story-id="50000000-0000-0000-0000-000000000001"
+               data-owner-id="00000000-0000-0000-0000-000000000001">
+            <div class="story-video-wrap" data-action="story-open">
+              <video playsinline muted loop preload="none"
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+              <div class="story-play-btn">▶</div>
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+            </div>
+            <div class="story-card-info">
+              <p class="story-card-name">João Barber</p>
+              <p class="story-card-addr">Av. Paulista, 123</p>
+            </div>
+            <button class="story-like-btn" data-action="like">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <span class="story-like-count">128</span>
+            </button>
+          </div>
+
+          <div class="card-mini story-card"
+               data-story-id="50000000-0000-0000-0000-000000000002"
+               data-owner-id="00000000-0000-0000-0000-000000000002">
+            <div class="story-video-wrap" data-action="story-open">
+              <video playsinline muted loop preload="none"
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+              <div class="story-play-btn">▶</div>
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+            </div>
+            <div class="story-card-info">
+              <p class="story-card-name">Barbearia Elite</p>
+              <p class="story-card-addr">Rua Augusta, 450</p>
+            </div>
+            <button class="story-like-btn" data-action="like">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <span class="story-like-count">94</span>
+            </button>
+          </div>
+
+          <div class="card-mini story-card"
+               data-story-id="50000000-0000-0000-0000-000000000003"
+               data-owner-id="00000000-0000-0000-0000-000000000003">
+            <div class="story-video-wrap" data-action="story-open">
+              <video playsinline muted loop preload="none"
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+              <div class="story-play-btn">▶</div>
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+            </div>
+            <div class="story-card-info">
+              <p class="story-card-name">Corte &amp; Arte</p>
+              <p class="story-card-addr">R. dos Pinheiros, 78</p>
+            </div>
+            <button class="story-like-btn" data-action="like">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <span class="story-like-count">217</span>
+            </button>
+          </div>
+
+          <div class="card-mini story-card"
+               data-story-id="50000000-0000-0000-0000-000000000004"
+               data-owner-id="00000000-0000-0000-0000-000000000004">
+            <div class="story-video-wrap" data-action="story-open">
+              <video playsinline muted loop preload="none"
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+              <div class="story-play-btn">▶</div>
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+            </div>
+            <div class="story-card-info">
+              <p class="story-card-name">King Cuts</p>
+              <p class="story-card-addr">Al. Santos, 1200</p>
+            </div>
+            <button class="story-like-btn" data-action="like">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <span class="story-like-count">63</span>
+            </button>
+          </div>
+
+          <div class="card-mini story-card"
+               data-story-id="50000000-0000-0000-0000-000000000005"
+               data-owner-id="00000000-0000-0000-0000-000000000005">
+            <div class="story-video-wrap" data-action="story-open">
+              <video playsinline muted loop preload="none"
+                     poster="/shared/img/icones-perfil.png" class="story-video"></video>
+              <div class="story-play-btn">▶</div>
+              <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+            </div>
+            <div class="story-card-info">
+              <p class="story-card-name">Studio Beard</p>
+              <p class="story-card-addr">Rua Haddock Lobo, 34</p>
+            </div>
+            <button class="story-like-btn" data-action="like">
+              <img src="/shared/img/icones_curtir.png" alt="curtir">
+              <span class="story-like-count">181</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Banner push notifications -->
+      <div id="notif-push-banner" hidden>
+        <div class="notif-push-icone">🔔</div>
+        <div class="notif-push-texto">
+          <p class="notif-push-titulo">Quer receber novidades? 🎯</p>
+          <p class="notif-push-sub">Barbearias próximas, promoções e lembretes de agendamento.</p>
+        </div>
+        <div class="notif-push-acoes">
+          <button class="notif-push-ativar" onclick="NotificationService.confirmarPush()">Ativar</button>
+          <button class="notif-push-dispensar" onclick="NotificationService.dispensarPush()">Agora não</button>
+        </div>
+      </div>
+
+      <!-- Mapa GPS Premium -->
+      <div id="section-mapa">
+
+        <!-- Botão controle (MapHandleButton) -->
+        <button class="mph-wrapper" id="map-handle-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="map-panel"
+                aria-label="Abrir mapa de Barbearias Próximas">
+
+          <!-- Row superior: texto + label GPS -->
+          <div class="mph-row-top">
+            <span class="mph-text">Barbearias Próximas</span>
+            <span class="mph-close-hint">toque para fechar</span>
+            <span class="mph-gps-label">GPS</span>
+          </div>
+
+          <!-- Traço animado -->
+          <div class="mph-bar-track">
+            <div class="mph-bar" style="width:48px"></div>
+          </div>
+
+        </button>
+
+        <!-- Frame amadeirado (MapBorderFrame) -->
+        <div class="mpf-frame" id="map-border-frame" aria-hidden="true" data-state="closed">
+
+          <!-- Painel expansível (MapPanel) -->
+          <div class="mpp-panel" id="map-panel" style="height:0;overflow:hidden">
+            <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
+            <div class="map-card">
+              <div id="mapa-container" class="mapa-container"></div>
+            </div>
+            <!-- NearbyBarbershopsWidget -->
+            <p id="nearby-contador" class="nearby-contador">Buscando barbearias…</p>
+            <div id="nearby-map-widget"></div>
+          </div>
+
+          <!-- Handle de arraste -->
+          <div class="mpd-handle" id="map-drag-handle" role="separator"
+               aria-label="Arraste para expandir o mapa">
+            <div class="mpd-pill"><span></span></div>
+            <span class="mpd-hint">Arraste para expandir</span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Em destaque -->
+      <div>
+        <div class="sec-header">
+          <h2 class="sec-title">Em Destaque</h2>
+          <button class="sec-ver-mais" data-push="destaques">Ver mais</button>
+        </div>
+        <div id="home-destaque-lista" class="h-scroll"></div>
+      </div>
+
+      <!-- Barbearias Populares -->
+      <div>
+        <div class="sec-header">
+          <h2 class="sec-title">Populares e mais Próximas</h2>
+          <button class="sec-ver-mais" data-nav="barbearias">Ver mais</button>
+        </div>
+        <div id="home-barbearias-lista" class="barbearias-carrossel"></div>
+      </div>
+
+      <!-- Barbeiros Populares -->
+      <div>
+        <div class="sec-header">
+          <h2 class="sec-title">Barbeiros Populares</h2>
+          <button class="sec-ver-mais" data-nav="barbeiros">Ver mais</button>
+        </div>
+        <div id="home-barbeiros-lista" class="barbeiros-carrossel-1"></div>
+      </div>
+
+      <!-- Todas as Barbearias (por cortes realizados) -->
+      <div>
+        <div class="sec-header">
+          <h2 class="sec-title">Todas as Barbearias</h2>
+        </div>
+        <div id="home-todas-lista" class="barbearias-lista-rows"></div>
+      </div>
+
+    </div><!-- .content -->
+  </main>
+
+  <!-- ============================================================
+       TELA — DESTAQUES (ranking geral por pontuação)
+  ============================================================ -->
+  <main id="tela-destaques" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content">
+      <div class="destaques-hero">
+        <h2 class="destaques-titulo">Top <span class="destaques-barber">Barber</span><span class="destaques-flow">Flow</span></h2>
+        <p id="destaques-dig" class="search-dig" aria-live="polite"></p>
+      </div>
+      <div id="destaques-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <p id="destaques-vazio" class="tela-destaques-vazio" hidden>Nenhuma barbearia encontrada.</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEARIAS POPULARES E PRÓXIMAS
+  ============================================================ -->
+  <main id="tela-barbearias" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content">
+      <div class="destaques-hero">
+        <h1 class="destaques-titulo"><span class="destaques-barber">Barber</span><span class="destaques-flow">Flow</span></h1>
+        <h2 class="tela-hero-subtitulo">Barbearias Populares e mais Próximas de Você</h2>
+        <p id="barbearias-dig" class="search-dig" aria-live="polite"></p>
+      </div>
+      <div id="barbearias-page-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <p id="barbearias-page-vazio" hidden style="text-align:center;padding:20px;color:var(--text-muted)">Nenhuma barbearia encontrada.</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEIROS POPULARES
+  ============================================================ -->
+  <main id="tela-barbeiros" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content">
+      <div class="destaques-hero">
+        <h1 class="destaques-titulo barbeiros-h1-brand">
+          <img src="/shared/img/nomeAppBarber.png" class="destaques-logo-img" alt="BarberFlow" loading="lazy">
+        </h1>
+        <h2 class="tela-hero-subtitulo">Barbeiros Populares</h2>
+        <p id="barbeiros-dig" class="search-dig" aria-live="polite"></p>
+        <p class="barbeiros-intro">No BarberFlow, cada barbeiro é um artista do estilo. Profissionais verificados, avaliados pela comunidade e prontos para transformar o seu visual. Encontre aquele que combina com a sua essência e agende com 1 toque.</p>
+      </div>
+      <div id="barbeiros-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <p id="barbeiros-vazio" hidden style="text-align:center;padding:20px;color:var(--text-muted)">Nenhum barbeiro encontrado.</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PESQUISA
+  ============================================================ -->
+  <main id="tela-pesquisa" class="tela">
+
+    <!-- Cabeçalho da pesquisa -->
+    <div class="search-header">
+      <button class="btn-voltar" data-voltar>Voltar</button>
+      <input
+        id="pesquisa-input"
+        type="search"
+        class="search-bar-input"
+        placeholder="Nome, bairro, rua ou CEP…"
+        autocomplete="off"
+        enterkeyhint="search"
+      >
+    </div>
+
+    <!-- Resultados dinâmicos -->
+    <div class="content search-content">
+      <div id="pesquisa-resultados"></div>
+    </div>
+
+  </main>
+
+  <!-- ============================================================
+       TELA — MENSAGENS
+  ============================================================ -->
+  <main id="tela-mensagens" class="tela">
+    <div class="content">
+      <button class="btn-voltar" data-voltar>Voltar</button>
+      <div class="msgs-header">
+        <img src="/shared/img/Logo01.png" alt="BarberFlow" class="msgs-logo"
+             onerror="this.style.display='none'">
+        <h1 class="msgs-chatflow">ChatFlow</h1>
+        <p id="msgs-notif-dig" class="search-dig msgs-notif-dig" aria-live="polite"></p>
+      </div>
+      <div id="msgs-lista" class="msgs-lista"></div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEARIAS FAVORITAS
+  ============================================================ -->
+  <main id="tela-favoritas" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+    </div>
+    <div class="content">
+      <div class="fav-hero">
+        <h1 class="fav-hero__titulo"><span class="destaques-barber">Barber</span><span class="destaques-flow">Flow</span></h1>
+        <h2 class="fav-hero__sub">Barbearias e barbeiros favoritos</h2>
+        <p id="favoritas-dig" class="search-dig" aria-live="polite"></p>
+      </div>
+
+      <!-- ── Barbearias ── -->
+      <p class="fav-secao-titulo">Barbearias</p>
+      <div id="favoritas-barbearias" class="fav-carrossel">
+        <!-- cards 350×220 gerados por FavoritesPage.js -->
+      </div>
+
+      <!-- ── Barbeiros ── -->
+      <p class="fav-secao-titulo fav-secao-titulo--mt">Barbeiros</p>
+      <div id="favoritas-barbeiros" class="fav-barbeiros-lista">
+        <!-- barber-rows gerados por FavoritesPage.js -->
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PERFIL
+  ============================================================ -->
+  <main id="tela-perfil" class="tela">
+    <button class="btn-voltar" data-voltar>Voltar</button>
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        <img id="perfil-avatar-img" src="/shared/img/icones-perfil.png" alt="avatar"
+             onerror="this.outerHTML='😎'">
+      </div>
+      <p class="profile-name" id="perfil-nome">Lucas Oliveira</p>
+      <p class="profile-sub" id="perfil-sub">Cliente desde Janeiro 2025</p>
+      <div class="perfil-acoes">
+        <button class="btn-perfil-editar" id="btn-perfil-editar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar perfil
+        </button>
+      </div>
+    </div>
+    <!-- Dados pessoais editáveis -->
+    <ul class="perfil-lista" id="perfil-lista">
+      <!-- Endereço -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11L12 3l9 8V21H15V14H9v7H3V11z"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Endereço</span>
+          <span class="pi-val" id="pi-address">—</span>
+        </div>
+        <button class="btn-pi-lapis" data-perfil-campo="address" aria-label="Editar endereço"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <!-- Data de Nascimento -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 C10.3 3.5 10 5.5 12 6.5 C14 5.5 13.7 3.5 12 2Z" fill="currentColor" stroke="none"/><rect x="10.5" y="6.5" width="3" height="3" rx=".5"/><rect x="4" y="9" width="16" height="5" rx="1"/><rect x="2" y="14" width="20" height="7" rx="1"/><circle cx="7" cy="17" r=".8" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Data de Nascimento</span>
+          <span class="pi-val" id="pi-birth_date">—</span>
+        </div>
+        <button class="btn-pi-lapis" data-perfil-campo="birth_date" aria-label="Editar data de nascimento"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <!-- Sexo -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="22" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="9" r="5"/><line x1="6" y1="14" x2="6" y2="21"/><line x1="3" y1="18" x2="9" y2="18"/><circle cx="20" cy="12" r="5"/><line x1="23.5" y1="8.5" x2="27" y2="5"/><polyline points="23.5,5 27,5 27,8.5"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Sexo</span>
+          <span class="pi-val" id="pi-gender">—</span>
+        </div>
+        <button class="btn-pi-lapis" data-perfil-campo="gender" aria-label="Editar sexo"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <!-- CEP -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C12 22 4 15 4 9A8 8 0 0 1 20 9C20 15 12 22 12 22Z"/><rect x="8" y="6.5" width="8" height="5.5" rx=".4" stroke-width="1.3"/><polyline points="8,6.5 12,10 16,6.5" stroke-width="1.3"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">CEP</span>
+          <span class="pi-val" id="pi-zip_code">—</span>
+        </div>
+        <button class="btn-pi-lapis" data-perfil-campo="zip_code" aria-label="Editar CEP"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+    </ul>
+  </main>
+
+  <!-- ============================================================
+       TELA — SAIR
+  ============================================================ -->
+  <main id="tela-sair" class="tela">
+    <div class="sair-wrap">
+      <button class="btn-voltar" data-voltar>Voltar</button>
+
+      <!-- Ícone central — clique confirma o logout -->
+      <button class="sair-icone-btn" data-action="confirmar-saida" aria-label="Confirmar saída">
+        <img src="/shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='&#x1F6AA;'">
+      </button>
+
+      <p class="sair-texto-titulo">Sair da conta?</p>
+      <p class="sair-texto-sub">
+        Toque no ícone acima para confirmar.<br>
+        Você precisará fazer login novamente.
+      </p>
+      <p class="sair-hint">ou toque em Voltar para cancelar</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       INFO FIXA DA BARBEARIA — acima do rodapé
+       Fora de #tela-barbearia para não ser afetada pelo translateX da animação
+  ============================================================ -->
+  <div id="bp-info-fixa" hidden>
+    <p id="bp-endereco" class="bp-endereco"></p>
+    <div class="bp-meta-row">
+      <span id="bp-badge"  class="bp-badge"></span>
+      <span id="bp-rating" class="bp-rating"></span>
+      <div id="bp-likes-wrap" class="bp-likes-wrap" data-barbershop-id="" data-likes="0" data-dislikes="0">
+        <button id="bp-likes" type="button" class="top-card__likes"
+                data-action="barbershop-like"
+                aria-label="Curtir barbearia" aria-pressed="false">
+          <span class="tcl-ico">👍</span>
+          <span class="dc-count">0</span>
+        </button>
+      </div>
+      <span id="bp-desde"  class="bp-desde"></span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FOOTER NAV — SEM LOGIN (3 opções)
+  ============================================================ -->
+  <nav class="footer-nav" id="footer-nav-offline">
+    <button class="nav-btn" data-tela="inicio" data-nav="inicio">
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
+      <span class="nav-label">Início</span>
+    </button>
+    <button class="nav-btn" data-tela="pesquisa" data-nav="pesquisa">
+      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <span class="nav-label">Pesquisar</span>
+    </button>
+    <button class="nav-btn" data-nav="login">
+      <div class="nav-pill"><img src="/shared/img/login.svg" alt="Entrar"></div>
+      <span class="nav-label">Entrar</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       FOOTER NAV
+  ============================================================ -->
+  <nav class="footer-nav" id="footer-nav">
+    <button class="nav-btn" data-tela="inicio" data-nav="inicio">
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
+      <span class="nav-label">Início</span>
+    </button>
+
+    <button class="nav-btn" data-tela="pesquisa" data-nav="pesquisa">
+      <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
+      <span class="nav-label">Pesquisar</span>
+    </button>
+
+    <button class="nav-btn" data-tela="mensagens" data-nav="mensagens">
+      <span class="nav-dot"></span>
+      <div class="nav-pill"><img src="/shared/img/mensagen.svg" alt="Mensagens"></div>
+      <span class="nav-label">Mensagens</span>
+    </button>
+
+    <button class="nav-btn" data-tela="favoritas" data-nav="favoritas">
+      <div class="nav-pill"><img src="/shared/img/meu-b.svg" alt="Favoritas"></div>
+      <span class="nav-label">Favoritas</span>
+    </button>
+
+    <button class="nav-btn" data-tela="perfil" data-nav="perfil">
+      <div class="nav-pill"><img src="/shared/img/perfil.svg" alt="Perfil"></div>
+      <span class="nav-label">Perfil</span>
+    </button>
+
+    <button class="nav-btn" data-tela="sair" data-nav="sair">
+      <div class="nav-pill"><img src="/shared/img/sair.svg" alt="Sair"></div>
+      <span class="nav-label">Sair</span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       DICA — indica o botão gota quando footer está oculto
+  ============================================================ -->
+  <div id="footer-dica" role="status" aria-live="polite" aria-hidden="true">
+    <div class="dica-gota-wrap" aria-hidden="true">
+      <svg class="dica-contorno" viewBox="0 0 48 62" xmlns="http://www.w3.org/2000/svg">
+        <path class="dica-contorno-traco"
+              d="M24 3 C24 3 4 28 4 40 C4 52 13.2 59 24 59 C34.8 59 44 52 44 40 C44 28 24 3 24 3Z"/>
+      </svg>
+    </div>
+    <span class="dica-texto">Toque na gota para o menu</span>
+  </div>
+
+  <!-- ============================================================
+       BOTÃO FLUTUANTE — Reabrir footer (pingo d'água)
+       Aparece quando o footer é oculto pelo scroll
+  ============================================================ -->
+  <button id="btn-abrir-footer"
+          onclick="FooterScrollManager.abrirPorBotao()"
+          aria-label="Abrir menu de navegação">
+    <svg viewBox="0 0 48 62" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Corpo do pingo d'água -->
+      <path d="M24 3 C24 3 4 28 4 40 C4 52 13.2 59 24 59 C34.8 59 44 52 44 40 C44 28 24 3 24 3Z"
+            fill="rgba(212,160,23,0.30)"
+            stroke="rgba(212,175,55,0.45)"
+            stroke-width="1.5"/>
+      <!-- Reflexo interno -->
+      <ellipse cx="17" cy="24" rx="4" ry="6"
+               fill="rgba(255,255,255,0.18)"
+               transform="rotate(-20 17 24)"/>
+      <!-- Seta para cima -->
+      <polyline points="14,44 24,32 34,44"
+                stroke="white" stroke-width="3"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- ── Tela Chat (conversa individual) ────────────────── -->
+  <main id="tela-chat" class="tela">
+    <div class="tela-topo">
+      <button class="btn-voltar" onclick="MessagesWidget.fecharModal()" aria-label="Voltar">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="#1a0800" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+             width="22" height="22" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"/>
+          <line x1="20" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+      <div id="chat-modal-avatar-inner" class="chat-modal-avatar"></div>
+      <div class="chat-modal-title-wrap">
+        <p id="chat-modal-nome" class="chat-modal-nome"></p>
+        <p id="chat-modal-sub"  class="chat-modal-sub"></p>
+      </div>
+    </div>
+    <div id="chat-mensagens" class="chat-mensagens" role="log" aria-live="polite"></div>
+    <footer class="chat-modal-footer">
+      <div class="chat-input-wrap">
+        <input
+          id="chat-input"
+          type="text"
+          class="chat-input"
+          placeholder="Digite uma mensagem…"
+          autocomplete="off"
+          onkeydown="if(event.key==='Enter')MessagesWidget.enviar()"
+        >
+        <button class="chat-send-btn" onclick="MessagesWidget.enviar()" aria-label="Enviar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEARIA (perfil público)
+       DEVE ficar dentro de #app para que o Router e o CSS de .tela
+       funcionem corretamente (posição, animações, z-index).
+  ============================================================ -->
+  <main id="tela-barbearia" class="tela">
+
+    <!-- Capa hero — sempre visível; botão voltar sobreposto -->
+    <div class="bp-capa-wrap">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
+      <span id="bp-capa-status" class="bp-capa-status bp-badge" hidden></span>
+      <button id="bp-fav-btn" type="button" class="card-fav-btn"
+              data-action="barbershop-favorite"
+              aria-label="Favoritar barbearia" aria-pressed="false">
+        <span class="cfb-ico">☆</span>
+      </button>
+      <div class="bp-capa-identidade">
+        <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
+        <h1 id="bp-nome" class="bp-nome"></h1>
+      </div>
+    </div>
+
+    <!-- Stories da barbearia -->
+    <section class="bp-stories-section">
+      <div class="stories-scroll">
+
+        <div class="card-mini story-card"
+             data-story-id="60000000-0000-0000-0000-000000000001"
+             data-owner-id="00000000-0000-0000-0000-000000000001">
+          <div class="story-video-wrap" data-action="story-open">
+            <video playsinline muted loop preload="none"
+                   poster="/shared/img/icones-perfil.png" class="story-video"></video>
+            <div class="story-play-btn">&#9654;</div>
+            <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 1</p>
+            <p class="story-card-addr"></p>
+          </div>
+          <button class="story-like-btn" data-action="like">
+            <img src="/shared/img/icones_curtir.png" alt="curtir">
+            <span class="story-like-count">0</span>
+          </button>
+        </div>
+
+        <div class="card-mini story-card"
+             data-story-id="60000000-0000-0000-0000-000000000002"
+             data-owner-id="00000000-0000-0000-0000-000000000002">
+          <div class="story-video-wrap" data-action="story-open">
+            <video playsinline muted loop preload="none"
+                   poster="/shared/img/icones-perfil.png" class="story-video"></video>
+            <div class="story-play-btn">&#9654;</div>
+            <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 2</p>
+            <p class="story-card-addr"></p>
+          </div>
+          <button class="story-like-btn" data-action="like">
+            <img src="/shared/img/icones_curtir.png" alt="curtir">
+            <span class="story-like-count">0</span>
+          </button>
+        </div>
+
+        <div class="card-mini story-card"
+             data-story-id="60000000-0000-0000-0000-000000000003"
+             data-owner-id="00000000-0000-0000-0000-000000000003">
+          <div class="story-video-wrap" data-action="story-open">
+            <video playsinline muted loop preload="none"
+                   poster="/shared/img/icones-perfil.png" class="story-video"></video>
+            <div class="story-play-btn">&#9654;</div>
+            <img class="story-shop-badge" src="/shared/img/Logo01.png" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="story-card-info">
+            <p class="story-card-name">Story 3</p>
+            <p class="story-card-addr"></p>
+          </div>
+          <button class="story-like-btn" data-action="like">
+            <img src="/shared/img/icones_curtir.png" alt="curtir">
+            <span class="story-like-count">0</span>
+          </button>
+        </div>
+
+      </div>
+      <div class="bp-stories-header">
+        <h2 class="bp-stories-titulo">Stories</h2>
+      </div>
+      <!-- saudação + nome da barbearia (populado por BarbeariaPage.js) -->
+      <p id="bp-boas-vindas" class="search-dig bp-boas-vindas" aria-live="polite"></p>
+      <!-- CTA de login/cadastro para visitantes (oculto para logados) -->
+      <p id="bp-cta-login" class="bp-cta-login" hidden></p>
+    </section>
+
+    <!-- Barbeiros — carrossel dinâmico; populado por BarbeariaPage.js -->
+    <section class="bp-barbeiros-secao">
+      <div class="bp-section-header">
+        <h2 class="bp-section-titulo">Barbeiros</h2>
+      </div>
+      <p id="bp-fila-dig" class="search-dig" aria-live="polite"></p>
+      <div id="bp-barbeiros-scroll" class="bp-barbeiros-scroll"></div>
+    </section>
+
+    <!-- Skeleton (capa já está acima, só exibe linhas de info) -->
+    <div id="bp-skeleton">
+      <div style="padding:52px 20px 0">
+        <div class="bp-skeleton-linha" style="width:55%"></div>
+        <div class="bp-skeleton-linha" style="width:70%"></div>
+        <div class="bp-skeleton-linha" style="width:40%"></div>
+      </div>
+    </div>
+
+    <!-- Conteúdo real -->
+    <div id="bp-conteudo" hidden>
+
+      <!-- Serviços -->
+      <div class="bp-secao">
+        <p class="bp-secao-titulo">Serviços</p>
+        <div id="bp-servicos-lista"></div>
+      </div>
+
+      <!-- Portfólio -->
+      <div class="bp-secao">
+        <p class="bp-secao-titulo">Portfólio</p>
+        <div id="bp-portfolio-grid" class="bp-portfolio-grid" hidden></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA BARBEIRO — Perfil público de um barbeiro / profissional
+  ============================================================ -->
+  <main id="tela-barbeiro" class="tela">
+
+    <!-- Topbar com botão voltar sempre visível -->
+    <div class="beiro-topbar">
+      <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
+      <div class="beiro-topbar-actions">
+        <button id="beiro-like-btn" type="button" class="top-card__likes"
+                data-action="professional-like"
+                aria-label="Curtir barbeiro" aria-pressed="false">
+          <span class="tcl-ico">👍</span>
+          <span class="dc-count">0</span>
+        </button>
+        <button id="beiro-fav-btn" type="button" class="card-fav-btn"
+                data-action="professional-favorite"
+                aria-label="Favoritar barbeiro" aria-pressed="false">
+          <span class="cfb-ico">☆</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Skeleton enquanto carrega -->
+    <div id="beiro-skeleton">
+      <div class="beiro-hero-skel">
+        <div class="beiro-ava-skel"></div>
+        <div class="bp-skeleton-linha" style="width:140px;margin:0 auto"></div>
+        <div class="bp-skeleton-linha" style="width:90px;margin:0 auto"></div>
+      </div>
+    </div>
+
+    <!-- Conteúdo real -->
+    <div id="beiro-conteudo" hidden>
+      <div class="beiro-hero">
+        <div id="beiro-avatar-wrap" class="beiro-avatar-wrap">&#x1F488;</div>
+        <h1 id="beiro-nome" class="beiro-nome"></h1>
+        <span id="beiro-badge" class="beiro-owner-badge" hidden></span>
+      </div>
+      <div class="beiro-meta">
+        <span id="beiro-rating" class="beiro-rating"></span>
+      </div>
+      <p id="beiro-bio" class="beiro-bio" hidden></p>
+    </div>
+
+  </main>
+
+</div><!-- #app -->
+
+<!-- ============================================================
+     OVERLAY MENU + MENU DRAWER
+     Fora do #app para estar no stacking context root (acima de tudo)
+============================================================ -->
+<div id="menu-overlay" onclick="App.fecharMenu()"></div>
+
+<nav id="menu-drawer">
+  <div class="menu-header">
+    <div class="menu-logo">
+      <img src="/shared/img/Logo01.png" alt="BarberFlow" onerror="this.style.display='none'">
+    </div>
+    <div class="menu-avatar-wrap">
+      <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="App.abrirUploadAvatar()">
+        <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
+        <div class="menu-avatar-upload">📷</div>
+        <input type="file" accept="image/*" id="menu-avatar-input"
+               style="display:none" onchange="App.previewAvatar(this)">
+      </div>
+      <div>
+        <p class="menu-username" id="menu-username">Visitante Cliente
+          <small id="menu-user-sub">Faça login para continuar</small>
+        </p>
+      </div>
+    </div>
+  </div>
+  <ul class="menu-list-nav">
+    <li class="menu-nav-item" data-menu-nav="login">
+      <img src="/shared/img/login.svg" alt="">
+      <span>Entrar</span>
+    </li>
+    <li class="menu-nav-item" data-menu-nav="cadastro">
+      <img src="/shared/img/cadastro.svg" alt="">
+      <span>Cadastro</span>
+    </li>
+    <li class="menu-nav-item" data-menu-nav="inicio">
+      <img src="/shared/img/inicio.svg" alt="">
+      <span>Início</span>
+    </li>
+  </ul>
+  <footer class="menu-footer">
+    <button id="btn-ver-termos" class="menu-footer-link" type="button">
+      Lei LGPD e direitos autorais musicais
+    </button>
+  </footer>
+</nav>
+
+<!-- Supabase SDK (CDN) -->
+<script src="/shared/js/supabase.min.js"></script>
+<!-- Logger centralizado — deve preceder todos os outros scripts -->
+<script src="/shared/js/LoggerService.js"></script>
+<!-- API REST — camada de dados sem SDK (CRUD via fetch/PostgREST) -->
+<script src="/shared/js/ApiService.js"></script>
+<!-- Serviço Supabase compartilhado -->
+<script src="/shared/js/SupabaseService.js"></script>
+<!-- Cache de sessão e avatar (localStorage) -->
+<script src="/shared/js/SessionCache.js"></script>
+<!-- Configuração centralizada de navegação (menu + rodapé) -->
+<script src="/shared/js/NavConfig.js"></script>
+<!-- Validação e sanitização centralizada de inputs -->
+<script src="/shared/js/InputValidator.js"></script>
+<!-- Serviço de autenticação -->
+<script src="/shared/js/AuthService.js"></script>
+  <script src="/shared/js/AuthUI.js"></script>
+<!-- Tela de saída com animações (POO) -->
+<script src="/shared/js/LogoutScreen.js"></script>
+<!-- Serviços SRP (ordem obrigatória: antes do Router) -->
+<script src="/shared/js/AnimationService.js"></script>
+<script src="/shared/js/MenuService.js"></script>
+<script src="/shared/js/UserService.js"></script>
+<script src="/shared/js/BackendApiService.js"></script>
+<script src="/shared/js/AvatarService.js"></script>
+<script src="/shared/js/SplashService.js"></script>
+<!-- Estado global reativo -->
+<script src="/shared/js/AppState.js"></script>
+<!-- Modo visitante: bloqueia visualmente botões de ação para usuários não logados -->
+<script src="/shared/js/GuestMode.js"></script>
+<!-- Controle de acesso baseado em autenticação -->
+<script src="/shared/js/AuthGuard.js"></script>
+<script src="/shared/js/PermissionService.js"></script>
+<!-- Serviço de apresentação DOM do Router (deve preceder Router.js) -->
+<script src="/shared/js/NavigationViewService.js"></script>
+<!-- Shared Router base class -->
+<script src="/shared/js/Router.js"></script>
+<!-- Componente BarberPole -->
+<script src="/shared/js/BarberPole.js"></script>
+<!-- Efeito glow nas logos -->
+<script src="/shared/js/LogoGlow.js"></script>
+<!-- Viewer expandido de stories com flip animation -->
+<script src="/shared/js/StoryViewer.js"></script>
+<!-- Layout de stories 3x3 -->
+<script src="/shared/js/StoriesLayout.js"></script>
+<!-- Geolocalização GPS -->
+<script src="/shared/js/GeoService.js"></script>
+<!-- Repositórios de dados (acesso Supabase) — ANTES dos widgets que os usam -->
+<script src="/shared/js/BarbershopRepository.js"></script>
+<script src="/shared/js/ProfileRepository.js"></script>
+<!-- Serviços de negócio -->
+<script src="/shared/js/BarbershopService.js"></script>
+<script src="/shared/js/ProfessionalService.js"></script>
+<script src="/shared/js/StatusFechamentoModal.js"></script>
+<script src="/shared/js/BarbershopAvailabilityService.js"></script>
+<script src="/shared/js/QueueRepository.js"></script>
+<script src="/shared/js/CadeiraService.js"></script>
+<script src="/shared/js/CorteModal.js"></script>
+<script src="/shared/js/BarbeiroCard.js"></script>
+<script src="/shared/js/Cadeira.js"></script>
+<script src="/shared/js/FilaController.js"></script>
+<script src="/shared/js/QueuePoller.js"></script>
+<script src="/shared/js/FluxoDeFila.js"></script>
+<script src="/shared/js/QueueModalPayloadBuilder.js"></script>
+<script src="/shared/js/QueueRealtimeNotifier.js"></script>
+<script src="/shared/js/QueueStateUpdater.js"></script>
+<script src="/shared/js/QueuePositionNotificationService.js"></script>
+<script src="/shared/js/QueuePositionPresenter.js"></script>
+<script src="/shared/js/ConfirmacaoCorteModal.js"></script>
+<script src="/shared/js/CadeiraConfirmacaoService.js"></script>
+<script src="/shared/js/ChegadaProducaoService.js"></script>
+<script src="/shared/js/ModalController.js"></script>
+<script src="/shared/js/ClienteController.js"></script>
+<script src="/shared/js/BarbeariaStatusSync.js"></script>
+<!-- Leaflet JS (mapa interativo) -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Widget de barbearias próximas -->
+<script src="/shared/js/BffApiService.js"></script>
+<script src="/shared/js/BffAuthClient.js"></script>
+<script src="/shared/js/AgendaBffClient.js"></script>
+<script src="/shared/js/BarbeariaApiClient.js"></script>
+<script src="/shared/js/NearbyBarbershopsWidget.js"></script>
+<script src="/shared/js/MapWidget.js"></script>
+<!-- Widget de pesquisa dinâmica -->
+<script src="/shared/js/SearchWidget.js"></script>
+<!-- Fontes personalizadas para nomes de barbearias -->
+<script src="/shared/js/FonteSalao.js"></script>
+<script src="/shared/js/CapaBarbearia.js"></script>
+<!-- Módulo de mapa premium -->
+<script src="/shared/js/MapPanelModule.js"></script>
+<!-- Módulo de bússola e orientação -->
+<script src="/shared/js/MapOrientationModule.js"></script>
+<script src="/shared/js/MessageService.js"></script>
+<script src="/shared/js/MessageCryptoService.js"></script>
+<script src="/shared/js/MessageSignalingService.js"></script>
+<script src="/shared/js/P2PMessageConnectionService.js"></script>
+<script src="/shared/js/MessagesWidget.js"></script>
+<script src="/shared/js/NotificationService.js"></script>
+<script src="/shared/js/LgpdService.js"></script>
+<script src="/shared/js/TermsPage.js"></script>
+<script src="/shared/js/PerfilEditor.js"></script>
+<script src="/shared/js/FooterScrollManager.js"></script>
+<script src="/shared/js/HeaderScrollBehavior.js"></script>
+<!-- Pages por tela (UI + bind) -->
+<script src="assets/js/pages/LoginPage.js"></script>
+<script src="assets/js/pages/RegisterPage.js"></script>
+<script src="assets/js/pages/ForgotPasswordPage.js"></script>
+<script src="assets/js/pages/HomePage.js"></script>
+<script src="assets/js/pages/SearchPage.js"></script>
+<script src="/shared/js/Cliente.js"></script>
+<script src="/shared/js/Agendamento.js"></script>
+<script src="assets/js/ClienteRepository.js"></script>
+<script src="assets/js/ClienteService.js"></script>
+<script src="assets/js/pages/FavoritesPage.js"></script>
+<script src="assets/js/pages/ProfilePage.js"></script>
+<script src="assets/js/pages/LogoutPage.js"></script>
+<script src="assets/js/pages/DestaquesPage.js"></script>
+<script src="assets/js/pages/BarbeirosPage.js"></script>
+<script src="assets/js/pages/BarbeariasPage.js"></script>
+<script src="/shared/js/CacheManager.js"></script>
+<script src="/shared/js/StateManager.js"></script>
+<script src="/shared/js/ResourceLoader.js"></script>
+<script src="/shared/js/NavigationManager.js"></script>
+<script src="/shared/js/PushSubscriptionService.js"></script>
+<script src="/shared/js/OfflineSyncQueue.js"></script>
+<script src="/shared/js/FilaPresencaService.js"></script>
+<script src="/shared/js/BarbeariaPage.js"></script>
+<script src="/shared/js/BarbeiroPage.js"></script>
+<script src="/shared/js/PWAInstallBanner.js"></script>
+<!-- Splash de abertura do app cliente -->
+<script src="assets/js/ClienteStartupSplash.js"></script>
+<script src="assets/js/AppBootstrap.js"></script>
+<!-- Confirmação de presença na cadeira (fila ao vivo) -->
+<script src="/shared/js/QueueConfirmService.js"></script>
+<!-- App Cliente logic -->
+<script src="assets/js/app.js"></script>
+<!-- Todas as funções de UI estão em Router (POO) via App.* -->
+
+<!-- ── Modal: Cliente — confirmação de presença na cadeira ─────────── -->
+<div id="modal-cadeira-cliente"
+     class="qcs-modal-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="qcs-cliente-titulo"
+     aria-hidden="true"
+     hidden>
+  <div class="qcs-modal-card">
+    <div class="qcs-modal-icone">💈</div>
+    <h2 class="qcs-modal-titulo" id="qcs-cliente-titulo">Sua vez chegou!</h2>
+    <p class="qcs-modal-sub">
+      <strong data-qcs-barbeiro>Seu barbeiro</strong> chamou você.
+      Você já está sentado na cadeira?
+    </p>
+    <div class="qcs-modal-acoes">
+      <button class="qcs-btn-sim"
+              onclick="QueueConfirmService.clienteConfirmouPresenca()">
+        ✅ Sim, já estou sentado
+      </button>
+      <button class="qcs-btn-nao"
+              onclick="QueueConfirmService.clienteNaoSentado()">
+        ❌ Não, ainda não estou
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

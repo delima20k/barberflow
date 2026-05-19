@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#F5E9DC">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BarberFlow — Cliente</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+    /* ============================================================
+       RESET & TOKENS
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #F5E9DC;
+      --surface:      #F0E4D7;
+      --card:         #FFFFFF;
+      --card2:        #F0E4D7;
+      --gold:         #D4A017;
+      --gold-light:   #F2B705;
+      --gold-dark:    #6B4A32;
+      --gold-muted:   rgba(212,160,23,.14);
+      --gold-border:  rgba(107,74,50,.22);
+      --text:         #2A211B;
+      --text-muted:   #6B5A4A;
+      --text-dim:     #8B7A69;
+      --danger:       #e05252;
+      --success:      #52c97a;
+      --r-sm:  8px;
+      --r-md:  16px;
+      --r-lg:  24px;
+      --r-xl:  32px;
+      --r-full: 9999px;
+      --nav-h: 68px;
+      --header-h: 58px;
+      --ease: .22s cubic-bezier(.4,0,.2,1);
+      --font: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       SPA ROOT
+    ============================================================ */
+    #app {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================================
+       TELAS
+    ============================================================ */
+    .tela {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+      scroll-behavior: smooth;
+    }
+    .tela.ativa {
+      display: flex;
+      animation: telaSlideIn .32s var(--ease) both;
+    }
+    /* Entrada lenta — carrossel aba→aba */
+    .tela.entrando-lento {
+      display: flex;
+      animation: telaSlideIn .72s var(--ease) both;
+    }
+    .tela.saindo {
+      display: flex;
+      animation: telaSlideOut .48s var(--ease) both;
+      pointer-events: none;
+    }
+    .tela.saindo-direita {
+      display: flex;
+      animation: telaSlideOutRight .48s var(--ease) both;
+      pointer-events: none;
+    }
+    /* Home: base permanente — sempre visível por baixo */
+    #tela-inicio { display: flex; z-index: 1; }
+    #tela-inicio.ativa, #tela-inicio.saindo { animation: none; pointer-events: auto; }
+    @keyframes telaSlideIn {
+      from { opacity: 0; transform: translateX(-100%); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes telaSlideOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(-100%); }
+    }
+    @keyframes telaSlideOutRight {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(100%); }
+    }
+
+    /* scrollbar mínima */
+    .tela::-webkit-scrollbar { width: 2px; }
+    .tela::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 10px; }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: #2B1B12;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--gold-border);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .header-brand img { height: 28px; object-fit: contain; }
+    .header-brand span {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 1px;
+    }
+    .chip {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .5px;
+      padding: 3px 10px;
+      border-radius: var(--r-full);
+      background: var(--gold-muted);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+       FOOTER NAV
+    ============================================================ */
+    .footer-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
+      height: var(--nav-h);
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--header-bg);
+      border-top: 1px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .nav-btn {
+      all: unset;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 6px 4px;
+      flex: 1;
+      color: var(--text-on-surface-muted);
+      transition: color var(--ease);
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .nav-btn:hover  { color: var(--gold-light); }
+    .nav-btn.ativo  { color: var(--gold); }
+
+    .nav-pill {
+      width: 42px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--r-full);
+      transition: background var(--ease);
+    }
+    .nav-btn.ativo .nav-pill  { background: var(--gold-muted); }
+
+    .nav-btn img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+      opacity: .62;
+      transition: filter var(--ease), opacity var(--ease);
+    }
+    .nav-btn.ativo img,
+    .nav-btn:hover img {
+      /* ativo: dourado */
+      filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
+      opacity: 1;
+    }
+
+    .nav-label {
+      font-size: .58rem;
+      font-weight: 600;
+      letter-spacing: .2px;
+      white-space: nowrap;
+    }
+
+    .nav-dot {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(4px);
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      border: 1.5px solid var(--surface);
+    }
+
+    /* ============================================================
+       LAYOUT HELPERS
+    ============================================================ */
+    .content { display: flex; flex-direction: column; gap: 22px; padding: 16px; }
+
+    .sec-title {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sec-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--gold-border);
+    }
+
+    .gold-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-border), transparent);
+    }
+
+    /* ============================================================
+       CARDS
+    ============================================================ */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      transition: border-color var(--ease);
+    }
+    .card:hover { border-color: rgba(212,175,55,.45); }
+
+    .h-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+    }
+    .h-scroll::-webkit-scrollbar { display: none; }
+
+    .card-mini {
+      min-width: 126px;
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform var(--ease), border-color var(--ease);
+    }
+    .card-mini:hover { transform: translateY(-3px); border-color: var(--gold); }
+
+    /* ============================================================
+       AVATAR
+    ============================================================ */
+    .avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--card2);
+      border: 2px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .avatar.gold { border-color: var(--gold); }
+    .avatar img  { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    /* ============================================================
+       BADGE / CHIP
+    ============================================================ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: var(--r-full);
+      background: var(--gold-muted);
+      color: var(--gold);
+      border: 1px solid var(--gold-border);
+    }
+    .badge.closed {
+      background: rgba(224,82,82,.08);
+      color: var(--danger);
+      border-color: rgba(224,82,82,.25);
+    }
+
+    /* ============================================================
+       STARS
+    ============================================================ */
+    .stars { color: var(--gold); font-size: .75rem; letter-spacing: 1px; }
+
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 24px;
+      border-radius: var(--r-full);
+      font-size: .9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: transform var(--ease), box-shadow var(--ease), background var(--ease);
+      letter-spacing: .4px;
+      font-family: var(--font);
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-full   { width: 100%; }
+
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      color: var(--bg);
+    }
+    .btn-gold:hover { box-shadow: 0 8px 26px rgba(212,175,55,.3); transform: translateY(-2px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--gold);
+      border: 1.5px solid var(--gold);
+    }
+    .btn-outline:hover { background: var(--gold-muted); }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-sm { padding: 7px 16px; font-size: .78rem; }
+
+    /* ============================================================
+       STORIES
+    ============================================================ */
+    .story-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .story-ring {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      padding: 2.5px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      transition: transform var(--ease);
+    }
+    .story-ring:hover { transform: scale(1.08); }
+    .story-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--card2);
+      border: 2.5px solid var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      overflow: hidden;
+    }
+    .story-name {
+      font-size: .6rem;
+      color: var(--text-muted);
+      max-width: 58px;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       MAP PLACEHOLDER
+    ============================================================ */
+    .map-box {
+      width: 100%;
+      height: 175px;
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: .83rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .map-box::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 36px, var(--gold-border) 36px, var(--gold-border) 37px),
+        repeating-linear-gradient(90deg, transparent, transparent 36px, var(--gold-border) 36px, var(--gold-border) 37px);
+      opacity: .22;
+    }
+    .map-pin { font-size: 2rem; position: relative; z-index: 1; }
+    .map-box p { position: relative; z-index: 1; text-align: center; line-height: 1.5; }
+
+    /* ============================================================
+       CHAIRS (FILA)
+    ============================================================ */
+    .chair {
+      min-width: 62px;
+      height: 72px;
+      border-radius: var(--r-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: .6rem;
+      font-weight: 700;
+      gap: 4px;
+      border: 1.5px solid var(--gold-border);
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform var(--ease), border-color var(--ease);
+    }
+    .chair:hover { transform: translateY(-2px); }
+    .chair img { width: 30px; height: 30px; object-fit: contain; }
+    .chair.ocupada { background: rgba(212,175,55,.07); border-color: var(--gold); color: var(--gold); }
+    .chair.livre    { background: rgba(255,255,255,.02); color: var(--text-dim); }
+    .chair.espera   { background: rgba(224,82,82,.07); border-color: rgba(224,82,82,.35); color: var(--danger); }
+
+    /* ============================================================
+       BARBER ROW CARD
+    ============================================================ */
+    .barber-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--r-md);
+      padding: 14px;
+      cursor: pointer;
+      transition: border-color var(--ease), transform var(--ease);
+    }
+    .barber-row:hover { border-color: rgba(212,175,55,.5); transform: translateX(3px); }
+    .barber-info { flex: 1; min-width: 0; }
+    .barber-name { font-size: .92rem; font-weight: 700; }
+    .barber-sub  { font-size: .76rem; color: var(--text-muted); margin-top: 2px; }
+    .barber-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .price       { font-size: .8rem; font-weight: 700; color: var(--gold); }
+
+    /* ============================================================
+       TAGS
+    ============================================================ */
+    .tags { display: flex; gap: 7px; flex-wrap: wrap; }
+    .tag {
+      font-size: .7rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: var(--r-full);
+      background: var(--card2);
+      border: 1px solid var(--gold-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background var(--ease), border-color var(--ease), color var(--ease);
+    }
+    .tag:hover, .tag.on { background: var(--gold-muted); border-color: var(--gold); color: var(--gold); }
+
+    /* ============================================================
+       SEARCH BAR
+    ============================================================ */
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--r-full);
+      padding: 11px 16px;
+      transition: border-color var(--ease);
+    }
+    .search-wrap:focus-within { border-color: var(--gold); }
+    .search-wrap img { width: 18px; opacity: .7; filter: brightness(0) saturate(100%) invert(24%) sepia(28%) saturate(829%) hue-rotate(344deg) brightness(91%) contrast(89%); flex-shrink: 0; }
+    .search-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: .92rem;
+      font-family: var(--font);
+    }
+    .search-wrap input::placeholder { color: var(--text-dim); }
+
+    /* ============================================================
+       CHAT LIST
+    ============================================================ */
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--card);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color var(--ease);
+    }
+    .chat-item:hover { border-color: var(--gold-border); }
+    .chat-info { flex: 1; min-width: 0; }
+    .chat-name    { font-size: .9rem; font-weight: 700; }
+    .chat-preview { font-size: .76rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .chat-meta    { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .chat-time    { font-size: .67rem; color: var(--text-dim); }
+    .chat-badge   { background: var(--gold); color: var(--bg); font-size: .62rem; font-weight: 800; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+    /* ============================================================
+       PROFILE
+    ============================================================ */
+    .profile-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 32px 16px 20px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(212,175,55,.09) 0%, transparent 60%);
+    }
+    .profile-avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 3px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.4rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .profile-name { font-size: 1.2rem; font-weight: 800; }
+    .profile-sub  { font-size: .8rem; color: var(--text-muted); }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 1px;
+      background: var(--gold-border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      width: 100%;
+      max-width: 360px;
+    }
+    .stat-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 14px 8px;
+      background: var(--card);
+    }
+    .stat-val { font-size: 1.1rem; font-weight: 800; color: var(--gold); }
+    .stat-lbl { font-size: .64rem; color: var(--text-muted); text-align: center; }
+
+    /* ============================================================
+       MENU LIST
+    ============================================================ */
+    .menu-list { display: flex; flex-direction: column; gap: 3px; }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 15px 16px;
+      background: var(--card);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color var(--ease), background var(--ease);
+    }
+    .menu-item:hover { border-color: var(--gold-border); background: var(--card2); }
+    .menu-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--r-sm);
+      background: var(--gold-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .95rem;
+      flex-shrink: 0;
+    }
+    .menu-label { flex: 1; font-size: .9rem; font-weight: 600; }
+    .menu-arrow { color: var(--text-dim); font-size: .9rem; }
+
+    /* ============================================================
+       SAIR SCREEN
+    ============================================================ */
+    .sair-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      min-height: 80vh;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .sair-icon {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: rgba(224,82,82,.08);
+      border: 2px solid rgba(224,82,82,.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sair-icon img {
+      width: 38px;
+      height: 38px;
+      filter: brightness(0) saturate(100%) invert(42%) sepia(63%) saturate(700%) hue-rotate(330deg);
+    }
+    .sair-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+
+    /* ============================================================
+       LOGIN SCREEN
+    ============================================================ */
+    .login-bg {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px calc(var(--nav-h) + 40px);
+      gap: 36px;
+      background:
+        radial-gradient(ellipse at 50% -10%, rgba(212,175,55,.14) 0%, transparent 55%),
+        var(--bg);
+    }
+    .login-logo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .login-logo .app-icon {
+      width: 82px;
+      height: 82px;
+      object-fit: contain;
+      filter: drop-shadow(0 8px 24px rgba(212,175,55,.3));
+    }
+    .login-tagline {
+      font-size: .78rem;
+      color: var(--text-muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .login-form {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label { font-size: .76rem; font-weight: 600; color: var(--text-muted); letter-spacing: .5px; }
+    .form-field input {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--card);
+      border: 1.5px solid var(--gold-border);
+      border-radius: var(--r-md);
+      color: var(--text);
+      font-size: .93rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color var(--ease), box-shadow var(--ease);
+    }
+    .form-field input::placeholder { color: var(--text-dim); }
+    .form-field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,.1); }
+    .login-link { font-size: .8rem; color: var(--text-dim); text-align: center; line-height: 1.6; }
+    .login-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
+
+    /* ============================================================
+       PLACEHOLDER
+    ============================================================ */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 48px 24px;
+      text-align: center;
+    }
+    .empty-icon {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      background: var(--gold-muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+    }
+    .empty-title { font-size: 1rem; font-weight: 700; }
+    .empty-text  { font-size: .82rem; color: var(--text-muted); line-height: 1.6; max-width: 270px; }
+
+    /* ============================================================
+       DESKTOP
+    ============================================================ */
+    @media (min-width: 640px) {
+      .footer-nav { max-width: 540px; left: 50%; transform: translateX(-50%); border-radius: 20px 20px 0 0; }
+      .content { padding: 20px 24px; max-width: 680px; margin: 0 auto; }
+    }
+    @media (min-width: 1024px) {
+      .content { padding: 24px 32px; }
+    }
+  </style>
+  <link rel="stylesheet" href="shared/css/components.css">
+  <link rel="stylesheet" href="shared/css/story-cards.css">
+  <link rel="stylesheet" href="shared/css/barber-card.css">
+  <link rel="stylesheet" href="shared/css/button-system.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================
+       TELA — LOGIN
+  ============================================================ -->
+  <main id="tela-login" class="tela ativa">
+    <div class="login-bg">
+      <div class="login-logo">
+        <img class="app-icon" src="img/Logo01.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <span class="login-tagline">Seu estilo, nossa arte</span>
+      </div>
+
+      <div class="login-form">
+        <div class="form-field">
+          <label>E-mail ou telefone</label>
+          <input type="text" placeholder="seu@email.com" autocomplete="username">
+        </div>
+        <div class="form-field">
+          <label>Senha</label>
+          <input type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <button class="btn btn-gold btn-full" onclick="App.nav('inicio')">Entrar</button>
+        <button class="btn btn-outline btn-full">Criar conta gratuita</button>
+        <p class="login-link">
+          Sou profissional &rarr;
+          <a href="#" onclick="App.navegarApp('profissional.html'); return false;">Acessar app profissional</a>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — INÍCIO
+  ============================================================ -->
+  <main id="tela-inicio" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/Logo01.png" alt="Logo" onerror="this.style.display='none'">
+        <span>BarberFlow</span>
+      </div>
+      <span class="chip">Cliente</span>
+    </div>
+
+    <div class="content">
+
+      <!-- Stories -->
+      <div>
+        <p class="sec-title">Stories</p>
+        <div class="h-scroll story-rail">
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">
+                <img src="img/icones-perfil.png" alt="perfil"
+                     onerror="this.outerHTML='<span>✂️</span>'">
+              </div>
+            </div>
+            <span class="story-name">João Barber</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">💈</div>
+            </div>
+            <span class="story-name">Elite</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">✂️</div>
+            </div>
+            <span class="story-name">Corte &amp; Arte</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">👑</div>
+            </div>
+            <span class="story-name">King Cuts</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">🪒</div>
+            </div>
+            <span class="story-name">Studio Beard</span>
+          </div>
+          <div class="story-item">
+            <div class="story-ring">
+              <div class="story-inner">⭐</div>
+            </div>
+            <span class="story-name">Premium</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mapa GPS -->
+      <div>
+        <p class="sec-title title-large">Barbearias Próximas</p>
+        <div class="map-box">
+          <span class="map-pin">📍</span>
+          <p>Mapa de barbearias próximas<br>
+            <span style="font-size:.72rem;color:var(--text-dim);">Ative o GPS para ver barbearias perto de você</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Fila ao vivo -->
+      <div>
+        <p class="sec-title">Fila ao Vivo</p>
+        <div class="h-scroll">
+          <div class="chair ocupada">
+            <img src="img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>João</span>
+            <span>Ocupada</span>
+          </div>
+          <div class="chair ocupada">
+            <img src="img/icones-cadeira-salao.png" alt="cadeira"
+                 onerror="this.outerHTML='💺'">
+            <span>Pedro</span>
+            <span>Ocupada</span>
+          </div>
+          <div class="chair livre">
+            <img src="img/icones-cadeira-salao-vazia.png" alt="cadeira vazia"
+                 onerror="this.outerHTML='🪑'">
+            <span>—</span>
+            <span>Livre</span>
+          </div>
+          <div class="chair espera">
+            <img src="img/icones-cadeira-de-éspera.png" alt="espera"
+                 onerror="this.outerHTML='⏳'">
+            <span>+3</span>
+            <span>Fila</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Em destaque -->
+      <div>
+        <p class="sec-title">Em Destaque</p>
+        <div class="h-scroll">
+          <div class="card-mini">
+            <div class="avatar gold">✂️</div>
+            <strong style="font-size:.83rem;">Barbearia Elite</strong>
+            <div class="stars">★★★★★</div>
+            <span class="badge">Aberto</span>
+          </div>
+          <div class="card-mini">
+            <div class="avatar gold">💈</div>
+            <strong style="font-size:.83rem;">Corte &amp; Arte</strong>
+            <div class="stars">★★★★☆</div>
+            <span class="badge">Aberto</span>
+          </div>
+          <div class="card-mini">
+            <div class="avatar gold">👑</div>
+            <strong style="font-size:.83rem;">King Cuts</strong>
+            <div class="stars">★★★★★</div>
+            <span class="badge">Aberto</span>
+          </div>
+          <div class="card-mini">
+            <div class="avatar" style="border-color:var(--text-dim);">🪒</div>
+            <strong style="font-size:.83rem;">Studio Beard</strong>
+            <div class="stars" style="color:var(--text-dim);">★★★☆☆</div>
+            <span class="badge closed">Fechado</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barbeiros populares -->
+      <div>
+        <p class="sec-title">Barbeiros Populares</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="barber-row">
+            <div class="avatar gold">
+              <img src="img/icones-perfil.png" alt="barbeiro"
+                   onerror="this.outerHTML='💇'">
+            </div>
+            <div class="barber-info">
+              <p class="barber-name">João Silva</p>
+              <p class="barber-sub">Barbearia Elite · 0.8 km</p>
+              <div class="tags" style="margin-top:6px;">
+                <span class="tag on">Degradê</span>
+                <span class="tag">Barba</span>
+              </div>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.9</span>
+              <span class="price">R$ 35</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">💈</div>
+            <div class="barber-info">
+              <p class="barber-name">Carlos Mendes</p>
+              <p class="barber-sub">King Cuts · 1.2 km</p>
+              <div class="tags" style="margin-top:6px;">
+                <span class="tag on">Social</span>
+                <span class="tag">Infantil</span>
+              </div>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.7</span>
+              <span class="price">R$ 30</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .content -->
+  </main>
+
+  <!-- ============================================================
+       TELA — PESQUISA
+  ============================================================ -->
+  <main id="tela-pesquisa" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/pesquisa.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Pesquisar</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="search-wrap">
+        <img src="img/pesquisa.svg" alt="buscar">
+        <input type="search" placeholder="Barbearia, barbeiro, bairro…">
+      </div>
+
+      <div class="tags">
+        <span class="tag on">Todos</span>
+        <span class="tag">Degradê</span>
+        <span class="tag">Barba</span>
+        <span class="tag">Social</span>
+        <span class="tag">Infantil</span>
+        <span class="tag">Freestyle</span>
+        <span class="tag">Sobrancelha</span>
+        <span class="tag">Antes e Depois</span>
+      </div>
+
+      <div>
+        <p class="sec-title">Barbearias</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="barber-row">
+            <div class="avatar gold">✂️</div>
+            <div class="barber-info">
+              <p class="barber-name">Barbearia Elite</p>
+              <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.9</span>
+              <span class="badge">Aberto</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">💈</div>
+            <div class="barber-info">
+              <p class="barber-name">Corte &amp; Arte</p>
+              <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.6</span>
+              <span class="badge">Aberto</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">👑</div>
+            <div class="barber-info">
+              <p class="barber-name">King Cuts</p>
+              <p class="barber-sub">R. Oscar Freire, 789 · 1.4 km</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.8</span>
+              <span class="badge">Aberto</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="sec-title">Barbeiros</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="barber-row">
+            <div class="avatar gold">
+              <img src="img/icones-perfil.png" alt="barbeiro"
+                   onerror="this.outerHTML='💇'">
+            </div>
+            <div class="barber-info">
+              <p class="barber-name">João Silva</p>
+              <p class="barber-sub">Barbearia Elite · Degradê</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.9</span>
+              <span class="price">R$ 35</span>
+            </div>
+          </div>
+          <div class="barber-row">
+            <div class="avatar gold">🧔</div>
+            <div class="barber-info">
+              <p class="barber-name">Rafael Costa</p>
+              <p class="barber-sub">Corte &amp; Arte · Barba</p>
+            </div>
+            <div class="barber-meta">
+              <span class="stars">★ 4.8</span>
+              <span class="price">R$ 28</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — MENSAGENS
+  ============================================================ -->
+  <main id="tela-mensagens" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/mensagen.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Mensagens</span>
+      </div>
+      <button class="btn btn-outline btn-sm">+ Nova</button>
+    </div>
+
+    <div class="content">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div class="chat-item">
+          <div class="avatar gold">✂️</div>
+          <div class="chat-info">
+            <p class="chat-name">Barbearia Elite</p>
+            <p class="chat-preview">Seu agendamento foi confirmado para amanhã às 14h 🗓️</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">14:23</span>
+            <span class="chat-badge">2</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar gold">
+            <img src="img/icones-perfil.png" alt="perfil"
+                 onerror="this.outerHTML='💇'">
+          </div>
+          <div class="chat-info">
+            <p class="chat-name">João Silva</p>
+            <p class="chat-preview">Tudo certo! Te vejo na sexta então 👍</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Ontem</span>
+          </div>
+        </div>
+        <div class="chat-item">
+          <div class="avatar">👑</div>
+          <div class="chat-info">
+            <p class="chat-name">King Cuts</p>
+            <p class="chat-preview">Obrigado pela visita! Avalie seu atendimento</p>
+          </div>
+          <div class="chat-meta">
+            <span class="chat-time">Seg</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" style="padding:20px 0;">
+        <p style="font-size:.8rem;color:var(--text-dim);">
+          Agende um serviço para iniciar uma conversa
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — BARBEARIAS FAVORITAS
+  ============================================================ -->
+  <main id="tela-favoritas" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/meu-b.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Favoritas</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <p class="sec-title">Minhas Barbearias</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="barber-row">
+          <div class="avatar gold">✂️</div>
+          <div class="barber-info">
+            <p class="barber-name">Barbearia Elite</p>
+            <p class="barber-sub">Av. Paulista, 123 · 0.8 km</p>
+            <div class="stars" style="margin-top:4px;">★★★★★</div>
+          </div>
+          <div class="barber-meta">
+            <span class="badge">Aberto</span>
+          </div>
+        </div>
+        <div class="barber-row">
+          <div class="avatar gold">💈</div>
+          <div class="barber-info">
+            <p class="barber-name">Corte &amp; Arte</p>
+            <p class="barber-sub">R. Augusta, 456 · 1.1 km</p>
+            <div class="stars" style="margin-top:4px;">★★★★☆</div>
+          </div>
+          <div class="barber-meta">
+            <span class="badge">Aberto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty">
+        <div class="empty-icon">⭐</div>
+        <p class="empty-title">Adicionar mais favoritas</p>
+        <p class="empty-text">Salve barbearias para acesso rápido e agendamento com 1 toque</p>
+        <button class="btn btn-outline" onclick="App.nav('pesquisa')">Explorar Barbearias</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — PERFIL
+  ============================================================ -->
+  <main id="tela-perfil" class="tela">
+    <div class="header">
+      <div class="header-brand">
+        <img src="img/perfil.svg" alt=""
+             style="height:22px;filter:brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);">
+        <span>Perfil</span>
+      </div>
+    </div>
+
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        <img id="perfil-avatar-img" src="img/icones-perfil.png" alt="avatar"
+             onerror="this.outerHTML='😎'">
+      </div>
+      <p class="profile-name" id="perfil-nome">Lucas Oliveira</p>
+      <p class="profile-sub" id="perfil-sub">Cliente desde Janeiro 2025</p>
+      <div class="perfil-acoes">
+        <button class="btn-perfil-editar" onclick="PerfilEditor.alternarModo(this)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar perfil
+        </button>
+      </div>
+    </div>
+    <!-- Dados pessoais editáveis -->
+    <ul class="perfil-lista" id="perfil-lista">
+      <!-- Endereço -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11L12 3l9 8V21H15V14H9v7H3V11z"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Endereço</span>
+          <span class="pi-val" id="pi-address">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'address')" aria-label="Editar endereço"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <!-- Data de Nascimento -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 C10.3 3.5 10 5.5 12 6.5 C14 5.5 13.7 3.5 12 2Z" fill="currentColor" stroke="none"/><rect x="10.5" y="6.5" width="3" height="3" rx=".5"/><rect x="4" y="9" width="16" height="5" rx="1"/><rect x="2" y="14" width="20" height="7" rx="1"/><circle cx="7" cy="17" r=".8" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Data de Nascimento</span>
+          <span class="pi-val" id="pi-birth_date">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'birth_date')" aria-label="Editar data de nascimento"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <!-- Sexo -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="22" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="9" r="5"/><line x1="6" y1="14" x2="6" y2="21"/><line x1="3" y1="18" x2="9" y2="18"/><circle cx="20" cy="12" r="5"/><line x1="23.5" y1="8.5" x2="27" y2="5"/><polyline points="23.5,5 27,5 27,8.5"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">Sexo</span>
+          <span class="pi-val" id="pi-gender">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'gender')" aria-label="Editar sexo"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+      <!-- CEP -->
+      <li class="perfil-item">
+        <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C12 22 4 15 4 9A8 8 0 0 1 20 9C20 15 12 22 12 22Z"/><rect x="8" y="6.5" width="8" height="5.5" rx=".4" stroke-width="1.3"/><polyline points="8,6.5 12,10 16,6.5" stroke-width="1.3"/></svg></span>
+        <div class="perfil-item-info">
+          <span class="perfil-item-label">CEP</span>
+          <span class="pi-val" id="pi-zip_code">—</span>
+        </div>
+        <button class="btn-pi-lapis" onclick="PerfilEditor.editarCampo(this,'zip_code')" aria-label="Editar CEP"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </li>
+    </ul>
+  </main>
+
+  <!-- ============================================================
+       TELA — SAIR
+  ============================================================ -->
+  <main id="tela-sair" class="tela">
+    <div class="sair-wrap">
+      <button class="btn-voltar" onclick="App.voltar()">Voltar</button>
+
+      <!-- Ícone central — clique confirma o logout -->
+      <button class="sair-icone-btn" onclick="App.confirmarSaida()" aria-label="Confirmar saída">
+        <img src="img/sair.svg" alt="Sair" onerror="this.outerHTML='&#x1F6AA;'">
+      </button>
+
+      <p class="sair-texto-titulo">Sair da conta?</p>
+      <p class="sair-texto-sub">
+        Toque no ícone acima para confirmar.<br>
+        Você precisará fazer login novamente.
+      </p>
+      <p class="sair-hint">ou toque em Voltar para cancelar</p>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       FOOTER NAV — APP CLIENTE
+  ============================================================ -->
+  <nav class="footer-nav" id="footer-nav">
+    <button class="nav-btn" data-tela="inicio" onclick="App.nav('inicio')">
+      <div class="nav-pill">
+        <img src="img/inicio.svg" alt="Início">
+      </div>
+      <span class="nav-label">Início</span>
+    </button>
+
+    <button class="nav-btn" data-tela="pesquisa" onclick="App.nav('pesquisa')">
+      <div class="nav-pill">
+        <img src="img/pesquisa.svg" alt="Pesquisa">
+      </div>
+      <span class="nav-label">Pesquisar</span>
+    </button>
+
+    <button class="nav-btn" data-tela="mensagens" onclick="App.nav('mensagens')">
+      <span class="nav-dot"></span>
+      <div class="nav-pill">
+        <img src="img/mensagen.svg" alt="Mensagens">
+      </div>
+      <span class="nav-label">Mensagens</span>
+    </button>
+
+    <button class="nav-btn" data-tela="favoritas" onclick="App.nav('favoritas')">
+      <div class="nav-pill">
+        <img src="img/meu-b.svg" alt="Favoritas">
+      </div>
+      <span class="nav-label">Favoritas</span>
+    </button>
+
+    <button class="nav-btn" data-tela="perfil" onclick="App.nav('perfil')">
+      <div class="nav-pill">
+        <img src="img/perfil.svg" alt="Perfil">
+      </div>
+      <span class="nav-label">Perfil</span>
+    </button>
+
+    <button class="nav-btn" data-tela="sair" onclick="App.navDoMenu('sair')">
+      <div class="nav-pill">
+        <img src="img/sair.svg" alt="Sair">
+      </div>
+      <span class="nav-label">Sair</span>
+    </button>
+  </nav>
+
+</div><!-- #app -->
+
+<!-- ============================================================
+     SPA NAVIGATION — POO
+============================================================ -->
+<script src="shared/js/LogoutScreen.js"></script>
+<!-- Serviços SRP (ordem obrigatória: antes do Router) -->
+<script src="shared/js/AnimationService.js"></script>
+<script src="shared/js/MenuService.js"></script>
+<script src="shared/js/UserService.js"></script>
+<script src="shared/js/AvatarService.js"></script>
+<script src="shared/js/SplashService.js"></script>
+<!-- Estado global reativo -->
+<script src="shared/js/AppState.js"></script>
+<!-- Controle de acesso baseado em autenticação -->
+<script src="shared/js/AuthGuard.js"></script>
+    <script src="shared/js/PermissionService.js"></script>
+<script src="shared/js/Router.js"></script>
+<script src="shared/js/BarberPole.js"></script>
+<script src="shared/js/PerfilEditor.js"></script>
+<script>
+  'use strict';
+
+  /**
+   * BarberFlow — App Cliente (legacy standalone)
+   * Extende o Router base de shared/js/Router.js
+   */
+  class BarberFlowCliente extends Router {
+
+    static #TELAS_COM_NAV = new Set([
+      'inicio', 'pesquisa', 'mensagens', 'favoritas', 'perfil', 'sair'
+    ]);
+
+    get telasComNav() { return BarberFlowCliente.#TELAS_COM_NAV; }
+
+    constructor() { super('login'); }
+  }
+
+  // Instância global
+  const App = new BarberFlowCliente();
+</script>
+</body>
+</html>

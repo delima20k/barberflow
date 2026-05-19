@@ -1,0 +1,1830 @@
+/* ============================================================
+   BARBERFLOW - BARBER CARD PREMIUM MODULE
+   Reusable visual module for barbershop cards.
+============================================================ */
+
+.barber-card,
+.barber-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: 1px solid rgba(107, 74, 50, .18);
+  border-radius: 15px;
+  padding: 18px 110px 18px 14px;
+  min-height: 148px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.barber-card + .barber-card,
+.barber-row + .barber-row {
+  margin-top: 12px;
+}
+
+.barber-card:hover,
+.barber-row:hover {
+  border-color: rgba(212, 160, 23, .46);
+  box-shadow: 0 10px 24px rgba(43, 27, 18, .14);
+  transform: translateY(-1px);
+}
+
+.barber-card:active,
+.barber-row:active {
+  transform: scale(.985);
+}
+
+/* ============================================================
+   AÇÕES DO CANTO SUPERIOR DIREITO — stars + botão favorito
+   (+ botão like em cards de barbeiro). Reutilizado por todos
+   os .barber-row/.barber-card via POO (BarbershopService /
+   ProfessionalService gerenciam o conteúdo).
+============================================================ */
+.card-top-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+/* Linha interna: stars + (likes opcional) + fav */
+.cta-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.card-top-actions .stars {
+  font-family: var(--font);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--gold, #D4AF37);
+  white-space: nowrap;
+  letter-spacing: .2px;
+}
+
+/* ============================================================
+   BOTÃO FAVORITO PADRÃO — aplicado a TODOS os cards
+   (.barber-row, .barber-card) e ao .destaque-card via .dc-btn.favorite
+   SEM moldura circular — apenas a estrela, dourada (outline quando
+   inativo, preenchida quando ativo).
+============================================================ */
+.card-fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--gold, #D4AF37);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: transform .14s ease, filter .18s ease;
+  z-index: 2;
+}
+
+/* Dentro do container .card-top-actions, o botão perde o absolute */
+.card-top-actions .card-fav-btn,
+.card-top-actions .card-like-btn {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+/* Botão like dos cards de barbeiro */
+.card-like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1.5px solid rgba(212, 175, 55, .55);
+  border-radius: 999px;
+  padding: 4px 10px;
+  height: 36px;
+  color: var(--gold, #D4AF37);
+  font-family: var(--font);
+  font-size: .82rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease,
+              transform .14s ease, box-shadow .18s ease;
+}
+
+.card-like-btn:hover {
+  border-color: rgba(212, 175, 55, .9);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, .22);
+  transform: scale(1.04);
+}
+
+.card-like-btn:active { transform: scale(.94); }
+
+.card-like-btn.ativo {
+  background: rgba(212, 175, 55, .22);
+  border-color: rgba(212, 175, 55, .9);
+}
+
+.card-like-btn .clb-ico { font-size: .95rem; line-height: 1; }
+
+.card-fav-btn:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 2px 6px rgba(212, 175, 55, .6));
+}
+
+.card-fav-btn:active {
+  transform: scale(.92);
+}
+
+.card-fav-btn.ativo {
+  color: var(--gold, #D4AF37);
+}
+
+.card-fav-btn .cfb-ico {
+  display: inline-block;
+  transition: transform .2s ease;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.card-fav-btn.ativo .cfb-ico {
+  transform: scale(1.15);
+  text-shadow: 0 0 8px rgba(212, 175, 55, .55);
+}
+
+
+.barber-card .avatar,
+.barber-row .avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #fff 0%, #f6ede2 100%);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(212, 160, 23, .42), 0 8px 16px rgba(43, 27, 18, .12);
+  border: 1px solid rgba(107, 74, 50, .3);
+  color: var(--gold-dark);
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.barber-card .avatar img,
+.barber-row .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.barber-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.barber-name {
+  font-family: var(--font);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barber-sub {
+  margin: 0;
+  font-family: var(--font);
+  font-size: .8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Selo de dono de barbearia */
+.barber-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--gold, #D4AF37);
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.barber-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  min-width: 104px;
+}
+
+.barber-meta .stars {
+  font-size: .78rem;
+  color: var(--gold-dark);
+  letter-spacing: .3px;
+  margin: 0;
+}
+
+.barber-meta .badge,
+.barber-meta .badge.closed,
+.barber-meta .badge.verde,
+.barber-meta .badge.danger {
+  font-size: .66rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.barber-meta .btn,
+.barber-action {
+  min-width: 88px;
+  border-radius: 11px;
+  padding: 9px 12px;
+  font-family: var(--font);
+  font-size: .84rem;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(242, 183, 5, .28);
+  margin-top: 2px;
+}
+
+.barber-meta .btn:active,
+.barber-action:active {
+  transform: scale(.97);
+}
+
+@media (max-width: 480px) {
+  .barber-card,
+  .barber-row {
+    padding: 14px 12px;
+    gap: 10px;
+    min-height: 120px;
+  }
+
+  .barber-card .avatar,
+  .barber-row .avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .barber-name {
+    font-size: .92rem;
+  }
+
+  .barber-sub {
+    font-size: .76rem;
+  }
+
+  .barber-meta {
+    min-width: 92px;
+    gap: 5px;
+  }
+
+  .barber-meta .btn,
+  .barber-action {
+    min-width: 80px;
+    padding: 8px 10px;
+    font-size: .8rem;
+  }
+}
+
+/* ============================================================
+   DESTAQUE CARD — cards mini da seção "Em Destaque" da home.
+   Layout:
+     - Topo esq: avatar + badge abaixo
+     - Topo dir: botões em coluna (like → dislike → favorito)
+     - Centro: nome da barbearia
+     - Rodapé do card: estrelas decimais
+     - Abaixo do card: endereço
+============================================================ */
+
+/* Container de scroll */
+#home-destaque-lista {
+  display: flex;
+  gap: 12px;
+  padding: 4px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+}
+
+#home-destaque-lista::-webkit-scrollbar { display: none; }
+
+/* ============================================================
+   BARBEARIAS CARROSSEL — seção "Barbearias Populares" da home.
+   Scroll horizontal com colunas de 2 cards empilhados.
+============================================================ */
+.barbearias-carrossel {
+  display: flex;
+  gap: 10px;
+  padding: 4px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  align-items: flex-start;
+}
+.barbearias-carrossel::-webkit-scrollbar { display: none; }
+
+/* ── Carrossel horizontal — colunas de 2 cards (barbeiros) ── */
+.barbeiros-carrossel-1 {
+  display: flex;
+  gap: 10px;
+  padding: 4px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  align-items: flex-start;
+}
+.barbeiros-carrossel-1::-webkit-scrollbar { display: none; }
+
+/* Coluna com 2 cards empilhados — igual às barbearias */
+.barbeiros-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: min(86vw, 360px);
+  box-sizing: border-box;
+}
+
+/* ── Lista de linhas 380×114 — "Todas as Barbearias" ── */
+.barbearias-lista-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.barbearias-lista-rows .barber-row {
+  min-height: 114px;
+  box-sizing: border-box;
+}
+
+/* Coluna: 2 cards empilhados verticalmente */
+.barbearias-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  width: min(86vw, 360px);
+}
+
+/* ── Wrapper externo: card + endereço abaixo ── */
+.destaque-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 172px;
+  max-width: 188px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+/* ── Card base ── */
+.destaque-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, .18);
+  border-radius: 18px;
+  padding: 14px 12px 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(43, 27, 18, .08);
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.destaque-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, .22);
+  border-color: rgba(212, 175, 55, .38);
+}
+
+.destaque-card:active { transform: scale(.97); }
+
+/* Skeleton state */
+.destaque-card--skeleton { pointer-events: none; opacity: .45; }
+.dc-skel {
+  background: rgba(212, 175, 55, .08);
+  border-radius: 6px;
+  display: block;
+  margin: 2px auto;
+  animation: dc-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dc-pulse {
+  0%, 100% { opacity: .45; }
+  50%       { opacity: .9;  }
+}
+
+/* ── Header: avatar + badge (esq) | botões (dir) ── */
+.dc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Coluna esquerda: avatar + badge centralizado abaixo */
+.dc-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Avatar ── */
+.dc-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, rgba(212,175,55,.18) 0%, rgba(90,50,18,.35) 100%);
+  border: 2px solid rgba(212, 175, 55, .3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(212,175,55,.08);
+}
+.dc-avatar--skel { background: rgba(212, 175, 55, .08); }
+.dc-avatar img   { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Badge aberto/fechado (abaixo do avatar) ── */
+.dc-badge {
+  font-size: .55rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 99px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.dc-badge--open   { background: rgba(212,175,55,.12); color: var(--gold, #D4AF37); border: 1px solid rgba(212,175,55,.28); text-shadow: 0 0 6px rgba(212,175,55,.55); }
+.dc-badge--closed { background: rgba(200,80,80,.12);  color: #e07070; border: 1px solid rgba(200,80,80,.2); }
+.dc-badge--pausa  { background: rgba(255,160,0,.13);  color: #ffb74d; border: 1px solid rgba(255,183,77,.32); }
+
+/* ── Botões de ação — coluna direita ── */
+.dc-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--text-muted, #a08060);
+  cursor: pointer;
+  transition: background .18s, color .18s, border-color .18s, transform .12s;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dc-btn:active { transform: scale(.88); }
+
+.dc-btn-icon { font-size: .78rem; line-height: 1; }
+.dc-count    { font-size: .62rem; min-width: 14px; text-align: left; }
+
+/* Like — padronizado em DOURADO (idêntico a .card-like-btn) */
+.dc-btn.like { border-color: rgba(212, 175, 55, .4); color: var(--gold, #D4AF37); }
+.dc-btn.like:hover,
+.dc-btn.like.ativo {
+  background: rgba(212, 175, 55, .22);
+  color: var(--gold, #D4AF37);
+  border-color: rgba(212, 175, 55, .9);
+}
+
+/* Dislike — padronizado em DOURADO (mesma cor — diferença é apenas o ícone 👎) */
+.dc-btn.dislike { border-color: rgba(212, 175, 55, .4); color: var(--gold, #D4AF37); }
+.dc-btn.dislike:hover,
+.dc-btn.dislike.ativo {
+  background: rgba(212, 175, 55, .22);
+  color: var(--gold, #D4AF37);
+  border-color: rgba(212, 175, 55, .9);
+}
+
+/* Favorite — maior, só borda no padrão, dourado suave quando ativo */
+.dc-btn.favorite {
+  border: 1.5px solid rgba(212, 175, 55, .55);
+  background: transparent;
+  color: var(--gold, #D4AF37);
+  padding: 6px 10px;
+  font-size: .72rem;
+  min-width: 34px;
+  min-height: 30px;
+  justify-content: center;
+}
+.dc-btn.favorite .dc-btn-icon { font-size: .95rem; }
+.dc-btn.favorite:hover {
+  background: rgba(212, 175, 55, .06);
+  border-color: rgba(212, 175, 55, .7);
+}
+.dc-btn.favorite.ativo {
+  background: rgba(212, 175, 55, .22);
+  color: var(--gold, #D4AF37);
+  border-color: rgba(212, 175, 55, .6);
+  box-shadow: 0 2px 8px rgba(212, 175, 55, .18);
+}
+.dc-btn.favorite.ativo .dc-btn-icon { filter: none; }
+.dc-btn.favorite.ativo .dc-btn-icon::after { content: ''; }
+
+/* ── Nome ── */
+.dc-nome {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* ── Rodapé do card: estrelas ── */
+.dc-card-footer {
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid rgba(212, 175, 55, .08);
+  width: 100%;
+}
+
+/* Linha de estrelas + número */
+.dc-stars-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+/* ── Estrelas individuais progressivas (iFood/99 style) ── */
+.tc-stars-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Cada estrela: vazia (cinza) + fill progressivo amarelo via clip-path */
+.tc-star {
+  position: relative;
+  display: inline-block;
+  color: rgba(212, 175, 55, 0.22);
+  font-size: .92rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.tc-star::after {
+  content: '★';
+  color: #ffc107;
+  position: absolute;
+  left: 0;
+  top: 0;
+  clip-path: inset(0 calc(100% - var(--pct, 0%)) 0 0);
+  transition: clip-path .35s ease;
+  pointer-events: none;
+}
+
+/* Tamanho maior nos contextos top-card__stars */
+.top-card__stars .tc-star,
+.top-card__stars .tc-stars-row {
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+}
+
+.dc-rating-num {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  white-space: nowrap;
+}
+
+/* ── Endereço — abaixo do card (fora) ── */
+.dc-addr {
+  font-size: .64rem;
+  color: var(--text-muted, #a08060);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  padding: 0 2px;
+  text-align: center;
+}
+
+/* Mobile: reduz padding mínimo */
+@media (max-width: 380px) {
+  .destaque-item  { min-width: 156px; max-width: 172px; }
+  .dc-avatar      { width: 50px; height: 50px; font-size: 1.4rem; }
+  .dc-nome        { font-size: .74rem; }
+  .dc-btn         { padding: 3px 5px; font-size: .58rem; }
+  .dc-btn.favorite{ padding: 5px 9px; font-size: .68rem; min-width: 32px; min-height: 28px; }
+  .dc-btn.favorite .dc-btn-icon { font-size: .88rem; }
+}
+
+/* ============================================================
+   TOP-CARD — card da tela Destaques (ranking geral)
+============================================================ */
+.top-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 60px 14px 14px;
+  min-height: 136px;
+  position: relative;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s;
+}
+
+.top-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, .16);
+}
+.top-card:active { transform: scale(.98); }
+
+/* Número de ranking */
+.top-card__rank {
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--text-muted, #a08060);
+  min-width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+/* Top 3: cor dourada */
+.top-card__rank--podio {
+  color: var(--gold, #D4AF37);
+  font-size: .88rem;
+}
+
+/* Avatar */
+.top-card__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, rgba(212,175,55,.18) 0%, rgba(90,50,18,.35) 100%);
+  border: 2px solid rgba(212, 175, 55, .28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.top-card__avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Info central */
+.top-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.top-card__nome {
+  font-size: .98rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-card__addr {
+  font-size: .78rem;
+  color: var(--text-muted, #a08060);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-card__stars {
+  display: flex;
+  align-items: center;
+  gap: 4px 6px;
+  flex-wrap: wrap;
+  min-height: 26px;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.top-card__stars .dc-rating-num {
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+}
+
+.top-card__likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  margin-left: 0;
+  font-size: .9rem;
+  color: #70d070;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform .14s ease, filter .18s ease;
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.top-card__likes:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 2px 4px rgba(112, 208, 112, .55));
+}
+
+.top-card__likes:active { transform: scale(.94); }
+
+.top-card__likes.ativo {
+  color: #98e398;
+  animation: like-pop .4s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Confetti burst ao curtir */
+.top-card__likes::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+.top-card__likes.ativo::before {
+  animation: like-confetti .75s ease-out forwards;
+}
+
+@keyframes like-pop {
+  0%   { transform: scale(.6); }
+  55%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+@keyframes like-confetti {
+  0% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 0 #70d070,
+      0 0 0 0 #98e398,
+      0 0 0 0 #c0f0c0,
+      0 0 0 0 #40c040,
+      0 0 0 0 #a0e8a0;
+  }
+  70% { opacity: 1; }
+  100% {
+    opacity: 0;
+    box-shadow:
+       18px -14px 0 -1px #70d070,
+      -18px -16px 0 -1px #98e398,
+       20px   4px 0 -1px #c0f0c0,
+      -18px   6px 0 -1px #40c040,
+        2px -20px 0 -1px #a0e8a0;
+  }
+}
+
+.top-card__likes .tcl-ico {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.top-card__likes .dc-count {
+  font-family: var(--font);
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+/* Container canto superior direito: badge (Aberto/Fechado) em cima + favorito embaixo */
+.top-card__actions {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1.6rem;
+  z-index: 2;
+}
+
+.top-card__actions .dc-badge {
+  position: static;
+  top: auto;
+  right: auto;
+  font-size: .6rem;
+}
+
+.top-card__actions .card-fav-btn {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+/* ============================================================
+   FAV-BTN — estrela outline + confetes/sparkles — aplicado a
+   .top-card (tela Destaques), .destaque-card (home Em Destaque)
+   e .barber-card (tela Barbearias + tela Barbeiros).
+============================================================ */
+.top-card .card-fav-btn,
+.destaque-card .card-fav-btn,
+.barber-card .card-fav-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  font-size: 0;          /* esconde possível texto */
+  color: transparent;     /* esconde caractere ☆/⭐ nativo — usaremos ::before */
+  background: transparent;
+  border: none;
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Esconde o span interno (conteúdo original do botão) */
+.top-card .card-fav-btn .cfb-ico,
+.destaque-card .card-fav-btn .cfb-ico,
+.barber-card .card-fav-btn .cfb-ico {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;           /* oculta o caractere original ★/☆ do HTML */
+  color: transparent;
+  line-height: 1;
+  text-shadow: none;
+  transform: none !important;
+  transition: transform .25s ease, text-shadow .25s ease;
+  -webkit-text-stroke: 0;
+}
+
+/* Única estrela exibida — levemente deslocada para a esquerda/cima,
+   outline dourada quando inativa, preenchida + brilho quando ativa. */
+.top-card .card-fav-btn .cfb-ico::after,
+.destaque-card .card-fav-btn .cfb-ico::after,
+.barber-card .card-fav-btn .cfb-ico::after {
+  content: '★';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--gold, #D4AF37);
+  opacity: 1;
+  transform: translate(-6px, -4px) rotate(14deg);
+  transition: color .25s ease, text-shadow .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
+}
+
+.top-card .card-fav-btn.ativo .cfb-ico::after,
+.destaque-card .card-fav-btn.ativo .cfb-ico::after,
+.barber-card .card-fav-btn.ativo .cfb-ico::after {
+  color: var(--gold, #D4AF37);
+  -webkit-text-stroke: 0;
+  text-shadow: 0 0 10px rgba(212, 175, 55, .65);
+  transform: translate(-6px, -4px) rotate(14deg) scale(1.08);
+  animation: fav-pop .5s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Sobe o ícone mais 5px no card de barbeiro, z-index acima da img */
+.barber-card .card-fav-btn .cfb-ico {
+  top: -5px;
+  z-index: 2;
+}
+
+@keyframes fav-pop {
+  0%   { transform: scale(.6); }
+  55%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* ── Confetes/fogos: 8 partículas via box-shadow em ::before ── */
+.top-card .card-fav-btn::before,
+.destaque-card .card-fav-btn::before,
+.barber-card .card-fav-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+.top-card .card-fav-btn.ativo::before,
+.destaque-card .card-fav-btn.ativo::before,
+.barber-card .card-fav-btn.ativo::before {
+  animation: fav-confetti .9s ease-out forwards;
+}
+
+@keyframes fav-confetti {
+  0% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 0 #D4AF37,
+      0 0 0 0 #ff6b6b,
+      0 0 0 0 #4ecdc4,
+      0 0 0 0 #ffe66d,
+      0 0 0 0 #c77dff,
+      0 0 0 0 #70d070,
+      0 0 0 0 #ff9f43,
+      0 0 0 0 #feca57;
+  }
+  70% { opacity: 1; }
+  100% {
+    opacity: 0;
+    box-shadow:
+       22px -18px 0 -1px #D4AF37,
+      -22px -20px 0 -1px #ff6b6b,
+       26px   6px 0 -1px #4ecdc4,
+      -24px   8px 0 -1px #ffe66d,
+        4px -28px 0 -1px #c77dff,
+       -6px  26px 0 -1px #70d070,
+       18px  22px 0 -1px #ff9f43,
+      -18px -24px 0 -1px #feca57;
+  }
+}
+
+/* Segundo burst mais fino (raios/sparkles) */
+.top-card .card-fav-btn::after,
+.destaque-card .card-fav-btn::after,
+.barber-card .card-fav-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+}
+
+.top-card .card-fav-btn.ativo::after,
+.destaque-card .card-fav-btn.ativo::after,
+.barber-card .card-fav-btn.ativo::after {
+  animation: fav-sparkles 1s ease-out forwards;
+  animation-delay: .08s;
+}
+
+@keyframes fav-sparkles {
+  0% {
+    opacity: 1;
+    box-shadow:
+      0 0 0 0 rgba(255,255,255,.95),
+      0 0 0 0 rgba(255,255,255,.95),
+      0 0 0 0 rgba(255,255,255,.95),
+      0 0 0 0 rgba(212,175,55,.95),
+      0 0 0 0 rgba(212,175,55,.95),
+      0 0 0 0 rgba(212,175,55,.95);
+  }
+  100% {
+    opacity: 0;
+    box-shadow:
+       14px  -8px 0 -.5px rgba(255,255,255,.9),
+      -16px  -4px 0 -.5px rgba(255,255,255,.9),
+        0px  16px 0 -.5px rgba(255,255,255,.9),
+       10px  14px 0 -.5px rgba(212,175,55,.9),
+      -12px  12px 0 -.5px rgba(212,175,55,.9),
+        2px -18px 0 -.5px rgba(212,175,55,.9);
+  }
+}
+
+/* Hover: apenas um leve scale, mantém tamanho base ao inativo */
+.top-card .card-fav-btn:hover,
+.destaque-card .card-fav-btn:hover,
+.barber-card .card-fav-btn:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 2px 6px rgba(212, 175, 55, .5));
+}
+
+.top-card .card-fav-btn:active,
+.destaque-card .card-fav-btn:active,
+.barber-card .card-fav-btn:active {
+  transform: scale(.92);
+}
+
+/* Container top-right no destaque-card (badge + favorito) */
+.destaque-card .top-card__actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  z-index: 2;
+}
+
+.destaque-card .top-card__actions .dc-badge {
+  position: static;
+}
+
+/* Container top-right nos barber-card (barbearias + barbeiros) */
+.barber-card .top-card__actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.8rem;
+  z-index: 2;
+}
+
+.barber-card .top-card__actions .dc-badge {
+  position: static;
+}
+
+
+/* Endereço padrão em TODOS os cards de barbearia — obrigatório */
+.barber-addr {
+  margin: 8px 0 0;
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--text-muted, #a08060);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.barber-addr:empty::before {
+  content: '📍 Endereço não cadastrado';
+  opacity: .55;
+}
+
+/* Skeleton */
+.top-card--skel { pointer-events: none; opacity: .45; }
+
+.tela-destaques-sub {
+  font-size: .72rem;
+  color: var(--text-muted, #a08060);
+  margin: 0 0 12px;
+  padding: 0 2px;
+}
+
+/* ── Hero da tela Destaques ── */
+.destaques-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.destaques-titulo {
+  font-family: var(--font);
+  font-size: 1.45rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -.2px;
+}
+
+/* "Barber" em dourado, "Flow" em marrom visível */
+.destaques-barber { color: var(--gold, #D4AF37); }
+.destaques-flow   { color: #bf8040; }
+
+/* H1 da tela-barbeiros: "Barber" à esquerda + logo Flow à direita */
+.barbeiros-h1-brand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.destaques-logo-img {
+  width: min(67.5vw, 375px);
+  height: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.22));
+}
+
+/* Bloco de brand no card do barbeiro (top-right) */
+.card-actions-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* Sobrescreve posição/gap quando é brand dentro de .barber-card */
+.barber-card .card-actions-brand {
+  top: calc(5px - 1rem);
+  right: 0.3rem;
+  gap: 0.8rem;
+}
+
+/* Botão favorito sobe mais — margem negativa */
+.barber-card .card-actions-brand .card-fav-btn {
+  margin-top: -0.8rem;
+}
+
+/* Botão favorito afastado 1.5rem da borda direita do card */
+.barber-card .card-actions-brand .card-fav-btn {
+  margin-right: 1.2rem; /* 0.3rem (container) + 1.2rem = 1.5rem da borda */
+}
+.card-brand {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.card-brand-text {
+  font-size: .65rem;
+  font-weight: 700;
+  font-family: var(--font);
+  color: #8B4513;
+  letter-spacing: .3px;
+  line-height: 1;
+}
+.card-brand-logo {
+  height: 86px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.15));
+}
+
+/* Parágrafo dig — menor e discreto, sem fundo */
+.destaques-hero #destaques-dig,
+.destaques-hero #barbearias-dig,
+.destaques-hero #barbeiros-dig {
+  font-size: .72rem;
+  line-height: 1.6;
+  margin-top: 6px;
+  padding: 5px 10px;
+  text-align: left;
+  background: transparent;
+  border-left: 2px solid rgba(212,175,55,.3);
+}
+
+/* tela-barbeiros: logo a 0.5rem do botão voltar */
+#tela-barbeiros .tela-topo {
+  padding-top: 4px;
+  padding-bottom: 0;
+}
+#tela-barbeiros .tela-topo + .content {
+  margin-top: 0;
+  padding-top: 0;
+}
+#tela-barbeiros .destaques-hero {
+  margin-top: 0.5rem;
+}
+#tela-barbeiros .destaques-logo-img {
+  position: relative;
+  top: 0.5rem;
+}
+
+/* Parágrafo descritivo da tela Barbeiros */
+.barbeiros-intro {
+  font-size: .8rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-left: 2px solid rgba(212,175,55,.22);
+  background: transparent;
+}
+
+.tela-destaques-vazio {
+  text-align: center;
+  color: var(--text-muted, #a08060);
+  font-size: .84rem;
+  padding: 40px 20px;
+}
+
+/* h2 genérico das telas hero (barbeiros, barbearias…) */
+.tela-hero-subtitulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+/* ============================================================
+   BARBER CARD — SOCIAL (pontuação + curtida + favorito)
+   Aplica fundo warm-cream sutil e novos elementos de interação.
+============================================================ */
+
+/* Fundo warm-cream para cards de barbeiros */
+.barber-card,
+.barber-row {
+  background: linear-gradient(135deg, rgba(255,251,246,.82) 0%, rgba(240,228,215,.68) 100%);
+}
+
+/* ── Linha de pontuação ─────────────────────────────────── */
+.bc-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.bc-stars {
+  font-size: .76rem;
+  color: var(--gold, #D4A017);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.bc-rating-val {
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--gold-dark, #6B4A32);
+  line-height: 1;
+}
+
+.bc-rating-cnt {
+  font-size: .68rem;
+  color: var(--text-muted, #6B5A4A);
+  line-height: 1;
+}
+
+/* ── Coluna de ações (direita) ──────────────────────────── */
+.bc-acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+/* ── Botões like e favorito ─────────────────────────────── */
+.bc-btn-like,
+.bc-btn-fav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,.5);
+  border: 1.5px solid rgba(107, 74, 50, .18);
+  border-radius: 11px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .14s;
+  min-width: 42px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.bc-btn-like:hover,
+.bc-btn-fav:hover {
+  border-color: rgba(212, 160, 23, .4);
+  transform: scale(1.07);
+}
+
+.bc-btn-like:active,
+.bc-btn-fav:active {
+  transform: scale(.93);
+}
+
+.bc-btn-like .bc-ico,
+.bc-btn-fav .bc-ico {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.bc-btn-like .bc-cnt {
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--text-muted, #6B5A4A);
+  line-height: 1;
+}
+
+/* Estado ativo — curtido */
+.bc-btn-like.bc-btn--ativo {
+  background: rgba(217, 51, 51, .09);
+  border-color: rgba(217, 51, 51, .32);
+}
+.bc-btn-like.bc-btn--ativo .bc-cnt {
+  color: #c0392b;
+}
+
+/* Estado ativo — favoritado */
+.bc-btn-fav.bc-btn--ativo {
+  background: rgba(212, 160, 23, .12);
+  border-color: rgba(212, 160, 23, .42);
+}
+
+@media (max-width: 480px) {
+  .bc-acoes        { gap: 6px; }
+  .bc-btn-like,
+  .bc-btn-fav      { min-width: 38px; padding: 5px 6px; }
+  .bc-btn-like .bc-ico,
+  .bc-btn-fav .bc-ico { font-size: .9rem; }
+  .bc-btn-like .bc-cnt { font-size: .58rem; }
+}
+
+/* ============================================================
+   FAVORITAS — carrossel de barbearias 350×220
+============================================================ */
+.fav-carrossel {
+  display: flex;
+  gap: 14px;
+  padding: 4px 0 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fav-carrossel::-webkit-scrollbar { display: none; }
+
+.fav-card {
+  flex: 0 0 350px;
+  height: 220px;
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+  scroll-snap-align: start;
+  background: #1a0800;
+  box-shadow: 0 6px 22px rgba(0,0,0,.38);
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s;
+  border: 1px solid rgba(212,175,55,.14);
+}
+.fav-card:hover  { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,.48); }
+.fav-card:active { transform: scale(.98); }
+
+.fav-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: .82;
+}
+
+.fav-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10,5,0,.93) 42%, rgba(10,5,0,.10) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 14px 16px 16px;
+  gap: 3px;
+}
+
+.fav-card__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.fav-card__nome {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fav-card__addr {
+  font-size: .75rem;
+  color: rgba(255,255,255,.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fav-card__stars {
+  font-size: .76rem;
+  color: #D4AF37;
+  letter-spacing: 1px;
+}
+
+.fav-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  gap: 8px;
+}
+
+.fav-card__btn {
+  background: rgba(212,175,55,.18);
+  border: 1px solid rgba(212,175,55,.5);
+  color: #D4AF37;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .18s, border-color .18s;
+  white-space: nowrap;
+}
+.fav-card__btn:hover   { background: rgba(212,175,55,.32); border-color: rgba(212,175,55,.8); }
+.fav-card__btn:active  { transform: scale(.96); }
+
+/* Placeholder quando não tem imagem */
+.fav-card--sem-img .fav-card__overlay {
+  background: linear-gradient(135deg, #1a0800 0%, #2d1200 100%);
+}
+
+/* ── Todos os cards com capa ou logo — background base (barber-card, barber-row, destaque-card, fav-card) ── */
+.barber-card--com-capa,
+.barber-card--com-logo {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* ── fav-card COM capa: imagem nítida e cobrindo o card todo ── */
+
+/* Centraliza melhor em cards landscape e satura a imagem */
+.fav-card.barber-card--com-capa {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  filter: contrast(1.13) saturate(1.2);
+}
+
+/* Suprime o ::before duplicado do barber-card--com-capa —
+   o fav-card__overlay já fornece o gradiente de legibilidade */
+.fav-card.barber-card--com-capa::before {
+  display: none;
+}
+
+/* Overlay mais leve: texto legível embaixo, imagem aparece acima */
+.fav-card.barber-card--com-capa .fav-card__overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,.80) 0%,
+    rgba(0,0,0,.42) 46%,
+    rgba(0,0,0,.08) 72%,
+    transparent 100%
+  );
+}
+
+/* ── fav-card COM logo (fallback): fundo cover sem filtro forte ── */
+.fav-card.barber-card--com-logo {
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* ── FAVORITAS — hero (h1 + h2) ── */
+.fav-hero {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.fav-hero__titulo {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 .35rem;
+  letter-spacing: -.5px;
+}
+
+.fav-hero__sub {
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--text-muted, #a08060);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Dig sem fundo no hero de favoritas */
+.fav-hero .search-dig {
+  background: transparent;
+  border-left: none;
+  padding: 0;
+  margin-top: 8px;
+  font-size: .82rem;
+  color: var(--text-muted, #a08060);
+}
+
+/* ── FAVORITAS — título de seção ── */
+.fav-secao-titulo {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--gold, #D4AF37);
+  margin: 0 0 .75rem;
+}
+.fav-secao-titulo--mt { margin-top: 1.75rem; }
+
+/* ── FAVORITAS — lista de barbeiros ── */
+.fav-barbeiros-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 1.5rem;
+}
+
+@media (max-width: 380px) {
+  .fav-card { flex: 0 0 calc(100vw - 2.5rem); height: 200px; }
+}
+
+/* ── Populares e Mais Próximas — cards 20% menores ── */
+#home-barbearias-lista .barbearias-coluna {
+  overflow: hidden;
+}
+#home-barbearias-lista .barber-card,
+#home-barbearias-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#home-barbearias-lista .barber-card .avatar,
+#home-barbearias-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#home-barbearias-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── Barbeiros Populares (home) — cards -30% ── */
+#home-barbeiros-lista .barbeiros-coluna {
+  overflow: hidden;
+}
+#home-barbeiros-lista .barber-card,
+#home-barbeiros-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#home-barbeiros-lista .barber-card .avatar,
+#home-barbeiros-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#home-barbeiros-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── Todas as Barbearias (home) — cards -30% ── */
+#home-todas-lista {
+  overflow: hidden;
+}
+#home-todas-lista .barber-card,
+#home-todas-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#home-todas-lista .barber-card .avatar,
+#home-todas-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#home-todas-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── tela-destaques (#destaques-lista) — top-card -30% ── */
+#destaques-lista {
+  overflow: hidden;
+}
+#destaques-lista .top-card {
+  min-height: 95px;
+  padding: 10px 42px 10px 10px;
+  overflow: hidden;
+}
+#destaques-lista .top-card__avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+#destaques-lista .top-card__info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── tela-barbearias (#barbearias-page-lista) — cards -30% ── */
+#barbearias-page-lista {
+  overflow: hidden;
+}
+#barbearias-page-lista .barber-card,
+#barbearias-page-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#barbearias-page-lista .barber-card .avatar,
+#barbearias-page-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#barbearias-page-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ── tela-barbeiros (#barbeiros-lista) — cards -30% ── */
+#barbeiros-lista {
+  overflow: hidden;
+}
+#barbeiros-lista .barber-card,
+#barbeiros-lista .barber-row {
+  min-height: 106px;
+  padding: 13px 79px 13px 10px;
+  overflow: hidden;
+}
+#barbeiros-lista .barber-card .avatar,
+#barbeiros-lista .barber-row .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+#barbeiros-lista .barber-info {
+  flex: 1;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Cards com imagem de fundo — texto branco + endereço no rodapé
+   Cobre: Populares/Próximas, Barbeiros, Todas, tela-destaques,
+          tela-barbearias, tela-barbeiros
+═══════════════════════════════════════════════════════════════ */
+
+/* — stretch para empurrar endereço ao rodapé — */
+#home-barbearias-lista .barber-card--com-capa,
+#home-barbearias-lista .barber-card--com-logo,
+#home-barbeiros-lista  .barber-card--com-capa,
+#home-barbeiros-lista  .barber-card--com-logo,
+#home-todas-lista      .barber-card--com-capa,
+#home-todas-lista      .barber-card--com-logo,
+#barbearias-page-lista .barber-card--com-capa,
+#barbearias-page-lista .barber-card--com-logo,
+#barbeiros-lista       .barber-card--com-capa,
+#barbeiros-lista       .barber-card--com-logo {
+  align-items: stretch;
+}
+
+/* — .barber-info em coluna para push via margin-top auto — */
+#home-barbearias-lista .barber-card--com-capa .barber-info,
+#home-barbearias-lista .barber-card--com-logo .barber-info,
+#home-barbeiros-lista  .barber-card--com-capa .barber-info,
+#home-barbeiros-lista  .barber-card--com-logo .barber-info,
+#home-todas-lista      .barber-card--com-capa .barber-info,
+#home-todas-lista      .barber-card--com-logo .barber-info,
+#barbearias-page-lista .barber-card--com-capa .barber-info,
+#barbearias-page-lista .barber-card--com-logo .barber-info,
+#barbeiros-lista       .barber-card--com-capa .barber-info,
+#barbeiros-lista       .barber-card--com-logo .barber-info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* — nome: branco — */
+#home-barbearias-lista .barber-card--com-capa .barber-name,
+#home-barbearias-lista .barber-card--com-logo .barber-name,
+#home-barbeiros-lista  .barber-card--com-capa .barber-name,
+#home-barbeiros-lista  .barber-card--com-logo .barber-name,
+#home-todas-lista      .barber-card--com-capa .barber-name,
+#home-todas-lista      .barber-card--com-logo .barber-name,
+#barbearias-page-lista .barber-card--com-capa .barber-name,
+#barbearias-page-lista .barber-card--com-logo .barber-name,
+#barbeiros-lista       .barber-card--com-capa .barber-name,
+#barbeiros-lista       .barber-card--com-logo .barber-name {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+
+/* — endereço: branco + empurrado ao rodapé — */
+#home-barbearias-lista .barber-card--com-capa .barber-sub,
+#home-barbearias-lista .barber-card--com-logo .barber-sub,
+#home-barbeiros-lista  .barber-card--com-capa .barber-sub,
+#home-barbeiros-lista  .barber-card--com-logo .barber-sub,
+#home-todas-lista      .barber-card--com-capa .barber-sub,
+#home-todas-lista      .barber-card--com-logo .barber-sub,
+#barbearias-page-lista .barber-card--com-capa .barber-sub,
+#barbearias-page-lista .barber-card--com-logo .barber-sub,
+#barbeiros-lista       .barber-card--com-capa .barber-sub,
+#barbeiros-lista       .barber-card--com-logo .barber-sub {
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  margin-top: auto;
+}
+
+/* — tela-destaques: top-card stretch — */
+#destaques-lista .top-card.barber-card--com-capa,
+#destaques-lista .top-card.barber-card--com-logo {
+  align-items: stretch;
+}
+
+/* — tela-destaques: top-card__info em coluna — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__info,
+#destaques-lista .top-card.barber-card--com-logo .top-card__info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* — tela-destaques: nome branco — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__nome,
+#destaques-lista .top-card.barber-card--com-logo .top-card__nome {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.6);
+}
+
+/* — tela-destaques: endereço branco + rodapé — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__addr,
+#destaques-lista .top-card.barber-card--com-logo .top-card__addr {
+  color: rgba(255,255,255,.85);
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  margin-top: auto;
+}
+
+/* — tela-destaques: rank branco — */
+#destaques-lista .top-card.barber-card--com-capa .top-card__rank,
+#destaques-lista .top-card.barber-card--com-logo .top-card__rank {
+  color: rgba(255,255,255,.7);
+}
