@@ -399,7 +399,7 @@ class MapWidget {
         : '';
       const popupInitialsStyle = avatarUrl ? 'display:none' : 'display:flex';
 
-      const statusHtml = b.is_open
+      const popupStatusHtml = b.is_open
         ? `<span class="mapa-popup__badge mapa-popup__badge--open">Aberta</span>`
         : `<span class="mapa-popup__badge mapa-popup__badge--closed">Fechada</span>`;
       const ratingHtml = b.rating_count > 0
@@ -417,7 +417,7 @@ class MapWidget {
         <div class="mapa-popup__info">
           <strong class="mapa-popup__nome">${nomeSeguro}</strong>
           <div class="mapa-popup__meta">
-            ${statusHtml}${ratingHtml}
+            ${popupStatusHtml}${ratingHtml}
           </div>
           ${enderecoSeguro ? `<span class="mapa-popup__addr">${enderecoSeguro}${cidadeSeguro ? ', ' + cidadeSeguro : ''}</span>` : ''}
           ${distHtml}
