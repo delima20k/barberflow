@@ -162,6 +162,15 @@ class MapWidget {
     // LayerGroup reutilizável para os marcadores das barbearias
     MapWidget.#layerBarbearias = L.layerGroup().addTo(MapWidget.#mapa);
 
+    // Escala dos marcadores proporcional ao zoom (zoom 11→0.5×, 15→1×, 17→1.41×)
+    const _syncScale = () => {
+      const z     = MapWidget.#mapa.getZoom();
+      const scale = Math.max(0.25, Math.min(2.0, Math.pow(2, (z - 15) / 4)));
+      MapWidget.#el.style.setProperty('--bf-marker-scale', scale.toFixed(3));
+    };
+    MapWidget.#mapa.on('zoomend', _syncScale);
+    _syncScale();
+
     // Garante que o Leaflet conhece as dimensões reais do container
     // após o primeiro ciclo de renderização do CSS.
     setTimeout(() => MapWidget.#mapa?.invalidateSize(), 0);
