@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260520';
+const SW_PRO_VERSION = '20260521';
 
 class SWProfissional {
 
@@ -79,6 +79,7 @@ class SWProfissional {
     '/shared/img/bg-entrada.jpg',
     '/shared/img/icon-192-pro.png',
     '/shared/img/icon-512-pro.png',
+    '/shared/img/store-marker.png',
   ];
 
   // ── Instala: pré-cacheia static em CACHE_STATIC e imagens em CACHE_IMAGES ──

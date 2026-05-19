@@ -68,41 +68,43 @@ class GpsBarbeariaMarker {
   // ═══════════════════════════════════════════════════════════
 
   static #icone(b) {
-    const avatarUrl      = GpsBarbeariaMarker.#urlAvatar(b.logo_path);
-    const iniciais       = GpsBarbeariaMarker.#iniciaisNome(b.name);
-    const avatarSeguro   = avatarUrl ? GpsBarbeariaMarker.#escapeHtml(avatarUrl) : null;
-    const nomeCurto      = GpsBarbeariaMarker.#escapeHtml(
-      GpsBarbeariaMarker.#textoCurto(b.name ?? 'Barbearia', 22)
+    const avatarUrl    = GpsBarbeariaMarker.#urlAvatar(b.logo_path);
+    const iniciais     = GpsBarbeariaMarker.#iniciaisNome(b.name);
+    const avatarSeguro = avatarUrl ? GpsBarbeariaMarker.#escapeHtml(avatarUrl) : null;
+    const nomeCurto    = GpsBarbeariaMarker.#escapeHtml(
+      GpsBarbeariaMarker.#textoCurto(b.name ?? 'Barbearia', 18)
     );
-    const numeroEnd      = GpsBarbeariaMarker.#escapeHtml(
+    const numeroEnd    = GpsBarbeariaMarker.#escapeHtml(
       GpsBarbeariaMarker.#numeroEndereco(b.address)
     );
-
-    const imgTag = avatarSeguro
-      ? `<img src="${avatarSeguro}"
-               class="mapa-shop-marker__img"
-               alt="${iniciais}"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-      : '';
     const initialsStyle = avatarSeguro ? 'display:none' : 'display:flex';
+
+    // Foto da barbearia dentro da vitrine escura
+    const windowContent = avatarSeguro
+      ? `<img src="${avatarSeguro}" class="mapa-store-mk__window-img" alt="${iniciais}"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         <span class="mapa-store-mk__initials" style="display:none">${iniciais}</span>`
+      : `<span class="mapa-store-mk__initials" style="${initialsStyle}">${iniciais}</span>`;
+
+    // Ícone pequeno no círculo do pin GPS
+    const pinContent = avatarSeguro
+      ? `<img src="${avatarSeguro}" class="mapa-store-mk__pin-img" alt="">`
+      : `<span class="mapa-store-mk__pin-text">${iniciais.slice(0, 1)}</span>`;
 
     return L.divIcon({
       className:   '',
-      html: `<div class="mapa-shop-marker">
-               <div class="mapa-shop-marker__roof"></div>
-               <div class="mapa-shop-marker__body">
-                 ${imgTag}
-                 <span class="mapa-shop-marker__initials" style="${initialsStyle}">${iniciais}</span>
-               </div>
-               <div class="mapa-shop-marker__pin"></div>
-               <div class="mapa-shop-marker__label">
-                 <span class="mapa-shop-marker__name">${nomeCurto}</span>
-                 ${numeroEnd ? `<span class="mapa-shop-marker__number">N&ordm;&nbsp;${numeroEnd}</span>` : ''}
+      html: `<div class="mapa-store-mk">
+               <img class="mapa-store-mk__bg" src="/shared/img/store-marker.png" alt="">
+               <div class="mapa-store-mk__window">${windowContent}</div>
+               <div class="mapa-store-mk__pin-dot">${pinContent}</div>
+               <div class="mapa-store-mk__label">
+                 <span class="mapa-store-mk__name">${nomeCurto}</span>
+                 ${numeroEnd ? `<span class="mapa-store-mk__number">N&ordm;&nbsp;${numeroEnd}</span>` : ''}
                </div>
              </div>`,
-      iconSize:    [116, 96],
-      iconAnchor:  [58, 72],
-      popupAnchor: [0, -74],
+      iconSize:    [130, 130],
+      iconAnchor:  [104, 114],
+      popupAnchor: [0, -116],
     });
   }
 

@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260520';
+const SW_CLI_VERSION = '20260521';
 
 class SWCliente {
 
@@ -89,6 +89,7 @@ class SWCliente {
     '/shared/img/icon-192-cliente.png',
     '/shared/img/icon-512-cliente.png',
     '/shared/img/login.svg',
+    '/shared/img/store-marker.png',
   ];
 
   // ── Instala: pré-cacheia static em CACHE_STATIC e imagens em CACHE_IMAGES ──
