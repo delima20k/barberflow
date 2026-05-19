@@ -4419,6 +4419,53 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: var(--text, #2b1b12);
 }
 
+/* ── Lista de serviços da BarbeariaPage (bp-serv-*) ── */
+.bp-serv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(107, 74, 50, .1);
+}
+.bp-serv-img {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(107, 74, 50, .18);
+  background: var(--card2, #f0e8d8);
+}
+.bp-serv-img--vazio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.bp-serv-img--vazio::after { content: '✂️'; }
+.bp-serv-info { flex: 1; min-width: 0; }
+.bp-serv-nome {
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text, #2b1b12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bp-serv-meta {
+  margin: 2px 0 0;
+  font-size: .75rem;
+  color: var(--text-muted, #8c7057);
+}
+.bp-serv-preco {
+  margin: 0;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--gold-dark, #A0722A);
+  white-space: nowrap;
+}
+
 /* ── Modais de confirmação de presença (ConfirmacaoCorteModal) ── */
 .ccm-overlay {
   position: fixed;
