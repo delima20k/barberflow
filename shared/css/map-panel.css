@@ -186,15 +186,27 @@
   /* height animada pelo JS via style.height */
   transition: height 300ms cubic-bezier(.4, 0, .2, 1);
   will-change: height;
-  border-radius: 12px 12px 0 0;
+  border-radius: 12px;
   background: transparent;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Dentro do frame: map-card sem border-radius próprio */
+/* Dentro do frame: map-card preenche todo o painel */
 .mpf-frame .map-card {
-  border-radius: 12px 12px 0 0;
+  border-radius: 12px;
   overflow:      hidden;
   margin:        0;
+  flex:          1;
+  display:       flex;
+  flex-direction: column;
+}
+
+/* Mapa preenche 100% do card */
+.mpf-frame .mapa-container {
+  flex:          1;
+  height:        100% !important;
+  border-radius: 12px;
 }
 
 /* ── Handle de arraste (MapDragHandle) ─────────────────────── */
@@ -281,7 +293,7 @@
   }
 
   .mpf-frame .map-card {
-    border-radius: 15px 15px 0 0;
+    border-radius: 15px;
   }
 
   .mpd-handle {
