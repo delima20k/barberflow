@@ -1,0 +1,54 @@
+# =============================================================
+# .dockerignore — exclui arquivos desnecessários da imagem Docker.
+#
+# Regra: a imagem Docker da API precisa APENAS de:
+#   api.js, src/, node_modules/ (prod), package*.json
+# =============================================================
+
+# Dependências locais (Stage 1 reinstala do zero)
+node_modules/
+
+# Secrets — NUNCA entram na imagem
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Editor / OS
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Frontend — não faz parte da imagem da API
+apps/
+shared/
+copy/
+scripts/
+server.js
+*.html
+cliente.html
+profissional.html
+index.html
+vercel.json
+
+# Banco de dados — gerenciado separadamente via Supabase CLI
+supabase/
+
+# Testes e ferramentas de dev
+tests/
+jest.config.js
+*.test.js
+
+# Logs locais
+logs/
+*.log
+npm-debug.log*
+
+# PM2 (não necessário dentro do container)
+ecosystem.config.js

@@ -1,0 +1,31 @@
+{
+  "name": "BarberFlow Profissional",
+  "short_name": "BarberFlow Pro",
+  "description": "Gerencie agenda, fila, financeiro e portfólio em um só lugar",
+  "id": "com.barberflow.profissional",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/shared/img/icon-192-pro.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/shared/img/icon-512-pro.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

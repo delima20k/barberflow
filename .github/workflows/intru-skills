@@ -1,0 +1,91 @@
+.github/agents/workflows/
+├── skill.md              ← mestre (~70 linhas) — REESCRITO
+├── skill-index.md        ← índice geral + mapa por tarefa — NOVO
+└── skills/
+    ├── skill-01-base.md       ← identidade, fluxo, SOLID, patterns, fallback
+    ├── skill-02-frontend.md   ← Router, animações, CSS, cards, componentes
+    ├── skill-03-backend.md    ← services, repositories, BFF, controllers
+    ├── skill-04-seguranca.md  ← OWASP, JWT, criptografia, headers
+    ├── skill-05-banco.md      ← Supabase, RLS, queries, storage, migrations
+    ├── skill-06-p2p-mensagens.md ← MediaP2P, WebRTC, Realtime, E2E
+    ├── skill-07-testes.md     ← node:test, TDD red-green-refactor, cobertura
+    ├── skill-08-performance.md ← N+1, cache, debounce, Blob URLs, custo
+    └── skill-09-refatoracao.md ← checklist 8 pontos, check final 13 itens
+
+1º Título: "Prompt Inicial de Sessão"
+O que deve ser feito: Sempre que iniciar uma nova conversa com a IA, aplique este 
+prompt para garantir que a skill será consultada, o índice será usado 
+e todas as boas práticas serão seguidas antes de qualquer implementação.  
+
+1º "Prompt Inicial de Sessão"
+------------------pronpt-1--------------------------
+Antes de implementar qualquer pedido meu, leia e siga obrigatoriamente a skill do agente DELIMA.
+
+Comece por este arquivo mestre:
+
+.github/agents/workflow/skill.md
+
+Depois consulte o índice geral:
+
+.github/agents/workflow/skill-index.md
+
+Use o índice para identificar quais arquivos específicos precisam ser lidos dentro de:
+
+.github/agents/workflow/skills/
+
+Leia somente os arquivos relacionados à tarefa, para economizar contexto e evitar leitura desnecessária.
+
+Sempre siga as regras de:
+- Orientação a Objetos;
+- Clean Architecture;
+- SOLID;
+- DRY;
+- segurança;
+- performance;
+- testes;
+- baixo custo;
+- escalabilidade;
+- refatoração controlada;
+- paridade entre app cliente e app profissional quando aplicável.
+
+Antes de criar qualquer classe nova, consulte:
+
+CLASS_REGISTRY.md
+
+Reutilize classes existentes sempre que possível.
+
+Se a regra específica da tarefa não existir no skill.md, no skill-index.md ou nos arquivos da pasta skills/, então:
+1. implemente como um desenvolvedor sênior;
+2. use boas práticas modernas, seguras, escaláveis e orientadas a objetos;
+3. documente a nova boa prática no arquivo de skill mais adequado;
+4. atualize o skill-index.md;
+5. se criar classe nova, atualize também o CLASS_REGISTRY.md.
+
+Não altere arquivos fora do escopo da tarefa.
+Não duplique lógica.
+Não crie funções soltas se o projeto usa padrão de classes.
+Depois de implementar, revise segurança, performance, OOP, DRY, testes e possíveis bugs.
+No final, entregue um resumo curto do que foi alterado.
+---------------------------final---------------------------
+
+2º Título: "Prompt de Refatoração do Plano de Skills"
+
+O que deve ser feito: Utilize este prompt uma única vez para instruir o Copilot a modularizar o skill.md em arquivos menores por tema, criando um índice geral e garantindo uma consulta mais rápida e organizada.
+
+2º "Prompt de Refatoração do Plano de Skills"
+---------------------------------PROMPT------------------
+Antes de implementar qualquer pedido meu, leia primeiro:
+
+.github/agents/workflow/skill.md
+
+Depois consulte:
+
+.github/agents/workflow/skill-index.md
+
+Use o índice para ler somente os arquivos necessários em:
+
+.github/agents/workflow/skills/
+
+Siga OOP, Clean Architecture, SOLID, DRY, segurança, performance, testes, baixo custo, escalabilidade e refatoração controlada. Consulte CLASS_REGISTRY.md antes de criar classes novas.
+
+Se a regra da tarefa não existir nas skills, implemente como desenvolvedor sênior, documente a nova boa prática no arquivo correto e atualize o skill-index.md. Não altere arquivos fora do escopo e entregue um resumo curto.

@@ -1,0 +1,179 @@
+'use strict';
+
+// =============================================================
+// FilaRepository.js — Repositório de fila de espera.
+// Camada: infra
+//
+// Tabela: queue_entries.
+// Sem lógica de negócio — apenas acesso e persistência.
+// =============================================================
+
+const BaseRepository = require('../infra/BaseRepository');
+
+class FilaRepository extends BaseRepository {
+
+  #supabase;
+
+  static #SELECT_ENTRADA = `
+    id, barbershop_id, client_id, chair_id, status, position, guest_name, check_in_at, served_at, done_at,
+    client:profiles!client_id(id, full_name, avatar_path, updated_at),
+    chair:chairs!chair_id(id, label, status)
+  `;
+
+  /** @param {import('@supabase/supabase-js').SupabaseClient} supabase */
+  constructor(supabase) {
+    super('FilaRepository');
+    this.#supabase = supabase;
+  }
+
+  /**
+   * Retorna entradas ativas da fila de uma barbearia.
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}
+   */
+  async getFila(barbershopId) {
+    this._validarUuid('barbershopId', barbershopId);
+
+    const { data, error } = await this.#supabase
+      .from('queue_entries')
+      .select(FilaRepository.#SELECT_ENTRADA)
+      .eq('barbershop_id', barbershopId)
+      .in('status', ['waiting', 'in_service'])
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  /**
+   * Busca uma entrada da fila pelo ID.
+   * @param {string} id
+   * @returns {Promise<object|null>}
+   */
+  async getEntrada(id) {
+    this._validarUuid('id', id);
+
+    const { data, error } = await this.#supabase
+      .from('queue_entries')
+      .select(FilaRepository.#SELECT_ENTRADA)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ?? null;
+  }
+
+  /**
+   * Insere usuário na fila.
+   * @param {string} barbershopId
+   * @param {string} userId
+   * @param {object} [dados] — { chair_id?, notes? }
+   * @returns {Promise<object>}
+   */
+  async entrar(barbershopId, userId, dados = {}) {
+    this._validarUuid('barbershopId', barbershopId);
+    this._validarUuid('userId', userId);
+
+    const { data, error } = await this.#supabase
+      .from('queue_entries')
+      .insert({
+        barbershop_id: barbershopId,
+        client_id:     userId,
+        chair_id:      dados.chair_id ?? null,
+        status:        'waiting',
+      })
+      .select(FilaRepository.#SELECT_ENTRADA)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Remove a entrada da fila (hard delete com verificação de ownership).
+   * @param {string} entradaId
+   * @param {string} userId — verifica ownership via eq('user_id')
+   * @returns {Promise<boolean>}
+   */
+  async sair(entradaId, userId) {
+    this._validarUuid('entradaId', entradaId);
+    this._validarUuid('userId', userId);
+
+    const { error } = await this.#supabase
+      .from('queue_entries')
+      .delete()
+      .eq('id', entradaId)
+      .eq('client_id', userId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  /**
+   * Atualiza o status de uma entrada da fila.
+   * @param {string} entradaId
+   * @param {string} novoStatus
+   * @returns {Promise<object>}
+   */
+  async atualizarStatus(entradaId, novoStatus) {
+    this._validarUuid('entradaId', entradaId);
+
+    const { data, error } = await this.#supabase
+      .from('queue_entries')
+      .update({ status: novoStatus })
+      .eq('id', entradaId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Retorna a fila ativa junto com o timestamp da última mudança.
+   * Usado pelo endpoint de polling para respostas condicionais.
+   * @param {string} barbeariaId
+   * @returns {Promise<{fila: object[], ultimaMudanca: string|null}>}
+   */
+  async getEstado(barbeariaId) {
+    this._validarUuid('barbeariaId', barbeariaId);
+
+    const [filaResult, tsResult] = await Promise.all([
+      this.#supabase
+        .from('queue_entries')
+        .select(FilaRepository.#SELECT_ENTRADA)
+        .eq('barbershop_id', barbeariaId)
+        .in('status', ['waiting', 'in_service'])
+        .order('position', { ascending: true }),
+
+      this.#supabase
+        .from('queue_entries')
+        .select('done_at, check_in_at')
+        .eq('barbershop_id', barbeariaId)
+        .order('done_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (filaResult.error) throw filaResult.error;
+    // tsResult.error é não-fatal: timestamp indisponível apenas desativa o cache condicional
+    if (tsResult.error) LoggerService?.warn?.('[FilaRepository] getEstado ts query:', tsResult.error.message);
+
+    const fila = filaResult.data ?? [];
+    const ultima = tsResult.data;
+
+    // Inclui served_at das entradas in_service para detectar promoção à cadeira.
+    // Sem isso, done_at ?? check_in_at não muda quando o cliente vai de waiting→in_service,
+    // fazendo o polling retornar semMudancas:true e nunca disparar o modal de confirmação.
+    const todasMudancas = [
+      ultima?.done_at,
+      ultima?.check_in_at,
+      ...fila.map(e => e.served_at).filter(Boolean),
+    ].filter(Boolean).sort();
+    const ultimaMudanca = todasMudancas.at(-1) ?? null;
+
+    return { fila, ultimaMudanca };
+  }
+}
+
+module.exports = FilaRepository;

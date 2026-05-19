@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "regions": ["gru1"],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "includeFiles": "app.js,config/**,controllers/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
+    },
+    "server.js": {
+      "maxDuration": 30,
+      "includeFiles": "app.js,config/**,controllers/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
+  ]
+}

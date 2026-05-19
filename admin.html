@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>BarberFlow — Admin</title>
+
+  <!-- Design tokens do projeto -->
+  <link rel="stylesheet" href="shared/css/tokens.css">
+  <link rel="stylesheet" href="shared/css/button-system.css">
+
+  <!-- Estilos da dashboard -->
+  <link rel="stylesheet" href="apps/profissional/assets/css/admin.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     TELA: LOGIN
+════════════════════════════════════════════════════════ -->
+<div id="adm-login" class="adm-tela adm-tela--visivel">
+  <div class="adm-login-wrap">
+    <div class="adm-login-card">
+
+      <div class="adm-login-logo">
+        <h1>BarberFlow</h1>
+        <span>Painel de Administração</span>
+      </div>
+
+      <form id="adm-login-form" class="adm-login-form" novalidate autocomplete="off">
+        <label>
+          E-mail
+          <input name="email" type="email" required placeholder="admin@barberflow.com" autocomplete="username">
+        </label>
+        <label>
+          Senha
+          <input name="senha" type="password" required placeholder="••••••••" autocomplete="current-password">
+        </label>
+
+        <p id="adm-login-erro" class="adm-login-erro" aria-live="polite"></p>
+
+        <button type="submit" class="btn btn--primary">Entrar</button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     TELA: DASHBOARD
+════════════════════════════════════════════════════════ -->
+<div id="adm-dash" class="adm-tela">
+  <div class="adm-layout">
+
+    <!-- Header -->
+    <header class="adm-header">
+      <span class="adm-header__titulo">BarberFlow Admin</span>
+      <span class="adm-header__badge">Admin</span>
+      <button id="adm-btn-logout" class="btn btn--secondary btn--sm" style="margin-left:auto;">
+        Sair
+      </button>
+    </header>
+
+    <!-- Sidebar / Bottom nav -->
+    <nav class="adm-sidebar" aria-label="Navegação da dashboard">
+      <button class="adm-nav__item adm-nav__item--ativo" data-aba="usuarios" type="button">
+        <span class="adm-nav__icon" aria-hidden="true">👤</span>
+        Usuários
+      </button>
+      <button class="adm-nav__item" data-aba="barbeiros" type="button">
+        <span class="adm-nav__icon" aria-hidden="true">✂️</span>
+        Barbeiros
+      </button>
+      <button class="adm-nav__item" data-aba="financeiro" type="button">
+        <span class="adm-nav__icon" aria-hidden="true">💰</span>
+        Financeiro
+      </button>
+    </nav>
+
+    <!-- Conteúdo principal -->
+    <main class="adm-main">
+
+      <!-- ─── Aba: Usuários ─────────────────────────────── -->
+      <section id="adm-aba-usuarios" class="adm-aba adm-aba--visivel" aria-label="Gestão de usuários">
+
+        <!-- Counter cards -->
+        <div id="adm-cards" class="adm-cards">
+          <div class="adm-counter-card">
+            <span class="adm-counter-card__label">Clientes</span>
+            <span class="adm-counter-card__value">—</span>
+          </div>
+          <div class="adm-counter-card">
+            <span class="adm-counter-card__label">Profissionais</span>
+            <span class="adm-counter-card__value">—</span>
+          </div>
+          <div class="adm-counter-card">
+            <span class="adm-counter-card__label">Barbearias</span>
+            <span class="adm-counter-card__value">—</span>
+          </div>
+        </div>
+
+        <!-- Cabeçalho da aba -->
+        <div class="adm-aba__header">
+          <h2 class="adm-aba__titulo">Usuários</h2>
+          <div class="adm-aba__controles">
+            <select id="adm-filtro-role" class="adm-select" aria-label="Filtrar por perfil">
+              <option value="">Todos os perfis</option>
+              <option value="client">Clientes</option>
+              <option value="professional">Profissionais</option>
+            </select>
+            <button id="adm-btn-add-usuario" class="btn btn--primary btn--sm" type="button">
+              + Adicionar
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="adm-table-wrap">
+          <table class="adm-table" aria-label="Lista de usuários">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Tipo</th>
+                <th>Cadastro</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="adm-usuarios-tbody">
+              <tr><td colspan="6" class="adm-carregando">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginação -->
+        <div class="adm-paginacao">
+          <button id="adm-usuarios-anterior" class="btn btn--secondary btn--sm" disabled type="button">‹ Anterior</button>
+          <span id="adm-usuarios-pagina" class="adm-paginacao__pagina">Página 1</span>
+          <button id="adm-usuarios-proximo" class="btn btn--secondary btn--sm" type="button">Próximo ›</button>
+        </div>
+
+      </section>
+
+
+      <!-- ─── Aba: Barbeiros ────────────────────────────── -->
+      <section id="adm-aba-barbeiros" class="adm-aba" aria-label="Gestão de barbeiros">
+
+        <div class="adm-aba__header">
+          <h2 class="adm-aba__titulo">Barbeiros &amp; Profissionais</h2>
+          <div class="adm-aba__controles">
+            <button id="adm-btn-add-barbeiro" class="btn btn--primary btn--sm" type="button">
+              + Adicionar
+            </button>
+          </div>
+        </div>
+
+        <div class="adm-table-wrap">
+          <table class="adm-table" aria-label="Lista de barbeiros">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Tipo</th>
+                <th>Cadastro</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="adm-barbeiros-tbody">
+              <tr><td colspan="5" class="adm-carregando">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="adm-paginacao">
+          <button id="adm-barbeiros-anterior" class="btn btn--secondary btn--sm" disabled type="button">‹ Anterior</button>
+          <span id="adm-barbeiros-pagina" class="adm-paginacao__pagina">Página 1</span>
+          <button id="adm-barbeiros-proximo" class="btn btn--secondary btn--sm" type="button">Próximo ›</button>
+        </div>
+
+      </section>
+
+
+      <!-- ─── Aba: Financeiro ───────────────────────────── -->
+      <section id="adm-aba-financeiro" class="adm-aba" aria-label="Gestão financeira">
+
+        <div class="adm-aba__header">
+          <h2 class="adm-aba__titulo">Financeiro / Planos</h2>
+          <div class="adm-aba__controles">
+            <select id="adm-filtro-status" class="adm-select" aria-label="Filtrar por status">
+              <option value="">Todos os status</option>
+              <option value="active">Ativos</option>
+              <option value="trial">Trial</option>
+              <option value="expired">Expirados</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="adm-table-wrap">
+          <table class="adm-table" aria-label="Lista de subscriptions">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>E-mail</th>
+                <th>Plano</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Expira em</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="adm-financeiro-tbody">
+              <tr><td colspan="7" class="adm-carregando">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="adm-paginacao">
+          <button id="adm-financeiro-anterior" class="btn btn--secondary btn--sm" disabled type="button">‹ Anterior</button>
+          <span id="adm-financeiro-pagina" class="adm-paginacao__pagina">Página 1</span>
+          <button id="adm-financeiro-proximo" class="btn btn--secondary btn--sm" type="button">Próximo ›</button>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     MODAL GENÉRICO
+════════════════════════════════════════════════════════ -->
+<div id="adm-modal-overlay" class="adm-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="adm-modal-titulo">
+  <div id="adm-modal" class="adm-modal">
+    <div class="adm-modal__header">
+      <h3 id="adm-modal-titulo" class="adm-modal__titulo"></h3>
+    </div>
+    <div id="adm-modal-corpo" class="adm-modal__corpo"></div>
+    <div class="adm-modal__footer">
+      <button id="adm-modal-cancelar" class="btn btn--secondary" type="button">Cancelar</button>
+      <button id="adm-modal-confirmar" class="btn btn--primary" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════ -->
+<script src="apps/profissional/assets/js/admin/AdminApiService.js"></script>
+<script src="apps/profissional/assets/js/admin/AdminDashboard.js"></script>
+
+</body>
+</html>

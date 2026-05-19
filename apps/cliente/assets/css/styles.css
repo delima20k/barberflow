@@ -1,0 +1,166 @@
+/* ============================================================
+   BARBERFLOW — App CLIENTE — estilos específicos
+   Depende de: ../../shared/css/tokens.css
+               ../../shared/css/components.css
+============================================================ */
+
+/* ── Botão flutuante — pingo d'água para reabrir footer ────── */
+#btn-abrir-footer {
+  all: unset;
+  position: fixed;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  right: 18px;
+  z-index: 998; /* abaixo do footer (1000) mas acima do conteúdo */
+  width: 34px;   /* era 48px → menor */
+  height: 44px;  /* era 62px → menor */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  /* Oculto por padrão */
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(32px) scale(0.80);
+  transition:
+    opacity   0.38s cubic-bezier(.4, 0, .2, 1),
+    transform 0.38s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* Estado visível — desliza para cima ao aparecer */
+#btn-abrir-footer.visivel {
+  opacity: 0.58; /* era 1 → mais transparente */
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+#btn-abrir-footer svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 3px 10px rgba(212, 160, 23, 0.35));
+  transition: filter var(--ease), transform var(--ease);
+}
+
+/* Feedback de toque */
+#btn-abrir-footer:active svg {
+  filter: drop-shadow(0 2px 6px rgba(212, 160, 23, 0.60));
+  transform: scale(0.90);
+}
+
+/* Pulso sutil para chamar atenção quando aparece */
+@keyframes pingo-pulso {
+  0%   { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-4px) scale(1.06); }
+  100% { transform: translateY(0) scale(1); }
+}
+#btn-abrir-footer.visivel {
+  animation: pingo-pulso 1.8s cubic-bezier(.4, 0, .2, 1) 0.4s 2 both;
+}
+
+/* ── Aura pulsante (gora) exatamente ao redor do botão gota ── */
+#btn-abrir-footer { overflow: visible; }
+
+#btn-abrir-footer::before,
+#btn-abrir-footer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(212, 175, 55, 0.52);
+  border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; /* forma de gota */
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+/* Primeiro anel — começa logo ao aparecer */
+#btn-abrir-footer.visivel::before {
+  animation: gora-aura 4.5s ease-out 0.5s infinite;
+}
+
+/* Segundo anel — defasado para efeito sonar contínuo */
+#btn-abrir-footer.visivel::after {
+  animation: gora-aura 4.5s ease-out 2.75s infinite;
+}
+
+@keyframes gora-aura {
+  0%   { transform: scale(1);    opacity: 0.55; }
+  60%  { opacity: 0.18; }
+  100% { transform: scale(2.85); opacity: 0;    }
+}
+
+/* ── Startup Splash (ClienteStartupSplash.js) ─────────────── */
+.cs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url('../img/imgFundoSplash.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.cs-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 5, 0, 0.48);
+}
+.cs-overlay.cs-ativo  { opacity: 1; }
+.cs-overlay.cs-saindo { opacity: 0; }
+
+.cs-conteudo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cs-logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.7));
+  animation: csFloat 3s ease-in-out infinite;
+}
+
+.cs-nome {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold, #D4AF37);
+  margin: 0;
+  text-shadow: 0 0 18px rgba(212, 175, 55, 0.5);
+}
+
+.cs-polo-wrap {
+  height: 9rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.cs-polo-wrap .barber-pole {
+  transform: scale(0.38);
+  transform-origin: top center;
+}
+
+.cs-boas-vindas {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: rgba(245, 233, 220, 0.8);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+@keyframes csFloat {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-8px); }
+}
