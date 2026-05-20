@@ -261,9 +261,12 @@ class MensalistaModal {
     if (avatarPath) {
       const img = document.createElement('img');
       img.className = 'mslm-avatar';
-      img.src = avatarPath;
+      img.src = (typeof SupabaseService !== 'undefined')
+        ? SupabaseService.resolveAvatarUrl(avatarPath) || ''
+        : '';
       img.alt = '';
       img.setAttribute('aria-hidden', 'true');
+      img.onerror = () => { img.remove(); };
       li.appendChild(img);
     }
 
@@ -300,9 +303,12 @@ class MensalistaModal {
     if (profile.avatar_path) {
       const img = document.createElement('img');
       img.className = 'mslm-avatar';
-      img.src = profile.avatar_path;
+      img.src = (typeof SupabaseService !== 'undefined')
+        ? SupabaseService.resolveAvatarUrl(profile.avatar_path) || ''
+        : '';
       img.alt = '';
       img.setAttribute('aria-hidden', 'true');
+      img.onerror = () => { img.remove(); };
       li.appendChild(img);
     }
 
