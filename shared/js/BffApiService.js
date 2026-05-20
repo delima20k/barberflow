@@ -80,6 +80,34 @@ class BffApiService {
   }
 
   /**
+   * Executa PATCH autenticado na BFF com corpo binário (imagens).
+   * @param {string}      path        — ex: '/api/v1/barbearias/minha/imagem?tipo=logo'
+   * @param {ArrayBuffer} buffer
+   * @param {string}      contentType — ex: 'image/jpeg'
+   * @returns {Promise<{ data: any, error: Error|null }>}
+   */
+  static async patchBinario(path, buffer, contentType) {
+    const url = `${BffApiService.#BASE_URL}${path}`;
+    try {
+      const authHeaders = await BffApiService.#authHeaders();
+      const res = await BffApiService.#fetchComTimeout(url, {
+        method:  'PATCH',
+        headers: { 'Content-Type': contentType, ...authHeaders },
+        body:    buffer,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, error: err };
+      }
+      return { data: json?.dados ?? null, error: null };
+    } catch (err) {
+      return { data: null, error: BffApiService.#parseErroRede(err) };
+    }
+  }
+
+  /**
    * Executa POST autenticado na BFF com timeout e retorno estruturado.
    * @param {string} path   — ex: '/api/v1/notificacoes/push-barbeiro'
    * @param {object} body   — payload JSON
@@ -161,6 +189,17 @@ class BffApiService {
 
     favoritosModal:            (barbershopId, professionalId) =>
       BffApiService.get('/api/v1/mensalistas/favoritos-modal', { barbershop_id: barbershopId, professional_id: professionalId }),
+  };
+
+  // ── Namespace: barbearias ─────────────────────────────────────────
+
+  static barbearias = {
+    salvarImagem: (tipo, buffer, mime) =>
+      BffApiService.patchBinario(
+        `/api/v1/barbearias/minha/imagem?tipo=${encodeURIComponent(tipo)}`,
+        buffer,
+        mime,
+      ),
   };
 
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──

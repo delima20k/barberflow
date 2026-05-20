@@ -134,7 +134,6 @@ class MinhaBarbeariaPage {
       convidarBtn:        q('mb-equipe-convidar-btn'),
       conviteFechar:      q('mb-convite-fechar'),
       conviteNomeBarbearia: q('mb-convite-barbearia-nome'),
-      conviteShopLogo:    q('mb-convite-shop-logo'),
       conviteCadeiraLogo: q('mb-convite-cadeira-logo'),
       conviteInput:       q('mb-convite-input'),
       conviteBtnBuscar:   q('mb-convite-btn-buscar'),
@@ -1321,7 +1320,6 @@ class MinhaBarbeariaPage {
     const url = pathOuUrl
       ? (isUrl ? pathOuUrl : (SupabaseService.getLogoUrl(pathOuUrl) || pathOuUrl))
       : '/shared/img/Logo01.png';
-    if (this.#refs.conviteShopLogo) this.#refs.conviteShopLogo.src = url;
     if (this.#refs.conviteCadeiraLogo) this.#refs.conviteCadeiraLogo.src = url;
   }
 
@@ -2063,22 +2061,13 @@ class MinhaBarbeariaPage {
     const buffer = await file.arrayBuffer();
     const mime   = file.type || 'image/jpeg';
 
-    const res = await BackendApiService.uploadBinario(
-      `/api/v1/barbearias/minha/imagem?tipo=${tipo}`,
-      buffer,
-      { method: 'PATCH', contentType: mime },
-    );
+    const { data, error } = await BffApiService.barbearias.salvarImagem(tipo, buffer, mime);
+    if (error) throw new Error(error.message ?? `Falha no upload`);
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.mensagem ?? `Falha no upload (${res.status})`);
-    }
-
-    const body = await res.json();
     return {
-      url:        body.dados.publicUrl,
-      path:       body.dados.path,
-      updated_at: body.dados.updated_at,
+      url:        data.publicUrl,
+      path:       data.path,
+      updated_at: data.updated_at,
     };
   }
 
