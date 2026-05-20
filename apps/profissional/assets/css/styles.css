@@ -2249,10 +2249,20 @@
 
 #mb-convite-enviar-secao {
   margin-top: .75rem;
+  margin-bottom: 1rem;
 }
 
 #mb-convite-btn-enviar {
   margin: 0;
+  background: var(--brown, #5C3317);
+  border-color: var(--brown, #5C3317);
+  color: #fff;
+}
+
+#mb-convite-btn-enviar:hover,
+#mb-convite-btn-enviar:active {
+  background: var(--brown-light, #7A4520);
+  border-color: var(--brown-light, #7A4520);
 }
 
 /* ================================================================
