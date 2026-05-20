@@ -39,9 +39,16 @@ class MensalistaModal {
               <ul class="mslm-lista-ativos" aria-label="Mensalistas ativos"></ul>
             </section>
 
-            <!-- Seção: Adicionar -->
+            <!-- Seção: Favoritos elegíveis (lista automática) -->
             <section class="mslm-secao">
-              <p class="mslm-secao-label">Adicionar mensalista</p>
+              <p class="mslm-secao-label">Favoritos elegíveis</p>
+              <ul class="mslm-lista-elegiveis" aria-label="Favoritos elegíveis"></ul>
+              <p class="mslm-elegiveis-msg" aria-live="polite"></p>
+            </section>
+
+            <!-- Seção: Busca manual (textual) -->
+            <section class="mslm-secao">
+              <p class="mslm-secao-label">Buscar outro cliente</p>
               <div class="mslm-busca-row">
                 <input
                   class="mslm-busca-input"
@@ -52,7 +59,7 @@ class MensalistaModal {
                 />
                 <button class="mslm-btn-buscar" aria-label="Buscar">🔍</button>
               </div>
-              <ul class="mslm-lista-disponiveis" aria-label="Clientes disponíveis"></ul>
+              <ul class="mslm-lista-disponiveis" aria-label="Clientes encontrados"></ul>
               <p class="mslm-busca-msg" aria-live="polite"></p>
             </section>
           </div>
@@ -62,11 +69,13 @@ class MensalistaModal {
           </div>
         </div>`;
 
-      const listaAtivosEl   = overlay.querySelector('.mslm-lista-ativos');
-      const listaDisponEl   = overlay.querySelector('.mslm-lista-disponiveis');
-      const buscaInput      = overlay.querySelector('.mslm-busca-input');
-      const buscaMsg        = overlay.querySelector('.mslm-busca-msg');
-      const btnBuscar       = overlay.querySelector('.mslm-btn-buscar');
+      const listaAtivosEl    = overlay.querySelector('.mslm-lista-ativos');
+      const listaElegiveisEl = overlay.querySelector('.mslm-lista-elegiveis');
+      const elegiveisMsg     = overlay.querySelector('.mslm-elegiveis-msg');
+      const listaDisponEl    = overlay.querySelector('.mslm-lista-disponiveis');
+      const buscaInput       = overlay.querySelector('.mslm-busca-input');
+      const buscaMsg         = overlay.querySelector('.mslm-busca-msg');
+      const btnBuscar        = overlay.querySelector('.mslm-btn-buscar');
 
       // Fecha e resolve
       function _fechar() {
@@ -82,11 +91,32 @@ class MensalistaModal {
       overlay.querySelector('.mslm-fechar').addEventListener('click', _fechar);
       overlay.querySelector('.mslm-btn--fechar').addEventListener('click', _fechar);
 
-      // Busca de disponíveis
+      // Recarrega ativos + elegíveis (chamado após mutação)
+      const recarregarTudo = async () => {
+        await Promise.all([
+          MensalistaModal.#carregarAtivos(barbershopId, listaAtivosEl, () => recarregarTudo()),
+          MensalistaModal.#carregarElegiveis(barbershopId, listaElegiveisEl, elegiveisMsg, async (perfil, btn) => {
+            btn.disabled = true;
+            const { error } = await BffApiService.mensalistas.adicionar(barbershopId, perfil.id);
+            if (error) {
+              btn.disabled = false;
+              elegiveisMsg.textContent = `Erro ao adicionar: ${error.message}`;
+              return;
+            }
+            await recarregarTudo();
+          }),
+        ]);
+      };
+
+      // Busca textual manual — só responde com termo não vazio
       const executarBusca = async () => {
         const q = buscaInput.value.trim();
         listaDisponEl.innerHTML = '';
-        buscaMsg.textContent    = 'Buscando...';
+        if (!q) {
+          buscaMsg.textContent = 'Digite um nome para buscar.';
+          return;
+        }
+        buscaMsg.textContent = 'Buscando...';
         const { data, error } = await BffApiService.mensalistas.buscarClientesDisponiveis(barbershopId, q);
         if (error) {
           buscaMsg.textContent = `Erro: ${error.message}`;
@@ -104,7 +134,7 @@ class MensalistaModal {
               return;
             }
             li.remove();
-            await MensalistaModal.#carregarAtivos(barbershopId, listaAtivosEl);
+            await recarregarTudo();
           });
           listaDisponEl.appendChild(li);
         });
@@ -113,8 +143,8 @@ class MensalistaModal {
       btnBuscar.addEventListener('click', executarBusca);
       buscaInput.addEventListener('keydown', e => { if (e.key === 'Enter') executarBusca(); });
 
-      // Carrega ativos e exibe
-      MensalistaModal.#carregarAtivos(barbershopId, listaAtivosEl);
+      // Carrega ativos + elegíveis automaticamente ao abrir
+      recarregarTudo();
 
       document.body.appendChild(overlay);
       requestAnimationFrame(() => overlay.classList.add('mslm-overlay--visivel'));
@@ -125,10 +155,11 @@ class MensalistaModal {
 
   /**
    * Carrega e renderiza a lista de mensalistas ativos.
-   * @param {string}      barbershopId
-   * @param {HTMLElement} listaEl
+   * @param {string}        barbershopId
+   * @param {HTMLElement}   listaEl
+   * @param {Function|null} [onAfterRemove] — chamado após remover (para re-render global)
    */
-  static async #carregarAtivos(barbershopId, listaEl) {
+  static async #carregarAtivos(barbershopId, listaEl, onAfterRemove = null) {
     listaEl.innerHTML = '<li class="mslm-loading">Carregando...</li>';
     const { data, error } = await BffApiService.mensalistas.listar(barbershopId);
     listaEl.innerHTML = '';
@@ -158,6 +189,11 @@ class MensalistaModal {
         btn.disabled = true;
         const { error: e } = await BffApiService.mensalistas.remover(row.id);
         if (e) { btn.disabled = false; return; }
+        // Re-render global garante que o cliente removido volte aos elegíveis
+        if (typeof onAfterRemove === 'function') {
+          await onAfterRemove();
+          return;
+        }
         li.remove();
         if (!listaEl.children.length) {
           const vazio = document.createElement('li');
@@ -165,6 +201,45 @@ class MensalistaModal {
           vazio.textContent = 'Nenhum mensalista ativo.';
           listaEl.appendChild(vazio);
         }
+      });
+      listaEl.appendChild(li);
+    });
+  }
+
+  /**
+   * Carrega e renderiza a lista automática de favoritos elegíveis.
+   * Origem: BFF → RPC get_clientes_favoritos_barbearia, já com
+   * mensalistas ativos excluídos.
+   *
+   * @param {string}      barbershopId
+   * @param {HTMLElement} listaEl
+   * @param {HTMLElement} msgEl
+   * @param {(perfil:object, btn:HTMLButtonElement) => Promise<void>} onAdicionar
+   */
+  static async #carregarElegiveis(barbershopId, listaEl, msgEl, onAdicionar) {
+    listaEl.innerHTML = '<li class="mslm-loading">Carregando...</li>';
+    msgEl.textContent = '';
+    const { data, error } = await BffApiService.mensalistas.favoritosElegiveis(barbershopId);
+    listaEl.innerHTML = '';
+
+    if (error) {
+      msgEl.textContent = `Erro ao carregar favoritos: ${error.message}`;
+      return;
+    }
+
+    const lista = data ?? [];
+    if (!lista.length) {
+      const li = document.createElement('li');
+      li.className   = 'mslm-vazio';
+      li.textContent = 'Nenhum favorito elegível. Use a busca abaixo.';
+      listaEl.appendChild(li);
+      return;
+    }
+
+    lista.forEach(perfil => {
+      const li = MensalistaModal.#criarItemDisponivel(perfil, async () => {
+        const btn = li.querySelector('.mslm-btn-adicionar');
+        await onAdicionar(perfil, btn);
       });
       listaEl.appendChild(li);
     });

@@ -140,7 +140,15 @@ class ClienteRepository extends BaseRepository {
 
     const ids = new Set();
 
-    // Apenas quem favoritou este profissional específico
+    // Quem favoritou a barbearia (necessário para paridade com a RPC)
+    const { data: shopFavs } = await this.#supabase
+      .from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    // Quem favoritou este profissional específico
     const { data: profFavs } = await this.#supabase
       .from('favorite_professionals')
       .select('user_id')

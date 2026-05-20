@@ -61,29 +61,13 @@ class CadeiraService {
 
   /**
    * Retorna perfis de usuários que favoritaram a barbearia OU o barbeiro.
-   * Delega ao Supabase via UserRepository — sem backend intermediário.
+   * Delega a FavoritosClientesService — fonte única da regra de favoritos.
    * @param {string} barbershopId
    * @param {string} professionalId
    * @returns {Promise<{id:string, full_name:string, email:string|null, avatar_path:string|null, updated_at:string|null}[]>}
    */
   static async getClientesFavoritos(barbershopId, professionalId) {
-    const rShop = InputValidator.uuid(barbershopId);
-    const rProf = InputValidator.uuid(professionalId);
-    if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
-    if (!rProf.ok) throw new TypeError(`[CadeiraService] professionalId: ${rProf.msg}`);
-
-    const { data, error } = await UserRepository.getFavoritosModal(
-      barbershopId,
-      professionalId,
-    );
-    if (error) throw error;
-    return (data ?? []).map(p => ({
-      id:          p.id,
-      full_name:   p.full_name   ?? 'Cliente',
-      email:       p.email       ?? null,
-      avatar_path: p.avatar_path ?? null,
-      updated_at:  p.updated_at  ?? null,
-    }));
+    return FavoritosClientesService.listarPorBarbeiro(barbershopId, professionalId);
   }
 
   // ═══════════════════════════════════════════════════════════

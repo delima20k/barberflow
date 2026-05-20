@@ -1143,7 +1143,10 @@
   <div id="mb-convite-panel" class="mb-sub-tela" aria-hidden="true">
     <div class="tela-topo">
       <button class="btn-voltar" id="mb-convite-fechar" aria-label="Voltar">Voltar</button>
-      <h2 class="tela-topo__titulo">Convidar Barbeiro</h2>
+      <div class="mb-convite-titulos">
+        <h1 id="mb-convite-barbearia-nome" class="mb-convite-barbearia-nome">Barbearia</h1>
+        <h2 class="tela-topo__titulo">Convidar Barbeiro</h2>
+      </div>
     </div>
     <div class="content mb-config-body">
 
@@ -1151,9 +1154,9 @@
       <div class="mb-config-secao">
         <p class="mb-config-secao-label">Buscar Barbeiro</p>
         <div class="mb-convite-busca-row">
-          <input id="mb-convite-input" class="mb-config-input" type="text"
+          <input id="mb-convite-input" class="mb-config-input inpustyle" type="text"
                  placeholder="Nome ou telefone do barbeiro..." autocomplete="off" maxlength="80">
-          <button id="mb-convite-btn-buscar" class="btn btn-gold btn-sm" type="button">Buscar</button>
+          <button id="mb-convite-btn-buscar" class="inpustyle inpustyle-btn" type="button" aria-label="Buscar barbeiro">+</button>
         </div>
         <div id="mb-convite-resultado" class="mb-convite-resultado"></div>
       </div>
@@ -1162,15 +1165,22 @@
       <div class="mb-config-secao" id="mb-convite-tipo-secao" hidden>
         <p class="mb-config-secao-label">Tipo de Parceria</p>
         <div class="mb-convite-tipo-grid">
-          <button class="mb-convite-tipo-btn mb-convite-tipo-btn--ativo"
-                  data-tipo="porcentagem" type="button">
-            <span class="mb-convite-tipo-icon">✂️</span>
+          <button class="mb-convite-tipo-btn btn-flow btn-flow--outline mb-convite-tipo-btn--ativo"
+                  data-tipo="porcentagem" type="button" aria-label="Parceria por porcentagem dos cortes">
+            <span class="mb-convite-tipo-icon mb-convite-tipo-icon--parceria" aria-hidden="true">
+              <img class="mb-convite-tipo-logo" src="/shared/img/Logo01.png" alt="" loading="lazy">
+              <span class="mb-convite-tipo-setas">&rarr;&larr;</span>
+              <img class="mb-convite-tipo-logo" src="/shared/img/Logo01.png" alt="" loading="lazy">
+            </span>
             <strong>% dos Cortes</strong>
             <small>Porcentagem de cada serviço</small>
           </button>
-          <button class="mb-convite-tipo-btn"
-                  data-tipo="cadeira" type="button">
-            <span class="mb-convite-tipo-icon">🪑</span>
+          <button class="mb-convite-tipo-btn btn-flow btn-flow--outline"
+                  data-tipo="cadeira" type="button" aria-label="Parceria por aluguel de cadeira">
+            <span class="mb-convite-tipo-icon mb-convite-tipo-icon--cadeira" aria-hidden="true">
+              <img class="mb-convite-cadeira-img" src="/shared/img/icones-cadeira-producao.png" alt="" loading="lazy">
+              <img class="mb-convite-cadeira-logo" src="/shared/img/Logo01.png" alt="" loading="lazy">
+            </span>
             <strong>Aluguel de Cadeira</strong>
             <small>Valor fixo mensal</small>
           </button>
@@ -1181,17 +1191,17 @@
       <div class="mb-config-secao" id="mb-convite-condicoes-secao" hidden>
         <div id="mb-convite-pct-wrap">
           <p class="mb-config-secao-label">Porcentagem (%)</p>
-          <input id="mb-convite-pct" class="mb-config-input" type="number"
+          <input id="mb-convite-pct" class="mb-config-input inpustyle" type="number"
                  min="1" max="99" step="1" placeholder="Ex: 40">
         </div>
         <div id="mb-convite-aluguel-wrap" hidden>
           <p class="mb-config-secao-label">Valor Mensal (R$)</p>
-          <input id="mb-convite-aluguel" class="mb-config-input" type="number"
+          <input id="mb-convite-aluguel" class="mb-config-input inpustyle" type="number"
                  min="0" step="0.01" placeholder="Ex: 800,00">
         </div>
-        <div style="margin-top:12px;">
+        <div class="mb-convite-msg-wrap">
           <p class="mb-config-secao-label">Mensagem (opcional)</p>
-          <textarea id="mb-convite-msg" class="mb-config-input" rows="3"
+          <textarea id="mb-convite-msg" class="mb-config-input inpustyle" rows="3"
                     maxlength="300" placeholder="Uma mensagem para o barbeiro..."></textarea>
         </div>
       </div>
@@ -2139,6 +2149,7 @@
 <script src="/shared/js/BarbershopService.js"></script>
 <script src="/shared/js/ProfessionalService.js"></script>
 <script src="/shared/js/StatusFechamentoModal.js"></script>
+<script src="/shared/js/FavoritosClientesService.js"></script>
 <script src="/shared/js/CadeiraService.js"></script>
 <script src="/shared/js/ClienteSeletorModal.js"></script>
 <script src="/shared/js/CorteModal.js"></script>

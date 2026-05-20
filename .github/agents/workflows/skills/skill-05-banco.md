@@ -49,3 +49,27 @@
 - Nunca alterar tabelas em produção sem migration correspondente
 - Migrations devem ser reversíveis quando possível (incluir rollback)
 - Nomear migration com timestamp e descrição: `20260517_adicionar_coluna_status_agendamento.sql`
+
+---
+
+## 6. FAVORITOS DE CLIENTE — REGRA OBRIGATÓRIA
+
+Telas/endpoints que listam usuários "favoritos" de uma barbearia ou de seus barbeiros **devem unir** as duas fontes de favoritos. Consultar uma só vaza ou esconde dados.
+
+- **Tabelas oficiais**
+  - `barbershop_interactions` — coluna `type = 'favorite'` indica favorito direto da barbearia
+  - `favorite_professionals` — favoritos de cada barbeiro (`professional_id`)
+  - `professional_shop_links` — relaciona barbeiro ↔ barbearia (`is_active = true`)
+
+- **RPCs canônicas**
+  - `get_clientes_favoritos_modal(p_barbershop_id, p_professional_id)` — favoritos da barbearia OU desse barbeiro específico (modal de cadeira)
+  - `get_clientes_favoritos_barbearia(p_barbershop_id)` — favoritos da barbearia OU de qualquer barbeiro vinculado (mensalistas / mslm-card)
+
+- **Fallbacks** (frontend `UserRepository` + backends Express): ao montar a lista localmente, fazer UNION manual entre `barbershop_interactions` (type='favorite') e `favorite_professionals`. Quando o escopo for "barbearia inteira", filtrar `favorite_professionals` pelos `professional_id` ativos em `professional_shop_links`.
+
+- **Proibido**
+  - Consultar apenas `favorite_professionals` (omite quem favoritou a barbearia, não o barbeiro)
+  - Usar `ilike('full_name', '%${q}%')` em `profiles` para listagem automática — isso é busca textual, NÃO favoritos. Listas automáticas devem sair das tabelas/RPC acima
+  - Aceitar `q` vazio em busca textual (`ilike '%%'` retorna todos os perfis do sistema)
+
+- **Centralização**: a regra de favoritos vive em `FavoritosClientesService` (frontend) e na RPC do banco. Toda nova tela que precise "listar quem favoritou X" deve reusar essas fontes — nunca redeclarar o UNION.

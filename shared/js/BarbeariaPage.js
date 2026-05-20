@@ -813,7 +813,10 @@ class BarbeariaPage {
       }
     } catch (_) { /* rede — deixa prosseguir; backend rejeita duplicata */ }
 
-    const serviceIds = await ModalController.abrirSelecaoServicos({ servicos: this.#servicos });
+    const serviceIds = await ModalController.abrirSelecaoServicos({
+      servicos: this.#servicos,
+      barbershopId: this.#shopId,
+    });
     if (!serviceIds?.length) return;
 
     // Auto-promoção: se a cadeira de produção deste barbeiro está vazia, vai direto para atendimento
@@ -903,7 +906,10 @@ class BarbeariaPage {
       }
     } catch (_) { /* rede — deixa prosseguir; backend rejeita duplicata */ }
 
-    const serviceIds = await ModalController.abrirSelecaoServicos({ servicos: this.#servicos });
+    const serviceIds = await ModalController.abrirSelecaoServicos({
+      servicos: this.#servicos,
+      barbershopId: this.#shopId,
+    });
     if (!serviceIds?.length) return;
 
     await this.#executarFluxoProducao(professionalId, perfil, serviceIds);

@@ -16,6 +16,9 @@
 //
 //   const { data, error } =
 //     await UserRepository.getFavoritosModal(barbershopId, professionalId);
+//
+//   const { data, error } =
+//     await UserRepository.getFavoritosBarbearia(barbershopId);
 // =============================================================
 
 class UserRepository {
@@ -93,6 +96,36 @@ class UserRepository {
     return { data: itens, error: null };
   }
 
+  // ─────────────────────────────────────────────────────────
+  // PUBLIC: getFavoritosBarbearia()
+  //
+  // Retorna perfis de quem favoritou a barbearia OU qualquer
+  // barbeiro vinculado a ela (professional_shop_links). Usado
+  // na mslm-card (gestão de mensalistas).
+  //
+  // Via RPC get_clientes_favoritos_barbearia (UNION no banco).
+  //
+  // @param {string} barbershopId
+  // @returns {Promise<{ data: object[], error: Error|null }>}
+  // ─────────────────────────────────────────────────────────
+  static async getFavoritosBarbearia(barbershopId) {
+    UserRepository.#validarUuid(barbershopId, 'barbershopId');
+
+    const { data, error } = await ApiService.rpc('get_clientes_favoritos_barbearia', {
+      p_barbershop_id: barbershopId,
+    });
+
+    if (error) {
+      if (UserRepository.#ehRpcInexistente(error)) {
+        return UserRepository.#favoritosBarbeariaFallback(barbershopId);
+      }
+      return { data: [], error };
+    }
+
+    const itens = (Array.isArray(data) ? data : []).map(UserRepository.#mapPerfil);
+    return { data: itens, error: null };
+  }
+
   // ── Privados ─────────────────────────────────────────────
 
   /**
@@ -134,16 +167,63 @@ class UserRepository {
 
   /**
    * Fallback para getFavoritosModal quando RPC get_clientes_favoritos_modal não existe.
-   * Duas queries diretas (barbershop_interactions + favorite_professionals).
+   * UNION manual entre quem favoritou a BARBEARIA e quem favoritou o BARBEIRO.
    */
   static async #favoritosFallback(barbershopId, professionalId) {
     const ids = new Set();
 
-    // Apenas quem favoritou este profissional específico
+    // 1) Quem favoritou a barbearia
+    const { data: shopFavs } = await ApiService.from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    // 2) Quem favoritou este profissional específico
     const { data: profFavs } = await ApiService.from('favorite_professionals')
       .select('user_id')
       .eq('professional_id', professionalId);
     (profFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    if (!ids.size) return { data: [], error: null };
+
+    const { data, error } = await ApiService.from('profiles')
+      .select('id,full_name,email,avatar_path,updated_at')
+      .in('id', [...ids])
+      .order('full_name');
+
+    if (error) return { data: [], error };
+    const itens = (data ?? []).map(UserRepository.#mapPerfil);
+    return { data: itens, error: null };
+  }
+
+  /**
+   * Fallback para getFavoritosBarbearia quando RPC get_clientes_favoritos_barbearia não existe.
+   * UNION manual: favoritos da barbearia + favoritos de barbeiros vinculados.
+   */
+  static async #favoritosBarbeariaFallback(barbershopId) {
+    const ids = new Set();
+
+    // 1) Quem favoritou a barbearia
+    const { data: shopFavs } = await ApiService.from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    // 2) Quem favoritou QUALQUER barbeiro vinculado a essa barbearia
+    const { data: links } = await ApiService.from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+    const profissionalIds = (links ?? []).map(r => r.professional_id).filter(Boolean);
+
+    if (profissionalIds.length > 0) {
+      const { data: profFavs } = await ApiService.from('favorite_professionals')
+        .select('user_id')
+        .in('professional_id', profissionalIds);
+      (profFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+    }
 
     if (!ids.size) return { data: [], error: null };
 

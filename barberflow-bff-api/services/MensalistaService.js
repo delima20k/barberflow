@@ -104,8 +104,11 @@ class MensalistaService extends BaseService {
   }
 
   /**
-   * Busca perfis disponíveis para se tornarem mensalistas.
-   * Requer ownership do `barbershopId`.
+   * Busca textual de perfis para adicionar como mensalista.
+   * Requer ownership do `barbershopId` e termo `q` não vazio.
+   * Sem termo, retorna lista vazia — a listagem automática deve
+   * usar `listarFavoritosElegiveis`.
+   *
    * @param {string} userId
    * @param {string} barbershopId
    * @param {string} q — termo de busca
@@ -114,6 +117,22 @@ class MensalistaService extends BaseService {
     this._uuid('barbershop_id', barbershopId);
     await this.#verificarOwnership(userId, barbershopId);
     return this.#repo.buscarClientesDisponiveis(barbershopId, q);
+  }
+
+  /**
+   * Lista perfis elegíveis a se tornarem mensalistas: somente
+   * usuários que favoritaram a barbearia ou qualquer barbeiro
+   * vinculado a ela, excluindo mensalistas ativos.
+   * Requer ownership do `barbershopId`.
+   *
+   * @param {string} userId
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}
+   */
+  async listarFavoritosElegiveis(userId, barbershopId) {
+    this._uuid('barbershop_id', barbershopId);
+    await this.#verificarOwnership(userId, barbershopId);
+    return this.#repo.listarFavoritosElegiveis(barbershopId);
   }
 }
 

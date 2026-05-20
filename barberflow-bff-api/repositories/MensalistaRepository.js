@@ -127,16 +127,24 @@ class MensalistaRepository extends BaseRepository {
   }
 
   /**
-   * Busca perfis disponíveis para se tornar mensalista (excluindo quem já é).
+   * Busca textual de perfis para adicionar como mensalista.
+   *
+   * IMPORTANTE: o termo `q` é OBRIGATÓRIO e não vazio. Sem termo,
+   * retorna `[]` — a lista automática de elegíveis deve usar
+   * `listarFavoritosElegiveis`, que respeita a regra de favorito.
+   *
    * @param {string} barbershopId
-   * @param {string} q            — termo de busca (full_name ILIKE)
+   * @param {string} q            — termo de busca (mín. 1 caractere após trim)
    * @param {number} [limit=20]
    * @returns {Promise<object[]>}
    */
   async buscarClientesDisponiveis(barbershopId, q, limit = 20) {
     this._uuid('barbershop_id', barbershopId);
 
-    // IDs de mensalistas ativos desta barbearia
+    const busca = (q ?? '').trim();
+    if (!busca) return [];
+
+    // IDs de mensalistas ativos desta barbearia (para excluir do resultado)
     const { data: ativos } = await this._db
       .from('barbershop_mensalistas')
       .select(MensalistaRepository.#SELECT_CLIENT_ID)
@@ -145,7 +153,6 @@ class MensalistaRepository extends BaseRepository {
 
     const idsAtivos = (ativos ?? []).map(r => r.client_id);
 
-    const busca = (q ?? '').trim();
     let query = this._db
       .from('profiles')
       .select(MensalistaRepository.#SELECT_DISPONIVEIS)
@@ -159,6 +166,51 @@ class MensalistaRepository extends BaseRepository {
     const { data, error } = await query;
     if (error) this._throwDbError(error, 'buscarClientesDisponiveis');
     return data ?? [];
+  }
+
+  /**
+   * Lista perfis elegíveis a se tornarem mensalistas: usuários que
+   * favoritaram a barbearia ou QUALQUER barbeiro vinculado a ela,
+   * excluindo quem já é mensalista ativo.
+   *
+   * Consulta a RPC `get_clientes_favoritos_barbearia` (UNION feito
+   * no banco) e filtra mensalistas ativos no lado da aplicação.
+   *
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}
+   */
+  async listarFavoritosElegiveis(barbershopId) {
+    this._uuid('barbershop_id', barbershopId);
+
+    // 1) Favoritos via RPC (já é UNION distinto, ordenado por nome)
+    const { data: favoritos, error: errFavs } = await this._db.rpc(
+      'get_clientes_favoritos_barbearia',
+      { p_barbershop_id: barbershopId },
+    );
+    if (errFavs) this._throwDbError(errFavs, 'listarFavoritosElegiveis');
+
+    const lista = favoritos ?? [];
+    if (!lista.length) return [];
+
+    // 2) IDs de mensalistas ativos para excluir
+    const { data: ativos, error: errAtivos } = await this._db
+      .from('barbershop_mensalistas')
+      .select(MensalistaRepository.#SELECT_CLIENT_ID)
+      .eq('barbershop_id', barbershopId)
+      .gt('ends_at', new Date().toISOString());
+    if (errAtivos) this._throwDbError(errAtivos, 'listarFavoritosElegiveis');
+
+    const idsAtivos = new Set((ativos ?? []).map(r => r.client_id));
+
+    return lista
+      .filter(p => !idsAtivos.has(p.id))
+      .map(p => ({
+        id:          p.id,
+        full_name:   p.full_name   ?? 'Cliente',
+        email:       p.email       ?? null,
+        avatar_path: p.avatar_path ?? null,
+        updated_at:  p.updated_at  ?? null,
+      }));
   }
 }
 
