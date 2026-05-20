@@ -1984,6 +1984,16 @@
 ================================================================ */
 #mb-convite-panel .tela-topo {
   align-items: flex-start;
+  padding-right: .5rem;
+  padding-left: .5rem;
+}
+
+#mb-convite-panel .mb-config-body {
+  min-height: 0;
+  padding-right: .5rem;
+  padding-left: .5rem;
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .mb-convite-titulos {
@@ -2032,11 +2042,19 @@
 
 .mb-convite-busca-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: stretch;
   margin-top: 6px;
 }
 .mb-convite-busca-row .inpustyle { flex: 1; }
+
+#mb-convite-btn-buscar {
+  width: 30px;
+  min-height: 34px;
+  flex: 0 0 30px;
+  padding-bottom: 2px;
+  font-size: 1.2rem;
+}
 
 .mb-convite-resultado {
   margin-top: 8px;
@@ -2135,19 +2153,22 @@
 }
 
 .mb-convite-tipo-icon--parceria {
-  gap: 6px;
+  gap: 8px;
+  width: 96px;
+  min-height: 50px;
 }
 
 .mb-convite-tipo-logo {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0,0,0,.14);
 }
 
 .mb-convite-tipo-setas {
   color: var(--gold, #D4AF37);
-  font-size: .86rem;
+  font-size: 1rem;
   font-weight: 900;
   letter-spacing: -1px;
 }
@@ -2173,6 +2194,19 @@
   object-fit: cover;
   transform: translateX(-50%);
   box-shadow: 0 2px 6px rgba(0,0,0,.16);
+}
+
+#mb-convite-enviar-secao {
+  position: sticky;
+  bottom: calc(.5rem + env(safe-area-inset-bottom));
+  z-index: 4;
+  margin: auto .5rem 0;
+  padding-top: .5rem;
+  background: linear-gradient(to top, var(--bg, #F5E9DC) 78%, rgba(245,233,220,0));
+}
+
+#mb-convite-btn-enviar {
+  margin: 0;
 }
 
 /* ================================================================
