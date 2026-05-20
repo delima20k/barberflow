@@ -139,6 +139,9 @@ class MinhaBarbeariaPage {
       conviteInput:       q('mb-convite-input'),
       conviteBtnBuscar:   q('mb-convite-btn-buscar'),
       conviteResultado:   q('mb-convite-resultado'),
+      conviteBarbeiroSelecionado: q('mb-convite-barbeiro-selecionado'),
+      conviteBarbeiroSelecionadoImg: q('mb-convite-barbeiro-selecionado-img'),
+      conviteBarbeiroSelecionadoNome: q('mb-convite-barbeiro-selecionado-nome'),
       conviteTipoSecao:   q('mb-convite-tipo-secao'),
       conviteCondSecao:   q('mb-convite-condicoes-secao'),
       conviteEnviarSec:   q('mb-convite-enviar-secao'),
@@ -1441,7 +1444,8 @@ class MinhaBarbeariaPage {
     if (this.#refs.conviteResultado) this.#refs.conviteResultado.innerHTML = '';
     if (this.#refs.conviteTipoSecao)  this.#refs.conviteTipoSecao.hidden = true;
     if (this.#refs.conviteCondSecao)  this.#refs.conviteCondSecao.hidden = true;
-    if (this.#refs.conviteEnviarSec)  this.#refs.conviteEnviarSec.hidden = true;
+    if (this.#refs.conviteEnviarSec)  this.#refs.conviteEnviarSec.hidden = false;
+    this.#atualizarBarbeiroSelecionado(null);
     if (this.#refs.conviteFeedback)   this.#refs.conviteFeedback.textContent = '';
     if (this.#refs.convitePct)        this.#refs.convitePct.value = '';
     if (this.#refs.conviteAluguel)    this.#refs.conviteAluguel.value = '';
@@ -1507,11 +1511,43 @@ class MinhaBarbeariaPage {
     }
   }
 
+  #atualizarBarbeiroSelecionado(cardEl) {
+    const box = this.#refs.conviteBarbeiroSelecionado;
+    if (!box) return;
+
+    if (!cardEl) {
+      box.hidden = true;
+      if (this.#refs.conviteBarbeiroSelecionadoImg) {
+        this.#refs.conviteBarbeiroSelecionadoImg.src = '/shared/img/Logo01.png';
+      }
+      if (this.#refs.conviteBarbeiroSelecionadoNome) {
+        this.#refs.conviteBarbeiroSelecionadoNome.textContent = 'Barbeiro';
+      }
+      return;
+    }
+
+    const nome = cardEl.querySelector('.mb-convite-barb-nome')?.textContent?.trim() || 'Barbeiro';
+    const avatar = cardEl.querySelector('.mb-convite-barb-avatar img')?.getAttribute('src') || '/shared/img/Logo01.png';
+
+    if (this.#refs.conviteBarbeiroSelecionadoImg) {
+      this.#refs.conviteBarbeiroSelecionadoImg.src = avatar;
+      this.#refs.conviteBarbeiroSelecionadoImg.alt = nome;
+    }
+    if (this.#refs.conviteBarbeiroSelecionadoNome) {
+      this.#refs.conviteBarbeiroSelecionadoNome.textContent = nome;
+    }
+    box.hidden = false;
+  }
+
   #selecionarBarbeiro(id) {
     this.#conviteBarbeiroId = id;
+    let cardSelecionado = null;
     this.#refs.conviteResultado?.querySelectorAll('.mb-convite-barb-card').forEach(el => {
-      el.classList.toggle('mb-convite-barb-card--selecionado', el.dataset.id === id);
+      const selecionado = el.dataset.id === id;
+      el.classList.toggle('mb-convite-barb-card--selecionado', selecionado);
+      if (selecionado) cardSelecionado = el;
     });
+    this.#atualizarBarbeiroSelecionado(cardSelecionado);
     if (this.#refs.conviteTipoSecao)  this.#refs.conviteTipoSecao.hidden = false;
     if (this.#refs.conviteCondSecao)  this.#refs.conviteCondSecao.hidden = false;
     if (this.#refs.conviteEnviarSec)  this.#refs.conviteEnviarSec.hidden = false;

@@ -1159,6 +1159,15 @@
           <button id="mb-convite-btn-buscar" class="inpustyle inpustyle-btn" type="button" aria-label="Buscar barbeiro">+</button>
         </div>
         <div id="mb-convite-resultado" class="mb-convite-resultado"></div>
+        <div id="mb-convite-barbeiro-selecionado" class="mb-convite-barbeiro-selecionado" hidden>
+          <div class="mb-convite-barbeiro-selecionado__avatar" aria-hidden="true">
+            <img id="mb-convite-barbeiro-selecionado-img" src="/shared/img/Logo01.png" alt="" loading="lazy">
+          </div>
+          <div class="mb-convite-barbeiro-selecionado__info">
+            <p class="mb-convite-barbeiro-selecionado__label">Barbeiro selecionado</p>
+            <p id="mb-convite-barbeiro-selecionado-nome" class="mb-convite-barbeiro-selecionado__nome">Barbeiro</p>
+          </div>
+        </div>
       </div>
 
       <!-- Tipo de parceria -->
@@ -1206,7 +1215,7 @@
         </div>
 
         <!-- Enviar -->
-        <div id="mb-convite-enviar-secao" hidden>
+        <div id="mb-convite-enviar-secao">
           <button id="mb-convite-btn-enviar" class="btn-flow" type="button">📩 Enviar Convite</button>
           <p id="mb-convite-feedback" class="mb-config-msg" style="margin-top:8px;"></p>
         </div>

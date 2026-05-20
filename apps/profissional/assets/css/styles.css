@@ -2100,6 +2100,57 @@
 .mb-convite-barb-nome { font-size: .82rem; font-weight: 600; color: var(--text); margin: 0; }
 .mb-convite-barb-sub  { font-size: .7rem; color: var(--text-muted); margin: 0; }
 
+.mb-convite-barbeiro-selecionado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: .75rem;
+  padding: 8px .5rem;
+  background: transparent;
+  border-bottom: 1.5px solid var(--brown, #7b4a2a);
+}
+
+.mb-convite-barbeiro-selecionado[hidden] {
+  display: none;
+}
+
+.mb-convite-barbeiro-selecionado__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid var(--gold, #D4AF37);
+  box-shadow: 0 2px 6px rgba(0,0,0,.16);
+  flex: 0 0 38px;
+}
+
+.mb-convite-barbeiro-selecionado__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mb-convite-barbeiro-selecionado__info {
+  min-width: 0;
+}
+
+.mb-convite-barbeiro-selecionado__label {
+  margin: 0;
+  font-size: .66rem;
+  font-weight: 800;
+  color: var(--brown, #7b4a2a);
+  text-transform: uppercase;
+}
+
+.mb-convite-barbeiro-selecionado__nome {
+  margin: 2px 0 0;
+  font-size: .88rem;
+  font-weight: 800;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
 .mb-convite-tipo-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
