@@ -69,21 +69,37 @@ class MensalistaRepository extends BaseRepository {
 
   /**
    * Lista mensalistas ativos de uma barbearia com dados do perfil.
+   * Usa duas queries explícitas para evitar dependência do PostgREST FK join.
    * @param {string} barbershopId
    * @returns {Promise<object[]>}
    */
   async listar(barbershopId) {
     this._uuid('barbershop_id', barbershopId);
 
-    const { data, error } = await this._db
+    const { data: rows, error } = await this._db
       .from('barbershop_mensalistas')
-      .select(MensalistaRepository.#SELECT_MENSALISTA)
+      .select('id, client_id, starts_at, ends_at')
       .eq('barbershop_id', barbershopId)
       .gt('ends_at', new Date().toISOString())
       .order('created_at', { ascending: false });
 
     if (error) this._throwDbError(error, 'listar');
-    return data ?? [];
+    if (!rows?.length) return [];
+
+    const clientIds = [...new Set(rows.map(r => r.client_id))];
+    const { data: perfis, error: profErr } = await this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path')
+      .in('id', clientIds);
+    if (profErr) this._throwDbError(profErr, 'listar');
+
+    const perfilMap = Object.fromEntries((perfis ?? []).map(p => [p.id, p]));
+    return rows.map(r => ({
+      id:        r.id,
+      starts_at: r.starts_at,
+      ends_at:   r.ends_at,
+      client:    perfilMap[r.client_id] ?? null,
+    }));
   }
 
   /**
@@ -173,8 +189,8 @@ class MensalistaRepository extends BaseRepository {
    * favoritaram a barbearia ou QUALQUER barbeiro vinculado a ela,
    * excluindo quem já é mensalista ativo.
    *
-   * Consulta a RPC `get_clientes_favoritos_barbearia` (UNION feito
-   * no banco) e filtra mensalistas ativos no lado da aplicação.
+   * Tenta RPC `get_clientes_favoritos_barbearia` (migration 20260520000001).
+   * Se a RPC ainda não existe em produção, usa fallback com queries diretas.
    *
    * @param {string} barbershopId
    * @returns {Promise<object[]>}
@@ -182,15 +198,24 @@ class MensalistaRepository extends BaseRepository {
   async listarFavoritosElegiveis(barbershopId) {
     this._uuid('barbershop_id', barbershopId);
 
-    // 1) Favoritos via RPC (já é UNION distinto, ordenado por nome)
-    const { data: favoritos, error: errFavs } = await this._db.rpc(
+    // 1) Favoritos via RPC (UNION distinto, ordenado por nome)
+    const { data: rpcData, error: errRpc } = await this._db.rpc(
       'get_clientes_favoritos_barbearia',
       { p_barbershop_id: barbershopId },
     );
-    if (errFavs) this._throwDbError(errFavs, 'listarFavoritosElegiveis');
 
-    const lista = favoritos ?? [];
-    if (!lista.length) return [];
+    let listaRaw;
+    if (errRpc) {
+      if (!MensalistaRepository.#ehRpcInexistente(errRpc)) {
+        this._throwDbError(errRpc, 'listarFavoritosElegiveis');
+      }
+      this._warn('listarFavoritosElegiveis', errRpc);
+      listaRaw = await this.#favoritosElegiveísFallback(barbershopId);
+    } else {
+      listaRaw = rpcData ?? [];
+    }
+
+    if (!listaRaw.length) return [];
 
     // 2) IDs de mensalistas ativos para excluir
     const { data: ativos, error: errAtivos } = await this._db
@@ -202,7 +227,7 @@ class MensalistaRepository extends BaseRepository {
 
     const idsAtivos = new Set((ativos ?? []).map(r => r.client_id));
 
-    return lista
+    return listaRaw
       .filter(p => !idsAtivos.has(p.id))
       .map(p => ({
         id:          p.id,
@@ -211,6 +236,66 @@ class MensalistaRepository extends BaseRepository {
         avatar_path: p.avatar_path ?? null,
         updated_at:  p.updated_at  ?? null,
       }));
+  }
+
+  // ── Helpers privados ─────────────────────────────────────────────
+
+  /**
+   * Fallback para listarFavoritosElegiveis quando RPC não existe.
+   * UNION manual: favoritos da barbearia + favoritos de barbeiros vinculados.
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}
+   */
+  async #favoritosElegiveísFallback(barbershopId) {
+    const ids = new Set();
+
+    const { data: shopFavs } = await this._db
+      .from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    const { data: links } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+    const profIds = (links ?? []).map(l => l.professional_id).filter(Boolean);
+
+    if (profIds.length > 0) {
+      const { data: profFavs } = await this._db
+        .from('favorite_professionals')
+        .select('user_id')
+        .in('professional_id', profIds);
+      (profFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+    }
+
+    if (!ids.size) return [];
+
+    const { data, error } = await this._db
+      .from('profiles')
+      .select('id, full_name, email, avatar_path, updated_at')
+      .in('id', [...ids])
+      .order('full_name');
+
+    if (error) return [];
+    return data ?? [];
+  }
+
+  /**
+   * Verifica se o erro indica que a RPC não existe no banco.
+   * Códigos: PGRST202 (PostgREST) ou 42883 (PostgreSQL UNDEFINED_FUNCTION).
+   * @param {object} error
+   * @returns {boolean}
+   */
+  static #ehRpcInexistente(error) {
+    if (!error) return false;
+    const code = String(error.code ?? '');
+    const msg  = String(error.message ?? '').toLowerCase();
+    return code === 'PGRST202' || code === '42883'
+      || msg.includes('could not find the function')
+      || msg.includes('does not exist');
   }
 }
 

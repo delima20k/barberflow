@@ -182,9 +182,10 @@ class MensalistaModal {
     }
 
     lista.forEach(row => {
-      const nome    = row.client?.full_name ?? 'Cliente';
-      const endsAt  = row.ends_at ? MensalistaModal.#formatarData(row.ends_at) : '—';
-      const li = MensalistaModal.#criarItemAtivo(nome, endsAt, async () => {
+      const nome       = row.client?.full_name   ?? 'Cliente';
+      const avatarPath = row.client?.avatar_path ?? null;
+      const endsAt     = row.ends_at ? MensalistaModal.#formatarData(row.ends_at) : '—';
+      const li = MensalistaModal.#criarItemAtivo(nome, avatarPath, endsAt, async () => {
         const btn = li.querySelector('.mslm-btn-remover');
         btn.disabled = true;
         const { error: e } = await BffApiService.mensalistas.remover(row.id);
@@ -247,14 +248,24 @@ class MensalistaModal {
 
   /**
    * Cria um <li> para um mensalista ativo.
-   * @param {string}   nome
-   * @param {string}   venceEm
-   * @param {Function} onRemover
+   * @param {string}      nome
+   * @param {string|null} avatarPath
+   * @param {string}      venceEm
+   * @param {Function}    onRemover
    * @returns {HTMLLIElement}
    */
-  static #criarItemAtivo(nome, venceEm, onRemover) {
+  static #criarItemAtivo(nome, avatarPath, venceEm, onRemover) {
     const li = document.createElement('li');
     li.className = 'mslm-item';
+
+    if (avatarPath) {
+      const img = document.createElement('img');
+      img.className = 'mslm-avatar';
+      img.src = avatarPath;
+      img.alt = '';
+      img.setAttribute('aria-hidden', 'true');
+      li.appendChild(img);
+    }
 
     const nomeEl = document.createElement('span');
     nomeEl.className   = 'mslm-item-nome';
@@ -278,13 +289,22 @@ class MensalistaModal {
 
   /**
    * Cria um <li> para um perfil disponível para ser mensalista.
-   * @param {{id:string, full_name:string}} profile
-   * @param {Function}                       onAdicionar
+   * @param {{id:string, full_name:string, avatar_path:string|null}} profile
+   * @param {Function} onAdicionar
    * @returns {HTMLLIElement}
    */
   static #criarItemDisponivel(profile, onAdicionar) {
     const li = document.createElement('li');
     li.className = 'mslm-item';
+
+    if (profile.avatar_path) {
+      const img = document.createElement('img');
+      img.className = 'mslm-avatar';
+      img.src = profile.avatar_path;
+      img.alt = '';
+      img.setAttribute('aria-hidden', 'true');
+      li.appendChild(img);
+    }
 
     const nomeEl = document.createElement('span');
     nomeEl.className   = 'mslm-item-nome';

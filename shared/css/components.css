@@ -5984,6 +5984,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-bottom: 1px solid var(--border-soft, rgba(212,175,55,.08));
 }
 .mslm-item:last-child { border-bottom: none; }
+.mslm-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
 .mslm-item-nome {
   flex: 1;
   font-size: .9rem;
