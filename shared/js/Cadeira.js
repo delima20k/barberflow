@@ -68,8 +68,10 @@ class Cadeira {
       }
     }
 
-    // Interatividade: cadeira de produção do próprio cliente em estado 'arriving' → auto-confirmar chegada
-    if (isProducaoOcupada && confirmacao === 'arriving' && podeInteragir && onArrivingClick) {
+    // Interatividade: cadeira de produção do próprio cliente → confirmar chegada
+    // podeInteragir não é necessário aqui: onArrivingClick só é não-null quando
+    // ehMinhaEntrada=true (app cliente), nunca no app profissional.
+    if (isProducaoOcupada && (confirmacao === 'arriving' || confirmacao === null) && onArrivingClick) {
       Cadeira.#tornarInterativa(el, onArrivingClick, 'Confirmar chegada na barbearia');
     }
 

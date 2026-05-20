@@ -35,12 +35,12 @@ function _initVapid() {
 }
 
 function ctrl() {
-  if (!_ctrl) {
-    _initVapid();
-    const db  = SupabaseClient.getInstance();
-    const svc = new PushService(db, webpush);
-    _ctrl     = new NotificacoesController(db, svc);
-  }
+  if (_ctrl) return _ctrl;          // já inicializado com sucesso
+  _initVapid();
+  if (!_vapidOk) return null;       // VAPID indisponível — não cacheia para permitir retry futuro
+  const db  = SupabaseClient.getInstance();
+  const svc = new PushService(db, webpush);
+  _ctrl     = new NotificacoesController(db, svc);
   return _ctrl;
 }
 
@@ -49,6 +49,15 @@ const router = Router();
 // Todas as rotas de /notificacoes exigem autenticação
 router.use(AuthMiddleware.verificar);
 
-router.post('/push-barbeiro', (req, res) => ctrl().pushBarbeiro(req, res));
+router.post('/push-barbeiro', (req, res) => {
+  const c = ctrl();
+  if (!c) {
+    return res.status(503).json({
+      ok:    false,
+      error: { code: 503, message: 'Web Push não configurado: defina VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY.' },
+    });
+  }
+  c.pushBarbeiro(req, res);
+});
 
 module.exports = router;

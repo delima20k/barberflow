@@ -690,3 +690,101 @@ suite('POST /api/v1/notificacoes/push-barbeiro', () => {
     assert.strictEqual(status, 200);
   });
 });
+
+// =================================================================
+// SUITE 3 — Integration: 503 quando VAPID não configurado
+// =================================================================
+suite('POST /push-barbeiro — 503 quando VAPID não configurado', () => {
+  let server503;
+  let port503;
+  let origPub;
+  let origPriv;
+
+  before(async () => {
+    origPub  = process.env.VAPID_PUBLIC_KEY;
+    origPriv = process.env.VAPID_PRIVATE_KEY;
+    delete process.env.VAPID_PUBLIC_KEY;
+    delete process.env.VAPID_PRIVATE_KEY;
+
+    const sep = require('node:path').sep;
+    for (const k of Object.keys(require.cache)) {
+      if (
+        k.includes(`${sep}routes${sep}notificacoes`) ||
+        (k.endsWith(`${sep}app.js`) && k.includes(`barberflow-bff-api`))
+      ) {
+        delete require.cache[k];
+      }
+    }
+
+    const criarApp503 = require('../app');
+    const app503      = criarApp503();
+    await new Promise((r) => {
+      server503 = app503.listen(0, '127.0.0.1', r);
+    });
+    port503 = server503.address().port;
+  });
+
+  after(async () => {
+    process.env.VAPID_PUBLIC_KEY  = origPub;
+    process.env.VAPID_PRIVATE_KEY = origPriv;
+    await new Promise((r) => server503.close(r));
+
+    // Limpar módulos recarregados para não contaminar outros requires futuros
+    const sep = require('node:path').sep;
+    for (const k of Object.keys(require.cache)) {
+      if (
+        k.includes(`${sep}routes${sep}notificacoes`) ||
+        (k.endsWith(`${sep}app.js`) && k.includes(`barberflow-bff-api`))
+      ) {
+        delete require.cache[k];
+      }
+    }
+  });
+
+  test('retorna 503 quando VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY não configuradas', async () => {
+    const token    = jwt.sign(
+      { sub: CLIENT_ID, email: 'cli@test.com' },
+      process.env.SUPABASE_JWT_SECRET,
+      { algorithm: 'HS256', expiresIn: '1h' },
+    );
+    const bodyStr = JSON.stringify({
+      professionalId: PROF_ID,
+      entradaId:      ENTRY_ID,
+      barbershopId:   SHOP_ID,
+      type:           'client_at_shop',
+      clienteNome:    'Teste',
+    });
+
+    const { status, body } = await new Promise((resolve, reject) => {
+      const opts = {
+        hostname: '127.0.0.1',
+        port:     port503,
+        path:     '/api/v1/notificacoes/push-barbeiro',
+        method:   'POST',
+        headers: {
+          'Content-Type':   'application/json',
+          'Content-Length': Buffer.byteLength(bodyStr),
+          Authorization:    `Bearer ${token}`,
+        },
+      };
+      const r = http.request(opts, (res) => {
+        let data = '';
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => {
+          try   { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
+          catch { resolve({ status: res.statusCode, body: data }); }
+        });
+      });
+      r.on('error', reject);
+      r.write(bodyStr);
+      r.end();
+    });
+
+    assert.strictEqual(status, 503);
+    assert.strictEqual(body.ok, false);
+    assert.ok(
+      body.error?.message?.includes('VAPID'),
+      `mensagem de erro deve mencionar VAPID, recebida: "${body.error?.message}"`,
+    );
+  });
+});

@@ -349,7 +349,7 @@ class BarbeariaPage {
       podeInteragir:   podeInteragir && !emServico,
       onClick:         (!emServico && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
       confirmacao:     emServico?.client_confirmed ?? null,
-      onArrivingClick: (ehMinhaEntrada && emServico?.client_confirmed === 'arriving' && onProducaoArrivingClick)
+      onArrivingClick: (ehMinhaEntrada && (emServico?.client_confirmed === 'arriving' || emServico?.client_confirmed === null) && onProducaoArrivingClick)
         ? () => onProducaoArrivingClick(emServico)
         : null,
     }));

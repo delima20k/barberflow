@@ -379,3 +379,85 @@ suite('Cadeira — clique com barbearia fechada (podeInteragir=false)', () => {
     );
   });
 });
+
+// ─── Suíte: onArrivingClick — cliente confirma chegada na própria cadeira ─────
+
+suite('Cadeira — onArrivingClick (confirmar chegada)', () => {
+
+  const ENTRADA_PRODUCAO = {
+    status: 'in_service',
+    client: { id: 'cx', full_name: 'Cliente X', avatar_path: null, updated_at: null },
+  };
+
+  test('onArrivingClick disparado quando confirmacao === null e callback passado', () => {
+    const { Cadeira } = criarSandbox();
+    const cb = fn();
+    const el = Cadeira.criar({
+      tipo:           'producao',
+      entrada:        ENTRADA_PRODUCAO,
+      podeInteragir:  false,
+      confirmacao:    null,
+      onArrivingClick: cb,
+    });
+    assert.ok(
+      el.classList._set.has('cdr-cadeira--interativa'),
+      'deve ter cdr-cadeira--interativa quando confirmacao===null e onArrivingClick passado',
+    );
+    el._listeners.click?.[0]?.();
+    assert.strictEqual(cb.calls.length, 1, 'onArrivingClick deve ser chamado ao clicar');
+  });
+
+  test('onArrivingClick disparado quando confirmacao === "arriving" (regressão)', () => {
+    const { Cadeira } = criarSandbox();
+    const cb = fn();
+    const el = Cadeira.criar({
+      tipo:           'producao',
+      entrada:        ENTRADA_PRODUCAO,
+      podeInteragir:  false,
+      confirmacao:    'arriving',
+      onArrivingClick: cb,
+    });
+    assert.ok(
+      el.classList._set.has('cdr-cadeira--interativa'),
+      'deve ter cdr-cadeira--interativa quando confirmacao==="arriving"',
+    );
+    el._listeners.click?.[0]?.();
+    assert.strictEqual(cb.calls.length, 1, 'onArrivingClick deve ser chamado ao clicar');
+  });
+
+  test('onArrivingClick NÃO disparado quando confirmacao === "yes"', () => {
+    const { Cadeira } = criarSandbox();
+    const cb = fn();
+    const el = Cadeira.criar({
+      tipo:           'producao',
+      entrada:        ENTRADA_PRODUCAO,
+      podeInteragir:  false,
+      confirmacao:    'yes',
+      onArrivingClick: cb,
+    });
+    el._listeners.click?.[0]?.();
+    assert.strictEqual(
+      cb.calls.length, 0,
+      'onArrivingClick NÃO deve ser chamado quando confirmacao==="yes"',
+    );
+  });
+
+  test('onArrivingClick NÃO registrado quando callback é null (mesmo com confirmacao === null)', () => {
+    const { Cadeira } = criarSandbox();
+    const el = Cadeira.criar({
+      tipo:           'producao',
+      entrada:        ENTRADA_PRODUCAO,
+      podeInteragir:  false,
+      confirmacao:    null,
+      onArrivingClick: null,
+    });
+    assert.ok(
+      !el.classList._set.has('cdr-cadeira--interativa'),
+      'NÃO deve ter cdr-cadeira--interativa quando onArrivingClick é null',
+    );
+    assert.strictEqual(
+      (el._listeners.click ?? []).length, 0,
+      'NÃO deve registrar click handler quando onArrivingClick é null',
+    );
+  });
+});
