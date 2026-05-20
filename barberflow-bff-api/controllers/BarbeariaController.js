@@ -18,10 +18,17 @@ class BarbeariaController extends BaseController {
   /** @type {import('../services/BarbeariaService')} */
   #service;
 
-  /** @param {import('../services/BarbeariaService')} service */
-  constructor(service) {
+  /** @type {import('../services/BarbeariaMediaService')} */
+  #mediaService;
+
+  /**
+   * @param {import('../services/BarbeariaService')} service
+   * @param {import('../services/BarbeariaMediaService')} [mediaService]
+   */
+  constructor(service, mediaService = null) {
     super();
-    this.#service = service;
+    this.#service      = service;
+    this.#mediaService = mediaService;
   }
 
   // ── Handlers ─────────────────────────────────────────────────────
@@ -82,6 +89,22 @@ class BarbeariaController extends BaseController {
   async salvarEndereco(req, res) {
     await this.handle(res, async () => {
       const atualizado = await this.#service.salvarEndereco(req.user.id, req.body ?? {});
+      this.success(res, atualizado);
+    });
+  }
+
+  /**
+   * PATCH /api/v1/barbearias/minha/imagem?tipo=logo|cover
+   * Atualiza logo/capa da barbearia do usuario autenticado via BFF.
+   */
+  async salvarImagem(req, res) {
+    await this.handle(res, async () => {
+      const atualizado = await this.#mediaService.salvarImagem(
+        req.user.id,
+        String(req.query.tipo ?? ''),
+        req.body,
+        String(req.headers['content-type'] ?? '').split(';')[0].toLowerCase(),
+      );
       this.success(res, atualizado);
     });
   }

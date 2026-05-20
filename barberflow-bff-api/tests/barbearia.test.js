@@ -9,12 +9,14 @@ process.env.APP_ENV                   = 'development';
 process.env.SUPABASE_URL              = 'https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 process.env.SUPABASE_ANON_KEY         = 'test-anon-key';
+process.env.SUPABASE_JWT_SECRET       = 'test-supabase-jwt-secret-for-testing-only-32chars';
 
 // ── Stub do SupabaseClient — deve vir ANTES do require('../app') ──
 // Sobrescreve getInstance para retornar um cliente falso que
 // responde todas as queries com { data: [], error: null }.
 // mockDb exposto no escopo de módulo para permitir override em testes de fallback.
 const SupabaseClient = require('../utils/SupabaseClient');
+const { gerarTokenSupa, UUID_TEST } = require('./_helpers');
 const _qb = () => {
   const q = {
     select:  () => q,
@@ -62,6 +64,31 @@ function get(path) {
         catch { resolve({ status: res.statusCode, body }); }
       });
     }).on('error', reject);
+  });
+}
+
+function patchBinario(path, buffer, { token = gerarTokenSupa(), contentType = 'image/png' } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path,
+      method: 'PATCH',
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': buffer.length,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, body: JSON.parse(body) }); }
+        catch { resolve({ status: res.statusCode, body }); }
+      });
+    });
+    req.on('error', reject);
+    req.end(buffer);
   });
 }
 
@@ -319,4 +346,127 @@ suite('BarbeariaController — GET /api/v1/barbearias/destaque (fallback SELECT_
     assert.ok(Array.isArray(body.dados), 'dados deve ser array mesmo via fallback');
   });
 
+});
+
+suite('BarbeariaController - PATCH /api/v1/barbearias/minha/imagem', () => {
+  const SHOP_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
+  const PNG_1X1 = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+    'base64',
+  );
+  let fromOriginal;
+  let storageOriginal;
+  let uploadChamado;
+  let updatePayload;
+
+  before(() => {
+    fromOriginal = mockDb.from;
+    storageOriginal = mockDb.storage;
+    mockDb.from = (table) => {
+      if (table === 'barbershops') {
+        const q = {
+          select: () => q,
+          eq: () => q,
+          update: (payload) => { updatePayload = payload; return q; },
+          single: () => Promise.resolve({
+            data: { id: SHOP_ID, owner_id: UUID_TEST, name: 'Barbearia Test', logo_path: 'old/logo.webp' },
+            error: null,
+          }),
+        };
+        return q;
+      }
+      return fromOriginal(table);
+    };
+    mockDb.storage = {
+      from: (bucket) => ({
+        upload: (path, buffer, opts) => {
+          uploadChamado = { bucket, path, bytes: buffer.length, contentType: opts?.contentType, upsert: opts?.upsert };
+          return Promise.resolve({ data: { path }, error: null });
+        },
+      }),
+    };
+  });
+
+  after(() => {
+    mockDb.from = fromOriginal;
+    mockDb.storage = storageOriginal;
+  });
+
+  test('atualiza logo via BFF, salva Storage e retorna path/publicUrl', async () => {
+    uploadChamado = null;
+    updatePayload = null;
+    const { status, body } = await patchBinario('/api/v1/barbearias/minha/imagem?tipo=logo', PNG_1X1);
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+    assert.strictEqual(body.dados.path, `${SHOP_ID}/logo.webp`);
+    assert.match(body.dados.publicUrl, /\/storage\/v1\/object\/public\/barbershops\/aaaaaaaa-0000-4000-8000-000000000001\/logo\.webp/);
+    assert.strictEqual(updatePayload.logo_path, `${SHOP_ID}/logo.webp`);
+    assert.strictEqual(uploadChamado.bucket, 'barbershops');
+    assert.strictEqual(uploadChamado.contentType, 'image/webp');
+    assert.strictEqual(uploadChamado.upsert, true);
+  });
+
+  test('retorna 401 sem autenticacao', async () => {
+    const { status, body } = await patchBinario('/api/v1/barbearias/minha/imagem?tipo=logo', PNG_1X1, { token: '' });
+    assert.strictEqual(status, 401);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('retorna 400 com tipo invalido', async () => {
+    const { status, body } = await patchBinario('/api/v1/barbearias/minha/imagem?tipo=banner', PNG_1X1);
+    assert.strictEqual(status, 400);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('retorna 400 com MIME invalido', async () => {
+    const { status, body } = await patchBinario('/api/v1/barbearias/minha/imagem?tipo=logo', Buffer.from('x'), {
+      contentType: 'text/plain',
+    });
+    assert.strictEqual(status, 400);
+    assert.strictEqual(body.ok, false);
+  });
+});
+
+suite('BarbeariaController - PATCH /api/v1/barbearias/minha/imagem (sem barbearia)', () => {
+  const PNG_1X1 = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=',
+    'base64',
+  );
+
+  let fromOriginal;
+  let storageOriginal;
+
+  before(() => {
+    fromOriginal    = mockDb.from;
+    storageOriginal = mockDb.storage;
+
+    // Simula owner sem barbearia ativa (PGRST116 = row not found)
+    mockDb.from = (table) => {
+      if (table === 'barbershops') {
+        const q = {
+          select: () => q,
+          eq:     () => q,
+          single: () => Promise.resolve({
+            data:  null,
+            error: { code: 'PGRST116', message: 'Row not found' },
+          }),
+        };
+        return q;
+      }
+      return fromOriginal(table);
+    };
+    mockDb.storage = storageOriginal;
+  });
+
+  after(() => {
+    mockDb.from    = fromOriginal;
+    mockDb.storage = storageOriginal;
+  });
+
+  test('retorna 404 quando usuario nao tem barbearia ativa', async () => {
+    const { status, body } = await patchBinario('/api/v1/barbearias/minha/imagem?tipo=logo', PNG_1X1);
+    assert.strictEqual(status, 404);
+    assert.strictEqual(body.ok, false);
+  });
 });

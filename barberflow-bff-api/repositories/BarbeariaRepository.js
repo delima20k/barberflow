@@ -29,6 +29,9 @@ class BarbeariaRepository extends BaseRepository {
     'id, owner_id, name, address, city, state, zip_code, neighborhood, ' +
     'latitude, longitude, logo_path, cover_path, is_open';
 
+  /** Campos minimos para operacoes autenticadas da barbearia do owner. */
+  static #SELECT_OWNER = 'id, owner_id, name, logo_path, cover_path, is_active';
+
   /** Ordem de relevância aplicada em todas as listagens. */
   static #ORDER_PADRAO = Object.freeze(['rating_score', 'rating_avg', 'likes_count']);
   static #ORDER_DESTAQUE_SAFE = Object.freeze(['rating_avg', 'rating_count']);
@@ -218,6 +221,85 @@ class BarbeariaRepository extends BaseRepository {
       this._throwDbError(error, 'updateEndereco');
     }
     return data;
+  }
+
+  /**
+   * Busca a barbearia ativa pertencente ao owner autenticado.
+   * @param {string} ownerId
+   * @returns {Promise<object|null>}
+   */
+  async getAtivaPorOwner(ownerId) {
+    this._uuid('ownerId', ownerId);
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select(BarbeariaRepository.#SELECT_OWNER)
+      .eq('owner_id', ownerId)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      this._warn('getAtivaPorOwner', error);
+      this._throwDbError(error, 'getAtivaPorOwner');
+    }
+    return data ?? null;
+  }
+
+  /**
+   * Salva arquivo processado no bucket publico de barbearias.
+   * @param {string} path
+   * @param {Buffer} buffer
+   * @param {string} contentType
+   * @returns {Promise<void>}
+   */
+  async uploadImagemBarbearia(path, buffer, contentType) {
+    const { error } = await this._db.storage
+      .from('barbershops')
+      .upload(path, buffer, { contentType, upsert: true });
+
+    if (error) {
+      this._warn('uploadImagemBarbearia', error);
+      this._throwDbError(error, 'uploadImagemBarbearia');
+    }
+  }
+
+  /**
+   * Atualiza o path de logo/capa da barbearia do owner.
+   * @param {string} ownerId
+   * @param {'logo_path'|'cover_path'} campo
+   * @param {string} path
+   * @param {string} updatedAt
+   * @returns {Promise<object>}
+   */
+  async updateImagem(ownerId, campo, path, updatedAt) {
+    this._uuid('ownerId', ownerId);
+    if (!['logo_path', 'cover_path'].includes(campo)) {
+      throw new TypeError('campo de imagem invalido');
+    }
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .update({ [campo]: path, updated_at: updatedAt })
+      .eq('owner_id', ownerId)
+      .eq('is_active', true)
+      .select(BarbeariaRepository.#SELECT_OWNER)
+      .single();
+
+    if (error) {
+      this._warn('updateImagem', error);
+      this._throwDbError(error, 'updateImagem');
+    }
+    return data;
+  }
+
+  /**
+   * Monta URL publica do bucket barbershops.
+   * @param {string} path
+   * @returns {string}
+   */
+  getBarbershopPublicUrl(path) {
+    const baseUrl = String(process.env.SUPABASE_URL ?? '').replace(/\/+$/, '');
+    return `${baseUrl}/storage/v1/object/public/barbershops/${path}`;
   }
 }
 

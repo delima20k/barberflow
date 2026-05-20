@@ -2049,31 +2049,55 @@ class MinhaBarbeariaPage {
     }
   }
 
-  // ── Upload de imagem da barbearia (método base DRY) ─────────
+  // ── Upload de imagem da barbearia via BFF ────────────────────
 
   /**
-   * Faz upload de uma imagem para o bucket 'barbershops' e atualiza
-   * o campo correspondente no banco.
+   * Envia a imagem ao endpoint BFF `PATCH /api/v1/barbearias/minha/imagem?tipo=logo|cover`.
+   * A BFF valida, processa (sharp → WebP) e persiste no Storage + banco.
    *
-   * @param {File}   file      — arquivo selecionado
-   * @param {string} nomeArq  — nome do arquivo sem extensão (ex: 'cover', 'logo')
-   * @param {string} campo    — coluna a atualizar (ex: 'cover_path', 'logo_path')
-   * @returns {Promise<{url: string, path: string}>}
+   * @param {File}            file — arquivo selecionado pelo usuário
+   * @param {'logo'|'cover'}  tipo — tipo de imagem a atualizar
+   * @returns {Promise<{url: string, path: string, updated_at: string}>}
    */
-  async #uploadImagemBarbearia(file, nomeArq, campo) {
-    const ext  = file.name.split('.').pop().toLowerCase();
-    const path = `${this.#barbershopId}/${nomeArq}.${ext}`;
+  async #uploadImagemBarbearia(file, tipo) {
+    const buffer = await file.arrayBuffer();
+    const mime   = file.type || 'image/jpeg';
 
-    const { error: upErr } = await SupabaseService.storageBarbershops()
-      .upload(path, file, { contentType: file.type, upsert: true });
-    if (upErr) throw upErr;
+    const res = await BackendApiService.uploadBinario(
+      `/api/v1/barbearias/minha/imagem?tipo=${tipo}`,
+      buffer,
+      { method: 'PATCH', contentType: mime },
+    );
 
-    const { error: dbErr } = await SupabaseService.barbershops()
-      .update({ [campo]: path })
-      .eq('id', this.#barbershopId);
-    if (dbErr) throw dbErr;
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.mensagem ?? `Falha no upload (${res.status})`);
+    }
 
-    return { url: SupabaseService.getLogoUrl(path), path };
+    const body = await res.json();
+    return {
+      url:        body.dados.publicUrl,
+      path:       body.dados.path,
+      updated_at: body.dados.updated_at,
+    };
+  }
+
+  /**
+   * Aplica o logo atualizado em todos os refs do app que exibem o logo da barbearia.
+   * Usa cache-bust por timestamp para garantir que o navegador recarregue a imagem.
+   *
+   * @param {string} publicUrl — URL pública retornada pela BFF (sem bust)
+   * @param {string} path      — path relativo salvo no banco
+   */
+  #aplicarLogo(publicUrl, path) {
+    const urlBust = `${publicUrl}?t=${Date.now()}`;
+
+    if (this.#refs.cfgLogoImg)  this.#refs.cfgLogoImg.src = urlBust;
+    if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${urlBust}')`;
+    if (this.#refs.heroLogo)    { this.#refs.heroLogo.src = urlBust; this.#refs.heroLogo.hidden = false; }
+    if (this.#shopData)         this.#shopData.logo_path = path;
+
+    this.#atualizarLogoConvite(urlBust);
   }
 
   // ── Upload de capa ───────────────────────────────────────────
@@ -2084,15 +2108,14 @@ class MinhaBarbeariaPage {
     if (!file || !this.#barbershopId) return;
 
     try {
-      const { url, path } = await this.#uploadImagemBarbearia(file, 'cover', 'cover_path');
-      if (url) {
-        const urlBust = `${url}?t=${Date.now()}`;
-        if (this.#refs.cfgCapaImg) this.#refs.cfgCapaImg.src = urlBust;
-        if (this.#refs.coverImg)   this.#refs.coverImg.src   = urlBust;
-        if (this.#shopData)        this.#shopData.cover_path = path;
-      }
+      const { url, path } = await this.#uploadImagemBarbearia(file, 'cover');
+      const urlBust = `${url}?t=${Date.now()}`;
+      if (this.#refs.cfgCapaImg)  this.#refs.cfgCapaImg.src = urlBust;
+      if (this.#refs.coverImg)    this.#refs.coverImg.src   = urlBust;
+      if (this.#refs.heroHeader)  this.#refs.heroHeader.style.backgroundImage = `url('${urlBust}')`;
+      if (this.#shopData)         this.#shopData.cover_path = path;
     } catch (err) {
-      console.error('[MinhaBarbeariaPage] onUploadCapa erro:', err);
+      LoggerService?.warn('[MinhaBarbeariaPage] onUploadCapa erro:', err.message);
       NotificationService?.mostrarToast('Erro', 'Não foi possível salvar a imagem de capa.', 'sistema');
     }
   }
@@ -2105,15 +2128,10 @@ class MinhaBarbeariaPage {
     if (!file || !this.#barbershopId) return;
 
     try {
-      const { url } = await this.#uploadImagemBarbearia(file, 'logo', 'logo_path');
-      if (url && this.#refs.cfgLogoImg) {
-        const urlBust = `${url}?t=${Date.now()}`;
-        this.#refs.cfgLogoImg.src = urlBust;
-        if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${urlBust}')`;
-        this.#atualizarLogoConvite(urlBust);
-      }
+      const { url, path } = await this.#uploadImagemBarbearia(file, 'logo');
+      this.#aplicarLogo(url, path);
     } catch (err) {
-      console.error('[MinhaBarbeariaPage] onUploadLogo erro:', err);
+      LoggerService?.warn('[MinhaBarbeariaPage] onUploadLogo erro:', err.message);
       NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o logo.', 'sistema');
     }
   }
