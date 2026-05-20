@@ -134,6 +134,7 @@ class MinhaBarbeariaPage {
       convidarBtn:        q('mb-equipe-convidar-btn'),
       conviteFechar:      q('mb-convite-fechar'),
       conviteNomeBarbearia: q('mb-convite-barbearia-nome'),
+      conviteShopLogo:    q('mb-convite-shop-logo'),
       conviteCadeiraLogo: q('mb-convite-cadeira-logo'),
       conviteInput:       q('mb-convite-input'),
       conviteBtnBuscar:   q('mb-convite-btn-buscar'),
@@ -1320,6 +1321,7 @@ class MinhaBarbeariaPage {
     const url = pathOuUrl
       ? (isUrl ? pathOuUrl : (SupabaseService.getLogoUrl(pathOuUrl) || pathOuUrl))
       : '/shared/img/Logo01.png';
+    if (this.#refs.conviteShopLogo)   this.#refs.conviteShopLogo.src   = url;
     if (this.#refs.conviteCadeiraLogo) this.#refs.conviteCadeiraLogo.src = url;
   }
 
