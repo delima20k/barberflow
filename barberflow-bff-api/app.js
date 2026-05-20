@@ -38,6 +38,7 @@ const clienteBffRoute       = require('./routes/clienteBff');
 const authRoute             = require('./routes/auth');
 const agendamentosRoute     = require('./routes/agendamentos');
 const notificacoesRoute     = require('./routes/notificacoes');
+const mensalistasRoute      = require('./routes/mensalistas');
 const SupabaseClient         = require('./utils/SupabaseClient');
 
 /**
@@ -96,6 +97,7 @@ function criarApp(db = null) {
   v1Router.use('/clientes',      clienteRoute(_db));
   v1Router.use('/cliente',       clienteBffRoute);
   v1Router.use('/notificacoes',  notificacoesRoute);
+  v1Router.use('/mensalistas',   mensalistasRoute(_db));
   app.use('/api/v1', v1Router);
 
   // ── 9. Auth — /api/auth/* ───────────────────────────────────────

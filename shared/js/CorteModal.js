@@ -17,12 +17,16 @@ class CorteModal {
 
   // ──────────────────────────────────────────────────────────
   // Exibe a modal de seleção de serviços.
-  // @param {object} opts
+  // @param {object}  opts
   // @param {Array<{id:string, name:string, price:number, duration_min:number}>} opts.servicos
-  // @param {string} opts.clienteNome
+  // @param {string}  opts.clienteNome
+  // @param {boolean} [opts.clienteMensalista=false] — se true, exibe card "Plano Mensal" no topo
   // @returns {Promise<string[]|null>}
+  //   null      → cancelado
+  //   []        → mensalista (card Plano Mensal clicado)
+  //   string[]  → IDs dos serviços selecionados
   // ──────────────────────────────────────────────────────────
-  static abrir({ servicos, clienteNome }) {
+  static abrir({ servicos, clienteNome, clienteMensalista = false }) {
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'crtm-overlay';
@@ -49,6 +53,24 @@ class CorteModal {
       const listaEl     = overlay.querySelector('.crtm-lista');
       const confirmarBtn = overlay.querySelector('.crtm-btn--confirmar');
       const totalVal    = overlay.querySelector('.crtm-total-val');
+
+      // Card Plano Mensal (topo da lista) — apenas para mensalistas ativos
+      if (clienteMensalista) {
+        const card = document.createElement('li');
+        card.className = 'crtm-plano-mensal';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', 'Usar plano mensal');
+        card.innerHTML = `
+          <span class="crtm-plano-mensal-icone">👑</span>
+          <span class="crtm-plano-mensal-info">
+            <span class="crtm-plano-mensal-titulo">Plano Mensal</span>
+            <span class="crtm-plano-mensal-desc">Cliente com plano ativo — sem cobrança adicional</span>
+          </span>`;
+        card.addEventListener('click', () => _fechar([]));
+        card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') _fechar([]); });
+        listaEl.insertBefore(card, listaEl.firstChild);
+      }
 
       // Cria itens de serviço
       const itens = servicos.map(s => CorteModal.#criarItem(s));

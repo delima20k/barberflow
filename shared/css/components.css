@@ -5852,6 +5852,225 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-prod-card-edit-btn:active { background: rgba(255,255,255,.1); }
 
 /* ── Form-view: painel de edição/criação do item ── */
+
+/* ════════════════════════════════════════════════════════════════
+   MSLM — MensalistaModal
+   ════════════════════════════════════════════════════════════════ */
+.mslm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 9500;
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.mslm-overlay--visivel { opacity: 1; }
+.mslm-overlay--saindo  { opacity: 0; }
+.mslm-card {
+  background: var(--card, #fff9f0);
+  border-radius: 18px 18px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(32px);
+  transition: transform .22s ease;
+}
+.mslm-overlay--visivel .mslm-card { transform: translateY(0); }
+.mslm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border-soft, rgba(212,175,55,.15));
+  flex-shrink: 0;
+}
+.mslm-titulo {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text, #2b1b12);
+  margin: 0;
+}
+.mslm-fechar {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted, #8c7057);
+  padding: 4px 8px;
+}
+.mslm-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0 8px;
+}
+.mslm-secao {
+  padding: 14px 18px 6px;
+}
+.mslm-secao + .mslm-secao {
+  border-top: 1px solid var(--border-soft, rgba(212,175,55,.12));
+}
+.mslm-secao-label {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #8c7057);
+  margin: 0 0 10px;
+}
+.mslm-lista-ativos,
+.mslm-lista-disponiveis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mslm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft, rgba(212,175,55,.08));
+}
+.mslm-item:last-child { border-bottom: none; }
+.mslm-item-nome {
+  flex: 1;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text, #2b1b12);
+}
+.mslm-item-meta {
+  font-size: .76rem;
+  color: var(--text-muted, #8c7057);
+  white-space: nowrap;
+}
+.mslm-btn-remover,
+.mslm-btn-adicionar {
+  all: unset;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  transition: background .15s, opacity .15s;
+}
+.mslm-btn-remover {
+  color: #c0392b;
+  border: 1.5px solid #c0392b;
+}
+.mslm-btn-remover:hover { background: rgba(192,57,43,.08); }
+.mslm-btn-adicionar {
+  color: var(--gold, #D4AF37);
+  border: 1.5px solid var(--gold, #D4AF37);
+}
+.mslm-btn-adicionar:hover { background: rgba(212,175,55,.08); }
+.mslm-btn-remover:disabled,
+.mslm-btn-adicionar:disabled { opacity: .45; cursor: default; }
+.mslm-busca-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mslm-busca-input {
+  flex: 1;
+  background: var(--card2, #f0e8d8);
+  border: 1.5px solid var(--border-soft, rgba(212,175,55,.2));
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: .9rem;
+  color: var(--text, #2b1b12);
+  outline: none;
+}
+.mslm-busca-input:focus { border-color: var(--gold, #D4AF37); }
+.mslm-btn-buscar {
+  all: unset;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--gold, #D4AF37);
+  color: #fff;
+  font-size: 1rem;
+}
+.mslm-busca-msg {
+  font-size: .78rem;
+  color: var(--text-muted, #8c7057);
+  margin: 4px 0 0;
+  min-height: 1.2em;
+}
+.mslm-loading {
+  list-style: none;
+  padding: 12px 0;
+  font-size: .85rem;
+  color: var(--text-muted, #8c7057);
+  text-align: center;
+}
+.mslm-vazio {
+  list-style: none;
+  padding: 12px 0;
+  font-size: .85rem;
+  color: var(--text-muted, #8c7057);
+  text-align: center;
+  font-style: italic;
+}
+.mslm-footer {
+  padding: 10px 18px 14px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-soft, rgba(212,175,55,.15));
+}
+.mslm-btn--fechar {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: var(--card2, #f0e8d8);
+  color: var(--text, #2b1b12);
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.mslm-btn--fechar:hover { background: var(--border-soft, rgba(212,175,55,.2)); }
+
+/* ── CorteModal: card Plano Mensal ── */
+.crtm-plano-mensal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin: 6px 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(212,175,55,.18) 0%, rgba(212,175,55,.08) 100%);
+  border: 1.5px solid var(--gold, #D4AF37);
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  user-select: none;
+}
+.crtm-plano-mensal:hover  { background: linear-gradient(135deg, rgba(212,175,55,.28) 0%, rgba(212,175,55,.14) 100%); }
+.crtm-plano-mensal:active { transform: scale(.98); }
+.crtm-plano-mensal-icone {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+.crtm-plano-mensal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.crtm-plano-mensal-titulo {
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--gold-dark, #b8960c);
+}
+.crtm-plano-mensal-desc {
+  font-size: .78rem;
+  color: var(--text-muted, #8c7057);
+}
 .mb-prod-form-view {
   display: flex;
   flex-direction: column;

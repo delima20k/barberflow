@@ -106,6 +106,57 @@ class BffApiService {
     }
   }
 
+  /**
+   * Executa DELETE autenticado na BFF com timeout e retorno estruturado.
+   * @param {string} path   — ex: '/api/v1/mensalistas/abc-123'
+   * @returns {Promise<{ data: null, error: Error|null }>}
+   */
+  static async delete(path) {
+    const url = `${BffApiService.#BASE_URL}${path}`;
+    try {
+      const authHeaders = await BffApiService.#authHeaders();
+      const res  = await BffApiService.#fetchComTimeout(url, {
+        method:  'DELETE',
+        headers: authHeaders,
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        const err  = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, error: err };
+      }
+      return { data: null, error: null };
+    } catch (err) {
+      return { data: null, error: BffApiService.#parseErroRede(err) };
+    }
+  }
+
+  // ── Namespace: mensalistas ────────────────────────────────────────
+
+  /**
+   * Métodos de acesso ao endpoint /api/v1/mensalistas.
+   *
+   * Uso:
+   *   const { data, error } = await BffApiService.mensalistas.verificar(shopId, clientId);
+   *   const { data, error } = await BffApiService.mensalistas.listar(shopId);
+   */
+  static mensalistas = {
+    adicionar:                 (barbershopId, clientId) =>
+      BffApiService.post('/api/v1/mensalistas', { barbershop_id: barbershopId, client_id: clientId }),
+
+    listar:                    (barbershopId) =>
+      BffApiService.get('/api/v1/mensalistas', { barbershop_id: barbershopId }),
+
+    verificar:                 (barbershopId, clientId) =>
+      BffApiService.get('/api/v1/mensalistas/verificar', { barbershop_id: barbershopId, client_id: clientId }),
+
+    remover:                   (id) =>
+      BffApiService.delete(`/api/v1/mensalistas/${encodeURIComponent(id)}`),
+
+    buscarClientesDisponiveis: (barbershopId, q = '') =>
+      BffApiService.get('/api/v1/mensalistas/clientes-disponiveis', { barbershop_id: barbershopId, q }),
+  };
+
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──
 
   /** @returns {string} URL base da BFF */

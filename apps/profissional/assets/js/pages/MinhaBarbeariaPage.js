@@ -156,6 +156,7 @@ class MinhaBarbeariaPage {
       cfgNome:       q('mb-cfg-nome'),
       cfgProdutos:   q('mb-cfg-produtos-lista'),
       cfgAddProd:    q('mb-cfg-add-produto'),
+      cfgMensalistas: q('mb-cfg-mensalistas'),
       cfgSalvar:      q('mb-config-salvar'),
       cfgMsg:         q('mb-config-msg'),
       // Config panel — campos editáveis (lápis)
@@ -228,6 +229,7 @@ class MinhaBarbeariaPage {
     this.#refs.cfgLogoInput?.addEventListener('change',e => this.#onUploadLogo(e));
     this.#refs.cfgAddProd?.addEventListener('click',   () => this.#adicionarLinhaProduto());
     this.#refs.cfgSalvar?.addEventListener('click',    () => this.#salvarConfiguracoes());
+    this.#refs.cfgMensalistas?.addEventListener('click', () => this.#abrirMensalistaModal());
     // Convite — busca
     this.#refs.conviteBtnBuscar?.addEventListener('click', () => this.#buscarBarbeiro());
     this.#refs.conviteInput?.addEventListener('keydown',   e => { if (e.key === 'Enter') this.#buscarBarbeiro(); });
@@ -590,10 +592,20 @@ class MinhaBarbeariaPage {
     });
     if (!clienteSel) return;
 
+    // 3a. Verificar se o cliente é mensalista ativo (silencioso — falha = não-mensalista)
+    let clienteMensalista = false;
+    if (!clienteSel.anonymous) {
+      try {
+        const { data } = await BffApiService.mensalistas.verificar(this.#barbershopId, clienteSel.id);
+        clienteMensalista = data?.ativo === true;
+      } catch (_) { /* falha silenciosa — prossegue sem badge mensalista */ }
+    }
+
     // 3. Modal: selecionar cortes
     const serviceIds = await CorteModal.abrir({
-      servicos:    this.#servicos,
-      clienteNome: clienteSel.full_name,
+      servicos:        this.#servicos,
+      clienteNome:     clienteSel.full_name,
+      clienteMensalista,
     });
     if (!serviceIds) return;
 
@@ -1829,6 +1841,13 @@ class MinhaBarbeariaPage {
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Salvar item'; }
     }
+  }
+
+  // ── Mensalistas ──────────────────────────────────────────────
+
+  async #abrirMensalistaModal() {
+    if (!this.#barbershopId) return;
+    await MensalistaModal.abrir({ barbershopId: this.#barbershopId });
   }
 
   // ── Salvar configurações ─────────────────────────────────────
