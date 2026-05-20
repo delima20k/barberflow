@@ -1992,7 +1992,7 @@
   min-height: 0;
   padding-right: .5rem;
   padding-left: .5rem;
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -2197,12 +2197,7 @@
 }
 
 #mb-convite-enviar-secao {
-  position: sticky;
-  bottom: calc(.5rem + env(safe-area-inset-bottom));
-  z-index: 4;
-  margin: auto .5rem 0;
-  padding-top: .5rem;
-  background: linear-gradient(to top, var(--bg, #F5E9DC) 78%, rgba(245,233,220,0));
+  margin-top: .75rem;
 }
 
 #mb-convite-btn-enviar {

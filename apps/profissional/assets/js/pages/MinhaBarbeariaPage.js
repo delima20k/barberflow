@@ -134,6 +134,8 @@ class MinhaBarbeariaPage {
       convidarBtn:        q('mb-equipe-convidar-btn'),
       conviteFechar:      q('mb-convite-fechar'),
       conviteNomeBarbearia: q('mb-convite-barbearia-nome'),
+      conviteShopLogo:    q('mb-convite-shop-logo'),
+      conviteCadeiraLogo: q('mb-convite-cadeira-logo'),
       conviteInput:       q('mb-convite-input'),
       conviteBtnBuscar:   q('mb-convite-btn-buscar'),
       conviteResultado:   q('mb-convite-resultado'),
@@ -1282,6 +1284,7 @@ class MinhaBarbeariaPage {
       if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, shop.font_key);
     }
     if (conviteNomeBarbearia) conviteNomeBarbearia.textContent = nomeBarbearia;
+    this.#atualizarLogoConvite(shop.logo_path || shop.cover_path);
 
     // Hero header — background-image = capa; fallback = logo
     const bgPath = shop.cover_path || shop.logo_path;
@@ -1308,6 +1311,15 @@ class MinhaBarbeariaPage {
       const url = SupabaseService.getLogoUrl(shop.logo_path);
       if (url && coverImg) coverImg.src = url;
     }
+  }
+
+  #atualizarLogoConvite(pathOuUrl) {
+    const isUrl = typeof pathOuUrl === 'string' && /^(https?:|data:|blob:|\/)/.test(pathOuUrl);
+    const url = pathOuUrl
+      ? (isUrl ? pathOuUrl : (SupabaseService.getLogoUrl(pathOuUrl) || pathOuUrl))
+      : '/shared/img/Logo01.png';
+    if (this.#refs.conviteShopLogo) this.#refs.conviteShopLogo.src = url;
+    if (this.#refs.conviteCadeiraLogo) this.#refs.conviteCadeiraLogo.src = url;
   }
 
   #renderStoryCards(stories, shop, quotaHoje, perfilId) {
@@ -1589,6 +1601,7 @@ class MinhaBarbeariaPage {
       if (url) {
         this.#refs.cfgLogoImg.src = url;
         if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${url}')`;
+        this.#atualizarLogoConvite(url);
       }
     }
 
@@ -2061,6 +2074,7 @@ class MinhaBarbeariaPage {
         const urlBust = `${url}?t=${Date.now()}`;
         this.#refs.cfgLogoImg.src = urlBust;
         if (this.#refs.cfgIconeWrap) this.#refs.cfgIconeWrap.style.backgroundImage = `url('${urlBust}')`;
+        this.#atualizarLogoConvite(urlBust);
       }
     } catch (err) {
       console.error('[MinhaBarbeariaPage] onUploadLogo erro:', err);
