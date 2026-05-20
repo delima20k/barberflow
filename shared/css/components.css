@@ -5900,6 +5900,111 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Form-view: painel de edição/criação do item ── */
 
 /* ════════════════════════════════════════════════════════════════
+   MB-ITEM-VIEW — Drawer "ver itens" (GuardaIten)
+   ════════════════════════════════════════════════════════════════ */
+.mb-cfg-itens-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+
+.mb-item-view-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md, 10px);
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(212,175,55,.15);
+  min-height: 52px;
+}
+
+.mb-item-view-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(212,175,55,.18);
+}
+
+.mb-item-view-nome {
+  flex: 1;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.mb-item-view-preco {
+  font-size: .80rem;
+  color: var(--gold, #D4AF37);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mb-item-view-acoes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mb-item-trash-btn {
+  all: unset;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: .9rem;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.mb-item-trash-btn:active { background: rgba(255,80,80,.18); }
+
+.mb-item-confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mb-item-confirm-txt {
+  font-size: .75rem;
+  color: var(--text-soft, #aaa);
+  white-space: nowrap;
+}
+
+.mb-item-confirm-sim,
+.mb-item-confirm-nao {
+  all: unset;
+  cursor: pointer;
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.mb-item-confirm-sim {
+  color: #ff5050;
+  border: 1px solid rgba(255,80,80,.4);
+}
+.mb-item-confirm-sim:active { background: rgba(255,80,80,.15); }
+.mb-item-confirm-nao {
+  color: var(--text-soft, #aaa);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.mb-item-confirm-nao:active { background: rgba(255,255,255,.08); }
+
+/* ════════════════════════════════════════════════════════════════
    MSLM — MensalistaModal
    ════════════════════════════════════════════════════════════════ */
 .mslm-overlay {

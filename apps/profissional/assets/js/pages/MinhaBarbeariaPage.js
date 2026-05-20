@@ -41,6 +41,7 @@ class MinhaBarbeariaPage {
   #digGps               = null;   // instância DigText para o p.gps-dig
   #digBoasVindas        = null;   // instância DigText para o h1#mb-boas-vindas
   #guardaBotoes         = null;   // instância GuardaIten para a gaveta de botões
+  #guardaIten           = null;   // instância GuardaIten para o drawer "ver itens"
   #mediaP2P             = new MediaP2P(); // preview local P2P — upload adiado para o save
   #canalFila            = null;   // canal Supabase Realtime de queue_entries
   #pollingTimer         = null;   // fallback polling quando Realtime indisponível
@@ -163,6 +164,8 @@ class MinhaBarbeariaPage {
       cfgProdutos:   q('mb-cfg-produtos-lista'),
       cfgAddProd:    q('mb-cfg-add-produto'),
       cfgMensalistas: q('mb-cfg-mensalistas'),
+      cfgItensView:   q('mb-cfg-itens-view'),
+      cfgItensWrapper: q('gi-itens-wrapper'),
       cfgSalvar:      q('mb-config-salvar'),
       cfgMsg:         q('mb-config-msg'),
       // Config panel — campos editáveis (lápis)
@@ -271,6 +274,16 @@ class MinhaBarbeariaPage {
     this.#refs.gpsCidadeLapis?.addEventListener('click', () => this.#_toggleEl(this.#refs.gpsCidade,      this.#refs.gpsCidadeDisplay,  this.#refs.gpsCidadeLapis, '—'));
     this.#refs.gpsNumLapis?.addEventListener('click',    () => this.#_toggleEl(this.#refs.gpsNumero,      this.#refs.gpsNumDisplay,     this.#refs.gpsNumLapis,    '—'));
     this.#refs.gpsCompLapis?.addEventListener('click',   () => this.#_toggleEl(this.#refs.gpsComplemento, this.#refs.gpsCompDisplay,    this.#refs.gpsCompLapis,   '—'));
+    // GuardaIten — drawer "ver itens"
+    const giWrapper = this.#refs.cfgItensWrapper;
+    if (giWrapper && typeof GuardaIten !== 'undefined') {
+      this.#guardaIten = new GuardaIten(giWrapper, {
+        txtEsqFechado: 'Visualize seus itens',
+        txtEsqAberto:  '',
+        txtDirFechado: 'ver itens',
+        txtDirAberto:  'Fechar',
+      });
+    }
   }
 
   // ── Carregamento principal ───────────────────────────────────
@@ -1665,6 +1678,13 @@ class MinhaBarbeariaPage {
     lista.innerHTML = '';
     servicos.forEach(s => this.#adicionarLinhaProduto(s));
 
+    // Popula drawer "ver itens"
+    const itensView = this.#refs.cfgItensView;
+    if (itensView) {
+      itensView.innerHTML = '';
+      servicos.forEach(s => this.#adicionarItemNaView(s));
+    }
+
     // Picker de fonte do nome
     if (typeof FonteSalao !== 'undefined') {
       const pickerEl = document.getElementById('mb-cfg-fonte-picker');
@@ -1883,6 +1903,20 @@ class MinhaBarbeariaPage {
 
       NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
 
+      // Sincroniza drawer "ver itens"
+      const produtoSalvo = {
+        id:         data?.id ?? row.dataset.produtoId,
+        name:       nome,
+        price:      isNaN(preco) ? 0 : preco,
+        image_path: row.dataset.imagePath ?? null,
+      };
+      const itensView = this.#refs.cfgItensView;
+      if (itensView) {
+        const old = itensView.querySelector(`[data-produto-id="${produtoSalvo.id}"]`);
+        if (old) old.remove();
+        this.#adicionarItemNaView(produtoSalvo);
+      }
+
       // Atualiza cache de serviços para aparecer na modal das cadeiras
       if (this.#barbershopId) {
         this.#servicos = await MinhaBarbeariaPage.#fetchServicos(this.#barbershopId).catch(() => this.#servicos);
@@ -1892,6 +1926,73 @@ class MinhaBarbeariaPage {
       NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o item.', 'sistema');
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Salvar item'; }
+    }
+  }
+
+  #adicionarItemNaView(produto) {
+    const lista = this.#refs.cfgItensView;
+    if (!lista || !produto?.id) return;
+
+    const imgSrc = produto.image_path
+      ? (typeof ApiService !== 'undefined' ? ApiService.getLogoUrl(produto.image_path) : produto.image_path)
+      : '/shared/img/Logo01.png';
+    const precoFmt = produto.price != null
+      ? Number(produto.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : '';
+
+    const item = document.createElement('div');
+    item.className = 'mb-item-view-row';
+    item.dataset.produtoId = produto.id;
+    item.innerHTML = `
+      <img class="mb-item-view-img" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="" loading="lazy">
+      <span class="mb-item-view-nome">${MinhaBarbeariaPage.#escapeAttr(produto.name ?? '')}</span>
+      <span class="mb-item-view-preco">${precoFmt}</span>
+      <div class="mb-item-view-acoes">
+        <button class="mb-item-trash-btn" type="button" aria-label="Excluir item">🗑️</button>
+        <div class="mb-item-confirm" hidden>
+          <span class="mb-item-confirm-txt">Apagar este item?</span>
+          <button class="mb-item-confirm-sim" type="button">Sim</button>
+          <button class="mb-item-confirm-nao" type="button">Não</button>
+        </div>
+      </div>
+    `;
+
+    const confirmDiv = item.querySelector('.mb-item-confirm');
+    item.querySelector('.mb-item-trash-btn').addEventListener('click', () => {
+      confirmDiv.hidden = false;
+    });
+    item.querySelector('.mb-item-confirm-nao').addEventListener('click', () => {
+      confirmDiv.hidden = true;
+    });
+    item.querySelector('.mb-item-confirm-sim').addEventListener('click', async () => {
+      await this.#removerItemCompleto(produto.id, item);
+    });
+
+    lista.appendChild(item);
+  }
+
+  async #removerItemCompleto(produtoId, itemEl) {
+    const simBtn = itemEl?.querySelector('.mb-item-confirm-sim');
+    if (simBtn) simBtn.disabled = true;
+
+    try {
+      const { error } = await SupabaseService.services()
+        .delete()
+        .eq('id', produtoId);
+      if (error) throw error;
+
+      itemEl?.remove();
+
+      const inlineRow = this.#refs.cfgProdutos?.querySelector(`[data-produto-id="${produtoId}"]`);
+      inlineRow?.remove();
+
+      if (this.#barbershopId) {
+        this.#servicos = await MinhaBarbeariaPage.#fetchServicos(this.#barbershopId).catch(() => this.#servicos);
+      }
+    } catch (err) {
+      LoggerService.error('[MinhaBarbeariaPage] removerItemCompleto:', err);
+      NotificationService?.mostrarToast('Erro', 'Não foi possível remover o item.', 'sistema');
+      if (simBtn) simBtn.disabled = false;
     }
   }
 
