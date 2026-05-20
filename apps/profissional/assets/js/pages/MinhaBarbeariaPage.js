@@ -133,6 +133,7 @@ class MinhaBarbeariaPage {
       // Convite barbeiro
       convidarBtn:        q('mb-equipe-convidar-btn'),
       conviteFechar:      q('mb-convite-fechar'),
+      conviteNomeBarbearia: q('mb-convite-barbearia-nome'),
       conviteInput:       q('mb-convite-input'),
       conviteBtnBuscar:   q('mb-convite-btn-buscar'),
       conviteResultado:   q('mb-convite-resultado'),
@@ -1273,12 +1274,14 @@ class MinhaBarbeariaPage {
   }
 
   #renderCabecalho(shop) {
-    const { nome, heroHeader, heroLogo, coverImg } = this.#refs;
+    const { nome, heroHeader, heroLogo, coverImg, conviteNomeBarbearia } = this.#refs;
+    const nomeBarbearia = shop.name ?? shop.trade_name ?? 'Barbearia';
 
     if (nome) {
       nome.textContent = shop.name ?? '';
       if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, shop.font_key);
     }
+    if (conviteNomeBarbearia) conviteNomeBarbearia.textContent = nomeBarbearia;
 
     // Hero header — background-image = capa; fallback = logo
     const bgPath = shop.cover_path || shop.logo_path;
@@ -1895,6 +1898,7 @@ class MinhaBarbeariaPage {
         if (this.#shopData?.font_key && typeof FonteSalao !== 'undefined')
           FonteSalao.aplicarFonte(this.#refs.nome, this.#shopData.font_key);
       }
+      if (nome && this.#refs.conviteNomeBarbearia) this.#refs.conviteNomeBarbearia.textContent = nome;
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarConfiguracoes erro:', err);
       if (msg) msg.textContent = '❌ Erro ao salvar. Tente novamente.';

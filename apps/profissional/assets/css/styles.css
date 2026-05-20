@@ -1982,13 +1982,61 @@
 /* ================================================================
    CONVITE DE BARBEIRO — sub-painel
 ================================================================ */
+#mb-convite-panel .tela-topo {
+  align-items: flex-start;
+}
+
+.mb-convite-titulos {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 1rem;
+}
+
+.mb-convite-barbearia-nome {
+  margin: 0;
+  color: var(--text, #2b1b12);
+  font-size: .98rem;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#mb-convite-panel .tela-topo__titulo {
+  flex: none;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+#mb-convite-panel .mb-config-secao-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--brown, #6f4529);
+}
+
+#mb-convite-panel .mb-config-secao-label::after {
+  content: '';
+  display: block;
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: .7;
+}
+
+.mb-convite-msg-wrap { margin-top: 12px; }
+
 .mb-convite-busca-row {
   display: flex;
   gap: 8px;
   align-items: stretch;
   margin-top: 6px;
 }
-.mb-convite-busca-row .mb-config-input { flex: 1; }
+.mb-convite-busca-row .inpustyle { flex: 1; }
 
 .mb-convite-resultado {
   margin-top: 8px;
@@ -2042,28 +2090,90 @@
 }
 
 .mb-convite-tipo-btn {
-  all: unset;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 6px;
+  min-height: 148px;
   padding: 14px 8px;
-  background: var(--card);
-  border: 1.5px solid var(--border-soft);
-  border-radius: var(--r-md);
+  background: transparent;
+  border: 2px solid var(--gold, #c9872a);
+  border-radius: var(--r-sm, 8px);
+  color: var(--gold, #c9872a);
   text-align: center;
   cursor: pointer;
-  transition: border-color .18s, box-shadow .18s;
+  transition: border-color .18s, box-shadow .18s, color .18s, background .18s;
   box-sizing: border-box;
 }
 .mb-convite-tipo-btn strong { font-size: .78rem; color: var(--text); display: block; }
 .mb-convite-tipo-btn small  { font-size: .66rem; color: var(--text-muted); }
-.mb-convite-tipo-icon { font-size: 1.4rem; }
+.mb-convite-tipo-icon {
+  width: 76px;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .mb-convite-tipo-btn--ativo {
   border-color: var(--gold);
   box-shadow: 0 0 0 2px rgba(212,175,55,.18);
 }
 .mb-convite-tipo-btn--ativo strong { color: var(--gold); }
+
+.mb-convite-tipo-btn:hover,
+.mb-convite-tipo-btn:focus-visible {
+  background: transparent;
+  border-color: var(--gold, #D4AF37);
+  color: var(--gold, #D4AF37);
+  box-shadow: 0 0 0 2px rgba(212,175,55,.18);
+}
+
+.mb-convite-tipo-btn:active {
+  background: transparent;
+  color: var(--gold, #D4AF37);
+}
+
+.mb-convite-tipo-icon--parceria {
+  gap: 6px;
+}
+
+.mb-convite-tipo-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.mb-convite-tipo-setas {
+  color: var(--gold, #D4AF37);
+  font-size: .86rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.mb-convite-tipo-icon--cadeira {
+  position: relative;
+  min-height: 58px;
+}
+
+.mb-convite-cadeira-img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.mb-convite-cadeira-logo {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(0,0,0,.16);
+}
 
 /* ================================================================
    FIM — EQUIPE DA BARBEARIA

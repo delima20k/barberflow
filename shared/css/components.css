@@ -5772,6 +5772,52 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .mb-config-input:focus { border-color: var(--gold); }
 
+/* Input transparente reutilizavel: use class="inpustyle" em input/textarea. */
+.inpustyle {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 2px 8px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1.5px solid var(--brown, #6f4529);
+  border-radius: 0;
+  color: var(--text, #2b1b12);
+  font-size: .9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .18s, color .18s, opacity .18s;
+}
+
+.inpustyle:focus,
+.inpustyle:active {
+  border-bottom-color: var(--gold, #D4AF37);
+}
+
+.inpustyle::placeholder {
+  color: rgba(111, 69, 41, .62);
+}
+
+.inpustyle-btn {
+  width: 42px;
+  flex: 0 0 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 4px;
+  color: var(--brown, #6f4529);
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.inpustyle-btn:hover,
+.inpustyle-btn:focus-visible {
+  color: var(--gold, #D4AF37);
+  border-bottom-color: var(--gold, #D4AF37);
+}
+
 /* Lista dinâmica de produtos */
 .mb-cfg-produtos-lista {
   display: flex;
@@ -6436,4 +6482,3 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 4px 6px;
   line-height: 1;
 }
-
