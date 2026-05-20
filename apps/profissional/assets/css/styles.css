@@ -2049,9 +2049,9 @@
 .mb-convite-busca-row .inpustyle { flex: 1; }
 
 #mb-convite-btn-buscar {
-  width: 30px;
+  width: 42px;
   min-height: 34px;
-  flex: 0 0 30px;
+  flex: 0 0 42px;
   padding-bottom: 2px;
   font-size: 1.2rem;
 }
