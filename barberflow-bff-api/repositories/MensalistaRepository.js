@@ -238,7 +238,83 @@ class MensalistaRepository extends BaseRepository {
       }));
   }
 
+  /**
+   * Lista perfis que favoritaram a barbearia OU esse barbeiro específico.
+   * Usado pela modal da cadeirinha (ClienteSeletorModal).
+   *
+   * Tenta RPC `get_clientes_favoritos_modal` (migration 20260507000002).
+   * Se a RPC ainda não existe em produção, usa fallback com queries diretas.
+   *
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<object[]>}
+   */
+  async listarFavoritosModal(barbershopId, professionalId) {
+    this._uuid('barbershop_id',   barbershopId);
+    this._uuid('professional_id', professionalId);
+
+    const { data, error } = await this._db.rpc('get_clientes_favoritos_modal', {
+      p_barbershop_id:   barbershopId,
+      p_professional_id: professionalId,
+    });
+
+    if (!error) return (data ?? []).map(p => ({
+      id:          p.id,
+      full_name:   p.full_name   ?? 'Cliente',
+      email:       p.email       ?? null,
+      avatar_path: p.avatar_path ?? null,
+      updated_at:  p.updated_at  ?? null,
+    }));
+
+    if (!MensalistaRepository.#ehRpcInexistente(error)) {
+      this._throwDbError(error, 'listarFavoritosModal');
+    }
+    this._warn('listarFavoritosModal', error);
+    return this.#favoritosModalFallback(barbershopId, professionalId);
+  }
+
   // ── Helpers privados ─────────────────────────────────────────────
+
+  /**
+   * Fallback para listarFavoritosModal quando RPC não existe.
+   * UNION manual: favoritos da barbearia + favoritos desse barbeiro específico.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<object[]>}
+   */
+  async #favoritosModalFallback(barbershopId, professionalId) {
+    const ids = new Set();
+
+    const { data: shopFavs } = await this._db
+      .from('barbershop_interactions')
+      .select('user_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'favorite');
+    (shopFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    const { data: profFavs } = await this._db
+      .from('favorite_professionals')
+      .select('user_id')
+      .eq('professional_id', professionalId);
+    (profFavs ?? []).forEach(r => { if (r.user_id) ids.add(r.user_id); });
+
+    if (!ids.size) return [];
+
+    const { data, error } = await this._db
+      .from('profiles')
+      .select('id, full_name, email, avatar_path, updated_at')
+      .in('id', [...ids])
+      .order('full_name');
+
+    if (error) return [];
+    return (data ?? []).map(p => ({
+      id:          p.id,
+      full_name:   p.full_name   ?? 'Cliente',
+      email:       p.email       ?? null,
+      avatar_path: p.avatar_path ?? null,
+      updated_at:  p.updated_at  ?? null,
+    }));
+  }
 
   /**
    * Fallback para listarFavoritosElegiveis quando RPC não existe.

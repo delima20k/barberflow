@@ -47,10 +47,7 @@ class FavoritosClientesService {
     if (!rShop.ok) throw new TypeError(`[FavoritosClientesService] barbershopId: ${rShop.msg}`);
     if (!rProf.ok) throw new TypeError(`[FavoritosClientesService] professionalId: ${rProf.msg}`);
 
-    const { data, error } = await UserRepository.getFavoritosModal(
-      barbershopId,
-      professionalId,
-    );
+    const { data, error } = await BffApiService.mensalistas.favoritosModal(barbershopId, professionalId);
     if (error) throw error;
 
     return FavoritosClientesService.#normalizar(data);

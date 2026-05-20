@@ -108,6 +108,23 @@ class MensalistaController extends BaseController {
       this.success(res, lista, { total: lista.length });
     });
   }
+
+  /**
+   * GET /api/v1/mensalistas/favoritos-modal?barbershop_id=X&professional_id=Y
+   * Favoritos da barbearia OU desse barbeiro específico.
+   * Usado pela modal da cadeirinha. Não exige ownership.
+   * → 200 com lista de perfis
+   */
+  async favoritosModal(req, res) {
+    await this.handle(res, async () => {
+      const { barbershop_id, professional_id } = req.query;
+      if (!barbershop_id)   throw AppError.badRequest("Query 'barbershop_id' é obrigatório.");
+      if (!professional_id) throw AppError.badRequest("Query 'professional_id' é obrigatório.");
+
+      const lista = await this.#svc.listarFavoritosModal(barbershop_id, professional_id);
+      this.success(res, lista, { total: lista.length });
+    });
+  }
 }
 
 module.exports = MensalistaController;

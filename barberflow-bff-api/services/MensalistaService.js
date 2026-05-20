@@ -134,6 +134,21 @@ class MensalistaService extends BaseService {
     await this.#verificarOwnership(userId, barbershopId);
     return this.#repo.listarFavoritosElegiveis(barbershopId);
   }
+
+  /**
+   * Lista perfis que favoritaram a barbearia OU esse barbeiro específico.
+   * Usado pela modal da cadeirinha. NÃO exige ownership — qualquer
+   * profissional autenticado pode consultar.
+   *
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<object[]>}
+   */
+  async listarFavoritosModal(barbershopId, professionalId) {
+    this._uuid('barbershop_id',   barbershopId);
+    this._uuid('professional_id', professionalId);
+    return this.#repo.listarFavoritosModal(barbershopId, professionalId);
+  }
 }
 
 module.exports = MensalistaService;

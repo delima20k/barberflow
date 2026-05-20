@@ -158,6 +158,9 @@ class BffApiService {
 
     favoritosElegiveis:        (barbershopId) =>
       BffApiService.get('/api/v1/mensalistas/favoritos-elegiveis', { barbershop_id: barbershopId }),
+
+    favoritosModal:            (barbershopId, professionalId) =>
+      BffApiService.get('/api/v1/mensalistas/favoritos-modal', { barbershop_id: barbershopId, professional_id: professionalId }),
   };
 
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──
