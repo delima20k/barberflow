@@ -273,9 +273,12 @@ class MensalistaModal {
    */
   static #criarItemAtivo(nome, avatarPath, venceEm, mensalidade, onRemover) {
     const li = document.createElement('li');
-    li.className = 'mslm-item';
+    li.className = 'mslm-item mslm-item--ativo';
 
-    // Avatar ou placeholder com inicial
+    // Coluna 1: avatar + nome
+    const avatarCol = document.createElement('div');
+    avatarCol.className = 'mslm-item-avatar-col';
+
     if (avatarPath) {
       const img = document.createElement('img');
       img.className = 'mslm-avatar';
@@ -287,14 +290,19 @@ class MensalistaModal {
       img.onerror = () => {
         img.replaceWith(MensalistaModal.#criarPlaceholderAvatar(nome));
       };
-      li.appendChild(img);
+      avatarCol.appendChild(img);
     } else {
-      li.appendChild(MensalistaModal.#criarPlaceholderAvatar(nome));
+      avatarCol.appendChild(MensalistaModal.#criarPlaceholderAvatar(nome));
     }
 
     const nomeEl = document.createElement('span');
     nomeEl.className   = 'mslm-item-nome';
     nomeEl.textContent = nome;
+    avatarCol.appendChild(nomeEl);
+
+    // Coluna 2: vence + mensalidade
+    const infoCol = document.createElement('div');
+    infoCol.className = 'mslm-item-meta';
 
     const venceEl = document.createElement('span');
     venceEl.className = 'mslm-item-vence';
@@ -304,16 +312,23 @@ class MensalistaModal {
     mensalidadeEl.className   = 'mslm-item-mensalidade';
     mensalidadeEl.textContent = `Mensalidade: ${mensalidade}`;
 
+    infoCol.appendChild(venceEl);
+    infoCol.appendChild(mensalidadeEl);
+
+    // Coluna 3: botão remover
+    const actionsCol = document.createElement('div');
+    actionsCol.className = 'mslm-item-actions';
+
     const btn = document.createElement('button');
     btn.className   = 'mslm-btn-remover';
     btn.textContent = '🗑️';
     btn.setAttribute('aria-label', `Remover ${nome} dos mensalistas`);
     btn.addEventListener('click', onRemover);
+    actionsCol.appendChild(btn);
 
-    li.appendChild(nomeEl);
-    li.appendChild(venceEl);
-    li.appendChild(mensalidadeEl);
-    li.appendChild(btn);
+    li.appendChild(avatarCol);
+    li.appendChild(infoCol);
+    li.appendChild(actionsCol);
     return li;
   }
 

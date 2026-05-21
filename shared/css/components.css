@@ -6090,7 +6090,14 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: var(--text-muted, #8c7057);
   margin: 0 0 10px;
 }
-.mslm-lista-ativos,
+.mslm-lista-ativos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 .mslm-lista-disponiveis {
   list-style: none;
   margin: 0;
@@ -6111,6 +6118,36 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   max-width: 100px;
 }
 .mslm-item:last-child { border-bottom: none; }
+.mslm-item--ativo {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  min-width: unset;
+  max-width: unset;
+  text-align: left;
+}
+.mslm-item-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
+  flex-shrink: 0;
+}
+.mslm-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.mslm-item-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .mslm-avatar,
 .mslm-avatar-placeholder {
   width: 48px;
@@ -6135,8 +6172,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 88px;
-  width: 100%;
+  max-width: 72px;
 }
 .mslm-item-vence {
   font-size: .67rem;

@@ -174,7 +174,8 @@ suite('MensalistaModal', () => {
     await new Promise(resolve => setImmediate(resolve));
 
     const overlay = doc.body._appended[0];
-    const meta = todosDescendentes(overlay).find(el => (el.className ?? '').split(' ').includes('mslm-item-meta'));
-    assert.match(meta.textContent, /Mensalidade:/);
+    const mensalidadeEl = todosDescendentes(overlay).find(el => (el.className ?? '').split(' ').includes('mslm-item-mensalidade'));
+    assert.ok(mensalidadeEl, 'elemento mslm-item-mensalidade deve existir dentro do container mslm-item-meta');
+    assert.match(mensalidadeEl.textContent, /Mensalidade:/);
   });
 });
