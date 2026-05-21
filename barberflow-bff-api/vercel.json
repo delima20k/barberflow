@@ -11,6 +11,15 @@
       "includeFiles": "app.js,config/**,controllers/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
     }
   },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" },
+        { "key": "Vary",          "value": "Origin" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
   ]

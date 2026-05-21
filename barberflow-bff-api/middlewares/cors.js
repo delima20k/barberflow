@@ -50,10 +50,14 @@ class CorsMiddleware {
   static handle(req, res, next) {
     const origin = req.headers.origin;
 
+    // Vary: Origin deve ser enviado em TODAS as respostas — inclusive bloqueadas.
+    // Garante que CDN/proxy varie o cache por origin e não sirva
+    // resposta de pro.berberflow.shop para app.berberflow.shop.
+    res.setHeader('Vary', 'Origin');
+
     if (CorsMiddleware.#isAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Vary', 'Origin');
     }
 
     if (req.method === 'OPTIONS') {

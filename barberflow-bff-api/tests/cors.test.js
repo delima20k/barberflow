@@ -166,6 +166,11 @@ suite('CorsMiddleware — origens bloqueadas', () => {
         !captured.headers['Access-Control-Allow-Origin'],
         `"${origin}" não deve receber ACAO header`,
       );
+      assert.strictEqual(
+        captured.headers['Vary'],
+        'Origin',
+        'Vary: Origin deve estar presente mesmo para origem bloqueada',
+      );
     });
   }
 
@@ -175,6 +180,11 @@ suite('CorsMiddleware — origens bloqueadas', () => {
     CorsMiddleware.handle(req, res, next);
 
     assert.ok(!captured.headers['Access-Control-Allow-Origin']);
+    assert.strictEqual(
+      captured.headers['Vary'],
+      'Origin',
+      'Vary: Origin deve estar presente mesmo sem origin',
+    );
     assert.strictEqual(next.calls.length, 1);
   });
 });
