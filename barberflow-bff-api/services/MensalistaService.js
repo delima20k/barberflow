@@ -56,12 +56,28 @@ class MensalistaService extends BaseService {
    * @param {string} userId
    * @param {string} barbershopId
    * @param {string} clientId
+   * @param {number|string|null|undefined} [monthlyFee=0]
    */
-  async adicionar(userId, barbershopId, clientId) {
+  async adicionar(userId, barbershopId, clientId, monthlyFee = 0) {
     this._uuid('barbershop_id', barbershopId);
     this._uuid('client_id',     clientId);
+    const mensalidade = this.#normalizarMensalidade(monthlyFee);
     await this.#verificarOwnership(userId, barbershopId);
-    return this.#repo.adicionar(barbershopId, clientId);
+    return this.#repo.adicionar(barbershopId, clientId, mensalidade);
+  }
+
+  /**
+   * Normaliza valor monetario opcional do plano mensal.
+   * @param {number|string|null|undefined} valor
+   * @returns {number}
+   */
+  #normalizarMensalidade(valor) {
+    if (valor === undefined || valor === null || valor === '') return 0;
+    const num = Number(valor);
+    if (!Number.isFinite(num) || num < 0 || num > 999999.99) {
+      throw AppError.badRequest("Campo 'monthly_fee' deve ser um valor entre 0 e 999999.99.");
+    }
+    return Math.round(num * 100) / 100;
   }
 
   /**

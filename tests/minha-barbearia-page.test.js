@@ -466,6 +466,11 @@ suite('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_COMPONENTS_CSS,
+      /#mb-config-panel \.mb-config-secao-label\s*\{[\s\S]*font-size:\s*\.68rem;[\s\S]*white-space:\s*nowrap;/,
+      'label do painel config deve ficar menor e sem quebra de linha',
+    );
+    assert.match(
+      SRC_COMPONENTS_CSS,
       /#mb-config-panel \.mb-config-secao-label::after\s*\{[\s\S]*flex:\s*1;[\s\S]*height:\s*1px;/,
       'pseudo-elemento deve preencher o espaco ate a ponta direita',
     );

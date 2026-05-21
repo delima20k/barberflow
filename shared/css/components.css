@@ -5555,6 +5555,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: .68rem;
+  white-space: nowrap;
 }
 #mb-config-panel .mb-config-secao-label::after {
   content: '';
@@ -6150,23 +6152,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .mslm-busca-input {
   flex: 1;
-  background: var(--card2, #f0e8d8);
-  border: 1.5px solid var(--border-soft, rgba(212,175,55,.2));
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: .9rem;
-  color: var(--text, #2b1b12);
-  outline: none;
+  min-width: 0;
 }
-.mslm-busca-input:focus { border-color: var(--gold, #D4AF37); }
 .mslm-btn-buscar {
-  all: unset;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--gold, #D4AF37);
-  color: #fff;
   font-size: 1rem;
+}
+.mslm-mensalidade-input {
+  max-width: 180px;
 }
 .mslm-busca-msg {
   font-size: .78rem;

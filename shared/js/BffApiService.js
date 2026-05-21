@@ -169,8 +169,12 @@ class BffApiService {
    *   const { data, error } = await BffApiService.mensalistas.listar(shopId);
    */
   static mensalistas = {
-    adicionar:                 (barbershopId, clientId) =>
-      BffApiService.post('/api/v1/mensalistas', { barbershop_id: barbershopId, client_id: clientId }),
+    adicionar:                 (barbershopId, clientId, monthlyFee = 0) =>
+      BffApiService.post('/api/v1/mensalistas', {
+        barbershop_id: barbershopId,
+        client_id:     clientId,
+        monthly_fee:   monthlyFee,
+      }),
 
     listar:                    (barbershopId) =>
       BffApiService.get('/api/v1/mensalistas', { barbershop_id: barbershopId }),

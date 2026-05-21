@@ -23,16 +23,16 @@ class MensalistaController extends BaseController {
 
   /**
    * POST /api/v1/mensalistas
-   * Body: { barbershop_id, client_id }
+   * Body: { barbershop_id, client_id, monthly_fee? }
    * → 201 com a row criada
    */
   async adicionar(req, res) {
     await this.handle(res, async () => {
-      const { barbershop_id, client_id } = req.body ?? {};
+      const { barbershop_id, client_id, monthly_fee } = req.body ?? {};
       if (!barbershop_id) throw AppError.badRequest("Campo 'barbershop_id' é obrigatório.");
       if (!client_id)     throw AppError.badRequest("Campo 'client_id' é obrigatório.");
 
-      const row = await this.#svc.adicionar(req.user.id, barbershop_id, client_id);
+      const row = await this.#svc.adicionar(req.user.id, barbershop_id, client_id, monthly_fee);
       this.created(res, row);
     });
   }

@@ -28,6 +28,7 @@ const MOCK_ROW = {
   client_id:     CLIENT_ID,
   starts_at:     _now.toISOString(),
   ends_at:       _endsAt,
+  monthly_fee:   149.9,
 };
 
 const MOCK_SHOP_OWNER    = { id: SHOP_ID, owner_id: OWNER_ID };
@@ -84,7 +85,7 @@ const SupabaseClient = require('../utils/SupabaseClient');
       // .single() — usado no upsert/adicionar (.upsert().select().single())
       single: () => {
         if (table === 'barbershop_mensalistas' && q._hasUpsert) {
-          return Promise.resolve({ data: MOCK_ROW, error: null });
+          return Promise.resolve({ data: { ...MOCK_ROW, ...q._data }, error: null });
         }
         return Promise.resolve({ data: null, error: null });
       },
@@ -223,6 +224,33 @@ suite('MensalistaService — unit', () => {
     assert.strictEqual(resultado.barbershop_id, SHOP_ID);
   });
 
+  test('adicionar — mensalidade: normaliza e envia para o repository', async () => {
+    const db   = criarDbMock({ shop: MOCK_SHOP_OWNER, row: MOCK_ROW });
+    const repo = new MensalistaRepository(db);
+    const svc  = new MensalistaService(repo, db);
+    let monthlyFeeRecebido = null;
+
+    repo.adicionar = async (_shopId, _clientId, monthlyFee) => {
+      monthlyFeeRecebido = monthlyFee;
+      return { ...MOCK_ROW, monthly_fee: monthlyFee };
+    };
+
+    const resultado = await svc.adicionar(OWNER_ID, SHOP_ID, CLIENT_ID, '149.899');
+    assert.strictEqual(monthlyFeeRecebido, 149.9);
+    assert.strictEqual(resultado.monthly_fee, 149.9);
+  });
+
+  test('adicionar — mensalidade negativa: lança AppError 400', async () => {
+    const db   = criarDbMock({ shop: MOCK_SHOP_OWNER, row: MOCK_ROW });
+    const repo = new MensalistaRepository(db);
+    const svc  = new MensalistaService(repo, db);
+
+    await assert.rejects(
+      () => svc.adicionar(OWNER_ID, SHOP_ID, CLIENT_ID, -1),
+      (err) => { assert.strictEqual(err.status, 400); return true; },
+    );
+  });
+
   test('adicionar — não-owner: lança AppError 403', async () => {
     const db  = criarDbMock({ shop: MOCK_SHOP_OTHER }); // owner_id = OTHER_ID
     const repo = new MensalistaRepository(db);
@@ -332,13 +360,14 @@ suite('Mensalistas — integração HTTP', () => {
         method: 'POST',
         path:   '/api/v1/mensalistas',
         token:  TOKEN_OWNER,
-        body:   { barbershop_id: SHOP_ID, client_id: CLIENT_ID },
+        body:   { barbershop_id: SHOP_ID, client_id: CLIENT_ID, monthly_fee: 149.9 },
       });
 
       assert.strictEqual(status, 201, JSON.stringify(body));
       assert.strictEqual(body.ok, true);
       assert.strictEqual(body.dados.id, MENSAL_ID);
       assert.strictEqual(body.dados.barbershop_id, SHOP_ID);
+      assert.strictEqual(body.dados.monthly_fee, 149.9);
     });
 
     test('401 — sem token: rejeita autenticação', async () => {
@@ -397,6 +426,7 @@ suite('Mensalistas — integração HTTP', () => {
       assert.strictEqual(body.ok, true);
       assert.ok(Array.isArray(body.dados));
       assert.strictEqual(body.meta.total, 1);
+      assert.strictEqual(body.dados[0].monthly_fee, 149.9);
     });
 
     test('401 — sem token', async () => {

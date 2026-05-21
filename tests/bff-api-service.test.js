@@ -250,3 +250,24 @@ suite('BffApiService.post()', () => {
     assert.strictEqual(error.status, 401);
   });
 });
+
+suite('BffApiService.mensalistas', () => {
+
+  test('adicionar envia monthly_fee no payload', async () => {
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 201, json: async () => ({ dados: {} }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.mensalistas.adicionar('shop-1', 'client-1', 149.9);
+
+    const payload = JSON.parse(capturedOpts[0].body);
+    assert.deepStrictEqual(payload, {
+      barbershop_id: 'shop-1',
+      client_id:     'client-1',
+      monthly_fee:   149.9,
+    });
+  });
+});

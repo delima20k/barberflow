@@ -39,6 +39,19 @@ class MensalistaModal {
               <ul class="mslm-lista-ativos" aria-label="Mensalistas ativos"></ul>
             </section>
 
+            <section class="mslm-secao">
+              <label class="mslm-secao-label" for="mslm-mensalidade-input">Valor da mensalidade</label>
+              <input
+                id="mslm-mensalidade-input"
+                class="mslm-mensalidade-input inpustyle"
+                type="number"
+                min="0"
+                step="0.01"
+                inputmode="decimal"
+                placeholder="R$ 0,00"
+              />
+            </section>
+
             <!-- Seção: Favoritos elegíveis (lista automática) -->
             <section class="mslm-secao">
               <p class="mslm-secao-label">Favoritos elegíveis</p>
@@ -51,13 +64,13 @@ class MensalistaModal {
               <p class="mslm-secao-label">Buscar outro cliente</p>
               <div class="mslm-busca-row">
                 <input
-                  class="mslm-busca-input"
+                  class="mslm-busca-input inpustyle"
                   type="search"
                   placeholder="Buscar por nome..."
                   aria-label="Buscar cliente"
                   autocomplete="off"
                 />
-                <button class="mslm-btn-buscar" aria-label="Buscar">🔍</button>
+                <button class="mslm-btn-buscar inpustyle inpustyle-btn" aria-label="Buscar">🔍</button>
               </div>
               <ul class="mslm-lista-disponiveis" aria-label="Clientes encontrados"></ul>
               <p class="mslm-busca-msg" aria-live="polite"></p>
@@ -74,8 +87,10 @@ class MensalistaModal {
       const elegiveisMsg     = overlay.querySelector('.mslm-elegiveis-msg');
       const listaDisponEl    = overlay.querySelector('.mslm-lista-disponiveis');
       const buscaInput       = overlay.querySelector('.mslm-busca-input');
+      const mensalidadeInput = overlay.querySelector('.mslm-mensalidade-input');
       const buscaMsg         = overlay.querySelector('.mslm-busca-msg');
       const btnBuscar        = overlay.querySelector('.mslm-btn-buscar');
+      const obterMensalidade = () => MensalistaModal.#normalizarMensalidade(mensalidadeInput?.value);
 
       // Fecha e resolve
       function _fechar() {
@@ -97,7 +112,7 @@ class MensalistaModal {
           MensalistaModal.#carregarAtivos(barbershopId, listaAtivosEl, () => recarregarTudo()),
           MensalistaModal.#carregarElegiveis(barbershopId, listaElegiveisEl, elegiveisMsg, async (perfil, btn) => {
             btn.disabled = true;
-            const { error } = await BffApiService.mensalistas.adicionar(barbershopId, perfil.id);
+            const { error } = await BffApiService.mensalistas.adicionar(barbershopId, perfil.id, obterMensalidade());
             if (error) {
               btn.disabled = false;
               elegiveisMsg.textContent = `Erro ao adicionar: ${error.message}`;
@@ -127,7 +142,7 @@ class MensalistaModal {
         lista.forEach(p => {
           const li = MensalistaModal.#criarItemDisponivel(p, async () => {
             li.querySelector('.mslm-btn-adicionar').disabled = true;
-            const { error: e } = await BffApiService.mensalistas.adicionar(barbershopId, p.id);
+            const { error: e } = await BffApiService.mensalistas.adicionar(barbershopId, p.id, obterMensalidade());
             if (e) {
               li.querySelector('.mslm-btn-adicionar').disabled = false;
               buscaMsg.textContent = `Erro ao adicionar: ${e.message}`;
@@ -185,7 +200,8 @@ class MensalistaModal {
       const nome       = row.client?.full_name   ?? 'Cliente';
       const avatarPath = row.client?.avatar_path ?? null;
       const endsAt     = row.ends_at ? MensalistaModal.#formatarData(row.ends_at) : '—';
-      const li = MensalistaModal.#criarItemAtivo(nome, avatarPath, endsAt, async () => {
+      const mensalidade = MensalistaModal.#formatarMoeda(row.monthly_fee);
+      const li = MensalistaModal.#criarItemAtivo(nome, avatarPath, endsAt, mensalidade, async () => {
         const btn = li.querySelector('.mslm-btn-remover');
         btn.disabled = true;
         const { error: e } = await BffApiService.mensalistas.remover(row.id);
@@ -251,10 +267,11 @@ class MensalistaModal {
    * @param {string}      nome
    * @param {string|null} avatarPath
    * @param {string}      venceEm
+   * @param {string}      mensalidade
    * @param {Function}    onRemover
    * @returns {HTMLLIElement}
    */
-  static #criarItemAtivo(nome, avatarPath, venceEm, onRemover) {
+  static #criarItemAtivo(nome, avatarPath, venceEm, mensalidade, onRemover) {
     const li = document.createElement('li');
     li.className = 'mslm-item';
 
@@ -276,7 +293,7 @@ class MensalistaModal {
 
     const metaEl = document.createElement('span');
     metaEl.className   = 'mslm-item-meta';
-    metaEl.textContent = `Vence: ${venceEm}`;
+    metaEl.textContent = `Vence: ${venceEm} | Mensalidade: ${mensalidade}`;
 
     const btn = document.createElement('button');
     btn.className   = 'mslm-btn-remover';
@@ -339,5 +356,28 @@ class MensalistaModal {
     } catch {
       return isoStr;
     }
+  }
+
+  /**
+   * Normaliza input monetario local sem lancar erro na UI.
+   * @param {string|number|null|undefined} valor
+   * @returns {number}
+   */
+  static #normalizarMensalidade(valor) {
+    if (valor === undefined || valor === null || valor === '') return 0;
+    const normalizado = String(valor).replace(',', '.');
+    const num = Number(normalizado);
+    if (!Number.isFinite(num) || num < 0) return 0;
+    return Math.round(num * 100) / 100;
+  }
+
+  /**
+   * Formata valor monetario em pt-BR.
+   * @param {number|string|null|undefined} valor
+   * @returns {string}
+   */
+  static #formatarMoeda(valor) {
+    const num = MensalistaModal.#normalizarMensalidade(valor);
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 }

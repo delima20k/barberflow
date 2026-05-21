@@ -12,7 +12,7 @@ const BaseRepository = require('./BaseRepository');
  */
 class MensalistaRepository extends BaseRepository {
 
-  static #SELECT_MENSALISTA  = 'id, starts_at, ends_at, client:profiles!client_id(id, full_name, avatar_path)';
+  static #SELECT_MENSALISTA  = 'id, starts_at, ends_at, monthly_fee, client:profiles!client_id(id, full_name, avatar_path)';
   static #SELECT_ROW         = 'id, barbershop_id, client_id';
   static #SELECT_DISPONIVEIS = 'id, full_name, avatar_path, email';
   static #SELECT_CLIENT_ID   = 'client_id';
@@ -28,9 +28,10 @@ class MensalistaRepository extends BaseRepository {
    * Upsert de mensalista: insere ou renova o plano por 30 dias.
    * @param {string} barbershopId
    * @param {string} clientId
+   * @param {number} monthlyFee
    * @returns {Promise<object>} row inserida/atualizada
    */
-  async adicionar(barbershopId, clientId) {
+  async adicionar(barbershopId, clientId, monthlyFee = 0) {
     this._uuid('barbershop_id', barbershopId);
     this._uuid('client_id',     clientId);
 
@@ -40,14 +41,20 @@ class MensalistaRepository extends BaseRepository {
     const { data, error } = await this._db
       .from('barbershop_mensalistas')
       .upsert(
-        { barbershop_id: barbershopId, client_id: clientId, starts_at: now.toISOString(), ends_at: endsAt },
+        {
+          barbershop_id: barbershopId,
+          client_id:     clientId,
+          starts_at:     now.toISOString(),
+          ends_at:       endsAt,
+          monthly_fee:   monthlyFee,
+        },
         { onConflict: 'barbershop_id,client_id' },
       )
-      .select('id, barbershop_id, client_id, starts_at, ends_at')
+      .select('id, barbershop_id, client_id, starts_at, ends_at, monthly_fee')
       .single();
 
     if (error) this._throwDbError(error, 'adicionar');
-    return data;
+    return { ...data, monthly_fee: Number(data?.monthly_fee ?? 0) };
   }
 
   /**
@@ -78,7 +85,7 @@ class MensalistaRepository extends BaseRepository {
 
     const { data: rows, error } = await this._db
       .from('barbershop_mensalistas')
-      .select('id, client_id, starts_at, ends_at')
+      .select('id, client_id, starts_at, ends_at, monthly_fee')
       .eq('barbershop_id', barbershopId)
       .gt('ends_at', new Date().toISOString())
       .order('created_at', { ascending: false });
@@ -98,6 +105,7 @@ class MensalistaRepository extends BaseRepository {
       id:        r.id,
       starts_at: r.starts_at,
       ends_at:   r.ends_at,
+      monthly_fee: Number(r.monthly_fee ?? 0),
       client:    perfilMap[r.client_id] ?? null,
     }));
   }
