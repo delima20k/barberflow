@@ -2023,19 +2023,12 @@
 }
 
 #mb-convite-panel .mb-config-secao-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: block;
   color: var(--brown, #6f4529);
 }
 
 #mb-convite-panel .mb-config-secao-label::after {
-  content: '';
-  display: block;
-  flex: 1;
-  height: 1px;
-  background: currentColor;
-  opacity: .7;
+  content: none;
 }
 
 .mb-convite-msg-wrap { margin-top: 12px; }
@@ -2154,8 +2147,11 @@
 .mb-convite-tipo-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 6px;
+  max-width: 310px;
   margin-top: 6px;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 .mb-convite-tipo-btn {
@@ -2163,29 +2159,30 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 148px;
-  padding: 14px 8px;
+  gap: 4px;
+  min-height: 112px;
+  padding: 10px 6px;
   background: transparent;
-  border: 2px solid var(--gold, #c9872a);
+  border: 2px solid var(--brown, #5C3317);
   border-radius: var(--r-sm, 8px);
-  color: var(--gold, #c9872a);
+  color: var(--brown, #5C3317);
   text-align: center;
   cursor: pointer;
   transition: border-color .18s, box-shadow .18s, color .18s, background .18s;
   box-sizing: border-box;
 }
-.mb-convite-tipo-btn strong { font-size: .78rem; color: var(--text); display: block; }
-.mb-convite-tipo-btn small  { font-size: .66rem; color: var(--text-muted); }
+.mb-convite-tipo-btn strong { font-size: .72rem; color: var(--text); display: block; }
+.mb-convite-tipo-btn small  { font-size: .6rem; color: var(--text-muted); }
 .mb-convite-tipo-icon {
-  width: 76px;
-  min-height: 46px;
+  width: 62px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .mb-convite-tipo-btn--ativo {
-  border-color: var(--gold);
+  border-color: var(--gold, #D4AF37);
+  color: var(--gold, #D4AF37);
   box-shadow: 0 0 0 2px rgba(212,175,55,.18);
 }
 .mb-convite-tipo-btn--ativo strong { color: var(--gold); }
@@ -2200,18 +2197,19 @@
 
 .mb-convite-tipo-btn:active {
   background: transparent;
+  border-color: var(--gold, #D4AF37);
   color: var(--gold, #D4AF37);
 }
 
 .mb-convite-tipo-icon--parceria {
-  gap: 8px;
-  width: 96px;
-  min-height: 50px;
+  gap: 6px;
+  width: 78px;
+  min-height: 40px;
 }
 
 .mb-convite-tipo-logo {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 2px 6px rgba(0,0,0,.14);
@@ -2226,12 +2224,12 @@
 
 .mb-convite-tipo-icon--cadeira {
   position: relative;
-  min-height: 58px;
+  min-height: 44px;
 }
 
 .mb-convite-cadeira-img {
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   object-fit: contain;
 }
 
@@ -2239,8 +2237,8 @@
   position: absolute;
   top: -2px;
   left: 50%;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   object-fit: cover;
   transform: translateX(-50%);
