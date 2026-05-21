@@ -57,12 +57,45 @@ if (!process.env.VERCEL) {
     process.exit(1);
   }
 
-  const server = wrapper.listen(config.port, '0.0.0.0', () => {
+  const http   = require('http');
+  const server = http.createServer(wrapper);
+
+  server.listen(config.port, '0.0.0.0', () => {
     logger.info(
       { port: config.port, env: config.env, pid: process.pid },
       '[BFF BarberFlow] Servidor iniciado',
     );
   });
+
+  // ── WebSocket Gateway (apenas modo não-serverless) ─────────────
+  // Vercel serverless não suporta upgrade HTTP persistente.
+  try {
+    const { buildContainer }    = require('./container/container');
+    const { WebSocketGateway }  = require('./interfaces/bff/realtime/WebSocketGateway');
+
+    const container = buildContainer();
+
+    const gateway = new WebSocketGateway({
+      channelRouter:              container.resolve('channelRouter'),
+      connectionRegistry:         container.resolve('connectionRegistry'),
+      unsubscribeFromRoomUseCase: container.resolve('unsubscribeFromRoomUseCase'),
+      presenceService:            container.resolve('presenceService'),
+      roomManager:                container.resolve('roomManager'),
+      realtimeMetrics:            container.resolve('realtimeMetrics'),
+    });
+
+    gateway.attach(server);
+
+    logger.info('[BFF BarberFlow] WebSocket gateway ativo');
+
+    // Fecha gateway no shutdown
+    const _originalClose = server.close.bind(server);
+    server.close = (cb) => {
+      gateway.close().finally(() => _originalClose(cb));
+    };
+  } catch (err) {
+    logger.warn({ err }, '[BFF BarberFlow] WebSocket gateway não iniciado');
+  }
 
   function gracefulShutdown(signal) {
     logger.info({ signal }, '[BFF BarberFlow] Encerrando — aguardando requests ativos');

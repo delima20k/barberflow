@@ -51,6 +51,28 @@ const { CacheKeyBuilder } = require('../infrastructure/cache/CacheKeyBuilder');
 // ── Interfaces: middlewares ────────────────────────────────────
 const { IdempotencyMiddleware } = require('../interfaces/bff/middlewares/IdempotencyMiddleware');
 
+// ── Realtime: domain ──────────────────────────────────────────
+const { RoomManager }     = require('../domain/realtime/RoomManager');
+const { PresenceService } = require('../domain/realtime/PresenceService');
+
+// ── Realtime: infrastructure ──────────────────────────────────
+const { RedisPubSubAdapter }  = require('../infrastructure/realtime/RedisPubSubAdapter');
+const { EventReplayBuffer }   = require('../infrastructure/realtime/EventReplayBuffer');
+const { RealtimeMetrics }     = require('../infrastructure/realtime/RealtimeMetrics');
+
+// ── Realtime: application ─────────────────────────────────────
+const { SubscribeToRoomUseCase }       = require('../application/realtime/SubscribeToRoomUseCase');
+const { UnsubscribeFromRoomUseCase }   = require('../application/realtime/UnsubscribeFromRoomUseCase');
+const { PublishToChannelUseCase }      = require('../application/realtime/PublishToChannelUseCase');
+const { ReplayEventsUseCase }          = require('../application/realtime/ReplayEventsUseCase');
+
+// ── Realtime: interfaces ──────────────────────────────────────
+const { ConnectionRegistry } = require('../interfaces/bff/realtime/ConnectionRegistry');
+const { ChannelRouter }      = require('../interfaces/bff/realtime/ChannelRouter');
+
+// ── Realtime: config ──────────────────────────────────────────
+const { MAX_CONN_PER_CHANNEL } = require('../config/realtime');
+
 /**
  * Monta e retorna o container awilix configurado.
  * Deve ser chamado uma vez no boot da aplicação.
@@ -190,6 +212,70 @@ function buildContainer() {
       }),
     ),
   });
+
+  // ── Realtime ───────────────────────────────────────────────────
+  // Singletons por processo; sincronização entre instâncias via Redis Pub/Sub.
+  const roomManager     = new RoomManager({ maxConnPerChannel: MAX_CONN_PER_CHANNEL });
+  const presenceService = new PresenceService();
+  const realtimeMetrics = new RealtimeMetrics();
+  const connectionRegistry = new ConnectionRegistry();
+
+  container.register({
+    roomManager:        asValue(roomManager),
+    presenceService:    asValue(presenceService),
+    realtimeMetrics:    asValue(realtimeMetrics),
+    connectionRegistry: asValue(connectionRegistry),
+  });
+
+  // EventReplayBuffer usa Redis quando disponível; sem Redis não suporta replay.
+  const eventReplayBuffer = (cacheDriver === 'redis' && redisClient)
+    ? new EventReplayBuffer({ redisClient })
+    : { supportsReplay: () => false, append: async () => {}, since: async () => [], purge: async () => {} };
+  container.register({ eventReplayBuffer: asValue(eventReplayBuffer) });
+
+  // PubSub: Redis em produção; stub in-memory em dev/test
+  let pubSubService;
+  if (cacheDriver === 'redis' && redisClient) {
+    pubSubService = new RedisPubSubAdapter({ redisClient });
+  } else {
+    // Stub em memória para desenvolvimento sem Redis
+    const { InMemoryPubSubStub } = require('../infrastructure/realtime/InMemoryPubSubStub');
+    pubSubService = new InMemoryPubSubStub();
+  }
+  container.register({ pubSubService: asValue(pubSubService) });
+
+  const subscribeToRoomUseCase = new SubscribeToRoomUseCase({
+    roomManager,
+    presenceService,
+    pubSubService,
+    eventReplayBuffer,
+  });
+  const unsubscribeFromRoomUseCase = new UnsubscribeFromRoomUseCase({
+    roomManager,
+    presenceService,
+    pubSubService,
+  });
+  const publishToChannelUseCase = new PublishToChannelUseCase({
+    pubSubService,
+    eventReplayBuffer,
+    realtimeMetrics,
+  });
+  const replayEventsUseCase = new ReplayEventsUseCase({ eventReplayBuffer });
+
+  container.register({
+    subscribeToRoomUseCase:     asValue(subscribeToRoomUseCase),
+    unsubscribeFromRoomUseCase: asValue(unsubscribeFromRoomUseCase),
+    publishToChannelUseCase:    asValue(publishToChannelUseCase),
+    replayEventsUseCase:        asValue(replayEventsUseCase),
+  });
+
+  const channelRouter = new ChannelRouter({
+    subscribeToRoomUseCase,
+    unsubscribeFromRoomUseCase,
+    connectionRegistry,
+    realtimeMetrics,
+  });
+  container.register({ channelRouter: asValue(channelRouter) });
 
   return container;
 }
