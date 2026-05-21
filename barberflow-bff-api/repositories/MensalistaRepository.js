@@ -179,7 +179,7 @@ class MensalistaRepository extends BaseRepository {
       .gt('ends_at', new Date().toISOString())
       .maybeSingle();
 
-    // Fallback se haircuts_count ainda não existe no schema remoto
+    // Fallback L1: haircuts_count ainda não existe no schema remoto
     if (error && MensalistaRepository.#ehColunaHaircutsCountInexistente(error)) {
       this._warn('verificar.haircuts_count_fallback', error);
       ({ data, error } = await this._db
@@ -190,6 +190,19 @@ class MensalistaRepository extends BaseRepository {
         .gt('ends_at', new Date().toISOString())
         .maybeSingle());
       if (data) data = { ...data, haircuts_count: 0 };
+    }
+
+    // Fallback L2: monthly_fee também não existe (schema original, migrations pendentes)
+    if (error && MensalistaRepository.#ehColunaFaltando(error)) {
+      this._warn('verificar.monthly_fee_fallback', error);
+      ({ data, error } = await this._db
+        .from('barbershop_mensalistas')
+        .select('id')
+        .eq('barbershop_id', barbershopId)
+        .eq('client_id',     clientId)
+        .gt('ends_at', new Date().toISOString())
+        .maybeSingle());
+      if (data) data = { ...data, monthly_fee: 0, haircuts_count: 0 };
     }
 
     if (error) this._throwDbError(error, 'verificar');
@@ -500,6 +513,19 @@ class MensalistaRepository extends BaseRepository {
     const msg  = String(error.message ?? '').toLowerCase();
     return (code === '42703' || code === 'PGRST204' || msg.includes('schema cache'))
       && msg.includes('haircuts_count');
+  }
+
+  /**
+   * Detecta qualquer erro de coluna inexistente no schema remoto (sem verificar nome).
+   * Usado como fallback genérico quando múltiplas colunas podem estar ausentes.
+   * @param {object} error
+   * @returns {boolean}
+   */
+  static #ehColunaFaltando(error) {
+    if (!error) return false;
+    const code = String(error.code ?? '');
+    const msg  = String(error.message ?? '').toLowerCase();
+    return code === '42703' || code === 'PGRST204' || msg.includes('schema cache');
   }
 }
 
