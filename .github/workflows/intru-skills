@@ -73,8 +73,8 @@ No final, entregue um resumo curto do que foi alterado.
 O que deve ser feito: Utilize este prompt uma única vez para instruir o Copilot a modularizar o skill.md em arquivos menores por tema, criando um índice geral e garantindo uma consulta mais rápida e organizada.
 
 2º "Prompt de Refatoração do Plano de Skills"
----------------------------------PROMPT------------------
-Antes de implementar qualquer pedido meu, leia primeiro:
+---------------------------------PROMPT------------------ 
+ Ativa o Agente Delima, Antes de implementar qualquer pedido meu, leia primeiro:
 
 .github/agents/workflow/skill.md
 

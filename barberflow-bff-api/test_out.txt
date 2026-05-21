@@ -1,0 +1,1127 @@
+▶ MensalistaService — unit
+  ✔ adicionar — owner válido: retorna row (1.9139ms)
+  ✔ adicionar — não-owner: lança AppError 403 (0.9051ms)
+  ✔ adicionar — shop inexistente: lança AppError 403 (0.3525ms)
+  ✔ verificar — sem ownership check: retorna boolean (0.2588ms)
+  ✔ verificar — cliente não mensalista: retorna false (0.2196ms)
+  ✔ remover — owner válido: não lança (0.5018ms)
+  ✔ remover — row inexistente: lança AppError 404 (0.3359ms)
+  ✔ remover — não-owner: lança AppError 403 (0.4199ms)
+✔ MensalistaService — unit (6.6876ms)
+▶ Mensalistas — integração HTTP
+  ▶ POST /api/v1/mensalistas
+    ✔ 201 — owner válido: retorna row criada (53.3227ms)
+    ✔ 401 — sem token: rejeita autenticação (3.594ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 1,
+      "method": "POST",
+      "url": "/api/v1/mensalistas",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "107",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 201,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=59, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "247",
+        "etag": "W/\"f7-bHZb1eg02IiIJ+pk8W4HT1CkX5E\"",
+        "x-response-time": "27.55ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 29
+    ✔ 400 — sem barbershop_id: retorna erro de campo obrigatório (4.0333ms)
+    ✔ 400 — sem client_id: retorna erro de campo obrigatório (2.8995ms)
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 2,
+      "method": "POST",
+      "url": "/api/v1/mensalistas",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "107",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 401,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=58, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "55",
+        "etag": "W/\"37-v7sozIv4A6+Y1UOMMQ33UcmCh6w\"",
+        "x-response-time": "0.86ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Campo 'barbershop_id' é obrigatório.",
+      "stack":
+          AppError: Campo 'barbershop_id' é obrigatório.
+              at AppError.badRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:41:63)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:32:42
+              at MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:13)
+              at MensalistaController.adicionar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:30:16)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at next (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:157:13)
+              at Route.dispatch (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:117:3)
+              at handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:435:11)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:295:15
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 3,
+      "method": "POST",
+      "url": "/api/v1/mensalistas",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "52",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 400,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=57, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "61",
+        "etag": "W/\"3d-zSh/1W9TuTCCj4RSVw1zvmcagNg\"",
+        "x-response-time": "1.77ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 2
+    ✔ 403 — token de não-owner: acesso negado (3.3053ms)
+  ✔ POST /api/v1/mensalistas (67.8388ms)
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Campo 'client_id' é obrigatório.",
+      "stack":
+          AppError: Campo 'client_id' é obrigatório.
+              at AppError.badRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:41:63)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:33:42
+              at MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:13)
+              at MensalistaController.adicionar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:30:16)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at next (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:157:13)
+              at Route.dispatch (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:117:3)
+              at handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:435:11)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:295:15
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 4,
+      "method": "POST",
+      "url": "/api/v1/mensalistas",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "56",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 400,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=56, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "57",
+        "etag": "W/\"39-0URtnglR8brKZsR8Xr6ydgUNiOQ\"",
+        "x-response-time": "0.98ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 2
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Acesso negado: você não é dono desta barbearia.",
+      "stack":
+          AppError: Acesso negado: você não é dono desta barbearia.
+              at AppError.forbidden (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:43:63)
+              at #verificarOwnership (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:47:22)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async MensalistaService.adicionar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:63:5)
+              at async c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:35:19
+              at async MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:7)
+              at async MensalistaController.adicionar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:30:5)
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 5,
+      "method": "POST",
+      "url": "/api/v1/mensalistas",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "107",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 403,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=55, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "73",
+        "etag": "W/\"49-yOZ5S53Tb8C2wlNw5EUCk9SW9xc\"",
+        "x-response-time": "1.15ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 2
+  ▶ GET /api/v1/mensalistas
+    ✔ 200 — owner válido: retorna lista com meta.total (4.7255ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 6,
+      "method": "GET",
+      "url": "/api/v1/mensalistas?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=294, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "268",
+        "etag": "W/\"10c-RDGb0ZV1W8chxqhhHt9JGmcuhE4\"",
+        "x-response-time": "1.62ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 2
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 7,
+      "method": "GET",
+      "url": "/api/v1/mensalistas?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 401,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=293, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "55",
+        "etag": "W/\"37-v7sozIv4A6+Y1UOMMQ33UcmCh6w\"",
+        "x-response-time": "0.43ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 0
+    ✔ 401 — sem token (2.1476ms)
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Query 'barbershop_id' é obrigatório.",
+      "stack":
+          AppError: Query 'barbershop_id' é obrigatório.
+              at AppError.badRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:41:63)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:47:42
+              at MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:13)
+              at MensalistaController.listar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:45:16)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at next (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:157:13)
+              at Route.dispatch (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:117:3)
+              at handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:435:11)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:295:15
+      "name": "AppError"
+    }
+    ✔ 400 — sem barbershop_id (2.4443ms)
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 8,
+      "method": "GET",
+      "url": "/api/v1/mensalistas",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 400,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=292, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "61",
+        "etag": "W/\"3d-TEr0TewuyhBjKle13Q7nHItZ6R8\"",
+        "x-response-time": "0.85ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Acesso negado: você não é dono desta barbearia.",
+      "stack":
+          AppError: Acesso negado: você não é dono desta barbearia.
+              at AppError.forbidden (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:43:63)
+              at #verificarOwnership (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:47:22)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async MensalistaService.listar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:75:5)
+              at async c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:49:21
+              at async MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:7)
+              at async MensalistaController.listar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:45:5)
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 9,
+      "method": "GET",
+      "url": "/api/v1/mensalistas?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 403,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=291, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "73",
+        "etag": "W/\"49-yOZ5S53Tb8C2wlNw5EUCk9SW9xc\"",
+        "x-response-time": "1.04ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 403 — não-owner (2.7818ms)
+  ✔ GET /api/v1/mensalistas (12.4854ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 10,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/verificar?barbershop_id=cccccccc-0000-4000-8000-000000000003&client_id=dddddddd-0000-4000-8000-000000000004",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003",
+        "client_id": "dddddddd-0000-4000-8000-000000000004"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=290, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "34",
+        "etag": "W/\"22-kkbDjtkqXbSW7eA6Bz7oIXR/fIE\"",
+        "x-response-time": "1.01ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+  ▶ GET /api/v1/mensalistas/verificar
+    ✔ 200 ativo=true — cliente é mensalista ativo (3.4249ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 11,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/verificar?barbershop_id=cccccccc-0000-4000-8000-000000000003&client_id=dddddddd-0000-4000-8000-000000000004",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003",
+        "client_id": "dddddddd-0000-4000-8000-000000000004"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=289, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "35",
+        "etag": "W/\"23-ykavL8GHge1tutQFhe6P64MHsrY\"",
+        "x-response-time": "0.71ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 200 ativo=false — cliente não é mensalista (2.2648ms)
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 12,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/verificar?barbershop_id=cccccccc-0000-4000-8000-000000000003&client_id=dddddddd-0000-4000-8000-000000000004",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003",
+        "client_id": "dddddddd-0000-4000-8000-000000000004"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 401,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=288, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "55",
+        "etag": "W/\"37-v7sozIv4A6+Y1UOMMQ33UcmCh6w\"",
+        "x-response-time": "0.31ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 401 — sem token (1.6956ms)
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Query 'client_id' é obrigatório.",
+      "stack":
+          AppError: Query 'client_id' é obrigatório.
+              at AppError.badRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:41:63)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:62:42
+              at MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:13)
+              at MensalistaController.verificar (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:59:16)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at next (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:157:13)
+              at Route.dispatch (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\route.js:117:3)
+              at handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:435:11)
+              at Layer.handleRequest (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\lib\layer.js:152:17)
+              at c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\node_modules\router\index.js:295:15
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 13,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/verificar?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 400,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=287, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "57",
+        "etag": "W/\"39-LfloOOp2J9LgApDFhzLi3lt4NZQ\"",
+        "x-response-time": "0.80ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 400 — sem client_id (2.1872ms)
+  ✔ GET /api/v1/mensalistas/verificar (9.992ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 14,
+      "method": "DELETE",
+      "url": "/api/v1/mensalistas/11111111-0000-4000-8000-000000000007",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 204,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=54, reset=60",
+        "x-response-time": "0.98ms"
+      }
+    }
+    [35mresponseTime[39m: 1
+  ▶ DELETE /api/v1/mensalistas/:id
+    ✔ 204 — owner válido: deleta e retorna sem body (3.0226ms)
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 15,
+      "method": "DELETE",
+      "url": "/api/v1/mensalistas/11111111-0000-4000-8000-000000000007",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 401,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=53, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "55",
+        "etag": "W/\"37-v7sozIv4A6+Y1UOMMQ33UcmCh6w\"",
+        "x-response-time": "0.32ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 0
+    ✔ 401 — sem token (1.8333ms)
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Mensalista não encontrado.",
+      "stack":
+          AppError: Mensalista não encontrado.
+              at AppError.notFound (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:44:63)
+              at MensalistaService.remover (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:101:30)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:76:7
+              at async MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:7)
+              at async MensalistaController.remover (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:74:5)
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 16,
+      "method": "DELETE",
+      "url": "/api/v1/mensalistas/11111111-0000-4000-8000-000000000007",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 404,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=52, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "50",
+        "etag": "W/\"32-SpCM0ONVoCKcoZp1Wz/C/JPKbs8\"",
+        "x-response-time": "0.83ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 404 — ID inexistente (2.2301ms)
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Acesso negado: você não é dono desta barbearia.",
+      "stack":
+          AppError: Acesso negado: você não é dono desta barbearia.
+              at AppError.forbidden (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:43:63)
+              at #verificarOwnership (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:47:22)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async MensalistaService.remover (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:102:5)
+              at async c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:76:7
+              at async MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:7)
+              at async MensalistaController.remover (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:74:5)
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 17,
+      "method": "DELETE",
+      "url": "/api/v1/mensalistas/11111111-0000-4000-8000-000000000007",
+      "query": {},
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 403,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "60;w=60",
+        "ratelimit": "limit=60, remaining=51, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "73",
+        "etag": "W/\"49-yOZ5S53Tb8C2wlNw5EUCk9SW9xc\"",
+        "x-response-time": "0.68ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 403 — não-owner tenta deletar (2.0412ms)
+  ✔ DELETE /api/v1/mensalistas/:id (9.4562ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 18,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/clientes-disponiveis?barbershop_id=cccccccc-0000-4000-8000-000000000003&q=Joao",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003",
+        "q": "Joao"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=282, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "155",
+        "etag": "W/\"9b-pAJwLAIKFwLljhl28ZUicFqL9Aw\"",
+        "x-response-time": "0.93ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+  ▶ GET /api/v1/mensalistas/clientes-disponiveis
+    ✔ 200 — retorna perfis disponíveis com meta.total (2.9017ms)
+[16:43:31] [32mINFO[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 19,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/clientes-disponiveis?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=281, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "155",
+        "etag": "W/\"9b-pAJwLAIKFwLljhl28ZUicFqL9Aw\"",
+        "x-response-time": "0.77ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 200 — sem q: usa string vazia (2.3032ms)
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 20,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/clientes-disponiveis?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51963
+    }
+    [35mres[39m: {
+      "statusCode": 401,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=280, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "55",
+        "etag": "W/\"37-v7sozIv4A6+Y1UOMMQ33UcmCh6w\"",
+        "x-response-time": "0.31ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 401 — sem token (1.6617ms)
+    ✔ 400 — sem barbershop_id (2.0344ms)
+[16:43:31] [31mERROR[39m (bff-barberflow): [36m[BFF] erro no handler[39m
+    [35menv[39m: "test"
+    err: {
+      "type": "AppError",
+      "message": "Acesso negado: você não é dono desta barbearia.",
+      "stack":
+          AppError: Acesso negado: você não é dono desta barbearia.
+              at AppError.forbidden (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\utils\AppError.js:43:63)
+              at #verificarOwnership (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:47:22)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async MensalistaService.buscarClientesDisponiveis (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\services\MensalistaService.js:115:5)
+              at async c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:90:21
+              at async MensalistaController.handle (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\BaseController.js:102:7)
+              at async MensalistaController.clientesDisponiveis (c:\Users\delim\desktop\barberflow-main\barberflow-bff-api\controllers\MensalistaController.js:86:5)
+      "name": "AppError"
+    }
+[16:43:31] [33mWARN[39m (bff-barberflow): [36mrequest completed[39m
+    [35menv[39m: "test"
+    [35mreq[39m: {
+      "id": 21,
+      "method": "GET",
+      "url": "/api/v1/mensalistas/clientes-disponiveis?barbershop_id=cccccccc-0000-4000-8000-000000000003",
+      "query": {
+        "barbershop_id": "cccccccc-0000-4000-8000-000000000003"
+      },
+      "params": {},
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "0",
+        "authorization": "[REDACTED]",
+        "host": "127.0.0.1:51962",
+        "connection": "keep-alive"
+      },
+      "remoteAddress": "127.0.0.1",
+      "remotePort": 51964
+    }
+    [35mres[39m: {
+      "statusCode": 403,
+      "headers": {
+        "content-security-policy": "default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests",
+        "cross-origin-opener-policy": "same-origin",
+        "cross-origin-resource-policy": "cross-origin",
+        "origin-agent-cluster": "?1",
+        "referrer-policy": "no-referrer",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-dns-prefetch-control": "off",
+        "x-download-options": "noopen",
+        "x-frame-options": "SAMEORIGIN",
+        "x-permitted-cross-domain-policies": "none",
+        "x-xss-protection": "0",
+        "ratelimit-policy": "300;w=60",
+        "ratelimit": "limit=300, remaining=279, reset=60",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": "73",
+        "etag": "W/\"49-yOZ5S53Tb8C2wlNw5EUCk9SW9xc\"",
+        "x-response-time": "0.84ms",
+        "vary": "Accept-Encoding"
+      }
+    }
+    [35mresponseTime[39m: 1
+    ✔ 403 — não-owner (3.4191ms)
+  ✔ GET /api/v1/mensalistas/clientes-disponiveis (12.8993ms)
+✔ Mensalistas — integração HTTP (136.1011ms)
+ℹ tests 30
+ℹ suites 7
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 993.1248
