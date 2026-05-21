@@ -336,6 +336,76 @@ suite('MensalistaService — unit', () => {
   });
 });
 
+suite('MensalistaRepository — compatibilidade de schema mensalidade', () => {
+  const MensalistaRepository = require('../repositories/MensalistaRepository');
+
+  test('listar — fallback sem monthly_fee quando coluna ainda nao existe', async () => {
+    const erroColuna = { code: '42703', message: 'column monthly_fee does not exist' };
+    const selects = [];
+    const db = {
+      from: (table) => {
+        const q = {
+          _select: '',
+          select: (s) => { q._select = s; selects.push([table, s]); return q; },
+          eq:     () => q,
+          gt:     () => q,
+          order:  () => q,
+          in:     () => q,
+          then: (resolve) => {
+            if (table === 'barbershop_mensalistas') {
+              if (q._select.includes('monthly_fee')) {
+                return resolve({ data: null, error: erroColuna });
+              }
+              return resolve({ data: [{ ...MOCK_ROW, monthly_fee: undefined }], error: null });
+            }
+            if (table === 'profiles') {
+              return resolve({ data: [MOCK_PROFILE], error: null });
+            }
+            return resolve({ data: null, error: null });
+          },
+        };
+        return q;
+      },
+    };
+    const repo = new MensalistaRepository(db);
+
+    const lista = await repo.listar(SHOP_ID);
+
+    assert.strictEqual(lista.length, 1);
+    assert.strictEqual(lista[0].monthly_fee, 0);
+    assert.ok(selects.some(([, s]) => s === 'id, client_id, starts_at, ends_at'));
+  });
+
+  test('adicionar — fallback sem monthly_fee quando schema cache ainda nao tem coluna', async () => {
+    const erroColuna = { code: 'PGRST204', message: "Could not find the 'monthly_fee' column in the schema cache" };
+    const payloads = [];
+    const db = {
+      from: (table) => {
+        const q = {
+          _data: null,
+          upsert: (data) => { q._data = data; payloads.push(data); return q; },
+          select: () => q,
+          single: () => {
+            if (table === 'barbershop_mensalistas' && q._data.monthly_fee !== undefined) {
+              return Promise.resolve({ data: null, error: erroColuna });
+            }
+            return Promise.resolve({ data: { ...MOCK_ROW, monthly_fee: undefined }, error: null });
+          },
+        };
+        return q;
+      },
+    };
+    const repo = new MensalistaRepository(db);
+
+    const row = await repo.adicionar(SHOP_ID, CLIENT_ID, 149.9);
+
+    assert.strictEqual(payloads.length, 2);
+    assert.strictEqual(payloads[0].monthly_fee, 149.9);
+    assert.strictEqual(payloads[1].monthly_fee, undefined);
+    assert.strictEqual(row.monthly_fee, 0);
+  });
+});
+
 // ═════════════════════════════════════════════════════════════════
 // SUITE 2 — Integração HTTP
 // ═════════════════════════════════════════════════════════════════

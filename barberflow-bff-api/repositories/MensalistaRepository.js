@@ -16,6 +16,10 @@ class MensalistaRepository extends BaseRepository {
   static #SELECT_ROW         = 'id, barbershop_id, client_id';
   static #SELECT_DISPONIVEIS = 'id, full_name, avatar_path, email';
   static #SELECT_CLIENT_ID   = 'client_id';
+  static #SELECT_LISTA_BASE  = 'id, client_id, starts_at, ends_at';
+  static #SELECT_LISTA_FEE   = 'id, client_id, starts_at, ends_at, monthly_fee';
+  static #SELECT_UPSERT_BASE = 'id, barbershop_id, client_id, starts_at, ends_at';
+  static #SELECT_UPSERT_FEE  = 'id, barbershop_id, client_id, starts_at, ends_at, monthly_fee';
 
   /** @param {import('@supabase/supabase-js').SupabaseClient} db */
   constructor(db) {
@@ -38,20 +42,27 @@ class MensalistaRepository extends BaseRepository {
     const now    = new Date();
     const endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await this._db
-      .from('barbershop_mensalistas')
-      .upsert(
-        {
-          barbershop_id: barbershopId,
-          client_id:     clientId,
-          starts_at:     now.toISOString(),
-          ends_at:       endsAt,
-          monthly_fee:   monthlyFee,
-        },
-        { onConflict: 'barbershop_id,client_id' },
-      )
-      .select('id, barbershop_id, client_id, starts_at, ends_at, monthly_fee')
-      .single();
+    const payload = {
+      barbershop_id: barbershopId,
+      client_id:     clientId,
+      starts_at:     now.toISOString(),
+      ends_at:       endsAt,
+      monthly_fee:   monthlyFee,
+    };
+
+    let { data, error } = await this.#upsertMensalista(
+      payload,
+      MensalistaRepository.#SELECT_UPSERT_FEE,
+    );
+
+    if (error && MensalistaRepository.#ehColunaMonthlyFeeInexistente(error)) {
+      this._warn('adicionar.monthly_fee_fallback', error);
+      const { monthly_fee, ...payloadCompat } = payload;
+      ({ data, error } = await this.#upsertMensalista(
+        payloadCompat,
+        MensalistaRepository.#SELECT_UPSERT_BASE,
+      ));
+    }
 
     if (error) this._throwDbError(error, 'adicionar');
     return { ...data, monthly_fee: Number(data?.monthly_fee ?? 0) };
@@ -83,12 +94,21 @@ class MensalistaRepository extends BaseRepository {
   async listar(barbershopId) {
     this._uuid('barbershop_id', barbershopId);
 
-    const { data: rows, error } = await this._db
-      .from('barbershop_mensalistas')
-      .select('id, client_id, starts_at, ends_at, monthly_fee')
-      .eq('barbershop_id', barbershopId)
-      .gt('ends_at', new Date().toISOString())
-      .order('created_at', { ascending: false });
+    const agora = new Date().toISOString();
+    let { data: rows, error } = await this.#listarRows(
+      barbershopId,
+      agora,
+      MensalistaRepository.#SELECT_LISTA_FEE,
+    );
+
+    if (error && MensalistaRepository.#ehColunaMonthlyFeeInexistente(error)) {
+      this._warn('listar.monthly_fee_fallback', error);
+      ({ data: rows, error } = await this.#listarRows(
+        barbershopId,
+        agora,
+        MensalistaRepository.#SELECT_LISTA_BASE,
+      ));
+    }
 
     if (error) this._throwDbError(error, 'listar');
     if (!rows?.length) return [];
@@ -108,6 +128,36 @@ class MensalistaRepository extends BaseRepository {
       monthly_fee: Number(r.monthly_fee ?? 0),
       client:    perfilMap[r.client_id] ?? null,
     }));
+  }
+
+  /**
+   * Executa upsert com select configuravel para compatibilidade de schema.
+   * @param {object} payload
+   * @param {string} select
+   * @returns {Promise<{data:object|null,error:object|null}>}
+   */
+  async #upsertMensalista(payload, select) {
+    return this._db
+      .from('barbershop_mensalistas')
+      .upsert(payload, { onConflict: 'barbershop_id,client_id' })
+      .select(select)
+      .single();
+  }
+
+  /**
+   * Lista rows de mensalistas com select configuravel.
+   * @param {string} barbershopId
+   * @param {string} agoraIso
+   * @param {string} select
+   * @returns {Promise<{data:object[]|null,error:object|null}>}
+   */
+  async #listarRows(barbershopId, agoraIso, select) {
+    return this._db
+      .from('barbershop_mensalistas')
+      .select(select)
+      .eq('barbershop_id', barbershopId)
+      .gt('ends_at', agoraIso)
+      .order('created_at', { ascending: false });
   }
 
   /**
@@ -380,6 +430,20 @@ class MensalistaRepository extends BaseRepository {
     return code === 'PGRST202' || code === '42883'
       || msg.includes('could not find the function')
       || msg.includes('does not exist');
+  }
+
+  /**
+   * Verifica se a coluna mensalidade ainda nao existe no schema remoto.
+   * Mantem compatibilidade enquanto a migration e aplicada em producao.
+   * @param {object} error
+   * @returns {boolean}
+   */
+  static #ehColunaMonthlyFeeInexistente(error) {
+    if (!error) return false;
+    const code = String(error.code ?? '');
+    const msg  = String(error.message ?? '').toLowerCase();
+    return (code === '42703' || code === 'PGRST204' || msg.includes('schema cache'))
+      && msg.includes('monthly_fee');
   }
 }
 

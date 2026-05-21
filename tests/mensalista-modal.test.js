@@ -25,6 +25,13 @@ function parseHtml(html, criarEl) {
     if (cm) child.className = cm[1];
     const im = attrs.match(/\bid="([^"]*)"/i);
     if (im) child.id = im[1];
+    const close = new RegExp(`</${tag}>`, 'i');
+    const rest = html.slice(re.lastIndex);
+    const end = close.exec(rest);
+    if (end) {
+      const text = rest.slice(0, end.index).replace(/<[^>]*>/g, '').trim();
+      if (text) child.textContent = text;
+    }
     flat.push(child);
   }
   return flat;
@@ -143,6 +150,7 @@ suite('MensalistaModal', () => {
     assert.ok(overlay.querySelector('.mslm-mensalidade-input'));
     assert.ok((overlay.querySelector('.mslm-busca-input').className).includes('inpustyle'));
     assert.ok((overlay.querySelector('.mslm-btn-buscar').className).includes('inpustyle-btn'));
+    assert.strictEqual(overlay.querySelector('.mslm-btn-buscar').textContent, '+');
   });
 
   test('adicionar mensalista envia valor da mensalidade', async () => {

@@ -70,7 +70,7 @@ class MensalistaModal {
                   aria-label="Buscar cliente"
                   autocomplete="off"
                 />
-                <button class="mslm-btn-buscar inpustyle inpustyle-btn" aria-label="Buscar">🔍</button>
+                <button class="mslm-btn-buscar inpustyle inpustyle-btn" aria-label="Buscar">+</button>
               </div>
               <ul class="mslm-lista-disponiveis" aria-label="Clientes encontrados"></ul>
               <p class="mslm-busca-msg" aria-live="polite"></p>
