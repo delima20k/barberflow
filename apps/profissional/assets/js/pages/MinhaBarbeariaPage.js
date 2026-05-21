@@ -37,6 +37,7 @@ class MinhaBarbeariaPage {
   #shopData             = null;   // dados da barbearia (pré-preenchimento GPS)
   #servicos             = [];     // serviços da barbearia — reutilizados nas modais de corte
   #profissionalId       = null;   // UUID do profissional logado (para sentar na fila)
+  #mensalistasAtivos    = new Set(); // client IDs que escolheram Plano Mensal nesta sessão
   #coordsGps            = null;   // coordenadas GPS capturadas no sub-painel
   #digGps               = null;   // instância DigText para o p.gps-dig
   #digBoasVindas        = null;   // instância DigText para o h1#mb-boas-vindas
@@ -613,20 +614,31 @@ class MinhaBarbeariaPage {
 
     // 3a. Verificar se o cliente é mensalista ativo (silencioso — falha = não-mensalista)
     let clienteMensalista = false;
+    let mensalistaFee     = 0;
+    let mensalistaCortesCount = 0;
     if (!clienteSel.anonymous) {
       try {
         const { data } = await BffApiService.mensalistas.verificar(this.#barbershopId, clienteSel.id);
-        clienteMensalista = data?.ativo === true;
+        clienteMensalista     = data?.ativo === true;
+        mensalistaFee         = data?.monthly_fee     ?? 0;
+        mensalistaCortesCount = data?.haircuts_count  ?? 0;
       } catch (_) { /* falha silenciosa — prossegue sem badge mensalista */ }
     }
 
     // 3. Modal: selecionar cortes
     const serviceIds = await CorteModal.abrir({
-      servicos:        this.#servicos,
-      clienteNome:     clienteSel.full_name,
+      servicos:             this.#servicos,
+      clienteNome:          clienteSel.full_name,
       clienteMensalista,
+      mensalistaFee,
+      mensalistaCortesCount,
     });
     if (!serviceIds) return;
+
+    // Registra client como mensalista ativo desta sessão se escolheu Plano Mensal
+    if (clienteMensalista && serviceIds.length === 0 && !clienteSel.anonymous) {
+      this.#mensalistasAtivos.add(clienteSel.id);
+    }
 
     // 4. Sentar (cliente cadastrado ou walk-in anônimo)
     try {
@@ -674,6 +686,15 @@ class MinhaBarbeariaPage {
       const { proximoNome: nomeChamado } = await CadeiraService.finalizar(
         entrada.id, this.#barbershopId, profId,
       );
+
+      // Incrementa contador de cortes do mensalista (fire-and-forget)
+      const clientId = entrada.client?.id;
+      if (clientId && this.#mensalistasAtivos.has(clientId)) {
+        this.#mensalistasAtivos.delete(clientId);
+        BffApiService.mensalistas.incrementarCortes(this.#barbershopId, clientId).catch(err => {
+          LoggerService.warn('[MinhaBarbeariaPage] incrementarCortes:', err?.message);
+        });
+      }
 
       // Registra financeiro em fire-and-forget — não bloqueia o re-render
       if (typeof FinanceiroService !== 'undefined') {

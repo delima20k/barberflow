@@ -6095,30 +6095,60 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .mslm-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
+  gap: 4px;
+  padding: 12px 8px;
   border-bottom: 1px solid var(--border-soft, rgba(212,175,55,.08));
+  text-align: center;
+  min-width: 80px;
+  max-width: 100px;
 }
 .mslm-item:last-child { border-bottom: none; }
-.mslm-avatar {
-  width: 32px;
-  height: 32px;
+.mslm-avatar,
+.mslm-avatar-placeholder {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
-.mslm-item-nome {
-  flex: 1;
-  font-size: .9rem;
-  font-weight: 600;
-  color: var(--text, #2b1b12);
+.mslm-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold, #D4AF37);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 800;
 }
-.mslm-item-meta {
-  font-size: .76rem;
+.mslm-item-nome {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text, #2b1b12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 88px;
+  width: 100%;
+}
+.mslm-item-vence {
+  font-size: .67rem;
+  white-space: nowrap;
+  color: var(--text-muted, #8c7057);
+}
+.mslm-vence-label {
+  color: #e74c3c;
+  font-weight: 700;
+}
+.mslm-item-mensalidade {
+  font-size: .67rem;
   color: var(--text-muted, #8c7057);
   white-space: nowrap;
 }
@@ -6126,19 +6156,27 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mslm-btn-adicionar {
   all: unset;
   cursor: pointer;
-  font-size: .78rem;
   font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 20px;
-  white-space: nowrap;
   transition: background .15s, opacity .15s;
 }
 .mslm-btn-remover {
-  color: #c0392b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: .95rem;
   border: 1.5px solid #c0392b;
+  color: #c0392b;
+  margin-top: 2px;
 }
-.mslm-btn-remover:hover { background: rgba(192,57,43,.08); }
+.mslm-btn-remover:hover { background: rgba(192,57,43,.10); }
 .mslm-btn-adicionar {
+  font-size: .78rem;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
   color: var(--gold, #D4AF37);
   border: 1.5px solid var(--gold, #D4AF37);
 }
@@ -6233,6 +6271,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .crtm-plano-mensal-desc {
   font-size: .78rem;
   color: var(--text-muted, #8c7057);
+  white-space: normal;
+}
+.crtm-plano-mensal-cortes {
+  font-size: .74rem;
+  color: var(--text-muted, #8c7057);
+  margin-top: 1px;
 }
 .mb-prod-form-view {
   display: flex;

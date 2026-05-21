@@ -31,6 +31,7 @@ module.exports = function criarMensalistaRoute(db) {
   router.get('/favoritos-elegiveis',  ctrl.favoritosElegiveis.bind(ctrl));
   router.get('/favoritos-modal',      ctrl.favoritosModal.bind(ctrl));
   router.get('/',                     ctrl.listar.bind(ctrl));
+  router.post('/incrementar-cortes',  ctrl.incrementarCortes.bind(ctrl));
   router.post('/',                    ctrl.adicionar.bind(ctrl));
   router.delete('/:id',               ctrl.remover.bind(ctrl));
 

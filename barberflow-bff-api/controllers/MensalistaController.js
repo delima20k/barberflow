@@ -53,7 +53,7 @@ class MensalistaController extends BaseController {
 
   /**
    * GET /api/v1/mensalistas/verificar?barbershop_id=X&client_id=Y
-   * → 200 { ativo: boolean }
+   * → 200 { ativo: boolean, monthly_fee: number, haircuts_count: number }
    */
   async verificar(req, res) {
     await this.handle(res, async () => {
@@ -61,8 +61,24 @@ class MensalistaController extends BaseController {
       if (!barbershop_id) throw AppError.badRequest("Query 'barbershop_id' é obrigatório.");
       if (!client_id)     throw AppError.badRequest("Query 'client_id' é obrigatório.");
 
-      const ativo = await this.#svc.verificar(barbershop_id, client_id);
-      this.success(res, { ativo });
+      const result = await this.#svc.verificar(barbershop_id, client_id);
+      this.success(res, result);
+    });
+  }
+
+  /**
+   * POST /api/v1/mensalistas/incrementar-cortes
+   * Body: { barbershop_id, client_id }
+   * → 204
+   */
+  async incrementarCortes(req, res) {
+    await this.handle(res, async () => {
+      const { barbershop_id, client_id } = req.body ?? {};
+      if (!barbershop_id) throw AppError.badRequest("Campo 'barbershop_id' é obrigatório.");
+      if (!client_id)     throw AppError.badRequest("Campo 'client_id' é obrigatório.");
+
+      await this.#svc.incrementarCortes(barbershop_id, client_id);
+      this.noContent(res);
     });
   }
 

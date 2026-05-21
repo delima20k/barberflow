@@ -23,12 +23,13 @@ const _now    = new Date();
 const _endsAt = new Date(_now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
 const MOCK_ROW = {
-  id:            MENSAL_ID,
-  barbershop_id: SHOP_ID,
-  client_id:     CLIENT_ID,
-  starts_at:     _now.toISOString(),
-  ends_at:       _endsAt,
-  monthly_fee:   149.9,
+  id:             MENSAL_ID,
+  barbershop_id:  SHOP_ID,
+  client_id:      CLIENT_ID,
+  starts_at:      _now.toISOString(),
+  ends_at:        _endsAt,
+  monthly_fee:    149.9,
+  haircuts_count: 5,
 };
 
 const MOCK_SHOP_OWNER    = { id: SHOP_ID, owner_id: OWNER_ID };
@@ -72,9 +73,14 @@ const SupabaseClient = require('../utils/SupabaseClient');
           return Promise.resolve({ data: _mockShop ?? null, error: null });
         }
         if (table === 'barbershop_mensalistas') {
-          if (q._select === 'id') {
-            // verificar — verifica se mensalista ativo existe
-            return Promise.resolve({ data: _mockAtivo ? { id: MENSAL_ID } : null, error: null });
+          if (q._select === 'id, monthly_fee, haircuts_count') {
+            // verificar — retorna objeto completo ou null
+            return Promise.resolve({
+              data: _mockAtivo
+                ? { id: MENSAL_ID, monthly_fee: 149.9, haircuts_count: 5 }
+                : null,
+              error: null,
+            });
           }
           // getById
           return Promise.resolve({ data: _mockRow, error: null });
@@ -90,10 +96,11 @@ const SupabaseClient = require('../utils/SupabaseClient');
         return Promise.resolve({ data: null, error: null });
       },
 
-      // .then() — para queries sem terminal explícito (SELECT lista, DELETE)
+      // .then() — para queries sem terminal explícito (SELECT lista, DELETE, UPDATE)
       then: (resolve) => {
         if (table === 'barbershop_mensalistas') {
           if (q._op === 'delete') return resolve({ data: null, error: null });
+          if (q._op === 'update') return resolve({ data: null, error: null });
           if (q._op === 'select' && q._select === 'client_id') {
             // buscarClientesDisponiveis — sub-query de ativos
             return resolve({ data: [], error: null });
@@ -183,6 +190,7 @@ suite('MensalistaService — unit', () => {
           select:      () => { q._op = 'select'; return q; },
           upsert:      () => { q._op = 'upsert'; return q; },
           delete:      () => { q._op = 'delete'; return q; },
+          update:      (data) => { q._op = 'update'; q._data = data; return q; },
           eq:          () => q,
           gt:          () => q,
           ilike:       () => q,
@@ -192,7 +200,7 @@ suite('MensalistaService — unit', () => {
           maybeSingle: () => {
             if (table === 'barbershops')          return Promise.resolve({ data: shop, error: null });
             if (table === 'barbershop_mensalistas') {
-              if (q._op === 'select') return Promise.resolve({ data: ativo ? { id: MENSAL_ID } : null, error: null });
+              if (q._op === 'select') return Promise.resolve({ data: ativo ? { id: MENSAL_ID, monthly_fee: 149.9, haircuts_count: 5 } : null, error: null });
               return Promise.resolve({ data: row, error: null });
             }
             return Promise.resolve({ data: null, error: null });
@@ -201,6 +209,7 @@ suite('MensalistaService — unit', () => {
           then: (resolve) => {
             if (table === 'barbershop_mensalistas') {
               if (q._op === 'delete') return resolve({ data: null, error: null });
+              if (q._op === 'update') return resolve({ data: null, error: null });
               return resolve({ data: lista, error: null });
             }
             return resolve({ data: [], error: null });
@@ -276,26 +285,36 @@ suite('MensalistaService — unit', () => {
     );
   });
 
-  test('verificar — sem ownership check: retorna boolean', async () => {
+  test('verificar — ativo: retorna { ativo, monthly_fee, haircuts_count }', async () => {
     const db  = criarDbMock({ ativo: true });
     const repo = new MensalistaRepository(db);
     const svc  = new MensalistaService(repo, db);
 
-    repo.verificar = async () => true;
+    repo.verificar = async () => ({ id: MENSAL_ID, monthly_fee: 149.9, haircuts_count: 5 });
 
     const resultado = await svc.verificar(SHOP_ID, CLIENT_ID);
-    assert.strictEqual(resultado, true);
+    assert.deepEqual(resultado, { ativo: true, monthly_fee: 149.9, haircuts_count: 5 });
   });
 
-  test('verificar — cliente não mensalista: retorna false', async () => {
+  test('verificar — cliente não mensalista: retorna { ativo: false, monthly_fee: 0, haircuts_count: 0 }', async () => {
     const db  = criarDbMock({ ativo: false });
     const repo = new MensalistaRepository(db);
     const svc  = new MensalistaService(repo, db);
 
-    repo.verificar = async () => false;
+    repo.verificar = async () => null;
 
     const resultado = await svc.verificar(SHOP_ID, CLIENT_ID);
-    assert.strictEqual(resultado, false);
+    assert.deepEqual(resultado, { ativo: false, monthly_fee: 0, haircuts_count: 0 });
+  });
+
+  test('incrementarCortes — sem ownership check: não lança', async () => {
+    const db  = criarDbMock({ ativo: true });
+    const repo = new MensalistaRepository(db);
+    const svc  = new MensalistaService(repo, db);
+
+    repo.incrementarCortes = async () => {};
+
+    await assert.doesNotReject(() => svc.incrementarCortes(SHOP_ID, CLIENT_ID));
   });
 
   test('remover — owner válido: não lança', async () => {
@@ -529,7 +548,7 @@ suite('Mensalistas — integração HTTP', () => {
 
   // ─── GET /api/v1/mensalistas/verificar ──────────────────────
   suite('GET /api/v1/mensalistas/verificar', () => {
-    test('200 ativo=true — cliente é mensalista ativo', async () => {
+    test('200 ativo=true — cliente é mensalista ativo: retorna dados do plano', async () => {
       _mockAtivo = true;
       const { status, body } = await request(servidor, {
         method: 'GET',
@@ -539,9 +558,11 @@ suite('Mensalistas — integração HTTP', () => {
 
       assert.strictEqual(status, 200, JSON.stringify(body));
       assert.strictEqual(body.dados.ativo, true);
+      assert.strictEqual(body.dados.monthly_fee, 149.9);
+      assert.strictEqual(body.dados.haircuts_count, 5);
     });
 
-    test('200 ativo=false — cliente não é mensalista', async () => {
+    test('200 ativo=false — cliente não é mensalista: zeros', async () => {
       _mockAtivo = false;
       const { status, body } = await request(servidor, {
         method: 'GET',
@@ -551,6 +572,8 @@ suite('Mensalistas — integração HTTP', () => {
 
       assert.strictEqual(status, 200, JSON.stringify(body));
       assert.strictEqual(body.dados.ativo, false);
+      assert.strictEqual(body.dados.monthly_fee, 0);
+      assert.strictEqual(body.dados.haircuts_count, 0);
     });
 
     test('401 — sem token', async () => {
@@ -611,6 +634,60 @@ suite('Mensalistas — integração HTTP', () => {
         token:  TOKEN_OTHER, // OTHER_ID !== OWNER_ID → 403
       });
       assert.strictEqual(status, 403);
+    });
+  });
+
+  // ─── POST /api/v1/mensalistas/incrementar-cortes ────────────
+  suite('POST /api/v1/mensalistas/incrementar-cortes', () => {
+    test('204 — mensalista ativo: incrementa e retorna sem body', async () => {
+      _mockAtivo = true;
+      const { status } = await request(servidor, {
+        method: 'POST',
+        path:   '/api/v1/mensalistas/incrementar-cortes',
+        token:  TOKEN_OWNER,
+        body:   { barbershop_id: SHOP_ID, client_id: CLIENT_ID },
+      });
+      assert.strictEqual(status, 204);
+    });
+
+    test('204 — qualquer autenticado pode incrementar (sem ownership check)', async () => {
+      _mockAtivo = true;
+      const { status } = await request(servidor, {
+        method: 'POST',
+        path:   '/api/v1/mensalistas/incrementar-cortes',
+        token:  TOKEN_OTHER,
+        body:   { barbershop_id: SHOP_ID, client_id: CLIENT_ID },
+      });
+      assert.strictEqual(status, 204);
+    });
+
+    test('400 — sem barbershop_id', async () => {
+      const { status } = await request(servidor, {
+        method: 'POST',
+        path:   '/api/v1/mensalistas/incrementar-cortes',
+        token:  TOKEN_OWNER,
+        body:   { client_id: CLIENT_ID },
+      });
+      assert.strictEqual(status, 400);
+    });
+
+    test('400 — sem client_id', async () => {
+      const { status } = await request(servidor, {
+        method: 'POST',
+        path:   '/api/v1/mensalistas/incrementar-cortes',
+        token:  TOKEN_OWNER,
+        body:   { barbershop_id: SHOP_ID },
+      });
+      assert.strictEqual(status, 400);
+    });
+
+    test('401 — sem token', async () => {
+      const { status } = await request(servidor, {
+        method: 'POST',
+        path:   '/api/v1/mensalistas/incrementar-cortes',
+        body:   { barbershop_id: SHOP_ID, client_id: CLIENT_ID },
+      });
+      assert.strictEqual(status, 401);
     });
   });
 

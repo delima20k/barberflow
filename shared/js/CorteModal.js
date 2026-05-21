@@ -20,13 +20,15 @@ class CorteModal {
   // @param {object}  opts
   // @param {Array<{id:string, name:string, price:number, duration_min:number}>} opts.servicos
   // @param {string}  opts.clienteNome
-  // @param {boolean} [opts.clienteMensalista=false] — se true, exibe card "Plano Mensal" no topo
+  // @param {boolean} [opts.clienteMensalista=false]  — se true, exibe card "Plano Mensal" no topo
+  // @param {number}  [opts.mensalistaFee=0]           — valor mensal do plano (ex: 89.9)
+  // @param {number}  [opts.mensalistaCortesCount=0]   — cortes já realizados este mês
   // @returns {Promise<string[]|null>}
   //   null      → cancelado
   //   []        → mensalista (card Plano Mensal clicado)
   //   string[]  → IDs dos serviços selecionados
-  // ──────────────────────────────────────────────────────────
-  static abrir({ servicos, clienteNome, clienteMensalista = false }) {
+  // ──────────────────────────────────────────────────
+  static abrir({ servicos, clienteNome, clienteMensalista = false, mensalistaFee = 0, mensalistaCortesCount = 0 }) {
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'crtm-overlay';
@@ -56,6 +58,11 @@ class CorteModal {
 
       // Card Plano Mensal (topo da lista) — apenas para mensalistas ativos
       if (clienteMensalista) {
+        const feeStr = mensalistaFee > 0
+          ? mensalistaFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês'
+          : 'sem cobrança adicional';
+        const cortesStr = `${mensalistaCortesCount} corte${mensalistaCortesCount !== 1 ? 's' : ''} este mês`;
+
         const card = document.createElement('li');
         card.className = 'crtm-plano-mensal';
         card.setAttribute('role', 'button');
@@ -64,8 +71,8 @@ class CorteModal {
         card.innerHTML = `
           <span class="crtm-plano-mensal-icone">👑</span>
           <span class="crtm-plano-mensal-info">
-            <span class="crtm-plano-mensal-titulo">Plano Mensal</span>
-            <span class="crtm-plano-mensal-desc">Cliente com plano ativo — sem cobrança adicional</span>
+            <span class="crtm-plano-mensal-titulo">Plano Mensal — ${CorteModal.#escapar(feeStr)}</span>
+            <span class="crtm-plano-mensal-cortes">${CorteModal.#escapar(cortesStr)}</span>
           </span>`;
         card.addEventListener('click', () => _fechar([]));
         card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') _fechar([]); });

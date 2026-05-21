@@ -93,16 +93,31 @@ class MensalistaService extends BaseService {
   }
 
   /**
-   * Verifica se um cliente é mensalista ativo.
+   * Verifica se um cliente é mensalista ativo e retorna dados do plano.
    * NÃO exige ownership — qualquer usuário autenticado pode consultar.
    * @param {string} barbershopId
    * @param {string} clientId
-   * @returns {Promise<boolean>}
+   * @returns {Promise<{ativo:boolean, monthly_fee:number, haircuts_count:number}>}
    */
   async verificar(barbershopId, clientId) {
     this._uuid('barbershop_id', barbershopId);
     this._uuid('client_id',     clientId);
-    return this.#repo.verificar(barbershopId, clientId);
+    const row = await this.#repo.verificar(barbershopId, clientId);
+    return row
+      ? { ativo: true,  monthly_fee: row.monthly_fee,    haircuts_count: row.haircuts_count }
+      : { ativo: false, monthly_fee: 0, haircuts_count: 0 };
+  }
+
+  /**
+   * Incrementa em 1 o contador de cortes do mensalista ativo.
+   * NÃO exige ownership — qualquer profissional autenticado pode chamar.
+   * @param {string} barbershopId
+   * @param {string} clientId
+   */
+  async incrementarCortes(barbershopId, clientId) {
+    this._uuid('barbershop_id', barbershopId);
+    this._uuid('client_id',     clientId);
+    await this.#repo.incrementarCortes(barbershopId, clientId);
   }
 
   /**

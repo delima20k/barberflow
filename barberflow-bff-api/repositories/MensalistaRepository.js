@@ -14,6 +14,7 @@ class MensalistaRepository extends BaseRepository {
 
   static #SELECT_MENSALISTA  = 'id, starts_at, ends_at, monthly_fee, client:profiles!client_id(id, full_name, avatar_path)';
   static #SELECT_ROW         = 'id, barbershop_id, client_id';
+  static #SELECT_VERIFY      = 'id, monthly_fee, haircuts_count';
   static #SELECT_DISPONIVEIS = 'id, full_name, avatar_path, email';
   static #SELECT_CLIENT_ID   = 'client_id';
   static #SELECT_LISTA_BASE  = 'id, client_id, starts_at, ends_at';
@@ -161,25 +162,66 @@ class MensalistaRepository extends BaseRepository {
   }
 
   /**
-   * Verifica se um cliente é mensalista ativo em uma barbearia.
+   * Verifica se um cliente é mensalista ativo e retorna dados do plano.
    * @param {string} barbershopId
    * @param {string} clientId
-   * @returns {Promise<boolean>}
+   * @returns {Promise<{id:string, monthly_fee:number, haircuts_count:number}|null>}
    */
   async verificar(barbershopId, clientId) {
     this._uuid('barbershop_id', barbershopId);
     this._uuid('client_id',     clientId);
 
-    const { data, error } = await this._db
+    let { data, error } = await this._db
       .from('barbershop_mensalistas')
-      .select('id')
+      .select(MensalistaRepository.#SELECT_VERIFY)
       .eq('barbershop_id', barbershopId)
       .eq('client_id',     clientId)
       .gt('ends_at', new Date().toISOString())
       .maybeSingle();
 
+    // Fallback se haircuts_count ainda não existe no schema remoto
+    if (error && MensalistaRepository.#ehColunaHaircutsCountInexistente(error)) {
+      this._warn('verificar.haircuts_count_fallback', error);
+      ({ data, error } = await this._db
+        .from('barbershop_mensalistas')
+        .select('id, monthly_fee')
+        .eq('barbershop_id', barbershopId)
+        .eq('client_id',     clientId)
+        .gt('ends_at', new Date().toISOString())
+        .maybeSingle());
+      if (data) data = { ...data, haircuts_count: 0 };
+    }
+
     if (error) this._throwDbError(error, 'verificar');
-    return data !== null;
+    if (!data) return null;
+    return {
+      id:             data.id,
+      monthly_fee:    Number(data.monthly_fee    ?? 0),
+      haircuts_count: Number(data.haircuts_count ?? 0),
+    };
+  }
+
+  /**
+   * Incrementa em 1 o contador de cortes do mensalista ativo.
+   * @param {string} barbershopId
+   * @param {string} clientId
+   */
+  async incrementarCortes(barbershopId, clientId) {
+    this._uuid('barbershop_id', barbershopId);
+    this._uuid('client_id',     clientId);
+
+    // Busca a row ativa para obter o ID
+    const row = await this.verificar(barbershopId, clientId);
+    if (!row) return; // mensalista não encontrado — ignora silenciosamente
+
+    const { error } = await this._db
+      .from('barbershop_mensalistas')
+      .update({ haircuts_count: row.haircuts_count + 1 })
+      .eq('id', row.id);
+
+    if (error && !MensalistaRepository.#ehColunaHaircutsCountInexistente(error)) {
+      this._throwDbError(error, 'incrementarCortes');
+    }
   }
 
   /**
@@ -444,6 +486,20 @@ class MensalistaRepository extends BaseRepository {
     const msg  = String(error.message ?? '').toLowerCase();
     return (code === '42703' || code === 'PGRST204' || msg.includes('schema cache'))
       && msg.includes('monthly_fee');
+  }
+
+  /**
+   * Verifica se a coluna haircuts_count ainda nao existe no schema remoto.
+   * Mantem compatibilidade enquanto a migration e aplicada em producao.
+   * @param {object} error
+   * @returns {boolean}
+   */
+  static #ehColunaHaircutsCountInexistente(error) {
+    if (!error) return false;
+    const code = String(error.code ?? '');
+    const msg  = String(error.message ?? '').toLowerCase();
+    return (code === '42703' || code === 'PGRST204' || msg.includes('schema cache'))
+      && msg.includes('haircuts_count');
   }
 }
 

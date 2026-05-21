@@ -193,6 +193,12 @@ class BffApiService {
 
     favoritosModal:            (barbershopId, professionalId) =>
       BffApiService.get('/api/v1/mensalistas/favoritos-modal', { barbershop_id: barbershopId, professional_id: professionalId }),
+
+    incrementarCortes:         (barbershopId, clientId) =>
+      BffApiService.post('/api/v1/mensalistas/incrementar-cortes', {
+        barbershop_id: barbershopId,
+        client_id:     clientId,
+      }),
   };
 
   // ── Namespace: barbearias ─────────────────────────────────────────

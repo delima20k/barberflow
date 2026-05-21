@@ -275,6 +275,7 @@ class MensalistaModal {
     const li = document.createElement('li');
     li.className = 'mslm-item';
 
+    // Avatar ou placeholder com inicial
     if (avatarPath) {
       const img = document.createElement('img');
       img.className = 'mslm-avatar';
@@ -283,28 +284,50 @@ class MensalistaModal {
         : '';
       img.alt = '';
       img.setAttribute('aria-hidden', 'true');
-      img.onerror = () => { img.remove(); };
+      img.onerror = () => {
+        img.replaceWith(MensalistaModal.#criarPlaceholderAvatar(nome));
+      };
       li.appendChild(img);
+    } else {
+      li.appendChild(MensalistaModal.#criarPlaceholderAvatar(nome));
     }
 
     const nomeEl = document.createElement('span');
     nomeEl.className   = 'mslm-item-nome';
     nomeEl.textContent = nome;
 
-    const metaEl = document.createElement('span');
-    metaEl.className   = 'mslm-item-meta';
-    metaEl.textContent = `Vence: ${venceEm} | Mensalidade: ${mensalidade}`;
+    const venceEl = document.createElement('span');
+    venceEl.className = 'mslm-item-vence';
+    venceEl.innerHTML = `<span class="mslm-vence-label">Vence:</span> ${MensalistaModal.#escapar(venceEm)}`;
+
+    const mensalidadeEl = document.createElement('span');
+    mensalidadeEl.className   = 'mslm-item-mensalidade';
+    mensalidadeEl.textContent = `Mensalidade: ${mensalidade}`;
 
     const btn = document.createElement('button');
     btn.className   = 'mslm-btn-remover';
-    btn.textContent = 'Remover';
+    btn.textContent = '🗑️';
     btn.setAttribute('aria-label', `Remover ${nome} dos mensalistas`);
     btn.addEventListener('click', onRemover);
 
     li.appendChild(nomeEl);
-    li.appendChild(metaEl);
+    li.appendChild(venceEl);
+    li.appendChild(mensalidadeEl);
     li.appendChild(btn);
     return li;
+  }
+
+  /**
+   * Cria um elemento placeholder de avatar com a inicial do nome.
+   * @param {string} nome
+   * @returns {HTMLDivElement}
+   */
+  static #criarPlaceholderAvatar(nome) {
+    const div = document.createElement('div');
+    div.className   = 'mslm-avatar-placeholder';
+    div.textContent = (nome ?? '?').charAt(0).toUpperCase();
+    div.setAttribute('aria-hidden', 'true');
+    return div;
   }
 
   /**
@@ -379,5 +402,19 @@ class MensalistaModal {
   static #formatarMoeda(valor) {
     const num = MensalistaModal.#normalizarMensalidade(valor);
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  /**
+   * Escapa caracteres HTML para uso seguro em innerHTML.
+   * @param {string} str
+   * @returns {string}
+   */
+  static #escapar(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 }
