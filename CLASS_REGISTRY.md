@@ -343,3 +343,46 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `RateLimiterMiddleware` | [barberflow-bff-api/middlewares/rateLimiter.js](barberflow-bff-api/middlewares/rateLimiter.js) | infra | Rate limiting. `static geral` (300/min), `static auth` (10/15min), `static escrita` (60/min, skip GET/HEAD/OPTIONS). |
 | `TimeoutMiddleware` | [barberflow-bff-api/middlewares/timeout.js](barberflow-bff-api/middlewares/timeout.js) | infra | Aborta requests que excedem `REQUEST_TIMEOUT_MS` (padrão 30s). `static handle`. |
 | `ErrorHandler` | [barberflow-bff-api/middlewares/errorHandler.js](barberflow-bff-api/middlewares/errorHandler.js) | infra | Global 4-param Express error handler. Distingue `AppError` operacional de erros inesperados. `static handle(err, req, res, _next)`. |
+| `IdempotencyMiddleware` | [barberflow-bff-api/interfaces/bff/middlewares/IdempotencyMiddleware.js](barberflow-bff-api/interfaces/bff/middlewares/IdempotencyMiddleware.js) | infra | Garante idempotência de POST/PUT via `Idempotency-Key` UUID header. Cache no Redis com TTL 24h. Respostas 5xx não são cacheadas. Construtor: `({ cache, ttlSeconds? })`. Uso: `router.post(..., mw.handler(), handler)`. |
+
+### Cache Distribuído (Clean Architecture)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `ICacheService` | [barberflow-bff-api/domain/shared/ports/ICacheService.js](barberflow-bff-api/domain/shared/ports/ICacheService.js) | domain | Port de alto nível para o serviço de cache distribuído. Define contrato sem acoplamento a infra. Métodos: `get`, `set`, `del`, `delByPrefix`, `getOrCompute`, `getMetrics`. |
+| `CacheKeyBuilder` | [barberflow-bff-api/infrastructure/cache/CacheKeyBuilder.js](barberflow-bff-api/infrastructure/cache/CacheKeyBuilder.js) | infra | Constrói chaves padronizadas `bf:<context>:<entity>:<id>:<version>`. Estáticos: `build(ctx,entity,id)`, `buildList(ctx,entity,params)`, `prefix(ctx,entity)`, `contextPrefix(ctx)`, `idempotency(key)`. |
+| `CacheMetrics` | [barberflow-bff-api/infrastructure/cache/CacheMetrics.js](barberflow-bff-api/infrastructure/cache/CacheMetrics.js) | infra | Contadores in-process de hits, misses, evictions e latência média. Métodos: `recordHit(ms)`, `recordMiss(ms)`, `recordEviction()`, `getSnapshot()`, `reset()`. |
+| `SingleFlightCache` | [barberflow-bff-api/infrastructure/cache/SingleFlightCache.js](barberflow-bff-api/infrastructure/cache/SingleFlightCache.js) | infra | Decorator de ICache com proteção contra cache stampede via request coalescing. `getOrCompute(key, computeFn, ttlSeconds)` executa `computeFn` apenas 1 vez para N chamadas simultâneas. Expõe `inFlightCount` e `getMetrics()`. |
+| `CacheAsideStrategy` | [barberflow-bff-api/infrastructure/cache/strategies/CacheAsideStrategy.js](barberflow-bff-api/infrastructure/cache/strategies/CacheAsideStrategy.js) | infra | Lazy-load: `read(key, fetchFn, ttl)` — hit→cache, miss→busca+popula. `invalidate(key)`, `invalidateByPrefix(prefix)`. Ideal para leituras frequentes. |
+| `WriteThroughStrategy` | [barberflow-bff-api/infrastructure/cache/strategies/WriteThroughStrategy.js](barberflow-bff-api/infrastructure/cache/strategies/WriteThroughStrategy.js) | infra | Escrita síncrona em cache + DB via `Promise.all`. `write(key, value, persistFn, ttl)`. Em erro: remove cache para evitar dados parciais. |
+| `WriteBehindStrategy` | [barberflow-bff-api/infrastructure/cache/strategies/WriteBehindStrategy.js](barberflow-bff-api/infrastructure/cache/strategies/WriteBehindStrategy.js) | infra | Escrita imediata no cache; persistência assíncrona via `setImmediate` com 3 retries. Usar APENAS para dados não-críticos (contagens, logs). Nunca para agendamentos ou pagamentos. |
+| `DomainEventPublisher` | [barberflow-bff-api/infrastructure/events/DomainEventPublisher.js](barberflow-bff-api/infrastructure/events/DomainEventPublisher.js) | infra | Bus singleton de eventos de domínio. Métodos: `subscribe(name, handler)`, `unsubscribe(name, handler)`, `publish(event)`, `publishAll(events)`. `_reset()` para testes. |
+| `CacheInvalidationSubscriber` | [barberflow-bff-api/infrastructure/events/CacheInvalidationSubscriber.js](barberflow-bff-api/infrastructure/events/CacheInvalidationSubscriber.js) | infra | Invalida chaves de cache ao receber eventos de domínio. `register(publisher)` inscreve handlers para `AgendamentoCriado`, `AgendamentoAtualizado`, `FilaEntradaCriada`, `FilaEntradaAtualizada`. |
+| `CachedUseCaseDecorator` | [barberflow-bff-api/application/shared/CachedUseCaseDecorator.js](barberflow-bff-api/application/shared/CachedUseCaseDecorator.js) | application | Decorator de `BaseUseCase` para use cases de LEITURA. Adiciona cache transparente sem poluir a camada de aplicação. Construtor: `({ useCase, cacheService, keyFn, ttlSeconds })`. |
+
+### Domínio BFF (Clean Architecture)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BaseEntity` | [barberflow-bff-api/domain/shared/BaseEntity.js](barberflow-bff-api/domain/shared/BaseEntity.js) | domain | Entidade de domínio com identidade por `#id`. `equals()`, `_touch()`, `toJSON()`. |
+| `BaseValueObject` | [barberflow-bff-api/domain/shared/BaseValueObject.js](barberflow-bff-api/domain/shared/BaseValueObject.js) | domain | Value Object imutável com igualdade por valor. `_props` frozen. `_validate()` abstrato. |
+| `BaseAggregateRoot` | [barberflow-bff-api/domain/shared/BaseAggregateRoot.js](barberflow-bff-api/domain/shared/BaseAggregateRoot.js) | domain | Raiz de agregado com fila de eventos de domínio. `_raise(event)`, `pullDomainEvents()`. |
+| `Result` | [barberflow-bff-api/domain/shared/Result.js](barberflow-bff-api/domain/shared/Result.js) | domain | Either monad: `ok(v)`, `fail(e)`, `combine([])`, `map`, `flatMap`, `match`, `getOrElse`. |
+| `DomainEvent` | [barberflow-bff-api/domain/shared/DomainEvent.js](barberflow-bff-api/domain/shared/DomainEvent.js) | domain | Evento de domínio imutável com `eventId`, `eventName`, `aggregateId`, `occurredAt`. |
+| `Specification` | [barberflow-bff-api/domain/shared/Specification.js](barberflow-bff-api/domain/shared/Specification.js) | domain | Padrão Specification composável. `and()`, `or()`, `not()`. |
+| `AgendamentoStatus` | [barberflow-bff-api/domain/agendamento/AgendamentoStatus.js](barberflow-bff-api/domain/agendamento/AgendamentoStatus.js) | domain | VO de status de agendamento com máquina de estados. Transições via `transicionarPara()`. |
+| `Agendamento` | [barberflow-bff-api/domain/agendamento/Agendamento.js](barberflow-bff-api/domain/agendamento/Agendamento.js) | domain | Agregado de agendamento. `create()`, `reconstitute()`, `atualizarStatus()`. |
+| `FilaStatus` | [barberflow-bff-api/domain/fila/FilaStatus.js](barberflow-bff-api/domain/fila/FilaStatus.js) | domain | VO de status da fila de espera com máquina de estados. |
+| `FilaEntrada` | [barberflow-bff-api/domain/fila/FilaEntrada.js](barberflow-bff-api/domain/fila/FilaEntrada.js) | domain | Agregado de entrada na fila. `create()`, `reconstitute()`, `atualizarStatus()`, `confirmarPresenca()`. |
+
+### Application BFF (Use Cases)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BaseUseCase` | [barberflow-bff-api/application/shared/BaseUseCase.js](barberflow-bff-api/application/shared/BaseUseCase.js) | application | Contrato abstrato para use cases. `execute(command)` → `Promise<Result<T,string>>`. |
+| `CriarAgendamentoUseCase` | [barberflow-bff-api/application/agendamento/CriarAgendamentoUseCase.js](barberflow-bff-api/application/agendamento/CriarAgendamentoUseCase.js) | application | Valida DTO, verifica conflitos, cria agregado, persiste, publica eventos. |
+| `AtualizarStatusAgendamentoUseCase` | [barberflow-bff-api/application/agendamento/AtualizarStatusAgendamentoUseCase.js](barberflow-bff-api/application/agendamento/AtualizarStatusAgendamentoUseCase.js) | application | Transição de status com verificação de ownership (clienteId ou profissionalId). |
+| `BuscarAgendamentoUseCase` | [barberflow-bff-api/application/agendamento/BuscarAgendamentoUseCase.js](barberflow-bff-api/application/agendamento/BuscarAgendamentoUseCase.js) | application | Leitura de agendamento por ID com verificação de ownership. Decorado com cache. |
+| `EntrarNaFilaUseCase` | [barberflow-bff-api/application/fila/EntrarNaFilaUseCase.js](barberflow-bff-api/application/fila/EntrarNaFilaUseCase.js) | application | Insere cliente na fila, calcula posição via `countAtivos`, persiste, publica evento. |
+| `AtualizarStatusFilaUseCase` | [barberflow-bff-api/application/fila/AtualizarStatusFilaUseCase.js](barberflow-bff-api/application/fila/AtualizarStatusFilaUseCase.js) | application | Transição de status da fila com verificação de ownership. |
+| `ListarFilaUseCase` | [barberflow-bff-api/application/fila/ListarFilaUseCase.js](barberflow-bff-api/application/fila/ListarFilaUseCase.js) | application | Lista fila ativa de uma barbearia. Decorado com cache TTL 10s. |

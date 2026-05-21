@@ -51,6 +51,57 @@ Se existir → **FAZER MELHOR.**
 
 ---
 
+## 4.1 CACHE DISTRIBUÍDO REDIS — BFF (barberflow-bff-api/)
+
+### Padrões implementados
+
+| Padrão | Classe | Quando usar |
+|--------|--------|-------------|
+| Cache-Aside | `CacheAsideStrategy` | Leituras frequentes (default para todos os recursos) |
+| Write-Through | `WriteThroughStrategy` | Dados críticos onde consistência pós-escrita é imediata |
+| Write-Behind | `WriteBehindStrategy` | ⚠ Apenas dados não-críticos (contagens, métricas) |
+| Single-Flight | `SingleFlightCache` | Proteger contra burst simultâneo (sempre ativo, transparente) |
+| Decorator | `CachedUseCaseDecorator` | Adicionar cache a use cases de leitura sem alterar a classe |
+| Event Invalidation | `CacheInvalidationSubscriber` | Invalidar cache por eventos de domínio |
+| Idempotência | `IdempotencyMiddleware` | POST/PUT críticos com `Idempotency-Key` header |
+
+### Chave de cache
+
+Formato obrigatório: `bf:<context>:<entity>:<id_ou_params>:<version>`
+Usar sempre `CacheKeyBuilder` — **nunca** construir strings de chave inline.
+
+### TTL por contexto (ver `config/cacheTtl.js`)
+
+| Contexto | TTL | Justificativa |
+|----------|-----|---------------|
+| agendamento_single | 60s | Status muda várias vezes/dia |
+| agendamento_list | 30s | Alta frequência de mutação |
+| fila_list | 10s | Quasi-realtime |
+| fila_count | 5s | Muito volátil |
+| barbearia_profile | 300s | Raramente muda |
+| servicos_list | 600s | Catálogo estável |
+
+### Regras obrigatórias de cache BFF
+
+- ✅ Todo use case de LEITURA recorrente deve ser decorado com `CachedUseCaseDecorator`
+- ✅ Use cases de ESCRITA devem disparar eventos de domínio para invalidação via `CacheInvalidationSubscriber`
+- ✅ `WriteBehindStrategy` apenas para dados não-críticos — NUNCA para agendamentos, fila ou pagamentos
+- ✅ Bump de version (`v2`, `v3`...) ao mudar schema do dado cacheado — invalida automaticamente todas as chaves antigas
+- ❌ NUNCA construir chave de cache inline — usar `CacheKeyBuilder`
+- ❌ NUNCA usar `flush()` em produção — invalida por prefix ou chave específica
+- ❌ NUNCA cachear dados financeiros sem TTL curto e invalidação explícita
+
+### Riscos documentados
+
+- **R1 Stale read**: mitigado por `CacheInvalidationSubscriber` via eventos de domínio
+- **R2 Write-through parcial**: mitigado pela remoção do cache em caso de erro
+- **R3 Write-behind perda**: usar apenas para dados tolerantes a perda
+- **R4 Multi-instância**: `DomainEventPublisher` é in-process; TTL curto minimiza janela de stale
+
+Ver análise completa em `docs/cache.md`.
+
+---
+
 ## 5. CHECKLIST DE PERFORMANCE AO ENTREGAR
 
 - [ ] Queries usam índices existentes
