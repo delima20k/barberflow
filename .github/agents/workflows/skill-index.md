@@ -19,6 +19,7 @@
 | 07 | [`skills/skill-07-testes.md`](skills/skill-07-testes.md) | TDD, node:test, fluxo red-green-refactor, cobertura | Testes, TDD, validações, edge cases |
 | 08 | [`skills/skill-08-performance.md`](skills/skill-08-performance.md) | Cache, paginação, custo, debounce, Blob URLs, N+1 | Performance, otimização, custo de infra |
 | 09 | [`skills/skill-09-refatoracao.md`](skills/skill-09-refatoracao.md) | Escopo, checklist pós-implementação, check final, commit | Refatoração, revisão final, limpeza de código |
+| 10 | [`barberflow-bff-api/docs/filas.md`](../../barberflow-bff-api/docs/filas.md) | Mensageria BFF: BullMQ, IQueueService, Job VO, JobHandler, RetryPolicy, DeadLetterQueue, InMemoryQueueService, BullMQAdapter, OutboxPattern, WorkerRegistry | Filas, jobs assíncronos, retry, DLQ, outbox, workers, mensageria |
 
 ---
 
