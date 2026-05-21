@@ -5551,6 +5551,19 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   text-transform: uppercase;
   letter-spacing: .5px;
 }
+#mb-config-panel .mb-config-secao-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#mb-config-panel .mb-config-secao-label::after {
+  content: '';
+  display: block;
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: .7;
+}
 
 /* ── Linha: capa + ícone lado a lado ── */
 .mb-cfg-media-row {

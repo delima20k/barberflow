@@ -10,6 +10,9 @@ const ROOT         = path.resolve(__dirname, '..');
 const SRC_MB_PAGE  = fs.readFileSync(
   path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js'), 'utf8',
 );
+const SRC_COMPONENTS_CSS = fs.readFileSync(
+  path.join(ROOT, 'shared/css/components.css'), 'utf8',
+);
 
 // =============================================================================
 // Helpers de DOM mock
@@ -410,6 +413,62 @@ suite('MinhaBarbeariaPage — status toggle', () => {
     void d;
     // Acesso ao sandbox não é necessário; bind() já rodou sem lançar TypeError
     assert.ok(true, 'sandbox com StatusFechamentoModal não lança ao criar a página');
+  });
+});
+
+// =============================================================================
+// Suite 7 - Configuracoes da barbearia: servicos/produtos
+// =============================================================================
+
+suite('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
+
+  test('servicos carregados devem popular somente a view de itens salvos', () => {
+    assert.ok(
+      !SRC_MB_PAGE.includes('servicos.forEach(s => this.#adicionarLinhaProduto(s));'),
+      'servicos ja salvos nao devem renderizar card/form em mb-cfg-produtos-lista',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /itensView\.innerHTML\s*=\s*'';\s*servicos\.forEach\(s => this\.#adicionarItemNaView\(s\)\);/s,
+      'servicos ja salvos devem aparecer em mb-cfg-itens-view',
+    );
+  });
+
+  test('salvar item deve retirar o formulario temporario da tela', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /#salvarProdutoUnico\(row\)[\s\S]*row\.remove\(\);[\s\S]*NotificationService\?\.mostrarToast/,
+      'apos salvar, a linha do formulario deve sair da tela antes do toast',
+    );
+  });
+
+  test('lixeira dos itens salvos exclui direto sem confirmacao textual', () => {
+    assert.ok(
+      !SRC_MB_PAGE.includes('mb-item-confirm'),
+      'nao deve renderizar bloco de confirmacao para excluir item',
+    );
+    assert.ok(
+      !SRC_MB_PAGE.includes('Apagar este item?'),
+      'nao deve mostrar texto "Apagar este item?"',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /\.mb-item-trash-btn'\)\.addEventListener\('click', async \(\) => \{[\s\S]*#removerItemCompleto\(produto\.id, item\)/,
+      'click na lixeira deve chamar remocao direta',
+    );
+  });
+
+  test('labels do painel config devem ter traco ate a ponta direita', () => {
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /#mb-config-panel \.mb-config-secao-label\s*\{[\s\S]*display:\s*flex;[\s\S]*align-items:\s*center;/,
+      'label do painel config deve usar flex para texto + traco',
+    );
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /#mb-config-panel \.mb-config-secao-label::after\s*\{[\s\S]*flex:\s*1;[\s\S]*height:\s*1px;/,
+      'pseudo-elemento deve preencher o espaco ate a ponta direita',
+    );
   });
 });
 

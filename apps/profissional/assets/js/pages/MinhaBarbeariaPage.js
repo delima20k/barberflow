@@ -1676,7 +1676,6 @@ class MinhaBarbeariaPage {
     const lista = this.#refs.cfgProdutos;
     if (!lista) return;
     lista.innerHTML = '';
-    servicos.forEach(s => this.#adicionarLinhaProduto(s));
 
     // Popula drawer "ver itens"
     const itensView = this.#refs.cfgItensView;
@@ -1707,14 +1706,6 @@ class MinhaBarbeariaPage {
     const imgSrc   = produto?.image_path || '/shared/img/Logo01.png';
     const precoVal = produto ? Number(produto.price).toFixed(2) : '';
     const nomeVal  = produto ? MinhaBarbeariaPage.#escapeAttr(produto.name ?? '') : '';
-    const isSaved  = !!produto?.id;
-
-    // Meta text para o card (estilo CorteModal)
-    const precoFmt = produto?.price != null
-      ? Number(produto.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      : '';
-    const durTxt  = produto?.duration_min ? `${produto.duration_min} min` : '';
-    const metaTxt = [precoFmt, durTxt].filter(Boolean).join(' · ');
 
     const row = document.createElement('div');
     row.className = 'mb-cfg-produto-row';
@@ -1725,20 +1716,7 @@ class MinhaBarbeariaPage {
     row.dataset.mediaUid = uid;
 
     row.innerHTML = `
-      <div class="mb-prod-card-view"${isSaved ? '' : ' hidden'}>
-        <div class="mb-prod-card-img-wrap">
-          <img class="mb-prod-card-img" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="" loading="lazy">
-        </div>
-        <div class="mb-prod-card-info">
-          <span class="mb-prod-card-nome">${MinhaBarbeariaPage.#escapeAttr(produto?.name ?? '')}</span>
-          <span class="mb-prod-card-meta">${metaTxt}</span>
-        </div>
-        <div class="mb-prod-card-btns">
-          <button class="mb-prod-card-edit-btn" type="button" aria-label="Editar item">✏️</button>
-          <button class="mb-prod-remove" type="button" aria-label="Remover item">✕</button>
-        </div>
-      </div>
-      <div class="mb-prod-form-view"${isSaved ? ' hidden' : ''}>
+      <div class="mb-prod-form-view">
         <div class="mb-prod-li--painel">
           <div class="mb-cfg-prod-img-wrap">
             <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaPage.#escapeAttr(imgSrc)}" alt="">
@@ -1764,34 +1742,16 @@ class MinhaBarbeariaPage {
         </div>
         <div class="mb-prod-form-acoes">
           <button class="btn-flow mb-prod-salvar-btn" type="button">Salvar item</button>
-          <button class="btn-flow btn-flow--outline mb-prod-form-cancel-btn" type="button"${!isSaved ? ' hidden' : ''}>Cancelar</button>
+          <button class="btn-flow btn-flow--outline mb-prod-form-cancel-btn" type="button">Cancelar</button>
         </div>
       </div>
     `;
 
-    const cardView = row.querySelector('.mb-prod-card-view');
-    const formView = row.querySelector('.mb-prod-form-view');
-
-    // Remover definitivo (card ✕)
-    row.querySelector('.mb-prod-remove')
-       .addEventListener('click', () => {
-         this.#mediaP2P.cancelar(uid);
-         row.remove();
-       });
-
-    // Editar: abre form
-    row.querySelector('.mb-prod-card-edit-btn')
-       .addEventListener('click', () => {
-         cardView.hidden = true;
-         formView.hidden = false;
-       });
-
-    // Cancelar edição: volta ao card
+    // Cancelar cadastro/edição: fecha o formulário temporário.
     row.querySelector('.mb-prod-form-cancel-btn')
        .addEventListener('click', () => {
          this.#mediaP2P.cancelar(uid);
-         cardView.hidden = false;
-         formView.hidden = true;
+         row.remove();
        });
 
     row.querySelector(`#${uid}`)
@@ -1874,35 +1834,6 @@ class MinhaBarbeariaPage {
 
       if (data?.id) row.dataset.produtoId = data.id;
 
-      // Atualiza card-view com os novos dados e volta para ele
-      const nomeInput  = row.querySelector('.mb-cfg-prod-nome');
-      const precoInput = row.querySelector('.mb-cfg-prod-preco');
-      const cardNome   = row.querySelector('.mb-prod-card-nome');
-      const cardMeta   = row.querySelector('.mb-prod-card-meta');
-      const cardImg    = row.querySelector('.mb-prod-card-img');
-      const cardView   = row.querySelector('.mb-prod-card-view');
-      const formView   = row.querySelector('.mb-prod-form-view');
-
-      if (cardNome) cardNome.textContent = nome;
-      if (cardMeta) {
-        const preco = parseFloat(precoInput?.value || '0');
-        const dur   = row.dataset.duracao ? parseInt(row.dataset.duracao, 10) : 30;
-        const pFmt  = preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        cardMeta.textContent = [pFmt, dur ? `${dur} min` : ''].filter(Boolean).join(' · ');
-      }
-      if (cardImg && row.dataset.imagePath) {
-        cardImg.src = row.dataset.imagePath;
-      }
-      if (cardView && formView) {
-        // Garante que o botão cancelar exista para próximas edições
-        const cancelBtn = row.querySelector('.mb-prod-form-cancel-btn');
-        if (cancelBtn) cancelBtn.hidden = false;
-        cardView.hidden = false;
-        formView.hidden = true;
-      }
-
-      NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
-
       // Sincroniza drawer "ver itens"
       const produtoSalvo = {
         id:         data?.id ?? row.dataset.produtoId,
@@ -1916,6 +1847,9 @@ class MinhaBarbeariaPage {
         if (old) old.remove();
         this.#adicionarItemNaView(produtoSalvo);
       }
+
+      row.remove();
+      NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
 
       // Atualiza cache de serviços para aparecer na modal das cadeiras
       if (this.#barbershopId) {
@@ -1949,22 +1883,10 @@ class MinhaBarbeariaPage {
       <span class="mb-item-view-preco">${precoFmt}</span>
       <div class="mb-item-view-acoes">
         <button class="mb-item-trash-btn" type="button" aria-label="Excluir item">🗑️</button>
-        <div class="mb-item-confirm" hidden>
-          <span class="mb-item-confirm-txt">Apagar este item?</span>
-          <button class="mb-item-confirm-sim" type="button">Sim</button>
-          <button class="mb-item-confirm-nao" type="button">Não</button>
-        </div>
       </div>
     `;
 
-    const confirmDiv = item.querySelector('.mb-item-confirm');
-    item.querySelector('.mb-item-trash-btn').addEventListener('click', () => {
-      confirmDiv.hidden = false;
-    });
-    item.querySelector('.mb-item-confirm-nao').addEventListener('click', () => {
-      confirmDiv.hidden = true;
-    });
-    item.querySelector('.mb-item-confirm-sim').addEventListener('click', async () => {
+    item.querySelector('.mb-item-trash-btn').addEventListener('click', async () => {
       await this.#removerItemCompleto(produto.id, item);
     });
 
@@ -1972,8 +1894,8 @@ class MinhaBarbeariaPage {
   }
 
   async #removerItemCompleto(produtoId, itemEl) {
-    const simBtn = itemEl?.querySelector('.mb-item-confirm-sim');
-    if (simBtn) simBtn.disabled = true;
+    const trashBtn = itemEl?.querySelector('.mb-item-trash-btn');
+    if (trashBtn) trashBtn.disabled = true;
 
     try {
       const { error } = await SupabaseService.services()
@@ -1992,7 +1914,7 @@ class MinhaBarbeariaPage {
     } catch (err) {
       LoggerService.error('[MinhaBarbeariaPage] removerItemCompleto:', err);
       NotificationService?.mostrarToast('Erro', 'Não foi possível remover o item.', 'sistema');
-      if (simBtn) simBtn.disabled = false;
+      if (trashBtn) trashBtn.disabled = false;
     }
   }
 
