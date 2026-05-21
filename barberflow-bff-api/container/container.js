@@ -277,6 +277,67 @@ function buildContainer() {
   });
   container.register({ channelRouter: asValue(channelRouter) });
 
+  // ── Geo bounded context ───────────────────────────────────────
+  const { HaversineStrategy }          = require('../infrastructure/geo/HaversineStrategy');
+  const { VincentyStrategy }           = require('../infrastructure/geo/VincentyStrategy');
+  const { PostGISGeoRepository }       = require('../infrastructure/geo/PostGISGeoRepository');
+  const { RedisGeoCache }              = require('../infrastructure/geo/RedisGeoCache');
+  const { NominatimGeocoderAdapter }   = require('../infrastructure/geo/NominatimGeocoderAdapter');
+  const { GeocodingCacheDecorator }    = require('../infrastructure/geo/GeocodingCacheDecorator');
+  const { DistanceCalculator }         = require('../domain/geo/services/DistanceCalculator');
+  const { UpdateUserLocationUseCase }  = require('../application/geo/UpdateUserLocationUseCase');
+  const { GetNearbyPlacesUseCase }     = require('../application/geo/GetNearbyPlacesUseCase');
+  const { ReverseGeocodeUseCase }      = require('../application/geo/ReverseGeocodeUseCase');
+  const { GeoRateLimiter }             = require('../middlewares/geoRateLimit');
+
+  const haversineStrategy = new HaversineStrategy();
+  const vincentyStrategy  = new VincentyStrategy();
+  const distanceCalculator = new DistanceCalculator({ strategy: haversineStrategy });
+
+  const supabaseForGeo = getSupabaseClient();
+  const postGISGeoRepository = new PostGISGeoRepository({ supabase: supabaseForGeo });
+
+  let geoRepository = postGISGeoRepository;
+  let reverseGeocoder;
+
+  const nominatimGeocoder = new NominatimGeocoderAdapter();
+
+  if (redisClient) {
+    const redisGeoCache = new RedisGeoCache({ repository: postGISGeoRepository, redis: redisClient });
+    geoRepository = redisGeoCache;
+    container.register({ redisGeoCache: asValue(redisGeoCache) });
+
+    const geocodingCacheDecorator = new GeocodingCacheDecorator({ geocoder: nominatimGeocoder, redis: redisClient });
+    reverseGeocoder = geocodingCacheDecorator;
+    container.register({ geocodingCacheDecorator: asValue(geocodingCacheDecorator) });
+  } else {
+    reverseGeocoder = nominatimGeocoder;
+  }
+
+  const geoRateLimiter = new GeoRateLimiter(redisClient ?? null);
+
+  const updateUserLocationUseCase = new UpdateUserLocationUseCase({
+    geoRepository,
+    geoCache: geoRepository,
+    eventBus: publisher,
+  });
+  const getNearbyPlacesUseCase  = new GetNearbyPlacesUseCase({ geoRepository });
+  const reverseGeocodeUseCase   = new ReverseGeocodeUseCase({ reverseGeocoder });
+
+  container.register({
+    haversineStrategy:           asValue(haversineStrategy),
+    vincentyStrategy:            asValue(vincentyStrategy),
+    distanceCalculator:          asValue(distanceCalculator),
+    postGISGeoRepository:        asValue(postGISGeoRepository),
+    geoRepository:               asValue(geoRepository),
+    nominatimGeocoder:           asValue(nominatimGeocoder),
+    reverseGeocoder:             asValue(reverseGeocoder),
+    geoRateLimiter:              asValue(geoRateLimiter),
+    updateUserLocationUseCase:   asValue(updateUserLocationUseCase),
+    getNearbyPlacesUseCase:      asValue(getNearbyPlacesUseCase),
+    reverseGeocodeUseCase:       asValue(reverseGeocodeUseCase),
+  });
+
   return container;
 }
 
