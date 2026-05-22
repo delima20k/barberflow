@@ -456,6 +456,205 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   LOJA MARKER — componente HTML/CSS puro (substitui mapa-shop-pin.webp)
+   A imagem de capa fica exatamente dentro de .loja-marker__frame com
+   object-fit: cover, respeitando a moldura dourada.
+═══════════════════════════════════════════════════════════ */
+.loja-marker {
+  position: relative;
+  width: 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(15, 17, 21, .3));
+  animation: mapa-shop-marker-enter .22s ease-out both;
+  transition: transform .18s ease, filter .18s ease;
+  pointer-events: auto;
+}
+
+.loja-marker:hover {
+  transform: translateY(-2px) scale(1.04);
+  filter: drop-shadow(0 12px 20px rgba(15, 17, 21, .36));
+}
+
+.loja-marker:active { transform: scale(.96); }
+
+.loja-marker__store-name {
+  padding: 5px 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .75);
+  border: 2px solid #ffbf00;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 12px rgba(255, 191, 0, .35);
+  pointer-events: none;
+  align-self: center;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  z-index: 4;
+}
+
+.loja-marker__building {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px 8px 2px 2px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px rgba(255, 191, 0, .3), 0 4px 12px rgba(0, 0, 0, .4);
+  flex-shrink: 0;
+}
+
+.loja-marker__roof {
+  width: 100%;
+  height: 18px;
+  background: linear-gradient(180deg, #1a1520 0%, #0f1115 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid #ffbf00;
+  flex-shrink: 0;
+}
+
+.loja-marker__roof-sign {
+  font-size: .45rem;
+  font-weight: 800;
+  color: #ffbf00;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.loja-marker__facade {
+  width: 100%;
+  background: linear-gradient(180deg, #1e1a28 0%, #16121e 100%);
+  padding: 7px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Moldura dourada: a imagem de capa fica exatamente dentro deste frame */
+.loja-marker__frame {
+  position: relative;
+  width: 58px;
+  height: 33px;
+  border: 2px solid #ffbf00;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(255, 191, 0, .45), inset 0 0 5px rgba(0, 0, 0, .4);
+}
+
+.loja-marker__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.loja-marker__initials {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0f1115 0%, #30343b 100%);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.loja-marker__base {
+  width: 100%;
+  height: 10px;
+  background: linear-gradient(180deg, #0a0a10 0%, #050507 100%);
+  border-top: 1px solid rgba(255, 191, 0, .15);
+  flex-shrink: 0;
+}
+
+.loja-marker__status {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: .46rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.loja-marker__status--aberta  { color: #f2b705; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.loja-marker__status--fechado { color: #c81e1e; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+
+.mapa-container--tocando .loja-marker__status { opacity: 1; }
+
+.loja-marker__pin {
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-right: 2px solid rgba(15, 17, 21, .82);
+  border-bottom: 2px solid rgba(15, 17, 21, .82);
+  background: #0f1115;
+  transform: rotate(45deg);
+  border-radius: 0 0 4px 0;
+  flex-shrink: 0;
+}
+
+.loja-marker__label {
+  width: 112px;
+  min-height: 24px;
+  margin-top: 3px;
+  padding: 2px 6px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: #0f1115;
+  text-align: center;
+  line-height: 1.05;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, .9), 0 0 6px rgba(255, 255, 255, .6);
+}
+
+.loja-marker__name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .62rem;
+  font-weight: 800;
+}
+
+.loja-marker__number {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .56rem;
+  font-weight: 700;
+  color: #6b4a32;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+}
+
 /* Tooltip and popup premium light */
 .mapa-tooltip-nome.leaflet-tooltip {
   background: rgba(255, 255, 255, .95) !important;

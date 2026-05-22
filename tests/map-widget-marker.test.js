@@ -11,20 +11,21 @@ test('MapWidget usa marcador visual de barbearia com imagem do salao', () => {
   const js = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
 
-  assert.match(js, /mapa-shop-marker/);
-  assert.match(js, /mapa-shop-marker__bg/);
-  assert.match(js, /mapa-shop-pin\.webp/);
-  assert.match(js, /mapa-shop-marker__img/);
+  // MapWidget delega HTML do marcador ao LojaMarker
+  assert.match(js, /LojaMarker\.html/);
+  assert.match(js, /LojaMarker\.ICON_SIZE/);
+  assert.match(js, /LojaMarker\.ICON_ANCHOR/);
   assert.match(js, /logo_path/);
   assert.match(js, /recarregarBarbearias/);
   assert.match(js, /BarbeariaApiClient\.getTodas/);
   assert.doesNotMatch(js, /ApiService\.from\('barbershops'\)/);
-  assert.doesNotMatch(js, /mapa-shop-marker__roof/);
+  assert.doesNotMatch(js, /mapa-shop-pin\.webp/);
 
+  // CSS mantém classes legadas + novas loja-marker__*
   assert.match(css, /\.mapa-shop-marker\b/);
-  assert.match(css, /\.mapa-shop-marker__bg\b/);
   assert.match(css, /\.mapa-shop-marker__body\b/);
-  assert.match(css, /\.mapa-shop-marker__img\b/);
+  assert.match(css, /\.loja-marker__frame\b/);
+  assert.match(css, /\.loja-marker__building\b/);
   assert.doesNotMatch(css, /\.mapa-shop-marker__roof\b/);
 });
 
@@ -36,9 +37,7 @@ test('MapWidget exibe icone de loja com nome e numero do endereco no marcador', 
   assert.match(js, /numeroEnderecoSeguro/);
   assert.match(js, /#textoCurto/);
   assert.match(js, /nomeCurtoSeguro/);
-  assert.match(js, /mapa-shop-marker__bg/);
-  assert.match(js, /mapa-shop-marker__label/);
-  assert.match(js, /mapa-shop-marker__number/);
+  assert.match(js, /LojaMarker\.html/);
   assert.doesNotMatch(js, /mapa-shop-marker__addr/);
   assert.doesNotMatch(js, /mapa-shop-marker__roof/);
 
@@ -76,14 +75,15 @@ test('MapWidget exibe label de nome premium da barbearia acima do marcador no ma
   const js  = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
 
-  // JS: elemento de nome renderizado acima do marcador
-  assert.match(js, /mapa-shop-marker__store-name/);
+  // MapWidget delega ao LojaMarker que gera o store-name
+  assert.match(js, /LojaMarker\.html/);
   // JS: usa cover_path como imagem principal, com fallback para logo_path
   assert.match(js, /cover_path/);
   assert.match(js, /logo_path/);
 
-  // CSS: regra premium para o label de nome
+  // CSS: regras premium de nome presentes (legado mapa-shop + novo loja-marker)
   assert.match(css, /\.mapa-shop-marker__store-name\b/);
+  assert.match(css, /\.loja-marker__store-name\b/);
   assert.match(css, /backdrop-filter/);
   assert.match(css, /#ffbf00/);
   assert.match(css, /rgba\(0,\s*0,\s*0/);

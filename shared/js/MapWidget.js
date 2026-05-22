@@ -353,41 +353,21 @@ class MapWidget {
           : `${b.distance_km.toFixed(1)} km`
         : null;
 
-      // Icone: casinha da barbearia + imagem do salao.
+      // Icone: componente LojaMarker HTML/CSS puro (sem dependência de webp).
       const avatarSeguro = avatarUrl ? MapWidget.#escapeHtml(avatarUrl) : null;
-      const imgTag = avatarUrl
-        ? `<img src="${avatarSeguro}"
-                class="mapa-shop-marker__img"
-                alt="${iniciais}"
-                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        : '';
-      const initialsStyle = avatarUrl ? 'display:none' : 'display:flex';
-
-      const statusClass = b.is_open === true ? 'aberta' : (b.is_open === false ? 'fechado' : '');
-      const statusTexto = b.is_open === true ? 'Aberta' : (b.is_open === false ? 'Fechado' : '');
-      const statusHtml  = statusClass
-        ? `<span class="mapa-shop-marker__status mapa-shop-marker__status--${statusClass}">${statusTexto}</span>`
-        : '';
 
       const icon = L.divIcon({
         className:   '',
-        html: `<div class="mapa-shop-marker">
-                 <div class="mapa-shop-marker__store-name">${nomeCurtoSeguro}</div>
-                 <div class="mapa-shop-marker__body">
-                   <img src="/shared/img/mapa-shop-pin.webp" class="mapa-shop-marker__bg" alt="" aria-hidden="true">
-                   ${imgTag}
-                   <span class="mapa-shop-marker__initials" style="${initialsStyle}">${iniciais}</span>
-                   ${statusHtml}
-                 </div>
-                 <div class="mapa-shop-marker__pin"></div>
-                 <div class="mapa-shop-marker__label">
-                   <span class="mapa-shop-marker__name">${nomeCurtoSeguro}</span>
-                   ${numeroEnderecoSeguro ? `<span class="mapa-shop-marker__number">N&ordm; ${numeroEnderecoSeguro}</span>` : ''}
-                 </div>
-               </div>`,
-        iconSize:    [116, 175],
-        iconAnchor:  [58, 140],
-        popupAnchor: [0, -142],
+        html:        LojaMarker.html({
+          nomeCurto:    nomeCurtoSeguro,
+          iniciais,
+          avatarUrl:    avatarSeguro,
+          nomeEndereco: numeroEnderecoSeguro,
+          isOpen:       b.is_open ?? null,
+        }),
+        iconSize:    LojaMarker.ICON_SIZE,
+        iconAnchor:  LojaMarker.ICON_ANCHOR,
+        popupAnchor: LojaMarker.POPUP_ANCHOR,
       });
 
       // ── Popup rico: avatar grande + info ──
