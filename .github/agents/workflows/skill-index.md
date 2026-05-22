@@ -62,3 +62,9 @@ Quando uma nova boa prática for criada:
 
 > **REGRA FINAL:** Sempre perguntar — *"Existe uma forma mais barata, mais inteligente, mais segura e mais escalável de fazer isso?"*
 > Se existir: **FAZER MELHOR.**
+
+## Atualizacao DELIMA - Notificacoes Canonicas
+
+| Tipo de tarefa | Arquivos a ler |
+|---|---|
+| Notificacoes canonicas BFF / canais / provider push / digest | `skill-03-backend.md` (Notificacoes canonicas na BFF), `skill-04-seguranca.md`, `skill-05-banco.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md`, `barberflow-bff-api/docs/realtime.md` |

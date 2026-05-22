@@ -118,6 +118,25 @@ class PushService {
     return { ...outcome, destinatarios: userId ? 1 : 0 };
   }
 
+  async enviarParaUsuario({ userId, title, body, data = {}, priority = 'default' }) {
+    const subs = await this.#listarSubscriptions([userId], null);
+    if (!subs.length) return { enviados: 0, invalidas: 0, destinatarios: userId ? 1 : 0 };
+    const payload = JSON.stringify({
+      title,
+      body,
+      icon: '/shared/img/icon-192.png',
+      badge: '/shared/img/badge-72.png',
+      tag: data.tag ?? `notification-${data.notificationId ?? userId}`,
+      requireInteraction: priority === 'high',
+      data: {
+        ...data,
+        pushType: data.pushType ?? 'notification',
+      },
+    });
+    const outcome = await this.#enviarPayload(subs, payload);
+    return { ...outcome, destinatarios: userId ? 1 : 0 };
+  }
+
   async #listarSubscriptions(userIds, appId) {
     const ids = [...new Set((userIds ?? []).filter(Boolean))];
     if (!ids.length) return [];

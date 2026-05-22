@@ -106,3 +106,13 @@ Para cada nova rota ou ajuste na BFF:
 **Proibições:**
 - ❌ NÃO implementar várias rotas juntas
 - ❌ NÃO alterar frontend antes da BFF estar validada e testada
+
+## 7. NOTIFICACOES CANONICAS NA BFF
+
+- Notificacoes de produto devem passar por um servico unico atras da BFF, nunca por regras espalhadas no frontend.
+- Modelar canais como adapters de `DeliveryChannel` (`push`, `email`, `in_app`, `sms`) para trocar provider sem alterar regra de negocio.
+- Push provider deve ficar atras de porta/adapters (FCM/APNs/Web Push/Sandbox), com invalidacao de endpoint em bounce permanente.
+- Roteamento de canal deve considerar preferencias por categoria/canal, presenca, prioridade, quiet hours e digest.
+- Dedupe obrigatorio por `(user_id, template_id, dedupe_key)` com janela configuravel antes de enfileirar.
+- Entrega deve ir por filas dedicadas `notifications.high` e `notifications.default`, com tracking de delivery/open/click como eventos de dominio.
+- Templates devem ter i18n e renderer centralizado; controllers nao renderizam texto nem escolhem canal.

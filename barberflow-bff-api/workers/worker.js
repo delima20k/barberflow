@@ -104,6 +104,16 @@ const { RealtimeMetrics }             = require('../infrastructure/realtime/Real
 const { PublishToChannelUseCase }     = require('../application/realtime/PublishToChannelUseCase');
 const { PresenceLink }                = require('../application/chat/PresenceLink');
 const { MessageDispatcher }           = require('../application/chat/MessageDispatcher');
+const { NotificationService }         = require('../application/notifications/NotificationService');
+const { NotificationRouter }          = require('../application/notifications/NotificationRouter');
+const { TemplateRenderer }            = require('../application/notifications/TemplateRenderer');
+const { DigestAggregationStrategy }   = require('../application/notifications/strategies/DigestAggregationStrategy');
+const { PushChannel }                 = require('../application/notifications/channels/PushChannel');
+const { EmailChannel }                = require('../application/notifications/channels/EmailChannel');
+const { InAppChannel }                = require('../application/notifications/channels/InAppChannel');
+const { SmsChannel }                  = require('../application/notifications/channels/SmsChannel');
+const { WebPushProviderAdapter }      = require('../infrastructure/notifications/WebPushProviderAdapter');
+const { SupabaseNotificationRepository } = require('../infrastructure/notifications/SupabaseNotificationRepository');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
 const mediaStorage = new SupabaseMediaStorageGateway({ db: supabase });
@@ -122,8 +132,10 @@ const imageProcessor = new MediaPipelineProcessor({
 });
 const feedRepository      = new SupabaseFeedRepository(supabase);
 const chatRepository      = new SupabaseChatRepository(supabase);
+const notificationRepository = new SupabaseNotificationRepository({ supabase });
 const feedCache           = new FeedCache({ cache: new RedisCache({ redisClient: redisConnection }) });
 const analyticsRepository = { track: async () => {} };    // TODO: implementar
+const noopProvider = { send: async () => ({ ok: true }) };
 
 // HttpClient simples para webhooks
 const https = require('node:https');
@@ -157,10 +169,32 @@ const chatDispatcher = new MessageDispatcher({
   pushGateway: new ChatPushGateway({ pushService }),
   blockPolicy: chatBlockPolicy,
 });
+const notificationPresence = new PresenceService();
+const notificationService = new NotificationService({
+  notificationRepository,
+  queueService,
+  router: new NotificationRouter({
+    presenceLink: {
+      isOnline: userId => notificationPresence.isPresent(`notificacoes.${userId}`, userId),
+    },
+    digestStrategy: new DigestAggregationStrategy({ threshold: Number(process.env.NOTIFICATION_DIGEST_THRESHOLD ?? 3) }),
+  }),
+  templateRenderer: new TemplateRenderer(),
+  dedupeWindowSeconds: Number(process.env.NOTIFICATION_DEDUPE_WINDOW_SECONDS ?? 900),
+});
+const notificationChannels = {
+  push: new PushChannel({
+    pushProvider: new WebPushProviderAdapter({ pushService }),
+    notificationRepository,
+  }),
+  in_app: new InAppChannel({ notificationRepository }),
+  email: new EmailChannel({ emailProvider: noopProvider }),
+  sms: new SmsChannel({ smsProvider: noopProvider }),
+};
 
 registry
   .register(new MediaProcessingHandler({ imageProcessor, mediaRepository }))
-  .register(new NotificationHandler({ pushService }))
+  .register(new NotificationHandler({ pushService, notificationService, channelMap: notificationChannels }))
   .register(new ChatDeliveryHandler({ chatRepository, messageDispatcher: chatDispatcher }))
   .register(new FeedGenerationHandler({ feedRepository, cacheService: feedCache }))
   .register(new WebhookHandler({ httpClient }))

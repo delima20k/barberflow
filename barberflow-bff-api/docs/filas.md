@@ -276,3 +276,14 @@ node --test tests/unit/domain/Job.test.js \
              tests/unit/application/handlers/MediaProcessingHandler.test.js \
              tests/integration/queue.integration.test.js
 ```
+
+## 11. Notificacoes canonicas
+
+O contexto de notificacoes usa filas dedicadas:
+
+| Handler | Fila | JobType | RetryPolicy |
+|---|---|---|---|
+| `NotificationHandler` | `bf:queue:notifications.high` | `send_notification` | `criticalPolicy()` |
+| `NotificationHandler` | `bf:queue:notifications.default` | `send_notification` | `criticalPolicy()` |
+
+`bf:queue:notifications.default` tambem preserva compatibilidade com o alias legado `QUEUES.NOTIFICATIONS` e com fallback de chat. O payload novo usa `{ notificationId, channels }`; o payload antigo de `push-barbeiro` continua aceito para nao quebrar clientes existentes.
