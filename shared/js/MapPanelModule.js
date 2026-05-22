@@ -167,10 +167,12 @@ class MapBorderFrame {
 
   show() {
     this._frame.style.display = 'block';
-    // Força reflow para a transição de height funcionar
-    void this._frame.offsetHeight;
-    this._frame.classList.add('mpf-visivel');
-    this._frame.removeAttribute('aria-hidden');
+    // rAF duplo: permite ao browser processar display:block antes de ativar a
+    // transição CSS, sem forçar reflow síncrono (substitui void offsetHeight).
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      this._frame.classList.add('mpf-visivel');
+      this._frame.removeAttribute('aria-hidden');
+    }));
   }
 
   hide() {

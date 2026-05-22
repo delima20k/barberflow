@@ -385,9 +385,9 @@ class MapWidget {
                    ${numeroEnderecoSeguro ? `<span class="mapa-shop-marker__number">N&ordm; ${numeroEnderecoSeguro}</span>` : ''}
                  </div>
                </div>`,
-        iconSize:    [116, 158],
-        iconAnchor:  [58, 128],
-        popupAnchor: [0, -130],
+        iconSize:    [116, 175],
+        iconAnchor:  [58, 140],
+        popupAnchor: [0, -142],
       });
 
       // ── Popup rico: avatar grande + info ──
