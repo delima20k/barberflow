@@ -82,6 +82,9 @@ const { SupabaseMediaRepository }     = require('../infrastructure/media/Supabas
 const { SupabaseMediaStorageGateway } = require('../infrastructure/media/SupabaseMediaStorageGateway');
 const { NoopVirusScanner }            = require('../infrastructure/media/NoopVirusScanner');
 const { NoopVideoTranscoder }         = require('../infrastructure/media/NoopVideoTranscoder');
+const { SupabaseFeedRepository }      = require('../infrastructure/feed/SupabaseFeedRepository');
+const { FeedCache }                   = require('../infrastructure/feed/FeedCache');
+const { RedisCache }                  = require('../infrastructure/cache/RedisCache');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
 const mediaStorage = new SupabaseMediaStorageGateway({ db: supabase });
@@ -98,7 +101,8 @@ const imageProcessor = new MediaPipelineProcessor({
   storage: mediaStorage,
   mediaRepository,
 });
-const feedRepository      = { generate: async () => {} }; // TODO: implementar
+const feedRepository      = new SupabaseFeedRepository(supabase);
+const feedCache           = new FeedCache({ cache: new RedisCache({ redisClient: redisConnection }) });
 const analyticsRepository = { track: async () => {} };    // TODO: implementar
 
 // HttpClient simples para webhooks
@@ -125,7 +129,7 @@ const registry = new WorkerRegistry({ connection: redisConnection, concurrency: 
 registry
   .register(new MediaProcessingHandler({ imageProcessor, mediaRepository }))
   .register(new NotificationHandler({ pushService }))
-  .register(new FeedGenerationHandler({ feedRepository, cacheService: { delByPrefix: async () => {} } }))
+  .register(new FeedGenerationHandler({ feedRepository, cacheService: feedCache }))
   .register(new WebhookHandler({ httpClient }))
   .register(new AnalyticsHandler({ analyticsRepository }));
 

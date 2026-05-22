@@ -432,6 +432,30 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `TranscodeStep` | [barberflow-bff-api/application/media/steps/TranscodeStep.js](barberflow-bff-api/application/media/steps/TranscodeStep.js) | application | Preserva original versionado e delega variantes de video. |
 | `VirusScanStep` | [barberflow-bff-api/application/media/steps/VirusScanStep.js](barberflow-bff-api/application/media/steps/VirusScanStep.js) | application | Bloqueia objetos infectados antes dos demais steps. |
 
+### Feed Bounded Context BFF
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `ChronologicalStrategy` | [barberflow-bff-api/domain/feed/ranking/ChronologicalStrategy.js](barberflow-bff-api/domain/feed/ranking/ChronologicalStrategy.js) | domain | Ranking cronologico com desempate estavel por id. |
+| `ChangeFeedRelationshipUseCase` | [barberflow-bff-api/application/feed/ChangeFeedRelationshipUseCase.js](barberflow-bff-api/application/feed/ChangeFeedRelationshipUseCase.js) | application | Persiste block/unfollow e publica eventos de invalidacao do feed. |
+| `EngagementScoreStrategy` | [barberflow-bff-api/domain/feed/ranking/EngagementScoreStrategy.js](barberflow-bff-api/domain/feed/ranking/EngagementScoreStrategy.js) | domain | Ranking por score leve de curtidas e views. |
+| `FeedAssembler` | [barberflow-bff-api/application/feed/FeedAssembler.js](barberflow-bff-api/application/feed/FeedAssembler.js) | application | Aplica filtros, dedupe, ranking, throttle e injecoes de timeline. |
+| `FeedCache` | [barberflow-bff-api/infrastructure/feed/FeedCache.js](barberflow-bff-api/infrastructure/feed/FeedCache.js) | infra | Cache Redis/memoria da timeline com chave por usuario e cursor. |
+| `FeedCacheInvalidationSubscriber` | [barberflow-bff-api/infrastructure/feed/FeedCacheInvalidationSubscriber.js](barberflow-bff-api/infrastructure/feed/FeedCacheInvalidationSubscriber.js) | infra | Observa NewPost, Block e Unfollow para invalidar cache do feed. |
+| `FeedCacheProvider` | [barberflow-bff-api/infrastructure/feed/FeedCacheProvider.js](barberflow-bff-api/infrastructure/feed/FeedCacheProvider.js) | infra | Factory do cache de feed conforme driver Redis configurado. |
+| `FeedController` | [barberflow-bff-api/controllers/FeedController.js](barberflow-bff-api/controllers/FeedController.js) | interfaces | Fronteira HTTP do feed canonico e da publicacao de item. |
+| `FeedFanoutPolicy` | [barberflow-bff-api/config/feed.js](barberflow-bff-api/config/feed.js) | application | Limites configuraveis de fanout, rate limit e throttle viral. |
+| `FeedItem` | [barberflow-bff-api/domain/feed/entities/FeedItem.js](barberflow-bff-api/domain/feed/entities/FeedItem.js) | domain | Entidade leve do feed referenciando a fonte do conteudo. |
+| `FeedQuery` | [barberflow-bff-api/domain/feed/value-objects/FeedQuery.js](barberflow-bff-api/domain/feed/value-objects/FeedQuery.js) | domain | Query e cursor estavel da timeline. |
+| `FeedRelationshipChanged` | [barberflow-bff-api/domain/feed/events/FeedRelationshipChanged.js](barberflow-bff-api/domain/feed/events/FeedRelationshipChanged.js) | domain | Evento Block/Unfollow para invalidacao de cache por usuario. |
+| `FeedRepository` | [barberflow-bff-api/domain/feed/ports/FeedRepository.js](barberflow-bff-api/domain/feed/ports/FeedRepository.js) | domain | Port do repository de feed com pagina por cursor e fanout. |
+| `GetFeedUseCase` | [barberflow-bff-api/application/feed/GetFeedUseCase.js](barberflow-bff-api/application/feed/GetFeedUseCase.js) | application | Orquestra cache, repository, filtros e assembler na leitura. |
+| `NewPost` | [barberflow-bff-api/domain/feed/events/NewPost.js](barberflow-bff-api/domain/feed/events/NewPost.js) | domain | Evento de nova publicacao para invalidar timeline. |
+| `PersonalizedStrategy` | [barberflow-bff-api/domain/feed/ranking/PersonalizedStrategy.js](barberflow-bff-api/domain/feed/ranking/PersonalizedStrategy.js) | domain | Ranking que soma afinidade ao engajamento. |
+| `PublishFeedItemUseCase` | [barberflow-bff-api/application/feed/PublishFeedItemUseCase.js](barberflow-bff-api/application/feed/PublishFeedItemUseCase.js) | application | Publica item, aplica anti-spam e agenda fanout em outbox. |
+| `RankingStrategy` | [barberflow-bff-api/domain/feed/ranking/RankingStrategy.js](barberflow-bff-api/domain/feed/ranking/RankingStrategy.js) | domain | Contrato base das estrategias de ranking. |
+| `SupabaseFeedRepository` | [barberflow-bff-api/infrastructure/feed/SupabaseFeedRepository.js](barberflow-bff-api/infrastructure/feed/SupabaseFeedRepository.js) | infra | Adapter Supabase para feed items, filtros, RPC de cursor e inbox. |
+
 ### Realtime (WebSocket / Redis Pub-Sub)
 
 | Classe | Arquivo | Camada | Descrição |

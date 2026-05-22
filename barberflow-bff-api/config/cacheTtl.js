@@ -30,6 +30,9 @@ const CACHE_TTL = Object.freeze({
   // Catálogo de serviços — atualiza raramente
   SERVICOS_LIST:            600,   // 10 min
 
+  // Feed invalida por NewPost, Block e Unfollow; TTL curto limita stale em falha de evento.
+  FEED_TIMELINE:             45,
+
   // ── Idempotência ────────────────────────────────────────────────
   // 24 h — janela de retry HTTP convencional
   IDEMPOTENCY:            86_400,

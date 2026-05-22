@@ -112,3 +112,11 @@ Ver análise completa em `docs/cache.md`.
 - [ ] Listeners removidos ao destruir componentes
 - [ ] Eventos de alta frequência com debounce/throttle
 - [ ] Assets comprimidos e com lazy loading
+
+## 6. FEED ESCALAVEL NA BFF
+
+- Feed pesado deve ficar atras da BFF e usar cursor estavel `(created_at, id)`, nunca `OFFSET`.
+- Escolher fanout hibrido quando houver autores heavy: autores comuns materializam inbox em fila; heavy publishers entram por pull na leitura.
+- Cache da timeline deve ser por usuario em Redis, com TTL curto e invalidacao por eventos `NewPost`, `Block` e `Unfollow`.
+- Anti-spam do feed deve combinar dedupe de conteudo, rate limit de posts e throttle de autor viral no assembler.
+- Ranking, filtros e injecao de patrocinados/sugestoes ficam em classes/ports desacoplados para evoluir personalizacao sem refazer repository e cursor.
