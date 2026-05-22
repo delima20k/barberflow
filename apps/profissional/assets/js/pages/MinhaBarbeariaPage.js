@@ -51,6 +51,7 @@ class MinhaBarbeariaPage {
   #pushPendente         = [];
   #pushModalAtiva       = new Set();
   #pushProcessados      = new Set();
+  #agendaSection         = null;   // Shim de secao sem responsabilidade ativa no god-file atual
   #refs                 = {};
 
   constructor() {}
@@ -66,6 +67,7 @@ class MinhaBarbeariaPage {
 
     this.#cacheRefs();
     this.#bindEventos();
+    this.#initAgendaSection();
 
     // Animação "dig" no sub-painel de GPS
     const digEl = document.getElementById('gps-dig');
@@ -285,6 +287,33 @@ class MinhaBarbeariaPage {
         txtDirAberto:  'Fechar',
       });
     }
+  }
+
+  #initAgendaSection() {
+    if (this.#agendaSection ||
+        typeof PageSection === 'undefined' ||
+        typeof SectionEventBus === 'undefined' ||
+        typeof SectionEventCatalog === 'undefined' ||
+        typeof AgendaSection === 'undefined' ||
+        typeof AgendaController === 'undefined' ||
+        typeof AgendaState === 'undefined' ||
+        typeof AgendaView === 'undefined') {
+      return;
+    }
+
+    const eventBus = new SectionEventBus({
+      catalog: SectionEventCatalog,
+      dev: typeof location !== 'undefined' && location.hostname === 'localhost',
+    });
+    const state = new AgendaState();
+    const view = new AgendaView(this.#telaEl);
+    const controller = new AgendaController({
+      state,
+      view,
+      readyEvent: SectionEventCatalog.AGENDA_READY,
+    });
+    this.#agendaSection = new AgendaSection(this.#telaEl, { eventBus, controller });
+    this.#agendaSection.init();
   }
 
   // ── Carregamento principal ───────────────────────────────────

@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260520d';
+const SW_PRO_VERSION = '20260522a';
 
 class SWProfissional {
 
@@ -38,6 +38,9 @@ class SWProfissional {
     '/shared/css/tokens.css',
     '/shared/css/components.css',
     '/shared/js/LoggerService.js',
+    '/events/catalog.js',
+    '/shared/js/SectionEventBus.js',
+    '/shared/js/PageSection.js',
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
     '/shared/js/NavigationViewService.js',
@@ -60,6 +63,10 @@ class SWProfissional {
     '/shared/js/BffApiService.js',
     '/shared/js/BffAuthClient.js',
     '/shared/js/BarbeariaApiClient.js',
+    '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js',
+    '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaView.js',
+    '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js',
+    '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js',
     '/manifest.json',
   ];
 

@@ -97,3 +97,9 @@ const App = new NomeApp();
 | **`DigText`** | Toda animação de texto |
 | **`BarberPole`** | Toda animação de barber pole: `new BarberPole(container)` |
 | **`MediaP2P`** | Toda operação de mídia P2P — ver `skill-06-p2p-mensagens.md` |
+## 8. SECTIONS EM GOD FILES DE PAGINA
+
+- Extrair god files de pagina por `PageSection`: `init`, `render`, `update`, `destroy`, `on` e `emit` formam o contrato base.
+- Cada Section concreta separa `Controller`, `State` e `View`; `Controller` recebe `State` e `View` por injecao e secoes nao acessam outras secoes diretamente.
+- Comunicacao entre Sections usa `SectionEventBus` com evento registrado em `/events/catalog.js`; validacao de catalogo fica ligada em desenvolvimento.
+- Toda Section e dona do cleanup de listeners, timers e observers que registrar. Teste de leak deve cobrir ciclos repetidos de `init`/`destroy`.

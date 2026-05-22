@@ -627,3 +627,14 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `SupabaseSchedulerRepository` | [barberflow-bff-api/infrastructure/scheduler/SupabaseSchedulerRepository.js](barberflow-bff-api/infrastructure/scheduler/SupabaseSchedulerRepository.js) | infra | Adapter Supabase para historico de execucoes e eventos do Scheduler. |
 | `TaskExecution` | [barberflow-bff-api/domain/scheduler/entities/TaskExecution.js](barberflow-bff-api/domain/scheduler/entities/TaskExecution.js) | domain | Entidade de historico de execucao com status, erro, tentativas e duracao. |
 | `TaskRegistry` | [barberflow-bff-api/application/scheduler/TaskRegistry.js](barberflow-bff-api/application/scheduler/TaskRegistry.js) | application | Registro explicito de tasks, evitando string magica espalhada. |
+## Page Sections
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `PageSection` | [shared/js/PageSection.js](shared/js/PageSection.js) | interfaces | Contrato base para extracao incremental de secoes de pagina: lifecycle, estado local controlado, EventBus injetado e limpeza de listeners, timers e observers. |
+| `SectionEventBus` | [shared/js/SectionEventBus.js](shared/js/SectionEventBus.js) | interfaces | Barramento injetavel entre secoes com subscribe/unsubscribe e validacao de eventos catalogados em desenvolvimento. |
+| `SectionEventCatalog` | [events/catalog.js](events/catalog.js) | interfaces | Catalogo central de nomes de eventos permitidos pelo `SectionEventBus`. |
+| `AgendaController` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js) | interfaces | Orquestra a prova de Section de Agenda da MinhaBarbearia por State/View injetados, sem chamar outras secoes diretamente. |
+| `AgendaSection` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js) | interfaces | Shim `PageSection` neutro de Agenda na MinhaBarbearia enquanto `AgendaPage` segue dona da agenda real. |
+| `AgendaState` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js) | interfaces | Estado local encapsulado da `AgendaSection`, com getters, setters e merge controlado. |
+| `AgendaView` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaView.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaView.js) | interfaces | View pura da `AgendaSection`; renderiza somente uma regiao DOM explicita quando ela existe. |

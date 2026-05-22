@@ -74,3 +74,9 @@ Quando uma nova boa prática for criada:
 | Tipo de tarefa | Arquivos a ler |
 |---|---|
 | Scheduler canonico BFF / cron / lock distribuido / tarefas recorrentes | `skill-03-backend.md` (Scheduler canonico na BFF), `skill-05-banco.md`, `skill-07-testes.md`, `skill-08-performance.md`, `barberflow-bff-api/docs/filas.md` |
+
+## Atualizacao DELIMA - Page Sections
+
+| Tipo de tarefa | Arquivos a ler |
+|---|---|
+| Extracao incremental de god file de pagina / PageSection / EventBus de secao | `skill-02-frontend.md` (Sections em god files de pagina), `skill-07-testes.md`, `skill-09-refatoracao.md` |
