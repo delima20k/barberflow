@@ -183,7 +183,7 @@ class NotificationService {
     if (!id.startsWith('local_')) {
       try {
         await SupabaseService.notifications()
-          .update({ is_read: true })
+          .update({ read_at: new Date().toISOString() })
           .eq('id', id);
       } catch (_) {}
     }
@@ -205,7 +205,7 @@ class NotificationService {
     if (ids.length > 0) {
       try {
         await SupabaseService.notifications()
-          .update({ is_read: true })
+          .update({ read_at: new Date().toISOString() })
           .in('id', ids);
       } catch (_) {}
     }

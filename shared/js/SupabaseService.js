@@ -516,9 +516,9 @@ class SupabaseService {
     }
     console.groupEnd();
 
-    // ── 4. INSERT na tabela notifications ─────────────────────
-    console.group('4. INSERT notifications');
-    const insertRes = await fetch(`${URL}/rest/v1/notifications`, {
+    // ── 4. RPC segura de notifications ────────────────────────
+    console.group('4. RPC create_notification');
+    const insertRes = await fetch(`${URL}/rest/v1/rpc/create_notification`, {
       method: 'POST',
       headers: {
         'apikey':        KEY,
@@ -527,18 +527,20 @@ class SupabaseService {
         'Prefer':        'return=representation',
       },
       body: JSON.stringify({
-        user_id: session.user.id,
-        type:    'sistema',
-        title:   'Diagnóstico BarberFlow',
-        body:    `Teste em ${new Date().toLocaleTimeString()}`,
-        is_read: false,
+        p_recipient_id: session.user.id,
+        p_type:         'sistema',
+        p_payload:      {
+          title: 'Diagnóstico BarberFlow',
+          body:  `Teste em ${new Date().toLocaleTimeString()}`,
+          data:  { source: 'supabase-diagnostics' },
+        },
       }),
     });
     const json = await insertRes.json().catch(() => null);
-    console.log('POST /notifications:', insertRes.status, insertRes.status === 201 ? '✅ SUCESSO' : '❌ FALHOU');
+    console.log('POST /rpc/create_notification:', insertRes.status, insertRes.ok ? '✅ SUCESSO' : '❌ FALHOU');
     console.log('Resposta:', json);
-    if (insertRes.status !== 201) {
-      console.error('Verifique RLS na tabela notifications — política "notifications_insert_service" deve ter with check (true).');
+    if (!insertRes.ok) {
+      console.error('Verifique a function create_notification e as policies RLS de notifications.');
     }
     console.groupEnd();
 

@@ -57,7 +57,7 @@ class ComunicacaoRepository extends BaseRepository {
 
     const { data, error } = await this.#supabase
       .from('notifications')
-      .update({ is_read: true })
+      .update({ read_at: new Date().toISOString() })
       .eq('id', notificationId)
       .eq('user_id', userId)
       .select()
