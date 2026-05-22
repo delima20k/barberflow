@@ -1,0 +1,11 @@
+{
+  "tool": "lighthouse",
+  "formFactor": "mobile",
+  "status": "not_run",
+  "createdAt": "2026-05-22T16:11:42.532Z",
+  "reason": "Lighthouse CLI nao esta instalado no projeto; `npx.cmd lighthouse --version` excedeu timeout mesmo com rede liberada. Nenhum numero sintetico foi inventado.",
+  "attemptedCommands": [
+    "npx.cmd lighthouse --version"
+  ],
+  "nextStep": "Instalar/permitir Lighthouse CLI ou rodar em CI com Chrome headless e salvar JSON nesta pasta."
+}
