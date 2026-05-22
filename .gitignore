@@ -60,6 +60,9 @@ test-results*.json
 test_run.log
 test_files.txt
 test_node_output.txt
+test_results*.txt
+**/test_results*.txt
+**/test_out*.txt
 
 # Arquivos acidentais na raiz — sem extensão, gerados por agentes ou IDE
 # (bumps de SW, tokens de debug, artefatos de sessão)
