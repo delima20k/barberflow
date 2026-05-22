@@ -8,7 +8,7 @@ const { fn, carregar } = require('./_helpers.js');
 
 const ROOT         = path.resolve(__dirname, '..');
 const SRC_MB_PAGE  = fs.readFileSync(
-  path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js'), 'utf8',
+  path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js'), 'utf8',
 );
 const SRC_COMPONENTS_CSS = fs.readFileSync(
   path.join(ROOT, 'shared/css/components.css'), 'utf8',
@@ -161,6 +161,7 @@ function criarPagina({ comTelaEl = true } = {}) {
     },
   });
 
+  carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
   carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');
 
   const page = new sandbox.MinhaBarbeariaPage();

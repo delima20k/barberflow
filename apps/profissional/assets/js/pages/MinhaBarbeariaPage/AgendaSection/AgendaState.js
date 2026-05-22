@@ -3,10 +3,12 @@
 class AgendaState {
   #phase;
   #message;
+  #lastSettingsChange;
 
-  constructor({ phase = 'idle', message = '' } = {}) {
+  constructor({ phase = 'idle', message = '', lastSettingsChange = null } = {}) {
     this.setPhase(phase);
     this.setMessage(message);
+    this.setLastSettingsChange(lastSettingsChange);
   }
 
   get phase() {
@@ -21,6 +23,7 @@ class AgendaState {
     return {
       phase: this.#phase,
       message: this.#message,
+      lastSettingsChange: this.#lastSettingsChange,
     };
   }
 
@@ -32,12 +35,19 @@ class AgendaState {
     this.#message = typeof message === 'string' ? message : '';
   }
 
+  setLastSettingsChange(value) {
+    this.#lastSettingsChange = typeof value === 'string' ? value : null;
+  }
+
   merge(partialState = {}) {
     if (Object.prototype.hasOwnProperty.call(partialState, 'phase')) {
       this.setPhase(partialState.phase);
     }
     if (Object.prototype.hasOwnProperty.call(partialState, 'message')) {
       this.setMessage(partialState.message);
+    }
+    if (Object.prototype.hasOwnProperty.call(partialState, 'lastSettingsChange')) {
+      this.setLastSettingsChange(partialState.lastSettingsChange);
     }
   }
 }

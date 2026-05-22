@@ -345,6 +345,7 @@ suite('MinhaBarbeariaPage — enfileira e navega quando #barbershopId é null', 
       console:       { error: fn(), warn: fn(), log: fn() },
     });
 
+    carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
     carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');
 
     const page = new sandbox.MinhaBarbeariaPage();

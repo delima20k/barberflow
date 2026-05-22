@@ -14,7 +14,7 @@ class AgendaSection extends PageSection {
   init() {
     if (this.initialized) return;
     super.init();
-    this.#controller.init({ emit: this.emit.bind(this) });
+    this.#controller.init({ emit: this.emit.bind(this), on: this.on.bind(this) });
   }
 
   render() {

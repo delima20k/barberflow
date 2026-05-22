@@ -4,6 +4,7 @@ class AgendaController {
   #state;
   #view;
   #emit = null;
+  #unsubscribeSettings = null;
   #readyEvent = null;
 
   constructor({ state, view, readyEvent = null } = {}) {
@@ -22,8 +23,14 @@ class AgendaController {
     return this.#state;
   }
 
-  init({ emit = null } = {}) {
+  init({ emit = null, on = null } = {}) {
     this.#emit = emit;
+    if (typeof on === 'function' && typeof SectionEventCatalog !== 'undefined') {
+      this.#unsubscribeSettings = on(
+        SectionEventCatalog.SETTINGS_CHANGED,
+        this.#onSettingsChanged.bind(this),
+      );
+    }
     this.#state.setPhase('ready');
     this.render();
     if (typeof this.#emit === 'function' && this.#readyEvent) {
@@ -41,8 +48,14 @@ class AgendaController {
   }
 
   destroy() {
+    this.#unsubscribeSettings?.();
+    this.#unsubscribeSettings = null;
     this.#emit = null;
     this.#state.setPhase('destroyed');
     this.#view.render(this.#state.snapshot);
+  }
+
+  #onSettingsChanged(payload = {}) {
+    this.update({ lastSettingsChange: payload.changedAt ?? null });
   }
 }

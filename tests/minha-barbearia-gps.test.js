@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '..');
 
 test('MinhaBarbeariaPage salva endereco/GPS pela camada de service', () => {
   const source = fs.readFileSync(
-    path.join(root, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js'),
+    path.join(root, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js'),
     'utf8'
   );
   const salvarGps = source.slice(
@@ -27,7 +27,7 @@ test('MinhaBarbeariaPage salva endereco/GPS pela camada de service', () => {
 
 test('MinhaBarbeariaPage reabre endereco salvo preservando numero e complemento', () => {
   const source = fs.readFileSync(
-    path.join(root, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js'),
+    path.join(root, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js'),
     'utf8'
   );
 

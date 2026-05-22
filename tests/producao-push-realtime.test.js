@@ -25,14 +25,14 @@ suite('Fluxo push cadeira de producao — app profissional', () => {
   });
 
   test('MinhaBarbeariaPage guarda push pendente ate barbearia carregar', () => {
-    const src = ler('apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');
+    const src = ler('apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
     assert.ok(src.includes('#pushPendente'), 'deve haver estado privado para push pendente');
     assert.ok(src.includes('#processarPushPendente'), 'deve processar push pendente apos carregar');
     assert.ok(src.includes('#registrarPushPendente'), 'deve registrar payload quando barbearia ainda nao carregou');
   });
 
   test('MinhaBarbeariaPage deduplica modal pelo par entradaId/pushType', () => {
-    const src = ler('apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');
+    const src = ler('apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
     assert.ok(src.includes('#pushModalAtiva'), 'deve rastrear modais push em andamento');
     assert.ok(src.includes('#pushProcessados'), 'deve rastrear pushes ja processados');
     assert.ok(src.includes('#chavePush'), 'deve gerar chave de dedupe por entrada/tipo');
