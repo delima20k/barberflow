@@ -130,16 +130,22 @@ class FooterScrollManager {
     if (!this.#oculto || this.#dicaCount >= this.#DICA_MAX || !this.#dicaEl) return;
 
     this.#dicaEl.classList.remove('animando', 'visivel');
-    void this.#dicaEl.offsetWidth; // reflow para reiniciar animação CSS
-    this.#dicaEl.classList.add('visivel', 'animando');
-    this.#dicaEl.setAttribute('aria-hidden', 'false');
+    this.#dicaEl.setAttribute('aria-hidden', 'true');
     this.#dicaCount++;
 
-    this.#timerDica = setTimeout(() => {
-      this.#dicaEl.classList.remove('visivel', 'animando');
-      this.#dicaEl.setAttribute('aria-hidden', 'true');
-      this.#agendarDica();
-    }, this.#DICA_DURACAO);
+    // rAF duplo: aguarda o browser processar a remoção das classes antes de adicioná-las,
+    // reiniciando a animação CSS sem forçar reflow síncrono (substitui void offsetWidth).
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!this.#oculto || !this.#dicaEl) return;
+      this.#dicaEl.classList.add('visivel', 'animando');
+      this.#dicaEl.setAttribute('aria-hidden', 'false');
+
+      this.#timerDica = setTimeout(() => {
+        this.#dicaEl.classList.remove('visivel', 'animando');
+        this.#dicaEl.setAttribute('aria-hidden', 'true');
+        this.#agendarDica();
+      }, this.#DICA_DURACAO);
+    }));
   }
 
   static #pararDica() {
