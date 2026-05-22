@@ -1,8 +1,9 @@
 'use strict';
 
-const js      = require('@eslint/js');
-const n       = require('eslint-plugin-n');
-const globals = require('globals');
+const js       = require('@eslint/js');
+const n        = require('eslint-plugin-n');
+const security = require('eslint-plugin-security');
+const globals  = require('globals');
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
@@ -55,8 +56,27 @@ module.exports = [
       'no-throw-literal': 'error',
 
       // Segurança
-      'no-eval':     'error',
+      'no-eval':         'error',
       'no-implied-eval': 'error',
+    },
+  },
+
+  // eslint-plugin-security — detecta padrões OWASP comuns
+  {
+    plugins: { security },
+    rules: {
+      'security/detect-object-injection':         'warn',
+      'security/detect-non-literal-regexp':       'warn',
+      'security/detect-unsafe-regex':             'error',
+      'security/detect-buffer-noassert':          'error',
+      'security/detect-child-process':            'warn',
+      'security/detect-disable-mustache-escape':  'error',
+      'security/detect-eval-with-expression':     'error',
+      'security/detect-new-buffer':               'error',
+      'security/detect-no-csrf-before-method-override': 'error',
+      'security/detect-non-literal-fs-filename':  'warn',
+      'security/detect-pseudoRandomBytes':        'warn',
+      'security/detect-possible-timing-attacks':  'warn',
     },
   },
 
