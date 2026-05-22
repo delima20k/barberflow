@@ -84,6 +84,7 @@ barberflow-bff-api/
 |---|---|---|---|
 | `fila.{shopId}` | fila | qualquer autenticado | servidor apenas |
 | `notificacoes.{userId}` | notificacoes | somente o próprio userId | servidor apenas |
+| `chat.{userId}` | chat | somente o próprio userId | servidor apenas |
 | `barbershop.status.{shopId}` | barbershop | qualquer autenticado | servidor apenas |
 | `presence.{shopId}` | presence | qualquer autenticado | servidor apenas |
 
@@ -97,6 +98,8 @@ barberflow-bff-api/
 | `events.v1.fila.entrada_atualizada` | `fila.{shopId}` | `{ entradaId, status, posicao }` | barbeiros + cliente |
 | `events.v1.fila.entrada_removida` | `fila.{shopId}` | `{ entradaId }` | barbeiros + cliente |
 | `events.v1.notificacao.nova` | `notificacoes.{userId}` | `{ notificacaoId, titulo, corpo }` | usuário |
+| `events.v1.chat.message_created` | `chat.{userId}` | `{ message }` | participante destinatario |
+| `events.v1.chat.typing_changed` | `chat.{userId}` | `{ conversationId, senderId, active }` | participante destinatario |
 | `events.v1.barbershop.status_alterado` | `barbershop.status.{shopId}` | `{ isOpen, closeReason? }` | clientes |
 | `events.v1.presence.usuario_entrou` | `presence.{shopId}` | `{ userId }` | barbeiros |
 | `events.v1.presence.usuario_saiu` | `presence.{shopId}` | `{ userId }` | barbeiros |
@@ -118,7 +121,7 @@ Ao ultrapassar backpressure: `ws.close(1008, 'Backpressure: buffer cheio')`.
 
 ## Replay de eventos (last-event-id)
 
-Canais com replay habilitado: `fila.*`, `notificacoes.*`.
+Canais com replay habilitado: `fila.*`, `notificacoes.*`, `chat.*`.
 
 - Buffer Redis: sorted set `bf:replay:{channel}`, score = `occurredAt` em ms
 - TTL: 5 minutos (configurável `WS_REPLAY_TTL_SECONDS`)
@@ -174,5 +177,5 @@ Canais candidatos em escala:
 
 - Substituir Supabase Realtime no frontend (os canais Supabase existentes continuam; este gateway é paralelo)
 - WebRTC signaling (`p2p-*` via Supabase broadcast — sem mudança)
-- Chat E2E (`MessageService` via Supabase — sem mudança)
+- Chat E2E completo (criptografia ainda fica atras da porta `IMessageCipher`; entrega textual leve usa BFF/outbox/realtime)
 - Autoscaling automático de Redis shards

@@ -27,6 +27,11 @@ class ChannelPolicy {
       canSubscribe: (userId, parts) => parts[1] === userId,
     }],
 
+    // chat.{userId} - eventos de conversa chegam no canal privado do user
+    ['chat', {
+      canSubscribe: (userId, parts) => parts[1] === userId,
+    }],
+
     // barbershop.status.{shopId} — qualquer autenticado
     ['barbershop', {
       canSubscribe: (_userId, _parts) => true,

@@ -45,6 +45,7 @@ const { ThumbnailStep }           = require('../application/media/steps/Thumbnai
 const { TranscodeStep }           = require('../application/media/steps/TranscodeStep');
 const { CDNPublishStep }          = require('../application/media/steps/CDNPublishStep');
 const { NotificationHandler }     = require('../application/handlers/NotificationHandler');
+const { ChatDeliveryHandler }      = require('../application/handlers/ChatDeliveryHandler');
 const { FeedGenerationHandler }   = require('../application/handlers/FeedGenerationHandler');
 const { WebhookHandler }          = require('../application/handlers/WebhookHandler');
 const { AnalyticsHandler }        = require('../application/handlers/AnalyticsHandler');
@@ -74,8 +75,16 @@ const outboxRelay = new OutboxRelay({ outboxRepository: outboxRepo, queueService
 // Em produção, estes seriam resolvidos via container Awilix (buildContainer())
 // mantendo a mesma lógica de DI já estabelecida.
 
+const webpush = require('web-push');
 const PushService = require('../services/PushService');
-const pushService = new PushService({ supabase });
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT ?? 'mailto:contato@barberflow.app',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  );
+}
+const pushService = new PushService(supabase, webpush);
 
 // Stubs para repositórios ainda não implementados
 const { SupabaseMediaRepository }     = require('../infrastructure/media/SupabaseMediaRepository');
@@ -85,6 +94,16 @@ const { NoopVideoTranscoder }         = require('../infrastructure/media/NoopVid
 const { SupabaseFeedRepository }      = require('../infrastructure/feed/SupabaseFeedRepository');
 const { FeedCache }                   = require('../infrastructure/feed/FeedCache');
 const { RedisCache }                  = require('../infrastructure/cache/RedisCache');
+const { SupabaseChatRepository }      = require('../infrastructure/chat/SupabaseChatRepository');
+const { ChatPushGateway }             = require('../infrastructure/chat/ChatPushGateway');
+const { BlockPolicy }                 = require('../domain/chat/policies/BlockPolicy');
+const { PresenceService }             = require('../domain/realtime/PresenceService');
+const { RedisPubSubAdapter }          = require('../infrastructure/realtime/RedisPubSubAdapter');
+const { EventReplayBuffer }           = require('../infrastructure/realtime/EventReplayBuffer');
+const { RealtimeMetrics }             = require('../infrastructure/realtime/RealtimeMetrics');
+const { PublishToChannelUseCase }     = require('../application/realtime/PublishToChannelUseCase');
+const { PresenceLink }                = require('../application/chat/PresenceLink');
+const { MessageDispatcher }           = require('../application/chat/MessageDispatcher');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
 const mediaStorage = new SupabaseMediaStorageGateway({ db: supabase });
@@ -102,6 +121,7 @@ const imageProcessor = new MediaPipelineProcessor({
   mediaRepository,
 });
 const feedRepository      = new SupabaseFeedRepository(supabase);
+const chatRepository      = new SupabaseChatRepository(supabase);
 const feedCache           = new FeedCache({ cache: new RedisCache({ redisClient: redisConnection }) });
 const analyticsRepository = { track: async () => {} };    // TODO: implementar
 
@@ -125,10 +145,23 @@ const httpClient = {
 
 // ── WorkerRegistry ─────────────────────────────────────────────
 const registry = new WorkerRegistry({ connection: redisConnection, concurrency: 5 });
+const chatPublisher = new PublishToChannelUseCase({
+  pubSubService: new RedisPubSubAdapter({ redisClient: redisConnection }),
+  eventReplayBuffer: new EventReplayBuffer({ redisClient: redisConnection }),
+  realtimeMetrics: new RealtimeMetrics(),
+});
+const chatBlockPolicy = new BlockPolicy({ blockRepository: chatRepository });
+const chatDispatcher = new MessageDispatcher({
+  publishToChannelUseCase: chatPublisher,
+  presenceLink: new PresenceLink({ presenceService: new PresenceService() }),
+  pushGateway: new ChatPushGateway({ pushService }),
+  blockPolicy: chatBlockPolicy,
+});
 
 registry
   .register(new MediaProcessingHandler({ imageProcessor, mediaRepository }))
   .register(new NotificationHandler({ pushService }))
+  .register(new ChatDeliveryHandler({ chatRepository, messageDispatcher: chatDispatcher }))
   .register(new FeedGenerationHandler({ feedRepository, cacheService: feedCache }))
   .register(new WebhookHandler({ httpClient }))
   .register(new AnalyticsHandler({ analyticsRepository }));

@@ -11,7 +11,7 @@
  *   bf:queue:default       — notificações, webhooks
  *   bf:queue:low           — feed, analytics
  *   bf:queue:media         — processamento de mídia (sharp/resize)
- *   bf:queue:notifications — envio de push notifications
+ *   bf:queue:notifications — envio de push notifications e fallback de chat
  *   bf:queue:feed          — geração de feed
  *   bf:queue:analytics     — eventos de analytics
  *   bf:queue:webhooks      — entrega de webhooks externos
@@ -33,6 +33,7 @@ const QUEUES = Object.freeze({
 const JOB_TYPES = Object.freeze({
   PROCESS_MEDIA:     'process_media',
   SEND_NOTIFICATION: 'send_notification',
+  DELIVER_CHAT_MESSAGE: 'deliver_chat_message',
   GENERATE_FEED:     'generate_feed',
   DELIVER_WEBHOOK:   'deliver_webhook',
   TRACK_ANALYTICS:   'track_analytics',

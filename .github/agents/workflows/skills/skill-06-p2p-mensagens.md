@@ -16,9 +16,19 @@
 
 ## 2. RESTRIÇÃO DE REALTIME (CRÍTICO)
 
-- Realtime do Supabase é restrito a **fila** e **status de agendamento**
+- Realtime do Supabase é restrito a **fila**, **status de agendamento** e **chat textual leve via BFF/outbox em canal privado `chat.{userId}`**
+- Chat textual leve deve passar pela BFF canônica, publicar eventos versionados via outbox/filas e entregar em canais privados; não usar canais de conversa públicos.
 - ❌ NUNCA usar Realtime para vídeos, feeds de imagens ou operações pesadas
 - Para comunicação de mídia: usar WebRTC / P2P
+
+## 2.1 CHAT CANONICO NA BFF
+
+- Mensagens devem ser persistidas antes da entrega: `salvar -> outbox -> fila -> realtime -> push se offline`.
+- Idempotencia obrigatoria por `client_message_id`; o cliente pode repetir o envio sem duplicar mensagem.
+- Entrega realtime deve usar canal privado por usuario (`chat.{userId}`), autorizado somente ao proprio usuario, para impedir leak por conversa ou canal paralelo.
+- Bloqueio bidirecional deve ser verificado no envio e novamente no dispatcher de entrega.
+- Anexos do chat devem referenciar `media_files/media_variants`; nunca duplicar upload, storage ou processamento de midia.
+- E2E fica como porta/extensao (`IMessageCipher`) ate a criptografia ser habilitada explicitamente.
 
 ---
 

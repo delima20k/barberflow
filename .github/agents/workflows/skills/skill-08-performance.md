@@ -28,7 +28,7 @@ Toda decisão de implementação deve minimizar:
 | **Memória** | Revogar Blob URLs, cancelar timers, remover listeners |
 | **Storage** | Thumbnails + compressão para toda mídia; metadados no banco |
 | **Requests** | Agrupar chamadas, usar cache, evitar polling desnecessário |
-| **Realtime** | Restrito a fila e status — nunca para feeds ou vídeos |
+| **Realtime** | Usar apenas eventos leves: fila, status e chat textual privado; nunca para feeds, vídeos ou payloads pesados |
 
 ---
 

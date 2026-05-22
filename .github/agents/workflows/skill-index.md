@@ -15,7 +15,7 @@
 | 03 | [`skills/skill-03-backend.md`](skills/skill-03-backend.md) | Services, controllers, repositories, BFF, APIs | Backend, BFF, rotas, controllers, services |
 | 04 | [`skills/skill-04-seguranca.md`](skills/skill-04-seguranca.md) | OWASP, JWT, CSP, autenticação, criptografia, validação de entrada | Segurança, auth, tokens, headers, inputs |
 | 05 | [`skills/skill-05-banco.md`](skills/skill-05-banco.md) | Supabase, PostgreSQL, RLS, migrations, storage, paginação | Banco, queries, migrations, storage, Supabase |
-| 06 | [`skills/skill-06-p2p-mensagens.md`](skills/skill-06-p2p-mensagens.md) | WebRTC, P2P, criptografia ponta a ponta, MediaP2P | Mensagens, chat, vídeo, mídia P2P |
+| 06 | [`skills/skill-06-p2p-mensagens.md`](skills/skill-06-p2p-mensagens.md) | WebRTC, P2P, chat canonico BFF, criptografia ponta a ponta, MediaP2P | Mensagens, chat, vídeo, mídia P2P |
 | 07 | [`skills/skill-07-testes.md`](skills/skill-07-testes.md) | TDD, node:test, fluxo red-green-refactor, cobertura | Testes, TDD, validações, edge cases |
 | 08 | [`skills/skill-08-performance.md`](skills/skill-08-performance.md) | Cache, paginação, custo, debounce, Blob URLs, N+1 | Performance, otimização, custo de infra |
 | 09 | [`skills/skill-09-refatoracao.md`](skills/skill-09-refatoracao.md) | Escopo, checklist pós-implementação, check final, commit | Refatoração, revisão final, limpeza de código |
@@ -37,7 +37,8 @@
 | Segurança / OWASP / autenticação / JWT / headers | `skill-04-seguranca.md` |
 | Banco / queries / migrations / storage / Supabase | `skill-05-banco.md` |
 | Upload pre-assinado / pipeline assincrono de midia / variantes | `skill-05-banco.md` (Pipeline assincrono de midia na BFF), `skill-03-backend.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md` |
-| Mensagens / chat / WebRTC / P2P / criptografia E2E | `skill-06-p2p-mensagens.md` |
+| Mensagens / chat / WebRTC / P2P / criptografia E2E | `skill-06-p2p-mensagens.md`, `skill-03-backend.md`, `skill-05-banco.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md` |
+| Chat canonico BFF / realtime privado / outbox / cursor reverso | `skill-06-p2p-mensagens.md` (Chat canonico na BFF), `skill-03-backend.md`, `skill-05-banco.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md`, `barberflow-bff-api/docs/realtime.md` |
 | Testes / TDD / validações / edge cases | `skill-07-testes.md` |
 | Performance / cache / custo / paginação / otimização | `skill-08-performance.md` |
 | Feed BFF / fanout hibrido / cursor estavel / cache Redis da timeline | `skill-08-performance.md` (Feed escalavel na BFF), `skill-03-backend.md`, `skill-05-banco.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md` |

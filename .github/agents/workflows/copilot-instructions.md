@@ -385,6 +385,7 @@ Usar apenas para:
 
 - fila
 - status de agendamento
+- chat textual leve via BFF/outbox em canal privado do usuario
 
 Evitar:
 

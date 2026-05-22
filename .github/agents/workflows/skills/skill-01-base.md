@@ -62,7 +62,7 @@ Ela garante que:
 - ❌ NUNCA criar microserviços sem necessidade real
 - ❌ NUNCA ignorar segurança ou performance
 - ❌ NUNCA usar Firebase — stack é exclusivamente Supabase + PostgreSQL
-- ❌ NUNCA usar Realtime para vídeos ou feeds pesados — restrito a **fila** e **status de agendamento**
+- ❌ NUNCA usar Realtime para vídeos ou feeds pesados. Realtime leve é permitido para **fila**, **status de agendamento** e **chat textual privado via BFF/outbox**
 
 ### Responsabilidade do agente vs infraestrutura (CRÍTICO)
 

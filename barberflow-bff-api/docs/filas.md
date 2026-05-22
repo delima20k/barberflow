@@ -52,7 +52,7 @@ Filas e workers:
   bf:queue:default       → jobs gerais
   bf:queue:low           → jobs de baixa urgência
   bf:queue:media         → processamento de imagens (sharp)
-  bf:queue:notifications → push notifications (web-push)
+  bf:queue:notifications → push notifications (web-push) e fallback de chat
   bf:queue:feed          → geração de feed de barbearia
   bf:queue:analytics     → rastreamento de eventos
   bf:queue:webhooks      → entregas HTTP para integrações externas
@@ -117,6 +117,7 @@ OutboxRelay (polling 5s)
 |---|---|---|---|
 | `MediaProcessingHandler` | `bf:queue:media` | `process_media` | `defaultPolicy()` (3×, 1s→30s) |
 | `NotificationHandler` | `bf:queue:notifications` | `send_notification` | `criticalPolicy()` (5×, 1s→30s) |
+| `ChatDeliveryHandler` | `bf:queue:notifications` | `deliver_chat_message` | `criticalPolicy()` (5×, 1s→30s) |
 | `FeedGenerationHandler` | `bf:queue:feed` | `generate_feed` | `defaultPolicy()` (3×) |
 | `WebhookHandler` | `bf:queue:webhooks` | `deliver_webhook` | `webhookPolicy()` (5×, 5s→5min) |
 | `AnalyticsHandler` | `bf:queue:analytics` | `track_analytics` | `analyticsPolicy()` (2×, 500ms) |

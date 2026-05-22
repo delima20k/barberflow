@@ -42,6 +42,7 @@ const REDIS_REPLAY_PREFIX = 'bf:replay:';
 const CHANNELS = Object.freeze({
   FILA:             'fila',
   NOTIFICACOES:     'notificacoes',
+  CHAT:             'chat',
   BARBERSHOP_STATUS: 'barbershop',
   PRESENCE:         'presence',
 });
@@ -55,6 +56,8 @@ const EVENT_TYPES = Object.freeze({
   FILA_ENTRADA_ATUALIZADA:      'events.v1.fila.entrada_atualizada',
   FILA_ENTRADA_REMOVIDA:        'events.v1.fila.entrada_removida',
   NOTIFICACAO_NOVA:             'events.v1.notificacao.nova',
+  CHAT_MESSAGE_CREATED:         'events.v1.chat.message_created',
+  CHAT_TYPING_CHANGED:          'events.v1.chat.typing_changed',
   BARBERSHOP_STATUS_ALTERADO:   'events.v1.barbershop.status_alterado',
   PRESENCE_USUARIO_ENTROU:      'events.v1.presence.usuario_entrou',
   PRESENCE_USUARIO_SAIU:        'events.v1.presence.usuario_saiu',
@@ -64,6 +67,7 @@ const EVENT_TYPES = Object.freeze({
 const CHANNELS_WITH_REPLAY = Object.freeze(new Set([
   CHANNELS.FILA,
   CHANNELS.NOTIFICACOES,
+  CHANNELS.CHAT,
 ]));
 
 module.exports = Object.freeze({

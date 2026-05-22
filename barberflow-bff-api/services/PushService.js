@@ -55,27 +55,7 @@ class PushService {
     cliente,
   }) {
     const destinatarioIds = [...new Set([professionalId, ownerId].filter(Boolean))];
-    let query = this.#supabaseAdmin
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth_key')
-      .eq('app_id',   'profissional')
-      .eq('is_valid', true);
-
-    query = destinatarioIds.length === 1
-      ? query.eq('user_id', destinatarioIds[0])
-      : query.in('user_id', destinatarioIds);
-
-    const { data: subs, error: subsError } = await query;
-    if (subsError) {
-      console.error('[PushService] Erro ao buscar subscriptions:', subsError.message, subsError.code);
-    }
-    const subsUnicas = [];
-    const endpoints = new Set();
-    for (const sub of subs ?? []) {
-      if (!sub?.endpoint || endpoints.has(sub.endpoint)) continue;
-      endpoints.add(sub.endpoint);
-      subsUnicas.push(sub);
-    }
+    const subsUnicas = await this.#listarSubscriptions(destinatarioIds, 'profissional');
 
     if (!subsUnicas.length) {
       console.warn('[PushService] Nenhuma subscription válida para destinatarios:', destinatarioIds.join(','));
@@ -113,17 +93,59 @@ class PushService {
       },
     });
 
-    let enviados  = 0;
+    const outcome = await this.#enviarPayload(subsUnicas, payload);
+    return { ...outcome, destinatarios: destinatarioIds.length };
+  }
+
+  async enviarMensagemChat({ userId, conversationId, messageId, senderId }) {
+    const subs = await this.#listarSubscriptions([userId], null);
+    if (!subs.length) return { enviados: 0, invalidas: 0, destinatarios: userId ? 1 : 0 };
+    const payload = JSON.stringify({
+      title: 'Nova mensagem',
+      body: 'Voce recebeu uma mensagem no BarberFlow.',
+      icon: '/shared/img/icon-192.png',
+      badge: '/shared/img/badge-72.png',
+      tag: `chat-${conversationId}`,
+      data: {
+        pushType: 'chat_message',
+        conversationId,
+        messageId,
+        senderId,
+        url: '/cliente/',
+      },
+    });
+    const outcome = await this.#enviarPayload(subs, payload);
+    return { ...outcome, destinatarios: userId ? 1 : 0 };
+  }
+
+  async #listarSubscriptions(userIds, appId) {
+    const ids = [...new Set((userIds ?? []).filter(Boolean))];
+    if (!ids.length) return [];
+    let query = this.#supabaseAdmin
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth_key')
+      .eq('is_valid', true);
+    if (appId) query = query.eq('app_id', appId);
+    query = ids.length === 1 ? query.eq('user_id', ids[0]) : query.in('user_id', ids);
+    const { data: subs, error } = await query;
+    if (error) console.error('[PushService] Erro ao buscar subscriptions:', error.message, error.code);
+    const endpoints = new Set();
+    return (subs ?? []).filter(sub => {
+      if (!sub?.endpoint || endpoints.has(sub.endpoint)) return false;
+      endpoints.add(sub.endpoint);
+      return true;
+    });
+  }
+
+  async #enviarPayload(subscriptions, payload) {
+    let enviados = 0;
     let invalidas = 0;
-
-    await Promise.all(subsUnicas.map(async (sub) => {
-      const pushSub = {
-        endpoint: sub.endpoint,
-        keys: { p256dh: sub.p256dh, auth: sub.auth_key },
-      };
-
+    await Promise.all(subscriptions.map(async (sub) => {
       try {
-        await this.#webpush.sendNotification(pushSub, payload);
+        await this.#webpush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth_key },
+        }, payload);
         enviados++;
       } catch (err) {
         if (err?.statusCode === 410 || err?.statusCode === 404) {
@@ -132,13 +154,12 @@ class PushService {
             .from('push_subscriptions')
             .update({ is_valid: false })
             .eq('endpoint', sub.endpoint);
-        } else {
-          console.error('[PushService] sendNotification falhou:', err?.statusCode, err?.message);
+          return;
         }
+        console.error('[PushService] sendNotification falhou:', err?.statusCode, err?.message);
       }
     }));
-
-    return { enviados, invalidas, destinatarios: destinatarioIds.length };
+    return { enviados, invalidas };
   }
 }
 

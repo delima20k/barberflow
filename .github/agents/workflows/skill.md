@@ -53,7 +53,7 @@ Se nenhum arquivo de skill cobrir a tarefa:
 - ❌ NUNCA usar Firebase — stack é exclusivamente Supabase + PostgreSQL
 - ❌ NUNCA salvar mídia no banco — usar storage
 - ❌ NUNCA ignorar segurança ou performance
-- ❌ NUNCA usar Realtime para vídeos ou feeds pesados — restrito a **fila** e **status de agendamento**
+- ❌ NUNCA usar Realtime para vídeos ou feeds pesados. Realtime leve é permitido para **fila**, **status de agendamento** e **chat textual privado via BFF/outbox**
 
 > Regras completas, proibições e fluxo de validação: `.github/agents/workflows/skills/skill-01-base.md`
 

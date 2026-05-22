@@ -432,6 +432,34 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `TranscodeStep` | [barberflow-bff-api/application/media/steps/TranscodeStep.js](barberflow-bff-api/application/media/steps/TranscodeStep.js) | application | Preserva original versionado e delega variantes de video. |
 | `VirusScanStep` | [barberflow-bff-api/application/media/steps/VirusScanStep.js](barberflow-bff-api/application/media/steps/VirusScanStep.js) | application | Bloqueia objetos infectados antes dos demais steps. |
 
+### Chat Bounded Context BFF
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `Attachment` | [barberflow-bff-api/domain/chat/entities/Attachment.js](barberflow-bff-api/domain/chat/entities/Attachment.js) | domain | Referencia anexos do chat por mediaId e variante, reutilizando o modulo canonico de midia. |
+| `BlockPolicy` | [barberflow-bff-api/domain/chat/policies/BlockPolicy.js](barberflow-bff-api/domain/chat/policies/BlockPolicy.js) | domain | Garante bloqueio bidirecional antes de persistir ou entregar mensagens. |
+| `ChatController` | [barberflow-bff-api/controllers/ChatController.js](barberflow-bff-api/controllers/ChatController.js) | interfaces | Fronteira HTTP do contexto de chat: envio, paginacao reversa e soft delete. |
+| `ChatDeliveryHandler` | [barberflow-bff-api/application/handlers/ChatDeliveryHandler.js](barberflow-bff-api/application/handlers/ChatDeliveryHandler.js) | application | Handler de fila que entrega mensagens do outbox via realtime e push fallback. |
+| `ChatPolicyCatalog` | [barberflow-bff-api/config/chat.js](barberflow-bff-api/config/chat.js) | application | Limites configuraveis de rate limit, flood e retencao do chat. |
+| `ChatPushGateway` | [barberflow-bff-api/infrastructure/chat/ChatPushGateway.js](barberflow-bff-api/infrastructure/chat/ChatPushGateway.js) | infra | Adapter de push para mensagens de chat sobre PushService. |
+| `ChatRepository` | [barberflow-bff-api/domain/chat/ports/ChatRepository.js](barberflow-bff-api/domain/chat/ports/ChatRepository.js) | domain | Port do repositorio de chat: conversas, mensagens, cursor, bloqueios e mute. |
+| `Conversation` | [barberflow-bff-api/domain/chat/entities/Conversation.js](barberflow-bff-api/domain/chat/entities/Conversation.js) | domain | Entidade de conversa com participantes ativos e destinatarios derivados. |
+| `ConversationAccessPolicy` | [barberflow-bff-api/domain/chat/policies/ConversationAccessPolicy.js](barberflow-bff-api/domain/chat/policies/ConversationAccessPolicy.js) | domain | Autoriza leitura/envio somente para participantes ativos. |
+| `IMessageCipher` | [barberflow-bff-api/domain/chat/ports/IMessageCipher.js](barberflow-bff-api/domain/chat/ports/IMessageCipher.js) | domain | Porta de extensao para criptografia E2E futura sem acoplar o dominio. |
+| `InMemoryChatRepository` | [barberflow-bff-api/infrastructure/chat/InMemoryChatRepository.js](barberflow-bff-api/infrastructure/chat/InMemoryChatRepository.js) | infra | Repositorio em memoria para testes de idempotencia, cursor reverso e concorrencia. |
+| `ListMessagesUseCase` | [barberflow-bff-api/application/chat/ListMessagesUseCase.js](barberflow-bff-api/application/chat/ListMessagesUseCase.js) | application | Orquestra leitura paginada por cursor com checagem de acesso. |
+| `Message` | [barberflow-bff-api/domain/chat/entities/Message.js](barberflow-bff-api/domain/chat/entities/Message.js) | domain | Entidade de mensagem idempotente por clientMessageId, com anexos, status e soft delete. |
+| `MessageDispatcher` | [barberflow-bff-api/application/chat/MessageDispatcher.js](barberflow-bff-api/application/chat/MessageDispatcher.js) | application | Publica eventos de chat no realtime e aciona push quando o destinatario esta offline. |
+| `MessageStatus` | [barberflow-bff-api/domain/chat/entities/MessageStatus.js](barberflow-bff-api/domain/chat/entities/MessageStatus.js) | domain | Value object de status de entrega/leitura da mensagem. |
+| `MuteRule` | [barberflow-bff-api/domain/chat/policies/MuteRule.js](barberflow-bff-api/domain/chat/policies/MuteRule.js) | domain | Regra de mute por conversa que suprime push sem bloquear persistencia/realtime. |
+| `Participant` | [barberflow-bff-api/domain/chat/entities/Participant.js](barberflow-bff-api/domain/chat/entities/Participant.js) | domain | Participante de conversa com janela de entrada/saida. |
+| `PresenceLink` | [barberflow-bff-api/application/chat/PresenceLink.js](barberflow-bff-api/application/chat/PresenceLink.js) | application | Adapter entre chat e presenca realtime usando canais privados chat.{userId}. |
+| `ReadReceipt` | [barberflow-bff-api/domain/chat/entities/ReadReceipt.js](barberflow-bff-api/domain/chat/entities/ReadReceipt.js) | domain | Value object de leitura por usuario/mensagem. |
+| `SendMessageUseCase` | [barberflow-bff-api/application/chat/SendMessageUseCase.js](barberflow-bff-api/application/chat/SendMessageUseCase.js) | application | Salva mensagem com idempotencia, anti-spam, bloqueio e outbox. |
+| `SoftDeleteMessageUseCase` | [barberflow-bff-api/application/chat/SoftDeleteMessageUseCase.js](barberflow-bff-api/application/chat/SoftDeleteMessageUseCase.js) | application | Aplica soft delete com retencao configuravel. |
+| `SupabaseChatRepository` | [barberflow-bff-api/infrastructure/chat/SupabaseChatRepository.js](barberflow-bff-api/infrastructure/chat/SupabaseChatRepository.js) | infra | Adapter Supabase para conversas, mensagens, anexos de midia e bloqueios. |
+| `TypingIndicator` | [barberflow-bff-api/application/chat/TypingIndicator.js](barberflow-bff-api/application/chat/TypingIndicator.js) | application | Publica indicador de digitacao em canais privados, respeitando bloqueios. |
+
 ### Feed Bounded Context BFF
 
 | Classe | Arquivo | Camada | Descricao |
