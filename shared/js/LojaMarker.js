@@ -20,14 +20,15 @@ class LojaMarker {
    * Todos os parâmetros de texto devem estar pré-sanitizados (XSS-safe).
    *
    * @param {object}       opts
-   * @param {string}       opts.nomeCurto    - Nome abreviado da barbearia
+   * @param {string}       opts.nomeCurto    - Nome abreviado da barbearia (badge topo)
    * @param {string}       opts.iniciais     - Iniciais para fallback de avatar
    * @param {string|null}  opts.avatarUrl    - URL da imagem de capa ou null
+   * @param {string}       opts.rua          - Nome da rua/avenida para o label inferior
    * @param {string}       opts.nomeEndereco - Número do endereço ou string vazia
    * @param {boolean|null} opts.isOpen       - true=aberta | false=fechado | null=desconhecido
    * @returns {string}
    */
-  static html({ nomeCurto, iniciais, avatarUrl, nomeEndereco, isOpen }) {
+  static html({ nomeCurto, iniciais, avatarUrl, rua, nomeEndereco, isOpen }) {
     const imgHtml = avatarUrl
       ? `<img src="${avatarUrl}" class="loja-marker__img" alt="${iniciais}"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
@@ -48,6 +49,10 @@ class LojaMarker {
       ? `<span class="loja-marker__number">N&ordm; ${nomeEndereco}</span>`
       : '';
 
+    const ruaHtml = rua || numHtml
+      ? `<span class="loja-marker__name">${rua || ''}</span>`
+      : '';
+
     return `<div class="loja-marker">
   <div class="loja-marker__store-name">${nomeCurto}</div>
   <div class="loja-marker__building">
@@ -65,7 +70,7 @@ class LojaMarker {
   </div>
   <div class="loja-marker__pin"></div>
   <div class="loja-marker__label">
-    <span class="loja-marker__name">${nomeCurto}</span>
+    ${ruaHtml}
     ${numHtml}
   </div>
 </div>`;

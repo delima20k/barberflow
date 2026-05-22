@@ -24,12 +24,13 @@ test('LojaMarker.html() gera moldura dourada com imagem de capa da barbearia', (
     iniciais:     'BT',
     avatarUrl:    'https://example.com/img.jpg',
     nomeEndereco: '42',
+    rua:          'Rua das Flores',
     isOpen:       true,
   });
 
   assert.ok(html.includes('loja-marker__frame'),      'deve ter frame dourado');
   assert.ok(html.includes('loja-marker__img'),        'deve ter imagem');
-  assert.ok(html.includes('Barber Test'),             'deve incluir nome');
+  assert.ok(html.includes('Barber Test'),             'deve incluir nome no topo');
   assert.ok(html.includes('BT'),                      'deve incluir iniciais');
   assert.ok(html.includes('display:none'),            'iniciais ocultas quando avatar presente');
   assert.ok(html.includes('N&ordm; 42'),              'deve incluir numero do endereco');
@@ -37,6 +38,7 @@ test('LojaMarker.html() gera moldura dourada com imagem de capa da barbearia', (
   assert.ok(html.includes('loja-marker__store-name'), 'deve ter label de nome no topo');
   assert.ok(html.includes('loja-marker__building'),   'deve ter bloco de edificio');
   assert.ok(html.includes('loja-marker__roof'),       'deve ter telhado');
+  assert.ok(html.includes('Rua das Flores'),          'loja-marker__name deve exibir a rua');
   assert.ok(!html.includes('mapa-shop-pin.webp'),     'nao deve referenciar o webp legado');
 });
 

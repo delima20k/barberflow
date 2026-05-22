@@ -353,6 +353,8 @@ class MapWidget {
           : `${b.distance_km.toFixed(1)} km`
         : null;
 
+      const ruaSegura          = MapWidget.#escapeHtml(MapWidget.#textoCurto(MapWidget.#nomeRua(b.address), 22));
+
       // Icone: componente LojaMarker HTML/CSS puro (sem dependência de webp).
       const avatarSeguro = avatarUrl ? MapWidget.#escapeHtml(avatarUrl) : null;
 
@@ -362,6 +364,7 @@ class MapWidget {
           nomeCurto:    nomeCurtoSeguro,
           iniciais,
           avatarUrl:    avatarSeguro,
+          rua:          ruaSegura,
           nomeEndereco: numeroEnderecoSeguro,
           isOpen:       b.is_open ?? null,
         }),
@@ -460,6 +463,13 @@ class MapWidget {
     const palavras = nome.trim().split(/\s+/).filter(Boolean);
     if (palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
     return (palavras[0][0] + palavras[1][0]).toUpperCase();
+  }
+
+  static #nomeRua(address) {
+    const partes = String(address ?? '').split(',').map(p => p.trim()).filter(Boolean);
+    const base   = partes[0] ?? '';
+    // Remove número final colado ao nome (ex: "Av. Paulista 900" → "Av. Paulista")
+    return base.replace(/\s+\d+[A-Za-z]?\s*$/, '').trim();
   }
 
   static #numeroEndereco(address) {
