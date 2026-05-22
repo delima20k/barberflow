@@ -536,6 +536,35 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `GeoHttpController` | [barberflow-bff-api/interfaces/bff/geo/GeoHttpController.js](barberflow-bff-api/interfaces/bff/geo/GeoHttpController.js) | interfaces | Controller HTTP geo. Métodos: `updateLocation`, `getNearbyPlaces`, `reverseGeocode`, `getLocation(501)`. Bind automático no construtor. |
 | `GeoRateLimiter` | [barberflow-bff-api/middlewares/geoRateLimit.js](barberflow-bff-api/middlewares/geoRateLimit.js) | infra | Rate limit por userId via Redis INCR+PEXPIRE. 1 req / GEO_RL_WINDOW_MS. Fail-open sem Redis. `middleware()→Express handler`. |
 
+### Anti-Abuso Transversal (`middlewares/abuse/`)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `StoreAdapter` | [barberflow-bff-api/middlewares/abuse/StoreAdapter.js](barberflow-bff-api/middlewares/abuse/StoreAdapter.js) | infra | Interface de store para contadores (incr, expireIfNew, get, set, del). |
+| `InMemoryStore` | [barberflow-bff-api/middlewares/abuse/StoreAdapter.js](barberflow-bff-api/middlewares/abuse/StoreAdapter.js) | infra | `extends StoreAdapter`. Store in-memory com TTL. Padrão para dev/test. Métodos: `snapshot()`, `clear()`. |
+| `RedisStore` | [barberflow-bff-api/middlewares/abuse/StoreAdapter.js](barberflow-bff-api/middlewares/abuse/StoreAdapter.js) | infra | `extends StoreAdapter`. Wrapper ioredis para produção. `expireIfNew` usa `PEXPIRE NX` (Redis ≥ 7). |
+| `RateLimiterStrategy` | [barberflow-bff-api/middlewares/abuse/RateLimiter.js](barberflow-bff-api/middlewares/abuse/RateLimiter.js) | infra | Interface base do padrão Strategy. Contrato: `consume(key)→{allowed,remaining,resetMs}`, `reset(key)`. |
+| `SlidingWindow` | [barberflow-bff-api/middlewares/abuse/RateLimiter.js](barberflow-bff-api/middlewares/abuse/RateLimiter.js) | infra | `extends RateLimiterStrategy`. Janela deslizante via INCR+TTL. Sem burst no reset. |
+| `TokenBucket` | [barberflow-bff-api/middlewares/abuse/RateLimiter.js](barberflow-bff-api/middlewares/abuse/RateLimiter.js) | infra | `extends RateLimiterStrategy`. Bucket com capacidade máxima e reposição por `refillPerSec`. Permite burst controlado. |
+| `RateLimiter` | [barberflow-bff-api/middlewares/abuse/RateLimiter.js](barberflow-bff-api/middlewares/abuse/RateLimiter.js) | infra | Contexto do padrão Strategy. Aceita `RateLimiterStrategy`. Métodos: `consume(key)`, `reset(key)`. |
+| `Specification` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | Base do padrão Specification composável. `and()`, `or()`, `not()`. Todas as regras de abuso estendem esta. |
+| `AndSpecification` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | Composição AND de duas Specifications. |
+| `OrSpecification` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | Composição OR de duas Specifications. |
+| `NotSpecification` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | Negação de uma Specification. |
+| `NewAccountHighActivityRule` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | `extends Specification`. Flageia contas novas com atividade acima do threshold. Config: `accountMaxAgeMs`, `maxRequests`. |
+| `GeoVelocityRule` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | `extends Specification`. Detecta saltos geográficos impossíveis via Haversine. Config: `maxSpeedKmh` (padrão 900). |
+| `ContentSimilarityRule` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | `extends Specification`. Spam por similaridade de conteúdo (Jaccard index). Config: `threshold`, `maxHistory`. |
+| `BotSignatureRule` | [barberflow-bff-api/middlewares/abuse/Specification.js](barberflow-bff-api/middlewares/abuse/Specification.js) | infra | `extends Specification`. Detecta bots por UA e regularidade de timing (stddev/avg). Config: `minIntervalMs`, `regularityThreshold`. |
+| `AbuseSignal` | [barberflow-bff-api/middlewares/abuse/AbuseDetector.js](barberflow-bff-api/middlewares/abuse/AbuseDetector.js) | infra | Resultado da avaliação do AbuseDetector. Props: `triggeredRules[]`, `riskScore`, `isAbusive`. |
+| `AbuseDetector` | [barberflow-bff-api/middlewares/abuse/AbuseDetector.js](barberflow-bff-api/middlewares/abuse/AbuseDetector.js) | infra | Avalia regras Specification compostas por contexto. `static evaluate(ctx, ruleNames?)→AbuseSignal`. Pesos: bot(35) + similarity(25) + geo(20) + new_account(20). |
+| `ReputationScore` | [barberflow-bff-api/middlewares/abuse/ReputationScore.js](barberflow-bff-api/middlewares/abuse/ReputationScore.js) | infra | Score 0–100 por userId com decaimento temporal lazy. Métodos: `getScore(id)`, `penalize(id,pts)`, `reward(id,pts)`, `adjust(id,delta)`, `startDecay()`, `stopDecay()`, `clear()`. |
+| `ActionDecision` | [barberflow-bff-api/middlewares/abuse/ActionPolicy.js](barberflow-bff-api/middlewares/abuse/ActionPolicy.js) | infra | Resultado da política com action, reason, retryAfterMs. Getters: `isAllowed`, `isBlocked`, `isThrottled`, `requiresChallenge`. |
+| `ActionPolicy` | [barberflow-bff-api/middlewares/abuse/ActionPolicy.js](barberflow-bff-api/middlewares/abuse/ActionPolicy.js) | infra | Decide ação (allow/challenge/throttle/soft_block/hard_block) por reputação + risco + lista dinâmica. `static decide(rep, signal, dynEntry?)→ActionDecision`. |
+| `DynamicList` | [barberflow-bff-api/middlewares/abuse/DynamicList.js](barberflow-bff-api/middlewares/abuse/DynamicList.js) | infra | Listas allow/deny por userId ou IP com TTL configurável. Métodos: `add(key,action,ttlMs)`, `remove(key)`, `check(key)`, `sweep()`, `size()`, `clear()`. |
+| `AbuseEvent` | [barberflow-bff-api/middlewares/abuse/AbuseEventLog.js](barberflow-bff-api/middlewares/abuse/AbuseEventLog.js) | infra | Evento imutável de ação anti-abuso (event sourcing leve). Frozen no construtor. |
+| `AbuseEventLog` | [barberflow-bff-api/middlewares/abuse/AbuseEventLog.js](barberflow-bff-api/middlewares/abuse/AbuseEventLog.js) | infra | Ringbuffer (1000 eventos) + log via pino. `static record(data)` (microtask), `snapshot()`, `clear()`. Auditável e observável. |
+| `AbuseMiddleware` | [barberflow-bff-api/middlewares/abuse/AbuseMiddleware.js](barberflow-bff-api/middlewares/abuse/AbuseMiddleware.js) | infra | Orquestrador anti-abuso. `static forHttp(cfg?)→Express`, `static forWS(ctx)→{accepted}`, `static forQueue(ctx)→{enqueued}`. `init({store})` para Redis em prod. Expõe `dynList`, `reputation`. |
+
 ### Notifications Bounded Context BFF
 
 | Classe | Arquivo | Camada | Descricao |

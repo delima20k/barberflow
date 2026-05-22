@@ -31,6 +31,7 @@ const { loggerMiddleware }  = require('./middlewares/logger');
 const RateLimiterMiddleware = require('./middlewares/rateLimiter');
 const TimeoutMiddleware     = require('./middlewares/timeout');
 const ErrorHandler          = require('./middlewares/errorHandler');
+const { AbuseMiddleware }   = require('./middlewares/abuse/AbuseMiddleware');
 const healthRoute           = require('./routes/health');
 const barbeariaRoute        = require('./routes/barbearias');
 const clienteRoute          = require('./routes/clientes');
@@ -104,9 +105,9 @@ function criarApp(db = null) {
   v1Router.use('/notificacoes',  notificacoesRoute);
   v1Router.use('/mensalistas',   mensalistasRoute(_db));
   v1Router.use('/geo',           geoRoute);
-  v1Router.use('/media',         mediaRoute(_db));
-  v1Router.use('/feed',          feedRoute(_db));
-  v1Router.use('/chat',          chatRoute(_db));
+  v1Router.use('/media',         AbuseMiddleware.forHttp(), mediaRoute(_db));
+  v1Router.use('/feed',          AbuseMiddleware.forHttp(), feedRoute(_db));
+  v1Router.use('/chat',          AbuseMiddleware.forHttp(), chatRoute(_db));
   v1Router.use('/scheduler',     schedulerRoute(_db));
   app.use('/api/v1', v1Router);
 
@@ -116,9 +117,11 @@ function criarApp(db = null) {
   // ── 9. Auth — /api/auth/* ───────────────────────────────────────
   // Rate limit específico para auth (10 req / 15 min por IP) — previne brute force.
   app.use('/api/auth', RateLimiterMiddleware.auth);
+  app.use('/api/auth', AbuseMiddleware.forHttp());
   app.use('/api/auth', authRoute);
 
   // ── 10. Agendamentos — /api/agendamentos/* ───────────────────────
+  app.use('/api/agendamentos', AbuseMiddleware.forHttp());
   app.use('/api/agendamentos', agendamentosRoute);
 
   // ── 11. Health check legado (/api/health) ────────────────────────
