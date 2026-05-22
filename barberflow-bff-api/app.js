@@ -7,19 +7,22 @@
 // Não inicia o servidor (isso cabe ao server.js).
 //
 // Ordem dos middlewares:
-//   1. CORS           — antes de tudo (trata preflight OPTIONS)
-//   2. Helmet         — headers de segurança OWASP
-//   3. Compression    — gzip
-//   4. Logger HTTP    — pino-http + X-Response-Time
-//   5. Rate limit     — geral + escrita
-//   6. Timeout        — 30s padrão
-//   7. Body parser    — JSON (50kb)
-//   8. Rotas v1       — /api/v1/*
-//   9. Auth           — /api/auth/*
-//  10. Agendamentos   — /api/agendamentos/*
-//  11. Health legado  — /api/health (compatibilidade com monitoramento)
-//  12. 404 handler
-//  13. Error handler global
+//   1. CORS                — antes de tudo (trata preflight OPTIONS)
+//   2. ObservabilityMW     — correlationId/traceId (AsyncLocalStorage)
+//   3. Helmet              — headers de segurança OWASP
+//   4. Compression         — gzip
+//   5. Logger HTTP         — pino-http enriquecido com correlationId
+//   6. MetricsMW           — RED metrics por endpoint (Prometheus)
+//   7. Rate limit          — geral + escrita
+//   8. Timeout             — 30s padrão
+//   9. Body parser         — JSON (50kb)
+//  10. Rotas v1            — /api/v1/*
+//  11. Auth                — /api/auth/*
+//  12. Agendamentos        — /api/agendamentos/*
+//  13. Health legado       — /api/health (compatibilidade)
+//  14. /metrics            — Prometheus scraping (rede interna)
+//  15. 404 handler
+//  16. Error handler global
 // ================================================================
 
 const express    = require('express');
@@ -32,10 +35,17 @@ const RateLimiterMiddleware = require('./middlewares/rateLimiter');
 const TimeoutMiddleware     = require('./middlewares/timeout');
 const ErrorHandler          = require('./middlewares/errorHandler');
 const { AbuseMiddleware }   = require('./middlewares/abuse/AbuseMiddleware');
-const healthRoute           = require('./routes/health');
-const barbeariaRoute        = require('./routes/barbearias');
-const clienteRoute          = require('./routes/clientes');
-const clienteBffRoute       = require('./routes/clienteBff');
+
+const { ObservabilityMiddleware } = require('./observability/ObservabilityMiddleware');
+const { MetricsMiddleware }       = require('./observability/MetricsMiddleware');
+const { Metrics }                 = require('./observability/Metrics');
+const { SentryClient }            = require('./observability/SentryClient');
+
+const healthRoute    = require('./routes/health');
+const healthzRoute   = require('./routes/healthz');
+const barbeariaRoute = require('./routes/barbearias');
+const clienteRoute   = require('./routes/clientes');
+const clienteBffRoute = require('./routes/clienteBff');
 const authRoute             = require('./routes/auth');
 const agendamentosRoute     = require('./routes/agendamentos');
 const notificacoesRoute     = require('./routes/notificacoes');
@@ -65,6 +75,10 @@ function criarApp(db = null) {
   _validarEnv();
   const _db = db ?? SupabaseClient.getInstance();
 
+  // Inicializa sistemas de observabilidade (idempotente)
+  Metrics.init();
+  SentryClient.init();
+
   const app = express();
 
   // Confia no primeiro proxy da cadeia (Vercel/CDN) para que req.ip
@@ -74,29 +88,36 @@ function criarApp(db = null) {
   // ── 1. CORS ──────────────────────────────────────────────────
   app.use(CorsMiddleware.handle);
 
-  // ── 2. Helmet (headers OWASP) ────────────────────────────────
+  // ── 2. ObservabilityMiddleware ───────────────────────────────
+  // Deve vir ANTES do logger HTTP para enriquecer logs com correlationId.
+  app.use(ObservabilityMiddleware.handle);
+
+  // ── 3. Helmet (headers OWASP) ────────────────────────────────
   app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   }));
 
-  // ── 3. Compression ───────────────────────────────────────────
+  // ── 4. Compression ───────────────────────────────────────────
   app.use(compression());
 
-  // ── 4. Logger HTTP + Response-Time ──────────────────────────
+  // ── 5. Logger HTTP + Response-Time ──────────────────────────
   app.use(loggerMiddleware);
   app.use(TimeoutMiddleware.responseTime);
 
-  // ── 5. Rate limiting ─────────────────────────────────────────
+  // ── 6. Métricas RED Prometheus ───────────────────────────────
+  app.use(MetricsMiddleware.handle);
+
+  // ── 7. Rate limiting ─────────────────────────────────────────
   app.use('/api/', RateLimiterMiddleware.geral);
   app.use('/api/', RateLimiterMiddleware.escrita);
 
-  // ── 6. Timeout ───────────────────────────────────────────────
+  // ── 8. Timeout ───────────────────────────────────────────────
   app.use(TimeoutMiddleware.handle);
 
-  // ── 7. Body parser JSON ──────────────────────────────────────
+  // ── 9. Body parser JSON ──────────────────────────────────────
   app.use(express.json({ limit: '50kb' }));
 
-  // ── 8. Rotas v1 ──────────────────────────────────────────────
+  // ── 10. Rotas v1 ──────────────────────────────────────────────
   const v1Router = express.Router();
   v1Router.use('/health',        healthRoute);
   v1Router.use('/barbearias',    barbeariaRoute(_db));
@@ -114,26 +135,34 @@ function criarApp(db = null) {
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.
   app.use('/api/media', mediaRoute(_db));
 
-  // ── 9. Auth — /api/auth/* ───────────────────────────────────────
-  // Rate limit específico para auth (10 req / 15 min por IP) — previne brute force.
+  // ── 11. Auth — /api/auth/* ───────────────────────────────────
   app.use('/api/auth', RateLimiterMiddleware.auth);
   app.use('/api/auth', AbuseMiddleware.forHttp());
   app.use('/api/auth', authRoute);
 
-  // ── 10. Agendamentos — /api/agendamentos/* ───────────────────────
+  // ── 12. Agendamentos — /api/agendamentos/* ───────────────────
   app.use('/api/agendamentos', AbuseMiddleware.forHttp());
   app.use('/api/agendamentos', agendamentosRoute);
 
-  // ── 11. Health check legado (/api/health) ────────────────────────
-  // Mantém compatibilidade com sistemas de monitoramento existentes.
+  // ── 13. Health checks ────────────────────────────────────────
+  // /health/live  → liveness (sempre 200 se o processo responde)
+  // /health/ready → readiness com checks reais de Supabase + Redis
+  app.use('/health', healthzRoute({ supabase: _db }));
+
+  // Compatibilidade com monitoramento existente
   app.use('/api/health', healthRoute);
 
-  // ── 12. 404 ──────────────────────────────────────────────────
+  // ── 14. /metrics — Prometheus scraping ───────────────────────
+  // ATENÇÃO: proteger esta rota por rede interna ou Basic Auth em produção.
+  // Nunca expor publicamente (vaza informações de carga interna).
+  app.get('/metrics', MetricsMiddleware.metricsHandler());
+
+  // ── 15. 404 ──────────────────────────────────────────────────
   app.use((_req, res) => {
     res.status(404).json({ ok: false, error: 'Rota não encontrada.' });
   });
 
-  // ── 13. Error handler global ─────────────────────────────────
+  // ── 16. Error handler global ─────────────────────────────────
   app.use(ErrorHandler.handle);
 
   return app;

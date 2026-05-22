@@ -565,6 +565,18 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `AbuseEventLog` | [barberflow-bff-api/middlewares/abuse/AbuseEventLog.js](barberflow-bff-api/middlewares/abuse/AbuseEventLog.js) | infra | Ringbuffer (1000 eventos) + log via pino. `static record(data)` (microtask), `snapshot()`, `clear()`. Auditável e observável. |
 | `AbuseMiddleware` | [barberflow-bff-api/middlewares/abuse/AbuseMiddleware.js](barberflow-bff-api/middlewares/abuse/AbuseMiddleware.js) | infra | Orquestrador anti-abuso. `static forHttp(cfg?)→Express`, `static forWS(ctx)→{accepted}`, `static forQueue(ctx)→{enqueued}`. `init({store})` para Redis em prod. Expõe `dynList`, `reputation`. |
 
+### Observabilidade (`observability/`)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `CorrelationContext` | [barberflow-bff-api/observability/CorrelationContext.js](barberflow-bff-api/observability/CorrelationContext.js) | infra | AsyncLocalStorage para correlationId/traceId/requestId/userId. `static run(initial, fn)`, `static getStore()`, getters: `correlationId`, `traceId`, `requestId`, `userId`. `setUserId(id)`. Propagado em HTTP, WS, filas e workers. |
+| `ObservabilityMiddleware` | [barberflow-bff-api/observability/ObservabilityMiddleware.js](barberflow-bff-api/observability/ObservabilityMiddleware.js) | infra | Express middleware que inicializa CorrelationContext por request. Extrai/gera correlationId (X-Correlation-ID), traceId (W3C traceparent). Injeta x-correlation-id, x-trace-id, x-request-id na resposta. |
+| `Metrics` | [barberflow-bff-api/observability/Metrics.js](barberflow-bff-api/observability/Metrics.js) | infra | Prometheus (prom-client) — RED por endpoint HTTP, USE por fila, métricas de negócio (uploads/s, messages/s, cache hit/miss, WS connections). `static init()`, `static recordHttp()`, `static recordQueue()`, `static recordUpload()`, `static metricsText()`. Fail-open. |
+| `MetricsMiddleware` | [barberflow-bff-api/observability/MetricsMiddleware.js](barberflow-bff-api/observability/MetricsMiddleware.js) | infra | Registra métricas RED após cada response. Normaliza rotas (evita cardinality explosion). `static handle` (middleware), `static metricsHandler()` (handler /metrics). |
+| `Tracer` | [barberflow-bff-api/observability/Tracer.js](barberflow-bff-api/observability/Tracer.js) | infra | Wrapper OTel API. `static init(name, version)`, `static startSpan(name, attrs)`, `static withSpan(name, fn, attrs)`, `static currentTraceId()`. Fail-open (no-op sem SDK instalado). |
+| `SentryClient` | [barberflow-bff-api/observability/SentryClient.js](barberflow-bff-api/observability/SentryClient.js) | infra | Integração Sentry com contexto de domínio e zero PII. `static init()`, `static captureError(err, ctx)`, `static captureMessage(msg, level, ctx)`, `static setUser(userId, role)`, `static clearUser()`. Fail-open sem SENTRY_DSN. |
+| `HealthzController` | [barberflow-bff-api/controllers/HealthzController.js](barberflow-bff-api/controllers/HealthzController.js) | interfaces | `extends BaseController`. GET /health/live (liveness) e GET /health/ready (readiness com checks reais de Supabase + Redis). Retorna 200 ou 503 com latências de dependências. |
+
 ### Notifications Bounded Context BFF
 
 | Classe | Arquivo | Camada | Descricao |
