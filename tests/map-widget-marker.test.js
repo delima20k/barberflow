@@ -71,3 +71,22 @@ test('MapWidget usa marcador premium escuro e animado, sem avatar redondo padrao
   assert.match(css, /border-radius: 4px/);
   assert.doesNotMatch(imgRule, /border-radius:\s*50%/);
 });
+
+test('MapWidget exibe label de nome premium da barbearia acima do marcador no mapa', () => {
+  const js  = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
+
+  // JS: elemento de nome renderizado acima do marcador
+  assert.match(js, /mapa-shop-marker__store-name/);
+  // JS: usa cover_path como imagem principal, com fallback para logo_path
+  assert.match(js, /cover_path/);
+  assert.match(js, /logo_path/);
+
+  // CSS: regra premium para o label de nome
+  assert.match(css, /\.mapa-shop-marker__store-name\b/);
+  assert.match(css, /backdrop-filter/);
+  assert.match(css, /#ffbf00/);
+  assert.match(css, /rgba\(0,\s*0,\s*0/);
+  assert.match(css, /text-overflow:\s*ellipsis/);
+  assert.match(css, /pointer-events:\s*none/);
+});

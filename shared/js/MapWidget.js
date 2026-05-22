@@ -372,6 +372,7 @@ class MapWidget {
       const icon = L.divIcon({
         className:   '',
         html: `<div class="mapa-shop-marker">
+                 <div class="mapa-shop-marker__store-name">${nomeCurtoSeguro}</div>
                  <div class="mapa-shop-marker__body">
                    <img src="/shared/img/mapa-shop-pin.webp" class="mapa-shop-marker__bg" alt="" aria-hidden="true">
                    ${imgTag}
@@ -384,9 +385,9 @@ class MapWidget {
                    ${numeroEnderecoSeguro ? `<span class="mapa-shop-marker__number">N&ordm; ${numeroEnderecoSeguro}</span>` : ''}
                  </div>
                </div>`,
-        iconSize:    [116, 120],
-        iconAnchor:  [58, 90],
-        popupAnchor: [0, -92],
+        iconSize:    [116, 158],
+        iconAnchor:  [58, 128],
+        popupAnchor: [0, -130],
       });
 
       // ── Popup rico: avatar grande + info ──
