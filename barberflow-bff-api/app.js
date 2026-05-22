@@ -43,6 +43,7 @@ const geoRoute              = require('./routes/geo');
 const mediaRoute            = require('./routes/media');
 const feedRoute             = require('./routes/feed');
 const chatRoute             = require('./routes/chat');
+const schedulerRoute        = require('./routes/scheduler');
 const SupabaseClient         = require('./utils/SupabaseClient');
 
 /**
@@ -106,6 +107,7 @@ function criarApp(db = null) {
   v1Router.use('/media',         mediaRoute(_db));
   v1Router.use('/feed',          feedRoute(_db));
   v1Router.use('/chat',          chatRoute(_db));
+  v1Router.use('/scheduler',     schedulerRoute(_db));
   app.use('/api/v1', v1Router);
 
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.

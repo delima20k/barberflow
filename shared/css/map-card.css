@@ -277,18 +277,14 @@
 }
 .mapa-shop-marker:active { transform: scale(.96); }
 
-/* Label de nome premium acima do marcador da barbearia */
+/* Label de nome premium acima do marcador da barbearia — em fluxo flex */
 .mapa-shop-marker__store-name {
-  position: absolute;
-  top: -38px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 14px;
   background: rgba(0, 0, 0, .75);
   border: 2px solid #ffbf00;
   color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   max-width: 160px;
@@ -297,6 +293,9 @@
   backdrop-filter: blur(8px);
   box-shadow: 0 0 12px rgba(255, 191, 0, .35);
   pointer-events: none;
+  align-self: center;
+  flex-shrink: 0;
+  margin-bottom: 4px;
   z-index: 4;
 }
 

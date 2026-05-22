@@ -116,3 +116,12 @@ Para cada nova rota ou ajuste na BFF:
 - Dedupe obrigatorio por `(user_id, template_id, dedupe_key)` com janela configuravel antes de enfileirar.
 - Entrega deve ir por filas dedicadas `notifications.high` e `notifications.default`, com tracking de delivery/open/click como eventos de dominio.
 - Templates devem ter i18n e renderer centralizado; controllers nao renderizam texto nem escolhem canal.
+
+## 8. SCHEDULER CANONICO NA BFF
+
+- Tarefas recorrentes de dominio devem ficar em Scheduler unico atras da BFF/worker, nao em `setInterval` espalhado.
+- Cada tarefa deve ser declarada em codigo como `ScheduledTask`, com nome canonico, cron validado, timeout, retry, ownership e skew protection.
+- O registro deve ser explicito em `TaskRegistry`; proibido espalhar string magica de task pelo codigo.
+- Execucao multi-instancia deve usar lock distribuido com TTL. Preferir Redis lock quando a execucao acontece fora de uma transacao Postgres mantida.
+- Toda execucao deve persistir historico e gerar evento/metrica de sucesso, falha, timeout ou skip.
+- Disparo manual deve ficar em endpoint admin protegido por JWT e allowlist/token administrativo.

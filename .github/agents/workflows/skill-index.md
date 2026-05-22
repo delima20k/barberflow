@@ -68,3 +68,9 @@ Quando uma nova boa prática for criada:
 | Tipo de tarefa | Arquivos a ler |
 |---|---|
 | Notificacoes canonicas BFF / canais / provider push / digest | `skill-03-backend.md` (Notificacoes canonicas na BFF), `skill-04-seguranca.md`, `skill-05-banco.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md`, `barberflow-bff-api/docs/realtime.md` |
+
+## Atualizacao DELIMA - Scheduler Canonico
+
+| Tipo de tarefa | Arquivos a ler |
+|---|---|
+| Scheduler canonico BFF / cron / lock distribuido / tarefas recorrentes | `skill-03-backend.md` (Scheduler canonico na BFF), `skill-05-banco.md`, `skill-07-testes.md`, `skill-08-performance.md`, `barberflow-bff-api/docs/filas.md` |

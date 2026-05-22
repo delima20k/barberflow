@@ -287,3 +287,9 @@ O contexto de notificacoes usa filas dedicadas:
 | `NotificationHandler` | `bf:queue:notifications.default` | `send_notification` | `criticalPolicy()` |
 
 `bf:queue:notifications.default` tambem preserva compatibilidade com o alias legado `QUEUES.NOTIFICATIONS` e com fallback de chat. O payload novo usa `{ notificationId, channels }`; o payload antigo de `push-barbeiro` continua aceito para nao quebrar clientes existentes.
+
+## 12. Scheduler canonico
+
+`OutboxRelay.start()` nao e mais iniciado diretamente pelo worker. O Scheduler canonico registra `messaging.outbox-relay` e chama `OutboxRelay.runOnce()` em janela cron com lock Redis, persistindo historico em `scheduler_task_executions`.
+
+Tarefas recorrentes novas devem ser declaradas em `SchedulerFactory` com `ScheduledTask` e registradas no `TaskRegistry`.

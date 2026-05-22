@@ -562,3 +562,26 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `SupabaseNotificationRepository` | [barberflow-bff-api/infrastructure/notifications/SupabaseNotificationRepository.js](barberflow-bff-api/infrastructure/notifications/SupabaseNotificationRepository.js) | infra | Adapter Supabase para templates, preferencias, notificacoes, entregas, dedupe e supressoes. |
 | `TemplateRenderer` | [barberflow-bff-api/application/notifications/TemplateRenderer.js](barberflow-bff-api/application/notifications/TemplateRenderer.js) | application | Renderiza templates por locale com interpolacao segura de dados. |
 | `WebPushProviderAdapter` | [barberflow-bff-api/infrastructure/notifications/WebPushProviderAdapter.js](barberflow-bff-api/infrastructure/notifications/WebPushProviderAdapter.js) | infra | Adapter Web Push sobre PushService sem acoplar regra de negocio. |
+
+### Scheduler Bounded Context BFF
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `CronExpression` | [barberflow-bff-api/domain/scheduler/value-objects/CronExpression.js](barberflow-bff-api/domain/scheduler/value-objects/CronExpression.js) | domain | VO de cron com validacao de 5 campos, timezone e calculo de proxima execucao. |
+| `DistributedLock` | [barberflow-bff-api/domain/scheduler/ports/DistributedLock.js](barberflow-bff-api/domain/scheduler/ports/DistributedLock.js) | domain | Porta abstrata para lock distribuido com TTL. |
+| `InMemoryDistributedLock` | [barberflow-bff-api/infrastructure/scheduler/InMemoryDistributedLock.js](barberflow-bff-api/infrastructure/scheduler/InMemoryDistributedLock.js) | infra | Lock em memoria para testes de competicao entre instancias. |
+| `InMemorySchedulerRepository` | [barberflow-bff-api/infrastructure/scheduler/InMemorySchedulerRepository.js](barberflow-bff-api/infrastructure/scheduler/InMemorySchedulerRepository.js) | infra | Repository em memoria para historico, eventos e skips do scheduler em testes. |
+| `NotificationDigestTask` | [barberflow-bff-api/application/scheduler/tasks/NotificationDigestTask.js](barberflow-bff-api/application/scheduler/tasks/NotificationDigestTask.js) | application | Task declarada para liberar digests de notificacoes quando o repository suportar. |
+| `OutboxRelayTask` | [barberflow-bff-api/application/scheduler/tasks/OutboxRelayTask.js](barberflow-bff-api/application/scheduler/tasks/OutboxRelayTask.js) | application | Task que executa `OutboxRelay.runOnce()` pelo Scheduler canonico. |
+| `RedisDistributedLock` | [barberflow-bff-api/infrastructure/scheduler/RedisDistributedLock.js](barberflow-bff-api/infrastructure/scheduler/RedisDistributedLock.js) | infra | Lock Redis com SET NX PX e release atomico por token Lua. |
+| `RetryPolicy` | [barberflow-bff-api/domain/scheduler/value-objects/RetryPolicy.js](barberflow-bff-api/domain/scheduler/value-objects/RetryPolicy.js) | domain | Politica de retry do Scheduler com tentativas e backoff. |
+| `ScheduledTask` | [barberflow-bff-api/domain/scheduler/entities/ScheduledTask.js](barberflow-bff-api/domain/scheduler/entities/ScheduledTask.js) | domain | Entidade de tarefa recorrente com cron, timeout, retry, ownership e skew protection. |
+| `SchedulerAdminMiddleware` | [barberflow-bff-api/middlewares/schedulerAdmin.js](barberflow-bff-api/middlewares/schedulerAdmin.js) | infra | Guard admin para endpoints manuais do Scheduler. |
+| `SchedulerController` | [barberflow-bff-api/controllers/SchedulerController.js](barberflow-bff-api/controllers/SchedulerController.js) | interfaces | Controller admin para listar tarefas e disparar execucao manual protegida. |
+| `SchedulerFactory` | [barberflow-bff-api/application/scheduler/SchedulerFactory.js](barberflow-bff-api/application/scheduler/SchedulerFactory.js) | application | Factory que declara e registra tasks canonicas do Scheduler. |
+| `SchedulerMetrics` | [barberflow-bff-api/application/scheduler/SchedulerMetrics.js](barberflow-bff-api/application/scheduler/SchedulerMetrics.js) | application | Metricas em memoria por processo para execucoes do Scheduler. |
+| `SchedulerRunner` | [barberflow-bff-api/application/scheduler/SchedulerRunner.js](barberflow-bff-api/application/scheduler/SchedulerRunner.js) | application | Orquestra lock, timeout, retry, historico, eventos e execucao due/manual. |
+| `SchedulerService` | [barberflow-bff-api/application/scheduler/SchedulerService.js](barberflow-bff-api/application/scheduler/SchedulerService.js) | application | Loop unico que aciona o SchedulerRunner periodicamente. |
+| `SupabaseSchedulerRepository` | [barberflow-bff-api/infrastructure/scheduler/SupabaseSchedulerRepository.js](barberflow-bff-api/infrastructure/scheduler/SupabaseSchedulerRepository.js) | infra | Adapter Supabase para historico de execucoes e eventos do Scheduler. |
+| `TaskExecution` | [barberflow-bff-api/domain/scheduler/entities/TaskExecution.js](barberflow-bff-api/domain/scheduler/entities/TaskExecution.js) | domain | Entidade de historico de execucao com status, erro, tentativas e duracao. |
+| `TaskRegistry` | [barberflow-bff-api/application/scheduler/TaskRegistry.js](barberflow-bff-api/application/scheduler/TaskRegistry.js) | application | Registro explicito de tasks, evitando string magica espalhada. |

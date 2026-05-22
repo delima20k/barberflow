@@ -114,6 +114,9 @@ const { InAppChannel }                = require('../application/notifications/ch
 const { SmsChannel }                  = require('../application/notifications/channels/SmsChannel');
 const { WebPushProviderAdapter }      = require('../infrastructure/notifications/WebPushProviderAdapter');
 const { SupabaseNotificationRepository } = require('../infrastructure/notifications/SupabaseNotificationRepository');
+const { SchedulerFactory }            = require('../application/scheduler/SchedulerFactory');
+const { RedisDistributedLock }        = require('../infrastructure/scheduler/RedisDistributedLock');
+const { SupabaseSchedulerRepository } = require('../infrastructure/scheduler/SupabaseSchedulerRepository');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
 const mediaStorage = new SupabaseMediaStorageGateway({ db: supabase });
@@ -203,7 +206,15 @@ registry
 const ALL_QUEUES = Object.values(QUEUES).filter(q => q !== QUEUES.DLQ);
 registry.start(ALL_QUEUES);
 
-outboxRelay.start();
+const scheduler = SchedulerFactory.build({
+  lock: new RedisDistributedLock({ redisClient: redisConnection }),
+  repository: new SupabaseSchedulerRepository({ supabase }),
+  outboxRelay,
+  notificationRepository,
+  queueService,
+  instanceId: `worker-${process.pid}`,
+});
+scheduler.service.start();
 
 // eslint-disable-next-line no-console
 console.info(`[worker] Iniciado. Filas: ${registry.activeQueues.join(', ')}`);
@@ -212,7 +223,7 @@ console.info(`[worker] Iniciado. Filas: ${registry.activeQueues.join(', ')}`);
 async function shutdown(signal) {
   // eslint-disable-next-line no-console
   console.info(`[worker] ${signal} recebido — encerrando graciosamente...`);
-  outboxRelay.stop();
+  scheduler.service.stop();
   await registry.stop();
   await queueService.close();
   await redisConnection.quit().catch(() => {});
