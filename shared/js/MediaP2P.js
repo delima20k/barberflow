@@ -106,13 +106,13 @@ class MediaP2P {
     const token    = await this.#obterToken();
 
     // ── Etapa 1: solicitar URL presigned ao BFF ──────────────────
-    const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/media/presigned`, {
+    const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/presigned`, {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ contexto, contentType: file.type }),
+      body: JSON.stringify({ context: contexto, contentType: file.type, sizeBytes: file.size }),
     });
 
     if (!presResp.ok) {
@@ -120,7 +120,7 @@ class MediaP2P {
       throw new Error(`[MediaP2P] Falha ao obter URL presigned: ${error ?? presResp.status}`);
     }
 
-    const { uploadUrl, path, publicUrl, token: hmac, expiresAt } = await presResp.json();
+    const { uploadUrl, path, publicUrl, token: hmac, expiresAt, mediaId } = await presResp.json();
 
     // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
     const uploadResp = await fetch(uploadUrl, {
@@ -134,13 +134,13 @@ class MediaP2P {
     }
 
     // ── Etapa 3: confirmar ao BFF → salva metadata no Supabase ───
-    const confResp = await fetch(`${MediaP2P.#BFF_URL}/api/media/confirmar`, {
+    const confResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/confirmar`, {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ path, contexto, token: hmac, expiresAt, metadata }),
+      body: JSON.stringify({ mediaId, path, context: contexto, confirmationToken: hmac, expiresAt, metadata }),
     });
 
     if (!confResp.ok) {

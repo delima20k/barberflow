@@ -43,6 +43,15 @@
 
 ---
 
+## 4.1 PIPELINE ASSINCRONO DE MIDIA NA BFF
+
+- Upload de midia deve usar URL pre-assinada gerada pela BFF; bytes sobem do cliente direto para object storage.
+- A confirmacao do upload volta para a BFF com token vinculado ao owner, contexto, path e expiracao.
+- Processamento pesado roda em fila `bf:queue:media`, nao dentro da resposta HTTP.
+- O pipeline usa Chain of Responsibility com steps isolados e testaveis: virus scan, MIME real, metadados/pHash, thumbnails, transcode e publicacao CDN.
+- Variantes sao versionadas e catalogadas no banco; URL privada deve ser assinada com expiracao curta.
+- Reservas `reserved`/`uploaded` antigas e variantes sem dono ativo entram no plano de garbage collection.
+
 ## 5. MIGRATIONS
 
 - Toda alteração de schema via migration versionada (`supabase/migrations/`)

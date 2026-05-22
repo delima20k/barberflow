@@ -43,11 +43,17 @@ class MediaProcessingHandler extends JobHandler {
   get jobType() { return JOB_TYPES.PROCESS_MEDIA; }
 
   async handle(job) {
-    const { fileId, ownerId, tipo, contentType } = job.payload;
+    const { fileId, mediaId, ownerId, tipo, contentType } = job.payload;
+    const sourceId = mediaId ?? fileId;
 
-    if (!fileId)  throw new Error('MediaProcessingHandler: fileId ausente no payload');
+    if (!sourceId) throw new Error('MediaProcessingHandler: fileId ausente no payload');
     if (!ownerId) throw new Error('MediaProcessingHandler: ownerId ausente no payload');
-    if (!tipo)    throw new Error('MediaProcessingHandler: tipo ausente no payload');
+    if (!mediaId && !tipo) throw new Error('MediaProcessingHandler: tipo ausente no payload');
+
+    if (mediaId) {
+      await this.#imageProcessor.process(mediaId, ownerId);
+      return;
+    }
 
     const processed = await this.#imageProcessor.process(fileId, tipo, contentType);
     await this.#mediaRepository.save(fileId, processed, ownerId);

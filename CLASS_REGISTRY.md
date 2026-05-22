@@ -408,6 +408,30 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `OutboxRelay` | [barberflow-bff-api/infrastructure/outbox/OutboxRelay.js](barberflow-bff-api/infrastructure/outbox/OutboxRelay.js) | infra | Polling loop que lê eventos pendentes do outbox e enfileira via queueService (jobId=outbox.id para dedup). `start()` / `stop()` / `runOnce()`. `ticksProcessed` (observabilidade). Timer com `unref()` para não travar shutdown. |
 | `WorkerRegistry` | [barberflow-bff-api/workers/WorkerRegistry.js](barberflow-bff-api/workers/WorkerRegistry.js) | infra | Registra e gerencia BullMQ Workers por fila. `register(handler)` / `start(queues)` / `stop()`. Instrumenta eventos completed/failed/error. Getters: `activeQueues`, `registeredTypes`. |
 
+### Media Pipeline BFF
+
+| Classe | Arquivo | Camada | DescriÃ§Ã£o |
+|---|---|---|---|
+| `BaseMediaStep` | [barberflow-bff-api/application/media/steps/BaseMediaStep.js](barberflow-bff-api/application/media/steps/BaseMediaStep.js) | application | Contrato base dos steps encadeados de midia. |
+| `CDNPublishStep` | [barberflow-bff-api/application/media/steps/CDNPublishStep.js](barberflow-bff-api/application/media/steps/CDNPublishStep.js) | application | Publica variantes no storage CDN e persiste o catalogo final. |
+| `MediaConfirmationSigner` | [barberflow-bff-api/infrastructure/media/MediaConfirmationSigner.js](barberflow-bff-api/infrastructure/media/MediaConfirmationSigner.js) | infra | Token HMAC de confirmacao vinculado a owner, contexto, path e expiracao. |
+| `MediaController` | [barberflow-bff-api/controllers/MediaController.js](barberflow-bff-api/controllers/MediaController.js) | interfaces | Fronteira HTTP de assinatura, confirmacao e acesso assinado. |
+| `MediaPipeline` | [barberflow-bff-api/application/media/MediaPipeline.js](barberflow-bff-api/application/media/MediaPipeline.js) | application | Chain of Responsibility do processamento e medicao por step. |
+| `MediaPipelineMetrics` | [barberflow-bff-api/application/media/MediaPipelineMetrics.js](barberflow-bff-api/application/media/MediaPipelineMetrics.js) | application | Duracao media, taxa de falha e tamanho medio por processo. |
+| `MediaPipelineProcessor` | [barberflow-bff-api/application/media/MediaPipelineProcessor.js](barberflow-bff-api/application/media/MediaPipelineProcessor.js) | application | Monta input do pipeline a partir do job e do objeto fonte. |
+| `MediaPolicyCatalog` | [barberflow-bff-api/config/media.js](barberflow-bff-api/config/media.js) | application | Limites por contexto e versoes das variantes. |
+| `MediaUploadService` | [barberflow-bff-api/application/media/MediaUploadService.js](barberflow-bff-api/application/media/MediaUploadService.js) | application | Reserva upload assinado, confirma objeto, agenda fila e assina acesso. |
+| `MetadataExtractStep` | [barberflow-bff-api/application/media/steps/MetadataExtractStep.js](barberflow-bff-api/application/media/steps/MetadataExtractStep.js) | application | Extrai dimensoes e pHash perceptual para anti-spam. |
+| `MimeValidationStep` | [barberflow-bff-api/application/media/steps/MimeValidationStep.js](barberflow-bff-api/application/media/steps/MimeValidationStep.js) | application | Valida MIME real e limites configurados. |
+| `NoopVideoTranscoder` | [barberflow-bff-api/infrastructure/media/NoopVideoTranscoder.js](barberflow-bff-api/infrastructure/media/NoopVideoTranscoder.js) | infra | Porta de transcode pronta para adapter de video dedicado. |
+| `NoopVirusScanner` | [barberflow-bff-api/infrastructure/media/NoopVirusScanner.js](barberflow-bff-api/infrastructure/media/NoopVirusScanner.js) | infra | Scanner substituivel usado quando engine externo nao foi configurado. |
+| `S3CompatibleStorageGateway` | [barberflow-bff-api/infrastructure/media/S3CompatibleStorageGateway.js](barberflow-bff-api/infrastructure/media/S3CompatibleStorageGateway.js) | infra | Gateway S3 SigV4 para teste real com MinIO ou LocalStack. |
+| `SupabaseMediaRepository` | [barberflow-bff-api/infrastructure/media/SupabaseMediaRepository.js](barberflow-bff-api/infrastructure/media/SupabaseMediaRepository.js) | infra | Reserva, variantes, pHash e publicacao no Supabase. |
+| `SupabaseMediaStorageGateway` | [barberflow-bff-api/infrastructure/media/SupabaseMediaStorageGateway.js](barberflow-bff-api/infrastructure/media/SupabaseMediaStorageGateway.js) | infra | URLs pre-assinadas, fonte, variantes e acesso assinado no Storage. |
+| `ThumbnailStep` | [barberflow-bff-api/application/media/steps/ThumbnailStep.js](barberflow-bff-api/application/media/steps/ThumbnailStep.js) | application | Gera `thumb_sm` e `thumb_md` WebP versionadas. |
+| `TranscodeStep` | [barberflow-bff-api/application/media/steps/TranscodeStep.js](barberflow-bff-api/application/media/steps/TranscodeStep.js) | application | Preserva original versionado e delega variantes de video. |
+| `VirusScanStep` | [barberflow-bff-api/application/media/steps/VirusScanStep.js](barberflow-bff-api/application/media/steps/VirusScanStep.js) | application | Bloqueia objetos infectados antes dos demais steps. |
+
 ### Realtime (WebSocket / Redis Pub-Sub)
 
 | Classe | Arquivo | Camada | Descrição |
@@ -458,4 +482,3 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `ReverseGeocodeUseCase` | [barberflow-bff-api/application/geo/ReverseGeocodeUseCase.js](barberflow-bff-api/application/geo/ReverseGeocodeUseCase.js) | application | Converte coordenadas em endereço. Delega ao reverseGeocoder (GeocodingCacheDecorator→Nominatim). |
 | `GeoHttpController` | [barberflow-bff-api/interfaces/bff/geo/GeoHttpController.js](barberflow-bff-api/interfaces/bff/geo/GeoHttpController.js) | interfaces | Controller HTTP geo. Métodos: `updateLocation`, `getNearbyPlaces`, `reverseGeocode`, `getLocation(501)`. Bind automático no construtor. |
 | `GeoRateLimiter` | [barberflow-bff-api/middlewares/geoRateLimit.js](barberflow-bff-api/middlewares/geoRateLimit.js) | infra | Rate limit por userId via Redis INCR+PEXPIRE. 1 req / GEO_RL_WINDOW_MS. Fail-open sem Redis. `middleware()→Express handler`. |
-

@@ -36,6 +36,7 @@
 | Backend / BFF / services / controllers / rotas | `skill-03-backend.md` |
 | Segurança / OWASP / autenticação / JWT / headers | `skill-04-seguranca.md` |
 | Banco / queries / migrations / storage / Supabase | `skill-05-banco.md` |
+| Upload pre-assinado / pipeline assincrono de midia / variantes | `skill-05-banco.md` (Pipeline assincrono de midia na BFF), `skill-03-backend.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md` |
 | Mensagens / chat / WebRTC / P2P / criptografia E2E | `skill-06-p2p-mensagens.md` |
 | Testes / TDD / validações / edge cases | `skill-07-testes.md` |
 | Performance / cache / custo / paginação / otimização | `skill-08-performance.md` |

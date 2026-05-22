@@ -36,6 +36,14 @@ const { QUEUES, RETRY_CONFIG }  = require('../config/queues');
 const { RetryPolicy }           = require('../infrastructure/queue/RetryPolicy');
 
 const { MediaProcessingHandler }  = require('../application/handlers/MediaProcessingHandler');
+const { MediaPipeline }           = require('../application/media/MediaPipeline');
+const { MediaPipelineProcessor }  = require('../application/media/MediaPipelineProcessor');
+const { VirusScanStep }           = require('../application/media/steps/VirusScanStep');
+const { MimeValidationStep }      = require('../application/media/steps/MimeValidationStep');
+const { MetadataExtractStep }     = require('../application/media/steps/MetadataExtractStep');
+const { ThumbnailStep }           = require('../application/media/steps/ThumbnailStep');
+const { TranscodeStep }           = require('../application/media/steps/TranscodeStep');
+const { CDNPublishStep }          = require('../application/media/steps/CDNPublishStep');
 const { NotificationHandler }     = require('../application/handlers/NotificationHandler');
 const { FeedGenerationHandler }   = require('../application/handlers/FeedGenerationHandler');
 const { WebhookHandler }          = require('../application/handlers/WebhookHandler');
@@ -70,8 +78,26 @@ const PushService = require('../services/PushService');
 const pushService = new PushService({ supabase });
 
 // Stubs para repositórios ainda não implementados
-const mediaRepository     = { save: async () => {} };   // TODO: implementar
-const imageProcessor      = { process: async () => ({}) }; // TODO: implementar
+const { SupabaseMediaRepository }     = require('../infrastructure/media/SupabaseMediaRepository');
+const { SupabaseMediaStorageGateway } = require('../infrastructure/media/SupabaseMediaStorageGateway');
+const { NoopVirusScanner }            = require('../infrastructure/media/NoopVirusScanner');
+const { NoopVideoTranscoder }         = require('../infrastructure/media/NoopVideoTranscoder');
+
+const mediaRepository = new SupabaseMediaRepository(supabase);
+const mediaStorage = new SupabaseMediaStorageGateway({ db: supabase });
+const mediaPipeline = new MediaPipeline([
+  new VirusScanStep({ scanner: new NoopVirusScanner() }),
+  new MimeValidationStep(),
+  new MetadataExtractStep({ duplicateFinder: mediaRepository }),
+  new ThumbnailStep(),
+  new TranscodeStep({ transcoder: new NoopVideoTranscoder() }),
+  new CDNPublishStep({ storage: mediaStorage, mediaRepository }),
+]);
+const imageProcessor = new MediaPipelineProcessor({
+  pipeline: mediaPipeline,
+  storage: mediaStorage,
+  mediaRepository,
+});
 const feedRepository      = { generate: async () => {} }; // TODO: implementar
 const analyticsRepository = { track: async () => {} };    // TODO: implementar
 
