@@ -2102,194 +2102,194 @@
 </nav>
 
 <!-- Supabase SDK (CDN) -->
-<script src="/shared/js/supabase.min.js"></script>
+<script src="/shared/js/supabase.min.js" defer></script>
 <!-- Logger centralizado — deve preceder todos os outros scripts -->
-<script src="/shared/js/LoggerService.js"></script>
+<script src="/shared/js/LoggerService.js" defer></script>
 <!-- API REST — camada de dados sem SDK (CRUD via fetch/PostgREST) -->
-<script src="/shared/js/ApiService.js"></script>
+<script src="/shared/js/ApiService.js" defer></script>
 <!-- Serviço Supabase compartilhado -->
-<script src="/shared/js/SupabaseService.js"></script>
+<script src="/shared/js/SupabaseService.js" defer></script>
 <!-- Cache de sessão e avatar (localStorage) -->
-<script src="/shared/js/SessionCache.js"></script>
+<script src="/shared/js/SessionCache.js" defer></script>
 <!-- Configuração centralizada de navegação (menu + rodapé) -->
-<script src="/shared/js/NavConfig.js"></script>
+<script src="/shared/js/NavConfig.js" defer></script>
 <!-- Validação e sanitização centralizada de inputs -->
-<script src="/shared/js/InputValidator.js"></script>
+<script src="/shared/js/InputValidator.js" defer></script>
 <!-- Serviço de autenticação -->
-<script src="/shared/js/AuthService.js"></script>
-  <script src="/shared/js/AuthUI.js"></script>
+<script src="/shared/js/AuthService.js" defer></script>
+  <script src="/shared/js/AuthUI.js" defer></script>
 <!-- Tela de saída com animações (POO) -->
-<script src="/shared/js/LogoutScreen.js"></script>
+<script src="/shared/js/LogoutScreen.js" defer></script>
 <!-- Serviços SRP (ordem obrigatória: antes do Router) -->
-<script src="/shared/js/AnimationService.js"></script>
-<script src="/shared/js/MenuService.js"></script>
-<script src="/shared/js/UserService.js"></script>
-<script src="/shared/js/BackendApiService.js"></script>
-<script src="/shared/js/AvatarService.js"></script>
-<script src="/shared/js/SplashService.js"></script>
+<script src="/shared/js/AnimationService.js" defer></script>
+<script src="/shared/js/MenuService.js" defer></script>
+<script src="/shared/js/UserService.js" defer></script>
+<script src="/shared/js/BackendApiService.js" defer></script>
+<script src="/shared/js/AvatarService.js" defer></script>
+<script src="/shared/js/SplashService.js" defer></script>
 <!-- Estado global reativo -->
-<script src="/shared/js/AppState.js"></script>
+<script src="/shared/js/AppState.js" defer></script>
 <!-- Modo visitante: bloqueia visualmente botões de ação para usuários não logados -->
-<script src="/shared/js/GuestMode.js"></script>
+<script src="/shared/js/GuestMode.js" defer></script>
 <!-- Controle de acesso baseado em autenticação -->
-<script src="/shared/js/AuthGuard.js"></script>
-    <script src="/shared/js/PermissionService.js"></script>
+<script src="/shared/js/AuthGuard.js" defer></script>
+    <script src="/shared/js/PermissionService.js" defer></script>
 <!-- Serviço de apresentação DOM do Router (deve preceder Router.js) -->
-<script src="/shared/js/NavigationViewService.js"></script>
+<script src="/shared/js/NavigationViewService.js" defer></script>
 <!-- Shared Router base class -->
-<script src="/shared/js/Router.js"></script>
+<script src="/shared/js/Router.js" defer></script>
 <!-- Componente BarberPole -->
-<script src="/shared/js/BarberPole.js"></script>
+<script src="/shared/js/BarberPole.js" defer></script>
 <!-- Efeito glow nas logos -->
-<script src="/shared/js/LogoGlow.js"></script>
+<script src="/shared/js/LogoGlow.js" defer></script>
 <!-- Visualizador de stories em tela cheia (POO) -->
-<script src="/shared/js/StoryViewer.js"></script>
+<script src="/shared/js/StoryViewer.js" defer></script>
 <!-- Layout de stories 3x3 -->
-<script src="/shared/js/StoriesLayout.js"></script>
+<script src="/shared/js/StoriesLayout.js" defer></script>
 <!-- Geolocalização GPS -->
-<script src="/shared/js/GeoService.js"></script>
+<script src="/shared/js/GeoService.js" defer></script>
 <!-- Repositórios de dados (acesso Supabase) — ANTES dos widgets que os usam -->
-<script src="/shared/js/BarbershopRepository.js"></script>
+<script src="/shared/js/BarbershopRepository.js" defer></script>
 <!-- Cache em memória com TTL — necessário para CacheManager e NavigationManager -->
-<script src="/shared/js/CacheManager.js"></script>
+<script src="/shared/js/CacheManager.js" defer></script>
 <!-- Gerenciamento de contexto de navegação — necessário para NavigationManager -->
-<script src="/shared/js/StateManager.js"></script>
+<script src="/shared/js/StateManager.js" defer></script>
 <!-- Pré-carregamento de recursos antes da animação de entrada -->
-<script src="/shared/js/ResourceLoader.js"></script>
+<script src="/shared/js/ResourceLoader.js" defer></script>
 <!-- Pré-carregamento de tela antes da animação de entrada -->
-<script src="/shared/js/NavigationManager.js"></script>
+<script src="/shared/js/NavigationManager.js" defer></script>
 <!-- Tela pública de detalhes de barbearia -->
-<script src="/shared/js/BarbeariaPage.js"></script>
+<script src="/shared/js/BarbeariaPage.js" defer></script>
 <!-- Tela de perfil público de barbeiro -->
-<script src="/shared/js/BarbeiroPage.js"></script>
+<script src="/shared/js/BarbeiroPage.js" defer></script>
 <!-- Repositórios de dados (acesso Supabase) — ANTES dos widgets que os usam -->
-<script src="/shared/js/UserRepository.js"></script>
-<script src="/shared/js/ProfileRepository.js"></script>
+<script src="/shared/js/UserRepository.js" defer></script>
+<script src="/shared/js/ProfileRepository.js" defer></script>
 <!-- Serviços de negócio -->
-<script src="/shared/js/BarbershopService.js"></script>
-<script src="/shared/js/ProfessionalService.js"></script>
-<script src="/shared/js/StatusFechamentoModal.js"></script>
-<script src="/shared/js/FavoritosClientesService.js"></script>
-<script src="/shared/js/CadeiraService.js"></script>
-<script src="/shared/js/ClienteSeletorModal.js"></script>
-<script src="/shared/js/CorteModal.js"></script>
-<script src="/shared/js/MensalistaModal.js"></script>
-<script src="/shared/js/FinalizarCorteModal.js"></script>
-<script src="/shared/js/FinanceiroRepository.js"></script>
-<script src="/shared/js/FinanceiroService.js"></script>
-<script src="/shared/js/BarberFinanceModal.js"></script>
-<script src="/shared/js/MenosPercentualModal.js"></script>
-<script src="/shared/js/FluxoDeFila.js"></script>
-<script src="/shared/js/ConfirmacaoCorteModal.js"></script>
-<script src="/shared/js/ClienteAusenteModal.js"></script>
-<script src="/shared/js/BarbeiroEsperaFluxo.js"></script>
-<script src="/shared/js/BarbeiroCard.js"></script>
-<script src="/shared/js/Cadeira.js"></script>
-<script src="/shared/js/FilaController.js"></script>
-<script src="/shared/js/ModalController.js"></script>
-<script src="/shared/js/ClienteController.js"></script>
-<script src="/shared/js/BarbeariaStatusSync.js"></script>
+<script src="/shared/js/BarbershopService.js" defer></script>
+<script src="/shared/js/ProfessionalService.js" defer></script>
+<script src="/shared/js/StatusFechamentoModal.js" defer></script>
+<script src="/shared/js/FavoritosClientesService.js" defer></script>
+<script src="/shared/js/CadeiraService.js" defer></script>
+<script src="/shared/js/ClienteSeletorModal.js" defer></script>
+<script src="/shared/js/CorteModal.js" defer></script>
+<script src="/shared/js/MensalistaModal.js" defer></script>
+<script src="/shared/js/FinalizarCorteModal.js" defer></script>
+<script src="/shared/js/FinanceiroRepository.js" defer></script>
+<script src="/shared/js/FinanceiroService.js" defer></script>
+<script src="/shared/js/BarberFinanceModal.js" defer></script>
+<script src="/shared/js/MenosPercentualModal.js" defer></script>
+<script src="/shared/js/FluxoDeFila.js" defer></script>
+<script src="/shared/js/ConfirmacaoCorteModal.js" defer></script>
+<script src="/shared/js/ClienteAusenteModal.js" defer></script>
+<script src="/shared/js/BarbeiroEsperaFluxo.js" defer></script>
+<script src="/shared/js/BarbeiroCard.js" defer></script>
+<script src="/shared/js/Cadeira.js" defer></script>
+<script src="/shared/js/FilaController.js" defer></script>
+<script src="/shared/js/ModalController.js" defer></script>
+<script src="/shared/js/ClienteController.js" defer></script>
+<script src="/shared/js/BarbeariaStatusSync.js" defer></script>
 <!-- Leaflet JS (mapa interativo) -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 <!-- Widget de barbearias próximas -->
-<script src="/shared/js/BffApiService.js"></script>
-<script src="/shared/js/BffAuthClient.js"></script>
-<script src="/shared/js/BarbeariaApiClient.js"></script>
-<script src="/shared/js/NearbyBarbershopsWidget.js"></script>
-<script src="/shared/js/LojaMarker.js"></script>
-<script src="/shared/js/MapWidget.js"></script>
+<script src="/shared/js/BffApiService.js" defer></script>
+<script src="/shared/js/BffAuthClient.js" defer></script>
+<script src="/shared/js/BarbeariaApiClient.js" defer></script>
+<script src="/shared/js/NearbyBarbershopsWidget.js" defer></script>
+<script src="/shared/js/LojaMarker.js" defer></script>
+<script src="/shared/js/MapWidget.js" defer></script>
 <!-- Widget de pesquisa dinâmica -->
-<script src="/shared/js/SearchWidget.js"></script>
+<script src="/shared/js/SearchWidget.js" defer></script>
 <!-- Fontes personalizadas para nomes de barbearias -->
-<script src="/shared/js/FonteSalao.js"></script>
-<script src="/shared/js/CapaBarbearia.js"></script>
+<script src="/shared/js/FonteSalao.js" defer></script>
+<script src="/shared/js/CapaBarbearia.js" defer></script>
 <!-- Gaveta animada (revela/esconde elementos) -->
-<script src="/shared/js/GuardaIten.js"></script>
+<script src="/shared/js/GuardaIten.js" defer></script>
 <!-- Módulo de mapa premium -->
-<script src="/shared/js/MapPanelModule.js"></script>
+<script src="/shared/js/MapPanelModule.js" defer></script>
 <!-- Módulo de bússola e orientação -->
-<script src="/shared/js/MapOrientationModule.js"></script>
+<script src="/shared/js/MapOrientationModule.js" defer></script>
 <!-- Monetização / Google Billing -->
-<script src="/shared/js/PaymentFlowHandler.js"></script>
+<script src="/shared/js/PaymentFlowHandler.js" defer></script>
 <!-- Gate de boas-vindas (overlay estático, sem BarberPole) -->
-<script src="/shared/js/ProLandingGate.js"></script>
+<script src="/shared/js/ProLandingGate.js" defer></script>
 <!-- Aceite legal profissional -->
-<script src="assets/js/LegalConsentService.js"></script>
-<script src="assets/js/MonetizationGuard.js"></script>
-<script src="assets/js/PlanosService.js"></script>
-<script src="/shared/js/MessageService.js"></script>
-<script src="/shared/js/MessageCryptoService.js"></script>
-<script src="/shared/js/MessageSignalingService.js"></script>
-<script src="/shared/js/P2PMessageConnectionService.js"></script>
-<script src="/shared/js/MessagesWidget.js"></script>
-<script src="/shared/js/NotificationService.js"></script>
-<script src="/shared/js/PushSubscriptionService.js"></script>
-<script src="/shared/js/OfflineSyncQueue.js"></script>
-<script src="/shared/js/AppointmentRepository.js"></script>
-<script src="/shared/js/QueueRepository.js"></script>
-<script src="/shared/js/LgpdService.js"></script>
-<script src="/shared/js/TermsPage.js"></script>
-<script src="/shared/js/PerfilEditor.js"></script>
-<script src="/shared/js/FooterScrollManager.js"></script>
-<script src="/shared/js/HeaderScrollBehavior.js"></script>
-<script src="assets/js/pages/DestaquesPage.js"></script>
-<script src="assets/js/pages/BarbeirosPage.js"></script>
-<script src="assets/js/pages/BarbeariasPage.js"></script>
-<script src="assets/js/pages/AgendaPage.js"></script>
-<script src="/events/catalog.js"></script>
-<script src="/shared/js/SectionEventBus.js"></script>
-<script src="/shared/js/PageSection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StoryState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StoryView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StoryController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StorySection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioSection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationSection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/QueueRealtimeClient.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueSection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsSection.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsState.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsView.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsSection.js"></script>
-<script src="/shared/js/MediaP2P.js"></script>
-<script src="assets/js/GpsPanelMap.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js"></script>
-<script src="assets/js/pages/MinhaBarbeariaPage.js"></script>
-<script src="assets/js/pages/CriarBarbeariaPage.js"></script>
-<script src="assets/js/pages/ParceriasPage.js"></script>
-<script src="assets/js/pages/FinancasPage.js"></script>
-<script src="assets/js/pages/GpsPage.js"></script>
-<script src="assets/js/pages/QueueWidget.js"></script>
-<script src="/shared/js/PWAInstallBanner.js"></script>
-<script src="assets/js/ProfissionalStartupSplash.js"></script>
-<script src="assets/js/AppBootstrap.js"></script>
+<script src="assets/js/LegalConsentService.js" defer></script>
+<script src="assets/js/MonetizationGuard.js" defer></script>
+<script src="assets/js/PlanosService.js" defer></script>
+<script src="/shared/js/MessageService.js" defer></script>
+<script src="/shared/js/MessageCryptoService.js" defer></script>
+<script src="/shared/js/MessageSignalingService.js" defer></script>
+<script src="/shared/js/P2PMessageConnectionService.js" defer></script>
+<script src="/shared/js/MessagesWidget.js" defer></script>
+<script src="/shared/js/NotificationService.js" defer></script>
+<script src="/shared/js/PushSubscriptionService.js" defer></script>
+<script src="/shared/js/OfflineSyncQueue.js" defer></script>
+<script src="/shared/js/AppointmentRepository.js" defer></script>
+<script src="/shared/js/QueueRepository.js" defer></script>
+<script src="/shared/js/LgpdService.js" defer></script>
+<script src="/shared/js/TermsPage.js" defer></script>
+<script src="/shared/js/PerfilEditor.js" defer></script>
+<script src="/shared/js/FooterScrollManager.js" defer></script>
+<script src="/shared/js/HeaderScrollBehavior.js" defer></script>
+<script src="assets/js/pages/DestaquesPage.js" defer></script>
+<script src="assets/js/pages/BarbeirosPage.js" defer></script>
+<script src="assets/js/pages/BarbeariasPage.js" defer></script>
+<script src="assets/js/pages/AgendaPage.js" defer></script>
+<script src="/events/catalog.js" defer></script>
+<script src="/shared/js/SectionEventBus.js" defer></script>
+<script src="/shared/js/PageSection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StoryState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StoryView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StoryController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/StorySection/StorySection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioSection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/NotificationSection/NotificationSection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/QueueRealtimeClient.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/QueueSection/QueueSection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/AnalyticsSection/AnalyticsSection.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsState.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsView.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsSection.js" defer></script>
+<script src="/shared/js/MediaP2P.js" defer></script>
+<script src="assets/js/GpsPanelMap.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js" defer></script>
+<script src="assets/js/pages/MinhaBarbeariaPage.js" defer></script>
+<script src="assets/js/pages/CriarBarbeariaPage.js" defer></script>
+<script src="assets/js/pages/ParceriasPage.js" defer></script>
+<script src="assets/js/pages/FinancasPage.js" defer></script>
+<script src="assets/js/pages/GpsPage.js" defer></script>
+<script src="assets/js/pages/QueueWidget.js" defer></script>
+<script src="/shared/js/PWAInstallBanner.js" defer></script>
+<script src="assets/js/ProfissionalStartupSplash.js" defer></script>
+<script src="assets/js/AppBootstrap.js" defer></script>
 <!-- Controllers do app profissional — devem preceder app.js -->
-<script src="/shared/js/AuthController.js"></script>
-<script src="assets/js/controllers/PlanosController.js"></script>
-<script src="assets/js/controllers/CadastroController.js"></script>
-<script src="assets/js/controllers/TermosController.js"></script>
+<script src="/shared/js/AuthController.js" defer></script>
+<script src="assets/js/controllers/PlanosController.js" defer></script>
+<script src="assets/js/controllers/CadastroController.js" defer></script>
+<script src="assets/js/controllers/TermosController.js" defer></script>
 <!-- Confirmação de ausência de cliente na cadeira -->
-<script src="/shared/js/QueueConfirmService.js"></script>
+<script src="/shared/js/QueueConfirmService.js" defer></script>
 <!-- App Profissional logic -->
-<script src="assets/js/app.js"></script>
+<script src="assets/js/app.js" defer></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
 
 <!-- Modal de Chat — MessagesWidget -->
@@ -2297,19 +2297,28 @@
 <!-- Gatilho de 10 cliques no nome para abrir o painel admin -->
 <script>
 (function () {
-  var el = document.getElementById('header-user-label');
-  if (!el) return;
-  var cliques = 0, timer = null;
-  el.addEventListener('click', function () {
-    cliques++;
-    clearTimeout(timer);
-    if (cliques >= 10) {
-      cliques = 0;
-      window.open('/admin.html', '_blank', 'noopener,noreferrer');
-    } else {
-      timer = setTimeout(function () { cliques = 0; }, 2000);
+  var bindAdminShortcut = function () {
+    var el = document.getElementById('header-user-label');
+    if (!el) return;
+    var cliques = 0, timer = null;
+    el.addEventListener('click', function () {
+      cliques++;
+      clearTimeout(timer);
+      if (cliques >= 10) {
+        cliques = 0;
+        window.open('/admin.html', '_blank', 'noopener,noreferrer');
+      } else {
+        timer = setTimeout(function () { cliques = 0; }, 2000);
+      }
+    });
+  };
+  window.addEventListener('load', function () {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(bindAdminShortcut, { timeout: 2000 });
+      return;
     }
-  });
+    setTimeout(bindAdminShortcut, 0);
+  }, { once: true });
 }());
 </script>
 
