@@ -28,7 +28,7 @@ Data: 2026-05-23.
 app.js
   -> MinhaBarbeariaPage.js
     -> MinhaBarbeariaRuntimeController.js
-      -> events/catalog.js
+      -> shared/js/SectionEventCatalog.js
       -> shared/js/SectionEventBus.js
       -> AgendaSection/index.js
       -> AnalyticsSection/index.js

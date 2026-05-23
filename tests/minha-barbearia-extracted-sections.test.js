@@ -21,7 +21,7 @@ const SECTION_FILES = [
 
 function sandboxSections() {
   const sandbox = vm.createContext({ console, Date, Error, Map, Set, Object, Number });
-  carregar(sandbox, 'events/catalog.js');
+  carregar(sandbox, 'shared/js/SectionEventCatalog.js');
   carregar(sandbox, 'shared/js/SectionEventBus.js');
   carregar(sandbox, 'shared/js/PageSection.js');
   carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/QueueRealtimeClient.js');

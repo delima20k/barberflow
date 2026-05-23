@@ -23,7 +23,7 @@ function importsFrom(relativePath) {
 
 function moduleFiles() {
   const files = [
-    'events/catalog.js',
+    'shared/js/SectionEventCatalog.js',
     'shared/js/PageSection.js',
     'shared/js/SectionEventBus.js',
     'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js',
@@ -87,6 +87,8 @@ describe('ES modules por Section', () => {
     const runtime = read('apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
 
     assert.match(page, /import \{ MinhaBarbeariaRuntimeController \}/);
+    assert.match(runtime, /shared\/js\/SectionEventCatalog\.js/);
+    assert.equal(runtime.includes('events/catalog.js'), false);
     assert.match(runtime, /import \{ SectionEventBus \}/);
     assert.match(runtime, /from '\.\/AgendaSection\/index\.js'/);
     assert.match(runtime, /from '\.\/QueueSection\/index\.js'/);

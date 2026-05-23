@@ -1,4 +1,4 @@
-import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
+import { SectionEventCatalog } from '../../../../../../../shared/js/SectionEventCatalog.js';
 
 export class SettingsController {
   #state;

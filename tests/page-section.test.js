@@ -69,7 +69,7 @@ function criarSandbox(timerHarness = new TimerHarness()) {
     clearInterval: id => timerHarness.clearInterval(id),
     setInterval: handler => timerHarness.setInterval(handler),
   });
-  carregar(sandbox, 'events/catalog.js');
+  carregar(sandbox, 'shared/js/SectionEventCatalog.js');
   carregar(sandbox, 'shared/js/SectionEventBus.js');
   carregar(sandbox, 'shared/js/PageSection.js');
   return { sandbox, timerHarness };

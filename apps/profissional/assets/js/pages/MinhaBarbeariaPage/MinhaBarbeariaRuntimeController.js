@@ -1,4 +1,4 @@
-import { SectionEventCatalog } from '../../../../../../events/catalog.js';
+import { SectionEventCatalog } from '../../../../../../shared/js/SectionEventCatalog.js';
 import { SectionEventBus } from '../../../../../../shared/js/SectionEventBus.js';
 import { AgendaController, AgendaSection, AgendaState, AgendaView } from './AgendaSection/index.js';
 import { AnalyticsController, AnalyticsSection, AnalyticsState, AnalyticsView } from './AnalyticsSection/index.js';

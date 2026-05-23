@@ -25,7 +25,7 @@ class ElementStub {
 
 function criarSandbox() {
   const sandbox = vm.createContext({ console, Map, Set, Object, Error });
-  carregar(sandbox, 'events/catalog.js');
+  carregar(sandbox, 'shared/js/SectionEventCatalog.js');
   carregar(sandbox, 'shared/js/SectionEventBus.js');
   carregar(sandbox, 'shared/js/PageSection.js');
   carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js');
