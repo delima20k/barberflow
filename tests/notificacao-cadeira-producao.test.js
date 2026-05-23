@@ -306,7 +306,11 @@ suite('MinhaBarbeariaPage — enfileira e navega quando #barbershopId é null', 
       },
 
       Pro:    { nav: navSpy },
-      MediaP2P: class { constructor() {} },
+      MediaP2P: class {
+        constructor() {}
+        registrar()   { return Promise.resolve('blob:fake'); }
+        fazerUpload() { return Promise.resolve({ publicUrl: 'https://cdn.test/story.jpg' }); }
+      },
 
       BarbeiroEsperaFluxo: {
         abrirModalCadeira: fn().mockResolvedValue(null),
@@ -345,6 +349,7 @@ suite('MinhaBarbeariaPage — enfileira e navega quando #barbershopId é null', 
       console:       { error: fn(), warn: fn(), log: fn() },
     });
 
+    carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryBrowserMediaAdapter.js');
     carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
     carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');
 

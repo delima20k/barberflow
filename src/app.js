@@ -48,6 +48,7 @@ const R2Client                  = require('./infra/R2Client');
 const SupabaseStorageClient     = require('./infra/SupabaseStorageClient');
 const ImageProcessor            = require('./services/ImageProcessor');
 const MediaManager              = require('./services/MediaManager');
+const MediaTelemetry            = require('./media/MediaTelemetry');
 const PeerHealthService         = require('./services/PeerHealthService');
 const SecureMediaAccessService  = require('./services/SecureMediaAccessService');
 
@@ -174,7 +175,8 @@ function criarApp() {
   const supabaseStorage     = new SupabaseStorageClient(supabase);
   const imageProcessor      = new ImageProcessor();
   const peerHealth          = new PeerHealthService();
-  const mediaManager        = new MediaManager(r2Client, supabase, { supabaseStorage, peerHealth });
+  const mediaTelemetry      = new MediaTelemetry({ logger });
+  const mediaManager        = new MediaManager(r2Client, supabase, { supabaseStorage, peerHealth, telemetry: mediaTelemetry });
   const secureMediaAccess   = new SecureMediaAccessService(r2Client, supabase);
 
   // ── Rate limiting extra em rotas de autenticação ────────────

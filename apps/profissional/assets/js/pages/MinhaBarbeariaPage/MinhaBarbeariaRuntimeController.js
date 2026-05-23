@@ -5,6 +5,7 @@ import { AnalyticsController, AnalyticsSection, AnalyticsState, AnalyticsView } 
 import { NotificationController, NotificationSection, NotificationState, NotificationView } from './NotificationSection/index.js';
 import { QueueController, QueueSection, QueueState, QueueView } from './QueueSection/index.js';
 import { SettingsController, SettingsSection, SettingsState, SettingsView } from './SettingsSection/index.js';
+import { StoryBrowserMediaAdapter } from './StorySection/StoryBrowserMediaAdapter.js';
 import { QueueRealtimeClient } from './QueueRealtimeClient.js';
 
 // =============================================================
@@ -50,7 +51,8 @@ export class MinhaBarbeariaRuntimeController {
   #digBoasVindas        = null;   // instância DigText para o h1#mb-boas-vindas
   #guardaBotoes         = null;   // instância GuardaIten para a gaveta de botões
   #guardaIten           = null;   // instância GuardaIten para o drawer "ver itens"
-  #mediaP2P             = new MediaP2P(); // preview local P2P — upload adiado para o save
+  #mediaP2P             = null; // preview local P2P — upload adiado para o save
+  #storyMediaAdapter    = null;
   #canalFila            = null;   // canal Supabase Realtime de queue_entries
   #pollingTimer         = null;   // fallback polling quando Realtime indisponível
   #renderizandoEquipe   = false;  // guard: evita re-renders simultâneos de cadeiras
@@ -66,7 +68,12 @@ export class MinhaBarbeariaRuntimeController {
   #lazySectionPromises   = new Map();
   #refs                 = {};
 
-  constructor() {}
+  constructor(dependencies = {}) {
+    this.#mediaP2P = dependencies.mediaP2P ?? new MediaP2P();
+    this.#storyMediaAdapter = dependencies.storyMediaAdapter ?? new StoryBrowserMediaAdapter({
+      mediaP2P: this.#mediaP2P,
+    });
+  }
 
   // ── Ponto de entrada ────────────────────────────────────────
 
@@ -368,7 +375,7 @@ export class MinhaBarbeariaRuntimeController {
         module.StoryController,
         module.StoryState,
         module.StoryView,
-        { mediaAdapter: this.#mediaP2P },
+        { mediaAdapter: this.#storyMediaAdapter },
       );
       section.init();
       this.#sections.push(section);
@@ -2199,21 +2206,18 @@ export class MinhaBarbeariaRuntimeController {
     if (addBtn) { addBtn.textContent = '⏳'; addBtn.style.pointerEvents = 'none'; }
 
     try {
-      // ── Fluxo correto: browser → R2 via presigned URL do BFF ───
-      // 1. Registrar arquivo localmente (sem upload ainda)
       const uid     = `story-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-      const blobUrl = await this.#mediaP2P.registrar(file, uid);
-      if (!blobUrl) {
-        if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
-        return; // usuário cancelou a confirmação
-      }
-
-      // 2. Upload P2P: browser → R2 direto via URL presigned
-      const { publicUrl } = await this.#mediaP2P.fazerUpload(uid, 'stories', {
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const uploadResult = await this.#storyMediaAdapter.upload({
+        file,
+        uid,
         barbershopId: this.#barbershopId,
-        mediaType:    file.type.startsWith('video') ? 'video' : 'image',
-        expiresAt:    new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        expiresAt,
       });
+      if (!uploadResult) {
+        if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
+        return;
+      }
 
       // 3. Registrar story no banco (metadados — arquivo já está no R2)
       const { error: dbErr } = await SupabaseService.client
@@ -2221,9 +2225,9 @@ export class MinhaBarbeariaRuntimeController {
         .insert({
           owner_id:      perfil.id,
           barbershop_id: this.#barbershopId,
-          media_url:     publicUrl,
-          media_type:    file.type.startsWith('video') ? 'video' : 'image',
-          expires_at:    new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          media_url:     uploadResult.publicUrl,
+          media_type:    uploadResult.mediaType,
+          expires_at:    uploadResult.expiresAt,
         });
       if (dbErr) throw dbErr;
 

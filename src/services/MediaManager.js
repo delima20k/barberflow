@@ -47,6 +47,8 @@ const EncryptionService   = require('./EncryptionService');
 const ChunkService        = require('./ChunkService');
 const HashService         = require('./HashService');
 const { FallbackService } = require('./FallbackService');
+const MediaUploadService  = require('../media/MediaUploadService');
+const MediaValidator      = require('../media/MediaValidator');
 
 // ── Mapeamento MIME → extensão de arquivo ──────────────────────
 const MIME_PARA_EXT = Object.freeze({
@@ -86,12 +88,17 @@ const CONTEXTOS = Object.freeze({
 });
 
 // Janela de validade da URL presigned (5 minutos)
-const PRESIGNED_EXPIRES_SECS = 300;
 
 class MediaManager extends BaseService {
 
   /** @type {StorageService} */
   #storage;
+
+  /** @type {MediaValidator} */
+  #validator;
+
+  /** @type {MediaUploadService} */
+  #uploadService;
 
   /** @type {import('@supabase/supabase-js').SupabaseClient} */
   #supabase;
@@ -153,6 +160,15 @@ class MediaManager extends BaseService {
     this.#cache          = opts.cache         ?? null;
     this.#p2pUploader    = opts.p2pUploader   ?? null;
     this.#p2pDownloader  = opts.p2pDownloader ?? null;
+    this.#validator      = opts.validator      ?? new MediaValidator();
+    this.#uploadService  = opts.uploadService  ?? new MediaUploadService({
+      storage:       this.#storage,
+      supabase:      this.#supabase,
+      validator:     this.#validator,
+      signingSecret: this.#signingSecret,
+      telemetry:     opts.telemetry,
+      eventBus:      opts.eventBus,
+    });
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -176,123 +192,27 @@ class MediaManager extends BaseService {
    * }>}
    */
   async gerarUrlPresigned({ contexto, ownerId, contentType }) {
-    this._uuid('ownerId', ownerId);
-    this._enum('contexto', contexto, Object.keys(CONTEXTOS));
-
-    const cfg = CONTEXTOS[contexto];
-    if (!cfg.mimes.has(contentType)) {
-      throw this._erro(
-        `Tipo de arquivo não permitido para "${contexto}": ${contentType}`,
-        415
-      );
-    }
-
-    const ext  = MIME_PARA_EXT[contentType];
-    const path = `${contexto}/${ownerId}/${crypto.randomUUID()}.${ext}`;
-    const expiresAt = Math.floor(Date.now() / 1000) + PRESIGNED_EXPIRES_SECS;
-    const token     = this.#assinarToken(path, ownerId, expiresAt);
-
-    const uploadUrl = await this.#storage.presignedPut(contexto, path, contentType, PRESIGNED_EXPIRES_SECS);
-    const publicUrl = this.#storage.publicUrl(contexto, path);
-
-    return { uploadUrl, path, publicUrl, token, expiresAt };
+    return this.#uploadService.gerarUrlPresigned({ contexto, ownerId, contentType });
   }
-
-  // ══════════════════════════════════════════════════════════════
-  // ETAPA 2 — Confirmar upload + persistir metadados
-  // ══════════════════════════════════════════════════════════════
 
   /**
    * Confirma que o upload P2P foi realizado e persiste os metadados no Supabase.
    * Valida o HMAC para garantir que a URL foi gerada por este servidor.
-   * Verifica a existência do arquivo no R2 via HEAD antes de persistir.
+   * Verifica a existencia do arquivo no storage via HEAD antes de persistir.
    *
    * @param {object} params
-   * @param {string} params.path       — caminho no R2 (retornado por gerarUrlPresigned)
-   * @param {string} params.ownerId    — UUID do usuário autenticado
+   * @param {string} params.path
+   * @param {string} params.ownerId
    * @param {string} params.contexto
-   * @param {string} params.token      — HMAC recebido em gerarUrlPresigned
-   * @param {number} params.expiresAt  — timestamp retornado por gerarUrlPresigned
-   * @param {object} [params.metadata] — dados extras livres (ex: { barbershopId, title })
+   * @param {string} params.token
+   * @param {number} params.expiresAt
+   * @param {object} [params.metadata]
    * @returns {Promise<{id: string, path: string, publicUrl: string, tamanhoBytes: number}>}
    */
   async confirmarUpload({ path, ownerId, contexto, token, expiresAt, metadata = {} }) {
-    this._uuid('ownerId', ownerId);
-    this._enum('contexto', contexto, Object.keys(CONTEXTOS));
-
-    if (!path || typeof path !== 'string') {
-      throw this._erro('path inválido.', 400);
-    }
-    if (typeof expiresAt !== 'number' || !Number.isFinite(expiresAt)) {
-      throw this._erro('expiresAt inválido.', 400);
-    }
-
-    // ── Verificar HMAC (timing-safe) ─────────────────────────────
-    const esperado  = this.#assinarToken(path, ownerId, expiresAt);
-    const bufTok    = Buffer.from(typeof token === 'string' ? token : '', 'hex');
-    const bufEsp    = Buffer.from(esperado, 'hex');
-    const tokenValido = bufTok.length === bufEsp.length &&
-                        crypto.timingSafeEqual(bufTok, bufEsp);
-    if (!tokenValido) {
-      throw this._erro('Token inválido.', 401);
-    }
-
-    // ── Verificar expiração ───────────────────────────────────────
-    if (Math.floor(Date.now() / 1000) > expiresAt) {
-      throw this._erro('Token expirado. Solicite uma nova URL de upload.', 401);
-    }
-
-    // ── Verificar upload no storage correto (HEAD) ───────────────
-    const info = await this.#storage.head(contexto, path);
-
-    if (!info) {
-      throw this._erro('Arquivo não encontrado no storage. Realize o upload antes de confirmar.', 404);
-    }
-
-    const { tamanhoBytes, contentType } = info;
-
-    // ── Validar tamanho ────────────────────────────────────────────
-    const cfg = CONTEXTOS[contexto];
-    if (tamanhoBytes > cfg.maxBytes) {
-      // Remove o arquivo para não consumir quota
-      await this.#storage.delete(contexto, path).catch(() => {});
-      throw this._erro(
-        `Arquivo excede o limite de ${cfg.maxBytes / 1024 / 1024} MB para "${contexto}".`,
-        413
-      );
-    }
-
-    const publicUrl = this.#storage.publicUrl(contexto, path);
-
-    // Salvar qual backend foi usado — lido por deletar() para rotear a deleção
-    const metadataFinal = {
-      ...metadata,
-      storage_backend: this.#storage.backendPara(contexto),
-    };
-
-    // ── Persistir metadados no Supabase ────────────────────────────
-    const { data, error } = await this.#supabase
-      .from('media_files')
-      .insert({
-        owner_id:      ownerId,
-        contexto,
-        path,
-        public_url:    publicUrl,
-        content_type:  contentType,
-        tamanho_bytes: tamanhoBytes,
-        metadata:      metadataFinal,
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      throw Object.assign(new Error(error.message), { status: 500 });
-    }
-
-    return { id: data.id, path, publicUrl, tamanhoBytes };
+    return this.#uploadService.confirmarUpload({ path, ownerId, contexto, token, expiresAt, metadata });
   }
 
-  // ══════════════════════════════════════════════════════════════
   // Deleção
   // ══════════════════════════════════════════════════════════════
 
@@ -586,22 +506,6 @@ class MediaManager extends BaseService {
     } catch (_) {
       return null; // miss determinístico — FallbackService avança para Cache/R2
     }
-  }
-
-  /**
-   * Gera um HMAC-SHA256 que vincula path + ownerId + expiresAt.
-   * Impede que um token de uma requisição seja reutilizado para outra.
-   *
-   * @param {string} path
-   * @param {string} ownerId
-   * @param {number} expiresAt — Unix timestamp (segundos)
-   * @returns {string} hex digest
-   */
-  #assinarToken(path, ownerId, expiresAt) {
-    return crypto
-      .createHmac('sha256', this.#signingSecret)
-      .update(`${path}:${ownerId}:${expiresAt}`)
-      .digest('hex');
   }
 
   /**

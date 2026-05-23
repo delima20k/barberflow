@@ -161,6 +161,7 @@ function criarPagina({ comTelaEl = true } = {}) {
     },
   });
 
+  carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryBrowserMediaAdapter.js');
   carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
   carregar(sandbox, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage.js');
 

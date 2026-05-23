@@ -53,3 +53,12 @@
 
 > Esta seção deve ser expandida quando o fluxo P2P completo for implementado.
 > Documentar: sinalização, troca de SDP, ICE servers, gerenciamento de estado da chamada, UI de mídia.
+
+## 6. QUEBRA INCREMENTAL DO MEDIAMANAGER
+
+- `MediaManager` deve ser tratado como fachada temporaria; novos fluxos de Story e Portfolio devem consumir adapters (`StoryMediaAdapter`, `PortfolioMediaAdapter`) e services injetados.
+- Services de midia nao tocam DOM. Preview visual fica somente em `MediaPreviewRenderer`, recebendo o elemento alvo por parametro.
+- Upload, validacao, compressao e processamento de video ficam em classes SRP separadas, com dependencias injetadas, eventos leves (`upload-progress`, `upload-completed`, `validation-failed`) e cancelamento por `AbortController`.
+- Compressao de imagem deve usar Strategy pluggable: foto, screenshot/texto e imagem animada. GIF/animacao nunca deve ser achatado silenciosamente.
+- Erros de midia devem ser tipados (`UploadError`, `CompressionError`, `ValidationError`, `ProcessingError`) e preservar `cause`.
+- Toda etapa deve expor metricas de duracao media, falhas e bytes antes/depois para depuracao e custo.

@@ -216,6 +216,8 @@ class MensalistaRepository extends BaseRepository {
 
   /**
    * Incrementa em 1 o contador de cortes do mensalista ativo.
+   * Usa RPC increment_haircuts_count (migration 20260524000001) para garantir
+   * atomicidade via UPDATE haircuts_count + 1 no banco — sem read-modify-write.
    * @param {string} barbershopId
    * @param {string} clientId
    */
@@ -223,9 +225,35 @@ class MensalistaRepository extends BaseRepository {
     this._uuid('barbershop_id', barbershopId);
     this._uuid('client_id',     clientId);
 
-    // Busca a row ativa para obter o ID
+    const { error } = await this._db.rpc('increment_haircuts_count', {
+      p_barbershop_id: barbershopId,
+      p_client_id:     clientId,
+    });
+
+    if (!error) return;
+
+    // RPC ainda não existe em produção (migration pendente) — fallback seguro
+    if (MensalistaRepository.#ehRpcInexistente(error)) {
+      this._warn('incrementarCortes.rpc_fallback', error);
+      await this.#incrementarCortesLegado(barbershopId, clientId);
+      return;
+    }
+
+    if (!MensalistaRepository.#ehColunaHaircutsCountInexistente(error)) {
+      this._throwDbError(error, 'incrementarCortes');
+    }
+  }
+
+  /**
+   * Fallback para incrementarCortes quando a RPC ainda não existe.
+   * ATENÇÃO: read-modify-write sem lock — risco de race condition em concorrência.
+   * Remover após confirmar que 20260524000001 está em produção.
+   * @param {string} barbershopId
+   * @param {string} clientId
+   */
+  async #incrementarCortesLegado(barbershopId, clientId) {
     const row = await this.verificar(barbershopId, clientId);
-    if (!row) return; // mensalista não encontrado — ignora silenciosamente
+    if (!row) return;
 
     const { error } = await this._db
       .from('barbershop_mensalistas')
@@ -233,7 +261,7 @@ class MensalistaRepository extends BaseRepository {
       .eq('id', row.id);
 
     if (error && !MensalistaRepository.#ehColunaHaircutsCountInexistente(error)) {
-      this._throwDbError(error, 'incrementarCortes');
+      this._throwDbError(error, 'incrementarCortes.legado');
     }
   }
 

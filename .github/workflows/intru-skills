@@ -19,53 +19,277 @@ e todas as boas práticas serão seguidas antes de qualquer implementação.
 
 1º "Prompt Inicial de Sessão"
 ------------------pronpt-1--------------------------
-Antes de implementar qualquer pedido meu, leia e siga obrigatoriamente a skill do agente DELIMA.
+Antes de implementar QUALQUER pedido meu, siga obrigatoriamente o fluxo do AGENTE DELIMA.
 
-Comece por este arquivo mestre:
+==================================================
+1. LEITURA OBRIGATÓRIA INICIAL (SEMPRE)
+==================================================
 
+ANTES de qualquer alteração, leitura ou implementação, leia nesta ordem:
+
+1. README.md do projeto
+2. .github/agents/workflow/skill.md
+3. .github/agents/workflow/skill-index.md
+
+OBJETIVO:
+O README.md deve ser lido primeiro para entender o contexto completo da aplicação.
+
+Identifique obrigatoriamente:
+- arquitetura do projeto
+- front-end atual
+- back-end atual
+- linguagem principal
+- stack usada
+- padrão de classes
+- estrutura de pastas
+- serviços ativos
+- APIs existentes
+- BFF
+- banco de dados
+- integrações
+- cache
+- service worker
+- websocket
+- firebase
+- supabase
+- mysql
+- tabelas
+- schemas
+- infraestrutura
+- app cliente
+- app profissional
+
+==================================================
+2. IDENTIFICAR BANCO DE DADOS (SEMPRE)
+==================================================
+
+Antes de mexer em qualquer fluxo de dados:
+
+verifique no README.md, schemas e arquivos de infra qual banco está em uso.
+
+Identifique:
+- Supabase
+- Firebase
+- MySQL
+- SQL local/interno
+- tabelas próprias
+- outro provider
+
+REGRA:
+Se o projeto já estiver usando Supabase:
+→ usar Supabase sempre.
+
+Se o projeto já estiver usando Firebase:
+→ usar Firebase sempre.
+
+Se identificar MySQL:
+→ usar MySQL sempre.
+
+Se não conseguir identificar:
+→ PERGUNTAR antes de implementar.
+
+Nunca assumir banco sem validar.
+
+==================================================
+3. LEITURA DE REGRAS DO AGENTE
+==================================================
+
+Depois do README:
+
+Leia:
 .github/agents/workflow/skill.md
 
-Depois consulte o índice geral:
-
+Depois:
 .github/agents/workflow/skill-index.md
 
-Use o índice para identificar quais arquivos específicos precisam ser lidos dentro de:
+Use o índice para identificar apenas skills relevantes em:
 
 .github/agents/workflow/skills/
 
-Leia somente os arquivos relacionados à tarefa, para economizar contexto e evitar leitura desnecessária.
+Leia somente o necessário para economizar contexto.
 
-Sempre siga as regras de:
-- Orientação a Objetos;
-- Clean Architecture;
-- SOLID;
-- DRY;
-- segurança;
-- performance;
-- testes;
-- baixo custo;
-- escalabilidade;
-- refatoração controlada;
-- paridade entre app cliente e app profissional quando aplicável.
+==================================================
+4. PRIORIDADE DE ARQUITETURA
+==================================================
 
-Antes de criar qualquer classe nova, consulte:
+Sempre seguir:
 
+- Orientação a Objetos
+- Clean Architecture
+- SOLID
+- DRY
+- baixo acoplamento
+- alta coesão
+- escalabilidade
+- segurança
+- performance
+- baixo custo
+- refatoração controlada
+- testabilidade
+- modularidade
+- reutilização
+- manutenção futura
+
+Nunca criar função solta se o projeto usa padrão de classes.
+
+==================================================
+5. BFF É CAMADA OBRIGATÓRIA
+==================================================
+
+Sempre verificar se o fluxo deve passar pela camada BFF.
+
+Prioridade de fluxo:
+
+Front-end
+↓
+BFF
+↓
+Serviços
+↓
+Banco/API
+↓
+Retorno BFF
+↓
+Front-end
+
+Nunca pular o BFF quando o padrão atual exigir isso.
+
+Sempre reutilizar BFF existente.
+
+==================================================
+6. CONSULTA DE CLASSES EXISTENTES
+==================================================
+
+Antes de criar qualquer classe nova:
+
+Leia:
 CLASS_REGISTRY.md
 
-Reutilize classes existentes sempre que possível.
+Regras:
+- reutilizar classes existentes
+- evitar duplicação
+- manter padrão do projeto
+- preservar DDD quando existir
+- preservar bounded contexts
+- manter separação domain/application/infra/interfaces
 
-Se a regra específica da tarefa não existir no skill.md, no skill-index.md ou nos arquivos da pasta skills/, então:
-1. implemente como um desenvolvedor sênior;
-2. use boas práticas modernas, seguras, escaláveis e orientadas a objetos;
-3. documente a nova boa prática no arquivo de skill mais adequado;
-4. atualize o skill-index.md;
-5. se criar classe nova, atualize também o CLASS_REGISTRY.md.
+==================================================
+7. CONSULTA DE SQL / SCHEMA / INFRA
+==================================================
 
-Não altere arquivos fora do escopo da tarefa.
-Não duplique lógica.
-Não crie funções soltas se o projeto usa padrão de classes.
-Depois de implementar, revise segurança, performance, OOP, DRY, testes e possíveis bugs.
-No final, entregue um resumo curto do que foi alterado.
+Antes de criar:
+- tabelas
+- migrations
+- repositories
+- queries
+- models
+- entidades persistentes
+- relacionamentos
+
+Sempre verificar:
+
+schemas SQL
+migrations
+repositories
+infra
+providers
+adapters
+
+Objetivo:
+evitar criar estrutura que já existe.
+
+==================================================
+8. PARIDADE ENTRE APPS
+==================================================
+
+Se a mudança impactar ambos:
+
+- app cliente
+- app profissional
+
+Verificar se precisa manter paridade.
+
+Nunca quebrar sincronismo entre apps.
+
+==================================================
+9. SE NÃO EXISTIR REGRA
+==================================================
+
+Se não existir regra no:
+
+- skill.md
+- skill-index.md
+- skills/
+- README.md
+
+Então:
+
+1. implementar como dev sênior
+2. usar boas práticas modernas
+3. OOP
+4. segurança
+5. escalabilidade
+6. performance
+7. baixo custo
+8. manter padrão atual
+
+Depois:
+- documentar no skill adequado
+- atualizar skill-index.md
+- atualizar CLASS_REGISTRY.md (se houver nova classe)
+
+==================================================
+10. RESTRIÇÕES
+==================================================
+
+Nunca:
+- alterar arquivos fora do escopo
+- duplicar lógica
+- quebrar BFF
+- quebrar contratos
+- mudar arquitetura sem necessidade
+- recriar serviço existente
+- criar classe redundante
+- pular leitura do README
+- assumir banco sem validar
+
+==================================================
+11. REVISÃO FINAL OBRIGATÓRIA
+==================================================
+
+Após implementar revisar:
+
+- segurança
+- performance
+- OOP
+- SOLID
+- DRY
+- memory leaks
+- render desnecessário
+- cache
+- concorrência
+- fluxo BFF
+- integridade de dados
+- compatibilidade mobile
+- compatibilidade desktop
+- possíveis bugs
+- regressões
+
+==================================================
+12. ENTREGA
+==================================================
+
+Ao final entregar resumo curto:
+
+- arquivos criados
+- arquivos alterados
+- classes criadas
+- classes reutilizadas
+- impacto no BFF
+- impacto no banco
+- impacto cliente/profissional
+- testes feitos
+- riscos encontrados
 ---------------------------final---------------------------
 
 2º Título: "Prompt de Refatoração do Plano de Skills"

@@ -29,7 +29,7 @@ Baseline de `/docs/scripts-audit.md`: 2.517,8 KB de JS total se ambos HTMLs carr
 | `section-agenda-*` | 4,79 KB | 1,57 KB | 1,4 KB | Section estatica. |
 | `section-notification-*` | 2,06 KB | 0,90 KB | 0,8 KB | Section estatica. |
 | `section-queue-*` | 1,98 KB | 0,83 KB | 0,7 KB | Section estatica. |
-| `section-story-*` | 1,79 KB | 0,81 KB | 0,7 KB | Lazy por `import()`. |
+| `section-story-*` | 2,43 KB | 1,02 KB | 0,9 KB | Lazy por `import()`; inclui `StoryBrowserMediaAdapter`. |
 | `section-settings-*` | 1,64 KB | 0,76 KB | 0,7 KB | Section estatica. |
 | `section-analytics-*` | 1,48 KB | 0,75 KB | 0,7 KB | Section estatica. |
 | `section-portfolio-*` | 1,46 KB | 0,69 KB | 0,6 KB | Lazy por `import()`. |

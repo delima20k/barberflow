@@ -1,0 +1,355 @@
+{
+  "_meta": {
+    "generated_at": "2026-05-23",
+    "type": "static_analysis",
+    "note": "Queries não foram executadas contra banco de produção (constraint: somente leitura / sem acesso live). Este relatório contém análise estática derivada de inspeção de migrations, código de aplicação e estrutura de tabelas. Execute as audit_queries em staging com role service_role para obter drift real.",
+    "audit_document": "docs/db/contadores-audit.md",
+    "rebuild_plan": "docs/db/contadores-rebuild-plan.md"
+  },
+  "counters": [
+    {
+      "id": "C1",
+      "table": "barbershops",
+      "column": "likes_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "barbershop_interactions",
+      "source_predicate": "type = 'like'",
+      "maintenance_mechanism": "TRIGGER trg_barbershop_rating (SECURITY DEFINER, AFTER INSERT OR DELETE)",
+      "status": "healthy",
+      "static_analysis": {
+        "drift_expected": false,
+        "drift_magnitude": "low",
+        "drift_direction": null,
+        "confidence": "high",
+        "corruption_window": {
+          "start": "2026-04-18",
+          "end": "2026-04-21",
+          "description": "Trigger criado sem SECURITY DEFINER em 20260418000001 e novamente em 20260421000004. RLS filtrava COUNT(*) pelo uid do caller, resultando em counts incorretos. Corrigido + backfill em 20260421000005."
+        },
+        "residual_risk": "Backfill de 20260421000005 pode ter lag entre ambientes. Records criados entre 2026-04-18 e 2026-04-21 podem ter drift residual se migration foi aplicada com delay."
+      },
+      "audit_query": "SELECT b.id AS entity_id, b.name, b.likes_count AS stored_count, COUNT(bi.id) FILTER (WHERE bi.type = 'like') AS real_count, b.likes_count - COUNT(bi.id) FILTER (WHERE bi.type = 'like') AS drift FROM public.barbershops b LEFT JOIN public.barbershop_interactions bi ON bi.barbershop_id = b.id WHERE b.is_active = true GROUP BY b.id, b.name, b.likes_count HAVING b.likes_count != COUNT(bi.id) FILTER (WHERE bi.type = 'like') ORDER BY ABS(b.likes_count - COUNT(bi.id) FILTER (WHERE bi.type = 'like')) DESC;",
+      "downstream_impact": ["ranking por popularidade (BarbershopRepository.js:44,77,95,217)", "score Bayesiano (C3)"],
+      "priority": "P2_verify_only"
+    },
+    {
+      "id": "C2",
+      "table": "barbershops",
+      "column": "dislikes_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "barbershop_interactions",
+      "source_predicate": "type = 'dislike'",
+      "maintenance_mechanism": "TRIGGER trg_barbershop_rating (SECURITY DEFINER, AFTER INSERT OR DELETE)",
+      "status": "healthy",
+      "static_analysis": {
+        "drift_expected": false,
+        "drift_magnitude": "low",
+        "drift_direction": null,
+        "confidence": "high",
+        "corruption_window": {
+          "start": "2026-04-18",
+          "end": "2026-04-21",
+          "description": "Mesma janela de corrupção de C1."
+        }
+      },
+      "audit_query": "SELECT b.id AS entity_id, b.name, b.dislikes_count AS stored_count, COUNT(bi.id) FILTER (WHERE bi.type = 'dislike') AS real_count, b.dislikes_count - COUNT(bi.id) FILTER (WHERE bi.type = 'dislike') AS drift FROM public.barbershops b LEFT JOIN public.barbershop_interactions bi ON bi.barbershop_id = b.id WHERE b.is_active = true GROUP BY b.id, b.name, b.dislikes_count HAVING b.dislikes_count != COUNT(bi.id) FILTER (WHERE bi.type = 'dislike') ORDER BY ABS(drift) DESC;",
+      "downstream_impact": ["score Bayesiano (C3)"],
+      "priority": "P2_verify_only"
+    },
+    {
+      "id": "C3",
+      "table": "barbershops",
+      "column": "rating_score",
+      "type": "NUMERIC(3,1)",
+      "default": 0.0,
+      "source_table": "derived",
+      "source_predicate": "Bayesian formula: (PRIOR_MEAN*PRIOR_N + avg*total) / (PRIOR_N+total) where PRIOR_N=5, PRIOR_MEAN=3.0, like=5.0, dislike=1.0",
+      "maintenance_mechanism": "TRIGGER trg_barbershop_rating (SECURITY DEFINER)",
+      "status": "healthy",
+      "static_analysis": {
+        "drift_expected": false,
+        "drift_magnitude": "proportional_to_c1_c2_drift",
+        "drift_direction": null,
+        "confidence": "high",
+        "note": "Deriva dos valores de C1/C2. Se C1/C2 tiverem drift residual da janela de corrupção, C3 também terá drift proporcional."
+      },
+      "audit_query": "WITH stats AS (SELECT barbershop_id, COUNT(*) FILTER (WHERE type = 'like') AS lk, COUNT(*) FILTER (WHERE type = 'dislike') AS dl FROM public.barbershop_interactions GROUP BY barbershop_id), calculated AS (SELECT s.barbershop_id, CASE WHEN (s.lk + s.dl) = 0 THEN 0.0 ELSE ROUND((3.0 * 5 + ((s.lk * 5.0 + s.dl * 1.0) / (s.lk + s.dl)) * (s.lk + s.dl)) / (5 + (s.lk + s.dl)), 1) END AS expected_score FROM stats s) SELECT b.id, b.name, b.rating_score AS stored_score, c.expected_score AS real_score, b.rating_score - c.expected_score AS drift FROM public.barbershops b LEFT JOIN calculated c ON c.barbershop_id = b.id WHERE b.is_active = true AND b.rating_score IS DISTINCT FROM COALESCE(c.expected_score, 0.0) ORDER BY ABS(b.rating_score - COALESCE(c.expected_score, 0.0)) DESC;",
+      "downstream_impact": ["ranking ORDER BY rating_score DESC (BarbershopRepository.js)"],
+      "priority": "P2_verify_only"
+    },
+    {
+      "id": "C4",
+      "table": "barbershops",
+      "column": "rating_avg",
+      "type": "NUMERIC(3,2)",
+      "default": 0.00,
+      "source_table": null,
+      "source_predicate": null,
+      "maintenance_mechanism": null,
+      "status": "orphaned",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "100_percent",
+        "drift_direction": "stored_zero_real_undefined",
+        "confidence": "certain",
+        "note": "Coluna órfã. Nenhuma migration, trigger ou código de aplicação atualiza esta coluna. Origem: arquitetura star-rating que foi substituída por like/dislike mas as colunas não foram removidas."
+      },
+      "audit_query": "SELECT COUNT(*) AS total_barbershops, COUNT(*) FILTER (WHERE rating_avg > 0) AS com_rating_avg, COUNT(*) FILTER (WHERE rating_count > 0) AS com_rating_count FROM public.barbershops WHERE is_active = true;",
+      "downstream_impact": [
+        "MapWidget.js:390 — exibe ⭐ 0.0 no popup do mapa para todas as barbearias",
+        "CapaBarbearia.js:68 — exibe 0.0 com arredondamento",
+        "BarbershopRepository.js:94-96 — ORDER BY rating_avg (empata tudo em 0)"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "C5",
+      "table": "barbershops",
+      "column": "rating_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": null,
+      "source_predicate": null,
+      "maintenance_mechanism": null,
+      "status": "orphaned",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "100_percent",
+        "drift_direction": "stored_zero_real_undefined",
+        "confidence": "certain",
+        "note": "Coluna órfã. Exibida em NearbyBarbershopsWidget.js:593 como 'N cortes' — sempre mostra '0 cortes'."
+      },
+      "audit_query": "SELECT COUNT(*) AS total_barbershops, COUNT(*) FILTER (WHERE rating_count > 0) AS com_rating_count FROM public.barbershops WHERE is_active = true;",
+      "downstream_impact": [
+        "NearbyBarbershopsWidget.js:593 — '0 cortes' para todas as barbearias"
+      ],
+      "priority": "P1"
+    },
+    {
+      "id": "C6",
+      "table": "professionals",
+      "column": "rating_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "professional_likes",
+      "source_predicate": "professional_id = professional.id",
+      "maintenance_mechanism": "TRIGGER trg_professional_likes (SECURITY DEFINER, AFTER INSERT OR DELETE)",
+      "status": "healthy_misleading_name",
+      "static_analysis": {
+        "drift_expected": false,
+        "drift_magnitude": "low",
+        "drift_direction": null,
+        "confidence": "high",
+        "note": "Coluna 'rating_count' armazena contagem de curtidas (professional_likes), não de avaliações/ratings. Nome enganoso. Exibida como 'avaliações' em BarbeiroPage.js:188.",
+        "corruption_window": {
+          "start": "2026-04-20",
+          "end": "2026-04-21",
+          "description": "Trigger original sem SECURITY DEFINER. Corrigido + backfill em 20260421000005."
+        }
+      },
+      "audit_query": "SELECT p.id AS entity_id, pr.full_name, p.rating_count AS stored_count, COUNT(pl.id) AS real_like_count, p.rating_count - COUNT(pl.id) AS drift FROM public.professionals p LEFT JOIN public.profiles pr ON pr.id = p.id LEFT JOIN public.professional_likes pl ON pl.professional_id = p.id WHERE p.is_active = true GROUP BY p.id, pr.full_name, p.rating_count HAVING p.rating_count != COUNT(pl.id) ORDER BY ABS(p.rating_count - COUNT(pl.id)) DESC;",
+      "downstream_impact": ["BarbeiroPage.js:188 — exibe como 'avaliações'", "BarbershopRepository.js:258,295 — ORDER BY rating_count em listagem de barbeiros"],
+      "priority": "P2_verify_only"
+    },
+    {
+      "id": "C7",
+      "table": "professionals",
+      "column": "rating_avg",
+      "type": "NUMERIC(3,2)",
+      "default": 0.00,
+      "source_table": null,
+      "source_predicate": null,
+      "maintenance_mechanism": null,
+      "status": "orphaned",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "100_percent",
+        "drift_direction": "stored_zero_real_undefined",
+        "confidence": "certain",
+        "note": "Coluna órfã. Exibida em BarbeiroPage.js:189. Sempre 0.0 para todos os profissionais."
+      },
+      "audit_query": "SELECT COUNT(*) AS total_professionals, COUNT(*) FILTER (WHERE rating_avg > 0) AS com_rating_avg FROM public.professionals WHERE is_active = true;",
+      "downstream_impact": ["BarbeiroPage.js:189 — 0.0 estrelas para todos os profissionais"],
+      "priority": "P1"
+    },
+    {
+      "id": "C8",
+      "table": "portfolio_images",
+      "column": "likes_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "likes",
+      "source_predicate": "content_type = 'portfolio_image' AND content_id = portfolio_image.id",
+      "maintenance_mechanism": null,
+      "status": "broken_no_trigger",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "100_percent_post_migration",
+        "drift_direction": "perdidos (stored < real)",
+        "confidence": "certain",
+        "root_cause": "20260517000003_unify_portfolio_likes.sql migrou portfolio_likes → likes e dropou portfolio_likes, mas não criou trigger na tabela likes para manter portfolio_images.likes_count.",
+        "drift_start_date": "2026-05-17",
+        "note": "Qualquer like feito em portfolio após 2026-05-17 existe em public.likes mas não reflete em portfolio_images.likes_count. Contadores pre-migration também eram 0 (portfolio_likes também não tinha trigger)."
+      },
+      "audit_query": "SELECT pi.id AS entity_id, pi.owner_id, pi.category, pi.likes_count AS stored_count, COUNT(l.id) AS real_count, pi.likes_count - COUNT(l.id) AS drift FROM public.portfolio_images pi LEFT JOIN public.likes l ON l.content_id = pi.id AND l.content_type = 'portfolio_image' WHERE pi.status != 'deleted' GROUP BY pi.id, pi.owner_id, pi.category, pi.likes_count HAVING pi.likes_count != COUNT(l.id) ORDER BY ABS(pi.likes_count - COUNT(l.id)) DESC;",
+      "downstream_impact": ["Portfolio aparece sem curtidas para profissional e cliente", "Indicador social de portfolio inutilizado"],
+      "priority": "P0"
+    },
+    {
+      "id": "C9",
+      "table": "portfolio_images",
+      "column": "views_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": null,
+      "source_predicate": null,
+      "maintenance_mechanism": null,
+      "status": "no_source_table",
+      "static_analysis": {
+        "drift_expected": false,
+        "drift_magnitude": "indeterminate",
+        "drift_direction": "stored_zero_real_undefined",
+        "confidence": "certain",
+        "note": "Não existe tabela portfolio_views. Nenhum código de aplicação atualiza esta coluna. Counter decorativo sem fonte."
+      },
+      "audit_query": "SELECT COUNT(*) AS total_images, COUNT(*) FILTER (WHERE views_count > 0) AS com_views FROM public.portfolio_images WHERE status != 'deleted';",
+      "downstream_impact": ["Analytics de visualização de portfolio inutilizados"],
+      "priority": "P3_no_source_create_table_first"
+    },
+    {
+      "id": "C10",
+      "table": "stories",
+      "column": "views_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "story_views",
+      "source_predicate": "story_id = story.id",
+      "maintenance_mechanism": null,
+      "status": "broken_no_trigger",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "high",
+        "drift_direction": "perdidos (stored=0, real=N desde 2026-04-06)",
+        "confidence": "certain",
+        "root_cause": "story_views tem INSERT policy correta e recebe dados reais, mas nenhuma migration criou AFTER INSERT trigger em story_views para atualizar stories.views_count.",
+        "note": "Dados de visualização são coletados e descartados do ponto de vista do contador. views_count nunca sai de 0."
+      },
+      "audit_query": "SELECT s.id AS entity_id, s.owner_id, s.barbershop_id, s.views_count AS stored_count, COUNT(sv.id) AS real_count, s.views_count - COUNT(sv.id) AS drift, s.expires_at, (s.expires_at < now()) AS expirado FROM public.stories s LEFT JOIN public.story_views sv ON sv.story_id = s.id GROUP BY s.id, s.owner_id, s.barbershop_id, s.views_count, s.expires_at HAVING s.views_count != COUNT(sv.id) ORDER BY ABS(s.views_count - COUNT(sv.id)) DESC;",
+      "downstream_impact": ["Painel de analytics do profissional mostra 0 visualizações", "Sem dado para rankeamento por popularidade de stories"],
+      "priority": "P0"
+    },
+    {
+      "id": "C11",
+      "table": "stories",
+      "column": "likes_count",
+      "type": "PHANTOM_COLUMN",
+      "default": null,
+      "source_table": "likes",
+      "source_predicate": "content_type = 'story'",
+      "maintenance_mechanism": null,
+      "status": "phantom_column_not_in_schema",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "100_percent",
+        "drift_direction": "stored=null (coluna inexistente), real=N",
+        "confidence": "certain",
+        "root_cause": "SocialRepository.js:40 faz SELECT views_count, likes_count de stories. Nenhuma migration adiciona likes_count à tabela stories. PostgREST retorna null silenciosamente.",
+        "file_reference": "src/repositories/SocialRepository.js:40"
+      },
+      "audit_query": "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'stories' AND column_name = 'likes_count';",
+      "downstream_impact": ["SocialRepository retorna null para likes_count — frontend recebe null sem erro", "Contagem de likes de stories nunca exibida corretamente"],
+      "priority": "P2_fix_query_or_add_column"
+    },
+    {
+      "id": "C12",
+      "table": "feed_items",
+      "column": "likes_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "likes",
+      "source_predicate": "content_id = feed_item.source_id AND content_type = feed_item.source_type",
+      "maintenance_mechanism": null,
+      "status": "broken_never_saved",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "100_percent",
+        "drift_direction": "perdidos (stored=0, real=N)",
+        "confidence": "certain",
+        "root_cause": "SupabaseFeedRepository.saveItem() não inclui likes_count nem views_count no INSERT. Nenhum trigger conecta public.likes a feed_items.",
+        "file_reference": "barberflow-bff-api/infrastructure/feed/SupabaseFeedRepository.js:16-29",
+        "drift_start_date": "2026-05-22"
+      },
+      "audit_query": "SELECT fi.id AS entity_id, fi.author_id, fi.source_type, fi.source_id, fi.likes_count AS stored_count, COUNT(l.id) AS real_count, fi.likes_count - COUNT(l.id) AS drift FROM public.feed_items fi LEFT JOIN public.likes l ON l.content_id = fi.source_id AND l.content_type = fi.source_type GROUP BY fi.id, fi.author_id, fi.source_type, fi.source_id, fi.likes_count HAVING fi.likes_count != COUNT(l.id) ORDER BY ABS(fi.likes_count - COUNT(l.id)) DESC;",
+      "downstream_impact": ["Feed não consegue ranquear por popularidade", "affinity_score retorna 0 para todos os feed_items", "Ranking do feed completamente inoperante quando baseado em engajamento"],
+      "priority": "P1"
+    },
+    {
+      "id": "C13",
+      "table": "feed_items",
+      "column": "views_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": null,
+      "source_predicate": null,
+      "maintenance_mechanism": null,
+      "status": "no_source_table",
+      "static_analysis": {
+        "drift_expected": false,
+        "drift_magnitude": "indeterminate",
+        "drift_direction": "stored_zero_real_undefined",
+        "confidence": "certain",
+        "note": "Não existe tabela feed_item_views. Counter decorativo sem fonte."
+      },
+      "audit_query": "SELECT COUNT(*) AS total_items, COUNT(*) FILTER (WHERE views_count > 0) AS com_views FROM public.feed_items;",
+      "downstream_impact": ["affinity_score sem dado de views — feed ranking cego para views"],
+      "priority": "P3_no_source_create_table_first"
+    },
+    {
+      "id": "C14",
+      "table": "barbershop_mensalistas",
+      "column": "haircuts_count",
+      "type": "INTEGER",
+      "default": 0,
+      "source_table": "transactions",
+      "source_predicate": "type='revenue' AND status='paid' AND client_id=mensalista.client_id AND barbershop_id=mensalista.barbershop_id BETWEEN starts_at AND ends_at",
+      "maintenance_mechanism": "application_code_race_condition",
+      "status": "race_condition",
+      "static_analysis": {
+        "drift_expected": true,
+        "drift_magnitude": "small_growing",
+        "drift_direction": "perdidos (stored < real durante concurrent writes)",
+        "confidence": "high",
+        "root_cause": "MensalistaRepository.js:232 faz read-modify-write sem lock atômico. Dois atendentes simultâneos leem o mesmo valor N e ambos escrevem N+1, resultado: N+1 em vez de N+2.",
+        "file_reference": "barberflow-bff-api/repositories/MensalistaRepository.js:232",
+        "not_auto_auditable": true,
+        "note": "Não existe tabela mensalista_haircut_events. A query de auditoria usa transactions como proxy — não é a fonte canônica. Drift real pode diferir do estimado."
+      },
+      "audit_query": "SELECT bm.id, bm.barbershop_id, bm.client_id, bm.haircuts_count AS stored_count, COUNT(t.id) AS proxy_transaction_count, bm.haircuts_count - COUNT(t.id) AS drift_estimado FROM public.barbershop_mensalistas bm LEFT JOIN public.transactions t ON t.client_id = bm.client_id AND t.barbershop_id = bm.barbershop_id AND t.status = 'paid' AND t.type = 'revenue' AND t.created_at BETWEEN bm.starts_at AND bm.ends_at GROUP BY bm.id, bm.barbershop_id, bm.client_id, bm.haircuts_count HAVING bm.haircuts_count != COUNT(t.id) ORDER BY ABS(drift_estimado) DESC;",
+      "downstream_impact": ["MinhaBarbeariaRuntimeController.js:776 — exibe count incorreto no painel de mensalistas"],
+      "priority": "P2"
+    }
+  ],
+  "summary": {
+    "total_counters": 14,
+    "healthy": ["C1", "C2", "C3", "C6"],
+    "orphaned_no_source": ["C4", "C5", "C7", "C9", "C13"],
+    "broken_no_trigger": ["C8", "C10"],
+    "phantom_column": ["C11"],
+    "broken_never_saved": ["C12"],
+    "race_condition": ["C14"],
+    "p0_critical": ["C8", "C10"],
+    "p1_high": ["C4", "C5", "C7", "C12"],
+    "p2_medium": ["C6_verify", "C11", "C14"],
+    "p3_needs_source_table": ["C9", "C13"],
+    "not_auto_auditable": ["C9", "C13", "C14"],
+    "corruption_windows": [
+      {
+        "period": "2026-04-18 to 2026-04-21",
+        "affected": ["C1", "C2", "C3", "C6"],
+        "status": "backfill applied in 20260421000005 — verify residual drift"
+      }
+    ]
+  }
+}

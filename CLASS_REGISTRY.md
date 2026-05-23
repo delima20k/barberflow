@@ -640,6 +640,27 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `SupabaseSchedulerRepository` | [barberflow-bff-api/infrastructure/scheduler/SupabaseSchedulerRepository.js](barberflow-bff-api/infrastructure/scheduler/SupabaseSchedulerRepository.js) | infra | Adapter Supabase para historico de execucoes e eventos do Scheduler. |
 | `TaskExecution` | [barberflow-bff-api/domain/scheduler/entities/TaskExecution.js](barberflow-bff-api/domain/scheduler/entities/TaskExecution.js) | domain | Entidade de historico de execucao com status, erro, tentativas e duracao. |
 | `TaskRegistry` | [barberflow-bff-api/application/scheduler/TaskRegistry.js](barberflow-bff-api/application/scheduler/TaskRegistry.js) | application | Registro explicito de tasks, evitando string magica espalhada. |
+
+## Media Pipeline
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `AnimatedImageStrategy` | [src/media/ImageCompressionService.js](src/media/ImageCompressionService.js) | application | Strategy de compressao que preserva imagens animadas sem achatar frames. |
+| `CompressionError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Erro tipado para falhas de compressao com causa preservada. |
+| `ImageCompressionService` | [src/media/ImageCompressionService.js](src/media/ImageCompressionService.js) | application | Orquestra compressao de imagem por Strategy pluggable e metricas por etapa. |
+| `MediaPipelineError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Base de erros tipados do pipeline de midia com status, code, details e cause. |
+| `MediaPreviewRenderer` | [src/media/MediaPreviewRenderer.js](src/media/MediaPreviewRenderer.js) | interfaces | Unico componente do pipeline autorizado a renderizar preview em elemento DOM recebido por parametro. |
+| `MediaTelemetry` | [src/media/MediaTelemetry.js](src/media/MediaTelemetry.js) | application | Coleta logs estruturados e metricas de duracao, falha e bytes por etapa de midia. |
+| `MediaUploadService` | [src/media/MediaUploadService.js](src/media/MediaUploadService.js) | application | Gera presigned URL, confirma upload, emite progresso/eventos e suporta retry/cancelamento. |
+| `MediaValidator` | [src/media/MediaValidator.js](src/media/MediaValidator.js) | application | Valida contexto, MIME, tamanho, duracao e heuristica de tipo/strategy de midia. |
+| `PhotoCompressionStrategy` | [src/media/ImageCompressionService.js](src/media/ImageCompressionService.js) | application | Strategy qualidade-priorizada para fotos, com resize seguro e saida WebP. |
+| `PortfolioMediaAdapter` | [src/media/PortfolioMediaAdapter.js](src/media/PortfolioMediaAdapter.js) | application | Adapter de portfolio que aplica regras de imagem, aspecto, metadata e upload injetado. |
+| `ProcessingError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Erro tipado para falhas de processamento de video/midia com causa preservada. |
+| `ScreenshotCompressionStrategy` | [src/media/ImageCompressionService.js](src/media/ImageCompressionService.js) | application | Strategy texto-friendly para screenshots, preferindo PNG otimizado ou WebP legivel. |
+| `StoryMediaAdapter` | [src/media/StoryMediaAdapter.js](src/media/StoryMediaAdapter.js) | application | Adapter de story que aplica regras de Story, compressao/processamento e upload injetado. |
+| `UploadError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Erro tipado para falhas de upload, token, rede, retry e cancelamento. |
+| `ValidationError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Erro tipado para entradas invalidas do pipeline de midia. |
+| `VideoProcessor` | [src/media/VideoProcessor.js](src/media/VideoProcessor.js) | application | Processa video por dependencias injetadas: inspecao, thumbnail e fila futura de transcode. |
 ## Page Sections
 
 | Classe | Arquivo | Camada | Descricao |
@@ -655,6 +676,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `QueueRealtimeClient` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/QueueRealtimeClient.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/QueueRealtimeClient.js) | interfaces | Cliente injetavel de realtime/polling compartilhado entre Queue e Notification. |
 | `StorySection` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StorySection.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StorySection.js) | interfaces | Section de stories com midia injetada para extracao incremental. |
 | `StoryController` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryController.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryController.js) | interfaces | Orquestra mudancas de stories e publica eventos da secao. |
+| `StoryBrowserMediaAdapter` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryBrowserMediaAdapter.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryBrowserMediaAdapter.js) | interfaces | Adapter browser de Story que encapsula MediaP2P e entrega resultado de upload pronto para o runtime. |
 | `StoryState` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryState.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryState.js) | interfaces | Estado encapsulado de stories e quota. |
 | `StoryView` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryView.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/StorySection/StoryView.js) | interfaces | View DOM restrita da secao de stories. |
 | `PortfolioSection` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioSection.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioSection.js) | interfaces | Placeholder de Section para portfolio legado ausente no god-file. |
@@ -677,3 +699,6 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `SettingsController` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsController.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsController.js) | interfaces | Controller de settings com State/View injetados. |
 | `SettingsState` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsState.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsState.js) | interfaces | Estado local de shop, servicos e revisao de settings. |
 | `SettingsView` | [apps/profissional/assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsView.js](apps/profissional/assets/js/pages/MinhaBarbeariaPage/SettingsSection/SettingsView.js) | interfaces | View DOM restrita de settings. |
+| `CounterRebuilder` | [scripts/rebuild-counters.js](scripts/rebuild-counters.js) | infra | Orquestra rebuild em batches dos contadores desnormalizados com checkpoint, dry-run e relatório pós-rebuild. |
+| `CheckpointStore` | [scripts/rebuild-counters.js](scripts/rebuild-counters.js) | infra | Persiste e recupera cursor de checkpoint do rebuild em arquivo JSON local. Reutilizável para qualquer job iterativo com cursor. |
+| `RebuildLogger` | [scripts/rebuild-counters.js](scripts/rebuild-counters.js) | infra | Logger estruturado com timestamp relativo para scripts de manutenção. |
