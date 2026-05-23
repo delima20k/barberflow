@@ -113,6 +113,17 @@ Ver análise completa em `docs/cache.md`.
 - [ ] Eventos de alta frequência com debounce/throttle
 - [ ] Assets comprimidos e com lazy loading
 
+## 5.1 PIPELINE VITE / BUNDLER FRONTEND
+
+- Introduzir bundler de forma reversível: build canário primeiro, HTML legado como fallback até remover globals críticos.
+- Configurar hashing, sourcemaps, manifest, gzip/brotli e relatório visual de bundle antes de promover para produção.
+- Usar `manualChunks` por domínio/section quando ainda não houver roteamento completo por ES modules.
+- Validar `import.meta.env` no entry-point do app e documentar variáveis opcionais/obrigatórias.
+- CI deve rodar `npm run build:vite`, checar budget de chunks e guardar `docs/perf/fase-*/bundle.html` como artefato.
+- Lighthouse CI deve comparar PR contra baseline quando Chrome/Lighthouse estiverem disponíveis; se não estiverem, registrar artefato `not-run` sem inventar métrica.
+- Vendor via npm é o destino final; CDN/script solto só permanece em allowlist com justificativa e plano de remoção.
+- Promoção para produção exige critérios objetivos de TBT, LCP, INP e taxa de erro JS; rollback deve voltar ao HTML legado ou artefato anterior versionado.
+
 ## 6. FEED ESCALAVEL NA BFF
 
 - Feed pesado deve ficar atras da BFF e usar cursor estavel `(created_at, id)`, nunca `OFFSET`.

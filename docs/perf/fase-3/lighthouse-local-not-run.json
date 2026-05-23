@@ -1,0 +1,10 @@
+{
+  "status": "not_run",
+  "checkedAt": "2026-05-23",
+  "reason": "Chrome/Edge nao estao disponiveis no PATH local para executar Lighthouse/preview com medicao real.",
+  "targets": [
+    "apps/cliente/index.html",
+    "apps/profissional/index.html"
+  ],
+  "metrics": null
+}

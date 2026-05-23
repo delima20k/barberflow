@@ -217,6 +217,19 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `TokenService` | [src/infra/TokenService.js](src/infra/TokenService.js) | infra | Geração e verificação de JWTs customizados (access: 15min, refresh: 7d) + verificação local de tokens Supabase Auth sem chamada de rede (verificarSupabase) + tokens admin dashboard (gerarAdmin/verificarAdmin, 4h, secret próprio ADMIN_JWT_SECRET). Algoritmo fixo HS256. |
 | `ValidationMiddleware` | [src/infra/ValidationMiddleware.js](src/infra/ValidationMiddleware.js) | infra | Validação declarativa de inputs por schema. corpo()/params()/query() retornam middleware. Tipos: uuid, email, nome, telefone, texto (sanitiza), enum, numero, booleano. 400 com { ok, error, erros[] } ao falhar. |
 
+## src/vite/ (frontend build)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `ViteEnvValidator` | [src/vite/ViteEnvValidator.js](src/vite/ViteEnvValidator.js) | infra | Valida variáveis `import.meta.env` no boot dos entry-points Vite e retorna snapshot imutável. |
+
+## scripts/ (build tooling)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `BundleBudgetChecker` | [scripts/check-bundle-size.js](scripts/check-bundle-size.js) | infra | Verifica chunks JS gerados pelo Vite contra limites configuráveis e reporta gzip/brotli. |
+| `ViteConfigFactory` | [vite.config.mjs](vite.config.mjs) | infra | Monta configuração Vite reversível com aliases, chunks manuais, sourcemaps, manifest e compressão. |
+
 ## src/repositories/ (Node.js — backend)
 
 | Classe | Arquivo | Camada | Descrição |

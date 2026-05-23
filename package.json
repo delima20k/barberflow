@@ -7,13 +7,21 @@
     "stop:pm2": "pm2 stop barberflow-api",
     "logs:pm2": "pm2 logs barberflow-api",
     "dev": "node server.js",
+    "dev:vite": "vite --host 0.0.0.0",
+    "build:vite": "vite build && node scripts/check-bundle-size.js",
+    "preview:vite": "vite preview --host 0.0.0.0",
+    "perf:lhci": "lhci autorun --config=./lighthouserc.cjs",
     "test": "jest",
     "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "jest": "^29.7.0",
     "jimp": "^1.6.1",
-    "sharp": "^0.34.5"
+    "rollup-plugin-visualizer": "^7.0.1",
+    "sharp": "^0.34.5",
+    "vite": "^8.0.14",
+    "vite-plugin-compression": "^0.5.1"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",
@@ -27,6 +35,7 @@
     "express-rate-limit": "^8.4.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0"
   }
