@@ -126,8 +126,8 @@ class GeoService {
         return posLocal;
       }
 
-      // 2) BFF autenticada
-      if (typeof BffApiService !== 'undefined') {
+      // 2) BFF autenticada — só se houver token válido
+      if (typeof BffApiService !== 'undefined' && BffApiService.temTokenValido()) {
         GeoService.#debug('[GeoService] carregarDoBanco: consultando BFF');
         const { data, error } = await BffApiService.get('/api/v1/clientes/localizacao');
         if (!error && data?.lat != null && data?.lng != null) {
