@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class NotificationController {
+export class NotificationController {
   #state;
   #view;
   #queueRealtimeClient;

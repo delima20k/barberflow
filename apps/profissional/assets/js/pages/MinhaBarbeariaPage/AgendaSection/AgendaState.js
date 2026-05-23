@@ -1,6 +1,4 @@
-'use strict';
-
-class AgendaState {
+export class AgendaState {
   #phase;
   #message;
   #lastSettingsChange;

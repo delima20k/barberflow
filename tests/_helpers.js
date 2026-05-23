@@ -51,9 +51,13 @@ function fn(impl) {
  */
 function carregar(sandbox, relPath) {
   const raw   = fs.readFileSync(path.join(ROOT, relPath), 'utf8');
-  const nomes = [...raw.matchAll(/^(?:class|const)\s+([A-Z][A-Za-z0-9_]*)/gm)].map(m => m[1]);
+  const compat = raw
+    .replace(/^import\s+[^;]+;\s*$/gm, '')
+    .replace(/^export\s+class\s+/gm, 'class ')
+    .replace(/^export\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];\s*$/gm, '');
+  const nomes = [...compat.matchAll(/^(?:class|const)\s+([A-Z][A-Za-z0-9_]*)/gm)].map(m => m[1]);
   const exp   = nomes.map(n => `if(typeof ${n}!=='undefined') globalThis.${n}=${n};`).join('\n');
-  vm.runInContext(`${raw}\n${exp}`, sandbox);
+  vm.runInContext(`${compat}\n${exp}`, sandbox);
 }
 
 module.exports = { fn, carregar, ROOT };

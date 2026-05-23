@@ -1,6 +1,4 @@
-'use strict';
-
-class PortfolioView {
+export class PortfolioView {
   #root;
   constructor(rootElement) { this.#root = rootElement; }
   render(state) {

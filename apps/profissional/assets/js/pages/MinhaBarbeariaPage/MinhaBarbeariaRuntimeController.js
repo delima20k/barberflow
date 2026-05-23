@@ -1,4 +1,11 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../events/catalog.js';
+import { SectionEventBus } from '../../../../../../shared/js/SectionEventBus.js';
+import { AgendaController, AgendaSection, AgendaState, AgendaView } from './AgendaSection/index.js';
+import { AnalyticsController, AnalyticsSection, AnalyticsState, AnalyticsView } from './AnalyticsSection/index.js';
+import { NotificationController, NotificationSection, NotificationState, NotificationView } from './NotificationSection/index.js';
+import { QueueController, QueueSection, QueueState, QueueView } from './QueueSection/index.js';
+import { SettingsController, SettingsSection, SettingsState, SettingsView } from './SettingsSection/index.js';
+import { QueueRealtimeClient } from './QueueRealtimeClient.js';
 
 // =============================================================
 // MinhaBarbeariaPage.js — Tela "Minha Barbearia"
@@ -21,7 +28,7 @@
 //               NotificationService.js, DigText (SearchWidget.js)
 // =============================================================
 
-class MinhaBarbeariaRuntimeController {
+export class MinhaBarbeariaRuntimeController {
 
   // ── Estado ─────────────────────────────────────────────────
   #telaEl          = null;
@@ -55,6 +62,8 @@ class MinhaBarbeariaRuntimeController {
   #sections              = [];
   #sectionEventBus       = null;
   #queueRealtimeClient   = null;
+  #latestSectionState    = {};
+  #lazySectionPromises   = new Map();
   #refs                 = {};
 
   constructor() {}
@@ -233,10 +242,16 @@ class MinhaBarbeariaRuntimeController {
   // ── Eventos ─────────────────────────────────────────────────
 
   #bindEventos() {
-    this.#refs.maisBtn?.addEventListener('click',     () => this.#abrirSub('config'));
+    this.#refs.maisBtn?.addEventListener('click',     () => {
+      void this.#loadPortfolioSection();
+      this.#abrirSub('config');
+    });
     this.#refs.gpsBtn?.addEventListener('click',      () => this.#abrirSub('gps'));
     this.#refs.convidarBtn?.addEventListener('click', () => this.#abrirSub('convite'));
-    this.#refs.addBtn?.addEventListener('click',  () => this.#refs.coverInput?.click());
+    this.#refs.addBtn?.addEventListener('click',  () => {
+      void this.#loadStorySection();
+      this.#refs.coverInput?.click();
+    });
     this.#refs.cfgFechar?.addEventListener('click',    () => this.#fecharSub());
     this.#refs.conviteFechar?.addEventListener('click',() => this.#fecharSub());
     this.#refs.coverInput?.addEventListener('change',  e => this.#onUploadMidia(e));
@@ -294,9 +309,7 @@ class MinhaBarbeariaRuntimeController {
 
   #initSections() {
     if (this.#agendaSection ||
-        typeof PageSection === 'undefined' ||
         typeof SectionEventBus === 'undefined' ||
-        typeof SectionEventCatalog === 'undefined' ||
         typeof AgendaSection === 'undefined' ||
         typeof AgendaController === 'undefined' ||
         typeof AgendaState === 'undefined' ||
@@ -323,70 +336,89 @@ class MinhaBarbeariaRuntimeController {
 
   #buildExtractedSections(eventBus) {
     const sections = [];
-    const instantiate = (SectionType, ControllerType, StateType, ViewType, controllerDependencies = {}) => {
-      const controller = new ControllerType({
-        state: new StateType(),
-        view: new ViewType(this.#telaEl),
-        ...controllerDependencies,
-      });
-      sections.push(new SectionType(this.#telaEl, { eventBus, controller }));
-    };
+    const add = (...args) => sections.push(this.#instantiateExtractedSection(eventBus, ...args));
 
-    if (typeof StorySection !== 'undefined' && typeof StoryController !== 'undefined' &&
-        typeof StoryState !== 'undefined' && typeof StoryView !== 'undefined') {
-      instantiate(StorySection, StoryController, StoryState, StoryView, { mediaAdapter: this.#mediaP2P });
-    }
-    if (typeof PortfolioSection !== 'undefined' && typeof PortfolioController !== 'undefined' &&
-        typeof PortfolioState !== 'undefined' && typeof PortfolioView !== 'undefined') {
-      instantiate(PortfolioSection, PortfolioController, PortfolioState, PortfolioView);
-    }
-    if (typeof QueueRealtimeClient !== 'undefined') {
-      this.#queueRealtimeClient = new QueueRealtimeClient({ realtime: SupabaseService });
-    }
-    if (this.#queueRealtimeClient && typeof NotificationSection !== 'undefined' &&
-        typeof NotificationController !== 'undefined' && typeof NotificationState !== 'undefined' &&
-        typeof NotificationView !== 'undefined') {
-      instantiate(NotificationSection, NotificationController, NotificationState, NotificationView, {
-        queueRealtimeClient: this.#queueRealtimeClient,
-      });
-    }
-    if (this.#queueRealtimeClient && typeof QueueSection !== 'undefined' &&
-        typeof QueueController !== 'undefined' && typeof QueueState !== 'undefined' &&
-        typeof QueueView !== 'undefined') {
-      instantiate(QueueSection, QueueController, QueueState, QueueView, {
-        queueRealtimeClient: this.#queueRealtimeClient,
-      });
-    }
-    if (typeof AnalyticsSection !== 'undefined' && typeof AnalyticsController !== 'undefined' &&
-        typeof AnalyticsState !== 'undefined' && typeof AnalyticsView !== 'undefined') {
-      instantiate(AnalyticsSection, AnalyticsController, AnalyticsState, AnalyticsView);
-    }
-    if (typeof SettingsSection !== 'undefined' && typeof SettingsController !== 'undefined' &&
-        typeof SettingsState !== 'undefined' && typeof SettingsView !== 'undefined') {
-      instantiate(SettingsSection, SettingsController, SettingsState, SettingsView);
-    }
+    this.#queueRealtimeClient = new QueueRealtimeClient({ realtime: SupabaseService });
+    add(NotificationSection, NotificationController, NotificationState, NotificationView, {
+      queueRealtimeClient: this.#queueRealtimeClient,
+    });
+    add(QueueSection, QueueController, QueueState, QueueView, {
+      queueRealtimeClient: this.#queueRealtimeClient,
+    });
+    add(AnalyticsSection, AnalyticsController, AnalyticsState, AnalyticsView);
+    add(SettingsSection, SettingsController, SettingsState, SettingsView);
     return sections;
+  }
+
+  #instantiateExtractedSection(eventBus, SectionType, ControllerType, StateType, ViewType, controllerDependencies = {}) {
+    const controller = new ControllerType({
+      state: new StateType(),
+      view: new ViewType(this.#telaEl),
+      ...controllerDependencies,
+    });
+    return new SectionType(this.#telaEl, { eventBus, controller });
+  }
+
+  async #loadStorySection() {
+    return this.#loadLazySection('story', async () => {
+      const module = await import('./StorySection/index.js');
+      const section = this.#instantiateExtractedSection(
+        this.#sectionEventBus,
+        module.StorySection,
+        module.StoryController,
+        module.StoryState,
+        module.StoryView,
+        { mediaAdapter: this.#mediaP2P },
+      );
+      section.init();
+      this.#sections.push(section);
+      section.update({
+        stories: this.#latestSectionState.stories,
+        shop: this.#latestSectionState.shop,
+        quotaHoje: this.#latestSectionState.quotaHoje,
+        perfilId: this.#latestSectionState.perfilId,
+      });
+      return section;
+    });
+  }
+
+  async #loadPortfolioSection() {
+    return this.#loadLazySection('portfolio', async () => {
+      const module = await import('./PortfolioSection/index.js');
+      const section = this.#instantiateExtractedSection(
+        this.#sectionEventBus,
+        module.PortfolioSection,
+        module.PortfolioController,
+        module.PortfolioState,
+        module.PortfolioView,
+      );
+      section.init();
+      this.#sections.push(section);
+      return section;
+    });
+  }
+
+  #loadLazySection(key, loader) {
+    if (!this.#sectionEventBus) return Promise.resolve(null);
+    if (!this.#lazySectionPromises.has(key)) {
+      this.#lazySectionPromises.set(key, loader());
+    }
+    return this.#lazySectionPromises.get(key);
   }
 
   // ── Carregamento principal ───────────────────────────────────
 
   #atualizarSecoesExtraidas({ shop, servicos, stories, quotaHoje, perfilId, filaEntradas } = {}) {
-    if (typeof StorySection !== 'undefined') {
-      this.#atualizarSecaoExtraida(StorySection, { stories, shop, quotaHoje, perfilId });
-    }
-    if (typeof SettingsSection !== 'undefined') {
-      this.#atualizarSecaoExtraida(SettingsSection, {
-        shop,
-        servicos,
-        changedAt: new Date().toISOString(),
-      });
-    }
-    if (typeof QueueSection !== 'undefined') {
-      this.#atualizarSecaoExtraida(QueueSection, {
-        barbershopId: shop?.id ?? null,
-        entries: filaEntradas,
-      });
-    }
+    this.#latestSectionState = { shop, servicos, stories, quotaHoje, perfilId, filaEntradas };
+    this.#atualizarSecaoExtraida(SettingsSection, {
+      shop,
+      servicos,
+      changedAt: new Date().toISOString(),
+    });
+    this.#atualizarSecaoExtraida(QueueSection, {
+      barbershopId: shop?.id ?? null,
+      entries: filaEntradas,
+    });
   }
 
   #atualizarSecaoExtraida(SectionType, partialState) {

@@ -1,6 +1,6 @@
-'use strict';
+import { PageSection } from '../../../../../../../shared/js/PageSection.js';
 
-class QueueSection extends PageSection {
+export class QueueSection extends PageSection {
   #controller;
   constructor(rootElement, dependencies = {}) { super(rootElement, dependencies); this.#controller = dependencies.controller; if (!this.#controller?.init) throw new Error('QueueSection requer QueueController injetado.'); }
   init() { if (!this.initialized) { super.init(); this.#controller.init({ emit: this.emit.bind(this), on: this.on.bind(this) }); } }

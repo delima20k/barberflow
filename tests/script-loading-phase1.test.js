@@ -46,7 +46,7 @@ suite('fase 1 de carregamento de scripts', () => {
 
   test('profissional usa defer em todos os scripts externos', () => {
     const tags = externalScriptTags(readHtml('apps/profissional/index.html'));
-    assert.equal(tags.length, 146);
+    assert.equal(tags.length, 112);
     assert.deepEqual(
       tags.filter((tag) => !/\b(?:defer|async|type=)/.test(tag)),
       [],
@@ -69,10 +69,16 @@ suite('fase 1 de carregamento de scripts', () => {
     assertBefore(order, '/shared/js/supabase.min.js', '/shared/js/SupabaseService.js');
     assertBefore(order, '/shared/js/SupabaseService.js', '/shared/js/AuthService.js');
     assertBefore(order, '/shared/js/NavigationViewService.js', '/shared/js/Router.js');
-    assertBefore(order, '/events/catalog.js', '/shared/js/SectionEventBus.js');
-    assertBefore(order, '/shared/js/SectionEventBus.js', '/shared/js/PageSection.js');
-    assertBefore(order, '/shared/js/PageSection.js', 'assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaState.js');
     assertBefore(order, 'assets/js/AppBootstrap.js', 'assets/js/app.js');
+  });
+
+  test('profissional usa app.js como entry-point de modulo', () => {
+    const tags = externalScriptTags(readHtml('apps/profissional/index.html'));
+    const appTag = tags.find((tag) => tag.includes('assets/js/app.js'));
+
+    assert.match(appTag, /\btype="module"/);
+    assert.equal(tags.some((tag) => tag.includes('MinhaBarbeariaPage/AgendaSection/')), false);
+    assert.equal(tags.some((tag) => tag.includes('/shared/js/PageSection.js')), false);
   });
 
   test('atalho admin inline do profissional roda apos load ou idle', () => {

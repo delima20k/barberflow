@@ -1,6 +1,4 @@
-'use strict';
-
-class AnalyticsState {
+export class AnalyticsState {
   #events;
   constructor({ events = [] } = {}) { this.setEvents(events); }
   get snapshot() { return { events: [...this.#events] }; }

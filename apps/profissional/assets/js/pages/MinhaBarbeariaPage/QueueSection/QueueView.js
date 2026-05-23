@@ -1,6 +1,4 @@
-'use strict';
-
-class QueueView {
+export class QueueView {
   #root;
   constructor(rootElement) { this.#root = rootElement; }
   render(state) {

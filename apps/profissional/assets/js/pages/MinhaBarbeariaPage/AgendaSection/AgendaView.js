@@ -1,6 +1,4 @@
-'use strict';
-
-class AgendaView {
+export class AgendaView {
   #rootElement;
 
   constructor(rootElement) {

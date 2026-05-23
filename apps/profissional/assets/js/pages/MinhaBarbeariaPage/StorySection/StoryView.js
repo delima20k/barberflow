@@ -1,6 +1,4 @@
-'use strict';
-
-class StoryView {
+export class StoryView {
   #root;
 
   constructor(rootElement) { this.#root = rootElement; }

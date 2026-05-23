@@ -1,6 +1,4 @@
-'use strict';
-
-class NotificationView {
+export class NotificationView {
   #root;
   constructor(rootElement) { this.#root = rootElement; }
   render(state) {

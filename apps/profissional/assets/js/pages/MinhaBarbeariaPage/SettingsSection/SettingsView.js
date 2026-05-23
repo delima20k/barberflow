@@ -1,6 +1,4 @@
-'use strict';
-
-class SettingsView {
+export class SettingsView {
   #root;
   constructor(rootElement) { this.#root = rootElement; }
   render(state) {

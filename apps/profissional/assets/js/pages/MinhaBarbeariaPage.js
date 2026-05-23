@@ -1,12 +1,9 @@
-'use strict';
+import { MinhaBarbeariaRuntimeController } from './MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js';
 
-class MinhaBarbeariaPage {
+export class MinhaBarbeariaPage {
   #runtime;
 
   constructor(dependencies = {}) {
-    if (typeof MinhaBarbeariaRuntimeController === 'undefined') {
-      throw new Error('MinhaBarbeariaPage requer MinhaBarbeariaRuntimeController.');
-    }
     this.#runtime = dependencies.runtime ?? new MinhaBarbeariaRuntimeController(dependencies);
   }
 

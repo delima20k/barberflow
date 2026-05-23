@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class AgendaController {
+export class AgendaController {
   #state;
   #view;
   #emit = null;

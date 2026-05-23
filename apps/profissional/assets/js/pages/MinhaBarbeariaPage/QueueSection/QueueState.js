@@ -1,6 +1,4 @@
-'use strict';
-
-class QueueState {
+export class QueueState {
   #barbershopId;
   #entries;
   #realtimeActive;

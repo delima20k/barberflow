@@ -1,6 +1,4 @@
-'use strict';
-
-class SectionEventBus {
+export class SectionEventBus {
   #catalog;
   #dev;
   #listeners = new Map();

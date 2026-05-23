@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class SettingsController {
+export class SettingsController {
   #state;
   #view;
   #emit = null;

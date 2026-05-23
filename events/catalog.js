@@ -1,6 +1,4 @@
-'use strict';
-
-class SectionEventCatalog {
+export class SectionEventCatalog {
   static AGENDA_READY = 'minha-barbearia.agenda.ready';
   static SETTINGS_CHANGED = 'minha-barbearia.settings.changed';
   static STORY_CHANGED = 'minha-barbearia.story.changed';

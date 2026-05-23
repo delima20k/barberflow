@@ -1,6 +1,4 @@
-'use strict';
-
-class PageSection {
+export class PageSection {
   #rootElement;
   #dependencies;
   #eventBus;

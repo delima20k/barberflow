@@ -1,6 +1,4 @@
-'use strict';
-
-class QueueRealtimeClient {
+export class QueueRealtimeClient {
   #realtime;
   #timerApi;
   #channel = null;

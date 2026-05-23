@@ -1,6 +1,6 @@
-'use strict';
+import { PageSection } from '../../../../../../../shared/js/PageSection.js';
 
-class AgendaSection extends PageSection {
+export class AgendaSection extends PageSection {
   #controller;
 
   constructor(rootElement, dependencies = {}) {

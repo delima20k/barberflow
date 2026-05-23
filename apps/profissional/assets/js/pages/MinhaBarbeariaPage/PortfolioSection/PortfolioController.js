@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class PortfolioController {
+export class PortfolioController {
   #state;
   #view;
   #emit = null;

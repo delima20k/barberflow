@@ -1,6 +1,4 @@
-'use strict';
-
-class PortfolioState {
+export class PortfolioState {
   #items;
   #mediaDependency;
 

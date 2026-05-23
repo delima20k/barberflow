@@ -1,4 +1,4 @@
-'use strict';
+import { MinhaBarbeariaPage } from './pages/MinhaBarbeariaPage.js';
 
 // =============================================================
 // BarberFlowProfissional — App principal (slim)
@@ -117,4 +117,5 @@ class BarberFlowProfissional extends Router {
 
 /* ── Ponto de entrada ──────────────────────────────────────── */
 const Pro = new BarberFlowProfissional();
+globalThis.Pro = Pro;
 document.addEventListener('DOMContentLoaded', () => AppBootstrap.init());

@@ -1,6 +1,4 @@
-'use strict';
-
-class AnalyticsView {
+export class AnalyticsView {
   #root;
   constructor(rootElement) { this.#root = rootElement; }
   render(state) {

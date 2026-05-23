@@ -1,6 +1,4 @@
-'use strict';
-
-class StoryState {
+export class StoryState {
   #stories;
   #quotaHoje;
   #shop;

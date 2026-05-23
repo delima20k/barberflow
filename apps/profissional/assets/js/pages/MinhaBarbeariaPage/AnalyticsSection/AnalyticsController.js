@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class AnalyticsController {
+export class AnalyticsController {
   #state;
   #view;
   #unsubscribes = [];

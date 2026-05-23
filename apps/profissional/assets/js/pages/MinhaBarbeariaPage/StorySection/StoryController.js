@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class StoryController {
+export class StoryController {
   #state;
   #view;
   #mediaAdapter;

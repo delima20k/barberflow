@@ -1,6 +1,4 @@
-'use strict';
-
-class SettingsState {
+export class SettingsState {
   #shop;
   #services;
   #changedAt;

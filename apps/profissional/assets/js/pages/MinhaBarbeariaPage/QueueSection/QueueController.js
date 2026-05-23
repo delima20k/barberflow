@@ -1,6 +1,6 @@
-'use strict';
+import { SectionEventCatalog } from '../../../../../../../events/catalog.js';
 
-class QueueController {
+export class QueueController {
   #state;
   #view;
   #queueRealtimeClient;

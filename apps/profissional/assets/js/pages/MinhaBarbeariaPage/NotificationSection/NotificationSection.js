@@ -1,6 +1,6 @@
-'use strict';
+import { PageSection } from '../../../../../../../shared/js/PageSection.js';
 
-class NotificationSection extends PageSection {
+export class NotificationSection extends PageSection {
   #controller;
   constructor(rootElement, dependencies = {}) { super(rootElement, dependencies); this.#controller = dependencies.controller; if (!this.#controller?.init) throw new Error('NotificationSection requer NotificationController injetado.'); }
   init() { if (!this.initialized) { super.init(); this.#controller.init({ emit: this.emit.bind(this), on: this.on.bind(this) }); } }

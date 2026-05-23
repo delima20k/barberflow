@@ -1,6 +1,4 @@
-'use strict';
-
-class NotificationState {
+export class NotificationState {
   #pending;
   #settingsRevision;
   #realtimeActive;

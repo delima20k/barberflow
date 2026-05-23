@@ -1,6 +1,6 @@
-'use strict';
+import { PageSection } from '../../../../../../../shared/js/PageSection.js';
 
-class StorySection extends PageSection {
+export class StorySection extends PageSection {
   #controller;
   constructor(rootElement, dependencies = {}) {
     super(rootElement, dependencies);
