@@ -89,9 +89,51 @@ suite('CorsMiddleware — origens de produção (.shop)', () => {
         '86400',
         'Max-Age deve ser 86400 (24h)',
       );
+      assert.ok(
+        captured.headers['Cache-Control']?.includes('private') &&
+        captured.headers['Cache-Control']?.includes('no-store'),
+        'Cache-Control deve conter private e no-store para evitar CDN cachear preflight por URL',
+      );
       assert.strictEqual(next.calls.length, 0, 'next() NÃO deve ser chamado após OPTIONS');
     });
   }
+});
+
+// ─── Suite 1b: Cache-Control anti-CDN-cache ──────────────────────
+
+suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
+
+  test('OPTIONS retorna Cache-Control: private, no-store', () => {
+    const { req, res, next, captured } = criarMocks({
+      headers: { origin: 'https://app.berberflow.shop' },
+      method:  'OPTIONS',
+    });
+
+    CorsMiddleware.handle(req, res, next);
+
+    assert.ok(
+      captured.headers['Cache-Control']?.includes('private'),
+      'Cache-Control deve incluir private (impede cache em shared CDN)',
+    );
+    assert.ok(
+      captured.headers['Cache-Control']?.includes('no-store'),
+      'Cache-Control deve incluir no-store',
+    );
+  });
+
+  test('GET NÃO recebe Cache-Control do middleware CORS (não deve bloquear cache de dados)', () => {
+    const { req, res, next, captured } = criarMocks({
+      headers: { origin: 'https://app.berberflow.shop' },
+      method:  'GET',
+    });
+
+    CorsMiddleware.handle(req, res, next);
+
+    assert.ok(
+      !captured.headers['Cache-Control'],
+      'GET não deve ter Cache-Control setado pelo CorsMiddleware (cabe à rota/app decidir)',
+    );
+  });
 });
 
 // ─── Suite 2: compatibilidade com origens antigas ────────────────

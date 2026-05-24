@@ -66,6 +66,10 @@ class CorsMiddleware {
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
       res.setHeader('Access-Control-Max-Age', '86400');
+      // CDNs que ignoram Vary:Origin (ex: Cloudflare em modo proxy) podem cachear
+      // a resposta preflight de pro.berberflow.shop e servi-la para app.berberflow.shop.
+      // Cache-Control: private impede cache em shared CDN; no-store impede qualquer armazenamento.
+      res.setHeader('Cache-Control', 'private, no-store');
       return res.status(200).end();
     }
 
