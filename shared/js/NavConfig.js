@@ -15,6 +15,22 @@
 
 class NavConfig {
 
+  static #isProfissionalApp() {
+    if (typeof AuthService !== 'undefined' && AuthService._prefix?.() === 'Pro') return true;
+    if (typeof Pro !== 'undefined') return true;
+    if (typeof BarberFlowProfissional !== 'undefined') return true;
+
+    const perfil = (typeof AuthService !== 'undefined')
+      ? AuthService.getPerfil?.()
+      : null;
+    if (perfil?.role === 'professional'
+        || perfil?.pro_type === 'barbearia'
+        || perfil?.pro_type === 'barbeiro') return true;
+
+    const pathname = typeof window !== 'undefined' ? window.location?.pathname ?? '' : '';
+    return pathname.includes('/profissional');
+  }
+
   // ═══════════════════════════════════════════════════════════
   // CLIENTE
   // ═══════════════════════════════════════════════════════════
@@ -105,24 +121,6 @@ class NavConfig {
   }
 
   /**
-   * Detecta o app profissional por sinais globais estaveis.
-   * BarberFlowProfissional e declarado dentro de modulo ES no app real, entao
-   * nao fica visivel para este script classic. O global publico e `Pro`.
-   */
-  static #isProfissionalApp() {
-    if (typeof Pro !== 'undefined') return true;
-    if (typeof BarberFlowProfissional !== 'undefined') return true;
-
-    const perfil = (typeof AuthService !== 'undefined')
-      ? AuthService.getPerfil?.()
-      : null;
-
-    return perfil?.role === 'professional'
-        || perfil?.pro_type === 'barbearia'
-        || perfil?.pro_type === 'barbeiro';
-  }
-
-  /**
    * Gera o HTML de <li> para o menu lateral a partir dos items.
    * @param {boolean} logado
    * @returns {string} HTML
@@ -134,7 +132,7 @@ class NavConfig {
     if (inst) {
       p = inst === (typeof App !== 'undefined' ? App : null) ? 'App' : 'Pro';
     } else {
-      p = typeof BarberFlowProfissional !== 'undefined' ? 'Pro' : 'App';
+      p = NavConfig.#isProfissionalApp() ? 'Pro' : 'App';
     }
     const items = NavConfig.getItems(logado);
     return items.map(item => {
