@@ -11,7 +11,7 @@
 //   - normalização: nulls em full_name viram "Cliente"
 // =============================================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -41,7 +41,7 @@ function criarSandbox() {
   return sandbox;
 }
 
-suite('FavoritosClientesService.listarPorBarbeiro', () => {
+describe('FavoritosClientesService.listarPorBarbeiro', () => {
 
   test('barbershopId não-UUID: lança TypeError', async () => {
     const s = criarSandbox();
@@ -97,7 +97,7 @@ suite('FavoritosClientesService.listarPorBarbeiro', () => {
   });
 });
 
-suite('FavoritosClientesService.listarPorBarbearia', () => {
+describe('FavoritosClientesService.listarPorBarbearia', () => {
 
   test('barbershopId não-UUID: lança TypeError', async () => {
     const s = criarSandbox();

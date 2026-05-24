@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { carregar } = require('./_helpers.js');
@@ -91,7 +91,7 @@ function criarSandbox() {
 // Testes
 // =============================================================================
 
-suite('HeaderScrollBehavior — init', () => {
+describe('HeaderScrollBehavior — init', () => {
   test('init() registra apenas tela-inicio (minha-barbearia abre abaixo do header)', () => {
     const { sandbox, telaInicio } = criarSandbox();
     sandbox.HeaderScrollBehavior.init();
@@ -121,7 +121,7 @@ suite('HeaderScrollBehavior — init', () => {
   });
 });
 
-suite('HeaderScrollBehavior — barberflow:tela-entrando', () => {
+describe('HeaderScrollBehavior — barberflow:tela-entrando', () => {
   test('evento tela-entrando revela o header quando classe header--oculto está presente', () => {
     const { sandbox, header, dispararNavEvent } = criarSandbox();
     sandbox.HeaderScrollBehavior.init();
@@ -159,7 +159,7 @@ suite('HeaderScrollBehavior — barberflow:tela-entrando', () => {
   });
 });
 
-suite('HeaderScrollBehavior — tela-inicio scroll guard', () => {
+describe('HeaderScrollBehavior — tela-inicio scroll guard', () => {
   test('NÃO oculta header quando outra tela está ativa', () => {
     const { sandbox, header, telaInicio, storiesEl, document } = criarSandbox();
 

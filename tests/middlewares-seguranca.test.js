@@ -8,7 +8,7 @@
 // caching de role, falha do banco, shorthands.
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -71,7 +71,7 @@ function criarSupabaseMock({ role = 'client', dbError = null } = {}) {
 // BLOCO 1 — ValidationMiddleware.corpo()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ValidationMiddleware.corpo() — email', () => {
+describe('ValidationMiddleware.corpo() — email', () => {
 
   test('campo email obrigatório ausente → 400', () => {
     const mw = ValidationMiddleware.corpo({
@@ -122,7 +122,7 @@ suite('ValidationMiddleware.corpo() — email', () => {
   });
 });
 
-suite('ValidationMiddleware.params() — uuid', () => {
+describe('ValidationMiddleware.params() — uuid', () => {
 
   test('uuid inválido → 400', () => {
     const mw = ValidationMiddleware.params({
@@ -149,7 +149,7 @@ suite('ValidationMiddleware.params() — uuid', () => {
   });
 });
 
-suite('ValidationMiddleware.query() — numero', () => {
+describe('ValidationMiddleware.query() — numero', () => {
 
   test('número abaixo do min → 400', () => {
     const mw = ValidationMiddleware.query({
@@ -209,7 +209,7 @@ suite('ValidationMiddleware.query() — numero', () => {
   });
 });
 
-suite('ValidationMiddleware.corpo() — enum', () => {
+describe('ValidationMiddleware.corpo() — enum', () => {
 
   test('valor fora das opcoes → 400', () => {
     const mw = ValidationMiddleware.corpo({
@@ -235,7 +235,7 @@ suite('ValidationMiddleware.corpo() — enum', () => {
   });
 });
 
-suite('ValidationMiddleware.corpo() — booleano', () => {
+describe('ValidationMiddleware.corpo() — booleano', () => {
 
   test('string inválida → 400', () => {
     const mw = ValidationMiddleware.corpo({
@@ -273,7 +273,7 @@ suite('ValidationMiddleware.corpo() — booleano', () => {
   });
 });
 
-suite('ValidationMiddleware.corpo() — texto (sanitização)', () => {
+describe('ValidationMiddleware.corpo() — texto (sanitização)', () => {
 
   test('texto com espaços → trimado e escrito de volta no body', () => {
     const mw = ValidationMiddleware.corpo({
@@ -311,7 +311,7 @@ suite('ValidationMiddleware.corpo() — texto (sanitização)', () => {
   });
 });
 
-suite('ValidationMiddleware — múltiplos campos', () => {
+describe('ValidationMiddleware — múltiplos campos', () => {
 
   test('múltiplos campos inválidos → erro menciona o campo', () => {
     const mw = ValidationMiddleware.corpo({
@@ -345,7 +345,7 @@ suite('ValidationMiddleware — múltiplos campos', () => {
 // BLOCO 2 — RoleMiddleware.exigir()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('RoleMiddleware.exigir() — autenticação', () => {
+describe('RoleMiddleware.exigir() — autenticação', () => {
 
   test('sem req.user → 401', async () => {
     const mw = RoleMiddleware._comSupabase(null, 'admin');
@@ -367,7 +367,7 @@ suite('RoleMiddleware.exigir() — autenticação', () => {
   });
 });
 
-suite('RoleMiddleware.exigir() — role já cacheada', () => {
+describe('RoleMiddleware.exigir() — role já cacheada', () => {
 
   test('role="client" para rota que exige "admin" → 403', async () => {
     const mw = RoleMiddleware._comSupabase(null, 'admin');
@@ -419,7 +419,7 @@ suite('RoleMiddleware.exigir() — role já cacheada', () => {
   });
 });
 
-suite('RoleMiddleware.exigir() — role buscada no banco', () => {
+describe('RoleMiddleware.exigir() — role buscada no banco', () => {
 
   test('role ausente no req.user → busca no banco, passa', async () => {
     const dbMock = criarSupabaseMock({ role: 'owner' });
@@ -462,7 +462,7 @@ suite('RoleMiddleware.exigir() — role buscada no banco', () => {
   });
 });
 
-suite('RoleMiddleware — shorthands', () => {
+describe('RoleMiddleware — shorthands', () => {
 
   test('.profissional aceita barber/owner/manager', async () => {
     for (const role of ['barber', 'owner', 'manager']) {

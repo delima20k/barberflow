@@ -16,7 +16,7 @@
 //         enfileirar um push pendente (#barbershopId null).
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 
@@ -71,9 +71,9 @@ function criarMockDocument() {
   return doc;
 }
 
-// ─── Suite 1: NotificationService — normalização de tipo ─────────────────────
+// ─── describe 1: NotificationService — normalização de tipo ─────────────────────
 
-suite('NotificationService — client_at_shop normalizado como AGENDAMENTO', () => {
+describe('NotificationService — client_at_shop normalizado como AGENDAMENTO', () => {
 
   /** Cria um elemento de toast com querySelector funcional para os botões internos. */
   function criarMockToast() {
@@ -173,9 +173,9 @@ suite('NotificationService — client_at_shop normalizado como AGENDAMENTO', () 
   });
 });
 
-// ─── Suite 2: AppBootstrap — deep link navega para minha-barbearia ─────────────
+// ─── describe 2: AppBootstrap — deep link navega para minha-barbearia ─────────────
 
-suite('AppBootstrap — deep link push_type navega para minha-barbearia', () => {
+describe('AppBootstrap — deep link push_type navega para minha-barbearia', () => {
 
   function criarSandbox(search = '') {
     const navSpy = fn();
@@ -279,9 +279,9 @@ suite('AppBootstrap — deep link push_type navega para minha-barbearia', () => 
   });
 });
 
-// ─── Suite 3+4: MinhaBarbeariaPage — enfileirar quando barbershopId null ──────
+// ─── describe 3+4: MinhaBarbeariaPage — enfileirar quando barbershopId null ──────
 
-suite('MinhaBarbeariaPage — enfileira e navega quando #barbershopId é null', () => {
+describe('MinhaBarbeariaPage — enfileira e navega quando #barbershopId é null', () => {
 
   function criarSandbox() {
     const navSpy = fn();

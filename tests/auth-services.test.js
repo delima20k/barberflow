@@ -11,7 +11,7 @@ process.env.BCRYPT_ROUNDS      = '4';   // acelera bcrypt em testes
 process.env.JWT_ACCESS_SECRET  = 'test-access-secret-32chars-ok!!!';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-32chars-ok!!';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -75,7 +75,7 @@ function criarSupabaseMock({
 // BLOCO 1 — PasswordService
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('PasswordService.validarForca()', () => {
+describe('PasswordService.validarForca()', () => {
 
   test('aceita senha forte (maiúscula + minúscula + dígito + >=8 chars)', () => {
     const r = PasswordService.validarForca('Barber1Flow');
@@ -112,7 +112,7 @@ suite('PasswordService.validarForca()', () => {
   });
 });
 
-suite('PasswordService.hash() e verificar()', () => {
+describe('PasswordService.hash() e verificar()', () => {
 
   test('hash() retorna string diferente da senha original', async () => {
     const h = await PasswordService.hash('Barber1Flow');
@@ -146,7 +146,7 @@ suite('PasswordService.hash() e verificar()', () => {
 // BLOCO 2 — TokenService
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('TokenService.gerarAccessToken() e verificar()', () => {
+describe('TokenService.gerarAccessToken() e verificar()', () => {
 
   test('lança erro se payload.sub ausente', () => {
     assert.throws(() => TokenService.gerarAccessToken({}),         { status: 400 });
@@ -178,7 +178,7 @@ suite('TokenService.gerarAccessToken() e verificar()', () => {
   });
 });
 
-suite('TokenService.gerarRefreshToken() e verificarSupabase()', () => {
+describe('TokenService.gerarRefreshToken() e verificarSupabase()', () => {
 
   test('gerarRefreshToken + verificar(refresh) funciona corretamente', () => {
     const token   = TokenService.gerarRefreshToken(UUID_USER);
@@ -208,7 +208,7 @@ suite('TokenService.gerarRefreshToken() e verificarSupabase()', () => {
 // BLOCO 3 — AuthService
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthService.login()', () => {
+describe('AuthService.login()', () => {
 
   test('lança {status:400} para e-mail com formato inválido', async () => {
     const svc = new AuthService(criarSupabaseMock());
@@ -259,7 +259,7 @@ suite('AuthService.login()', () => {
   });
 });
 
-suite('AuthService.renovarToken()', () => {
+describe('AuthService.renovarToken()', () => {
 
   test('lança {status:400} para refresh token vazio ou nulo', async () => {
     const svc = new AuthService(criarSupabaseMock());
@@ -284,7 +284,7 @@ suite('AuthService.renovarToken()', () => {
   });
 });
 
-suite('AuthService.logout()', () => {
+describe('AuthService.logout()', () => {
 
   test('chama admin.signOut com o token e scope local', async () => {
     const mock = criarSupabaseMock();
@@ -308,7 +308,7 @@ suite('AuthService.logout()', () => {
   });
 });
 
-suite('AuthService.alterarSenha()', () => {
+describe('AuthService.alterarSenha()', () => {
 
   test('lança {status:400} para userId inválido (não-UUID)', async () => {
     const svc = new AuthService(criarSupabaseMock());
@@ -337,7 +337,7 @@ suite('AuthService.alterarSenha()', () => {
   });
 });
 
-suite('AuthService.solicitarResetSenha()', () => {
+describe('AuthService.solicitarResetSenha()', () => {
 
   test('lança {status:400} para formato de e-mail inválido', async () => {
     const svc = new AuthService(criarSupabaseMock());

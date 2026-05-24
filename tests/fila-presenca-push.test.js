@@ -12,7 +12,7 @@
  * nunca chamava BffApiService → barbeiro com app fechado não recebia Web Push.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert           = require('node:assert/strict');
 const vm               = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -82,9 +82,9 @@ function criarSandbox(overrides = {}) {
   return { sandbox, bffCalls };
 }
 
-// ─── Suite: processarSim ('sim' → client_at_shop) ─────────────────────────────
+// ─── describe: processarSim ('sim' → client_at_shop) ─────────────────────────────
 
-suite('FilaPresencaService — BFF push no fluxo "sim" (client_at_shop)', () => {
+describe('FilaPresencaService — BFF push no fluxo "sim" (client_at_shop)', () => {
 
   test('chama BffApiService.post com path correto', async () => {
     const { sandbox, bffCalls } = criarSandbox();
@@ -130,9 +130,9 @@ suite('FilaPresencaService — BFF push no fluxo "sim" (client_at_shop)', () => 
   });
 });
 
-// ─── Suite: _dispararGrace (timer → client_not_seated ou client_arriving_late) ──
+// ─── describe: _dispararGrace (timer → client_not_seated ou client_arriving_late) ──
 
-suite('FilaPresencaService — BFF push no fluxo _dispararGrace', () => {
+describe('FilaPresencaService — BFF push no fluxo _dispararGrace', () => {
 
   test('chama BffApiService.post após disparar grace', async () => {
     const { sandbox, bffCalls } = criarSandbox();
@@ -173,7 +173,7 @@ suite('FilaPresencaService — BFF push no fluxo _dispararGrace', () => {
 
 // ─── BFF push: erro logado via LoggerService ─────────────────────────────────
 
-suite('FilaPresencaService — BFF push: erro logado via LoggerService', () => {
+describe('FilaPresencaService — BFF push: erro logado via LoggerService', () => {
 
   test('loga warn quando BffApiService retorna erro em iniciarFluxo', async () => {
     const { sandbox } = criarSandbox({

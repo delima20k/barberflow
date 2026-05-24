@@ -20,7 +20,7 @@
  *  12. beforeNavigate idempotente: segundo call com mesmo id não dispara novo preload
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -102,7 +102,7 @@ function criarSandbox({ shopData = SHOP_A, getByIdError = null, ctxInicial = nul
 // beforeNavigate
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NavigationManager.beforeNavigate()', () => {
+describe('NavigationManager.beforeNavigate()', () => {
 
   test('contexto igual: não chama setCurrentContext nem inicia preload', async () => {
     // UUID_A já é o contexto atual
@@ -147,7 +147,7 @@ suite('NavigationManager.beforeNavigate()', () => {
 // preloadResources
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NavigationManager.preloadResources()', () => {
+describe('NavigationManager.preloadResources()', () => {
 
   test('retorna mesma Promise quando preload já está em andamento', async () => {
     // getById não resolve até liberarmos manualmente (deferred)
@@ -244,7 +244,7 @@ suite('NavigationManager.preloadResources()', () => {
 // awaitPreload
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NavigationManager.awaitPreload()', () => {
+describe('NavigationManager.awaitPreload()', () => {
 
   test('contextId sem preload em andamento: resolve imediatamente sem erro', async () => {
     const sb = criarSandbox();
@@ -274,7 +274,7 @@ suite('NavigationManager.awaitPreload()', () => {
 // navigate
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NavigationManager.navigate()', () => {
+describe('NavigationManager.navigate()', () => {
 
   test('chama navFn exatamente uma vez', () => {
     const sb  = criarSandbox();

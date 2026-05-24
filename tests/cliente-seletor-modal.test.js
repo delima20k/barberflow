@@ -14,7 +14,7 @@
 //   - Erro genérico na busca → mensagem de erro exibida
 // =============================================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -293,7 +293,7 @@ function coletarVazios(el) {
 
 // ─── Suítes ───────────────────────────────────────────────────────────────────
 
-suite('ClienteSeletorModal — validação de parâmetros', () => {
+describe('ClienteSeletorModal — validação de parâmetros', () => {
 
   test('UUID inválido para barbershopId lança TypeError antes de qualquer chamada de rede', () => {
     const { sandbox, UserRepository, CadeiraService } = criarSandbox();
@@ -321,7 +321,7 @@ suite('ClienteSeletorModal — validação de parâmetros', () => {
   });
 });
 
-suite('ClienteSeletorModal — abertura e carregamento de favoritos', () => {
+describe('ClienteSeletorModal — abertura e carregamento de favoritos', () => {
 
   test('abrir() retorna Promise', () => {
     const { sandbox } = criarSandbox({ favoritosRetorno: { data: [], error: null } });
@@ -383,7 +383,7 @@ suite('ClienteSeletorModal — abertura e carregamento de favoritos', () => {
   });
 });
 
-suite('ClienteSeletorModal — erro no carregamento de favoritos', () => {
+describe('ClienteSeletorModal — erro no carregamento de favoritos', () => {
 
   test('erro ao buscar favoritos → exibe mensagem de erro (csm-vazio)', async () => {
     const { sandbox, doc } = criarSandbox({
@@ -399,7 +399,7 @@ suite('ClienteSeletorModal — erro no carregamento de favoritos', () => {
   });
 });
 
-suite('ClienteSeletorModal — busca por texto', () => {
+describe('ClienteSeletorModal — busca por texto', () => {
 
   test('input com 1 char → UserRepository.buscarUsuarios NÃO é chamado', async () => {
     const { sandbox, UserRepository } = criarSandbox({
@@ -524,7 +524,7 @@ suite('ClienteSeletorModal — busca por texto', () => {
 
 // ─── Suíte: card anônimo ──────────────────────────────────────────────────────
 
-suite('ClienteSeletorModal — card de cliente anônimo', () => {
+describe('ClienteSeletorModal — card de cliente anônimo', () => {
 
   test('abrir() cria seção anônima no overlay', () => {
     const { sandbox, doc } = criarSandbox({ favoritosRetorno: { data: [], error: null } });

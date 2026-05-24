@@ -30,7 +30,7 @@
  *     15. URL assinada nunca é a URL pública (presignedGet, não publicUrl)
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const path            = require('node:path');
 
@@ -112,7 +112,7 @@ function criarR2Mock() {
 // AuthService.validateUser()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthService.validateUser()', () => {
+describe('AuthService.validateUser()', () => {
 
   test('token ausente → lança 401', async () => {
     const svc = new AuthService(criarSupabaseMock({ data: null }));
@@ -185,7 +185,7 @@ suite('AuthService.validateUser()', () => {
 // SecureMediaAccessService.validateAccess()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('SecureMediaAccessService.validateAccess()', () => {
+describe('SecureMediaAccessService.validateAccess()', () => {
 
   test('UUID inválido → lança erro de validação', async () => {
     const svc = new SecureMediaAccessService(criarR2Mock(), criarSupabaseMock({ data: null }));
@@ -215,7 +215,7 @@ suite('SecureMediaAccessService.validateAccess()', () => {
 // SecureMediaAccessService.generateSignedUrl()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('SecureMediaAccessService.generateSignedUrl()', () => {
+describe('SecureMediaAccessService.generateSignedUrl()', () => {
 
   test('UUID inválido → lança erro de validação', async () => {
     const svc = new SecureMediaAccessService(criarR2Mock(), criarSupabaseMock({ data: null }));

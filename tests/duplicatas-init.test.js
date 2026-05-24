@@ -11,16 +11,16 @@
  * solicitarNaPrimeiraVez() despacha geo:concedido → onGPSConcedido() → #carregar() (call #2 duplicada).
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 1: AppBootstrap — guard #initialized
+// describe 1: AppBootstrap — guard #initialized
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppBootstrap — guard #initialized', () => {
+describe('AppBootstrap — guard #initialized', () => {
 
   function criarSandboxBootstrap() {
     const geoSolicit = fn();
@@ -104,10 +104,10 @@ suite('AppBootstrap — guard #initialized', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 2: GeoService.solicitarNaPrimeiraVez — guard #solicitando
+// describe 2: GeoService.solicitarNaPrimeiraVez — guard #solicitando
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('GeoService.solicitarNaPrimeiraVez — guard #solicitando', () => {
+describe('GeoService.solicitarNaPrimeiraVez — guard #solicitando', () => {
 
   function criarSandboxGeo() {
     const dispatchMock       = fn();
@@ -158,10 +158,10 @@ suite('GeoService.solicitarNaPrimeiraVez — guard #solicitando', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 3: NearbyBarbershopsWidget — guard #carregando e { once: true }
+// describe 3: NearbyBarbershopsWidget — guard #carregando e { once: true }
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
+describe('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
 
   const CONTAINER_ID = 'nearby-map-widget';
 
@@ -337,10 +337,10 @@ suite('NearbyBarbershopsWidget — guard #carregando e { once: true }', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 4: NearbyBarbershopsWidget — #nearbyResultado compartilhado
+// describe 4: NearbyBarbershopsWidget — #nearbyResultado compartilhado
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NearbyBarbershopsWidget — #nearbyResultado compartilhado', () => {
+describe('NearbyBarbershopsWidget — #nearbyResultado compartilhado', () => {
 
   const SRC_WIDGET = require('node:fs').readFileSync(
     require('node:path').join(__dirname, '..', 'shared/js/NearbyBarbershopsWidget.js'),
@@ -385,10 +385,10 @@ suite('NearbyBarbershopsWidget — #nearbyResultado compartilhado', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 5: NearbyBarbershopsWidget — fallback BFF indisponível
+// describe 5: NearbyBarbershopsWidget — fallback BFF indisponível
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('NearbyBarbershopsWidget — fallback BFF indisponível', () => {
+describe('NearbyBarbershopsWidget — fallback BFF indisponível', () => {
 
   const SRC_WIDGET_BFF = require('node:fs').readFileSync(
     require('node:path').join(__dirname, '..', 'shared/js/NearbyBarbershopsWidget.js'),

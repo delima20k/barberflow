@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -48,7 +48,7 @@ function payloadAgendamentoValido(extra = {}) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Cliente — validar()', () => {
+describe('Cliente — validar()', () => {
 
   test('nome vazio → ok: false com mensagem de erro', () => {
     const sb = criarSandbox();
@@ -85,7 +85,7 @@ suite('Cliente — validar()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Cliente — métodos internos', () => {
+describe('Cliente — métodos internos', () => {
 
   test('isAtivo() retorna false quando is_active=false', () => {
     const sb = criarSandbox();
@@ -115,7 +115,7 @@ suite('Cliente — métodos internos', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Agendamento — validar()', () => {
+describe('Agendamento — validar()', () => {
 
   test('payload válido → ok: true', () => {
     const sb = criarSandbox();
@@ -168,7 +168,7 @@ suite('Agendamento — validar()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Agendamento — métodos internos', () => {
+describe('Agendamento — métodos internos', () => {
 
   test('isPendente() retorna true para status pending', () => {
     const sb = criarSandbox();

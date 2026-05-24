@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -110,7 +110,7 @@ function criarLgpdService({
 // BLOCO 1 â€” exportarDados()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” exportarDados()', () => {
+describe('LgpdService â€” exportarDados()', () => {
 
   test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
@@ -177,7 +177,7 @@ suite('LgpdService â€” exportarDados()', () => {
 // BLOCO 2 â€” solicitarExclusao()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” solicitarExclusao()', () => {
+describe('LgpdService â€” solicitarExclusao()', () => {
 
   test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
@@ -229,7 +229,7 @@ suite('LgpdService â€” solicitarExclusao()', () => {
 // BLOCO 3 â€” exclusaoPendente()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” exclusaoPendente()', () => {
+describe('LgpdService â€” exclusaoPendente()', () => {
 
   test('userId vazio â†’ false', async () => {
     const { LgpdService } = criarLgpdService();
@@ -277,7 +277,7 @@ suite('LgpdService â€” exclusaoPendente()', () => {
 // BLOCO 4 â€” cancelarExclusao()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” cancelarExclusao()', () => {
+describe('LgpdService â€” cancelarExclusao()', () => {
 
   test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
@@ -320,7 +320,7 @@ suite('LgpdService â€” cancelarExclusao()', () => {
 // BLOCO 5 â€” registrarConsentimentoCliente()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” registrarConsentimentoCliente()', () => {
+describe('LgpdService â€” registrarConsentimentoCliente()', () => {
 
   test('userId vazio â†’ { ok: false }', async () => {
     const { LgpdService } = criarLgpdService();
@@ -371,7 +371,7 @@ suite('LgpdService â€” registrarConsentimentoCliente()', () => {
 // BLOCO 6 â€” verificarConsentimentoCliente()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” verificarConsentimentoCliente()', () => {
+describe('LgpdService â€” verificarConsentimentoCliente()', () => {
 
   test('userId vazio â†’ false', async () => {
     const { LgpdService } = criarLgpdService();
@@ -431,7 +431,7 @@ suite('LgpdService â€” verificarConsentimentoCliente()', () => {
 // BLOCO 7 â€” registrarAcesso()
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-suite('LgpdService â€” registrarAcesso()', () => {
+describe('LgpdService â€” registrarAcesso()', () => {
 
   test('ParÃ¢metros invÃ¡lidos â†’ insert nÃ£o Ã© chamado', () => {
     const { LgpdService, accessLogBuilder } = criarLgpdService();

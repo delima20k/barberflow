@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -66,7 +66,7 @@ const PERFIL_PRO       = { id: 'u-pro-01',      full_name: 'Maria Barbeira', rol
 // BLOCO 1 — AppState: Estado inicial
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppState — estado inicial', () => {
+describe('AppState — estado inicial', () => {
 
   test('isLogado=false, user=null, perfil=null, geo=null', () => {
     const { AppState } = novoAppState();
@@ -97,7 +97,7 @@ suite('AppState — estado inicial', () => {
 // BLOCO 2 — AppState: login()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppState — login()', () => {
+describe('AppState — login()', () => {
 
   test('atualiza isLogado=true, user e perfil atomicamente', () => {
     const { AppState } = novoAppState();
@@ -137,7 +137,7 @@ suite('AppState — login()', () => {
 // BLOCO 3 — AppState: logout() / clear()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppState — logout()', () => {
+describe('AppState — logout()', () => {
 
   test('reseta isLogado, user, perfil e geo após login', () => {
     const { AppState } = novoAppState();
@@ -185,7 +185,7 @@ suite('AppState — logout()', () => {
 // BLOCO 4 — AppState: setters semânticos
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppState — setters semânticos', () => {
+describe('AppState — setters semânticos', () => {
 
   test('setAuth(true) → isLogado=true', () => {
     const { AppState } = novoAppState();
@@ -239,7 +239,7 @@ suite('AppState — setters semânticos', () => {
 // BLOCO 5 — AppState: listeners e reatividade
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppState — listeners reativos', () => {
+describe('AppState — listeners reativos', () => {
 
   test('onAuth() dispara com true ao fazer login()', () => {
     const { AppState } = novoAppState();
@@ -325,7 +325,7 @@ suite('AppState — listeners reativos', () => {
 // BLOCO 6 — AppState: validação de schema
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppState — validação de schema', () => {
+describe('AppState — validação de schema', () => {
 
   test('chave inválida em get() lança TypeError', () => {
     const { AppState } = novoAppState();
@@ -375,7 +375,7 @@ suite('AppState — validação de schema', () => {
 // BLOCO 7 — AuthGuard: rotas públicas (app cliente)
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthGuard — rotas públicas (app cliente)', () => {
+describe('AuthGuard — rotas públicas (app cliente)', () => {
 
   const PUBLICAS = ['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques'];
 
@@ -401,7 +401,7 @@ suite('AuthGuard — rotas públicas (app cliente)', () => {
 // BLOCO 8 — AuthGuard: rotas protegidas (app cliente)
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthGuard — rotas protegidas (app cliente)', () => {
+describe('AuthGuard — rotas protegidas (app cliente)', () => {
 
   const PROTEGIDAS = ['perfil', 'mensagens', 'favoritas', 'agendamento', 'pagamento', 'sair'];
 
@@ -435,7 +435,7 @@ suite('AuthGuard — rotas protegidas (app cliente)', () => {
 // BLOCO 9 — AuthGuard: ações protegidas (app cliente)
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthGuard — ações protegidas (app cliente)', () => {
+describe('AuthGuard — ações protegidas (app cliente)', () => {
 
   const PROTEGIDAS = [
     'agendar',
@@ -480,7 +480,7 @@ suite('AuthGuard — ações protegidas (app cliente)', () => {
 // BLOCO 10 — AuthGuard: requireAuth()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthGuard — requireAuth()', () => {
+describe('AuthGuard — requireAuth()', () => {
 
   test('retorna false e chama router.push("login") quando não logado', () => {
     const { AuthGuard } = novoGuard();
@@ -514,7 +514,7 @@ suite('AuthGuard — requireAuth()', () => {
 // BLOCO 11 — AuthGuard: app profissional
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthGuard — app profissional', () => {
+describe('AuthGuard — app profissional', () => {
 
   const PROTEGIDAS_PRO = ['minha-barbearia', 'agenda', 'perfil', 'mensagens', 'sair'];
   const PUBLICAS       = ['inicio', 'pesquisa', 'login', 'cadastro', 'destaques'];
@@ -553,7 +553,7 @@ suite('AuthGuard — app profissional', () => {
 // BLOCO 12 — Fluxo integrado: login → ações → logout
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Fluxo integrado: login → ações → logout', () => {
+describe('Fluxo integrado: login → ações → logout', () => {
 
   test('ciclo completo preserva e limpa o estado corretamente', () => {
     const { AppState, AuthGuard } = novoGuard();

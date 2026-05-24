@@ -1,4 +1,4 @@
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -34,7 +34,7 @@ function assertBefore(order, first, second) {
   assert.ok(firstIndex < secondIndex, `${first} deve carregar antes de ${second}`);
 }
 
-suite('fase 1 de carregamento de scripts', () => {
+describe('fase 1 de carregamento de scripts', () => {
   test('cliente usa defer em todos os scripts externos', () => {
     const tags = externalScriptTags(readHtml('apps/cliente/index.html'));
     assert.equal(tags.length, 105);

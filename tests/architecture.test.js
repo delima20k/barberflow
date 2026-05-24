@@ -21,7 +21,7 @@ function src(relPath) {
   return readFileSync(join(ROOT, relPath), 'utf8');
 }
 
-// ─── Suite 1: domain — isolamento puro ────────────────────────────────────────
+// ─── describe 1: domain — isolamento puro ────────────────────────────────────────
 
 describe('domain — isolamento puro', () => {
   const PROIBIDOS = /ApiService|Repository|SupabaseService|fetch\(|localStorage|document\./;
@@ -43,7 +43,7 @@ describe('domain — isolamento puro', () => {
   });
 });
 
-// ─── Suite 2: application — services sem fetch direto ─────────────────────────
+// ─── describe 2: application — services sem fetch direto ─────────────────────────
 
 describe('application — services sem fetch direto', () => {
   const TEM_FETCH = /\bfetch\(/;
@@ -69,7 +69,7 @@ describe('application — services sem fetch direto', () => {
   });
 });
 
-// ─── Suite 3: infra — repositórios usam ApiService, nunca fetch direto ────────
+// ─── describe 3: infra — repositórios usam ApiService, nunca fetch direto ────────
 
 describe('infra — repositórios sem fetch direto', () => {
   const TEM_FETCH = /\bfetch\(/;
@@ -95,7 +95,7 @@ describe('infra — repositórios sem fetch direto', () => {
   });
 });
 
-// ─── Suite 4: interfaces — controllers sem acesso direto a repositórios ───────
+// ─── describe 4: interfaces — controllers sem acesso direto a repositórios ───────
 
 describe('interfaces — controllers sem acesso a repositórios', () => {
   const REPOS = /AppointmentRepository|BarbershopRepository|ProfileRepository|QueueRepository|ClienteRepository/;

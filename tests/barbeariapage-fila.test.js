@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const fs2             = require('node:fs');
 const path            = require('node:path');
@@ -8,7 +8,7 @@ const ROOT     = path.resolve(__dirname, '..');
 const SRC      = fs2.readFileSync(path.join(ROOT, 'shared/js/BarbeariaPage.js'), 'utf8');
 const SRC_CC   = fs2.readFileSync(path.join(ROOT, 'shared/js/ClienteController.js'), 'utf8');
 
-suite('BarbeariaPage — fila dinâmica', () => {
+describe('BarbeariaPage — fila dinâmica', () => {
 
   test('NÃO usa acesso indexado naFila[i] (padrão antigo de loop fixo)', () => {
     // O padrão antigo era naFila[i] ?? null dentro de um loop fixo de 3
@@ -30,7 +30,7 @@ suite('BarbeariaPage — fila dinâmica', () => {
   });
 });
 
-suite('BarbeariaPage — cadeira de produção interativa (app cliente)', () => {
+describe('BarbeariaPage — cadeira de produção interativa (app cliente)', () => {
 
   test('#criarRow aceita parâmetro onProducaoVaziaClick separado de onCadeiraVaziaClick', () => {
     assert.ok(
@@ -99,7 +99,7 @@ suite('BarbeariaPage — cadeira de produção interativa (app cliente)', () => 
   });
 });
 
-suite('ClienteController — método sentar()', () => {
+describe('ClienteController — método sentar()', () => {
 
   test('ClienteController expõe método estático sentar', () => {
     assert.ok(
@@ -133,7 +133,7 @@ suite('ClienteController — método sentar()', () => {
   });
 });
 
-suite('BarbeariaPage — modal barbearia fechada', () => {
+describe('BarbeariaPage — modal barbearia fechada', () => {
 
   test('fonte contém método privado #mostrarModalBarbeariaFechada', () => {
     assert.ok(
@@ -185,7 +185,7 @@ suite('BarbeariaPage — modal barbearia fechada', () => {
   });
 });
 
-suite('BarbeariaPage — callbacks com barbearia fechada', () => {
+describe('BarbeariaPage — callbacks com barbearia fechada', () => {
 
   test('renderBarbeiros extrai clientePodeInteragir separado de podeInteragir', () => {
     assert.ok(
@@ -217,7 +217,7 @@ suite('BarbeariaPage — callbacks com barbearia fechada', () => {
   });
 });
 
-suite('BarbeariaPage — polling de status da barbearia (fallback Realtime)', () => {
+describe('BarbeariaPage — polling de status da barbearia (fallback Realtime)', () => {
 
   test('fonte contém campo de instância #timerShopPoll', () => {
     assert.ok(
@@ -327,7 +327,7 @@ suite('BarbeariaPage — polling de status da barbearia (fallback Realtime)', ()
   });
 });
 
-suite('BarbeariaPage — realtime shop re-render', () => {
+describe('BarbeariaPage — realtime shop re-render', () => {
 
   test('#onShopRealtime chama #renderBarbeiros após atualizar shopData', () => {
     const idx = SRC.indexOf('#onShopRealtime(payload) {');

@@ -11,7 +11,7 @@
  * apenas os helpers puros são verificáveis fora do browser.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -47,7 +47,7 @@ function criarRepo({ error = null } = {}) {
 // BarbershopRepository.updateIsOpen
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('BarbershopRepository.updateIsOpen()', () => {
+describe('BarbershopRepository.updateIsOpen()', () => {
 
   test('chama update com is_open=true e close_reason=null ao abrir', async () => {
     const { repo, builder } = criarRepo();
@@ -155,7 +155,7 @@ function carregarModal() {
   return sandbox.StatusFechamentoModal;
 }
 
-suite('StatusFechamentoModal.labelStatus()', () => {
+describe('StatusFechamentoModal.labelStatus()', () => {
   const M = carregarModal();
 
   test('retorna "Aberta" quando is_open=true', () => {
@@ -187,7 +187,7 @@ suite('StatusFechamentoModal.labelStatus()', () => {
   });
 });
 
-suite('StatusFechamentoModal.classeStatus()', () => {
+describe('StatusFechamentoModal.classeStatus()', () => {
   const M = carregarModal();
 
   test('retorna status--aberta quando is_open=true', () => {
@@ -211,7 +211,7 @@ suite('StatusFechamentoModal.classeStatus()', () => {
   });
 });
 
-suite('StatusFechamentoModal.classBadge()', () => {
+describe('StatusFechamentoModal.classBadge()', () => {
   const M = carregarModal();
 
   test('retorna bp-badge--open quando is_open=true', () => {

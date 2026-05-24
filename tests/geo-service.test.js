@@ -6,7 +6,7 @@
  * Injeta stubs de navigator.geolocation e navigator.permissions no sandbox.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -28,7 +28,7 @@ function criarSandbox(overrides = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // GeoService.obter() — cache de posição
 // ─────────────────────────────────────────────────────────────────────────────
-suite('GeoService.obter() — cache de posição', () => {
+describe('GeoService.obter() — cache de posição', () => {
 
   test('retorna posição do GPS na primeira chamada', async () => {
     const getCurrentPosition = fn((success) => {
@@ -133,7 +133,7 @@ function criarSandboxComBff({ tokenValido = true, patchResult = { error: null } 
   return { sb, patchMock, enqueueMock };
 }
 
-suite('GeoService.#salvarNaBff — proteção 401 e lock', () => {
+describe('GeoService.#salvarNaBff — proteção 401 e lock', () => {
 
   test('não chama patch quando temTokenValido() retorna false', async () => {
     const { sb, patchMock } = criarSandboxComBff({ tokenValido: false });
@@ -199,7 +199,7 @@ suite('GeoService.#salvarNaBff — proteção 401 e lock', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GeoService.verificarPermissao()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('GeoService.verificarPermissao()', () => {
+describe('GeoService.verificarPermissao()', () => {
 
   test('retorna "granted" quando permissão foi concedida', async () => {
     const sb = criarSandbox({
@@ -241,7 +241,7 @@ suite('GeoService.verificarPermissao()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GeoService — regressões de localização autenticada
 // ─────────────────────────────────────────────────────────────────────────────
-suite('GeoService — regressões de localização autenticada', () => {
+describe('GeoService — regressões de localização autenticada', () => {
 
   test('401 bloqueia retry imediato e evita loop', async () => {
     const err401 = Object.assign(new Error('HTTP 401'), { status: 401 });

@@ -31,7 +31,7 @@
  *     17. Nenhum chunk contém plaintext legível (anti-leak)
  */
 
-const { suite, test }  = require('node:test');
+const { describe, test }  = require('node:test');
 const assert           = require('node:assert/strict');
 const crypto           = require('node:crypto');
 const path             = require('node:path');
@@ -53,7 +53,7 @@ const clonar = (enc) => ({ ...enc, data: Buffer.from(enc.data) });
 // EncryptionService
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('EncryptionService', () => {
+describe('EncryptionService', () => {
 
   const svc = new EncryptionService();
 
@@ -146,7 +146,7 @@ suite('EncryptionService', () => {
 // ChunkService
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ChunkService', () => {
+describe('ChunkService', () => {
 
   // 64 KB por chunk para testes mais rápidos
   const svc = new ChunkService(64 * 1024);
@@ -267,7 +267,7 @@ suite('ChunkService', () => {
 // Integração EncryptionService + ChunkService
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Integração EncryptionService + ChunkService', () => {
+describe('Integração EncryptionService + ChunkService', () => {
 
   const encSvc   = new EncryptionService();
   const chunkSvc = new ChunkService(64 * 1024);

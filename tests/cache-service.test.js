@@ -56,7 +56,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Diretório temporário isolado para testes em disco. */
 const makeTmpDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'bf-cache-test-'));
 
-// ── Suite: modo memory ────────────────────────────────────────────────────────
+// ── describe: modo memory ────────────────────────────────────────────────────────
 
 describe('CacheService — modo memory', () => {
 
@@ -172,7 +172,7 @@ describe('CacheService — modo memory', () => {
   });
 });
 
-// ── Suite: modo disk ──────────────────────────────────────────────────────────
+// ── describe: modo disk ──────────────────────────────────────────────────────────
 
 describe('CacheService — modo disk', () => {
 
@@ -265,7 +265,7 @@ describe('CacheService — modo disk', () => {
   });
 });
 
-// ── Suite: validacao de entradas ──────────────────────────────────────────────
+// ── describe: validacao de entradas ──────────────────────────────────────────────
 
 describe('CacheService — validacao', () => {
 

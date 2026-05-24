@@ -11,7 +11,7 @@
  *   - parar() sem args limpa todos os timers
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -77,7 +77,7 @@ function criarSandbox({ modalResposta = 'sim', rpcRetorno = { data: null, error:
 
 // ── Testes ───────────────────────────────────────────────────────────────────
 
-suite('CadeiraConfirmacaoService — guard de duplicação', () => {
+describe('CadeiraConfirmacaoService — guard de duplicação', () => {
 
   test('não reabre modal para entrada já processada (sim)', async () => {
     const { sandbox } = criarSandbox({ modalResposta: 'sim' });
@@ -101,7 +101,7 @@ suite('CadeiraConfirmacaoService — guard de duplicação', () => {
   });
 });
 
-suite('CadeiraConfirmacaoService — resposta "sim"', () => {
+describe('CadeiraConfirmacaoService — resposta "sim"', () => {
 
   test('toca som ao iniciar fluxo', async () => {
     const { sandbox } = criarSandbox({ modalResposta: 'sim' });
@@ -143,7 +143,7 @@ suite('CadeiraConfirmacaoService — resposta "sim"', () => {
   });
 });
 
-suite('CadeiraConfirmacaoService — resposta "nao" (1ª vez)', () => {
+describe('CadeiraConfirmacaoService — resposta "nao" (1ª vez)', () => {
 
   test('chama RPC com p_confirmado=false e p_grace_used=false', async () => {
     const { sandbox } = criarSandbox({ modalResposta: 'nao' });
@@ -187,7 +187,7 @@ suite('CadeiraConfirmacaoService — resposta "nao" (1ª vez)', () => {
   });
 });
 
-suite('CadeiraConfirmacaoService — resposta "nao" (2ª vez, grace expirado)', () => {
+describe('CadeiraConfirmacaoService — resposta "nao" (2ª vez, grace expirado)', () => {
 
   test('chama RPC com p_grace_used=true na segunda recusa', async () => {
     const { sandbox, timers } = criarSandbox({ modalResposta: 'nao' });
@@ -227,7 +227,7 @@ suite('CadeiraConfirmacaoService — resposta "nao" (2ª vez, grace expirado)', 
   });
 });
 
-suite('CadeiraConfirmacaoService — parar()', () => {
+describe('CadeiraConfirmacaoService — parar()', () => {
 
   test('parar(entradaId) cancela timer específico', async () => {
     const { sandbox, clearedTimers } = criarSandbox({ modalResposta: 'nao' });
@@ -280,7 +280,7 @@ suite('CadeiraConfirmacaoService — parar()', () => {
 // reconhece para abrir o modal ao barbeiro.
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('CadeiraConfirmacaoService — garantia de notificação ao barbeiro no "nao"', () => {
+describe('CadeiraConfirmacaoService — garantia de notificação ao barbeiro no "nao"', () => {
 
   test('RPC sempre é chamada ao clicar Não (1ª vez)', async () => {
     const { sandbox } = criarSandbox({ modalResposta: 'nao' });

@@ -1,13 +1,13 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const User            = require('../src/entities/User');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // User — fromRow()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('User — fromRow()', () => {
+describe('User — fromRow()', () => {
 
   test('cria instância com valores padrão quando row é vazia', () => {
     const u = User.fromRow({});
@@ -43,7 +43,7 @@ suite('User — fromRow()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // User — validar()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('User — validar()', () => {
+describe('User — validar()', () => {
 
   test('aceita dados mínimos válidos', () => {
     const u = User.fromRow({ email: 'teste@example.com', role: 'client' });
@@ -87,7 +87,7 @@ suite('User — validar()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // User — métodos de domínio
 // ─────────────────────────────────────────────────────────────────────────────
-suite('User — métodos de domínio', () => {
+describe('User — métodos de domínio', () => {
 
   test('isAtivo() retorna true quando is_active=true', () => {
     const u = User.fromRow({ email: 'a@b.com', role: 'client', is_active: true });
@@ -129,7 +129,7 @@ suite('User — métodos de domínio', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // User — toJSON() segurança
 // ─────────────────────────────────────────────────────────────────────────────
-suite('User — toJSON() nunca expõe passwordHash', () => {
+describe('User — toJSON() nunca expõe passwordHash', () => {
 
   test('passwordHash ausente do JSON serializado', () => {
     const u    = User.fromRow({ email: 'a@b.com', role: 'client', password_hash: '$2b$12$hash' });
@@ -150,7 +150,7 @@ suite('User — toJSON() nunca expõe passwordHash', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // User — rolesValidos estático
 // ─────────────────────────────────────────────────────────────────────────────
-suite('User — rolesValidos (estático)', () => {
+describe('User — rolesValidos (estático)', () => {
 
   test('retorna array com os roles esperados', () => {
     const roles = User.rolesValidos;

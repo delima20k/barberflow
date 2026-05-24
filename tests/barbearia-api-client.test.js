@@ -11,7 +11,7 @@
  *   no máximo 1 por #AVISO_THROTTLE_MS, evitando poluição do console.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const fs              = require('node:fs');
 const path            = require('node:path');
@@ -19,9 +19,9 @@ const path            = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const SRC  = fs.readFileSync(path.join(ROOT, 'shared/js/BarbeariaApiClient.js'), 'utf8');
 
-// ─── suite 1: presença dos campos de throttle ──────────────────────────────
+// ─── describe 1: presença dos campos de throttle ──────────────────────────────
 
-suite('BarbeariaApiClient — throttle de aviso BFF indisponível', () => {
+describe('BarbeariaApiClient — throttle de aviso BFF indisponível', () => {
 
   test('#ultimoAvisoMs existe como campo estático privado', () => {
     assert.ok(
@@ -47,9 +47,9 @@ suite('BarbeariaApiClient — throttle de aviso BFF indisponível', () => {
 
 });
 
-// ─── suite 2: helper #logAviso ────────────────────────────────────────────
+// ─── describe 2: helper #logAviso ────────────────────────────────────────────
 
-suite('BarbeariaApiClient — helper privado #logAviso', () => {
+describe('BarbeariaApiClient — helper privado #logAviso', () => {
 
   test('#logAviso existe como método estático privado', () => {
     assert.ok(
@@ -80,9 +80,9 @@ suite('BarbeariaApiClient — helper privado #logAviso', () => {
 
 });
 
-// ─── suite 3: substituição dos warns diretos ──────────────────────────────
+// ─── describe 3: substituição dos warns diretos ──────────────────────────────
 
-suite('BarbeariaApiClient — warns diretos substituídos por #logAviso', () => {
+describe('BarbeariaApiClient — warns diretos substituídos por #logAviso', () => {
 
   test('getNearby não chama LoggerService.warn diretamente', () => {
     const idxGetNearby = SRC.indexOf('static async getNearby');
@@ -116,9 +116,9 @@ suite('BarbeariaApiClient — warns diretos substituídos por #logAviso', () => 
 
 });
 
-// ─── suite 4: precisão da chave de cache ──────────────────────────────────
+// ─── describe 4: precisão da chave de cache ──────────────────────────────────
 
-suite('BarbeariaApiClient — precisão de chave de cache para getNearby', () => {
+describe('BarbeariaApiClient — precisão de chave de cache para getNearby', () => {
 
   test('getNearby usa no máximo 3 casas decimais nas coordenadas da chave', () => {
     const idxGetNearby = SRC.indexOf('static async getNearby');
@@ -140,9 +140,9 @@ suite('BarbeariaApiClient — precisão de chave de cache para getNearby', () =>
 
 });
 
-// ─── suite 5: indicador de disponibilidade do BFF ────────────────────────
+// ─── describe 5: indicador de disponibilidade do BFF ────────────────────────
 
-suite('BarbeariaApiClient — indicador de disponibilidade do BFF', () => {
+describe('BarbeariaApiClient — indicador de disponibilidade do BFF', () => {
 
   test('#bffFalhou existe como campo estático privado', () => {
     assert.ok(

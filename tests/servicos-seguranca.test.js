@@ -10,7 +10,7 @@
  *   - UserService: buscarPorEmail / buscarPerfilPublico
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 
 const BaseService        = require('../src/infra/BaseService');
@@ -34,7 +34,7 @@ function amanha(offsetMs = 0) {
 // BaseService — helpers de validação
 // =============================================================
 
-suite('BaseService — helpers de validação', () => {
+describe('BaseService — helpers de validação', () => {
 
   class ServicoTeste extends BaseService {
     constructor() { super('ServicoTeste'); }
@@ -104,7 +104,7 @@ suite('BaseService — helpers de validação', () => {
 // AgendamentoService — verificação de conflito de horário
 // =============================================================
 
-suite('AgendamentoService — criarAgendamento com verificação de conflito', () => {
+describe('AgendamentoService — criarAgendamento com verificação de conflito', () => {
 
   const dadosBase = {
     client_id:       UUID_A,
@@ -201,7 +201,7 @@ suite('AgendamentoService — criarAgendamento com verificação de conflito', (
 // AgendamentoService — verificação de propriedade (ownership)
 // =============================================================
 
-suite('AgendamentoService — atualizarStatus com verificação de propriedade', () => {
+describe('AgendamentoService — atualizarStatus com verificação de propriedade', () => {
 
   function criarRepoAgendamento(clienteId, profissionalId) {
     return {
@@ -280,7 +280,7 @@ suite('AgendamentoService — atualizarStatus com verificação de propriedade',
 // ComunicacaoService — mensagens diretas removidas (P2P E2E)
 // =============================================================
 
-suite('ComunicacaoService — métodos de mensagem removidos', () => {
+describe('ComunicacaoService — métodos de mensagem removidos', () => {
 
   test('enviarMensagem não existe (migrado para P2P)', () => {
     const svc = new ComunicacaoService({});
@@ -297,7 +297,7 @@ suite('ComunicacaoService — métodos de mensagem removidos', () => {
 // UserService
 // =============================================================
 
-suite('UserService — buscarPorEmail', () => {
+describe('UserService — buscarPorEmail', () => {
 
   const perfilMock = { id: UUID_A, full_name: 'Fulano', email: 'fulano@test.com' };
 
@@ -327,7 +327,7 @@ suite('UserService — buscarPorEmail', () => {
   });
 });
 
-suite('UserService — buscarPerfilPublico', () => {
+describe('UserService — buscarPerfilPublico', () => {
 
   const perfilMock = { id: UUID_A, full_name: 'Fulano' };
 

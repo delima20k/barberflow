@@ -8,7 +8,7 @@
  *   - authHeaders: Bearer enviado quando token válido, ausente quando não há token
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -63,7 +63,7 @@ function sessao(expiresAt, token = 'tok-abc-123') {
 // ─────────────────────────────────────────────────────────────────────────────
 // BffApiService.temTokenValido()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BffApiService.temTokenValido()', () => {
+describe('BffApiService.temTokenValido()', () => {
 
   test('retorna false quando localStorage não tem sessão', () => {
     const sb = criarSandbox();
@@ -112,7 +112,7 @@ suite('BffApiService.temTokenValido()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // BffApiService.patch() — header Authorization e status no erro
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BffApiService.patch()', () => {
+describe('BffApiService.patch()', () => {
 
   test('inclui header Authorization Bearer quando token válido', async () => {
     const capturedOpts = [];
@@ -189,7 +189,7 @@ suite('BffApiService.patch()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // BffApiService.post() — status no erro (simetria com patch)
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BffApiService.post()', () => {
+describe('BffApiService.post()', () => {
 
   test('inclui Bearer vindo de SupabaseService.getSession() antes do fallback localStorage', async () => {
     const capturedOpts = [];
@@ -251,7 +251,7 @@ suite('BffApiService.post()', () => {
   });
 });
 
-suite('BffApiService.mensalistas', () => {
+describe('BffApiService.mensalistas', () => {
 
   test('adicionar envia monthly_fee no payload', async () => {
     const capturedOpts = [];

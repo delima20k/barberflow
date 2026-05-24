@@ -88,7 +88,7 @@ class NavConfig {
    * @returns {Array<{tela?: string, acao?: string, icone: string, label: string}>}
    */
   static getItems(logado) {
-    const isPro = typeof BarberFlowProfissional !== 'undefined';
+    const isPro = NavConfig.#isProfissionalApp();
     if (!logado) {
       return isPro ? NavConfig.#PROFISSIONAL_DESLOGADO : NavConfig.#CLIENTE_DESLOGADO;
     }
@@ -102,6 +102,24 @@ class NavConfig {
     return proType === 'barbearia'
       ? NavConfig.#PROFISSIONAL_LOGADO
       : NavConfig.#BARBEIRO_LOGADO;
+  }
+
+  /**
+   * Detecta o app profissional por sinais globais estaveis.
+   * BarberFlowProfissional e declarado dentro de modulo ES no app real, entao
+   * nao fica visivel para este script classic. O global publico e `Pro`.
+   */
+  static #isProfissionalApp() {
+    if (typeof Pro !== 'undefined') return true;
+    if (typeof BarberFlowProfissional !== 'undefined') return true;
+
+    const perfil = (typeof AuthService !== 'undefined')
+      ? AuthService.getPerfil?.()
+      : null;
+
+    return perfil?.role === 'professional'
+        || perfil?.pro_type === 'barbearia'
+        || perfil?.pro_type === 'barbeiro';
   }
 
   /**

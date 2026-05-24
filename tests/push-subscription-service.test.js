@@ -16,7 +16,7 @@
  *   revogar()         — unsubscribe + DELETE no backend
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert                      = require('node:assert/strict');
 const vm                          = require('node:vm');
 const { fn, carregar }            = require('./_helpers.js');
@@ -93,7 +93,7 @@ function criarSandbox({ permission = 'granted', subscription = null, fetchStatus
 
 // ─── Testes ──────────────────────────────────────────────────
 
-suite('PushSubscriptionService — suporte e device ID', () => {
+describe('PushSubscriptionService — suporte e device ID', () => {
 
   test('init() é noop quando userId não fornecido', async () => {
     const sb = criarSandbox();
@@ -141,7 +141,7 @@ suite('PushSubscriptionService — suporte e device ID', () => {
   });
 });
 
-suite('PushSubscriptionService — registrar()', () => {
+describe('PushSubscriptionService — registrar()', () => {
 
   test('registrar() chama subscribe no PushManager com userVisibleOnly=true', async () => {
     const sb = criarSandbox();
@@ -188,7 +188,7 @@ suite('PushSubscriptionService — registrar()', () => {
   });
 });
 
-suite('PushSubscriptionService — renovar()', () => {
+describe('PushSubscriptionService — renovar()', () => {
 
   test('renovar() sem subscription existente chama registrar (subscribe + POST)', async () => {
     const sb = criarSandbox({ subscription: null });
@@ -252,7 +252,7 @@ suite('PushSubscriptionService — renovar()', () => {
   });
 });
 
-suite('PushSubscriptionService — revogar()', () => {
+describe('PushSubscriptionService — revogar()', () => {
 
   test('revogar() chama unsubscribe e DELETE no backend', async () => {
     const existingSub = {

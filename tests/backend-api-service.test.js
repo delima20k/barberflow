@@ -8,7 +8,7 @@
 // correto (pro.berberflow.shop) e não para projetos de terceiros.
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const fs              = require('node:fs');
 const path            = require('node:path');
@@ -18,9 +18,9 @@ const SRC = fs.readFileSync(
   'utf8',
 );
 
-// ─── Suite 1: URL de produção ─────────────────────────────────
+// ─── describe 1: URL de produção ─────────────────────────────────
 
-suite('BackendApiService — BASE_URL de produção', () => {
+describe('BackendApiService — BASE_URL de produção', () => {
 
   test('usa pro.berberflow.shop como URL base de produção', () => {
     assert.ok(
@@ -50,9 +50,9 @@ suite('BackendApiService — BASE_URL de produção', () => {
   });
 });
 
-// ─── Suite 2: consistência de URL nos frontends ───────────────
+// ─── describe 2: consistência de URL nos frontends ───────────────
 
-suite('BackendApiService — consistência cross-file', () => {
+describe('BackendApiService — consistência cross-file', () => {
 
   test('src/app.js ALLOWED_ORIGINS inclui domínios oficiais berberflow.shop', () => {
     const appSrc = fs.readFileSync(

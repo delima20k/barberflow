@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -55,7 +55,7 @@ function criarSandbox() {
 
 // ─── Suíte: getNearby ────────────────────────────────────────────────────────
 
-suite('BarbeariaApiClient — getNearby', () => {
+describe('BarbeariaApiClient — getNearby', () => {
   test('BFF ok → retorna dados do BFF; BarbershopRepository não chamado', async () => {
     const { sandbox, mockBffGet, mockNearby } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: BARBEARIAS_BFF, total: 2, error: null });
@@ -125,7 +125,7 @@ suite('BarbeariaApiClient — getNearby', () => {
 
 // ─── Suíte: getDestaque ──────────────────────────────────────────────────────
 
-suite('BarbeariaApiClient — getDestaque', () => {
+describe('BarbeariaApiClient — getDestaque', () => {
   test('BFF ok → retorna dados do BFF; getFeatured não chamado', async () => {
     const { sandbox, mockBffGet, mockFeatured } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: BARBEARIAS_BFF, total: 2, error: null });
@@ -180,7 +180,7 @@ suite('BarbeariaApiClient — getDestaque', () => {
 
 // ─── Suíte: getTodas ─────────────────────────────────────────────────────────
 
-suite('BarbeariaApiClient — getTodas', () => {
+describe('BarbeariaApiClient — getTodas', () => {
   test('BFF ok → retorna dados do BFF; getAll não chamado', async () => {
     const { sandbox, mockBffGet, mockGetAll } = criarSandbox();
     mockBffGet.mockResolvedValue({ data: BARBEARIAS_BFF, total: 2, error: null });

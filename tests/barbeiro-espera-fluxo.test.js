@@ -3,16 +3,16 @@
 // barbeiro-espera-fluxo.test.js — TDD para BarbeiroEsperaFluxo
 //
 // Cobertura:
-//   Suite 1: iniciarEspera — toca som, registra estado, guard de duplicata
-//   Suite 2: estaAguardando — false antes, true depois, false após finalizar
-//   Suite 3: finalizarEspera — remove estado, chama clearInterval
-//   Suite 4: abrirModalCadeira — 2 botões (Sim/Não) + segundo modal após Não
-//   Suite 5: resetarTimer — cancela + reinicia sem duplicar
-//   Suite 6: localStorage — persiste ao iniciar, limpa ao finalizar, restaurar()
-//   Suite 7: barberflow:espera-resolvida — despacha com acao + barbershopId
+//   describe 1: iniciarEspera — toca som, registra estado, guard de duplicata
+//   describe 2: estaAguardando — false antes, true depois, false após finalizar
+//   describe 3: finalizarEspera — remove estado, chama clearInterval
+//   describe 4: abrirModalCadeira — 2 botões (Sim/Não) + segundo modal após Não
+//   describe 5: resetarTimer — cancela + reinicia sem duplicar
+//   describe 6: localStorage — persiste ao iniciar, limpa ao finalizar, restaurar()
+//   describe 7: barberflow:espera-resolvida — despacha com acao + barbershopId
 // =============================================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -69,9 +69,9 @@ function criarSandbox({ modalResp = 'sim', modalResps = null, lsStore = {} } = {
   return { sandbox, abrirSpy, tocarSomSpy, dispatchSpy, setIntervalSpy, clearIntervalSpy, localStorageMock, ls };
 }
 
-// ─── Suite 1: iniciarEspera ───────────────────────────────────────────────────
+// ─── describe 1: iniciarEspera ───────────────────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — iniciarEspera', () => {
+describe('BarbeiroEsperaFluxo — iniciarEspera', () => {
 
   test('toca som ao iniciar espera', () => {
     const { sandbox, tocarSomSpy } = criarSandbox();
@@ -100,9 +100,9 @@ suite('BarbeiroEsperaFluxo — iniciarEspera', () => {
   });
 });
 
-// ─── Suite 2: estaAguardando ──────────────────────────────────────────────────
+// ─── describe 2: estaAguardando ──────────────────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — estaAguardando', () => {
+describe('BarbeiroEsperaFluxo — estaAguardando', () => {
 
   test('retorna false antes de iniciarEspera', () => {
     const { sandbox } = criarSandbox();
@@ -123,9 +123,9 @@ suite('BarbeiroEsperaFluxo — estaAguardando', () => {
   });
 });
 
-// ─── Suite 3: finalizarEspera ─────────────────────────────────────────────────
+// ─── describe 3: finalizarEspera ─────────────────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — finalizarEspera', () => {
+describe('BarbeiroEsperaFluxo — finalizarEspera', () => {
 
   test('chama clearInterval ao finalizar', () => {
     const { sandbox, clearIntervalSpy } = criarSandbox();
@@ -147,9 +147,9 @@ suite('BarbeiroEsperaFluxo — finalizarEspera', () => {
   });
 });
 
-// ─── Suite 4: abrirModalCadeira ───────────────────────────────────────────────
+// ─── describe 4: abrirModalCadeira ───────────────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — abrirModalCadeira', () => {
+describe('BarbeiroEsperaFluxo — abrirModalCadeira', () => {
 
   test('retorna "chegou" quando barbeiro clica Sim', async () => {
     const { sandbox } = criarSandbox({ modalResp: 'sim' });
@@ -218,9 +218,9 @@ suite('BarbeiroEsperaFluxo — abrirModalCadeira', () => {
   });
 });
 
-// ─── Suite 5: resetarTimer ────────────────────────────────────────────────────
+// ─── describe 5: resetarTimer ────────────────────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — resetarTimer', () => {
+describe('BarbeiroEsperaFluxo — resetarTimer', () => {
 
   test('chama clearInterval e depois setInterval novamente', () => {
     const { sandbox, setIntervalSpy, clearIntervalSpy } = criarSandbox();
@@ -238,9 +238,9 @@ suite('BarbeiroEsperaFluxo — resetarTimer', () => {
   });
 });
 
-// ─── Suite 6: localStorage ────────────────────────────────────────────────────
+// ─── describe 6: localStorage ────────────────────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — localStorage', () => {
+describe('BarbeiroEsperaFluxo — localStorage', () => {
 
   test('iniciarEspera persiste no localStorage', () => {
     const { sandbox, localStorageMock } = criarSandbox();
@@ -272,9 +272,9 @@ suite('BarbeiroEsperaFluxo — localStorage', () => {
   });
 });
 
-// ─── Suite 7: barberflow:espera-resolvida ─────────────────────────────────────
+// ─── describe 7: barberflow:espera-resolvida ─────────────────────────────────────
 
-suite('BarbeiroEsperaFluxo — evento barberflow:espera-resolvida', () => {
+describe('BarbeiroEsperaFluxo — evento barberflow:espera-resolvida', () => {
 
   test('abrirModalCadeira despacha evento com acao="chegou" quando Sim', async () => {
     const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'sim' });

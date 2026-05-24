@@ -15,7 +15,7 @@
  *   9. UserService         — e-mail injection, enumeração de usuários
  *
  * Todos os testes são ISOLADOS — sem estado compartilhado, sem dados reais.
- * Mocks injetados por construtor ou criados localmente em cada suite.
+ * Mocks injetados por construtor ou criados localmente em cada describe.
  */
 
 // ── Env vars ANTES de qualquer require ──────────────────────────────────────
@@ -29,7 +29,7 @@ process.env.JWT_ACCESS_SECRET         ??= 'test-access-secret-32chars-ok!!!';
 process.env.JWT_REFRESH_SECRET        ??= 'test-refresh-secret-32chars-ok!!';
 process.env.BCRYPT_ROUNDS             ??= '4';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const jwt             = require('jsonwebtoken');
 const { fn }          = require('./_helpers.js');
@@ -111,7 +111,7 @@ function criarSupaMock({ role = 'client', dbError = null } = {}) {
 // 1. AuthMiddleware — Endpoints protegidos sem token válido
 // =============================================================================
 
-suite('AuthMiddleware — endpoints protegidos sem token válido', () => {
+describe('AuthMiddleware — endpoints protegidos sem token válido', () => {
 
   test('sem header Authorization → 401', async () => {
     const { req, res, next, captured } = criarMocks();
@@ -201,7 +201,7 @@ suite('AuthMiddleware — endpoints protegidos sem token válido', () => {
 // 2. Ataques JWT — TokenService
 // =============================================================================
 
-suite('Ataques JWT — TokenService', () => {
+describe('Ataques JWT — TokenService', () => {
 
   test('alg:none attack — TokenService.verificarSupabase rejeita (sem assinatura)', () => {
     // Clássico JWT algorithm confusion: header alg=none + payload sem assinatura
@@ -303,7 +303,7 @@ suite('Ataques JWT — TokenService', () => {
 // 3. Injeção via ValidationMiddleware
 // =============================================================================
 
-suite('ValidationMiddleware — ataques de injeção e payloads maliciosos', () => {
+describe('ValidationMiddleware — ataques de injeção e payloads maliciosos', () => {
 
   // ── Email ──────────────────────────────────────────────────────────────────
 
@@ -458,7 +458,7 @@ suite('ValidationMiddleware — ataques de injeção e payloads maliciosos', () 
 // 4. IDOR — ClienteService: edição de perfil alheio
 // =============================================================================
 
-suite('ClienteService — IDOR (Insecure Direct Object Reference)', () => {
+describe('ClienteService — IDOR (Insecure Direct Object Reference)', () => {
 
   function criarService(rowRetorno = null) {
     const repo = {
@@ -516,7 +516,7 @@ suite('ClienteService — IDOR (Insecure Direct Object Reference)', () => {
 // 5. Mass Assignment — BaseRepository
 // =============================================================================
 
-suite('BaseRepository — Mass Assignment (previne campos proibidos)', () => {
+describe('BaseRepository — Mass Assignment (previne campos proibidos)', () => {
 
   class RepoTeste extends BaseRepository {
     constructor() { super('RepoTeste'); }
@@ -582,7 +582,7 @@ suite('BaseRepository — Mass Assignment (previne campos proibidos)', () => {
 // 6. BarbeariaService — Injeção em coordenadas geográficas
 // =============================================================================
 
-suite('BarbeariaService — injeção em coordenadas e raio (ataque geográfico)', () => {
+describe('BarbeariaService — injeção em coordenadas e raio (ataque geográfico)', () => {
 
   function criarSvc() {
     const repo = {
@@ -670,7 +670,7 @@ suite('BarbeariaService — injeção em coordenadas e raio (ataque geográfico)
 // 7. RoleMiddleware — Escalada de privilégio
 // =============================================================================
 
-suite('RoleMiddleware — Escalada de privilégio e proteção de rotas', () => {
+describe('RoleMiddleware — Escalada de privilégio e proteção de rotas', () => {
 
   test('req.user ausente (AuthMiddleware não executado) → 401', async () => {
     const db = criarSupaMock({ role: 'admin' });
@@ -762,7 +762,7 @@ suite('RoleMiddleware — Escalada de privilégio e proteção de rotas', () => 
 // 8. PasswordService — DoS por bcrypt amplification e senhas maliciosas
 // =============================================================================
 
-suite('PasswordService — proteção contra DoS e senhas maliciosas', () => {
+describe('PasswordService — proteção contra DoS e senhas maliciosas', () => {
 
   test('senha com 200 chars é rejeitada antes do bcrypt (previne bcrypt DoS)', () => {
     // bcrypt tem limite de 72 bytes de entrada; senhas longas causam CPU spike
@@ -815,7 +815,7 @@ suite('PasswordService — proteção contra DoS e senhas maliciosas', () => {
 // 9. UserService — Ataques via e-mail e enumeração de usuários
 // =============================================================================
 
-suite('UserService — validação de e-mail e proteção contra user enumeration', () => {
+describe('UserService — validação de e-mail e proteção contra user enumeration', () => {
 
   function criarSvc(perfil = null) {
     const repo = {

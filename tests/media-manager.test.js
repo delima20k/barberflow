@@ -135,7 +135,7 @@ function criarMockSupabaseSemCripto() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 1: uploadMedia()
+// describe 1: uploadMedia()
 // ═══════════════════════════════════════════════════════════════
 describe('uploadMedia()', () => {
 
@@ -240,7 +240,7 @@ describe('uploadMedia()', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 2: downloadMedia()
+// describe 2: downloadMedia()
 // ═══════════════════════════════════════════════════════════════
 describe('downloadMedia()', () => {
 
@@ -378,7 +378,7 @@ describe('downloadMedia()', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 3: Segurança
+// describe 3: Segurança
 // ═══════════════════════════════════════════════════════════════
 describe('Segurança', () => {
 
@@ -439,7 +439,7 @@ describe('Segurança', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 4: Roteamento Supabase Storage vs R2
+// describe 4: Roteamento Supabase Storage vs R2
 // Testa gerarUrlPresigned(), confirmarUpload() e deletar()
 // com roteamento correto por contexto.
 // ═══════════════════════════════════════════════════════════════

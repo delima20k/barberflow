@@ -6,7 +6,7 @@
  * Segue o padrão de entities.test.js: CJS + sandbox VM + carregar().
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -24,7 +24,7 @@ function criarSandbox() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Barbearia — validar()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Barbearia — validar()', () => {
+describe('Barbearia — validar()', () => {
   let sb;
   test('setup', () => { sb = criarSandbox(); });
 
@@ -63,7 +63,7 @@ suite('Barbearia — validar()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Barbearia — métodos internos
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Barbearia — métodos internos', () => {
+describe('Barbearia — métodos internos', () => {
   let sb;
   test('setup', () => { sb = criarSandbox(); });
 
@@ -94,7 +94,7 @@ suite('Barbearia — métodos internos', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Profissional — validar()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Profissional — validar()', () => {
+describe('Profissional — validar()', () => {
   let sb;
   test('setup', () => { sb = criarSandbox(); });
 
@@ -130,7 +130,7 @@ suite('Profissional — validar()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Profissional — métodos internos
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Profissional — métodos internos', () => {
+describe('Profissional — métodos internos', () => {
   let sb;
   test('setup', () => { sb = criarSandbox(); });
 
@@ -153,7 +153,7 @@ suite('Profissional — métodos internos', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Servico — validar()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Servico — validar()', () => {
+describe('Servico — validar()', () => {
   let sb;
   test('setup', () => { sb = criarSandbox(); });
 
@@ -189,7 +189,7 @@ suite('Servico — validar()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Servico — métodos internos
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Servico — métodos internos', () => {
+describe('Servico — métodos internos', () => {
   let sb;
   test('setup', () => { sb = criarSandbox(); });
 

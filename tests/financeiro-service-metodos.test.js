@@ -16,7 +16,7 @@
  *   - Desconto em 'debito' não altera grupo 'pix'/'dinheiro'
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -89,7 +89,7 @@ function criarSandboxService({
 
 // ─── Testes de FinanceiroRepository ─────────────────────────────────────────
 
-suite('FinanceiroRepository.getResumoPorMetodoPagamento', () => {
+describe('FinanceiroRepository.getResumoPorMetodoPagamento', () => {
 
   test('agrupa corretamente: credito, debito, pixDinheiro', async () => {
     const rows = [
@@ -191,7 +191,7 @@ suite('FinanceiroRepository.getResumoPorMetodoPagamento', () => {
 
 // ─── Testes de FinanceiroService ─────────────────────────────────────────────
 
-suite('FinanceiroService.getResumoPorMetodoPagamento', () => {
+describe('FinanceiroService.getResumoPorMetodoPagamento', () => {
 
   test('valida UUID inválido e lança TypeError', async () => {
     const { sandbox: sb } = criarSandboxService();
@@ -220,7 +220,7 @@ suite('FinanceiroService.getResumoPorMetodoPagamento', () => {
   });
 });
 
-suite('FinanceiroService.aplicarDescontoMetodo', () => {
+describe('FinanceiroService.aplicarDescontoMetodo', () => {
 
   test('lança TypeError para UUID inválido', async () => {
     const { sandbox: sb } = criarSandboxService();

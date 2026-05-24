@@ -7,7 +7,7 @@
  * Reutiliza o padrão de criarQueryBuilder de repositories.test.js.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -46,7 +46,7 @@ function criarRepo({ data = [], error = null } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // AppointmentRepository.getByProfessional()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('AppointmentRepository.getByProfessional()', () => {
+describe('AppointmentRepository.getByProfessional()', () => {
 
   test('chama ApiService.from("appointments")', async () => {
     const agendamentos = [{ id: 'x', status: 'pending' }];
@@ -84,7 +84,7 @@ suite('AppointmentRepository.getByProfessional()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // AppointmentRepository.getHoje() / getAmanha()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('AppointmentRepository.getHoje() e getAmanha()', () => {
+describe('AppointmentRepository.getHoje() e getAmanha()', () => {
 
   test('getHoje() passa range de datas com intervalo de 1 dia', async () => {
     const { AR, builder } = criarRepo({ data: [] });

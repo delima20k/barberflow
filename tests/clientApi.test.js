@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -82,7 +82,7 @@ function payloadValido(extra = {}) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppointmentRepository — criar()', () => {
+describe('AppointmentRepository — criar()', () => {
 
   test('envia POST para /rest/v1/appointments com payload válido', async () => {
     let url, opts;
@@ -146,7 +146,7 @@ suite('AppointmentRepository — criar()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppointmentRepository — getByCliente()', () => {
+describe('AppointmentRepository — getByCliente()', () => {
 
   test('gera GET com client_id, gte scheduled_at, order e limit', async () => {
     let url;
@@ -179,7 +179,7 @@ suite('AppointmentRepository — getByCliente()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AppointmentRepository — updateStatus()', () => {
+describe('AppointmentRepository — updateStatus()', () => {
 
   test('envia PATCH com status válido e updated_at', async () => {
     let url, opts;

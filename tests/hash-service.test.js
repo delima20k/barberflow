@@ -13,7 +13,7 @@ const HashService = require('../src/services/HashService');
 const ChunkService = require('../src/services/ChunkService');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite: HashService — generateHash
+// describe: HashService — generateHash
 // ─────────────────────────────────────────────────────────────────────────────
 describe('HashService.generateHash()', () => {
 
@@ -81,7 +81,7 @@ describe('HashService.generateHash()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite: HashService — validateHash
+// describe: HashService — validateHash
 // ─────────────────────────────────────────────────────────────────────────────
 describe('HashService.validateHash()', () => {
 
@@ -143,7 +143,7 @@ describe('HashService.validateHash()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite: HashService — check (sem throw)
+// describe: HashService — check (sem throw)
 // ─────────────────────────────────────────────────────────────────────────────
 describe('HashService.check()', () => {
 
@@ -184,7 +184,7 @@ describe('HashService.check()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite: Integração HashService ↔ ChunkService
+// describe: Integração HashService ↔ ChunkService
 // ─────────────────────────────────────────────────────────────────────────────
 describe('HashService integração com ChunkService', () => {
 

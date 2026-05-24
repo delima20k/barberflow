@@ -16,7 +16,7 @@
 //   - instância: new FluxoDeFila(config).abrir() idêntico ao static
 // =============================================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -186,7 +186,7 @@ function encontrarBotoes(overlay) {
 
 // ─── Testes ──────────────────────────────────────────────────────────────────
 
-suite('FluxoDeFila — API básica', () => {
+describe('FluxoDeFila — API básica', () => {
 
   test('FluxoDeFila.abrir() retorna Promise', () => {
     const { sandbox } = criarSandbox();
@@ -217,7 +217,7 @@ suite('FluxoDeFila — API básica', () => {
   });
 });
 
-suite('FluxoDeFila — som', () => {
+describe('FluxoDeFila — som', () => {
 
   test('tocarSom=true chama QueuePoller.tocarSom', () => {
     const { sandbox, tocarSomSpy } = criarSandbox();
@@ -238,7 +238,7 @@ suite('FluxoDeFila — som', () => {
   });
 });
 
-suite('FluxoDeFila — resolução por botão', () => {
+describe('FluxoDeFila — resolução por botão', () => {
 
   test('clicar no 1º botão resolve com seu valor', async () => {
     const { sandbox, doc } = criarSandbox();
@@ -279,7 +279,7 @@ suite('FluxoDeFila — resolução por botão', () => {
   });
 });
 
-suite('FluxoDeFila — botão fechar', () => {
+describe('FluxoDeFila — botão fechar', () => {
 
   test('fecharBtn=true adiciona botão com classe fdf-fechar', () => {
     const { sandbox, doc } = criarSandbox();
@@ -319,7 +319,7 @@ suite('FluxoDeFila — botão fechar', () => {
   });
 });
 
-suite('FluxoDeFila — overlay duplicado', () => {
+describe('FluxoDeFila — overlay duplicado', () => {
 
   test('segunda abertura com mesmo id remove o overlay anterior', () => {
     const { sandbox, doc } = criarSandbox();
@@ -343,7 +343,7 @@ suite('FluxoDeFila — overlay duplicado', () => {
   });
 });
 
-suite('FluxoDeFila — icone imagem', () => {
+describe('FluxoDeFila — icone imagem', () => {
 
   test('iconeImagem=true cria elemento img dentro do ícone', () => {
     const { sandbox, doc } = criarSandbox();
@@ -359,7 +359,7 @@ suite('FluxoDeFila — icone imagem', () => {
   });
 });
 
-suite('FluxoDeFila — instância', () => {
+describe('FluxoDeFila — instância', () => {
 
   test('new FluxoDeFila(config).abrir() funciona igual ao static', async () => {
     const { sandbox, doc } = criarSandbox();

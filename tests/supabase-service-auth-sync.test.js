@@ -12,7 +12,7 @@
 // do barbeiro nunca era renovada → BFF retornava enviados=0.
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -73,7 +73,7 @@ async function inicializar({ sandbox, authCallbacks }) {
 
 // ─── Suíte principal ──────────────────────────────────────────────────────────
 
-suite('SupabaseService.#initAuthSync() — sincronização AppState', () => {
+describe('SupabaseService.#initAuthSync() — sincronização AppState', () => {
 
   test('INITIAL_SESSION com user → AppState.isLogado=true e getUserId() correto', async () => {
     const ctx = criarSandbox();

@@ -13,7 +13,7 @@
  *   sentar('producao') — vai direto para in_service (comportamento existente)
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -95,10 +95,10 @@ function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } 
 }
 
 // =============================================================================
-// Suite 1 — finalizar(): auto-avanço da fila de espera
+// describe 1 — finalizar(): auto-avanço da fila de espera
 // =============================================================================
 
-suite('CadeiraService.finalizar() — auto-avanço', () => {
+describe('CadeiraService.finalizar() — auto-avanço', () => {
 
   test('marca entrada atual como "done"', async () => {
     const { CS, QR } = criarSandbox({ filaAtiva: [] });
@@ -200,10 +200,10 @@ suite('CadeiraService.finalizar() — auto-avanço', () => {
 });
 
 // =============================================================================
-// Suite 2 — sentar('fila'): auto-avanço quando produção está vazia
+// describe 2 — sentar('fila'): auto-avanço quando produção está vazia
 // =============================================================================
 
-suite('CadeiraService.sentar("fila") — auto-avanço quando produção vazia', () => {
+describe('CadeiraService.sentar("fila") — auto-avanço quando produção vazia', () => {
 
   test('produção vazia → chama updateStatus("in_service") na nova entrada', async () => {
     // Fila sem nenhum in_service para PROF_A
@@ -272,10 +272,10 @@ suite('CadeiraService.sentar("fila") — auto-avanço quando produção vazia', 
 });
 
 // =============================================================================
-// Suite 3 — sincronizarFilas(): promove waiting → in_service na inicialização
+// describe 3 — sincronizarFilas(): promove waiting → in_service na inicialização
 // =============================================================================
 
-suite('CadeiraService.sincronizarFilas()', () => {
+describe('CadeiraService.sincronizarFilas()', () => {
 
   test('produção vazia com 1 waiting → promove para in_service', async () => {
     const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
@@ -357,10 +357,10 @@ suite('CadeiraService.sincronizarFilas()', () => {
 });
 
 // =============================================================================
-// Suite 4 — sentar('producao'): comportamento existente inalterado
+// describe 4 — sentar('producao'): comportamento existente inalterado
 // =============================================================================
 
-suite('CadeiraService.sentar("producao") — comportamento existente', () => {
+describe('CadeiraService.sentar("producao") — comportamento existente', () => {
 
   test('sempre chama updateStatus("in_service") na entrada criada', async () => {
     const { CS, QR } = criarSandbox({
@@ -401,10 +401,10 @@ suite('CadeiraService.sentar("producao") — comportamento existente', () => {
 });
 
 // =============================================================================
-// Suite 5 — sentar(): barbearia fechada bloqueia inserção
+// describe 5 — sentar(): barbearia fechada bloqueia inserção
 // =============================================================================
 
-suite('CadeiraService.sentar() — barbearia fechada', () => {
+describe('CadeiraService.sentar() — barbearia fechada', () => {
 
   test('lança erro 403 quando barbearia está fechada (is_open=false)', async () => {
     const { CS } = criarSandbox({ shopAberta: false });

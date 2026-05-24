@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -19,10 +19,10 @@ function criarDP() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 1 — DataProcessor.validateCPF()
+// describe 1 — DataProcessor.validateCPF()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.validateCPF()', () => {
+describe('DataProcessor.validateCPF()', () => {
 
   test('CPF válido com máscara → ok:true, valor somente dígitos', () => {
     const DP = criarDP();
@@ -74,10 +74,10 @@ suite('DataProcessor.validateCPF()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 2 — DataProcessor.validateEmail()
+// describe 2 — DataProcessor.validateEmail()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.validateEmail()', () => {
+describe('DataProcessor.validateEmail()', () => {
 
   test('email válido minúsculo → ok:true, valor idêntico', () => {
     const DP = criarDP();
@@ -114,10 +114,10 @@ suite('DataProcessor.validateEmail()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 3 — DataProcessor.validatePhone()
+// describe 3 — DataProcessor.validatePhone()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.validatePhone()', () => {
+describe('DataProcessor.validatePhone()', () => {
 
   test('telefone com máscara (11) 91234-5678 → ok:true, valor somente dígitos', () => {
     const DP = criarDP();
@@ -161,10 +161,10 @@ suite('DataProcessor.validatePhone()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 4 — DataProcessor.sanitizeInput()
+// describe 4 — DataProcessor.sanitizeInput()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.sanitizeInput()', () => {
+describe('DataProcessor.sanitizeInput()', () => {
 
   test('texto normal → retorna inalterado (trim)', () => {
     const DP = criarDP();
@@ -207,10 +207,10 @@ suite('DataProcessor.sanitizeInput()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 5 — DataProcessor.sanitizeOutput()
+// describe 5 — DataProcessor.sanitizeOutput()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.sanitizeOutput()', () => {
+describe('DataProcessor.sanitizeOutput()', () => {
 
   test('texto limpo → retorna inalterado', () => {
     const DP = criarDP();
@@ -251,10 +251,10 @@ suite('DataProcessor.sanitizeOutput()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 6 — DataProcessor.normalizeData()
+// describe 6 — DataProcessor.normalizeData()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.normalizeData()', () => {
+describe('DataProcessor.normalizeData()', () => {
 
   test('objeto com cpf normaliza para somente dígitos', () => {
     const DP = criarDP();
@@ -310,10 +310,10 @@ suite('DataProcessor.normalizeData()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 7 — DataProcessor.processInput()
+// describe 7 — DataProcessor.processInput()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.processInput()', () => {
+describe('DataProcessor.processInput()', () => {
 
   test('objeto totalmente válido → ok:true, errors:{}, data normalizado', () => {
     const DP = criarDP();
@@ -374,10 +374,10 @@ suite('DataProcessor.processInput()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 8 — DataProcessor.processOutput()
+// describe 8 — DataProcessor.processOutput()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('DataProcessor.processOutput()', () => {
+describe('DataProcessor.processOutput()', () => {
 
   test('dados limpos → data igual ao original, warnings vazio', () => {
     const DP    = criarDP();

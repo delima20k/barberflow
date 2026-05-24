@@ -12,7 +12,7 @@
  *   - getTransacoesBarbeiro delega ao repository
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -88,9 +88,9 @@ function criarSandbox({
   return { sandbox, eventos };
 }
 
-// ── Suite principal ───────────────────────────────────────────────────────────
+// ── describe principal ───────────────────────────────────────────────────────────
 
-suite('FinanceiroService.registrarCorte', () => {
+describe('FinanceiroService.registrarCorte', () => {
 
   test('chama criarTransacao com payload correto (soma dos serviços)', async () => {
     const { sandbox } = criarSandbox({ servicosPrecos: [35, 20] });
@@ -230,9 +230,9 @@ suite('FinanceiroService.registrarCorte', () => {
   });
 });
 
-// ── Suite getResumo ───────────────────────────────────────────────────────────
+// ── describe getResumo ───────────────────────────────────────────────────────────
 
-suite('FinanceiroService.getResumo', () => {
+describe('FinanceiroService.getResumo', () => {
 
   test('retorna { geral, barbeiros } com os dados do repository', async () => {
     const { sandbox } = criarSandbox();
@@ -255,9 +255,9 @@ suite('FinanceiroService.getResumo', () => {
   });
 });
 
-// ── Suite getTransacoesBarbeiro ───────────────────────────────────────────────
+// ── describe getTransacoesBarbeiro ───────────────────────────────────────────────
 
-suite('FinanceiroService.getTransacoesBarbeiro', () => {
+describe('FinanceiroService.getTransacoesBarbeiro', () => {
 
   test('delega ao repository e retorna array', async () => {
     const { sandbox } = criarSandbox();

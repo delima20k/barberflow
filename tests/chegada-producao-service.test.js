@@ -17,7 +17,7 @@
  *   - guard: sem professionalId → retorna null sem abrir modal
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert           = require('node:assert/strict');
 const vm               = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -106,7 +106,7 @@ const ARGS_BASE = {
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — guards', () => {
+describe('ChegadaProducaoService — guards', () => {
 
   test('retorna null sem abrir modal se barbershopId ausente', async () => {
     const { sandbox } = criarSandbox();
@@ -131,7 +131,7 @@ suite('ChegadaProducaoService — guards', () => {
 
 // ─── Config do modal ──────────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — configuração da modal', () => {
+describe('ChegadaProducaoService — configuração da modal', () => {
 
   test('abre FluxoDeFila com título e 2 ações', async () => {
     const { sandbox } = criarSandbox();
@@ -153,7 +153,7 @@ suite('ChegadaProducaoService — configuração da modal', () => {
 
 // ─── Dismiss ─────────────────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — dismiss (null)', () => {
+describe('ChegadaProducaoService — dismiss (null)', () => {
 
   test('não chama sentar quando modal é descartado', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: null });
@@ -177,7 +177,7 @@ suite('ChegadaProducaoService — dismiss (null)', () => {
 
 // ─── Resposta "aqui" ──────────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — resposta "aqui"', () => {
+describe('ChegadaProducaoService — resposta "aqui"', () => {
 
   test('chama CadeiraService.sentar com tipo producao', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: 'aqui' });
@@ -251,7 +251,7 @@ suite('ChegadaProducaoService — resposta "aqui"', () => {
 
 // ─── Resposta "caminho" ───────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — resposta "caminho"', () => {
+describe('ChegadaProducaoService — resposta "caminho"', () => {
 
   test('chama CadeiraService.sentar com tipo producao', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: 'caminho' });
@@ -323,7 +323,7 @@ suite('ChegadaProducaoService — resposta "caminho"', () => {
 
 // ─── Erro em sentar() ─────────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — erro em sentar()', () => {
+describe('ChegadaProducaoService — erro em sentar()', () => {
 
   test('exibe toast de erro', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: 'aqui', sentarRejeita: true });
@@ -357,7 +357,7 @@ suite('ChegadaProducaoService — erro em sentar()', () => {
 
 // ─── BffApiService — push-barbeiro ────────────────────────────────────────────
 
-suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
+describe('ChegadaProducaoService — BffApiService push-barbeiro', () => {
 
   function criarSandboxComBff({
     fluxoResposta = 'aqui',
@@ -517,7 +517,7 @@ suite('ChegadaProducaoService — BffApiService push-barbeiro', () => {
 
 // ─── confirmarChegada ─────────────────────────────────────────────────────────
 
-suite('ChegadaProducaoService — confirmarChegada', () => {
+describe('ChegadaProducaoService — confirmarChegada', () => {
 
   test('chama updateClientConfirmed("yes") com o entradaId correto', async () => {
     const { sandbox } = criarSandbox();

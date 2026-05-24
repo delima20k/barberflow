@@ -5,7 +5,7 @@
  * Testa FilaRepository e FilaService do backend Node.js.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -61,7 +61,7 @@ const FilaService    = require('../src/services/FilaService');
 // FilaRepository
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('FilaRepository.getFila()', () => {
+describe('FilaRepository.getFila()', () => {
 
   test('busca tabela queue_entries', async () => {
     const { supabase } = criarSupabaseMock({ data: [] });
@@ -85,7 +85,7 @@ suite('FilaRepository.getFila()', () => {
   });
 });
 
-suite('FilaRepository.entrar()', () => {
+describe('FilaRepository.entrar()', () => {
 
   test('insere na tabela queue_entries', async () => {
     const entrada = { id: UUID_ENTRADA, barbershop_id: UUID_SHOP, user_id: UUID_USER, status: 'waiting' };
@@ -96,7 +96,7 @@ suite('FilaRepository.entrar()', () => {
   });
 });
 
-suite('FilaRepository.sair()', () => {
+describe('FilaRepository.sair()', () => {
 
   test('deleta da tabela queue_entries', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: UUID_ENTRADA } });
@@ -106,7 +106,7 @@ suite('FilaRepository.sair()', () => {
   });
 });
 
-suite('FilaRepository.atualizarStatus()', () => {
+describe('FilaRepository.atualizarStatus()', () => {
 
   test('atualiza tabela queue_entries', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: UUID_ENTRADA, status: 'in_service' } });
@@ -138,7 +138,7 @@ function criarFilaService({ fila = [], entrada = null, shopAberta = true } = {})
   return { service: new FilaService(repo, barbeariaRepo), repo, barbeariaRepo };
 }
 
-suite('FilaService.verFila()', () => {
+describe('FilaService.verFila()', () => {
 
   test('lança 400 para barbeariaId inválido', async () => {
     const { service } = criarFilaService();
@@ -156,7 +156,7 @@ suite('FilaService.verFila()', () => {
   });
 });
 
-suite('FilaService.entrarFila()', () => {
+describe('FilaService.entrarFila()', () => {
 
   test('lança 400 para barbeariaId inválido', async () => {
     const { service } = criarFilaService();
@@ -173,7 +173,7 @@ suite('FilaService.entrarFila()', () => {
   });
 });
 
-suite('FilaService.entrarFila() — barbearia fechada', () => {
+describe('FilaService.entrarFila() — barbearia fechada', () => {
 
   test('lança 403 quando barbearia está fechada (is_open=false)', async () => {
     const { service } = criarFilaService({ shopAberta: false });
@@ -196,7 +196,7 @@ suite('FilaService.entrarFila() — barbearia fechada', () => {
   });
 });
 
-suite('FilaService.sairFila()', () => {
+describe('FilaService.sairFila()', () => {
 
   test('lança 400 para entradaId inválido', async () => {
     const { service } = criarFilaService();
@@ -213,7 +213,7 @@ suite('FilaService.sairFila()', () => {
   });
 });
 
-suite('FilaService.atualizarStatusEntrada()', () => {
+describe('FilaService.atualizarStatusEntrada()', () => {
 
   test('lança 400 para status inválido', async () => {
     const { service } = criarFilaService({ entrada: { id: UUID_ENTRADA, status: 'waiting' } });
@@ -234,7 +234,7 @@ suite('FilaService.atualizarStatusEntrada()', () => {
 // FilaRepository.getEstado() — ultimaMudanca inclui served_at
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('FilaRepository.getEstado()', () => {
+describe('FilaRepository.getEstado()', () => {
 
   test('served_at é usado quando é o timestamp mais recente (in_service)', async () => {
     const servedAt = '2025-01-10T12:00:00.000Z';

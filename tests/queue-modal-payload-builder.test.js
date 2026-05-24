@@ -14,7 +14,7 @@
  *   montarPayloadToast — posição 1 → texto "próximo"
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -38,9 +38,9 @@ function criarSandbox() {
   return sandbox;
 }
 
-// ─── Suite ───────────────────────────────────────────────────────────────────
+// ─── describe ───────────────────────────────────────────────────────────────────
 
-suite('QueueModalPayloadBuilder — montarPayloadPosicao', () => {
+describe('QueueModalPayloadBuilder — montarPayloadPosicao', () => {
   test('retorna config com posição no corpo', () => {
     const { QueueModalPayloadBuilder } = criarSandbox();
     const config = QueueModalPayloadBuilder.montarPayloadPosicao(3);
@@ -86,7 +86,7 @@ suite('QueueModalPayloadBuilder — montarPayloadPosicao', () => {
   });
 });
 
-suite('QueueModalPayloadBuilder — montarPayloadProximoNaFila', () => {
+describe('QueueModalPayloadBuilder — montarPayloadProximoNaFila', () => {
   test('retorna config com texto de próximo na fila', () => {
     const { QueueModalPayloadBuilder } = criarSandbox();
     const config = QueueModalPayloadBuilder.montarPayloadProximoNaFila();
@@ -108,7 +108,7 @@ suite('QueueModalPayloadBuilder — montarPayloadProximoNaFila', () => {
   });
 });
 
-suite('QueueModalPayloadBuilder — montarPayloadToast', () => {
+describe('QueueModalPayloadBuilder — montarPayloadToast', () => {
   test('retorna config enxuto (sem acoes ou acoes vazio)', () => {
     const { QueueModalPayloadBuilder } = criarSandbox();
     const config = QueueModalPayloadBuilder.montarPayloadToast(3);
@@ -127,7 +127,7 @@ suite('QueueModalPayloadBuilder — montarPayloadToast', () => {
   });
 });
 
-suite('QueueModalPayloadBuilder — montarPayloadPosicao (enriquecido)', () => {
+describe('QueueModalPayloadBuilder — montarPayloadPosicao (enriquecido)', () => {
 
   test('inclui posicaoAnterior → posicao no corpo quando posicaoAnterior fornecido', () => {
     const { QueueModalPayloadBuilder } = criarSandbox();

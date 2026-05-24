@@ -5,7 +5,7 @@
  * Testa SocialRepository e SocialService do backend Node.js.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -42,7 +42,7 @@ const SocialService    = require('../src/services/SocialService');
 // SocialRepository
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('SocialRepository.getStoriesByBarbershop()', () => {
+describe('SocialRepository.getStoriesByBarbershop()', () => {
 
   test('busca tabela stories', async () => {
     const { supabase } = criarSupabaseMock({ data: [] });
@@ -65,7 +65,7 @@ suite('SocialRepository.getStoriesByBarbershop()', () => {
   });
 });
 
-suite('SocialRepository.createStory()', () => {
+describe('SocialRepository.createStory()', () => {
 
   test('insere na tabela stories', async () => {
     const story = { id: UUID_STR, barbershop_id: UUID_SHOP, author_id: UUID_USER };
@@ -76,7 +76,7 @@ suite('SocialRepository.createStory()', () => {
   });
 });
 
-suite('SocialRepository.toggleLike()', () => {
+describe('SocialRepository.toggleLike()', () => {
 
   test('acessa tabela professional_likes', async () => {
     const { supabase } = criarSupabaseMock({ data: null });
@@ -94,7 +94,7 @@ suite('SocialRepository.toggleLike()', () => {
   });
 });
 
-suite('SocialRepository.toggleFavorite()', () => {
+describe('SocialRepository.toggleFavorite()', () => {
 
   test('acessa tabela favorite_professionals', async () => {
     const { supabase } = criarSupabaseMock({ data: null });
@@ -104,7 +104,7 @@ suite('SocialRepository.toggleFavorite()', () => {
   });
 });
 
-suite('SocialRepository.getFavoritesByUser()', () => {
+describe('SocialRepository.getFavoritesByUser()', () => {
 
   test('busca favorite_professionals filtrando por user_id', async () => {
     const { supabase, builder } = criarSupabaseMock({ data: [] });
@@ -134,7 +134,7 @@ function criarSocialService({ stories = [], liked = false, favorited = false } =
   return { service: new SocialService(repo), repo };
 }
 
-suite('SocialService.listarStories()', () => {
+describe('SocialService.listarStories()', () => {
 
   test('lança 400 para UUID inválido', async () => {
     const { service } = criarSocialService();
@@ -152,7 +152,7 @@ suite('SocialService.listarStories()', () => {
   });
 });
 
-suite('SocialService.criarStory()', () => {
+describe('SocialService.criarStory()', () => {
 
   test('lança 400 quando media_url ausente', async () => {
     const { service } = criarSocialService();
@@ -180,7 +180,7 @@ suite('SocialService.criarStory()', () => {
   });
 });
 
-suite('SocialService.toggleLike()', () => {
+describe('SocialService.toggleLike()', () => {
 
   test('quando like não existe, chama addLike', async () => {
     const { service, repo } = criarSocialService({ liked: false });
@@ -195,7 +195,7 @@ suite('SocialService.toggleLike()', () => {
   });
 });
 
-suite('SocialService.toggleFavorite()', () => {
+describe('SocialService.toggleFavorite()', () => {
 
   test('quando favorito não existe, chama addFavorite', async () => {
     const { service, repo } = criarSocialService({ favorited: false });

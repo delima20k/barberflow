@@ -10,7 +10,7 @@
 //   3. src/infra/InputValidator é o mesmo que shared/js/InputValidator
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -48,7 +48,7 @@ function criarSandbox() {
 // UMD — require() deve funcionar após conversão
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('UMD — require() carrega shared/js/*', () => {
+describe('UMD — require() carrega shared/js/*', () => {
 
   test('InputValidator tem métodos esperados via require()', () => {
     const IV = require('../shared/js/InputValidator');
@@ -101,7 +101,7 @@ suite('UMD — require() carrega shared/js/*', () => {
 // Thin wrapper infra — src/infra/InputValidator
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Thin wrapper src/infra → mesma referência que shared/js/*', () => {
+describe('Thin wrapper src/infra → mesma referência que shared/js/*', () => {
 
   test('src/infra/InputValidator === shared/js/InputValidator', () => {
     assert.strictEqual(
@@ -116,7 +116,7 @@ suite('Thin wrapper src/infra → mesma referência que shared/js/*', () => {
 // Agendamento — novos métodos
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Agendamento — isEmAndamento, isNoShow, statusValidos, toJSON snake_case', () => {
+describe('Agendamento — isEmAndamento, isNoShow, statusValidos, toJSON snake_case', () => {
 
   test('isEmAndamento() retorna true para in_progress', () => {
     const sb = criarSandbox();

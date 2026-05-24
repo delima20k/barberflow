@@ -119,7 +119,7 @@ describe('RlsPolicyReport', () => {
   });
 });
 
-describe('RLS SQL CRUD suite', () => {
+describe('RLS SQL CRUD describe', () => {
   let sql;
 
   before(() => {

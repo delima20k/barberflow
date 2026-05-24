@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -81,7 +81,7 @@ function resErro(status, body) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Cliente — model', () => {
+describe('Cliente — model', () => {
 
   test('fromRow() cria instância com todos os campos mapeados', () => {
     const sb = criarSandbox(resOk({}));
@@ -131,7 +131,7 @@ suite('Cliente — model', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ClienteRepository — getById()', () => {
+describe('ClienteRepository — getById()', () => {
 
   test('gera GET com eq role=client e eq id', async () => {
     let url;
@@ -165,7 +165,7 @@ suite('ClienteRepository — getById()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ClienteRepository — update()', () => {
+describe('ClienteRepository — update()', () => {
 
   test('envia PATCH apenas com campos da allowlist', async () => {
     let opts;
@@ -220,7 +220,7 @@ suite('ClienteRepository — update()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ClienteService', () => {
+describe('ClienteService', () => {
 
   test('carregarPerfil() retorna instância de Cliente', async () => {
     const row = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };

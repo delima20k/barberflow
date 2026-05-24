@@ -10,7 +10,7 @@
  * Usa node:test + node:assert/strict (sem Jest/Vitest).
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert           = require('node:assert/strict');
 const vm               = require('node:vm');
 const fs               = require('node:fs');
@@ -41,10 +41,10 @@ const almocoUpper  = { is_open: false, close_reason: 'ALMOCO', name: NOME };
 const jantaUpper   = { is_open: false, close_reason: 'JANTA',  name: NOME };
 
 // =============================================================================
-// Suite 1 — isBarbershopOpen
+// describe 1 — isBarbershopOpen
 // =============================================================================
 
-suite('BarbershopAvailabilityService.isBarbershopOpen()', () => {
+describe('BarbershopAvailabilityService.isBarbershopOpen()', () => {
   const S = criarServico();
 
   test('retorna true quando is_open=true', () => {
@@ -73,10 +73,10 @@ suite('BarbershopAvailabilityService.isBarbershopOpen()', () => {
 });
 
 // =============================================================================
-// Suite 2 — isBarbershopClosed
+// describe 2 — isBarbershopClosed
 // =============================================================================
 
-suite('BarbershopAvailabilityService.isBarbershopClosed()', () => {
+describe('BarbershopAvailabilityService.isBarbershopClosed()', () => {
   const S = criarServico();
 
   test('retorna true quando is_open=false e close_reason=null', () => {
@@ -101,10 +101,10 @@ suite('BarbershopAvailabilityService.isBarbershopClosed()', () => {
 });
 
 // =============================================================================
-// Suite 3 — isLunchPause
+// describe 3 — isLunchPause
 // =============================================================================
 
-suite('BarbershopAvailabilityService.isLunchPause()', () => {
+describe('BarbershopAvailabilityService.isLunchPause()', () => {
   const S = criarServico();
 
   test('retorna true quando is_open=false e close_reason=almoco', () => {
@@ -133,10 +133,10 @@ suite('BarbershopAvailabilityService.isLunchPause()', () => {
 });
 
 // =============================================================================
-// Suite 4 — isDinnerPause
+// describe 4 — isDinnerPause
 // =============================================================================
 
-suite('BarbershopAvailabilityService.isDinnerPause()', () => {
+describe('BarbershopAvailabilityService.isDinnerPause()', () => {
   const S = criarServico();
 
   test('retorna true quando is_open=false e close_reason=janta', () => {
@@ -161,10 +161,10 @@ suite('BarbershopAvailabilityService.isDinnerPause()', () => {
 });
 
 // =============================================================================
-// Suite 5 — canClientClickChair
+// describe 5 — canClientClickChair
 // =============================================================================
 
-suite('BarbershopAvailabilityService.canClientClickChair()', () => {
+describe('BarbershopAvailabilityService.canClientClickChair()', () => {
   const S = criarServico();
 
   test('retorna true quando barbearia aberta', () => {
@@ -189,10 +189,10 @@ suite('BarbershopAvailabilityService.canClientClickChair()', () => {
 });
 
 // =============================================================================
-// Suite 6 — canClientJoinQueue
+// describe 6 — canClientJoinQueue
 // =============================================================================
 
-suite('BarbershopAvailabilityService.canClientJoinQueue()', () => {
+describe('BarbershopAvailabilityService.canClientJoinQueue()', () => {
   const S = criarServico();
 
   test('retorna true quando barbearia aberta', () => {
@@ -213,10 +213,10 @@ suite('BarbershopAvailabilityService.canClientJoinQueue()', () => {
 });
 
 // =============================================================================
-// Suite 7 — getClosedMessage
+// describe 7 — getClosedMessage
 // =============================================================================
 
-suite('BarbershopAvailabilityService.getClosedMessage()', () => {
+describe('BarbershopAvailabilityService.getClosedMessage()', () => {
   const S = criarServico();
 
   test('mensagem de almoço (singular) menciona "almoço"', () => {
@@ -294,7 +294,7 @@ suite('BarbershopAvailabilityService.getClosedMessage()', () => {
 });
 
 // =============================================================================
-// Suite 8 — StatusFechamentoModal.confirmarFechamento — opções da modal (DOM)
+// describe 8 — StatusFechamentoModal.confirmarFechamento — opções da modal (DOM)
 // =============================================================================
 
 /**
@@ -366,7 +366,7 @@ function criarSandboxModal() {
   return { sandbox, overlay, bodyEl };
 }
 
-suite('StatusFechamentoModal.confirmarFechamento() — opções da modal', () => {
+describe('StatusFechamentoModal.confirmarFechamento() — opções da modal', () => {
 
   test('confirmarFechamento() retorna uma Promise', () => {
     const { sandbox } = criarSandboxModal();
@@ -436,10 +436,10 @@ suite('StatusFechamentoModal.confirmarFechamento() — opções da modal', () =>
 });
 
 // =============================================================================
-// Suite 9 — Botão mb-status-toggle no HTML do app profissional
+// describe 9 — Botão mb-status-toggle no HTML do app profissional
 // =============================================================================
 
-suite('mb-status-toggle — presença no HTML', () => {
+describe('mb-status-toggle — presença no HTML', () => {
 
   test('apps/profissional/index.html contém o botão mb-status-toggle', () => {
     const html = fs.readFileSync(
@@ -476,7 +476,7 @@ suite('mb-status-toggle — presença no HTML', () => {
 });
 
 // =============================================================================
-// Suite 10 — BarbeariaPage integração com BarbershopAvailabilityService
+// describe 10 — BarbeariaPage integração com BarbershopAvailabilityService
 //   Valida que o serviço é chamado corretamente antes de onCadeiraClick
 //   e onProducaoClick delegarem para a fila.
 // =============================================================================
@@ -494,7 +494,7 @@ function criarServicoPorShopData(shopData) {
   };
 }
 
-suite('Integração BarbeariaPage — guard por status da barbearia', () => {
+describe('Integração BarbeariaPage — guard por status da barbearia', () => {
 
   test('barbearia aberta: canClientClickChair=true e canClientJoinQueue=true', () => {
     const { canChair, canQueue } = criarServicoPorShopData(aberta);
@@ -535,10 +535,10 @@ suite('Integração BarbeariaPage — guard por status da barbearia', () => {
 });
 
 // =============================================================================
-// Suite 11 — getClosedIcon
+// describe 11 — getClosedIcon
 // =============================================================================
 
-suite('BarbershopAvailabilityService.getClosedIcon()', () => {
+describe('BarbershopAvailabilityService.getClosedIcon()', () => {
   const S = criarServico();
 
   test('retorna 🍽️ para pausa de almoço', () => {
@@ -563,10 +563,10 @@ suite('BarbershopAvailabilityService.getClosedIcon()', () => {
 });
 
 // =============================================================================
-// Suite 12 — getClosedTitle
+// describe 12 — getClosedTitle
 // =============================================================================
 
-suite('BarbershopAvailabilityService.getClosedTitle()', () => {
+describe('BarbershopAvailabilityService.getClosedTitle()', () => {
   const S = criarServico();
 
   test('retorna "Pausa para Almoço" para pausa de almoço', () => {

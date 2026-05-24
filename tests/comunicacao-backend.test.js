@@ -9,7 +9,7 @@
  * os métodos enviarMensagem/getConversa foram removidos.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -40,7 +40,7 @@ const ComunicacaoService    = require('../src/services/ComunicacaoService');
 // ComunicacaoRepository
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ComunicacaoRepository.getNotificacoes()', () => {
+describe('ComunicacaoRepository.getNotificacoes()', () => {
 
   test('busca tabela notifications', async () => {
     const { supabase } = criarSupabaseMock({ data: [] });
@@ -64,7 +64,7 @@ suite('ComunicacaoRepository.getNotificacoes()', () => {
   });
 });
 
-suite('ComunicacaoRepository.marcarLida()', () => {
+describe('ComunicacaoRepository.marcarLida()', () => {
 
   test('atualiza tabela notifications', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: UUID_NOTIF, is_read: true } });
@@ -74,7 +74,7 @@ suite('ComunicacaoRepository.marcarLida()', () => {
   });
 });
 
-suite('ComunicacaoRepository — métodos de mensagem removidos', () => {
+describe('ComunicacaoRepository — métodos de mensagem removidos', () => {
 
   test('getConversa não existe', () => {
     const { supabase } = criarSupabaseMock({ data: [] });
@@ -101,7 +101,7 @@ function criarComunicacaoService({ notifs = [] } = {}) {
   return { service: new ComunicacaoService(repo), repo };
 }
 
-suite('ComunicacaoService.listarNotificacoes()', () => {
+describe('ComunicacaoService.listarNotificacoes()', () => {
 
   test('lança 400 para UUID inválido', async () => {
     const { service } = criarComunicacaoService();
@@ -119,7 +119,7 @@ suite('ComunicacaoService.listarNotificacoes()', () => {
   });
 });
 
-suite('ComunicacaoService.marcarNotificacaoLida()', () => {
+describe('ComunicacaoService.marcarNotificacaoLida()', () => {
 
   test('lança 400 para ID inválido', async () => {
     const { service } = criarComunicacaoService();
@@ -136,7 +136,7 @@ suite('ComunicacaoService.marcarNotificacaoLida()', () => {
   });
 });
 
-suite('ComunicacaoService — métodos de mensagem removidos', () => {
+describe('ComunicacaoService — métodos de mensagem removidos', () => {
 
   test('listarConversa não existe', () => {
     const { service } = criarComunicacaoService();

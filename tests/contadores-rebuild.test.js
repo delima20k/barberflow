@@ -4,7 +4,7 @@
  * Testes dos contadores desnormalizados — lógica de trigger e rebuild.
  *
  * Simulam o comportamento das funções SQL em JS sem conexão com banco.
- * Cada suite isola seu próprio estado. Cobertura:
+ * Cada describe isola seu próprio estado. Cobertura:
  *
  *   CTR-01  Trigger INSERT: like inserido → contador sobe 1 atomicamente
  *   CTR-02  Trigger DELETE físico: like deletado → contador cai 1

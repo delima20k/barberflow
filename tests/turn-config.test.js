@@ -9,7 +9,7 @@
  *   - Ausência de TURN_SECRET lança Error
  */
 
-const { suite, test, beforeEach, afterEach } = require('node:test');
+const { describe, test, beforeEach, afterEach } = require('node:test');
 const assert                                  = require('node:assert/strict');
 const crypto                                  = require('node:crypto');
 
@@ -40,7 +40,7 @@ function carregarTurnConfig({ secret = '', turnUrl = '', stunsUrl = '' } = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('TurnConfig.credenciais()', () => {
+describe('TurnConfig.credenciais()', () => {
 
   test('username tem formato {timestamp}:{userId}', () => {
     const TurnConfig = carregarTurnConfig({ secret: 'test-secret' });
@@ -87,7 +87,7 @@ suite('TurnConfig.credenciais()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('TurnConfig.servidoresICE()', () => {
+describe('TurnConfig.servidoresICE()', () => {
 
   test('sempre inclui STUN como primeiro servidor', () => {
     const TurnConfig  = carregarTurnConfig({ secret: 'secret' });

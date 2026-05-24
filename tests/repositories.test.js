@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -109,7 +109,7 @@ function criarBarbershopRepo({ data = null, error = null } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // AppointmentRepository
 // ─────────────────────────────────────────────────────────────────────────────
-suite('AppointmentRepository.updateStatus()', () => {
+describe('AppointmentRepository.updateStatus()', () => {
   test('executa update com UUID e status válidos', async () => {
     const { AppointmentRepository, apptBuilder } = criarAppointmentRepo({ data: { id: UUID_ENTRY, status: 'confirmed' } });
     const r = await AppointmentRepository.updateStatus(UUID_ENTRY, 'confirmed');
@@ -147,7 +147,7 @@ suite('AppointmentRepository.updateStatus()', () => {
   });
 });
 
-suite('AppointmentRepository.criar()', () => {
+describe('AppointmentRepository.criar()', () => {
   const payloadValido = () => ({
     client_id:       UUID_CLIENTE,
     professional_id: UUID_PROF,
@@ -222,7 +222,7 @@ suite('AppointmentRepository.criar()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileRepository
 // ─────────────────────────────────────────────────────────────────────────────
-suite('ProfileRepository.update()', () => {
+describe('ProfileRepository.update()', () => {
   test('atualiza perfil com dados válidos', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo();
     await ProfileRepository.update(UUID_CLIENTE, { full_name: 'Carlos Silva' });
@@ -281,7 +281,7 @@ suite('ProfileRepository.update()', () => {
   });
 });
 
-suite('ProfileRepository.getById()', () => {
+describe('ProfileRepository.getById()', () => {
   test('aceita UUID válido', async () => {
     const { ProfileRepository, profBuilder } = criarProfileRepo({ data: { id: UUID_CLIENTE } });
     const r = await ProfileRepository.getById(UUID_CLIENTE);
@@ -300,7 +300,7 @@ suite('ProfileRepository.getById()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // QueueRepository
 // ─────────────────────────────────────────────────────────────────────────────
-suite('QueueRepository.updateStatus()', () => {
+describe('QueueRepository.updateStatus()', () => {
   test('atualiza status com UUID e status válidos', async () => {
     const { QueueRepository, queueBuilder } = criarQueueRepo({ data: { id: UUID_ENTRY, status: 'done', position: 1 } });
     const r = await QueueRepository.updateStatus(UUID_ENTRY, 'done');
@@ -324,7 +324,7 @@ suite('QueueRepository.updateStatus()', () => {
   });
 });
 
-suite('QueueRepository.entrar()', () => {
+describe('QueueRepository.entrar()', () => {
   const payloadValido = () => ({
     barbershop_id: UUID_SHOP,
     client_id:     UUID_CLIENTE,
@@ -365,7 +365,7 @@ suite('QueueRepository.entrar()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // BarbershopRepository
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BarbershopRepository.getNearby()', () => {
+describe('BarbershopRepository.getNearby()', () => {
   test('executa query com coordenadas válidas', async () => {
     const { BarbershopRepository, shopBuilder } = criarBarbershopRepo({ data: [] });
     const r = await BarbershopRepository.getNearby(-23.5505, -46.6333, 3);
@@ -405,7 +405,7 @@ suite('BarbershopRepository.getNearby()', () => {
   });
 });
 
-suite('BarbershopRepository.addInteraction()', () => {
+describe('BarbershopRepository.addInteraction()', () => {
   test('adiciona interação com parâmetros válidos', async () => {
     const { BarbershopRepository, interBuilder } = criarBarbershopRepo();
     await BarbershopRepository.addInteraction(UUID_SHOP, UUID_CLIENTE, 'like');

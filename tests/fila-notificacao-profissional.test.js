@@ -18,7 +18,7 @@
  *   6. múltiplos clientes → posições corretas + profissional recebe o primeiro
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 
 // ─── Lógica equivalente ao trigger fn_notify_queue_clients ───────────────────
@@ -109,7 +109,7 @@ function clienteEsperando({ id, client_id, full_name = null, guest_name = null, 
 
 // ─── Testes ───────────────────────────────────────────────────────────────────
 
-suite('fn_notify_queue_clients — lógica do trigger', () => {
+describe('fn_notify_queue_clients — lógica do trigger', () => {
 
   test('status diferente de done → nenhuma notificação', () => {
     const notifs = simularTrigger(

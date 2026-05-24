@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const fs              = require('node:fs');
 const path            = require('node:path');
@@ -11,7 +11,7 @@ function ler(relPath) {
   return fs.readFileSync(path.join(ROOT, relPath), 'utf8');
 }
 
-suite('Fluxo push cadeira de producao — app profissional', () => {
+describe('Fluxo push cadeira de producao — app profissional', () => {
   test('service worker acorda clients abertos no evento push com PUSH_SHOW_MODAL', () => {
     const src = ler('apps/profissional/sw.js');
     const idxPush = src.indexOf('static push(e)');

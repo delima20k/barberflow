@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const fs              = require('node:fs');
@@ -172,10 +172,10 @@ function criarPagina({ comTelaEl = true } = {}) {
 }
 
 // =============================================================================
-// Suite 1 — bind(): inicialização
+// describe 1 — bind(): inicialização
 // =============================================================================
 
-suite('MinhaBarbeariaPage — bind()', () => {
+describe('MinhaBarbeariaPage — bind()', () => {
 
   test('bind() sem telaEl (null) não lança erro', () => {
     assert.doesNotThrow(() => criarPagina({ comTelaEl: false }));
@@ -218,10 +218,10 @@ suite('MinhaBarbeariaPage — bind()', () => {
 });
 
 // =============================================================================
-// Suite 2 — Sub-painéis: animação (entrada e saída pela esquerda)
+// describe 2 — Sub-painéis: animação (entrada e saída pela esquerda)
 // =============================================================================
 
-suite('MinhaBarbeariaPage — sub-painéis (config)', () => {
+describe('MinhaBarbeariaPage — sub-painéis (config)', () => {
 
   test('clicar mb-mais-btn → config panel recebe classe mb-sub-ativa', () => {
     const { dom } = criarPagina();
@@ -274,7 +274,7 @@ suite('MinhaBarbeariaPage — sub-painéis (config)', () => {
   });
 });
 
-suite('MinhaBarbeariaPage — sub-painéis (gps)', () => {
+describe('MinhaBarbeariaPage — sub-painéis (gps)', () => {
 
   test('clicar mb-gps-btn → gps panel recebe classe mb-sub-ativa', () => {
     const { dom } = criarPagina();
@@ -318,10 +318,10 @@ suite('MinhaBarbeariaPage — sub-painéis (gps)', () => {
 });
 
 // =============================================================================
-// Suite 3 — Alternância: abrir um painel após fechar outro
+// describe 3 — Alternância: abrir um painel após fechar outro
 // =============================================================================
 
-suite('MinhaBarbeariaPage — alternância entre painéis', () => {
+describe('MinhaBarbeariaPage — alternância entre painéis', () => {
 
   test('abrir config → fechar → abrir gps: apenas gps fica ativo', () => {
     const { dom } = criarPagina();
@@ -353,10 +353,10 @@ suite('MinhaBarbeariaPage — alternância entre painéis', () => {
 });
 
 // =============================================================================
-// Suite 4 — Helpers estáticos
+// describe 4 — Helpers estáticos
 // =============================================================================
 
-suite('MinhaBarbeariaPage — #formatarNumero (via KPIs)', () => {
+describe('MinhaBarbeariaPage — #formatarNumero (via KPIs)', () => {
   // Método privado estático, acessado indiretamente via #renderKpis.
   // Testamos o resultado visível no DOM.
 
@@ -371,10 +371,10 @@ suite('MinhaBarbeariaPage — #formatarNumero (via KPIs)', () => {
 });
 
 // =============================================================================
-// Suite 6 — status toggle (mb-status-toggle)
+// describe 6 — status toggle (mb-status-toggle)
 // =============================================================================
 
-suite('MinhaBarbeariaPage — status toggle', () => {
+describe('MinhaBarbeariaPage — status toggle', () => {
 
   test('bind() registra click listener no mb-status-toggle', () => {
     const { dom } = criarPagina();
@@ -419,10 +419,10 @@ suite('MinhaBarbeariaPage — status toggle', () => {
 });
 
 // =============================================================================
-// Suite 7 - Configuracoes da barbearia: servicos/produtos
+// describe 7 - Configuracoes da barbearia: servicos/produtos
 // =============================================================================
 
-suite('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
+describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
 
   test('servicos carregados devem popular somente a view de itens salvos', () => {
     assert.ok(

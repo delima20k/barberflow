@@ -14,7 +14,7 @@
  *   callback — ao receber evento Realtime, despacha barberflow:fila-atualizada
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -70,9 +70,9 @@ function criarSandbox({ filaRetorno = [] } = {}) {
   return { sandbox, canalMock, supabaseClientMock, eventos };
 }
 
-// ─── Suite ───────────────────────────────────────────────────────────────────
+// ─── describe ───────────────────────────────────────────────────────────────────
 
-suite('QueueRealtimeNotifier — ciclo de vida', () => {
+describe('QueueRealtimeNotifier — ciclo de vida', () => {
   test('iniciar — cria canal via SupabaseService.client.channel()', () => {
     const { sandbox, supabaseClientMock } = criarSandbox();
     const { QueueRealtimeNotifier } = sandbox;
@@ -128,7 +128,7 @@ suite('QueueRealtimeNotifier — ciclo de vida', () => {
   });
 });
 
-suite('QueueRealtimeNotifier — evento barberflow:fila-atualizada', () => {
+describe('QueueRealtimeNotifier — evento barberflow:fila-atualizada', () => {
   test('ao receber update Realtime, despacha barberflow:fila-atualizada', async () => {
     const fila = [{ id: 'e1', status: 'waiting', position: 1 }];
     const { sandbox, canalMock, eventos } = criarSandbox({ filaRetorno: fila });

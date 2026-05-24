@@ -16,7 +16,7 @@
  *   limparExpirados() — retorna 0 quando indexedDB não suportado
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm                          = require('node:vm');
 const { fn, carregar }            = require('./_helpers.js');
@@ -145,7 +145,7 @@ function criarSandbox({ suportaIdb = true, syncRegisterFail = false } = {}) {
 
 // ─── Testes ──────────────────────────────────────────────────────────────────
 
-suite('OfflineSyncQueue — suportado()', () => {
+describe('OfflineSyncQueue — suportado()', () => {
   test('retorna true quando indexedDB disponível', () => {
     const { ctx } = criarSandbox({ suportaIdb: true });
     assert.equal(ctx.OfflineSyncQueue.suportado(), true);
@@ -157,7 +157,7 @@ suite('OfflineSyncQueue — suportado()', () => {
   });
 });
 
-suite('OfflineSyncQueue — enqueue()', () => {
+describe('OfflineSyncQueue — enqueue()', () => {
   test('persiste entrada no IDB e chama sync.register', async () => {
     const { ctx, rows, syncRegister } = criarSandbox();
 
@@ -206,7 +206,7 @@ suite('OfflineSyncQueue — enqueue()', () => {
   });
 });
 
-suite('OfflineSyncQueue — dequeue()', () => {
+describe('OfflineSyncQueue — dequeue()', () => {
   test('retorna entradas filtradas por tag', async () => {
     const { ctx } = criarSandbox();
 
@@ -236,7 +236,7 @@ suite('OfflineSyncQueue — dequeue()', () => {
   });
 });
 
-suite('OfflineSyncQueue — concluir()', () => {
+describe('OfflineSyncQueue — concluir()', () => {
   test('remove a entrada do IDB pelo id', async () => {
     const { ctx, rows } = criarSandbox();
 
@@ -256,7 +256,7 @@ suite('OfflineSyncQueue — concluir()', () => {
   });
 });
 
-suite('OfflineSyncQueue — limparExpirados()', () => {
+describe('OfflineSyncQueue — limparExpirados()', () => {
   test('remove entradas mais antigas que maxAgeMs', async () => {
     const { ctx, rows } = criarSandbox();
 

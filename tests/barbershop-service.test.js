@@ -6,7 +6,7 @@
  * Métodos que dependem de DOM (criarBotaoFavoritoCard) não são testáveis em VM.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -35,7 +35,7 @@ function criarSandbox({ userId = UUID_USER, favIds = [] } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // BarbershopService.carregarFavoritos()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BarbershopService.carregarFavoritos()', () => {
+describe('BarbershopService.carregarFavoritos()', () => {
 
   test('popula cache com IDs retornados pelo ProfileRepository', async () => {
     const sb = criarSandbox({ favIds: [UUID_BS1, UUID_BS2] });
@@ -83,7 +83,7 @@ suite('BarbershopService.carregarFavoritos()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // BarbershopService.isFavorito()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BarbershopService.isFavorito()', () => {
+describe('BarbershopService.isFavorito()', () => {
 
   test('retorna false sem carregar favoritos', () => {
     const sb = criarSandbox();
@@ -100,7 +100,7 @@ suite('BarbershopService.isFavorito()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // BarbershopService — Race condition: limparCache durante Promise in-flight
 // ─────────────────────────────────────────────────────────────────────────────
-suite('BarbershopService.limparCache() — race condition', () => {
+describe('BarbershopService.limparCache() — race condition', () => {
 
   test('limparCache() antes de getUser() resolver descarta dados do usuário anterior', async () => {
     // Controla quando getUser() resolve (simula lentidão de rede)

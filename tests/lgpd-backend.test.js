@@ -5,7 +5,7 @@
  * Testa LgpdRepository e LgpdService do backend Node.js.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -36,7 +36,7 @@ const LgpdService    = require('../src/services/LgpdService');
 // LgpdRepository
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('LgpdRepository.verificarAceite()', () => {
+describe('LgpdRepository.verificarAceite()', () => {
 
   test('busca tabela legal_consents', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: UUID_CONS, user_id: UUID_USER } });
@@ -53,7 +53,7 @@ suite('LgpdRepository.verificarAceite()', () => {
   });
 });
 
-suite('LgpdRepository.registrarAceite()', () => {
+describe('LgpdRepository.registrarAceite()', () => {
 
   test('insere na tabela legal_consents', async () => {
     const consent = { id: UUID_CONS, user_id: UUID_USER, version: '1.0' };
@@ -64,7 +64,7 @@ suite('LgpdRepository.registrarAceite()', () => {
   });
 });
 
-suite('LgpdRepository.solicitarExclusao()', () => {
+describe('LgpdRepository.solicitarExclusao()', () => {
 
   test('insere na tabela data_deletion_requests', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: 'del-1', user_id: UUID_USER } });
@@ -74,7 +74,7 @@ suite('LgpdRepository.solicitarExclusao()', () => {
   });
 });
 
-suite('LgpdRepository.registrarLogAcesso()', () => {
+describe('LgpdRepository.registrarLogAcesso()', () => {
 
   test('insere na tabela data_access_log', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: 'log-1' } });
@@ -98,7 +98,7 @@ function criarLgpdService({ aceite = null } = {}) {
   return { service: new LgpdService(repo), repo };
 }
 
-suite('LgpdService.verificarConsentimento()', () => {
+describe('LgpdService.verificarConsentimento()', () => {
 
   test('lança 400 para UUID inválido', async () => {
     const { service } = criarLgpdService();
@@ -121,7 +121,7 @@ suite('LgpdService.verificarConsentimento()', () => {
   });
 });
 
-suite('LgpdService.registrarConsentimento()', () => {
+describe('LgpdService.registrarConsentimento()', () => {
 
   test('lança 400 quando version está ausente', async () => {
     const { service } = criarLgpdService();
@@ -138,7 +138,7 @@ suite('LgpdService.registrarConsentimento()', () => {
   });
 });
 
-suite('LgpdService.solicitarExclusaoDados()', () => {
+describe('LgpdService.solicitarExclusaoDados()', () => {
 
   test('lança 400 para UUID inválido', async () => {
     const { service } = criarLgpdService();

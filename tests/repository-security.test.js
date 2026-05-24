@@ -12,7 +12,7 @@
 // mensagens diretas migradas para P2P com E2E encryption.
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -55,7 +55,7 @@ function criarSupa(builder, rpcResult = { data: null, error: null }) {
 // BaseRepository — helpers de validação
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('BaseRepository — helpers de validação', () => {
+describe('BaseRepository — helpers de validação', () => {
 
   class RepoConcreto extends BaseRepository {
     constructor() { super('RepoConcreto'); }
@@ -108,7 +108,7 @@ suite('BaseRepository — helpers de validação', () => {
 // ComunicacaoRepository — métodos de mensagem removidos (P2P E2E)
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ComunicacaoRepository — métodos de mensagem removidos', () => {
+describe('ComunicacaoRepository — métodos de mensagem removidos', () => {
 
   test('getConversa não existe', () => {
     const repo = new ComunicacaoRepository(criarSupa(criarBuilder()));
@@ -125,7 +125,7 @@ suite('ComunicacaoRepository — métodos de mensagem removidos', () => {
 // SocialRepository — createStory()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('SocialRepository — createStory()', () => {
+describe('SocialRepository — createStory()', () => {
 
   test('lança TypeError para barbershop_id inválido', async () => {
     const repo = new SocialRepository(criarSupa(criarBuilder()));
@@ -163,7 +163,7 @@ suite('SocialRepository — createStory()', () => {
 // ClienteRepository — findByEmail()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ClienteRepository — findByEmail()', () => {
+describe('ClienteRepository — findByEmail()', () => {
 
   test('lança TypeError para e-mail inválido', async () => {
     const repo = new ClienteRepository(criarSupa(criarBuilder()));

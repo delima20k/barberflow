@@ -3,12 +3,12 @@
 // cliente-ausente-modal.test.js — TDD para ClienteAusenteModal
 //
 // Cobertura:
-//   Suite 1: modo 'ausente' — texto e ações padrão
-//   Suite 2: modo 'nao_sentado' — texto "a caminho" e ações
-//   Suite 3: retornos — mapeamento de valores
+//   describe 1: modo 'ausente' — texto e ações padrão
+//   describe 2: modo 'nao_sentado' — texto "a caminho" e ações
+//   describe 3: retornos — mapeamento de valores
 // =============================================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -31,9 +31,9 @@ function criarSandbox({ modalResp = 'remover' } = {}) {
   return { sandbox, abrirSpy };
 }
 
-// ─── Suite 1: modo 'ausente' ─────────────────────────────────────────────────
+// ─── describe 1: modo 'ausente' ─────────────────────────────────────────────────
 
-suite('ClienteAusenteModal — modo ausente', () => {
+describe('ClienteAusenteModal — modo ausente', () => {
 
   test('título é "Cliente ausente"', async () => {
     const { sandbox, abrirSpy } = criarSandbox({ modalResp: 'remover' });
@@ -70,9 +70,9 @@ suite('ClienteAusenteModal — modo ausente', () => {
   });
 });
 
-// ─── Suite 2: modo 'nao_sentado' ─────────────────────────────────────────────
+// ─── describe 2: modo 'nao_sentado' ─────────────────────────────────────────────
 
-suite('ClienteAusenteModal — modo nao_sentado', () => {
+describe('ClienteAusenteModal — modo nao_sentado', () => {
 
   test('título é "Cliente a caminho"', async () => {
     const { sandbox, abrirSpy } = criarSandbox({ modalResp: '_aguardar' });

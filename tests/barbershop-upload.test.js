@@ -6,7 +6,7 @@
  * Cobre: tipo válido, tipo inválido, MIME guard (magic bytes), tamanho, sucesso completo.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert           = require('node:assert/strict');
 const path             = require('node:path');
 const { fn }           = require('./_helpers.js');
@@ -93,7 +93,7 @@ function simularRequisicao(router, { method = 'POST', path = '/', body, query = 
 
 // ── Testes diretos via _detectarMime ────────────────────────────────────────
 
-suite('MediaController._detectarMime (magic bytes)', () => {
+describe('MediaController._detectarMime (magic bytes)', () => {
   const criarMediaController = require('../src/controllers/MediaController');
   const detectarMime = criarMediaController.detectarMime;
 
@@ -120,7 +120,7 @@ suite('MediaController._detectarMime (magic bytes)', () => {
 
 // ── Testes de validação de tipo ──────────────────────────────────────────────
 
-suite('POST /api/media/barbershop-image — validação de tipo', () => {
+describe('POST /api/media/barbershop-image — validação de tipo', () => {
 
   test('tipo inválido retorna 400', async () => {
     // Acessar o handler diretamente para testar validação de tipo
@@ -167,7 +167,7 @@ suite('POST /api/media/barbershop-image — validação de tipo', () => {
 
 // ── Testes de limite de tamanho ──────────────────────────────────────────────
 
-suite('POST /api/media/barbershop-image — limites de tamanho', () => {
+describe('POST /api/media/barbershop-image — limites de tamanho', () => {
 
   test('logo acima de 2MB retorna 413', async () => {
     const criarMediaController = require('../src/controllers/MediaController');

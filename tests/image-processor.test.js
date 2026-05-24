@@ -69,7 +69,7 @@ before(() => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 1: processAvatar()
+// describe 1: processAvatar()
 // ═══════════════════════════════════════════════════════════════
 
 describe('ImageProcessor.processAvatar()', () => {
@@ -162,7 +162,7 @@ describe('ImageProcessor.processAvatar()', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 2: processIcon()
+// describe 2: processIcon()
 // ═══════════════════════════════════════════════════════════════
 
 describe('ImageProcessor.processIcon()', () => {
@@ -212,7 +212,7 @@ describe('ImageProcessor.processIcon()', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Suite 3: consistência entre processAvatar e processIcon
+// describe 3: consistência entre processAvatar e processIcon
 // ═══════════════════════════════════════════════════════════════
 
 describe('ImageProcessor — consistência de pipeline', () => {

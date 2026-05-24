@@ -14,7 +14,7 @@
  *   parar — remove listener e limpa estado
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -69,9 +69,9 @@ function notifQueueUpdate({ id = UUID_NOTIF, position = 2, isNext = false } = {}
   };
 }
 
-// ─── Suite ───────────────────────────────────────────────────────────────────
+// ─── describe ───────────────────────────────────────────────────────────────────
 
-suite('QueuePositionNotificationService — inicialização', () => {
+describe('QueuePositionNotificationService — inicialização', () => {
   test('iniciar registra listener de barberflow:notificacao-nova', () => {
     const { sandbox, documentMock } = criarSandbox();
     const { QueuePositionNotificationService } = sandbox;
@@ -94,7 +94,7 @@ suite('QueuePositionNotificationService — inicialização', () => {
   });
 });
 
-suite('QueuePositionNotificationService — roteamento de notificações', () => {
+describe('QueuePositionNotificationService — roteamento de notificações', () => {
   test('despacha barberflow:fila-posicao-atualizada para queue_update', () => {
     const { sandbox, eventosDispachados, dispararNotificacaoNova } = criarSandbox();
     const { QueuePositionNotificationService } = sandbox;

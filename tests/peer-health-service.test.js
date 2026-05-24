@@ -71,7 +71,7 @@ function criarProbe(config) {
   };
 }
 
-// ── Suite: isAvailable() ──────────────────────────────────────────────────────
+// ── describe: isAvailable() ──────────────────────────────────────────────────────
 
 describe('PeerHealthService.isAvailable()', () => {
 
@@ -95,7 +95,7 @@ describe('PeerHealthService.isAvailable()', () => {
   });
 });
 
-// ── Suite: getBestPeer() ──────────────────────────────────────────────────────
+// ── describe: getBestPeer() ──────────────────────────────────────────────────────
 
 describe('PeerHealthService.getBestPeer()', () => {
 
@@ -187,7 +187,7 @@ describe('PeerHealthService.getBestPeer()', () => {
   });
 });
 
-// ── Suite: validacao de entradas ──────────────────────────────────────────────
+// ── describe: validacao de entradas ──────────────────────────────────────────────
 
 describe('PeerHealthService — validacao', () => {
 
@@ -227,7 +227,7 @@ describe('PeerHealthService — validacao', () => {
   });
 });
 
-// ── Suite: getters de configuracao ────────────────────────────────────────────
+// ── describe: getters de configuracao ────────────────────────────────────────────
 
 describe('PeerHealthService — getters', () => {
 

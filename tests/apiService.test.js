@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -56,7 +56,7 @@ function resErro(status, body) {
 // Suítes
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ApiService.from() — GET', () => {
+describe('ApiService.from() — GET', () => {
 
   test('gera URL com tabela, select, eq e limit', async () => {
     let url, opts;
@@ -168,7 +168,7 @@ suite('ApiService.from() — GET', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ApiService.from() — INSERT / UPDATE / DELETE / UPSERT', () => {
+describe('ApiService.from() — INSERT / UPDATE / DELETE / UPSERT', () => {
 
   test('insert() usa POST com body JSON e Prefer return=representation', async () => {
     let url, opts;
@@ -233,7 +233,7 @@ suite('ApiService.from() — INSERT / UPDATE / DELETE / UPSERT', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ApiService — tratamento de erros', () => {
+describe('ApiService — tratamento de erros', () => {
 
   test('HTTP 4xx retorna { data: null, error } com status e message', async () => {
     const sb = criarSandbox(resErro(401, { message: 'JWT expired', code: 'JWT_EXPIRED' }));
@@ -284,7 +284,7 @@ suite('ApiService — tratamento de erros', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ApiService — URL helpers de Storage', () => {
+describe('ApiService — URL helpers de Storage', () => {
 
   test('getAvatarUrl() gera URL pública do bucket avatars', () => {
     const sb = criarSandbox(async () => resOk([])());
@@ -317,7 +317,7 @@ suite('ApiService — URL helpers de Storage', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ApiService.resolveAvatarUrl()', () => {
+describe('ApiService.resolveAvatarUrl()', () => {
 
   test('path relativo → aponta para bucket avatars', () => {
     const sb  = criarSandbox(async () => resOk([])());

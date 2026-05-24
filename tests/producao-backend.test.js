@@ -1,12 +1,12 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LoggerService — instancia sem lançar exceção
 // ─────────────────────────────────────────────────────────────────────────────
-suite('LoggerService', () => {
+describe('LoggerService', () => {
 
   test('importa sem lançar exceção', () => {
     assert.doesNotThrow(() => require('../src/infra/LoggerService'));
@@ -23,7 +23,7 @@ suite('LoggerService', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // RateLimitMiddleware — exporta os 3 limiters
 // ─────────────────────────────────────────────────────────────────────────────
-suite('RateLimitMiddleware', () => {
+describe('RateLimitMiddleware', () => {
 
   test('exporta limiterGeral, limiterAuth e limiterEscrita', () => {
     const RL = require('../src/infra/RateLimitMiddleware');
@@ -36,7 +36,7 @@ suite('RateLimitMiddleware', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // RequestTimeoutMiddleware — funciona como middleware Express
 // ─────────────────────────────────────────────────────────────────────────────
-suite('RequestTimeoutMiddleware', () => {
+describe('RequestTimeoutMiddleware', () => {
 
   test('exporta handle como função de 3 argumentos (req, res, next)', () => {
     const RTM = require('../src/infra/RequestTimeoutMiddleware');
@@ -91,7 +91,7 @@ suite('RequestTimeoutMiddleware', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // app.js — monta sem lançar exceção (sem banco real)
 // ─────────────────────────────────────────────────────────────────────────────
-suite('criarApp()', () => {
+describe('criarApp()', () => {
 
   test('importa e monta app sem exceção com env vars mockadas', () => {
     process.env.SUPABASE_URL              = process.env.SUPABASE_URL              ?? 'https://mock.supabase.co';

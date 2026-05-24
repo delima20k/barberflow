@@ -7,7 +7,7 @@
  * usam require() do CommonJS.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -44,7 +44,7 @@ const ProfissionalService     = require('../src/services/ProfissionalService');
 // ProfissionalRepository
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('ProfissionalRepository.getById()', () => {
+describe('ProfissionalRepository.getById()', () => {
 
   test('busca professionals pela tabela correta', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: UUID_PRO, is_active: true } });
@@ -67,7 +67,7 @@ suite('ProfissionalRepository.getById()', () => {
   });
 });
 
-suite('ProfissionalRepository.getByBarbershop()', () => {
+describe('ProfissionalRepository.getByBarbershop()', () => {
 
   test('busca professionals filtrando por barbershop_id', async () => {
     const { supabase, builder } = criarSupabaseMock({ data: [] });
@@ -85,7 +85,7 @@ suite('ProfissionalRepository.getByBarbershop()', () => {
   });
 });
 
-suite('ProfissionalRepository.getCadeiras()', () => {
+describe('ProfissionalRepository.getCadeiras()', () => {
 
   test('busca tabela chairs', async () => {
     const { supabase } = criarSupabaseMock({ data: [] });
@@ -95,7 +95,7 @@ suite('ProfissionalRepository.getCadeiras()', () => {
   });
 });
 
-suite('ProfissionalRepository.getPortfolio()', () => {
+describe('ProfissionalRepository.getPortfolio()', () => {
 
   test('busca tabela portfolio_images', async () => {
     const { supabase } = criarSupabaseMock({ data: [] });
@@ -122,7 +122,7 @@ function criarService({ data = null } = {}) {
   return { service: new ProfissionalService(repo), repo };
 }
 
-suite('ProfissionalService.buscarProfissional()', () => {
+describe('ProfissionalService.buscarProfissional()', () => {
 
   test('retorna entidade quando profissional existe', async () => {
     const row = { id: UUID_PRO, is_active: true, full_name: 'João', role: 'barber', user_id: UUID_PRO, barbershop_id: UUID_SHOP };
@@ -148,7 +148,7 @@ suite('ProfissionalService.buscarProfissional()', () => {
   });
 });
 
-suite('ProfissionalService.listarCadeiras()', () => {
+describe('ProfissionalService.listarCadeiras()', () => {
 
   test('delega para repo.getCadeiras()', async () => {
     const { service, repo } = criarService({ data: [{ id: 'c1' }] });
@@ -157,7 +157,7 @@ suite('ProfissionalService.listarCadeiras()', () => {
   });
 });
 
-suite('ProfissionalService.adicionarPortfolioImagem()', () => {
+describe('ProfissionalService.adicionarPortfolioImagem()', () => {
 
   test('lança 400 para image_url ausente', async () => {
     const { service } = criarService();

@@ -14,7 +14,7 @@
  *   - preview calcula corretamente: 100 * (1 - 1.5/100) = 98.50
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -149,7 +149,7 @@ function carregarModal() {
 
 // ─── Testes ──────────────────────────────────────────────────────────────────
 
-suite('MenosPercentualModal', () => {
+describe('MenosPercentualModal', () => {
 
   test('abrir() retorna Promise', () => {
     const { sb } = carregarModal();

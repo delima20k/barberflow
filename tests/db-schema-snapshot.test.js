@@ -92,7 +92,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.fn_void_op(UUID, JSONB) TO authenticated;
 `;
 
-// ─── Suite: Determinismo ──────────────────────────────────────────────────────
+// ─── describe: Determinismo ──────────────────────────────────────────────────────
 
 describe('SNAP — determinismo', () => {
   let dir;
@@ -126,7 +126,7 @@ describe('SNAP — determinismo', () => {
   });
 });
 
-// ─── Suite: Detecção de mudanças ──────────────────────────────────────────────
+// ─── describe: Detecção de mudanças ──────────────────────────────────────────────
 
 describe('SNAP — detecção de mudanças', () => {
   let baseDir;
@@ -188,7 +188,7 @@ describe('SNAP — detecção de mudanças', () => {
   });
 });
 
-// ─── Suite: SchemaDiffer ──────────────────────────────────────────────────────
+// ─── describe: SchemaDiffer ──────────────────────────────────────────────────────
 
 describe('SNAP — diff legível (SchemaDiffer)', () => {
   it('SNAP-11 sem mudança → changed=false e report indica conformidade', () => {
@@ -284,7 +284,7 @@ describe('SNAP — diff legível (SchemaDiffer)', () => {
   });
 });
 
-// ─── Suite: RpcSignatureParser ────────────────────────────────────────────────
+// ─── describe: RpcSignatureParser ────────────────────────────────────────────────
 
 describe('SNAP — RpcSignatureParser', () => {
   it('extrai nome, params e retorno de função simples', () => {

@@ -98,7 +98,7 @@ function criarMockStorageDeleteNotFound() {
   };
 }
 
-// ─── Suite 1: presignedPut ─────────────────────────────────────
+// ─── describe 1: presignedPut ─────────────────────────────────────
 
 describe('SupabaseStorageClient.presignedPut()', () => {
 
@@ -150,7 +150,7 @@ describe('SupabaseStorageClient.presignedPut()', () => {
   });
 });
 
-// ─── Suite 2: head ─────────────────────────────────────────────
+// ─── describe 2: head ─────────────────────────────────────────────
 
 describe('SupabaseStorageClient.head()', () => {
 
@@ -209,7 +209,7 @@ describe('SupabaseStorageClient.head()', () => {
   });
 });
 
-// ─── Suite 3: publicUrl ────────────────────────────────────────
+// ─── describe 3: publicUrl ────────────────────────────────────────
 
 describe('SupabaseStorageClient.publicUrl()', () => {
 
@@ -238,7 +238,7 @@ describe('SupabaseStorageClient.publicUrl()', () => {
   });
 });
 
-// ─── Suite 4: delete ───────────────────────────────────────────
+// ─── describe 4: delete ───────────────────────────────────────────
 
 describe('SupabaseStorageClient.delete()', () => {
 
@@ -284,7 +284,7 @@ describe('SupabaseStorageClient.delete()', () => {
   });
 });
 
-// ─── Suite 5: constante estática ──────────────────────────────
+// ─── describe 5: constante estática ──────────────────────────────
 
 describe('SupabaseStorageClient.BUCKET_IMAGES', () => {
 
@@ -293,7 +293,7 @@ describe('SupabaseStorageClient.BUCKET_IMAGES', () => {
   });
 });
 
-// ─── Suite 6: upload() ────────────────────────────────────────
+// ─── describe 6: upload() ────────────────────────────────────────
 
 describe('SupabaseStorageClient.upload()', () => {
 

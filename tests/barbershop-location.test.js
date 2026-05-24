@@ -10,7 +10,7 @@
 //   4. BarbershopService.salvarLocalizacaoCep — CEP → geocode → banco
 // =============================================================
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -92,10 +92,10 @@ function criarServico({ repoUpdateOk = true, fetchResult = null } = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SUITE 1: BarbershopRepository.updateLocation
+// describe 1: BarbershopRepository.updateLocation
 // ─────────────────────────────────────────────────────────────
 
-suite('BarbershopRepository.updateLocation', () => {
+describe('BarbershopRepository.updateLocation', () => {
 
   test('chama .update com lat/lng e retorna dado do banco', async () => {
     const shopData = {
@@ -152,10 +152,10 @@ suite('BarbershopRepository.updateLocation', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// SUITE 2: BarbershopService.salvarLocalizacaoGPS
+// describe 2: BarbershopService.salvarLocalizacaoGPS
 // ─────────────────────────────────────────────────────────────
 
-suite('BarbershopService.salvarLocalizacaoGPS', () => {
+describe('BarbershopService.salvarLocalizacaoGPS', () => {
 
   test('chama updateLocation com coords do GPS e retorna resultado', async () => {
     const { BarbershopService, repoMock } = criarServico();
@@ -187,7 +187,7 @@ suite('BarbershopService.salvarLocalizacaoGPS', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-suite('BarbershopService.salvarEnderecoGps', () => {
+describe('BarbershopService.salvarEnderecoGps', () => {
 
   test('salva endereco completo com coordenadas e bairro', async () => {
     const { BarbershopService, repoMock } = criarServico();
@@ -232,10 +232,10 @@ suite('BarbershopService.salvarEnderecoGps', () => {
   });
 });
 
-// SUITE 3: BarbershopService.geocodificarCep
+// describe 3: BarbershopService.geocodificarCep
 // ─────────────────────────────────────────────────────────────
 
-suite('BarbershopService.geocodificarCep', () => {
+describe('BarbershopService.geocodificarCep', () => {
 
   test('retorna endereço formatado a partir de resposta válida do ViaCEP', async () => {
     const viaCepResposta = {
@@ -291,10 +291,10 @@ suite('BarbershopService.geocodificarCep', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// SUITE 4: BarbershopService.salvarLocalizacaoCep
+// describe 4: BarbershopService.salvarLocalizacaoCep
 // ─────────────────────────────────────────────────────────────
 
-suite('BarbershopService.salvarLocalizacaoCep', () => {
+describe('BarbershopService.salvarLocalizacaoCep', () => {
 
   test('fluxo completo: CEP → endereço → coords → banco', async () => {
     const viaCepResposta = {

@@ -6,7 +6,7 @@
  * getStarsFromLikes.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -36,7 +36,7 @@ function criarSandbox({ userId = UUID_USER, favIds = [], likeIds = [] } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfessionalService.carregarInteracoes()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('ProfessionalService.carregarInteracoes()', () => {
+describe('ProfessionalService.carregarInteracoes()', () => {
 
   test('retorna Sets de favs e likes após carregamento', async () => {
     const sb = criarSandbox({ favIds: [UUID_PRO1], likeIds: [UUID_PRO2] });
@@ -82,7 +82,7 @@ suite('ProfessionalService.carregarInteracoes()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfessionalService.isFavorito() / isCurtido()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('ProfessionalService.isFavorito() e isCurtido()', () => {
+describe('ProfessionalService.isFavorito() e isCurtido()', () => {
 
   test('isFavorito() retorna true para ID no cache', async () => {
     const sb = criarSandbox({ favIds: [UUID_PRO1] });
@@ -112,7 +112,7 @@ suite('ProfessionalService.isFavorito() e isCurtido()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfessionalService.estrelasPorCurtidas()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('ProfessionalService.estrelasPorCurtidas()', () => {
+describe('ProfessionalService.estrelasPorCurtidas()', () => {
 
   test('0 curtidas → 0', () => {
     const sb = criarSandbox();

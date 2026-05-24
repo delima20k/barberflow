@@ -16,7 +16,7 @@
  * do código com precisão suficiente para prevenir regressão.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const fs              = require('node:fs');
 const path            = require('node:path');
@@ -24,9 +24,9 @@ const path            = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const SRC  = fs.readFileSync(path.join(ROOT, 'shared/js/MessagesWidget.js'), 'utf8');
 
-// ─── suite 1: remoção do hint FK quebrado ──────────────────────────────────
+// ─── describe 1: remoção do hint FK quebrado ──────────────────────────────────
 
-suite('MessagesWidget — buscarConversas: FK hint inválido removido', () => {
+describe('MessagesWidget — buscarConversas: FK hint inválido removido', () => {
 
   test('não usa profiles!appointments_professional_id_fkey (causa 400 no PostgREST)', () => {
     assert.ok(
@@ -44,9 +44,9 @@ suite('MessagesWidget — buscarConversas: FK hint inválido removido', () => {
 
 });
 
-// ─── suite 2: query em 2 etapas para role=cliente ─────────────────────────
+// ─── describe 2: query em 2 etapas para role=cliente ─────────────────────────
 
-suite('MessagesWidget — buscarConversas: 2 etapas para role=cliente', () => {
+describe('MessagesWidget — buscarConversas: 2 etapas para role=cliente', () => {
 
   test('seleciona professional_id de appointments na primeira etapa', () => {
     assert.ok(
@@ -71,9 +71,9 @@ suite('MessagesWidget — buscarConversas: 2 etapas para role=cliente', () => {
 
 });
 
-// ─── suite 3: query de join para role=profissional ────────────────────────
+// ─── describe 3: query de join para role=profissional ────────────────────────
 
-suite('MessagesWidget — buscarConversas: join direto para role=profissional', () => {
+describe('MessagesWidget — buscarConversas: join direto para role=profissional', () => {
 
   test('join profiles sem hint FK (client_id → profiles é não-ambíguo)', () => {
     // Verifica que o join usa somente "profiles (" sem hint FK
@@ -93,9 +93,9 @@ suite('MessagesWidget — buscarConversas: join direto para role=profissional', 
 
 });
 
-// ─── suite 4: tratamento de erros e DRY ───────────────────────────────────
+// ─── describe 4: tratamento de erros e DRY ───────────────────────────────────
 
-suite('MessagesWidget — buscarConversas: segurança e DRY', () => {
+describe('MessagesWidget — buscarConversas: segurança e DRY', () => {
 
   test('catch silencioso retorna [] para não quebrar a UI em falhas de rede', () => {
     const idxCatch = SRC.indexOf('#buscarConversas');

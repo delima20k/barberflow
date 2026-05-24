@@ -16,7 +16,7 @@
  *   parar() sem ter iniciado — seguro (não lança erro)
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -90,9 +90,9 @@ function criarSandbox() {
   return { sandbox, documentMock, acoesModal, acoesPayloadBuilder, dispararPosicaoAtualizada };
 }
 
-// ─── Suite: ciclo de vida ────────────────────────────────────────────────────
+// ─── describe: ciclo de vida ────────────────────────────────────────────────────
 
-suite('QueuePositionPresenter — ciclo de vida', () => {
+describe('QueuePositionPresenter — ciclo de vida', () => {
 
   test('iniciar registra listener de barberflow:fila-posicao-atualizada', () => {
     const { sandbox, documentMock } = criarSandbox();
@@ -149,9 +149,9 @@ suite('QueuePositionPresenter — ciclo de vida', () => {
 
 });
 
-// ─── Suite: abertura de modal ────────────────────────────────────────────────
+// ─── describe: abertura de modal ────────────────────────────────────────────────
 
-suite('QueuePositionPresenter — abertura de modal', () => {
+describe('QueuePositionPresenter — abertura de modal', () => {
 
   test('ao receber evento: chama QueueModalPayloadBuilder.montarPayloadPosicao com posição e nome', () => {
     const { sandbox, acoesPayloadBuilder, dispararPosicaoAtualizada } = criarSandbox();
@@ -284,9 +284,9 @@ function criarSandboxComAuth({ clienteNome = 'Fulano', shopLogoUrl = null } = {}
   return { sandbox, acoesModal, acoesPayloadBuilder, dispararPosicaoAtualizada, shopLogoUrl };
 }
 
-// ─── Suite: enriquecimento do payload (logo + nome + posicaoAnterior) ────────
+// ─── describe: enriquecimento do payload (logo + nome + posicaoAnterior) ────────
 
-suite('QueuePositionPresenter — logo, nome e posicaoAnterior', () => {
+describe('QueuePositionPresenter — logo, nome e posicaoAnterior', () => {
 
   test('iniciar(nome, logoUrl) armazena shopLogoUrl e passa ao builder', () => {
     const logoUrl = 'https://example.com/logo.png';

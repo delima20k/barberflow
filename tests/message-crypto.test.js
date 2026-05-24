@@ -15,7 +15,7 @@
  *   - Chaves de sessões diferentes não descriptografam mutuamente
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 
 // Polyfill para o ambiente de teste Node.js:
@@ -51,7 +51,7 @@ let MessageCryptoService;
 // Geração de par de chaves
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('MessageCryptoService.generateKeyPair()', () => {
+describe('MessageCryptoService.generateKeyPair()', () => {
 
   test('retorna objeto com publicKey e privateKey', async () => {
     const kp = await MessageCryptoService.generateKeyPair();
@@ -74,7 +74,7 @@ suite('MessageCryptoService.generateKeyPair()', () => {
 // Exportar / importar chave pública
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('MessageCryptoService exportPublicKey/importPublicKey', () => {
+describe('MessageCryptoService exportPublicKey/importPublicKey', () => {
 
   test('exportPublicKey retorna string base64 não vazia', async () => {
     const { publicKey } = await MessageCryptoService.generateKeyPair();
@@ -101,7 +101,7 @@ suite('MessageCryptoService exportPublicKey/importPublicKey', () => {
 // Derivação de chave compartilhada (ECDH)
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('MessageCryptoService.deriveSharedKey()', () => {
+describe('MessageCryptoService.deriveSharedKey()', () => {
 
   test('A→B e B→A derivam a mesma chave (verificado por encrypt/decrypt cruzado)', async () => {
     const kpA = await MessageCryptoService.generateKeyPair();
@@ -129,7 +129,7 @@ suite('MessageCryptoService.deriveSharedKey()', () => {
 // Criptografar / descriptografar
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('MessageCryptoService encryptMessage/decryptMessage', () => {
+describe('MessageCryptoService encryptMessage/decryptMessage', () => {
 
   async function criarChaveCompartilhada() {
     const kpA = await MessageCryptoService.generateKeyPair();
@@ -190,7 +190,7 @@ suite('MessageCryptoService encryptMessage/decryptMessage', () => {
 // validateEncryptedPayload
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('MessageCryptoService.validateEncryptedPayload()', () => {
+describe('MessageCryptoService.validateEncryptedPayload()', () => {
 
   test('retorna true para payload válido { iv, ct }', () => {
     assert.strictEqual(

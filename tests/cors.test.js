@@ -11,7 +11,7 @@
 // para testar o comportamento sem inicializar o Express.
 // =============================================================
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const fs              = require('node:fs');
 const path            = require('node:path');
@@ -65,9 +65,9 @@ function simularCors(origin, method = 'GET') {
   return { headers, status };
 }
 
-// ─── Suite 1: origens do frontend de produção ────────────────────────────────
+// ─── describe 1: origens do frontend de produção ────────────────────────────────
 
-suite('CORS — origens do frontend de produção', () => {
+describe('CORS — origens do frontend de produção', () => {
 
   const ORIGENS_FRONTEND = [
     'https://barberflow-pro-one.vercel.app',       // app profissional (deployment Vercel)
@@ -92,9 +92,9 @@ suite('CORS — origens do frontend de produção', () => {
   }
 });
 
-// ─── Suite 2: preflight OPTIONS ──────────────────────────────────────────────
+// ─── describe 2: preflight OPTIONS ──────────────────────────────────────────────
 
-suite('CORS — preflight OPTIONS', () => {
+describe('CORS — preflight OPTIONS', () => {
 
   test('barberflow-pro-one.vercel.app retorna 200 com headers completos', () => {
     const origin = 'https://barberflow-pro-one.vercel.app';
@@ -122,9 +122,9 @@ suite('CORS — preflight OPTIONS', () => {
   });
 });
 
-// ─── Suite 3: origens bloqueadas ─────────────────────────────────────────────
+// ─── describe 3: origens bloqueadas ─────────────────────────────────────────────
 
-suite('CORS — origens não autorizadas', () => {
+describe('CORS — origens não autorizadas', () => {
 
   const ORIGENS_BLOQUEADAS = [
     'https://atacante.com',
@@ -143,9 +143,9 @@ suite('CORS — origens não autorizadas', () => {
   }
 });
 
-// ─── Suite 4: preview URLs Vercel ──────────────────────────────────────────
+// ─── describe 4: preview URLs Vercel ──────────────────────────────────────────
 
-suite('CORS — preview URLs Vercel', () => {
+describe('CORS — preview URLs Vercel', () => {
 
   const PREVIEW_URLS = [
     'https://barberflow-profissional-9vbcwo97t-delima20ks-projects.vercel.app',
@@ -170,9 +170,9 @@ suite('CORS — preview URLs Vercel', () => {
   });
 });
 
-// ─── Suite 5: consistência com src/app.js ──────────────────────────────────
+// ─── describe 5: consistência com src/app.js ──────────────────────────────────
 
-suite('CORS — consistência com src/app.js', () => {
+describe('CORS — consistência com src/app.js', () => {
 
   const APP_PATH = path.resolve(__dirname, '../src/app.js');
 

@@ -6,7 +6,7 @@
 // via ApiService.rpc() mockado em sandbox VM.
 // =============================================================
 
-const { test, suite } = require('node:test');
+const { test, describe } = require('node:test');
 const assert           = require('node:assert/strict');
 const vm               = require('node:vm');
 const { fn, carregar } = require('./_helpers');
@@ -65,7 +65,7 @@ function criarRows(n, offset = 0) {
 
 // ─── Testes ───────────────────────────────────────────────────────────────────
 
-suite('UserRepository — buscarUsuarios', () => {
+describe('UserRepository — buscarUsuarios', () => {
 
   test('chama ApiService.rpc("search_users") com os parâmetros corretos', async () => {
     const rows = criarRows(3);
@@ -153,7 +153,7 @@ suite('UserRepository — buscarUsuarios', () => {
 
 });
 
-suite('UserRepository — getFavoritosModal', () => {
+describe('UserRepository — getFavoritosModal', () => {
 
   test('chama ApiService.rpc("get_clientes_favoritos_modal") com os parâmetros corretos', async () => {
     const { sandbox, ApiService } = criarSandbox({ rpcRetorno: { data: [], error: null } });
@@ -214,7 +214,7 @@ suite('UserRepository — getFavoritosModal', () => {
 
 const PGRST202 = Object.freeze(Object.assign(new Error('not found'), { code: 'PGRST202' }));
 
-suite('UserRepository — buscarUsuarios (fallback #buscarFallback)', () => {
+describe('UserRepository — buscarUsuarios (fallback #buscarFallback)', () => {
 
   test('search_users falha com PGRST202 → chama buscar_perfis_por_nome', async () => {
     const perfisRows = [

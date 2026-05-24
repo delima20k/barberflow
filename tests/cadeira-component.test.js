@@ -13,7 +13,7 @@
  *   - cadeira confirmada: .cdr-cadeira--confirmada + .cdr-icon--confirmada
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -140,7 +140,7 @@ const ENTRADA_FILA = {
 
 // ─── Suíte ───────────────────────────────────────────────────────────────────
 
-suite('Cadeira — componente DOM', () => {
+describe('Cadeira — componente DOM', () => {
 
   // ── cdr-icon sempre mostra imagem padrão ──────────────────────────────────
 
@@ -263,7 +263,7 @@ suite('Cadeira — componente DOM', () => {
 
 // ─── Suíte: onArrivingClick ───────────────────────────────────────────────────
 
-suite('Cadeira — onArrivingClick (arriving self-confirm)', () => {
+describe('Cadeira — onArrivingClick (arriving self-confirm)', () => {
 
   test('arriving + onArrivingClick + podeInteragir → interativa e chama callback ao clicar', () => {
     const { Cadeira } = criarSandbox();
@@ -322,7 +322,7 @@ suite('Cadeira — onArrivingClick (arriving self-confirm)', () => {
 
 // ─── Suíte: clique com barbearia fechada (podeInteragir=false) ────────────────
 
-suite('Cadeira — clique com barbearia fechada (podeInteragir=false)', () => {
+describe('Cadeira — clique com barbearia fechada (podeInteragir=false)', () => {
 
   test('onClick dispara mesmo com podeInteragir=false', () => {
     const { Cadeira } = criarSandbox();
@@ -382,7 +382,7 @@ suite('Cadeira — clique com barbearia fechada (podeInteragir=false)', () => {
 
 // ─── Suíte: onArrivingClick — cliente confirma chegada na própria cadeira ─────
 
-suite('Cadeira — onArrivingClick (confirmar chegada)', () => {
+describe('Cadeira — onArrivingClick (confirmar chegada)', () => {
 
   const ENTRADA_PRODUCAO = {
     status: 'in_service',

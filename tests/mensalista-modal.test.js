@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -140,7 +140,7 @@ function criarSandbox() {
   return { sandbox, doc, chamadasAdicionar };
 }
 
-suite('MensalistaModal', () => {
+describe('MensalistaModal', () => {
   test('renderiza input de mensalidade e busca com inpustyle', async () => {
     const { sandbox, doc } = criarSandbox();
     sandbox.MensalistaModal.abrir({ barbershopId: SHOP_ID });

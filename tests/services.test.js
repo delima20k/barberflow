@@ -1,6 +1,6 @@
 'use strict';
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -39,7 +39,7 @@ function criarSandbox(overrides = {}) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('PlanosService — selecionarTipo()', () => {
+describe('PlanosService — selecionarTipo()', () => {
 
   test('barbearia → podeAvancar: false (sem persistir sessionStorage)', () => {
     const sb = criarSandbox({
@@ -70,7 +70,7 @@ suite('PlanosService — selecionarTipo()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('PlanosService — iniciarFluxo()', () => {
+describe('PlanosService — iniciarFluxo()', () => {
 
   test('persiste tipo e plano via MonetizationGuard antes de invocar PaymentFlowHandler', () => {
     const spyFluxo = fn();
@@ -109,7 +109,7 @@ suite('PlanosService — iniciarFluxo()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('LegalConsentService — processarAceite()', () => {
+describe('LegalConsentService — processarAceite()', () => {
 
   function criarSandboxLegal({ user = null } = {}) {
     const store = {};
@@ -171,7 +171,7 @@ suite('LegalConsentService — processarAceite()', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('LegalConsentService — estado pendente', () => {
+describe('LegalConsentService — estado pendente', () => {
 
   function criarSandboxPendente() {
     const store = {};

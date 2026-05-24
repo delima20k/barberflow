@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -102,7 +102,7 @@ function criarRouter({ logado = false, telaInicial = 'inicio' } = {}) {
 // BLOCO 1 — _permitirNavAuth()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Router — _permitirNavAuth()', () => {
+describe('Router — _permitirNavAuth()', () => {
 
   const TELAS_PUBLICAS = ['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'login', 'cadastro', 'destaques'];
 
@@ -169,7 +169,7 @@ suite('Router — _permitirNavAuth()', () => {
 // BLOCO 2 — nav()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Router — nav()', () => {
+describe('Router — nav()', () => {
 
   test('nav("inicio") quando já em "inicio" → no-op', () => {
     const { router, viewMock, animMock } = criarRouter({ telaInicial: 'inicio' });
@@ -263,7 +263,7 @@ suite('Router — nav()', () => {
 // BLOCO 3 — push()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Router — push()', () => {
+describe('Router — push()', () => {
 
   test('push para mesma tela → no-op', () => {
     const { router, viewMock, animMock } = criarRouter({ telaInicial: 'login' });
@@ -341,7 +341,7 @@ suite('Router — push()', () => {
 // BLOCO 4 — voltar()
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('Router — voltar()', () => {
+describe('Router — voltar()', () => {
 
   test('voltar() de "inicio" → no-op', () => {
     const { router, viewMock, animMock } = criarRouter({ telaInicial: 'inicio' });

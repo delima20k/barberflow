@@ -12,7 +12,7 @@
  * e nos vetores de segurança pedidos.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { carregar }    = require('./_helpers.js');
@@ -27,7 +27,7 @@ function criarValidator() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Validator.email()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Validator.email() — validação', () => {
+describe('Validator.email() — validação', () => {
   let V;
   test('setup', () => { V = criarValidator(); });
 
@@ -57,7 +57,7 @@ suite('Validator.email() — validação', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Validator.telefone()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Validator.telefone() — validação', () => {
+describe('Validator.telefone() — validação', () => {
   let V;
   test('setup', () => { V = criarValidator(); });
 
@@ -92,7 +92,7 @@ suite('Validator.telefone() — validação', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Validator.escaparFiltroPostgREST() — proteção contra filter injection
 // ─────────────────────────────────────────────────────────────────────────────
-suite('Validator — proteção contra filter injection (PostgREST)', () => {
+describe('Validator — proteção contra filter injection (PostgREST)', () => {
   let V;
   test('setup', () => { V = criarValidator(); });
 

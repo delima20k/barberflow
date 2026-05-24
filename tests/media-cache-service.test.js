@@ -8,7 +8,7 @@
  * IndexedDB mock: implementação em memória mínima que emula a API IDBDatabase/IDBObjectStore.
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert                       = require('node:assert/strict');
 const vm                           = require('node:vm');
 const { fn, carregar }             = require('./_helpers.js');
@@ -115,7 +115,7 @@ function criarBuffer(bytes = 64) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('MediaCacheService.suportado()', () => {
+describe('MediaCacheService.suportado()', () => {
 
   test('retorna true quando indexedDB está disponível no sandbox', () => {
     const sb = criarSandbox();
@@ -134,7 +134,7 @@ suite('MediaCacheService.suportado()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('MediaCacheService.salvar() + obter()', () => {
+describe('MediaCacheService.salvar() + obter()', () => {
 
   test('salva e recupera um buffer', async () => {
     const sb     = criarSandbox();
@@ -163,7 +163,7 @@ suite('MediaCacheService.salvar() + obter()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('MediaCacheService — TTL', () => {
+describe('MediaCacheService — TTL', () => {
 
   test('entrada expirada retorna null em obter()', async () => {
     const sb     = criarSandbox();
@@ -198,7 +198,7 @@ suite('MediaCacheService — TTL', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('MediaCacheService.limpar()', () => {
+describe('MediaCacheService.limpar()', () => {
 
   test('remove entradas expiradas e retorna contagem', async () => {
     const sb      = criarSandbox();

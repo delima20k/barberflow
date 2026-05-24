@@ -8,7 +8,7 @@
  *   - GET /ice-config: retorna iceServers com formato correto
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert                       = require('node:assert/strict');
 const path                         = require('node:path');
 const { fn }                       = require('./_helpers.js');
@@ -93,7 +93,7 @@ function extrairHandler(router, method, routePath) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('POST /api/p2p/announce', () => {
+describe('POST /api/p2p/announce', () => {
 
   test('retorna 400 quando mediaId está ausente', async () => {
     const { router } = criarControllerComMocks();
@@ -147,7 +147,7 @@ suite('POST /api/p2p/announce', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('GET /api/p2p/peers/:mediaId', () => {
+describe('GET /api/p2p/peers/:mediaId', () => {
 
   test('retorna lista de peers do mediaId', async () => {
     const peerId   = crypto.randomUUID();
@@ -191,7 +191,7 @@ suite('GET /api/p2p/peers/:mediaId', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-suite('GET /api/p2p/ice-config', () => {
+describe('GET /api/p2p/ice-config', () => {
 
   test('retorna iceServers com ao menos um servidor STUN', () => {
     const { router } = criarControllerComMocks();

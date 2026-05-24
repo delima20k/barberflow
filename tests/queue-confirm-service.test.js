@@ -11,7 +11,7 @@
  *   - parar() remove o canal e limpa estado
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -86,7 +86,7 @@ function criarSandbox() {
 
 // ── Testes ───────────────────────────────────────────────────────────────────
 
-suite('QueueConfirmService — iniciar("client")', () => {
+describe('QueueConfirmService — iniciar("client")', () => {
 
   test('cria canal Realtime em queue_entries para o userId', () => {
     const { sandbox } = criarSandbox();
@@ -111,7 +111,7 @@ suite('QueueConfirmService — iniciar("client")', () => {
   });
 });
 
-suite('QueueConfirmService — delegação ao CadeiraConfirmacaoService', () => {
+describe('QueueConfirmService — delegação ao CadeiraConfirmacaoService', () => {
 
   test('delega a iniciarFluxo quando status muda para in_service', async () => {
     const { sandbox, iniciarFluxoCalls, getRealtimeCallback } = criarSandbox();
@@ -171,7 +171,7 @@ suite('QueueConfirmService — delegação ao CadeiraConfirmacaoService', () => 
   });
 });
 
-suite('QueueConfirmService — clienteNaoSentado() é no-op', () => {
+describe('QueueConfirmService — clienteNaoSentado() é no-op', () => {
 
   test('não insere diretamente na tabela notifications', async () => {
     const { sandbox } = criarSandbox();
@@ -193,7 +193,7 @@ suite('QueueConfirmService — clienteNaoSentado() é no-op', () => {
   });
 });
 
-suite('QueueConfirmService — parar()', () => {
+describe('QueueConfirmService — parar()', () => {
 
   test('remove o canal Realtime ao parar', () => {
     const { sandbox } = criarSandbox();

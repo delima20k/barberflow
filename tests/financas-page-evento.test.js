@@ -9,7 +9,7 @@
  *   - Atualização via filtro de período recarrega dados
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -115,9 +115,9 @@ function dispararEvento(sandbox, eventListeners, tipo, detail) {
   handlers.forEach(h => h(e));
 }
 
-// ── Suite: barberflow:transacao-criada ────────────────────────────────────────
+// ── describe: barberflow:transacao-criada ────────────────────────────────────────
 
-suite('FinancasPage — barberflow:transacao-criada', () => {
+describe('FinancasPage — barberflow:transacao-criada', () => {
 
   test('chama #carregar quando barbershopId bate', async () => {
     const { sandbox, eventListeners } = criarSandbox({ shopId: SHOP_ID });
@@ -191,9 +191,9 @@ suite('FinancasPage — barberflow:transacao-criada', () => {
   });
 });
 
-// ── Suite: guard de carregamento duplo ────────────────────────────────────────
+// ── describe: guard de carregamento duplo ────────────────────────────────────────
 
-suite('FinancasPage — guard #carregando', () => {
+describe('FinancasPage — guard #carregando', () => {
 
   test('getResumo chamado apenas uma vez em chamadas simultâneas', async () => {
     const { sandbox } = criarSandbox({ shopId: SHOP_ID });
@@ -228,9 +228,9 @@ suite('FinancasPage — guard #carregando', () => {
   });
 });
 
-// ── Suite: FinanceiroService.getResumo — integração de dados ─────────────────
+// ── describe: FinanceiroService.getResumo — integração de dados ─────────────────
 
-suite('FinanceiroService.getResumo — integridade dos dados na página', () => {
+describe('FinanceiroService.getResumo — integridade dos dados na página', () => {
 
   test('geral.total é Number (não string)', async () => {
     const { sandbox } = criarSandbox({

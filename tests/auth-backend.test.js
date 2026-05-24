@@ -5,7 +5,7 @@
  * Testa CadastroService e AuthController (cadastro-perfil) do backend Node.js.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const { fn }          = require('./_helpers.js');
 
@@ -35,7 +35,7 @@ const AuthRepository     = require('../src/repositories/AuthRepository');
 // AuthRepository
 // ─────────────────────────────────────────────────────────────────────────────
 
-suite('AuthRepository.criarPerfil()', () => {
+describe('AuthRepository.criarPerfil()', () => {
 
   test('faz upsert na tabela profiles', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: UUID_USER, full_name: 'João' } });
@@ -51,7 +51,7 @@ suite('AuthRepository.criarPerfil()', () => {
   });
 });
 
-suite('AuthRepository.criarBarbearia()', () => {
+describe('AuthRepository.criarBarbearia()', () => {
 
   test('insere na tabela barbershops', async () => {
     const { supabase } = criarSupabaseMock({ data: { id: 'shop-1', name: 'Barbearia X' } });
@@ -73,7 +73,7 @@ function criarCadastroService({ perfil = null, barbearia = null } = {}) {
   return { service: new CadastroService(repo), repo };
 }
 
-suite('CadastroService.cadastrarPerfil()', () => {
+describe('CadastroService.cadastrarPerfil()', () => {
 
   test('lança 400 quando userId está ausente', async () => {
     const { service } = criarCadastroService();

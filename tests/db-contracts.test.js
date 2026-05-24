@@ -524,7 +524,7 @@ describe('CONTRACT-07 notificar_barbeiro_chegada', () => {
   });
 });
 
-// ─── Suite: Cobertura de contratos ────────────────────────────────────────────
+// ─── describe: Cobertura de contratos ────────────────────────────────────────────
 
 describe('COBERTURA — RPCs críticas têm contrato documentado', () => {
   const CRITICAS = [

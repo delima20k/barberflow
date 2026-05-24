@@ -5,7 +5,7 @@
  * Testa QueueRepository: getByBarbershop, getCadeiras, updateStatus.
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -42,7 +42,7 @@ function criarRepo({ data = [], error = null } = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 // QueueRepository.getByBarbershop()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('QueueRepository.getByBarbershop()', () => {
+describe('QueueRepository.getByBarbershop()', () => {
 
   test('chama ApiService.from("queue_entries")', async () => {
     const { QR, api } = criarRepo({ data: [] });
@@ -67,7 +67,7 @@ suite('QueueRepository.getByBarbershop()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // QueueRepository.updateStatus()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('QueueRepository.updateStatus()', () => {
+describe('QueueRepository.updateStatus()', () => {
 
   test('rejeita UUID inválido com TypeError', async () => {
     const { QR } = criarRepo();

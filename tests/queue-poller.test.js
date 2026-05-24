@@ -8,7 +8,7 @@
  *   - Detecção de "é a sua vez" (in_service)
  */
 
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const vm     = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -62,7 +62,7 @@ function entrada(clientId, position, status = 'waiting') {
 
 // ── Testes ────────────────────────────────────────────────────────────────────
 
-suite('QueuePoller.#detectarMudanca — rank dinâmico', () => {
+describe('QueuePoller.#detectarMudanca — rank dinâmico', () => {
 
   test('rank calculado pelo índice na array, não pela coluna position', () => {
     // Simula fila com positions não re-indexadas (2, 3) após alguém sair
@@ -159,7 +159,7 @@ suite('QueuePoller.#detectarMudanca — rank dinâmico', () => {
   });
 });
 
-suite('QueueRepository — SELECT_LIST inclui updated_at', () => {
+describe('QueueRepository — SELECT_LIST inclui updated_at', () => {
   test('#SELECT_LIST contém updated_at para resolveAvatarUrl', () => {
     const fs   = require('node:fs');
     const path = require('node:path');

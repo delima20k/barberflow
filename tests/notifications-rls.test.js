@@ -34,7 +34,7 @@
  *   RLS-22  Regression: fluxo legítimo completo de chegada do cliente
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const crypto          = require('node:crypto');
 
@@ -321,9 +321,9 @@ function payloadValido(overrides = {}) {
   return { title: 'Novo agendamento', body: 'Seu horário foi confirmado.', ...overrides };
 }
 
-// ─── Suite: guard trigger de INSERT ──────────────────────────────────────────
+// ─── describe: guard trigger de INSERT ──────────────────────────────────────────
 
-suite('RLS — guard trigger INSERT', () => {
+describe('RLS — guard trigger INSERT', () => {
 
   test('RLS-01 INSERT direto por autenticado → deve falhar com 42501', () => {
     assert.throws(
@@ -345,9 +345,9 @@ suite('RLS — guard trigger INSERT', () => {
   });
 });
 
-// ─── Suite: guard trigger de DELETE ──────────────────────────────────────────
+// ─── describe: guard trigger de DELETE ──────────────────────────────────────────
 
-suite('RLS — guard trigger DELETE', () => {
+describe('RLS — guard trigger DELETE', () => {
 
   test('RLS-17 DELETE físico por authenticated → deve falhar', () => {
     assert.throws(
@@ -364,9 +364,9 @@ suite('RLS — guard trigger DELETE', () => {
   });
 });
 
-// ─── Suite: RLS SELECT policy ─────────────────────────────────────────────────
+// ─── describe: RLS SELECT policy ─────────────────────────────────────────────────
 
-suite('RLS — SELECT policy', () => {
+describe('RLS — SELECT policy', () => {
 
   test('RLS-12 usuário A não enxerga notificações do usuário B', () => {
     const rowDeB = { user_id: CLIENT_B, deleted_at: null };
@@ -384,9 +384,9 @@ suite('RLS — SELECT policy', () => {
   });
 });
 
-// ─── Suite: guard trigger de UPDATE ──────────────────────────────────────────
+// ─── describe: guard trigger de UPDATE ──────────────────────────────────────────
 
-suite('RLS — guard trigger UPDATE', () => {
+describe('RLS — guard trigger UPDATE', () => {
 
   const base = {
     id: 'notif-1', user_id: CLIENT_A, type: 'agendamento',
@@ -440,9 +440,9 @@ suite('RLS — guard trigger UPDATE', () => {
   });
 });
 
-// ─── Suite: _insert_validated_notification / create_notification ─────────────
+// ─── describe: _insert_validated_notification / create_notification ─────────────
 
-suite('RLS — validação de INSERT (_insert_validated_notification)', () => {
+describe('RLS — validação de INSERT (_insert_validated_notification)', () => {
 
   test('RLS-03 create_notification consigo mesmo, tipo válido → deve funcionar', () => {
     const { pair, sender } = criarRateLimits();
@@ -571,9 +571,9 @@ suite('RLS — validação de INSERT (_insert_validated_notification)', () => {
   });
 });
 
-// ─── Suite: rate limiting ─────────────────────────────────────────────────────
+// ─── describe: rate limiting ─────────────────────────────────────────────────────
 
-suite('RLS — rate limiting', () => {
+describe('RLS — rate limiting', () => {
 
   test('RLS-04 rate limit por par: 11ª notificação → deve ser rejeitada', () => {
     const { pair, sender } = criarRateLimits();
@@ -658,9 +658,9 @@ suite('RLS — rate limiting', () => {
   });
 });
 
-// ─── Suite: notificar_barbeiro_chegada (V2/V4 fix) ────────────────────────────
+// ─── describe: notificar_barbeiro_chegada (V2/V4 fix) ────────────────────────────
 
-suite('RLS — notificar_barbeiro_chegada (V2/V4 fix)', () => {
+describe('RLS — notificar_barbeiro_chegada (V2/V4 fix)', () => {
 
   test('RLS-18 p_title e p_body do caller são IGNORADOS; conteúdo vem do banco', () => {
     const { pair, sender } = criarRateLimits();

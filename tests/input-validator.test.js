@@ -1,5 +1,5 @@
 'use strict';
-const { suite, test, beforeEach } = require('node:test');
+const { describe, test, beforeEach } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -14,7 +14,7 @@ function criarInputValidator() {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.textoLivre()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.textoLivre()', () => {
+describe('InputValidator.textoLivre()', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -82,7 +82,7 @@ suite('InputValidator.textoLivre()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.coordenada()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.coordenada()', () => {
+describe('InputValidator.coordenada()', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -137,7 +137,7 @@ suite('InputValidator.coordenada()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.intPositivo()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.intPositivo()', () => {
+describe('InputValidator.intPositivo()', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -183,7 +183,7 @@ suite('InputValidator.intPositivo()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.enumValido()
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.enumValido()', () => {
+describe('InputValidator.enumValido()', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -227,7 +227,7 @@ suite('InputValidator.enumValido()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.payload() — allowlist de campos (prevenção de mass assignment)
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.payload()', () => {
+describe('InputValidator.payload()', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -286,7 +286,7 @@ suite('InputValidator.payload()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.sanitizar() — inputs maliciosos adicionais
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.sanitizar() com inputs maliciosos', () => {
+describe('InputValidator.sanitizar() com inputs maliciosos', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -318,7 +318,7 @@ suite('InputValidator.sanitizar() com inputs maliciosos', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.uuid() — strings de injeção como IDs
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.uuid() com inputs maliciosos', () => {
+describe('InputValidator.uuid() com inputs maliciosos', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 
@@ -351,7 +351,7 @@ suite('InputValidator.uuid() com inputs maliciosos', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // InputValidator.escaparFiltroPostgREST() — previne PostgREST filter injection
 // ─────────────────────────────────────────────────────────────────────────────
-suite('InputValidator.escaparFiltroPostgREST()', () => {
+describe('InputValidator.escaparFiltroPostgREST()', () => {
   let IV;
   beforeEach(() => { IV = criarInputValidator(); });
 

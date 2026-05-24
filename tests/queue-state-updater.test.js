@@ -14,7 +14,7 @@
  *   parar — remove listener e reseta estado
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
@@ -68,9 +68,9 @@ function entradaWaiting(clientId, position, entradaId = UUID_ENTRY) {
   return { id: entradaId, status: 'waiting', position, client: { id: clientId } };
 }
 
-// ─── Suite ───────────────────────────────────────────────────────────────────
+// ─── describe ───────────────────────────────────────────────────────────────────
 
-suite('QueueStateUpdater — inicialização', () => {
+describe('QueueStateUpdater — inicialização', () => {
   test('posicaoAtual retorna null antes de qualquer evento', () => {
     const { sandbox } = criarSandbox();
     const { QueueStateUpdater } = sandbox;
@@ -102,7 +102,7 @@ suite('QueueStateUpdater — inicialização', () => {
   });
 });
 
-suite('QueueStateUpdater — detecção de mudança de posição', () => {
+describe('QueueStateUpdater — detecção de mudança de posição', () => {
   test('despacha barberflow:fila-posicao-atualizada quando posição muda', () => {
     const { sandbox, eventosDispachados, dispararFilaAtualizada } = criarSandbox();
     const { QueueStateUpdater } = sandbox;

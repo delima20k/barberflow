@@ -77,7 +77,7 @@ function criarMock({ count = 0, dbError = null } = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Suite: registerDownload()
+// describe: registerDownload()
 // ─────────────────────────────────────────────────────────────
 describe('ReplicationService.registerDownload()', () => {
 
@@ -139,7 +139,7 @@ describe('ReplicationService.registerDownload()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Suite: decideStrategy() — lógica de classificação
+// describe: decideStrategy() — lógica de classificação
 // ─────────────────────────────────────────────────────────────
 describe('ReplicationService.decideStrategy()', () => {
 
@@ -239,7 +239,7 @@ describe('ReplicationService.decideStrategy()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Suite: Escalabilidade — validação de design
+// describe: Escalabilidade — validação de design
 // ─────────────────────────────────────────────────────────────
 describe('ReplicationService — escalabilidade e thresholds', () => {
 

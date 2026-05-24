@@ -88,7 +88,7 @@ function build({ p2p, cache, r2, maxRetries } = {}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 1 — Requisitos obrigatórios
+// describe 1 — Requisitos obrigatórios
 // ─────────────────────────────────────────────────────────────────────────────
 describe('FallbackService.download() — requisitos obrigatórios', () => {
 
@@ -165,7 +165,7 @@ describe('FallbackService.download() — requisitos obrigatórios', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 2 — Retry (3× por fonte)
+// describe 2 — Retry (3× por fonte)
 // ─────────────────────────────────────────────────────────────────────────────
 describe('FallbackService — retry (3× por fonte)', () => {
 
@@ -263,7 +263,7 @@ describe('FallbackService — retry (3× por fonte)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 3 — Ordem de prioridade (P2P > Cache > R2)
+// describe 3 — Ordem de prioridade (P2P > Cache > R2)
 // ─────────────────────────────────────────────────────────────────────────────
 describe('FallbackService — ordem de prioridade (P2P > Cache > R2)', () => {
 
@@ -358,7 +358,7 @@ describe('FallbackService — ordem de prioridade (P2P > Cache > R2)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 4 — MemoryCacheProvider
+// describe 4 — MemoryCacheProvider
 // ─────────────────────────────────────────────────────────────────────────────
 describe('MemoryCacheProvider', () => {
 
@@ -437,7 +437,7 @@ describe('MemoryCacheProvider', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Suite 5 — Construtor FallbackService
+// describe 5 — Construtor FallbackService
 // ─────────────────────────────────────────────────────────────────────────────
 describe('FallbackService — construtor', () => {
 

@@ -16,7 +16,7 @@
  *   - parar() sem ter iniciado → seguro (não lança erro)
  */
 
-const { suite, test } = require('node:test');
+const { describe, test } = require('node:test');
 const assert                       = require('node:assert/strict');
 const vm                           = require('node:vm');
 const { fn, carregar }             = require('./_helpers.js');
@@ -119,7 +119,7 @@ function criarSandbox({ fluxoResposta = 'sim', updateRetorno = null } = {}) {
 
 // ─── Testes ───────────────────────────────────────────────────────────────────
 
-suite('FilaPresencaService — construção do payload', () => {
+describe('FilaPresencaService — construção do payload', () => {
 
   test('chama QueueModalPayloadBuilder.montarPayloadPresencaFisica', async () => {
     const { sandbox } = criarSandbox();
@@ -152,7 +152,7 @@ suite('FilaPresencaService — construção do payload', () => {
   });
 });
 
-suite('FilaPresencaService — resposta "sim"', () => {
+describe('FilaPresencaService — resposta "sim"', () => {
 
   test('chama updateClientConfirmed com "yes"', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: 'sim' });
@@ -198,7 +198,7 @@ suite('FilaPresencaService — resposta "sim"', () => {
   });
 });
 
-suite('FilaPresencaService — resposta "nao"', () => {
+describe('FilaPresencaService — resposta "nao"', () => {
 
   test('chama updateClientConfirmed com "arriving"', async () => {
     const { sandbox } = criarSandbox({ fluxoResposta: 'nao' });
@@ -267,7 +267,7 @@ suite('FilaPresencaService — resposta "nao"', () => {
   });
 });
 
-suite('FilaPresencaService — guard de duplicação', () => {
+describe('FilaPresencaService — guard de duplicação', () => {
 
   test('ignora segunda chamada com mesmo entradaId (FluxoDeFila.abrir 1x)', async () => {
     const { sandbox } = criarSandbox();
@@ -291,7 +291,7 @@ suite('FilaPresencaService — guard de duplicação', () => {
   });
 });
 
-suite('FilaPresencaService — parar()', () => {
+describe('FilaPresencaService — parar()', () => {
 
   test('cancela timer pendente ao parar', async () => {
     const { sandbox, clearedTimers } = criarSandbox({ fluxoResposta: 'nao' });
@@ -322,7 +322,7 @@ suite('FilaPresencaService — parar()', () => {
   });
 });
 
-suite('FilaPresencaService — edge cases', () => {
+describe('FilaPresencaService — edge cases', () => {
 
   test('entradaId null → retorna sem abrir modal', async () => {
     const { sandbox } = criarSandbox();
