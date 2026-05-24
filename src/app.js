@@ -86,8 +86,11 @@ const ALLOWED_ORIGINS = new Set([
 function origemPermitida(origin) {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  // Permite URLs de preview da Vercel (ex: barberflow-xxx-delima20ks-projects.vercel.app)
-  try { return new URL(origin).hostname.endsWith('.vercel.app'); } catch { return false; }
+  // Previews de PR via Vercel — restrito a subdomínios do próprio projeto (barberflow/berberflow).
+  try {
+    const { hostname } = new URL(origin);
+    return hostname.endsWith('.vercel.app') && /^barb[e]rflow[-.]/i.test(hostname);
+  } catch { return false; }
 }
 
 function criarApp() {

@@ -31,11 +31,13 @@ class CorsMiddleware {
   static #isAllowed(origin) {
     if (!origin) return false;
     if (CorsMiddleware.#allowedOrigins.has(origin)) return true;
-    // Previews de PR via Vercel — permitido apenas fora de produção.
-    // Em produção, somente origens explícitas de config/environments/production.js.
+    // Previews de PR via Vercel — restrito a subdomínios do próprio projeto.
+    // Regex garante que só hostnames com prefixo barberflow/berberflow são aceitos —
+    // evita que qualquer app de terceiro em *.vercel.app faça requisições cross-origin.
     if (!CorsMiddleware.#isProducao) {
       try {
-        return new URL(origin).hostname.endsWith('.vercel.app');
+        const { hostname } = new URL(origin);
+        return hostname.endsWith('.vercel.app') && /^barb[e]rflow[-.]/i.test(hostname);
       } catch {
         return false;
       }
