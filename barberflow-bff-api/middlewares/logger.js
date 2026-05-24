@@ -54,12 +54,26 @@ const logger = pino({
     };
   },
   redact: {
-    paths:  [
+    paths: [
+      // Headers HTTP
       'req.headers.authorization',
       'req.headers.cookie',
+      // Tokens em body direto e em req.body (pino-http)
       'body.password',
-      'body.token',
       'body.senha',
+      'body.token',
+      'body.access_token',
+      'body.refresh_token',
+      'req.body.password',
+      'req.body.senha',
+      'req.body.token',
+      'req.body.access_token',
+      'req.body.refresh_token',
+      // Tokens em qualquer nível de profundidade
+      '*.access_token',
+      '*.refresh_token',
+      '*.password',
+      // PII
       '*.email',
       '*.cpf',
       '*.telefone',

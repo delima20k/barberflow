@@ -43,11 +43,25 @@ const logger = pino({
   // Redact: campos sensíveis nunca aparecem nos logs
   redact: {
     paths: [
+      // Headers HTTP
       'req.headers.authorization',
       'req.headers.cookie',
+      // Tokens e credenciais em body
       'body.password',
       'body.password_hash',
+      'body.senha',
       'body.token',
+      'body.access_token',
+      'body.refresh_token',
+      // Tokens em qualquer nível de profundidade
+      '*.access_token',
+      '*.refresh_token',
+      '*.password',
+      // PII
+      '*.email',
+      '*.cpf',
+      '*.telefone',
+      '*.senha',
     ],
     censor: '[REDACTED]',
   },
