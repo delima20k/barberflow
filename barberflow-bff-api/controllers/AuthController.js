@@ -1,6 +1,7 @@
 'use strict';
 
-const BaseController = require('./BaseController');
+const BaseController  = require('./BaseController');
+const AuthMiddleware  = require('../middlewares/auth');
 
 // ================================================================
 // AuthController — Endpoints de autenticação da BFF.
@@ -67,6 +68,7 @@ class AuthController extends BaseController {
     await this.handle(res, async () => {
       const accessToken = req.headers['authorization']?.slice(7) ?? '';
       await this.#service.logout(req.user.id, accessToken);
+      AuthMiddleware.invalidarToken(accessToken);
       this.success(res, { mensagem: 'Sessão encerrada com sucesso.' });
     });
   }

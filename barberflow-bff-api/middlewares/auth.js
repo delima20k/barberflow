@@ -59,6 +59,15 @@ class AuthMiddleware {
    * Middleware que verifica o Bearer token e popula req.user.
    * @type {import('express').RequestHandler}
    */
+  /**
+   * Remove o token do cache de fallback imediatamente (chamado no logout).
+   * Impede que um token revogado no Supabase continue válido pelo TTL restante.
+   * @param {string} token — Bearer token sem o prefixo "Bearer "
+   */
+  static invalidarToken(token) {
+    if (token) fallbackCache.delete(token);
+  }
+
   static async verificar(req, res, next) {
     const auth = req.headers['authorization'] ?? '';
 
