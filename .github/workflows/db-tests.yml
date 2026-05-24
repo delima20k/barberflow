@@ -1,0 +1,195 @@
+# ==============================================================================
+# GitHub Actions: db-tests.yml — Testes de Schema e Contrato de RPCs
+#
+# Gatilho:
+#   • Push/PR em qualquer branch que modifique migrations ou contratos
+#   • Push/PR direto em main/develop (sempre valida)
+#
+# Jobs:
+#   1. schema-snapshot  — verifica que o snapshot em db/snapshots/ está atualizado
+#   2. contract-tests   — roda tests/db-contracts.test.js (sem banco real)
+#   3. snapshot-tests   — roda tests/db-schema-snapshot.test.js
+#   4. rpc-coverage     — relatório de cobertura de contratos; falha se críticas sem contrato
+#
+# Bloqueia merge se qualquer job falhar.
+# ==============================================================================
+
+name: DB Tests (Schema + Contratos)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feat/**'
+      - 'fix/**'
+    paths:
+      - 'supabase/migrations/**'
+      - 'db/contracts/**'
+      - 'db/snapshots/**'
+      - 'scripts/db-*.js'
+      - 'tests/db-*.test.js'
+      - '.github/workflows/db-tests.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'supabase/migrations/**'
+      - 'db/contracts/**'
+      - 'db/snapshots/**'
+      - 'scripts/db-*.js'
+      - 'tests/db-*.test.js'
+
+env:
+  NODE_VERSION: '22'
+
+# ── Job 1: Schema Snapshot ─────────────────────────────────────────────────────
+jobs:
+  schema-snapshot:
+    name: Schema Snapshot Diff
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verificar que snapshot está atualizado
+        run: |
+          echo "Verificando conformidade do snapshot de schema..."
+          node scripts/db-snapshot.js --check
+          echo "✅ Snapshot em conformidade."
+
+      - name: Verificar hash do snapshot
+        run: |
+          if [ ! -f db/snapshots/schema.hash ]; then
+            echo "❌ ERRO: db/snapshots/schema.hash não encontrado."
+            echo "   Execute: node scripts/db-snapshot.js && git add db/snapshots/ && git commit"
+            exit 1
+          fi
+          echo "✅ db/snapshots/schema.hash presente."
+          echo "   Hash: $(cat db/snapshots/schema.hash)"
+
+      - name: Verificar que schema-current.sql está commitado
+        run: |
+          if [ ! -f db/snapshots/schema-current.sql ]; then
+            echo "❌ ERRO: db/snapshots/schema-current.sql não encontrado."
+            echo "   Execute: node scripts/db-snapshot.js && git add db/snapshots/ && git commit"
+            exit 1
+          fi
+          echo "✅ db/snapshots/schema-current.sql presente."
+
+# ── Job 2: Contract Tests ──────────────────────────────────────────────────────
+  contract-tests:
+    name: Contract Tests (RPCs)
+    runs-on: ubuntu-latest
+    needs: schema-snapshot
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Rodar testes de contrato
+        run: |
+          echo "Executando testes de contrato das RPCs críticas..."
+          node --test tests/db-contracts.test.js
+          echo "✅ Testes de contrato passaram."
+
+# ── Job 3: Snapshot Tests ──────────────────────────────────────────────────────
+  snapshot-tests:
+    name: Snapshot System Tests
+    runs-on: ubuntu-latest
+    needs: schema-snapshot
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Rodar testes do sistema de snapshot
+        run: |
+          echo "Executando testes do sistema de snapshot..."
+          node --test tests/db-schema-snapshot.test.js
+          echo "✅ Testes de snapshot passaram."
+
+# ── Job 4: RPC Coverage Report ─────────────────────────────────────────────────
+  rpc-coverage:
+    name: RPC Contract Coverage
+    runs-on: ubuntu-latest
+    needs: [contract-tests, snapshot-tests]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Gerar relatório de cobertura de contratos
+        run: |
+          echo "Gerando relatório de cobertura de RPCs..."
+          node scripts/db-diff.js --coverage
+
+      - name: Verificar RPCs críticas têm contrato
+        run: |
+          CRITICAL_RPCS=(
+            "criar_agendamento_atomico"
+            "confirmar_presenca_cliente"
+            "buscar_perfis_por_nome"
+            "search_users"
+            "get_clientes_favoritos_modal"
+            "get_clientes_favoritos_barbearia"
+            "notificar_barbeiro_chegada"
+          )
+
+          FAILED=0
+          for rpc in "${CRITICAL_RPCS[@]}"; do
+            if [ ! -f "db/contracts/snapshots/${rpc}.json" ]; then
+              echo "❌ RPC crítica sem contrato: ${rpc}"
+              echo "   Crie: db/contracts/snapshots/${rpc}.json"
+              echo "   Documente: db/contracts/${rpc}.md"
+              FAILED=1
+            else
+              echo "✅ ${rpc}"
+            fi
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "❌ FALHA: RPCs críticas sem contrato documentado."
+            echo "   Toda nova RPC crítica DEVE ter contrato antes do merge."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ Todas as RPCs críticas têm contrato documentado."
+
+      - name: Upload relatório como artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rpc-coverage-report
+          path: db/contracts/
+          retention-days: 30

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "rpc": "search_users",
+  "description": "Busca unificada em profiles + barbershops. Suporta paginação e filtro por role. Retorna total_count via window function.",
+  "signature": {
+    "name": "search_users",
+    "params": [
+      { "name": "p_term",   "type": "TEXT",    "default": "NULL" },
+      { "name": "p_role",   "type": "TEXT",    "default": "NULL" },
+      { "name": "p_limit",  "type": "INTEGER", "default": "20" },
+      { "name": "p_offset", "type": "INTEGER", "default": "0" }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "id",              "type": "UUID" },
+        { "name": "full_name",       "type": "TEXT" },
+        { "name": "email",           "type": "TEXT" },
+        { "name": "role",            "type": "TEXT" },
+        { "name": "avatar_path",     "type": "TEXT" },
+        { "name": "barbershop_name", "type": "TEXT" },
+        { "name": "updated_at",      "type": "TIMESTAMPTZ" },
+        { "name": "total_count",     "type": "BIGINT" }
+      ]
+    },
+    "language": "sql",
+    "securityDefiner": true
+  },
+  "errors": [],
+  "limits": {
+    "p_limit": { "min": 1, "max": 50, "enforced": true },
+    "p_offset": { "min": 0, "enforced": true }
+  },
+  "examples": {
+    "buscaPorNome":      { "p_term": "João",         "p_limit": 20, "p_offset": 0 },
+    "filtroProfissional": { "p_role": "professional", "p_limit": 10, "p_offset": 0 },
+    "semFiltros":        { "p_limit": 20, "p_offset": 0 }
+  },
+  "grants": ["authenticated"],
+  "migration": "20260503000003_search_indexes_and_rpc.sql"
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "rpc": "notificar_barbeiro_chegada",
+  "description": "Insere uma notificação para um profissional. SECURITY DEFINER para contornar RLS de notifications. O título é fixado internamente (V2) — o chamador não controla o conteúdo da notificação.",
+  "signature": {
+    "name": "notificar_barbeiro_chegada",
+    "params": [
+      { "name": "p_professional_id", "type": "UUID" },
+      { "name": "p_type",            "type": "TEXT" },
+      { "name": "p_title",           "type": "TEXT" },
+      { "name": "p_body",            "type": "TEXT" },
+      { "name": "p_data",            "type": "JSONB" }
+    ],
+    "returns": "void",
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "errors": [],
+  "sideEffects": [
+    "INSERT em public.notifications se p_professional_id não for NULL"
+  ],
+  "securityBehavior": {
+    "noopOnNull": "Se p_professional_id for NULL, retorna sem erro"
+  },
+  "examples": {
+    "validInput": {
+      "p_professional_id": "bbbb0000-0000-4000-8000-000000000001",
+      "p_type":            "client_arriving",
+      "p_title":           "Cliente chegou",
+      "p_body":            "João está a caminho da barbearia.",
+      "p_data":            { "entry_id": "dddd0000-0000-4000-8000-000000000001" }
+    }
+  },
+  "grants": ["authenticated"],
+  "migration": "20260513000001_notificar_barbeiro_rpc.sql"
+}

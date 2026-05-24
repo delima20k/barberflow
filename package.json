@@ -12,7 +12,12 @@
     "preview:vite": "vite preview --host 0.0.0.0",
     "perf:lhci": "lhci autorun --config=./lighthouserc.cjs",
     "test": "jest",
-    "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js"
+    "test:db": "node --test tests/db-schema-snapshot.test.js tests/db-contracts.test.js",
+    "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js",
+    "db:snapshot": "node scripts/db-snapshot.js --generate",
+    "db:check": "node scripts/db-snapshot.js --check",
+    "db:diff": "node scripts/db-diff.js --diff",
+    "db:coverage": "node scripts/db-diff.js --coverage"
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",

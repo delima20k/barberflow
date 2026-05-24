@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "rpc": "confirmar_presenca_cliente",
+  "description": "Registra a confirmação (ou ausência) do cliente na cadeira de produção. No segundo 'Não', marca ausente e insere notificação para o barbeiro.",
+  "signature": {
+    "name": "confirmar_presenca_cliente",
+    "params": [
+      { "name": "p_entry_id",   "type": "UUID" },
+      { "name": "p_confirmado", "type": "BOOLEAN" },
+      { "name": "p_grace_used", "type": "BOOLEAN" }
+    ],
+    "returns": "void",
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "errors": [],
+  "sideEffects": [
+    "UPDATE em public.queue_entries SET client_confirmed",
+    "Se p_confirmado=false e p_grace_used=false: SET first_no_at=NOW()",
+    "Se p_confirmado=false e p_grace_used=true: SET client_confirmed='absent' + INSERT em public.notifications (type='client_absent')"
+  ],
+  "securityBehavior": {
+    "ownershipCheck": "Silenciosamente ignora se a entrada não pertence ao auth.uid() ou não está em in_service",
+    "idempotent": true
+  },
+  "examples": {
+    "confirmar": { "p_entry_id": "dddd0000-0000-4000-8000-000000000001", "p_confirmado": true,  "p_grace_used": false },
+    "primeiroNao": { "p_entry_id": "dddd0000-0000-4000-8000-000000000001", "p_confirmado": false, "p_grace_used": false },
+    "ausente":    { "p_entry_id": "dddd0000-0000-4000-8000-000000000001", "p_confirmado": false, "p_grace_used": true }
+  },
+  "grants": ["authenticated"],
+  "migration": "20260507000003_queue_client_confirmation.sql"
+}

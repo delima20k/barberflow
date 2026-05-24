@@ -82,3 +82,42 @@ Quando uma nova boa prática for criada:
 | Tipo de tarefa | Arquivos a ler |
 |---|---|
 | Extracao incremental de god file de pagina / PageSection / EventBus de secao | `skill-02-frontend.md` (Sections em god files de pagina), `skill-07-testes.md`, `skill-09-refatoracao.md` |
+
+## Atualizacao DELIMA - Schema Snapshot e Contratos de RPC
+
+| Tipo de tarefa | Arquivos a ler |
+|---|---|
+| Schema snapshot / diff de migrations / contrato de RPC / regressão de banco | `skill-05-banco.md`, `skill-07-testes.md` + regras abaixo |
+
+### Regras obrigatórias — Schema Snapshot e Contratos
+
+**Ao criar uma nova RPC:**
+1. Criar arquivo `db/contracts/snapshots/<nome>.json` com assinatura canônica
+2. Criar arquivo `db/contracts/<nome>.md` com documentação do contrato
+3. Executar `node scripts/db-snapshot.js` para regenerar `db/snapshots/`
+4. Commitar: migration + snapshots + contratos no mesmo commit
+5. Testes de cobertura em `tests/db-contracts.test.js` validam automaticamente no CI
+
+**Ao modificar uma RPC existente:**
+1. Atualizar `db/contracts/snapshots/<nome>.json` com a nova assinatura
+2. Atualizar `db/contracts/<nome>.md`
+3. Executar `node scripts/db-snapshot.js` para regenerar o snapshot
+4. Se quebrar contrato → CI falha em `db-tests.yml` → merge bloqueado
+
+**Scripts disponíveis:**
+- `npm run db:snapshot` — regenera snapshot (obrigatório após nova migration)
+- `npm run db:check`    — valida conformidade (usado no CI)
+- `npm run db:diff`     — diff legível do schema
+- `npm run db:coverage` — cobertura de contratos de RPCs
+- `npm run test:db`     — roda todos os testes de banco
+
+**Arquivos do sistema:**
+- `scripts/db-rpc-parser.js`  — RpcSignatureParser + SchemaSnapshotGenerator + SchemaDiffer
+- `scripts/db-snapshot.js`    — CLI de geração de snapshot
+- `scripts/db-diff.js`        — CLI de diff e cobertura
+- `db/snapshots/schema-current.sql` — snapshot versionado (commitar sempre)
+- `db/snapshots/schema.hash`       — hash do snapshot (usado no boot)
+- `db/contracts/snapshots/*.json`  — assinaturas canônicas das RPCs
+- `db/contracts/*.md`              — documentação humana dos contratos
+- `shared/js/SchemaValidator.js`   — validação de hash no boot da app
+- `.github/workflows/db-tests.yml` — job CI que bloqueia merge se contrato violado
