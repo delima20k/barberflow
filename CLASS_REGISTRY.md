@@ -702,3 +702,9 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `CounterRebuilder` | [scripts/rebuild-counters.js](scripts/rebuild-counters.js) | infra | Orquestra rebuild em batches dos contadores desnormalizados com checkpoint, dry-run e relatório pós-rebuild. |
 | `CheckpointStore` | [scripts/rebuild-counters.js](scripts/rebuild-counters.js) | infra | Persiste e recupera cursor de checkpoint do rebuild em arquivo JSON local. Reutilizável para qualquer job iterativo com cursor. |
 | `RebuildLogger` | [scripts/rebuild-counters.js](scripts/rebuild-counters.js) | infra | Logger estruturado com timestamp relativo para scripts de manutenção. |
+| `RlsCoverageManifest` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Carrega o manifesto declarativo de cobertura CRUD e colunas sensíveis para o report de RLS. |
+| `RlsMigrationReader` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Lê migrations SQL versionadas em ordem determinística para auditoria de RLS. |
+| `RlsPolicyParser` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Extrai tabelas, colunas, estado de RLS e policies por operação a partir das migrations. |
+| `RlsPolicyReport` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Gera report de cobertura de RLS, falhas por tabela sem RLS e warnings de operações/colunas sensíveis sem teste. |
+| `RlsReportCli` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | CLI do report de RLS usado por CI e por `npm run db:rls`. |
+| `RlsSqlNormalizer` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Normaliza SQL e identificadores para parsing determinístico de migrations. |

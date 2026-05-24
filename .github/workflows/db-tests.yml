@@ -10,6 +10,7 @@
 #   2. contract-tests   — roda tests/db-contracts.test.js (sem banco real)
 #   3. snapshot-tests   — roda tests/db-schema-snapshot.test.js
 #   4. rpc-coverage     — relatório de cobertura de contratos; falha se críticas sem contrato
+#   5. rls-coverage     — report de RLS: falha tabela sem RLS e publica warnings por operação
 #
 # Bloqueia merge se qualquer job falhar.
 # ==============================================================================
@@ -28,7 +29,11 @@ on:
       - 'db/contracts/**'
       - 'db/snapshots/**'
       - 'scripts/db-*.js'
+      - 'scripts/rls-policy-report.js'
       - 'tests/db-*.test.js'
+      - 'tests/rls-policy-report.test.js'
+      - 'db/rls/**'
+      - 'supabase/tests/**'
       - '.github/workflows/db-tests.yml'
   pull_request:
     branches:
@@ -39,7 +44,11 @@ on:
       - 'db/contracts/**'
       - 'db/snapshots/**'
       - 'scripts/db-*.js'
+      - 'scripts/rls-policy-report.js'
       - 'tests/db-*.test.js'
+      - 'tests/rls-policy-report.test.js'
+      - 'db/rls/**'
+      - 'supabase/tests/**'
 
 env:
   NODE_VERSION: '22'
@@ -192,4 +201,59 @@ jobs:
         with:
           name: rpc-coverage-report
           path: db/contracts/
+          retention-days: 30
+
+# ── Job 5: RLS Coverage Report ─────────────────────────────────────────────────
+  rls-coverage:
+    name: RLS Policy Coverage
+    runs-on: ubuntu-latest
+    needs: schema-snapshot
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Rodar testes do framework RLS
+        run: |
+          echo "Executando meta-testes do framework de RLS..."
+          node --test tests/rls-policy-report.test.js
+
+      - name: Gerar report de cobertura RLS
+        run: |
+          echo "Gerando report RLS..."
+          node scripts/rls-policy-report.js --fail-on-missing-rls > rls-coverage-report.md
+          cat rls-coverage-report.md
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Subir banco isolado via Docker
+        run: supabase start
+
+      - name: Recriar banco e seeds
+        run: supabase db reset
+
+      - name: Rodar suite SQL de RLS no banco isolado
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/rls_crud_suite.sql
+
+      - name: Encerrar Supabase local
+        if: always()
+        run: supabase stop --no-backup
+
+      - name: Upload report RLS como artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rls-coverage-report
+          path: rls-coverage-report.md
           retention-days: 30

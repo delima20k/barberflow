@@ -59,6 +59,15 @@
 - Migrations devem ser reversíveis quando possível (incluir rollback)
 - Nomear migration com timestamp e descrição: `20260517_adicionar_coluna_status_agendamento.sql`
 
+## 5.1 Cobertura automatizada de RLS
+
+- Toda tabela criada em `public` deve aparecer no report `node scripts/rls-policy-report.js --fail-on-missing-rls`.
+- Tabela sem `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` é falha de CI.
+- Tabela com RLS habilitado, mas sem policy para alguma operação CRUD, é warning priorizado.
+- Tabela sensível deve ter cobertura declarada em `db/rls/coverage.json` com operações `select`, `insert`, `update`, `delete` e colunas sensíveis exercitadas.
+- Testes reais de banco devem usar `supabase/tests/rls_crud_suite.sql`, que expõe os helpers `rls_test.as_anon(sql)`, `rls_test.as_user(user_id, sql)` e `rls_test.as_service(sql)`.
+- Ao adicionar coluna sensível (`email`, `phone`, `cpf`, `token`, valores financeiros, localização, storage path etc.), atualizar a cobertura RLS no mesmo PR.
+
 ---
 
 ## 6. FAVORITOS DE CLIENTE — REGRA OBRIGATÓRIA

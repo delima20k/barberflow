@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "description": "Declarative RLS CRUD coverage manifest. Every sensitive table must list CRUD operations and sensitive columns exercised by SQL/Node RLS tests.",
+  "tables": {
+    "public.notifications": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "type", "title", "body", "data", "read_at", "deleted_at"],
+      "tests": ["tests/notifications-rls.test.js", "tests/notifications-rls-fix.test.js", "supabase/tests/notifications_rls_fix.sql"]
+    },
+    "public.profiles": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["id", "email", "phone", "cpf", "cnpj", "avatar_path", "lat", "lng"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.appointments": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["client_id", "professional_id", "barbershop_id", "scheduled_at", "price_charged"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "tests/db-contracts.test.js"]
+    },
+    "public.conversations": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["created_by"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.messages": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["sender_id", "ciphertext", "metadata", "deleted_at"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.media_files": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["owner_id", "storage_path", "mime_type", "size_bytes"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.media_variants": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["media_id", "storage_path", "mime_type", "size_bytes"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.likes": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "content_id"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.portfolio_likes": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "portfolio_image_id"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.professional_likes": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "professional_id"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.favorite_professionals": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "professional_id"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.barbershop_interactions": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "barbershop_id", "type"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.stories": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "storage_path", "thumbnail_path", "expires_at"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.portfolio_images": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["owner_id", "owner_type", "storage_path", "thumbnail_path"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.queue_entries": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["client_id", "professional_id", "barbershop_id", "guest_name"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.transactions": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["professional_id", "barbershop_id", "amount", "gross_amount"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.subscriptions": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "plan", "price", "payment_token"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.push_subscriptions": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "endpoint", "device_id"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.legal_consents": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "ip_address", "user_agent"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.data_access_log": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "accessed_by", "ip_address"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
+    "public.data_deletion_requests": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "reason"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    }
+  },
+  "rpcInjectionTests": [
+    "search_users",
+    "buscar_perfis_por_nome",
+    "get_clientes_favoritos_modal",
+    "get_clientes_favoritos_barbearia",
+    "notificar_barbeiro_chegada"
+  ]
+}

@@ -36,6 +36,7 @@
 | Backend / BFF / services / controllers / rotas | `skill-03-backend.md` |
 | Segurança / OWASP / autenticação / JWT / headers | `skill-04-seguranca.md` |
 | Banco / queries / migrations / storage / Supabase | `skill-05-banco.md` |
+| RLS policies / cobertura CRUD / report de tabelas sem RLS | `skill-05-banco.md` (§ Cobertura automatizada de RLS), `skill-04-seguranca.md`, `skill-07-testes.md` |
 | Upload pre-assinado / pipeline assincrono de midia / variantes | `skill-05-banco.md` (Pipeline assincrono de midia na BFF), `skill-03-backend.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md` |
 | Mensagens / chat / WebRTC / P2P / criptografia E2E | `skill-06-p2p-mensagens.md`, `skill-03-backend.md`, `skill-05-banco.md`, `skill-07-testes.md`, `barberflow-bff-api/docs/filas.md` |
 | Quebra incremental do MediaManager / adapters Story e Portfolio / compressao por Strategy | `skill-06-p2p-mensagens.md` (Quebra incremental do MediaManager), `skill-07-testes.md`, `skill-08-performance.md`, `skill-09-refatoracao.md` |
