@@ -82,14 +82,21 @@ class OutboxRepository {
   }
 
   /**
-   * Marca entrada como em processamento (evita relay duplicado).
+   * Atomic claim: muda status de 'pending' → 'processing' somente se ainda estiver
+   * pendente. A cláusula .eq('status','pending') garante que apenas UMA instância
+   * reivindica o evento — as demais recebem data=[] e retornam false.
+   *
    * @param {string} id
+   * @returns {Promise<boolean>} true se esta instância reivindicou o evento com sucesso
    */
   async markProcessing(id) {
-    await this.#db
+    const { data } = await this.#db
       .from(OutboxRepository.TABLE)
       .update({ status: 'processing' })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'pending')
+      .select('id');
+    return (data?.length ?? 0) > 0;
   }
 
   /**

@@ -89,7 +89,8 @@ class OutboxRelay {
 
   async #relayOne(row) {
     try {
-      await this.#outboxRepo.markProcessing(row.id);
+      const claimed = await this.#outboxRepo.markProcessing(row.id);
+      if (!claimed) return; // outra instância reivindicou primeiro — não processar
       await this.#queueService.enqueue(row.queue, row.event_name, row.payload, {
         jobId: row.id, // ID determinístico → consumer deduplica
       });
