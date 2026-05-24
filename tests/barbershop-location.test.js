@@ -71,6 +71,9 @@ function criarServico({ repoUpdateOk = true, fetchResult = null } = {}) {
     getNearby: fn().mockResolvedValue([]),
     search: fn().mockResolvedValue([]),
   };
+  const bffMock = {
+    patch: fn().mockResolvedValue({ data: { id: UUID_SHOP }, error: null }),
+  };
 
   const geoMock = { verificarPermissao: fn().mockResolvedValue('granted'), obter: fn() };
 
@@ -82,13 +85,14 @@ function criarServico({ repoUpdateOk = true, fetchResult = null } = {}) {
   const sandbox = vm.createContext({
     console,
     BarbershopRepository: repoMock,
+    BffApiService:         bffMock,
     GeoService:           geoMock,
     fetch:                fetchMock,
     LoggerService:        { warn: fn(), error: fn(), info: fn() },
   });
   carregar(sandbox, 'shared/js/BarbershopService.js');
 
-  return { BarbershopService: sandbox.BarbershopService, repoMock, geoMock, fetchMock };
+  return { BarbershopService: sandbox.BarbershopService, repoMock, bffMock, geoMock, fetchMock };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -190,7 +194,7 @@ describe('BarbershopService.salvarLocalizacaoGPS', () => {
 describe('BarbershopService.salvarEnderecoGps', () => {
 
   test('salva endereco completo com coordenadas e bairro', async () => {
-    const { BarbershopService, repoMock } = criarServico();
+    const { BarbershopService, repoMock, bffMock } = criarServico();
 
     await BarbershopService.salvarEnderecoGps(UUID_OWNER, {
       lat: -23.55,
@@ -202,21 +206,25 @@ describe('BarbershopService.salvarEnderecoGps', () => {
       neighborhood: 'Bela Vista',
     });
 
-    assert.equal(repoMock.updateLocation.calls.length, 1);
-    assert.deepEqual(repoMock.updateLocation.calls[0], [
-      UUID_OWNER,
-      -23.55,
-      -46.63,
-      'Rua Teste, 100',
-      'São Paulo',
-      'SP',
-      '01310-100',
-      'Bela Vista',
-    ]);
+    assert.equal(repoMock.updateLocation.calls.length, 0);
+    assert.equal(bffMock.patch.calls.length, 1);
+    assert.equal(bffMock.patch.calls[0][0], '/api/v1/barbearias/minha/endereco');
+    const payload = JSON.parse(JSON.stringify(bffMock.patch.calls[0][1]));
+    assert.deepEqual(payload, {
+      address: 'Rua Teste, 100',
+      numero: null,
+      complemento: null,
+      lat: -23.55,
+      lng: -46.63,
+      city: 'São Paulo',
+      state: 'SP',
+      zip_code: '01310-100',
+      neighborhood: 'Bela Vista',
+    });
   });
 
   test('bloqueia salvamento sem endereco ou GPS', async () => {
-    const { BarbershopService, repoMock } = criarServico();
+    const { BarbershopService, repoMock, bffMock } = criarServico();
 
     await assert.rejects(
       () => BarbershopService.salvarEnderecoGps(UUID_OWNER, { lat: -23.55, lng: -46.63 }),
@@ -229,6 +237,7 @@ describe('BarbershopService.salvarEnderecoGps', () => {
     );
 
     assert.equal(repoMock.updateLocation.calls.length, 0);
+    assert.equal(bffMock.patch.calls.length, 0);
   });
 });
 

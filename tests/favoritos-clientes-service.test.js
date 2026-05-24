@@ -35,6 +35,11 @@ function criarSandbox() {
       getFavoritosModal:    fn(),
       getFavoritosBarbearia: fn(),
     },
+    BffApiService: {
+      mensalistas: {
+        favoritosModal: fn(),
+      },
+    },
   };
   const sandbox = vm.createContext(ctx);
   carregar(sandbox, 'shared/js/FavoritosClientesService.js');
@@ -59,9 +64,9 @@ describe('FavoritosClientesService.listarPorBarbeiro', () => {
     );
   });
 
-  test('delega a UserRepository.getFavoritosModal e normaliza', async () => {
+  test('delega ao BffApiService.mensalistas.favoritosModal e normaliza', async () => {
     const s = criarSandbox();
-    s.UserRepository.getFavoritosModal.mockResolvedValue({
+    s.BffApiService.mensalistas.favoritosModal.mockResolvedValue({
       data: [
         { id: ID_USR_1, full_name: 'Alice', email: 'a@x.com', avatar_path: null, updated_at: null },
         { id: ID_USR_2, full_name: null,    email: null,      avatar_path: null, updated_at: null },
@@ -70,17 +75,17 @@ describe('FavoritosClientesService.listarPorBarbeiro', () => {
     });
 
     const lista = await s.FavoritosClientesService.listarPorBarbeiro(UUID_SHOP, UUID_PROF);
-    assert.strictEqual(s.UserRepository.getFavoritosModal.calls.length, 1);
-    assert.deepStrictEqual(s.UserRepository.getFavoritosModal.calls[0], [UUID_SHOP, UUID_PROF]);
+    assert.strictEqual(s.BffApiService.mensalistas.favoritosModal.calls.length, 1);
+    assert.deepStrictEqual(s.BffApiService.mensalistas.favoritosModal.calls[0], [UUID_SHOP, UUID_PROF]);
     assert.strictEqual(lista.length, 2);
     assert.strictEqual(lista[0].full_name, 'Alice');
     assert.strictEqual(lista[1].full_name, 'Cliente'); // null normalizado
   });
 
-  test('repositório retorna erro: rejeita com o erro', async () => {
+  test('BFF retorna erro: rejeita com o erro', async () => {
     const s = criarSandbox();
     const err = new Error('boom');
-    s.UserRepository.getFavoritosModal.mockResolvedValue({ data: [], error: err });
+    s.BffApiService.mensalistas.favoritosModal.mockResolvedValue({ data: [], error: err });
 
     await assert.rejects(
       () => s.FavoritosClientesService.listarPorBarbeiro(UUID_SHOP, UUID_PROF),
@@ -88,9 +93,9 @@ describe('FavoritosClientesService.listarPorBarbeiro', () => {
     );
   });
 
-  test('repositório retorna data null: devolve []', async () => {
+  test('BFF retorna data null: devolve []', async () => {
     const s = criarSandbox();
-    s.UserRepository.getFavoritosModal.mockResolvedValue({ data: null, error: null });
+    s.BffApiService.mensalistas.favoritosModal.mockResolvedValue({ data: null, error: null });
 
     const lista = await s.FavoritosClientesService.listarPorBarbeiro(UUID_SHOP, UUID_PROF);
     assert.strictEqual(lista.length, 0);

@@ -64,8 +64,8 @@ describe('MessagesWidget — buscarConversas: 2 etapas para role=cliente', () =>
 
   test('segunda etapa busca na tabela profiles com campos corretos', () => {
     assert.ok(
-      SRC.includes("'id, full_name, avatar_url, role'"),
-      "Segunda etapa deve selecionar 'id, full_name, avatar_url, role' de profiles",
+      SRC.includes("'id, full_name, avatar_path, role'"),
+      "Segunda etapa deve selecionar 'id, full_name, avatar_path, role' de profiles",
     );
   });
 

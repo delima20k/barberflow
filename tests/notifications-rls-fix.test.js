@@ -56,7 +56,7 @@ describe('notifications RLS hardening', () => {
     assert.match(sqlTest, /notification_invalid_payload/i);
     assert.match(sqlTest, /notification_invalid_type/i);
     assert.match(sqlTest, /read_at/i);
-    assert.match(rollback, /Rollback de seguranca para notifications/i);
+    assert.match(rollback, /Rollback de seguran[cç]a(?:\s+—\s+tabela public\.)?notifications/i);
     assert.match(rollback, /DROP FUNCTION IF EXISTS public\.create_notification/i);
   });
 
