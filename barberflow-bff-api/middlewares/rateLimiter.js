@@ -67,8 +67,8 @@ class RateLimiterMiddleware {
     standardHeaders: 'draft-7',
     legacyHeaders:   false,
     store:           _criarRedisStore(),
-    // Pula fora de produção — o limite é projetado apenas para produção.
-    skip:            () => !IS_PROD,
+    // Pula apenas em test — brute force em /api/auth deve ser bloqueado também em dev.
+    skip:            () => process.env.APP_ENV === 'test',
     handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
   });
 
