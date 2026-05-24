@@ -12,14 +12,15 @@
     "preview:vite": "vite preview --host 0.0.0.0",
     "perf:lhci": "lhci autorun --config=./lighthouserc.cjs",
     "test": "jest",
-    "test:db": "node --test tests/db-schema-snapshot.test.js tests/db-contracts.test.js tests/rls-policy-report.test.js",
+    "test:db": "node --test tests/db-schema-snapshot.test.js tests/db-contracts.test.js tests/rls-policy-report.test.js tests/db-validate-pipeline.test.js",
     "test:rls": "node --test tests/rls-policy-report.test.js",
     "db:rls": "node scripts/rls-policy-report.js --fail-on-missing-rls",
     "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js",
     "db:snapshot": "node scripts/db-snapshot.js --generate",
     "db:check": "node scripts/db-snapshot.js --check",
     "db:diff": "node scripts/db-diff.js --diff",
-    "db:coverage": "node scripts/db-diff.js --coverage"
+    "db:coverage": "node scripts/db-diff.js --coverage",
+    "db:validate": "node scripts/db-validate.js --local"
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",

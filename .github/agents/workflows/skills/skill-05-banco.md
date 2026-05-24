@@ -68,6 +68,16 @@
 - Testes reais de banco devem usar `supabase/tests/rls_crud_suite.sql`, que expõe os helpers `rls_test.as_anon(sql)`, `rls_test.as_user(user_id, sql)` e `rls_test.as_service(sql)`.
 - Ao adicionar coluna sensível (`email`, `phone`, `cpf`, `token`, valores financeiros, localização, storage path etc.), atualizar a cobertura RLS no mesmo PR.
 
+## 5.2 Pipeline db-validate antes de deploy
+
+- Todo deploy com migration deve depender do workflow `.github/workflows/db-validate.yml`.
+- A ordem obrigatoria e: schema diff, migration dry-run/rollback, contract tests de RPC, RLS tests, counter consistency, performance baseline e data integrity.
+- Divergencia entre staging e `db/snapshots/schema-current.sql` falha o pipeline, salvo quando acompanhada de migration e snapshot atualizados.
+- Migration nova deve ter rollback documentado com comentario `-- rollback:` ou arquivo `db/rollbacks/<migration>.down.sql`.
+- Counter consistency e performance baseline sao warning-only; schema, migration, contrato, RLS e integridade bloqueiam deploy.
+- O checklist pre-migration deve ser publicado em PR e o processo deve ficar documentado em `docs/db/processo-migration.md`.
+- Antes de abrir PR com migration, rodar `npm run test:db` e `npm run db:validate`.
+
 ---
 
 ## 6. FAVORITOS DE CLIENTE — REGRA OBRIGATÓRIA

@@ -89,6 +89,7 @@ Quando uma nova boa prática for criada:
 | Tipo de tarefa | Arquivos a ler |
 |---|---|
 | Schema snapshot / diff de migrations / contrato de RPC / regressão de banco | `skill-05-banco.md`, `skill-07-testes.md` + regras abaixo |
+| Pipeline db-validate / deploy com migration / rollback / auditoria staging | `skill-05-banco.md` (Pipeline db-validate antes de deploy), `skill-07-testes.md`, `skill-09-refatoracao.md` |
 
 ### Regras obrigatórias — Schema Snapshot e Contratos
 

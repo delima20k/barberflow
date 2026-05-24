@@ -708,3 +708,13 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `RlsPolicyReport` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Gera report de cobertura de RLS, falhas por tabela sem RLS e warnings de operações/colunas sensíveis sem teste. |
 | `RlsReportCli` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | CLI do report de RLS usado por CI e por `npm run db:rls`. |
 | `RlsSqlNormalizer` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Normaliza SQL e identificadores para parsing determinístico de migrations. |
+## DB Validate Pipeline
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `DbValidationCli` | [scripts/db-validate.js](scripts/db-validate.js) | infra | CLI do pipeline `db-validate`, emitindo checklist, plano e validacao local de prontidao. |
+| `DbValidationPlan` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Define a ordem canonica dos passos de validacao de banco antes de deploy com migration. |
+| `DbValidationReport` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Consolida status, warnings e decisao de bloqueio/liberacao do deploy. |
+| `DbValidationRunner` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Avalia resultados simulados ou reais do pipeline, usado pelos testes do proprio pipeline. |
+| `DbValidationStep` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Value object de um passo do pipeline, com comando, severidade e descricao. |
+| `MigrationRollbackGuard` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Verifica se migrations alteradas possuem rollback documentado por comentario ou arquivo `.down.sql`. |

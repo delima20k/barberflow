@@ -22,10 +22,16 @@ on:
     branches: [main]
 
 jobs:
+  db-validate:
+    name: db-validate before deploy
+    uses: ./.github/workflows/db-validate.yml
+    secrets: inherit
+
   deploy:
     name: Deploy migrations + functions
     runs-on: ubuntu-latest
     environment: production
+    needs: db-validate
 
     # IMPORTANTE: if: multiline com | é inválido no GitHub Actions — o job
     # era descartado silenciosamente em todo push. Corrigido para linha única.
