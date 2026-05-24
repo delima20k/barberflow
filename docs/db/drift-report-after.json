@@ -12,6 +12,34 @@
   "dry_run": false,
   "batch_size": 500,
   "counters": {
+    "C1": {
+      "status": "POPULATED_BY_SCRIPT",
+      "rows_updated": 0,
+      "batches": 0,
+      "elapsed_ms": 0,
+      "error": null
+    },
+    "C2": {
+      "status": "POPULATED_BY_SCRIPT",
+      "rows_updated": 0,
+      "batches": 0,
+      "elapsed_ms": 0,
+      "error": null
+    },
+    "C3": {
+      "status": "POPULATED_BY_SCRIPT",
+      "rows_updated": 0,
+      "batches": 0,
+      "elapsed_ms": 0,
+      "error": null
+    },
+    "C6": {
+      "status": "POPULATED_BY_SCRIPT",
+      "rows_updated": 0,
+      "batches": 0,
+      "elapsed_ms": 0,
+      "error": null
+    },
     "C8": {
       "status": "POPULATED_BY_SCRIPT",
       "rows_updated": 0,
@@ -45,12 +73,14 @@
     "expected_drift_rows": 0,
     "note": "Execute as queries abaixo com role service_role. Resultado esperado: 0 linhas em cada.",
     "queries": {
-      "C8_portfolio_likes_count": "SELECT pi.id, pi.likes_count AS stored, COUNT(l.id) AS real, pi.likes_count - COUNT(l.id) AS drift FROM public.portfolio_images pi LEFT JOIN public.likes l ON l.content_id = pi.id AND l.content_type = 'portfolio_image' WHERE pi.status != 'deleted' GROUP BY pi.id, pi.likes_count HAVING pi.likes_count IS DISTINCT FROM COUNT(l.id);",
-      "C10_stories_views_count": "SELECT s.id, s.views_count AS stored, COUNT(sv.id) AS real, s.views_count - COUNT(sv.id) AS drift FROM public.stories s LEFT JOIN public.story_views sv ON sv.story_id = s.id GROUP BY s.id, s.views_count HAVING s.views_count IS DISTINCT FROM COUNT(sv.id);",
-      "C11_stories_likes_count": "SELECT s.id, s.likes_count AS stored, COUNT(l.id) AS real, s.likes_count - COUNT(l.id) AS drift FROM public.stories s LEFT JOIN public.likes l ON l.content_id = s.id AND l.content_type = 'story' GROUP BY s.id, s.likes_count HAVING s.likes_count IS DISTINCT FROM COUNT(l.id);",
-      "C12_feed_items_likes_count": "SELECT fi.id, fi.likes_count AS stored, COUNT(l.id) AS real, fi.likes_count - COUNT(l.id) AS drift FROM public.feed_items fi LEFT JOIN public.likes l ON l.content_id = fi.source_id AND l.content_type = fi.source_type GROUP BY fi.id, fi.likes_count HAVING fi.likes_count IS DISTINCT FROM COUNT(l.id);",
-      "C1_barbershops_likes_count": "SELECT b.id, b.likes_count AS stored, COUNT(bi.id) FILTER (WHERE bi.type = 'like') AS real FROM public.barbershops b LEFT JOIN public.barbershop_interactions bi ON bi.barbershop_id = b.id WHERE b.is_active = true GROUP BY b.id, b.likes_count HAVING b.likes_count IS DISTINCT FROM COUNT(bi.id) FILTER (WHERE bi.type = 'like');",
-      "C6_professionals_rating_count": "SELECT p.id, p.rating_count AS stored, COUNT(pl.id) AS real FROM public.professionals p LEFT JOIN public.professional_likes pl ON pl.professional_id = p.id WHERE p.is_active = true GROUP BY p.id, p.rating_count HAVING p.rating_count IS DISTINCT FROM COUNT(pl.id);"
+      "C8_portfolio_likes_count": "SELECT pi.id, pi.likes_count AS stored, COUNT(l.id) AS real, pi.likes_count - COUNT(l.id) AS drift FROM public.portfolio_images pi LEFT JOIN public.likes l ON l.content_id = pi.id AND l.content_type = 'portfolio_image' AND l.deleted_at IS NULL WHERE pi.status != 'deleted' GROUP BY pi.id, pi.likes_count HAVING pi.likes_count IS DISTINCT FROM COUNT(l.id);",
+      "C10_stories_views_count": "SELECT s.id, s.views_count AS stored, COUNT(sv.id) AS real, s.views_count - COUNT(sv.id) AS drift FROM public.stories s LEFT JOIN public.story_views sv ON sv.story_id = s.id AND sv.deleted_at IS NULL GROUP BY s.id, s.views_count HAVING s.views_count IS DISTINCT FROM COUNT(sv.id);",
+      "C11_stories_likes_count": "SELECT s.id, s.likes_count AS stored, COUNT(l.id) AS real, s.likes_count - COUNT(l.id) AS drift FROM public.stories s LEFT JOIN public.likes l ON l.content_id = s.id AND l.content_type = 'story' AND l.deleted_at IS NULL GROUP BY s.id, s.likes_count HAVING s.likes_count IS DISTINCT FROM COUNT(l.id);",
+      "C12_feed_items_likes_count": "SELECT fi.id, fi.likes_count AS stored, COUNT(l.id) AS real, fi.likes_count - COUNT(l.id) AS drift FROM public.feed_items fi LEFT JOIN public.likes l ON l.content_id = fi.source_id AND l.content_type = fi.source_type AND l.deleted_at IS NULL GROUP BY fi.id, fi.likes_count HAVING fi.likes_count IS DISTINCT FROM COUNT(l.id);",
+      "C1_barbershops_likes_count": "SELECT b.id, b.likes_count AS stored, COUNT(bi.id) FILTER (WHERE bi.type = 'like' AND bi.deleted_at IS NULL) AS real FROM public.barbershops b LEFT JOIN public.barbershop_interactions bi ON bi.barbershop_id = b.id WHERE b.is_active = true GROUP BY b.id, b.likes_count HAVING b.likes_count IS DISTINCT FROM COUNT(bi.id) FILTER (WHERE bi.type = 'like' AND bi.deleted_at IS NULL);",
+      "C2_barbershops_dislikes_count": "SELECT b.id, b.dislikes_count AS stored, COUNT(bi.id) FILTER (WHERE bi.type = 'dislike' AND bi.deleted_at IS NULL) AS real FROM public.barbershops b LEFT JOIN public.barbershop_interactions bi ON bi.barbershop_id = b.id WHERE b.is_active = true GROUP BY b.id, b.dislikes_count HAVING b.dislikes_count IS DISTINCT FROM COUNT(bi.id) FILTER (WHERE bi.type = 'dislike' AND bi.deleted_at IS NULL);",
+      "C3_barbershops_rating_score": "SELECT * FROM public.reconcile_counters(p_dry_run := true) WHERE counter_id = 'C3';",
+      "C6_professionals_rating_count": "SELECT p.id, p.rating_count AS stored, COUNT(pl.id) AS real FROM public.professionals p LEFT JOIN public.professional_likes pl ON pl.professional_id = p.id AND pl.deleted_at IS NULL WHERE p.is_active = true GROUP BY p.id, p.rating_count HAVING p.rating_count IS DISTINCT FROM COUNT(pl.id);"
     },
     "reconciliation_job": {
       "sql": "SELECT * FROM public.reconcile_counters(p_dry_run := true);",
@@ -82,7 +112,7 @@
   },
   "comparison_with_pre_rebuild": {
     "pre_rebuild_report": "docs/db/drift-report.json",
-    "counters_fixed": ["C8", "C10", "C11", "C12", "C1_backfill_residual"],
+    "counters_fixed": ["C1", "C2", "C3", "C6", "C8", "C10", "C11", "C12"],
     "counters_pending_product_decision": ["C4", "C5", "C7"],
     "counters_pending_source_table": ["C9", "C13"],
     "counters_fixed_in_code": ["C14"]

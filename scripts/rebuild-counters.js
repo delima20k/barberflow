@@ -24,9 +24,10 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const REPORT_OUTPUT     = path.resolve(__dirname, '../docs/db/drift-report-after.json');
+const PRE_REBUILD_REPORT = path.resolve(__dirname, '../docs/db/drift-report.json');
 
 // Contadores disponíveis para rebuild (C9 e C13 não têm fonte — excluídos)
-const ALL_COUNTERS = ['C8', 'C10', 'C11', 'C12'];
+const ALL_COUNTERS = ['C1', 'C2', 'C3', 'C6', 'C8', 'C10', 'C11', 'C12'];
 
 class RebuildLogger {
   #startedAt = Date.now();
@@ -236,6 +237,10 @@ class CounterRebuilder {
     // Dry-run: usa a RPC mas em uma transação que nunca commita (via dummy check).
     // Aqui apenas loga o que SERIA processado sem alterar dados.
     const tableMap = {
+      C1:  { table: 'barbershops',      filter: { is_active: true } },
+      C2:  { table: 'barbershops',      filter: { is_active: true } },
+      C3:  { table: 'barbershops',      filter: { is_active: true } },
+      C6:  { table: 'professionals',    filter: { is_active: true } },
       C8:  { table: 'portfolio_images', filter: { status_ne: 'deleted' } },
       C10: { table: 'stories',          filter: {} },
       C11: { table: 'stories',          filter: {} },
@@ -254,6 +259,9 @@ class CounterRebuilder {
 
     if (cfg.filter.status_ne) {
       query = query.neq('status', cfg.filter.status_ne);
+    }
+    if (cfg.filter.is_active) {
+      query = query.eq('is_active', true);
     }
 
     const { data, error } = await query;
@@ -275,17 +283,54 @@ class CounterRebuilder {
 
     const validation = {
       queries: {
-        C8:  'SELECT COUNT(*) FROM portfolio_images pi LEFT JOIN likes l ON l.content_id=pi.id AND l.content_type=\'portfolio_image\' WHERE pi.status!=\'deleted\' GROUP BY pi.id HAVING pi.likes_count != COUNT(l.id);',
-        C10: 'SELECT COUNT(*) FROM stories s LEFT JOIN story_views sv ON sv.story_id=s.id GROUP BY s.id HAVING s.views_count != COUNT(sv.id);',
-        C11: 'SELECT COUNT(*) FROM stories s LEFT JOIN likes l ON l.content_id=s.id AND l.content_type=\'story\' GROUP BY s.id HAVING s.likes_count != COUNT(l.id);',
-        C12: 'SELECT COUNT(*) FROM feed_items fi LEFT JOIN likes l ON l.content_id=fi.source_id AND l.content_type=fi.source_type GROUP BY fi.id HAVING fi.likes_count != COUNT(l.id);',
+        C1:  'SELECT b.id FROM barbershops b LEFT JOIN barbershop_interactions bi ON bi.barbershop_id=b.id WHERE b.is_active=true GROUP BY b.id,b.likes_count HAVING b.likes_count IS DISTINCT FROM COUNT(bi.id) FILTER (WHERE bi.type=\'like\' AND bi.deleted_at IS NULL);',
+        C2:  'SELECT b.id FROM barbershops b LEFT JOIN barbershop_interactions bi ON bi.barbershop_id=b.id WHERE b.is_active=true GROUP BY b.id,b.dislikes_count HAVING b.dislikes_count IS DISTINCT FROM COUNT(bi.id) FILTER (WHERE bi.type=\'dislike\' AND bi.deleted_at IS NULL);',
+        C3:  'SELECT * FROM public.reconcile_counters(p_dry_run := true) WHERE counter_id = \'C3\';',
+        C6:  'SELECT p.id FROM professionals p LEFT JOIN professional_likes pl ON pl.professional_id=p.id AND pl.deleted_at IS NULL WHERE p.is_active=true GROUP BY p.id,p.rating_count HAVING p.rating_count IS DISTINCT FROM COUNT(pl.id);',
+        C8:  'SELECT pi.id FROM portfolio_images pi LEFT JOIN likes l ON l.content_id=pi.id AND l.content_type=\'portfolio_image\' AND l.deleted_at IS NULL WHERE pi.status!=\'deleted\' GROUP BY pi.id,pi.likes_count HAVING pi.likes_count IS DISTINCT FROM COUNT(l.id);',
+        C10: 'SELECT s.id FROM stories s LEFT JOIN story_views sv ON sv.story_id=s.id AND sv.deleted_at IS NULL GROUP BY s.id,s.views_count HAVING s.views_count IS DISTINCT FROM COUNT(sv.id);',
+        C11: 'SELECT s.id FROM stories s LEFT JOIN likes l ON l.content_id=s.id AND l.content_type=\'story\' AND l.deleted_at IS NULL GROUP BY s.id,s.likes_count HAVING s.likes_count IS DISTINCT FROM COUNT(l.id);',
+        C12: 'SELECT fi.id FROM feed_items fi LEFT JOIN likes l ON l.content_id=fi.source_id AND l.content_type=fi.source_type AND l.deleted_at IS NULL GROUP BY fi.id,fi.likes_count HAVING fi.likes_count IS DISTINCT FROM COUNT(l.id);',
       },
       expected_drift_rows: 0,
       note: 'Execute as queries acima com role service_role após o rebuild. Resultado esperado: 0 linhas.',
     };
 
-    const report = { ...this.#report, post_rebuild_validation: validation };
+    const report = {
+      ...this.#report,
+      post_rebuild_validation: validation,
+      comparison_with_pre_rebuild: this.#buildComparison(),
+    };
     fs.writeFileSync(REPORT_OUTPUT, JSON.stringify(report, null, 2), 'utf8');
+  }
+
+  #buildComparison() {
+    let previous = null;
+    try {
+      previous = JSON.parse(fs.readFileSync(PRE_REBUILD_REPORT, 'utf8'));
+    } catch {
+      return {
+        pre_rebuild_report: PRE_REBUILD_REPORT,
+        status: 'not_loaded',
+        note: 'Relatorio anterior nao encontrado ou invalido.',
+      };
+    }
+
+    return {
+      pre_rebuild_report: PRE_REBUILD_REPORT,
+      status: 'generated',
+      counters_fixed: Object.fromEntries(
+        Object.entries(this.#report.counters).map(([counter, result]) => [
+          counter,
+          {
+            status: result.status,
+            rows_updated: result.rows_updated,
+            previous_counter_present: JSON.stringify(previous).includes(`"${counter}"`),
+          },
+        ]),
+      ),
+      expected_after_drift_rows: 0,
+    };
   }
 
   static #sleep(ms) {

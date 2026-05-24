@@ -28,10 +28,24 @@ function createDb() {
   const portfolioImages = new Map(); // id → { likes_count, status }
   const stories         = new Map(); // id → { views_count, likes_count }
   const feedItems       = new Map(); // id → { likes_count, source_id, source_type }
+  const barbershops     = new Map(); // id → { likes_count, dislikes_count, rating_score, is_active }
+  const professionals   = new Map(); // id → { rating_count, is_active }
   const likes           = new Map(); // `${user_id}:${content_id}:${content_type}` → { content_id, content_type }
   const storyViews      = new Map(); // `${story_id}:${viewer_id}` → true
+  const shopInteractions = new Map(); // `${user_id}:${barbershop_id}:${type}` → row
+  const professionalLikes = new Map(); // `${user_id}:${professional_id}` → row
 
-  return { portfolioImages, stories, feedItems, likes, storyViews };
+  return {
+    portfolioImages,
+    stories,
+    feedItems,
+    barbershops,
+    professionals,
+    likes,
+    storyViews,
+    shopInteractions,
+    professionalLikes,
+  };
 }
 
 // ─── Simulador de fn_sync_likes_count (trigger AFTER INSERT OR DELETE em likes)
@@ -94,6 +108,17 @@ function deleteLike(db, userId, contentId, contentType) {
   return true;
 }
 
+// Simulador de soft delete em likes: UPDATE deleted_at de NULL para timestamp.
+function softDeleteLike(db, userId, contentId, contentType) {
+  const key = `${userId}:${contentId}:${contentType}`;
+  const like = db.likes.get(key);
+  if (!like || like.deleted_at) return false;
+
+  like.deleted_at = new Date().toISOString();
+  applyLikeTrigger(db, 'DELETE', { content_id: contentId, content_type: contentType });
+  return true;
+}
+
 // ─── Simulador de INSERT em story_views (com UNIQUE constraint)
 function insertStoryView(db, storyId, viewerId) {
   const key = `${storyId}:${viewerId}`;
@@ -102,6 +127,54 @@ function insertStoryView(db, storyId, viewerId) {
   db.storyViews.set(key, true);
   applyStoryViewTrigger(db, storyId);
   return true;
+}
+
+function insertBarbershopInteraction(db, userId, barbershopId, type) {
+  const key = `${userId}:${barbershopId}:${type}`;
+  if (db.shopInteractions.has(key)) return false;
+
+  const row = { user_id: userId, barbershop_id: barbershopId, type, deleted_at: null };
+  db.shopInteractions.set(key, row);
+  applyBarbershopInteractionTrigger(db, 'INSERT', row);
+  return true;
+}
+
+function softDeleteBarbershopInteraction(db, userId, barbershopId, type) {
+  const key = `${userId}:${barbershopId}:${type}`;
+  const row = db.shopInteractions.get(key);
+  if (!row || row.deleted_at) return false;
+
+  applyBarbershopInteractionTrigger(db, 'DELETE', row);
+  row.deleted_at = new Date().toISOString();
+  return true;
+}
+
+function insertProfessionalLike(db, userId, professionalId) {
+  const key = `${userId}:${professionalId}`;
+  if (db.professionalLikes.has(key)) return false;
+
+  const row = { user_id: userId, professional_id: professionalId, deleted_at: null };
+  db.professionalLikes.set(key, row);
+  applyProfessionalLikeTrigger(db, 'INSERT', row);
+  return true;
+}
+
+function applyBarbershopInteractionTrigger(db, op, row) {
+  const shop = db.barbershops.get(row.barbershop_id);
+  if (!shop) return;
+
+  const delta = op === 'DELETE' ? -1 : 1;
+  if (row.type === 'like') shop.likes_count = Math.max(0, shop.likes_count + delta);
+  if (row.type === 'dislike') shop.dislikes_count = Math.max(0, shop.dislikes_count + delta);
+  shop.rating_score = calculateRatingScore(shop.likes_count, shop.dislikes_count);
+}
+
+function applyProfessionalLikeTrigger(db, op, row) {
+  const professional = db.professionals.get(row.professional_id);
+  if (!professional) return;
+
+  const delta = op === 'DELETE' ? -1 : 1;
+  professional.rating_count = Math.max(0, professional.rating_count + delta);
 }
 
 // ─── Simulador de rebuild_counter_batch (recalcula stored a partir da fonte real)
@@ -145,6 +218,45 @@ function rebuildBatch(db, counter, batchIds) {
       }
       break;
     }
+    case 'C1': {
+      for (const id of batchIds) {
+        const shop = db.barbershops.get(id);
+        if (!shop || shop.is_active === false) continue;
+        const real = countBarbershopInteractions(db, id, 'like');
+        if (shop.likes_count !== real) { shop.likes_count = real; updated++; }
+      }
+      break;
+    }
+    case 'C2': {
+      for (const id of batchIds) {
+        const shop = db.barbershops.get(id);
+        if (!shop || shop.is_active === false) continue;
+        const real = countBarbershopInteractions(db, id, 'dislike');
+        if (shop.dislikes_count !== real) { shop.dislikes_count = real; updated++; }
+      }
+      break;
+    }
+    case 'C3': {
+      for (const id of batchIds) {
+        const shop = db.barbershops.get(id);
+        if (!shop || shop.is_active === false) continue;
+        const real = calculateRatingScore(
+          countBarbershopInteractions(db, id, 'like'),
+          countBarbershopInteractions(db, id, 'dislike'),
+        );
+        if (shop.rating_score !== real) { shop.rating_score = real; updated++; }
+      }
+      break;
+    }
+    case 'C6': {
+      for (const id of batchIds) {
+        const professional = db.professionals.get(id);
+        if (!professional || professional.is_active === false) continue;
+        const real = countProfessionalLikes(db, id);
+        if (professional.rating_count !== real) { professional.rating_count = real; updated++; }
+      }
+      break;
+    }
     default: break;
   }
 
@@ -155,7 +267,7 @@ function rebuildBatch(db, counter, batchIds) {
 function countLikes(db, contentId, contentType) {
   let n = 0;
   for (const [, l] of db.likes) {
-    if (l.content_id === contentId && l.content_type === contentType) n++;
+    if (l.content_id === contentId && l.content_type === contentType && !l.deleted_at) n++;
   }
   return n;
 }
@@ -166,6 +278,27 @@ function countViews(db, storyId) {
     if (key.startsWith(`${storyId}:`)) n++;
   }
   return n;
+}
+
+function countBarbershopInteractions(db, barbershopId, type) {
+  let n = 0;
+  for (const [, interaction] of db.shopInteractions) {
+    if (interaction.barbershop_id === barbershopId && interaction.type === type && !interaction.deleted_at) n++;
+  }
+  return n;
+}
+
+function countProfessionalLikes(db, professionalId) {
+  let n = 0;
+  for (const [, like] of db.professionalLikes) {
+    if (like.professional_id === professionalId && !like.deleted_at) n++;
+  }
+  return n;
+}
+
+function calculateRatingScore(likes, dislikes) {
+  if ((likes + dislikes) === 0) return 0;
+  return Math.round(((3.0 * 5 + ((likes * 5.0 + dislikes * 1.0) / (likes + dislikes)) * (likes + dislikes)) / (5 + (likes + dislikes))) * 10) / 10;
 }
 
 // ─── Fixtures helpers ─────────────────────────────────────────────────────────
@@ -231,6 +364,76 @@ describe('CTR-01 Trigger INSERT', () => {
     insertStoryView(db, story, uid());
 
     assert.equal(db.stories.get(story).views_count, 1);
+  });
+});
+
+describe('CTR-08 Soft delete em eventos', () => {
+  it('deve decrementar portfolio_images.likes_count ao setar deleted_at no like', () => {
+    const db  = createDb();
+    const img = uid();
+    const u1  = uid();
+    db.portfolioImages.set(img, { likes_count: 0, status: 'active' });
+
+    insertLike(db, u1, img, 'portfolio_image');
+    softDeleteLike(db, u1, img, 'portfolio_image');
+
+    assert.equal(db.portfolioImages.get(img).likes_count, 0);
+  });
+
+  it('deve decrementar barbershops.likes_count ao setar deleted_at na interacao', () => {
+    const db   = createDb();
+    const shop = uid();
+    const user = uid();
+    db.barbershops.set(shop, {
+      likes_count: 0,
+      dislikes_count: 0,
+      rating_score: 0,
+      is_active: true,
+    });
+
+    insertBarbershopInteraction(db, user, shop, 'like');
+    softDeleteBarbershopInteraction(db, user, shop, 'like');
+
+    assert.equal(db.barbershops.get(shop).likes_count, 0);
+  });
+});
+
+describe('CTR-09 Rebuild completo C1/C2/C3/C6', () => {
+  it('deve ser idempotente para barbearias e profissionais', () => {
+    const db = createDb();
+    const shop = uid();
+    const professional = uid();
+
+    db.barbershops.set(shop, {
+      likes_count: 99,
+      dislikes_count: 99,
+      rating_score: 0,
+      is_active: true,
+    });
+    db.professionals.set(professional, { rating_count: 99, is_active: true });
+
+    insertBarbershopInteraction(db, uid(), shop, 'like');
+    insertBarbershopInteraction(db, uid(), shop, 'like');
+    insertBarbershopInteraction(db, uid(), shop, 'dislike');
+    insertProfessionalLike(db, uid(), professional);
+    insertProfessionalLike(db, uid(), professional);
+
+    rebuildBatch(db, 'C1', [shop]);
+    rebuildBatch(db, 'C2', [shop]);
+    rebuildBatch(db, 'C3', [shop]);
+    rebuildBatch(db, 'C6', [professional]);
+
+    const first = {
+      shop: { ...db.barbershops.get(shop) },
+      professional: { ...db.professionals.get(professional) },
+    };
+
+    assert.equal(rebuildBatch(db, 'C1', [shop]), 0);
+    assert.equal(rebuildBatch(db, 'C2', [shop]), 0);
+    assert.equal(rebuildBatch(db, 'C3', [shop]), 0);
+    assert.equal(rebuildBatch(db, 'C6', [professional]), 0);
+    assert.deepEqual(db.barbershops.get(shop), first.shop);
+    assert.deepEqual(db.professionals.get(professional), first.professional);
   });
 });
 
