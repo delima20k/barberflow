@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. Equivalente BFF: barberflow-bff-api/routes/clientes.js
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // ClienteController.js — Rotas Express para /api/clientes.
 // Camada: interfaces

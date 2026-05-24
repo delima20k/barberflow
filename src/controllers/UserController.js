@@ -1,3 +1,6 @@
+// @deprecated Stack legado. Equivalente BFF: barberflow-bff-api/routes/ (users/search)
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // UserController.js — Rotas Express para /api/users.
 // Camada: interfaces

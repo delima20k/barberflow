@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. Equivalente BFF: barberflow-bff-api/routes/ (scheduler/fila)
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // FilaController.js — Rotas Express para /api/fila.
 // Camada: interfaces

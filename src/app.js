@@ -1,5 +1,17 @@
 'use strict';
 
+// @deprecated Stack legado (src/). Congelado — NÃO adicionar novas funcionalidades aqui.
+// Toda nova rota/lógica deve ir para barberflow-bff-api/.
+// Plano de migração: https://github.com/delima20k/barberflow/issues (tag: legacy-migration)
+
+if (process.env.APP_ENV === 'production') {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[DEPRECATED] src/app.js (stack legado) está rodando em produção. ' +
+    'Migrar para barberflow-bff-api/ o quanto antes.',
+  );
+}
+
 // =============================================================
 // app.js — Configuração do Express + wiring de DI.
 //

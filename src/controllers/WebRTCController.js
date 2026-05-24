@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. Equivalente BFF: barberflow-bff-api/routes/chat.js
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // WebRTCController.js — Rotas Express para /api/p2p.
 // Camada: interfaces

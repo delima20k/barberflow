@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. Equivalente BFF: barberflow-bff-api/routes/ (profissionais)
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // ProfissionalController.js — Rotas Express para /api/profissionais.
 // Camada: interfaces

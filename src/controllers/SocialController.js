@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. Equivalente BFF: barberflow-bff-api/routes/feed.js
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // SocialController.js — Rotas Express para /api/social.
 // Camada: interfaces

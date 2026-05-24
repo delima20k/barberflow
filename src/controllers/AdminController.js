@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. Admin: migrar para barberflow-bff-api/ com rota dedicada.
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // AdminController.js — Rotas Express para /api/admin.
 // Camada: interfaces

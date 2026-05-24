@@ -1,5 +1,8 @@
 'use strict';
 
+// @deprecated Stack legado. LGPD: migrar para barberflow-bff-api/ com rota dedicada.
+// NÃO adicionar novas rotas aqui. Usar barberflow-bff-api/.
+
 // =============================================================
 // LgpdController.js — Rotas Express para /api/lgpd.
 // Camada: interfaces
