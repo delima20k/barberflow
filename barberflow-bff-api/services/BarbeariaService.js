@@ -43,8 +43,7 @@ class BarbeariaService extends BaseService {
         distancia_km: row.distancia_m != null ? row.distancia_m / 1000 : null,
       }));
     } catch (err) {
-      console.warn('[BarbeariaService] listarProximas: banco indisponível —', err.message);
-      return [];
+      throw AppError.unavailable('Serviço de localização de barbearias temporariamente indisponível.');
     }
   }
 
@@ -58,8 +57,7 @@ class BarbeariaService extends BaseService {
     try {
       return await this.#repo.getFeatured(limit);
     } catch (err) {
-      console.warn('[BarbeariaService] listarDestaque: banco indisponível —', err.message);
-      return [];
+      throw AppError.unavailable('Serviço de barbearias em destaque temporariamente indisponível.');
     }
   }
 
@@ -73,8 +71,7 @@ class BarbeariaService extends BaseService {
     try {
       return await this.#repo.getAll(limit);
     } catch (err) {
-      console.warn('[BarbeariaService] listarTodas: banco indisponível —', err.message);
-      return [];
+      throw AppError.unavailable('Serviço de barbearias temporariamente indisponível.');
     }
   }
 
