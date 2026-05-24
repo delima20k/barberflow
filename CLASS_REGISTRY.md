@@ -337,3 +337,30 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `RateLimiterMiddleware` | [barberflow-bff-api/middlewares/rateLimiter.js](barberflow-bff-api/middlewares/rateLimiter.js) | infra | Rate limiting. `static geral` (300/min), `static auth` (10/15min), `static escrita` (60/min, skip GET/HEAD/OPTIONS). |
 | `TimeoutMiddleware` | [barberflow-bff-api/middlewares/timeout.js](barberflow-bff-api/middlewares/timeout.js) | infra | Aborta requests que excedem `REQUEST_TIMEOUT_MS` (padrão 30s). `static handle`. |
 | `ErrorHandler` | [barberflow-bff-api/middlewares/errorHandler.js](barberflow-bff-api/middlewares/errorHandler.js) | infra | Global 4-param Express error handler. Distingue `AppError` operacional de erros inesperados. `static handle(err, req, res, _next)`. |
+
+---
+
+## scripts/db/ (Node.js - qualidade de banco)
+
+| Classe | Arquivo | Camada | DescriÃ§Ã£o |
+|---|---|---|---|
+| `DbTestsCli` | [scripts/db/db-tests.js](scripts/db/db-tests.js) | infra | Orquestra snapshot diff, cobertura de RPC, contratos e hook de RLS para o job `db-tests`. |
+| `RpcContractCli` | [scripts/db/rpc-contract-tests.js](scripts/db/rpc-contract-tests.js) | infra | CLI para executar validacao estatica/live dos contratos de RPC. |
+| `RpcContractTestRunner` | [scripts/db/RpcContractTestRunner.js](scripts/db/RpcContractTestRunner.js) | infra | Valida contratos de RPC, snapshots de resposta, inputs invalidos e efeitos colaterais em modo live. |
+| `RpcCoverageCli` | [scripts/db/rpc-coverage.js](scripts/db/rpc-coverage.js) | infra | CLI para reportar cobertura de contratos de RPC e bloquear novas RPCs sem contrato. |
+| `RpcCoverageReporter` | [scripts/db/RpcCoverageReporter.js](scripts/db/RpcCoverageReporter.js) | infra | Descobre funcoes/RPCs em migrations e uso `.rpc()`, classificando criticas e dividas de contrato. |
+| `RlsTestsCli` | [scripts/db/rls-tests.js](scripts/db/rls-tests.js) | infra | Hook CLI reservado para a suite de testes RLS do proximo incremento. |
+| `SchemaSnapshotCli` | [scripts/db/schema-snapshot.js](scripts/db/schema-snapshot.js) | infra | CLI para gerar, validar e hashear snapshots normalizados de schema. |
+| `SchemaSnapshotService` | [scripts/db/SchemaSnapshotService.js](scripts/db/SchemaSnapshotService.js) | infra | Gera snapshot deterministico de schema, hash SHA-256 e diff agrupado por tipo de objeto. |
+
+## src/infra/ (Node.js - schema guard)
+
+| Classe | Arquivo | Camada | DescriÃ§Ã£o |
+|---|---|---|---|
+| `SchemaSnapshotGuard` | [src/infra/SchemaSnapshotGuard.js](src/infra/SchemaSnapshotGuard.js) | infra | Valida no boot se o schema atual diverge do snapshot versionado e pode bloquear em producao. |
+
+## tests/ (helpers locais)
+
+| Classe | Arquivo | Camada | DescriÃ§Ã£o |
+|---|---|---|---|
+| `TempWorkspace` | [tests/db-contract-system.test.js](tests/db-contract-system.test.js) | infra | Helper isolado de teste para criar workspace temporario de snapshots/contratos. |

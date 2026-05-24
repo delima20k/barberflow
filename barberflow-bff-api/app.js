@@ -39,6 +39,12 @@ const authRoute             = require('./routes/auth');
 const agendamentosRoute     = require('./routes/agendamentos');
 const notificacoesRoute     = require('./routes/notificacoes');
 const SupabaseClient         = require('./utils/SupabaseClient');
+let SchemaSnapshotGuard = null;
+try {
+  SchemaSnapshotGuard = require('../src/infra/SchemaSnapshotGuard');
+} catch {
+  SchemaSnapshotGuard = null;
+}
 
 /**
  * Valida variáveis de ambiente obrigatórias no startup.
@@ -56,6 +62,7 @@ function _validarEnv() {
 
 function criarApp(db = null) {
   _validarEnv();
+  SchemaSnapshotGuard?.checkOnBoot();
   const _db = db ?? SupabaseClient.getInstance();
 
   const app = express();

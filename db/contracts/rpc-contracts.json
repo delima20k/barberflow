@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "rpcs": [
+    {
+      "name": "buscar_perfis_por_nome",
+      "signature": "public.buscar_perfis_por_nome(text, int) returns table",
+      "doc": "db/contracts/buscar_perfis_por_nome.md",
+      "allowEmptyOutput": true,
+      "expectedFields": {
+        "avatar_path": "string?",
+        "full_name": "string",
+        "id": "uuid",
+        "updated_at": "timestamp?"
+      },
+      "validInput": { "p_termo": "Cliente", "p_limite": 5 },
+      "invalidInputs": [
+        {
+          "case": "limite tipo errado",
+          "input": { "p_termo": "Cliente", "p_limite": "muito" },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "cleanup_expired_story_comments",
+      "signature": "public.cleanup_expired_story_comments() returns table",
+      "doc": "db/contracts/cleanup_expired_story_comments.md",
+      "allowEmptyOutput": false,
+      "expectedFields": {
+        "cleaned_at": "timestamp",
+        "cleaned_count": "number"
+      },
+      "validInput": {},
+      "invalidInputs": []
+    },
+    {
+      "name": "aplicar_desconto_metodo",
+      "signature": "public.aplicar_desconto_metodo(uuid, text, timestamptz, timestamptz, numeric) returns void",
+      "doc": "db/contracts/aplicar_desconto_metodo.md",
+      "outputKind": "void",
+      "validInput": {
+        "p_barbershop_id": "00000000-0000-4000-8000-000000000101",
+        "p_metodo": "credito",
+        "p_de": "2026-01-01T00:00:00.000Z",
+        "p_ate": "2026-01-31T23:59:59.000Z",
+        "p_porcentagem": 2.5
+      },
+      "invalidInputs": [
+        {
+          "case": "porcentagem fora do range",
+          "input": {
+            "p_barbershop_id": "00000000-0000-4000-8000-000000000101",
+            "p_metodo": "credito",
+            "p_de": "2026-01-01T00:00:00.000Z",
+            "p_ate": "2026-01-31T23:59:59.000Z",
+            "p_porcentagem": 100
+          },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "confirmar_presenca_cliente",
+      "signature": "public.confirmar_presenca_cliente(uuid, boolean, boolean) returns void",
+      "doc": "db/contracts/confirmar_presenca_cliente.md",
+      "outputKind": "void",
+      "validInput": {
+        "p_entry_id": "00000000-0000-4000-8000-000000000201",
+        "p_confirmado": true,
+        "p_grace_used": false
+      },
+      "invalidInputs": [
+        {
+          "case": "uuid invalido",
+          "input": { "p_entry_id": "bad-id", "p_confirmado": true, "p_grace_used": false },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "criar_agendamento_atomico",
+      "signature": "public.criar_agendamento_atomico(uuid, uuid, uuid, uuid, timestamptz, int, text, numeric) returns setof public.appointments",
+      "doc": "db/contracts/criar_agendamento_atomico.md",
+      "allowEmptyOutput": false,
+      "expectedFields": {
+        "barbershop_id": "uuid",
+        "client_id": "uuid",
+        "created_at": "timestamp",
+        "duration_min": "number",
+        "id": "uuid",
+        "notes": "string?",
+        "price_charged": "number?",
+        "professional_id": "uuid",
+        "scheduled_at": "timestamp",
+        "service_id": "uuid",
+        "status": "string"
+      },
+      "validInput": {
+        "p_client_id": "00000000-0000-4000-8000-000000000301",
+        "p_professional_id": "00000000-0000-4000-8000-000000000302",
+        "p_barbershop_id": "00000000-0000-4000-8000-000000000303",
+        "p_service_id": "00000000-0000-4000-8000-000000000304",
+        "p_scheduled_at": "2026-06-01T10:00:00.000Z",
+        "p_duration_min": 30,
+        "p_notes": "contract-test",
+        "p_price_charged": 50
+      },
+      "invalidInputs": [
+        {
+          "case": "duracao ausente",
+          "input": {
+            "p_client_id": "00000000-0000-4000-8000-000000000301",
+            "p_professional_id": "00000000-0000-4000-8000-000000000302"
+          },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "get_barbershops_nearby",
+      "signature": "public.get_barbershops_nearby(double precision, double precision, double precision, int) returns table",
+      "doc": "db/contracts/get_barbershops_nearby.md",
+      "allowEmptyOutput": true,
+      "expectedFields": {
+        "address": "string?",
+        "city": "string?",
+        "close_reason": "string?",
+        "cover_path": "string?",
+        "dislikes_count": "number",
+        "distancia_m": "number",
+        "font_key": "string?",
+        "id": "uuid",
+        "is_open": "boolean",
+        "latitude": "number",
+        "likes_count": "number",
+        "logo_path": "string?",
+        "longitude": "number",
+        "name": "string",
+        "rating_avg": "number?",
+        "rating_count": "number",
+        "rating_score": "number?"
+      },
+      "validInput": { "lat": -23.55052, "lng": -46.633308, "raio_metros": 2000, "limit_val": 5 },
+      "invalidInputs": [
+        {
+          "case": "latitude tipo errado",
+          "input": { "lat": "x", "lng": -46.633308, "raio_metros": 2000, "limit_val": 5 },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "get_clientes_favoritos_modal",
+      "signature": "public.get_clientes_favoritos_modal(uuid, uuid) returns table",
+      "doc": "db/contracts/get_clientes_favoritos_modal.md",
+      "allowEmptyOutput": true,
+      "expectedFields": {
+        "avatar_path": "string?",
+        "email": "string?",
+        "full_name": "string",
+        "id": "uuid",
+        "updated_at": "timestamp?"
+      },
+      "validInput": {
+        "p_barbershop_id": "00000000-0000-4000-8000-000000000401",
+        "p_professional_id": "00000000-0000-4000-8000-000000000402"
+      },
+      "invalidInputs": [
+        {
+          "case": "professional id invalido",
+          "input": {
+            "p_barbershop_id": "00000000-0000-4000-8000-000000000401",
+            "p_professional_id": "bad-id"
+          },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "notificar_barbeiro_chegada",
+      "signature": "public.notificar_barbeiro_chegada(uuid, text, text, text, jsonb) returns void",
+      "doc": "db/contracts/notificar_barbeiro_chegada.md",
+      "outputKind": "void",
+      "validInput": {
+        "p_professional_id": "00000000-0000-4000-8000-000000000501",
+        "p_type": "queue_arrival",
+        "p_title": "Cliente chegou",
+        "p_body": "Contrato de teste",
+        "p_data": { "source": "contract-test" }
+      },
+      "invalidInputs": [
+        {
+          "case": "json invalido por tipo",
+          "input": {
+            "p_professional_id": "00000000-0000-4000-8000-000000000501",
+            "p_type": "queue_arrival",
+            "p_title": "Cliente chegou",
+            "p_body": "Contrato de teste",
+            "p_data": "not-jsonb-object"
+          },
+          "allowedStatuses": [400]
+        }
+      ]
+    },
+    {
+      "name": "search_users",
+      "signature": "public.search_users(text, text, integer, integer) returns table",
+      "doc": "db/contracts/search_users.md",
+      "allowEmptyOutput": true,
+      "expectedFields": {
+        "avatar_path": "string?",
+        "barbershop_name": "string?",
+        "email": "string?",
+        "full_name": "string",
+        "id": "uuid",
+        "role": "string",
+        "total_count": "number",
+        "updated_at": "timestamp?"
+      },
+      "validInput": { "p_term": null, "p_role": "client", "p_limit": 5, "p_offset": 0 },
+      "invalidInputs": [
+        {
+          "case": "limit tipo errado",
+          "input": { "p_term": null, "p_role": "client", "p_limit": "large", "p_offset": 0 },
+          "allowedStatuses": [400]
+        }
+      ]
+    }
+  ]
+}

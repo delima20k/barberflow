@@ -7,6 +7,12 @@
     "stop:pm2": "pm2 stop barberflow-api",
     "logs:pm2": "pm2 logs barberflow-api",
     "dev": "node server.js",
+    "db:snapshot": "node scripts/db/schema-snapshot.js generate",
+    "db:snapshot:check": "node scripts/db/schema-snapshot.js check",
+    "db:contracts": "node scripts/db/rpc-contract-tests.js",
+    "db:coverage": "node scripts/db/rpc-coverage.js",
+    "db:tests": "node scripts/db/db-tests.js",
+    "test:db-system": "node --test tests/db-contract-system.test.js",
     "test": "jest",
     "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js"
   },

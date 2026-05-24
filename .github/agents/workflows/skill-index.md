@@ -58,3 +58,11 @@ Quando uma nova boa prática for criada:
 
 > **REGRA FINAL:** Sempre perguntar — *"Existe uma forma mais barata, mais inteligente, mais segura e mais escalável de fazer isso?"*
 > Se existir: **FAZER MELHOR.**
+
+---
+
+## Atualizacao: contratos de banco
+
+| Tipo de tarefa | Arquivos a ler |
+|---|---|
+| Snapshot de schema / contrato de RPC / regressao de banco | `skills/skill-10-db-contracts.md`, `skills/skill-05-banco.md`, `skills/skill-07-testes.md` |

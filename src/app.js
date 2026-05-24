@@ -17,6 +17,7 @@ const supabase   = require('./infra/SupabaseClient');
 const logger     = require('./infra/LoggerService');
 const RateLimitMiddleware    = require('./infra/RateLimitMiddleware');
 const RequestTimeoutMiddleware = require('./infra/RequestTimeoutMiddleware');
+const SchemaSnapshotGuard    = require('./infra/SchemaSnapshotGuard');
 
 // ── Repositories ──────────────────────────────────────────────
 const ClienteRepository      = require('./repositories/ClienteRepository');
@@ -90,6 +91,8 @@ function origemPermitida(origin) {
 }
 
 function criarApp() {
+  SchemaSnapshotGuard.checkOnBoot({ logger });
+
   const app = express();
 
   // ── Middlewares globais ──────────────────────────────────────

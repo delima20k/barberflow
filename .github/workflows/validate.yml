@@ -164,6 +164,35 @@ jobs:
       - name: Run tests
         run: npm test
 
+  db-tests:
+    name: db-tests
+    runs-on: ubuntu-latest
+    needs: validate-structure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run DB regression suite
+        run: npm run db:tests
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
   # ─────────────────────────────────────────────────────────────
   # JOB 4: Validar Edge Functions TypeScript
   # ─────────────────────────────────────────────────────────────
