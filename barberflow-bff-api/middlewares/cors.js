@@ -60,16 +60,17 @@ class CorsMiddleware {
     if (CorsMiddleware.#isAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
+      // CDNs em modo proxy (ex: Cloudflare) podem cachear a resposta de pro.berberflow.shop
+      // e servi-la para app.berberflow.shop, ignorando Vary:Origin.
+      // Cache-Control: private proíbe cache em shared CDN; no-store proíbe qualquer armazenamento.
+      // Route handlers podem sobrescrever com Cache-Control próprio se precisarem de cache público.
+      res.setHeader('Cache-Control', 'private, no-store');
     }
 
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
       res.setHeader('Access-Control-Max-Age', '86400');
-      // CDNs que ignoram Vary:Origin (ex: Cloudflare em modo proxy) podem cachear
-      // a resposta preflight de pro.berberflow.shop e servi-la para app.berberflow.shop.
-      // Cache-Control: private impede cache em shared CDN; no-store impede qualquer armazenamento.
-      res.setHeader('Cache-Control', 'private, no-store');
       return res.status(200).end();
     }
 

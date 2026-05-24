@@ -54,6 +54,11 @@ suite('CorsMiddleware — origens de produção (.shop)', () => {
       );
       assert.strictEqual(captured.headers['Access-Control-Allow-Credentials'], 'true');
       assert.strictEqual(captured.headers['Vary'], 'Origin');
+      assert.ok(
+        captured.headers['Cache-Control']?.includes('private') &&
+        captured.headers['Cache-Control']?.includes('no-store'),
+        'GET de origem permitida deve ter Cache-Control: private, no-store (impede cache CDN por URL)',
+      );
       assert.strictEqual(next.calls.length, 1, 'next() deve ser chamado após GET permitido');
     });
 
@@ -121,7 +126,7 @@ suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
     );
   });
 
-  test('GET NÃO recebe Cache-Control do middleware CORS (não deve bloquear cache de dados)', () => {
+  test('GET de origem permitida recebe Cache-Control: private, no-store', () => {
     const { req, res, next, captured } = criarMocks({
       headers: { origin: 'https://app.berberflow.shop' },
       method:  'GET',
@@ -130,8 +135,9 @@ suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
     CorsMiddleware.handle(req, res, next);
 
     assert.ok(
-      !captured.headers['Cache-Control'],
-      'GET não deve ter Cache-Control setado pelo CorsMiddleware (cabe à rota/app decidir)',
+      captured.headers['Cache-Control']?.includes('private') &&
+      captured.headers['Cache-Control']?.includes('no-store'),
+      'GET de origem permitida deve receber Cache-Control: private, no-store',
     );
   });
 });
@@ -318,6 +324,10 @@ suite('CorsMiddleware — integração (servidor real, config produção)', () =
       'https://app.berberflow.shop',
     );
     assert.strictEqual(headers['access-control-allow-credentials'], 'true');
+    assert.ok(
+      headers['cache-control']?.includes('private'),
+      'GET de origem permitida deve ter Cache-Control: private no servidor real',
+    );
   });
 
   test('GET /api/health de origem bloqueada → sem ACAO header', async () => {
