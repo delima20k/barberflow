@@ -153,9 +153,15 @@ function criarApp(db = null) {
   app.use('/api/health', healthRoute);
 
   // ── 14. /metrics — Prometheus scraping ───────────────────────
-  // ATENÇÃO: proteger esta rota por rede interna ou Basic Auth em produção.
-  // Nunca expor publicamente (vaza informações de carga interna).
-  app.get('/metrics', MetricsMiddleware.metricsHandler());
+  // Protegido por Bearer token em produção (METRICS_TOKEN env var).
+  // Em dev/test, acessível sem token para facilitar debug local.
+  const _metricsGuard = (req, res, next) => {
+    const token = process.env.METRICS_TOKEN;
+    if (!token || process.env.APP_ENV !== 'production') return next();
+    if (req.headers['authorization'] === `Bearer ${token}`) return next();
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  };
+  app.get('/metrics', _metricsGuard, MetricsMiddleware.metricsHandler());
 
   // ── 15. 404 ──────────────────────────────────────────────────
   app.use((_req, res) => {
