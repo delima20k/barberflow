@@ -278,6 +278,10 @@ serve(async (req: Request) => {
   if (!clientId || !entradaId) {
     return json({ error: 'clientId e entradaId são obrigatórios' }, 422)
   }
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(clientId)) {
+    return json({ error: 'clientId deve ser um UUID válido' }, 422)
+  }
 
   // ── Busca subscriptions do cliente (service_role ignora RLS) ──
   const supabaseAdmin = createClient(
@@ -286,11 +290,13 @@ serve(async (req: Request) => {
     { auth: { persistSession: false } },
   )
 
+  // Inclui subscriptions com app_id = NULL (criadas antes da migration push_v2)
+  // para não perder clientes que registraram antes do campo existir.
   const { data: subs, error: subsErr } = await supabaseAdmin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth_key')
     .eq('user_id', clientId)
-    .eq('app_id',  appId)
+    .or(`app_id.eq.${appId},app_id.is.null`)
     .eq('is_valid', true)
 
   if (subsErr) {
@@ -369,8 +375,8 @@ serve(async (req: Request) => {
   return json({ ok: true, enviados, invalidas: invalidIds.length })
 
   } catch (err) {
-    // Exceção não tratada — loga e retorna CORS para o browser não bloquear
-    console.error('[send-push] ERRO NÃO TRATADO:', (err as Error)?.message, (err as Error)?.stack)
-    return json({ error: 'Erro interno' }, 500)
+    const e = err as Error
+    console.error('[send-push] ERRO NÃO TRATADO:', e?.name, e?.message, e?.stack)
+    return json({ error: 'Erro interno', detalhe: e?.message ?? String(err) }, 500)
   }
 })
