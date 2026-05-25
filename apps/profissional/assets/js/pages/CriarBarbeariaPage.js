@@ -175,7 +175,8 @@ class CriarBarbeariaPage {
     const footerBtn = document.getElementById('footer-nav-barbearia-btn');
     if (footerBtn) {
       footerBtn.dataset.tela = 'minha-barbearia';
-      footerBtn.setAttribute('onclick', "Pro.nav('minha-barbearia')");
+      footerBtn.dataset.nav  = 'minha-barbearia';
+      footerBtn.removeAttribute('onclick');
       const img   = footerBtn.querySelector('img');
       const label = footerBtn.querySelector('.nav-label');
       if (img)   img.alt           = 'Minha Barbearia';
