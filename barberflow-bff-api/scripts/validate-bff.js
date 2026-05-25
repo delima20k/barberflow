@@ -156,6 +156,11 @@ if (!funcEntry) {
   ok('"functions[api/index.js]" configurado');
   if (funcEntry.includeFiles) {
     ok(`  includeFiles: "${funcEntry.includeFiles}"`);
+    if (funcEntry.includeFiles.includes('domain/**')) {
+      ok('  includeFiles inclui domain/**');
+    } else {
+      fail('  includeFiles deve incluir domain/** para empacotar Value Objects e regras puras');
+    }
   } else {
     fail('  "includeFiles" ausente — arquivos como app.js, controllers/ etc. não serão incluídos');
   }
