@@ -46,7 +46,11 @@ class CorteModal {
             </div>
             <ul class="crtm-lista" role="group" aria-label="Plano mensal"></ul>
             <div class="crtm-footer">
-              <button class="crtm-btn crtm-btn--confirmar">Confirmar Mensalista</button>
+              <label class="crtm-confirmacao-mensalista">
+                <input type="checkbox" class="crtm-chk-mensalista">
+                Confirmo que sou mensalista e desejo entrar na fila.
+              </label>
+              <button class="crtm-btn crtm-btn--confirmar" disabled>Confirmar Mensalista</button>
               <button class="crtm-btn crtm-btn--cancelar">Cancelar</button>
             </div>
           </div>`;
@@ -67,6 +71,9 @@ class CorteModal {
           </span>`;
         listaEl.appendChild(card);
 
+        overlay.querySelector('.crtm-chk-mensalista').addEventListener('change', e => {
+          overlay.querySelector('.crtm-btn--confirmar').disabled = !e.target.checked;
+        });
         overlay.querySelector('.crtm-btn--confirmar').addEventListener('click', () => _fechar([]));
         overlay.querySelector('.crtm-btn--cancelar').addEventListener('click', () => _fechar(null));
         overlay.querySelector('.crtm-fechar').addEventListener('click', () => _fechar(null));

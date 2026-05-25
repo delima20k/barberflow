@@ -817,7 +817,7 @@ class BarbeariaPage {
       servicos: this.#servicos,
       barbershopId: this.#shopId,
     });
-    if (!serviceIds?.length) return;
+    if (serviceIds === null) return;
 
     // Auto-promoção: se a cadeira de produção deste barbeiro está vazia, vai direto para atendimento
     const producaoOcupada = filaAtiva.some(
@@ -910,7 +910,7 @@ class BarbeariaPage {
       servicos: this.#servicos,
       barbershopId: this.#shopId,
     });
-    if (!serviceIds?.length) return;
+    if (serviceIds === null) return;
 
     await this.#executarFluxoProducao(professionalId, perfil, serviceIds);
   }
