@@ -23,8 +23,8 @@ class FinanceiroService {
   /**
    * Registra um corte finalizado na tabela transactions.
    * 1. Busca os serviços da entrada e soma os preços.
-   * 2. Insere a transação (amount pode ser 0 se sem preço cadastrado).
-   * 3. Despacha CustomEvent `barberflow:transacao-criada`.
+   * 2. Se amount = 0 (sem serviços ou sem preço), encerra sem inserir — constraint amount > 0.
+   * 3. Insere a transação e despacha CustomEvent `barberflow:transacao-criada`.
    *
    * @param {object} opts
    * @param {string}      opts.entradaId
@@ -43,6 +43,11 @@ class FinanceiroService {
     if (!rProf.ok) throw new TypeError(`[FinanceiroService] professionalId: ${rProf.msg}`);
 
     const amount = await FinanceiroService.#calcularTotal(entradaId);
+
+    if (amount <= 0) {
+      LoggerService.warn('[FinanceiroService] registrarCorte: amount=0, transação não registrada (entrada sem serviços com preço).');
+      return;
+    }
 
     await FinanceiroRepository.criarTransacao({
       barbershopId,

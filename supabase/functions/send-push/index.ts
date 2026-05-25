@@ -316,8 +316,8 @@ serve(async (req: Request) => {
     sub:  Deno.env.get('VAPID_SUBJECT')     ?? '',
   }
   if (!vapid.pub || !vapid.priv || !vapid.sub) {
-    console.error('[send-push] VAPID secrets não configurados')
-    return json({ error: 'VAPID não configurado' }, 500)
+    console.warn('[send-push] VAPID secrets não configurados — retornando PUSH_UNAVAILABLE')
+    return json({ ok: false, reason: 'PUSH_UNAVAILABLE' }, 200)
   }
 
   // ── Payload da notificação ────────────────────────────────
