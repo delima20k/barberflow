@@ -225,4 +225,26 @@ describe('BarbeariaApiClient — getTodas', () => {
 
     assert.equal(mockBffGet.calls.length, 2, 'limits diferentes devem ter chaves separadas');
   });
+
+  test('invalidarCache limpa lista antiga para recarregar mapa apos salvar GPS', async () => {
+    const { sandbox, mockBffGet } = criarSandbox();
+    const listaAtualizada = [
+      { id: '9', name: 'Barbearia Nova', latitude: LAT, longitude: LNG },
+    ];
+    let chamada = 0;
+    mockBffGet.mockImplementation(async () => {
+      chamada += 1;
+      return chamada === 1
+        ? { data: [], total: 0, error: null }
+        : { data: listaAtualizada, total: 1, error: null };
+    });
+
+    const primeira = await sandbox.BarbeariaApiClient.getTodas(100);
+    sandbox.BarbeariaApiClient.invalidarCache();
+    const segunda = await sandbox.BarbeariaApiClient.getTodas(100);
+
+    assert.deepEqual(primeira, []);
+    assert.deepEqual(segunda, listaAtualizada);
+    assert.equal(mockBffGet.calls.length, 2, 'deve consultar a BFF novamente apos invalidar cache');
+  });
 });

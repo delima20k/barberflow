@@ -99,6 +99,9 @@ class MapWidget {
    * Usado apos salvar a localizacao de uma barbearia no painel profissional.
    */
   static async recarregarBarbearias() {
+    if (typeof BarbeariaApiClient !== 'undefined') {
+      BarbeariaApiClient.invalidarCache?.();
+    }
     if (!MapWidget.#mapa) return;
     if (!MapWidget.#posUsuario) {
       await MapWidget.#carregarBarbeariasGlobais();
@@ -174,14 +177,18 @@ class MapWidget {
     MapWidget.#carregando = true;
     try {
       const pos   = await GeoService.obter();
-      if (!pos || !isFinite(pos.lat) || !isFinite(pos.lng)) return;
+      if (!pos || !isFinite(pos.lat) || !isFinite(pos.lng)) {
+        await MapWidget.#carregarBarbeariasGlobais();
+        return;
+      }
       MapWidget.#centralizarUsuario(pos.lat, pos.lng);
       const lista = await MapWidget.#buscarBarbearias(pos.lat, pos.lng);
       MapWidget.#renderMarcadores(lista);
       // Inicia rastreamento contínuo — move o marcador do usuário em tempo real
       GeoService.iniciarWatch((lat, lng) => MapWidget.atualizarPosicaoUsuario(lat, lng));
-    } catch (_) {
-      // silencioso — GPS negado após concessão anterior (raro)
+    } catch (err) {
+      await MapWidget.#carregarBarbeariasGlobais();
+      MapWidget.#exibirFAB(err?.message);
     } finally {
       MapWidget.#carregando = false;
     }

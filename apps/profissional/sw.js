@@ -67,6 +67,9 @@ class SWProfissional {
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaView.js',
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js',
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js',
+    '/shared/js/GeoService.js',
+    '/shared/js/MapWidget.js',
+    '/shared/js/NearbyBarbershopsWidget.js',
     '/manifest.json',
   ];
 

@@ -30,6 +30,24 @@ class BarbeariaApiClient {
   static get bffIndisponivel() { return BarbeariaApiClient.#bffFalhou; }
 
   /**
+   * Invalida caches curtos de listagem.
+   * Usado apos salvar endereco/GPS para o mapa buscar a lista mais recente.
+   * @param {string|null} prefixo
+   */
+  static invalidarCache(prefixo = null) {
+    if (!prefixo) {
+      BarbeariaApiClient.#cache.clear();
+      return;
+    }
+
+    for (const chave of BarbeariaApiClient.#cache.keys()) {
+      if (chave === prefixo || chave.startsWith(`${prefixo}:`)) {
+        BarbeariaApiClient.#cache.delete(chave);
+      }
+    }
+  }
+
+  /**
    * Lista barbearias próximas à coordenada informada.
    * BFF indisponível → retorna [] para que o widget exiba estado vazio.
    *

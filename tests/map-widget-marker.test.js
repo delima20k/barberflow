@@ -58,6 +58,39 @@ test('MapWidget normaliza coordenadas validas sem descartar zero', () => {
   assert.doesNotMatch(js, /if \(!b\.latitude \|\| !b\.longitude\) return/);
 });
 
+test('MapWidget invalida cache antes de recarregar barbearias do mapa', () => {
+  const js = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
+  const idx = js.indexOf('static async recarregarBarbearias');
+  assert.ok(idx > 0, 'recarregarBarbearias deve existir');
+
+  const bloco = js.slice(idx, idx + 500);
+  assert.match(bloco, /BarbeariaApiClient\.invalidarCache\?\.\(\)/);
+  assert.ok(
+    bloco.indexOf('BarbeariaApiClient.invalidarCache') < bloco.indexOf('if (!MapWidget.#mapa) return'),
+    'cache deve ser invalidado mesmo quando o mapa ainda nao foi inicializado',
+  );
+  assert.ok(
+    bloco.indexOf('BarbeariaApiClient.invalidarCache') < bloco.indexOf('#carregarBarbeariasGlobais'),
+    'cache deve ser invalidado antes de renderizar lista global',
+  );
+  assert.ok(
+    bloco.indexOf('BarbeariaApiClient.invalidarCache') < bloco.indexOf('#carregar()'),
+    'cache deve ser invalidado antes de renderizar lista com GPS',
+  );
+});
+
+test('MapWidget mostra barbearias globais quando GPS falha ou vem invalido', () => {
+  const js = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
+  const idx = js.indexOf('static async #carregar');
+  assert.ok(idx > 0, '#carregar deve existir');
+
+  const bloco = js.slice(idx, idx + 900);
+  assert.match(bloco, /!pos \|\| !isFinite\(pos\.lat\) \|\| !isFinite\(pos\.lng\)/);
+  assert.match(bloco, /await MapWidget\.#carregarBarbeariasGlobais\(\)/);
+  assert.match(bloco, /catch \(err\)/);
+  assert.match(bloco, /MapWidget\.#exibirFAB\(err\?\.message\)/);
+});
+
 test('MapWidget usa marcador premium escuro e animado, sem avatar redondo padrao', () => {
   const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
   const imgRuleStart = css.indexOf('.mapa-shop-marker__img');
@@ -89,4 +122,23 @@ test('MapWidget exibe label de nome premium da barbearia acima do marcador no ma
   assert.match(css, /rgba\(0,\s*0,\s*0/);
   assert.match(css, /text-overflow:\s*ellipsis/);
   assert.match(css, /pointer-events:\s*none/);
+});
+
+test('Service workers entregam scripts atuais do mapa no cliente e profissional', () => {
+  const clienteSw = fs.readFileSync(path.join(root, 'apps/cliente/sw.js'), 'utf8');
+  const proSw = fs.readFileSync(path.join(root, 'apps/profissional/sw.js'), 'utf8');
+  const assetsMapa = [
+    '/shared/js/BarbeariaApiClient.js',
+    '/shared/js/GeoService.js',
+    '/shared/js/MapWidget.js',
+    '/shared/js/NearbyBarbershopsWidget.js',
+  ];
+
+  assert.doesNotMatch(clienteSw, /SW_CLI_VERSION = '20260517/);
+  assert.doesNotMatch(proSw, /SW_PRO_VERSION = '20260517/);
+
+  for (const asset of assetsMapa) {
+    assert.ok(clienteSw.includes(asset), `cliente deve cachear ${asset}`);
+    assert.ok(proSw.includes(asset), `profissional deve cachear ${asset}`);
+  }
 });
