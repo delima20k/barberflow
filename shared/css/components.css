@@ -4937,6 +4937,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 24px;
 }
 
+.portfolio-viewer[hidden] {
+  display: none !important;
+}
+
 .portfolio-viewer__figure {
   width: min(92vw, 780px);
   margin: 0;

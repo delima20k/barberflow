@@ -35,6 +35,7 @@ class PortfolioGallery {
   }
 
   reset() {
+    this.#viewer?.close();
     if (!this.#root) return;
     this.#root.innerHTML = '';
     this.#root.hidden = true;

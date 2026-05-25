@@ -4,6 +4,7 @@ const { suite, test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { Result } = require('../domain/shared/Result');
+const ProfissionalRepository = require('../repositories/ProfissionalRepository');
 const ProfissionalService = require('../services/ProfissionalService');
 
 const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -143,5 +144,145 @@ suite('ProfissionalService - perfil publico', () => {
       body: 'Cliente interessado no barbeiro Joao Navalha',
       attachments: [],
     });
+  });
+});
+
+suite('ProfissionalRepository - perfil publico resiliente a 42P01', () => {
+  test('deve retornar null quando tabela professionals retorna 42P01 nas duas queries', async () => {
+    const db = {
+      from(table) {
+        const state = { table, select: '' };
+        const query = {
+          select(value) { state.select = value; return query; },
+          eq() { return query; },
+          order() { return query; },
+          limit() { return query; },
+          maybeSingle() {
+            if (state.table === 'profiles') {
+              return Promise.resolve({
+                data: { id: PROF_ID, full_name: 'Joao', avatar_path: null, is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'professionals') {
+              return Promise.resolve({ data: null, error: { code: '42P01', message: 'relation "professionals" does not exist' } });
+            }
+            return Promise.resolve({ data: null, error: null });
+          },
+        };
+        return query;
+      },
+    };
+
+    const repo = new ProfissionalRepository(db);
+    const row = await repo.buscarPerfilPublico(PROF_ID);
+    assert.strictEqual(row, null);
+  });
+
+  test('deve retornar perfil sem barbearia quando professional_shop_links retorna 42P01', async () => {
+    const db = {
+      from(table) {
+        const state = { table, select: '' };
+        const query = {
+          select(value) { state.select = value; return query; },
+          eq() { return query; },
+          order() { return query; },
+          limit() { return query; },
+          maybeSingle() {
+            if (state.table === 'profiles') {
+              return Promise.resolve({
+                data: { id: PROF_ID, full_name: 'Joao', avatar_path: null, is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'professionals') {
+              return Promise.resolve({
+                data: { id: PROF_ID, bio: 'Bio', avatar_path: null, rating_avg: 5, rating_count: 1, is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'professional_shop_links') {
+              return Promise.resolve({ data: null, error: { code: '42P01', message: 'relation "professional_shop_links" does not exist' } });
+            }
+            return Promise.resolve({ data: null, error: null });
+          },
+        };
+        return query;
+      },
+    };
+
+    const repo = new ProfissionalRepository(db);
+    const row = await repo.buscarPerfilPublico(PROF_ID);
+    assert.ok(row, 'deve retornar perfil mesmo sem barbearia vinculada');
+    assert.strictEqual(row.barbershop_id, null);
+  });
+});
+
+suite('ProfissionalRepository - perfil publico resiliente a schema parcial', () => {
+  test('deve retornar perfil publico quando colunas novas ainda nao existem no banco', async () => {
+    const calls = [];
+    const db = {
+      from(table) {
+        const state = { table, select: '' };
+        const query = {
+          select(value) {
+            state.select = value;
+            calls.push({ table, select: value });
+            return query;
+          },
+          eq() { return query; },
+          order() { return query; },
+          limit() { return query; },
+          maybeSingle() {
+            if (state.table === 'profiles' && state.select.includes('birth_date')) {
+              return Promise.resolve({ data: null, error: { code: '42703', message: 'column profiles.birth_date does not exist' } });
+            }
+            if (state.table === 'profiles') {
+              return Promise.resolve({
+                data: { id: PROF_ID, full_name: 'Joao Navalha', avatar_path: 'avatars/joao.webp', is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'professionals' && state.select.includes('since_year')) {
+              return Promise.resolve({ data: null, error: { code: '42703', message: 'column professionals.since_year does not exist' } });
+            }
+            if (state.table === 'professionals') {
+              return Promise.resolve({
+                data: { id: PROF_ID, bio: 'Cortes classicos.', avatar_path: null, rating_avg: 4.5, rating_count: 3, is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'professional_shop_links' && state.select.includes('joined_at')) {
+              return Promise.resolve({ data: null, error: { code: '42703', message: 'column professional_shop_links.joined_at does not exist' } });
+            }
+            if (state.table === 'professional_shop_links') {
+              return Promise.resolve({ data: { barbershop_id: SHOP_ID }, error: null });
+            }
+            if (state.table === 'barbershops' && state.select.includes('state')) {
+              return Promise.resolve({ data: null, error: { code: '42703', message: 'column barbershops.state does not exist' } });
+            }
+            if (state.table === 'barbershops') {
+              return Promise.resolve({
+                data: { id: SHOP_ID, owner_id: OWNER_ID, name: 'Barbearia Prime', address: 'Rua XPTO, 123', city: 'Sao Paulo', is_active: true },
+                error: null,
+              });
+            }
+            return Promise.resolve({ data: null, error: null });
+          },
+        };
+        return query;
+      },
+    };
+
+    const repo = new ProfissionalRepository(db);
+    const row = await repo.buscarPerfilPublico(PROF_ID);
+
+    assert.equal(row.id, PROF_ID);
+    assert.equal(row.birth_date, null);
+    assert.equal(row.gender, null);
+    assert.equal(row.since_year, null);
+    assert.equal(row.barbershop_state, null);
+    assert.ok(calls.some(call => call.table === 'profiles' && !call.select.includes('birth_date')));
+    assert.ok(calls.some(call => call.table === 'professionals' && !call.select.includes('since_year')));
   });
 });

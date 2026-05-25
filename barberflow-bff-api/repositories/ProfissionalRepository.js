@@ -27,20 +27,10 @@ class ProfissionalRepository extends BaseRepository {
   async buscarPerfilPublico(professionalId) {
     this._uuid('professionalId', professionalId);
 
-    const { data: profile, error: profileError } = await this._db
-      .from('profiles')
-      .select('id, full_name, avatar_path, birth_date, gender, is_active')
-      .eq('id', professionalId)
-      .maybeSingle();
-    if (profileError) this._throwDbError(profileError, 'buscarPerfilPublico.profile');
+    const profile = await this.#buscarProfilePublicoSeguro(professionalId);
     if (!profile?.is_active) return null;
 
-    const { data: professional, error: professionalError } = await this._db
-      .from('professionals')
-      .select('id, bio, avatar_path, rating_avg, rating_count, since_year, is_active')
-      .eq('id', professionalId)
-      .maybeSingle();
-    if (professionalError) this._throwDbError(professionalError, 'buscarPerfilPublico.professional');
+    const professional = await this.#buscarProfessionalPublicoSeguro(professionalId);
     if (!professional?.is_active) return null;
 
     return this.#montarPerfilPublico(profile, professional);
@@ -430,6 +420,51 @@ class ProfissionalRepository extends BaseRepository {
     };
   }
 
+  async #buscarProfilePublicoSeguro(professionalId) {
+    const { data, error } = await this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path, birth_date, gender, is_active')
+      .eq('id', professionalId)
+      .maybeSingle();
+    if (!error) return data;
+    if (!ProfissionalRepository.#isErroSchemaParcial(error)) {
+      this._throwDbError(error, 'buscarPerfilPublico.profile');
+    }
+
+    this._warn('buscarPerfilPublico.profile.fallback', error);
+    const fallback = await this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path, is_active')
+      .eq('id', professionalId)
+      .maybeSingle();
+    if (fallback.error) this._throwDbError(fallback.error, 'buscarPerfilPublico.profile.fallback');
+    return { ...fallback.data, birth_date: null, gender: null };
+  }
+
+  async #buscarProfessionalPublicoSeguro(professionalId) {
+    const { data, error } = await this._db
+      .from('professionals')
+      .select('id, bio, avatar_path, rating_avg, rating_count, since_year, is_active')
+      .eq('id', professionalId)
+      .maybeSingle();
+    if (!error) return data;
+    if (!ProfissionalRepository.#isErroSchemaParcial(error)) {
+      this._throwDbError(error, 'buscarPerfilPublico.professional');
+    }
+
+    this._warn('buscarPerfilPublico.professional.fallback', error);
+    const fallback = await this._db
+      .from('professionals')
+      .select('id, bio, avatar_path, rating_avg, rating_count, is_active')
+      .eq('id', professionalId)
+      .maybeSingle();
+    if (fallback.error) {
+      this._warn('buscarPerfilPublico.professional.fallback.final', fallback.error);
+      return null;
+    }
+    return { ...fallback.data, since_year: null };
+  }
+
   async #buscarVinculoAtivo(professionalId) {
     const { data, error } = await this._db
       .from('professional_shop_links')
@@ -439,7 +474,24 @@ class ProfissionalRepository extends BaseRepository {
       .order('joined_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error) this._throwDbError(error, 'buscarVinculoAtivo');
+    if (error && !ProfissionalRepository.#isErroSchemaParcial(error)) {
+      this._throwDbError(error, 'buscarVinculoAtivo');
+    }
+    if (error) {
+      this._warn('buscarVinculoAtivo.fallback', error);
+      const fallback = await this._db
+        .from('professional_shop_links')
+        .select('barbershop_id')
+        .eq('professional_id', professionalId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+      if (fallback.error) {
+        this._warn('buscarVinculoAtivo.fallback.final', fallback.error);
+        return null;
+      }
+      return fallback.data;
+    }
     return data;
   }
 
@@ -450,8 +502,35 @@ class ProfissionalRepository extends BaseRepository {
       .eq('id', barbershopId)
       .eq('is_active', true)
       .maybeSingle();
-    if (error) this._throwDbError(error, 'buscarBarbeariaAtiva');
+    if (error && !ProfissionalRepository.#isErroSchemaParcial(error)) {
+      this._throwDbError(error, 'buscarBarbeariaAtiva');
+    }
+    if (error) {
+      this._warn('buscarBarbeariaAtiva.fallback', error);
+      const fallback = await this._db
+        .from('barbershops')
+        .select('id, owner_id, name, address, city, is_active')
+        .eq('id', barbershopId)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (fallback.error) {
+        this._warn('buscarBarbeariaAtiva.fallback.final', fallback.error);
+        return null;
+      }
+      return { ...fallback.data, state: null };
+    }
     return data;
+  }
+
+  static #isErroSchemaParcial(error) {
+    const code = String(error?.code ?? '');
+    const message = String(error?.message ?? error?.details ?? '');
+    return code === '42703'
+      || code === '42P01'
+      || code === 'PGRST204'
+      || code === 'PGRST200'
+      || /column .* does not exist/i.test(message)
+      || /could not find .* column/i.test(message);
   }
 }
 
