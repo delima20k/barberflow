@@ -178,6 +178,8 @@ class Router {
    * @param {string} tela — ID sem prefixo "tela-"
    */
   nav(tela) {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('Router.nav → ' + tela);
     // Se o menu estiver aberto, fecha pelo lado DIREITO em sincronia com a animação da página
     this._services.menu?.fecharParaDireita();
 
@@ -222,6 +224,8 @@ class Router {
    *  A aba sai pela esquerda; home sempre está visível por baixo.
    */
   voltar() {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('Router.voltar() de ' + this._telaAtual);
     if (this._telaAtual === 'inicio') return;
 
     const telaAtual = this._telaAtual;
@@ -245,6 +249,8 @@ class Router {
    * @param {string} tela
    */
   push(tela) {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('Router.push → ' + tela);
     // Se o menu estiver aberto, fecha pelo lado DIREITO em sincronia com a animação da página
     this._services.menu?.fecharParaDireita();
 

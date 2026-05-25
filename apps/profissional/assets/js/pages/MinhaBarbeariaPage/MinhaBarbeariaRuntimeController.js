@@ -87,6 +87,8 @@ export class MinhaBarbeariaRuntimeController {
     this.#cacheRefs();
     this.#bindEventos();
     this.#initSections();
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('bind — minha-barbearia montada');
 
     // Animação "dig" no sub-painel de GPS
     const digEl = document.getElementById('gps-dig');
@@ -562,6 +564,8 @@ export class MinhaBarbeariaRuntimeController {
   // ── Equipe da barbearia ─────────────────────────────────────
 
   #renderEquipe(barbeiros, ownerId, perfilDono = null, filaEntradas = []) {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('antes #renderEquipe');
     const donoWrap = this.#refs.equipeDonoWrap;
     const col      = this.#refs.equipeCol;
     const section  = document.getElementById('mb-equipe-section');
@@ -578,6 +582,8 @@ export class MinhaBarbeariaRuntimeController {
     const filaDonoId     = donoProf?.id ?? ownerId;
     const filaDonoEntradas = filaEntradas.filter(e => e.professional?.id === filaDonoId);
 
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('antes donoWrap.innerHTML = "" em #renderEquipe');
     donoWrap.innerHTML = '';
     donoWrap.appendChild(
       MinhaBarbeariaRuntimeController.#criarBarbeiroRow({
@@ -611,6 +617,8 @@ export class MinhaBarbeariaRuntimeController {
     }
 
     if (section) section.hidden = false;
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('depois #renderEquipe');
   }
 
   /**
@@ -679,6 +687,8 @@ export class MinhaBarbeariaRuntimeController {
    */
   async #reRenderEquipe() {
     if (!this.#barbershopId) return;
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('antes #reRenderEquipe');
 
     // Guard de concorrência: Realtime e fluxoFinalizar podem disparar ao mesmo tempo.
     // Se já há um render em curso, marca pendente e sai — ao fim do render atual
@@ -698,6 +708,8 @@ export class MinhaBarbeariaRuntimeController {
         CadeiraService.sincronizarFilas(this.#barbershopId),
       ]);
       this.#renderEquipe(barbeiros, this.#shopData?.owner_id ?? '', perfil, filaEntradas);
+      // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+      window.__debugBotaoVoltar?.('depois #reRenderEquipe — renderEquipe concluído');
     } catch (err) {
       LoggerService.warn('[MinhaBarbeariaPage] #reRenderEquipe erro:', err);
     } finally {
@@ -715,6 +727,8 @@ export class MinhaBarbeariaRuntimeController {
    * @param {string}     professionalId  UUID do barbeiro dono da cadeira
    */
   async #onCadeiraClick(tipo, ocupada, entrada, professionalId) {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('antes #onCadeiraClick tipo=' + tipo);
     if (!this.#isOwner) return;
 
     // ── Cadeira de produção em espera → verificar status ────
@@ -737,6 +751,8 @@ export class MinhaBarbeariaRuntimeController {
 
     // ── Cadeira vazia (produção ou fila) → sentar ────────────
     await this.#fluxoSentar(tipo, professionalId);
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('depois #onCadeiraClick tipo=' + tipo);
   }
 
   /**
@@ -745,6 +761,8 @@ export class MinhaBarbeariaRuntimeController {
    * @param {string} professionalId
    */
   async #fluxoSentar(tipo, professionalId) {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('antes #fluxoSentar tipo=' + tipo);
     // 1. Calcula IDs já sentados para excluir da modal
     let jaAssentados = new Set();
     try {
@@ -757,11 +775,15 @@ export class MinhaBarbeariaRuntimeController {
     } catch (_) { /* ignora — modal abre sem exclusões */ }
 
     // 2. Modal: carrega favoritos e busca internamente via API
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('modal aberto: ClienteSeletorModal');
     const clienteSel = await ClienteSeletorModal.abrir({
       barbershopId:   this.#barbershopId,
       professionalId,
       excluirIds:     jaAssentados,
     });
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('modal fechado: ClienteSeletorModal — clienteSel=' + (clienteSel ? 'ok' : 'cancelado'));
     if (!clienteSel) return;
 
     // 3a. Verificar se o cliente é mensalista ativo (silencioso — falha = não-mensalista)
@@ -778,6 +800,8 @@ export class MinhaBarbeariaRuntimeController {
     }
 
     // 3. Modal: selecionar cortes
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('modal aberto: CorteModal');
     const serviceIds = await CorteModal.abrir({
       servicos:             this.#servicos,
       clienteNome:          clienteSel.full_name,
@@ -785,6 +809,8 @@ export class MinhaBarbeariaRuntimeController {
       mensalistaFee,
       mensalistaCortesCount,
     });
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('modal fechado: CorteModal — serviceIds=' + (serviceIds ? 'ok' : 'cancelado'));
     if (!serviceIds) return;
 
     // Registra client como mensalista ativo desta sessão se escolheu Plano Mensal
@@ -808,6 +834,8 @@ export class MinhaBarbeariaRuntimeController {
         NotificationService.TIPOS.SISTEMA,
       );
       await this.#reRenderEquipe();
+      // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+      window.__debugBotaoVoltar?.('depois #fluxoSentar — cliente sentado');
     } catch (err) {
       LoggerService.error('[MinhaBarbeariaPage] erro ao sentar:', err);
       NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível sentar o cliente.', NotificationService.TIPOS.SISTEMA);
@@ -819,6 +847,8 @@ export class MinhaBarbeariaRuntimeController {
    * @param {object} entrada  queue_entry em in_service
    */
   async #fluxoFinalizar(entrada) {
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('antes #fluxoFinalizar');
     // Descobre o próximo na fila DO MESMO BARBEIRO para exibir na modal
     const profId = entrada?.professional?.id ?? null;
     let proximoNome = null;
@@ -831,7 +861,11 @@ export class MinhaBarbeariaRuntimeController {
     } catch (_) { /* ignora — modal mostra "Fila vazia" */ }
 
     const clienteNome = entrada?.client?.full_name ?? 'Cliente';
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('modal aberto: FinalizarCorteModal');
     const resultado   = await FinalizarCorteModal.abrir({ clienteNome, proximoNome });
+    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+    window.__debugBotaoVoltar?.('modal fechado: FinalizarCorteModal — confirmado=' + resultado.confirmado);
     if (!resultado.confirmado) return;
 
     try {
@@ -871,6 +905,8 @@ export class MinhaBarbeariaRuntimeController {
         : 'Fila vazia agora.';
       NotificationService.mostrarToast('Corte finalizado', msg, NotificationService.TIPOS.SISTEMA);
       await this.#reRenderEquipe();
+      // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+      window.__debugBotaoVoltar?.('depois #fluxoFinalizar — corte finalizado');
     } catch (err) {
       LoggerService.error('[MinhaBarbeariaPage] erro ao finalizar:', err);
       NotificationService.mostrarToast('Erro', err?.message ?? 'Não foi possível finalizar.', NotificationService.TIPOS.SISTEMA);
