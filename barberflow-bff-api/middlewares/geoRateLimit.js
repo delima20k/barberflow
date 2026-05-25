@@ -1,6 +1,6 @@
 'use strict';
 
-const GeoConfig = require('../../config/geo');
+const GeoConfig = require('../config/geo');
 
 // =============================================================
 // geoRateLimit — Middleware Express de rate-limit por userId.
