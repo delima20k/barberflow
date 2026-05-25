@@ -63,15 +63,30 @@ class FinanceiroCalculator {
     };
   }
 
-  calcularDashboard({ periodo, transacoes = [], transacoesAnteriores = [], agreements = [], profissionais = [], statusEquipe = {} }) {
+  calcularDashboard({ periodo, transacoes = [], transacoesAnteriores = [], agreements = [], profissionais = [], statusEquipe = {}, isOwner = false, viewerProfessionalId = null }) {
     const agreementMap = this.#agreementMap(agreements);
     const barbeiroMap = this.#barbeiroMap(profissionais, statusEquipe);
     const atual = this.#agregar(transacoes, agreementMap, barbeiroMap);
     const anterior = this.#agregar(transacoesAnteriores, agreementMap, barbeiroMap);
     const barbeiros = this.#barbeirosOrdenados(atual.barbeiros, anterior.barbeiros, barbeiroMap);
 
+    const lucroBarbeariaCard = isOwner
+      ? this.#cardMoney(atual.net, anterior.net)
+      : this.#cardMoney(atual.shop, anterior.shop);
+
+    let meuLucro = null;
+    if (!isOwner && viewerProfessionalId) {
+      const meuBarbeiro = atual.barbeiros.get(viewerProfessionalId);
+      const meuBarbeiroAnterior = anterior.barbeiros.get(viewerProfessionalId);
+      meuLucro = this.#cardMoney(
+        meuBarbeiro?.valorBarbeiro || Money.zero(),
+        meuBarbeiroAnterior?.valorBarbeiro || Money.zero(),
+      );
+    }
+
     return {
       periodo,
+      isOwner,
       comparativo: {
         receitaBruta: this.comparativo(atual.gross, anterior.gross),
         receitaLiquida: this.comparativo(atual.net, anterior.net),
@@ -81,7 +96,8 @@ class FinanceiroCalculator {
       cards: {
         receitaBruta: this.#cardMoney(atual.gross, anterior.gross),
         receitaLiquida: this.#cardMoney(atual.net, anterior.net),
-        lucroBarbearia: this.#cardMoney(atual.shop, anterior.shop),
+        lucroBarbearia: lucroBarbeariaCard,
+        meuLucro,
         totalCortes: this.#cardNumber(atual.cortes, anterior.cortes),
         totalBarbeiros: {
           total: barbeiroMap.size,

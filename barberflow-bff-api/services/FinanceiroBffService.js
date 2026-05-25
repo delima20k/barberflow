@@ -23,7 +23,9 @@ class FinanceiroBffService extends BaseService {
     this._uuid('barbershop_id', barbershopId);
 
     const periodo = this.#resolverPeriodo(filtros);
-    await this.#repo.verificarAcesso(userId, barbershopId);
+    const acesso = await this.#repo.verificarAcesso(userId, barbershopId);
+    const isOwner = acesso.papel === 'owner';
+    const viewerProfessionalId = isOwner ? null : userId;
 
     const periodoAnterior = {
       ...periodo,
@@ -48,6 +50,8 @@ class FinanceiroBffService extends BaseService {
       agreements,
       profissionais,
       statusEquipe,
+      isOwner,
+      viewerProfessionalId,
     });
   }
 

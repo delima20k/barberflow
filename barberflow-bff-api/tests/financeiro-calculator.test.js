@@ -69,6 +69,46 @@ test('FinanceiroCalculator calcula comparativos positivos, negativos e base zero
   assert.equal(calculator.comparativo(Money.zero(), Money.zero()), 0);
 });
 
+test('FinanceiroCalculator isOwner: lucroBarbearia = receitaLiquida (100%)', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'prof-dono', gross_amount: 500, amount: 480, payment_method: 'dinheiro', paid_at: '2026-05-10T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [{ professional_id: 'prof-dono', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [{ professionalId: 'prof-dono', nome: 'Dono', ativo: true }],
+    statusEquipe: { online: 1, onlineIds: ['prof-dono'] },
+    isOwner: true,
+  });
+
+  assert.equal(dashboard.isOwner, true);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 480);
+  assert.equal(dashboard.cards.meuLucro, null);
+});
+
+test('FinanceiroCalculator nao-dono: meuLucro = porcentagem do barbeiro viewer', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'prof-viewer', gross_amount: 500, amount: 480, payment_method: 'credito', paid_at: '2026-05-10T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [{ professional_id: 'prof-viewer', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [{ professionalId: 'prof-viewer', nome: 'Barbeiro', ativo: true }],
+    statusEquipe: {},
+    isOwner: false,
+    viewerProfessionalId: 'prof-viewer',
+  });
+
+  assert.equal(dashboard.isOwner, false);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 192);
+  assert.ok(dashboard.cards.meuLucro !== null);
+  assert.equal(dashboard.cards.meuLucro.total, 288);
+});
+
 test('FinanceiroCalculator valida periodo custom com de e ate', () => {
   const calculator = new FinanceiroCalculator();
   assert.throws(() => calculator.resolverPeriodo('custom'), /custom exige/);

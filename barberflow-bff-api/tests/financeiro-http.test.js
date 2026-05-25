@@ -166,8 +166,12 @@ suite('Financeiro BFF HTTP', () => {
     });
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
+    // USER_ID é owner da barbearia → lucroBarbearia = 100% da receitaLiquida
+    assert.equal(res.body.dados.isOwner, true);
     assert.equal(res.body.dados.cards.receitaBruta.total, 500);
-    assert.equal(res.body.dados.cards.lucroBarbearia.total, 192);
+    assert.equal(res.body.dados.cards.receitaLiquida.total, 480);
+    assert.equal(res.body.dados.cards.lucroBarbearia.total, 480);
+    assert.equal(res.body.dados.cards.meuLucro, null);
     assert.equal(res.body.dados.barbeiros[0].nome, 'Joao Premium');
   });
 
@@ -198,4 +202,45 @@ test('GET /dashboard retorna 403 sem vinculo com a barbearia', async () => {
   });
   await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
   assert.equal(res.status, 403);
+});
+
+test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acordo', async () => {
+  // FakeDb com owner_id diferente de USER_ID → papel = 'professional'
+  class FakeDbNaoOwner extends FakeDb {
+    from(table) {
+      const query = super.from(table);
+      if (table === 'barbershops') {
+        const orig = query.then.bind(query);
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: { id: SHOP_ID, owner_id: '00000000-0000-4000-8000-000000000000', is_active: true }, error: null }).then(resolve, reject);
+      }
+      if (table === 'transactions') {
+        // transacoes do próprio viewer (USER_ID) com 40% barbearia
+        const orig = query.then.bind(query);
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: [{ id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, amount: 480, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' }], error: null }).then(resolve, reject);
+      }
+      if (table === 'agreements') {
+        const orig = query.then.bind(query);
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: [{ professional_id: USER_ID, barbershop_id: SHOP_ID, type: 'percentage', value: 40, is_active: true }], error: null }).then(resolve, reject);
+      }
+      return query;
+    }
+  }
+
+  const app2 = criarApp(new FakeDbNaoOwner());
+  const server2 = await new Promise(resolve => {
+    const srv = app2.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port2 = server2.address().port;
+  const res = await request(port2, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=mes`, {
+    headers: { Authorization: `Bearer ${token()}` },
+  });
+  await new Promise((resolve, reject) => server2.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.dados.isOwner, false);
+  assert.equal(res.body.dados.cards.lucroBarbearia.total, 192);
+  assert.ok(res.body.dados.cards.meuLucro !== null);
+  assert.equal(res.body.dados.cards.meuLucro.total, 288);
 });

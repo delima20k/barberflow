@@ -182,20 +182,25 @@ class FinancasPage {
       return;
     }
 
-    this.#renderResumo(dados.cards, dados.comparativo);
+    this.#renderResumo(dados.cards, dados.isOwner ?? false);
     this.#renderGraficos(dados);
     this.#renderMetodos(dados.metodosPagamento || []);
     this.#renderStatusEquipe(dados.statusEquipe || dados.cards?.totalBarbeiros || {});
     this.#renderBarbeiros(dados.barbeiros || []);
   }
 
-  #renderResumo(cards) {
+  #renderResumo(cards, isOwner = false) {
     const el = this.#refs.resumo;
     if (!el) return;
+
+    const lucroPrincipalLabel = isOwner ? 'Lucro Total' : 'Meu Lucro';
+    const lucroPrincipalCard  = isOwner ? cards?.lucroBarbearia : (cards?.meuLucro ?? cards?.lucroBarbearia);
+    const lucroPrincipalIcon  = isOwner ? '100%' : 'ML';
+
     const items = [
       { label: 'Receita Bruta', valor: this.#moeda(cards?.receitaBruta?.total), meta: this.#variacao(cards?.receitaBruta?.variacaoPct), icon: 'R$' },
       { label: 'Receita Liquida', valor: this.#moeda(cards?.receitaLiquida?.total), meta: this.#variacao(cards?.receitaLiquida?.variacaoPct), icon: 'LQ' },
-      { label: 'Lucro Barbearia', valor: this.#moeda(cards?.lucroBarbearia?.total), meta: this.#variacao(cards?.lucroBarbearia?.variacaoPct), icon: 'LB' },
+      { label: lucroPrincipalLabel, valor: this.#moeda(lucroPrincipalCard?.total), meta: this.#variacao(lucroPrincipalCard?.variacaoPct), icon: lucroPrincipalIcon },
       { label: 'Total de Cortes', valor: this.#numero(cards?.totalCortes?.total), meta: this.#variacao(cards?.totalCortes?.variacaoPct), icon: '#' },
       {
         label: 'Total de Barbeiros',
