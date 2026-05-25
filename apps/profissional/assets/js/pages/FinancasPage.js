@@ -1,40 +1,25 @@
 'use strict';
 
 // =============================================================
-// FinancasPage.js — Tela "Finanças" do app profissional.
+// FinancasPage.js — Dashboard financeira profissional.
 //
-// Responsabilidades:
-//  • Dashboard com filtro de período (hoje/semana/mês/total).
-//  • Cards de resumo geral (total R$ + contagem de cortes).
-//  • Grid de barbeiros com totais individuais.
-//  • Clique em card de barbeiro → BarberFinanceModal (extrato).
-//  • Realtime via Supabase: atualiza automaticamente ao receber
-//    novo evento `barberflow:transacao-criada`.
-//
-// Dependências: FinanceiroService.js, BarberFinanceModal.js,
-//               BarbershopRepository.js, AuthService.js,
-//               SupabaseService.js, LoggerService.js
+// O frontend renderiza dados prontos da BFF. Calculos financeiros,
+// taxas e divisao barbeiro/barbearia ficam centralizados em
+// /api/v1/financeiro.
 // =============================================================
 
 class FinancasPage {
-
-  // ── Estado ────────────────────────────────────────────────
-  #telaEl          = null;
-  #periodoAtual    = 'hoje';
-  #shopId          = null;
+  #telaEl = null;
+  #periodoAtual = 'mes';
+  #customDe = null;
+  #customAte = null;
+  #shopId = null;
   #canalTransacoes = null;
-  #carregando      = false;
-  #resolvendo      = false;   // guard contra chamadas concorrentes a #resolverShopId
-  #dadosPorMetodo  = null;    // cache local do último breakdown
-  #refs            = {};
+  #carregando = false;
+  #resolvendo = false;
+  #dados = null;
+  #refs = {};
 
-  constructor() {}
-
-  // ══════════════════════════════════════════════════════════
-  // PÚBLICA
-  // ══════════════════════════════════════════════════════════
-
-  /** Chame uma vez após o DOM estar disponível. */
   bind() {
     this.#telaEl = document.getElementById('tela-financas');
     if (!this.#telaEl) return;
@@ -45,69 +30,78 @@ class FinancasPage {
 
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
-                    this.#telaEl.classList.contains('entrando-lento');
-      if (ativa) {
-        this.#aoEntrar();
-      } else {
-        this.#pararRealtime();
-      }
+        this.#telaEl.classList.contains('entrando-lento');
+      if (ativa) this.#aoEntrar();
+      else this.#pararRealtime();
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
-
-  // ══════════════════════════════════════════════════════════
-  // INICIALIZAÇÃO
-  // ══════════════════════════════════════════════════════════
 
   #cacheRefs() {
     const q = id => document.getElementById(id);
     this.#refs = {
-      resumo:    q('fin-resumo'),
+      resumo: q('fin-resumo'),
+      graficos: q('fin-graficos'),
+      metodos: q('fin-metodos'),
       barbeiros: q('fin-barbeiros'),
-      titulo:    q('fin-barbeiros-titulo'),
-      loading:   q('fin-loading'),
-      vazio:     q('fin-vazio'),
+      tituloBarbeiros: q('fin-barbeiros-titulo'),
+      statusEquipe: q('fin-status-equipe'),
+      loading: q('fin-loading'),
+      vazio: q('fin-vazio'),
+      erro: q('fin-erro'),
+      customWrap: q('fin-custom-wrap'),
+      dataDe: q('fin-data-de'),
+      dataAte: q('fin-data-ate'),
+      aplicarCustom: q('fin-aplicar-custom'),
     };
   }
 
   #bindFiltros() {
     this.#telaEl.querySelectorAll('.fin-btn-periodo').forEach(btn => {
-      // Estado inicial de acessibilidade
       btn.setAttribute('aria-pressed', btn.classList.contains('fin-btn-periodo--ativo') ? 'true' : 'false');
-
       btn.addEventListener('click', () => {
-        this.#telaEl.querySelectorAll('.fin-btn-periodo').forEach(b => {
-          b.classList.remove('fin-btn-periodo--ativo');
-          b.setAttribute('aria-pressed', 'false');
+        this.#periodoAtual = btn.dataset.periodo || 'mes';
+        this.#telaEl.querySelectorAll('.fin-btn-periodo').forEach(item => {
+          item.classList.toggle('fin-btn-periodo--ativo', item === btn);
+          item.setAttribute('aria-pressed', item === btn ? 'true' : 'false');
         });
-        btn.classList.add('fin-btn-periodo--ativo');
-        btn.setAttribute('aria-pressed', 'true');
-        this.#periodoAtual = btn.dataset.periodo;
-        if (this.#shopId) this.#carregar();
+        this.#alternarCustom(this.#periodoAtual === 'custom');
+        if (this.#periodoAtual !== 'custom' && this.#shopId) this.#carregar();
       });
     });
+
+    this.#refs.aplicarCustom?.addEventListener('click', () => {
+      const de = this.#refs.dataDe?.value || '';
+      const ate = this.#refs.dataAte?.value || '';
+      if (!de || !ate || de > ate) {
+        this.#mostrarErro('Selecione um intervalo personalizado valido.');
+        return;
+      }
+      this.#customDe = de;
+      this.#customAte = ate;
+      this.#carregar();
+    });
   }
 
-  /** Ouve evento disparado por FinanceiroService ao finalizar ou atualizar corte. */
   #bindTransacaoEvento() {
-    document.addEventListener('barberflow:transacao-criada', e => {
-      if (e.detail?.barbershopId === this.#shopId) this.#carregar();
+    document.addEventListener('barberflow:transacao-criada', event => {
+      if (event.detail?.barbershopId === this.#shopId) this.#carregar();
     });
-    document.addEventListener('barberflow:transacao-atualizada', e => {
-      if (e.detail?.barbershopId === this.#shopId) this.#carregar();
+    document.addEventListener('barberflow:transacao-atualizada', event => {
+      if (event.detail?.barbershopId === this.#shopId) this.#carregar();
     });
   }
-
-  // ══════════════════════════════════════════════════════════
-  // ENTRADA NA TELA
-  // ══════════════════════════════════════════════════════════
 
   async #aoEntrar() {
     if (!this.#shopId && !this.#resolvendo) {
       await this.#resolverShopId();
-      if (!this.#shopId) return;
+      if (!this.#shopId) {
+        this.#mostrarErro('Nao foi possivel identificar a barbearia vinculada.');
+        return;
+      }
     } else if (this.#resolvendo) {
       return;
     }
+
     await this.#carregar();
     this.#iniciarRealtime();
   }
@@ -118,7 +112,6 @@ class FinancasPage {
       const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
       if (!perfil?.id) return;
 
-      // 1. Tenta como dono da barbearia
       const { data: shopData, error: shopErr } = await ApiService.from('barbershops')
         .select('id')
         .eq('owner_id', perfil.id)
@@ -127,14 +120,11 @@ class FinancasPage {
         .single();
 
       if (shopErr && shopErr.code !== 'PGRST116') throw shopErr;
-
       if (shopData?.id) {
         this.#shopId = shopData.id;
         return;
       }
 
-      // 2. Barbeiro convidado: vínculo via professional_shop_links
-      //    (professionals não tem coluna barbershop_id)
       const { data: linkData, error: linkErr } = await ApiService.from('professional_shop_links')
         .select('barbershop_id')
         .eq('professional_id', perfil.id)
@@ -145,194 +135,333 @@ class FinancasPage {
       if (linkErr && linkErr.code !== 'PGRST116') throw linkErr;
       this.#shopId = linkData?.barbershop_id ?? null;
     } catch (err) {
-      LoggerService.warn('[FinancasPage] erro ao resolver shopId:', err?.message);
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn?.('[FinancasPage] erro ao resolver shopId:', err?.message);
+      }
     } finally {
       this.#resolvendo = false;
     }
   }
 
-  // ══════════════════════════════════════════════════════════
-  // CARGA E RENDER
-  // ══════════════════════════════════════════════════════════
-
   async #carregar() {
     if (this.#carregando || !this.#shopId) return;
+    if (this.#periodoAtual === 'custom' && (!this.#customDe || !this.#customAte)) return;
+
     this.#carregando = true;
     this.#mostrarLoading(true);
+    this.#mostrarErro('');
 
     try {
-      const [{ geral, barbeiros }, dadosPorMetodo] = await Promise.all([
-        FinanceiroService.getResumo(this.#shopId, this.#periodoAtual),
-        FinanceiroService.getResumoPorMetodoPagamento(this.#shopId, this.#periodoAtual),
-      ]);
+      const { data, error } = await BffApiService.financeiro.dashboard({
+        barbershopId: this.#shopId,
+        periodo: this.#periodoAtual,
+        de: this.#customDe,
+        ate: this.#customAte,
+      });
 
-      this.#dadosPorMetodo = dadosPorMetodo;
-      this.#renderResumoMetodos(dadosPorMetodo, geral);
-      this.#renderBarbeiros(barbeiros);
-      this.#mostrarVazio(!geral.count);
+      if (error) throw error;
+      this.#dados = data;
+      this.#render(data);
+      this.#mostrarVazio(!data?.cards?.totalCortes?.total);
     } catch (err) {
-      LoggerService.warn('[FinancasPage] erro ao carregar:', err?.message);
-      this.#mostrarVazio(true);
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn?.('[FinancasPage] erro ao carregar dashboard financeiro:', err?.message);
+      }
+      this.#render(null);
+      this.#mostrarErro('Nao foi possivel carregar os dados financeiros agora.');
+      this.#mostrarVazio(false);
     } finally {
       this.#carregando = false;
       this.#mostrarLoading(false);
     }
   }
 
-  #renderResumoMetodos({ credito, debito, pixDinheiro, totalGeral }, geral) {
+  #render(dados) {
+    if (!dados) {
+      this.#limpar();
+      return;
+    }
+
+    this.#renderResumo(dados.cards, dados.comparativo);
+    this.#renderGraficos(dados);
+    this.#renderMetodos(dados.metodosPagamento || []);
+    this.#renderStatusEquipe(dados.statusEquipe || dados.cards?.totalBarbeiros || {});
+    this.#renderBarbeiros(dados.barbeiros || []);
+  }
+
+  #renderResumo(cards) {
     const el = this.#refs.resumo;
     if (!el) return;
+    const items = [
+      { label: 'Receita Bruta', valor: this.#moeda(cards?.receitaBruta?.total), meta: this.#variacao(cards?.receitaBruta?.variacaoPct), icon: 'R$' },
+      { label: 'Receita Liquida', valor: this.#moeda(cards?.receitaLiquida?.total), meta: this.#variacao(cards?.receitaLiquida?.variacaoPct), icon: 'LQ' },
+      { label: 'Lucro Barbearia', valor: this.#moeda(cards?.lucroBarbearia?.total), meta: this.#variacao(cards?.lucroBarbearia?.variacaoPct), icon: 'LB' },
+      { label: 'Total de Cortes', valor: this.#numero(cards?.totalCortes?.total), meta: this.#variacao(cards?.totalCortes?.variacaoPct), icon: '#' },
+      {
+        label: 'Total de Barbeiros',
+        valor: this.#numero(cards?.totalBarbeiros?.total),
+        meta: `${this.#numero(cards?.totalBarbeiros?.online)} online · ${this.#numero(cards?.totalBarbeiros?.inativos)} inativos`,
+        icon: 'EQ',
+      },
+    ];
 
-    const fmtValor = v => `R$ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
+    el.innerHTML = items.map(item => `
+      <article class="fin-kpi-card">
+        <div class="fin-kpi-top">
+          <span class="fin-kpi-icon">${FinancasPage.#escapar(item.icon)}</span>
+          <span class="fin-kpi-meta ${this.#classeVariacao(item.meta)}">${item.meta}</span>
+        </div>
+        <p class="fin-kpi-label">${FinancasPage.#escapar(item.label)}</p>
+        <strong class="fin-kpi-value">${FinancasPage.#escapar(item.valor)}</strong>
+      </article>
+    `).join('');
+  }
 
-    el.innerHTML = `
-      <div class="fin-metodos-grid">
-        <div class="fin-card-metodo" data-metodo="credito">
-          <div class="fin-card-metodo-header">
-            <p class="fin-card-label">Crédito</p>
-            <button
-              class="btn-float fin-btn-menos-pct"
-              data-metodo="credito"
-              type="button"
-              aria-label="Aplicar taxa em Crédito"
-              title="Aplicar taxa da maquininha"
-            >Menos %</button>
+  #renderGraficos(dados) {
+    if (!this.#refs.graficos) return;
+    const series = dados.series || [];
+    const barbeiros = (dados.barbeiros || []).slice(0, 6);
+    const donut = dados.donut || [];
+
+    this.#refs.graficos.innerHTML = `
+      <section class="fin-chart-panel fin-chart-panel--wide">
+        <div class="fin-panel-head">
+          <div>
+            <p class="fin-eyebrow">Fluxo financeiro</p>
+            <h2>Faturamento do periodo</h2>
           </div>
-          <p class="fin-card-valor">${fmtValor(credito.total)}</p>
-          <p class="fin-card-meta">${credito.count} corte${credito.count !== 1 ? 's' : ''}</p>
+          <span class="fin-kpi-meta ${this.#classeVariacao(dados.comparativo?.receitaLiquida)}">${this.#variacao(dados.comparativo?.receitaLiquida)}</span>
         </div>
-        <div class="fin-card-metodo" data-metodo="debito">
-          <div class="fin-card-metodo-header">
-            <p class="fin-card-label">Débito</p>
-            <button
-              class="btn-float fin-btn-menos-pct"
-              data-metodo="debito"
-              type="button"
-              aria-label="Aplicar taxa em Débito"
-              title="Aplicar taxa da maquininha"
-            >Menos %</button>
+        ${this.#lineChart(series)}
+      </section>
+      <section class="fin-chart-panel">
+        <div class="fin-panel-head">
+          <div>
+            <p class="fin-eyebrow">Performance</p>
+            <h2>Receita por barbeiro</h2>
           </div>
-          <p class="fin-card-valor">${fmtValor(debito.total)}</p>
-          <p class="fin-card-meta">${debito.count} corte${debito.count !== 1 ? 's' : ''}</p>
         </div>
-        <div class="fin-card-metodo fin-card-metodo--pix">
-          <p class="fin-card-label">PIX &amp; Dinheiro</p>
-          <p class="fin-card-valor">${fmtValor(pixDinheiro.total)}</p>
-          <p class="fin-card-meta">${pixDinheiro.count} corte${pixDinheiro.count !== 1 ? 's' : ''}</p>
+        ${this.#barChart(barbeiros)}
+      </section>
+      <section class="fin-chart-panel">
+        <div class="fin-panel-head">
+          <div>
+            <p class="fin-eyebrow">Distribuicao</p>
+            <h2>Divisao financeira</h2>
+          </div>
         </div>
-        <div class="fin-card-metodo fin-card-metodo--total">
-          <p class="fin-card-label">Total Geral</p>
-          <p class="fin-card-valor fin-card-valor--destaque">${fmtValor(totalGeral)}</p>
-          <p class="fin-card-meta">${geral.count} corte${geral.count !== 1 ? 's' : ''}</p>
-        </div>
-      </div>`;
+        ${this.#donutChart(donut)}
+      </section>
+    `;
+  }
 
-    // Event delegation — evita rebind ao re-renderizar
-    el.querySelectorAll('.fin-btn-menos-pct').forEach(btn => {
+  #lineChart(series) {
+    if (!series.length) return '<div class="fin-chart-empty">Sem serie para o periodo.</div>';
+    const width = 620;
+    const height = 220;
+    const values = series.map(item => Number(item.receitaLiquida || 0));
+    const max = Math.max(...values, 1);
+    const points = values.map((value, index) => {
+      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+      const y = height - ((value / max) * (height - 28)) - 14;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const area = `0,${height} ${points} ${width},${height}`;
+
+    return `
+      <svg class="fin-line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafico de faturamento">
+        <defs>
+          <linearGradient id="finAreaGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#0f766e" stop-opacity="0.28"></stop>
+            <stop offset="100%" stop-color="#0f766e" stop-opacity="0"></stop>
+          </linearGradient>
+        </defs>
+        <polyline class="fin-line-grid" points="0,55 ${width},55"></polyline>
+        <polyline class="fin-line-grid" points="0,115 ${width},115"></polyline>
+        <polygon class="fin-line-area" points="${area}"></polygon>
+        <polyline class="fin-line-path" points="${points}"></polyline>
+      </svg>
+    `;
+  }
+
+  #barChart(barbeiros) {
+    if (!barbeiros.length) return '<div class="fin-chart-empty">Sem barbeiros no periodo.</div>';
+    const max = Math.max(...barbeiros.map(item => Number(item.receitaLiquida || 0)), 1);
+    return `
+      <div class="fin-bar-chart">
+        ${barbeiros.map(item => {
+          const pct = Math.max(3, (Number(item.receitaLiquida || 0) / max) * 100);
+          return `
+            <div class="fin-bar-row">
+              <span>${FinancasPage.#escapar(item.nome)}</span>
+              <div class="fin-bar-track"><i style="width:${pct.toFixed(1)}%"></i></div>
+              <strong>${this.#moeda(item.receitaLiquida)}</strong>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  #donutChart(donut) {
+    const total = donut.reduce((sum, item) => sum + Number(item.value || 0), 0);
+    if (!total) return '<div class="fin-chart-empty">Sem distribuicao financeira.</div>';
+    let start = 0;
+    const stops = donut.map(item => {
+      const pct = (Number(item.value || 0) / total) * 100;
+      const segment = `${item.color} ${start.toFixed(2)}% ${(start + pct).toFixed(2)}%`;
+      start += pct;
+      return segment;
+    }).join(', ');
+
+    return `
+      <div class="fin-donut-wrap">
+        <div class="fin-donut" style="background: conic-gradient(${stops})">
+          <span>${this.#moeda(total)}</span>
+        </div>
+        <div class="fin-donut-legend">
+          ${donut.map(item => `
+            <p><i style="background:${FinancasPage.#escapar(item.color)}"></i>${FinancasPage.#escapar(item.label)} <strong>${this.#moeda(item.value)}</strong></p>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  #renderMetodos(metodos) {
+    const el = this.#refs.metodos;
+    if (!el) return;
+    if (!metodos.length) {
+      el.innerHTML = '';
+      return;
+    }
+
+    el.innerHTML = metodos.map(item => `
+      <article class="fin-metodo-card">
+        <div>
+          <p>${FinancasPage.#escapar(item.label || item.metodo)}</p>
+          <strong>${this.#moeda(item.receitaLiquida)}</strong>
+          <span>${this.#numero(item.cortes)} cortes · ${this.#moeda(item.taxas)} taxas</span>
+        </div>
+        <button type="button" class="fin-taxa-btn" data-metodo="${FinancasPage.#escapar(item.metodo)}">Menos %</button>
+      </article>
+    `).join('');
+
+    el.querySelectorAll('.fin-taxa-btn').forEach(btn => {
       btn.addEventListener('click', () => this.#onMenosPercent(btn.dataset.metodo));
     });
   }
 
-  async #onMenosPercent(metodo) {
-    if (!this.#dadosPorMetodo || !this.#shopId) return;
-    const grupo     = metodo === 'credito' ? this.#dadosPorMetodo.credito : this.#dadosPorMetodo.debito;
-    const valorBruto = grupo.grossTotal;
+  #renderStatusEquipe(statusEquipe) {
+    const el = this.#refs.statusEquipe;
+    if (!el) return;
+    el.innerHTML = `
+      <span><strong>${this.#numero(statusEquipe.total)}</strong> barbeiros</span>
+      <span><strong>${this.#numero(statusEquipe.online)}</strong> trabalhando</span>
+      <span><strong>${this.#numero(statusEquipe.ativos)}</strong> ativos</span>
+      <span><strong>${this.#numero(statusEquipe.inativos)}</strong> inativos</span>
+    `;
+  }
 
-    const { confirmado, porcentagem } = await MenosPercentualModal.abrir({ metodo, valorBruto });
+  #renderBarbeiros(barbeiros) {
+    const el = this.#refs.barbeiros;
+    if (!el) return;
+    if (this.#refs.tituloBarbeiros) this.#refs.tituloBarbeiros.hidden = !barbeiros.length;
+
+    if (!barbeiros.length) {
+      el.innerHTML = '';
+      return;
+    }
+
+    el.innerHTML = barbeiros.map(barbeiro => {
+      const inicial = String(barbeiro.nome || '?').trim().charAt(0).toUpperCase() || '?';
+      const avatar = barbeiro.avatarUrl && /^https?:\/\//.test(barbeiro.avatarUrl)
+        ? `<img src="${FinancasPage.#escapar(barbeiro.avatarUrl)}" alt="">`
+        : FinancasPage.#escapar(inicial);
+      const status = barbeiro.status === 'online' ? 'trabalhando' : (barbeiro.ativo ? 'ativo' : 'inativo');
+      const semAcordo = !barbeiro.agreementConfigured;
+
+      return `
+        <article class="fin-barber-card" data-prof-id="${FinancasPage.#escapar(barbeiro.professionalId)}">
+          <div class="fin-barber-head">
+            <div class="fin-barber-avatar">${avatar}</div>
+            <div>
+              <h3>${FinancasPage.#escapar(barbeiro.nome)}</h3>
+              <p class="fin-status fin-status--${FinancasPage.#escapar(status)}">${FinancasPage.#escapar(status)}</p>
+            </div>
+            <span class="fin-growth ${Number(barbeiro.crescimentoPct) >= 0 ? 'positivo' : 'negativo'}">${this.#variacao(barbeiro.crescimentoPct)}</span>
+          </div>
+          ${semAcordo ? '<p class="fin-alerta-acordo">sem acordo configurado</p>' : ''}
+          <dl class="fin-barber-metrics">
+            <div><dt>Cortes</dt><dd>${this.#numero(barbeiro.cortes)}</dd></div>
+            <div><dt>Bruto</dt><dd>${this.#moeda(barbeiro.receitaBruta)}</dd></div>
+            <div><dt>Taxas</dt><dd>${this.#moeda(barbeiro.taxas)}</dd></div>
+            <div><dt>Liquido</dt><dd>${this.#moeda(barbeiro.receitaLiquida)}</dd></div>
+            <div><dt>Barbearia</dt><dd>${this.#numero(barbeiro.porcentagemBarbearia)}%</dd></div>
+            <div><dt>Barbeiro</dt><dd>${this.#numero(barbeiro.porcentagemBarbeiro)}%</dd></div>
+          </dl>
+          <div class="fin-split-result">
+            <p><span>Barbeiro recebe</span><strong>${this.#moeda(barbeiro.valorBarbeiro)}</strong></p>
+            <p><span>Barbearia recebe</span><strong>${this.#moeda(barbeiro.valorBarbearia)}</strong></p>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  async #onMenosPercent(metodo) {
+    if (!this.#shopId || !metodo || typeof MenosPercentualModal === 'undefined') return;
+    const { confirmado, porcentagem } = await MenosPercentualModal.abrir({ metodo, valorBruto: 0 });
     if (!confirmado || porcentagem === null) return;
 
     try {
-      await FinanceiroService.aplicarDescontoMetodo(
-        this.#shopId, this.#periodoAtual, metodo, porcentagem,
-      );
-      // barberflow:transacao-atualizada é despachado por aplicarDescontoMetodo → recarrega
+      const { error } = await BffApiService.financeiro.aplicarTaxaMetodo({
+        barbershopId: this.#shopId,
+        metodo,
+        porcentagem,
+        periodo: this.#periodoAtual,
+        de: this.#customDe,
+        ate: this.#customAte,
+      });
+      if (error) throw error;
+      await this.#carregar();
     } catch (err) {
-      LoggerService.warn('[FinancasPage] erro ao aplicar desconto:', err?.message);
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn?.('[FinancasPage] erro ao aplicar taxa:', err?.message);
+      }
       if (typeof NotificationService !== 'undefined') {
-        NotificationService.mostrarToast('Erro', 'Não foi possível aplicar a taxa. Tente novamente.', 'erro');
+        NotificationService.mostrarToast?.('Erro', 'Nao foi possivel aplicar a taxa.', 'erro');
       }
     }
   }
 
-  #renderBarbeiros(barbeiros) {
-    const el     = this.#refs.barbeiros;
-    const titulo = this.#refs.titulo;
-    if (!el) return;
-
-    if (!barbeiros.length) {
-      el.innerHTML = '';
-      if (titulo) titulo.hidden = true;
-      return;
-    }
-
-    if (titulo) titulo.hidden = false;
-
-    el.innerHTML = barbeiros.map(b => {
-      const inicial = String(b.nome ?? '?').trim().charAt(0).toUpperCase() || '?';
-      const total   = `R$ ${(Number(b.total) || 0).toFixed(2).replace('.', ',')}`;
-      return `
-        <button class="fin-barber-card"
-                data-prof-id="${FinancasPage.#escapar(b.professionalId)}"
-                data-prof-nome="${FinancasPage.#escapar(b.nome)}"
-                aria-label="Ver extrato de ${FinancasPage.#escapar(b.nome)}">
-          <div class="fin-barber-avatar" aria-hidden="true">${inicial}</div>
-          <div class="fin-barber-info">
-            <p class="fin-barber-nome">${FinancasPage.#escapar(b.nome)}</p>
-            <p class="fin-barber-meta">${b.count} corte${b.count !== 1 ? 's' : ''}</p>
-          </div>
-          <p class="fin-barber-total">${total}</p>
-          <span class="fin-barber-chevron" aria-hidden="true">›</span>
-        </button>`;
-    }).join('');
-
-    // Bind cliques em cards de barbeiro
-    el.querySelectorAll('.fin-barber-card').forEach(card => {
-      card.addEventListener('click', () => {
-        BarberFinanceModal.abrir({
-          professionalId:   card.dataset.profId,
-          professionalNome: card.dataset.profNome,
-          barbershopId:     this.#shopId,
-          periodo:          this.#periodoAtual,
-        }).catch(() => {});
-      });
-    });
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // REALTIME
-  // ══════════════════════════════════════════════════════════
-
   #iniciarRealtime() {
-    if (this.#canalTransacoes || !this.#shopId) return;
-
+    if (this.#canalTransacoes || !this.#shopId || typeof SupabaseService === 'undefined') return;
     try {
       this.#canalTransacoes = SupabaseService.channel(`financas:${this.#shopId}`)
-        .on(
-          'postgres_changes',
-          {
-            event:  'INSERT',
-            schema: 'public',
-            table:  'transactions',
-            filter: `barbershop_id=eq.${this.#shopId}`,
-          },
-          () => this.#carregar(),
-        )
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `barbershop_id=eq.${this.#shopId}`,
+        }, () => this.#carregar())
         .subscribe();
-    } catch (e) {
-      LoggerService.warn('[FinancasPage] Realtime indisponível:', e?.message);
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn?.('[FinancasPage] Realtime indisponivel:', err?.message);
+      }
     }
   }
 
   #pararRealtime() {
-    if (this.#canalTransacoes) {
-      try { SupabaseService.removeChannel(this.#canalTransacoes); } catch (_) {}
-      this.#canalTransacoes = null;
-    }
+    if (!this.#canalTransacoes) return;
+    try { SupabaseService.removeChannel(this.#canalTransacoes); } catch (_) {}
+    this.#canalTransacoes = null;
   }
 
-  // ══════════════════════════════════════════════════════════
-  // UI HELPERS
-  // ══════════════════════════════════════════════════════════
+  #alternarCustom(visivel) {
+    if (this.#refs.customWrap) this.#refs.customWrap.hidden = !visivel;
+  }
 
   #mostrarLoading(visivel) {
     if (this.#refs.loading) this.#refs.loading.hidden = !visivel;
@@ -340,6 +469,42 @@ class FinancasPage {
 
   #mostrarVazio(visivel) {
     if (this.#refs.vazio) this.#refs.vazio.hidden = !visivel;
+  }
+
+  #mostrarErro(mensagem) {
+    if (!this.#refs.erro) return;
+    this.#refs.erro.hidden = !mensagem;
+    this.#refs.erro.textContent = mensagem || '';
+  }
+
+  #limpar() {
+    ['resumo', 'graficos', 'metodos', 'statusEquipe', 'barbeiros'].forEach(key => {
+      if (this.#refs[key]) this.#refs[key].innerHTML = '';
+    });
+  }
+
+  #moeda(valor) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+      .format(Number(valor || 0));
+  }
+
+  #numero(valor) {
+    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 })
+      .format(Number(valor || 0));
+  }
+
+  #variacao(valor) {
+    const numero = Number(valor || 0);
+    const sinal = numero > 0 ? '+' : '';
+    return `${sinal}${this.#numero(numero)}%`;
+  }
+
+  #classeVariacao(valor) {
+    const texto = String(valor || '');
+    const numero = Number(texto.replace('%', '').replace('+', '').replace(',', '.'));
+    if (texto.includes('-') || numero < 0) return 'negativo';
+    if (texto.includes('+') || numero > 0) return 'positivo';
+    return 'neutro';
   }
 
   static #escapar(str) {

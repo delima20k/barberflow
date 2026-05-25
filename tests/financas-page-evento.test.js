@@ -1,64 +1,75 @@
 'use strict';
-/**
- * tests/financas-page-evento.test.js
- *
- * Testa o mecanismo de atualização da FinancasPage:
- *   - #bindTransacaoEvento chama #carregar quando barbershopId bate
- *   - #bindTransacaoEvento é silencioso quando barbershopId não bate
- *   - #carregando guard previne chamadas duplas simultâneas
- *   - Atualização via filtro de período recarrega dados
- */
 
-const { describe, test, beforeEach } = require('node:test');
+const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
-const vm     = require('node:vm');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const { fn, carregar } = require('./_helpers.js');
 
-const SHOP_ID  = 'aaaaaaaa-0000-4000-8000-000000000001';
-const PROF_ID  = 'bbbbbbbb-0000-4000-8000-000000000002';
+const SHOP_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
+const PROF_ID = 'bbbbbbbb-0000-4000-8000-000000000002';
 const SHOP_ID2 = 'cccccccc-0000-4000-8000-000000000003';
 
-// ── Sandbox factory ───────────────────────────────────────────────────────────
-
-/**
- * Cria uma instância de FinancasPage com #shopId já resolvido, simulando
- * o estado após #resolverShopId ter sido chamado.
- */
-function criarSandbox({ shopId = SHOP_ID, resumoRetorno = null } = {}) {
-  const eventListeners = {};
-  const chamadas = { carregar: 0 };
-
-  const resumoPadrao = {
-    geral:     { count: 2, total: 70 },
-    barbeiros: [{ professionalId: PROF_ID, nome: 'Barbeiro', count: 2, total: 70 }],
+function dashboardFixture(overrides = {}) {
+  return {
+    cards: {
+      receitaBruta: { total: 70, variacaoPct: 0 },
+      receitaLiquida: { total: 68, variacaoPct: 0 },
+      lucroBarbearia: { total: 27.2, variacaoPct: 0 },
+      totalCortes: { total: 2, variacaoPct: 0 },
+      totalBarbeiros: { total: 1, online: 0, inativos: 0 },
+      ...(overrides.cards || {}),
+    },
+    comparativo: { receitaLiquida: 0, ...(overrides.comparativo || {}) },
+    metodosPagamento: overrides.metodosPagamento || [],
+    barbeiros: overrides.barbeiros || [{
+      professionalId: PROF_ID,
+      nome: 'Barbeiro',
+      cortes: 2,
+      receitaLiquida: 68,
+      valorBarbeiro: 40.8,
+      valorBarbearia: 27.2,
+      porcentagemBarbearia: 40,
+      porcentagemBarbeiro: 60,
+      agreementConfigured: true,
+    }],
+    series: overrides.series || [],
+    donut: overrides.donut || [],
+    statusEquipe: overrides.statusEquipe || { total: 1, online: 0, ativos: 1, inativos: 0 },
   };
+}
+
+function elementoStub(id) {
+  return {
+    id,
+    hidden: false,
+    innerHTML: '',
+    textContent: '',
+    className: '',
+    style: {},
+    dataset: {},
+    querySelectorAll: fn().mockReturnValue([]),
+    querySelector: fn().mockReturnValue(null),
+    classList: {
+      contains: fn().mockReturnValue(false),
+      add: fn(),
+      remove: fn(),
+      toggle: fn(),
+    },
+    setAttribute: fn(),
+    addEventListener: fn(),
+  };
+}
+
+function criarSandbox({ shopId = SHOP_ID, retorno = dashboardFixture() } = {}) {
+  const eventListeners = {};
 
   const sandbox = vm.createContext({
     console,
-    // DOM mínimo para FinancasPage.bind()
+    Intl,
     document: {
-      getElementById: fn().mockImplementation(id => {
-        // Retorna elemento stub para qualquer ID conhecido
-        const el = {
-          id,
-          hidden: false,
-          innerHTML: '',
-          className: '',
-          style: {},
-          querySelectorAll: fn().mockReturnValue([]),
-          querySelector:    fn().mockReturnValue(null),
-          classList: {
-            contains: fn().mockReturnValue(false),
-            add: fn(),
-            remove: fn(),
-            toggle: fn(),
-          },
-          getAttribute: fn().mockReturnValue(null),
-          setAttribute: fn(),
-          addEventListener: fn(),
-        };
-        return el;
-      }),
+      getElementById: fn().mockImplementation(id => elementoStub(id)),
       addEventListener: fn().mockImplementation((tipo, cb) => {
         if (!eventListeners[tipo]) eventListeners[tipo] = [];
         eventListeners[tipo].push(cb);
@@ -68,194 +79,88 @@ function criarSandbox({ shopId = SHOP_ID, resumoRetorno = null } = {}) {
       constructor(cb) { this._cb = cb; }
       observe() {}
     },
-    // FinanceiroService mock
-    FinanceiroService: {
-      getResumo: fn().mockImplementation(async () => resumoRetorno ?? resumoPadrao),
+    BffApiService: {
+      financeiro: {
+        dashboard: fn().mockResolvedValue({ data: retorno, error: null }),
+        aplicarTaxaMetodo: fn().mockResolvedValue({ data: { aplicado: true }, error: null }),
+      },
     },
-    // BarberFinanceModal mock
-    BarberFinanceModal: {
-      abrir: fn().mockResolvedValue(undefined),
-    },
-    // AuthService mock — resolve perfil com id
-    AuthService: {
-      getPerfil: fn().mockReturnValue({ id: PROF_ID }),
-    },
-    // ApiService mock — resolve shopId de 'barbershops'
+    AuthService: { getPerfil: fn().mockReturnValue({ id: PROF_ID }) },
     ApiService: {
-      from: fn().mockImplementation(tabela => {
-        const builder = {
-          select:  fn().mockReturnThis(),
-          eq:      fn().mockImplementation(function () { return this; }),
-          limit:   fn().mockReturnThis(),
-          single:  fn().mockImplementation(() =>
-            Promise.resolve({ data: { id: shopId }, error: null })
-          ),
-        };
-        return builder;
-      }),
+      from: fn().mockImplementation(() => ({
+        select: fn().mockReturnThis(),
+        eq: fn().mockReturnThis(),
+        limit: fn().mockReturnThis(),
+        single: fn().mockResolvedValue({ data: { id: shopId }, error: null }),
+      })),
     },
-    // SupabaseService mock — evitar erro ao #iniciarRealtime
     SupabaseService: {
-      channel:       fn().mockReturnValue({ on: fn().mockReturnThis(), subscribe: fn() }),
+      channel: fn().mockReturnValue({ on: fn().mockReturnThis(), subscribe: fn() }),
       removeChannel: fn(),
     },
     LoggerService: { warn: fn(), error: fn(), info: fn() },
   });
 
   carregar(sandbox, 'apps/profissional/assets/js/pages/FinancasPage.js');
-
-  return { sandbox, eventListeners, chamadas };
+  return { sandbox, eventListeners };
 }
 
-// ── Helper: dispara evento customizado no sandbox ─────────────────────────────
-
-function dispararEvento(sandbox, eventListeners, tipo, detail) {
-  const handlers = eventListeners[tipo] ?? [];
-  const e = { type: tipo, detail };
-  handlers.forEach(h => h(e));
+function disparar(eventListeners, tipo, detail) {
+  for (const handler of eventListeners[tipo] || []) {
+    handler({ type: tipo, detail });
+  }
 }
 
-// ── describe: barberflow:transacao-criada ────────────────────────────────────────
-
-describe('FinancasPage — barberflow:transacao-criada', () => {
-
-  test('chama #carregar quando barbershopId bate', async () => {
-    const { sandbox, eventListeners } = criarSandbox({ shopId: SHOP_ID });
+describe('FinancasPage — eventos financeiros', () => {
+  test('ignora evento antes de resolver shopId', () => {
+    const { sandbox, eventListeners } = criarSandbox();
     const page = new sandbox.FinancasPage();
-
-    // Simula bind() sem DOM real — apenas registra os event listeners
-    // Invoca #bindTransacaoEvento diretamente via bind (chama bind normalmente)
-    // Como getElementById retorna stubs, bind não vai falhar
     page.bind();
 
-    // Força shopId via resolução (simula que o shopId já foi resolvido)
-    // Acessamos via hack: dispara #aoEntrar para popular #shopId internamente
-    // Na verdade, o listener é registrado em bind() sem depender de #shopId
-    // Então injetamos o shopId abrindo mão de privacidade (hack de teste)
-    // Alternativa limpa: disparamos o evento e verificamos se getResumo foi chamado
-
-    // Primeiro acesso à tela para resolver shopId
-    // Disparamos o evento DEPOIS de simular que #shopId está preenchido
-    // Para isso, chamamos #aoEntrar indiretamente: dispara 'barberflow:transacao-criada'
-    // com barbershopId = SHOP_ID após a página ter processado a entrada na tela.
-
-    // Simulação: a página já resolveu shopId (testamos o listener diretamente)
-    // Chamamos FinancasPage com um shopId pré-injetado via ApiService (já mocado para SHOP_ID)
-    // O listener verifica e.detail?.barbershopId === this.#shopId
-    // Como #shopId começa null, o listener ignorará ATÉ a tela entrar.
-    // Testamos o cenário em que a tela já entrou → simulamos via #aoEntrar callback.
-
-    // Acesso direto ao estado interno via observação de efeitos:
-    // após carregar a tela, verificamos se getResumo foi chamado
-    const getResumoBefore = sandbox.FinanceiroService.getResumo.calls.length;
-
-    // Dispara evento antes de resolver shopId — deve ser ignorado
-    dispararEvento(sandbox, eventListeners, 'barberflow:transacao-criada', { barbershopId: SHOP_ID });
-
-    // getResumo ainda não deve ter sido chamado (shopId é null inicialmente)
-    assert.equal(
-      sandbox.FinanceiroService.getResumo.calls.length,
-      getResumoBefore,
-      'não deve chamar getResumo antes de #shopId estar resolvido'
-    );
+    disparar(eventListeners, 'barberflow:transacao-criada', { barbershopId: SHOP_ID });
+    assert.equal(sandbox.BffApiService.financeiro.dashboard.calls.length, 0);
   });
 
-  test('não chama getResumo quando barbershopId é diferente', async () => {
-    const { sandbox, eventListeners } = criarSandbox({ shopId: SHOP_ID });
+  test('ignora evento de outra barbearia', () => {
+    const { sandbox, eventListeners } = criarSandbox();
     const page = new sandbox.FinancasPage();
     page.bind();
 
-    const chamadas = sandbox.FinanceiroService.getResumo.calls.length;
-
-    dispararEvento(sandbox, eventListeners, 'barberflow:transacao-criada', { barbershopId: SHOP_ID2 });
-
-    assert.equal(
-      sandbox.FinanceiroService.getResumo.calls.length,
-      chamadas,
-      'não deve chamar getResumo para barbearia diferente'
-    );
+    disparar(eventListeners, 'barberflow:transacao-criada', { barbershopId: SHOP_ID2 });
+    assert.equal(sandbox.BffApiService.financeiro.dashboard.calls.length, 0);
   });
 
-  test('não falha quando detail é null ou sem barbershopId', async () => {
-    const { sandbox, eventListeners } = criarSandbox({ shopId: SHOP_ID });
+  test('tolera detail ausente', () => {
+    const { sandbox, eventListeners } = criarSandbox();
     const page = new sandbox.FinancasPage();
     page.bind();
 
-    assert.doesNotThrow(() => {
-      dispararEvento(sandbox, eventListeners, 'barberflow:transacao-criada', null);
-    }, 'deve tolerar event.detail = null');
-
-    assert.doesNotThrow(() => {
-      dispararEvento(sandbox, eventListeners, 'barberflow:transacao-criada', {});
-    }, 'deve tolerar event.detail sem barbershopId');
+    assert.doesNotThrow(() => disparar(eventListeners, 'barberflow:transacao-criada', null));
+    assert.doesNotThrow(() => disparar(eventListeners, 'barberflow:transacao-criada', {}));
   });
 });
 
-// ── describe: guard de carregamento duplo ────────────────────────────────────────
-
-describe('FinancasPage — guard #carregando', () => {
-
-  test('getResumo chamado apenas uma vez em chamadas simultâneas', async () => {
-    const { sandbox } = criarSandbox({ shopId: SHOP_ID });
-
-    // Injeta um getResumo que demora (resolução assíncrona)
-    let resolverGetResumo;
-    sandbox.FinanceiroService.getResumo = fn().mockImplementation(() =>
-      new Promise(resolve => { resolverGetResumo = resolve; })
+describe('FinancasPage — contrato BFF', () => {
+  test('mantem guard #carregando para evitar cargas concorrentes', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
     );
-
-    const page = new sandbox.FinancasPage();
-    page.bind();
-
-    // Verifica se o guard evita chamadas duplicadas ao invocar #carregar diretamente
-    // Como não temos acesso a #carregar (privado), testamos via bind + cenário Realtime
-    // Verificamos que dois eventos seguidos não duplicam chamadas ao getResumo
-    // Esta verificação é possível apenas após shopId ser resolvido
-    // → Teste garantido na integração; aqui verificamos que a implementação
-    //   possui o campo #carregando lendo o source:
-    const src = require('node:fs').readFileSync(
-      require('node:path').resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
-      'utf8'
-    );
-    assert.ok(src.includes('#carregando'), 'FinancasPage deve ter field #carregando');
-    assert.ok(
-      src.includes('if (this.#carregando') || src.includes('if(this.#carregando'),
-      'deve verificar #carregando antes de carregar'
-    );
-
-    // Limpa resolução pendente
-    if (resolverGetResumo) resolverGetResumo({ geral: { count: 0, total: 0 }, barbeiros: [] });
-  });
-});
-
-// ── describe: FinanceiroService.getResumo — integração de dados ─────────────────
-
-describe('FinanceiroService.getResumo — integridade dos dados na página', () => {
-
-  test('geral.total é Number (não string)', async () => {
-    const { sandbox } = criarSandbox({
-      resumoRetorno: {
-        geral:     { count: 5, total: 175.5 },
-        barbeiros: [],
-      },
-    });
-
-    const resultado = await sandbox.FinanceiroService.getResumo(SHOP_ID, 'mes');
-    assert.equal(typeof resultado.geral.total, 'number', 'total deve ser number');
-    assert.equal(resultado.geral.total, 175.5, 'total deve ser 175.5');
+    assert.match(src, /#carregando/);
+    assert.match(src, /if \(this\.#carregando \|\| !this\.#shopId\)/);
   });
 
-  test('barbeiros.total é Number e arredondável', async () => {
+  test('dashboard retorna numeros prontos para renderizacao', async () => {
     const { sandbox } = criarSandbox({
-      resumoRetorno: {
-        geral: { count: 1, total: 55 },
-        barbeiros: [{ professionalId: PROF_ID, nome: 'Ana', count: 1, total: 55.0 }],
-      },
+      retorno: dashboardFixture({
+        cards: { receitaLiquida: { total: 175.5 } },
+        barbeiros: [{ professionalId: PROF_ID, nome: 'Ana', valorBarbeiro: 55 }],
+      }),
     });
 
-    const resultado = await sandbox.FinanceiroService.getResumo(SHOP_ID, 'semana');
-    const b = resultado.barbeiros[0];
-    assert.equal(typeof b.total, 'number', 'barbeiro.total deve ser number');
-    assert.equal(b.total.toFixed(2), '55.00', 'deve formatar corretamente');
+    const { data } = await sandbox.BffApiService.financeiro.dashboard({ barbershopId: SHOP_ID, periodo: 'mes' });
+    assert.equal(typeof data.cards.receitaLiquida.total, 'number');
+    assert.equal(data.cards.receitaLiquida.total, 175.5);
+    assert.equal(data.barbeiros[0].valorBarbeiro.toFixed(2), '55.00');
   });
 });

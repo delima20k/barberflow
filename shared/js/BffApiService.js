@@ -212,6 +212,34 @@ class BffApiService {
       ),
   };
 
+  // ── Namespace: financeiro ────────────────────────────────────
+
+  static financeiro = {
+    dashboard: ({ barbershopId, periodo = 'mes', de = null, ate = null } = {}) =>
+      BffApiService.get('/api/v1/financeiro/dashboard', {
+        barbershop_id: barbershopId,
+        periodo,
+        de,
+        ate,
+      }),
+
+    extratoBarbeiro: (barbershopId, professionalId, { periodo = 'mes', de = null, ate = null } = {}) =>
+      BffApiService.get(
+        `/api/v1/financeiro/barbeiros/${encodeURIComponent(professionalId)}/extrato`,
+        { barbershop_id: barbershopId, periodo, de, ate },
+      ),
+
+    aplicarTaxaMetodo: ({ barbershopId, metodo, porcentagem, periodo = 'mes', de = null, ate = null } = {}) =>
+      BffApiService.patch('/api/v1/financeiro/taxas-metodo', {
+        barbershop_id: barbershopId,
+        metodo,
+        porcentagem,
+        periodo,
+        de,
+        ate,
+      }),
+  };
+
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──
 
   /** @returns {string} URL base da BFF */

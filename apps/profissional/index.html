@@ -631,28 +631,35 @@
         <p class="parcerias-sub">Controle de ganhos, comissões e resumo financeiro.</p>
       </div>
 
-      <!-- Filtro de período -->
       <div id="fin-filtro" class="fin-filtro-wrap" role="group" aria-label="Filtro de período">
-        <button class="fin-btn-periodo fin-btn-periodo--ativo" data-periodo="hoje">Hoje</button>
+        <button class="fin-btn-periodo" data-periodo="hoje">Hoje</button>
+        <button class="fin-btn-periodo" data-periodo="ontem">Ontem</button>
         <button class="fin-btn-periodo" data-periodo="semana">Semana</button>
-        <button class="fin-btn-periodo" data-periodo="mes">Mês</button>
-        <button class="fin-btn-periodo" data-periodo="total">Total</button>
+        <button class="fin-btn-periodo fin-btn-periodo--ativo" data-periodo="mes">Mês</button>
+        <button class="fin-btn-periodo" data-periodo="ano">Ano</button>
+        <button class="fin-btn-periodo" data-periodo="custom">Personalizado</button>
+      </div>
+      <div id="fin-custom-wrap" class="fin-custom-wrap" hidden>
+        <label>De <input id="fin-data-de" type="date"></label>
+        <label>Até <input id="fin-data-ate" type="date"></label>
+        <button id="fin-aplicar-custom" type="button">Aplicar</button>
       </div>
 
-      <!-- Cards de resumo geral -->
       <div id="fin-resumo" class="fin-resumo-grid" aria-label="Resumo financeiro" aria-live="polite"></div>
+      <div id="fin-status-equipe" class="fin-status-equipe" aria-label="Status da equipe" aria-live="polite"></div>
+      <div id="fin-graficos" class="fin-graficos-grid" aria-label="Gráficos financeiros" aria-live="polite"></div>
+      <div id="fin-metodos" class="fin-metodos-grid" aria-label="Métodos de pagamento" aria-live="polite"></div>
 
-      <!-- Seção de barbeiros -->
       <h2 id="fin-barbeiros-titulo" class="fin-section-titulo" hidden>Equipe</h2>
       <div id="fin-barbeiros" class="fin-barbeiros-grid" aria-label="Totais por barbeiro" aria-live="polite"></div>
 
-      <!-- Estado de carregamento -->
       <div id="fin-loading" class="fin-loading" hidden aria-hidden="true">
+        <div class="fin-skel-card"></div>
         <div class="fin-skel-card"></div>
         <div class="fin-skel-card"></div>
       </div>
 
-      <!-- Estado vazio -->
+      <p id="fin-erro" hidden class="fin-erro-msg"></p>
       <p id="fin-vazio" hidden class="fin-vazio-msg">Nenhum corte registrado neste período.</p>
     </div>
   </main>
