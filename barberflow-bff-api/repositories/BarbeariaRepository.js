@@ -251,7 +251,7 @@ class BarbeariaRepository extends BaseRepository {
    * Exclui: o próprio dono, já vinculados à barbearia, com convite pendente.
    * @param {string} barbershopId
    * @param {string} ownerId
-   * @param {string} busca — filtro parcial por full_name (ILIKE)
+   * @param {string} busca — filtro parcial por full_name ou phone (ILIKE)
    * @param {number} limit
    * @returns {Promise<object[]>}
    */
@@ -279,13 +279,18 @@ class BarbeariaRepository extends BaseRepository {
       .from('profiles')
       .select('id, full_name, avatar_path, phone, updated_at')
       .eq('role', 'profissional')
-      .eq('pro_type', 'barbeiro')
+      // Inclui barbeiros legados (pro_type=null) registrados antes da migração de pro_type
+      .or('pro_type.eq.barbeiro,pro_type.is.null')
       .eq('is_active', true)
       .order('full_name', { ascending: true })
       .limit(limit + excluidos.size + 10);
 
     if (busca) {
-      query = query.ilike('full_name', `%${busca}%`);
+      // Remove vírgulas e parênteses para não quebrar o parser de filtro do PostgREST
+      const safe = busca.replace(/[,()]/g, '').trim();
+      if (safe) {
+        query = query.or(`full_name.ilike.%${safe}%,phone.ilike.%${safe}%`);
+      }
     }
 
     const { data, error } = await query;
