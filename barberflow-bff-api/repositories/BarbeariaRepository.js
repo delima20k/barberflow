@@ -1,6 +1,7 @@
 'use strict';
 
 const BaseRepository = require('./BaseRepository');
+const AppError       = require('../utils/AppError');
 
 /**
  * BarbeariaRepository — Repositório de barbearias para o BFF.
@@ -243,6 +244,104 @@ class BarbeariaRepository extends BaseRepository {
       this._throwDbError(error, 'getAtivaPorOwner');
     }
     return data ?? null;
+  }
+
+  /**
+   * Busca barbeiros elegíveis para convite da barbearia.
+   * Exclui: o próprio dono, já vinculados à barbearia, com convite pendente.
+   * @param {string} barbershopId
+   * @param {string} ownerId
+   * @param {string} busca — filtro parcial por full_name (ILIKE)
+   * @param {number} limit
+   * @returns {Promise<object[]>}
+   */
+  async buscarBarbeirosDisponiveis(barbershopId, ownerId, busca, limit) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('ownerId', ownerId);
+
+    const { data: linked } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+    const excluidos = new Set((linked ?? []).map(r => r.professional_id));
+
+    const { data: pending } = await this._db
+      .from('barbershop_invites')
+      .select('barbeiro_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'pendente');
+    (pending ?? []).forEach(r => excluidos.add(r.barbeiro_id));
+
+    excluidos.add(ownerId);
+
+    let query = this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path, phone, updated_at')
+      .eq('role', 'profissional')
+      .eq('pro_type', 'barbeiro')
+      .eq('is_active', true)
+      .order('full_name', { ascending: true })
+      .limit(limit + excluidos.size + 10);
+
+    if (busca) {
+      query = query.ilike('full_name', `%${busca}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) this._throwDbError(error, 'buscarBarbeirosDisponiveis');
+
+    return (data ?? []).filter(p => !excluidos.has(p.id)).slice(0, limit);
+  }
+
+  /**
+   * Envia convites em massa para barbeiros, re-verificando elegibilidade no servidor.
+   * @param {string}   barbershopId
+   * @param {string[]} professionalIds
+   * @param {number}   commissionPct
+   * @param {string}   message
+   * @returns {Promise<number>} quantidade de convites inseridos
+   */
+  async enviarConvites(barbershopId, professionalIds, commissionPct, message) {
+    this._uuid('barbershopId', barbershopId);
+
+    const { data: linked } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+
+    const { data: pending } = await this._db
+      .from('barbershop_invites')
+      .select('barbeiro_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'pendente');
+
+    const jaExcluidos = new Set([
+      ...(linked  ?? []).map(r => r.professional_id),
+      ...(pending ?? []).map(r => r.barbeiro_id),
+    ]);
+
+    const rows = professionalIds
+      .filter(id => !jaExcluidos.has(id))
+      .map(id => ({
+        barbershop_id:  barbershopId,
+        barbeiro_id:    id,
+        commission_pct: commissionPct,
+        message,
+        status:         'pendente',
+      }));
+
+    if (!rows.length) {
+      throw AppError.conflict('Nenhum barbeiro elegível para convite (já vinculados ou pendentes).');
+    }
+
+    const { error } = await this._db.from('barbershop_invites').insert(rows);
+    if (error) {
+      this._warn('enviarConvites', error);
+      this._throwDbError(error, 'enviarConvites');
+    }
+    return rows.length;
   }
 
   /**

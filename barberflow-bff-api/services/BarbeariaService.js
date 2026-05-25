@@ -109,6 +109,59 @@ class BarbeariaService extends BaseService {
     });
   }
 
+  /**
+   * Busca barbeiros elegíveis para convite da barbearia autenticada.
+   * @param {string} userId
+   * @param {string} busca
+   * @param {number} limit
+   * @returns {Promise<object[]>}
+   */
+  async buscarBarbeirosDisponiveis(userId, busca, limit) {
+    this._uuid('userId', userId);
+    const shop = await this.#repo.getAtivaPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
+    return this.#repo.buscarBarbeirosDisponiveis(shop.id, userId, busca, limit);
+  }
+
+  /**
+   * Envia convites em massa para barbeiros selecionados.
+   * @param {string} userId
+   * @param {object} dados
+   * @returns {Promise<{enviados: number}>}
+   */
+  async enviarConvites(userId, dados = {}) {
+    this._uuid('userId', userId);
+
+    const shop = await this.#repo.getAtivaPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
+
+    const { professional_ids: rawIds = [], proposal = {} } = dados;
+    if (!Array.isArray(rawIds) || !rawIds.length) {
+      throw AppError.badRequest('professional_ids é obrigatório e deve ter ao menos 1 item.');
+    }
+    rawIds.forEach(id => this._uuid('professional_ids[]', id));
+
+    const temPct  = proposal.commission_percentage != null;
+    const temRent = proposal.chair_rent_amount     != null;
+    if (!temPct && !temRent) {
+      throw AppError.badRequest('Informe commission_percentage ou chair_rent_amount.');
+    }
+    const valor = temPct ? Number(proposal.commission_percentage) : Number(proposal.chair_rent_amount);
+    if (!isFinite(valor) || valor <= 0) {
+      throw AppError.badRequest('Valor da proposta inválido.');
+    }
+    if (temPct && valor > 99) {
+      throw AppError.badRequest('Porcentagem máxima é 99%.');
+    }
+
+    const tipoLabel = temPct ? '[% dos Cortes]' : '[Aluguel de Cadeira]';
+    const notas     = this._texto('notes', String(proposal.notes ?? ''), 500, false);
+    const message   = notas ? `${tipoLabel} ${notas}` : tipoLabel;
+
+    const enviados = await this.#repo.enviarConvites(shop.id, rawIds, valor, message);
+    return { enviados };
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /**

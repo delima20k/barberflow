@@ -1,32 +1,41 @@
 'use strict';
 
-const sharp                  = require('sharp');
-const { BaseMediaStep }      = require('./BaseMediaStep');
-const { MediaPolicyCatalog } = require('../../../config/media');
+const { BaseMediaStep }          = require('./BaseMediaStep');
+const { ImageCompressionService } = require('../../../../src/media/ImageCompressionService');
 
 class ThumbnailStep extends BaseMediaStep {
-  async handle(input) {
-    if (input.metadata.mediaKind !== 'image') return input;
-    const variants = await Promise.all(['thumb_sm', 'thumb_md'].map(async (name) => {
-      const config = MediaPolicyCatalog.variant(name);
-      const bytes = await sharp(input.source.bytes)
-        .rotate()
-        .resize({ width: config.width, withoutEnlargement: true })
-        .webp({ quality: 78, effort: 4 })
-        .toBuffer();
-      return ThumbnailStep.#variant(input, name, bytes, 'image/webp', config.version, 'webp');
-    }));
-    return this._next(input, { variants: [...input.variants, ...variants] });
+  #compression;
+
+  constructor({ compression = new ImageCompressionService() } = {}) {
+    super();
+    this.#compression = compression;
   }
 
-  static #variant(input, name, bytes, contentType, version, ext) {
+  async handle(input) {
+    if (input.metadata.mediaKind !== 'image') return input;
+    const optimized = await this.#compression.compressVariants(input.source.bytes, {
+      contentType: input.source.contentType,
+      metadata: input.metadata,
+    });
+    const variants = optimized.variants.map((variant) => ThumbnailStep.#variant(input, variant));
+    return this._next(input, {
+      variants: [...input.variants, ...variants],
+      metadata: { blurPlaceholder: optimized.blurPlaceholder },
+    });
+  }
+
+  static #variant(input, variant) {
+    const version = variant.version ?? 1;
     return {
-      name,
+      name: variant.name,
       version,
-      bytes,
-      contentType,
-      sizeBytes: bytes.length,
-      path: `${input.context}/${input.mediaId}/${name}/v${version}/${input.mediaId}.${ext}`,
+      bytes: variant.data ?? variant.bytes,
+      contentType: variant.contentType,
+      sizeBytes: variant.sizeBytes ?? variant.bytes,
+      width: variant.width ?? null,
+      height: variant.height ?? null,
+      metadata: variant.metadata ?? {},
+      path: `${input.context}/${input.mediaId}/${variant.name}/v${version}/${input.mediaId}.webp`,
     };
   }
 }

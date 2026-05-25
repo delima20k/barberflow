@@ -62,6 +62,15 @@ create table if not exists public.professionals (
   bio          text,
   specialties  text[],
   avatar_path  text,
+  since_year   integer
+    constraint professionals_since_year_range_chk
+    check (
+      since_year is null
+      or (
+        since_year >= 1950
+        and since_year <= extract(year from current_date)::integer
+      )
+    ),
   is_active    boolean not null default true,
   rating_avg   numeric(3,2) not null default 0.00,
   rating_count int not null default 0,
@@ -71,6 +80,9 @@ create table if not exists public.professionals (
 
 comment on table public.professionals is
   'Perfil profissional. Vinculado a profiles. Especialidades em array para filtro rápido.';
+
+comment on column public.professionals.since_year is
+  'Ano desde quando o profissional corta cabelo. Exposto no perfil publico via BFF.';
 
 create index idx_professionals_active      on public.professionals(is_active);
 create index idx_professionals_specialties on public.professionals using gin(specialties);
@@ -4163,6 +4175,9 @@ create table if not exists public.media_variants (
   storage_path text not null,
   mime text not null,
   size_bytes integer not null check (size_bytes >= 0),
+  width integer check (width is null or width > 0),
+  height integer check (height is null or height > 0),
+  metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   unique (media_id, name, version)
 );

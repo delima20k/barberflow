@@ -1,0 +1,117 @@
+'use strict';
+
+const { suite, test } = require('node:test');
+const assert = require('node:assert/strict');
+
+const ProfissionalService = require('../services/ProfissionalService');
+
+const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000';
+const ADMIN_ID = '550e8400-e29b-41d4-a716-446655440001';
+const PRO_ID = '660e8400-e29b-41d4-a716-446655440001';
+const IMAGE_ID = '770e8400-e29b-41d4-a716-446655440002';
+
+function criarRepo(overrides = {}) {
+  return {
+    buscarRoleUsuario: async userId => (userId === ADMIN_ID ? 'admin' : 'client'),
+    listarPortfolioPublico: async () => ({
+      items: [{
+        id: IMAGE_ID,
+        title: 'Degrade baixo',
+        description: 'Finalizado na navalha',
+        category: 'degrade',
+        storage_path: 'images/original/pro-1.webp',
+        thumbnail_path: 'images/thumbs/pro-1.webp',
+        likes_count: 4,
+        views_count: 12,
+        is_featured: true,
+        updated_at: '2026-05-25T12:00:00Z',
+      }],
+      total: 1,
+    }),
+    atualizarPortfolioImagem: async (_userId, imageId, payload) => ({ id: imageId, ...payload }),
+    removerPortfolioImagem: async () => ({ deleted: true }),
+    ...overrides,
+  };
+}
+
+suite('ProfissionalService - portfolio publico', () => {
+  test('deve listar portfolio apenas para cliente ou admin autenticado', async () => {
+    const service = new ProfissionalService(criarRepo());
+
+    const dto = await service.listarPortfolioPublico(CLIENT_ID, PRO_ID, { limit: 12 });
+
+    assert.deepEqual(dto, {
+      items: [{
+        id: IMAGE_ID,
+        title: 'Degrade baixo',
+        description: 'Finalizado na navalha',
+        category: 'degrade',
+        storagePath: 'images/original/pro-1.webp',
+        thumbnailPath: 'images/thumbs/pro-1.webp',
+        likesCount: 4,
+        viewsCount: 12,
+        isFeatured: true,
+        updatedAt: '2026-05-25T12:00:00Z',
+      }],
+      total: 1,
+      limit: 12,
+      offset: 0,
+    });
+  });
+
+  test('deve bloquear profissional autenticado como nao cliente', async () => {
+    const service = new ProfissionalService(criarRepo({
+      buscarRoleUsuario: async () => 'professional',
+    }));
+
+    await assert.rejects(
+      () => service.listarPortfolioPublico(PRO_ID, PRO_ID, {}),
+      err => err.status === 403,
+    );
+  });
+
+  test('deve atualizar imagem do portfolio com allowlist', async () => {
+    const recebidos = [];
+    const service = new ProfissionalService(criarRepo({
+      atualizarPortfolioImagem: async (userId, imageId, payload) => {
+        recebidos.push({ userId, imageId, payload });
+        return { id: imageId, ...payload };
+      },
+    }));
+
+    const dto = await service.atualizarPortfolioImagem(PRO_ID, IMAGE_ID, {
+      title: 'Corte social',
+      description: 'Tesoura e acabamento',
+      category: 'social',
+      isFeatured: true,
+      owner_id: CLIENT_ID,
+    });
+
+    assert.deepEqual(recebidos[0], {
+      userId: PRO_ID,
+      imageId: IMAGE_ID,
+      payload: {
+        title: 'Corte social',
+        description: 'Tesoura e acabamento',
+        category: 'social',
+        is_featured: true,
+      },
+    });
+    assert.equal(dto.id, IMAGE_ID);
+  });
+
+  test('deve remover imagem validando owner no repository', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      removerPortfolioImagem: async (userId, imageId) => {
+        chamado = { userId, imageId };
+        return { deleted: true };
+      },
+    }));
+
+    const dto = await service.removerPortfolioImagem(PRO_ID, IMAGE_ID);
+
+    assert.deepEqual(chamado, { userId: PRO_ID, imageId: IMAGE_ID });
+    assert.deepEqual(dto, { deleted: true });
+  });
+});

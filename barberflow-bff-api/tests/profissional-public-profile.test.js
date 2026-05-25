@@ -1,0 +1,147 @@
+'use strict';
+
+const { suite, test } = require('node:test');
+const assert = require('node:assert/strict');
+
+const { Result } = require('../domain/shared/Result');
+const ProfissionalService = require('../services/ProfissionalService');
+
+const USER_ID = '550e8400-e29b-41d4-a716-446655440000';
+const PROF_ID = '660e8400-e29b-41d4-a716-446655440001';
+const SHOP_ID = '770e8400-e29b-41d4-a716-446655440002';
+const OWNER_ID = '880e8400-e29b-41d4-a716-446655440003';
+const CONV_ID = '990e8400-e29b-41d4-a716-446655440004';
+
+function criarRepo(overrides = {}) {
+  return {
+    buscarPerfilPublico: async () => ({
+      id: PROF_ID,
+      full_name: 'Joao Navalha',
+      avatar_path: 'avatars/joao.webp',
+      bio: 'Cortes classicos e degrade.',
+      rating_avg: 4.8,
+      rating_count: 42,
+      birth_date: '1998-05-12',
+      gender: 'masculino',
+      since_year: 2012,
+      barbershop_id: SHOP_ID,
+      barbershop_name: 'Barbearia Prime',
+      barbershop_address: 'Rua XPTO, 123',
+      barbershop_city: 'Sao Paulo',
+      barbershop_state: 'SP',
+      barbershop_owner_id: OWNER_ID,
+    }),
+    atualizarPerfilPublico: async (_userId, payload) => ({ id: _userId, ...payload }),
+    buscarContextoMensagem: async () => ({
+      professional_id: PROF_ID,
+      professional_name: 'Joao Navalha',
+      barbershop_id: SHOP_ID,
+      barbershop_name: 'Barbearia Prime',
+      owner_id: OWNER_ID,
+    }),
+    encontrarConversaDireta: async () => null,
+    criarConversaDireta: async () => CONV_ID,
+    ...overrides,
+  };
+}
+
+suite('ProfissionalService - perfil publico', () => {
+  test('deve montar DTO publico completo do barbeiro', async () => {
+    const service = new ProfissionalService(criarRepo(), { execute: async () => Result.ok({}) });
+
+    const dto = await service.buscarPerfilPublico(PROF_ID);
+
+    assert.deepEqual(dto, {
+      id: PROF_ID,
+      fullName: 'Joao Navalha',
+      avatarPath: 'avatars/joao.webp',
+      bio: 'Cortes classicos e degrade.',
+      ratingAvg: 4.8,
+      ratingCount: 42,
+      birthDate: '1998-05-12',
+      gender: 'masculino',
+      sinceYear: 2012,
+      barbershop: {
+        id: SHOP_ID,
+        name: 'Barbearia Prime',
+        address: 'Rua XPTO, 123',
+        city: 'Sao Paulo',
+        state: 'SP',
+        ownerId: OWNER_ID,
+      },
+    });
+  });
+
+  test('deve retornar 404 quando barbeiro nao existe', async () => {
+    const service = new ProfissionalService(
+      criarRepo({ buscarPerfilPublico: async () => null }),
+      { execute: async () => Result.ok({}) },
+    );
+
+    await assert.rejects(
+      () => service.buscarPerfilPublico(PROF_ID),
+      err => err.status === 404,
+    );
+  });
+
+  test('deve validar sinceYear entre 1950 e ano atual', async () => {
+    const service = new ProfissionalService(criarRepo(), { execute: async () => Result.ok({}) });
+
+    await assert.rejects(
+      () => service.atualizarPerfilPublico(USER_ID, { sinceYear: 1949 }),
+      err => err.status === 400,
+    );
+  });
+
+  test('deve atualizar sinceYear, birthDate e gender com allowlist', async () => {
+    const recebidos = [];
+    const service = new ProfissionalService(
+      criarRepo({
+        atualizarPerfilPublico: async (userId, payload) => {
+          recebidos.push({ userId, payload });
+          return { id: userId, ...payload };
+        },
+      }),
+      { execute: async () => Result.ok({}) },
+      { now: () => new Date('2026-05-25T12:00:00Z') },
+    );
+
+    const resultado = await service.atualizarPerfilPublico(USER_ID, {
+      sinceYear: 2015,
+      birthDate: '1998-05-12',
+      gender: 'masculino',
+      role: 'admin',
+    });
+
+    assert.deepEqual(recebidos[0], {
+      userId: USER_ID,
+      payload: { since_year: 2015, birth_date: '1998-05-12', gender: 'masculino' },
+    });
+    assert.deepEqual(resultado, { sinceYear: 2015, birthDate: '1998-05-12', gender: 'masculino' });
+  });
+
+  test('deve criar conversa com dono da barbearia e enviar mensagem inicial', async () => {
+    const envios = [];
+    const service = new ProfissionalService(
+      criarRepo(),
+      {
+        execute: async command => {
+          envios.push(command);
+          return Result.ok({ id: 'msg-1', conversationId: command.conversationId });
+        },
+      },
+      { uuid: () => 'client-message-id-1' },
+    );
+
+    const resultado = await service.iniciarMensagemBarbearia(USER_ID, PROF_ID);
+
+    assert.strictEqual(resultado.conversationId, CONV_ID);
+    assert.deepEqual(envios[0], {
+      conversationId: CONV_ID,
+      senderId: USER_ID,
+      clientMessageId: 'client-message-id-1',
+      body: 'Cliente interessado no barbeiro Joao Navalha',
+      attachments: [],
+    });
+  });
+});

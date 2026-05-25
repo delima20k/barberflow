@@ -104,14 +104,19 @@ describe('MetadataExtractStep', () => {
 });
 
 describe('ThumbnailStep', () => {
-  it('gera thumb_sm e thumb_md versionadas para imagem', async () => {
+  it('gera presets globais thumb, medium e full versionados para imagem', async () => {
     const buffer = await pngBuffer();
     const step = new ThumbnailStep();
 
     const result = await step.handle(makeInput(buffer, { metadata: { mediaKind: 'image' } }));
 
-    assert.deepEqual(result.variants.map((variant) => variant.name), ['thumb_sm', 'thumb_md']);
-    assert.match(result.variants[0].path, /thumb_sm\/v1\//);
+    assert.deepEqual(result.variants.map((variant) => variant.name), ['thumb', 'medium', 'full']);
+    assert.match(result.variants[0].path, /\/thumb\/v1\//);
+    assert.equal(result.variants[0].contentType, 'image/webp');
+    assert.ok(result.variants[0].width <= 300);
+    assert.ok(result.variants[1].width <= 900);
+    assert.ok(result.variants[2].width <= 1600);
+    assert.equal(result.variants[0].metadata.mimeType, 'image/webp');
   });
 });
 

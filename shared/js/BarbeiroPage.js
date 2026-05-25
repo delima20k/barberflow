@@ -21,6 +21,10 @@ class BarbeiroPage {
   #telaEl    = null;
   #barberoId = null;   // UUID do barbeiro atual
   #isOwner   = false;  // true se for o dono do salão
+  #sinceInfo = null;
+  #publicInfo = null;
+  #workplaceInfo = null;
+  #portfolioGallery = null;
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
@@ -102,9 +106,26 @@ class BarbeiroPage {
       badge:      q('#beiro-badge'),
       rating:     q('#beiro-rating'),
       bio:        q('#beiro-bio'),
+      since:      q('#beiro-since'),
+      publicInfo: q('#beiro-public-info'),
+      workplace:  q('#beiro-workplace'),
+      portfolio:  q('#beiro-portfolio'),
       favBtn:     q('#beiro-fav-btn'),
       likeBtn:    q('#beiro-like-btn'),
     };
+
+    this.#sinceInfo = typeof BarberSinceInfo !== 'undefined'
+      ? new BarberSinceInfo(this.#refs.since)
+      : null;
+    this.#publicInfo = typeof BarberPublicProfileInfo !== 'undefined'
+      ? new BarberPublicProfileInfo(this.#refs.publicInfo)
+      : null;
+    this.#workplaceInfo = typeof BarberWorkplaceInfo !== 'undefined'
+      ? new BarberWorkplaceInfo(this.#refs.workplace, () => this.#iniciarMensagemBarbearia())
+      : null;
+    this.#portfolioGallery = typeof PortfolioGallery !== 'undefined'
+      ? new PortfolioGallery(this.#refs.portfolio)
+      : null;
   }
 
   /**
@@ -131,11 +152,16 @@ class BarbeiroPage {
   // ══════════════════════════════════════════════════════════
 
   #renderizar(profile) {
+    profile = BarbeiroPage.#normalizarPerfil(profile);
     this.#renderAvatar(profile);
+    this.#sinceInfo?.render(profile);
     this.#renderNome(profile);
     this.#renderBadge();
+    this.#publicInfo?.render(profile);
     this.#renderRating(profile);
     this.#renderBio(profile);
+    this.#workplaceInfo?.render(profile);
+    this.#portfolioGallery?.load(profile.id);
     this.#renderFavBtn(profile);
     this.#renderLikeBtn(profile);
     this.#mostrarConteudo();
@@ -250,12 +276,66 @@ class BarbeiroPage {
    */
   static async #fetchPerfil(id) {
     try {
+      if (typeof BffApiService !== 'undefined' && BffApiService.profissionais?.perfilPublico) {
+        const { data, error } = await BffApiService.profissionais.perfilPublico(id);
+        if (!error && data) return BarbeiroPage.#normalizarPerfil(data);
+      }
       return await BarbershopRepository.getBarberById(id);
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[BarbeiroPage] erro ao buscar perfil:', err?.message ?? err);
       }
       return null;
+    }
+  }
+
+  static #normalizarPerfil(profile = {}) {
+    return {
+      ...profile,
+      full_name: profile.full_name ?? profile.fullName,
+      avatar_path: profile.avatar_path ?? profile.avatarPath,
+      rating_avg: profile.rating_avg ?? profile.ratingAvg,
+      rating_count: profile.rating_count ?? profile.ratingCount,
+      birth_date: profile.birth_date ?? profile.birthDate,
+      since_year: profile.since_year ?? profile.sinceYear,
+    };
+  }
+
+  async #iniciarMensagemBarbearia() {
+    if (!this.#barberoId || typeof BffApiService === 'undefined') return null;
+    const btn = this.#refs.workplace?.querySelector('.beiro-workplace-message');
+    try {
+      if (btn) btn.disabled = true;
+      const { data, error } = await BffApiService.profissionais.iniciarMensagemBarbearia(this.#barberoId);
+      if (error) throw error;
+
+      const router = (typeof App !== 'undefined' && App)
+                  || (typeof Pro !== 'undefined' && Pro)
+                  || null;
+      if (router?.nav) router.nav('mensagens');
+
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Mensagem enviada',
+          'A barbearia recebeu seu interesse por este barbeiro.',
+          NotificationService.TIPOS.SUCESSO || NotificationService.TIPOS.ENGAJAMENTO,
+        );
+      }
+      return data;
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[BarbeiroPage] falha ao iniciar mensagem da barbearia:', err?.message ?? err);
+      }
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Nao foi possivel abrir a conversa',
+          err?.message || 'Tente novamente em instantes.',
+          NotificationService.TIPOS.ERRO || NotificationService.TIPOS.ALERTA,
+        );
+      }
+      return null;
+    } finally {
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -269,6 +349,10 @@ class BarbeiroPage {
     if (this.#refs.badge)      { this.#refs.badge.textContent   = ''; this.#refs.badge.hidden = true; }
     if (this.#refs.rating)     { this.#refs.rating.textContent  = ''; }
     if (this.#refs.bio)        { this.#refs.bio.textContent     = ''; this.#refs.bio.hidden = true; }
+    this.#sinceInfo?.reset();
+    this.#publicInfo?.reset();
+    this.#workplaceInfo?.reset();
+    this.#portfolioGallery?.reset();
     if (this.#refs.favBtn) {
       this.#refs.favBtn.dataset.professionalId = '';
       this.#refs.favBtn.classList.remove('ativo');

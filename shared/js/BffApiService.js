@@ -242,6 +242,9 @@ class BffApiService {
         buffer,
         mime,
       ),
+
+    salvarImagemServico: (buffer, mime) =>
+      BffApiService.patchBinario('/api/v1/barbearias/minha/servicos/imagem', buffer, mime),
   };
 
   // ── Namespace: financeiro ────────────────────────────────────

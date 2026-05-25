@@ -5,6 +5,12 @@ const MediaTelemetry = require('./MediaTelemetry');
 const MediaValidator = require('./MediaValidator');
 const { CompressionError } = require('./MediaErrors');
 
+const IMAGE_PRESETS = Object.freeze({
+  thumb: Object.freeze({ name: 'thumb', maxWidth: 300, quality: 62 }),
+  medium: Object.freeze({ name: 'medium', maxWidth: 900, quality: 76 }),
+  full: Object.freeze({ name: 'full', maxWidth: 1600, quality: 82 }),
+});
+
 class PhotoCompressionStrategy {
   async compress(buffer, { signal, maxWidth = 1600, quality = 78 } = {}) {
     this.#throwIfAborted(signal);
@@ -105,8 +111,87 @@ class ImageCompressionService {
     }
   }
 
+  async compressVariants(buffer, { contentType = 'image/jpeg', metadata = {}, signal = null, presets = IMAGE_PRESETS } = {}) {
+    this.#validator.validateBuffer(buffer);
+    this.#throwIfAborted(signal);
+    const selected = this.#validator.detectImageStrategy({ buffer, contentType, metadata });
+    if (selected === 'animated') {
+      throw new CompressionError('Imagens animadas devem usar pipeline especifico para preservar frames.', {
+        status: 415,
+        code: 'ANIMATED_IMAGE_VARIANTS_UNSUPPORTED',
+      });
+    }
+
+    const presetList = Object.values(presets);
+    const stage = this.#telemetry.start('image.variants', { inputBytes: buffer.length, contentType, presets: presetList.length });
+    try {
+      const [variants, blurPlaceholder] = await Promise.all([
+        Promise.all(presetList.map((preset) => this.#compressPreset(buffer, preset, signal))),
+        this.#blurPlaceholder(buffer, signal),
+      ]);
+      const outputBytes = variants.reduce((total, variant) => total + variant.bytes, 0);
+      stage.end({ outputBytes, outputFormat: 'webp' });
+      return {
+        variants,
+        blurPlaceholder,
+        strategy: selected,
+        originalBytes: buffer.length,
+        contentType: 'image/webp',
+      };
+    } catch (err) {
+      const wrapped = err instanceof CompressionError
+        ? err
+        : new CompressionError('Falha ao gerar variantes otimizadas.', { cause: err });
+      stage.fail(wrapped);
+      throw wrapped;
+    }
+  }
+
   getMetrics() {
     return this.#telemetry.snapshot();
+  }
+
+  async #compressPreset(buffer, preset, signal) {
+    this.#throwIfAborted(signal);
+    const { data, info } = await sharp(buffer)
+      .rotate()
+      .withMetadata(false)
+      .resize({ width: preset.maxWidth, height: preset.maxWidth, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: preset.quality, effort: 4, smartSubsample: true })
+      .toBuffer({ resolveWithObject: true });
+    this.#throwIfAborted(signal);
+    return {
+      name: preset.name,
+      data,
+      bytes: data.length,
+      sizeBytes: data.length,
+      contentType: 'image/webp',
+      format: 'webp',
+      width: info.width ?? null,
+      height: info.height ?? null,
+      maxWidth: preset.maxWidth,
+      quality: preset.quality,
+      metadata: {
+        width: info.width ?? null,
+        height: info.height ?? null,
+        size: data.length,
+        mimeType: 'image/webp',
+        preset: preset.name,
+      },
+    };
+  }
+
+  async #blurPlaceholder(buffer, signal) {
+    this.#throwIfAborted(signal);
+    const data = await sharp(buffer)
+      .rotate()
+      .withMetadata(false)
+      .resize({ width: 24, height: 24, fit: 'inside', withoutEnlargement: true })
+      .blur(1)
+      .webp({ quality: 34, effort: 3 })
+      .toBuffer();
+    this.#throwIfAborted(signal);
+    return `data:image/webp;base64,${data.toString('base64')}`;
   }
 
   #throwIfAborted(signal) {
@@ -115,6 +200,7 @@ class ImageCompressionService {
 }
 
 module.exports = {
+  IMAGE_PRESETS,
   ImageCompressionService,
   PhotoCompressionStrategy,
   ScreenshotCompressionStrategy,

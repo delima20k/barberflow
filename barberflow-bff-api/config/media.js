@@ -13,6 +13,9 @@ class MediaPolicyCatalog {
 
   static #VARIANTS = Object.freeze({
     original:   Object.freeze({ version: 1 }),
+    thumb:      Object.freeze({ version: 1, width: 300, quality: 62 }),
+    medium:     Object.freeze({ version: 1, width: 900, quality: 76 }),
+    full:       Object.freeze({ version: 1, width: 1600, quality: 82 }),
     thumb_sm:   Object.freeze({ version: 1, width: 240 }),
     thumb_md:   Object.freeze({ version: 1, width: 720 }),
     video_480p: Object.freeze({ version: 1, height: 480 }),

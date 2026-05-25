@@ -284,13 +284,30 @@ class BackendApiService {
    */
   static async uploadBinario(path, buffer, { method = 'POST', contentType = 'application/octet-stream' } = {}) {
     const jwt = BackendApiService.#jwt();
+    const upload = await BackendApiService.#prepareBinaryUpload(buffer, contentType);
     return fetch(`${BackendApiService.#BASE_URL}${path}`, {
       method,
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': upload.contentType,
         ...(jwt ? { 'Authorization': `Bearer ${jwt}` } : {}),
       },
-      body: buffer,
+      body: upload.buffer,
     });
+  }
+
+  static async #prepareBinaryUpload(buffer, contentType) {
+    const mime = String(contentType ?? '').toLowerCase();
+    const canCompress = mime.startsWith('image/')
+      && typeof ImageCompressionService !== 'undefined'
+      && typeof ImageCompressionService.compress === 'function';
+    if (!canCompress) return { buffer, contentType };
+    const compressed = await ImageCompressionService.compress(buffer, {
+      contentType: mime,
+      preset: 'FULL',
+    });
+    return {
+      buffer: compressed.buffer,
+      contentType: compressed.contentType || mime,
+    };
   }
 }

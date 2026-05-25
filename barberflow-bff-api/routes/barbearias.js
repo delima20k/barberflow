@@ -1,8 +1,10 @@
 'use strict';
 
-const { Router }          = require('express');
+const express             = require('express');
+const { Router }          = express;
 const BarbeariaRepository = require('../repositories/BarbeariaRepository');
 const BarbeariaService    = require('../services/BarbeariaService');
+const BarbeariaMediaService = require('../services/BarbeariaMediaService');
 const BarbeariaController = require('../controllers/BarbeariaController');
 const AuthMiddleware      = require('../middlewares/auth');
 
@@ -11,14 +13,20 @@ const AuthMiddleware      = require('../middlewares/auth');
 module.exports = function criarBarbeariaRoute(db) {
   const repo = new BarbeariaRepository(db);
   const svc  = new BarbeariaService(repo);
-  const ctrl = new BarbeariaController(svc);
+  const mediaSvc = new BarbeariaMediaService(repo);
+  const ctrl = new BarbeariaController(svc, mediaSvc);
 
   const router = Router();
+  const rawImage = express.raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '6mb' });
 
   // ── Rotas ─────────────────────────────────────────────────────
   // ATENÇÃO: /destaque e /todas devem vir ANTES de /:id para evitar
   // conflito de parâmetro dinâmico (Express resolve em ordem de registro).
-  router.patch('/minha/endereco', AuthMiddleware.verificar, ctrl.salvarEndereco.bind(ctrl));
+  router.patch('/minha/endereco',                           AuthMiddleware.verificar, ctrl.salvarEndereco.bind(ctrl));
+  router.patch('/minha/imagem',                             AuthMiddleware.verificar, rawImage, ctrl.salvarImagem.bind(ctrl));
+  router.patch('/minha/servicos/imagem',                    AuthMiddleware.verificar, rawImage, ctrl.salvarImagemServico.bind(ctrl));
+  router.get('/minha/convites/barbeiros-disponiveis',       AuthMiddleware.verificar, ctrl.buscarBarbeirosDisponiveis.bind(ctrl));
+  router.post('/minha/convites',                            AuthMiddleware.verificar, ctrl.enviarConvites.bind(ctrl));
   router.get('/destaque', ctrl.destaque.bind(ctrl));
   router.get('/todas',    ctrl.todas.bind(ctrl));
   router.get('/',         ctrl.proximas.bind(ctrl));

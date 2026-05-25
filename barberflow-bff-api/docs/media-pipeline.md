@@ -13,8 +13,11 @@
 | Nome | Versao | Origem |
 |---|---|---|
 | `original` | `v1` | fonte validada |
-| `thumb_sm` | `v1` | imagem WebP ate 240px |
-| `thumb_md` | `v1` | imagem WebP ate 720px |
+| `thumb` | `v1` | imagem WebP ate 300px |
+| `medium` | `v1` | imagem WebP ate 900px |
+| `full` | `v1` | imagem WebP ate 1600px |
+| `thumb_sm` | `v1` | variante legada, mantida apenas para compatibilidade |
+| `thumb_md` | `v1` | variante legada, mantida apenas para compatibilidade |
 | `video_480p` | `v1` | porta de transcode de video |
 | `video_720p` | `v1` | porta de transcode de video |
 
@@ -36,7 +39,7 @@ O snapshot fica disponivel pelo objeto `MediaPipeline.metrics` para exposicao fu
 
 ## Custo e retencao
 
-- Storage cresce por original + thumbnails; imagens comuns ficam em tres objetos, com thumbnails WebP menores que a fonte.
+- Storage cresce por fonte + variantes otimizadas; imagens comuns ficam em `thumb`, `medium` e `full` WebP, com metadados de largura, altura, tamanho e MIME no banco.
 - CDN deve servir thumbnails em listas e original apenas em detalhe; conteudo privado usa URL assinada com expiracao.
 - Reservas `reserved` e `uploaded` com mais de 24h sao candidatas a orphan GC.
 - Objetos fonte podem ser removidos depois que `original` e variantes publicadas forem validados.

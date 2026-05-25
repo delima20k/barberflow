@@ -119,12 +119,19 @@ class PerfilEditor {
       masculino: 'Masculino', feminino: 'Feminino',
       outro: 'Outro', nao_informar: 'Prefiro não informar',
     })[v] || v);
+    PerfilEditor._setVal('pi-since_year', dados?.since_year ?? dados?.sinceYear, v => `Desde ${v}`);
     PerfilEditor._setVal('pi-zip_code',   dados?.zip_code,   v => v);
+
+    if (!dados?.since_year && !dados?.sinceYear && dados?.id && typeof BffApiService !== 'undefined') {
+      BffApiService.profissionais.perfilPublico(dados.id).then(({ data }) => {
+        if (data?.sinceYear) PerfilEditor._setVal('pi-since_year', data.sinceYear, v => `Desde ${v}`);
+      }).catch(() => {});
+    }
   }
 
   /** Reseta a lista ao fazer logout. */
   static limpar() {
-    ['pi-address', 'pi-birth_date', 'pi-gender', 'pi-zip_code'].forEach(id => {
+    ['pi-address', 'pi-birth_date', 'pi-gender', 'pi-since_year', 'pi-zip_code'].forEach(id => {
       const valEl = document.getElementById(id);
       if (!valEl) return;
       valEl.textContent = '—';
@@ -169,6 +176,13 @@ class PerfilEditor {
         if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
         inp.value = v;
       });
+    } else if (campo === 'since_year') {
+      inp.type        = 'number';
+      inp.inputMode   = 'numeric';
+      inp.min         = '1950';
+      inp.max         = String(new Date().getFullYear());
+      inp.placeholder = '1998';
+      inp.value       = valorAtual;
     } else {
       inp.type        = 'text';
       inp.placeholder = 'Digite aqui...';
@@ -298,12 +312,20 @@ class PerfilEditor {
     }
 
     // Atualiza exibição imediatamente (optimistic UI)
+    if (campo === 'since_year') {
+      const year = Number(novoValor);
+      const currentYear = new Date().getFullYear();
+      if (!Number.isInteger(year) || year < 1950 || year > currentYear) return;
+      valorParaSalvar = String(year);
+    }
+
     PerfilEditor._setVal(valEl.id, valorParaSalvar, v => {
       if (campo === 'birth_date') return PerfilEditor._formatarDataLonga(v);
       if (campo === 'gender') {
         return { masculino: 'Masculino', feminino: 'Feminino',
                  outro: 'Outro', nao_informar: 'Prefiro não informar' }[v] || v;
       }
+      if (campo === 'since_year') return `Desde ${v}`;
       return v;
     });
 
@@ -312,7 +334,14 @@ class PerfilEditor {
     try {
       const user = await SupabaseService.getUser();
       if (user?.id) {
-        await ProfileRepository.update(user.id, { [campo]: valorParaSalvar });
+        if (campo === 'since_year' && typeof BffApiService !== 'undefined') {
+          const { error } = await BffApiService.profissionais.atualizarMeuPerfilPublico({
+            sinceYear: Number(valorParaSalvar),
+          });
+          if (error) throw error;
+        } else {
+          await ProfileRepository.update(user.id, { [campo]: valorParaSalvar });
+        }
         SessionCache.salvarExtras(user.id, { [campo]: valorParaSalvar });
       }
     } catch (err) {

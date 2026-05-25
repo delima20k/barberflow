@@ -25,6 +25,7 @@ const _qb = () => {
     lte:     () => q,
     order:   () => q,
     limit:   () => Promise.resolve({ data: [], error: null }),
+    single:  () => Promise.resolve({ data: { id: 'shop-1', owner_id: '00000000-0000-4000-8000-000000000001', is_active: true }, error: null }),
   };
   return q;
 };
@@ -349,13 +350,13 @@ suite('BarbeariaController — GET /api/v1/barbearias/destaque (fallback SELECT_
 });
 
 suite('BarbeariaController - PATCH /api/v1/barbearias/minha/imagem', () => {
-  test('nao expoe mais upload binario legado', async () => {
+  test('expoe upload binario pela BFF e valida imagem invalida', async () => {
     const { status, body } = await patchBinario(
       '/api/v1/barbearias/minha/imagem?tipo=logo',
       Buffer.from('legacy-bytes'),
     );
 
-    assert.strictEqual(status, 404);
+    assert.strictEqual(status, 400);
     assert.strictEqual(body.ok, false);
   });
 });

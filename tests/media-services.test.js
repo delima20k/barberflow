@@ -128,6 +128,20 @@ describe('ImageCompressionService', () => {
       /cancelada/,
     );
   });
+
+  it('deve gerar presets globais THUMB, MEDIUM e FULL com metadados', async () => {
+    const service = new ImageCompressionService();
+    const result = await service.compressVariants(await criarPng(1800, 1200), {
+      contentType: 'image/png',
+    });
+
+    assert.deepEqual(result.variants.map((variant) => variant.name), ['thumb', 'medium', 'full']);
+    assert.equal(result.variants[0].contentType, 'image/webp');
+    assert.ok(result.variants[0].width <= 300);
+    assert.ok(result.variants[1].width <= 900);
+    assert.ok(result.variants[2].width <= 1600);
+    assert.ok(result.blurPlaceholder.startsWith('data:image/webp;base64,'));
+  });
 });
 
 describe('VideoProcessor', () => {

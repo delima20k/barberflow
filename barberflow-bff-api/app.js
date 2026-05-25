@@ -44,6 +44,7 @@ const { SentryClient }            = require('./observability/SentryClient');
 const healthRoute    = require('./routes/health');
 const healthzRoute   = require('./routes/healthz');
 const barbeariaRoute = require('./routes/barbearias');
+const profissionalRoute = require('./routes/profissionais');
 const clienteRoute   = require('./routes/clientes');
 const clienteBffRoute = require('./routes/clienteBff');
 const authRoute             = require('./routes/auth');
@@ -56,6 +57,7 @@ const mediaRoute            = require('./routes/media');
 const feedRoute             = require('./routes/feed');
 const chatRoute             = require('./routes/chat');
 const schedulerRoute        = require('./routes/scheduler');
+const conviteProRoute       = require('./routes/convites-pro');
 const SupabaseClient         = require('./utils/SupabaseClient');
 
 /**
@@ -122,6 +124,7 @@ function criarApp(db = null) {
   const v1Router = express.Router();
   v1Router.use('/health',        healthRoute);
   v1Router.use('/barbearias',    barbeariaRoute(_db));
+  v1Router.use('/profissionais',  profissionalRoute(_db));
   v1Router.use('/clientes',      clienteRoute(_db));
   v1Router.use('/cliente',       clienteBffRoute);
   v1Router.use('/notificacoes',  notificacoesRoute);
@@ -132,6 +135,7 @@ function criarApp(db = null) {
   v1Router.use('/feed',          AbuseMiddleware.forHttp(), feedRoute(_db));
   v1Router.use('/chat',          AbuseMiddleware.forHttp(), chatRoute(_db));
   v1Router.use('/scheduler',     schedulerRoute(_db));
+  v1Router.use('/profissionais', conviteProRoute(_db));
   app.use('/api/v1', v1Router);
 
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.

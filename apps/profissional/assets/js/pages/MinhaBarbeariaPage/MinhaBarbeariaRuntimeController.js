@@ -37,8 +37,9 @@ export class MinhaBarbeariaRuntimeController {
   #gpsPanelEl      = null;   // mb-gps-panel
   #convitePanelEl  = null;   // mb-convite-panel
   #subTelaAtiva    = null;   // sub-painel aberto no momento
-  #conviteBarbeiroId = null;
-  #conviteTipo       = 'porcentagem';
+  #conviteBarbeiroId            = null;
+  #conviteBarbelrosSelecionados = new Set();
+  #conviteTipo                  = 'porcentagem';
   #carregou             = false;
   #barbershopId         = null;
   #isOwner              = false;  // true se o usuário é dono da barbearia
@@ -1663,6 +1664,7 @@ export class MinhaBarbeariaRuntimeController {
 
   #resetarConvite() {
     this.#conviteBarbeiroId = null;
+    this.#conviteBarbelrosSelecionados.clear();
     this.#conviteTipo = 'porcentagem';
     if (this.#refs.conviteInput)    this.#refs.conviteInput.value = '';
     if (this.#refs.conviteResultado) this.#refs.conviteResultado.innerHTML = '';
@@ -1682,57 +1684,76 @@ export class MinhaBarbeariaRuntimeController {
   }
 
   async #buscarBarbeiro() {
-    const query = this.#refs.conviteInput?.value?.trim();
+    const query = this.#refs.conviteInput?.value?.trim() ?? '';
     const el    = this.#refs.conviteResultado;
     if (!el || !query) return;
 
-    el.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);padding:8px 0;">Buscando\u2026</p>';
+    el.innerHTML = '<p class="mb-convite-msg-info">Buscando…</p>';
+    this.#conviteBarbelrosSelecionados.clear();
 
-    try {
-      const { data, error } = await SupabaseService.client
-        .from('profiles')
-        .select('id, full_name, avatar_path, updated_at')
-        .ilike('full_name', `%${query}%`)
-        .eq('role', 'profissional')
-        .limit(8);
+    const { data, error } = await BffApiService.get(
+      '/api/v1/barbearias/minha/convites/barbeiros-disponiveis',
+      { busca: query, limit: 20 },
+    );
 
-      if (error) throw error;
+    el.innerHTML = '';
+    if (error) {
+      el.innerHTML = '<p class="mb-convite-msg-erro">Erro ao buscar. Tente novamente.</p>';
+      return;
+    }
+    if (!data?.length) {
+      el.innerHTML = '<p class="mb-convite-msg-info">Nenhum barbeiro disponível.</p>';
+      return;
+    }
 
-      el.innerHTML = '';
-      if (!data?.length) {
-        el.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);padding:8px 0;">Nenhum barbeiro encontrado.</p>';
-        return;
+    data.forEach(p => {
+      const item = document.createElement('label');
+      item.className  = 'mb-convite-barb-card mb-convite-barb-card--check';
+      item.dataset.id = p.id;
+
+      const chk = document.createElement('input');
+      chk.type      = 'checkbox';
+      chk.className = 'mb-convite-barb-chk';
+      chk.value     = p.id;
+      chk.addEventListener('change', () => this.#toggleBarbeiroSelecionado(p.id, chk.checked));
+
+      const avatarEl = document.createElement('div');
+      avatarEl.className = 'mb-convite-barb-avatar';
+      if (p.avatar_path) {
+        const img   = document.createElement('img');
+        img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
+        img.alt     = p.full_name ?? '';
+        img.loading = 'lazy';
+        img.onerror = () => { avatarEl.textContent = '💈'; };
+        avatarEl.appendChild(img);
+      } else {
+        avatarEl.textContent = '💈';
       }
 
-      data.forEach(p => {
-        const item = document.createElement('div');
-        item.className   = 'mb-convite-barb-card';
-        item.dataset.id  = p.id;
+      const info = document.createElement('div');
+      info.className = 'mb-convite-barb-info';
+      const tel = InputValidator.sanitizar(p.phone ?? '');
+      info.innerHTML =
+        `<p class="mb-convite-barb-nome">${InputValidator.sanitizar(p.full_name ?? '')}</p>` +
+        (tel ? `<p class="mb-convite-barb-id">${tel}</p>` : '');
 
-        const avatarEl = document.createElement('div');
-        avatarEl.className = 'mb-convite-barb-avatar';
-        if (p.avatar_path) {
-          const img   = document.createElement('img');
-          img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
-          img.alt     = p.full_name ?? '';
-          img.loading = 'lazy';
-          img.onerror = () => { avatarEl.textContent = '💈'; };
-          avatarEl.appendChild(img);
-        } else {
-          avatarEl.textContent = '💈';
-        }
+      item.appendChild(chk);
+      item.appendChild(avatarEl);
+      item.appendChild(info);
+      el.appendChild(item);
+    });
+  }
 
-        const info = document.createElement('div');
-        info.innerHTML = `<p class="mb-convite-barb-nome">${InputValidator.sanitizar(p.full_name ?? '')}</p>`;
-
-        item.appendChild(avatarEl);
-        item.appendChild(info);
-        item.addEventListener('click', () => this.#selecionarBarbeiro(p.id));
-        el.appendChild(item);
-      });
-    } catch {
-      el.innerHTML = '<p style="font-size:.8rem;color:var(--danger);padding:8px 0;">Erro ao buscar. Tente novamente.</p>';
+  #toggleBarbeiroSelecionado(id, checked) {
+    if (checked) {
+      this.#conviteBarbelrosSelecionados.add(id);
+    } else {
+      this.#conviteBarbelrosSelecionados.delete(id);
     }
+    const tem = this.#conviteBarbelrosSelecionados.size > 0;
+    if (this.#refs.conviteTipoSecao)  this.#refs.conviteTipoSecao.hidden  = !tem;
+    if (this.#refs.conviteCondSecao)  this.#refs.conviteCondSecao.hidden  = !tem;
+    if (this.#refs.conviteEnviarSec)  this.#refs.conviteEnviarSec.hidden  = !tem;
   }
 
   #atualizarBarbeiroSelecionado(cardEl) {
@@ -1787,16 +1808,16 @@ export class MinhaBarbeariaRuntimeController {
   }
 
   async #enviarConvite() {
-    if (!this.#conviteBarbeiroId || !this.#barbershopId) return;
+    const ids = [...this.#conviteBarbelrosSelecionados];
+    if (!ids.length) return;
 
     const feedbackEl = this.#refs.conviteFeedback;
     const btn        = this.#refs.conviteBtnEnviar;
 
     const tipo = this.#conviteTipo;
-    const pct  = tipo === 'porcentagem' ? Number(this.#refs.convitePct?.value  || 0) : null;
+    const pct  = tipo === 'porcentagem' ? Number(this.#refs.convitePct?.value    || 0) : null;
     const rent = tipo === 'cadeira'     ? Number(this.#refs.conviteAluguel?.value || 0) : null;
 
-    // Validação: campo obrigatório não pode ser zero
     const valorInvalido = (tipo === 'porcentagem' && (pct  <= 0 || pct  > 99))
                        || (tipo === 'cadeira'     && (rent <= 0));
     if (valorInvalido) {
@@ -1810,39 +1831,35 @@ export class MinhaBarbeariaRuntimeController {
     }
 
     if (btn) btn.disabled = true;
-    const msgTexto  = this.#refs.conviteMsgTexto?.value?.trim() || null;
-    const tipoLabel = tipo === 'cadeira' ? '[Aluguel de Cadeira]' : '[% dos Cortes]';
-    const mensagem  = msgTexto ? `${tipoLabel} ${msgTexto}` : tipoLabel;
+    if (feedbackEl) feedbackEl.textContent = '';
 
-    try {
-      const { error } = await SupabaseService.client
-        .from('barbershop_invites')
-        .insert({
-          barbershop_id:  this.#barbershopId,
-          barbeiro_id:    this.#conviteBarbeiroId,
-          commission_pct: pct ?? rent,
-          message:        mensagem,
-          status:         'pendente',
-        });
+    const notas    = this.#refs.conviteMsgTexto?.value?.trim() || '';
+    const proposal = tipo === 'porcentagem'
+      ? { commission_percentage: pct,  notes: notas }
+      : { chair_rent_amount:     rent, notes: notas };
 
-      if (error) throw error;
+    const { error } = await BffApiService.post(
+      '/api/v1/barbearias/minha/convites',
+      { professional_ids: ids, proposal },
+    );
 
-      if (feedbackEl) {
-        feedbackEl.textContent = '\u2705 Convite enviado com sucesso!';
-        feedbackEl.style.color = 'var(--success, #3caf6a)';
-      }
-      if (typeof NotificationService !== 'undefined') {
-        NotificationService.mostrarToast('Convite enviado! \ud83d\udce9', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
-      }
-      this.#conviteBarbeiroId = null;
-    } catch {
+    if (btn) btn.disabled = false;
+
+    if (error) {
       if (feedbackEl) {
         feedbackEl.textContent = 'Erro ao enviar. Tente novamente.';
         feedbackEl.style.color = 'var(--danger, #e05050)';
       }
-    } finally {
-      if (btn) btn.disabled = false;
+      return;
     }
+
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast(
+        'Convite(s) enviado(s)! 📩', '',
+        NotificationService.TIPOS?.SISTEMA ?? 'sistema',
+      );
+    }
+    this.#resetarConvite();
   }
 
   #preencherConfigPanel(shop, servicos) {
@@ -2014,13 +2031,14 @@ export class MinhaBarbeariaRuntimeController {
 
       // ── Upload direto ao Supabase Storage (bucket barbershops/services/) ────
       if (uid && this.#mediaP2P.temPendente(uid)) {
-        const file        = this.#mediaP2P.getFile(uid);
-        const ext         = file.name.split('.').pop().toLowerCase();
-        const storagePath = `${this.#barbershopId}/services/${uid}.${ext}`;
-        const { error: upErr } = await SupabaseService.storageBarbershops()
-          .upload(storagePath, file, { contentType: file.type, upsert: true });
+        const file = this.#mediaP2P.getFile(uid);
+        const buffer = await file.arrayBuffer();
+        const { data, error: upErr } = await BffApiService.barbearias.salvarImagemServico(
+          buffer,
+          file.type || 'image/jpeg',
+        );
         if (upErr) throw upErr;
-        const publicUrl = ApiService.getLogoUrl(storagePath);
+        const publicUrl = data.publicUrl;
         row.dataset.imagePath = publicUrl;
         const prev = row.querySelector('.mb-cfg-prod-img-preview');
         if (prev) prev.src = publicUrl;

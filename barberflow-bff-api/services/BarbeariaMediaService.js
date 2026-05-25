@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto      = require('node:crypto');
 const sharp       = require('sharp');
 const BaseService = require('./BaseService');
 const AppError    = require('../utils/AppError');
@@ -16,6 +17,8 @@ class BarbeariaMediaService extends BaseService {
     logo:  { campo: 'logo_path',  nome: 'logo.webp',  width: 256,  height: 256, fit: 'cover' },
     cover: { campo: 'cover_path', nome: 'cover.webp', width: 1280, height: null, fit: 'inside' },
   });
+
+  static #SERVICO_CFG = Object.freeze({ width: 900, height: null, fit: 'inside' });
 
   static #MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
   static #MAX_BYTES = 5 * 1024 * 1024;
@@ -52,6 +55,35 @@ class BarbeariaMediaService extends BaseService {
 
     await this.#repo.uploadImagemBarbearia(path, buffer, 'image/webp');
     await this.#repo.updateImagem(userId, cfg.campo, path, updatedAt);
+
+    return {
+      path,
+      publicUrl: this.#repo.getBarbershopPublicUrl(path),
+      updated_at: updatedAt,
+    };
+  }
+
+  /**
+   * Processa imagem de servico/produto da barbearia via BFF.
+   * A persistencia do item continua no fluxo da tela; aqui ficam validacao,
+   * compressao e Storage.
+   * @param {string} userId
+   * @param {Buffer} arquivo
+   * @param {string} mime
+   * @returns {Promise<{path:string, publicUrl:string, updated_at:string}>}
+   */
+  async salvarImagemServico(userId, arquivo, mime) {
+    this._uuid('userId', userId);
+    BarbeariaMediaService.#validarEntrada(arquivo, mime);
+
+    const shop = await this.#repo.getAtivaPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia ativa nao encontrada.');
+
+    const buffer = await BarbeariaMediaService.#processarImagem(arquivo, BarbeariaMediaService.#SERVICO_CFG);
+    const path = `${shop.id}/services/${crypto.randomUUID()}.webp`;
+    const updatedAt = new Date().toISOString();
+
+    await this.#repo.uploadImagemBarbearia(path, buffer, 'image/webp');
 
     return {
       path,

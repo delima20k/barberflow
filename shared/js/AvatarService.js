@@ -68,7 +68,9 @@ const AvatarService = (() => {
    */
   async function _enviarParaBFF(file) {
     const buffer = await file.arrayBuffer();
-    const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer);
+    const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer, {
+      contentType: file.type || 'image/jpeg',
+    });
     if (!res.ok) {
       const corpo = await res.json().catch(() => ({}));
       throw new Error(corpo.error ?? `Upload falhou (${res.status})`);

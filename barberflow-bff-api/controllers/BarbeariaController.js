@@ -109,6 +109,45 @@ class BarbeariaController extends BaseController {
     });
   }
 
+  /**
+   * PATCH /api/v1/barbearias/minha/servicos/imagem
+   * Processa imagem de servico/produto da barbearia do usuario autenticado.
+   */
+  async salvarImagemServico(req, res) {
+    await this.handle(res, async () => {
+      const atualizado = await this.#mediaService.salvarImagemServico(
+        req.user.id,
+        req.body,
+        String(req.headers['content-type'] ?? '').split(';')[0].toLowerCase(),
+      );
+      this.success(res, atualizado);
+    });
+  }
+
+  /**
+   * GET /api/v1/barbearias/minha/convites/barbeiros-disponiveis?busca=&limit=20
+   * Lista barbeiros elegíveis para convite da barbearia autenticada.
+   */
+  async buscarBarbeirosDisponiveis(req, res) {
+    await this.handle(res, async () => {
+      const busca = String(req.query.busca ?? '').trim().slice(0, 80);
+      const limit = BarbeariaController.#parseLimit(req.query.limit, 'limit', 1, 50, 20);
+      const dados = await this.#service.buscarBarbeirosDisponiveis(req.user.id, busca, limit);
+      this.success(res, dados, { total: dados.length });
+    });
+  }
+
+  /**
+   * POST /api/v1/barbearias/minha/convites
+   * Envia convites em massa para barbeiros selecionados.
+   */
+  async enviarConvites(req, res) {
+    await this.handle(res, async () => {
+      const resultado = await this.#service.enviarConvites(req.user.id, req.body ?? {});
+      this.success(res, resultado);
+    });
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /**
