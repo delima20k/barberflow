@@ -65,7 +65,10 @@ class NotificacoesController extends BaseController {
         throw AppError.badRequest(`Campo 'type' inválido. Use: ${TIPOS_VALIDOS.join(' | ')}.`);
       }
 
-      // Segurança: valida que a entrada pertence ao profissional/barbearia indicados.
+      console.info('[BFF] push-barbeiro: professionalId=%s barbershopId=%s type=%s entradaId=%s userId=%s',
+        professionalId, barbershopId, type, entradaId, req.user?.id);
+
+      // Segurança: valida que a entrada pertence ao profissional indicado
       const { data: entrada } = await this.#db
         .from('queue_entries')
         .select('id')
@@ -78,15 +81,8 @@ class NotificacoesController extends BaseController {
         throw AppError.forbidden('Entrada nao pertence ao profissional/barbearia informados.');
       }
 
-      const { data: barbershop } = await this.#db
-        .from('barbershops')
-        .select('owner_id')
-        .eq('id', barbershopId)
-        .single();
-
-      const { enviados, invalidas, destinatarios } = await this.#svc.enviarAoBarbeiro({
+      const result = await this.#svc.enviarAoBarbeiro({
         professionalId,
-        ownerId: barbershop?.owner_id ?? null,
         entradaId,
         barbershopId,
         type,
@@ -96,7 +92,14 @@ class NotificacoesController extends BaseController {
         cliente,
       });
 
-      this.success(res, { enviados, invalidas, destinatarios });
+      console.info('[BFF] push-barbeiro: enviados=%d destinatarios=%d invalidas=%d',
+        result.enviados, result.destinatarios, result.invalidas);
+
+      if (result.enviados === 0) {
+        return res.status(200).json({ ok: false, reason: 'NO_SUBSCRIPTION', data: { destinatarios: result.destinatarios } });
+      }
+
+      this.success(res, result);
     });
   }
 }

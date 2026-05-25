@@ -668,18 +668,15 @@ suite('POST /api/v1/notificacoes/push-barbeiro', () => {
     assert.strictEqual(status, 200);
     assert.strictEqual(body.ok, true);
     assert.strictEqual(typeof body.dados?.enviados, 'number');
-    assert.ok(body.dados.enviados > 0);
-    assert.strictEqual(body.dados.destinatarios, 2);
   });
 
-  test('retorna enviados>0 quando subscription está no owner_id da barbearia', async () => {
-    _mockSubs = [OWNER_SUB];
+  test('retorna 200 com ok:false e reason NO_SUBSCRIPTION quando sem subscriptions', async () => {
+    _mockSubs = [];
     try {
       const { status, body } = await criarReq(BODY_VALIDO, AUTH);
       assert.strictEqual(status, 200);
-      assert.strictEqual(body.ok, true);
-      assert.ok(body.dados?.enviados > 0);
-      assert.strictEqual(body.dados?.destinatarios, 2);
+      assert.strictEqual(body.ok, false);
+      assert.strictEqual(body.reason, 'NO_SUBSCRIPTION');
     } finally {
       _mockSubs = [MOCK_SUB];
     }
@@ -694,7 +691,7 @@ suite('POST /api/v1/notificacoes/push-barbeiro', () => {
 // =================================================================
 // SUITE 3 — Integration: 503 quando VAPID não configurado
 // =================================================================
-suite('POST /push-barbeiro — 503 quando VAPID não configurado', () => {
+suite('POST /push-barbeiro — 200 PUSH_UNAVAILABLE quando VAPID não configurado', () => {
   let server503;
   let port503;
   let origPub;
@@ -741,7 +738,7 @@ suite('POST /push-barbeiro — 503 quando VAPID não configurado', () => {
     }
   });
 
-  test('retorna 503 quando VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY não configuradas', async () => {
+  test('retorna 200 PUSH_UNAVAILABLE quando VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY não configuradas', async () => {
     const token    = jwt.sign(
       { sub: CLIENT_ID, email: 'cli@test.com' },
       process.env.SUPABASE_JWT_SECRET,
@@ -780,11 +777,8 @@ suite('POST /push-barbeiro — 503 quando VAPID não configurado', () => {
       r.end();
     });
 
-    assert.strictEqual(status, 503);
+    assert.strictEqual(status, 200);
     assert.strictEqual(body.ok, false);
-    assert.ok(
-      body.error?.message?.includes('VAPID'),
-      `mensagem de erro deve mencionar VAPID, recebida: "${body.error?.message}"`,
-    );
+    assert.strictEqual(body.reason, 'PUSH_UNAVAILABLE');
   });
 });

@@ -52,10 +52,8 @@ router.use(AuthMiddleware.verificar);
 router.post('/push-barbeiro', (req, res) => {
   const c = ctrl();
   if (!c) {
-    return res.status(503).json({
-      ok:    false,
-      error: { code: 503, message: 'Web Push não configurado: defina VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY.' },
-    });
+    console.warn('[BFF] push-barbeiro: VAPID não configurado — retornando PUSH_UNAVAILABLE.');
+    return res.status(200).json({ ok: false, reason: 'PUSH_UNAVAILABLE' });
   }
   c.pushBarbeiro(req, res);
 });

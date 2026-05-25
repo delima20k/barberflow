@@ -289,6 +289,12 @@ class ChegadaProducaoService {
             error?.status ? `status=${error.status}` : '',
             error?.message,
           );
+        } else if (data?.ok === false && typeof LoggerService !== 'undefined') {
+          LoggerService.warn(
+            '[ChegadaProducaoService] push-barbeiro ok=false:',
+            `reason=${data?.reason ?? 'unknown'}`,
+            `destinatarios=${data?.data?.destinatarios ?? 0}`,
+          );
         } else if (Number(data?.enviados ?? 0) === 0 && typeof LoggerService !== 'undefined') {
           LoggerService.warn(
             '[ChegadaProducaoService] push-barbeiro enviados=0:',
