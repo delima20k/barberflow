@@ -26,6 +26,7 @@ process.env.SUPABASE_JWT_SECRET       = 'test-supabase-jwt-secret-for-testing-on
 
 const { criarMocks } = require('./_helpers');
 const CorsMiddleware  = require('../middlewares/cors');
+const BaseController  = require('../controllers/BaseController');
 const criarApp        = require('../app');
 
 // ─── Suite 1: origens de produção (.shop) — unit ─────────────────
@@ -139,6 +140,26 @@ suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
       captured.headers['Cache-Control']?.includes('no-store'),
       'GET de origem permitida deve receber Cache-Control: private, no-store',
     );
+  });
+
+  test('cachePublico preserva resposta CORS como private e bloqueia cache CDN', () => {
+    const controller = new BaseController();
+    const headers = new Map();
+    const res = {
+      setHeader: (name, value) => headers.set(name.toLowerCase(), value),
+      getHeader: (name) => headers.get(name.toLowerCase()),
+    };
+
+    res.setHeader('Access-Control-Allow-Origin', 'https://app.berberflow.shop');
+    controller.cachePublico(res, 30, 60);
+
+    assert.strictEqual(
+      headers.get('cache-control'),
+      'private, max-age=30, stale-while-revalidate=60',
+      'cache publico nao deve sobrescrever CORS com cache compartilhado',
+    );
+    assert.strictEqual(headers.get('cdn-cache-control'), 'no-store');
+    assert.strictEqual(headers.get('surrogate-control'), 'no-store');
   });
 });
 
@@ -339,5 +360,81 @@ suite('CorsMiddleware — integração (servidor real, config produção)', () =
       !headers['access-control-allow-origin'],
       'origem bloqueada não deve receber ACAO header',
     );
+  });
+});
+
+suite('CorsMiddleware — rotas públicas cacheáveis com CORS', () => {
+
+  let server;
+  let port;
+
+  const qb = () => {
+    const q = {
+      select: () => q,
+      eq:     () => q,
+      gte:    () => q,
+      lte:    () => q,
+      order:  () => q,
+      limit:  () => Promise.resolve({ data: [], error: null }),
+    };
+    return q;
+  };
+
+  before(async () => {
+    const app = criarApp({
+      from: qb,
+      rpc:  () => Promise.resolve({ data: [], error: null }),
+    });
+    await new Promise((resolve) => {
+      server = app.listen(0, '127.0.0.1', resolve);
+    });
+    port = server.address().port;
+  });
+
+  after(async () => {
+    await new Promise((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve())),
+    );
+  });
+
+  function request(origin) {
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port,
+          path: '/api/v1/barbearias?lat=-23.5506&lng=-46.6333&raio=5',
+          method: 'GET',
+          headers: { origin },
+        },
+        (res) => {
+          res.resume();
+          resolve({ status: res.statusCode, headers: res.headers });
+        },
+      );
+      req.on('error', reject);
+      req.end();
+    });
+  }
+
+  test('GET /barbearias de app.berberflow.shop reflete origin e bloqueia cache compartilhado', async () => {
+    const { status, headers } = await request('https://app.berberflow.shop');
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(headers['access-control-allow-origin'], 'https://app.berberflow.shop');
+    assert.ok(
+      headers['cache-control']?.startsWith('private'),
+      'rota publica com CORS nao deve sair como public cache',
+    );
+    assert.strictEqual(headers['cdn-cache-control'], 'no-store');
+    assert.strictEqual(headers['surrogate-control'], 'no-store');
+  });
+
+  test('GET /barbearias de pro.berberflow.shop reflete origin sem reutilizar app', async () => {
+    const { status, headers } = await request('https://pro.berberflow.shop');
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(headers['access-control-allow-origin'], 'https://pro.berberflow.shop');
+    assert.ok(headers['cache-control']?.startsWith('private'));
   });
 });

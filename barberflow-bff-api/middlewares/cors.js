@@ -63,8 +63,11 @@ class CorsMiddleware {
       // CDNs em modo proxy (ex: Cloudflare) podem cachear a resposta de pro.berberflow.shop
       // e servi-la para app.berberflow.shop, ignorando Vary:Origin.
       // Cache-Control: private proíbe cache em shared CDN; no-store proíbe qualquer armazenamento.
-      // Route handlers podem sobrescrever com Cache-Control próprio se precisarem de cache público.
+      // CDN-Cache-Control e Surrogate-Control cobrem CDNs que respeitam headers específicos.
+      // Route handlers podem sobrescrever o cache do browser, mas não devem reabilitar cache CDN.
       res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Surrogate-Control', 'no-store');
     }
 
     if (req.method === 'OPTIONS') {

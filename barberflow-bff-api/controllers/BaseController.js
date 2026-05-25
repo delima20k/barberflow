@@ -116,6 +116,12 @@ class BaseController {
    * @param {number} [swr=300]    — segundos de stale-while-revalidate
    */
   cachePublico(res, maxAge = 60, swr = 300) {
+    if (res.getHeader('Access-Control-Allow-Origin')) {
+      res.setHeader('Cache-Control', `private, max-age=${maxAge}, stale-while-revalidate=${swr}`);
+      res.setHeader('CDN-Cache-Control', 'no-store');
+      res.setHeader('Surrogate-Control', 'no-store');
+      return;
+    }
     res.setHeader('Cache-Control', `public, max-age=${maxAge}, stale-while-revalidate=${swr}`);
   }
 
