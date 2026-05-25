@@ -6,13 +6,12 @@
 // Exclusiva para barbeiros autônomos (pro_type='barbeiro').
 // Seção 1: Barbearias Parceiras   — lista barbearias do sistema
 // Seção 2: Convites Recebidos      — convites de barbearias para trabalhar
-// Seção 3: Favoritos               — barbearias e barbeiros favoritados
-//                                    pelo barbeiro profissional
-//                                    (reutiliza ProfileRepository, mesma
-//                                    lógica da FavoritesPage do cliente)
+// Seção 3: Minhas Fotos            — galeria de portfólio do barbeiro
+//                                    (máx. 10 fotos; press-hold 600ms p/ excluir)
 //
-// Dependências: ProfileRepository, BarbershopRepository, SupabaseService,
-//               AuthService, AppState, LoggerService, NotificationService
+// Dependências: BarbershopRepository, SupabaseService,
+//               AuthService, AppState, LoggerService, NotificationService,
+//               BffApiService
 // =============================================================
 
 class ParceriasPage {
@@ -27,15 +26,17 @@ class ParceriasPage {
   #convitesListaEl  = null;
   #convitesVazioEl  = null;
 
-  // Seção 3 — Favoritos
-  #favBarbeariasEl  = null;
-  #favBarbeirosEl   = null;
+  // Seção 3 — Fotos
+  #fotosCarrosselEl  = null;
+  #fotosCountEl      = null;
+  #fotosUploadInputEl = null;
+  #fotosUploadLabelEl = null;
 
   // ── Estado ───────────────────────────────────────────────
   #carregouParceiras = false;
   #carregouConvites  = false;
-  #carregouFavoritos = false;
-  #favAberto         = false;
+  #carregouFotos     = false;
+  #fotos             = [];
 
   constructor() {}
 
@@ -44,15 +45,20 @@ class ParceriasPage {
     this.#telaEl = document.getElementById('tela-parcerias');
     if (!this.#telaEl) return;
 
-    this.#parceirasListaEl = document.getElementById('parcerias-barbearias-lista');
-    this.#convitesListaEl  = document.getElementById('parcerias-convites-lista');
-    this.#convitesVazioEl  = document.getElementById('parcerias-convites-vazio');
-    this.#favBarbeariasEl  = document.getElementById('parcerias-fav-barbearias');
-    this.#favBarbeirosEl   = document.getElementById('parcerias-fav-barbeiros');
+    this.#parceirasListaEl    = document.getElementById('parcerias-barbearias-lista');
+    this.#convitesListaEl     = document.getElementById('parcerias-convites-lista');
+    this.#convitesVazioEl     = document.getElementById('parcerias-convites-vazio');
+    this.#fotosCarrosselEl    = document.getElementById('parcerias-fotos-carrossel');
+    this.#fotosCountEl        = document.getElementById('parcerias-fotos-count');
+    this.#fotosUploadInputEl  = document.getElementById('parcerias-fotos-input');
+    this.#fotosUploadLabelEl  = document.getElementById('parcerias-fotos-upload-label');
 
-    // Botão "Ver meus favoritos" — colapsa/expande a seção
-    document.getElementById('parcerias-fav-toggle')
-      ?.addEventListener('click', () => this.#toggleFavoritos());
+    // Selecionar arquivo → upload
+    this.#fotosUploadInputEl?.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) this.#uploadFoto(file);
+      if (this.#fotosUploadInputEl) this.#fotosUploadInputEl.value = '';
+    });
 
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
@@ -69,7 +75,7 @@ class ParceriasPage {
     // Carrega em paralelo, cada seção independentemente
     if (!this.#carregouParceiras) this.#carregarParceiras();
     if (!this.#carregouConvites)  this.#carregarConvites();
-    // Favoritos são carregados ao expandir a seção (lazy)
+    if (!this.#carregouFotos)     this.#carregarFotos();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -165,258 +171,371 @@ class ParceriasPage {
     this.#carregouConvites = true;
     if (!this.#convitesListaEl) return;
 
-    const perfil = AuthService.getPerfil?.();
-    if (!perfil?.id) {
-      this.#convitesListaEl.innerHTML = ParceriasPage.#vazioHtml(
-        '📩', 'Faça login para ver seus convites'
-      );
+    this.#convitesListaEl.innerHTML = this.#skeletonConvite(2);
+
+    const { data, error } = await BffApiService.get('/api/v1/profissionais/me/convites');
+
+    this.#convitesListaEl.innerHTML = '';
+
+    if (error) {
+      LoggerService.warn('[ParceriasPage] convites:', error?.message ?? error);
+      if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = false;
       return;
     }
 
-    this.#convitesListaEl.innerHTML = this.#skeletonConvite(2);
-
-    try {
-      const { data, error } = await SupabaseService.client
-        .from('barbershop_invites')
-        .select(`
-          id, message, commission_pct, status, created_at,
-          barbershop:barbershops!barbershop_id ( id, name, logo_path, address )
-        `)
-        .eq('barbeiro_id', perfil.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      this.#convitesListaEl.innerHTML = '';
-
-      if (!data?.length) {
-        if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = false;
-        return;
-      }
-
-      if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = true;
-      data.forEach(inv => this.#convitesListaEl.appendChild(this.#criarCardConvite(inv)));
-
-    } catch (err) {
-      // Tabela pode não existir ainda (migration pendente) — exibe vazio silencioso
-      LoggerService.warn('[ParceriasPage] convites:', err?.message);
-      this.#convitesListaEl.innerHTML = '';
+    if (!data?.length) {
       if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = false;
+      return;
     }
+
+    if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = true;
+    data.forEach(inv => this.#convitesListaEl.appendChild(this.#criarCardConvite(inv)));
   }
 
   #criarCardConvite(inv) {
     const card = document.createElement('div');
-    card.className   = `parcerias-convite-card parcerias-convite--${inv.status ?? 'pendente'}`;
-    card.dataset.id  = inv.id;
+    card.className  = `parcerias-convite-card parcerias-convite--${inv.status ?? 'pendente'}`;
+    card.dataset.id = inv.id;
 
-    const shop   = inv.barbershop ?? {};
-    const pct    = inv.commission_pct != null ? `${inv.commission_pct}%` : '—';
-    const status = inv.status ?? 'pendente';
-    const data   = inv.created_at
+    const shop    = inv.barbershop ?? {};
+    const status  = inv.status ?? 'pendente';
+    const dataStr = inv.created_at
       ? new Date(inv.created_at).toLocaleDateString('pt-BR')
       : '';
 
     const statusLabel = { pendente: 'Pendente', aceito: 'Aceito', recusado: 'Recusado' };
 
+    // Resumo da condição para o card
+    const msg    = inv.message ?? '';
+    const isPct  = msg.startsWith('[% dos Cortes]');
+    const isRent = msg.startsWith('[Aluguel de Cadeira]');
+    let resumo   = '';
+    if (inv.commission_pct != null) {
+      const v = Number(inv.commission_pct);
+      if (isPct)       resumo = `${v}% dos cortes`;
+      else if (isRent) resumo = v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês (cadeira)';
+      else             resumo = `${v}%`;
+    }
+
     card.innerHTML = `
       <div class="parcerias-convite-header">
         <div class="avatar gold" style="width:38px;height:38px;font-size:.9rem;">
           ${shop.logo_path
-            ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${shop.name}" loading="lazy" onerror="this.outerHTML='💈'">`
+            ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" loading="lazy" onerror="this.outerHTML='💈'">`
             : '💈'}
         </div>
         <div class="parcerias-convite-info">
-          <p class="barber-name">${shop.name ?? 'Barbearia'}</p>
-          <p class="barber-sub">${shop.address ?? ''}</p>
+          <p class="barber-name">${InputValidator.sanitizar(shop.name ?? 'Barbearia')}</p>
+          <p class="barber-sub">${InputValidator.sanitizar(shop.address ?? '')}</p>
         </div>
         <span class="parcerias-convite-status parcerias-convite-status--${status}">
           ${statusLabel[status] ?? status}
         </span>
       </div>
-      ${inv.message ? `<p class="parcerias-convite-msg">"${inv.message}"</p>` : ''}
       <div class="parcerias-convite-clausulas">
-        <span class="parcerias-convite-pct">Comissão: <strong>${pct}</strong></span>
-        ${data ? `<span class="parcerias-convite-data">${data}</span>` : ''}
+        ${resumo ? `<span class="parcerias-convite-pct">Condição: <strong>${resumo}</strong></span>` : ''}
+        ${dataStr ? `<span class="parcerias-convite-data">${dataStr}</span>` : ''}
       </div>
       ${status === 'pendente' ? `
       <div class="parcerias-convite-acoes">
-        <button class="btn btn-gold btn-sm" data-convite-aceitar="${inv.id}">Aceitar</button>
-        <button class="btn btn-outline btn-sm" data-convite-recusar="${inv.id}">Recusar</button>
+        <button class="btn btn-gold btn-sm" data-convite-ver="${inv.id}">Ver Proposta</button>
       </div>` : ''}`;
 
-    // Delegação de eventos — aceitar / recusar
-    card.querySelector(`[data-convite-aceitar="${inv.id}"]`)
-      ?.addEventListener('click', () => this.#responderConvite(inv.id, 'aceito', card));
-    card.querySelector(`[data-convite-recusar="${inv.id}"]`)
-      ?.addEventListener('click', () => this.#responderConvite(inv.id, 'recusado', card));
+    if (status === 'pendente') {
+      card.querySelector(`[data-convite-ver="${inv.id}"]`)
+        ?.addEventListener('click', async () => {
+          const acao = await this.#abrirModalConvite(inv);
+          if (acao === 'aceitar' || acao === 'recusar') {
+            await this.#responderConvite(inv.id, acao === 'aceitar' ? 'aceito' : 'recusado', card);
+          }
+        });
+    }
 
     return card;
   }
 
-  async #responderConvite(inviteId, novoStatus, cardEl) {
-    try {
-      const { error } = await SupabaseService.client
-        .from('barbershop_invites')
-        .update({ status: novoStatus })
-        .eq('id', inviteId);
+  async #abrirModalConvite(inv) {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'pci-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
 
-      if (error) throw error;
+      const shop    = inv.barbershop ?? {};
+      const status  = inv.status ?? 'pendente';
+      const dataStr = inv.created_at
+        ? new Date(inv.created_at).toLocaleDateString('pt-BR')
+        : '';
 
-      // Atualiza card sem re-render
-      cardEl.classList.remove('parcerias-convite--pendente');
-      cardEl.classList.add(`parcerias-convite--${novoStatus}`);
-      cardEl.querySelector('.parcerias-convite-status').textContent =
-        novoStatus === 'aceito' ? 'Aceito' : 'Recusado';
-      cardEl.querySelector('.parcerias-convite-acoes')?.remove();
+      const msg    = inv.message ?? '';
+      const isPct  = msg.startsWith('[% dos Cortes]');
+      const isRent = msg.startsWith('[Aluguel de Cadeira]');
+      const notas  = isPct  ? msg.slice('[% dos Cortes]'.length).trim()
+                   : isRent ? msg.slice('[Aluguel de Cadeira]'.length).trim()
+                   : msg;
 
-      const msg = novoStatus === 'aceito' ? 'Convite aceito! 🎉' : 'Convite recusado.';
-      if (typeof NotificationService !== 'undefined') {
-        NotificationService.mostrarToast(msg, '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      const valorNum = inv.commission_pct != null ? Number(inv.commission_pct) : null;
+      let valorLinha = '';
+      if (valorNum != null) {
+        if (isPct) {
+          valorLinha = `<div class="pci-linha"><span>Comissão sobre cortes</span><strong>${valorNum}%</strong></div>`;
+        } else if (isRent) {
+          const fmt = valorNum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          valorLinha = `<div class="pci-linha"><span>Aluguel de cadeira</span><strong>${fmt}/mês</strong></div>`;
+        } else {
+          valorLinha = `<div class="pci-linha"><span>Valor</span><strong>${valorNum}</strong></div>`;
+        }
       }
-    } catch (err) {
-      LoggerService.error('[ParceriasPage] responderConvite:', err);
-    }
+
+      const logoHtml = shop.logo_path
+        ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" loading="lazy" onerror="this.outerHTML='💈'">`
+        : '💈';
+
+      const isPendente = status === 'pendente';
+
+      overlay.innerHTML = `
+        <div class="pci-card">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+            <div class="avatar gold" style="width:44px;height:44px;flex-shrink:0;">${logoHtml}</div>
+            <p class="pci-titulo">${InputValidator.sanitizar(shop.name ?? 'Barbearia')}</p>
+          </div>
+          ${shop.address ? `<div class="pci-linha"><span>Endereço</span><strong>${InputValidator.sanitizar(shop.address)}</strong></div>` : ''}
+          ${valorLinha}
+          ${notas ? `<p class="pci-notas">"${InputValidator.sanitizar(notas)}"</p>` : ''}
+          ${dataStr ? `<div class="pci-linha"><span>Data do convite</span><strong>${dataStr}</strong></div>` : ''}
+          ${isPendente ? `
+          <div class="pci-acoes">
+            <button class="btn btn-gold" data-pci="aceitar">Aceitar</button>
+            <button class="btn btn-outline" data-pci="recusar">Recusar</button>
+          </div>` : ''}
+          <button class="btn btn-outline btn-sm" data-pci="fechar" style="margin-top:${isPendente ? '0' : '8px'};">Fechar</button>
+        </div>`;
+
+      const _fechar = resultado => {
+        document.removeEventListener('keydown', onKey);
+        overlay.classList.add('pci-overlay--saindo');
+        setTimeout(() => overlay.remove(), 230);
+        resolve(resultado);
+      };
+
+      const onKey = e => { if (e.key === 'Escape') _fechar(null); };
+      document.addEventListener('keydown', onKey);
+
+      overlay.addEventListener('click', e => {
+        const pci = e.target.closest('[data-pci]')?.dataset?.pci;
+        if (pci === 'fechar') { _fechar(null); return; }
+        if (pci === 'aceitar' || pci === 'recusar') { _fechar(pci); return; }
+        if (e.target === overlay) _fechar(null);
+      });
+
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => overlay.classList.add('pci-overlay--visivel'));
+    });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // SEÇÃO 3 — FAVORITOS (lazy — expande ao clicar)
-  // ═══════════════════════════════════════════════════════════
+  async #responderConvite(inviteId, novoStatus, cardEl) {
+    const endpoint = novoStatus === 'aceito' ? 'aceitar' : 'recusar';
+    const { error } = await BffApiService.post(
+      `/api/v1/profissionais/me/convites/${inviteId}/${endpoint}`,
+      {},
+    );
 
-  #toggleFavoritos() {
-    const wrap = document.getElementById('parcerias-fav-wrap');
-    const btn  = document.getElementById('parcerias-fav-toggle');
-    if (!wrap) return;
-
-    this.#favAberto = !this.#favAberto;
-    wrap.hidden = !this.#favAberto;
-
-    if (btn) {
-      btn.textContent = this.#favAberto
-        ? '▲ Fechar favoritos'
-        : '▼ Ver meus favoritos';
-    }
-
-    if (this.#favAberto && !this.#carregouFavoritos) {
-      this.#carregarFavoritos();
-    }
-  }
-
-  async #carregarFavoritos() {
-    this.#carregouFavoritos = true;
-
-    let userId = AppState.get('perfil')?.id;
-    if (!userId && AppState.get('isLogado')) {
-      try {
-        const u = await SupabaseService.getUser?.();
-        userId = u?.id ?? null;
-      } catch (_) { /* sem rede */ }
-    }
-
-    if (!userId) {
-      this.#renderFavVazioBarbearias();
-      this.#renderFavVazioBarbeiros();
+    if (error) {
+      LoggerService.error('[ParceriasPage] responderConvite:', error);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Erro ao processar. Tente novamente.',
+          '',
+          NotificationService.TIPOS?.SISTEMA ?? 'sistema',
+        );
+      }
       return;
     }
 
-    const [barbearias, barbeiros] = await Promise.allSettled([
-      ProfileRepository.getFavorites(userId),
-      ProfileRepository.getFavoriteBarbers(userId),
-    ]);
-
-    if (barbearias.status === 'fulfilled') {
-      this.#renderFavBarbearias(barbearias.value);
-    } else {
-      LoggerService.warn('[ParceriasPage] fav barbearias:', barbearias.reason?.message);
-      this.#renderFavVazioBarbearias();
+    // Atualiza card sem re-render
+    cardEl.classList.remove('parcerias-convite--pendente');
+    cardEl.classList.add(`parcerias-convite--${novoStatus}`);
+    const statusEl = cardEl.querySelector('.parcerias-convite-status');
+    if (statusEl) {
+      statusEl.textContent = novoStatus === 'aceito' ? 'Aceito' : 'Recusado';
+      statusEl.className   = `parcerias-convite-status parcerias-convite-status--${novoStatus}`;
     }
+    cardEl.querySelector('.parcerias-convite-acoes')?.remove();
 
-    if (barbeiros.status === 'fulfilled') {
-      this.#renderFavBarbeiros(barbeiros.value);
-    } else {
-      LoggerService.warn('[ParceriasPage] fav barbeiros:', barbeiros.reason?.message);
-      this.#renderFavVazioBarbeiros();
+    const toast = novoStatus === 'aceito' ? 'Convite aceito! 🎉' : 'Convite recusado.';
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast(toast, '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
     }
   }
 
-  // ── Favoritos — Barbearias ───────────────────────────────
+  // ═══════════════════════════════════════════════════════════
+  // SEÇÃO 3 — MINHAS FOTOS
+  // ═══════════════════════════════════════════════════════════
 
-  #renderFavBarbearias(lista) {
-    if (!this.#favBarbeariasEl) return;
-    if (!lista.length) { this.#renderFavVazioBarbearias(); return; }
-
-    this.#favBarbeariasEl.innerHTML = '';
-    lista.forEach(b => this.#favBarbeariasEl.appendChild(this.#criarFavCard(b)));
+  async #carregarFotos() {
+    this.#carregouFotos = true;
+    const { data, error } = await BffApiService.profissionais.listarMeuPortfolio();
+    if (error) {
+      LoggerService.warn('[ParceriasPage] carregar fotos:', error?.message ?? error);
+      return;
+    }
+    this.#renderFotos(Array.isArray(data) ? data : (data?.items ?? []));
   }
 
-  #renderFavVazioBarbearias() {
-    if (!this.#favBarbeariasEl) return;
-    this.#favBarbeariasEl.innerHTML = `
-      <div class="fav-card fav-card--sem-img" style="display:flex;align-items:center;justify-content:center;">
-        <div class="fav-card__overlay" style="align-items:center;justify-content:center;gap:8px;">
-          <span style="font-size:2rem;">💈</span>
-          <p style="color:rgba(255,255,255,.6);font-size:.8rem;text-align:center;">
-            Nenhuma barbearia favorita
-          </p>
+  #renderFotos(fotos) {
+    this.#fotos = fotos;
+
+    if (this.#fotosCountEl) {
+      this.#fotosCountEl.textContent = `${fotos.length}/10`;
+    }
+
+    // Esconde botão de upload se atingiu o limite
+    if (this.#fotosUploadLabelEl) {
+      this.#fotosUploadLabelEl.hidden = fotos.length >= 10;
+    }
+
+    if (!this.#fotosCarrosselEl) return;
+    this.#fotosCarrosselEl.innerHTML = '';
+
+    if (!fotos.length) {
+      const vazio = document.createElement('p');
+      vazio.className   = 'parcerias-fotos-vazio';
+      vazio.textContent = 'Adicione fotos ao seu portfólio para elas aparecerem no seu perfil público.';
+      this.#fotosCarrosselEl.appendChild(vazio);
+      return;
+    }
+
+    fotos.forEach(f => this.#fotosCarrosselEl.appendChild(this.#criarCardFoto(f)));
+  }
+
+  #criarCardFoto(foto) {
+    const item = document.createElement('div');
+    item.className = 'parcerias-foto-item';
+
+    const img = document.createElement('img');
+    img.src     = foto.publicUrl ?? foto.storage_path ?? '';
+    img.alt     = 'Foto do portfólio';
+    img.loading = 'lazy';
+    img.onerror = () => { item.style.display = 'none'; };
+    item.appendChild(img);
+
+    this.#bindPressHold(item, foto.id);
+    return item;
+  }
+
+  #bindPressHold(el, photoId) {
+    let timer = null;
+
+    const cancelar = () => {
+      clearTimeout(timer);
+      el.classList.remove('parcerias-foto-item--pressionado');
+    };
+
+    el.addEventListener('pointerdown', () => {
+      el.classList.add('parcerias-foto-item--pressionado');
+      timer = setTimeout(() => {
+        el.classList.remove('parcerias-foto-item--pressionado');
+        this.#abrirModalExcluirFoto(photoId);
+      }, 600);
+    });
+
+    el.addEventListener('pointerup',     cancelar);
+    el.addEventListener('pointermove',   cancelar);
+    el.addEventListener('pointercancel', cancelar);
+  }
+
+  #abrirModalExcluirFoto(photoId) {
+    const overlay = document.createElement('div');
+    overlay.className = 'pci-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    overlay.innerHTML = `
+      <div class="pci-card">
+        <p class="pci-titulo">Excluir foto?</p>
+        <p style="font-size:.87rem;color:var(--text-2);margin-bottom:18px;text-align:center;">
+          Esta ação não pode ser desfeita.
+        </p>
+        <div class="pci-acoes">
+          <button class="btn btn-danger" data-pci="excluir">Excluir</button>
+          <button class="btn btn-outline" data-pci="cancelar">Cancelar</button>
         </div>
       </div>`;
+
+    const _fechar = () => {
+      document.removeEventListener('keydown', onKey);
+      overlay.classList.add('pci-overlay--saindo');
+      setTimeout(() => overlay.remove(), 230);
+    };
+
+    const onKey = e => { if (e.key === 'Escape') _fechar(); };
+    document.addEventListener('keydown', onKey);
+
+    overlay.addEventListener('click', e => {
+      const pci = e.target.closest('[data-pci]')?.dataset?.pci;
+      if (pci === 'excluir') {
+        _fechar();
+        this.#excluirFoto(photoId);
+        return;
+      }
+      if (pci === 'cancelar' || e.target === overlay) _fechar();
+    });
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('pci-overlay--visivel'));
   }
 
-  /** Card fav-card (350×220) para barbearia favorita. */
-  #criarFavCard(b) {
-    return CapaBarbearia.criarFavCard(b, { textoAberto: 'Aberta', textoFechado: 'Fechada' });
+  async #excluirFoto(photoId) {
+    const { error } = await BffApiService.profissionais.removerPortfolioImagem(photoId);
+    if (error) {
+      LoggerService.error('[ParceriasPage] excluirFoto:', error);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Erro ao excluir foto. Tente novamente.',
+          '',
+          NotificationService.TIPOS?.SISTEMA ?? 'sistema',
+        );
+      }
+      return;
+    }
+    const novos = this.#fotos.filter(f => f.id !== photoId);
+    this.#renderFotos(novos);
   }
 
-  // ── Favoritos — Barbeiros ────────────────────────────────
+  async #uploadFoto(file) {
+    if (!file) return;
 
-  #renderFavBarbeiros(lista) {
-    if (!this.#favBarbeirosEl) return;
-    if (!lista.length) { this.#renderFavVazioBarbeiros(); return; }
+    if (this.#fotosUploadLabelEl) {
+      this.#fotosUploadLabelEl.setAttribute('aria-busy', 'true');
+    }
 
-    this.#favBarbeirosEl.innerHTML = '';
-    lista.forEach(p => this.#favBarbeirosEl.appendChild(this.#criarBarbeiroFavRow(p)));
-  }
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const { data, error } = await BffApiService.profissionais.uploadPortfolioImagem(
+        arrayBuffer,
+        file.type,
+      );
 
-  #renderFavVazioBarbeiros() {
-    if (!this.#favBarbeirosEl) return;
-    this.#favBarbeirosEl.innerHTML = `
-      <div class="barber-row" style="opacity:.55;pointer-events:none;">
-        <div class="avatar gold">✂️</div>
-        <div class="barber-info">
-          <p class="barber-name">Nenhum barbeiro favorito</p>
-          <p class="barber-sub">Favorite barbeiros durante o agendamento</p>
-        </div>
-      </div>`;
-  }
+      if (error) {
+        LoggerService.error('[ParceriasPage] uploadFoto:', error);
+        if (typeof NotificationService !== 'undefined') {
+          const msg = error.status === 409
+            ? 'Limite de 10 fotos atingido.'
+            : 'Erro ao enviar foto. Tente novamente.';
+          NotificationService.mostrarToast(msg, '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+        }
+        return;
+      }
 
-  #criarBarbeiroFavRow(p) {
-    const s      = InputValidator.sanitizar;
-    const perfil = p.profiles ?? {};
-    const nome   = s(perfil.full_name ?? 'Barbeiro');
-    const path   = perfil.avatar_path ?? p.avatar_path ?? null;
-    const avatar = s(path
-      ? (SupabaseService.resolveAvatarUrl(path) || '/shared/img/icones-perfil.png')
-      : '/shared/img/icones-perfil.png');
-    const r     = Math.min(5, Math.max(0, Math.round(Number(p.rating_avg ?? 0))));
-    const stars = '★'.repeat(r) + '☆'.repeat(5 - r);
-    const specs = s((p.specialties ?? []).slice(0, 2).join(' · '));
+      // Re-carrega lista para refletir nova foto
+      this.#carregouFotos = false;
+      await this.#carregarFotos();
 
-    const row = document.createElement('div');
-    row.className              = 'barber-row';
-    row.dataset.id             = p.id;
-    row.dataset.barberId       = p.id;
-    row.dataset.professionalId = p.id;
-    row.innerHTML = `
-      <div class="avatar gold">
-        <img src="${avatar}" alt="${nome}" loading="lazy" onerror="this.outerHTML='✂️'">
-      </div>
-      <div class="barber-info">
-        <p class="barber-name">${nome}</p>
-        ${specs ? `<p class="barber-sub">${specs}</p>` : ''}
-        <div class="stars" style="margin-top:3px;">${stars}</div>
-      </div>`;
-    return row;
+    } finally {
+      if (this.#fotosUploadLabelEl) {
+        this.#fotosUploadLabelEl.removeAttribute('aria-busy');
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════

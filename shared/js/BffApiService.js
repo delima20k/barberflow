@@ -44,7 +44,9 @@ class BffApiService {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        return { data: null, total: null, error: new Error(json?.error ?? `HTTP ${res.status}`) };
+        const err = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, total: null, error: err };
       }
       return { data: json?.dados ?? json, total: json?.meta?.total ?? null, error: null };
     } catch (err) {
@@ -90,10 +92,40 @@ class BffApiService {
     const url = `${BffApiService.#BASE_URL}${path}`;
     try {
       const authHeaders = await BffApiService.#authHeaders();
+      const upload = await BffApiService.#prepareBinaryUpload(buffer, contentType);
       const res = await BffApiService.#fetchComTimeout(url, {
         method:  'PATCH',
-        headers: { 'Content-Type': contentType, ...authHeaders },
-        body:    buffer,
+        headers: { 'Content-Type': upload.contentType, ...authHeaders },
+        body:    upload.buffer,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, error: err };
+      }
+      return { data: json?.dados ?? null, error: null };
+    } catch (err) {
+      return { data: null, error: BffApiService.#parseErroRede(err) };
+    }
+  }
+
+  /**
+   * Executa POST autenticado na BFF com corpo binário (imagens).
+   * @param {string}      path        — ex: '/api/v1/profissionais/me/portfolio'
+   * @param {ArrayBuffer} buffer
+   * @param {string}      contentType — ex: 'image/jpeg'
+   * @returns {Promise<{ data: any, error: Error|null }>}
+   */
+  static async postBinario(path, buffer, contentType) {
+    const url = `${BffApiService.#BASE_URL}${path}`;
+    try {
+      const authHeaders = await BffApiService.#authHeaders();
+      const upload = await BffApiService.#prepareBinaryUpload(buffer, contentType);
+      const res = await BffApiService.#fetchComTimeout(url, {
+        method:  'POST',
+        headers: { 'Content-Type': upload.contentType, ...authHeaders },
+        body:    upload.buffer,
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -214,6 +246,32 @@ class BffApiService {
 
   // ── Namespace: financeiro ────────────────────────────────────
 
+  static profissionais = {
+    perfilPublico: (professionalId) =>
+      BffApiService.get(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/perfil-publico`),
+
+    atualizarMeuPerfilPublico: (payload) =>
+      BffApiService.patch('/api/v1/profissionais/me/public-profile', payload),
+
+    iniciarMensagemBarbearia: (professionalId) =>
+      BffApiService.post(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/mensagem-barbearia`, {}),
+
+    portfolio: (professionalId, params = {}) =>
+      BffApiService.get(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/portfolio`, params),
+
+    atualizarPortfolioImagem: (imageId, payload) =>
+      BffApiService.patch(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}`, payload),
+
+    removerPortfolioImagem: (imageId) =>
+      BffApiService.delete(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}`),
+
+    listarMeuPortfolio: (params = {}) =>
+      BffApiService.get('/api/v1/profissionais/me/portfolio', params),
+
+    uploadPortfolioImagem: (buffer, mime) =>
+      BffApiService.postBinario('/api/v1/profissionais/me/portfolio', buffer, mime),
+  };
+
   static financeiro = {
     dashboard: ({ barbershopId, periodo = 'mes', de = null, ate = null } = {}) =>
       BffApiService.get('/api/v1/financeiro/dashboard', {
@@ -265,6 +323,22 @@ class BffApiService {
       clearTimeout(timerId);
       throw err;
     }
+  }
+
+  static async #prepareBinaryUpload(buffer, contentType) {
+    const mime = String(contentType ?? '').toLowerCase();
+    const canCompress = mime.startsWith('image/')
+      && typeof ImageCompressionService !== 'undefined'
+      && typeof ImageCompressionService.compress === 'function';
+    if (!canCompress) return { buffer, contentType };
+    const compressed = await ImageCompressionService.compress(buffer, {
+      contentType: mime,
+      preset: 'FULL',
+    });
+    return {
+      buffer: compressed.buffer,
+      contentType: compressed.contentType || mime,
+    };
   }
 
   /**
