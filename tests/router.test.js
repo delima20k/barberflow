@@ -65,7 +65,7 @@ function criarRouter({ logado = false, telaInicial = 'inicio' } = {}) {
     // window.addEventListener é chamado no constructor (pageshow)
     window:   { addEventListener: fn(), __routerClickBound: false },
     // document.addEventListener é chamado em _bindDataAttributes
-    document: { addEventListener: fn() },
+    document: { addEventListener: fn(), querySelectorAll: fn().mockReturnValue([]) },
     AppState: appStateMock,
   });
 

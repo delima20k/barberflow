@@ -513,8 +513,15 @@
   z-index: 20;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 88px;
+  min-height: 40px;
+  padding: 0.5rem 0.85rem;
+  width: auto;
+  height: auto;
+  pointer-events: auto;
+  white-space: nowrap;
   font-size: .88rem;
   font-weight: 700;
   color: var(--gold);
@@ -531,6 +538,14 @@
   background: url('/shared/img/inicio.svg') center/contain no-repeat;
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   transform: scaleX(-1); /* aponta para a esquerda */
+}
+.btn-voltar[data-action="voltar"]::before {
+  content: none;
+  display: none;
+}
+.btn-voltar__icone,
+.btn-voltar__texto {
+  pointer-events: none;
 }
 
 /* ── Padrão obrigatório para novas telas: topo com btn-voltar ── */

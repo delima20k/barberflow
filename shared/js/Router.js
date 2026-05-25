@@ -49,6 +49,7 @@ class Router {
 
   // Set alocado uma vez — referenciado no fallback de _bindDataAttributes
   static #ACOES_FALLBACK = new Set(['agendar', 'mensagem', 'pagar', 'pagamento', 'like', 'barbershop-favorite', 'avatar-upload']);
+  static #BOTOES_VOLTAR_BINDADOS = new WeakSet();
 
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
@@ -362,6 +363,8 @@ class Router {
    *   [data-action="avatar-upload"]    → this.abrirUploadAvatar()
    */
   _bindDataAttributes() {
+    this._bindBotoesVoltar();
+
     // Impede registro duplicado caso o Router seja instanciado mais de uma vez
     if (window.__routerClickBound) return;
     window.__routerClickBound = true;
@@ -387,6 +390,8 @@ class Router {
       if (actionEl) {
         const actionName = actionEl.dataset.action;
 
+        if (actionName === 'voltar') { e.preventDefault(); this.voltar(); return; }
+
         // Logout não exige autenticação — confirmar sempre é permitido
         if (actionName === 'confirmar-saida') { e.preventDefault(); this.confirmarSaida(); return; }
 
@@ -405,5 +410,19 @@ class Router {
         if (actionName === 'avatar-upload') { e.preventDefault(); this.abrirUploadAvatar(); return; }
       }
     }, { passive: false });
+  }
+
+  _bindBotoesVoltar() {
+    document
+      .querySelectorAll('button.btn-voltar[data-action="voltar"], button.btn-voltar[data-voltar], button.ppp-fechar-btn[data-action="voltar"]')
+      .forEach(btn => {
+        if (Router.#BOTOES_VOLTAR_BINDADOS.has(btn)) return;
+        Router.#BOTOES_VOLTAR_BINDADOS.add(btn);
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.voltar();
+        }, { passive: false });
+      });
   }
 }

@@ -806,6 +806,7 @@ export class MinhaBarbeariaRuntimeController {
       servicos:             this.#servicos,
       clienteNome:          clienteSel.full_name,
       clienteMensalista,
+      incluirMensalista:    true,
       mensalistaFee,
       mensalistaCortesCount,
     });
@@ -817,6 +818,7 @@ export class MinhaBarbeariaRuntimeController {
     if (clienteMensalista && serviceIds.length === 0 && !clienteSel.anonymous) {
       this.#mensalistasAtivos.add(clienteSel.id);
     }
+    const serviceIdsParaSalvar = serviceIds.filter(id => id !== CorteModal.MENSALISTA_ID);
 
     // 4. Sentar (cliente cadastrado ou walk-in anônimo)
     try {
@@ -825,7 +827,7 @@ export class MinhaBarbeariaRuntimeController {
         professionalId,
         clientId:       clienteSel.anonymous ? null : clienteSel.id,
         guestName:      clienteSel.anonymous ? clienteSel.full_name : undefined,
-        serviceIds,
+        serviceIds:     serviceIdsParaSalvar,
         tipo,
       });
       NotificationService.mostrarToast(

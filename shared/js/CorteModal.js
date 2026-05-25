@@ -14,6 +14,7 @@
 // =============================================================
 
 class CorteModal {
+  static MENSALISTA_ID = '__mensalista__';
 
   // ──────────────────────────────────────────────────────────
   // Exibe a modal de seleção de serviços.
@@ -21,6 +22,7 @@ class CorteModal {
   // @param {Array<{id:string, name:string, price:number, duration_min:number}>} opts.servicos
   // @param {string}  opts.clienteNome
   // @param {boolean} [opts.clienteMensalista=false]  — se true, exibe card "Plano Mensal" no topo
+  // @param {boolean} [opts.incluirMensalista=false]  — se true, inclui Mensalista como opção da lista
   // @param {number}  [opts.mensalistaFee=0]           — valor mensal do plano (ex: 89.9)
   // @param {number}  [opts.mensalistaCortesCount=0]   — cortes já realizados este mês
   // @returns {Promise<string[]|null>}
@@ -28,8 +30,9 @@ class CorteModal {
   //   []        → mensalista (card Plano Mensal clicado)
   //   string[]  → IDs dos serviços selecionados
   // ──────────────────────────────────────────────────
-  static abrir({ servicos, clienteNome, clienteMensalista = false, mensalistaFee = 0, mensalistaCortesCount = 0 }) {
+  static abrir({ servicos, clienteNome, clienteMensalista = false, incluirMensalista = false, mensalistaFee = 0, mensalistaCortesCount = 0 }) {
     return new Promise(resolve => {
+      const listaServicos = Array.isArray(servicos) ? servicos : [];
       const overlay = document.createElement('div');
       overlay.className = 'crtm-overlay';
 
@@ -91,7 +94,7 @@ class CorteModal {
             <button class="crtm-fechar" aria-label="Fechar">✕</button>
           </div>
           <ul class="crtm-lista" role="group" aria-label="Serviços disponíveis">
-            ${servicos.length ? '' : '<li class="crtm-vazio">Nenhum serviço cadastrado.</li>'}
+            ${listaServicos.length || incluirMensalista ? '' : '<li class="crtm-vazio">Nenhum serviço cadastrado.</li>'}
           </ul>
           <div class="crtm-footer">
             <p class="crtm-total">Total: <strong class="crtm-total-val">R$ 0,00</strong></p>
@@ -104,7 +107,10 @@ class CorteModal {
       const confirmarBtn = overlay.querySelector('.crtm-btn--confirmar');
       const totalVal     = overlay.querySelector('.crtm-total-val');
 
-      servicos.map(s => CorteModal.#criarItem(s)).forEach(el => listaEl.appendChild(el));
+      [
+        ...(incluirMensalista ? [CorteModal.#criarMensalistaItem()] : []),
+        ...listaServicos.map(s => CorteModal.#criarItem(s)),
+      ].forEach(el => listaEl.appendChild(el));
 
       const atualizar = () => {
         const selecionados = CorteModal.#getSelecionados(overlay);
@@ -193,6 +199,15 @@ class CorteModal {
     li.appendChild(thumb);
     li.appendChild(label);
     return li;
+  }
+
+  static #criarMensalistaItem() {
+    return CorteModal.#criarItem({
+      id:           CorteModal.MENSALISTA_ID,
+      name:         'Mensalista',
+      price:        0,
+      duration_min: null,
+    });
   }
 
   /**
