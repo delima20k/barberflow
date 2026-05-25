@@ -86,6 +86,10 @@ class FakeQuery {
       return { data: [{ professional_id: PROF_ID, finished_at: null, chair: { barbershop_id: SHOP_ID } }], error: null };
     }
 
+    if (this.table === 'barbershop_mensalistas') {
+      return { data: [{ monthly_fee: 100 }, { monthly_fee: 80 }], error: null };
+    }
+
     return { data: [], error: null };
   }
 }
@@ -172,6 +176,8 @@ suite('Financeiro BFF HTTP', () => {
     assert.equal(res.body.dados.cards.receitaLiquida.total, 480);
     assert.equal(res.body.dados.cards.lucroBarbearia.total, 480);
     assert.equal(res.body.dados.cards.meuLucro, null);
+    assert.equal(res.body.dados.cards.mensalistas.total, 180);
+    assert.equal(res.body.dados.cards.mensalistas.count, 2);
     assert.equal(res.body.dados.barbeiros[0].nome, 'Joao Premium');
   });
 

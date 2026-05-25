@@ -63,7 +63,7 @@ class FinanceiroCalculator {
     };
   }
 
-  calcularDashboard({ periodo, transacoes = [], transacoesAnteriores = [], agreements = [], profissionais = [], statusEquipe = {}, isOwner = false, viewerProfessionalId = null }) {
+  calcularDashboard({ periodo, transacoes = [], transacoesAnteriores = [], agreements = [], profissionais = [], statusEquipe = {}, isOwner = false, viewerProfessionalId = null, mensalistas = null }) {
     const agreementMap = this.#agreementMap(agreements);
     const barbeiroMap = this.#barbeiroMap(profissionais, statusEquipe);
     const atual = this.#agregar(transacoes, agreementMap, barbeiroMap);
@@ -105,8 +105,11 @@ class FinanceiroCalculator {
           online: Number(statusEquipe.online ?? 0),
           inativos: [...barbeiroMap.values()].filter(item => !item.ativo).length,
         },
+        mensalistas: mensalistas ?? { total: 0, count: 0 },
       },
-      metodosPagamento: [...atual.metodos.values()].sort((a, b) => b.receitaLiquida - a.receitaLiquida),
+      metodosPagamento: [...atual.metodos.values()]
+        .filter(m => m.metodo !== 'outros')
+        .sort((a, b) => b.receitaLiquida - a.receitaLiquida),
       barbeiros,
       series: this.#series(transacoes, agreementMap),
       donut: [

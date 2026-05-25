@@ -35,12 +35,13 @@ class FinanceiroBffService extends BaseService {
       ate: periodo.anteriorAte,
     };
 
-    const [transacoes, transacoesAnteriores, agreements, profissionais, statusEquipe] = await Promise.all([
+    const [transacoes, transacoesAnteriores, agreements, profissionais, statusEquipe, mensalistas] = await Promise.all([
       this.#repo.listarTransacoes(barbershopId, periodo),
       this.#repo.listarTransacoes(barbershopId, periodoAnterior),
       this.#repo.listarAgreements(barbershopId, periodo.fim),
       this.#repo.listarProfissionais(barbershopId),
       this.#repo.listarStatusEquipe(barbershopId),
+      this.#repo.listarTotalMensalistas(barbershopId),
     ]);
 
     return this.#calculator.calcularDashboard({
@@ -52,6 +53,7 @@ class FinanceiroBffService extends BaseService {
       statusEquipe,
       isOwner,
       viewerProfessionalId,
+      mensalistas,
     });
   }
 

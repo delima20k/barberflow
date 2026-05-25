@@ -134,8 +134,22 @@ class FinanceiroRepository extends BaseRepository {
     }
   }
 
-  async aplicarTaxaMetodo(userId, barbershopId, metodo, periodo, porcentagem) {
-    const { data, error } = await this._db.rpc('aplicar_desconto_metodo', {
+  async listarTotalMensalistas(barbershopId) {
+    this._uuid('barbershop_id', barbershopId);
+    const agora = new Date().toISOString();
+    const { data, error } = await this._db
+      .from('barbershop_mensalistas')
+      .select('monthly_fee')
+      .eq('barbershop_id', barbershopId)
+      .gte('ends_at', agora);
+
+    if (error) this._throwDbError(error, 'listarTotalMensalistas');
+    const rows = data || [];
+    const total = rows.reduce((acc, row) => acc + Number(row.monthly_fee || 0), 0);
+    return { total: Math.round(total * 100) / 100, count: rows.length };
+  }
+
+  async aplicarTaxaMetodo(userId, barbershopId, metodo, periodo, porcentagem) {    const { data, error } = await this._db.rpc('aplicar_desconto_metodo', {
       p_barbershop_id: barbershopId,
       p_metodo: metodo,
       p_de: periodo.de,

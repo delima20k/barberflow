@@ -33,6 +33,57 @@ class CorteModal {
       const overlay = document.createElement('div');
       overlay.className = 'crtm-overlay';
 
+      // Modo mensalista: só mostra o card do plano, sem serviços avulsos
+      if (clienteMensalista) {
+        overlay.innerHTML = `
+          <div class="crtm-card" role="dialog" aria-modal="true" aria-label="Confirmar mensalista">
+            <div class="crtm-header">
+              <p class="crtm-titulo">Mensalista: <strong>${CorteModal.#escapar(clienteNome)}</strong></p>
+              <button class="crtm-fechar" aria-label="Fechar">✕</button>
+            </div>
+            <ul class="crtm-lista" role="group" aria-label="Plano mensal"></ul>
+            <div class="crtm-footer">
+              <button class="crtm-btn crtm-btn--confirmar">Confirmar Mensalista</button>
+              <button class="crtm-btn crtm-btn--cancelar">Cancelar</button>
+            </div>
+          </div>`;
+
+        const listaEl = overlay.querySelector('.crtm-lista');
+        const feeStr = mensalistaFee > 0
+          ? mensalistaFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês'
+          : 'sem cobrança adicional';
+        const cortesStr = `${mensalistaCortesCount} corte${mensalistaCortesCount !== 1 ? 's' : ''} este mês`;
+
+        const card = document.createElement('li');
+        card.className = 'crtm-plano-mensal';
+        card.innerHTML = `
+          <span class="crtm-plano-mensal-icone">👑</span>
+          <span class="crtm-plano-mensal-info">
+            <span class="crtm-plano-mensal-titulo">Plano Mensal — ${CorteModal.#escapar(feeStr)}</span>
+            <span class="crtm-plano-mensal-cortes">${CorteModal.#escapar(cortesStr)}</span>
+          </span>`;
+        listaEl.appendChild(card);
+
+        overlay.querySelector('.crtm-btn--confirmar').addEventListener('click', () => _fechar([]));
+        overlay.querySelector('.crtm-btn--cancelar').addEventListener('click', () => _fechar(null));
+        overlay.querySelector('.crtm-fechar').addEventListener('click', () => _fechar(null));
+        overlay.addEventListener('click', e => { if (e.target === overlay) _fechar(null); });
+        const onKey = e => { if (e.key === 'Escape') _fechar(null); };
+        document.addEventListener('keydown', onKey);
+
+        function _fechar(resultado) {
+          document.removeEventListener('keydown', onKey);
+          overlay.classList.add('crtm-overlay--saindo');
+          setTimeout(() => overlay.remove(), 220);
+          resolve(resultado);
+        }
+
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => overlay.classList.add('crtm-overlay--visivel'));
+        return;
+      }
+
+      // Modo normal: lista de serviços avulsos
       overlay.innerHTML = `
         <div class="crtm-card" role="dialog" aria-modal="true" aria-label="Selecionar cortes">
           <div class="crtm-header">
@@ -40,10 +91,7 @@ class CorteModal {
             <button class="crtm-fechar" aria-label="Fechar">✕</button>
           </div>
           <ul class="crtm-lista" role="group" aria-label="Serviços disponíveis">
-            ${servicos.length
-              ? ''
-              : '<li class="crtm-vazio">Nenhum serviço cadastrado.</li>'
-            }
+            ${servicos.length ? '' : '<li class="crtm-vazio">Nenhum serviço cadastrado.</li>'}
           </ul>
           <div class="crtm-footer">
             <p class="crtm-total">Total: <strong class="crtm-total-val">R$ 0,00</strong></p>
@@ -52,38 +100,12 @@ class CorteModal {
           </div>
         </div>`;
 
-      const listaEl     = overlay.querySelector('.crtm-lista');
+      const listaEl      = overlay.querySelector('.crtm-lista');
       const confirmarBtn = overlay.querySelector('.crtm-btn--confirmar');
-      const totalVal    = overlay.querySelector('.crtm-total-val');
+      const totalVal     = overlay.querySelector('.crtm-total-val');
 
-      // Card Plano Mensal (topo da lista) — apenas para mensalistas ativos
-      if (clienteMensalista) {
-        const feeStr = mensalistaFee > 0
-          ? mensalistaFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês'
-          : 'sem cobrança adicional';
-        const cortesStr = `${mensalistaCortesCount} corte${mensalistaCortesCount !== 1 ? 's' : ''} este mês`;
+      servicos.map(s => CorteModal.#criarItem(s)).forEach(el => listaEl.appendChild(el));
 
-        const card = document.createElement('li');
-        card.className = 'crtm-plano-mensal';
-        card.setAttribute('role', 'button');
-        card.setAttribute('tabindex', '0');
-        card.setAttribute('aria-label', 'Usar plano mensal');
-        card.innerHTML = `
-          <span class="crtm-plano-mensal-icone">👑</span>
-          <span class="crtm-plano-mensal-info">
-            <span class="crtm-plano-mensal-titulo">Plano Mensal — ${CorteModal.#escapar(feeStr)}</span>
-            <span class="crtm-plano-mensal-cortes">${CorteModal.#escapar(cortesStr)}</span>
-          </span>`;
-        card.addEventListener('click', () => _fechar([]));
-        card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') _fechar([]); });
-        listaEl.insertBefore(card, listaEl.firstChild);
-      }
-
-      // Cria itens de serviço
-      const itens = servicos.map(s => CorteModal.#criarItem(s));
-      itens.forEach(el => listaEl.appendChild(el));
-
-      // Atualiza total e estado do botão ao mudar seleção
       const atualizar = () => {
         const selecionados = CorteModal.#getSelecionados(overlay);
         const total = selecionados.reduce((acc, s) => acc + (s.price ?? 0), 0);
@@ -93,13 +115,11 @@ class CorteModal {
 
       listaEl.addEventListener('change', atualizar);
 
-      // Confirmar
       confirmarBtn.addEventListener('click', () => {
         const ids = CorteModal.#getSelecionados(overlay).map(s => s.id);
         _fechar(ids.length ? ids : null);
       });
 
-      // Cancelar e fechamento externo
       overlay.querySelector('.crtm-btn--cancelar').addEventListener('click', () => _fechar(null));
       overlay.querySelector('.crtm-fechar').addEventListener('click',         () => _fechar(null));
       overlay.addEventListener('click', e => { if (e.target === overlay) _fechar(null); });

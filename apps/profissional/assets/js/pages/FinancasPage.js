@@ -210,6 +210,12 @@ class FinancasPage {
         meta: `${this.#numero(cards?.totalBarbeiros?.online)} online · ${this.#numero(cards?.totalBarbeiros?.inativos)} inativos`,
         icon: 'EQ',
       },
+      {
+        label: 'Mensalistas',
+        valor: this.#moeda(cards?.mensalistas?.total),
+        meta: `${this.#numero(cards?.mensalistas?.count)} ativo${cards?.mensalistas?.count !== 1 ? 's' : ''}`,
+        icon: '👑',
+      },
     ];
 
     el.innerHTML = items.map(item => `

@@ -119,3 +119,39 @@ test('FinanceiroCalculator valida periodo custom com de e ate', () => {
   assert.equal(periodo.de, '2026-05-01');
   assert.equal(periodo.ate, '2026-05-24');
 });
+
+test('FinanceiroCalculator inclui cards.mensalistas com total e count', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [],
+    transacoesAnteriores: [],
+    agreements: [],
+    profissionais: [],
+    statusEquipe: {},
+    mensalistas: { total: 200, count: 2 },
+  });
+
+  assert.equal(dashboard.cards.mensalistas.total, 200);
+  assert.equal(dashboard.cards.mensalistas.count, 2);
+});
+
+test('FinanceiroCalculator exclui entradas "outros" de metodosPagamento', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'p1', gross_amount: 100, amount: 100, payment_method: null, paid_at: '2026-05-10T12:00:00.000Z' },
+      { professional_id: 'p1', gross_amount: 50,  amount: 50,  payment_method: 'pix', paid_at: '2026-05-11T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [],
+    profissionais: [],
+    statusEquipe: {},
+  });
+
+  const metodos = dashboard.metodosPagamento;
+  const outrosEntry = metodos.find(m => m.metodo === 'outros');
+  assert.equal(outrosEntry, undefined, 'metodo "outros" nao deve aparecer em metodosPagamento');
+});
+
