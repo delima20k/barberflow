@@ -134,13 +134,14 @@ class FinanceiroRepository extends BaseRepository {
     }
   }
 
-  async aplicarTaxaMetodo(barbershopId, metodo, periodo, porcentagem) {
+  async aplicarTaxaMetodo(userId, barbershopId, metodo, periodo, porcentagem) {
     const { data, error } = await this._db.rpc('aplicar_desconto_metodo', {
       p_barbershop_id: barbershopId,
       p_metodo: metodo,
       p_de: periodo.de,
       p_ate: periodo.ate,
       p_porcentagem: porcentagem,
+      p_user_id: userId,
     });
 
     if (error) this._throwDbError(error, 'aplicarTaxaMetodo');

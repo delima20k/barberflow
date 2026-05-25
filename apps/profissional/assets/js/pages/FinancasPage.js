@@ -9,6 +9,8 @@
 // =============================================================
 
 class FinancasPage {
+  static #METODOS_COM_TAXA = new Set(['credito', 'credit', 'debito', 'debit']);
+
   #telaEl = null;
   #periodoAtual = 'mes';
   #customDe = null;
@@ -341,16 +343,20 @@ class FinancasPage {
       return;
     }
 
-    el.innerHTML = metodos.map(item => `
-      <article class="fin-metodo-card">
-        <div>
-          <p>${FinancasPage.#escapar(item.label || item.metodo)}</p>
-          <strong>${this.#moeda(item.receitaLiquida)}</strong>
-          <span>${this.#numero(item.cortes)} cortes · ${this.#moeda(item.taxas)} taxas</span>
-        </div>
-        <button type="button" class="fin-taxa-btn" data-metodo="${FinancasPage.#escapar(item.metodo)}">Menos %</button>
-      </article>
-    `).join('');
+    el.innerHTML = metodos.map(item => {
+      const temTaxa = FinancasPage.#METODOS_COM_TAXA.has(String(item.metodo).toLowerCase());
+      return `
+        <article class="fin-metodo-card">
+          <div>
+            <p>${FinancasPage.#escapar(item.label || item.metodo)}</p>
+            <strong>${this.#moeda(item.receitaLiquida)}</strong>
+            <span class="fin-metodo-bruto">Bruto: ${this.#moeda(item.receitaBruta)}</span>
+            <span>${this.#numero(item.cortes)} cortes · ${this.#moeda(item.taxas)} taxas</span>
+          </div>
+          ${temTaxa ? `<button type="button" class="fin-taxa-btn" data-metodo="${FinancasPage.#escapar(item.metodo)}">Menos %</button>` : ''}
+        </article>
+      `;
+    }).join('');
 
     el.querySelectorAll('.fin-taxa-btn').forEach(btn => {
       btn.addEventListener('click', () => this.#onMenosPercent(btn.dataset.metodo));

@@ -84,7 +84,7 @@ class FinanceiroBffService extends BaseService {
     const periodo = this.#resolverPeriodo(payload);
     await this.#repo.verificarAcesso(userId, barbershopId);
 
-    const resultado = await this.#repo.aplicarTaxaMetodo(barbershopId, metodo, periodo, porcentagem);
+    const resultado = await this.#repo.aplicarTaxaMetodo(userId, barbershopId, metodo, periodo, porcentagem);
     return { aplicado: true, metodo, porcentagem, periodo, resultado };
   }
 

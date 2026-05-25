@@ -187,7 +187,10 @@ suite('Financeiro BFF HTTP', () => {
       body: { barbershop_id: SHOP_ID, metodo: 'credito', porcentagem: 4, periodo: 'mes' },
     });
     assert.equal(valid.status, 200);
-    assert.equal(fakeDb.rpcCalls[0].name, 'aplicar_desconto_metodo');
+    const rpc = fakeDb.rpcCalls[0];
+    assert.equal(rpc.name, 'aplicar_desconto_metodo');
+    // BFF deve passar p_user_id para que o RPC possa verificar acesso sem auth.uid()
+    assert.equal(rpc.payload.p_user_id, USER_ID);
   });
 });
 
