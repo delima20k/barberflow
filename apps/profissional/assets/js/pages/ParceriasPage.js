@@ -75,7 +75,8 @@ class ParceriasPage {
       if (ativa) {
         this.#aoEntrar();
       } else {
-        this.#carregouConvites = false; // convites são dinâmicos — sempre re-buscar na próxima entrada
+        this.#carregouConvites  = false; // convites são dinâmicos — sempre re-buscar na próxima entrada
+        this.#carregouParceiras = false; // parceiras filtram recusados — re-buscar também
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
@@ -102,22 +103,40 @@ class ParceriasPage {
     this.#parceirasListaEl.innerHTML = this.#skeletonParceiras(4);
 
     try {
+      // Barbershops cujo convite este barbeiro já recusou — não devem aparecer na lista
+      const recusadoIds = await ParceriasPage.#fetchBarbershoopsRecusados();
+
       const lista = await BarbershopRepository.getAll(20);
       this.#parceirasListaEl.innerHTML = '';
 
-      if (!lista.length) {
+      const visiveis = lista.filter(b => !recusadoIds.has(b.id));
+
+      if (!visiveis.length) {
         this.#parceirasListaEl.innerHTML = ParceriasPage.#vazioHtml(
           '💈', 'Nenhuma barbearia parceira ainda'
         );
         return;
       }
 
-      lista.forEach(b => this.#parceirasListaEl.appendChild(this.#criarCardParceira(b)));
+      visiveis.forEach(b => this.#parceirasListaEl.appendChild(this.#criarCardParceira(b)));
 
     } catch (err) {
       LoggerService.error('[ParceriasPage] parceiras:', err);
       this.#parceirasListaEl.innerHTML = ParceriasPage.#erroHtml('barbearias parceiras');
     }
+  }
+
+  static async #fetchBarbershoopsRecusados() {
+    try {
+      const perfil = AuthService.getPerfil();
+      if (!perfil?.id) return new Set();
+      const { data } = await SupabaseService.client
+        .from('barbershop_invites')
+        .select('barbershop_id')
+        .eq('barbeiro_id', perfil.id)
+        .eq('status', 'recusado');
+      return new Set((data ?? []).map(r => r.barbershop_id));
+    } catch (_) { return new Set(); }
   }
 
   #criarCardParceira(b) {
