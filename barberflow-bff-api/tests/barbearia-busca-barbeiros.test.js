@@ -77,6 +77,26 @@ function naoChamou(chamadas, metodo, tabela, ...args) {
 
 // ── Suítes ────────────────────────────────────────────────────────────────────
 
+suite('BarbeariaRepository.buscarBarbeirosDisponiveis — role correto', () => {
+
+  test('filtra pelo valor "professional" (inglês), não "profissional" (português)', async () => {
+    const { db, chamadas } = criarMockRastreador();
+    const repo = new BarbeariaRepository(db);
+
+    await repo.buscarBarbeirosDisponiveis(UUID_SHOP, UUID_OWNER, '', 20);
+
+    assert.ok(
+      temChamada(chamadas, 'eq', 'profiles', 'role', 'professional'),
+      'deve usar role="professional" (valor real do CHECK constraint no banco)',
+    );
+    assert.ok(
+      naoChamou(chamadas, 'eq', 'profiles', 'role', 'profissional'),
+      'não deve usar role="profissional" — valor inexistente no banco',
+    );
+  });
+
+});
+
 suite('BarbeariaRepository.buscarBarbeirosDisponiveis — pro_type legacy (null)', () => {
 
   test('NÃO usa eq(pro_type, barbeiro) — exigiria que todos tenham pro_type definido', async () => {

@@ -278,7 +278,7 @@ class BarbeariaRepository extends BaseRepository {
     let query = this._db
       .from('profiles')
       .select('id, full_name, avatar_path, phone, updated_at')
-      .eq('role', 'profissional')
+      .eq('role', 'professional')
       // Inclui barbeiros legados (pro_type=null) registrados antes da migração de pro_type
       .or('pro_type.eq.barbeiro,pro_type.is.null')
       .eq('is_active', true)
