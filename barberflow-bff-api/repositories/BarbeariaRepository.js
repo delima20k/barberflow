@@ -273,6 +273,14 @@ class BarbeariaRepository extends BaseRepository {
       .eq('status', 'pendente');
     (pending ?? []).forEach(r => excluidos.add(r.barbeiro_id));
 
+    // Barbeiros que recusaram — aparecem na busca, mas marcados com recusou:true
+    const { data: recusados } = await this._db
+      .from('barbershop_invites')
+      .select('barbeiro_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'recusado');
+    const recusadoSet = new Set((recusados ?? []).map(r => r.barbeiro_id));
+
     excluidos.add(ownerId);
 
     let query = this._db
@@ -296,7 +304,10 @@ class BarbeariaRepository extends BaseRepository {
     const { data, error } = await query;
     if (error) this._throwDbError(error, 'buscarBarbeirosDisponiveis');
 
-    return (data ?? []).filter(p => !excluidos.has(p.id)).slice(0, limit);
+    return (data ?? [])
+      .filter(p => !excluidos.has(p.id))
+      .slice(0, limit)
+      .map(p => ({ ...p, recusou: recusadoSet.has(p.id) }));
   }
 
   /**

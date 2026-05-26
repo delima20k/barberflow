@@ -2327,6 +2327,34 @@
 .mb-convite-barb-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .mb-convite-barb-nome { font-size: .82rem; font-weight: 600; color: var(--text); margin: 0; }
 .mb-convite-barb-sub  { font-size: .7rem; color: var(--text-muted); margin: 0; }
+.mb-convite-barb-id   { font-size: .7rem; color: var(--text-muted); margin: 0; }
+
+/* Card barbeiro que recusou proposta */
+.mb-convite-barb-card--recusou {
+  border-color: rgba(239,68,68,.35);
+  flex-wrap: wrap;
+  cursor: default;
+}
+.mb-convite-barb-badge-recusou {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: .68rem;
+  color: #dc2626;
+  font-weight: 600;
+}
+.mb-convite-barb-acoes-recusou {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(239,68,68,.18);
+}
+.btn-xs {
+  font-size: .7rem;
+  padding: 4px 10px;
+  border-radius: var(--r-full, 99px);
+}
 
 .mb-convite-barbeiro-selecionado {
   display: flex;

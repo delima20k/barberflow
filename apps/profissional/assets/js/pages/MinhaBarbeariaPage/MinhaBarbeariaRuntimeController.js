@@ -1855,41 +1855,117 @@ export class MinhaBarbeariaRuntimeController {
     }
 
     data.forEach(p => {
-      const item = document.createElement('label');
-      item.className  = 'mb-convite-barb-card mb-convite-barb-card--check';
-      item.dataset.id = p.id;
+      el.appendChild(p.recusou
+        ? this.#criarCardBarbeiroRecusou(p)
+        : this.#criarCardBarbeiroDisponivel(p));
+    });
+  }
 
+  #criarCardBarbeiroDisponivel(p) {
+    const item = document.createElement('label');
+    item.className  = 'mb-convite-barb-card mb-convite-barb-card--check';
+    item.dataset.id = p.id;
+
+    const chk = document.createElement('input');
+    chk.type      = 'checkbox';
+    chk.className = 'mb-convite-barb-chk';
+    chk.value     = p.id;
+    chk.addEventListener('change', () => this.#toggleBarbeiroSelecionado(p.id, chk.checked));
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'mb-convite-barb-avatar';
+    if (p.avatar_path) {
+      const img   = document.createElement('img');
+      img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
+      img.alt     = p.full_name ?? '';
+      img.loading = 'lazy';
+      img.onerror = () => { avatarEl.textContent = '💈'; };
+      avatarEl.appendChild(img);
+    } else {
+      avatarEl.textContent = '💈';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'mb-convite-barb-info';
+    const tel = InputValidator.sanitizar(p.phone ?? '');
+    info.innerHTML =
+      `<p class="mb-convite-barb-nome">${InputValidator.sanitizar(p.full_name ?? '')}</p>` +
+      (tel ? `<p class="mb-convite-barb-id">${tel}</p>` : '');
+
+    item.appendChild(chk);
+    item.appendChild(avatarEl);
+    item.appendChild(info);
+    return item;
+  }
+
+  #criarCardBarbeiroRecusou(p) {
+    const item = document.createElement('div');
+    item.className  = 'mb-convite-barb-card mb-convite-barb-card--recusou';
+    item.dataset.id = p.id;
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'mb-convite-barb-avatar';
+    if (p.avatar_path) {
+      const img   = document.createElement('img');
+      img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
+      img.alt     = p.full_name ?? '';
+      img.loading = 'lazy';
+      img.onerror = () => { avatarEl.textContent = '💈'; };
+      avatarEl.appendChild(img);
+    } else {
+      avatarEl.textContent = '💈';
+    }
+
+    const info = document.createElement('div');
+    info.className = 'mb-convite-barb-info';
+    const tel = InputValidator.sanitizar(p.phone ?? '');
+    info.innerHTML =
+      `<p class="mb-convite-barb-nome">${InputValidator.sanitizar(p.full_name ?? '')}</p>` +
+      (tel ? `<p class="mb-convite-barb-id">${tel}</p>` : '') +
+      `<span class="mb-convite-barb-badge-recusou">⚠️ Recusou a proposta</span>`;
+
+    const acoes = document.createElement('div');
+    acoes.className = 'mb-convite-barb-acoes-recusou';
+
+    const btnNova = document.createElement('button');
+    btnNova.type      = 'button';
+    btnNova.className = 'btn btn-gold btn-xs';
+    btnNova.textContent = 'Nova proposta';
+    btnNova.addEventListener('click', e => {
+      e.stopPropagation();
+      // Remove badge e botões, transforma em card selecionável normal
+      item.classList.remove('mb-convite-barb-card--recusou');
+      acoes.remove();
+      info.querySelector('.mb-convite-barb-badge-recusou')?.remove();
+      // Adiciona checkbox e seleciona automaticamente
       const chk = document.createElement('input');
       chk.type      = 'checkbox';
       chk.className = 'mb-convite-barb-chk';
       chk.value     = p.id;
+      chk.checked   = true;
       chk.addEventListener('change', () => this.#toggleBarbeiroSelecionado(p.id, chk.checked));
-
-      const avatarEl = document.createElement('div');
-      avatarEl.className = 'mb-convite-barb-avatar';
-      if (p.avatar_path) {
-        const img   = document.createElement('img');
-        img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
-        img.alt     = p.full_name ?? '';
-        img.loading = 'lazy';
-        img.onerror = () => { avatarEl.textContent = '💈'; };
-        avatarEl.appendChild(img);
-      } else {
-        avatarEl.textContent = '💈';
-      }
-
-      const info = document.createElement('div');
-      info.className = 'mb-convite-barb-info';
-      const tel = InputValidator.sanitizar(p.phone ?? '');
-      info.innerHTML =
-        `<p class="mb-convite-barb-nome">${InputValidator.sanitizar(p.full_name ?? '')}</p>` +
-        (tel ? `<p class="mb-convite-barb-id">${tel}</p>` : '');
-
-      item.appendChild(chk);
-      item.appendChild(avatarEl);
-      item.appendChild(info);
-      el.appendChild(item);
+      item.insertBefore(chk, item.firstChild);
+      item.classList.add('mb-convite-barb-card--check');
+      this.#toggleBarbeiroSelecionado(p.id, true);
     });
+
+    const btnNao = document.createElement('button');
+    btnNao.type      = 'button';
+    btnNao.className = 'btn btn-outline btn-xs';
+    btnNao.textContent = 'Não enviar';
+    btnNao.addEventListener('click', e => {
+      e.stopPropagation();
+      this.#conviteBarbelrosSelecionados.delete(p.id);
+      item.remove();
+    });
+
+    acoes.appendChild(btnNova);
+    acoes.appendChild(btnNao);
+
+    item.appendChild(avatarEl);
+    item.appendChild(info);
+    item.appendChild(acoes);
+    return item;
   }
 
   #toggleBarbeiroSelecionado(id, checked) {
