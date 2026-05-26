@@ -115,6 +115,45 @@ suite('ProfissionalService — listarMeuPortfolio', () => {
       err => err.status === 400,
     );
   });
+  test('salva imagem processada no storage e metadados no banco pela BFF', async () => {
+    let upload = null;
+    let metadata = null;
+    const service = new ProfissionalService(
+      criarRepo({
+        uploadPortfolioImagem: async (path, buffer, contentType) => {
+          upload = { path, buffer, contentType };
+        },
+        salvarPortfolioImagem: async (userId, storagePath, thumbnailPath) => {
+          metadata = { userId, storagePath, thumbnailPath };
+          return {
+            id: PHOTO_ID,
+            title: null,
+            description: null,
+            category: null,
+            storage_path: storagePath,
+            thumbnail_path: thumbnailPath,
+            likes_count: 0,
+            views_count: 0,
+            is_featured: false,
+            updated_at: '2026-05-25T00:00:00.000Z',
+          };
+        },
+      }),
+      null,
+      {
+        uuid: () => 'foto-test',
+        processarImagem: async () => Buffer.from('webp-menor'),
+      },
+    );
+
+    const result = await service.uploadPortfolioImagem(USER_ID, JPEG_BUFFER, 'image/jpeg');
+
+    assert.strictEqual(upload.contentType, 'image/webp');
+    assert.strictEqual(upload.buffer.toString(), 'webp-menor');
+    assert.strictEqual(metadata.storagePath, `${USER_ID}/fotos/foto-test.webp`);
+    assert.strictEqual(metadata.thumbnailPath, metadata.storagePath);
+    assert.strictEqual(result.storagePath, metadata.storagePath);
+  });
 });
 
 suite('ProfissionalService — uploadPortfolioImagem', () => {

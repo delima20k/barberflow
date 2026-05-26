@@ -40,6 +40,12 @@ class ParceriasPage {
   #carregouFotos     = false;
   #fotos             = [];
   #fotoViewer        = null;
+  #fotoViewerEl      = null;
+  #fotoViewerStageEl = null;
+  #fotoViewerImgEl   = null;
+  #fotoViewerCountEl = null;
+  #fotoViewerIndex   = 0;
+  #fotoViewerSwipeX  = null;
 
   constructor() {}
 
@@ -415,6 +421,18 @@ class ParceriasPage {
     return path;
   }
 
+  static #portfolioItem(foto, index) {
+    const url = ParceriasPage.#fotoUrl(foto);
+    return {
+      ...foto,
+      parceriasIndex: index,
+      title: foto?.title || `Foto ${index + 1}`,
+      thumbUrl: url,
+      fullUrl: url,
+      likesCount: foto?.likesCount ?? 0,
+    };
+  }
+
   #criarCardFoto(foto, index) {
     const item = document.createElement('button');
     item.type = 'button';
@@ -470,6 +488,15 @@ class ParceriasPage {
 
   #abrirViewerFoto(index) {
     if (!this.#fotos.length) return;
+    const items = this.#fotos
+      .map((foto, fotoIndex) => ParceriasPage.#portfolioItem(foto, fotoIndex))
+      .filter(item => item.thumbUrl || item.fullUrl);
+    const item = items.find(foto => foto.parceriasIndex === index) ?? items[0];
+    if (item && typeof PortfolioViewerModal !== 'undefined') {
+      this.#fotoViewer ??= new PortfolioViewerModal();
+      this.#fotoViewer.open(item, items);
+      return;
+    }
     this.#fotoViewerIndex = Math.max(0, Math.min(index, this.#fotos.length - 1));
     this.#ensureFotoViewer();
     this.#renderViewerFoto('next');

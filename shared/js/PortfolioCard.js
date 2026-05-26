@@ -3,10 +3,12 @@
 class PortfolioCard {
   #item;
   #viewer;
+  #items;
 
-  constructor(item, viewer) {
+  constructor(item, viewer, items = []) {
     this.#item = item;
     this.#viewer = viewer;
+    this.#items = items;
   }
 
   render() {
@@ -33,7 +35,7 @@ class PortfolioCard {
     }, { once: true });
 
     btn.appendChild(img);
-    btn.addEventListener('click', () => this.#viewer?.open(this.#item));
+    btn.addEventListener('click', () => this.#viewer?.open(this.#item, this.#items));
     card.appendChild(btn);
     if (typeof PortfolioImageActions !== 'undefined') {
       card.appendChild(PortfolioImageActions.criar(this.#item));

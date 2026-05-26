@@ -219,7 +219,7 @@ class ProfissionalRepository extends BaseRepository {
     return count ?? 0;
   }
 
-  async salvarPortfolioImagem(userId, storagePath) {
+  async salvarPortfolioImagem(userId, storagePath, thumbnailPath = storagePath) {
     this._uuid('userId', userId);
     const { data, error } = await this._db
       .from('portfolio_images')
@@ -227,6 +227,7 @@ class ProfissionalRepository extends BaseRepository {
         owner_id:    userId,
         owner_type:  'professional',
         storage_path: storagePath,
+        thumbnail_path: thumbnailPath,
         status:      'active',
         created_at:  new Date().toISOString(),
         updated_at:  new Date().toISOString(),

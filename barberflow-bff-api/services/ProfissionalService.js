@@ -210,7 +210,7 @@ class ProfissionalService extends BaseService {
 
     const path = `${userId}/fotos/${this.#deps.uuid()}.webp`;
     await this.#repo.uploadPortfolioImagem(path, processado, 'image/webp');
-    const row = await this.#repo.salvarPortfolioImagem(userId, path);
+    const row = await this.#repo.salvarPortfolioImagem(userId, path, path);
 
     return {
       ...ProfissionalService.#portfolioDto(row),
