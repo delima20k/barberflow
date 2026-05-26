@@ -175,6 +175,20 @@ class BarbeariaService extends BaseService {
   }
 
   /**
+   * Carrega barbearia vinculada ao profissional para gestao de cadeiras.
+   * @param {string} userId
+   * @param {string} barbershopId
+   * @returns {Promise<object>}
+   */
+  async getGestaoVinculada(userId, barbershopId) {
+    this._uuid('userId', userId);
+    this._uuid('barbershopId', barbershopId);
+    const shop = await this.#repo.getAtivaVinculada(barbershopId, userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia vinculada nao encontrada.');
+    return shop;
+  }
+
+  /**
    * Dispensa barbeiro da barbearia do owner.
    * @param {string} userId
    * @param {string} professionalId
@@ -208,6 +222,40 @@ class BarbeariaService extends BaseService {
    * Valida raio em km. Lança AppError(400) se inválido.
    * @param {number} raioKm
    */
+  async salvarStoryProfissional(userId, barbershopId, dados = {}) {
+    this._uuid('userId', userId);
+    this._uuid('barbershopId', barbershopId);
+
+    const storagePath = this._texto('storage_path', dados.storage_path ?? dados.path ?? '', 500, true);
+    const mediaType = this._texto('media_type', dados.media_type ?? dados.mediaType ?? '', 20, true).toLowerCase();
+    if (mediaType !== 'video') {
+      throw AppError.badRequest('Apenas videos podem ser publicados nos stories da barbearia por este endpoint.');
+    }
+
+    const shopOwner = await this.#repo.getAtivaPorOwner(userId);
+    const isOwner = shopOwner?.id === barbershopId;
+    const temVinculo = isOwner || await this.#repo.profissionalTemVinculoAtivo(barbershopId, userId);
+    if (!temVinculo) throw AppError.forbidden('Profissional sem vinculo ativo com esta barbearia.');
+
+    const quotaHoje = await this.#repo.contarStoriesHoje(userId, barbershopId);
+    const limite = isOwner ? 3 : 1;
+    if (quotaHoje >= limite) throw AppError.conflict('Limite diario de stories atingido.');
+
+    const expiresAt = dados.expires_at
+      ? new Date(dados.expires_at)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    if (Number.isNaN(expiresAt.getTime())) throw AppError.badRequest('expires_at invalido.');
+
+    return this.#repo.salvarStory({
+      owner_id: userId,
+      barbershop_id: barbershopId,
+      storage_path: storagePath,
+      thumbnail_path: dados.thumbnail_path ?? dados.thumbnailPath ?? null,
+      media_type: mediaType,
+      expires_at: expiresAt.toISOString(),
+    });
+  }
+
   static #validarRaio(raioKm) {
     if (typeof raioKm !== 'number' || !isFinite(raioKm) || raioKm <= 0 || raioKm > 100) {
       throw AppError.badRequest('raio deve ser um número entre 0 e 100 km.');

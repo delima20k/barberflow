@@ -23,6 +23,16 @@ class ConviteService extends BaseService {
   }
 
   /**
+   * Lista barbearias onde o profissional autenticado possui vinculo ativo.
+   * @param {string} profissionalId
+   * @returns {Promise<object[]>}
+   */
+  async listarBarbeariasVinculadas(profissionalId) {
+    this._uuid('profissionalId', profissionalId);
+    return this.#repo.listarBarbeariasVinculadas(profissionalId);
+  }
+
+  /**
    * @param {string} profissionalId
    * @param {string} inviteId
    * @returns {Promise<{aceito: true}>}

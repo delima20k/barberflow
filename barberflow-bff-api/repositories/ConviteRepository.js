@@ -1,10 +1,9 @@
 'use strict';
 
 const BaseRepository = require('./BaseRepository');
-const AppError       = require('../utils/AppError');
+const AppError = require('../utils/AppError');
 
 class ConviteRepository extends BaseRepository {
-
   /** @param {import('@supabase/supabase-js').SupabaseClient} db */
   constructor(db) {
     super('ConviteRepository', db);
@@ -34,7 +33,34 @@ class ConviteRepository extends BaseRepository {
   }
 
   /**
-   * Aceita convite: cria vínculo, registra acordo e atualiza status.
+   * Lista somente barbearias com vinculo ativo do profissional autenticado.
+   * @param {string} profissionalId
+   * @returns {Promise<object[]>}
+   */
+  async listarBarbeariasVinculadas(profissionalId) {
+    this._uuid('profissionalId', profissionalId);
+
+    const { data, error } = await this._db
+      .from('professional_shop_links')
+      .select(
+        'professional_id, joined_at, ' +
+        'barbershop:barbershops!barbershop_id(id, owner_id, name, address, city, logo_path, cover_path, is_open, font_key, rating_avg, rating_count)',
+      )
+      .eq('professional_id', profissionalId)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false })
+      .limit(30);
+
+    if (error) {
+      this._warn('listarBarbeariasVinculadas', error);
+      this._throwDbError(error, 'listarBarbeariasVinculadas');
+    }
+
+    return (data ?? []).filter(row => row.barbershop?.id);
+  }
+
+  /**
+   * Aceita convite: cria ou reativa vinculo, registra acordo e atualiza status.
    * @param {string} profissionalId
    * @param {string} inviteId
    * @returns {Promise<{aceito: true}>}
@@ -54,22 +80,26 @@ class ConviteRepository extends BaseRepository {
       this._warn('aceitarConvite fetch', errGet);
       this._throwDbError(errGet, 'aceitarConvite fetch');
     }
-    if (!invite) throw AppError.notFound('Convite não encontrado.');
-    if (invite.status !== 'pendente') throw AppError.conflict('Convite já respondido.');
+    if (!invite) throw AppError.notFound('Convite nao encontrado.');
+    if (invite.status !== 'pendente') throw AppError.conflict('Convite ja respondido.');
 
     const { data: linkExist } = await this._db
       .from('professional_shop_links')
-      .select('professional_id')
+      .select('professional_id, is_active')
       .eq('professional_id', profissionalId)
       .eq('barbershop_id', invite.barbershop_id)
-      .eq('is_active', true)
       .maybeSingle();
 
-    if (linkExist) throw AppError.conflict('Barbeiro já vinculado a esta barbearia.');
+    if (linkExist?.is_active) throw AppError.conflict('Barbeiro ja vinculado a esta barbearia.');
 
-    const { error: errLink } = await this._db
-      .from('professional_shop_links')
-      .insert({ professional_id: profissionalId, barbershop_id: invite.barbershop_id, is_active: true });
+    const linkQuery = this._db.from('professional_shop_links');
+    const { error: errLink } = linkExist
+      ? await linkQuery
+        .update({ is_active: true, joined_at: new Date().toISOString() })
+        .eq('professional_id', profissionalId)
+        .eq('barbershop_id', invite.barbershop_id)
+      : await linkQuery
+        .insert({ professional_id: profissionalId, barbershop_id: invite.barbershop_id, is_active: true });
 
     if (errLink) {
       this._warn('aceitarConvite link', errLink);
@@ -84,11 +114,11 @@ class ConviteRepository extends BaseRepository {
       .from('agreements')
       .insert({
         professional_id: profissionalId,
-        barbershop_id:   invite.barbershop_id,
-        type:            tipo,
-        value:           invite.commission_pct,
-        is_active:       true,
-        valid_from:      new Date().toISOString(),
+        barbershop_id: invite.barbershop_id,
+        type: tipo,
+        value: invite.commission_pct,
+        is_active: true,
+        valid_from: new Date().toISOString(),
       });
 
     if (errAgree) {
@@ -130,8 +160,8 @@ class ConviteRepository extends BaseRepository {
       this._warn('recusarConvite fetch', errGet);
       this._throwDbError(errGet, 'recusarConvite fetch');
     }
-    if (!invite) throw AppError.notFound('Convite não encontrado.');
-    if (invite.status !== 'pendente') throw AppError.conflict('Convite já respondido.');
+    if (!invite) throw AppError.notFound('Convite nao encontrado.');
+    if (invite.status !== 'pendente') throw AppError.conflict('Convite ja respondido.');
 
     const { error: errUpd } = await this._db
       .from('barbershop_invites')

@@ -245,6 +245,12 @@ class BffApiService {
 
     salvarImagemServico: (buffer, mime) =>
       BffApiService.patchBinario('/api/v1/barbearias/minha/servicos/imagem', buffer, mime),
+
+    gestaoVinculada: (barbershopId) =>
+      BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/gestao`),
+
+    publicarStory: (barbershopId, payload) =>
+      BffApiService.post(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`, payload),
   };
 
   // ── Namespace: financeiro ────────────────────────────────────
@@ -273,6 +279,9 @@ class BffApiService {
 
     uploadPortfolioImagem: (buffer, mime) =>
       BffApiService.postBinario('/api/v1/profissionais/me/portfolio', buffer, mime),
+
+    listarBarbeariasVinculadas: () =>
+      BffApiService.get('/api/v1/profissionais/me/barbearias-vinculadas'),
 
     listarCurtidasPortfolio: (imageIds = []) =>
       BffApiService.get('/api/v1/profissionais/me/portfolio/likes', {

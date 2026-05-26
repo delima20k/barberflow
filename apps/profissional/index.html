@@ -908,12 +908,12 @@
       </section>
 
       <!-- ── Status dos convites enviados ─────────────────────── -->
-      <section class="mb-convites-status-section" id="mb-convites-status-section" hidden>
+      <section class="mb-convites-status-section" id="mb-convites-status-section-legacy" hidden data-convites-status-origem="minha-barbearia">
         <div class="mb-equipe-header">
           <p class="sec-title">Convites Enviados</p>
         </div>
-        <div id="mb-convites-status-lista"></div>
-        <p id="mb-convites-status-vazio" class="mb-convites-status-vazio" hidden>
+        <div id="mb-convites-status-lista-legacy"></div>
+        <p id="mb-convites-status-vazio-legacy" class="mb-convites-status-vazio" hidden>
           Nenhum convite enviado ainda.
         </p>
       </section>
@@ -1191,6 +1191,16 @@
           </div>
         </div>
       </div>
+
+      <section class="mb-convites-status-section" id="mb-convites-status-section" hidden data-convites-status-origem="painel">
+        <div class="mb-equipe-header">
+          <p class="sec-title">Convites Enviados</p>
+        </div>
+        <div id="mb-convites-status-lista"></div>
+        <p id="mb-convites-status-vazio" class="mb-convites-status-vazio" hidden>
+          Nenhum convite enviado ainda.
+        </p>
+      </section>
 
       <!-- Tipo de parceria -->
       <div class="mb-config-secao" id="mb-convite-tipo-secao" hidden>

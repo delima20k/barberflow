@@ -159,6 +159,19 @@ class BarbeariaController extends BaseController {
   }
 
   /**
+   * GET /api/v1/barbearias/:barbershop_id/gestao
+   */
+  async getGestaoVinculada(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const dados = await this.#service.getGestaoVinculada(req.user.id, barbershopId);
+      this.success(res, dados);
+    });
+  }
+
+  /**
    * POST /api/v1/barbearias/minha/dispensar/:professional_id
    */
   async dispensarBarbeiro(req, res) {
@@ -191,6 +204,18 @@ class BarbeariaController extends BaseController {
    * @param {string}           nome
    * @returns {number}
    */
+  /**
+   * Registra story enviado por profissional vinculado.
+   */
+  async salvarStoryProfissional(req, res) {
+    await this.handle(res, async () => {
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const resultado = await this.#service.salvarStoryProfissional(req.user.id, barbershopId, req.body ?? {});
+      this.success(res, resultado);
+    });
+  }
+
   static #parseCoord(valor, nome) {
     if (valor === undefined || valor === null || valor === '') {
       throw AppError.badRequest(`Parâmetro '${nome}' é obrigatório.`);

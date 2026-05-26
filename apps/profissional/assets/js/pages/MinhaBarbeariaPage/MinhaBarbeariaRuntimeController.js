@@ -41,6 +41,7 @@ export class MinhaBarbeariaRuntimeController {
   #conviteBarbelrosSelecionados = new Set();
   #conviteTipo                  = 'porcentagem';
   #buscarSeq                    = 0;
+  #contextoParceiro             = false;
   #carregou             = false;
   #barbershopId         = null;
   #isOwner              = false;  // true se o usuário é dono da barbearia
@@ -128,6 +129,8 @@ export class MinhaBarbeariaRuntimeController {
                     this.#telaEl.classList.contains('entrando-lento');
       if (ativa) {
         this.#digBoasVindas?.iniciar();
+        const parceriaId = sessionStorage.getItem('bf_parceria_barbershop_id');
+        if (parceriaId && parceriaId !== this.#barbershopId) this.#carregou = false;
         if (!this.#carregou) {
           this.#carregar();
         } else if (this.#barbershopId && !this.#canalFila) {
@@ -294,8 +297,12 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.convitesStatusLista?.addEventListener('click', e => {
       const btnCancelar  = e.target.closest('[data-cancelar-convite]');
       const btnDispensar = e.target.closest('[data-dispensar-barbeiro]');
+      const btnReenviar  = e.target.closest('[data-reenviar-convite]');
+      const btnNaoEnviar = e.target.closest('[data-nao-enviar-convite]');
       if (btnCancelar)  this.#cancelarConvite(btnCancelar.dataset.cancelarConvite,  btnCancelar.closest('.mb-convite-status-card'));
       if (btnDispensar) this.#dispensarBarbeiro(btnDispensar.dataset.dispensarBarbeiro, btnDispensar.closest('.mb-convite-status-card'));
+      if (btnReenviar)  this.#prepararContraProposta(btnReenviar.closest('.mb-convite-status-card'));
+      if (btnNaoEnviar) this.#ocultarConviteStatus(btnNaoEnviar.closest('.mb-convite-status-card'));
     });
     // Notificação de cliente ausente (enviada pelo trigger via notifications table)
     document.addEventListener('barberflow:notificacao-nova',   e => this.#onClienteAusente(e));
@@ -459,7 +466,8 @@ export class MinhaBarbeariaRuntimeController {
       if (!shop) { this.#mostrarVazio(); return; }
 
       this.#barbershopId   = shop.id;
-      this.#isOwner        = shop.owner_id === perfil.id;
+      this.#contextoParceiro = shop.__contextoParceiro === true;
+      this.#isOwner        = !this.#contextoParceiro && shop.owner_id === perfil.id;
       this.#shopData       = shop;
       this.#profissionalId = perfil.id;
 
@@ -493,7 +501,7 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderInfoCard(shop);
       this.#iniciarRealtimeFila(shop.id);
       this.#processarPushPendente();
-      if (this.#isOwner) this.#carregarEquipeStatus();
+      if (this.#refs.convitesStatusSection) this.#refs.convitesStatusSection.hidden = true;
 
     } catch (err) {
       console.error('[MinhaBarbeariaPage] erro:', err);
@@ -503,6 +511,13 @@ export class MinhaBarbeariaRuntimeController {
 
   // ── Fetchers ────────────────────────────────────────────────
   static async #fetchMinhaBarbearia(ownerId) {
+    const parceriaId = sessionStorage.getItem('bf_parceria_barbershop_id');
+    if (parceriaId) {
+      const { data, error } = await BffApiService.barbearias.gestaoVinculada(parceriaId);
+      if (!error && data?.id) return { ...data, __contextoParceiro: true };
+      sessionStorage.removeItem('bf_parceria_barbershop_id');
+    }
+
     const { data, error } = await SupabaseService.barbershops()
       .select('id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at')
       .eq('owner_id', ownerId)
@@ -593,6 +608,7 @@ export class MinhaBarbeariaRuntimeController {
     // Fila filtrada por profissional
     const filaDonoId     = donoProf?.id ?? ownerId;
     const filaDonoEntradas = filaEntradas.filter(e => e.professional?.id === filaDonoId);
+    const profissionalLogadoId = perfilDono?.id ?? this.#profissionalId;
 
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
     donoWrap.innerHTML = '';
@@ -602,7 +618,7 @@ export class MinhaBarbeariaRuntimeController {
         variant: 'dono', badge: 'Dono',
         onClick:         () => { if (typeof App !== 'undefined') App.nav('perfil'); },
         filaEntradas:    filaDonoEntradas,
-        isOwner:         this.#isOwner,
+        isOwner:         false,
         professionalId:  filaDonoId,
         onCadeiraClick:  (tipo, ocupada, entrada) =>
           this.#onCadeiraClick(tipo, ocupada, entrada, filaDonoId),
@@ -612,6 +628,7 @@ export class MinhaBarbeariaRuntimeController {
     col.innerHTML = '';
     for (const b of equipe) {
       const filaB = filaEntradas.filter(e => e.professional?.id === b.id);
+      const podeGerenciarCadeiras = this.#contextoParceiro && b.id === profissionalLogadoId;
       col.appendChild(
         MinhaBarbeariaRuntimeController.#criarBarbeiroRow({
           nome:           b.profile?.full_name   ?? 'Barbeiro',
@@ -619,7 +636,7 @@ export class MinhaBarbeariaRuntimeController {
           updatedAt:      b.profile?.updated_at  ?? null,
           variant:        'membro',
           filaEntradas:   filaB,
-          isOwner:        this.#isOwner,
+          isOwner:        podeGerenciarCadeiras,
           professionalId: b.id,
           onCadeiraClick: (tipo, ocupada, entrada) =>
             this.#onCadeiraClick(tipo, ocupada, entrada, b.id),
@@ -772,6 +789,7 @@ export class MinhaBarbeariaRuntimeController {
         tipo:     c.status,
         nome:     c.profile?.full_name  ?? 'Barbeiro',
         avatar:   c.profile?.avatar_path ?? null,
+        profId:   c.barbeiro_id,
         inviteId: c.id,
         comissao: c.commission_pct,
         message:  c.message,
@@ -810,10 +828,16 @@ export class MinhaBarbeariaRuntimeController {
     if (tipo === 'pendente') {
       acaoHtml = `<button class="btn btn-outline btn-sm" data-cancelar-convite="${inviteId}" type="button">Cancelar convite</button>`;
     } else if (tipo === 'aceito') {
-      acaoHtml = `<button class="btn btn-outline btn-sm mb-dispensar-btn" data-dispensar-barbeiro="${profId}" type="button">Dispensar</button>`;
+      acaoHtml = `<button class="btn btn-outline btn-sm mb-dispensar-btn" data-dispensar-barbeiro="${profId}" type="button">Excluir</button>`;
     } else if (tipo === 'recusado') {
-      acaoHtml = `<button class="btn btn-gold btn-sm" data-reenviar-convite="${inviteId}" data-prof-id="${profId ?? ''}" type="button">Reenviar convite</button>`;
+      acaoHtml = `
+        <button class="btn btn-gold btn-sm" data-reenviar-convite="${inviteId}" type="button">Contra proposta</button>
+        <button class="btn btn-outline btn-sm" data-nao-enviar-convite="${inviteId}" type="button">Nao enviar mais</button>`;
     }
+
+    if (profId) card.dataset.profId = profId;
+    if (comissao != null) card.dataset.comissao = String(comissao);
+    if (message) card.dataset.message = message;
 
     card.innerHTML = `
       <div class="mb-convite-status-header">
@@ -877,6 +901,39 @@ export class MinhaBarbeariaRuntimeController {
     }
   }
 
+  #prepararContraProposta(cardEl) {
+    if (!cardEl?.dataset.profId) return;
+    this.#conviteBarbelrosSelecionados.clear();
+    this.#conviteBarbelrosSelecionados.add(cardEl.dataset.profId);
+    if (this.#refs.conviteTipoSecao) this.#refs.conviteTipoSecao.hidden = false;
+    if (this.#refs.conviteCondSecao) this.#refs.conviteCondSecao.hidden = false;
+    if (this.#refs.conviteEnviarSec) this.#refs.conviteEnviarSec.hidden = false;
+
+    const message = cardEl.dataset.message ?? '';
+    const isRent = message.startsWith('[Aluguel de Cadeira]');
+    this.#selecionarTipoConvite(isRent ? 'cadeira' : 'porcentagem');
+    if (isRent && this.#refs.conviteAluguel) this.#refs.conviteAluguel.value = cardEl.dataset.comissao ?? '';
+    if (!isRent && this.#refs.convitePct) this.#refs.convitePct.value = cardEl.dataset.comissao ?? '';
+    if (this.#refs.conviteMsgTexto) {
+      this.#refs.conviteMsgTexto.value = message
+        .replace('[Aluguel de Cadeira]', '')
+        .replace('[% dos Cortes]', '')
+        .trim();
+    }
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast('Contra proposta pronta para editar.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+    }
+  }
+
+  #ocultarConviteStatus(cardEl) {
+    if (!cardEl) return;
+    cardEl.remove();
+    const lista = this.#refs.convitesStatusLista;
+    if (lista && lista.children.length === 0 && this.#refs.convitesStatusVazio) {
+      this.#refs.convitesStatusVazio.hidden = false;
+    }
+  }
+
   /**
    * Gerencia o clique do dono em uma cadeira.
    * @param {'producao'|'fila'} tipo
@@ -886,7 +943,8 @@ export class MinhaBarbeariaRuntimeController {
    */
   async #onCadeiraClick(tipo, ocupada, entrada, professionalId) {
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
-    if (!this.#isOwner) return;
+    const podeGerenciar = this.#contextoParceiro && professionalId === this.#profissionalId;
+    if (!podeGerenciar) return;
 
     // ── Cadeira de produção em espera → verificar status ────
     if (tipo === 'producao' && ocupada && entrada) {
@@ -1787,7 +1845,7 @@ export class MinhaBarbeariaRuntimeController {
         GpsPanelMap.carregar(lat, lng, nome);
       }
     }
-    if (id === 'convite') { this.#resetarConvite(); this.#buscarBarbeiro(); }
+    if (id === 'convite') { this.#resetarConvite(); this.#buscarBarbeiro(); this.#carregarEquipeStatus(); }
   }
 
   #fecharSub() {
@@ -2470,6 +2528,11 @@ export class MinhaBarbeariaRuntimeController {
     e.target.value = '';
     if (!file || !this.#barbershopId) return;
 
+    if (!file.type?.startsWith('video/')) {
+      NotificationService?.mostrarToast('Video obrigatorio', 'Envie um video para os stories da barbearia.', 'sistema');
+      return;
+    }
+
     const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
     if (file.size > MAX_BYTES) {
       NotificationService?.mostrarToast('Limite', 'O arquivo deve ter no máximo 30 MB.', 'sistema');
@@ -2500,16 +2563,12 @@ export class MinhaBarbeariaRuntimeController {
         return;
       }
 
-      // 3. Registrar story no banco (metadados — arquivo já está no R2)
-      const { error: dbErr } = await SupabaseService.client
-        .from('stories')
-        .insert({
-          owner_id:      perfil.id,
-          barbershop_id: this.#barbershopId,
-          media_url:     uploadResult.publicUrl,
-          media_type:    uploadResult.mediaType,
-          expires_at:    uploadResult.expiresAt,
-        });
+      // 3. Registrar story pela BFF (metadados; arquivo ja esta no R2)
+      const { error: dbErr } = await BffApiService.barbearias.publicarStory(this.#barbershopId, {
+        storage_path: uploadResult.path,
+        media_type: uploadResult.mediaType,
+        expires_at: uploadResult.expiresAt,
+      });
       if (dbErr) throw dbErr;
 
       NotificationService?.mostrarToast('Publicado', 'Seu story foi publicado por 24h!', 'sistema');

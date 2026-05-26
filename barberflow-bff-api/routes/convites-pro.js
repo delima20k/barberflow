@@ -14,6 +14,12 @@ module.exports = function criarConviteProRoute(db, deps = {}) {
   const router = Router();
 
   router.get(
+    '/me/barbearias-vinculadas',
+    AuthMiddleware.verificar,
+    controller.listarBarbeariasVinculadas.bind(controller),
+  );
+
+  router.get(
     '/me/convites',
     AuthMiddleware.verificar,
     controller.listarConvites.bind(controller),

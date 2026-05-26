@@ -19,6 +19,14 @@ class ConviteController extends BaseController {
     });
   }
 
+  async listarBarbeariasVinculadas(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const lista = await this.#service.listarBarbeariasVinculadas(req.user.id);
+      this.success(res, lista, { total: lista.length });
+    });
+  }
+
   async aceitarConvite(req, res) {
     await this.handle(res, async () => {
       res.setHeader('Cache-Control', 'private, no-store');

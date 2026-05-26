@@ -103,22 +103,22 @@ class ParceriasPage {
     this.#parceirasListaEl.innerHTML = this.#skeletonParceiras(4);
 
     try {
-      // Barbershops cujo convite este barbeiro já recusou — não devem aparecer na lista
-      const recusadoIds = await ParceriasPage.#fetchBarbershoopsRecusados();
+      const { data, error } = await BffApiService.profissionais.listarBarbeariasVinculadas();
+      if (error) throw error;
 
-      const lista = await BarbershopRepository.getAll(20);
+      const lista = (data ?? [])
+        .map(link => link.barbershop ? { ...link.barbershop, joined_at: link.joined_at } : null)
+        .filter(Boolean);
       this.#parceirasListaEl.innerHTML = '';
 
-      const visiveis = lista.filter(b => !recusadoIds.has(b.id));
-
-      if (!visiveis.length) {
+      if (!lista.length) {
         this.#parceirasListaEl.innerHTML = ParceriasPage.#vazioHtml(
           '💈', 'Nenhuma barbearia parceira ainda'
         );
         return;
       }
 
-      visiveis.forEach(b => this.#parceirasListaEl.appendChild(this.#criarCardParceira(b)));
+      lista.forEach(b => this.#parceirasListaEl.appendChild(this.#criarCardParceira(b)));
 
     } catch (err) {
       LoggerService.error('[ParceriasPage] parceiras:', err);
@@ -126,23 +126,11 @@ class ParceriasPage {
     }
   }
 
-  static async #fetchBarbershoopsRecusados() {
-    try {
-      const perfil = AuthService.getPerfil();
-      if (!perfil?.id) return new Set();
-      const { data } = await SupabaseService.client
-        .from('barbershop_invites')
-        .select('barbershop_id')
-        .eq('barbeiro_id', perfil.id)
-        .eq('status', 'recusado');
-      return new Set((data ?? []).map(r => r.barbershop_id));
-    } catch (_) { return new Set(); }
-  }
-
   #criarCardParceira(b) {
     const row = document.createElement('div');
-    row.className   = 'parcerias-row';
+    row.className   = 'parcerias-row mb-barbeiro-row mb-barbeiro-row--dono';
     row.dataset.id  = b.id;
+    row.dataset.barbershopId = b.id;
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
@@ -182,17 +170,28 @@ class ParceriasPage {
 
     const btnAgendar = document.createElement('button');
     btnAgendar.className       = 'btn btn-gold btn-sm';
-    btnAgendar.textContent     = 'Atividade';
+    btnAgendar.textContent     = 'Cadeiras';
     btnAgendar.dataset.action  = 'atividade';
-    btnAgendar.dataset.tela    = 'producao-parceira';  // caminho preparado: tela a ser construída
+    btnAgendar.dataset.tela    = 'minha-barbearia';
     btnAgendar.dataset.barbershop = b.id;
     meta.appendChild(btnAgendar);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
     row.appendChild(meta);
+    row.addEventListener('click', () => ParceriasPage.#abrirGestaoBarbearia(b.id));
+    btnAgendar.addEventListener('click', e => {
+      e.stopPropagation();
+      ParceriasPage.#abrirGestaoBarbearia(b.id);
+    });
     if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
     return row;
+  }
+
+  static #abrirGestaoBarbearia(barbershopId) {
+    if (!barbershopId) return;
+    sessionStorage.setItem('bf_parceria_barbershop_id', barbershopId);
+    if (typeof Pro !== 'undefined') Pro.nav('minha-barbearia');
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -394,6 +393,8 @@ class ParceriasPage {
         statusEl.textContent = 'Aceito ✓';
         statusEl.className   = 'parcerias-convite-status parcerias-convite-status--aceito';
       }
+      this.#carregouParceiras = false;
+      await this.#carregarParceiras();
     }
 
     const toast = novoStatus === 'aceito' ? 'Convite aceito! 🎉' : 'Convite recusado.';

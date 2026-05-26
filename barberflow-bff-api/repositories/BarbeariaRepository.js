@@ -247,6 +247,34 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
+   * Busca barbearia ativa para gestao por profissional vinculado.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<object|null>}
+   */
+  async getAtivaVinculada(barbershopId, professionalId) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('professionalId', professionalId);
+
+    const temVinculo = await this.profissionalTemVinculoAtivo(barbershopId, professionalId);
+    if (!temVinculo) return null;
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select('id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at')
+      .eq('id', barbershopId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('getAtivaVinculada', error);
+      this._throwDbError(error, 'getAtivaVinculada');
+    }
+
+    return data ?? null;
+  }
+
+  /**
    * Busca barbeiros elegíveis para convite da barbearia.
    * Exclui: o próprio dono, já vinculados à barbearia, com convite pendente.
    * @param {string} barbershopId
@@ -568,6 +596,80 @@ class BarbeariaRepository extends BaseRepository {
     }
 
     return { cancelado: true };
+  }
+
+  /**
+   * Verifica se o profissional possui vinculo ativo com a barbearia.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<boolean>}
+   */
+  async profissionalTemVinculoAtivo(barbershopId, professionalId) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('professionalId', professionalId);
+
+    const { data, error } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('professional_id', professionalId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('profissionalTemVinculoAtivo', error);
+      this._throwDbError(error, 'profissionalTemVinculoAtivo');
+    }
+
+    return Boolean(data?.professional_id);
+  }
+
+  /**
+   * Conta stories publicados hoje pelo profissional na barbearia.
+   * @param {string} ownerId
+   * @param {string} barbershopId
+   * @returns {Promise<number>}
+   */
+  async contarStoriesHoje(ownerId, barbershopId) {
+    this._uuid('ownerId', ownerId);
+    this._uuid('barbershopId', barbershopId);
+
+    const hoje = new Date();
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+
+    const { count, error } = await this._db
+      .from('stories')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', ownerId)
+      .eq('barbershop_id', barbershopId)
+      .gte('created_at', inicio);
+
+    if (error) {
+      this._warn('contarStoriesHoje', error);
+      this._throwDbError(error, 'contarStoriesHoje');
+    }
+
+    return count ?? 0;
+  }
+
+  /**
+   * Salva metadados de story. Midia fica no storage.
+   * @param {object} payload
+   * @returns {Promise<object>}
+   */
+  async salvarStory(payload) {
+    const { data, error } = await this._db
+      .from('stories')
+      .insert(payload)
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, expires_at, created_at')
+      .single();
+
+    if (error) {
+      this._warn('salvarStory', error);
+      this._throwDbError(error, 'salvarStory');
+    }
+
+    return data;
   }
 }
 
