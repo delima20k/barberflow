@@ -10,7 +10,8 @@ class BarberSinceInfo {
   render(profile = {}) {
     if (!this.#el) return;
     const year = Number(profile.sinceYear ?? profile.since_year);
-    if (!Number.isInteger(year) || year < 1950) {
+    const currentYear = new Date().getFullYear();
+    if (!Number.isInteger(year) || year < 1950 || year > currentYear) {
       this.reset();
       return;
     }
@@ -19,10 +20,10 @@ class BarberSinceInfo {
     const icon = document.createElement('span');
     icon.className = 'beiro-section-icon';
     icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = '✂';
+    icon.textContent = '\u2702';
 
     const text = document.createElement('span');
-    text.textContent = `Cortando desde ${year}`;
+    text.textContent = `Desde ${year}`;
 
     this.#el.append(icon, text);
     this.#el.hidden = false;

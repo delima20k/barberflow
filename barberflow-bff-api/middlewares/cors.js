@@ -52,22 +52,17 @@ class CorsMiddleware {
   static handle(req, res, next) {
     const origin = req.headers.origin;
 
-    // Vary: Origin deve ser enviado em TODAS as respostas — inclusive bloqueadas.
-    // Garante que CDN/proxy varie o cache por origin e não sirva
-    // resposta de pro.berberflow.shop para app.berberflow.shop.
+    // Vary: Origin e no-store em TODAS as respostas (inclusive bloqueadas).
+    // Impede CDN de cachear uma resposta de uma origin e servi-la para outra —
+    // o 304 retornado pela CDN pode trazer Access-Control-Allow-Origin errado.
     res.setHeader('Vary', 'Origin');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('CDN-Cache-Control', 'no-store');
+    res.setHeader('Surrogate-Control', 'no-store');
 
     if (CorsMiddleware.#isAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
-      // CDNs em modo proxy (ex: Cloudflare) podem cachear a resposta de pro.berberflow.shop
-      // e servi-la para app.berberflow.shop, ignorando Vary:Origin.
-      // Cache-Control: private proíbe cache em shared CDN; no-store proíbe qualquer armazenamento.
-      // CDN-Cache-Control e Surrogate-Control cobrem CDNs que respeitam headers específicos.
-      // Route handlers podem sobrescrever o cache do browser, mas não devem reabilitar cache CDN.
-      res.setHeader('Cache-Control', 'private, no-store');
-      res.setHeader('CDN-Cache-Control', 'no-store');
-      res.setHeader('Surrogate-Control', 'no-store');
     }
 
     if (req.method === 'OPTIONS') {
