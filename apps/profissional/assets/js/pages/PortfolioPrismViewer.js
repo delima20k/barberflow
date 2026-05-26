@@ -124,6 +124,7 @@ class PortfolioPrismViewer {
     const dir = delta > 0 ? 1 : -1;
     this.#animando = true;
     this.#cube.classList.remove('pp-prism-cube--drag');
+    void this.#cube.offsetWidth; // força reflow: garante que a transição CSS está ativa antes do novo transform
     // Aplica nova rotação (gira -60° para próxima, +60° para anterior)
     const novaRotacao = this.#baseRotation - (dir * PortfolioPrismViewer.#ANGLE_PER_FACE);
     this.#cube.style.transform = `rotateY(${novaRotacao}deg)`;
@@ -203,7 +204,6 @@ class PortfolioPrismViewer {
         el.preload     = 'metadata';
         el.loop        = true;
       } else {
-        el.loading = 'lazy';
         el.alt     = item?.title || '';
         el.onerror = () => { el.style.opacity = '0'; };
       }
@@ -280,7 +280,7 @@ class PortfolioPrismViewer {
     this.#dragLast  = { x: e.clientX, t: this.#dragStart.t };
     this.#dragActive = false;
     this.#pendingAngle = 0;
-    try { this.#overlay.setPointerCapture?.(e.pointerId); } catch (_) {}
+    try { this.#stage.setPointerCapture?.(e.pointerId); } catch (_) {}
   }
 
   #onPointerMove(e) {
