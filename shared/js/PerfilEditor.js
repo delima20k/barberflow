@@ -177,10 +177,9 @@ class PerfilEditor {
         inp.value = v;
       });
     } else if (campo === 'since_year') {
-      inp.type        = 'number';
+      inp.type        = 'text';
       inp.inputMode   = 'numeric';
-      inp.min         = '1950';
-      inp.max         = String(new Date().getFullYear());
+      inp.maxLength   = 4;
       inp.placeholder = '1998';
       inp.value       = valorAtual;
     } else {
