@@ -17,7 +17,7 @@ class PortfolioImageActions {
     like.dataset.portfolioImageId = item.id ?? '';
     like.setAttribute('aria-label', 'Curtir imagem do portfolio');
     like.setAttribute('aria-pressed', String(PortfolioImageActions.#curtidas.has(item.id)));
-    like.innerHTML = `<span class="portfolio-action__icon" aria-hidden="true">♡</span><span class="portfolio-action__count">${Math.max(0, Number(item.likesCount ?? 0))}</span>`;
+    like.innerHTML = `<span class="portfolio-action__icon" aria-hidden="true">\uD83D\uDC4D</span><span class="portfolio-action__count">${Math.max(0, Number(item.likesCount ?? 0))}</span>`;
 
     const msg = document.createElement('button');
     msg.type = 'button';
@@ -26,7 +26,7 @@ class PortfolioImageActions {
     msg.dataset.professionalId = professionalId || item.professionalId || '';
     msg.dataset.portfolioImageId = item.id ?? '';
     msg.setAttribute('aria-label', 'Enviar mensagem sobre esta imagem');
-    msg.innerHTML = `<span class="portfolio-action__icon" aria-hidden="true">💬</span>`;
+    msg.innerHTML = `<span class="portfolio-action__icon" aria-hidden="true">\uD83D\uDCAC</span>`;
 
     wrap.append(like, msg);
     PortfolioImageActions.#sincronizarBotao(item.id, PortfolioImageActions.#curtidas.has(item.id));
@@ -128,7 +128,7 @@ class PortfolioImageActions {
       btn.classList.toggle('ativo', ativo);
       btn.setAttribute('aria-pressed', String(ativo));
       const icon = btn.querySelector('.portfolio-action__icon');
-      if (icon) icon.textContent = ativo ? '♥' : '♡';
+      if (icon) icon.textContent = '\uD83D\uDC4D';
       const count = btn.querySelector('.portfolio-action__count');
       if (count && total !== null) count.textContent = String(Math.max(0, Number(total) || 0));
     });
