@@ -10,6 +10,9 @@ class PortfolioViewerModal {
   #items = [];
   #index = 0;
   #swipeStart = null;
+  #trocaPendente = 0;
+  #animando = false;
+  #finalizeTimer = null;
 
   constructor() {
     this.#ensure();
@@ -22,7 +25,8 @@ class PortfolioViewerModal {
     this.#items = Array.isArray(items) && items.length ? items : [item];
     const index = this.#items.findIndex(foto => foto?.id && foto.id === item?.id);
     this.#index = index >= 0 ? index : 0;
-    this.#renderAtual('next');
+    this.#resetarCubo();
+    this.#renderAtual();
 
     this.#overlay.hidden = false;
     this.#overlay.setAttribute('aria-hidden', 'false');
@@ -37,6 +41,8 @@ class PortfolioViewerModal {
       const img = face.querySelector('img');
       if (img) img.src = '';
     });
+    this.#limparTimer();
+    this.#resetarCubo();
     document.body.classList.remove('portfolio-viewer-open');
   }
 
@@ -49,12 +55,31 @@ class PortfolioViewerModal {
   }
 
   #go(delta) {
-    if (this.#items.length < 2) return;
-    this.#index = (this.#index + delta + this.#items.length) % this.#items.length;
-    this.#renderAtual(delta > 0 ? 'next' : 'prev');
+    if (this.#items.length < 2 || this.#animando) return;
+    this.#prepararTroca(delta);
   }
 
-  #renderAtual(direcao) {
+  #prepararTroca(delta) {
+    if (!this.#cube) return;
+    this.#trocaPendente = delta > 0 ? 1 : -1;
+    this.#animando = true;
+    this.#cube.classList.remove('portfolio-viewer__cube--drag', 'portfolio-viewer__cube--next', 'portfolio-viewer__cube--prev');
+    void this.#cube.offsetWidth;
+    this.#cube.classList.add(this.#trocaPendente > 0 ? 'portfolio-viewer__cube--next' : 'portfolio-viewer__cube--prev');
+    this.#finalizeTimer = setTimeout(() => this.#finalizarTroca(), 720);
+  }
+
+  #finalizarTroca() {
+    if (!this.#trocaPendente) return;
+    this.#limparTimer();
+    this.#index = (this.#index + this.#trocaPendente + this.#items.length) % this.#items.length;
+    this.#trocaPendente = 0;
+    this.#animando = false;
+    this.#resetarCubo();
+    this.#renderAtual();
+  }
+
+  #renderAtual() {
     const item = this.#items[this.#index] ?? {};
 
     if (this.#title) this.#title.textContent = item.title || 'Trabalho do barbeiro';
@@ -68,9 +93,6 @@ class PortfolioViewerModal {
     }
 
     this.#renderFaces();
-    this.#cube?.classList.remove('portfolio-viewer__cube--next', 'portfolio-viewer__cube--prev');
-    void this.#cube?.offsetWidth;
-    this.#cube?.classList.add(`portfolio-viewer__cube--${direcao}`);
   }
 
   #renderFaces() {
@@ -89,6 +111,27 @@ class PortfolioViewerModal {
     if (!this.#items.length) return null;
     const index = (this.#index + offset + this.#items.length) % this.#items.length;
     return this.#items[index] ?? null;
+  }
+
+  #aplicarAnguloDrag(event) {
+    if (!this.#cube || !this.#swipeStart || this.#animando) return;
+    const deslocamentoX = event.clientX - this.#swipeStart.x;
+    const largura = Math.max(this.#overlay?.clientWidth ?? 1, 1);
+    const angulo = Math.max(-82, Math.min(82, (deslocamentoX / largura) * 132));
+    this.#cube.classList.add('portfolio-viewer__cube--drag');
+    this.#cube.style.setProperty('--portfolio-spin-angle', `${angulo}deg`);
+  }
+
+  #resetarCubo() {
+    if (!this.#cube) return;
+    this.#cube.classList.remove('portfolio-viewer__cube--drag', 'portfolio-viewer__cube--next', 'portfolio-viewer__cube--prev');
+    this.#cube.style.setProperty('--portfolio-spin-angle', '0deg');
+  }
+
+  #limparTimer() {
+    if (!this.#finalizeTimer) return;
+    clearTimeout(this.#finalizeTimer);
+    this.#finalizeTimer = null;
   }
 
   #ensure() {
@@ -120,8 +163,13 @@ class PortfolioViewerModal {
     });
 
     overlay.addEventListener('pointerdown', event => {
-      if (event.target.closest('.portfolio-viewer__actions, .portfolio-viewer__close')) return;
+      if (this.#animando || event.target.closest('.portfolio-viewer__actions, .portfolio-viewer__close')) return;
       this.#swipeStart = { x: event.clientX, y: event.clientY };
+      overlay.setPointerCapture?.(event.pointerId);
+    });
+
+    overlay.addEventListener('pointermove', event => {
+      this.#aplicarAnguloDrag(event);
     });
 
     overlay.addEventListener('pointerup', event => {
@@ -129,8 +177,20 @@ class PortfolioViewerModal {
       const deslocamentoX = event.clientX - this.#swipeStart.x;
       const deslocamentoY = event.clientY - this.#swipeStart.y;
       this.#swipeStart = null;
-      if (Math.abs(deslocamentoX) < 48 || Math.abs(deslocamentoX) < Math.abs(deslocamentoY)) return;
-      deslocamentoX < 0 ? this.next() : this.prev();
+      if (Math.abs(deslocamentoX) < 48 || Math.abs(deslocamentoX) < Math.abs(deslocamentoY)) {
+        this.#resetarCubo();
+        return;
+      }
+      this.#prepararTroca(deslocamentoX < 0 ? 1 : -1);
+    });
+
+    overlay.addEventListener('pointercancel', () => {
+      this.#swipeStart = null;
+      if (!this.#animando) this.#resetarCubo();
+    });
+
+    overlay.addEventListener('animationend', event => {
+      if (event.target === this.#cube) this.#finalizarTroca();
     });
 
     document.addEventListener('keydown', event => {
