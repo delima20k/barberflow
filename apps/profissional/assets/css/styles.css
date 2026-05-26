@@ -1258,6 +1258,11 @@
   border-color: rgba(122, 74, 30, .95);
   transform: translateY(-1px);
 }
+.btnflow--sm {
+  min-height: 28px;
+  font-size: .72rem;
+  padding: 5px 12px;
+}
 .parcerias-fotos-upload-btn {
   cursor: pointer;
   white-space: nowrap;

@@ -1929,7 +1929,7 @@ export class MinhaBarbeariaRuntimeController {
 
     const btnNova = document.createElement('button');
     btnNova.type      = 'button';
-    btnNova.className = 'btn btn-gold btn-xs';
+    btnNova.className = 'btnflow btnflow--sm';
     btnNova.textContent = 'Nova proposta';
     btnNova.addEventListener('click', e => {
       e.stopPropagation();
@@ -1951,7 +1951,7 @@ export class MinhaBarbeariaRuntimeController {
 
     const btnNao = document.createElement('button');
     btnNao.type      = 'button';
-    btnNao.className = 'btn btn-outline btn-xs';
+    btnNao.className = 'btnflow btnflow--outline btnflow--sm';
     btnNao.textContent = 'Não enviar';
     btnNao.addEventListener('click', e => {
       e.stopPropagation();
