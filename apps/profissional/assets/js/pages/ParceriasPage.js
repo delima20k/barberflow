@@ -15,6 +15,8 @@
 // =============================================================
 
 class ParceriasPage {
+  static #FOTOS_MAX_QTD = 10;
+  static #FOTO_MAX_BYTES = 8 * 1024 * 1024;
 
   // ── Refs DOM ──────────────────────────────────────────────
   #telaEl          = null;
@@ -37,6 +39,7 @@ class ParceriasPage {
   #carregouConvites  = false;
   #carregouFotos     = false;
   #fotos             = [];
+  #fotoViewer        = null;
 
   constructor() {}
 
@@ -376,12 +379,12 @@ class ParceriasPage {
     this.#fotos = fotos;
 
     if (this.#fotosCountEl) {
-      this.#fotosCountEl.textContent = `${fotos.length}/10`;
+      this.#fotosCountEl.textContent = `${fotos.length}/${ParceriasPage.#FOTOS_MAX_QTD}`;
     }
 
     // Esconde botão de upload se atingiu o limite
     if (this.#fotosUploadLabelEl) {
-      this.#fotosUploadLabelEl.hidden = fotos.length >= 10;
+      this.#fotosUploadLabelEl.hidden = fotos.length >= ParceriasPage.#FOTOS_MAX_QTD;
     }
 
     if (!this.#fotosCarrosselEl) return;
@@ -395,26 +398,48 @@ class ParceriasPage {
       return;
     }
 
-    fotos.forEach(f => this.#fotosCarrosselEl.appendChild(this.#criarCardFoto(f)));
+    fotos.forEach((f, index) => this.#fotosCarrosselEl.appendChild(this.#criarCardFoto(f, index)));
   }
 
-  #criarCardFoto(foto) {
-    const item = document.createElement('div');
+  static #fotoUrl(foto) {
+    const path = foto?.thumbnailPath
+      ?? foto?.storagePath
+      ?? foto?.thumbnail_path
+      ?? foto?.storage_path
+      ?? '';
+
+    if (foto?.publicUrl) return foto.publicUrl;
+    if (typeof ApiService !== 'undefined' && path) {
+      return ApiService.getPortfolioThumbUrl(path);
+    }
+    return path;
+  }
+
+  #criarCardFoto(foto, index) {
+    const item = document.createElement('button');
+    item.type = 'button';
     item.className = 'parcerias-foto-item';
+    item.setAttribute('aria-label', 'Abrir foto do portfolio');
 
     const img = document.createElement('img');
-    img.src     = foto.publicUrl ?? foto.storage_path ?? '';
+    img.src     = ParceriasPage.#fotoUrl(foto);
     img.alt     = 'Foto do portfólio';
     img.loading = 'lazy';
     img.onerror = () => { item.style.display = 'none'; };
     item.appendChild(img);
 
-    this.#bindPressHold(item, foto.id);
+    const hint = document.createElement('span');
+    hint.className = 'parcerias-foto-item__hint';
+    hint.textContent = 'Segure para excluir';
+    item.appendChild(hint);
+
+    this.#bindFotoInteracoes(item, foto.id, index);
     return item;
   }
 
-  #bindPressHold(el, photoId) {
+  #bindFotoInteracoes(el, photoId, index) {
     let timer = null;
+    let segurou = false;
 
     const cancelar = () => {
       clearTimeout(timer);
@@ -422,8 +447,10 @@ class ParceriasPage {
     };
 
     el.addEventListener('pointerdown', () => {
+      segurou = false;
       el.classList.add('parcerias-foto-item--pressionado');
       timer = setTimeout(() => {
+        segurou = true;
         el.classList.remove('parcerias-foto-item--pressionado');
         this.#abrirModalExcluirFoto(photoId);
       }, 600);
@@ -432,6 +459,137 @@ class ParceriasPage {
     el.addEventListener('pointerup',     cancelar);
     el.addEventListener('pointermove',   cancelar);
     el.addEventListener('pointercancel', cancelar);
+    el.addEventListener('click', e => {
+      if (segurou) {
+        e.preventDefault();
+        return;
+      }
+      this.#abrirViewerFoto(index);
+    });
+  }
+
+  #abrirViewerFoto(index) {
+    if (!this.#fotos.length) return;
+    this.#fotoViewerIndex = Math.max(0, Math.min(index, this.#fotos.length - 1));
+    this.#ensureFotoViewer();
+    this.#renderViewerFoto('next');
+    this.#fotoViewerEl.hidden = false;
+    document.body.classList.add('parcerias-foto-viewer-aberto');
+  }
+
+  #fecharViewerFoto() {
+    if (!this.#fotoViewerEl) return;
+    this.#fotoViewerEl.hidden = true;
+    document.body.classList.remove('parcerias-foto-viewer-aberto');
+  }
+
+  #navegarViewerFoto(delta) {
+    if (!this.#fotos.length) return;
+    const total = this.#fotos.length;
+    this.#fotoViewerIndex = (this.#fotoViewerIndex + delta + total) % total;
+    this.#renderViewerFoto(delta > 0 ? 'next' : 'prev');
+  }
+
+  #renderViewerFoto(direcao) {
+    if (!this.#fotoViewerImgEl || !this.#fotoViewerStageEl) return;
+
+    const foto = this.#fotos[this.#fotoViewerIndex];
+    this.#fotoViewerImgEl.src = ParceriasPage.#fotoUrl(foto);
+    this.#fotoViewerImgEl.alt = `Foto ${this.#fotoViewerIndex + 1} do portfolio`;
+
+    if (this.#fotoViewerCountEl) {
+      this.#fotoViewerCountEl.textContent = `${this.#fotoViewerIndex + 1}/${this.#fotos.length}`;
+    }
+
+    this.#fotoViewerStageEl.classList.remove(
+      'parcerias-foto-viewer__stage--next',
+      'parcerias-foto-viewer__stage--prev',
+    );
+    void this.#fotoViewerStageEl.offsetWidth;
+    this.#fotoViewerStageEl.classList.add(`parcerias-foto-viewer__stage--${direcao}`);
+
+    this.#fotoViewerEl?.querySelectorAll('[data-pfv="prev"], [data-pfv="next"]').forEach(btn => {
+      btn.hidden = this.#fotos.length < 2;
+    });
+  }
+
+  #ensureFotoViewer() {
+    if (this.#fotoViewerEl) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'parcerias-foto-viewer';
+    overlay.hidden = true;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    const stage = document.createElement('div');
+    stage.className = 'parcerias-foto-viewer__stage';
+
+    const img = document.createElement('img');
+    img.className = 'parcerias-foto-viewer__img';
+    img.alt = 'Foto do portfolio';
+    stage.appendChild(img);
+
+    const btnFechar = document.createElement('button');
+    btnFechar.type = 'button';
+    btnFechar.className = 'parcerias-foto-viewer__acao parcerias-foto-viewer__fechar';
+    btnFechar.dataset.pfv = 'fechar';
+    btnFechar.setAttribute('aria-label', 'Fechar');
+    btnFechar.textContent = '×';
+
+    const btnPrev = document.createElement('button');
+    btnPrev.type = 'button';
+    btnPrev.className = 'parcerias-foto-viewer__acao parcerias-foto-viewer__nav parcerias-foto-viewer__nav--prev';
+    btnPrev.dataset.pfv = 'prev';
+    btnPrev.setAttribute('aria-label', 'Foto anterior');
+    btnPrev.textContent = '‹';
+
+    const btnNext = document.createElement('button');
+    btnNext.type = 'button';
+    btnNext.className = 'parcerias-foto-viewer__acao parcerias-foto-viewer__nav parcerias-foto-viewer__nav--next';
+    btnNext.dataset.pfv = 'next';
+    btnNext.setAttribute('aria-label', 'Proxima foto');
+    btnNext.textContent = '›';
+
+    const count = document.createElement('span');
+    count.className = 'parcerias-foto-viewer__count';
+
+    overlay.appendChild(stage);
+    overlay.appendChild(btnFechar);
+    overlay.appendChild(btnPrev);
+    overlay.appendChild(btnNext);
+    overlay.appendChild(count);
+
+    overlay.addEventListener('click', e => {
+      const acao = e.target.closest('[data-pfv]')?.dataset?.pfv;
+      if (acao === 'fechar' || e.target === overlay) this.#fecharViewerFoto();
+      if (acao === 'prev') this.#navegarViewerFoto(-1);
+      if (acao === 'next') this.#navegarViewerFoto(1);
+    });
+
+    overlay.addEventListener('pointerdown', e => {
+      this.#fotoViewerSwipeX = e.clientX;
+    });
+    overlay.addEventListener('pointerup', e => {
+      if (this.#fotoViewerSwipeX == null) return;
+      const deslocamento = e.clientX - this.#fotoViewerSwipeX;
+      this.#fotoViewerSwipeX = null;
+      if (Math.abs(deslocamento) < 48 || this.#fotos.length < 2) return;
+      this.#navegarViewerFoto(deslocamento < 0 ? 1 : -1);
+    });
+
+    document.addEventListener('keydown', e => {
+      if (!this.#fotoViewerEl || this.#fotoViewerEl.hidden) return;
+      if (e.key === 'Escape') this.#fecharViewerFoto();
+      if (e.key === 'ArrowLeft') this.#navegarViewerFoto(-1);
+      if (e.key === 'ArrowRight') this.#navegarViewerFoto(1);
+    });
+
+    document.body.appendChild(overlay);
+    this.#fotoViewerEl = overlay;
+    this.#fotoViewerStageEl = stage;
+    this.#fotoViewerImgEl = img;
+    this.#fotoViewerCountEl = count;
   }
 
   #abrirModalExcluirFoto(photoId) {
@@ -494,6 +652,27 @@ class ParceriasPage {
 
   async #uploadFoto(file) {
     if (!file) return;
+
+    if (this.#fotos.length >= ParceriasPage.#FOTOS_MAX_QTD) {
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Limite de 10 fotos atingido.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      }
+      return;
+    }
+
+    if (!file.type?.startsWith('image/')) {
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Envie apenas arquivos de imagem.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      }
+      return;
+    }
+
+    if (file.size > ParceriasPage.#FOTO_MAX_BYTES) {
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Foto muito grande. Envie uma imagem de ate 8 MB.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      }
+      return;
+    }
 
     if (this.#fotosUploadLabelEl) {
       this.#fotosUploadLabelEl.setAttribute('aria-busy', 'true');

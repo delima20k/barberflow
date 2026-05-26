@@ -1230,17 +1230,49 @@
   padding: 2px 10px;
   white-space: nowrap;
 }
+.btnflow {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font-size: .84rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease, opacity .18s ease;
+}
+.btnflow--outline {
+  color: #7a4a1e;
+  border-color: rgba(122, 74, 30, .72);
+  background: rgba(122, 74, 30, .03);
+}
+.btnflow--outline:hover,
+.btnflow--outline:focus-visible {
+  background: rgba(122, 74, 30, .1);
+  border-color: rgba(122, 74, 30, .95);
+  transform: translateY(-1px);
+}
 .parcerias-fotos-upload-btn {
   cursor: pointer;
   white-space: nowrap;
 }
+.parcerias-fotos-upload-btn[aria-busy="true"] {
+  opacity: .62;
+  pointer-events: none;
+}
 .parcerias-fotos-carrossel {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+  padding: 2px 2px 10px;
 }
 .parcerias-fotos-carrossel:empty {
   display: none;
@@ -1248,14 +1280,24 @@
 .parcerias-foto-item {
   flex-shrink: 0;
   scroll-snap-align: start;
-  width: 120px;
-  height: 150px;
+  width: 132px;
+  height: 168px;
+  border: 1px solid rgba(122, 74, 30, .22);
   border-radius: var(--r-md, 12px);
   overflow: hidden;
   position: relative;
   cursor: pointer;
   user-select: none;
-  transition: transform .15s, opacity .15s;
+  padding: 0;
+  background: var(--card-alt, #fdf6ed);
+  box-shadow: 0 10px 22px rgba(52, 32, 18, .12);
+  transition: transform .15s, opacity .15s, border-color .18s ease, box-shadow .18s ease;
+}
+.parcerias-foto-item:hover,
+.parcerias-foto-item:focus-visible {
+  border-color: rgba(122, 74, 30, .45);
+  box-shadow: 0 14px 28px rgba(52, 32, 18, .18);
+  transform: translateY(-2px);
 }
 .parcerias-foto-item img {
   width: 100%;
@@ -1263,6 +1305,29 @@
   object-fit: cover;
   background-repeat: no-repeat;
   display: block;
+}
+.parcerias-foto-item__hint {
+  position: absolute;
+  inset-inline: 8px;
+  bottom: 8px;
+  display: block;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(17, 12, 9, .68);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.parcerias-foto-item:hover .parcerias-foto-item__hint,
+.parcerias-foto-item:focus-visible .parcerias-foto-item__hint,
+.parcerias-foto-item--pressionado .parcerias-foto-item__hint {
+  opacity: 1;
+  transform: translateY(0);
 }
 .parcerias-foto-item--pressionado {
   transform: scale(.93);
