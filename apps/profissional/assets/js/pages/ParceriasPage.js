@@ -275,23 +275,14 @@ class ParceriasPage {
                    : msg;
 
       const valorNum = inv.commission_pct != null ? Number(inv.commission_pct) : null;
-      let valorLinha = '';
-      if (valorNum != null) {
-        if (isPct) {
-          valorLinha = `<div class="pci-linha"><span>Comissão sobre cortes</span><strong>${valorNum}%</strong></div>`;
-        } else if (isRent) {
-          const fmt = valorNum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-          valorLinha = `<div class="pci-linha"><span>Aluguel de cadeira</span><strong>${fmt}/mês</strong></div>`;
-        } else {
-          valorLinha = `<div class="pci-linha"><span>Valor</span><strong>${valorNum}</strong></div>`;
-        }
-      }
 
       const logoHtml = shop.logo_path
         ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" loading="lazy" onerror="this.outerHTML='💈'">`
         : '💈';
 
       const isPendente = status === 'pendente';
+
+      const clausulaHtml = ParceriasPage.#clausulaHtml(isPct, isRent, valorNum);
 
       overlay.innerHTML = `
         <div class="pci-card">
@@ -300,12 +291,12 @@ class ParceriasPage {
             <p class="pci-titulo">${InputValidator.sanitizar(shop.name ?? 'Barbearia')}</p>
           </div>
           ${shop.address ? `<div class="pci-linha"><span>Endereço</span><strong>${InputValidator.sanitizar(shop.address)}</strong></div>` : ''}
-          ${valorLinha}
-          ${notas ? `<p class="pci-notas">"${InputValidator.sanitizar(notas)}"</p>` : ''}
-          ${dataStr ? `<div class="pci-linha"><span>Data do convite</span><strong>${dataStr}</strong></div>` : ''}
+          ${dataStr      ? `<div class="pci-linha"><span>Data do convite</span><strong>${dataStr}</strong></div>` : ''}
+          ${notas        ? `<p class="pci-notas">"${InputValidator.sanitizar(notas)}"</p>` : ''}
+          ${clausulaHtml}
           ${isPendente ? `
           <div class="pci-acoes">
-            <button class="btn btn-gold" data-pci="aceitar">Aceitar</button>
+            <button class="btn btn-gold" data-pci="aceitar">Aceitar parceria</button>
             <button class="btn btn-outline" data-pci="recusar">Recusar</button>
           </div>` : ''}
           <button class="btn btn-outline btn-sm" data-pci="fechar" style="margin-top:${isPendente ? '0' : '8px'};">Fechar</button>
@@ -536,6 +527,80 @@ class ParceriasPage {
         this.#fotosUploadLabelEl.removeAttribute('aria-busy');
       }
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // HELPERS — Cláusula de convite
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Gera o bloco HTML da cláusula de parceria exibida no modal do barbeiro.
+   * Mostra divisão de valores, benefícios e direito de stories.
+   */
+  static #clausulaHtml(isPct, isRent, valorNum) {
+    let divisaoHtml = '';
+
+    if (valorNum != null) {
+      if (isPct) {
+        const paraBarbearia = valorNum.toFixed(0);
+        const paraVoce      = (100 - valorNum).toFixed(0);
+        divisaoHtml = `
+          <div class="pci-divisao">
+            <div class="pci-divisao-item">
+              <span class="pci-divisao-label">Barbearia recebe</span>
+              <strong class="pci-divisao-num pci-divisao-num--shop">${paraBarbearia}%</strong>
+              <span class="pci-divisao-sub">de cada corte</span>
+            </div>
+            <div class="pci-divisao-sep">✂️</div>
+            <div class="pci-divisao-item">
+              <span class="pci-divisao-label">Você recebe</span>
+              <strong class="pci-divisao-num pci-divisao-num--barb">${paraVoce}%</strong>
+              <span class="pci-divisao-sub">de cada corte</span>
+            </div>
+          </div>`;
+      } else if (isRent) {
+        const fmt = valorNum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        divisaoHtml = `
+          <div class="pci-divisao">
+            <div class="pci-divisao-item">
+              <span class="pci-divisao-label">Aluguel fixo</span>
+              <strong class="pci-divisao-num pci-divisao-num--shop">${fmt}/mês</strong>
+              <span class="pci-divisao-sub">pago à barbearia</span>
+            </div>
+            <div class="pci-divisao-sep">✂️</div>
+            <div class="pci-divisao-item">
+              <span class="pci-divisao-label">Seus cortes</span>
+              <strong class="pci-divisao-num pci-divisao-num--barb">100%</strong>
+              <span class="pci-divisao-sub">ficam com você</span>
+            </div>
+          </div>`;
+      }
+    }
+
+    return `
+      <div class="pci-clausula">
+        <p class="pci-clausula-titulo">📋 Termos da parceria</p>
+        ${divisaoHtml}
+        <ul class="pci-beneficios">
+          <li class="pci-beneficio">
+            <span class="pci-ben-icon">📅</span>
+            <span>Agendamentos e atendimentos pelo sistema BarberFlow</span>
+          </li>
+          <li class="pci-beneficio">
+            <span class="pci-ben-icon">💈</span>
+            <span>Exposição no perfil da barbearia e acesso à clientela do espaço</span>
+          </li>
+          <li class="pci-beneficio">
+            <span class="pci-ben-icon">🎬</span>
+            <span><strong>1 vídeo por dia</strong> nos Stories da barbearia para divulgar seus trabalhos</span>
+          </li>
+          <li class="pci-beneficio">
+            <span class="pci-ben-icon">📊</span>
+            <span>Painel financeiro com extrato dos seus atendimentos</span>
+          </li>
+        </ul>
+        <p class="pci-clausula-rodape">Ao aceitar, você concorda com os termos desta parceria. Você pode encerrar a qualquer momento.</p>
+      </div>`;
   }
 
   // ═══════════════════════════════════════════════════════════

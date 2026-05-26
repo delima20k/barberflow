@@ -76,7 +76,7 @@ class ConviteRepository extends BaseRepository {
     }
 
     const tipo = (invite.message ?? '').startsWith('[Aluguel de Cadeira]')
-      ? 'chair_rental'
+      ? 'rent'
       : 'percentage';
 
     const { error: errAgree } = await this._db

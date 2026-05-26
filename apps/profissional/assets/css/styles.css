@@ -3395,6 +3395,89 @@
   margin-top: 4px;
 }
 .pci-acoes .btn { flex: 1; }
+
+/* ── Cláusula de parceria no modal de convite ── */
+.pci-clausula {
+  background: var(--card-alt, rgba(255,255,255,.04));
+  border: 1px solid var(--gold-border, rgba(212,175,55,.25));
+  border-radius: var(--r-md, 12px);
+  padding: 14px;
+  margin: 12px 0 4px;
+}
+.pci-clausula-titulo {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.pci-divisao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  background: var(--bg, #0d0a07);
+  border-radius: var(--r-sm, 8px);
+  padding: 10px 12px;
+}
+.pci-divisao-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.pci-divisao-label {
+  font-size: .72rem;
+  color: var(--text-2, #a08060);
+}
+.pci-divisao-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.pci-divisao-num--shop { color: var(--text-2, #a08060); }
+.pci-divisao-num--barb { color: var(--gold, #D4AF37); }
+.pci-divisao-sub {
+  font-size: .68rem;
+  color: var(--text-2, #a08060);
+}
+.pci-divisao-sep {
+  font-size: 1rem;
+  color: var(--text-2, #a08060);
+  flex-shrink: 0;
+}
+.pci-beneficios {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pci-beneficio {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: .8rem;
+  color: var(--text, #f5efe6);
+  line-height: 1.4;
+}
+.pci-ben-icon {
+  font-size: .95rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pci-clausula-rodape {
+  font-size: .71rem;
+  color: var(--text-2, #a08060);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
 .bfm-avatar {
   width: 40px;
   height: 40px;
