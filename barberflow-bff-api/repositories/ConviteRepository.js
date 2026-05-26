@@ -22,6 +22,7 @@ class ConviteRepository extends BaseRepository {
       .from('barbershop_invites')
       .select('id, commission_pct, message, status, created_at, barbershop:barbershops!barbershop_id(id, name, logo_path, address)')
       .eq('barbeiro_id', profissionalId)
+      .neq('status', 'recusado')
       .order('created_at', { ascending: false })
       .limit(30);
 
