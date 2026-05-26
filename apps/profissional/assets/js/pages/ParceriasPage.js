@@ -197,15 +197,15 @@ class ParceriasPage {
     card.className  = `parcerias-convite-card parcerias-convite--${inv.status ?? 'pendente'}`;
     card.dataset.id = inv.id;
 
-    const shop    = inv.barbershop ?? {};
-    const status  = inv.status ?? 'pendente';
-    const dataStr = inv.created_at
+    const shop       = inv.barbershop ?? {};
+    const status     = inv.status ?? 'pendente';
+    const isPendente = status === 'pendente';
+    const dataStr    = inv.created_at
       ? new Date(inv.created_at).toLocaleDateString('pt-BR')
       : '';
 
-    const statusLabel = { pendente: 'Pendente', aceito: 'Aceito', recusado: 'Recusado' };
+    const statusLabel = { pendente: 'Pendente', aceito: 'Aceito ✓', recusado: 'Recusado' };
 
-    // Resumo da condição para o card
     const msg    = inv.message ?? '';
     const isPct  = msg.startsWith('[% dos Cortes]');
     const isRent = msg.startsWith('[Aluguel de Cadeira]');
@@ -217,12 +217,15 @@ class ParceriasPage {
       else             resumo = `${v}%`;
     }
 
+    const logoHtml = shop.logo_path
+      ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" loading="lazy" onerror="this.outerHTML='💈'">`
+      : '💈';
+
     card.innerHTML = `
+      ${isPendente ? `<div class="parcerias-convite-badge">📩 Proposta de parceria</div>` : ''}
       <div class="parcerias-convite-header">
-        <div class="avatar gold" style="width:38px;height:38px;font-size:.9rem;">
-          ${shop.logo_path
-            ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" loading="lazy" onerror="this.outerHTML='💈'">`
-            : '💈'}
+        <div class="avatar gold" style="width:46px;height:46px;font-size:1rem;flex-shrink:0;">
+          ${logoHtml}
         </div>
         <div class="parcerias-convite-info">
           <p class="barber-name">${InputValidator.sanitizar(shop.name ?? 'Barbearia')}</p>
@@ -236,19 +239,15 @@ class ParceriasPage {
         ${resumo ? `<span class="parcerias-convite-pct">Condição: <strong>${resumo}</strong></span>` : ''}
         ${dataStr ? `<span class="parcerias-convite-data">${dataStr}</span>` : ''}
       </div>
-      ${status === 'pendente' ? `
-      <div class="parcerias-convite-acoes">
-        <button class="btn btn-gold btn-sm" data-convite-ver="${inv.id}">Ver Proposta</button>
-      </div>` : ''}`;
+      ${isPendente ? `<p class="parcerias-convite-tap-hint">Toque para ver a proposta e aceitar ›</p>` : ''}`;
 
-    if (status === 'pendente') {
-      card.querySelector(`[data-convite-ver="${inv.id}"]`)
-        ?.addEventListener('click', async () => {
-          const acao = await this.#abrirModalConvite(inv);
-          if (acao === 'aceitar' || acao === 'recusar') {
-            await this.#responderConvite(inv.id, acao === 'aceitar' ? 'aceito' : 'recusado', card);
-          }
-        });
+    if (isPendente) {
+      card.addEventListener('click', async () => {
+        const acao = await this.#abrirModalConvite(inv);
+        if (acao === 'aceitar' || acao === 'recusar') {
+          await this.#responderConvite(inv.id, acao === 'aceitar' ? 'aceito' : 'recusado', card);
+        }
+      });
     }
 
     return card;
