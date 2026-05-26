@@ -105,10 +105,19 @@ class PortfolioImageActions {
     if (!professionalId || typeof BffApiService === 'undefined') return;
     try {
       btn.disabled = true;
-      const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(professionalId);
+      const { data, error } = await BffApiService.profissionais.iniciarMensagemBarbearia(professionalId);
       if (error) throw error;
       const router = (typeof App !== 'undefined' && App) || (typeof Pro !== 'undefined' && Pro) || null;
       router?.nav?.('mensagens');
+      if (data?.conversationId) {
+        try {
+          sessionStorage.setItem('bf_open_conversation_id', data.conversationId);
+        } catch { /* best effort */ }
+        await PortfolioImageActions.#mostrarMensagensImagem(data.conversationId);
+        setTimeout(() => {
+          if (typeof MessagesWidget !== 'undefined') MessagesWidget.abrirModal?.(data.conversationId);
+        }, 120);
+      }
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[PortfolioImageActions] mensagem falhou:', err?.message ?? err);
@@ -119,6 +128,81 @@ class PortfolioImageActions {
     } finally {
       btn.disabled = false;
     }
+  }
+
+  static async #mostrarMensagensImagem(conversationId) {
+    if (!conversationId || typeof BffApiService === 'undefined' || !BffApiService.chat?.listarMensagens) return;
+
+    const panel = PortfolioImageActions.#mensagensPanel();
+    const list = panel.querySelector('.portfolio-messages-panel__list');
+    const status = panel.querySelector('.portfolio-messages-panel__status');
+    panel.hidden = false;
+    if (status) status.textContent = 'Carregando mensagens...';
+    if (list) list.textContent = '';
+
+    try {
+      const { data, error } = await BffApiService.chat.listarMensagens(conversationId, { limit: 30 });
+      if (error) throw error;
+      const items = data?.items ?? [];
+      if (status) status.textContent = items.length ? '' : 'Nenhuma mensagem nessa imagem ainda.';
+      if (list) {
+        list.textContent = '';
+        items.forEach(item => list.appendChild(PortfolioImageActions.#mensagemItem(item)));
+      }
+    } catch (err) {
+      if (status) status.textContent = 'Nao foi possivel carregar as mensagens.';
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[PortfolioImageActions] mensagens da imagem falharam:', err?.message ?? err);
+      }
+    }
+  }
+
+  static #mensagensPanel() {
+    let panel = document.querySelector('.portfolio-messages-panel');
+    if (panel) return panel;
+
+    panel = document.createElement('aside');
+    panel.className = 'portfolio-messages-panel';
+    panel.hidden = true;
+
+    const header = document.createElement('div');
+    header.className = 'portfolio-messages-panel__header';
+
+    const title = document.createElement('strong');
+    title.textContent = 'Mensagens da imagem';
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'portfolio-messages-panel__close';
+    close.setAttribute('aria-label', 'Fechar mensagens');
+    close.textContent = 'x';
+    close.addEventListener('click', () => { panel.hidden = true; });
+
+    const status = document.createElement('p');
+    status.className = 'portfolio-messages-panel__status';
+
+    const list = document.createElement('div');
+    list.className = 'portfolio-messages-panel__list';
+
+    header.append(title, close);
+    panel.append(header, status, list);
+    document.body.appendChild(panel);
+    return panel;
+  }
+
+  static #mensagemItem(item) {
+    const row = document.createElement('article');
+    row.className = 'portfolio-messages-panel__item';
+
+    const body = document.createElement('p');
+    body.textContent = item?.body ?? item?.texto ?? '';
+
+    const meta = document.createElement('span');
+    const created = item?.createdAt ?? item?.created_at ?? '';
+    meta.textContent = created ? new Date(created).toLocaleString('pt-BR') : '';
+
+    row.append(body, meta);
+    return row;
   }
 
   static #sincronizarBotao(imageId, ativo, total = null) {

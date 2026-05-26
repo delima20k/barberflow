@@ -2,14 +2,14 @@
 
 class PortfolioViewerModal {
   #overlay = null;
-  #figure = null;
-  #img = null;
+  #cube = null;
+  #faces = [];
   #title = null;
   #actions = null;
   #count = null;
   #items = [];
   #index = 0;
-  #swipeStartX = null;
+  #swipeStart = null;
 
   constructor() {
     this.#ensure();
@@ -17,7 +17,7 @@ class PortfolioViewerModal {
 
   open(item, items = []) {
     this.#ensure();
-    if (!this.#overlay || !this.#img) return;
+    if (!this.#overlay || !this.#cube) return;
 
     this.#items = Array.isArray(items) && items.length ? items : [item];
     const index = this.#items.findIndex(foto => foto?.id && foto.id === item?.id);
@@ -33,7 +33,10 @@ class PortfolioViewerModal {
     if (!this.#overlay) return;
     this.#overlay.hidden = true;
     this.#overlay.setAttribute('aria-hidden', 'true');
-    if (this.#img) this.#img.src = '';
+    this.#faces.forEach(face => {
+      const img = face.querySelector('img');
+      if (img) img.src = '';
+    });
     document.body.classList.remove('portfolio-viewer-open');
   }
 
@@ -53,8 +56,6 @@ class PortfolioViewerModal {
 
   #renderAtual(direcao) {
     const item = this.#items[this.#index] ?? {};
-    this.#img.src = item.fullUrl || item.thumbUrl || '';
-    this.#img.alt = item.title || 'Portfolio';
 
     if (this.#title) this.#title.textContent = item.title || 'Trabalho do barbeiro';
     if (this.#count) this.#count.textContent = `${this.#index + 1}/${this.#items.length}`;
@@ -66,13 +67,28 @@ class PortfolioViewerModal {
       }
     }
 
-    this.#overlay?.querySelectorAll('[data-portfolio-viewer="prev"], [data-portfolio-viewer="next"]').forEach(btn => {
-      btn.hidden = this.#items.length < 2;
-    });
+    this.#renderFaces();
+    this.#cube?.classList.remove('portfolio-viewer__cube--next', 'portfolio-viewer__cube--prev');
+    void this.#cube?.offsetWidth;
+    this.#cube?.classList.add(`portfolio-viewer__cube--${direcao}`);
+  }
 
-    this.#figure?.classList.remove('portfolio-viewer__figure--next', 'portfolio-viewer__figure--prev');
-    void this.#figure?.offsetWidth;
-    this.#figure?.classList.add(`portfolio-viewer__figure--${direcao}`);
+  #renderFaces() {
+    if (!this.#faces.length) return;
+    const offsets = [0, 1, 2, -1];
+    this.#faces.forEach((face, faceIndex) => {
+      const item = this.#itemAt(offsets[faceIndex]);
+      const img = face.querySelector('img');
+      if (!img) return;
+      img.src = item?.fullUrl || item?.thumbUrl || '';
+      img.alt = item?.title || 'Portfolio';
+    });
+  }
+
+  #itemAt(offset) {
+    if (!this.#items.length) return null;
+    const index = (this.#index + offset + this.#items.length) % this.#items.length;
+    return this.#items[index] ?? null;
   }
 
   #ensure() {
@@ -86,44 +102,45 @@ class PortfolioViewerModal {
     overlay.setAttribute('aria-modal', 'true');
     overlay.innerHTML = `
       <button type="button" class="portfolio-viewer__close" aria-label="Fechar">x</button>
-      <button type="button" class="portfolio-viewer__nav portfolio-viewer__nav--prev" data-portfolio-viewer="prev" aria-label="Foto anterior">&lsaquo;</button>
-      <figure class="portfolio-viewer__figure">
-        <img class="portfolio-viewer__img" alt="">
-        <figcaption class="portfolio-viewer__title"></figcaption>
-        <div class="portfolio-viewer__actions"></div>
-      </figure>
-      <button type="button" class="portfolio-viewer__nav portfolio-viewer__nav--next" data-portfolio-viewer="next" aria-label="Proxima foto">&rsaquo;</button>
+      <div class="portfolio-viewer__stage" aria-live="polite">
+        <div class="portfolio-viewer__cube">
+          <figure class="portfolio-viewer__face portfolio-viewer__face--front"><img class="portfolio-viewer__img" alt=""></figure>
+          <figure class="portfolio-viewer__face portfolio-viewer__face--right"><img class="portfolio-viewer__img" alt=""></figure>
+          <figure class="portfolio-viewer__face portfolio-viewer__face--back"><img class="portfolio-viewer__img" alt=""></figure>
+          <figure class="portfolio-viewer__face portfolio-viewer__face--left"><img class="portfolio-viewer__img" alt=""></figure>
+        </div>
+      </div>
+      <figcaption class="portfolio-viewer__title"></figcaption>
+      <div class="portfolio-viewer__actions"></div>
       <span class="portfolio-viewer__count" aria-live="polite"></span>
     `;
 
     overlay.addEventListener('click', event => {
       if (event.target === overlay || event.target.closest('.portfolio-viewer__close')) this.close();
-      if (event.target.closest('[data-portfolio-viewer="prev"]')) this.prev();
-      if (event.target.closest('[data-portfolio-viewer="next"]')) this.next();
     });
 
     overlay.addEventListener('pointerdown', event => {
-      this.#swipeStartX = event.clientX;
+      if (event.target.closest('.portfolio-viewer__actions, .portfolio-viewer__close')) return;
+      this.#swipeStart = { x: event.clientX, y: event.clientY };
     });
 
     overlay.addEventListener('pointerup', event => {
-      if (this.#swipeStartX == null) return;
-      const deslocamento = event.clientX - this.#swipeStartX;
-      this.#swipeStartX = null;
-      if (Math.abs(deslocamento) < 48) return;
-      deslocamento < 0 ? this.next() : this.prev();
+      if (!this.#swipeStart) return;
+      const deslocamentoX = event.clientX - this.#swipeStart.x;
+      const deslocamentoY = event.clientY - this.#swipeStart.y;
+      this.#swipeStart = null;
+      if (Math.abs(deslocamentoX) < 48 || Math.abs(deslocamentoX) < Math.abs(deslocamentoY)) return;
+      deslocamentoX < 0 ? this.next() : this.prev();
     });
 
     document.addEventListener('keydown', event => {
       if (!overlay.hidden && event.key === 'Escape') this.close();
-      if (!overlay.hidden && event.key === 'ArrowLeft') this.prev();
-      if (!overlay.hidden && event.key === 'ArrowRight') this.next();
     });
 
     document.body.appendChild(overlay);
     this.#overlay = overlay;
-    this.#figure = overlay.querySelector('.portfolio-viewer__figure');
-    this.#img = overlay.querySelector('.portfolio-viewer__img');
+    this.#cube = overlay.querySelector('.portfolio-viewer__cube');
+    this.#faces = [...overlay.querySelectorAll('.portfolio-viewer__face')];
     this.#title = overlay.querySelector('.portfolio-viewer__title');
     this.#actions = overlay.querySelector('.portfolio-viewer__actions');
     this.#count = overlay.querySelector('.portfolio-viewer__count');

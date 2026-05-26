@@ -14,6 +14,8 @@ describe('PortfolioImageActions', () => {
     assert.match(source, /listarCurtidasPortfolio/);
     assert.match(source, /curtirPortfolioImagem/);
     assert.match(source, /descurtirPortfolioImagem/);
+    assert.match(source, /listarMensagens/);
+    assert.match(source, /portfolio-messages-panel/);
     assert.match(source, /\\uD83D\\uDC4D/);
     assert.doesNotMatch(source, /from\(['"]likes['"]\)/);
     assert.doesNotMatch(source, /SupabaseService\.getUser/);

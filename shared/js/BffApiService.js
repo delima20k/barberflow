@@ -286,6 +286,11 @@ class BffApiService {
       BffApiService.delete(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}/like`),
   };
 
+  static chat = {
+    listarMensagens: (conversationId, params = {}) =>
+      BffApiService.get(`/api/v1/chat/conversations/${encodeURIComponent(conversationId)}/messages`, params),
+  };
+
   static financeiro = {
     dashboard: ({ barbershopId, periodo = 'mes', de = null, ate = null } = {}) =>
       BffApiService.get('/api/v1/financeiro/dashboard', {

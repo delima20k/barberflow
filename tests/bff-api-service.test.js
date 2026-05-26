@@ -317,3 +317,20 @@ describe('BffApiService.profissionais portfolio', () => {
     assert.strictEqual(chamadas[0].opts.method, undefined);
   });
 });
+
+describe('BffApiService.chat', () => {
+  test('listarMensagens chama endpoint canonico de mensagens da conversa', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { items: [] } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.chat.listarMensagens('conv-1', { limit: 30 });
+
+    assert.ok(chamadas[0].url.includes('/api/v1/chat/conversations/conv-1/messages?'));
+    assert.ok(chamadas[0].url.includes('limit=30'));
+    assert.strictEqual(chamadas[0].opts.method, undefined);
+  });
+});
