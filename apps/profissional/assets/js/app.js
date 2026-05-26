@@ -20,6 +20,7 @@ class BarberFlowProfissional extends Router {
     'agenda',
     'mensagens',
     'minha-barbearia',
+    'parcerias',
     'financas',
     'perfil',
     'criar',
@@ -49,6 +50,7 @@ class BarberFlowProfissional extends Router {
   #barbeariasPage;
   #barbeariaPublicaPage;
   #barbeiroPage;
+  #parceriasPage;
   #financasPage;
 
   constructor() {
@@ -66,6 +68,7 @@ class BarberFlowProfissional extends Router {
     this.#barbeariasPage = new BarbeariasPage();
     this.#barbeariaPublicaPage = new BarbeariaPage();
     this.#barbeiroPage         = new BarbeiroPage();
+    this.#parceriasPage        = new ParceriasPage();
     this.#financasPage         = new FinancasPage();
     this.#auth.bind();
     this.#cadastro.bind();
@@ -80,6 +83,7 @@ class BarberFlowProfissional extends Router {
     this.#barbeariasPage.bind();
     this.#barbeariaPublicaPage.bind();
     this.#barbeiroPage.bind();
+    this.#parceriasPage.bind();
     this.#financasPage.bind();
     AuthService.iniciarListener();
     AuthService.inicializarSessao();

@@ -479,5 +479,30 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
   });
 });
 
+describe('BarberFlowProfissional - pagina Parcerias', () => {
+
+  test('app principal deve instanciar e chamar bind() da ParceriasPage', () => {
+    const appSrc = fs.readFileSync(
+      path.join(ROOT, 'apps/profissional/assets/js/app.js'), 'utf8',
+    );
+
+    assert.match(
+      appSrc,
+      /#parceriasPage;/,
+      'app deve manter uma instancia privada de ParceriasPage',
+    );
+    assert.match(
+      appSrc,
+      /this\.#parceriasPage\s*=\s*new ParceriasPage\(\);/,
+      'app deve instanciar ParceriasPage para registrar listeners de Minhas Fotos',
+    );
+    assert.match(
+      appSrc,
+      /this\.#parceriasPage\.bind\(\);/,
+      'app deve chamar bind() para ativar upload de Minhas Fotos',
+    );
+  });
+});
+
 // Exporta auxiliares para eventual reuso
 // (não necessário no node:test, mas boa prática)
