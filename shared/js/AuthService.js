@@ -435,6 +435,7 @@ class AuthService {
         data.birth_date = data.birth_date ?? extras.birth_date;
         data.gender     = data.gender     ?? extras.gender;
         data.zip_code   = data.zip_code   ?? extras.zip_code;
+        data.since_year = data.since_year ?? extras.since_year;
       }
     }
 

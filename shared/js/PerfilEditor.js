@@ -177,11 +177,17 @@ class PerfilEditor {
         inp.value = v;
       });
     } else if (campo === 'since_year') {
-      inp.type        = 'text';
+      inp.type        = 'number';
       inp.inputMode   = 'numeric';
       inp.maxLength   = 4;
+      inp.min         = '1950';
+      inp.max         = String(new Date().getFullYear());
+      inp.step        = '1';
       inp.placeholder = '1998';
       inp.value       = valorAtual;
+      inp.addEventListener('input', () => {
+        inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
+      });
     } else {
       inp.type        = 'text';
       inp.placeholder = 'Digite aqui...';
@@ -315,7 +321,7 @@ class PerfilEditor {
       const year = Number(novoValor);
       const currentYear = new Date().getFullYear();
       if (!Number.isInteger(year) || year < 1950 || year > currentYear) return;
-      valorParaSalvar = String(year);
+      valorParaSalvar = year;
     }
 
     PerfilEditor._setVal(valEl.id, valorParaSalvar, v => {
@@ -333,15 +339,26 @@ class PerfilEditor {
     try {
       const user = await SupabaseService.getUser();
       if (user?.id) {
-        if (campo === 'since_year' && typeof BffApiService !== 'undefined') {
+        if (campo === 'since_year') {
+          if (typeof BffApiService === 'undefined') {
+            throw new Error('BFF indisponivel para salvar since_year.');
+          }
           const { error } = await BffApiService.profissionais.atualizarMeuPerfilPublico({
-            sinceYear: Number(valorParaSalvar),
+            sinceYear: valorParaSalvar,
           });
           if (error) throw error;
         } else {
           await ProfileRepository.update(user.id, { [campo]: valorParaSalvar });
         }
         SessionCache.salvarExtras(user.id, { [campo]: valorParaSalvar });
+        if (campo === 'since_year') {
+          if (typeof AuthService !== 'undefined') AuthService.patchPerfil({ since_year: valorParaSalvar });
+          if (typeof AppState !== 'undefined') {
+            const perfilAtual = AppState.get('perfil');
+            if (perfilAtual) AppState.set('perfil', { ...perfilAtual, since_year: valorParaSalvar });
+          }
+          if (typeof CacheManager !== 'undefined') CacheManager.invalidate(`${user.id}:barbeiro`);
+        }
       }
     } catch (err) {
       LoggerService.warn('[PerfilEditor] Falha ao salvar perfil:', campo, err);
