@@ -527,8 +527,8 @@ class ParceriasPage {
       .map((foto, fotoIndex) => ParceriasPage.#portfolioItem(foto, fotoIndex))
       .filter(item => item.thumbUrl || item.fullUrl);
     const item = items.find(foto => foto.parceriasIndex === index) ?? items[0];
-    if (item && typeof PortfolioViewerModal !== 'undefined') {
-      this.#fotoViewer ??= new PortfolioViewerModal();
+    if (item && typeof PortfolioPrismViewer !== 'undefined') {
+      this.#fotoViewer ??= new PortfolioPrismViewer();
       this.#fotoViewer.open(item, items);
       return;
     }
