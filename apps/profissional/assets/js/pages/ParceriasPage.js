@@ -260,7 +260,7 @@ class ParceriasPage {
       card.addEventListener('click', async () => {
         const acao = await this.#abrirModalConvite(inv);
         if (acao === 'aceitar' || acao === 'recusar') {
-          await this.#responderConvite(inv.id, acao === 'aceitar' ? 'aceito' : 'recusado', card);
+          await this.#responderConvite(inv.id, acao === 'aceitar' ? 'aceito' : 'recusado', card, inv.barbershop?.id ?? null);
         }
       });
     }
@@ -338,7 +338,7 @@ class ParceriasPage {
     });
   }
 
-  async #responderConvite(inviteId, novoStatus, cardEl) {
+  async #responderConvite(inviteId, novoStatus, cardEl, barbershopId = null) {
     const endpoint = novoStatus === 'aceito' ? 'aceitar' : 'recusar';
     const { error } = await BffApiService.post(
       `/api/v1/profissionais/me/convites/${inviteId}/${endpoint}`,
@@ -358,10 +358,14 @@ class ParceriasPage {
     }
 
     if (novoStatus === 'recusado') {
-      // Remove o card da lista — barbeiro não precisa ver convites recusados
+      // Remove o card do convite
       cardEl.remove();
       const temCards = this.#convitesListaEl?.children?.length > 0;
       if (!temCards && this.#convitesVazioEl) this.#convitesVazioEl.hidden = false;
+      // Remove também o card de barbearia parceira correspondente
+      if (barbershopId && this.#parceirasListaEl) {
+        this.#parceirasListaEl.querySelector(`[data-id="${barbershopId}"]`)?.remove();
+      }
     } else {
       // Aceito: atualiza badge
       cardEl.classList.remove('parcerias-convite--pendente');
