@@ -4,12 +4,18 @@
 // BarbeariaApiClient.js — Fachada de acesso a dados de barbearias.
 //
 // Responsabilidades:
-//   - Chamar a BFF (BffApiService) como fonte primária
-//   - Se BFF indisponível: retornar [] para que o widget exiba estado vazio
+//   - Consultar BarbershopRepository (Supabase direto) como fonte primária
+//   - Fallback para BffApiService se Supabase não responder
 //   - Guards obrigatórios: previne lat/lng inválidos antes da chamada
 //
 // Consumidores: NearbyBarbershopsWidget
-// Dependências: BffApiService.js, LoggerService.js
+// Dependências: BarbershopRepository.js, BffApiService.js, LoggerService.js
+//
+// Por que Supabase direto como primário:
+//   Os endpoints públicos de barbearias (/api/v1/barbearias) não requerem
+//   autenticação. CDNs podem cachear a resposta sem variar por Origin,
+//   resultando em header CORS errado para pro.berberflow.shop. Usar
+//   BarbershopRepository elimina essa dependência de CDN para dados públicos.
 // =============================================================
 
 class BarbeariaApiClient {
@@ -22,16 +28,15 @@ class BarbeariaApiClient {
   static #requestsEmAndamento = new Map(); // key -> Promise<{ data, cachear }>
   static #ultimoAvisoMs    = 0;
   static #AVISO_THROTTLE_MS = 60_000;
-  static #bffFalhou        = false; // true enquanto o BFF não responde com sucesso
+  static #bffFalhou        = false;
 
   // ── API pública ──────────────────────────────────────────────────
 
-  /** Retorna true se a última chamada ao BFF resultou em erro de rede. */
+  /** Retorna true se o último fetch falhou (Supabase e BFF). */
   static get bffIndisponivel() { return BarbeariaApiClient.#bffFalhou; }
 
   /**
    * Invalida caches curtos de listagem.
-   * Usado apos salvar endereco/GPS para o mapa buscar a lista mais recente.
    * @param {string|null} prefixo
    */
   static invalidarCache(prefixo = null) {
@@ -39,7 +44,6 @@ class BarbeariaApiClient {
       BarbeariaApiClient.#cache.clear();
       return;
     }
-
     for (const chave of BarbeariaApiClient.#cache.keys()) {
       if (chave === prefixo || chave.startsWith(`${prefixo}:`)) {
         BarbeariaApiClient.#cache.delete(chave);
@@ -49,7 +53,8 @@ class BarbeariaApiClient {
 
   /**
    * Lista barbearias próximas à coordenada informada.
-   * BFF indisponível → retorna [] para que o widget exiba estado vazio.
+   * Primário: BarbershopRepository (Supabase direto, sem CORS via CDN).
+   * Fallback: BFF.
    *
    * @param {number} lat
    * @param {number} lng
@@ -59,20 +64,22 @@ class BarbeariaApiClient {
   static async getNearby(lat, lng, raioKm = BarbeariaApiClient.#RAIO_PADRAO_KM) {
     BarbeariaApiClient.#validarCoordenadas(lat, lng);
 
-    const chave = [
-      'nearby',
-      Number(lat).toFixed(3),
-      Number(lng).toFixed(3),
-      Number(raioKm),
-    ].join(':');
+    const chave = ['nearby', Number(lat).toFixed(3), Number(lng).toFixed(3), Number(raioKm)].join(':');
 
     return BarbeariaApiClient.#comCache(chave, async () => {
-      const { data, error } = await BffApiService.get('/api/v1/barbearias', {
-        lat,
-        lng,
-        raio: raioKm,
-      });
+      // Primário: Supabase direto
+      try {
+        if (typeof BarbershopRepository !== 'undefined') {
+          const data = await BarbershopRepository.getNearby(lat, lng, raioKm);
+          if (Array.isArray(data)) {
+            BarbeariaApiClient.#bffFalhou = false;
+            return { data, cachear: true };
+          }
+        }
+      } catch (_) { /* fallthrough para BFF */ }
 
+      // Fallback: BFF
+      const { data, error } = await BffApiService.get('/api/v1/barbearias', { lat, lng, raio: raioKm });
       if (!error && Array.isArray(data)) {
         BarbeariaApiClient.#bffFalhou = false;
         return { data, cachear: true };
@@ -86,7 +93,7 @@ class BarbeariaApiClient {
 
   /**
    * Lista barbearias em destaque (top rated).
-   * BFF indisponível → retorna [] para que o widget exiba estado vazio.
+   * Primário: BarbershopRepository. Fallback: BFF.
    *
    * @param {number} [limit=6]
    * @returns {Promise<object[]>}
@@ -95,10 +102,17 @@ class BarbeariaApiClient {
     const chave = `destaque:${Number(limit)}`;
 
     return BarbeariaApiClient.#comCache(chave, async () => {
-      const { data, error } = await BffApiService.get('/api/v1/barbearias/destaque', {
-        limit,
-      });
+      try {
+        if (typeof BarbershopRepository !== 'undefined') {
+          const data = await BarbershopRepository.getFeatured(limit);
+          if (Array.isArray(data)) {
+            BarbeariaApiClient.#bffFalhou = false;
+            return { data, cachear: true };
+          }
+        }
+      } catch (_) { /* fallthrough */ }
 
+      const { data, error } = await BffApiService.get('/api/v1/barbearias/destaque', { limit });
       if (!error && Array.isArray(data)) {
         BarbeariaApiClient.#bffFalhou = false;
         return { data, cachear: true };
@@ -112,7 +126,7 @@ class BarbeariaApiClient {
 
   /**
    * Lista todas as barbearias ativas por popularidade.
-   * BFF indisponível → retorna [] para que o widget exiba estado vazio.
+   * Primário: BarbershopRepository. Fallback: BFF.
    *
    * @param {number} [limit=60]
    * @returns {Promise<object[]>}
@@ -121,10 +135,17 @@ class BarbeariaApiClient {
     const chave = `todas:${Number(limit)}`;
 
     return BarbeariaApiClient.#comCache(chave, async () => {
-      const { data, error } = await BffApiService.get('/api/v1/barbearias/todas', {
-        limit,
-      });
+      try {
+        if (typeof BarbershopRepository !== 'undefined') {
+          const data = await BarbershopRepository.getAll(limit);
+          if (Array.isArray(data)) {
+            BarbeariaApiClient.#bffFalhou = false;
+            return { data, cachear: true };
+          }
+        }
+      } catch (_) { /* fallthrough */ }
 
+      const { data, error } = await BffApiService.get('/api/v1/barbearias/todas', { limit });
       if (!error && Array.isArray(data)) {
         BarbeariaApiClient.#bffFalhou = false;
         return { data, cachear: true };
