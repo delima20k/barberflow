@@ -10,9 +10,13 @@ class PortfolioCard {
   }
 
   render() {
+    const card = document.createElement('article');
+    card.className = 'port-item portfolio-card';
+    card.dataset.portfolioImageId = this.#item.id ?? '';
+
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'port-item portfolio-card';
+    btn.className = 'portfolio-card__media';
     btn.setAttribute('aria-label', this.#item.title || 'Abrir trabalho do barbeiro');
 
     const img = document.createElement('img');
@@ -30,6 +34,10 @@ class PortfolioCard {
 
     btn.appendChild(img);
     btn.addEventListener('click', () => this.#viewer?.open(this.#item));
-    return btn;
+    card.appendChild(btn);
+    if (typeof PortfolioImageActions !== 'undefined') {
+      card.appendChild(PortfolioImageActions.criar(this.#item));
+    }
+    return card;
   }
 }

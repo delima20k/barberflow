@@ -40,9 +40,9 @@ class ProfissionalController extends BaseController {
 
   async portfolio(req, res) {
     await this.handle(res, async () => {
-      const dto = await this.#service.listarPortfolioPublico(req.user.id, req.params.id, req.query ?? {});
+      const dto = await this.#service.listarPortfolioPublico(req.params.id, req.query ?? {});
       if (this.etag(req, res, dto)) return;
-      res.setHeader('Cache-Control', 'private, max-age=60, stale-while-revalidate=300');
+      this.cachePublico(res, 60, 300);
       this.success(res, dto);
     });
   }

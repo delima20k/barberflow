@@ -8,7 +8,6 @@ const AppError = require('../utils/AppError');
 const ProfissionalPublicProfileDto = require('../application/profissional/dto/ProfissionalPublicProfileDto');
 
 const GENDERS = new Set(['masculino', 'feminino', 'outro', 'prefiro_nao_informar', 'nao_informar']);
-const PORTFOLIO_VIEW_ROLES = new Set(['client', 'admin']);
 const PORTFOLIO_CATEGORIES = new Set(['degrade', 'barba', 'social', 'freestyle', 'infantil', 'sobrancelha', 'antes_e_depois']);
 
 const FOTOS_MIME_VALIDOS = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -121,10 +120,8 @@ class ProfissionalService extends BaseService {
     };
   }
 
-  async listarPortfolioPublico(userId, professionalId, filtros = {}) {
-    this._uuid('userId', userId);
+  async listarPortfolioPublico(professionalId, filtros = {}) {
     this._uuid('professionalId', professionalId);
-    await this.#validarPermissaoVisualizarPortfolio(userId);
 
     const limit = this.#normalizarLimit(filtros.limit);
     const offset = this.#normalizarOffset(filtros.offset);
@@ -285,13 +282,6 @@ class ProfissionalService extends BaseService {
       throw AppError.badRequest('gender invalido.');
     }
     return valor;
-  }
-
-  async #validarPermissaoVisualizarPortfolio(userId) {
-    const role = await this.#repo.buscarRoleUsuario(userId);
-    if (!PORTFOLIO_VIEW_ROLES.has(role)) {
-      throw AppError.forbidden('Faca login como cliente para visualizar o portfolio.');
-    }
   }
 
   #normalizarLimit(valor) {

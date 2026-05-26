@@ -4,6 +4,7 @@ class PortfolioViewerModal {
   #overlay = null;
   #img = null;
   #title = null;
+  #actions = null;
 
   constructor() {
     this.#ensure();
@@ -15,6 +16,12 @@ class PortfolioViewerModal {
     this.#img.src = item.fullUrl || item.thumbUrl || '';
     this.#img.alt = item.title || 'Portfolio';
     if (this.#title) this.#title.textContent = item.title || 'Trabalho do barbeiro';
+    if (this.#actions) {
+      this.#actions.innerHTML = '';
+      if (typeof PortfolioImageActions !== 'undefined') {
+        this.#actions.appendChild(PortfolioImageActions.criar(item));
+      }
+    }
     this.#overlay.hidden = false;
     this.#overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('portfolio-viewer-open');
@@ -41,6 +48,7 @@ class PortfolioViewerModal {
       <figure class="portfolio-viewer__figure">
         <img class="portfolio-viewer__img" alt="">
         <figcaption class="portfolio-viewer__title"></figcaption>
+        <div class="portfolio-viewer__actions"></div>
       </figure>
     `;
     overlay.addEventListener('click', event => {
@@ -53,5 +61,6 @@ class PortfolioViewerModal {
     this.#overlay = overlay;
     this.#img = overlay.querySelector('.portfolio-viewer__img');
     this.#title = overlay.querySelector('.portfolio-viewer__title');
+    this.#actions = overlay.querySelector('.portfolio-viewer__actions');
   }
 }

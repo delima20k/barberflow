@@ -25,6 +25,9 @@ class PortfolioGallery {
         return;
       }
       const items = this.#mapItems(data?.items ?? []);
+      if (typeof PortfolioImageActions !== 'undefined') {
+        await PortfolioImageActions.hidratar(items);
+      }
       this.#renderItems(items);
       this.#subscribe();
     } catch {
@@ -96,6 +99,7 @@ class PortfolioGallery {
   #mapItems(items) {
     return items.map(item => ({
       ...item,
+      professionalId: this.#professionalId,
       thumbUrl: PortfolioGallery.#storageUrl(item.thumbnailPath || item.storagePath),
       fullUrl: PortfolioGallery.#storageUrl(item.storagePath || item.thumbnailPath),
     })).filter(item => item.thumbUrl || item.fullUrl);

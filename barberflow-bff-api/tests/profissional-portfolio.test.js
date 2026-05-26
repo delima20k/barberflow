@@ -6,13 +6,11 @@ const assert = require('node:assert/strict');
 const ProfissionalService = require('../services/ProfissionalService');
 
 const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000';
-const ADMIN_ID = '550e8400-e29b-41d4-a716-446655440001';
 const PRO_ID = '660e8400-e29b-41d4-a716-446655440001';
 const IMAGE_ID = '770e8400-e29b-41d4-a716-446655440002';
 
 function criarRepo(overrides = {}) {
   return {
-    buscarRoleUsuario: async userId => (userId === ADMIN_ID ? 'admin' : 'client'),
     listarPortfolioPublico: async () => ({
       items: [{
         id: IMAGE_ID,
@@ -35,10 +33,10 @@ function criarRepo(overrides = {}) {
 }
 
 suite('ProfissionalService - portfolio publico', () => {
-  test('deve listar portfolio apenas para cliente ou admin autenticado', async () => {
+  test('deve listar portfolio publico sem depender de usuario autenticado', async () => {
     const service = new ProfissionalService(criarRepo());
 
-    const dto = await service.listarPortfolioPublico(CLIENT_ID, PRO_ID, { limit: 12 });
+    const dto = await service.listarPortfolioPublico(PRO_ID, { limit: 12 });
 
     assert.deepEqual(dto, {
       items: [{
@@ -57,17 +55,6 @@ suite('ProfissionalService - portfolio publico', () => {
       limit: 12,
       offset: 0,
     });
-  });
-
-  test('deve bloquear profissional autenticado como nao cliente', async () => {
-    const service = new ProfissionalService(criarRepo({
-      buscarRoleUsuario: async () => 'professional',
-    }));
-
-    await assert.rejects(
-      () => service.listarPortfolioPublico(PRO_ID, PRO_ID, {}),
-      err => err.status === 403,
-    );
   });
 
   test('deve atualizar imagem do portfolio com allowlist', async () => {
