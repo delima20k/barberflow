@@ -72,7 +72,11 @@ class ParceriasPage {
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
                     this.#telaEl.classList.contains('entrando-lento');
-      if (ativa) this.#aoEntrar();
+      if (ativa) {
+        this.#aoEntrar();
+      } else {
+        this.#carregouConvites = false; // convites são dinâmicos — sempre re-buscar na próxima entrada
+      }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
 
