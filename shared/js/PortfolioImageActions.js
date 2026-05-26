@@ -35,19 +35,11 @@ class PortfolioImageActions {
 
   static async hidratar(items = []) {
     const ids = items.map(item => item?.id).filter(Boolean);
-    if (!ids.length || typeof SupabaseService === 'undefined' || typeof ApiService === 'undefined') return;
+    if (!ids.length || typeof BffApiService === 'undefined' || !BffApiService.profissionais?.listarCurtidasPortfolio) return;
     try {
-      const user = await SupabaseService.getUser?.();
-      if (!user?.id) return;
-      const { data, error } = await ApiService.from('likes')
-        .select('content_id')
-        .eq('user_id', user.id)
-        .eq('content_type', 'portfolio_image')
-        .in('content_id', ids);
+      const { data, error } = await BffApiService.profissionais.listarCurtidasPortfolio(ids);
       if (error) return;
-      (data ?? []).forEach(row => {
-        if (row?.content_id) PortfolioImageActions.#curtidas.add(row.content_id);
-      });
+      (data?.likedIds ?? []).forEach(id => PortfolioImageActions.#curtidas.add(id));
       ids.forEach(id => PortfolioImageActions.#sincronizarBotao(id, PortfolioImageActions.#curtidas.has(id)));
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
@@ -77,7 +69,7 @@ class PortfolioImageActions {
 
   static async #alternarCurtida(btn) {
     const imageId = btn.dataset.portfolioImageId;
-    if (!imageId || typeof SupabaseService === 'undefined' || typeof ApiService === 'undefined') return;
+    if (!imageId || typeof BffApiService === 'undefined') return;
 
     const estavaAtivo = PortfolioImageActions.#curtidas.has(imageId) || btn.classList.contains('ativo');
     const novoAtivo = !estavaAtivo;
@@ -89,23 +81,15 @@ class PortfolioImageActions {
     PortfolioImageActions.#sincronizarBotao(imageId, novoAtivo, proximoTotal);
 
     try {
-      const user = await SupabaseService.getUser?.();
-      if (!user?.id) throw new Error('Usuario nao autenticado.');
-      if (novoAtivo) {
-        const { error } = await ApiService.from('likes').insert({
-          user_id: user.id,
-          content_id: imageId,
-          content_type: 'portfolio_image',
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await ApiService.from('likes')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('content_id', imageId)
-          .eq('content_type', 'portfolio_image');
-        if (error) throw error;
-      }
+      const acao = novoAtivo
+        ? BffApiService.profissionais?.curtirPortfolioImagem
+        : BffApiService.profissionais?.descurtirPortfolioImagem;
+      if (typeof acao !== 'function') throw new Error('BFF de curtidas indisponivel.');
+
+      const { data, error } = await acao(imageId);
+      if (error) throw error;
+      const total = Number(data?.likesCount ?? proximoTotal);
+      PortfolioImageActions.#sincronizarBotao(imageId, novoAtivo, total);
     } catch (err) {
       if (estavaAtivo) PortfolioImageActions.#curtidas.add(imageId);
       else PortfolioImageActions.#curtidas.delete(imageId);

@@ -162,6 +162,46 @@ class BarbeariaService extends BaseService {
     return { enviados };
   }
 
+  /**
+   * Retorna equipe ativa + convites pendentes/recusados da barbearia do owner.
+   * @param {string} userId
+   * @returns {Promise<{aceitos: object[], convites: object[]}>}
+   */
+  async getEquipeComStatus(userId) {
+    this._uuid('userId', userId);
+    const shop = await this.#repo.getAtivaPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
+    return this.#repo.getEquipeComStatus(shop.id);
+  }
+
+  /**
+   * Dispensa barbeiro da barbearia do owner.
+   * @param {string} userId
+   * @param {string} professionalId
+   * @returns {Promise<{dispensado: true}>}
+   */
+  async dispensarBarbeiro(userId, professionalId) {
+    this._uuid('userId', userId);
+    this._uuid('professionalId', professionalId);
+    const shop = await this.#repo.getAtivaPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
+    return this.#repo.dispensarBarbeiro(shop.id, professionalId);
+  }
+
+  /**
+   * Cancela convite pendente da barbearia do owner.
+   * @param {string} userId
+   * @param {string} inviteId
+   * @returns {Promise<{cancelado: true}>}
+   */
+  async cancelarConvite(userId, inviteId) {
+    this._uuid('userId', userId);
+    this._uuid('inviteId', inviteId);
+    const shop = await this.#repo.getAtivaPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
+    return this.#repo.cancelarConvite(shop.id, inviteId);
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /**

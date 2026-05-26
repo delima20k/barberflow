@@ -35,6 +35,9 @@ module.exports = function criarProfissionaisRoute(db, deps = {}) {
   );
   router.patch('/me/portfolio/:imageId', AuthMiddleware.verificar, controller.atualizarPortfolioImagem.bind(controller));
   router.delete('/me/portfolio/:imageId', AuthMiddleware.verificar, controller.removerPortfolioImagem.bind(controller));
+  router.get('/me/portfolio/likes', AuthMiddleware.verificar, controller.listarCurtidasPortfolio.bind(controller));
+  router.post('/me/portfolio/:imageId/like', AuthMiddleware.verificar, controller.curtirPortfolioImagem.bind(controller));
+  router.delete('/me/portfolio/:imageId/like', AuthMiddleware.verificar, controller.descurtirPortfolioImagem.bind(controller));
   router.get('/:id/perfil-publico', controller.perfilPublico.bind(controller));
   router.get('/:id/portfolio', controller.portfolio.bind(controller));
   router.post('/:id/mensagem-barbearia', AuthMiddleware.verificar, controller.mensagemBarbearia.bind(controller));

@@ -28,6 +28,9 @@ function criarRepo(overrides = {}) {
     }),
     atualizarPortfolioImagem: async (_userId, imageId, payload) => ({ id: imageId, ...payload }),
     removerPortfolioImagem: async () => ({ deleted: true }),
+    listarCurtidasPortfolio: async () => [IMAGE_ID],
+    curtirPortfolioImagem: async () => ({ exists: true, liked: true, likes_count: 5 }),
+    descurtirPortfolioImagem: async () => ({ exists: true, liked: false, likes_count: 4 }),
     ...overrides,
   };
 }
@@ -100,5 +103,50 @@ suite('ProfissionalService - portfolio publico', () => {
 
     assert.deepEqual(chamado, { userId: PRO_ID, imageId: IMAGE_ID });
     assert.deepEqual(dto, { deleted: true });
+  });
+
+  test('deve curtir imagem do portfolio via repository', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      curtirPortfolioImagem: async (userId, imageId) => {
+        chamado = { userId, imageId };
+        return { exists: true, liked: true, likes_count: 5 };
+      },
+    }));
+
+    const dto = await service.curtirPortfolioImagem(CLIENT_ID, IMAGE_ID);
+
+    assert.deepEqual(chamado, { userId: CLIENT_ID, imageId: IMAGE_ID });
+    assert.deepEqual(dto, { imageId: IMAGE_ID, liked: true, likesCount: 5 });
+  });
+
+  test('deve listar curtidas do usuario por ids de portfolio', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      listarCurtidasPortfolio: async (userId, ids) => {
+        chamado = { userId, ids };
+        return [IMAGE_ID];
+      },
+    }));
+
+    const dto = await service.listarCurtidasPortfolio(CLIENT_ID, `${IMAGE_ID},${PRO_ID}`);
+
+    assert.deepEqual(chamado, { userId: CLIENT_ID, ids: [IMAGE_ID, PRO_ID] });
+    assert.deepEqual(dto, { likedIds: [IMAGE_ID] });
+  });
+
+  test('deve descurtir imagem do portfolio via repository', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      descurtirPortfolioImagem: async (userId, imageId) => {
+        chamado = { userId, imageId };
+        return { exists: true, liked: false, likes_count: 4 };
+      },
+    }));
+
+    const dto = await service.descurtirPortfolioImagem(CLIENT_ID, IMAGE_ID);
+
+    assert.deepEqual(chamado, { userId: CLIENT_ID, imageId: IMAGE_ID });
+    assert.deepEqual(dto, { imageId: IMAGE_ID, liked: false, likesCount: 4 });
   });
 });

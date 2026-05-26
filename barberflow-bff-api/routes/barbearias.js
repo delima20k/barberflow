@@ -27,6 +27,9 @@ module.exports = function criarBarbeariaRoute(db) {
   router.patch('/minha/servicos/imagem',                    AuthMiddleware.verificar, rawImage, ctrl.salvarImagemServico.bind(ctrl));
   router.get('/minha/convites/barbeiros-disponiveis',       AuthMiddleware.verificar, ctrl.buscarBarbeirosDisponiveis.bind(ctrl));
   router.post('/minha/convites',                            AuthMiddleware.verificar, ctrl.enviarConvites.bind(ctrl));
+  router.get('/minha/equipe-status',                        AuthMiddleware.verificar, ctrl.getEquipeComStatus.bind(ctrl));
+  router.post('/minha/dispensar/:professional_id',          AuthMiddleware.verificar, ctrl.dispensarBarbeiro.bind(ctrl));
+  router.delete('/minha/convites/:invite_id',               AuthMiddleware.verificar, ctrl.cancelarConvite.bind(ctrl));
   router.get('/destaque', ctrl.destaque.bind(ctrl));
   router.get('/todas',    ctrl.todas.bind(ctrl));
   router.get('/',         ctrl.proximas.bind(ctrl));

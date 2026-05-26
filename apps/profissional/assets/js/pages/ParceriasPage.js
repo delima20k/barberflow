@@ -196,13 +196,15 @@ class ParceriasPage {
       return;
     }
 
-    if (!data?.length) {
+    const pendentes = (data ?? []).filter(inv => inv.status === 'pendente');
+
+    if (!pendentes.length) {
       if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = false;
       return;
     }
 
     if (this.#convitesVazioEl) this.#convitesVazioEl.hidden = true;
-    data.forEach(inv => this.#convitesListaEl.appendChild(this.#criarCardConvite(inv)));
+    pendentes.forEach(inv => this.#convitesListaEl.appendChild(this.#criarCardConvite(inv)));
   }
 
   #criarCardConvite(inv) {
@@ -355,15 +357,21 @@ class ParceriasPage {
       return;
     }
 
-    // Atualiza card sem re-render
-    cardEl.classList.remove('parcerias-convite--pendente');
-    cardEl.classList.add(`parcerias-convite--${novoStatus}`);
-    const statusEl = cardEl.querySelector('.parcerias-convite-status');
-    if (statusEl) {
-      statusEl.textContent = novoStatus === 'aceito' ? 'Aceito' : 'Recusado';
-      statusEl.className   = `parcerias-convite-status parcerias-convite-status--${novoStatus}`;
+    if (novoStatus === 'recusado') {
+      // Remove o card da lista — barbeiro não precisa ver convites recusados
+      cardEl.remove();
+      const temCards = this.#convitesListaEl?.children?.length > 0;
+      if (!temCards && this.#convitesVazioEl) this.#convitesVazioEl.hidden = false;
+    } else {
+      // Aceito: atualiza badge
+      cardEl.classList.remove('parcerias-convite--pendente');
+      cardEl.classList.add('parcerias-convite--aceito');
+      const statusEl = cardEl.querySelector('.parcerias-convite-status');
+      if (statusEl) {
+        statusEl.textContent = 'Aceito ✓';
+        statusEl.className   = 'parcerias-convite-status parcerias-convite-status--aceito';
+      }
     }
-    cardEl.querySelector('.parcerias-convite-acoes')?.remove();
 
     const toast = novoStatus === 'aceito' ? 'Convite aceito! 🎉' : 'Convite recusado.';
     if (typeof NotificationService !== 'undefined') {

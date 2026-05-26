@@ -63,6 +63,30 @@ class ProfissionalController extends BaseController {
     });
   }
 
+  async curtirPortfolioImagem(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const dto = await this.#service.curtirPortfolioImagem(req.user.id, req.params.imageId);
+      this.success(res, dto);
+    });
+  }
+
+  async listarCurtidasPortfolio(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const dto = await this.#service.listarCurtidasPortfolio(req.user.id, req.query?.ids ?? '');
+      this.success(res, dto);
+    });
+  }
+
+  async descurtirPortfolioImagem(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const dto = await this.#service.descurtirPortfolioImagem(req.user.id, req.params.imageId);
+      this.success(res, dto);
+    });
+  }
+
   async listarMeuPortfolio(req, res) {
     await this.handle(res, async () => {
       res.setHeader('Cache-Control', 'private, no-store');

@@ -246,6 +246,10 @@ export class MinhaBarbeariaRuntimeController {
       // Equipe
       equipeDonoWrap: q('mb-equipe-dono-wrap'),
       equipeCol:      q('mb-equipe-col'),
+      // Convites enviados (status)
+      convitesStatusSection: q('mb-convites-status-section'),
+      convitesStatusLista:   q('mb-convites-status-lista'),
+      convitesStatusVazio:   q('mb-convites-status-vazio'),
     };
   }
 
@@ -286,6 +290,13 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
     // Toggle de status aberta/fechada
     this.#refs.statusToggle?.addEventListener('click', () => this.#toggleStatusAberto());
+    // Convites enviados — cancelar/dispensar (delegação)
+    this.#refs.convitesStatusLista?.addEventListener('click', e => {
+      const btnCancelar  = e.target.closest('[data-cancelar-convite]');
+      const btnDispensar = e.target.closest('[data-dispensar-barbeiro]');
+      if (btnCancelar)  this.#cancelarConvite(btnCancelar.dataset.cancelarConvite,  btnCancelar.closest('.mb-convite-status-card'));
+      if (btnDispensar) this.#dispensarBarbeiro(btnDispensar.dataset.dispensarBarbeiro, btnDispensar.closest('.mb-convite-status-card'));
+    });
     // Notificação de cliente ausente (enviada pelo trigger via notifications table)
     document.addEventListener('barberflow:notificacao-nova',   e => this.#onClienteAusente(e));
     // Resolução do fluxo de espera pelo timer recorrente
@@ -482,6 +493,7 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderInfoCard(shop);
       this.#iniciarRealtimeFila(shop.id);
       this.#processarPushPendente();
+      if (this.#isOwner) this.#carregarEquipeStatus();
 
     } catch (err) {
       console.error('[MinhaBarbeariaPage] erro:', err);
@@ -712,6 +724,156 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderizandoEquipe = false;
       // Se um update chegou enquanto renderizávamos, executa mais um ciclo agora
       if (this.#reRenderPendente) this.#reRenderEquipe();
+    }
+  }
+
+  // ── Convites enviados pela barbearia ────────────────────────
+
+  async #carregarEquipeStatus() {
+    const sec   = this.#refs.convitesStatusSection;
+    const lista = this.#refs.convitesStatusLista;
+    const vazio = this.#refs.convitesStatusVazio;
+    if (!sec || !lista) return;
+
+    sec.hidden = false;
+    lista.innerHTML = '<p class="mb-convites-status-carregando">Carregando…</p>';
+
+    const { data, error } = await BffApiService.get('/api/v1/barbearias/minha/equipe-status');
+
+    lista.innerHTML = '';
+
+    if (error) {
+      LoggerService.warn('[MinhaBarbeariaPage] equipe-status:', error);
+      lista.innerHTML = '<p class="mb-convites-status-erro">Erro ao carregar convites.</p>';
+      return;
+    }
+
+    const aceitos  = data?.aceitos  ?? [];
+    const convites = data?.convites ?? [];
+    const total    = aceitos.length + convites.length;
+
+    if (total === 0) {
+      if (vazio) vazio.hidden = false;
+      return;
+    }
+    if (vazio) vazio.hidden = true;
+
+    for (const b of aceitos) {
+      lista.appendChild(this.#criarCardEquipeStatus({
+        tipo:     'aceito',
+        nome:     b.profile?.full_name  ?? 'Barbeiro',
+        avatar:   b.profile?.avatar_path ?? null,
+        acordo:   b.agreement,
+        profId:   b.professional_id,
+      }));
+    }
+    for (const c of convites) {
+      lista.appendChild(this.#criarCardEquipeStatus({
+        tipo:     c.status,
+        nome:     c.profile?.full_name  ?? 'Barbeiro',
+        avatar:   c.profile?.avatar_path ?? null,
+        inviteId: c.id,
+        comissao: c.commission_pct,
+        message:  c.message,
+      }));
+    }
+  }
+
+  #criarCardEquipeStatus({ tipo, nome, avatar, acordo, profId, inviteId, comissao, message }) {
+    const card = document.createElement('div');
+    card.className = 'mb-convite-status-card mb-convite-status-card--' + tipo;
+
+    const avatarHtml = avatar
+      ? `<img src="${SupabaseService.getAvatarUrl(avatar)}" alt="${nome}" loading="lazy" onerror="this.outerHTML='👤'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`
+      : '<span style="font-size:1.4rem;">👤</span>';
+
+    const statusLabel = { aceito: 'Aceito ✓', pendente: 'Pendente…', recusado: 'Recusado' }[tipo] ?? tipo;
+
+    let condicao = '';
+    if (tipo === 'aceito' && acordo) {
+      const v = Number(acordo.value);
+      condicao = acordo.type === 'percentage'
+        ? `${v}% dos cortes`
+        : acordo.type === 'rent'
+          ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês'
+          : `R$ ${v}`;
+    } else if (comissao != null) {
+      const v   = Number(comissao);
+      const msg = message ?? '';
+      const isR = msg.startsWith('[Aluguel de Cadeira]');
+      condicao  = isR
+        ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês'
+        : `${v}% dos cortes`;
+    }
+
+    let acaoHtml = '';
+    if (tipo === 'pendente') {
+      acaoHtml = `<button class="btn btn-outline btn-sm" data-cancelar-convite="${inviteId}" type="button">Cancelar convite</button>`;
+    } else if (tipo === 'aceito') {
+      acaoHtml = `<button class="btn btn-outline btn-sm mb-dispensar-btn" data-dispensar-barbeiro="${profId}" type="button">Dispensar</button>`;
+    } else if (tipo === 'recusado') {
+      acaoHtml = `<button class="btn btn-gold btn-sm" data-reenviar-convite="${inviteId}" data-prof-id="${profId ?? ''}" type="button">Reenviar convite</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="mb-convite-status-header">
+        <div class="avatar gold" style="width:42px;height:42px;flex-shrink:0;">${avatarHtml}</div>
+        <div class="mb-convite-status-info">
+          <p class="mb-convite-status-nome">${nome}</p>
+          ${condicao ? `<p class="mb-convite-status-cond">${condicao}</p>` : ''}
+        </div>
+        <span class="mb-convite-status-badge mb-convite-status-badge--${tipo}">${statusLabel}</span>
+      </div>
+      ${acaoHtml ? `<div class="mb-convite-status-acoes">${acaoHtml}</div>` : ''}`;
+
+    return card;
+  }
+
+  async #cancelarConvite(inviteId, cardEl) {
+    if (!inviteId || !cardEl) return;
+    const btn = cardEl.querySelector('[data-cancelar-convite]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Cancelando…'; }
+
+    const { error } = await BffApiService.delete(`/api/v1/barbearias/minha/convites/${inviteId}`);
+
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Cancelar convite'; }
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Erro ao cancelar. Tente novamente.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      }
+      return;
+    }
+
+    cardEl.remove();
+    const lista = this.#refs.convitesStatusLista;
+    if (lista && lista.children.length === 0) {
+      if (this.#refs.convitesStatusVazio) this.#refs.convitesStatusVazio.hidden = false;
+    }
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast('Convite cancelado.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+    }
+  }
+
+  async #dispensarBarbeiro(professionalId, cardEl) {
+    if (!professionalId || !cardEl) return;
+    const btn = cardEl.querySelector('[data-dispensar-barbeiro]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Dispensando…'; }
+
+    const { error } = await BffApiService.post(`/api/v1/barbearias/minha/dispensar/${professionalId}`, {});
+
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Dispensar'; }
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Erro ao dispensar. Tente novamente.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
+      }
+      return;
+    }
+
+    cardEl.remove();
+    // Atualiza equipe (remove da lista de cadeiras)
+    if (this.#barbershopId) this.#reRenderEquipe();
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast('Barbeiro dispensado.', '', NotificationService.TIPOS?.SISTEMA ?? 'sistema');
     }
   }
 
@@ -1846,6 +2008,7 @@ export class MinhaBarbeariaRuntimeController {
       );
     }
     this.#resetarConvite();
+    this.#carregarEquipeStatus();
   }
 
   #preencherConfigPanel(shop, servicos) {

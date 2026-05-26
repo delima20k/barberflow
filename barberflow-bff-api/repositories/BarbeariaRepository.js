@@ -405,6 +405,159 @@ class BarbeariaRepository extends BaseRepository {
     const baseUrl = String(process.env.SUPABASE_URL ?? '').replace(/\/+$/, '');
     return `${baseUrl}/storage/v1/object/public/barbershops/${path}`;
   }
+
+  /**
+   * Retorna barbeiros aceitos (vínculos ativos) + convites pendentes/recusados.
+   * @param {string} barbershopId
+   * @returns {Promise<{aceitos: object[], convites: object[]}>}
+   */
+  async getEquipeComStatus(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+
+    const { data: links, error: errLinks } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id, joined_at')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+
+    if (errLinks) {
+      this._warn('getEquipeComStatus links', errLinks);
+      this._throwDbError(errLinks, 'getEquipeComStatus links');
+    }
+
+    const aceitos = [];
+    if (links?.length) {
+      const ids = links.map(l => l.professional_id);
+
+      const { data: perfis } = await this._db
+        .from('profiles')
+        .select('id, full_name, avatar_path')
+        .in('id', ids);
+
+      const { data: acordos } = await this._db
+        .from('agreements')
+        .select('professional_id, type, value')
+        .eq('barbershop_id', barbershopId)
+        .eq('is_active', true)
+        .in('professional_id', ids);
+
+      const perfilMap = Object.fromEntries((perfis ?? []).map(p => [p.id, p]));
+      const acordoMap = Object.fromEntries((acordos ?? []).map(a => [a.professional_id, a]));
+
+      for (const link of links) {
+        aceitos.push({
+          professional_id: link.professional_id,
+          joined_at:       link.joined_at,
+          profile:         perfilMap[link.professional_id] ?? null,
+          agreement:       acordoMap[link.professional_id] ?? null,
+        });
+      }
+    }
+
+    const { data: invites, error: errInv } = await this._db
+      .from('barbershop_invites')
+      .select('id, barbeiro_id, commission_pct, message, status, created_at')
+      .eq('barbershop_id', barbershopId)
+      .in('status', ['pendente', 'recusado'])
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (errInv) {
+      this._warn('getEquipeComStatus invites', errInv);
+      this._throwDbError(errInv, 'getEquipeComStatus invites');
+    }
+
+    const convites = [];
+    if (invites?.length) {
+      const barIds = [...new Set(invites.map(i => i.barbeiro_id))];
+      const { data: barPerfis } = await this._db
+        .from('profiles')
+        .select('id, full_name, avatar_path')
+        .in('id', barIds);
+
+      const barPerfilMap = Object.fromEntries((barPerfis ?? []).map(p => [p.id, p]));
+      for (const inv of invites) {
+        convites.push({ ...inv, profile: barPerfilMap[inv.barbeiro_id] ?? null });
+      }
+    }
+
+    return { aceitos, convites };
+  }
+
+  /**
+   * Dispensa barbeiro: desativa vínculo e acordo.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<{dispensado: true}>}
+   */
+  async dispensarBarbeiro(barbershopId, professionalId) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('professionalId', professionalId);
+
+    const { error: errLink } = await this._db
+      .from('professional_shop_links')
+      .update({ is_active: false })
+      .eq('barbershop_id', barbershopId)
+      .eq('professional_id', professionalId)
+      .eq('is_active', true);
+
+    if (errLink) {
+      this._warn('dispensarBarbeiro link', errLink);
+      this._throwDbError(errLink, 'dispensarBarbeiro link');
+    }
+
+    const { error: errAgree } = await this._db
+      .from('agreements')
+      .update({ is_active: false, valid_until: new Date().toISOString() })
+      .eq('barbershop_id', barbershopId)
+      .eq('professional_id', professionalId)
+      .eq('is_active', true);
+
+    if (errAgree) {
+      this._warn('dispensarBarbeiro agreement', errAgree);
+      this._throwDbError(errAgree, 'dispensarBarbeiro agreement');
+    }
+
+    return { dispensado: true };
+  }
+
+  /**
+   * Cancela convite pendente (DELETE da linha).
+   * @param {string} barbershopId
+   * @param {string} inviteId
+   * @returns {Promise<{cancelado: true}>}
+   */
+  async cancelarConvite(barbershopId, inviteId) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('inviteId', inviteId);
+
+    const { data: inv, error: errGet } = await this._db
+      .from('barbershop_invites')
+      .select('id, status')
+      .eq('id', inviteId)
+      .eq('barbershop_id', barbershopId)
+      .maybeSingle();
+
+    if (errGet) {
+      this._warn('cancelarConvite fetch', errGet);
+      this._throwDbError(errGet, 'cancelarConvite fetch');
+    }
+    if (!inv) throw AppError.notFound('Convite não encontrado.');
+    if (inv.status !== 'pendente') throw AppError.conflict('Só convites pendentes podem ser cancelados.');
+
+    const { error: errDel } = await this._db
+      .from('barbershop_invites')
+      .delete()
+      .eq('id', inviteId)
+      .eq('barbershop_id', barbershopId);
+
+    if (errDel) {
+      this._warn('cancelarConvite delete', errDel);
+      this._throwDbError(errDel, 'cancelarConvite delete');
+    }
+
+    return { cancelado: true };
+  }
 }
 
 module.exports = BarbeariaRepository;

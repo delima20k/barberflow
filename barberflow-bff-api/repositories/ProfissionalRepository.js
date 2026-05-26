@@ -191,6 +191,73 @@ class ProfissionalRepository extends BaseRepository {
 
   // ── Portfolio — gerenciamento próprio ─────────────────────────────
 
+  async curtirPortfolioImagem(userId, imageId) {
+    this._uuid('userId', userId);
+    this._uuid('imageId', imageId);
+
+    const current = await this.#buscarPortfolioAtivo(imageId);
+    if (!current?.id) return { exists: false, likes_count: 0 };
+
+    const { data: existing, error: existingError } = await this._db
+      .from('likes')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_id', imageId)
+      .eq('content_type', 'portfolio_image')
+      .limit(1);
+    if (existingError) this._throwDbError(existingError, 'curtirPortfolioImagem.exists');
+
+    if (!existing?.length) {
+      const { error } = await this._db
+        .from('likes')
+        .insert({
+          user_id: userId,
+          content_id: imageId,
+          content_type: 'portfolio_image',
+        });
+      if (error && error.code !== '23505') this._throwDbError(error, 'curtirPortfolioImagem.insert');
+    }
+
+    const atualizado = await this.#buscarPortfolioAtivo(imageId);
+    return { exists: true, likes_count: atualizado?.likes_count ?? current.likes_count ?? 0 };
+  }
+
+  async listarCurtidasPortfolio(userId, imageIds) {
+    this._uuid('userId', userId);
+    const ids = Array.isArray(imageIds) ? imageIds : [];
+    ids.forEach(id => this._uuid('imageId', id));
+    if (!ids.length) return [];
+
+    const { data, error } = await this._db
+      .from('likes')
+      .select('content_id')
+      .eq('user_id', userId)
+      .eq('content_type', 'portfolio_image')
+      .in('content_id', ids);
+    if (error) this._throwDbError(error, 'listarCurtidasPortfolio');
+
+    return (data ?? []).map(row => row.content_id).filter(Boolean);
+  }
+
+  async descurtirPortfolioImagem(userId, imageId) {
+    this._uuid('userId', userId);
+    this._uuid('imageId', imageId);
+
+    const current = await this.#buscarPortfolioAtivo(imageId);
+    if (!current?.id) return { exists: false, likes_count: 0 };
+
+    const { error } = await this._db
+      .from('likes')
+      .delete()
+      .eq('user_id', userId)
+      .eq('content_id', imageId)
+      .eq('content_type', 'portfolio_image');
+    if (error) this._throwDbError(error, 'descurtirPortfolioImagem.delete');
+
+    const atualizado = await this.#buscarPortfolioAtivo(imageId);
+    return { exists: true, likes_count: atualizado?.likes_count ?? current.likes_count ?? 0 };
+  }
+
   async listarMeuPortfolio(userId, { limit = 10, offset = 0 } = {}) {
     this._uuid('userId', userId);
     const from = Number(offset);
@@ -520,6 +587,17 @@ class ProfissionalRepository extends BaseRepository {
       }
       return { ...fallback.data, state: null };
     }
+    return data;
+  }
+
+  async #buscarPortfolioAtivo(imageId) {
+    const { data, error } = await this._db
+      .from('portfolio_images')
+      .select('id, likes_count')
+      .eq('id', imageId)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (error) this._throwDbError(error, 'buscarPortfolioAtivo');
     return data;
   }
 

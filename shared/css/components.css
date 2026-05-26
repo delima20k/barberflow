@@ -4876,6 +4876,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.portfolio-gallery__carousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 12px;
+  scrollbar-width: thin;
+}
+
 .port-item {
   position: relative;
   aspect-ratio: 1;
@@ -4887,6 +4898,20 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 0;
   transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
+
+.portfolio-gallery__carousel .portfolio-card,
+.portfolio-gallery__carousel .portfolio-card.parcerias-foto-item {
+  flex: 0 0 clamp(136px, 42vw, 184px);
+  width: auto;
+  height: auto;
+  scroll-snap-align: start;
+  box-shadow: 0 10px 22px rgba(0,0,0,.16);
+  animation: portfolio-card-enter .22s ease both;
+}
+
+.portfolio-gallery__carousel .portfolio-card:nth-child(2) { animation-delay: .03s; }
+.portfolio-gallery__carousel .portfolio-card:nth-child(3) { animation-delay: .06s; }
+.portfolio-gallery__carousel .portfolio-card:nth-child(4) { animation-delay: .09s; }
 
 .portfolio-card__media {
   width: 100%;
@@ -4968,6 +4993,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background: linear-gradient(90deg, var(--card2) 25%, var(--card) 50%, var(--card2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes portfolio-card-enter {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .portfolio-empty {

@@ -273,6 +273,17 @@ class BffApiService {
 
     uploadPortfolioImagem: (buffer, mime) =>
       BffApiService.postBinario('/api/v1/profissionais/me/portfolio', buffer, mime),
+
+    listarCurtidasPortfolio: (imageIds = []) =>
+      BffApiService.get('/api/v1/profissionais/me/portfolio/likes', {
+        ids: Array.isArray(imageIds) ? imageIds.filter(Boolean).join(',') : '',
+      }),
+
+    curtirPortfolioImagem: (imageId) =>
+      BffApiService.post(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}/like`, {}),
+
+    descurtirPortfolioImagem: (imageId) =>
+      BffApiService.delete(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}/like`),
   };
 
   static financeiro = {

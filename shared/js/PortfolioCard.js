@@ -13,7 +13,7 @@ class PortfolioCard {
 
   render() {
     const card = document.createElement('article');
-    card.className = 'port-item portfolio-card';
+    card.className = 'port-item portfolio-card parcerias-foto-item';
     card.dataset.portfolioImageId = this.#item.id ?? '';
 
     const btn = document.createElement('button');

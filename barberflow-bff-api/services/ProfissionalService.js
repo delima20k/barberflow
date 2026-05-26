@@ -176,6 +176,47 @@ class ProfissionalService extends BaseService {
     return { deleted: true };
   }
 
+  async curtirPortfolioImagem(userId, imageId) {
+    this._uuid('userId', userId);
+    this._uuid('imageId', imageId);
+
+    const result = await this.#repo.curtirPortfolioImagem(userId, imageId);
+    if (!result?.exists) throw AppError.notFound('Imagem do portfolio nao encontrada.');
+    return {
+      imageId,
+      liked: true,
+      likesCount: Math.max(0, Number(result.likes_count ?? 0)),
+    };
+  }
+
+  async listarCurtidasPortfolio(userId, idsParam) {
+    this._uuid('userId', userId);
+    const ids = String(idsParam ?? '')
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean)
+      .slice(0, 48);
+
+    ids.forEach(id => this._uuid('imageId', id));
+    if (!ids.length) return { likedIds: [] };
+
+    const likedIds = await this.#repo.listarCurtidasPortfolio(userId, ids);
+    return { likedIds: Array.isArray(likedIds) ? likedIds : [] };
+  }
+
+  async descurtirPortfolioImagem(userId, imageId) {
+    this._uuid('userId', userId);
+    this._uuid('imageId', imageId);
+
+    const result = await this.#repo.descurtirPortfolioImagem(userId, imageId);
+    if (!result?.exists) throw AppError.notFound('Imagem do portfolio nao encontrada.');
+    return {
+      imageId,
+      liked: false,
+      likesCount: Math.max(0, Number(result.likes_count ?? 0)),
+    };
+  }
+
   async listarMeuPortfolio(userId, filtros = {}) {
     this._uuid('userId', userId);
     const limit  = this.#normalizarLimit(filtros.limit ?? 10);

@@ -148,6 +148,40 @@ class BarbeariaController extends BaseController {
     });
   }
 
+  /**
+   * GET /api/v1/barbearias/minha/equipe-status
+   */
+  async getEquipeComStatus(req, res) {
+    await this.handle(res, async () => {
+      const dados = await this.#service.getEquipeComStatus(req.user.id);
+      this.success(res, dados);
+    });
+  }
+
+  /**
+   * POST /api/v1/barbearias/minha/dispensar/:professional_id
+   */
+  async dispensarBarbeiro(req, res) {
+    await this.handle(res, async () => {
+      const professionalId = String(req.params.professional_id ?? '').trim();
+      if (!professionalId) throw AppError.badRequest('professional_id é obrigatório.');
+      const resultado = await this.#service.dispensarBarbeiro(req.user.id, professionalId);
+      this.success(res, resultado);
+    });
+  }
+
+  /**
+   * DELETE /api/v1/barbearias/minha/convites/:invite_id
+   */
+  async cancelarConvite(req, res) {
+    await this.handle(res, async () => {
+      const inviteId = String(req.params.invite_id ?? '').trim();
+      if (!inviteId) throw AppError.badRequest('invite_id é obrigatório.');
+      const resultado = await this.#service.cancelarConvite(req.user.id, inviteId);
+      this.success(res, resultado);
+    });
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /**

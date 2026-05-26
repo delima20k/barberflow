@@ -82,7 +82,8 @@ class PortfolioGallery {
     }
 
     const grid = document.createElement('div');
-    grid.className = 'portfolio-grid portfolio-gallery__grid';
+    grid.className = 'portfolio-grid portfolio-gallery__grid portfolio-gallery__carousel';
+    grid.setAttribute('role', 'list');
     items.forEach(item => grid.appendChild(new PortfolioCard(item, this.#viewer, items).render()));
     this.#root.appendChild(grid);
   }

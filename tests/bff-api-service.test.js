@@ -271,3 +271,49 @@ describe('BffApiService.mensalistas', () => {
     });
   });
 });
+
+describe('BffApiService.profissionais portfolio', () => {
+
+  test('curtirPortfolioImagem chama endpoint BFF canonico', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { liked: true, likesCount: 1 } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.profissionais.curtirPortfolioImagem('img-1');
+
+    assert.ok(chamadas[0].url.endsWith('/api/v1/profissionais/me/portfolio/img-1/like'));
+    assert.strictEqual(chamadas[0].opts.method, 'POST');
+  });
+
+  test('descurtirPortfolioImagem chama endpoint BFF canonico', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { liked: false, likesCount: 0 } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.profissionais.descurtirPortfolioImagem('img-1');
+
+    assert.ok(chamadas[0].url.endsWith('/api/v1/profissionais/me/portfolio/img-1/like'));
+    assert.strictEqual(chamadas[0].opts.method, 'DELETE');
+  });
+
+  test('listarCurtidasPortfolio envia ids por query string', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { likedIds: ['img-1'] } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.profissionais.listarCurtidasPortfolio(['img-1', 'img-2']);
+
+    assert.ok(chamadas[0].url.includes('/api/v1/profissionais/me/portfolio/likes?'));
+    assert.ok(chamadas[0].url.includes('ids=img-1%2Cimg-2'));
+    assert.strictEqual(chamadas[0].opts.method, undefined);
+  });
+});
