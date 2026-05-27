@@ -17,20 +17,50 @@ class BarberWorkplaceInfo {
       return;
     }
 
-    this.#el.innerHTML = '';
-    this.#el.appendChild(this.#row('🏢', shop.name || 'Barbearia'));
-
     const address = [shop.address, [shop.city, shop.state].filter(Boolean).join(' - ')]
       .filter(Boolean)
       .join(' — ');
-    if (address) this.#el.appendChild(this.#row('📍', address));
+
+    const card = document.createElement('div');
+    card.className = 'beiro-workplace-card';
+    if (shop.id) card.dataset.barbershopId = shop.id;
+    if (profile.id) card.dataset.highlightBarberId = profile.id;
+
+    const icon = document.createElement('span');
+    icon.className = 'beiro-section-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '🏢';
+
+    const info = document.createElement('div');
+    info.className = 'beiro-workplace-card__info';
+
+    const name = document.createElement('p');
+    name.className = 'beiro-workplace-card__name';
+    name.textContent = shop.name || 'Barbearia';
+
+    info.appendChild(name);
+    if (address) {
+      const addr = document.createElement('p');
+      addr.className = 'beiro-workplace-card__addr';
+      addr.textContent = address;
+      info.appendChild(addr);
+    }
+
+    const arrow = document.createElement('span');
+    arrow.className = 'beiro-workplace-card__arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '›';
+
+    card.append(icon, info, arrow);
 
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'beiro-workplace-message';
     btn.innerHTML = '<span aria-hidden="true">💬</span><span>Mensagem para a barbearia</span>';
     btn.addEventListener('click', () => this.#onMessage?.(profile));
-    this.#el.appendChild(btn);
+
+    this.#el.innerHTML = '';
+    this.#el.append(card, btn);
     this.#el.hidden = false;
   }
 

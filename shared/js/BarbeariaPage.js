@@ -34,6 +34,7 @@ class BarbeariaPage {
   #canalShopId      = null;   // shop.id do canal de status (evita reconexão desnecessária)
   #timerShopPoll    = null;   // timer de polling periódico de status (fallback quando Realtime falha)
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
+  #highlightBarberId = null;  // barber-id a destacar após abrir barbearia via card do barbeiro
 
   // ── Constantes ────────────────────────────────────────────
   /** Intervalo de polling de status da barbearia em ms (fallback para Realtime). */
@@ -182,6 +183,9 @@ class BarbeariaPage {
         LoggerService.warn('[BarbeariaPage] ID inválido interceptado:', id);
         return;
       }
+
+      const highlightId = card.dataset.highlightBarberId ?? null;
+      this.#highlightBarberId = InputValidator.uuid(highlightId).ok ? highlightId : null;
 
       e.stopPropagation();
       this.abrirPorId(id);
@@ -501,6 +505,8 @@ class BarbeariaPage {
       }));
     }
 
+    this.#aplicarHighlight();
+
     // QueuePoller fallback: garante polling ativo se cliente já está na fila ao abrir a página
     const perfilPoller = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
     if (perfilPoller?.id) {
@@ -524,6 +530,20 @@ class BarbeariaPage {
       this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
       this.#digFila.iniciar();
     }
+  }
+
+  /** Aplica borda pulsante ao card do barbeiro de origem (vindo da tela-barbeiro). */
+  #aplicarHighlight() {
+    if (!this.#highlightBarberId || !this.#refs.barbeirosScroll) return;
+    const el = this.#refs.barbeirosScroll.querySelector(
+      `[data-barber-id="${CSS.escape(this.#highlightBarberId)}"]`,
+    );
+    const row = el?.closest('.cdr-row');
+    if (!row) return;
+    row.classList.add('cdr-row--highlight');
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    row.addEventListener('click', () => row.classList.remove('cdr-row--highlight'), { once: true });
+    this.#highlightBarberId = null;
   }
 
   /**

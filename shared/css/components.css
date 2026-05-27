@@ -7266,3 +7266,60 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 4px 6px;
   line-height: 1;
 }
+
+/* ── Card da barbearia na tela do barbeiro ── */
+.beiro-workplace-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(212,175,55,.28);
+  border-radius: 14px;
+  background: rgba(212,175,55,.07);
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.beiro-workplace-card:active { transform: scale(.98); background: rgba(212,175,55,.13); }
+.beiro-workplace-card__info { flex: 1; min-width: 0; text-align: left; }
+.beiro-workplace-card__name {
+  margin: 0 0 2px;
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.beiro-workplace-card__addr {
+  margin: 0;
+  font-size: .76rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.beiro-workplace-card__arrow {
+  font-size: 1.3rem;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+/* ── Pulsacao do card do barbeiro de origem ── */
+@keyframes cdr-highlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #D4AF37, 0 0 18px 4px rgba(212,175,55,.45);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(212,175,55,.5), 0 0 8px 2px rgba(212,175,55,.15);
+  }
+}
+.cdr-row--highlight {
+  border-radius: 12px;
+  animation: cdr-highlight-pulse 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdr-row--highlight { animation: none; outline: 2px solid #D4AF37; }
+}
