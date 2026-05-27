@@ -28,10 +28,32 @@ class ProfissionalRepository extends BaseRepository {
     this._uuid('professionalId', professionalId);
 
     const profile = await this.#buscarProfilePublicoSeguro(professionalId);
-    if (!profile?.is_active) return null;
+    if (!profile?.is_active) return null; // usuário não existe → 404 é correto
 
     const professional = await this.#buscarProfessionalPublicoSeguro(professionalId);
-    if (!professional?.is_active) return null;
+    if (!professional?.is_active) {
+      // Usuário autenticado (profiles OK) mas sem registro na tabela professionals
+      // (ex: dono de barbearia, usuário recém-cadastrado).
+      // Retorna perfil parcial para evitar 404 desnecessário no session refresh.
+      return {
+        id: professionalId,
+        professional_id: professionalId,
+        full_name: profile.full_name ?? null,
+        avatar_path: profile.avatar_path ?? null,
+        birth_date: profile.birth_date ?? null,
+        gender: profile.gender ?? null,
+        bio: null,
+        rating_avg: null,
+        rating_count: 0,
+        since_year: null,
+        barbershop_id: null,
+        barbershop_name: null,
+        barbershop_address: null,
+        barbershop_city: null,
+        barbershop_state: null,
+        barbershop_owner_id: null,
+      };
+    }
 
     return this.#montarPerfilPublico(profile, professional);
   }
