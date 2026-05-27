@@ -124,7 +124,9 @@ class BarbeiroPage {
       ? new BarberWorkplaceInfo(this.#refs.workplace, () => this.#iniciarMensagemBarbearia())
       : null;
     this.#portfolioGallery = typeof PortfolioGallery !== 'undefined'
-      ? new PortfolioGallery(this.#refs.portfolio)
+      ? new PortfolioGallery(this.#refs.portfolio, {
+          viewer: typeof PortfolioPrismViewer !== 'undefined' ? new PortfolioPrismViewer() : undefined,
+        })
       : null;
   }
 

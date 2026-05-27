@@ -3720,7 +3720,7 @@
 
 /* ============================================================
    PortfolioPrismViewer — prisma 3D hexagonal de 6 faces
-   (apenas app profissional — substitui PortfolioViewerModal)
+   Compartilhado via shared/css/components.css
 ============================================================ */
 .pp-prism-viewer {
   position: fixed;
