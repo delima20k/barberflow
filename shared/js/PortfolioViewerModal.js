@@ -75,7 +75,13 @@ class PortfolioViewerModal {
     this.#index = (this.#index + this.#trocaPendente + this.#items.length) % this.#items.length;
     this.#trocaPendente = 0;
     this.#animando = false;
+    // Suprime a transição no reset para evitar snap-back reverso (ex: -90°→0°)
+    if (this.#cube) this.#cube.style.transition = 'none';
     this.#resetarCubo();
+    // Restaura a transição após 2 frames (mantém o smooth snap-back do drag)
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (this.#cube) this.#cube.style.transition = '';
+    }));
     this.#renderAtual();
   }
 

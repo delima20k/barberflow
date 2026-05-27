@@ -5067,10 +5067,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 .portfolio-viewer__cube--next {
+  transition: none;
   animation: portfolio-spin-next .62s cubic-bezier(.22,.74,.22,1) both;
 }
 
 .portfolio-viewer__cube--prev {
+  transition: none;
   animation: portfolio-spin-prev .62s cubic-bezier(.22,.74,.22,1) both;
 }
 
