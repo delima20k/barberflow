@@ -5,7 +5,7 @@
 // Compartilhado entre app cliente e app profissional
 //
 // Responsabilidades:
-//   - Ocultar footer ao rolar ≥ 30% da viewport
+//   - Ocultar footer ao rolar ≥ 150% da viewport
 //   - Exibir dica animada (gota) quando footer oculto
 //   - Reavaliar estado ao trocar de tela (MutationObserver)
 //   - Reiniciar ciclo da dica ao voltar para o início
@@ -18,7 +18,7 @@
 class FooterScrollManager {
 
   // ── Constantes ────────────────────────────────────────────
-  static #THRESHOLD_PC   = 0.30;   // 30% da viewport para ocultar footer
+  static #THRESHOLD_PC   = 1.50;   // 150% da viewport para ocultar footer (5x mais arrasto)
   static #COOLDOWN_MS    = 3000;   // cooldown após abrir pelo botão
   static #DICA_INTERVALO = 3000;   // espera entre dicas (ms)
   static #DICA_DURACAO   = 2500;   // tempo de exibição de cada dica (ms)

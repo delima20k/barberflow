@@ -33,6 +33,7 @@ class ParceriasPage {
   #fotosCountEl      = null;
   #fotosUploadInputEl = null;
   #fotosUploadLabelEl = null;
+  #usuarioInfoEls     = null;
 
   // ── Estado ───────────────────────────────────────────────
   #carregouParceiras = false;
@@ -61,6 +62,12 @@ class ParceriasPage {
     this.#fotosCountEl        = document.getElementById('parcerias-fotos-count');
     this.#fotosUploadInputEl  = document.getElementById('parcerias-fotos-input');
     this.#fotosUploadLabelEl  = document.getElementById('parcerias-fotos-upload-label');
+    this.#usuarioInfoEls      = {
+      nome:     document.getElementById('parcerias-usuario-nome'),
+      email:    document.getElementById('parcerias-usuario-email'),
+      telefone: document.getElementById('parcerias-usuario-telefone'),
+      endereco: document.getElementById('parcerias-usuario-endereco'),
+    };
 
     // Selecionar arquivo → upload
     this.#fotosUploadInputEl?.addEventListener('change', e => {
@@ -68,6 +75,13 @@ class ParceriasPage {
       if (file) this.#uploadFoto(file);
       if (this.#fotosUploadInputEl) this.#fotosUploadInputEl.value = '';
     });
+
+    document.addEventListener('auth:login', e => this.#renderUsuarioInfo(
+      e.detail?.perfil ?? null,
+      e.detail?.user ?? null,
+    ));
+    document.addEventListener('auth:logout', () => this.#renderUsuarioInfo({}, {}));
+    this.#renderUsuarioInfo();
 
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
@@ -86,6 +100,7 @@ class ParceriasPage {
   // ═══════════════════════════════════════════════════════════
 
   async #aoEntrar() {
+    this.#renderUsuarioInfo();
     // Carrega em paralelo, cada seção independentemente
     if (!this.#carregouParceiras) this.#carregarParceiras();
     if (!this.#carregouConvites)  this.#carregarConvites();
@@ -95,6 +110,28 @@ class ParceriasPage {
   // ═══════════════════════════════════════════════════════════
   // SEÇÃO 1 — BARBEARIAS PARCEIRAS
   // ═══════════════════════════════════════════════════════════
+
+  #renderUsuarioInfo(perfilParam = null, userParam = null) {
+    if (!this.#usuarioInfoEls) return;
+
+    const perfil = perfilParam
+      ?? (typeof AppState !== 'undefined' ? AppState.get('perfil') : null)
+      ?? (typeof AuthService !== 'undefined' ? AuthService.getPerfil() : null);
+    const user = userParam
+      ?? (typeof AppState !== 'undefined' ? AppState.get('user') : null);
+
+    const valores = {
+      nome:     perfil?.full_name || user?.email?.split('@')?.[0] || '-',
+      email:    user?.email || '-',
+      telefone: perfil?.phone || '-',
+      endereco: perfil?.address || '-',
+    };
+
+    Object.entries(valores).forEach(([campo, valor]) => {
+      const el = this.#usuarioInfoEls[campo];
+      if (el) el.textContent = valor;
+    });
+  }
 
   async #carregarParceiras() {
     this.#carregouParceiras = true;
