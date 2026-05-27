@@ -33,6 +33,7 @@ class FooterScrollManager {
   static #timer      = null;
   static #dicaCount  = 0;
   static #timerDica  = null;
+  static #viewportH  = window.innerHeight; // cache — atualizado só no resize
 
   // ── Inicialização ─────────────────────────────────────────
 
@@ -46,14 +47,20 @@ class FooterScrollManager {
     this.#btn    = document.getElementById('btn-abrir-footer');
     this.#dicaEl = document.getElementById('footer-dica');
 
+    // Atualiza cache do viewport só em resize (evita leitura de layout-forcing por scroll)
+    window.addEventListener('resize', () => {
+      this.#viewportH = window.innerHeight;
+    }, { passive: true });
+
     // Escuta scroll em TODAS as telas — ignora inativas via #ehTelaAtiva
     document.querySelectorAll('.tela').forEach(tela => {
       tela.addEventListener('scroll', () => this.#avaliar(tela), { passive: true });
     });
 
-    // MutationObserver: quando o Router troca .ativa, reavalia o footer imediatamente
+    // MutationObserver: adia para o próximo frame (rAF) para evitar forced reflow
+    // quando o Router troca .ativa no mesmo frame síncrono do clique.
     document.querySelectorAll('.tela').forEach(tela => {
-      new MutationObserver(() => this.#aoMudarTela())
+      new MutationObserver(() => requestAnimationFrame(() => this.#aoMudarTela()))
         .observe(tela, { attributes: true, attributeFilter: ['class'] });
     });
 
@@ -96,7 +103,7 @@ class FooterScrollManager {
   static #avaliar(tela) {
     if (!this.#ehTelaAtiva(tela)) return;
     if (this.#cooldown) return;
-    const limiar = window.innerHeight * this.#THRESHOLD_PC;
+    const limiar = this.#viewportH * this.#THRESHOLD_PC;
     if (tela.scrollTop > limiar && !this.#oculto) {
       this.#ocultar();
     } else if (tela.scrollTop <= limiar && this.#oculto) {
