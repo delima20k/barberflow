@@ -46,6 +46,7 @@ export class MinhaBarbeariaRuntimeController {
   #barbershopId         = null;
   #isOwner              = false;  // true se o usuário é dono da barbearia
   #shopData             = null;   // dados da barbearia (pré-preenchimento GPS)
+  #perfilDono           = null;   // perfil real do owner_id da barbearia
   #servicos             = [];     // serviços da barbearia — reutilizados nas modais de corte
   #profissionalId       = null;   // UUID do profissional logado (para sentar na fila)
   #mensalistasAtivos    = new Set(); // client IDs que escolheram Plano Mensal nesta sessão
@@ -470,6 +471,7 @@ export class MinhaBarbeariaRuntimeController {
       this.#isOwner        = !this.#contextoParceiro && shop.owner_id === perfil.id;
       this.#shopData       = shop;
       this.#profissionalId = perfil.id;
+      this.#perfilDono     = await MinhaBarbeariaRuntimeController.#fetchPerfilDono(shop, perfil);
 
       if (typeof BarbeiroEsperaFluxo !== 'undefined') BarbeiroEsperaFluxo.restaurar();
 
@@ -495,7 +497,7 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderCabecalho(shop);
       this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
-      this.#renderEquipe(barbeiros, shop.owner_id, perfil, filaEntradas);
+      this.#renderEquipe(barbeiros, shop.owner_id, this.#perfilDono, filaEntradas);
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
@@ -543,6 +545,29 @@ export class MinhaBarbeariaRuntimeController {
 
     if (error && error.code !== 'PGRST116') throw error;
     return data ?? null;
+  }
+
+  static async #fetchPerfilDono(shop, perfilLogado) {
+    const ownerId = shop?.owner_id ?? null;
+    if (!ownerId) return null;
+    if (ownerId === perfilLogado?.id) return perfilLogado;
+
+    const perfilEmbutido = shop.owner ?? shop.owner_profile ?? null;
+    if (perfilEmbutido?.full_name || perfilEmbutido?.avatar_path) return perfilEmbutido;
+
+    try {
+      const { data, error } = await SupabaseService.client
+        .from('profiles')
+        .select('id, full_name, avatar_path, updated_at')
+        .eq('id', ownerId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) return null;
+      return data ?? null;
+    } catch (_) {
+      return null;
+    }
   }
 
   static async #fetchServicos(barbershopId) {
@@ -749,7 +774,10 @@ export class MinhaBarbeariaRuntimeController {
         MinhaBarbeariaRuntimeController.#fetchBarbeiros(this.#barbershopId),
         CadeiraService.sincronizarFilas(this.#barbershopId),
       ]);
-      this.#renderEquipe(barbeiros, this.#shopData?.owner_id ?? '', perfil, filaEntradas);
+      if (!this.#perfilDono) {
+        this.#perfilDono = await MinhaBarbeariaRuntimeController.#fetchPerfilDono(this.#shopData, perfil);
+      }
+      this.#renderEquipe(barbeiros, this.#shopData?.owner_id ?? '', this.#perfilDono, filaEntradas);
       // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
     } catch (err) {
       LoggerService.warn('[MinhaBarbeariaPage] #reRenderEquipe erro:', err);

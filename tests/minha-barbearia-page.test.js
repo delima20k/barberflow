@@ -549,6 +549,24 @@ describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
       'icone nao deve ser o unico alvo clicavel',
     );
   });
+
+  test('contexto parceiro deve renderizar dono pelo owner_id, nao pelo perfil logado', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /#perfilDono\s*=\s*await\s+MinhaBarbeariaRuntimeController\.#fetchPerfilDono\(shop,\s*perfil\);/,
+      'carregamento deve resolver o perfil real do dono da barbearia',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /this\.#renderEquipe\(barbeiros,\s*shop\.owner_id,\s*this\.#perfilDono,\s*filaEntradas\);/,
+      'render inicial da equipe deve receber o perfil do dono, nao o perfil logado',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /this\.#renderEquipe\(barbeiros,\s*this\.#shopData\?\.owner_id\s*\?\?\s*'',\s*this\.#perfilDono,\s*filaEntradas\);/,
+      're-render da equipe deve preservar o perfil do dono real',
+    );
+  });
 });
 
 describe('RLS - queue_entries por barbeiro responsavel', () => {
