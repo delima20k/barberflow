@@ -61,7 +61,7 @@ suite('BarbeariaService - stories de parceiro', () => {
         assert.strictEqual(profissionalId, USER_ID);
         return true;
       },
-      contarStoriesHoje: async () => 0,
+      contarStoriesAtivos: async () => 0,
       salvarStory: async (payload) => {
         payloadSalvo = payload;
         return { id: INVITE_ID, ...payload };
@@ -78,11 +78,11 @@ suite('BarbeariaService - stories de parceiro', () => {
     assert.strictEqual(payloadSalvo.owner_id, USER_ID);
   });
 
-  test('bloqueia segundo story do dia para barbeiro parceiro', async () => {
+  test('bloqueia segundo story ativo para barbeiro parceiro', async () => {
     const service = new BarbeariaService({
       getAtivaPorOwner: async () => null,
       profissionalTemVinculoAtivo: async () => true,
-      contarStoriesHoje: async () => 1,
+      contarStoriesAtivos: async () => 1,
       salvarStory: async () => ({ id: INVITE_ID }),
     });
 

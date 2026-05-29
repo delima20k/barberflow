@@ -588,15 +588,16 @@ export class MinhaBarbeariaRuntimeController {
 
   static async #fetchQuotaHoje(ownerId, barbershopId) {
     try {
-      const hoje = new Date();
-      const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+      // Conta vídeos ainda ativos (janela de 24h): o botão reaparece quando
+      // o vídeo expira/é excluído, não à meia-noite.
+      const agora = new Date().toISOString();
 
       const { count, error } = await SupabaseService.client
         .from('stories')
         .select('id', { count: 'exact', head: true })
         .eq('owner_id', ownerId)
         .eq('barbershop_id', barbershopId)
-        .gte('created_at', inicio);
+        .gt('expires_at', agora);
 
       if (error) return 0;
       return count ?? 0;
@@ -1778,15 +1779,14 @@ export class MinhaBarbeariaRuntimeController {
 
     if (this.#refs.quotaTxt) {
       this.#refs.quotaTxt.textContent = restante > 0
-        ? `${restante} vídeo${restante > 1 ? 's' : ''} restante${restante > 1 ? 's' : ''} hoje`
-        : 'Limite diário atingido';
+        ? `${restante} vídeo${restante > 1 ? 's' : ''} restante${restante > 1 ? 's' : ''}`
+        : 'Limite atingido — aguarde 24h';
     }
     if (this.#refs.coverInput) {
       this.#refs.coverInput.disabled = restante === 0;
     }
     if (this.#refs.addBtn) {
-      this.#refs.addBtn.style.opacity       = restante === 0 ? '0.35' : '';
-      this.#refs.addBtn.style.pointerEvents = restante === 0 ? 'none'  : '';
+      this.#refs.addBtn.hidden = restante === 0; // some ao atingir o limite; reaparece quando o vídeo expira
     }
 
     const slots = [this.#refs.slot2, this.#refs.slot3];

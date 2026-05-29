@@ -625,28 +625,28 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
-   * Conta stories publicados hoje pelo profissional na barbearia.
+   * Conta stories ainda ativos (não expirados) do profissional na barbearia.
+   * Janela de 24h por vídeo: a cota só libera quando o vídeo expira/é excluído.
    * @param {string} ownerId
    * @param {string} barbershopId
    * @returns {Promise<number>}
    */
-  async contarStoriesHoje(ownerId, barbershopId) {
+  async contarStoriesAtivos(ownerId, barbershopId) {
     this._uuid('ownerId', ownerId);
     this._uuid('barbershopId', barbershopId);
 
-    const hoje = new Date();
-    const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).toISOString();
+    const agora = new Date().toISOString();
 
     const { count, error } = await this._db
       .from('stories')
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', ownerId)
       .eq('barbershop_id', barbershopId)
-      .gte('created_at', inicio);
+      .gt('expires_at', agora);
 
     if (error) {
-      this._warn('contarStoriesHoje', error);
-      this._throwDbError(error, 'contarStoriesHoje');
+      this._warn('contarStoriesAtivos', error);
+      this._throwDbError(error, 'contarStoriesAtivos');
     }
 
     return count ?? 0;

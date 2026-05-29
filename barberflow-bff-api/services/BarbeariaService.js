@@ -237,9 +237,9 @@ class BarbeariaService extends BaseService {
     const temVinculo = isOwner || await this.#repo.profissionalTemVinculoAtivo(barbershopId, userId);
     if (!temVinculo) throw AppError.forbidden('Profissional sem vinculo ativo com esta barbearia.');
 
-    const quotaHoje = await this.#repo.contarStoriesHoje(userId, barbershopId);
+    const quotaAtiva = await this.#repo.contarStoriesAtivos(userId, barbershopId);
     const limite = isOwner ? 3 : 1;
-    if (quotaHoje >= limite) throw AppError.conflict('Limite diario de stories atingido.');
+    if (quotaAtiva >= limite) throw AppError.conflict('Limite de stories ativos atingido. Aguarde o vídeo expirar (24h).');
 
     const expiresAt = dados.expires_at
       ? new Date(dados.expires_at)

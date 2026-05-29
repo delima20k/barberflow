@@ -1538,6 +1538,21 @@
    MINHA BARBEARIA — Card de Informações (endereço + contato)
 ================================================================ */
 /* ================================================================
+   MODO PARCEIRO — barbeiro vinculado (não dono) só mexe nas próprias
+   cadeiras e posta vídeo. Controles de dono ficam inativos/acinzentados.
+================================================================ */
+.mb-modo-parceiro #mb-gps-btn,
+.mb-modo-parceiro #mb-mais-btn,
+.mb-modo-parceiro #mb-equipe-convidar-btn,
+.mb-modo-parceiro #mb-status-toggle,
+.mb-modo-parceiro #mb-gi-botoes {
+  opacity: .4;
+  filter: grayscale(1);
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* ================================================================
    EQUIPE DA BARBEARIA — section abaixo do gi-header
 ================================================================ */
 .mb-equipe-section {
