@@ -1925,22 +1925,20 @@
 
 /* ── Interatividade do dono ──────────────────────────────── */
 .mb-cadeira--interativa {
-  /* pointer-events continua none na cadeira — só o ícone é clicável */
+  pointer-events: auto;
+  cursor: pointer;
   transition: transform .15s ease, opacity .15s ease;
 }
 
-/* Somente o ícone da cadeira responde ao clique */
 .mb-cadeira--interativa .mb-cadeira-icon {
-  pointer-events: auto;
-  cursor: pointer;
   transition: transform .15s ease, opacity .15s ease, filter .15s ease;
 }
-.mb-cadeira--interativa .mb-cadeira-icon:hover {
+.mb-cadeira--interativa:hover .mb-cadeira-icon {
   opacity: .88;
   transform: scale(1.1);
   filter: drop-shadow(0 2px 8px rgba(212,175,55,.5));
 }
-.mb-cadeira--interativa .mb-cadeira-icon:active {
+.mb-cadeira--interativa:active .mb-cadeira-icon {
   transform: scale(.94);
   opacity: .75;
 }

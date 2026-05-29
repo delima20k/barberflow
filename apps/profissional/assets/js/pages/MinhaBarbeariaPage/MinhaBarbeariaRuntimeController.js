@@ -501,12 +501,28 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderInfoCard(shop);
       this.#iniciarRealtimeFila(shop.id);
       this.#processarPushPendente();
+      this.#aplicarModoParceiro();
       if (this.#refs.convitesStatusSection) this.#refs.convitesStatusSection.hidden = true;
 
     } catch (err) {
       console.error('[MinhaBarbeariaPage] erro:', err);
       this.#mostrarErro();
     }
+  }
+
+  /**
+   * Modo parceiro: barbeiro vinculado (não dono) só pode mexer nas próprias
+   * cadeiras e postar vídeo. Acinzenta/desabilita os controles de dono.
+   */
+  #aplicarModoParceiro() {
+    const parceiro = this.#contextoParceiro === true;
+    this.#telaEl?.classList.toggle('mb-modo-parceiro', parceiro);
+    [this.#refs.gpsBtn, this.#refs.maisBtn, this.#refs.convidarBtn, this.#refs.statusToggle]
+      .forEach(el => {
+        if (!el) return;
+        el.disabled = parceiro;
+        el.setAttribute('aria-disabled', String(parceiro));
+      });
   }
 
   // ── Fetchers ────────────────────────────────────────────────
@@ -608,7 +624,6 @@ export class MinhaBarbeariaRuntimeController {
     // Fila filtrada por profissional
     const filaDonoId     = donoProf?.id ?? ownerId;
     const filaDonoEntradas = filaEntradas.filter(e => e.professional?.id === filaDonoId);
-    const profissionalLogadoId = perfilDono?.id ?? this.#profissionalId;
 
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
     donoWrap.innerHTML = '';
@@ -618,7 +633,7 @@ export class MinhaBarbeariaRuntimeController {
         variant: 'dono', badge: 'Dono',
         onClick:         () => { if (typeof App !== 'undefined') App.nav('perfil'); },
         filaEntradas:    filaDonoEntradas,
-        isOwner:         false,
+        isOwner:         this.#podeGerenciarCadeira(filaDonoId),
         professionalId:  filaDonoId,
         onCadeiraClick:  (tipo, ocupada, entrada) =>
           this.#onCadeiraClick(tipo, ocupada, entrada, filaDonoId),
@@ -628,7 +643,7 @@ export class MinhaBarbeariaRuntimeController {
     col.innerHTML = '';
     for (const b of equipe) {
       const filaB = filaEntradas.filter(e => e.professional?.id === b.id);
-      const podeGerenciarCadeiras = this.#contextoParceiro && b.id === profissionalLogadoId;
+      const podeGerenciarCadeiras = this.#podeGerenciarCadeira(b.id);
       col.appendChild(
         MinhaBarbeariaRuntimeController.#criarBarbeiroRow({
           nome:           b.profile?.full_name   ?? 'Barbeiro',
@@ -943,7 +958,7 @@ export class MinhaBarbeariaRuntimeController {
    */
   async #onCadeiraClick(tipo, ocupada, entrada, professionalId) {
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
-    const podeGerenciar = this.#contextoParceiro && professionalId === this.#profissionalId;
+    const podeGerenciar = this.#podeGerenciarCadeira(professionalId);
     if (!podeGerenciar) return;
 
     // ── Cadeira de produção em espera → verificar status ────
@@ -967,6 +982,10 @@ export class MinhaBarbeariaRuntimeController {
     // ── Cadeira vazia (produção ou fila) → sentar ────────────
     await this.#fluxoSentar(tipo, professionalId);
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+  }
+
+  #podeGerenciarCadeira(professionalId) {
+    return !!professionalId && professionalId === this.#profissionalId;
   }
 
   /**
@@ -1487,21 +1506,20 @@ export class MinhaBarbeariaRuntimeController {
       iconWrap.classList.add('mb-cadeira-icon--confirmada');
     }
 
-    // Click restrito apenas ao ícone (não à cadeira inteira)
     if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
       cadeira.classList.add('mb-cadeira--interativa');
       const handler = () => ocupada ? onClickOcupada(entrada) : onClickVazia();
-      iconWrap.addEventListener('click', handler);
-      iconWrap.setAttribute('role', 'button');
-      iconWrap.setAttribute('tabindex', '0');
-      iconWrap.setAttribute('aria-label',
+      cadeira.addEventListener('click', handler);
+      cadeira.setAttribute('role', 'button');
+      cadeira.setAttribute('tabindex', '0');
+      cadeira.setAttribute('aria-label',
         tipo === 'producao'
           ? (emEspera    ? 'Verificar status do cliente'
             : ocupada    ? 'Finalizar atendimento'
             :              'Sentar cliente em produção')
           : (ocupada ? `Cliente #${posicao}` : 'Adicionar cliente na fila')
       );
-      iconWrap.addEventListener('keydown', e => {
+      cadeira.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
       });
     }
@@ -1666,6 +1684,7 @@ export class MinhaBarbeariaRuntimeController {
   }
 
   async #toggleStatusAberto() {
+    if (this.#contextoParceiro) return; // só o dono abre/fecha a barbearia
     if (!this.#barbershopId) return;
     const toggle   = this.#refs.statusToggle;
     if (!toggle) return;
@@ -1827,6 +1846,7 @@ export class MinhaBarbeariaRuntimeController {
   // ── Sub-painéis (Config + GPS) ───────────────────────────────
 
   #abrirSub(id) {
+    if (this.#contextoParceiro) return; // parceiro não acessa painéis de dono
     const map = { config: this.#panelEl, gps: this.#gpsPanelEl, convite: this.#convitePanelEl };
     const el  = map[id];
     if (!el) return;

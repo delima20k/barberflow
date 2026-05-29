@@ -134,6 +134,11 @@ function criarPagina({ comTelaEl = true } = {}) {
   const sandbox = vm.createContext({
     console,
     document:        documentMock,
+    sessionStorage:  {
+      getItem:    fn().mockReturnValue(null),
+      setItem:    fn(),
+      removeItem: fn(),
+    },
     MutationObserver: function(cb) {
       this.observe = fn();
       this.disconnect = fn();
@@ -475,6 +480,104 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       SRC_COMPONENTS_CSS,
       /#mb-config-panel \.mb-config-secao-label::after\s*\{[\s\S]*flex:\s*1;[\s\S]*height:\s*1px;/,
       'pseudo-elemento deve preencher o espaco ate a ponta direita',
+    );
+  });
+});
+
+describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
+
+  test('centraliza permissao de cadeira no professionalId logado', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /#podeGerenciarCadeira\(professionalId\)\s*\{[\s\S]*return\s+!!professionalId\s*&&\s*professionalId\s*===\s*this\.#profissionalId;/,
+      'deve permitir gerenciar apenas a row cujo professionalId e o usuario logado',
+    );
+  });
+
+  test('row do dono usa a mesma regra de permissao da cadeira', () => {
+    const idx = SRC_MB_PAGE.indexOf('variant: \'dono\'');
+    assert.ok(idx > 0, 'render da row do dono deve existir');
+    const bloco = SRC_MB_PAGE.slice(idx, idx + 500);
+    assert.match(
+      bloco,
+      /isOwner:\s*this\.#podeGerenciarCadeira\(filaDonoId\)/,
+      'row do dono deve ficar interativa somente para o dono/profissional logado',
+    );
+  });
+
+  test('rows de membros usam permissao por barbeiro responsavel', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /const podeGerenciarCadeiras\s*=\s*this\.#podeGerenciarCadeira\(b\.id\);/,
+      'row de membro deve ficar interativa somente para o barbeiro responsavel',
+    );
+  });
+
+  test('#onCadeiraClick nao depende de contextoParceiro para autorizar', () => {
+    const idx = SRC_MB_PAGE.indexOf('async #onCadeiraClick');
+    assert.ok(idx > 0, '#onCadeiraClick deve existir');
+    const bloco = SRC_MB_PAGE.slice(idx, idx + 260);
+    assert.match(
+      bloco,
+      /const podeGerenciar\s*=\s*this\.#podeGerenciarCadeira\(professionalId\);/,
+      '#onCadeiraClick deve usar helper central',
+    );
+    assert.ok(
+      !bloco.includes('#contextoParceiro'),
+      '#onCadeiraClick nao deve bloquear o dono por nao estar em contexto de parceria',
+    );
+  });
+
+  test('cadeira autorizada registra clique e teclado na cadeira inteira', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /cadeira\.addEventListener\('click', handler\);/,
+      'click deve ser registrado na cadeira inteira',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /cadeira\.setAttribute\('role', 'button'\);/,
+      'role=button deve ficar na cadeira inteira',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /cadeira\.addEventListener\('keydown', e => \{/,
+      'teclado deve ser registrado na cadeira inteira',
+    );
+    assert.ok(
+      !SRC_MB_PAGE.includes("iconWrap.addEventListener('click', handler);"),
+      'icone nao deve ser o unico alvo clicavel',
+    );
+  });
+});
+
+describe('RLS - queue_entries por barbeiro responsavel', () => {
+
+  const SRC_RLS_CADEIRAS = fs.readFileSync(
+    path.join(ROOT, 'supabase/migrations/20260529000001_queue_entries_professional_ownership.sql'),
+    'utf8',
+  );
+
+  test('migration remove permissao antiga do dono sobre filas de terceiros', () => {
+    assert.match(SRC_RLS_CADEIRAS, /drop policy if exists "queue_write_professional"/i);
+    assert.match(SRC_RLS_CADEIRAS, /drop policy if exists "queue_insert_own"/i);
+  });
+
+  test('insert permite cliente proprio ou barbeiro responsavel', () => {
+    assert.match(
+      SRC_RLS_CADEIRAS,
+      /create policy "queue_insert_self_or_responsible"[\s\S]*auth\.uid\(\)\s*=\s*client_id[\s\S]*auth\.uid\(\)\s*=\s*professional_id/i,
+    );
+  });
+
+  test('update e delete exigem professional_id igual ao usuario autenticado', () => {
+    assert.match(
+      SRC_RLS_CADEIRAS,
+      /create policy "queue_update_responsible_professional"[\s\S]*using\s*\(\s*auth\.uid\(\)\s*=\s*professional_id[\s\S]*with check\s*\(\s*auth\.uid\(\)\s*=\s*professional_id/i,
+    );
+    assert.match(
+      SRC_RLS_CADEIRAS,
+      /create policy "queue_delete_responsible_professional"[\s\S]*using\s*\(\s*auth\.uid\(\)\s*=\s*professional_id/i,
     );
   });
 });

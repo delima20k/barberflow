@@ -1,6 +1,6 @@
 -- BarberFlow Schema Snapshot
--- Gerado em: 2026-05-24
--- Migrations: 98
+-- Gerado em: 2026-05-29
+-- Migrations: 103
 -- NÃO editar manualmente. Regenerar com: node scripts/db-snapshot.js
 
 
@@ -62,15 +62,6 @@ create table if not exists public.professionals (
   bio          text,
   specialties  text[],
   avatar_path  text,
-  since_year   integer
-    constraint professionals_since_year_range_chk
-    check (
-      since_year is null
-      or (
-        since_year >= 1950
-        and since_year <= extract(year from current_date)::integer
-      )
-    ),
   is_active    boolean not null default true,
   rating_avg   numeric(3,2) not null default 0.00,
   rating_count int not null default 0,
@@ -80,9 +71,6 @@ create table if not exists public.professionals (
 
 comment on table public.professionals is
   'Perfil profissional. Vinculado a profiles. Especialidades em array para filtro rápido.';
-
-comment on column public.professionals.since_year is
-  'Ano desde quando o profissional corta cabelo. Exposto no perfil publico via BFF.';
 
 create index idx_professionals_active      on public.professionals(is_active);
 create index idx_professionals_specialties on public.professionals using gin(specialties);
@@ -4175,9 +4163,6 @@ create table if not exists public.media_variants (
   storage_path text not null,
   mime text not null,
   size_bytes integer not null check (size_bytes >= 0),
-  width integer check (width is null or width > 0),
-  height integer check (height is null or height > 0),
-  metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   unique (media_id, name, version)
 );
@@ -6397,3 +6382,177 @@ SET rating_count = (
 WHERE p.is_active = true;
 
 COMMIT;
+
+-- MIGRATION: 20260524000002_fix_aplicar_desconto_metodo_user_id.sql
+CREATE OR REPLACE FUNCTION public.aplicar_desconto_metodo(
+  p_barbershop_id uuid,
+  p_metodo        text,
+  p_de            timestamptz,
+  p_ate           timestamptz,
+  p_porcentagem   numeric,
+  p_user_id       uuid
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+
+  IF p_porcentagem <= 0 OR p_porcentagem >= 100 THEN
+    RAISE EXCEPTION 'porcentagem deve ser > 0 e < 100';
+  END IF;
+
+  IF p_metodo NOT IN ('credito', 'debito', 'credit', 'debit') THEN
+    RAISE EXCEPTION 'metodo inválido: %', p_metodo;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.barbershops
+    WHERE id = p_barbershop_id AND owner_id = p_user_id
+    UNION ALL
+    SELECT 1 FROM public.professional_shop_links
+    WHERE barbershop_id = p_barbershop_id
+      AND professional_id = p_user_id
+      AND is_active = true
+  ) THEN
+    RAISE EXCEPTION 'acesso negado';
+  END IF;
+
+  UPDATE public.transactions
+  SET amount = ROUND(COALESCE(gross_amount, amount) * (1 - p_porcentagem / 100.0), 2)
+  WHERE barbershop_id = p_barbershop_id
+    AND payment_method = p_metodo
+    AND type   = 'revenue'
+    AND status = 'paid'
+    AND paid_at BETWEEN p_de AND p_ate;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.aplicar_desconto_metodo(uuid, text, timestamptz, timestamptz, numeric)
+  FROM PUBLIC, authenticated, service_role;
+
+GRANT EXECUTE ON FUNCTION public.aplicar_desconto_metodo(uuid, text, timestamptz, timestamptz, numeric, uuid)
+  TO service_role;
+
+-- MIGRATION: 20260525000001_professionals_since_year.sql
+ALTER TABLE public.professionals
+  ADD COLUMN IF NOT EXISTS since_year integer;
+
+ALTER TABLE public.professionals
+  DROP CONSTRAINT IF EXISTS professionals_since_year_range_chk;
+
+ALTER TABLE public.professionals
+  ADD CONSTRAINT professionals_since_year_range_chk
+  CHECK (
+    since_year IS NULL
+    OR (
+      since_year >= 1950
+      AND since_year <= EXTRACT(YEAR FROM CURRENT_DATE)::integer
+    )
+  );
+
+COMMENT ON COLUMN public.professionals.since_year IS
+  'Ano desde quando o profissional corta cabelo. Exposto no perfil publico via BFF.';
+
+-- MIGRATION: 20260525000002_media_variant_optimization_metadata.sql
+alter table public.media_variants
+  add column if not exists width integer check (width is null or width > 0),
+  add column if not exists height integer check (height is null or height > 0),
+  add column if not exists metadata jsonb not null default '{}'::jsonb;
+
+comment on column public.media_variants.width is 'Optimized variant width in pixels.';
+comment on column public.media_variants.height is 'Optimized variant height in pixels.';
+comment on column public.media_variants.metadata is 'Non-sensitive optimization metadata such as preset, mimeType and encoded size.';
+
+-- MIGRATION: 20260525000004_barbershop_invites.sql
+CREATE TABLE IF NOT EXISTS public.barbershop_invites (
+  id             uuid         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  barbershop_id  uuid         NOT NULL REFERENCES public.barbershops(id) ON DELETE CASCADE,
+  barbeiro_id    uuid         NOT NULL REFERENCES public.profiles(id)    ON DELETE CASCADE,
+  commission_pct numeric(8,2) NOT NULL DEFAULT 0,
+  message        text,
+  status         text         NOT NULL DEFAULT 'pendente'
+                               CHECK (status IN ('pendente', 'aceito', 'recusado')),
+  created_at     timestamptz  NOT NULL DEFAULT now(),
+  updated_at     timestamptz  NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.barbershop_invites IS
+  'Convites enviados por donos de barbearias a barbeiros autônomos para trabalhar no espaço.';
+
+CREATE UNIQUE INDEX barbershop_invites_pendente_unique
+  ON public.barbershop_invites (barbershop_id, barbeiro_id)
+  WHERE status = 'pendente';
+
+CREATE INDEX idx_barbershop_invites_shop    ON public.barbershop_invites (barbershop_id, status);
+CREATE INDEX idx_barbershop_invites_barb    ON public.barbershop_invites (barbeiro_id,   status);
+
+ALTER TABLE public.barbershop_invites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "owner_select_convites"
+  ON public.barbershop_invites FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.barbershops
+      WHERE id = barbershop_invites.barbershop_id
+        AND owner_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "owner_insert_convites"
+  ON public.barbershop_invites FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.barbershops
+      WHERE id = barbershop_invites.barbershop_id
+        AND owner_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "barbeiro_select_convites"
+  ON public.barbershop_invites FOR SELECT
+  USING (barbeiro_id = auth.uid());
+
+CREATE POLICY "barbeiro_update_convites"
+  ON public.barbershop_invites FOR UPDATE
+  USING  (barbeiro_id = auth.uid())
+  WITH CHECK (
+    barbeiro_id = auth.uid()
+    AND status IN ('aceito', 'recusado')
+  );
+
+-- MIGRATION: 20260529000001_queue_entries_professional_ownership.sql
+DROP POLICY IF EXISTS "queue_write_professional" ON public.queue_entries;
+DROP POLICY IF EXISTS "queue_insert_own" ON public.queue_entries;
+DROP POLICY IF EXISTS "queue_insert_self_or_responsible" ON public.queue_entries;
+DROP POLICY IF EXISTS "queue_update_responsible_professional" ON public.queue_entries;
+DROP POLICY IF EXISTS "queue_delete_responsible_professional" ON public.queue_entries;
+
+CREATE POLICY "queue_insert_self_or_responsible"
+  ON public.queue_entries
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = client_id
+    OR (
+      professional_id IS NOT NULL
+      AND auth.uid() = professional_id
+    )
+  );
+
+CREATE POLICY "queue_update_responsible_professional"
+  ON public.queue_entries
+  FOR UPDATE
+  USING (
+    auth.uid() = professional_id
+  )
+  WITH CHECK (
+    auth.uid() = professional_id
+  );
+
+CREATE POLICY "queue_delete_responsible_professional"
+  ON public.queue_entries
+  FOR DELETE
+  USING (
+    auth.uid() = professional_id
+  );
