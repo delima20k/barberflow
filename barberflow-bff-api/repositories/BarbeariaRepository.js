@@ -515,7 +515,10 @@ class BarbeariaRepository extends BaseRepository {
         .in('id', barIds);
 
       const barPerfilMap = Object.fromEntries((barPerfis ?? []).map(p => [p.id, p]));
+      const seen = new Set();
       for (const inv of invites) {
+        if (seen.has(inv.barbeiro_id)) continue; // mantém só o mais recente (já ordenado por created_at DESC)
+        seen.add(inv.barbeiro_id);
         convites.push({ ...inv, profile: barPerfilMap[inv.barbeiro_id] ?? null });
       }
     }

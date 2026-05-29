@@ -1670,6 +1670,16 @@
 }
 .mb-dispensar-btn { color: #dc2626; border-color: rgba(239,68,68,.35); }
 .mb-dispensar-btn:hover { background: rgba(239,68,68,.08); }
+.mb-equipe-status-titulo {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-gold, #c8a951);
+  margin: 1rem 0 .4rem;
+  padding: 0 .25rem;
+}
+.mb-equipe-status-titulo:first-child { margin-top: 0; }
 
 /* ── Row por barbeiro: card (coluna) + cadeiras ─── */
 .mb-barbeiro-row {

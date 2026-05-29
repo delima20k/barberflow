@@ -811,33 +811,39 @@ export class MinhaBarbeariaRuntimeController {
 
     const aceitos  = data?.aceitos  ?? [];
     const convites = data?.convites ?? [];
-    const total    = aceitos.length + convites.length;
 
-    if (total === 0) {
+    if (!aceitos.length && !convites.length) {
       if (vazio) vazio.hidden = false;
       return;
     }
     if (vazio) vazio.hidden = true;
 
-    for (const b of aceitos) {
-      lista.appendChild(this.#criarCardEquipeStatus({
-        tipo:     'aceito',
-        nome:     b.profile?.full_name  ?? 'Barbeiro',
-        avatar:   b.profile?.avatar_path ?? null,
-        acordo:   b.agreement,
-        profId:   b.professional_id,
-      }));
+    if (aceitos.length) {
+      lista.insertAdjacentHTML('beforeend', '<p class="mb-equipe-status-titulo">Parceiros Ativos</p>');
+      for (const b of aceitos) {
+        lista.appendChild(this.#criarCardEquipeStatus({
+          tipo:   'aceito',
+          nome:   b.profile?.full_name   ?? 'Barbeiro',
+          avatar: b.profile?.avatar_path ?? null,
+          acordo: b.agreement,
+          profId: b.professional_id,
+        }));
+      }
     }
-    for (const c of convites) {
-      lista.appendChild(this.#criarCardEquipeStatus({
-        tipo:     c.status,
-        nome:     c.profile?.full_name  ?? 'Barbeiro',
-        avatar:   c.profile?.avatar_path ?? null,
-        profId:   c.barbeiro_id,
-        inviteId: c.id,
-        comissao: c.commission_pct,
-        message:  c.message,
-      }));
+
+    if (convites.length) {
+      lista.insertAdjacentHTML('beforeend', '<p class="mb-equipe-status-titulo">Em Análise de Proposta</p>');
+      for (const c of convites) {
+        lista.appendChild(this.#criarCardEquipeStatus({
+          tipo:     c.status,
+          nome:     c.profile?.full_name   ?? 'Barbeiro',
+          avatar:   c.profile?.avatar_path ?? null,
+          profId:   c.barbeiro_id,
+          inviteId: c.id,
+          comissao: c.commission_pct,
+          message:  c.message,
+        }));
+      }
     }
   }
 
@@ -849,7 +855,7 @@ export class MinhaBarbeariaRuntimeController {
       ? `<img src="${SupabaseService.getAvatarUrl(avatar)}" alt="${nome}" loading="lazy" onerror="this.outerHTML='👤'" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">`
       : '<span style="font-size:1.4rem;">👤</span>';
 
-    const statusLabel = { aceito: 'Aceito ✓', pendente: 'Pendente…', recusado: 'Recusado' }[tipo] ?? tipo;
+    const statusLabel = { aceito: 'Aceito ✓', pendente: 'Em espera', recusado: 'Recusado' }[tipo] ?? tipo;
 
     let condicao = '';
     if (tipo === 'aceito' && acordo) {
