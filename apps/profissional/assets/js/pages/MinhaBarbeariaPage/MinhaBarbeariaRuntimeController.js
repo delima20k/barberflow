@@ -1899,7 +1899,7 @@ export class MinhaBarbeariaRuntimeController {
         GpsPanelMap.carregar(lat, lng, nome);
       }
     }
-    if (id === 'convite') { this.#resetarConvite(); this.#buscarBarbeiro(); this.#carregarEquipeStatus(); }
+    if (id === 'convite') { this.#resetarConvite(); this.#carregarEquipeStatus(); }
   }
 
   #fecharSub() {
@@ -1945,6 +1945,11 @@ export class MinhaBarbeariaRuntimeController {
     const query = this.#refs.conviteInput?.value?.trim() ?? '';
     const el    = this.#refs.conviteResultado;
     if (!el) return;
+
+    if (!query) {
+      el.innerHTML = '';
+      return;
+    }
 
     el.innerHTML = '<p class="mb-convite-msg-info">Buscando…</p>';
     this.#conviteBarbelrosSelecionados.clear();
