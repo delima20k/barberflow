@@ -138,7 +138,9 @@ class BarbeariaPage {
       whatsBtn:      q('#bp-whats-btn'),
       favBtn:        q('#bp-fav-btn'),
       servicosLista: q('#bp-servicos-lista'),
-      portfolioGrid: q('#bp-portfolio-grid'),
+      portfolioGrid:            q('#bp-portfolio-grid'),
+      portfolioBarbeirosWrap:   q('#bp-portfolio-barbeiros-wrap'),
+      portfolioBarbeiros:       q('#bp-portfolio-barbeiros'),
       barbeirosScroll: q('#bp-barbeiros-scroll'),
       filaDig:         q('#bp-fila-dig'),
       skeleton:      q('#bp-skeleton'),
@@ -416,7 +418,8 @@ class BarbeariaPage {
     this.#renderAcoes(shop);
     this.#renderServicos(servicos);
     this.#renderPortfolio(portfolio);
-    this.#renderBarbeiros(shop); // fire-and-forget: preenche carousel async
+    this.#renderBarbeiros(shop);          // fire-and-forget: preenche carousel async
+    this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
     this.#iniciarPollingShop(shop.id);
@@ -1190,6 +1193,25 @@ class BarbeariaPage {
     }).join('');
   }
 
+  /**
+   * Carrega e exibe a section de portfólio dos barbeiros.
+   * Fire-and-forget — não bloqueia o render principal.
+   */
+  #renderPortfolioBarbeiros(shop) {
+    const el   = this.#refs.portfolioBarbeiros;
+    const wrap = this.#refs.portfolioBarbeirosWrap;
+    if (!el || !wrap) return;
+
+    const shopId = shop.id;
+    PortfolioBarbeirosSection.iniciar(shopId, shop.owner_id ?? null, el)
+      .then(temFotos => {
+        // Stale-check: usuário pode ter navegado para outra barbearia
+        if (this.#shopId !== shopId) return;
+        wrap.hidden = !temFotos;
+      })
+      .catch(() => { if (wrap) wrap.hidden = true; });
+  }
+
   // ══════════════════════════════════════════════════════════
   // CONTROLE DE VISIBILIDADE
   // Apenas gerenciam o DOM — nenhum estado de negócio aqui.
@@ -1220,6 +1242,8 @@ class BarbeariaPage {
     if (this.#refs.since)    { this.#refs.since.textContent    = ''; }
     if (this.#refs.servicosLista) { this.#refs.servicosLista.innerHTML = ''; }
     if (this.#refs.portfolioGrid) { this.#refs.portfolioGrid.innerHTML = ''; }
+    if (this.#refs.portfolioBarbeiros) { this.#refs.portfolioBarbeiros.innerHTML = ''; }
+    if (this.#refs.portfolioBarbeirosWrap) { this.#refs.portfolioBarbeirosWrap.hidden = true; }
     if (this.#refs.barbeirosScroll) { this.#refs.barbeirosScroll.innerHTML = ''; }
     if (this.#refs.filaDig)         { this.#refs.filaDig.textContent = ''; }
     if (this.#digFila)              { this.#digFila.parar?.(); this.#digFila = null; }
