@@ -36,6 +36,10 @@ class PortfolioPrismViewer {
   #cube            = null;
   #faces           = [];      // 6 figures
   #medias          = [];      // 6 .pp-prism-media (container interno de cada face)
+  #meta            = null;
+  #avatar          = null;
+  #name            = null;
+  #likes           = null;
   #title           = null;
   #actions         = null;
   #count           = null;
@@ -148,6 +152,7 @@ class PortfolioPrismViewer {
     const item = this.#items[this.#index] ?? {};
     if (this.#title) this.#title.textContent = item.title || 'Trabalho do portfólio';
     if (this.#count) this.#count.textContent = `${this.#index + 1}/${this.#items.length}`;
+    this.#renderMeta(item);
 
     if (this.#actions) {
       this.#actions.innerHTML = '';
@@ -169,6 +174,30 @@ class PortfolioPrismViewer {
     }
 
     this.#renderFaces();
+  }
+
+  #renderMeta(item) {
+    if (!this.#meta) return;
+
+    const nome = item?.professionalName || item?.barberName || item?.authorName || '';
+    const avatarUrl = item?.professionalAvatarUrl || item?.barberAvatarUrl || item?.authorAvatarUrl || '';
+    const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
+
+    this.#meta.hidden = !nome && !avatarUrl && !likesCount;
+    this.#meta.dataset.portfolioImageId = item?.id ?? '';
+    if (this.#name) this.#name.textContent = nome || 'Barbeiro';
+    if (this.#likes) this.#likes.textContent = `${likesCount} curtida${likesCount === 1 ? '' : 's'}`;
+    if (!this.#avatar) return;
+
+    if (avatarUrl) {
+      this.#avatar.hidden = false;
+      this.#avatar.src = avatarUrl;
+      this.#avatar.alt = nome ? `Avatar de ${nome}` : '';
+    } else {
+      this.#avatar.hidden = true;
+      this.#avatar.removeAttribute('src');
+      this.#avatar.alt = '';
+    }
   }
 
   #renderFaces() {
@@ -395,6 +424,13 @@ class PortfolioPrismViewer {
 
     overlay.innerHTML = `
       <button type="button" class="pp-prism-close" aria-label="Fechar">×</button>
+      <div class="pp-prism-meta" hidden>
+        <img class="pp-prism-avatar" alt="" loading="lazy">
+        <span class="pp-prism-meta-text">
+          <strong class="pp-prism-name"></strong>
+          <span class="pp-prism-likes" data-portfolio-meta-count></span>
+        </span>
+      </div>
       <div class="pp-prism-stage" aria-live="polite">
         <div class="pp-prism-cube">${facesHtml}</div>
       </div>
@@ -410,6 +446,10 @@ class PortfolioPrismViewer {
     this.#cube    = overlay.querySelector('.pp-prism-cube');
     this.#faces   = [...overlay.querySelectorAll('.pp-prism-face')];
     this.#medias  = this.#faces.map(f => f.querySelector('.pp-prism-media'));
+    this.#meta    = overlay.querySelector('.pp-prism-meta');
+    this.#avatar  = overlay.querySelector('.pp-prism-avatar');
+    this.#name    = overlay.querySelector('.pp-prism-name');
+    this.#likes   = overlay.querySelector('.pp-prism-likes');
     this.#title   = overlay.querySelector('.pp-prism-title');
     this.#actions = overlay.querySelector('.pp-prism-actions');
     this.#count   = overlay.querySelector('.pp-prism-count');

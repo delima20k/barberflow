@@ -4,6 +4,10 @@ class PortfolioViewerModal {
   #overlay = null;
   #cube = null;
   #faces = [];
+  #meta = null;
+  #avatar = null;
+  #name = null;
+  #likes = null;
   #title = null;
   #actions = null;
   #count = null;
@@ -90,6 +94,7 @@ class PortfolioViewerModal {
 
     if (this.#title) this.#title.textContent = item.title || 'Trabalho do barbeiro';
     if (this.#count) this.#count.textContent = `${this.#index + 1}/${this.#items.length}`;
+    this.#renderMeta(item);
 
     if (this.#actions) {
       this.#actions.innerHTML = '';
@@ -99,6 +104,30 @@ class PortfolioViewerModal {
     }
 
     this.#renderFaces();
+  }
+
+  #renderMeta(item) {
+    if (!this.#meta) return;
+
+    const nome = item?.professionalName || item?.barberName || item?.authorName || '';
+    const avatarUrl = item?.professionalAvatarUrl || item?.barberAvatarUrl || item?.authorAvatarUrl || '';
+    const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
+
+    this.#meta.hidden = !nome && !avatarUrl && !likesCount;
+    this.#meta.dataset.portfolioImageId = item?.id ?? '';
+    if (this.#name) this.#name.textContent = nome || 'Barbeiro';
+    if (this.#likes) this.#likes.textContent = `${likesCount} curtida${likesCount === 1 ? '' : 's'}`;
+    if (!this.#avatar) return;
+
+    if (avatarUrl) {
+      this.#avatar.hidden = false;
+      this.#avatar.src = avatarUrl;
+      this.#avatar.alt = nome ? `Avatar de ${nome}` : '';
+    } else {
+      this.#avatar.hidden = true;
+      this.#avatar.removeAttribute('src');
+      this.#avatar.alt = '';
+    }
   }
 
   #renderFaces() {
@@ -151,6 +180,13 @@ class PortfolioViewerModal {
     overlay.setAttribute('aria-modal', 'true');
     overlay.innerHTML = `
       <button type="button" class="portfolio-viewer__close" aria-label="Fechar">x</button>
+      <div class="portfolio-viewer__meta" hidden>
+        <img class="portfolio-viewer__avatar" alt="" loading="lazy">
+        <span class="portfolio-viewer__meta-text">
+          <strong class="portfolio-viewer__name"></strong>
+          <span class="portfolio-viewer__likes" data-portfolio-meta-count></span>
+        </span>
+      </div>
       <div class="portfolio-viewer__stage" aria-live="polite">
         <div class="portfolio-viewer__cube">
           <figure class="portfolio-viewer__face portfolio-viewer__face--front"><img class="portfolio-viewer__img" alt=""></figure>
@@ -207,6 +243,10 @@ class PortfolioViewerModal {
     this.#overlay = overlay;
     this.#cube = overlay.querySelector('.portfolio-viewer__cube');
     this.#faces = [...overlay.querySelectorAll('.portfolio-viewer__face')];
+    this.#meta = overlay.querySelector('.portfolio-viewer__meta');
+    this.#avatar = overlay.querySelector('.portfolio-viewer__avatar');
+    this.#name = overlay.querySelector('.portfolio-viewer__name');
+    this.#likes = overlay.querySelector('.portfolio-viewer__likes');
     this.#title = overlay.querySelector('.portfolio-viewer__title');
     this.#actions = overlay.querySelector('.portfolio-viewer__actions');
     this.#count = overlay.querySelector('.portfolio-viewer__count');

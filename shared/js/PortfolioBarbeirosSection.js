@@ -590,12 +590,18 @@ class PortfolioBarbeirosSection {
 
     const viewer = new PortfolioPrismViewer();
     const mapped = itens.map(item => {
+      const barber = barbersMap[item.owner_id] ?? {};
       const thumbUrl = ApiService.getPortfolioThumbUrl(item.thumbnail_path ?? item.storage_path ?? '');
       const fullUrl = ApiService.getPortfolioThumbUrl(item.storage_path ?? item.thumbnail_path ?? '');
+      const avatarUrl = barber.avatar_path && typeof ApiService !== 'undefined' && ApiService.getAvatarUrl
+        ? ApiService.getAvatarUrl(barber.avatar_path)
+        : '';
       return {
         id: item.id,
         title: item.title ?? 'Trabalho do portfólio',
         professionalId: item.owner_id,
+        professionalName: barber.full_name ?? 'Barbeiro',
+        professionalAvatarUrl: avatarUrl,
         thumbUrl,
         fullUrl,
         likesCount: item.likes_count ?? 0,

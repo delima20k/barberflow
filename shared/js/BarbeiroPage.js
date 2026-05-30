@@ -163,6 +163,12 @@ class BarbeiroPage {
     this.#renderRating(profile);
     this.#renderBio(profile);
     this.#workplaceInfo?.render(profile);
+    this.#portfolioGallery?.setProfessionalMeta?.({
+      fullName: profile.full_name ?? 'Barbeiro',
+      avatarUrl: profile.avatar_path
+        ? (SupabaseService.resolveAvatarUrl(profile.avatar_path, profile.updated_at) ?? '')
+        : '',
+    });
     this.#portfolioGallery?.load(profile.id);
     this.#renderFavBtn(profile);
     this.#renderLikeBtn(profile);

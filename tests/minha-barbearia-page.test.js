@@ -611,6 +611,13 @@ describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
     assert.match(SRC_PORTFOLIO_VIEW, /\.open\(item,\s*items\)/);
   });
 
+  test('viewer recebe avatar, nome e curtidas da Minha Barbearia', () => {
+    assert.match(SRC_PORTFOLIO_CONTROLLER, /professionalName/);
+    assert.match(SRC_PORTFOLIO_CONTROLLER, /professionalAvatarUrl/);
+    assert.match(SRC_PORTFOLIO_CONTROLLER, /likesCount/);
+    assert.match(SRC_PORTFOLIO_VIEW, /\.open\(item,\s*items\)/);
+  });
+
   test('view exibe avatar e nome do barbeiro sobre cada imagem', () => {
     assert.match(SRC_PORTFOLIO_VIEW, /mb-portfolio-card__barber/);
     assert.match(SRC_PORTFOLIO_VIEW, /mb-portfolio-card__avatar/);
@@ -622,6 +629,12 @@ describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
     assert.match(SRC_PORTFOLIO_BARBEIROS, /pbp-avatar/);
     assert.match(SRC_PORTFOLIO_BARBEIROS, /pbp-nome/);
     assert.match(SRC_COMPONENTS_CSS, /\.pbp-barber-row\s*\{[\s\S]*top:\s*8px/);
+  });
+
+  test('pagina publica envia avatar, nome e curtidas para o viewer 3D', () => {
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /professionalName:\s*barber\.full_name/);
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /professionalAvatarUrl:\s*avatarUrl/);
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /likesCount:\s*item\.likes_count/);
   });
 
   test('galeria da Minha Barbearia usa carrossel horizontal em row', () => {

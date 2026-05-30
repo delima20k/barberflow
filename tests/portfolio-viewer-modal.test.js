@@ -33,4 +33,17 @@ describe('PortfolioViewerModal', () => {
     assert.match(css, /top:\s*18px/);
     assert.match(css, /right:\s*72px/);
   });
+
+  test('mantem metadados da imagem no topo esquerdo em tela cheia', () => {
+    const js = fs.readFileSync(path.join(ROOT, 'shared/js/PortfolioViewerModal.js'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'shared/css/components.css'), 'utf8');
+
+    assert.match(js, /portfolio-viewer__meta/);
+    assert.match(js, /portfolio-viewer__avatar/);
+    assert.match(js, /portfolio-viewer__name/);
+    assert.match(js, /portfolio-viewer__likes/);
+    assert.match(js, /#renderMeta/);
+    assert.match(css, /\.portfolio-viewer__meta\s*\{[\s\S]*top:\s*18px/);
+    assert.match(css, /\.portfolio-viewer__meta\s*\{[\s\S]*left:\s*18px/);
+  });
 });

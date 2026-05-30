@@ -216,5 +216,11 @@ class PortfolioImageActions {
       const count = btn.querySelector('.portfolio-action__count');
       if (count && total !== null) count.textContent = String(Math.max(0, Number(total) || 0));
     });
+    if (total !== null) {
+      document.querySelectorAll(`[data-portfolio-image-id="${safeId}"] [data-portfolio-meta-count]`).forEach(el => {
+        const likesCount = Math.max(0, Number(total) || 0);
+        el.textContent = `${likesCount} curtida${likesCount === 1 ? '' : 's'}`;
+      });
+    }
   }
 }

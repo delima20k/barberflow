@@ -4,12 +4,18 @@ class PortfolioGallery {
   #root;
   #viewer;
   #professionalId = null;
+  #professionalMeta = {};
   #channel = null;
   #loading = false;
 
   constructor(root, options = {}) {
     this.#root = root;
     this.#viewer = options.viewer ?? new PortfolioViewerModal();
+    this.#professionalMeta = options.professionalMeta ?? {};
+  }
+
+  setProfessionalMeta(meta = {}) {
+    this.#professionalMeta = meta ?? {};
   }
 
   async load(professionalId) {
@@ -101,6 +107,8 @@ class PortfolioGallery {
     return items.map(item => ({
       ...item,
       professionalId: this.#professionalId,
+      professionalName: this.#professionalMeta.fullName ?? this.#professionalMeta.full_name ?? null,
+      professionalAvatarUrl: this.#professionalMeta.avatarUrl ?? this.#professionalMeta.avatar_url ?? '',
       thumbUrl: PortfolioGallery.#storageUrl(item.thumbnailPath || item.storagePath),
       fullUrl: PortfolioGallery.#storageUrl(item.storagePath || item.thumbnailPath),
     })).filter(item => item.thumbUrl || item.fullUrl);

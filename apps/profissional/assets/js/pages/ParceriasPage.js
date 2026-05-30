@@ -496,12 +496,19 @@ class ParceriasPage {
 
   static #portfolioItem(foto, index) {
     const url = ParceriasPage.#fotoUrl(foto);
+    const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    const avatarPath = perfil?.avatar_path ?? perfil?.avatarPath ?? '';
+    const avatarUrl = avatarPath && typeof ApiService !== 'undefined' && ApiService.getAvatarUrl
+      ? ApiService.getAvatarUrl(avatarPath)
+      : '';
     return {
       ...foto,
       parceriasIndex: index,
       title: foto?.title || `Foto ${index + 1}`,
       thumbUrl: url,
       fullUrl: url,
+      professionalName: perfil?.full_name ?? perfil?.fullName ?? 'Barbeiro',
+      professionalAvatarUrl: avatarUrl,
       likesCount: foto?.likesCount ?? 0,
     };
   }
