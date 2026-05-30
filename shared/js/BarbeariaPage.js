@@ -1111,9 +1111,13 @@ class BarbeariaPage {
 
   /** Botões WhatsApp, Favoritar e assegura delegation de like. */
   #renderAcoes(shop) {
+    const isProfissional = typeof Pro !== 'undefined';
+
     BarbershopService.assegurarDelegacao();
+
+    // WhatsApp: oculto sempre para profissional (não pode enviar mensagem)
     if (this.#refs.whatsBtn) {
-      if (shop.whatsapp) {
+      if (!isProfissional && shop.whatsapp) {
         const digits = shop.whatsapp.replace(/\D/g, '');
         this.#refs.whatsBtn.href   = `https://wa.me/${digits}`;
         this.#refs.whatsBtn.hidden = false;
@@ -1121,6 +1125,12 @@ class BarbeariaPage {
         this.#refs.whatsBtn.hidden = true;
       }
     }
+
+    // Like: oculto para profissional (não pode curtir)
+    if (this.#refs.likesWrap) {
+      this.#refs.likesWrap.hidden = isProfissional;
+    }
+
     if (this.#refs.favBtn) {
       this.#refs.favBtn.dataset.barbershopId = this.#shopId;
       // Na página de detalhe o toggle é completo (favoritar e desfavoritar)
