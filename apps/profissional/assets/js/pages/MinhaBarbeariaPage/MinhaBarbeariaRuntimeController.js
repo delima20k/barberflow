@@ -71,6 +71,8 @@ export class MinhaBarbeariaRuntimeController {
   #latestSectionState    = {};
   #lazySectionPromises   = new Map();
   #refs                 = {};
+  #storyViewer          = null;  // PortfolioPrismViewer para stories em tela cheia
+  #storiesData          = [];    // stories ativos — alimentado em #renderStoryCards
 
   constructor(dependencies = {}) {
     this.#mediaP2P = dependencies.mediaP2P ?? new MediaP2P();
@@ -292,6 +294,9 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.gpsBtnBuscar?.addEventListener('click', () => this.#buscarCep());
     this.#refs.gpsBtnGps?.addEventListener('click',    () => this.#ativarGps());
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
+    // Stories — abrir viewer 3D ao clicar no slot
+    this.#refs.slot2?.addEventListener('click', () => this.#abrirStoryViewer(0));
+    this.#refs.slot3?.addEventListener('click', () => this.#abrirStoryViewer(1));
     // Toggle de status aberta/fechada
     this.#refs.statusToggle?.addEventListener('click', () => this.#toggleStatusAberto());
     // Convites enviados — cancelar/dispensar (delegação)
@@ -1823,6 +1828,8 @@ export class MinhaBarbeariaRuntimeController {
       this.#refs.addBtn.hidden = restante === 0; // some ao atingir o limite; reaparece quando o vídeo expira
     }
 
+    this.#storiesData = stories;
+
     const slots = [this.#refs.slot2, this.#refs.slot3];
     slots.forEach((slot, i) => {
       if (!slot) return;
@@ -1850,6 +1857,21 @@ export class MinhaBarbeariaRuntimeController {
         </div>
       `;
     });
+  }
+
+  #abrirStoryViewer(slotIndex) {
+    const story = this.#storiesData[slotIndex];
+    if (!story || typeof PortfolioPrismViewer === 'undefined') return;
+    const items = this.#storiesData.map(s => ({
+      fullUrl:   SupabaseService.getLogoUrl(s.storage_path),
+      thumbUrl:  s.thumbnail_path
+        ? SupabaseService.getLogoUrl(s.thumbnail_path)
+        : SupabaseService.getLogoUrl(s.storage_path),
+      title:     this.#shopData?.name ?? '',
+      mediaType: s.media_type,
+    }));
+    this.#storyViewer ??= new PortfolioPrismViewer();
+    this.#storyViewer.open(items[slotIndex], items);
   }
 
   #renderServicos(lista) {
