@@ -937,9 +937,14 @@
     </div>
 
     <!-- Info da barbearia — ao final do scroll, acima do footer -->
-    <div id="bp-info-fixa" hidden>
-      <p id="bp-endereco" class="bp-endereco"></p>
-      <div class="bp-meta-row">
+    <div id="bp-info-fixa" class="mb-info-card bp-info-card" hidden>
+      <div class="mb-info-header bp-info-header">
+        <span class="mb-info-icon" aria-hidden="true">📍</span>
+        <p class="mb-info-nome" id="bp-info-nome"></p>
+      </div>
+      <p id="bp-endereco" class="mb-info-linha bp-endereco"></p>
+      <p id="bp-info-cidade" class="mb-info-linha bp-info-cidade" hidden></p>
+      <div class="bp-meta-row mb-info-linha">
         <span id="bp-badge"  class="bp-badge"></span>
         <span id="bp-rating" class="bp-rating"></span>
         <div id="bp-likes-wrap" class="bp-likes-wrap" data-barbershop-id="" data-likes="0" data-dislikes="0">
@@ -950,8 +955,9 @@
             <span class="dc-count">0</span>
           </button>
         </div>
-        <span id="bp-desde"  class="bp-desde"></span>
+        <span id="bp-desde"  class="mb-info-desde bp-desde"></span>
       </div>
+      <p id="bp-info-whats" class="mb-info-linha mb-info-whats bp-info-whats" hidden></p>
     </div>
   </main>
 

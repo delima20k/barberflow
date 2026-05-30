@@ -635,19 +635,48 @@
 }
 
 /* ── Info fixa da barbearia — ao final do scroll da tela ──────── */
-#bp-info-fixa {
-  padding: 14px 16px calc(var(--nav-h, 64px) + 18px);
+#bp-info-fixa.mb-info-card {
+  background: transparent;
+  border: none;
+  border-radius: var(--r-lg, 18px);
+  padding: 8px 16px calc(var(--nav-h, 64px) + 18px);
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   border-top: 1px solid rgba(107,74,50,.18);
-  margin-top: 8px;
 }
-#bp-info-fixa[hidden] { display: none; }
+#bp-info-fixa.mb-info-card[hidden] { display: none; }
+#bp-info-fixa .mb-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+#bp-info-fixa .mb-info-icon { font-size: .9rem; flex-shrink: 0; }
+#bp-info-fixa .mb-info-nome {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text, #2b1b12);
+  margin: 0;
+}
+#bp-info-fixa .mb-info-linha {
+  font-size: .75rem;
+  color: var(--text-muted, #6b5a4a);
+  margin: 0;
+  line-height: 1.4;
+}
+#bp-info-fixa .mb-info-linha[hidden] { display: none; }
+#bp-info-fixa .mb-info-desde {
+  color: var(--gold, #D4AF37);
+  font-weight: 600;
+}
+#bp-info-fixa .mb-info-whats {
+  color: var(--text, #2b1b12);
+  font-weight: 500;
+}
 .bp-endereco {
   margin: 0;
-  font-size: .78rem;
-  color: var(--text-muted, rgba(245,233,220,.65));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -670,6 +699,9 @@
 .bp-rating, .bp-likes, .bp-desde {
   font-size: .72rem;
   color: var(--text-muted, rgba(245,233,220,.6));
+}
+#bp-info-fixa .bp-desde.mb-info-desde {
+  color: var(--gold, #D4AF37);
 }
 .bp-likes-wrap {
   display: inline-flex;
@@ -4546,43 +4578,80 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 /* ── Cards de mensalidade ──────────────────────────────────────── */
-.bp-mensal-titulo {
-  margin: 14px 0 8px;
-  font-size: .72rem;
+/* ── Banner de mensalidade full-width (página pública) ─────────── */
+.bp-mensal-banner {
+  width: 100%;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin: 4px 0 14px;
+  background: linear-gradient(135deg, #2a1a0e 0%, #3d2210 55%, #1a1008 100%);
+  border: 1px solid rgba(212,175,55,.32);
+  box-shadow: 0 6px 22px rgba(0,0,0,.38), inset 0 1px 0 rgba(212,175,55,.14);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.bp-mensal-banner[hidden] { display: none; }
+.bp-mensal-banner__tag {
+  margin: 0;
+  font-size: .68rem;
   font-weight: 700;
-  letter-spacing: .06em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--gold, #D4AF37);
 }
-.bp-mensal-card {
-  max-width: 382px;
-  min-height: 77px;
-  border-radius: 12px;
-  padding: 14px 18px;
-  margin-bottom: 10px;
-  background: linear-gradient(135deg, #2a1a0e 0%, #3d2210 55%, #1a1008 100%);
-  border: 1px solid rgba(212,175,55,.3);
-  box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(212,175,55,.12);
+.bp-mensal-banner__valor {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+.bp-mensal-banner__periodo {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted, rgba(245,233,220,.7));
+  margin-left: 4px;
+}
+.bp-mensal-banner__msg {
+  margin: 0;
+  font-size: .82rem;
+  color: var(--text-muted, rgba(245,233,220,.78));
+}
+
+/* ── Config: serviços por tipo (UL/LI) + luzes meia/inteira ────── */
+.mb-serv-tipos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
-.bp-mensal-nome {
-  margin: 0;
-  font-size: .88rem;
+.mb-serv-tipo-li {
+  padding: 10px 12px;
+  border: 1px solid var(--gold-border, rgba(212,175,55,.18));
+  border-radius: 10px;
+  background: rgba(255,255,255,.03);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mb-serv-tipo-label {
+  font-size: .8rem;
   font-weight: 700;
   color: var(--gold, #D4AF37);
 }
-.bp-mensal-preco {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #fff;
+.mb-luzes-row {
+  display: flex;
+  gap: 12px;
 }
-.bp-mensal-desc {
-  margin: 0;
-  font-size: .74rem;
-  color: var(--text-muted, rgba(245,233,220,.65));
+.mb-luzes-row .mb-cfg-prod-field-group { flex: 1; min-width: 0; }
+.mb-mensal-msg {
+  width: 100%;
+  margin-top: 8px;
+  min-height: 56px;
+  resize: vertical;
 }
 
 /* ── Modais de confirmação de presença (ConfirmacaoCorteModal) ── */
@@ -6397,8 +6466,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 /* Botões flutuantes no topo */
-.pbp-like-btn,
-.pbp-msg-btn {
+.pbp-like-btn {
   position: absolute;
   top: 8px;
   display: inline-flex;
@@ -6417,14 +6485,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   transition: transform .15s, background .15s, border-color .15s;
 }
 .pbp-like-btn { right: 8px; }
-.pbp-msg-btn  { right: 64px; }
 
 .pbp-like-btn.curtido {
   background: rgba(212,160,23,.32);
   border-color: var(--gold, #D4A017);
 }
-.pbp-like-btn:active,
-.pbp-msg-btn:active  { transform: scale(.88); }
+.pbp-like-btn:active { transform: scale(.88); }
 
 /* Skeleton de carregamento */
 .pbp-card--skel {
@@ -7914,12 +7980,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px 7px 7px;
-  border: 1px solid rgba(255,255,255,.18);
+  padding: 0;
+  border: none;
   border-radius: 999px;
-  background: rgba(0,0,0,.58);
+  background: transparent;
   color: #fff;
-  box-shadow: 0 10px 24px rgba(0,0,0,.26);
+  box-shadow: none;
   pointer-events: none;
 }
 .pp-prism-meta[hidden] { display: none; }
@@ -7928,7 +7994,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(255,255,255,.45);
+  border: none;
   flex: 0 0 auto;
 }
 .pp-prism-meta-text {
@@ -8055,6 +8121,11 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 .pp-prism-public-actions {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 5;
+  transform: translateX(-50%);
   width: min(92vw, 460px);
   display: flex;
   align-items: center;

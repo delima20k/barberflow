@@ -131,15 +131,19 @@ class BarbeariaPage {
       logoImg:       q('#bp-logo'),
       nome:          q('#bp-nome'),
       // Os elementos abaixo vivem em #bp-info-fixa, fora de #tela-barbearia
+      infoNome:      dq('#bp-info-nome'),
       endereco:      dq('#bp-endereco'),
+      infoCidade:    dq('#bp-info-cidade'),
       badge:         dq('#bp-badge'),
       rating:        dq('#bp-rating'),
       likes:         dq('#bp-likes'),
       likesWrap:     dq('#bp-likes-wrap'),
       since:         dq('#bp-desde'),
+      infoWhats:     dq('#bp-info-whats'),
       whatsBtn:      q('#bp-whats-btn'),
       favBtn:        q('#bp-fav-btn'),
       servicosLista: q('#bp-servicos-lista'),
+      mensalBanner:  q('#bp-mensal-banner'),
       portfolioGrid:            q('#bp-portfolio-grid'),
       portfolioBarbeirosWrap:   q('#bp-portfolio-barbeiros-wrap'),
       portfolioBarbeiros:       q('#bp-portfolio-barbeiros'),
@@ -1066,8 +1070,21 @@ class BarbeariaPage {
     }
 
     if (this.#refs.endereco) {
-      const addr = [shop.address, shop.city, shop.state].filter(Boolean).join(', ');
-      this.#refs.endereco.textContent = addr;
+      this.#refs.endereco.textContent = shop.address || '';
+      this.#refs.endereco.hidden = !shop.address;
+    }
+    if (this.#refs.infoNome) {
+      this.#refs.infoNome.textContent = shop.name ?? '';
+    }
+    if (this.#refs.infoCidade) {
+      const partes = [shop.neighborhood, shop.city, shop.state].filter(Boolean);
+      this.#refs.infoCidade.textContent = partes.join(' · ');
+      this.#refs.infoCidade.hidden = partes.length === 0;
+    }
+    if (this.#refs.infoWhats) {
+      this.#refs.infoWhats.textContent = shop.whatsapp
+        ? `📲 Para mais informações: WhatsApp ${shop.whatsapp}` : '';
+      this.#refs.infoWhats.hidden = !shop.whatsapp;
     }
     this.#atualizarBadge(shop);
     if (this.#refs.rating) {
@@ -1087,8 +1104,12 @@ class BarbeariaPage {
       this.#refs.likes.setAttribute('aria-pressed', 'false');
     }
     if (this.#refs.since && shop.founded_year) {
-      // Valor bruto — sem "Desde". Decoração fica no HTML/CSS.
-      this.#refs.since.textContent = shop.founded_year;
+      // Card publico segue o texto do card Minha Barbearia.
+      this.#refs.since.textContent = `Desde ${shop.founded_year}`;
+      this.#refs.since.hidden = false;
+    } else if (this.#refs.since) {
+      this.#refs.since.textContent = '';
+      this.#refs.since.hidden = true;
     }
   }
 
@@ -1216,7 +1237,18 @@ class BarbeariaPage {
       .filter(img => img.thumbnail_path)
       .map(img => {
         const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path) ?? '';
-        return { fullUrl: url, thumbUrl: url, title: img.title ?? `Foto ${++vi}` };
+        return {
+          id: img.id,
+          title: img.title ?? `Foto ${++vi}`,
+          professionalId: img.professional_id ?? img.professionalId ?? img.owner_id ?? img.ownerId ?? '',
+          professionalName: img.professional_name ?? img.professionalName ?? img.barber_name ?? img.barberName ?? '',
+          professionalAvatarUrl: img.professional_avatar_url ?? img.professionalAvatarUrl ?? img.avatar_url ?? img.avatarUrl ?? '',
+          fullUrl: url,
+          thumbUrl: url,
+          likesCount: img.likes_count ?? img.likesCount ?? 0,
+          liked: Boolean(img.liked),
+          portfolioPublicActions: Boolean(img.id),
+        };
       });
     const target = items[index] ?? items[0];
     if (!target) return;

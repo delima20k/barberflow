@@ -495,9 +495,6 @@ class PortfolioBarbeirosSection {
         <button class="pbp-like-btn${curtido ? ' curtido' : ''}"
                 data-image-id="${s(item.id)}"
                 aria-label="Curtir">💎 <span class="pbp-like-count">${count}</span></button>
-        <button class="pbp-msg-btn"
-                data-barber-id="${s(item.owner_id)}"
-                aria-label="Mensagem">✉️</button>
         <div class="pbp-barber-row">
           <img class="pbp-avatar" src="${s(avatarUrl)}" alt="${s(barber.full_name ?? '')}"
                loading="lazy" onerror="this.style.display='none'">
@@ -518,13 +515,6 @@ class PortfolioBarbeirosSection {
         const imageId = likeBtn.dataset.imageId;
         const countEl = likeBtn.querySelector('.pbp-like-count');
         PortfolioBarbeirosSection.#toggleLike(imageId, likeBtn, countEl, curtidosSet, itens, containerEl);
-        return;
-      }
-      // Mensagem
-      const msgBtn = e.target.closest('.pbp-msg-btn');
-      if (msgBtn) {
-        e.stopPropagation();
-        PortfolioBarbeirosSection.#abrirMensagem(msgBtn.dataset.barberId);
         return;
       }
       // Foto → abre viewer

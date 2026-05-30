@@ -3789,12 +3789,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px 7px 7px;
-  border: 1px solid rgba(255,255,255,.18);
+  padding: 0;
+  border: none;
   border-radius: 999px;
-  background: rgba(0,0,0,.58);
+  background: transparent;
   color: #fff;
-  box-shadow: 0 10px 24px rgba(0,0,0,.26);
+  box-shadow: none;
   pointer-events: none;
 }
 .pp-prism-meta[hidden] { display: none; }
@@ -3803,7 +3803,7 @@
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(255,255,255,.45);
+  border: none;
   flex: 0 0 auto;
 }
 .pp-prism-meta-text {
@@ -3930,6 +3930,11 @@
 }
 
 .pp-prism-public-actions {
+  position: absolute;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 5;
+  transform: translateX(-50%);
   width: min(92vw, 460px);
   display: flex;
   align-items: center;
