@@ -121,10 +121,22 @@ export class PortfolioView {
       card.appendChild(img);
 
       if (item.professionalName) {
+        const meta = document.createElement('span');
+        meta.className = 'mb-portfolio-card__barber';
+        if (item.professionalAvatarUrl) {
+          const avatar = document.createElement('img');
+          avatar.className = 'mb-portfolio-card__avatar';
+          avatar.src = item.professionalAvatarUrl;
+          avatar.alt = '';
+          avatar.loading = 'lazy';
+          avatar.onerror = () => { avatar.hidden = true; };
+          meta.appendChild(avatar);
+        }
         const name = document.createElement('span');
         name.className = 'mb-portfolio-card__nome';
         name.textContent = item.professionalName;
-        card.appendChild(name);
+        meta.appendChild(name);
+        card.appendChild(meta);
       }
       this.#grid.appendChild(card);
     });

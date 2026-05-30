@@ -277,6 +277,23 @@ class BarbeariaRepository extends BaseRepository {
     return (data ?? []).map(row => row.professional_id).filter(Boolean);
   }
 
+  async getProfilesByIds(profileIds) {
+    const ids = Array.isArray(profileIds) ? [...new Set(profileIds.filter(Boolean))] : [];
+    ids.forEach(id => this._uuid('profileIds[]', id));
+    if (!ids.length) return [];
+
+    const { data, error } = await this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path')
+      .in('id', ids);
+
+    if (error) {
+      this._warn('getProfilesByIds', error);
+      this._throwDbError(error, 'getProfilesByIds');
+    }
+    return data ?? [];
+  }
+
   async listarPortfolioAgregado(barbershopId, professionalIds, { limit, offset }) {
     this._uuid('barbershopId', barbershopId);
     const ids = Array.isArray(professionalIds) ? [...new Set(professionalIds.filter(Boolean))] : [];

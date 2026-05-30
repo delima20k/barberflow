@@ -579,6 +579,12 @@ describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
   const SRC_PORTFOLIO_VIEW = fs.readFileSync(
     path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioView.js'), 'utf8',
   );
+  const SRC_PORTFOLIO_BARBEIROS = fs.readFileSync(
+    path.join(ROOT, 'shared/js/PortfolioBarbeirosSection.js'), 'utf8',
+  );
+  const SRC_COMPONENTS_CSS = fs.readFileSync(
+    path.join(ROOT, 'shared/css/components.css'), 'utf8',
+  );
 
   test('html expoe section Portfólio da Barbearia com upload de imagem', () => {
     assert.match(SRC_HTML_PRO, /data-minha-barbearia-portfolio-section/);
@@ -603,6 +609,27 @@ describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
   test('view abre imagem com PortfolioPrismViewer', () => {
     assert.match(SRC_PORTFOLIO_VIEW, /new PortfolioPrismViewer\(\)/);
     assert.match(SRC_PORTFOLIO_VIEW, /\.open\(item,\s*items\)/);
+  });
+
+  test('view exibe avatar e nome do barbeiro sobre cada imagem', () => {
+    assert.match(SRC_PORTFOLIO_VIEW, /mb-portfolio-card__barber/);
+    assert.match(SRC_PORTFOLIO_VIEW, /mb-portfolio-card__avatar/);
+    assert.match(SRC_PORTFOLIO_VIEW, /professionalAvatarUrl/);
+  });
+
+  test('pagina publica mantem avatar e nome do barbeiro no card do portfolio', () => {
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /pbp-barber-row/);
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /pbp-avatar/);
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /pbp-nome/);
+    assert.match(SRC_COMPONENTS_CSS, /\.pbp-barber-row\s*\{[\s\S]*top:\s*8px/);
+  });
+
+  test('galeria da Minha Barbearia usa carrossel horizontal em row', () => {
+    assert.match(SRC_COMPONENTS_CSS, /\.mb-portfolio-grid\s*\{[\s\S]*display:\s*flex/);
+    assert.match(SRC_COMPONENTS_CSS, /\.mb-portfolio-grid\s*\{[\s\S]*overflow-x:\s*auto/);
+    assert.match(SRC_COMPONENTS_CSS, /\.mb-portfolio-grid\s*\{[\s\S]*scroll-snap-type:\s*x mandatory/);
+    assert.match(SRC_COMPONENTS_CSS, /\.mb-portfolio-card\s*\{[\s\S]*flex:\s*0 0 clamp/);
+    assert.match(SRC_COMPONENTS_CSS, /\.mb-portfolio-card__barber\s*\{[\s\S]*top:\s*8px/);
   });
 
   test('runtime atualiza a section com shop, perfil e permissao de owner', () => {

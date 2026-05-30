@@ -101,12 +101,17 @@ export class PortfolioController {
     const fullUrl = storagePath && typeof ApiService !== 'undefined'
       ? ApiService.getPortfolioThumbUrl(storagePath)
       : thumbUrl;
+    const professionalAvatarPath = item.professionalAvatarPath ?? item.professional_avatar_path ?? null;
+    const professionalAvatarUrl = professionalAvatarPath && typeof ApiService !== 'undefined'
+      ? ApiService.getAvatarUrl(professionalAvatarPath)
+      : '';
     return {
       id: item.id ?? null,
       ownerId: item.ownerId ?? item.owner_id ?? item.professionalId ?? null,
       professionalId: item.professionalId ?? item.ownerId ?? item.owner_id ?? null,
       professionalName: item.professionalName ?? item.professional_name ?? null,
-      professionalAvatarPath: item.professionalAvatarPath ?? item.professional_avatar_path ?? null,
+      professionalAvatarPath,
+      professionalAvatarUrl,
       title: item.title ?? 'Trabalho do portfólio',
       storagePath,
       thumbnailPath,

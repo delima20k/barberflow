@@ -92,8 +92,9 @@ class BarbeariaService extends BaseService {
     if (!idsUnicos.length) return { items: [], total: 0, limit, offset };
 
     const result = await this.#repo.listarPortfolioAgregado(barbershopId, idsUnicos, { limit, offset });
+    const profileMap = await this.#profilesMap(idsUnicos);
     return {
-      items: (result?.items ?? []).map(row => BarbeariaService.#portfolioDto(row)),
+      items: (result?.items ?? []).map(row => BarbeariaService.#portfolioDto(row, profileMap, shop)),
       total: Number(result?.total ?? 0),
       limit,
       offset,
@@ -313,8 +314,16 @@ class BarbeariaService extends BaseService {
     return offset;
   }
 
-  static #portfolioDto(row) {
-    const owner = row.owner ?? row.profile ?? null;
+  async #profilesMap(ids) {
+    const profiles = await this.#repo.getProfilesByIds?.(ids);
+    return new Map((profiles ?? []).map(profile => [profile.id, profile]));
+  }
+
+  static #portfolioDto(row, profileMap = new Map(), shop = null) {
+    const professionalId = row.owner_type === 'barbershop'
+      ? shop?.owner_id ?? null
+      : row.owner_id ?? null;
+    const owner = row.owner ?? row.profile ?? profileMap.get(professionalId) ?? null;
     return {
       id: row.id,
       ownerId: row.owner_id ?? null,
@@ -328,7 +337,7 @@ class BarbeariaService extends BaseService {
       viewsCount: row.views_count ?? 0,
       isFeatured: Boolean(row.is_featured),
       updatedAt: row.updated_at ?? null,
-      professionalId: row.owner_id ?? null,
+      professionalId,
       professionalName: owner?.full_name ?? null,
       professionalAvatarPath: owner?.avatar_path ?? null,
     };

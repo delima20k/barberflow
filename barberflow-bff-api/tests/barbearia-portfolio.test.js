@@ -16,6 +16,10 @@ suite('BarbeariaService - portfolio agregado', () => {
     const service = new BarbeariaService({
       getAtivaPorId: async () => ({ id: SHOP_ID, owner_id: OWNER_ID }),
       getProfessionalIdsAtivos: async () => [PARTNER_ID, OTHER_ID],
+      getProfilesByIds: async () => [
+        { id: OWNER_ID, full_name: 'Aln1', avatar_path: 'owner-avatar.webp' },
+        { id: PARTNER_ID, full_name: 'Lima', avatar_path: 'lima-avatar.webp' },
+      ],
       listarPortfolioAgregado: async (_shopId, professionalIds) => {
         idsRecebidos = professionalIds;
         return {
@@ -32,6 +36,8 @@ suite('BarbeariaService - portfolio agregado', () => {
 
     assert.deepEqual(idsRecebidos, [OWNER_ID, PARTNER_ID, OTHER_ID]);
     assert.deepEqual(dto.items.map(item => item.ownerId), [OWNER_ID, PARTNER_ID]);
+    assert.deepEqual(dto.items.map(item => item.professionalName), ['Aln1', 'Lima']);
+    assert.deepEqual(dto.items.map(item => item.professionalAvatarPath), ['owner-avatar.webp', 'lima-avatar.webp']);
     assert.equal(dto.total, 2);
   });
 
