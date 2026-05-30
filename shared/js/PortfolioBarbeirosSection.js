@@ -405,21 +405,17 @@ class PortfolioBarbeirosSection {
       const barberIds = barbers.map(b => b.id);
 
       // 2. Portfólios de todos em uma única query
-      const { data: portfolio, error } = await ApiService.from('portfolio_images')
-        .select('id, owner_id, thumbnail_path, title, likes_count')
-        .in('owner_id', barberIds)
-        .eq('owner_type', 'professional')
-        .eq('status', 'active')
-        .order('likes_count', { ascending: false })
-        .limit(50);
-
-      if (error || !portfolio?.length) { containerEl.innerHTML = ''; return false; }
+      const portfolio = await PortfolioBarbeirosSection.#fetchPortfolio(shopId, barberIds);
+      if (!portfolio?.length) { containerEl.innerHTML = ''; return false; }
 
       // 3. Intercalar: dono primeiro (≤ 5 fotos) → demais aleatório
       const donorId    = barbers[0]?.id;
       const portByBar  = {};
       barbers.forEach(b => { portByBar[b.id] = []; });
-      portfolio.forEach(p => { if (portByBar[p.owner_id]) portByBar[p.owner_id].push(p); });
+      portfolio.forEach(p => {
+        if (p.owner_type === 'barbershop' && donorId) p.owner_id = donorId;
+        if (portByBar[p.owner_id]) portByBar[p.owner_id].push(p);
+      });
 
       const donoFotos  = (portByBar[donorId] ?? []).slice(0, 5);
       const outrasFotos = [];
@@ -442,11 +438,12 @@ class PortfolioBarbeirosSection {
       if (perfil?.id) {
         try {
           const imageIds = itens.map(i => i.id);
-          const { data: likes } = await ApiService.from('portfolio_likes')
-            .select('portfolio_image_id')
+          const { data: likes } = await ApiService.from('likes')
+            .select('content_id')
             .eq('user_id', perfil.id)
-            .in('portfolio_image_id', imageIds);
-          (likes ?? []).forEach(l => curtidosSet.add(l.portfolio_image_id));
+            .eq('content_type', 'portfolio_image')
+            .in('content_id', imageIds);
+          (likes ?? []).forEach(l => curtidosSet.add(l.content_id));
         } catch { /* best-effort */ }
       }
 
@@ -539,22 +536,73 @@ class PortfolioBarbeirosSection {
       if (card) {
         const idx = parseInt(card.dataset.idx, 10);
         if (!isNaN(idx)) {
-          PortfolioBarbeirosViewer.abrir(
-            idx,
-            itens,
-            barbersMap,
-            curtidosSet,
-            (imageId, btn, countEl) =>
-              PortfolioBarbeirosSection.#toggleLike(imageId, btn, countEl, curtidosSet, itens, containerEl),
-            (barberId) =>
-              PortfolioBarbeirosSection.#abrirMensagem(barberId),
-          );
+          PortfolioBarbeirosSection.#abrirViewer(idx, itens, barbersMap, curtidosSet, containerEl);
         }
       }
     });
   }
 
   // ── Like ──────────────────────────────────────────────────
+
+  static async #fetchPortfolio(shopId, barberIds) {
+    if (typeof BffApiService !== 'undefined' && BffApiService.barbearias?.portfolio) {
+      const { data, error } = await BffApiService.barbearias.portfolio(shopId, { limit: 30, offset: 0 });
+      if (!error) {
+        const items = data?.items ?? data ?? [];
+        return items.map(item => ({
+          id: item.id,
+          owner_id: item.ownerId ?? item.professionalId ?? item.owner_id,
+          owner_type: item.ownerType ?? item.owner_type ?? 'professional',
+          thumbnail_path: item.thumbnailPath ?? item.thumbnail_path ?? item.storagePath ?? item.storage_path,
+          storage_path: item.storagePath ?? item.storage_path ?? item.thumbnailPath ?? item.thumbnail_path,
+          title: item.title ?? '',
+          likes_count: item.likesCount ?? item.likes_count ?? 0,
+        })).filter(item => item.id && item.thumbnail_path);
+      }
+    }
+
+    const { data: portfolio, error } = await ApiService.from('portfolio_images')
+      .select('id, owner_id, thumbnail_path, storage_path, title, likes_count')
+      .in('owner_id', barberIds)
+      .eq('owner_type', 'professional')
+      .eq('status', 'active')
+      .order('likes_count', { ascending: false })
+      .limit(50);
+
+    if (error) return [];
+    return portfolio ?? [];
+  }
+
+  static #abrirViewer(idx, itens, barbersMap, curtidosSet, containerEl) {
+    if (typeof PortfolioPrismViewer === 'undefined') {
+      PortfolioBarbeirosViewer.abrir(
+        idx,
+        itens,
+        barbersMap,
+        curtidosSet,
+        (imageId, btn, countEl) =>
+          PortfolioBarbeirosSection.#toggleLike(imageId, btn, countEl, curtidosSet, itens, containerEl),
+        (barberId) =>
+          PortfolioBarbeirosSection.#abrirMensagem(barberId),
+      );
+      return;
+    }
+
+    const viewer = new PortfolioPrismViewer();
+    const mapped = itens.map(item => {
+      const thumbUrl = ApiService.getPortfolioThumbUrl(item.thumbnail_path ?? item.storage_path ?? '');
+      const fullUrl = ApiService.getPortfolioThumbUrl(item.storage_path ?? item.thumbnail_path ?? '');
+      return {
+        id: item.id,
+        title: item.title ?? 'Trabalho do portfólio',
+        professionalId: item.owner_id,
+        thumbUrl,
+        fullUrl,
+        likesCount: item.likes_count ?? 0,
+      };
+    });
+    viewer.open(mapped[idx], mapped);
+  }
 
   static async #toggleLike(imageId, btn, countEl, curtidosSet, itens, containerEl) {
     if (!imageId || !InputValidator.uuid(imageId).ok) return;
@@ -590,13 +638,14 @@ class PortfolioBarbeirosSection {
 
     try {
       if (curtido) {
-        await ApiService.from('portfolio_likes')
+        await ApiService.from('likes')
           .delete()
-          .eq('portfolio_image_id', imageId)
-          .eq('user_id', perfil.id);
+          .eq('content_id', imageId)
+          .eq('user_id', perfil.id)
+          .eq('content_type', 'portfolio_image');
       } else {
-        await ApiService.from('portfolio_likes')
-          .insert({ portfolio_image_id: imageId, user_id: perfil.id });
+        await ApiService.from('likes')
+          .insert({ content_id: imageId, user_id: perfil.id, content_type: 'portfolio_image' });
       }
     } catch {
       // Rollback em caso de erro de rede

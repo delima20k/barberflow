@@ -246,6 +246,62 @@ class BarbeariaRepository extends BaseRepository {
     return data ?? null;
   }
 
+  async getAtivaPorId(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select(BarbeariaRepository.#SELECT_OWNER)
+      .eq('id', barbershopId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('getAtivaPorId', error);
+      this._throwDbError(error, 'getAtivaPorId');
+    }
+    return data ?? null;
+  }
+
+  async getProfessionalIdsAtivos(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    const { data, error } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+
+    if (error) {
+      this._warn('getProfessionalIdsAtivos', error);
+      this._throwDbError(error, 'getProfessionalIdsAtivos');
+    }
+    return (data ?? []).map(row => row.professional_id).filter(Boolean);
+  }
+
+  async listarPortfolioAgregado(barbershopId, professionalIds, { limit, offset }) {
+    this._uuid('barbershopId', barbershopId);
+    const ids = Array.isArray(professionalIds) ? [...new Set(professionalIds.filter(Boolean))] : [];
+    ids.forEach(id => this._uuid('professionalIds[]', id));
+    if (!ids.length) return { items: [], total: 0 };
+
+    const from = offset;
+    const to = offset + limit - 1;
+    const professionalFilter = `and(owner_type.eq.professional,owner_id.in.(${ids.join(',')}))`;
+    const legacyFilter = `and(owner_type.eq.barbershop,owner_id.eq.${barbershopId})`;
+
+    const { data, error, count } = await this._db
+      .from('portfolio_images')
+      .select('id, owner_id, owner_type, title, description, category, storage_path, thumbnail_path, likes_count, views_count, is_featured, updated_at', { count: 'exact' })
+      .or(`${professionalFilter},${legacyFilter}`)
+      .eq('status', 'active')
+      .order('is_featured', { ascending: false })
+      .order('likes_count', { ascending: false })
+      .order('updated_at', { ascending: false })
+      .range(from, to);
+
+    if (error) this._throwDbError(error, 'listarPortfolioAgregado');
+    return { items: data ?? [], total: count ?? 0 };
+  }
+
   /**
    * Busca barbearia ativa para gestao por profissional vinculado.
    * @param {string} barbershopId

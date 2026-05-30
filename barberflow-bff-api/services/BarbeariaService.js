@@ -75,6 +75,31 @@ class BarbeariaService extends BaseService {
     }
   }
 
+  async listarPortfolio(barbershopId, filtros = {}) {
+    this._uuid('barbershopId', barbershopId);
+    const limit = BarbeariaService.#normalizarPortfolioLimit(filtros.limit);
+    const offset = BarbeariaService.#normalizarPortfolioOffset(filtros.offset);
+
+    const shop = await this.#repo.getAtivaPorId(barbershopId);
+    if (!shop?.id) throw AppError.notFound('Barbearia nao encontrada.');
+
+    const professionalIds = [
+      shop.owner_id,
+      ...await this.#repo.getProfessionalIdsAtivos(barbershopId),
+    ].filter(Boolean);
+    const idsUnicos = [...new Set(professionalIds)];
+
+    if (!idsUnicos.length) return { items: [], total: 0, limit, offset };
+
+    const result = await this.#repo.listarPortfolioAgregado(barbershopId, idsUnicos, { limit, offset });
+    return {
+      items: (result?.items ?? []).map(row => BarbeariaService.#portfolioDto(row)),
+      total: Number(result?.total ?? 0),
+      limit,
+      offset,
+    };
+  }
+
   /**
    * Salva endereco completo e coordenadas da barbearia do usuario autenticado.
    * @param {string} userId
@@ -270,6 +295,43 @@ class BarbeariaService extends BaseService {
     if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw AppError.badRequest('limit deve ser um inteiro entre 1 e 100.');
     }
+  }
+
+  static #normalizarPortfolioLimit(valor) {
+    const limit = Number(valor ?? 30);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 48) {
+      throw AppError.badRequest('limit deve ser um inteiro entre 1 e 48.');
+    }
+    return limit;
+  }
+
+  static #normalizarPortfolioOffset(valor) {
+    const offset = Number(valor ?? 0);
+    if (!Number.isInteger(offset) || offset < 0) {
+      throw AppError.badRequest('offset deve ser um inteiro maior ou igual a 0.');
+    }
+    return offset;
+  }
+
+  static #portfolioDto(row) {
+    const owner = row.owner ?? row.profile ?? null;
+    return {
+      id: row.id,
+      ownerId: row.owner_id ?? null,
+      ownerType: row.owner_type ?? null,
+      title: row.title ?? null,
+      description: row.description ?? null,
+      category: row.category ?? null,
+      storagePath: row.storage_path ?? null,
+      thumbnailPath: row.thumbnail_path ?? null,
+      likesCount: row.likes_count ?? 0,
+      viewsCount: row.views_count ?? 0,
+      isFeatured: Boolean(row.is_featured),
+      updatedAt: row.updated_at ?? null,
+      professionalId: row.owner_id ?? null,
+      professionalName: owner?.full_name ?? null,
+      professionalAvatarPath: owner?.avatar_path ?? null,
+    };
   }
 }
 

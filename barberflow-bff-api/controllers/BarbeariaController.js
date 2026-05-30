@@ -83,6 +83,24 @@ class BarbeariaController extends BaseController {
   }
 
   /**
+   * GET /api/v1/barbearias/:barbershop_id/portfolio
+   * Lista o portfolio geral da barbearia/equipe.
+   */
+  async portfolio(req, res) {
+    await this.handle(res, async () => {
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const limit = BarbeariaController.#parseLimit(req.query.limit, 'limit', 1, 48, 30);
+      const offset = BarbeariaController.#parseOffset(req.query.offset, 'offset', 0);
+
+      const dados = await this.#service.listarPortfolio(barbershopId, { limit, offset });
+
+      this.cachePublico(res, 30, 120);
+      this.success(res, dados, { total: dados.total });
+    });
+  }
+
+  /**
    * PATCH /api/v1/barbearias/minha/endereco
    * Atualiza endereco e coordenadas da barbearia do usuario autenticado.
    */
@@ -245,6 +263,15 @@ class BarbeariaController extends BaseController {
     }
     if (num < min || num > max) {
       throw AppError.badRequest(`Parâmetro '${nome}' deve estar entre ${min} e ${max}.`);
+    }
+    return num;
+  }
+
+  static #parseOffset(valor, nome, padrao) {
+    if (valor === undefined || valor === null || valor === '') return padrao;
+    const num = Number(valor);
+    if (!isFinite(num) || !Number.isInteger(num) || num < 0) {
+      throw AppError.badRequest(`ParÃ¢metro '${nome}' deve ser um inteiro maior ou igual a 0.`);
     }
     return num;
   }

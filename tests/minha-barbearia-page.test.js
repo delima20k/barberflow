@@ -569,6 +569,50 @@ describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
   });
 });
 
+describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
+  const SRC_HTML_PRO = fs.readFileSync(
+    path.join(ROOT, 'apps/profissional/index.html'), 'utf8',
+  );
+  const SRC_PORTFOLIO_CONTROLLER = fs.readFileSync(
+    path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioController.js'), 'utf8',
+  );
+  const SRC_PORTFOLIO_VIEW = fs.readFileSync(
+    path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioView.js'), 'utf8',
+  );
+
+  test('html expoe section Portfólio da Barbearia com upload de imagem', () => {
+    assert.match(SRC_HTML_PRO, /data-minha-barbearia-portfolio-section/);
+    assert.match(SRC_HTML_PRO, /Portf[oó]lio da Barbearia/);
+    assert.match(SRC_HTML_PRO, /id="mb-portfolio-input"[^>]*accept="image\/\*"/);
+  });
+
+  test('controller carrega galeria agregada da barbearia pela BFF', () => {
+    assert.match(
+      SRC_PORTFOLIO_CONTROLLER,
+      /BffApiService\.barbearias\.portfolio\(barbershopId,\s*\{\s*limit:\s*30,\s*offset:\s*0\s*\}\)/,
+    );
+  });
+
+  test('controller reutiliza upload profissional existente', () => {
+    assert.match(
+      SRC_PORTFOLIO_CONTROLLER,
+      /BffApiService\.profissionais\.uploadPortfolioImagem\(buffer,\s*file\.type\)/,
+    );
+  });
+
+  test('view abre imagem com PortfolioPrismViewer', () => {
+    assert.match(SRC_PORTFOLIO_VIEW, /new PortfolioPrismViewer\(\)/);
+    assert.match(SRC_PORTFOLIO_VIEW, /\.open\(item,\s*items\)/);
+  });
+
+  test('runtime atualiza a section com shop, perfil e permissao de owner', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /this\.#atualizarSecaoExtraida\(PortfolioSection,\s*\{[\s\S]*canUpload:\s*this\.#isOwner/,
+    );
+  });
+});
+
 describe('RLS - queue_entries por barbeiro responsavel', () => {
 
   const SRC_RLS_CADEIRAS = fs.readFileSync(

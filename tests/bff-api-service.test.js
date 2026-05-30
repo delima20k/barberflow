@@ -272,6 +272,24 @@ describe('BffApiService.mensalistas', () => {
   });
 });
 
+describe('BffApiService.barbearias portfolio', () => {
+  test('portfolio chama endpoint BFF agregado da barbearia', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { items: [] } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.barbearias.portfolio('shop-1', { limit: 30, offset: 0 });
+
+    assert.ok(chamadas[0].url.includes('/api/v1/barbearias/shop-1/portfolio?'));
+    assert.ok(chamadas[0].url.includes('limit=30'));
+    assert.ok(chamadas[0].url.includes('offset=0'));
+    assert.strictEqual(chamadas[0].opts.method, undefined);
+  });
+});
+
 describe('BffApiService.profissionais portfolio', () => {
 
   test('curtirPortfolioImagem chama endpoint BFF canonico', async () => {

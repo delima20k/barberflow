@@ -249,6 +249,9 @@ class BffApiService {
     gestaoVinculada: (barbershopId) =>
       BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/gestao`),
 
+    portfolio: (barbershopId, params = {}) =>
+      BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/portfolio`, params),
+
     publicarStory: (barbershopId, payload) =>
       BffApiService.post(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`, payload),
   };

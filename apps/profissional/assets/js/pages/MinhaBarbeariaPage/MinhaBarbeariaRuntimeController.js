@@ -3,6 +3,7 @@ import { SectionEventBus } from '../../../../../../shared/js/SectionEventBus.js'
 import { AgendaController, AgendaSection, AgendaState, AgendaView } from './AgendaSection/index.js';
 import { AnalyticsController, AnalyticsSection, AnalyticsState, AnalyticsView } from './AnalyticsSection/index.js';
 import { NotificationController, NotificationSection, NotificationState, NotificationView } from './NotificationSection/index.js';
+import { PortfolioController, PortfolioSection, PortfolioState, PortfolioView } from './PortfolioSection/index.js';
 import { QueueController, QueueSection, QueueState, QueueView } from './QueueSection/index.js';
 import { SettingsController, SettingsSection, SettingsState, SettingsView } from './SettingsSection/index.js';
 import { StoryBrowserMediaAdapter } from './StorySection/StoryBrowserMediaAdapter.js';
@@ -381,6 +382,12 @@ export class MinhaBarbeariaRuntimeController {
     });
     add(AnalyticsSection, AnalyticsController, AnalyticsState, AnalyticsView);
     add(SettingsSection, SettingsController, SettingsState, SettingsView);
+    if (typeof PortfolioSection !== 'undefined' &&
+        typeof PortfolioController !== 'undefined' &&
+        typeof PortfolioState !== 'undefined' &&
+        typeof PortfolioView !== 'undefined') {
+      add(PortfolioSection, PortfolioController, PortfolioState, PortfolioView);
+    }
     return sections;
   }
 
@@ -417,6 +424,18 @@ export class MinhaBarbeariaRuntimeController {
   }
 
   async #loadPortfolioSection() {
+    const existing = typeof PortfolioSection !== 'undefined'
+      ? this.#sections.find(candidate => candidate instanceof PortfolioSection)
+      : null;
+    if (existing) {
+      existing.update({
+        shop: this.#latestSectionState.shop,
+        barbershopId: this.#latestSectionState.shop?.id ?? null,
+        perfilId: this.#latestSectionState.perfilId,
+        canUpload: this.#isOwner,
+      });
+      return existing;
+    }
     return this.#loadLazySection('portfolio', async () => {
       const module = await import('./PortfolioSection/index.js');
       const section = this.#instantiateExtractedSection(
@@ -428,6 +447,12 @@ export class MinhaBarbeariaRuntimeController {
       );
       section.init();
       this.#sections.push(section);
+      section.update({
+        shop: this.#latestSectionState.shop,
+        barbershopId: this.#latestSectionState.shop?.id ?? null,
+        perfilId: this.#latestSectionState.perfilId,
+        canUpload: this.#isOwner,
+      });
       return section;
     });
   }
@@ -453,6 +478,14 @@ export class MinhaBarbeariaRuntimeController {
       barbershopId: shop?.id ?? null,
       entries: filaEntradas,
     });
+    if (typeof PortfolioSection !== 'undefined') {
+      this.#atualizarSecaoExtraida(PortfolioSection, {
+        shop,
+        barbershopId: shop?.id ?? null,
+        perfilId,
+        canUpload: this.#isOwner,
+      });
+    }
   }
 
   #atualizarSecaoExtraida(SectionType, partialState) {
