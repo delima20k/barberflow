@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260530b';
+const SW_CLI_VERSION = '20260530c';
 
 class SWCliente {
 
@@ -72,6 +72,7 @@ class SWCliente {
     '/shared/js/NearbyBarbershopsWidget.js',
     '/shared/js/PortfolioPrismViewer.js',
     '/shared/js/PortfolioBarbeirosSection.js',
+    '/shared/js/BarbeariaPage.js',
   ];
 
   // Imagens — pré-cacheadas em CACHE_IMAGES
