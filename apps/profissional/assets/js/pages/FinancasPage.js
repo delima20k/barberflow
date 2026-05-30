@@ -118,10 +118,9 @@ class FinancasPage {
         .select('id')
         .eq('owner_id', perfil.id)
         .eq('is_active', true)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (shopErr && shopErr.code !== 'PGRST116') throw shopErr;
+      if (shopErr) throw shopErr;
       if (shopData?.id) {
         this.#shopId = shopData.id;
         return;
@@ -131,10 +130,9 @@ class FinancasPage {
         .select('barbershop_id')
         .eq('professional_id', perfil.id)
         .eq('is_active', true)
-        .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (linkErr && linkErr.code !== 'PGRST116') throw linkErr;
+      if (linkErr) throw linkErr;
       this.#shopId = linkData?.barbershop_id ?? null;
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
