@@ -42,6 +42,8 @@ class BarbeariaPage {
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
+  #portfolioViewer = null;  // PortfolioPrismViewer — lazy, criado no 1º clique
+  #portfolioData   = [];    // lista de fotos ativas — alimentado em #renderPortfolio
 
   constructor() {}
 
@@ -176,6 +178,13 @@ class BarbeariaPage {
    * Usa capture para agir antes dos botões de ação ([data-action]) dentro do card.
    */
   #bindListenerGlobal() {
+    // Portfolio: clique em qualquer .bp-port-item abre o viewer 3D
+    this.#refs.portfolioGrid?.addEventListener('click', e => {
+      const item = e.target.closest('[data-port-index]');
+      if (!item) return;
+      this.#abrirPortfolioViewer(Number(item.dataset.portIndex));
+    });
+
     document.addEventListener('click', e => {
       const card = e.target.closest('[data-barbershop-id]');
       if (!card || e.target.closest('[data-action]')) return;
@@ -1167,6 +1176,19 @@ class BarbeariaPage {
     }).join('');
   }
 
+  #abrirPortfolioViewer(index) {
+    if (!this.#portfolioData.length || typeof PortfolioPrismViewer === 'undefined') return;
+    const items = this.#portfolioData.map((img, i) => {
+      const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path)
+               ?? ApiService.getLogoUrl(img.thumbnail_path) ?? '';
+      return { fullUrl: url, thumbUrl: url, title: img.title ?? `Foto ${i + 1}` };
+    });
+    const target = items[index] ?? items[0];
+    if (!target) return;
+    this.#portfolioViewer ??= new PortfolioPrismViewer();
+    this.#portfolioViewer.open(target, items);
+  }
+
   /**
    * Grade de portfólio.
    * sanitizar() é CORRETO aqui — valores vão para innerHTML (src e alt).
@@ -1182,13 +1204,15 @@ class BarbeariaPage {
 
     const s = InputValidator.sanitizar;
     el.hidden    = false;
-    el.innerHTML = lista.map(img => {
-      if (!img.thumbnail_path) return '<div class="bp-port-item bp-port-item--vazio"></div>';
+    this.#portfolioData = lista;
+
+    el.innerHTML = lista.map((img, i) => {
+      if (!img.thumbnail_path) return `<div class="bp-port-item bp-port-item--vazio" data-port-index="${i}"></div>`;
       const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path)
                ?? ApiService.getLogoUrl(img.thumbnail_path) ?? '';
-      return `<div class="bp-port-item">
+      return `<div class="bp-port-item" data-port-index="${i}" style="cursor:pointer;">
         <img src="${s(url)}" alt="${s(img.title ?? '')}" loading="lazy"
-             onerror="this.outerHTML='<div class=\u0022bp-port-item bp-port-item--vazio\u0022></div>'">
+             onerror="this.closest('.bp-port-item').classList.add('bp-port-item--vazio')">
       </div>`;
     }).join('');
   }
