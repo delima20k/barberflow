@@ -34,6 +34,28 @@ class SupabaseService {
   // Instância única (Singleton)
   static #client = null;
 
+  // ── Dedup/cache de auth ───────────────────────────────────
+  // O gotrue-js serializa todo acesso ao token via Web Locks API. Quando vários
+  // widgets chamam getSession()/getUser() simultaneamente no boot, eles enfileiram
+  // atrás de uma chamada lenta (getUser faz round-trip de rede) e estouram o timeout
+  // de 5s do lock ("Forcefully acquiring the lock to recover"). Estes caches colapsam
+  // N chamadas concorrentes em UMA única aquisição de lock.
+  static #sessionCache    = undefined; // undefined = não populado; null = sem sessão
+  static #sessionCacheTs  = 0;
+  static #sessionInflight = null;
+  static #userCache       = undefined; // undefined = não populado; null = sem usuário
+  static #userCacheTs     = 0;
+  static #userInflight    = null;
+  static #AUTH_TTL_MS     = 2000;      // janela curta — invalidada em toda mudança de auth
+
+  /** Invalida os caches de sessão/usuário. Chamado em toda mudança de auth. */
+  static #invalidarAuthCache() {
+    SupabaseService.#sessionCache   = undefined;
+    SupabaseService.#sessionCacheTs = 0;
+    SupabaseService.#userCache      = undefined;
+    SupabaseService.#userCacheTs    = 0;
+  }
+
   /**
    * Retorna (ou cria) o cliente Supabase — PRIVADO.
    * Nenhum código fora desta classe deve chamar este método.
@@ -99,6 +121,9 @@ class SupabaseService {
    */
   static #initAuthSync() {
     SupabaseService.#client.auth.onAuthStateChange((event, session) => {
+      // Toda mudança de auth invalida os caches de sessão/usuário (evita stale token)
+      SupabaseService.#invalidarAuthCache();
+
       if (typeof AppState === 'undefined') return;
 
       switch (event) {
@@ -170,39 +195,86 @@ class SupabaseService {
 
   // ── Auth ─────────────────────────────────────────────────
 
-  /** Retorna o usuário autenticado atual (ou null se não houver sessão) */
+  /**
+   * Retorna o usuário autenticado atual (ou null se não houver sessão).
+   * Deduplicado: chamadas concorrentes compartilham uma única ida ao SDK,
+   * evitando contenção do Web Lock do gotrue-js.
+   */
   static async getUser() {
-    try {
-      const { data: { user }, error } = await SupabaseService.#getClient().auth.getUser();
-      if (error) {
-        // Sem sessão ativa = visitante/pré-cadastro — não é erro real
-        // 403 = token rejeitado pelo servidor (ex: durante TOKEN_REFRESHED race condition)
-        // Ambos os casos são equivalentes a "sem sessão válida" para o app
-        if (
-          error.name === 'AuthSessionMissingError' ||
-          error.message?.toLowerCase().includes('session') ||
-          error.status === 403
-        ) return null;
-        SupabaseService.#erro('getUser', error);
+    const agora = Date.now();
+    if (SupabaseService.#userCache !== undefined &&
+        (agora - SupabaseService.#userCacheTs) < SupabaseService.#AUTH_TTL_MS) {
+      return SupabaseService.#userCache;
+    }
+    if (SupabaseService.#userInflight) return SupabaseService.#userInflight;
+
+    SupabaseService.#userInflight = (async () => {
+      try {
+        const { data: { user }, error } = await SupabaseService.#getClient().auth.getUser();
+        if (error) {
+          // Sem sessão ativa = visitante/pré-cadastro — não é erro real
+          // 403 = token rejeitado pelo servidor (ex: durante TOKEN_REFRESHED race condition)
+          // Ambos os casos são equivalentes a "sem sessão válida" para o app
+          if (
+            error.name === 'AuthSessionMissingError' ||
+            error.message?.toLowerCase().includes('session') ||
+            error.status === 403
+          ) {
+            SupabaseService.#userCache   = null;
+            SupabaseService.#userCacheTs = Date.now();
+            return null;
+          }
+          SupabaseService.#erro('getUser', error);
+        }
+        SupabaseService.#userCache   = user ?? null;
+        SupabaseService.#userCacheTs = Date.now();
+        return SupabaseService.#userCache;
+      } catch (e) {
+        if (e.contexto) throw e;
+        SupabaseService.#erro('getUser', e);
       }
-      return user;
-    } catch (e) {
-      if (e.contexto) throw e;
-      SupabaseService.#erro('getUser', e);
+    })();
+
+    try {
+      return await SupabaseService.#userInflight;
+    } finally {
+      SupabaseService.#userInflight = null;
     }
   }
 
-  /** Retorna a sessão atual (lê localStorage — rápido, sem rede). */
+  /**
+   * Retorna a sessão atual (lê localStorage — rápido, sem rede).
+   * Deduplicado: chamadas concorrentes compartilham uma única ida ao SDK,
+   * evitando contenção do Web Lock do gotrue-js.
+   */
   static async getSession() {
-    const { data: { session }, error } = await SupabaseService.#getClient().auth.getSession();
-    if (error) SupabaseService.#erro('getSession', error);
-    return session;
+    const agora = Date.now();
+    if (SupabaseService.#sessionCache !== undefined &&
+        (agora - SupabaseService.#sessionCacheTs) < SupabaseService.#AUTH_TTL_MS) {
+      return SupabaseService.#sessionCache;
+    }
+    if (SupabaseService.#sessionInflight) return SupabaseService.#sessionInflight;
+
+    SupabaseService.#sessionInflight = (async () => {
+      const { data: { session }, error } = await SupabaseService.#getClient().auth.getSession();
+      if (error) SupabaseService.#erro('getSession', error);
+      SupabaseService.#sessionCache   = session ?? null;
+      SupabaseService.#sessionCacheTs = Date.now();
+      return SupabaseService.#sessionCache;
+    })();
+
+    try {
+      return await SupabaseService.#sessionInflight;
+    } finally {
+      SupabaseService.#sessionInflight = null;
+    }
   }
 
   /** Login com email + senha */
   static async signIn(email, password) {
     const { data, error } = await SupabaseService.#getClient().auth.signInWithPassword({ email, password });
     if (error) SupabaseService.#erro('signIn', error);
+    SupabaseService.#invalidarAuthCache(); // sessão nova — força releitura
     return data;
   }
 
@@ -219,6 +291,7 @@ class SupabaseService {
   static async signOut() {
     const { error } = await SupabaseService.#getClient().auth.signOut();
     if (error) SupabaseService.#erro('signOut', error);
+    SupabaseService.#invalidarAuthCache(); // sessão encerrada — limpa caches
   }
 
   /**
@@ -235,6 +308,7 @@ class SupabaseService {
       refresh_token: refreshToken,
     });
     if (error) SupabaseService.#erro('setSession', error);
+    SupabaseService.#invalidarAuthCache(); // sessão injetada — força releitura
     return data;
   }
 
@@ -395,24 +469,22 @@ class SupabaseService {
    * @returns {Promise<object|null>}
    */
   static async getProfile(userId) {
+    // maybeSingle(): 0 linhas → { data: null, error: null } (sem 406 no console).
+    // .single() forçava Accept object-mode e gerava 406 garantido em perfil ausente.
     const { data, error } = await SupabaseService.profiles()
       .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    // 406 = nenhuma linha encontrada (perfil não existe — usuário deletado ou incompleto)
-    // Nesse caso deslogamos silenciosamente em vez de lançar erro
-    if (error) {
-      const code = error?.code ?? '';
-      const status = error?.status ?? error?.statusCode ?? 0;
-      if (code === 'PGRST116' || status === 406 || code === '406') {
-        // Perfil órfão — limpa sessão local e retorna null
-        try { await SupabaseService.#getClient().auth.signOut(); } catch { /* sem-op */ }
-        return null;
-      }
-      SupabaseService.#erro('getProfile', error);
+    if (error) SupabaseService.#erro('getProfile', error);
+
+    if (!data) {
+      // Perfil órfão (0 linhas — usuário deletado ou incompleto).
+      // Limpa sessão local silenciosamente em vez de lançar erro.
+      try { await SupabaseService.#getClient().auth.signOut(); } catch { /* sem-op */ }
+      return null;
     }
-    return data ?? null;
+    return data;
   }
 
   /**

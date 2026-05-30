@@ -12,11 +12,13 @@
 // não impede as demais.
 //
 // GRUPOS:
-//   #WIDGETS_PARALELO   — sem Supabase, disparo simultâneo (rápido)
-//   #WIDGETS_SEQUENCIAL — usam Supabase, executam em série para evitar
-//                         "AbortError: Lock broken by another request with the steal option"
-//                         causado por múltiplas chamadas concorrentes ao SDK do Supabase
-//                         (Web Locks API interna do supabase-js v2).
+//   #WIDGETS_PARALELO   — disparo simultâneo (rápido). Alguns chamam Supabase auth
+//                         (MessagesWidget, NotificationService, Push, GeoService);
+//                         isso é seguro porque SupabaseService.getSession()/getUser()
+//                         deduplicam chamadas concorrentes em uma única aquisição de
+//                         lock (vide caches de auth em SupabaseService.js).
+//   #WIDGETS_SEQUENCIAL — queries Supabase de dados (PostgREST), executam em série
+//                         para evitar concorrência pesada no boot.
 // =============================================================
 
 class AppBootstrap {
@@ -43,7 +45,7 @@ class AppBootstrap {
     { label: 'PushSubscription',    fn: () => AppBootstrap.#iniciarPushSubscription()           },
   ];
 
-  // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention
+  // Widgets que fazem queries Supabase de dados (PostgREST) — execução SEQUENCIAL
   static #WIDGETS_SEQUENCIAL = [
     { label: 'NearbyBarbershops.init',  fn: () => NearbyBarbershopsWidget.init('nearby-map-widget')               },
     { label: 'NearbyBarbershops.cards', fn: () => NearbyBarbershopsWidget.initHomeCards('home-barbearias-lista')   },
