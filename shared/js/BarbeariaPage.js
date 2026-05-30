@@ -1171,11 +1171,14 @@ class BarbeariaPage {
 
   #abrirPortfolioViewer(index) {
     if (!this.#portfolioData.length || typeof PortfolioPrismViewer === 'undefined') return;
-    const items = this.#portfolioData.map((img, i) => {
-      const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path)
-               ?? ApiService.getLogoUrl(img.thumbnail_path) ?? '';
-      return { fullUrl: url, thumbUrl: url, title: img.title ?? `Foto ${i + 1}` };
-    });
+    // Filtra apenas itens com thumbnail para que o viewer não receba faces em branco
+    let vi = 0;
+    const items = this.#portfolioData
+      .filter(img => img.thumbnail_path)
+      .map(img => {
+        const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path) ?? '';
+        return { fullUrl: url, thumbUrl: url, title: img.title ?? `Foto ${++vi}` };
+      });
     const target = items[index] ?? items[0];
     if (!target) return;
     this.#portfolioViewer ??= new PortfolioPrismViewer();
@@ -1199,11 +1202,13 @@ class BarbeariaPage {
     el.hidden    = false;
     this.#portfolioData = lista;
 
-    el.innerHTML = lista.map((img, i) => {
+    // vi conta apenas itens válidos — data-port-index mapeia para o array filtrado do viewer
+    let vi = 0;
+    el.innerHTML = lista.map(img => {
       if (!img.thumbnail_path) return '<div class="bp-port-item bp-port-item--vazio"></div>';
       const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path)
                ?? ApiService.getLogoUrl(img.thumbnail_path) ?? '';
-      return `<div class="bp-port-item" data-port-index="${i}" style="cursor:pointer;">
+      return `<div class="bp-port-item" data-port-index="${vi++}" style="cursor:pointer;">
         <img src="${s(url)}" alt="${s(img.title ?? '')}" loading="lazy"
              onerror="this.closest('.bp-port-item').classList.add('bp-port-item--vazio')">
       </div>`;
