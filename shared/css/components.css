@@ -634,18 +634,14 @@
   margin: 0;
 }
 
-/* ── Info fixa da barbearia — acima do rodapé ───────────────── */
+/* ── Info fixa da barbearia — ao final do scroll da tela ──────── */
 #bp-info-fixa {
-  position: fixed;
-  bottom: var(--nav-h);
-  left: 0;
-  right: 0;
-  z-index: 900;
-  background: transparent;
-  padding: 4px 14px 6px;
+  padding: 14px 16px calc(var(--nav-h, 64px) + 18px);
   display: flex;
   flex-direction: column;
   gap: 3px;
+  border-top: 1px solid rgba(107,74,50,.18);
+  margin-top: 8px;
 }
 #bp-info-fixa[hidden] { display: none; }
 .bp-endereco {
@@ -4481,6 +4477,114 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   white-space: nowrap;
 }
 
+/* ── Carrossel de serviços da página pública ───────────────────── */
+.bp-serv-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding: 4px 0 10px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.bp-serv-carousel::-webkit-scrollbar { display: none; }
+.bp-serv-card-wrap {
+  flex: 0 0 85px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  scroll-snap-align: start;
+}
+.bp-serv-card-nome {
+  margin: 0;
+  font-size: .68rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text, #f5e9dc);
+  max-width: 85px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bp-serv-card {
+  position: relative;
+  width: 85px;
+  height: 85px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card2, #f0e8d8);
+  flex-shrink: 0;
+}
+.bp-serv-card > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.bp-serv-card-vazio {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+.bp-serv-card-vazio::after { content: '✂️'; }
+.bp-serv-card-preco {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 3px 5px;
+  background: rgba(0,0,0,.55);
+  color: var(--gold, #D4AF37);
+  font-size: .68rem;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── Cards de mensalidade ──────────────────────────────────────── */
+.bp-mensal-titulo {
+  margin: 14px 0 8px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--gold, #D4AF37);
+}
+.bp-mensal-card {
+  max-width: 382px;
+  min-height: 77px;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #2a1a0e 0%, #3d2210 55%, #1a1008 100%);
+  border: 1px solid rgba(212,175,55,.3);
+  box-shadow: 0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(212,175,55,.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bp-mensal-nome {
+  margin: 0;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--gold, #D4AF37);
+}
+.bp-mensal-preco {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+}
+.bp-mensal-desc {
+  margin: 0;
+  font-size: .74rem;
+  color: var(--text-muted, rgba(245,233,220,.65));
+}
+
 /* ── Modais de confirmação de presença (ConfirmacaoCorteModal) ── */
 .ccm-overlay {
   position: fixed;
@@ -5241,6 +5345,54 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: contain;
   display: block;
   background: #000;
+}
+
+.portfolio-viewer__meta {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10001;
+  max-width: min(70vw, 320px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(0,0,0,.58);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(0,0,0,.26);
+  pointer-events: none;
+}
+.portfolio-viewer__meta[hidden] { display: none; }
+.portfolio-viewer__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.45);
+  flex: 0 0 auto;
+}
+.portfolio-viewer__meta-text {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.portfolio-viewer__name,
+.portfolio-viewer__likes {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portfolio-viewer__name {
+  font-size: .82rem;
+  line-height: 1.1;
+}
+.portfolio-viewer__likes {
+  color: rgba(255,255,255,.74);
+  font-size: .7rem;
+  line-height: 1.1;
 }
 
 .portfolio-viewer__title {
@@ -7751,6 +7903,54 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .pp-prism-close:hover,
 .pp-prism-close:focus-visible { background: rgba(255,255,255,.12); transform: scale(1.06); }
+
+.pp-prism-meta {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  max-width: min(70vw, 320px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(0,0,0,.58);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(0,0,0,.26);
+  pointer-events: none;
+}
+.pp-prism-meta[hidden] { display: none; }
+.pp-prism-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.45);
+  flex: 0 0 auto;
+}
+.pp-prism-meta-text {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.pp-prism-name,
+.pp-prism-likes {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pp-prism-name {
+  font-size: .82rem;
+  line-height: 1.1;
+}
+.pp-prism-likes {
+  color: rgba(255,255,255,.74);
+  font-size: .7rem;
+  line-height: 1.1;
+}
 
 .pp-prism-stage {
   position: relative;

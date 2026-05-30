@@ -286,7 +286,7 @@ class BarbeariaPage {
   static async #fetchServicos(id) {
     try {
       const { data, error } = await ApiService.from('services')
-        .select('id, name, price, duration_min, image_path')
+        .select('id, name, price, duration_min, image_path, description')
         .eq('barbershop_id', id)
         .eq('is_active', true)
         .order('price', { ascending: true });
@@ -1149,24 +1149,53 @@ class BarbeariaPage {
     }
 
     const s = InputValidator.sanitizar;
-    el.innerHTML = lista.map(sv => {
-      const imgUrl  = sv.image_path || null;
-      const imgHtml = imgUrl
-        ? `<img src="${s(imgUrl)}" alt="${s(sv.name ?? '')}" class="bp-serv-img" loading="lazy" onerror="this.style.display='none'">`
-        : `<div class="bp-serv-img bp-serv-img--vazio"></div>`;
-      const meta  = sv.duration_min ? `${Number(sv.duration_min)} min` : '';
-      const preco = `R$\u00a0${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
+    const isMensal = sv => /mensalida|mensal\b|plano\s+mensal/i.test(sv.name ?? '');
+    const regulares    = lista.filter(sv => !isMensal(sv));
+    const mensalidades = lista.filter(isMensal);
 
-      return `
-        <div class="bp-serv-row">
-          ${imgHtml}
-          <div class="bp-serv-info">
-            <p class="bp-serv-nome">${s(sv.name ?? '')}</p>
-            <p class="bp-serv-meta">${meta}</p>
-          </div>
-          <p class="bp-serv-preco">${preco}</p>
-        </div>`;
-    }).join('');
+    let html = '';
+
+    if (regulares.length) {
+      html += '<div class="bp-serv-carousel">';
+      for (const sv of regulares) {
+        const preco = `R$\u00a0${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
+        const nome  = s(sv.name ?? '');
+        const img   = sv.image_path
+          ? `<img src="${s(sv.image_path)}" alt="${nome}" loading="lazy" onerror="this.style.display='none'">`
+          : '<div class="bp-serv-card-vazio"></div>';
+        html += `
+          <div class="bp-serv-card-wrap">
+            <p class="bp-serv-card-nome">${nome}</p>
+            <div class="bp-serv-card">
+              ${img}
+              <span class="bp-serv-card-preco">${preco}</span>
+            </div>
+          </div>`;
+      }
+      html += '</div>';
+    }
+
+    if (mensalidades.length) {
+      html += '<p class="bp-mensal-titulo">Mensalidades</p>';
+      for (const sv of mensalidades) {
+        const preco = `R$\u00a0${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
+        const desc  = sv.description
+          ? s(sv.description)
+          : sv.duration_min ? `${Number(sv.duration_min)} min` : '';
+        html += `
+          <div class="bp-mensal-card">
+            <p class="bp-mensal-nome">${s(sv.name ?? '')}</p>
+            <p class="bp-mensal-preco">${preco}</p>
+            ${desc ? `<p class="bp-mensal-desc">${desc}</p>` : ''}
+          </div>`;
+      }
+    }
+
+    if (!regulares.length && !mensalidades.length) {
+      html = '<p class="bp-vazio">Nenhum servi\u00e7o cadastrado.</p>';
+    }
+
+    el.innerHTML = html;
   }
 
   #abrirPortfolioViewer(index) {
