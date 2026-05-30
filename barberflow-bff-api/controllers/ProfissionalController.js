@@ -33,7 +33,7 @@ class ProfissionalController extends BaseController {
   async mensagemBarbearia(req, res) {
     await this.handle(res, async () => {
       res.setHeader('Cache-Control', 'private, no-store');
-      const dto = await this.#service.iniciarMensagemBarbearia(req.user.id, req.params.id);
+      const dto = await this.#service.iniciarMensagemBarbearia(req.user.id, req.params.id, req.body ?? {});
       this.created(res, dto);
     });
   }

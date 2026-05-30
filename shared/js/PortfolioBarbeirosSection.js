@@ -438,12 +438,8 @@ class PortfolioBarbeirosSection {
       if (perfil?.id) {
         try {
           const imageIds = itens.map(i => i.id);
-          const { data: likes } = await ApiService.from('likes')
-            .select('content_id')
-            .eq('user_id', perfil.id)
-            .eq('content_type', 'portfolio_image')
-            .in('content_id', imageIds);
-          (likes ?? []).forEach(l => curtidosSet.add(l.content_id));
+          const { data } = await BffApiService.profissionais.listarCurtidasPortfolio(imageIds);
+          (data?.likedIds ?? []).forEach(id => curtidosSet.add(id));
         } catch { /* best-effort */ }
       }
 
@@ -605,6 +601,8 @@ class PortfolioBarbeirosSection {
         thumbUrl,
         fullUrl,
         likesCount: item.likes_count ?? 0,
+        liked: curtidosSet.has(item.id),
+        portfolioPublicActions: true,
       };
     });
     viewer.open(mapped[idx], mapped);
@@ -644,14 +642,21 @@ class PortfolioBarbeirosSection {
 
     try {
       if (curtido) {
-        await ApiService.from('likes')
-          .delete()
-          .eq('content_id', imageId)
-          .eq('user_id', perfil.id)
-          .eq('content_type', 'portfolio_image');
+        const { data, error } = await BffApiService.profissionais.descurtirPortfolioImagem(imageId);
+        if (error) throw error;
+        const serverCount = data?.likesCount;
+        if (Number.isFinite(Number(serverCount))) {
+          if (countEl) countEl.textContent = String(serverCount);
+          if (item) item.likes_count = Number(serverCount);
+        }
       } else {
-        await ApiService.from('likes')
-          .insert({ content_id: imageId, user_id: perfil.id, content_type: 'portfolio_image' });
+        const { data, error } = await BffApiService.profissionais.curtirPortfolioImagem(imageId);
+        if (error) throw error;
+        const serverCount = data?.likesCount;
+        if (Number.isFinite(Number(serverCount))) {
+          if (countEl) countEl.textContent = String(serverCount);
+          if (item) item.likes_count = Number(serverCount);
+        }
       }
     } catch {
       // Rollback em caso de erro de rede

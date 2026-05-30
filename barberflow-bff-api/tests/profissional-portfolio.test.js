@@ -149,4 +149,42 @@ suite('ProfissionalService - portfolio publico', () => {
     assert.deepEqual(chamado, { userId: CLIENT_ID, imageId: IMAGE_ID });
     assert.deepEqual(dto, { imageId: IMAGE_ID, liked: false, likesCount: 4 });
   });
+
+  test('deve enviar mensagem de portfolio com texto informado mantendo contexto da barbearia', async () => {
+    let chamadaMensagem = null;
+    const service = new ProfissionalService(criarRepo({
+      buscarContextoMensagem: async () => ({
+        professional_id: PRO_ID,
+        owner_id: '880e8400-e29b-41d4-a716-446655440004',
+        barbershop_id: '990e8400-e29b-41d4-a716-446655440005',
+        professional_name: 'Lima',
+      }),
+      encontrarConversaDireta: async () => 'conv-1',
+    }), {
+      execute: async (payload) => {
+        chamadaMensagem = payload;
+        return { isFail: () => false, getValue: () => ({ id: 'message-1', body: payload.body }) };
+      },
+    });
+
+    const dto = await service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
+      body: 'Corte top',
+      portfolioImageId: IMAGE_ID,
+      clientMessageId: 'client-msg-1',
+    });
+
+    assert.equal(dto.conversationId, 'conv-1');
+    assert.equal(chamadaMensagem.body, 'Corte top');
+    assert.equal(chamadaMensagem.clientMessageId, 'client-msg-1');
+    assert.equal(chamadaMensagem.attachments.length, 0);
+  });
+
+  test('deve rejeitar mensagem de portfolio vazia quando body e informado', async () => {
+    const service = new ProfissionalService(criarRepo());
+
+    await assert.rejects(
+      () => service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, { body: '   ' }),
+      /Mensagem obrigatoria/,
+    );
+  });
 });

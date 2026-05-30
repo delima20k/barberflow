@@ -352,3 +352,27 @@ describe('BffApiService.chat', () => {
     assert.strictEqual(chamadas[0].opts.method, undefined);
   });
 });
+
+describe('BffApiService.profissionais mensagem barbearia', () => {
+  test('iniciarMensagemBarbearia envia payload opcional para mensagem de portfolio', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 201, json: async () => ({ dados: { conversationId: 'conv-1' } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.profissionais.iniciarMensagemBarbearia('pro-1', {
+      body: 'Ficou top',
+      portfolioImageId: 'img-1',
+      clientMessageId: 'msg-1',
+    });
+
+    assert.ok(chamadas[0].url.endsWith('/api/v1/profissionais/pro-1/mensagem-barbearia'));
+    assert.deepStrictEqual(JSON.parse(chamadas[0].opts.body), {
+      body: 'Ficou top',
+      portfolioImageId: 'img-1',
+      clientMessageId: 'msg-1',
+    });
+  });
+});

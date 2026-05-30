@@ -45,5 +45,7 @@ describe('PortfolioViewerModal', () => {
     assert.match(js, /#renderMeta/);
     assert.match(css, /\.portfolio-viewer__meta\s*\{[\s\S]*top:\s*18px/);
     assert.match(css, /\.portfolio-viewer__meta\s*\{[\s\S]*left:\s*18px/);
+    assert.match(css, /\.portfolio-viewer__avatar\s*\{[\s\S]*width:\s*48px/);
+    assert.match(css, /\.portfolio-viewer__meta-text\s*\{[\s\S]*display:\s*inline-flex/);
   });
 });

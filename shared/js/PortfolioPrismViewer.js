@@ -42,6 +42,11 @@ class PortfolioPrismViewer {
   #likes           = null;
   #title           = null;
   #actions         = null;
+  #publicActions   = null;
+  #publicInput     = null;
+  #publicLike      = null;
+  #publicEmoji     = null;
+  #reactionLayer   = null;
   #count           = null;
 
   #items           = [];
@@ -60,6 +65,7 @@ class PortfolioPrismViewer {
   #animando        = false;
   #finalizeTimer   = null;
   #resizeObserver  = null;
+  #floatTimers      = new Set();
 
   #onKeydown       = null;
 
@@ -102,6 +108,8 @@ class PortfolioPrismViewer {
 
     this.#pararTodosVideos(true);
     this.#limparTimer();
+    this.#limparInteracoes();
+    if (this.#publicInput) this.#publicInput.value = '';
     this.#dragStart = null;
     this.#dragLast = null;
     this.#dragActive = false;
@@ -153,10 +161,11 @@ class PortfolioPrismViewer {
     if (this.#title) this.#title.textContent = item.title || 'Trabalho do portfólio';
     if (this.#count) this.#count.textContent = `${this.#index + 1}/${this.#items.length}`;
     this.#renderMeta(item);
+    this.#renderPublicActions(item);
 
     if (this.#actions) {
       this.#actions.innerHTML = '';
-      if (typeof PortfolioImageActions !== 'undefined') {
+      if (!item?.portfolioPublicActions && typeof PortfolioImageActions !== 'undefined') {
         try { this.#actions.appendChild(PortfolioImageActions.criar(item)); } catch (_) {}
       }
     }
@@ -174,6 +183,36 @@ class PortfolioPrismViewer {
     }
 
     this.#renderFaces();
+  }
+
+  #renderPublicActions(item) {
+    if (!this.#publicActions) return;
+
+    const visivel = Boolean(item?.portfolioPublicActions);
+    const imageId = item?.id ?? '';
+    const imageAnterior = this.#publicActions.dataset.portfolioImageId ?? '';
+    this.#publicActions.hidden = !visivel;
+    this.#publicActions.dataset.portfolioImageId = imageId;
+    this.#publicActions.dataset.professionalId = item?.professionalId ?? '';
+
+    if (!visivel) {
+      if (this.#publicInput) this.#publicInput.value = '';
+      return;
+    }
+
+    const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
+    if (this.#publicLike) {
+      this.#publicLike.classList.toggle('is-liked', Boolean(item?.liked));
+      this.#publicLike.disabled = false;
+      this.#publicLike.setAttribute('aria-pressed', item?.liked ? 'true' : 'false');
+      const count = this.#publicLike.querySelector('[data-public-like-count]');
+      if (count) count.textContent = String(likesCount);
+    }
+    if (this.#publicInput) {
+      if (imageAnterior !== imageId) this.#publicInput.value = '';
+      this.#publicInput.disabled = false;
+    }
+    if (this.#publicEmoji) this.#publicEmoji.disabled = false;
   }
 
   #renderMeta(item) {
@@ -404,6 +443,104 @@ class PortfolioPrismViewer {
     if (this.#finalizeTimer) { clearTimeout(this.#finalizeTimer); this.#finalizeTimer = null; }
   }
 
+  #itemAtual() {
+    return this.#items[this.#index] ?? {};
+  }
+
+  async #handlePublicLike() {
+    const item = this.#itemAtual();
+    if (!item?.portfolioPublicActions || !item?.id || !this.#publicLike) return;
+    if (typeof BffApiService === 'undefined') return;
+
+    const likedAntes = Boolean(item.liked);
+    const countAntes = Math.max(0, Number(item.likesCount ?? item.likes_count ?? 0));
+    const countNovo = Math.max(0, countAntes + (likedAntes ? -1 : 1));
+
+    item.liked = !likedAntes;
+    item.likesCount = countNovo;
+    this.#renderMeta(item);
+    this.#renderPublicActions(item);
+    this.#publicLike.disabled = true;
+
+    try {
+      const { data, error } = likedAntes
+        ? await BffApiService.profissionais.descurtirPortfolioImagem(item.id)
+        : await BffApiService.profissionais.curtirPortfolioImagem(item.id);
+      if (error) throw error;
+      item.liked = Boolean(data?.liked);
+      item.likesCount = Math.max(0, Number(data?.likesCount ?? countNovo));
+      this.#renderMeta(item);
+      this.#renderPublicActions(item);
+      if (!likedAntes) this.#emitInteraction('Curtida');
+    } catch {
+      item.liked = likedAntes;
+      item.likesCount = countAntes;
+      this.#renderMeta(item);
+      this.#renderPublicActions(item);
+    } finally {
+      if (this.#publicLike) this.#publicLike.disabled = false;
+    }
+  }
+
+  async #handlePublicMessage(body) {
+    const item = this.#itemAtual();
+    const texto = String(body ?? '').trim();
+    if (!item?.portfolioPublicActions || !item?.professionalId || !texto) return;
+    if (typeof BffApiService === 'undefined') return;
+
+    const payload = {
+      body: texto,
+      portfolioImageId: item.id,
+      clientMessageId: PortfolioPrismViewer.#clientMessageId(),
+    };
+
+    if (this.#publicInput) this.#publicInput.disabled = true;
+    if (this.#publicEmoji) this.#publicEmoji.disabled = true;
+    try {
+      const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
+      if (error) throw error;
+      if (this.#publicInput && texto !== PortfolioPrismViewer.#laughEmoji()) this.#publicInput.value = '';
+      this.#emitInteraction(texto);
+    } catch {
+      // Erro silencioso mantem o viewer estavel; BffApiService ja devolve erro estruturado.
+    } finally {
+      if (this.#publicInput) this.#publicInput.disabled = false;
+      if (this.#publicEmoji) this.#publicEmoji.disabled = false;
+    }
+  }
+
+  #emitInteraction(texto) {
+    if (!this.#reactionLayer) return;
+    const el = document.createElement('span');
+    el.className = 'pp-prism-float';
+    el.textContent = String(texto ?? '').slice(0, 80);
+    this.#reactionLayer.appendChild(el);
+    const remover = () => {
+      el.remove();
+      if (timer) this.#floatTimers.delete(timer);
+    };
+    el.addEventListener('animationend', remover, { once: true });
+    const timer = setTimeout(remover, 1800);
+    this.#floatTimers.add(timer);
+  }
+
+  #limparInteracoes() {
+    this.#reactionLayer?.replaceChildren();
+    this.#floatTimers.forEach(timer => clearTimeout(timer));
+    this.#floatTimers.clear();
+  }
+
+  static #clientMessageId() {
+    try {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    } catch (_) {}
+    return `portfolio-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  static #laughEmoji() {
+    return '\u{1F602}';
+  }
+
   // ───────────────────────────────────────────────────────────
   // Bootstrap DOM
   // ───────────────────────────────────────────────────────────
@@ -433,6 +570,16 @@ class PortfolioPrismViewer {
       </div>
       <div class="pp-prism-stage" aria-live="polite">
         <div class="pp-prism-cube">${facesHtml}</div>
+        <div class="pp-prism-reactions" aria-hidden="true"></div>
+      </div>
+      <div class="pp-prism-public-actions" hidden>
+        <img class="pp-prism-public-logo" src="/shared/img/Logo01.png" alt="BarberFlow" loading="lazy">
+        <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Mensagem" aria-label="Mensagem">
+        <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
+          <span aria-hidden="true">&hearts;</span>
+          <span data-public-like-count>0</span>
+        </button>
+        <button type="button" class="pp-prism-public-emoji" aria-label="Enviar risada">${PortfolioPrismViewer.#laughEmoji()}</button>
       </div>
       <figcaption class="pp-prism-title"></figcaption>
       <div class="pp-prism-actions"></div>
@@ -452,6 +599,11 @@ class PortfolioPrismViewer {
     this.#likes   = overlay.querySelector('.pp-prism-likes');
     this.#title   = overlay.querySelector('.pp-prism-title');
     this.#actions = overlay.querySelector('.pp-prism-actions');
+    this.#publicActions = overlay.querySelector('.pp-prism-public-actions');
+    this.#publicInput = overlay.querySelector('.pp-prism-message-input');
+    this.#publicLike = overlay.querySelector('.pp-prism-public-like');
+    this.#publicEmoji = overlay.querySelector('.pp-prism-public-emoji');
+    this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
     this.#count   = overlay.querySelector('.pp-prism-count');
 
     overlay.addEventListener('click', e => {
@@ -463,6 +615,26 @@ class PortfolioPrismViewer {
     this.#stage?.addEventListener('pointerup',     e => this.#onPointerUp(e));
     this.#stage?.addEventListener('pointercancel', () => this.#onPointerCancel());
     this.#stage?.addEventListener('lostpointercapture', () => this.#onPointerCancel());
+
+    this.#publicActions?.addEventListener('click', e => {
+      const likeBtn = e.target.closest('.pp-prism-public-like');
+      if (likeBtn) {
+        e.preventDefault();
+        this.#handlePublicLike();
+        return;
+      }
+      const emojiBtn = e.target.closest('.pp-prism-public-emoji');
+      if (emojiBtn) {
+        e.preventDefault();
+        this.#handlePublicMessage(PortfolioPrismViewer.#laughEmoji());
+      }
+    });
+
+    this.#publicInput?.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      this.#handlePublicMessage(this.#publicInput.value);
+    });
 
     // ResizeObserver — recalcula raio quando o stage mudar de tamanho
     if (typeof ResizeObserver !== 'undefined' && this.#stage) {

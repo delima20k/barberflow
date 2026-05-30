@@ -72,9 +72,29 @@ class ProfissionalService extends BaseService {
     return ProfissionalPublicProfileDto.fromUpdate(payload);
   }
 
-  async iniciarMensagemBarbearia(clienteId, professionalId) {
+  async iniciarMensagemBarbearia(clienteId, professionalId, dados = {}) {
     this._uuid('clienteId', clienteId);
     this._uuid('professionalId', professionalId);
+
+    const bodyInformado = Object.prototype.hasOwnProperty.call(dados ?? {}, 'body');
+    const bodyCustomizado = bodyInformado
+      ? this._texto('body', dados.body ?? '', 240, false)
+      : '';
+    if (bodyInformado && !bodyCustomizado) {
+      throw AppError.badRequest('Mensagem obrigatoria.');
+    }
+
+    let portfolioImageId = null;
+    if (Object.prototype.hasOwnProperty.call(dados ?? {}, 'portfolioImageId') && dados.portfolioImageId) {
+      this._uuid('portfolioImageId', dados.portfolioImageId);
+      portfolioImageId = dados.portfolioImageId;
+    }
+
+    let clientMessageId = null;
+    if (Object.prototype.hasOwnProperty.call(dados ?? {}, 'clientMessageId') && dados.clientMessageId) {
+      clientMessageId = this._texto('clientMessageId', dados.clientMessageId, 80, true);
+    }
+
     if (!this.#sendMessageUseCase) {
       throw AppError.unavailable('Chat indisponivel.');
     }
@@ -85,11 +105,12 @@ class ProfissionalService extends BaseService {
     }
 
     const metadata = {
-      origin: 'barber_public_profile',
+      origin: portfolioImageId ? 'barbershop_public_portfolio' : 'barber_public_profile',
       professionalId,
       professionalName: ctx.professional_name ?? null,
       barbershopId: ctx.barbershop_id,
     };
+    if (portfolioImageId) metadata.portfolioImageId = portfolioImageId;
 
     let conversationId = await this.#repo.encontrarConversaDireta(clienteId, ctx.owner_id, metadata);
     if (!conversationId) {
@@ -101,11 +122,11 @@ class ProfissionalService extends BaseService {
       });
     }
 
-    const body = `Cliente interessado no barbeiro ${ctx.professional_name || professionalId}`;
+    const body = bodyCustomizado || `Cliente interessado no barbeiro ${ctx.professional_name || professionalId}`;
     const result = await this.#sendMessageUseCase.execute({
       conversationId,
       senderId: clienteId,
-      clientMessageId: this.#deps.uuid(),
+      clientMessageId: clientMessageId || this.#deps.uuid(),
       body,
       attachments: [],
     });

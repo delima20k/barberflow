@@ -265,8 +265,8 @@ class BffApiService {
     atualizarMeuPerfilPublico: (payload) =>
       BffApiService.patch('/api/v1/profissionais/me/public-profile', payload),
 
-    iniciarMensagemBarbearia: (professionalId) =>
-      BffApiService.post(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/mensagem-barbearia`, {}),
+    iniciarMensagemBarbearia: (professionalId, payload = {}) =>
+      BffApiService.post(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/mensagem-barbearia`, payload ?? {}),
 
     portfolio: (professionalId, params = {}) =>
       BffApiService.get(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/portfolio`, params),
