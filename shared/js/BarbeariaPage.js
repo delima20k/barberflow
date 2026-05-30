@@ -178,13 +178,6 @@ class BarbeariaPage {
    * Usa capture para agir antes dos botões de ação ([data-action]) dentro do card.
    */
   #bindListenerGlobal() {
-    // Portfolio: clique em qualquer .bp-port-item abre o viewer 3D
-    this.#refs.portfolioGrid?.addEventListener('click', e => {
-      const item = e.target.closest('[data-port-index]');
-      if (!item) return;
-      this.#abrirPortfolioViewer(Number(item.dataset.portIndex));
-    });
-
     document.addEventListener('click', e => {
       const card = e.target.closest('[data-barbershop-id]');
       if (!card || e.target.closest('[data-action]')) return;
@@ -1215,6 +1208,13 @@ class BarbeariaPage {
              onerror="this.closest('.bp-port-item').classList.add('bp-port-item--vazio')">
       </div>`;
     }).join('');
+
+    // Delegação: onclick garante handler único mesmo após re-renders (não acumula listeners)
+    el.onclick = e => {
+      const item = e.target.closest('[data-port-index]');
+      if (!item) return;
+      this.#abrirPortfolioViewer(Number(item.dataset.portIndex));
+    };
   }
 
   /**
