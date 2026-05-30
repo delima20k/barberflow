@@ -1200,7 +1200,7 @@ class BarbeariaPage {
     this.#portfolioData = lista;
 
     el.innerHTML = lista.map((img, i) => {
-      if (!img.thumbnail_path) return `<div class="bp-port-item bp-port-item--vazio" data-port-index="${i}"></div>`;
+      if (!img.thumbnail_path) return '<div class="bp-port-item bp-port-item--vazio"></div>';
       const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path)
                ?? ApiService.getLogoUrl(img.thumbnail_path) ?? '';
       return `<div class="bp-port-item" data-port-index="${i}" style="cursor:pointer;">
