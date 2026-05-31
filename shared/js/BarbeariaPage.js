@@ -1222,7 +1222,9 @@ class BarbeariaPage {
     if (!el) return;
 
     const mensalidadeServico = servicos.find(sv => sv.category === 'mensalidade') ?? null;
-    const preco = shop?.monthly_plan_price ?? mensalidadeServico?.price;
+    const precoShop = Number(shop?.monthly_plan_price ?? 0);
+    const precoServico = Number(mensalidadeServico?.price ?? 0);
+    const preco = precoShop > 0 ? precoShop : precoServico;
     if (preco == null || Number(preco) <= 0) {
       el.hidden = true;
       el.innerHTML = '';

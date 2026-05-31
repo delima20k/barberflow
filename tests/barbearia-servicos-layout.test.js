@@ -49,16 +49,17 @@ describe('BarbeariaPage servicos publicos', () => {
       js.indexOf('static async #fetchPortfolio'),
     );
     const idxRenderizar = js.lastIndexOf('#renderizar(shop, servicos, portfolio)');
+    const idxRenderMensalBanner = js.lastIndexOf('#renderMensalBanner(shop, servicos = [])');
     const renderizar = js.slice(idxRenderizar, idxRenderizar + 500);
     const renderMensalBanner = js.slice(
-      js.indexOf('#renderMensalBanner'),
-      js.indexOf('#abrirPortfolioViewer', js.indexOf('#renderMensalBanner')),
+      idxRenderMensalBanner,
+      js.indexOf('#abrirPortfolioViewer', idxRenderMensalBanner),
     );
 
     assert.match(fetchServicos, /select\('id, name, category, price, duration_min, image_path, description'\)/);
     assert.match(renderizar, /#renderMensalBanner\(shop, servicos\)/);
     assert.match(renderMensalBanner, /servicos\.find\(sv => sv\.category === 'mensalidade'\)/);
-    assert.match(renderMensalBanner, /shop\?\.monthly_plan_price \?\? mensalidadeServico\?\.price/);
+    assert.match(renderMensalBanner, /precoShop > 0 \? precoShop : precoServico/);
     assert.match(renderMensalBanner, /shop\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name/);
   });
 
