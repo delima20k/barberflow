@@ -5119,39 +5119,35 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   aspect-ratio: 1;
   flex: 0 0 clamp(132px, 42vw, 180px);
   width: clamp(132px, 42vw, 180px);
+  padding: 0;
   overflow: hidden;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 8px;
   background: rgba(255,255,255,.05);
   scroll-snap-align: start;
-}
-.mb-portfolio-card__btn {
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
   cursor: pointer;
-  display: block;
 }
-.mb-portfolio-card__btn img {
+
+.mb-portfolio-card > img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
 }
-/* Animação de pressão */
-.mb-portfolio-card__btn--pressionado {
-  opacity: .7;
-  transform: scale(.96);
+
+/* Animação de pressão no card */
+.mb-portfolio-card--pressionado {
+  opacity: .72;
+  transform: scale(.95);
   transition: opacity .1s, transform .1s;
 }
-/* Overlay de exclusão */
+
+/* Overlay de exclusão (aparece sobre o card ao segurar) */
 .mb-portfolio-delete-overlay {
   position: absolute;
   inset: 0;
   z-index: 10;
-  background: rgba(0,0,0,.72);
+  background: rgba(0,0,0,.75);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5165,10 +5161,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   from { opacity: 0; transform: scale(.96); }
   to   { opacity: 1; transform: scale(1); }
 }
-.mb-portfolio-delete-overlay__btn {
+.mb-portfolio-delete-overlay__op {
   width: 100%;
-  padding: 8px 12px;
-  border: 0;
+  padding: 9px 12px;
   border-radius: 6px;
   background: rgba(255,255,255,.15);
   color: #fff;
@@ -5176,22 +5171,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-weight: 700;
   cursor: pointer;
   text-align: center;
+  user-select: none;
 }
-.mb-portfolio-delete-overlay__btn--danger {
+.mb-portfolio-delete-overlay__op--danger {
   background: #e53e3e;
-  color: #fff;
 }
-.mb-portfolio-delete-overlay__btn--danger:hover {
-  background: #c53030;
-}
-
-/* Backward compat: imagem direta dentro do card (legado) */
-.mb-portfolio-card > img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
+.mb-portfolio-delete-overlay__op--danger:active { background: #c53030; }
 
 .mb-portfolio-card__barber {
   position: absolute;

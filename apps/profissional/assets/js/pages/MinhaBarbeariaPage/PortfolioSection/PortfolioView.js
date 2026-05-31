@@ -110,22 +110,19 @@ export class PortfolioView {
       return;
     }
     state.items.forEach((item, index) => {
-      const card = document.createElement('article');
+      // Estrutura original: card é o próprio <button>
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'mb-portfolio-card';
-      card.dataset.portfolioCardId = item.id ?? '';
-
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'mb-portfolio-card__btn';
-      btn.setAttribute('aria-label', item.title ?? 'Abrir imagem do portfólio');
-      btn.addEventListener('click', () => this.#abrirViewer(item, state.items));
+      card.setAttribute('aria-label', item.title ?? 'Abrir imagem do portfólio');
+      card.addEventListener('click', () => this.#abrirViewer(item, state.items));
 
       const img = document.createElement('img');
       img.src = item.thumbUrl || item.fullUrl || '';
       img.alt = item.title ?? '';
       img.loading = index < 4 ? 'eager' : 'lazy';
       img.onerror = () => { img.style.opacity = '0'; };
-      btn.appendChild(img);
+      card.appendChild(img);
 
       if (item.professionalName) {
         const meta = document.createElement('span');
@@ -143,90 +140,86 @@ export class PortfolioView {
         name.className = 'mb-portfolio-card__nome';
         name.textContent = item.professionalName;
         meta.appendChild(name);
-        btn.appendChild(meta);
+        card.appendChild(meta);
       }
 
-      card.appendChild(btn);
-
-      // Long-press para excluir (600ms)
+      // Long-press para excluir (600ms) — overlay é div, não button
       if (state.canUpload && item.id) {
-        this.#bindLongPress(btn, card, item.id);
+        this.#bindLongPress(card, item.id);
       }
 
       this.#grid.appendChild(card);
     });
   }
 
-  /** Adiciona detecção de press-and-hold (600ms) para mostrar opção de exclusão. */
-  #bindLongPress(btn, card, imageId) {
+  /** Detecta press-and-hold (600ms) e mostra overlay de exclusão. */
+  #bindLongPress(card, imageId) {
     let timer = null;
-    let ativo = false;
+    let disparou = false;
 
     const cancelar = () => {
       clearTimeout(timer);
       timer = null;
-      ativo = false;
-      btn.classList.remove('mb-portfolio-card__btn--pressionado');
+      card.classList.remove('mb-portfolio-card--pressionado');
     };
 
-    btn.addEventListener('pointerdown', e => {
-      if (e.button !== undefined && e.button !== 0) return; // só botão primário
-      ativo = false;
+    card.addEventListener('pointerdown', e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      disparou = false;
+      card.classList.add('mb-portfolio-card--pressionado');
       timer = setTimeout(() => {
-        ativo = true;
-        btn.classList.remove('mb-portfolio-card__btn--pressionado');
-        PortfolioView.#mostrarOverlayExcluir(card, imageId, () => {
+        disparou = true;
+        cancelar();
+        PortfolioView.#mostrarOverlayExcluir(card, () => {
           this.#onRemove?.(imageId);
         });
       }, 600);
-      btn.classList.add('mb-portfolio-card__btn--pressionado');
     });
 
-    btn.addEventListener('pointerup', e => {
-      if (ativo) { e.preventDefault(); e.stopPropagation(); }
+    card.addEventListener('pointerup', e => {
+      if (disparou) { e.preventDefault(); e.stopPropagation(); disparou = false; }
       cancelar();
     });
-    btn.addEventListener('pointercancel', cancelar);
-    btn.addEventListener('pointermove', e => {
-      // Cancela se o dedo moveu muito
-      if (timer && (Math.abs(e.movementX) > 8 || Math.abs(e.movementY) > 8)) cancelar();
+    card.addEventListener('pointercancel', cancelar);
+    card.addEventListener('pointermove', e => {
+      if (timer && (Math.abs(e.movementX ?? 0) > 8 || Math.abs(e.movementY ?? 0) > 8)) cancelar();
     });
   }
 
-  /** Exibe overlay de confirmação de exclusão sobre o card. */
-  static #mostrarOverlayExcluir(card, imageId, onConfirm) {
-    // Remove overlay anterior se existir
+  /**
+   * Exibe overlay de exclusão sobre o card.
+   * Usa <div> (não <button>) para evitar nested interactive content.
+   */
+  static #mostrarOverlayExcluir(card, onConfirm) {
     card.querySelector('.mb-portfolio-delete-overlay')?.remove();
 
     const overlay = document.createElement('div');
     overlay.className = 'mb-portfolio-delete-overlay';
 
-    const btnExcluir = document.createElement('button');
-    btnExcluir.type = 'button';
-    btnExcluir.className = 'mb-portfolio-delete-overlay__btn mb-portfolio-delete-overlay__btn--danger';
-    btnExcluir.textContent = '🗑 Excluir imagem';
+    const opExcluir = document.createElement('div');
+    opExcluir.className = 'mb-portfolio-delete-overlay__op mb-portfolio-delete-overlay__op--danger';
+    opExcluir.setAttribute('role', 'button');
+    opExcluir.setAttribute('tabindex', '0');
+    opExcluir.textContent = '🗑 Excluir imagem';
 
-    const btnCancelar = document.createElement('button');
-    btnCancelar.type = 'button';
-    btnCancelar.className = 'mb-portfolio-delete-overlay__btn';
-    btnCancelar.textContent = 'Cancelar';
+    const opCancelar = document.createElement('div');
+    opCancelar.className = 'mb-portfolio-delete-overlay__op';
+    opCancelar.setAttribute('role', 'button');
+    opCancelar.setAttribute('tabindex', '0');
+    opCancelar.textContent = 'Cancelar';
 
     const fechar = () => overlay.remove();
 
-    btnExcluir.addEventListener('click', e => {
-      e.stopPropagation();
-      fechar();
-      onConfirm();
-    });
-    btnCancelar.addEventListener('click', e => {
-      e.stopPropagation();
-      fechar();
-    });
+    opExcluir.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+    opExcluir.addEventListener('click', e => { e.stopPropagation(); fechar(); onConfirm(); });
 
-    overlay.append(btnExcluir, btnCancelar);
+    opCancelar.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
+    opCancelar.addEventListener('click', e => { e.stopPropagation(); fechar(); });
+
+    overlay.append(opExcluir, opCancelar);
     card.appendChild(overlay);
 
-    // Fecha ao clicar fora do card
+    // Fecha se o toque sair do card
     setTimeout(() => {
       const fecharFora = e => {
         if (!card.contains(e.target)) {
