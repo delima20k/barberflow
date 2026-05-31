@@ -427,7 +427,7 @@ class BarbeariaPage {
     this.#renderCapa(shop);
     this.#renderInfo(shop);
     this.#renderAcoes(shop);
-    this.#renderServicos(servicos);
+    this.#renderServicos(servicos, shop);
     this.#renderMensalBanner(shop, servicos);
     this.#renderPortfolio(portfolio);
     this.#renderBarbeiros(shop);          // fire-and-forget: preenche carousel async
@@ -1176,7 +1176,7 @@ class BarbeariaPage {
    * Lista de serviços.
    * sanitizar() é CORRETO aqui — valores vão para innerHTML.
    */
-  #renderServicos(lista) {
+  #renderServicos(lista, shop = null) {
     const el = this.#refs.servicosLista;
     if (!el) return;
 
@@ -1188,7 +1188,7 @@ class BarbeariaPage {
     const s   = InputValidator.sanitizar;
     const fmt = v => `R$\u00a0${Number(v ?? 0).toFixed(2).replace('.', ',')}`;
 
-    const itens = lista.filter(sv => sv.category !== 'mensalidade').map(sv => {
+    const itens = lista.filter(sv => !BarbeariaPage.#isMensalidadeServico(sv, shop)).map(sv => {
       const nome  = s(sv.name ?? '');
       const preco = (sv.category === 'luzes' && sv.price_half != null)
         ? `${fmt(sv.price_half)} / ${fmt(sv.price)}`
@@ -1211,6 +1211,47 @@ class BarbeariaPage {
     el.innerHTML = html;
   }
 
+  static #isMensalidadeServico(servico, shop = null) {
+    const texto = [
+      servico?.category,
+      servico?.name,
+      servico?.description,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    if (texto.includes('mensalidade')) return true;
+
+    const precoShop = Number(shop?.monthly_plan_price ?? 0);
+    const precoServico = Number(servico?.price ?? 0);
+    const mensagemShop = String(shop?.monthly_plan_message ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const textoConfereComMensagem = Boolean(mensagemShop) && texto.includes(mensagemShop);
+    const pareceCadastroMensal = precoShop > 0
+      && precoServico === precoShop
+      && Number(servico?.duration_min ?? 30) === 30
+      && !servico?.image_path;
+
+    return pareceCadastroMensal && (!servico?.category || textoConfereComMensagem);
+  }
+
+  #obterMensalBanner() {
+    if (this.#refs.mensalBanner) return this.#refs.mensalBanner;
+    if (!this.#refs.servicosLista || typeof document === 'undefined') return null;
+
+    const el = document.createElement('div');
+    el.id = 'bp-mensal-banner';
+    el.className = 'bp-mensal-banner';
+    el.hidden = true;
+    this.#refs.servicosLista.insertAdjacentElement('afterend', el);
+    this.#refs.mensalBanner = el;
+    return el;
+  }
+
   /**
    * Banner de mensalidade na p\u00e1gina p\u00fablica.
    * Le shop.monthly_plan_* ou o servico fallback category=mensalidade; oculta se vazio.
@@ -1218,10 +1259,10 @@ class BarbeariaPage {
    * @param {Array<object>} servicos
    */
   #renderMensalBanner(shop, servicos = []) {
-    const el = this.#refs.mensalBanner;
+    const el = this.#obterMensalBanner();
     if (!el) return;
 
-    const mensalidadeServico = servicos.find(sv => sv.category === 'mensalidade') ?? null;
+    const mensalidadeServico = servicos.find(sv => BarbeariaPage.#isMensalidadeServico(sv, shop)) ?? null;
     const precoShop = Number(shop?.monthly_plan_price ?? 0);
     const precoServico = Number(mensalidadeServico?.price ?? 0);
     const preco = precoShop > 0 ? precoShop : precoServico;

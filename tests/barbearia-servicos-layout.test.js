@@ -14,8 +14,8 @@ describe('BarbeariaPage servicos publicos', () => {
 
   test('renderiza servicos em colunas horizontais com ate cinco itens cada', () => {
     const renderServicos = js.slice(
-      js.indexOf('#renderServicos(lista)'),
-      js.indexOf('#renderMensalBanner', js.indexOf('#renderServicos(lista)')),
+      js.indexOf('#renderServicos(lista, shop = null)'),
+      js.indexOf('static #isMensalidadeServico', js.indexOf('#renderServicos(lista, shop = null)')),
     );
     const carouselCss = css.slice(
       css.indexOf('.bp-serv-carousel'),
@@ -32,7 +32,7 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(renderServicos, /itens\.slice\(i, i \+ 5\)\.join\(''\)/);
     assert.match(renderServicos, /<h2 class="bp-serv-nome">/);
     assert.match(renderServicos, /<span class="bp-serv-preco">/);
-    assert.match(renderServicos, /filter\(sv => sv\.category !== 'mensalidade'\)/);
+    assert.match(renderServicos, /filter\(sv => !BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
     assert.doesNotMatch(renderServicos, /bp-serv-card|bp-serv-card-vazio|<img|image_path/);
     assert.match(carouselCss, /display:\s*flex/);
     assert.match(carouselCss, /flex-direction:\s*row/);
@@ -57,13 +57,36 @@ describe('BarbeariaPage servicos publicos', () => {
     );
 
     assert.match(fetchServicos, /select\('id, name, category, price, duration_min, image_path, description'\)/);
+    assert.match(renderizar, /#renderServicos\(servicos, shop\)/);
     assert.match(renderizar, /#renderMensalBanner\(shop, servicos\)/);
-    assert.match(renderMensalBanner, /servicos\.find\(sv => sv\.category === 'mensalidade'\)/);
+    assert.match(renderMensalBanner, /this\.#obterMensalBanner\(\)/);
+    assert.match(renderMensalBanner, /servicos\.find\(sv => BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
     assert.match(renderMensalBanner, /precoShop > 0 \? precoShop : precoServico/);
     assert.match(renderMensalBanner, /bp-mensal-banner__linha/);
     assert.match(renderMensalBanner, /<p class="bp-mensal-banner__tag">Mensalidade<\/p>/);
     assert.match(renderMensalBanner, /<p class="bp-mensal-banner__valor">\$\{val\}/);
     assert.match(renderMensalBanner, /shop\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name/);
+  });
+
+  test('banner de mensalidade cria container e reconhece cadastro por nome', () => {
+    const helpers = js.slice(
+      js.indexOf('static #isMensalidadeServico'),
+      js.indexOf('#abrirPortfolioViewer', js.indexOf('static #isMensalidadeServico')),
+    );
+
+    assert.match(helpers, /static #isMensalidadeServico\(servico, shop = null\)/);
+    assert.match(helpers, /category/);
+    assert.match(helpers, /name/);
+    assert.match(helpers, /description/);
+    assert.match(helpers, /monthly_plan_price/);
+    assert.match(helpers, /monthly_plan_message/);
+    assert.match(helpers, /duration_min/);
+    assert.match(helpers, /image_path/);
+    assert.match(helpers, /includes\('mensalidade'\)/);
+    assert.match(helpers, /#obterMensalBanner\(\)/);
+    assert.match(helpers, /document\.createElement\('div'\)/);
+    assert.match(helpers, /id = 'bp-mensal-banner'/);
+    assert.match(helpers, /insertAdjacentElement\('afterend', el\)/);
   });
 
   test('banner de mensalidade fica abaixo dos servicos com gradiente da paleta', () => {
