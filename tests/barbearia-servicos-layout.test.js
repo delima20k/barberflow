@@ -104,6 +104,12 @@ describe('BarbeariaPage servicos publicos', () => {
     );
 
     assert.match(helpers, /\\b\(mensalidade\|mensal\|mensalista\)\\b/);
+    assert.match(helpers, /precoShop > 0/);
+    assert.match(helpers, /precoServico === precoShop/);
+    assert.match(helpers, /Number\(servico\?\.duration_min \?\? 30\) === 30/);
+    assert.match(helpers, /!servico\?\.image_path/);
+    assert.match(helpers, /return pareceCadastroMensal \|\| textoConfereComMensagem;/);
+    assert.doesNotMatch(helpers, /!\s*servico\?\.category\s*\|\|\s*textoConfereComMensagem/);
     assert.match(renderServicos, /filter\(sv => !BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
     assert.match(renderMensalBanner, /servicos\.find\(sv => BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
   });

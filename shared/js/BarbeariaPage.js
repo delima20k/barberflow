@@ -1245,7 +1245,7 @@ class BarbeariaPage {
       && Number(servico?.duration_min ?? 30) === 30
       && !servico?.image_path;
 
-    return pareceCadastroMensal && (!servico?.category || textoConfereComMensagem);
+    return pareceCadastroMensal || textoConfereComMensagem;
   }
 
   #obterMensalBanner() {
