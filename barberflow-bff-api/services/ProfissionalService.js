@@ -108,7 +108,12 @@ class ProfissionalService extends BaseService {
       throw AppError.unavailable('Chat indisponivel.');
     }
 
-    const ctx = await this.#repo.buscarContextoMensagem(professionalId);
+    let ctx;
+    try {
+      ctx = await this.#repo.buscarContextoMensagem(professionalId);
+    } catch (err) {
+      throw AppError.unavailable('Servico de mensagens temporariamente indisponivel.');
+    }
     if (!ctx?.professional_id || !ctx?.owner_id || !ctx?.barbershop_id) {
       throw AppError.notFound('Vinculo ativo do profissional com barbearia nao encontrado.');
     }
@@ -121,24 +126,34 @@ class ProfissionalService extends BaseService {
     };
     if (portfolioImageId) metadata.portfolioImageId = portfolioImageId;
 
-    let conversationId = await this.#repo.encontrarConversaDireta(clienteId, ctx.owner_id, metadata);
-    if (!conversationId) {
-      conversationId = await this.#repo.criarConversaDireta({
-        clientId: clienteId,
-        ownerId: ctx.owner_id,
-        createdBy: clienteId,
-        metadata,
-      });
+    let conversationId;
+    try {
+      conversationId = await this.#repo.encontrarConversaDireta(clienteId, ctx.owner_id, metadata);
+      if (!conversationId) {
+        conversationId = await this.#repo.criarConversaDireta({
+          clientId: clienteId,
+          ownerId: ctx.owner_id,
+          createdBy: clienteId,
+          metadata,
+        });
+      }
+    } catch (err) {
+      throw AppError.unavailable('Servico de mensagens temporariamente indisponivel.');
     }
 
     const body = bodyCustomizado || `Cliente interessado no barbeiro ${ctx.professional_name || professionalId}`;
-    const result = await this.#sendMessageUseCase.execute({
-      conversationId,
-      senderId: clienteId,
-      clientMessageId: clientMessageId || this.#deps.uuid(),
-      body,
-      attachments: [],
-    });
+    let result;
+    try {
+      result = await this.#sendMessageUseCase.execute({
+        conversationId,
+        senderId: clienteId,
+        clientMessageId: clientMessageId || this.#deps.uuid(),
+        body,
+        attachments: [],
+      });
+    } catch (err) {
+      throw AppError.unavailable('Servico de mensagens temporariamente indisponivel.');
+    }
 
     if (result?.isFail?.()) {
       throw AppError.badRequest(String(result.getError()));
