@@ -396,7 +396,13 @@ class ProfissionalService extends BaseService {
     this._uuid('professionalId', professionalId);
     this._uuid('imageId', imageId);
 
-    const result = await this.#repo.listarMensagensPortfolioImagem(professionalId, imageId, 50);
+    let result;
+    try {
+      result = await this.#repo.listarMensagensPortfolioImagem(professionalId, imageId, 50);
+    } catch {
+      // Tabela portfolio_messages ainda não existe em produção — retorna vazio
+      return { likesCount: 0, messages: [] };
+    }
     if (!result.ownerVerified) {
       throw AppError.forbidden('Acesso negado. Esta imagem nao pertence ao seu perfil.');
     }

@@ -51,6 +51,8 @@ class PortfolioImageActions {
   static instalarDelegacao() {
     if (PortfolioImageActions.#delegado) return;
     PortfolioImageActions.#delegado = true;
+
+    // Delegação de cliques nos botões de like e mensagem
     document.addEventListener('click', event => {
       const btn = event.target.closest('[data-action="portfolio-like"], [data-action="portfolio-message"]');
       if (!btn) return;
@@ -65,6 +67,17 @@ class PortfolioImageActions {
       if (action === 'portfolio-like') PortfolioImageActions.#alternarCurtida(btn);
       if (action === 'portfolio-message') PortfolioImageActions.#enviarMensagem(btn);
     }, true);
+
+    // Listener global: sincroniza TODOS os contadores quando qualquer fonte curte uma imagem
+    document.addEventListener('barberflow:portfolio-like', event => {
+      const { imageId, likesCount, liked } = event.detail ?? {};
+      if (!imageId) return;
+      // Atualiza o Set interno de curtidas
+      if (liked) PortfolioImageActions.#curtidas.add(imageId);
+      else PortfolioImageActions.#curtidas.delete(imageId);
+      // Sincroniza todos os elementos na página
+      PortfolioImageActions.#sincronizarBotao(imageId, Boolean(liked), likesCount);
+    });
   }
 
   static async #alternarCurtida(btn) {
@@ -90,6 +103,8 @@ class PortfolioImageActions {
       if (error) throw error;
       const total = Number(data?.likesCount ?? proximoTotal);
       PortfolioImageActions.#sincronizarBotao(imageId, novoAtivo, total);
+      // Dispara evento global para sincronizar todos os contadores na página
+      PortfolioImageActions.#dispatchLike(imageId, total, novoAtivo);
     } catch (err) {
       if (estavaAtivo) PortfolioImageActions.#curtidas.add(imageId);
       else PortfolioImageActions.#curtidas.delete(imageId);
@@ -295,22 +310,66 @@ class PortfolioImageActions {
     return item;
   }
 
+  /** Dispara evento global de curtida para sincronizar todos os contadores. */
+  static #dispatchLike(imageId, likesCount, liked) {
+    try {
+      document.dispatchEvent(new CustomEvent('barberflow:portfolio-like', {
+        detail: { imageId, likesCount, liked },
+        bubbles: false,
+      }));
+    } catch { /* best-effort */ }
+  }
+
+  /**
+   * Sincroniza todos os contadores de curtida de uma imagem na p\u00E1gina.
+   * Atualiza: bot\u00F5es portfolio-action--like, cards pbp-like-btn,
+   * meta-count do viewer, e o data-public-like-count do viewer p\u00FAblico.
+   */
   static #sincronizarBotao(imageId, ativo, total = null) {
     if (!imageId) return;
     const safeId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(imageId) : imageId;
+    const n = total !== null ? Math.max(0, Number(total) || 0) : null;
+
+    // 1. Bot\u00F5es portfolio-action--like (app profissional)
     document.querySelectorAll(`[data-action="portfolio-like"][data-portfolio-image-id="${safeId}"]`).forEach(btn => {
       btn.classList.toggle('ativo', ativo);
       btn.setAttribute('aria-pressed', String(ativo));
       const icon = btn.querySelector('.portfolio-action__icon');
       if (icon) icon.textContent = '\uD83D\uDC4D';
       const count = btn.querySelector('.portfolio-action__count');
-      if (count && total !== null) count.textContent = String(Math.max(0, Number(total) || 0));
+      if (count && n !== null) count.textContent = String(n);
     });
-    if (total !== null) {
+
+    // 2. Meta count no viewer (pp-prism-meta e outros)
+    if (n !== null) {
       document.querySelectorAll(`[data-portfolio-image-id="${safeId}"] [data-portfolio-meta-count]`).forEach(el => {
-        const likesCount = Math.max(0, Number(total) || 0);
-        el.textContent = `${likesCount} curtida${likesCount === 1 ? '' : 's'}`;
+        el.textContent = `${n} curtida${n === 1 ? '' : 's'}`;
       });
+    }
+
+    // 3. Cards do carrossel pbp-like-btn (PortfolioBarbeirosSection)
+    if (n !== null) {
+      document.querySelectorAll(`.pbp-like-btn[data-image-id="${safeId}"]`).forEach(btn => {
+        btn.classList.toggle('curtido', ativo);
+        const countEl = btn.querySelector('.pbp-like-count');
+        if (countEl) countEl.textContent = String(n);
+      });
+    }
+
+    // 4. Bot\u00E3o p\u00FAblico no viewer cliente (pp-prism-public-like)
+    if (n !== null) {
+      const publicActions = document.querySelector(`.pp-prism-public-actions[data-portfolio-image-id="${safeId}"]`);
+      if (publicActions) {
+        const countEl = publicActions.querySelector('[data-public-like-count]');
+        const iconEl  = publicActions.querySelector('[data-public-like-icon]');
+        if (countEl) { countEl.textContent = String(n); countEl.hidden = n <= 0; }
+        if (iconEl)  { iconEl.hidden = n > 0; }
+        const likeBtn = publicActions.querySelector('.pp-prism-public-like');
+        if (likeBtn) {
+          likeBtn.classList.toggle('is-liked', ativo);
+          likeBtn.setAttribute('aria-pressed', String(ativo));
+        }
+      }
     }
   }
 }
