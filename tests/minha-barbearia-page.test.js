@@ -461,8 +461,8 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
 
     assert.match(
       tiposServico,
-      /cat:\s*'corte'[\s\S]*nomeFixo:\s*true/,
-      'card de corte deve permanecer com nome fixo',
+      /cat:\s*'corte'[\s\S]*label:\s*'Corte'/,
+      'card de corte deve permanecer como servico fixo',
     );
     assert.match(
       tiposServico,
@@ -476,13 +476,13 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
-      /tipo\.nomeFixo \? esc\(tipo\.label\)/,
-      'nome do corte deve ser preenchido pelo label fixo',
+      /<span class="mb-serv-tipo-label">\$\{esc\(tipo\.label\)\}<\/span>/,
+      'nome visual do corte deve usar o label fixo do card',
     );
-    assert.match(
+    assert.doesNotMatch(
       SRC_MB_PAGE,
-      /class="mb-cfg-prod-nome" value="\$\{nomeVal\}" maxlength="60" readonly aria-readonly="true"/,
-      'campo de nome fixo deve ficar somente leitura',
+      /readonly aria-readonly="true"/,
+      'card de corte nao deve renderizar input de nome somente leitura',
     );
     assert.match(
       SRC_INDEX,
@@ -501,8 +501,13 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
-      /async #salvarServicoTipadoUnico\(li\)[\s\S]*#salvarServicosTipados\(\);[\s\S]*#fetchServicos\(this\.#barbershopId\)/,
-      'salvamento individual deve persistir e recarregar cache usado pela modal de servicos',
+      /async #salvarServicoTipadoUnico\(li\)[\s\S]*#salvarServicosTipados\(li\);[\s\S]*#fetchServicos\(this\.#barbershopId\)/,
+      'salvamento individual deve persistir somente o card clicado e recarregar cache usado pela modal de servicos',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /async #salvarServicosTipados\(linhaUnica = null\)[\s\S]*if \(linhaUnica && el !== linhaUnica\) continue;[\s\S]*if \(cat === 'luzes'\)[\s\S]*nome = .*'Luzes'/,
+      'card de luzes deve salvar com nome fixo e permitir OK quando meia ou inteira estiver preenchido',
     );
     assert.match(
       SRC_MB_PAGE,

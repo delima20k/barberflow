@@ -2662,7 +2662,7 @@ export class MinhaBarbeariaRuntimeController {
 
   /** Tipos fixos de serviço exibidos como LIs no config. */
   static #TIPOS_SERVICO = [
-    { cat: 'corte',       label: 'Corte',       nomeFixo: true },
+    { cat: 'corte',       label: 'Corte' },
     { cat: 'luzes',       label: 'Luzes',       luzes: true },
   ];
 
@@ -2702,15 +2702,6 @@ export class MinhaBarbeariaRuntimeController {
 
     const precoVal = svc?.price != null ? Number(svc.price).toFixed(2) : '';
     const meiaVal  = svc?.price_half != null ? Number(svc.price_half).toFixed(2) : '';
-    const nomeVal  = tipo.nomeFixo ? esc(tipo.label) : (svc ? esc(svc.name ?? '') : '');
-
-    const nomeHtml = tipo.nomeFixo
-      ? `<div class="mb-cfg-prod-field-group">
-           <label class="mb-prod-label">Nome</label>
-           <input type="text" class="mb-cfg-prod-nome" value="${nomeVal}" maxlength="60" readonly aria-readonly="true">
-         </div>`
-      : '';
-
     const precoHtml = tipo.luzes
       ? `<div class="mb-luzes-row">
            <div class="mb-cfg-prod-field-group">
@@ -2745,7 +2736,6 @@ export class MinhaBarbeariaRuntimeController {
           <input type="file" id="${uid}" accept="image/*" style="display:none">
         </div>
         <div class="mb-cfg-prod-fields">
-          ${nomeHtml}
           ${precoHtml}
         </div>
       </div>
@@ -2828,15 +2818,17 @@ export class MinhaBarbeariaRuntimeController {
     }
   }
 
-  /** Salva os serviços tipados (5 LIs fixas) + pacotes em `services` com `category`. */
-  async #salvarServicosTipados() {
+  /** Salva os serviços tipados fixos + pacotes em `services` com `category`. */
+  async #salvarServicosTipados(linhaUnica = null) {
     const linhas = [];
+    let salvos = 0;
     this.#refs.servTipos?.querySelectorAll('.mb-serv-tipo-li')
       .forEach(li => linhas.push({ el: li, pacote: false }));
     this.#refs.cfgPacotes?.querySelectorAll('.mb-cfg-produto-row')
       .forEach(row => linhas.push({ el: row, pacote: true }));
 
     for (const { el, pacote } of linhas) {
+      if (linhaUnica && el !== linhaUnica) continue;
       const cat = el.dataset.category;
       let price = null, priceHalf = null, nome;
 
@@ -2877,7 +2869,9 @@ export class MinhaBarbeariaRuntimeController {
       if (error) throw error;
       if (data?.id)         el.dataset.produtoId = data.id;
       if (data?.image_path) el.dataset.imagePath = data.image_path;
+      salvos += 1;
     }
+    return salvos;
   }
 
   async #salvarServicoTipadoUnico(li) {
@@ -2893,7 +2887,13 @@ export class MinhaBarbeariaRuntimeController {
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
     try {
-      await this.#salvarServicosTipados();
+      const salvos = await this.#salvarServicosTipados(li);
+      if (!salvos) {
+        NotificationService?.mostrarToast('AtenÃ§Ã£o', 'Informe o preÃ§o do serviÃ§o antes de salvar.', 'sistema');
+        this.#setEstadoBotaoServico(btn, false);
+        li.querySelector('.mb-cfg-prod-preco')?.focus();
+        return;
+      }
       this.#servicos = await MinhaBarbeariaRuntimeController.#fetchServicos(this.#barbershopId)
         .catch(() => this.#servicos);
       const nome = li.querySelector('.mb-cfg-prod-nome')?.value?.trim()
