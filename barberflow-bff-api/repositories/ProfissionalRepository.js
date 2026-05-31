@@ -204,6 +204,20 @@ class ProfissionalRepository extends BaseRepository {
       .select('id, storage_path')
       .maybeSingle();
     if (error) this._throwDbError(error, 'removerPortfolioImagem');
+
+    if (data?.id) {
+      // Limpa dados relacionados: curtidas e mensagens do portfólio
+      await Promise.allSettled([
+        this._db.from('likes')
+          .delete()
+          .eq('content_id', imageId)
+          .eq('content_type', 'portfolio_image'),
+        this._db.from('portfolio_messages')
+          .delete()
+          .eq('portfolio_image_id', imageId),
+      ]);
+    }
+
     return { deleted: Boolean(data?.id), storage_path: data?.storage_path ?? null };
   }
 

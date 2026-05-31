@@ -19,8 +19,22 @@ export class PortfolioController {
     this.#view.bind?.({
       onUpload: this.#uploadHandler,
       onRetry: () => this.#load(),
+      onRemove: imageId => this.remove(imageId),
     });
     this.render();
+  }
+
+  async remove(imageId) {
+    if (!imageId || !this.#state.snapshot.canUpload) return;
+    this.update({ error: null });
+    try {
+      const { error } = await BffApiService.profissionais.removerPortfolioImagem(imageId);
+      if (error) throw error;
+      const atuais = this.#state.snapshot.items;
+      this.update({ items: atuais.filter(img => img.id !== imageId) });
+    } catch (err) {
+      this.update({ error: err?.message ?? 'Nao foi possivel remover a imagem.' });
+    }
   }
   render() { this.#view.render(this.#state.snapshot); }
   update(partial) {

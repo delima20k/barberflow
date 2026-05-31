@@ -8,15 +8,17 @@ export class PortfolioView {
   #viewer = null;
   #onUpload = null;
   #onRetry = null;
+  #onRemove = null;
   #boundChange = null;
   #boundClick = null;
 
   constructor(rootElement) { this.#root = rootElement; }
 
-  bind({ onUpload, onRetry } = {}) {
+  bind({ onUpload, onRetry, onRemove } = {}) {
     this.#cache();
     this.#onUpload = onUpload;
     this.#onRetry = onRetry;
+    this.#onRemove = onRemove;
     if (!this.#input || this.#boundChange) return;
     this.#boundChange = e => {
       const file = e.target?.files?.[0] ?? null;
@@ -48,6 +50,7 @@ export class PortfolioView {
     this.#boundClick = null;
     this.#onUpload = null;
     this.#onRetry = null;
+    this.#onRemove = null;
   }
 
   #cache() {
@@ -107,18 +110,22 @@ export class PortfolioView {
       return;
     }
     state.items.forEach((item, index) => {
-      const card = document.createElement('button');
-      card.type = 'button';
+      const card = document.createElement('article');
       card.className = 'mb-portfolio-card';
-      card.setAttribute('aria-label', item.title ?? 'Abrir imagem do portfólio');
-      card.addEventListener('click', () => this.#abrirViewer(item, state.items));
+      card.dataset.portfolioCardId = item.id ?? '';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mb-portfolio-card__btn';
+      btn.setAttribute('aria-label', item.title ?? 'Abrir imagem do portfólio');
+      btn.addEventListener('click', () => this.#abrirViewer(item, state.items));
 
       const img = document.createElement('img');
       img.src = item.thumbUrl || item.fullUrl || '';
       img.alt = item.title ?? '';
       img.loading = index < 4 ? 'eager' : 'lazy';
       img.onerror = () => { img.style.opacity = '0'; };
-      card.appendChild(img);
+      btn.appendChild(img);
 
       if (item.professionalName) {
         const meta = document.createElement('span');
@@ -136,10 +143,99 @@ export class PortfolioView {
         name.className = 'mb-portfolio-card__nome';
         name.textContent = item.professionalName;
         meta.appendChild(name);
-        card.appendChild(meta);
+        btn.appendChild(meta);
       }
+
+      card.appendChild(btn);
+
+      // Long-press para excluir (600ms)
+      if (state.canUpload && item.id) {
+        this.#bindLongPress(btn, card, item.id);
+      }
+
       this.#grid.appendChild(card);
     });
+  }
+
+  /** Adiciona detecção de press-and-hold (600ms) para mostrar opção de exclusão. */
+  #bindLongPress(btn, card, imageId) {
+    let timer = null;
+    let ativo = false;
+
+    const cancelar = () => {
+      clearTimeout(timer);
+      timer = null;
+      ativo = false;
+      btn.classList.remove('mb-portfolio-card__btn--pressionado');
+    };
+
+    btn.addEventListener('pointerdown', e => {
+      if (e.button !== undefined && e.button !== 0) return; // só botão primário
+      ativo = false;
+      timer = setTimeout(() => {
+        ativo = true;
+        btn.classList.remove('mb-portfolio-card__btn--pressionado');
+        PortfolioView.#mostrarOverlayExcluir(card, imageId, () => {
+          this.#onRemove?.(imageId);
+        });
+      }, 600);
+      btn.classList.add('mb-portfolio-card__btn--pressionado');
+    });
+
+    btn.addEventListener('pointerup', e => {
+      if (ativo) { e.preventDefault(); e.stopPropagation(); }
+      cancelar();
+    });
+    btn.addEventListener('pointercancel', cancelar);
+    btn.addEventListener('pointermove', e => {
+      // Cancela se o dedo moveu muito
+      if (timer && (Math.abs(e.movementX) > 8 || Math.abs(e.movementY) > 8)) cancelar();
+    });
+  }
+
+  /** Exibe overlay de confirmação de exclusão sobre o card. */
+  static #mostrarOverlayExcluir(card, imageId, onConfirm) {
+    // Remove overlay anterior se existir
+    card.querySelector('.mb-portfolio-delete-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'mb-portfolio-delete-overlay';
+
+    const btnExcluir = document.createElement('button');
+    btnExcluir.type = 'button';
+    btnExcluir.className = 'mb-portfolio-delete-overlay__btn mb-portfolio-delete-overlay__btn--danger';
+    btnExcluir.textContent = '🗑 Excluir imagem';
+
+    const btnCancelar = document.createElement('button');
+    btnCancelar.type = 'button';
+    btnCancelar.className = 'mb-portfolio-delete-overlay__btn';
+    btnCancelar.textContent = 'Cancelar';
+
+    const fechar = () => overlay.remove();
+
+    btnExcluir.addEventListener('click', e => {
+      e.stopPropagation();
+      fechar();
+      onConfirm();
+    });
+    btnCancelar.addEventListener('click', e => {
+      e.stopPropagation();
+      fechar();
+    });
+
+    overlay.append(btnExcluir, btnCancelar);
+    card.appendChild(overlay);
+
+    // Fecha ao clicar fora do card
+    setTimeout(() => {
+      const fecharFora = e => {
+        if (!card.contains(e.target)) {
+          fechar();
+          document.removeEventListener('pointerdown', fecharFora, true);
+        }
+      };
+      document.addEventListener('pointerdown', fecharFora, true);
+    }, 0);
   }
 
   #abrirViewer(item, items) {
