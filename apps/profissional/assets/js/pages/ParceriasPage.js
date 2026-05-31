@@ -227,8 +227,9 @@ class ParceriasPage {
 
   static #abrirGestaoBarbearia(barbershopId) {
     if (!barbershopId) return;
-    sessionStorage.setItem('bf_parceria_barbershop_id', barbershopId);
-    if (typeof Pro !== 'undefined') Pro.nav('minha-barbearia');
+    document.dispatchEvent(new CustomEvent('barberflow:abrir-barbearia', {
+      detail: { barbershopId },
+    }));
   }
 
   // ═══════════════════════════════════════════════════════════

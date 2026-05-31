@@ -67,6 +67,12 @@ class BarbeariaPage {
       if (entradaId) this.#pushEntradaId = entradaId;
       this.abrirPorId(barbershopId).catch(() => {});
     });
+
+    // Abrir página pública via evento (ex.: card de barbearia parceira em tela-parcerias)
+    document.addEventListener('barberflow:abrir-barbearia', e => {
+      const { barbershopId } = e.detail ?? {};
+      if (barbershopId) this.abrirPorId(barbershopId).catch(() => {});
+    });
   }
 
   /**
@@ -294,8 +300,18 @@ class BarbeariaPage {
         .eq('barbershop_id', id)
         .eq('is_active', true)
         .order('price', { ascending: true });
-      if (error) return [];
-      return data ?? [];
+      if (!error) return data ?? [];
+
+      // Fallback: migration pendente — colunas price_half/category ainda não existem
+      if (error.code === '42703' || String(error.message ?? '').includes('does not exist')) {
+        const { data: d2 } = await ApiService.from('services')
+          .select('id, name, price, duration_min, image_path, description')
+          .eq('barbershop_id', id)
+          .eq('is_active', true)
+          .order('price', { ascending: true });
+        return d2 ?? [];
+      }
+      return [];
     } catch { return []; }
   }
 

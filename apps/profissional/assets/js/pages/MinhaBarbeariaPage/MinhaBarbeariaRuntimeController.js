@@ -621,8 +621,20 @@ export class MinhaBarbeariaRuntimeController {
       .eq('is_active', true)
       .order('price', { ascending: true });
 
-    if (error) throw error;
-    return data ?? [];
+    if (!error) return data ?? [];
+
+    // Fallback: migration pendente — colunas price_half/category ainda não existem
+    if (error.code === '42703' || String(error.message ?? '').includes('does not exist')) {
+      const { data: d2, error: e2 } = await SupabaseService.services()
+        .select('id, name, description, duration_min, price, image_path')
+        .eq('barbershop_id', barbershopId)
+        .eq('is_active', true)
+        .order('price', { ascending: true });
+      if (e2) throw e2;
+      return d2 ?? [];
+    }
+
+    throw error;
   }
 
   static async #fetchBarbeiros(barbershopId) {
