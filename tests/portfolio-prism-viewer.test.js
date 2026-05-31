@@ -47,7 +47,15 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /#emitInteraction/);
     assert.match(js, /portfolioPublicActions/);
     assert.match(js, /pp-prism-public-actions/);
+    assert.match(js, /pp-prism-public-logo" src="\/shared\/img\/icon-512-cliente\.png"/);
     assert.match(js, /pp-prism-message-input/);
+    assert.match(js, /static #sadEmoji\(\)/);
+    assert.match(js, /data-public-emoji="\$\{PortfolioPrismViewer\.#laughEmoji\(\)\}"/);
+    assert.match(js, /data-public-emoji="\$\{PortfolioPrismViewer\.#sadEmoji\(\)\}"/);
+    assert.match(js, /#handlePublicMessage\(emojiBtn\.dataset\.publicEmoji/);
+    assert.ok(js.includes('data-public-like-icon aria-hidden="true">👍</span>'));
+    assert.match(js, /count\.hidden\s*=\s*likesCount\s*<=\s*0/);
+    assert.match(js, /icon\.hidden\s*=\s*likesCount\s*>\s*0/);
     assert.match(js, /BffApiService\.profissionais\.curtirPortfolioImagem/);
     assert.match(js, /BffApiService\.profissionais\.iniciarMensagemBarbearia/);
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*width:\s*min\(92vw,\s*460px\)/);
@@ -55,6 +63,12 @@ describe('PortfolioPrismViewer', () => {
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*bottom:\s*max\(18px,\s*env\(safe-area-inset-bottom\)\)/);
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*z-index:\s*5/);
     assert.match(css, /\.pp-prism-message-input\s*\{[\s\S]*width:\s*160px/);
+    const publicButtonCss = css.slice(css.indexOf('.pp-prism-public-like,'), css.indexOf('.pp-prism-public-like.is-liked'));
+    const proPublicButtonCss = proCss.slice(proCss.indexOf('.pp-prism-public-like,'), proCss.indexOf('.pp-prism-public-like.is-liked'));
+    assert.match(publicButtonCss, /border:\s*0/);
+    assert.match(publicButtonCss, /background:\s*transparent/);
+    assert.match(proPublicButtonCss, /border:\s*0/);
+    assert.match(proPublicButtonCss, /background:\s*transparent/);
     assert.match(css, /@keyframes\s+pp-prism-float-up/);
   });
 
@@ -87,5 +101,33 @@ describe('PortfolioPrismViewer', () => {
 
     assert.doesNotMatch(blocoCarrossel, /pbp-msg-btn/);
     assert.doesNotMatch(css, /\.pbp-msg-btn/);
+  });
+
+  test('card normal do portfolio publico deixa topo transparente e usa icone de joia', () => {
+    const blocoCarrossel = publicSectionJs.slice(
+      publicSectionJs.indexOf('static #renderCarrossel'),
+      publicSectionJs.indexOf('static #fetchPortfolio'),
+    );
+    const barberRowCss = css.slice(
+      css.indexOf('.pbp-barber-row'),
+      css.indexOf('.pbp-avatar'),
+    );
+    const likeBtnCss = css.slice(
+      css.indexOf('.pbp-like-btn'),
+      css.indexOf('.pbp-like-btn { right: 8px; }'),
+    );
+    const likeAtivoCss = css.slice(
+      css.indexOf('.pbp-like-btn.curtido'),
+      css.indexOf('.pbp-like-btn:active'),
+    );
+
+    assert.match(blocoCarrossel, />👍 <span class="pbp-like-count">/);
+    assert.doesNotMatch(blocoCarrossel, /ðŸ’Ž|💎/);
+    assert.match(barberRowCss, /background:\s*transparent/);
+    assert.match(barberRowCss, /border:\s*0/);
+    assert.match(likeBtnCss, /background:\s*transparent/);
+    assert.match(likeBtnCss, /border:\s*0/);
+    assert.doesNotMatch(likeAtivoCss, /background:/);
+    assert.doesNotMatch(likeAtivoCss, /border-color:/);
   });
 });

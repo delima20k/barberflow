@@ -4487,93 +4487,53 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .bp-serv-img--vazio::after { content: '✂️'; }
 .bp-serv-info { flex: 1; min-width: 0; }
-.bp-serv-nome {
-  margin: 0;
-  font-size: .9rem;
-  font-weight: 600;
-  color: var(--text, #2b1b12);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .bp-serv-meta {
   margin: 2px 0 0;
   font-size: .75rem;
   color: var(--text-muted, #8c7057);
 }
-.bp-serv-preco {
-  margin: 0;
-  font-size: .88rem;
-  font-weight: 700;
-  color: var(--gold-dark, #A0722A);
-  white-space: nowrap;
-}
 
-/* ── Carrossel de serviços da página pública ───────────────────── */
+/* ── Serviços em tabela de colunas na página pública ───────────── */
 .bp-serv-carousel {
   display: flex;
-  overflow-x: auto;
-  gap: 12px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 18px;
+  overflow-x: visible;
   padding: 4px 0 10px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  flex-wrap: wrap;
 }
 .bp-serv-carousel::-webkit-scrollbar { display: none; }
-.bp-serv-card-wrap {
-  flex: 0 0 85px;
+.bp-serv-coluna {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  scroll-snap-align: start;
+  gap: 8px;
+  flex: 1 1 180px;
+  min-width: 0;
 }
-.bp-serv-card-nome {
+.bp-serv-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.bp-serv-nome {
   margin: 0;
-  font-size: .68rem;
+  font-size: .9rem;
   font-weight: 600;
-  text-align: center;
   color: var(--text, #f5e9dc);
-  max-width: 85px;
-  white-space: nowrap;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
-.bp-serv-card {
-  position: relative;
-  width: 85px;
-  height: 85px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--card2, #f0e8d8);
-  flex-shrink: 0;
-}
-.bp-serv-card > img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.bp-serv-card-vazio {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-}
-.bp-serv-card-vazio::after { content: '✂️'; }
-.bp-serv-card-preco {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 3px 5px;
-  background: rgba(0,0,0,.55);
+.bp-serv-preco {
+  margin: 0;
   color: var(--gold, #D4AF37);
-  font-size: .68rem;
+  font-size: .88rem;
   font-weight: 700;
-  text-align: center;
   white-space: nowrap;
 }
 
@@ -6442,9 +6402,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 7px 3px 3px;
-  border-radius: 999px;
-  background: rgba(0,0,0,.52);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   pointer-events: none;
 }
 .pbp-avatar {
@@ -6452,7 +6413,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid rgba(255,255,255,.65);
+  border: 0;
   flex-shrink: 0;
 }
 .pbp-nome {
@@ -6474,10 +6435,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 3px;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.28);
-  background: rgba(0,0,0,.28);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   font-size: .72rem;
   color: #fff;
   cursor: pointer;
@@ -6487,8 +6448,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pbp-like-btn { right: 8px; }
 
 .pbp-like-btn.curtido {
-  background: rgba(212,160,23,.32);
-  border-color: var(--gold, #D4A017);
+  color: var(--gold, #D4A017);
 }
 .pbp-like-btn:active { transform: scale(.88); }
 
@@ -8179,9 +8139,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-public-emoji {
   width: 36px;
   height: 36px;
-  border: 1px solid rgba(255,255,255,.18);
+  border: 0;
   border-radius: 50%;
-  background: rgba(0,0,0,.5);
+  background: transparent;
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -8192,7 +8152,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .pp-prism-public-like.is-liked {
   color: #ff6b8a;
-  border-color: rgba(255,107,138,.55);
 }
 
 @keyframes pp-prism-float-up {

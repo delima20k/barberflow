@@ -313,3 +313,51 @@ Use o índice para ler somente os arquivos necessários em:
 Siga OOP, Clean Architecture, SOLID, DRY, segurança, performance, testes, baixo custo, escalabilidade e refatoração controlada. Consulte CLASS_REGISTRY.md antes de criar classes novas.
 
 Se a regra da tarefa não existir nas skills, implemente como desenvolvedor sênior, documente a nova boa prática no arquivo correto e atualize o skill-index.md. Não altere arquivos fora do escopo e entregue um resumo curto.
+
+------------------REVISÃO DE TAREFAS, POS ESCRITAS PARA O DELIMA---------------
+
+MODO AGENTE DELIMA — REVISÃO FINAL
+
+Revise APENAS o que acabou de implementar.
+
+Objetivo:
+Garantir estabilidade, segurança, escalabilidade e conformidade com POO sem alterar funcionalidades existentes.
+
+Verifique:
+
+* Bugs
+* Erros de console
+* Erros de sintaxe
+* Código duplicado
+* Código morto
+* Imports não utilizados
+* Vazamentos de memória
+* Problemas assíncronos
+* Falhas de segurança
+* Validações de entrada
+* XSS e injeções
+* Exposição de dados sensíveis
+* Quebra de arquitetura
+* Violação de POO/SRP
+* Gargalos de performance
+
+Regras:
+
+* Não criar funcionalidades.
+* Não refatorar fora do escopo.
+* Não alterar layout sem necessidade.
+* Corrigir apenas problemas encontrados.
+
+Resultado:
+
+* Se houver problemas: corrigir, validar novamente e continuar até ficar estável.
+* Se não houver problemas: não alterar nada.
+
+Finalização:
+
+1. Gerar resumo curto das verificações.
+2. Criar commit Conventional Commit.
+3. Fazer push para a branch atual.
+4. Informar hash do commit.
+
+--------------------fim-------------------------------------

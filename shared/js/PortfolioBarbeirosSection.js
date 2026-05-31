@@ -494,7 +494,7 @@ class PortfolioBarbeirosSection {
         <div class="pbp-overlay"></div>
         <button class="pbp-like-btn${curtido ? ' curtido' : ''}"
                 data-image-id="${s(item.id)}"
-                aria-label="Curtir">💎 <span class="pbp-like-count">${count}</span></button>
+                aria-label="Curtir">👍 <span class="pbp-like-count">${count}</span></button>
         <div class="pbp-barber-row">
           <img class="pbp-avatar" src="${s(avatarUrl)}" alt="${s(barber.full_name ?? '')}"
                loading="lazy" onerror="this.style.display='none'">

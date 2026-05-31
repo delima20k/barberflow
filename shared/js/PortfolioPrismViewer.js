@@ -45,7 +45,7 @@ class PortfolioPrismViewer {
   #publicActions   = null;
   #publicInput     = null;
   #publicLike      = null;
-  #publicEmoji     = null;
+  #publicEmojis    = [];
   #reactionLayer   = null;
   #count           = null;
 
@@ -206,13 +206,18 @@ class PortfolioPrismViewer {
       this.#publicLike.disabled = false;
       this.#publicLike.setAttribute('aria-pressed', item?.liked ? 'true' : 'false');
       const count = this.#publicLike.querySelector('[data-public-like-count]');
-      if (count) count.textContent = String(likesCount);
+      const icon = this.#publicLike.querySelector('[data-public-like-icon]');
+      if (count) {
+        count.textContent = String(likesCount);
+        count.hidden = likesCount <= 0;
+      }
+      if (icon) icon.hidden = likesCount > 0;
     }
     if (this.#publicInput) {
       if (imageAnterior !== imageId) this.#publicInput.value = '';
       this.#publicInput.disabled = false;
     }
-    if (this.#publicEmoji) this.#publicEmoji.disabled = false;
+    this.#publicEmojis.forEach(btn => { btn.disabled = false; });
   }
 
   #renderMeta(item) {
@@ -495,17 +500,23 @@ class PortfolioPrismViewer {
     };
 
     if (this.#publicInput) this.#publicInput.disabled = true;
-    if (this.#publicEmoji) this.#publicEmoji.disabled = true;
+    this.#publicEmojis.forEach(btn => { btn.disabled = true; });
     try {
       const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
       if (error) throw error;
-      if (this.#publicInput && texto !== PortfolioPrismViewer.#laughEmoji()) this.#publicInput.value = '';
+      if (
+        this.#publicInput
+        && texto !== PortfolioPrismViewer.#laughEmoji()
+        && texto !== PortfolioPrismViewer.#sadEmoji()
+      ) {
+        this.#publicInput.value = '';
+      }
       this.#emitInteraction(texto);
     } catch {
       // Erro silencioso mantem o viewer estavel; BffApiService ja devolve erro estruturado.
     } finally {
       if (this.#publicInput) this.#publicInput.disabled = false;
-      if (this.#publicEmoji) this.#publicEmoji.disabled = false;
+      this.#publicEmojis.forEach(btn => { btn.disabled = false; });
     }
   }
 
@@ -541,6 +552,10 @@ class PortfolioPrismViewer {
     return '\u{1F602}';
   }
 
+  static #sadEmoji() {
+    return '\u{1F622}';
+  }
+
   // ───────────────────────────────────────────────────────────
   // Bootstrap DOM
   // ───────────────────────────────────────────────────────────
@@ -573,13 +588,14 @@ class PortfolioPrismViewer {
         <div class="pp-prism-reactions" aria-hidden="true"></div>
       </div>
       <div class="pp-prism-public-actions" hidden>
-        <img class="pp-prism-public-logo" src="/shared/img/Logo01.png" alt="BarberFlow" loading="lazy">
+        <img class="pp-prism-public-logo" src="/shared/img/icon-512-cliente.png" alt="BarberFlow" loading="lazy">
         <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Mensagem" aria-label="Mensagem">
         <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
-          <span aria-hidden="true">&hearts;</span>
-          <span data-public-like-count>0</span>
+          <span data-public-like-icon aria-hidden="true">👍</span>
+          <span data-public-like-count hidden>0</span>
         </button>
-        <button type="button" class="pp-prism-public-emoji" aria-label="Enviar risada">${PortfolioPrismViewer.#laughEmoji()}</button>
+        <button type="button" class="pp-prism-public-emoji" data-public-emoji="${PortfolioPrismViewer.#laughEmoji()}" aria-label="Enviar risada">${PortfolioPrismViewer.#laughEmoji()}</button>
+        <button type="button" class="pp-prism-public-emoji" data-public-emoji="${PortfolioPrismViewer.#sadEmoji()}" aria-label="Enviar tristeza">${PortfolioPrismViewer.#sadEmoji()}</button>
       </div>
       <figcaption class="pp-prism-title"></figcaption>
       <div class="pp-prism-actions"></div>
@@ -602,7 +618,7 @@ class PortfolioPrismViewer {
     this.#publicActions = overlay.querySelector('.pp-prism-public-actions');
     this.#publicInput = overlay.querySelector('.pp-prism-message-input');
     this.#publicLike = overlay.querySelector('.pp-prism-public-like');
-    this.#publicEmoji = overlay.querySelector('.pp-prism-public-emoji');
+    this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
     this.#count   = overlay.querySelector('.pp-prism-count');
 
@@ -626,7 +642,7 @@ class PortfolioPrismViewer {
       const emojiBtn = e.target.closest('.pp-prism-public-emoji');
       if (emojiBtn) {
         e.preventDefault();
-        this.#handlePublicMessage(PortfolioPrismViewer.#laughEmoji());
+        this.#handlePublicMessage(emojiBtn.dataset.publicEmoji || PortfolioPrismViewer.#laughEmoji());
       }
     });
 

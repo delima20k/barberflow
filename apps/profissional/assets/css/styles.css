@@ -3966,9 +3966,9 @@
 .pp-prism-public-emoji {
   width: 36px;
   height: 36px;
-  border: 1px solid rgba(255,255,255,.18);
+  border: 0;
   border-radius: 50%;
-  background: rgba(0,0,0,.5);
+  background: transparent;
   color: #fff;
   display: inline-flex;
   align-items: center;
@@ -3979,7 +3979,6 @@
 }
 .pp-prism-public-like.is-liked {
   color: #ff6b8a;
-  border-color: rgba(255,107,138,.55);
 }
 
 @keyframes pp-prism-float-up {

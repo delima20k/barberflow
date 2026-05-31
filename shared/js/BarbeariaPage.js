@@ -1188,24 +1188,23 @@ class BarbeariaPage {
     const s   = InputValidator.sanitizar;
     const fmt = v => `R$\u00a0${Number(v ?? 0).toFixed(2).replace('.', ',')}`;
 
-    // Mensalidade agora \u00e9 banner pr\u00f3prio (shop.monthly_plan_*) \u2014 n\u00e3o entra no carousel.
-    let html = '<div class="bp-serv-carousel">';
-    for (const sv of lista) {
+    const itens = lista.map(sv => {
       const nome  = s(sv.name ?? '');
       const preco = (sv.category === 'luzes' && sv.price_half != null)
         ? `${fmt(sv.price_half)} / ${fmt(sv.price)}`
         : fmt(sv.price);
-      const img = sv.image_path
-        ? `<img src="${s(sv.image_path)}" alt="${nome}" loading="lazy" onerror="this.style.display='none'">`
-        : '<div class="bp-serv-card-vazio"></div>';
-      html += `
-        <div class="bp-serv-card-wrap">
-          <p class="bp-serv-card-nome">${nome}</p>
-          <div class="bp-serv-card">
-            ${img}
-            <span class="bp-serv-card-preco">${preco}</span>
-          </div>
+
+      return `
+        <div class="bp-serv-item" role="listitem">
+          <h2 class="bp-serv-nome">${nome}</h2>
+          <span class="bp-serv-preco">${preco}</span>
         </div>`;
+    });
+
+    // Mensalidade agora \u00e9 banner pr\u00f3prio (shop.monthly_plan_*) \u2014 n\u00e3o entra na lista.
+    let html = '<div class="bp-serv-carousel" role="list">';
+    for (let i = 0; i < itens.length; i += 5) {
+      html += `<div class="bp-serv-coluna">${itens.slice(i, i + 5).join('')}</div>`;
     }
     html += '</div>';
 
