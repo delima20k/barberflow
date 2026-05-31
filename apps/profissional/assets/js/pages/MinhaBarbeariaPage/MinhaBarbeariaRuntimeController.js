@@ -2751,10 +2751,15 @@ export class MinhaBarbeariaRuntimeController {
           ${nomeHtml}
           ${precoHtml}
         </div>
+      </div>
+      <div class="mb-prod-form-acoes mb-serv-tipo-acoes">
+        <button class="btn-flow mb-serv-tipo-salvar-btn" type="button">Salvar</button>
       </div>`;
 
     li.querySelector(`#${uid}`)
       .addEventListener('change', e => this.#onUploadImagemItem(e, li, uid));
+    li.querySelector('.mb-serv-tipo-salvar-btn')
+      .addEventListener('click', () => this.#salvarServicoTipadoUnico(li));
 
     return li;
   }
@@ -2875,6 +2880,28 @@ export class MinhaBarbeariaRuntimeController {
       if (error) throw error;
       if (data?.id)         el.dataset.produtoId = data.id;
       if (data?.image_path) el.dataset.imagePath = data.image_path;
+    }
+  }
+
+  async #salvarServicoTipadoUnico(li) {
+    if (!this.#barbershopId || !li) return;
+
+    const btn = li.querySelector('.mb-serv-tipo-salvar-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+    try {
+      await this.#salvarServicosTipados();
+      this.#servicos = await MinhaBarbeariaRuntimeController.#fetchServicos(this.#barbershopId)
+        .catch(() => this.#servicos);
+      const nome = li.querySelector('.mb-cfg-prod-nome')?.value?.trim()
+        || li.querySelector('.mb-serv-tipo-label')?.textContent?.trim()
+        || 'Serviço';
+      NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
+    } catch (err) {
+      LoggerService.error('[MinhaBarbeariaPage] salvarServicoTipadoUnico:', err);
+      NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o serviço.', 'sistema');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
     }
   }
 

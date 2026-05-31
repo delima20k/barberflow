@@ -449,6 +449,24 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
   });
 
+  test('servicos por tipo devem ter botao de salvar individual e atualizar cache da modal', () => {
+    assert.match(
+      SRC_MB_PAGE,
+      /class="btn-flow mb-serv-tipo-salvar-btn" type="button">Salvar<\/button>/,
+      'cada servico por tipo deve renderizar botao Salvar',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /\.mb-serv-tipo-salvar-btn'\)\s*\.addEventListener\('click', \(\) => this\.#salvarServicoTipadoUnico\(li\)\)/,
+      'botao do servico por tipo deve chamar salvamento individual',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /async #salvarServicoTipadoUnico\(li\)[\s\S]*#salvarServicosTipados\(\);[\s\S]*#fetchServicos\(this\.#barbershopId\)/,
+      'salvamento individual deve persistir e recarregar cache usado pela modal de servicos',
+    );
+  });
+
   test('lixeira dos itens salvos exclui direto sem confirmacao textual', () => {
     assert.ok(
       !SRC_MB_PAGE.includes('mb-item-confirm'),
@@ -503,6 +521,12 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       SRC_COMPONENTS_CSS,
       /\.mb-prod-form-view \.mb-cfg-prod-fields\s*\{[\s\S]*flex-direction:\s*row;/,
       'campos de pacotes devem ficar em linha',
+    );
+    const idxRegraGenerica = SRC_COMPONENTS_CSS.indexOf('.mb-prod-li--painel .mb-cfg-prod-fields');
+    const idxRegraBarba = SRC_COMPONENTS_CSS.lastIndexOf('.mb-serv-tipo-li[data-category="barba"] .mb-cfg-prod-fields');
+    assert.ok(
+      idxRegraBarba > idxRegraGenerica,
+      'regra de barba deve vir depois da regra generica para nao voltar para coluna',
     );
   });
 });

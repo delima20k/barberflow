@@ -4631,6 +4631,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: row;
   align-items: end;
 }
+.mb-serv-tipo-acoes {
+  align-self: center;
+  margin-left: auto;
+}
 .mb-luzes-row {
   display: flex;
   gap: 12px;
@@ -7540,6 +7544,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex-direction: row;
   align-items: end;
 }
+.mb-serv-tipo-li[data-category="corte"] .mb-prod-li--painel,
+.mb-serv-tipo-li[data-category="barba"] .mb-prod-li--painel {
+  flex: 1;
+  align-items: center;
+}
+.mb-serv-tipo-li[data-category="corte"] .mb-cfg-prod-fields,
+.mb-serv-tipo-li[data-category="barba"] .mb-cfg-prod-fields {
+  flex-direction: row;
+  align-items: end;
+}
 
 /* Grupo label + input em coluna */
 .mb-cfg-prod-field-group {
@@ -7580,18 +7594,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 @media (max-width: 560px) {
-  .mb-serv-tipo-li[data-category="corte"],
-  .mb-serv-tipo-li[data-category="barba"],
   .mb-prod-form-view {
     flex-direction: column;
     align-items: stretch;
   }
-  .mb-serv-tipo-li[data-category="corte"] .mb-serv-tipo-label,
-  .mb-serv-tipo-li[data-category="barba"] .mb-serv-tipo-label {
-    flex-basis: auto;
-  }
-  .mb-serv-tipo-li[data-category="corte"] .mb-cfg-prod-fields,
-  .mb-serv-tipo-li[data-category="barba"] .mb-cfg-prod-fields,
   .mb-prod-form-view .mb-cfg-prod-fields {
     flex-direction: column;
   }
