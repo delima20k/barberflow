@@ -661,6 +661,80 @@ class ProfissionalRepository extends BaseRepository {
       || /could not find .* column/i.test(message);
   }
 
+  /**
+   * Lista mensagens recebidas em uma imagem de portfólio.
+   * Busca conversas cujo metadata.portfolioImageId === imageId e retorna
+   * as mensagens com perfil do remetente (avatar, nome).
+   *
+   * @param {string} professionalId — dono da imagem (para verificar ownership)
+   * @param {string} imageId        — UUID da portfolio_image
+   * @param {number} limit
+   * @returns {Promise<{ messages: object[], ownerVerified: boolean }>}
+   */
+  async listarMensagensPortfolioImagem(professionalId, imageId, limit = 50) {
+    this._uuid('professionalId', professionalId);
+    this._uuid('imageId', imageId);
+
+    // Verifica ownership da imagem
+    const { data: img, error: imgError } = await this._db
+      .from('portfolio_images')
+      .select('id, owner_id')
+      .eq('id', imageId)
+      .eq('owner_id', professionalId)
+      .maybeSingle();
+    if (imgError) this._throwDbError(imgError, 'listarMensagensPortfolioImagem.ownership');
+    if (!img) return { messages: [], ownerVerified: false };
+
+    // Busca conversas ligadas a esta imagem via metadata
+    const { data: convs, error: convsError } = await this._db
+      .from('chat_conversations')
+      .select('id')
+      .filter('metadata->>portfolioImageId', 'eq', imageId)
+      .limit(200);
+    if (convsError) this._throwDbError(convsError, 'listarMensagensPortfolioImagem.conversations');
+
+    const convIds = (convs ?? []).map(c => c.id).filter(Boolean);
+    if (!convIds.length) return { messages: [], ownerVerified: true };
+
+    // Busca mensagens dessas conversas (exceto deletadas)
+    const { data: msgs, error: msgsError } = await this._db
+      .from('chat_messages')
+      .select('id, conversation_id, sender_id, body, created_at')
+      .in('conversation_id', convIds)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(Math.min(limit, 100));
+    if (msgsError) this._throwDbError(msgsError, 'listarMensagensPortfolioImagem.messages');
+
+    if (!(msgs ?? []).length) return { messages: [], ownerVerified: true };
+
+    // Busca perfis dos remetentes de uma vez
+    const senderIds = [...new Set(msgs.map(m => m.sender_id))];
+    const { data: perfis } = await this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path')
+      .in('id', senderIds);
+
+    const perfilMap = {};
+    (perfis ?? []).forEach(p => { perfilMap[p.id] = p; });
+
+    const messages = msgs.map(m => {
+      const perfil = perfilMap[m.sender_id] ?? {};
+      return {
+        id: m.id,
+        body: m.body ?? '',
+        createdAt: m.created_at,
+        sender: {
+          id: m.sender_id,
+          nome: perfil.full_name ?? 'Usuário',
+          avatarPath: perfil.avatar_path ?? null,
+        },
+      };
+    });
+
+    return { messages, ownerVerified: true };
+  }
+
   static #camposBarbearia(barbershop, isOwnerWorkplace = false) {
     return {
       barbershop_id: barbershop?.id ?? null,

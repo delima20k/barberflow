@@ -44,6 +44,7 @@ class PortfolioPrismViewer {
   #actions         = null;
   #publicActions   = null;
   #publicInput     = null;
+  #publicSendBtn   = null;
   #publicLike      = null;
   #publicEmojis    = [];
   #reactionLayer   = null;
@@ -109,7 +110,8 @@ class PortfolioPrismViewer {
     this.#pararTodosVideos(true);
     this.#limparTimer();
     this.#limparInteracoes();
-    if (this.#publicInput) this.#publicInput.value = '';
+    if (this.#publicInput)   this.#publicInput.value     = '';
+    if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
     this.#dragStart = null;
     this.#dragLast = null;
     this.#dragActive = false;
@@ -217,6 +219,7 @@ class PortfolioPrismViewer {
       if (imageAnterior !== imageId) this.#publicInput.value = '';
       this.#publicInput.disabled = false;
     }
+    if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
     this.#publicEmojis.forEach(btn => { btn.disabled = false; });
   }
 
@@ -499,7 +502,8 @@ class PortfolioPrismViewer {
       clientMessageId: PortfolioPrismViewer.#clientMessageId(),
     };
 
-    if (this.#publicInput) this.#publicInput.disabled = true;
+    if (this.#publicInput)  this.#publicInput.disabled  = true;
+    if (this.#publicSendBtn) this.#publicSendBtn.disabled = true;
     this.#publicEmojis.forEach(btn => { btn.disabled = true; });
     try {
       const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
@@ -515,7 +519,8 @@ class PortfolioPrismViewer {
     } catch {
       // Erro silencioso mantem o viewer estavel; BffApiService ja devolve erro estruturado.
     } finally {
-      if (this.#publicInput) this.#publicInput.disabled = false;
+      if (this.#publicInput)  this.#publicInput.disabled  = false;
+      if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
       this.#publicEmojis.forEach(btn => { btn.disabled = false; });
     }
   }
@@ -589,7 +594,10 @@ class PortfolioPrismViewer {
       </div>
       <div class="pp-prism-public-actions" hidden>
         <img class="pp-prism-public-logo" src="/shared/img/icon-512-cliente.png" alt="BarberFlow" loading="lazy">
-        <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Mensagem" aria-label="Mensagem">
+        <div class="pp-prism-message-wrap">
+          <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Mensagem" aria-label="Mensagem">
+          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem">➤</button>
+        </div>
         <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
           <span data-public-like-icon aria-hidden="true">👍</span>
           <span data-public-like-count hidden>0</span>
@@ -616,8 +624,9 @@ class PortfolioPrismViewer {
     this.#title   = overlay.querySelector('.pp-prism-title');
     this.#actions = overlay.querySelector('.pp-prism-actions');
     this.#publicActions = overlay.querySelector('.pp-prism-public-actions');
-    this.#publicInput = overlay.querySelector('.pp-prism-message-input');
-    this.#publicLike = overlay.querySelector('.pp-prism-public-like');
+    this.#publicInput   = overlay.querySelector('.pp-prism-message-input');
+    this.#publicSendBtn = overlay.querySelector('.pp-prism-message-send');
+    this.#publicLike    = overlay.querySelector('.pp-prism-public-like');
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
     this.#count   = overlay.querySelector('.pp-prism-count');
@@ -650,6 +659,11 @@ class PortfolioPrismViewer {
       if (e.key !== 'Enter') return;
       e.preventDefault();
       this.#handlePublicMessage(this.#publicInput.value);
+    });
+
+    this.#publicSendBtn?.addEventListener('click', e => {
+      e.preventDefault();
+      if (this.#publicInput) this.#handlePublicMessage(this.#publicInput.value);
     });
 
     // ResizeObserver — recalcula raio quando o stage mudar de tamanho

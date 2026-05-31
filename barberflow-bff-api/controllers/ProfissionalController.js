@@ -95,6 +95,14 @@ class ProfissionalController extends BaseController {
     });
   }
 
+  async mensagensPortfolioImagem(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const dto = await this.#service.listarMensagensPortfolioImagem(req.user.id, req.params.imageId);
+      this.success(res, dto.messages);
+    });
+  }
+
   async uploadPortfolioImagem(req, res) {
     await this.handle(res, async () => {
       res.setHeader('Cache-Control', 'private, no-store');

@@ -296,6 +296,9 @@ class BffApiService {
 
     descurtirPortfolioImagem: (imageId) =>
       BffApiService.delete(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}/like`),
+
+    listarMensagensPortfolioImagem: (imageId) =>
+      BffApiService.get(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}/mensagens`),
   };
 
   static chat = {

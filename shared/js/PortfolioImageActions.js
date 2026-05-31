@@ -102,22 +102,34 @@ class PortfolioImageActions {
 
   static async #enviarMensagem(btn) {
     const professionalId = btn.dataset.professionalId;
+    const imageId = btn.dataset.portfolioImageId;
     if (!professionalId || typeof BffApiService === 'undefined') return;
+
+    // Barbeiro visualizando próprio portfólio: abre modal de mensagens recebidas
+    const isProApp = typeof Pro !== 'undefined';
+    const perfilAtual = (typeof AuthService !== 'undefined') ? AuthService.getPerfil?.() : null;
+    const ehDono = perfilAtual?.id && perfilAtual.id === professionalId;
+
+    if (isProApp && ehDono && imageId) {
+      await PortfolioImageActions.#abrirModalMensagensRecebidas(imageId);
+      return;
+    }
+
+    // Cliente: inicia ou retoma conversa com o barbeiro
     try {
       btn.disabled = true;
       const { data, error } = await BffApiService.profissionais.iniciarMensagemBarbearia(professionalId);
       if (error) throw error;
       const router = (typeof App !== 'undefined' && App) || (typeof Pro !== 'undefined' && Pro) || null;
-      router?.nav?.('mensagens');
       if (data?.conversationId) {
         try {
           sessionStorage.setItem('bf_open_conversation_id', data.conversationId);
         } catch { /* best effort */ }
-        await PortfolioImageActions.#mostrarMensagensImagem(data.conversationId);
         setTimeout(() => {
           if (typeof MessagesWidget !== 'undefined') MessagesWidget.abrirModal?.(data.conversationId);
         }, 120);
       }
+      router?.nav?.('mensagens');
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[PortfolioImageActions] mensagem falhou:', err?.message ?? err);
@@ -130,79 +142,124 @@ class PortfolioImageActions {
     }
   }
 
-  static async #mostrarMensagensImagem(conversationId) {
-    if (!conversationId || typeof BffApiService === 'undefined' || !BffApiService.chat?.listarMensagens) return;
+  /**
+   * Abre modal com mensagens recebidas em uma imagem de portfólio.
+   * Usado exclusivamente pelo barbeiro (app profissional, visualizando o próprio portfólio).
+   * @param {string} imageId — UUID da portfolio_image
+   */
+  static async #abrirModalMensagensRecebidas(imageId) {
+    if (!imageId || typeof BffApiService === 'undefined') return;
 
-    const panel = PortfolioImageActions.#mensagensPanel();
-    const list = panel.querySelector('.portfolio-messages-panel__list');
-    const status = panel.querySelector('.portfolio-messages-panel__status');
-    panel.hidden = false;
-    if (status) status.textContent = 'Carregando mensagens...';
-    if (list) list.textContent = '';
+    const modal = PortfolioImageActions.#criarModalMensagens();
+    const list   = modal.querySelector('.pf-msg-modal__list');
+    const status = modal.querySelector('.pf-msg-modal__status');
+
+    status.textContent = 'Carregando mensagens...';
+    list.innerHTML = '';
+    modal.hidden = false;
+    document.body.classList.add('pf-msg-modal-open');
 
     try {
-      const { data, error } = await BffApiService.chat.listarMensagens(conversationId, { limit: 30 });
+      const { data, error } = await BffApiService.profissionais.listarMensagensPortfolioImagem(imageId);
       if (error) throw error;
-      const items = data?.items ?? [];
-      if (status) status.textContent = items.length ? '' : 'Nenhuma mensagem nessa imagem ainda.';
-      if (list) {
-        list.textContent = '';
-        items.forEach(item => list.appendChild(PortfolioImageActions.#mensagemItem(item)));
-      }
+      const items = Array.isArray(data) ? data : (data?.messages ?? []);
+      status.textContent = items.length ? '' : 'Nenhuma mensagem recebida nesta imagem ainda.';
+      items.forEach(msg => list.appendChild(PortfolioImageActions.#itemMensagemModal(msg)));
     } catch (err) {
-      if (status) status.textContent = 'Nao foi possivel carregar as mensagens.';
+      status.textContent = 'Nao foi possivel carregar as mensagens.';
       if (typeof LoggerService !== 'undefined') {
-        LoggerService.warn('[PortfolioImageActions] mensagens da imagem falharam:', err?.message ?? err);
+        LoggerService.warn('[PortfolioImageActions] mensagens recebidas falharam:', err?.message ?? err);
       }
     }
   }
 
-  static #mensagensPanel() {
-    let panel = document.querySelector('.portfolio-messages-panel');
-    if (panel) return panel;
+  /** Cria (ou retorna) o modal de mensagens recebidas. Singleton no DOM. */
+  static #criarModalMensagens() {
+    let modal = document.querySelector('.pf-msg-modal');
+    if (modal) {
+      // Limpa estado anterior
+      const list   = modal.querySelector('.pf-msg-modal__list');
+      const status = modal.querySelector('.pf-msg-modal__status');
+      if (list)   list.innerHTML    = '';
+      if (status) status.textContent = '';
+      return modal;
+    }
 
-    panel = document.createElement('aside');
-    panel.className = 'portfolio-messages-panel';
-    panel.hidden = true;
+    modal = document.createElement('div');
+    modal.className = 'pf-msg-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Mensagens recebidas no portfólio');
+    modal.hidden = true;
 
-    const header = document.createElement('div');
-    header.className = 'portfolio-messages-panel__header';
+    modal.innerHTML = `
+      <div class="pf-msg-modal__box">
+        <div class="pf-msg-modal__header">
+          <strong class="pf-msg-modal__title">💬 Mensagens do portfólio</strong>
+          <button type="button" class="pf-msg-modal__close" aria-label="Fechar">✕</button>
+        </div>
+        <p class="pf-msg-modal__status"></p>
+        <div class="pf-msg-modal__list" role="list"></div>
+      </div>
+    `;
 
-    const title = document.createElement('strong');
-    title.textContent = 'Mensagens da imagem';
+    const fechar = () => {
+      modal.hidden = true;
+      document.body.classList.remove('pf-msg-modal-open');
+    };
 
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'portfolio-messages-panel__close';
-    close.setAttribute('aria-label', 'Fechar mensagens');
-    close.textContent = 'x';
-    close.addEventListener('click', () => { panel.hidden = true; });
+    modal.querySelector('.pf-msg-modal__close').addEventListener('click', fechar);
+    modal.addEventListener('click', e => {
+      if (e.target === modal) fechar();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !modal.hidden) fechar();
+    });
 
-    const status = document.createElement('p');
-    status.className = 'portfolio-messages-panel__status';
-
-    const list = document.createElement('div');
-    list.className = 'portfolio-messages-panel__list';
-
-    header.append(title, close);
-    panel.append(header, status, list);
-    document.body.appendChild(panel);
-    return panel;
+    document.body.appendChild(modal);
+    return modal;
   }
 
-  static #mensagemItem(item) {
-    const row = document.createElement('article');
-    row.className = 'portfolio-messages-panel__item';
+  /** Cria um item de mensagem com avatar, nome do remetente e texto. */
+  static #itemMensagemModal(msg) {
+    const item = document.createElement('article');
+    item.className = 'pf-msg-modal__item';
+    item.setAttribute('role', 'listitem');
 
-    const body = document.createElement('p');
-    body.textContent = item?.body ?? item?.texto ?? '';
+    const avatarUrl = msg?.sender?.avatarUrl ?? null;
+    const nome      = String(msg?.sender?.nome ?? 'Usuário').slice(0, 60);
+    const corpo     = String(msg?.body ?? '').slice(0, 240);
+    const data      = msg?.createdAt ? new Date(msg.createdAt).toLocaleString('pt-BR') : '';
 
-    const meta = document.createElement('span');
-    const created = item?.createdAt ?? item?.created_at ?? '';
-    meta.textContent = created ? new Date(created).toLocaleString('pt-BR') : '';
+    const avatarEl = document.createElement('img');
+    avatarEl.className = 'pf-msg-modal__avatar';
+    avatarEl.alt       = nome ? `Avatar de ${nome}` : '';
+    avatarEl.loading   = 'lazy';
+    if (avatarUrl) {
+      avatarEl.src = avatarUrl;
+    } else {
+      avatarEl.hidden = true;
+    }
+    avatarEl.onerror = () => { avatarEl.hidden = true; };
 
-    row.append(body, meta);
-    return row;
+    const info = document.createElement('div');
+    info.className = 'pf-msg-modal__info';
+
+    const nomeEl = document.createElement('strong');
+    nomeEl.className = 'pf-msg-modal__nome';
+    nomeEl.textContent = nome;
+
+    const bodyEl = document.createElement('p');
+    bodyEl.className = 'pf-msg-modal__body';
+    bodyEl.textContent = corpo;
+
+    const dataEl = document.createElement('time');
+    dataEl.className = 'pf-msg-modal__data';
+    dataEl.textContent = data;
+
+    info.append(nomeEl, bodyEl, dataEl);
+    item.append(avatarEl, info);
+    return item;
   }
 
   static #sincronizarBotao(imageId, ativo, total = null) {

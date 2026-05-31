@@ -6,6 +6,7 @@ const sharp  = require('sharp');
 const BaseService = require('./BaseService');
 const AppError = require('../utils/AppError');
 const ProfissionalPublicProfileDto = require('../application/profissional/dto/ProfissionalPublicProfileDto');
+const ContentModerationService = require('./ContentModerationService');
 
 const GENDERS = new Set(['masculino', 'feminino', 'outro', 'prefiro_nao_informar', 'nao_informar']);
 const PORTFOLIO_CATEGORIES = new Set(['degrade', 'barba', 'social', 'freestyle', 'infantil', 'sobrancelha', 'antes_e_depois']);
@@ -82,6 +83,14 @@ class ProfissionalService extends BaseService {
       : '';
     if (bodyInformado && !bodyCustomizado) {
       throw AppError.badRequest('Mensagem obrigatoria.');
+    }
+
+    // Moderação de conteúdo — bloqueia mensagens ofensivas antes de qualquer persistência
+    if (bodyCustomizado) {
+      const mod = ContentModerationService.verificar(bodyCustomizado);
+      if (mod.bloqueado) {
+        throw AppError.badRequest('Mensagem nao permitida. Revise o conteudo antes de enviar.');
+      }
     }
 
     let portfolioImageId = null;
@@ -395,6 +404,43 @@ class ProfissionalService extends BaseService {
     } catch {
       throw AppError.badRequest('Arquivo de imagem invalido.');
     }
+  }
+
+  /**
+   * Lista mensagens recebidas em uma imagem de portfólio (visível apenas ao dono).
+   * @param {string} professionalId — usuário autenticado (deve ser o dono)
+   * @param {string} imageId        — UUID da portfolio_image
+   * @returns {Promise<{ messages: object[] }>}
+   */
+  async listarMensagensPortfolioImagem(professionalId, imageId) {
+    this._uuid('professionalId', professionalId);
+    this._uuid('imageId', imageId);
+
+    const result = await this.#repo.listarMensagensPortfolioImagem(professionalId, imageId, 50);
+    if (!result.ownerVerified) {
+      throw AppError.forbidden('Acesso negado. Esta imagem nao pertence ao seu perfil.');
+    }
+
+    return {
+      messages: result.messages.map(m => ({
+        id: m.id,
+        body: m.body,
+        createdAt: m.createdAt,
+        sender: {
+          id: m.sender.id,
+          nome: m.sender.nome,
+          avatarUrl: m.sender.avatarPath
+            ? ProfissionalService.#avatarUrl(m.sender.avatarPath)
+            : null,
+        },
+      })),
+    };
+  }
+
+  static #avatarUrl(avatarPath) {
+    const base = process.env.SUPABASE_URL ?? '';
+    if (!base || !avatarPath) return null;
+    return `${base}/storage/v1/object/public/avatars/${avatarPath}`;
   }
 
   static #portfolioDto(row) {
