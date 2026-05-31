@@ -552,6 +552,36 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       /#salvarMensalidadeServico\(\)[\s\S]*description:\s+payload\.monthly_plan_message[\s\S]*category:\s+'mensalidade'[\s\S]*price:\s+payload\.monthly_plan_price \?\? 0/,
       'mensalidade deve persistir em services para funcionar no schema remoto atual',
     );
+    assert.match(
+      SRC_MB_PAGE,
+      /#salvarConfiguracoes\(\)[\s\S]*const mensalidadeResultado = await this\.#salvarMensalidadeServico\(\);[\s\S]*this\.#sincronizarMensalidadeLocal\(mensalidadeResultado\.payload, mensalidadeResultado\.data\);/,
+      'salvar configuracoes deve manter o banner sincronizado ao atualizar mensalidade',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#salvarMensalidade\(\)[\s\S]*this\.#sincronizarMensalidadeLocal\(payload, data\);/,
+      'salvamento proprio da mensalidade deve atualizar estado local e cache publico',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#sincronizarMensalidadeLocal\(payload, data\)[\s\S]*monthly_plan_price[\s\S]*monthly_plan_message[\s\S]*#invalidarCachePublicoBarbearia\(\)/,
+      'sincronizacao local deve atualizar os campos e invalidar cache publico',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#sincronizarMensalidadeLocal\(payload, data\)[\s\S]*#notificarAtualizacaoPublicaMensalidade\(\)/,
+      'sincronizacao local deve notificar a pagina publica para atualizar o banner aberto',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#invalidarCachePublicoBarbearia\(\)[\s\S]*CacheManager\.clearScope\(this\.#barbershopId\)/,
+      'cache publico da barbearia deve ser limpo para o banner recarregar atualizado',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#notificarAtualizacaoPublicaMensalidade\(\)[\s\S]*SupabaseService\.barbershops\(\)[\s\S]*updated_at:\s+new Date\(\)\.toISOString\(\)[\s\S]*\.eq\('id', this\.#barbershopId\)/,
+      'salvar mensalidade deve tocar updated_at da barbearia para disparar realtime publico',
+    );
     const idxUpdateShop = SRC_MB_PAGE.indexOf('async #atualizarBarbeariaSemMensalidade');
     const updateShop = SRC_MB_PAGE.slice(idxUpdateShop, SRC_MB_PAGE.indexOf('#salvarMensalidade()', idxUpdateShop));
     assert.match(updateShop, /SupabaseService\.barbershops\(\)[\s\S]*\.update\(payload\)/);

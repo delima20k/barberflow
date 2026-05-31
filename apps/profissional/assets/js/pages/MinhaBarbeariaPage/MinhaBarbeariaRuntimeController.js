@@ -2593,7 +2593,9 @@ export class MinhaBarbeariaRuntimeController {
 
       await this.#salvarProdutos();
       await this.#salvarServicosTipados();
-      await this.#salvarMensalidadeServico();
+      const mensalidadeResultado = await this.#salvarMensalidadeServico();
+      if (mensalidadeResultado.error) throw mensalidadeResultado.error;
+      this.#sincronizarMensalidadeLocal(mensalidadeResultado.payload, mensalidadeResultado.data);
 
       // Fechar campos editáveis e atualizar exibição
       this.#_fecharEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis);
@@ -2650,13 +2652,7 @@ export class MinhaBarbeariaRuntimeController {
       const { payload, data, error } = await this.#salvarMensalidadeServico();
       if (error) throw error;
 
-      if (this.#shopData) {
-        this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
-        this.#shopData.monthly_plan_message = payload.monthly_plan_message;
-        this.#renderInfoCard(this.#shopData);
-      }
-      this.#servicos = await MinhaBarbeariaRuntimeController.#fetchServicos(this.#barbershopId)
-        .catch(() => (data ? [...this.#servicos.filter(s => s.id !== data.id), data] : this.#servicos));
+      this.#sincronizarMensalidadeLocal(payload, data);
       AnimationService.gaspar(msg, 'Mensalidade salva', 3500, 'gaspar-ok');
     } catch (err) {
       LoggerService?.error?.('[MinhaBarbeariaPage] salvarMensalidade:', err);
@@ -2664,6 +2660,41 @@ export class MinhaBarbeariaRuntimeController {
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Salvar mensalidade'; }
     }
+  }
+
+  #sincronizarMensalidadeLocal(payload, data) {
+    if (this.#shopData) {
+      this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
+      this.#shopData.monthly_plan_message = payload.monthly_plan_message;
+      this.#renderInfoCard(this.#shopData);
+    }
+
+    if (data?.id) {
+      this.#servicos = [
+        ...this.#servicos.filter(s => s.id !== data.id && s.category !== 'mensalidade'),
+        data,
+      ];
+    }
+
+    this.#preencherMensalidade(this.#shopData ?? {}, this.#servicos);
+    this.#invalidarCachePublicoBarbearia();
+    this.#notificarAtualizacaoPublicaMensalidade();
+  }
+
+  #invalidarCachePublicoBarbearia() {
+    if (!this.#barbershopId || typeof CacheManager === 'undefined') return;
+    CacheManager.clearScope(this.#barbershopId);
+  }
+
+  #notificarAtualizacaoPublicaMensalidade() {
+    if (!this.#barbershopId || typeof SupabaseService === 'undefined') return;
+    SupabaseService.barbershops()
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', this.#barbershopId)
+      .then(({ error }) => {
+        if (error) LoggerService?.warn?.('[MinhaBarbeariaPage] realtime mensalidade:', error.message ?? error);
+      })
+      .catch(err => LoggerService?.warn?.('[MinhaBarbeariaPage] realtime mensalidade:', err?.message ?? err));
   }
 
   async #salvarMensalidadeServico() {

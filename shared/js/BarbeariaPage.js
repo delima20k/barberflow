@@ -714,17 +714,16 @@ class BarbeariaPage {
    * Atualiza também o cache para que a próxima navegação use dados frescos.
    * @param {object} payload — payload do Supabase Realtime
    */
-  #onShopRealtime(payload) {
+  async #onShopRealtime(payload) {
     const novo = payload?.new;
     if (!novo || !this.#shopData) return;
 
-    // Guarda contra payload parcial do Realtime (sem is_open definido)
-    if (novo.is_open === undefined) return;
+    const statusMudou = novo.is_open !== undefined && novo.is_open !== this.#shopData.is_open;
 
     this.#shopData = {
       ...this.#shopData,
-      is_open:      novo.is_open,
-      close_reason: novo.close_reason ?? null,
+      ...novo,
+      close_reason: novo.close_reason ?? this.#shopData.close_reason ?? null,
     };
 
     // Atualiza o cache para evitar dado obsoleto na próxima navegação à mesma barbearia
@@ -733,7 +732,17 @@ class BarbeariaPage {
 
     // Atualiza badge e re-renderiza cadeiras imediatamente (sem reload)
     this.#atualizarBadge(this.#shopData);
-    this.#renderBarbeiros(this.#shopData).catch(() => {});
+    if (statusMudou) this.#renderBarbeiros(this.#shopData).catch(() => {});
+
+    try {
+      const servicos = await BarbeariaPage.#fetchServicos(this.#shopId);
+      this.#servicos = servicos;
+      CacheManager.set(`${this.#shopId}:servicos`, servicos, 5 * 60 * 1000);
+      this.#renderServicos(servicos, this.#shopData);
+      this.#renderMensalBanner(this.#shopData, servicos);
+    } catch (err) {
+      LoggerService.warn('[BarbeariaPage] realtime serviços falhou:', err?.message ?? err);
+    }
   }
 
   /**

@@ -89,6 +89,18 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(helpers, /insertAdjacentElement\('afterend', el\)/);
   });
 
+  test('realtime da barbearia recarrega servicos para atualizar banner aberto', () => {
+    const realtime = js.slice(
+      js.indexOf('async #onShopRealtime'),
+      js.indexOf('/**', js.indexOf('async #onShopRealtime') + 1),
+    );
+
+    assert.match(realtime, /await BarbeariaPage\.#fetchServicos\(this\.#shopId\)/);
+    assert.match(realtime, /CacheManager\.set\(`\$\{this\.#shopId\}:servicos`,\s+servicos/);
+    assert.match(realtime, /this\.#renderServicos\(servicos, this\.#shopData\)/);
+    assert.match(realtime, /this\.#renderMensalBanner\(this\.#shopData, servicos\)/);
+  });
+
   test('banner de mensalidade fica abaixo dos servicos com gradiente da paleta', () => {
     for (const html of [clienteHtml, profissionalHtml]) {
       const telaStart = html.indexOf('<main id="tela-barbearia"');
