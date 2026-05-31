@@ -254,6 +254,9 @@ class BffApiService {
 
     publicarStory: (barbershopId, payload) =>
       BffApiService.post(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`, payload),
+
+    salvarMensalidade: (payload) =>
+      BffApiService.patch('/api/v1/barbearias/minha/mensalidade', payload),
   };
 
   // ── Namespace: financeiro ────────────────────────────────────

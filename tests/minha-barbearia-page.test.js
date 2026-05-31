@@ -549,8 +549,8 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
-      /#salvarMensalidadeServico\(\)[\s\S]*description:\s+payload\.monthly_plan_message[\s\S]*category:\s+'mensalidade'[\s\S]*price:\s+payload\.monthly_plan_price \?\? 0/,
-      'mensalidade deve persistir em services para funcionar no schema remoto atual',
+      /#salvarMensalidadeServico\(\)[\s\S]*BffApiService\.barbearias\.salvarMensalidade\(payload\)/,
+      'mensalidade deve persistir via BFF na rota PATCH /minha/mensalidade',
     );
     assert.match(
       SRC_MB_PAGE,
@@ -564,12 +564,12 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
-      /#sincronizarMensalidadeLocal\(payload, data\)[\s\S]*monthly_plan_price[\s\S]*monthly_plan_message[\s\S]*#invalidarCachePublicoBarbearia\(\)/,
+      /#sincronizarMensalidadeLocal\(payload, _data\)[\s\S]*monthly_plan_price[\s\S]*monthly_plan_message[\s\S]*#invalidarCachePublicoBarbearia\(\)/,
       'sincronizacao local deve atualizar os campos e invalidar cache publico',
     );
     assert.match(
       SRC_MB_PAGE,
-      /#sincronizarMensalidadeLocal\(payload, data\)[\s\S]*#notificarAtualizacaoPublicaMensalidade\(\)/,
+      /#sincronizarMensalidadeLocal\(payload, _data\)[\s\S]*#notificarAtualizacaoPublicaMensalidade\(\)/,
       'sincronizacao local deve notificar a pagina publica para atualizar o banner aberto',
     );
     assert.match(

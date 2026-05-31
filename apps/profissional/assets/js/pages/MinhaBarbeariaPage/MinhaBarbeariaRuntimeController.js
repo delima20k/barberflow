@@ -2662,18 +2662,11 @@ export class MinhaBarbeariaRuntimeController {
     }
   }
 
-  #sincronizarMensalidadeLocal(payload, data) {
+  #sincronizarMensalidadeLocal(payload, _data) {
     if (this.#shopData) {
       this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
       this.#shopData.monthly_plan_message = payload.monthly_plan_message;
       this.#renderInfoCard(this.#shopData);
-    }
-
-    if (data?.id) {
-      this.#servicos = [
-        ...this.#servicos.filter(s => s.id !== data.id && s.category !== 'mensalidade'),
-        data,
-      ];
     }
 
     this.#preencherMensalidade(this.#shopData ?? {}, this.#servicos);
@@ -2699,22 +2692,7 @@ export class MinhaBarbeariaRuntimeController {
 
   async #salvarMensalidadeServico() {
     const payload = this.#montarPayloadMensalidade();
-    const atual = this.#servicos.find(s => s.category === 'mensalidade') ?? null;
-    const entry = {
-      barbershop_id: this.#barbershopId,
-      name:          payload.monthly_plan_message || 'Mensalidade',
-      description:   payload.monthly_plan_message,
-      category:      'mensalidade',
-      price:         payload.monthly_plan_price ?? 0,
-      duration_min:  30,
-      is_active:     true,
-    };
-    if (atual?.id) entry.id = atual.id;
-
-    const { data, error } = await SupabaseService.services()
-      .upsert(entry, { onConflict: 'id' })
-      .select('id, name, description, category, price, duration_min, image_path')
-      .single();
+    const { data, error } = await BffApiService.barbearias.salvarMensalidade(payload);
     return { payload, data, error };
   }
 

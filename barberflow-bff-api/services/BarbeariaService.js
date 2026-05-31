@@ -136,6 +136,37 @@ class BarbeariaService extends BaseService {
   }
 
   /**
+   * Salva preço e mensagem do plano mensal da barbearia do usuario autenticado.
+   * @param {string} userId
+   * @param {object} dados
+   * @returns {Promise<object>}
+   */
+  async salvarMensalidade(userId, dados = {}) {
+    this._uuid('userId', userId);
+
+    const preco = dados.monthly_plan_price;
+    if (preco !== null && preco !== undefined) {
+      const n = Number(preco);
+      if (!isFinite(n) || isNaN(n) || n < 0) {
+        throw AppError.badRequest('monthly_plan_price deve ser null ou número >= 0.');
+      }
+    }
+
+    const msg = dados.monthly_plan_message;
+    if (msg !== null && msg !== undefined) {
+      if (String(msg).length > 500) {
+        throw AppError.badRequest('monthly_plan_message deve ter no máximo 500 caracteres.');
+      }
+    }
+
+    return this.#repo.updateMensalidade(userId, {
+      monthly_plan_price:   preco !== undefined ? (preco !== null ? Number(preco) : null) : null,
+      monthly_plan_message: msg !== undefined ? (msg !== null ? String(msg) : null) : null,
+      updated_at:           new Date().toISOString(),
+    });
+  }
+
+  /**
    * Busca barbeiros elegíveis para convite da barbearia autenticada.
    * @param {string} userId
    * @param {string} busca

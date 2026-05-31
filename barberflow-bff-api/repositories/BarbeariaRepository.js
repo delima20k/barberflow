@@ -225,6 +225,31 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
+   * Atualiza preço e mensagem do plano mensal da barbearia do owner autenticado.
+   * @param {string} ownerId
+   * @param {object} dados
+   * @returns {Promise<object>}
+   */
+  async updateMensalidade(ownerId, dados) {
+    this._uuid('ownerId', ownerId);
+    const payload = this._payload(dados, ['monthly_plan_price', 'monthly_plan_message', 'updated_at']);
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .update(payload)
+      .eq('owner_id', ownerId)
+      .eq('is_active', true)
+      .select('monthly_plan_price, monthly_plan_message')
+      .single();
+
+    if (error) {
+      this._warn('updateMensalidade', error);
+      this._throwDbError(error, 'updateMensalidade');
+    }
+    return data;
+  }
+
+  /**
    * Busca a barbearia ativa pertencente ao owner autenticado.
    * @param {string} ownerId
    * @returns {Promise<object|null>}

@@ -112,6 +112,17 @@ class BarbeariaController extends BaseController {
   }
 
   /**
+   * PATCH /api/v1/barbearias/minha/mensalidade
+   * Atualiza preço e mensagem do plano mensal da barbearia do usuario autenticado.
+   */
+  async salvarMensalidade(req, res) {
+    await this.handle(res, async () => {
+      const atualizado = await this.#service.salvarMensalidade(req.user.id, req.body ?? {});
+      this.success(res, atualizado);
+    });
+  }
+
+  /**
    * PATCH /api/v1/barbearias/minha/imagem?tipo=logo|cover
    * Atualiza logo/capa da barbearia do usuario autenticado via BFF.
    */

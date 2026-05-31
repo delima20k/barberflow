@@ -23,6 +23,7 @@ module.exports = function criarBarbeariaRoute(db) {
   // ATENÇÃO: /destaque e /todas devem vir ANTES de /:id para evitar
   // conflito de parâmetro dinâmico (Express resolve em ordem de registro).
   router.patch('/minha/endereco',                           AuthMiddleware.verificar, ctrl.salvarEndereco.bind(ctrl));
+  router.patch('/minha/mensalidade',                        AuthMiddleware.verificar, ctrl.salvarMensalidade.bind(ctrl));
   router.patch('/minha/imagem',                             AuthMiddleware.verificar, rawImage, ctrl.salvarImagem.bind(ctrl));
   router.patch('/minha/servicos/imagem',                    AuthMiddleware.verificar, rawImage, ctrl.salvarImagemServico.bind(ctrl));
   router.get('/minha/convites/barbeiros-disponiveis',       AuthMiddleware.verificar, ctrl.buscarBarbeirosDisponiveis.bind(ctrl));
