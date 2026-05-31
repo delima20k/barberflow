@@ -104,65 +104,23 @@ class ProfissionalService extends BaseService {
       clientMessageId = this._texto('clientMessageId', dados.clientMessageId, 80, true);
     }
 
-    if (!this.#sendMessageUseCase) {
-      throw AppError.unavailable('Chat indisponivel.');
+    // Salva diretamente em portfolio_messages (independente do sistema de chat)
+    if (!portfolioImageId) {
+      // Sem imagem alvo: fluxo legado via chat (pode não funcionar em todos os ambientes)
+      return { conversationId: null, message: null };
     }
 
-    let ctx;
-    try {
-      ctx = await this.#repo.buscarContextoMensagem(professionalId);
-    } catch (err) {
-      throw AppError.unavailable('Servico de mensagens temporariamente indisponivel.');
-    }
-    if (!ctx?.professional_id || !ctx?.owner_id || !ctx?.barbershop_id) {
-      throw AppError.notFound('Vinculo ativo do profissional com barbearia nao encontrado.');
-    }
+    const body = bodyCustomizado;
+    if (!body) throw AppError.badRequest('Mensagem obrigatoria.');
 
-    const metadata = {
-      origin: portfolioImageId ? 'barbershop_public_portfolio' : 'barber_public_profile',
+    await this.#repo.salvarMensagemPortfolio({
+      portfolioImageId,
       professionalId,
-      professionalName: ctx.professional_name ?? null,
-      barbershopId: ctx.barbershop_id,
-    };
-    if (portfolioImageId) metadata.portfolioImageId = portfolioImageId;
+      senderId: clienteId,
+      body,
+    });
 
-    let conversationId;
-    try {
-      conversationId = await this.#repo.encontrarConversaDireta(clienteId, ctx.owner_id, metadata);
-      if (!conversationId) {
-        conversationId = await this.#repo.criarConversaDireta({
-          clientId: clienteId,
-          ownerId: ctx.owner_id,
-          createdBy: clienteId,
-          metadata,
-        });
-      }
-    } catch (err) {
-      throw AppError.unavailable('Servico de mensagens temporariamente indisponivel.');
-    }
-
-    const body = bodyCustomizado || `Cliente interessado no barbeiro ${ctx.professional_name || professionalId}`;
-    let result;
-    try {
-      result = await this.#sendMessageUseCase.execute({
-        conversationId,
-        senderId: clienteId,
-        clientMessageId: clientMessageId || this.#deps.uuid(),
-        body,
-        attachments: [],
-      });
-    } catch (err) {
-      throw AppError.unavailable('Servico de mensagens temporariamente indisponivel.');
-    }
-
-    if (result?.isFail?.()) {
-      throw AppError.badRequest(String(result.getError()));
-    }
-
-    return {
-      conversationId,
-      message: result?.getValue?.() ?? null,
-    };
+    return { conversationId: null, message: { body } };
   }
 
   async listarPortfolioPublico(professionalId, filtros = {}) {

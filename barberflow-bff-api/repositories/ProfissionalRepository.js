@@ -662,6 +662,25 @@ class ProfissionalRepository extends BaseRepository {
   }
 
   /**
+   * Salva uma mensagem de portfólio na tabela portfolio_messages.
+   */
+  async salvarMensagemPortfolio({ portfolioImageId, professionalId, senderId, body }) {
+    this._uuid('portfolioImageId', portfolioImageId);
+    this._uuid('professionalId', professionalId);
+    this._uuid('senderId', senderId);
+
+    const { error } = await this._db
+      .from('portfolio_messages')
+      .insert({
+        portfolio_image_id: portfolioImageId,
+        professional_id:    professionalId,
+        sender_id:          senderId,
+        body,
+      });
+    if (error) this._throwDbError(error, 'salvarMensagemPortfolio');
+  }
+
+  /**
    * Lista mensagens recebidas em uma imagem de portfólio.
    * Busca conversas cujo metadata.portfolioImageId === imageId e retorna
    * as mensagens com perfil do remetente (avatar, nome).
@@ -675,40 +694,19 @@ class ProfissionalRepository extends BaseRepository {
     this._uuid('professionalId', professionalId);
     this._uuid('imageId', imageId);
 
-    // Verifica ownership da imagem
-    const { data: img, error: imgError } = await this._db
-      .from('portfolio_images')
-      .select('id, owner_id')
-      .eq('id', imageId)
-      .eq('owner_id', professionalId)
-      .maybeSingle();
-    if (imgError) this._throwDbError(imgError, 'listarMensagensPortfolioImagem.ownership');
-    if (!img) return { messages: [], ownerVerified: false };
-
-    // Busca conversas ligadas a esta imagem via metadata
-    const { data: convs, error: convsError } = await this._db
-      .from('chat_conversations')
-      .select('id')
-      .filter('metadata->>portfolioImageId', 'eq', imageId)
-      .limit(200);
-    if (convsError) this._throwDbError(convsError, 'listarMensagensPortfolioImagem.conversations');
-
-    const convIds = (convs ?? []).map(c => c.id).filter(Boolean);
-    if (!convIds.length) return { messages: [], ownerVerified: true };
-
-    // Busca mensagens dessas conversas (exceto deletadas)
+    // Busca mensagens diretamente da tabela portfolio_messages
     const { data: msgs, error: msgsError } = await this._db
-      .from('chat_messages')
-      .select('id, conversation_id, sender_id, body, created_at')
-      .in('conversation_id', convIds)
-      .is('deleted_at', null)
+      .from('portfolio_messages')
+      .select('id, sender_id, body, created_at')
+      .eq('portfolio_image_id', imageId)
+      .eq('professional_id', professionalId)
       .order('created_at', { ascending: false })
       .limit(Math.min(limit, 100));
-    if (msgsError) this._throwDbError(msgsError, 'listarMensagensPortfolioImagem.messages');
 
+    if (msgsError) this._throwDbError(msgsError, 'listarMensagensPortfolioImagem');
     if (!(msgs ?? []).length) return { messages: [], ownerVerified: true };
 
-    // Busca perfis dos remetentes de uma vez
+    // Busca perfis dos remetentes
     const senderIds = [...new Set(msgs.map(m => m.sender_id))];
     const { data: perfis } = await this._db
       .from('profiles')

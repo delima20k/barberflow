@@ -210,13 +210,13 @@ class PortfolioPrismViewer {
       this.#publicLike.setAttribute('aria-pressed', isLiked ? 'true' : 'false');
       const count = this.#publicLike.querySelector('[data-public-like-count]');
       const icon  = this.#publicLike.querySelector('[data-public-like-icon]');
-      // Quando há curtidas (>=1): mostra o número no lugar do ícone 👍.
-      // Quando zero curtidas: mostra apenas o ícone 👍.
+      // Quando >=1 curtidas: exibe o número no lugar do ícone 👍 e mantém.
+      // Quando 0: exibe apenas o ícone 👍.
       if (count) {
-        count.textContent = likesCount > 0 ? String(likesCount) : '';
-        count.style.display = likesCount > 0 ? '' : 'none';
+        count.textContent = String(likesCount);
+        count.hidden = (likesCount <= 0);  // .hidden remove/adiciona o atributo HTML
       }
-      if (icon) icon.style.display = likesCount > 0 ? 'none' : '';
+      if (icon) icon.hidden = (likesCount > 0);
     }
     if (this.#publicInput) {
       if (imageAnterior !== imageId) this.#publicInput.value = '';
@@ -518,19 +518,13 @@ class PortfolioPrismViewer {
     try {
       const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
       if (error) throw error;
-      if (
-        this.#publicInput
-        && texto !== PortfolioPrismViewer.#laughEmoji()
-        && texto !== PortfolioPrismViewer.#sadEmoji()
-      ) {
-        this.#publicInput.value = '';
-      }
+      if (this.#publicInput) this.#publicInput.value = '';
       this.#emitInteraction(texto);
     } catch {
-      // Erro silencioso mantem o viewer estavel; BffApiService ja devolve erro estruturado.
+      this.#emitInteraction('✗ Falha ao enviar');
     } finally {
-      if (this.#publicInput)  this.#publicInput.disabled  = false;
-      if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
+      if (this.#publicInput)   this.#publicInput.disabled   = false;
+      if (this.#publicSendBtn) this.#publicSendBtn.disabled  = false;
       this.#publicEmojis.forEach(btn => { btn.disabled = false; });
     }
   }
