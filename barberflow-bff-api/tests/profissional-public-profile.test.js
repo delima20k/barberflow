@@ -31,6 +31,9 @@ function criarRepo(overrides = {}) {
       barbershop_city: 'Sao Paulo',
       barbershop_state: 'SP',
       barbershop_owner_id: OWNER_ID,
+      barbershop_logo_path: `${SHOP_ID}/logo.webp`,
+      barbershop_cover_path: `${SHOP_ID}/cover.webp`,
+      barbershop_is_owner_workplace: false,
     }),
     atualizarPerfilPublico: async (_userId, payload) => ({ id: _userId, ...payload }),
     buscarContextoMensagem: async () => ({
@@ -69,7 +72,54 @@ suite('ProfissionalService - perfil publico', () => {
         city: 'Sao Paulo',
         state: 'SP',
         ownerId: OWNER_ID,
+        logoPath: `${SHOP_ID}/logo.webp`,
+        coverPath: `${SHOP_ID}/cover.webp`,
+        isOwnerWorkplace: false,
+        professionalId: PROF_ID,
       },
+    });
+  });
+
+  test('deve expor barbearia propria do dono como workplace principal', async () => {
+    const service = new ProfissionalService(
+      criarRepo({
+        buscarPerfilPublico: async () => ({
+          id: PROF_ID,
+          full_name: 'Aln1',
+          avatar_path: null,
+          bio: 'Dono e barbeiro.',
+          rating_avg: 5,
+          rating_count: 8,
+          birth_date: null,
+          gender: null,
+          since_year: 2010,
+          barbershop_id: SHOP_ID,
+          barbershop_name: 'Barbearia Aln1',
+          barbershop_address: 'Rua Central',
+          barbershop_city: 'Sao Paulo',
+          barbershop_state: 'SP',
+          barbershop_owner_id: PROF_ID,
+          barbershop_logo_path: `${SHOP_ID}/logo.webp`,
+          barbershop_cover_path: `${SHOP_ID}/cover.webp`,
+          barbershop_is_owner_workplace: true,
+        }),
+      }),
+      { execute: async () => Result.ok({}) },
+    );
+
+    const dto = await service.buscarPerfilPublico(PROF_ID);
+
+    assert.deepEqual(dto.barbershop, {
+      id: SHOP_ID,
+      name: 'Barbearia Aln1',
+      address: 'Rua Central',
+      city: 'Sao Paulo',
+      state: 'SP',
+      ownerId: PROF_ID,
+      logoPath: `${SHOP_ID}/logo.webp`,
+      coverPath: `${SHOP_ID}/cover.webp`,
+      isOwnerWorkplace: true,
+      professionalId: PROF_ID,
     });
   });
 
@@ -148,7 +198,7 @@ suite('ProfissionalService - perfil publico', () => {
 });
 
 suite('ProfissionalRepository - perfil publico resiliente a 42P01', () => {
-  test('deve retornar null quando tabela professionals retorna 42P01 nas duas queries', async () => {
+  test('deve retornar perfil parcial quando tabela professionals retorna 42P01 nas duas queries', async () => {
     const db = {
       from(table) {
         const state = { table, select: '' };
@@ -176,7 +226,10 @@ suite('ProfissionalRepository - perfil publico resiliente a 42P01', () => {
 
     const repo = new ProfissionalRepository(db);
     const row = await repo.buscarPerfilPublico(PROF_ID);
-    assert.strictEqual(row, null);
+    assert.ok(row, 'deve preservar perfil publico parcial quando profiles existe');
+    assert.strictEqual(row.id, PROF_ID);
+    assert.strictEqual(row.full_name, 'Joao');
+    assert.strictEqual(row.barbershop_id, null);
   });
 
   test('deve retornar perfil sem barbearia quando professional_shop_links retorna 42P01', async () => {
@@ -284,5 +337,70 @@ suite('ProfissionalRepository - perfil publico resiliente a schema parcial', () 
     assert.equal(row.barbershop_state, null);
     assert.ok(calls.some(call => call.table === 'profiles' && !call.select.includes('birth_date')));
     assert.ok(calls.some(call => call.table === 'professionals' && !call.select.includes('since_year')));
+  });
+
+  test('deve priorizar barbearia propria antes de parceria ativa no perfil publico', async () => {
+    const calls = [];
+    const db = {
+      from(table) {
+        const state = { table, select: '', filters: [] };
+        const query = {
+          select(value) {
+            state.select = value;
+            calls.push({ table, select: value });
+            return query;
+          },
+          eq(col, value) { state.filters.push([col, value]); return query; },
+          order() { return query; },
+          limit() { return query; },
+          maybeSingle() {
+            if (state.table === 'profiles') {
+              return Promise.resolve({
+                data: { id: PROF_ID, full_name: 'Aln1', avatar_path: null, is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'professionals') {
+              return Promise.resolve({
+                data: { id: PROF_ID, bio: 'Dono', avatar_path: null, rating_avg: 5, rating_count: 1, is_active: true },
+                error: null,
+              });
+            }
+            if (state.table === 'barbershops' && state.filters.some(([col]) => col === 'owner_id')) {
+              return Promise.resolve({
+                data: {
+                  id: SHOP_ID,
+                  owner_id: PROF_ID,
+                  name: 'Barbearia Aln1',
+                  address: 'Rua Central',
+                  city: 'Sao Paulo',
+                  state: 'SP',
+                  logo_path: `${SHOP_ID}/logo.webp`,
+                  cover_path: `${SHOP_ID}/cover.webp`,
+                  is_active: true,
+                },
+                error: null,
+              });
+            }
+            if (state.table === 'professional_shop_links') {
+              return Promise.resolve({
+                data: { barbershop_id: '11111111-1111-4111-8111-111111111111' },
+                error: null,
+              });
+            }
+            return Promise.resolve({ data: null, error: null });
+          },
+        };
+        return query;
+      },
+    };
+
+    const repo = new ProfissionalRepository(db);
+    const row = await repo.buscarPerfilPublico(PROF_ID);
+
+    assert.equal(row.barbershop_id, SHOP_ID);
+    assert.equal(row.barbershop_is_owner_workplace, true);
+    assert.equal(row.barbershop_logo_path, `${SHOP_ID}/logo.webp`);
+    assert.ok(calls.some(call => call.table === 'barbershops' && call.select.includes('logo_path')));
   });
 });

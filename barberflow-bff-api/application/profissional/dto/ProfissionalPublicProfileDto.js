@@ -28,6 +28,10 @@ class ProfissionalPublicProfileDto {
         city: row.barbershop_city ?? null,
         state: row.barbershop_state ?? null,
         ownerId: row.barbershop_owner_id ?? row.owner_id ?? null,
+        logoPath: row.barbershop_logo_path ?? row.logo_path ?? null,
+        coverPath: row.barbershop_cover_path ?? row.cover_path ?? null,
+        isOwnerWorkplace: Boolean(row.barbershop_is_owner_workplace),
+        professionalId: row.id ?? row.professional_id,
       } : null,
     };
   }

@@ -87,8 +87,9 @@ class BarbeariaPage {
    *
    * @param {string} id — UUID da barbearia
    */
-  async abrirPorId(id) {
+  async abrirPorId(id, { highlightBarberId = null } = {}) {
     if (!InputValidator.uuid(id).ok) return;
+    this.#highlightBarberId = InputValidator.uuid(highlightBarberId).ok ? highlightBarberId : null;
 
     // Inicia troca de contexto + preload imediato
     NavigationManager.beforeNavigate(id);
@@ -198,11 +199,8 @@ class BarbeariaPage {
         return;
       }
 
-      const highlightId = card.dataset.highlightBarberId ?? null;
-      this.#highlightBarberId = InputValidator.uuid(highlightId).ok ? highlightId : null;
-
       e.stopPropagation();
-      this.abrirPorId(id);
+      this.abrirPorId(id, { highlightBarberId: card.dataset.highlightBarberId ?? null });
     }, true);
   }
 

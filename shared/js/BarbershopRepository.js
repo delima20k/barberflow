@@ -337,6 +337,86 @@ class BarbershopRepository {
     return data ?? null;
   }
 
+  /**
+   * Retorna a barbearia principal de um profissional para o fallback da tela BarbeiroPage.
+   * Prioridade: barbearia propria do dono, depois parceria ativa mais recente.
+   * @param {string} professionalId
+   * @returns {Promise<object|null>}
+   */
+  static async getWorkplaceByProfessionalId(professionalId) {
+    const r = InputValidator.uuid(professionalId);
+    if (!r.ok) throw new TypeError(`[BarbershopRepository] professionalId inválido: ${r.msg}`);
+
+    const own = await BarbershopRepository.#buscarWorkplaceProprio(professionalId);
+    if (own?.id) return BarbershopRepository.#toWorkplaceInfo(own, true, professionalId);
+
+    const link = await BarbershopRepository.#buscarVinculoPrincipal(professionalId);
+    if (!link?.barbershop_id) return null;
+
+    const shop = await BarbershopRepository.#buscarWorkplacePorId(link.barbershop_id);
+    return shop?.id ? BarbershopRepository.#toWorkplaceInfo(shop, false, professionalId) : null;
+  }
+
+  static async #buscarWorkplaceProprio(professionalId) {
+    try {
+      const { data, error } = await ApiService.from('barbershops')
+        .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active')
+        .eq('owner_id', professionalId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  static async #buscarVinculoPrincipal(professionalId) {
+    try {
+      const { data, error } = await ApiService.from('professional_shop_links')
+        .select('barbershop_id, joined_at')
+        .eq('professional_id', professionalId)
+        .eq('is_active', true)
+        .order('joined_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  static async #buscarWorkplacePorId(barbershopId) {
+    try {
+      const { data, error } = await ApiService.from('barbershops')
+        .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active')
+        .eq('id', barbershopId)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) return null;
+      return data ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  static #toWorkplaceInfo(shop, isOwnerWorkplace, professionalId) {
+    return {
+      id: shop.id,
+      name: shop.name ?? null,
+      address: shop.address ?? null,
+      city: shop.city ?? null,
+      state: shop.state ?? null,
+      ownerId: shop.owner_id ?? null,
+      logoPath: shop.logo_path ?? null,
+      coverPath: shop.cover_path ?? null,
+      isOwnerWorkplace: Boolean(isOwnerWorkplace),
+      professionalId,
+    };
+  }
+
   // ═══════════════════════════════════════════════════════════
   // INTERAÇÕES (like / dislike / favorite)
   // ═══════════════════════════════════════════════════════════

@@ -68,6 +68,10 @@ class BarbeiroPage {
 
     // Fast path síncrono: cache já populado
     let profile = CacheManager.get(`${id}:barbeiro`);
+    if (profile) {
+      profile = await BarbeiroPage.#garantirBarbeariaPerfil(BarbeiroPage.#normalizarPerfil(profile));
+      CacheManager.set(`${id}:barbeiro`, profile, 5 * 60 * 1000);
+    }
 
     if (!profile) {
       // Inicia fetch + aguarda máx. 600 ms (não bloqueia além disso)
@@ -286,9 +290,9 @@ class BarbeiroPage {
     try {
       if (typeof BffApiService !== 'undefined' && BffApiService.profissionais?.perfilPublico) {
         const { data, error } = await BffApiService.profissionais.perfilPublico(id);
-        if (!error && data) return BarbeiroPage.#normalizarPerfil(data);
+        if (!error && data) return await BarbeiroPage.#garantirBarbeariaPerfil(BarbeiroPage.#normalizarPerfil(data));
       }
-      return await BarbershopRepository.getBarberById(id);
+      return await BarbeiroPage.#garantirBarbeariaPerfil(await BarbershopRepository.getBarberById(id));
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[BarbeiroPage] erro ao buscar perfil:', err?.message ?? err);
@@ -298,6 +302,14 @@ class BarbeiroPage {
   }
 
   static #normalizarPerfil(profile = {}) {
+    const barbershop = profile.barbershop ? {
+      ...profile.barbershop,
+      logoPath: profile.barbershop.logoPath ?? profile.barbershop.logo_path,
+      coverPath: profile.barbershop.coverPath ?? profile.barbershop.cover_path,
+      isOwnerWorkplace: Boolean(profile.barbershop.isOwnerWorkplace ?? profile.barbershop.is_owner_workplace),
+      professionalId: profile.barbershop.professionalId ?? profile.barbershop.professional_id ?? profile.id ?? profile.professional_id,
+    } : null;
+
     return {
       ...profile,
       full_name: profile.full_name ?? profile.fullName,
@@ -306,7 +318,19 @@ class BarbeiroPage {
       rating_count: profile.rating_count ?? profile.ratingCount,
       birth_date: profile.birth_date ?? profile.birthDate,
       since_year: profile.since_year ?? profile.sinceYear,
+      barbershop,
     };
+  }
+
+  static async #garantirBarbeariaPerfil(profile) {
+    if (!profile?.id || profile.barbershop?.id) return profile;
+    if (typeof BarbershopRepository === 'undefined' || !BarbershopRepository.getWorkplaceByProfessionalId) {
+      return profile;
+    }
+    const barbershop = await BarbershopRepository.getWorkplaceByProfessionalId(profile.id);
+    return barbershop?.id
+      ? BarbeiroPage.#normalizarPerfil({ ...profile, barbershop })
+      : profile;
   }
 
   async #iniciarMensagemBarbearia() {

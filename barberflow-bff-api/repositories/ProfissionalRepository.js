@@ -35,6 +35,7 @@ class ProfissionalRepository extends BaseRepository {
       // Usuário autenticado (profiles OK) mas sem registro na tabela professionals
       // (ex: dono de barbearia, usuário recém-cadastrado).
       // Retorna perfil parcial para evitar 404 desnecessário no session refresh.
+      const barbershop = await this.#buscarBarbeariaPropria(professionalId);
       return {
         id: professionalId,
         professional_id: professionalId,
@@ -46,12 +47,7 @@ class ProfissionalRepository extends BaseRepository {
         rating_avg: null,
         rating_count: 0,
         since_year: null,
-        barbershop_id: null,
-        barbershop_name: null,
-        barbershop_address: null,
-        barbershop_city: null,
-        barbershop_state: null,
-        barbershop_owner_id: null,
+        ...ProfissionalRepository.#camposBarbearia(barbershop, Boolean(barbershop)),
       };
     }
 
@@ -488,8 +484,15 @@ class ProfissionalRepository extends BaseRepository {
   }
 
   async #montarPerfilPublico(profile, professional) {
-    const link = await this.#buscarVinculoAtivo(professional.id);
-    const barbershop = link?.barbershop_id ? await this.#buscarBarbeariaAtiva(link.barbershop_id) : null;
+    let isOwnerWorkplace = false;
+    let barbershop = await this.#buscarBarbeariaPropria(professional.id);
+
+    if (barbershop?.id) {
+      isOwnerWorkplace = true;
+    } else {
+      const link = await this.#buscarVinculoAtivo(professional.id);
+      barbershop = link?.barbershop_id ? await this.#buscarBarbeariaAtiva(link.barbershop_id) : null;
+    }
 
     return {
       id: professional.id,
@@ -501,12 +504,7 @@ class ProfissionalRepository extends BaseRepository {
       birth_date: profile.birth_date,
       gender: profile.gender,
       since_year: professional.since_year,
-      barbershop_id: barbershop?.id ?? null,
-      barbershop_name: barbershop?.name ?? null,
-      barbershop_address: barbershop?.address ?? null,
-      barbershop_city: barbershop?.city ?? null,
-      barbershop_state: barbershop?.state ?? null,
-      barbershop_owner_id: barbershop?.owner_id ?? null,
+      ...ProfissionalRepository.#camposBarbearia(barbershop, isOwnerWorkplace),
     };
   }
 
@@ -585,10 +583,39 @@ class ProfissionalRepository extends BaseRepository {
     return data;
   }
 
+  async #buscarBarbeariaPropria(professionalId) {
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active')
+      .eq('owner_id', professionalId)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle();
+    if (error && !ProfissionalRepository.#isErroSchemaParcial(error)) {
+      this._throwDbError(error, 'buscarBarbeariaPropria');
+    }
+    if (error) {
+      this._warn('buscarBarbeariaPropria.fallback', error);
+      const fallback = await this._db
+        .from('barbershops')
+        .select('id, owner_id, name, address, city, is_active')
+        .eq('owner_id', professionalId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+      if (fallback.error) {
+        this._warn('buscarBarbeariaPropria.fallback.final', fallback.error);
+        return null;
+      }
+      return { ...fallback.data, state: null, logo_path: null, cover_path: null };
+    }
+    return data;
+  }
+
   async #buscarBarbeariaAtiva(barbershopId) {
     const { data, error } = await this._db
       .from('barbershops')
-      .select('id, owner_id, name, address, city, state, is_active')
+      .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active')
       .eq('id', barbershopId)
       .eq('is_active', true)
       .maybeSingle();
@@ -607,7 +634,7 @@ class ProfissionalRepository extends BaseRepository {
         this._warn('buscarBarbeariaAtiva.fallback.final', fallback.error);
         return null;
       }
-      return { ...fallback.data, state: null };
+      return { ...fallback.data, state: null, logo_path: null, cover_path: null };
     }
     return data;
   }
@@ -632,6 +659,20 @@ class ProfissionalRepository extends BaseRepository {
       || code === 'PGRST200'
       || /column .* does not exist/i.test(message)
       || /could not find .* column/i.test(message);
+  }
+
+  static #camposBarbearia(barbershop, isOwnerWorkplace = false) {
+    return {
+      barbershop_id: barbershop?.id ?? null,
+      barbershop_name: barbershop?.name ?? null,
+      barbershop_address: barbershop?.address ?? null,
+      barbershop_city: barbershop?.city ?? null,
+      barbershop_state: barbershop?.state ?? null,
+      barbershop_owner_id: barbershop?.owner_id ?? null,
+      barbershop_logo_path: barbershop?.logo_path ?? null,
+      barbershop_cover_path: barbershop?.cover_path ?? null,
+      barbershop_is_owner_workplace: Boolean(barbershop?.id && isOwnerWorkplace),
+    };
   }
 }
 
