@@ -236,14 +236,22 @@ class ProfissionalRepository extends BaseRepository {
       if (error && error.code !== '23505') this._throwDbError(error, 'curtirPortfolioImagem.insert');
     }
 
-    // Conta diretamente da tabela likes — não depende do trigger em portfolio_images.likes_count
+    // Conta diretamente da tabela likes — não depende do trigger
     const { count } = await this._db
       .from('likes')
       .select('id', { head: true, count: 'exact' })
       .eq('content_id', imageId)
       .eq('content_type', 'portfolio_image');
 
-    return { exists: true, likes_count: Math.max(0, count ?? 0) };
+    const likesCount = Math.max(0, count ?? 0);
+
+    // Persiste o contador no banco independente do trigger
+    await this._db
+      .from('portfolio_images')
+      .update({ likes_count: likesCount })
+      .eq('id', imageId);
+
+    return { exists: true, likes_count: likesCount };
   }
 
   async listarCurtidasPortfolio(userId, imageIds) {
@@ -278,14 +286,21 @@ class ProfissionalRepository extends BaseRepository {
       .eq('content_type', 'portfolio_image');
     if (error) this._throwDbError(error, 'descurtirPortfolioImagem.delete');
 
-    // Conta diretamente da tabela likes — não depende do trigger
+    // Conta diretamente e persiste no banco independente do trigger
     const { count } = await this._db
       .from('likes')
       .select('id', { head: true, count: 'exact' })
       .eq('content_id', imageId)
       .eq('content_type', 'portfolio_image');
 
-    return { exists: true, likes_count: Math.max(0, count ?? 0) };
+    const likesCount = Math.max(0, count ?? 0);
+
+    await this._db
+      .from('portfolio_images')
+      .update({ likes_count: likesCount })
+      .eq('id', imageId);
+
+    return { exists: true, likes_count: likesCount };
   }
 
   async listarMeuPortfolio(userId, { limit = 10, offset = 0 } = {}) {

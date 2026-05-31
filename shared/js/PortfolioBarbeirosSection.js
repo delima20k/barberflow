@@ -494,7 +494,10 @@ class PortfolioBarbeirosSection {
         <div class="pbp-overlay"></div>
         <button class="pbp-like-btn${curtido ? ' curtido' : ''}"
                 data-image-id="${s(item.id)}"
-                aria-label="Curtir">👍 <span class="pbp-like-count">${count}</span></button>
+                aria-label="Curtir" aria-pressed="${curtido ? 'true' : 'false'}">
+          <span class="pbp-like-icon"${curtido && count > 0 ? ' hidden' : ''}>👍</span>
+          <span class="pbp-like-count"${!curtido && count <= 0 ? ' hidden' : ''}>${count > 0 ? count : ''}</span>
+        </button>
         <div class="pbp-barber-row">
           <img class="pbp-avatar" src="${s(avatarUrl)}" alt="${s(barber.full_name ?? '')}"
                loading="lazy" onerror="this.style.display='none'">
@@ -506,16 +509,13 @@ class PortfolioBarbeirosSection {
 
     containerEl.replaceChildren(scroll);
 
-    // Sincroniza contadores quando like ocorre no viewer (evento global)
+    // Sincroniza quando like ocorre em outro componente (viewer, PortfolioImageActions, etc.)
     const onLikeExterno = e => {
-      const { imageId, likesCount } = e.detail ?? {};
+      const { imageId, likesCount, liked } = e.detail ?? {};
       if (!imageId) return;
       const safeId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(imageId) : imageId;
       const btn = scroll.querySelector(`.pbp-like-btn[data-image-id="${safeId}"]`);
-      if (!btn) return;
-      const countEl = btn.querySelector('.pbp-like-count');
-      if (countEl) countEl.textContent = String(Math.max(0, Number(likesCount ?? 0)));
-      // Atualiza o array local para manter estado correto em swipes subsequentes
+      if (btn) PortfolioBarbeirosSection.#atualizarBotaoCurtida(btn, Boolean(liked), likesCount);
       const item = itens.find(i => i.id === imageId);
       if (item) item.likes_count = Math.max(0, Number(likesCount ?? 0));
     };
@@ -621,67 +621,78 @@ class PortfolioBarbeirosSection {
     viewer.open(mapped[idx], mapped);
   }
 
-  static async #toggleLike(imageId, btn, countEl, curtidosSet, itens, containerEl) {
+  /** Atualiza visualmente um botão pbp-like-btn: ícone ↔ número. */
+  static #atualizarBotaoCurtida(btn, liked, count) {
+    if (!btn) return;
+    btn.classList.toggle('curtido', liked);
+    btn.setAttribute('aria-pressed', String(liked));
+    const iconEl  = btn.querySelector('.pbp-like-icon');
+    const countEl = btn.querySelector('.pbp-like-count');
+    const n = Math.max(0, Number(count ?? 0));
+    // Quando curtido E há contagem: mostra número; senão: mostra 👍
+    const mostrarNumero = liked && n > 0;
+    if (iconEl)  iconEl.hidden  = mostrarNumero;
+    if (countEl) {
+      countEl.textContent = mostrarNumero ? String(n) : (n > 0 ? String(n) : '');
+      countEl.hidden      = !mostrarNumero && n <= 0;
+    }
+  }
+
+  static async #toggleLike(imageId, btn, _countElLegado, curtidosSet, itens, containerEl) {
     if (!imageId || !InputValidator.uuid(imageId).ok) return;
-    if (btn?.disabled) return; // previne double-click durante chamada async
+    if (btn?.disabled) return; // previne double-click
 
     const perfil = (typeof AuthService !== 'undefined') ? (AuthService.getPerfil?.() ?? null) : null;
     if (!perfil?.id) return; // requer login
 
     const curtido   = curtidosSet.has(imageId);
-    const contAtual = parseInt(countEl?.textContent ?? '0', 10) || 0;
+    const item      = itens.find(i => i.id === imageId);
+    const contAtual = Number(item?.likes_count ?? 0);
     const novoCont  = Math.max(0, contAtual + (curtido ? -1 : 1));
+    const novoLiked = !curtido;
 
-    // Desabilita botão para evitar chamadas concorrentes
     if (btn) btn.disabled = true;
 
     // UI otimista
-    if (curtido) { curtidosSet.delete(imageId); } else { curtidosSet.add(imageId); }
-    btn?.classList.toggle('curtido', !curtido);
-    if (countEl) countEl.textContent = String(novoCont);
-
-    // Atualiza item no array para manter estado sincronizado com o viewer
-    const item = itens.find(i => i.id === imageId);
+    if (curtido) curtidosSet.delete(imageId); else curtidosSet.add(imageId);
+    PortfolioBarbeirosSection.#atualizarBotaoCurtida(btn, novoLiked, novoCont);
     if (item) item.likes_count = novoCont;
 
-    // Sincroniza botão correspondente no carrossel (quando chamado do viewer)
-    // UUID é [0-9a-f-] — seguro como valor de atributo CSS
+    // Sincroniza carrossel se chamado de outro contexto (ex: viewer)
     const carouselBtn = containerEl?.querySelector(`.pbp-like-btn[data-image-id="${imageId}"]`);
     if (carouselBtn && carouselBtn !== btn) {
-      carouselBtn.classList.toggle('curtido', !curtido);
-      const carouselCount = carouselBtn.querySelector('.pbp-like-count');
-      if (carouselCount) carouselCount.textContent = String(novoCont);
+      PortfolioBarbeirosSection.#atualizarBotaoCurtida(carouselBtn, novoLiked, novoCont);
     }
 
     try {
-      if (curtido) {
-        const { data, error } = await BffApiService.profissionais.descurtirPortfolioImagem(imageId);
-        if (error) throw error;
-        const serverCount = data?.likesCount;
-        if (Number.isFinite(Number(serverCount))) {
-          if (countEl) countEl.textContent = String(serverCount);
-          if (item) item.likes_count = Number(serverCount);
-        }
-      } else {
-        const { data, error } = await BffApiService.profissionais.curtirPortfolioImagem(imageId);
-        if (error) throw error;
-        const serverCount = data?.likesCount;
-        if (Number.isFinite(Number(serverCount))) {
-          if (countEl) countEl.textContent = String(serverCount);
-          if (item) item.likes_count = Number(serverCount);
-        }
-      }
-    } catch {
-      // Rollback em caso de erro de rede
-      if (curtido) { curtidosSet.add(imageId); } else { curtidosSet.delete(imageId); }
-      const contRollback = Math.max(0, novoCont + (curtido ? 1 : -1));
-      btn?.classList.toggle('curtido', curtido);
-      if (countEl) countEl.textContent = String(contRollback);
-      if (item) item.likes_count = contRollback;
+      const api = curtido
+        ? BffApiService.profissionais.descurtirPortfolioImagem
+        : BffApiService.profissionais.curtirPortfolioImagem;
+      const { data, error } = await api(imageId);
+      if (error) throw error;
+
+      const serverCount = Number.isFinite(Number(data?.likesCount)) ? Number(data.likesCount) : novoCont;
+      // Protege contra servidor retornar 0 após like (trigger ausente em prod)
+      const contFinal = novoLiked && serverCount < novoCont ? novoCont : serverCount;
+      if (item) item.likes_count = contFinal;
+      PortfolioBarbeirosSection.#atualizarBotaoCurtida(btn, novoLiked, contFinal);
       if (carouselBtn && carouselBtn !== btn) {
-        carouselBtn.classList.toggle('curtido', curtido);
-        const carouselCount = carouselBtn.querySelector('.pbp-like-count');
-        if (carouselCount) carouselCount.textContent = String(contRollback);
+        PortfolioBarbeirosSection.#atualizarBotaoCurtida(carouselBtn, novoLiked, contFinal);
+      }
+      // Evento global para sincronizar todos os contadores da página
+      try {
+        document.dispatchEvent(new CustomEvent('barberflow:portfolio-like', {
+          detail: { imageId, likesCount: contFinal, liked: novoLiked },
+          bubbles: false,
+        }));
+      } catch { /* best-effort */ }
+    } catch {
+      // Rollback
+      if (curtido) curtidosSet.add(imageId); else curtidosSet.delete(imageId);
+      if (item) item.likes_count = contAtual;
+      PortfolioBarbeirosSection.#atualizarBotaoCurtida(btn, curtido, contAtual);
+      if (carouselBtn && carouselBtn !== btn) {
+        PortfolioBarbeirosSection.#atualizarBotaoCurtida(carouselBtn, curtido, contAtual);
       }
     } finally {
       if (btn) btn.disabled = false;
