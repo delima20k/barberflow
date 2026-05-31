@@ -1203,13 +1203,8 @@ class BarbeariaPage {
 
     // Mensalidade agora \u00e9 banner pr\u00f3prio (shop.monthly_plan_*) \u2014 n\u00e3o entra na lista.
     let html = '<div class="bp-serv-carousel" role="list">';
-    for (let i = 0; i < itens.length; i += 10) {
-      const grupo = itens.slice(i, i + 10);
-      html += '<div class="bp-serv-linha">';
-      for (let j = 0; j < grupo.length; j += 5) {
-        html += `<div class="bp-serv-coluna">${grupo.slice(j, j + 5).join('')}</div>`;
-      }
-      html += '</div>';
+    for (let i = 0; i < itens.length; i += 5) {
+      html += `<div class="bp-serv-coluna">${itens.slice(i, i + 5).join('')}</div>`;
     }
     html += '</div>';
 

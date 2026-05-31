@@ -2753,7 +2753,7 @@ export class MinhaBarbeariaRuntimeController {
         </div>
       </div>
       <div class="mb-prod-form-acoes mb-serv-tipo-acoes">
-        <button class="btn-flow mb-serv-tipo-salvar-btn" type="button">Salvar</button>
+        <button class="btn-flow mb-serv-tipo-salvar-btn" type="button" aria-label="Salvar serviço">OK</button>
       </div>`;
 
     li.querySelector(`#${uid}`)
@@ -2887,6 +2887,12 @@ export class MinhaBarbeariaRuntimeController {
     if (!this.#barbershopId || !li) return;
 
     const btn = li.querySelector('.mb-serv-tipo-salvar-btn');
+    if (btn?.dataset.saved === 'true') {
+      this.#setEstadoBotaoServico(btn, false);
+      li.querySelector('.mb-cfg-prod-nome, .mb-cfg-prod-preco')?.focus();
+      return;
+    }
+
     if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
     try {
@@ -2897,12 +2903,22 @@ export class MinhaBarbeariaRuntimeController {
         || li.querySelector('.mb-serv-tipo-label')?.textContent?.trim()
         || 'Serviço';
       NotificationService?.mostrarToast('Salvo', `"${nome}" salvo com sucesso.`, 'sistema');
+      this.#setEstadoBotaoServico(btn, true);
     } catch (err) {
       LoggerService.error('[MinhaBarbeariaPage] salvarServicoTipadoUnico:', err);
       NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o serviço.', 'sistema');
+      this.#setEstadoBotaoServico(btn, false);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+      if (btn) btn.disabled = false;
     }
+  }
+
+  #setEstadoBotaoServico(btn, salvo) {
+    if (!btn) return;
+    btn.dataset.saved = salvo ? 'true' : 'false';
+    btn.classList.toggle('mb-serv-tipo-salvar-btn--ok', salvo);
+    btn.textContent = salvo ? '✓' : 'OK';
+    btn.setAttribute('aria-label', salvo ? 'Serviço salvo. Clique para editar' : 'Salvar serviço');
   }
 
   /** Faz upload da imagem pendente (MediaP2P) via BFF e retorna o path final. */

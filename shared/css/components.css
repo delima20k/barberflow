@@ -4496,23 +4496,22 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Serviços em tabela de colunas na página pública ───────────── */
 .bp-serv-carousel {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-x: visible;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 18px;
+  overflow-x: auto;
   padding: 4px 0 10px;
+  scroll-snap-type: x proximity;
 }
 .bp-serv-carousel::-webkit-scrollbar { display: none; }
-.bp-serv-linha {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  align-items: start;
-}
 .bp-serv-coluna {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 0 0 calc((100% - 18px) / 2);
+  max-width: calc((100% - 18px) / 2);
   min-width: 0;
+  scroll-snap-align: start;
 }
 .bp-serv-item {
   display: flex;
@@ -4538,12 +4537,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: .88rem;
   font-weight: 700;
   white-space: nowrap;
-}
-
-@media (max-width: 520px) {
-  .bp-serv-linha {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* ── Cards de mensalidade ──────────────────────────────────────── */
@@ -4605,6 +4598,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
 }
 .mb-serv-tipo-label {
   font-size: .8rem;
@@ -4634,6 +4628,14 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-serv-tipo-acoes {
   align-self: center;
   margin-left: auto;
+}
+.mb-serv-tipo-salvar-btn {
+  min-width: 44px;
+  padding-inline: 12px;
+}
+.mb-serv-tipo-salvar-btn--ok {
+  min-width: 36px;
+  padding-inline: 0;
 }
 .mb-luzes-row {
   display: flex;

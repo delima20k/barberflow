@@ -452,8 +452,8 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
   test('servicos por tipo devem ter botao de salvar individual e atualizar cache da modal', () => {
     assert.match(
       SRC_MB_PAGE,
-      /class="btn-flow mb-serv-tipo-salvar-btn" type="button">Salvar<\/button>/,
-      'cada servico por tipo deve renderizar botao Salvar',
+      /class="btn-flow mb-serv-tipo-salvar-btn" type="button" aria-label="Salvar servi.o">OK<\/button>/,
+      'cada servico por tipo deve renderizar botao OK',
     );
     assert.match(
       SRC_MB_PAGE,
@@ -464,6 +464,21 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       SRC_MB_PAGE,
       /async #salvarServicoTipadoUnico\(li\)[\s\S]*#salvarServicosTipados\(\);[\s\S]*#fetchServicos\(this\.#barbershopId\)/,
       'salvamento individual deve persistir e recarregar cache usado pela modal de servicos',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /btn\?\.dataset\.saved === 'true'[\s\S]*#setEstadoBotaoServico\(btn, false\)[\s\S]*\.focus\(\)/,
+      'clique no visto deve voltar para OK e focar o campo para atualizar o servico',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#setEstadoBotaoServico\(btn, salvo\)[\s\S]*btn\.textContent = salvo \? '✓' : 'OK'/,
+      'apos salvar o botao deve virar icone de visto',
+    );
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /\.mb-serv-tipo-li\s*\{[\s\S]*overflow:\s*hidden;/,
+      'card de cada servico deve esconder overflow',
     );
   });
 
