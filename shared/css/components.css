@@ -4545,8 +4545,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   width: 100%;
   border-radius: 14px;
   padding: 16px 20px;
-  margin: 4px 0 14px;
-  background: linear-gradient(135deg, #2a1a0e 0%, #3d2210 55%, #1a1008 100%);
+  margin: 12px 0 14px;
+  background:
+    linear-gradient(135deg, rgba(0,0,0,.46), rgba(0,0,0,.12)),
+    linear-gradient(135deg, #1a1008 0%, #6B4A32 30%, #C75A1A 62%, #D4AF37 84%, #0b0704 100%);
   border: 1px solid rgba(212,175,55,.32);
   box-shadow: 0 6px 22px rgba(0,0,0,.38), inset 0 1px 0 rgba(212,175,55,.14);
   display: flex;
@@ -4572,13 +4574,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .bp-mensal-banner__periodo {
   font-size: .8rem;
   font-weight: 600;
-  color: var(--text-muted, rgba(245,233,220,.7));
+  color: rgba(255,255,255,.82);
   margin-left: 4px;
 }
 .bp-mensal-banner__msg {
   margin: 0;
   font-size: .82rem;
-  color: var(--text-muted, rgba(245,233,220,.78));
+  color: var(--gold, #D4AF37);
 }
 
 /* ── Config: serviços por tipo (UL/LI) + luzes meia/inteira ────── */

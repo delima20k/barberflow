@@ -9,6 +9,8 @@ const { ROOT } = require('./_helpers');
 describe('BarbeariaPage servicos publicos', () => {
   const js = fs.readFileSync(path.join(ROOT, 'shared/js/BarbeariaPage.js'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, 'shared/css/components.css'), 'utf8');
+  const clienteHtml = fs.readFileSync(path.join(ROOT, 'apps/cliente/index.html'), 'utf8');
+  const profissionalHtml = fs.readFileSync(path.join(ROOT, 'apps/profissional/index.html'), 'utf8');
 
   test('renderiza servicos em colunas horizontais com ate cinco itens cada', () => {
     const renderServicos = js.slice(
@@ -58,5 +60,44 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(renderMensalBanner, /servicos\.find\(sv => sv\.category === 'mensalidade'\)/);
     assert.match(renderMensalBanner, /shop\?\.monthly_plan_price \?\? mensalidadeServico\?\.price/);
     assert.match(renderMensalBanner, /shop\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name/);
+  });
+
+  test('banner de mensalidade fica abaixo dos servicos com gradiente da paleta', () => {
+    for (const html of [clienteHtml, profissionalHtml]) {
+      const telaStart = html.indexOf('<main id="tela-barbearia"');
+      const telaEnd = html.indexOf('</main>', telaStart);
+      const tela = html.slice(telaStart, telaEnd);
+      const servicosIndex = tela.indexOf('id="bp-servicos-lista"');
+      const bannerIndex = tela.indexOf('id="bp-mensal-banner"');
+
+      assert.ok(servicosIndex >= 0, 'lista de servicos deve existir');
+      assert.ok(bannerIndex > servicosIndex, 'banner mensal deve ficar abaixo da lista de servicos');
+    }
+
+    const bannerCss = css.slice(
+      css.indexOf('.bp-mensal-banner {'),
+      css.indexOf('.bp-mensal-banner[hidden]'),
+    );
+    const tagCss = css.slice(
+      css.indexOf('.bp-mensal-banner__tag'),
+      css.indexOf('.bp-mensal-banner__valor'),
+    );
+    const valorCss = css.slice(
+      css.indexOf('.bp-mensal-banner__valor'),
+      css.indexOf('.bp-mensal-banner__periodo'),
+    );
+    const msgCss = css.slice(
+      css.indexOf('.bp-mensal-banner__msg'),
+      css.indexOf('/* ── Config:'),
+    );
+
+    assert.match(bannerCss, /background:\s*linear-gradient/);
+    assert.match(bannerCss, /#1a1008/);
+    assert.match(bannerCss, /#6B4A32/i);
+    assert.match(bannerCss, /#D4AF37/i);
+    assert.match(bannerCss, /#C75A1A/i);
+    assert.match(tagCss, /color:\s*var\(--gold/);
+    assert.match(valorCss, /color:\s*#fff/);
+    assert.match(msgCss, /color:\s*var\(--gold/);
   });
 });
