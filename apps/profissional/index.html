@@ -1172,6 +1172,33 @@
           </div>
         </div>
 
+        <!-- Serviços por tipo (corte, luzes, barba, pezinho, sobrancelha) -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Serviços por tipo</p>
+          <ul class="mb-serv-tipos" id="mb-serv-tipos"></ul>
+        </div>
+
+        <!-- Pacotes personalizados -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Pacotes</p>
+          <div id="mb-cfg-pacotes-lista" class="mb-cfg-produtos-lista"></div>
+          <button class="mb-config-add-btn" id="mb-cfg-add-pacote" type="button">
+            + Adicionar pacote
+          </button>
+        </div>
+
+        <!-- Mensalidade (vira banner na página pública) -->
+        <div class="mb-config-secao">
+          <p class="mb-config-secao-label">Mensalidade</p>
+          <div class="mb-prod-preco-row">
+            <span class="mb-prod-preco-prefix">R$</span>
+            <input type="number" id="mb-mensal-valor" class="mb-cfg-prod-preco"
+                   placeholder="0,00" min="0" step="0.01">
+          </div>
+          <textarea id="mb-mensal-msg" class="mb-config-input mb-mensal-msg" maxlength="120"
+                    placeholder="Mensagem promocional (ex.: Corte infinito 1x por semana)"></textarea>
+        </div>
+
         <!-- Mensalistas -->
         <div class="mb-config-secao">
           <button class="mb-config-add-btn" id="mb-cfg-mensalistas">
