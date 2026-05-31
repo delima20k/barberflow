@@ -236,8 +236,14 @@ class ProfissionalRepository extends BaseRepository {
       if (error && error.code !== '23505') this._throwDbError(error, 'curtirPortfolioImagem.insert');
     }
 
-    const atualizado = await this.#buscarPortfolioAtivo(imageId);
-    return { exists: true, likes_count: atualizado?.likes_count ?? current.likes_count ?? 0 };
+    // Conta diretamente da tabela likes — não depende do trigger em portfolio_images.likes_count
+    const { count } = await this._db
+      .from('likes')
+      .select('id', { head: true, count: 'exact' })
+      .eq('content_id', imageId)
+      .eq('content_type', 'portfolio_image');
+
+    return { exists: true, likes_count: Math.max(0, count ?? 0) };
   }
 
   async listarCurtidasPortfolio(userId, imageIds) {
@@ -272,8 +278,14 @@ class ProfissionalRepository extends BaseRepository {
       .eq('content_type', 'portfolio_image');
     if (error) this._throwDbError(error, 'descurtirPortfolioImagem.delete');
 
-    const atualizado = await this.#buscarPortfolioAtivo(imageId);
-    return { exists: true, likes_count: atualizado?.likes_count ?? current.likes_count ?? 0 };
+    // Conta diretamente da tabela likes — não depende do trigger
+    const { count } = await this._db
+      .from('likes')
+      .select('id', { head: true, count: 'exact' })
+      .eq('content_id', imageId)
+      .eq('content_type', 'portfolio_image');
+
+    return { exists: true, likes_count: Math.max(0, count ?? 0) };
   }
 
   async listarMeuPortfolio(userId, { limit = 10, offset = 0 } = {}) {

@@ -483,7 +483,10 @@ class PortfolioPrismViewer {
         item.liked = Boolean(data.liked);
       }
       if (data?.likesCount !== undefined && data?.likesCount !== null) {
-        item.likesCount = Math.max(0, Number(data.likesCount));
+        const serverCount = Math.max(0, Number(data.likesCount));
+        // Guarda contra servidor retornando 0 por trigger ausente:
+        // se acabamos de curtir, o mínimo é o count otimista
+        item.likesCount = (item.liked && serverCount < countNovo) ? countNovo : serverCount;
       }
       this.#renderMeta(item);
       this.#renderPublicActions(item);
