@@ -473,13 +473,12 @@ class PortfolioPrismViewer {
     this.#renderPublicActions(item);
     this.#publicLike.disabled = true;
 
+    const perfil = PortfolioPrismViewer.#perfilAtual();
     try {
       const { data, error } = likedAntes
         ? await BffApiService.profissionais.descurtirPortfolioImagem(item.id)
         : await BffApiService.profissionais.curtirPortfolioImagem(item.id);
       if (error) throw error;
-      // Só sobrescreve o estado otimista com o valor do servidor quando ele vem explícito.
-      // Se o servidor retornar null/undefined em "liked", mantém o estado otimista.
       if (data?.liked !== undefined && data?.liked !== null) {
         item.liked = Boolean(data.liked);
       }
@@ -488,10 +487,13 @@ class PortfolioPrismViewer {
       }
       this.#renderMeta(item);
       this.#renderPublicActions(item);
-      if (!likedAntes) this.#emitInteraction('Curtida');
+      if (!likedAntes) {
+        // Dispara evento global para sincronizar todos os contadores desta imagem
+        PortfolioPrismViewer.#dispatchLike(item.id, item.likesCount);
+        this.#emitInteraction({ texto: '👍 Curtida', perfil });
+      }
     } catch {
-      // Rollback apenas em erro real de rede/servidor
-      item.liked     = likedAntes;
+      item.liked      = likedAntes;
       item.likesCount = countAntes;
       this.#renderMeta(item);
       this.#renderPublicActions(item);
@@ -506,22 +508,23 @@ class PortfolioPrismViewer {
     if (!item?.portfolioPublicActions || !item?.professionalId || !texto) return;
     if (typeof BffApiService === 'undefined') return;
 
+    const perfil = PortfolioPrismViewer.#perfilAtual();
     const payload = {
       body: texto,
       portfolioImageId: item.id,
       clientMessageId: PortfolioPrismViewer.#clientMessageId(),
     };
 
-    if (this.#publicInput)  this.#publicInput.disabled  = true;
-    if (this.#publicSendBtn) this.#publicSendBtn.disabled = true;
+    if (this.#publicInput)   this.#publicInput.disabled   = true;
+    if (this.#publicSendBtn) this.#publicSendBtn.disabled  = true;
     this.#publicEmojis.forEach(btn => { btn.disabled = true; });
     try {
       const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
       if (error) throw error;
       if (this.#publicInput) this.#publicInput.value = '';
-      this.#emitInteraction(texto);
+      this.#emitInteraction({ texto, perfil });
     } catch {
-      this.#emitInteraction('✗ Falha ao enviar');
+      this.#emitInteraction({ texto: '✗ Falha ao enviar', perfil: null });
     } finally {
       if (this.#publicInput)   this.#publicInput.disabled   = false;
       if (this.#publicSendBtn) this.#publicSendBtn.disabled  = false;
@@ -529,18 +532,76 @@ class PortfolioPrismViewer {
     }
   }
 
-  #emitInteraction(texto) {
+  /** Obtém perfil do usuário logado (best-effort). */
+  static #perfilAtual() {
+    try {
+      return (typeof AuthService !== 'undefined') ? (AuthService.getPerfil?.() ?? null) : null;
+    } catch { return null; }
+  }
+
+  /** Dispatch evento global para sincronizar contadores de curtida. */
+  static #dispatchLike(imageId, likesCount) {
+    try {
+      document.dispatchEvent(new CustomEvent('barberflow:portfolio-like', {
+        detail: { imageId, likesCount },
+        bubbles: false,
+      }));
+    } catch { /* best-effort */ }
+  }
+
+  /**
+   * Cria e anima um float com avatar + nome + texto sobre a imagem.
+   * @param {{ texto: string, perfil: object|null }} opts
+   */
+  #emitInteraction({ texto, perfil } = {}) {
     if (!this.#reactionLayer) return;
-    const el = document.createElement('span');
+
+    const textoSeg = String(texto ?? '').slice(0, 80);
+    const nome     = String(perfil?.full_name ?? '').trim().slice(0, 30);
+    const avatarPath = perfil?.avatar_path ?? null;
+    const avatarUrl  = (avatarPath && typeof ApiService !== 'undefined' && ApiService.getAvatarUrl)
+      ? ApiService.getAvatarUrl(avatarPath) : null;
+
+    const el = document.createElement('div');
     el.className = 'pp-prism-float';
-    el.textContent = String(texto ?? '').slice(0, 80);
+
+    if (avatarUrl || nome) {
+      const avatar = document.createElement('img');
+      avatar.className = 'pp-prism-float__avatar';
+      avatar.alt = nome || '';
+      avatar.loading = 'lazy';
+      if (avatarUrl) {
+        avatar.src = avatarUrl;
+      } else {
+        avatar.hidden = true;
+      }
+      avatar.onerror = () => { avatar.hidden = true; };
+
+      const info = document.createElement('span');
+      info.className = 'pp-prism-float__info';
+      if (nome) {
+        const nomeEl = document.createElement('strong');
+        nomeEl.className = 'pp-prism-float__nome';
+        nomeEl.textContent = nome;
+        info.appendChild(nomeEl);
+      }
+      const bodyEl = document.createElement('span');
+      bodyEl.className = 'pp-prism-float__texto';
+      bodyEl.textContent = textoSeg;
+      info.appendChild(bodyEl);
+
+      el.append(avatar, info);
+    } else {
+      el.textContent = textoSeg;
+    }
+
     this.#reactionLayer.appendChild(el);
     const remover = () => {
       el.remove();
       if (timer) this.#floatTimers.delete(timer);
     };
     el.addEventListener('animationend', remover, { once: true });
-    const timer = setTimeout(remover, 1800);
+    const timer = setTimeout(remover, 2400);
     this.#floatTimers.add(timer);
   }
 

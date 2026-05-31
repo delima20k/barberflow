@@ -506,6 +506,29 @@ class PortfolioBarbeirosSection {
 
     containerEl.replaceChildren(scroll);
 
+    // Sincroniza contadores quando like ocorre no viewer (evento global)
+    const onLikeExterno = e => {
+      const { imageId, likesCount } = e.detail ?? {};
+      if (!imageId) return;
+      const safeId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(imageId) : imageId;
+      const btn = scroll.querySelector(`.pbp-like-btn[data-image-id="${safeId}"]`);
+      if (!btn) return;
+      const countEl = btn.querySelector('.pbp-like-count');
+      if (countEl) countEl.textContent = String(Math.max(0, Number(likesCount ?? 0)));
+      // Atualiza o array local para manter estado correto em swipes subsequentes
+      const item = itens.find(i => i.id === imageId);
+      if (item) item.likes_count = Math.max(0, Number(likesCount ?? 0));
+    };
+    document.addEventListener('barberflow:portfolio-like', onLikeExterno);
+    // Remove listener quando o carrossel for substituído (evita leak)
+    const observer = new MutationObserver(() => {
+      if (!scroll.isConnected) {
+        document.removeEventListener('barberflow:portfolio-like', onLikeExterno);
+        observer.disconnect();
+      }
+    });
+    observer.observe(scroll.parentElement ?? document.body, { childList: true });
+
     // Delegação de eventos — um único listener para todo o carrossel
     scroll.addEventListener('click', e => {
       // Like
