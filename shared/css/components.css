@@ -7891,12 +7891,30 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   -webkit-tap-highlight-color: transparent;
 }
 .beiro-workplace-card:active { transform: scale(.98); background: rgba(212,175,55,.13); }
+.beiro-workplace-card__media {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(212,175,55,.22);
+}
 .beiro-workplace-card__info { flex: 1; min-width: 0; text-align: left; }
 .beiro-workplace-card__name {
   margin: 0 0 2px;
   font-size: .92rem;
   font-weight: 700;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.beiro-workplace-card__owner {
+  margin: 0 0 2px;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--gold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -8024,6 +8042,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: relative;
   width: min(86vw, 460px);
   aspect-ratio: 1 / 1;
+  margin-top: 36px;
   perspective: 1100px;
   overflow: visible;
   touch-action: pan-y;
