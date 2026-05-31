@@ -13,6 +13,9 @@ const SRC_MB_PAGE  = fs.readFileSync(
 const SRC_COMPONENTS_CSS = fs.readFileSync(
   path.join(ROOT, 'shared/css/components.css'), 'utf8',
 );
+const SRC_INDEX = fs.readFileSync(
+  path.join(ROOT, 'apps/profissional/index.html'), 'utf8',
+);
 
 // =============================================================================
 // Helpers de DOM mock
@@ -450,6 +453,42 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
   });
 
   test('servicos por tipo devem ter botao de salvar individual e atualizar cache da modal', () => {
+    const idxTiposServico = SRC_MB_PAGE.indexOf('static #TIPOS_SERVICO');
+    const tiposServico = SRC_MB_PAGE.slice(
+      idxTiposServico,
+      SRC_MB_PAGE.indexOf('#renderServicosTipados', idxTiposServico),
+    );
+
+    assert.match(
+      tiposServico,
+      /cat:\s*'corte'[\s\S]*nomeFixo:\s*true/,
+      'card de corte deve permanecer com nome fixo',
+    );
+    assert.match(
+      tiposServico,
+      /cat:\s*'luzes'[\s\S]*luzes:\s*true/,
+      'card de luzes deve permanecer nos servicos por tipo',
+    );
+    assert.doesNotMatch(
+      tiposServico,
+      /cat:\s*'(barba|pezinho|sobrancelha)'/,
+      'somente corte e luzes devem ficar nos servicos por tipo',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /tipo\.nomeFixo \? esc\(tipo\.label\)/,
+      'nome do corte deve ser preenchido pelo label fixo',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /class="mb-cfg-prod-nome" value="\$\{nomeVal\}" maxlength="60" readonly aria-readonly="true"/,
+      'campo de nome fixo deve ficar somente leitura',
+    );
+    assert.match(
+      SRC_INDEX,
+      /id="mb-cfg-add-produto"[\s\S]*\+ Servi.os[\s\S]*<\/button>/,
+      'botao de novo servico deve ficar disponivel como + Servicos',
+    );
     assert.match(
       SRC_MB_PAGE,
       /class="btn-flow mb-serv-tipo-salvar-btn" type="button" aria-label="Salvar servi.o">OK<\/button>/,

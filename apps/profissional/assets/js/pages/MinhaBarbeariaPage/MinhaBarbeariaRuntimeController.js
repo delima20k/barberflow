@@ -2662,11 +2662,8 @@ export class MinhaBarbeariaRuntimeController {
 
   /** Tipos fixos de serviço exibidos como LIs no config. */
   static #TIPOS_SERVICO = [
-    { cat: 'corte',       label: 'Corte',       nome: true },
+    { cat: 'corte',       label: 'Corte',       nomeFixo: true },
     { cat: 'luzes',       label: 'Luzes',       luzes: true },
-    { cat: 'barba',       label: 'Barba',       nome: true },
-    { cat: 'pezinho',     label: 'Pezinho' },
-    { cat: 'sobrancelha', label: 'Sobrancelha' },
   ];
 
   /** Renderiza as LIs fixas (tipos) e os pacotes já salvos. */
@@ -2705,12 +2702,12 @@ export class MinhaBarbeariaRuntimeController {
 
     const precoVal = svc?.price != null ? Number(svc.price).toFixed(2) : '';
     const meiaVal  = svc?.price_half != null ? Number(svc.price_half).toFixed(2) : '';
-    const nomeVal  = svc ? esc(svc.name ?? '') : '';
+    const nomeVal  = tipo.nomeFixo ? esc(tipo.label) : (svc ? esc(svc.name ?? '') : '');
 
-    const nomeHtml = tipo.nome
+    const nomeHtml = tipo.nomeFixo
       ? `<div class="mb-cfg-prod-field-group">
            <label class="mb-prod-label">Nome</label>
-           <input type="text" class="mb-cfg-prod-nome" placeholder="${esc(tipo.label)}" value="${nomeVal}" maxlength="60">
+           <input type="text" class="mb-cfg-prod-nome" value="${nomeVal}" maxlength="60" readonly aria-readonly="true">
          </div>`
       : '';
 
