@@ -210,13 +210,15 @@ class PortfolioPrismViewer {
       this.#publicLike.setAttribute('aria-pressed', isLiked ? 'true' : 'false');
       const count = this.#publicLike.querySelector('[data-public-like-count]');
       const icon  = this.#publicLike.querySelector('[data-public-like-icon]');
-      // Quando >=1 curtidas: exibe o número no lugar do ícone 👍 e mantém.
-      // Quando 0: exibe apenas o ícone 👍.
+      // Quando curtido: exibe o número e desabilita o botão (1 curtida por usuário).
+      // Quando não curtido: exibe o ícone 👍.
       if (count) {
         count.textContent = String(likesCount);
-        count.hidden = (likesCount <= 0);  // .hidden remove/adiciona o atributo HTML
+        count.hidden = (likesCount <= 0);
       }
       if (icon) icon.hidden = (likesCount > 0);
+      // Bloqueia o botão após curtir — não permite segunda curtida
+      this.#publicLike.disabled = isLiked;
     }
     if (this.#publicInput) {
       if (imageAnterior !== imageId) this.#publicInput.value = '';
@@ -463,11 +465,14 @@ class PortfolioPrismViewer {
     if (!item?.portfolioPublicActions || !item?.id || !this.#publicLike) return;
     if (typeof BffApiService === 'undefined') return;
 
-    const likedAntes = Boolean(item.liked);
-    const countAntes = Math.max(0, Number(item.likesCount ?? item.likes_count ?? 0));
-    const countNovo = Math.max(0, countAntes + (likedAntes ? -1 : 1));
+    // Cada usuário só pode curtir UMA vez — se já curtiu, ignora o clique
+    if (Boolean(item.liked)) return;
 
-    item.liked = !likedAntes;
+    const likedAntes = false;
+    const countAntes = Math.max(0, Number(item.likesCount ?? item.likes_count ?? 0));
+    const countNovo  = countAntes + 1;
+
+    item.liked = true;
     item.likesCount = countNovo;
     this.#renderMeta(item);
     this.#renderPublicActions(item);
@@ -475,28 +480,20 @@ class PortfolioPrismViewer {
 
     const perfil = PortfolioPrismViewer.#perfilAtual();
     try {
-      const { data, error } = likedAntes
-        ? await BffApiService.profissionais.descurtirPortfolioImagem(item.id)
-        : await BffApiService.profissionais.curtirPortfolioImagem(item.id);
+      // Apenas curtir — sem descurtir (1 curtida por usuário por imagem)
+      const { data, error } = await BffApiService.profissionais.curtirPortfolioImagem(item.id);
       if (error) throw error;
-      if (data?.liked !== undefined && data?.liked !== null) {
-        item.liked = Boolean(data.liked);
-      }
       if (data?.likesCount !== undefined && data?.likesCount !== null) {
         const serverCount = Math.max(0, Number(data.likesCount));
-        // Guarda contra servidor retornando 0 por trigger ausente:
-        // se acabamos de curtir, o mínimo é o count otimista
-        item.likesCount = (item.liked && serverCount < countNovo) ? countNovo : serverCount;
+        item.likesCount = serverCount < countNovo ? countNovo : serverCount;
       }
+      item.liked = true;
       this.#renderMeta(item);
       this.#renderPublicActions(item);
-      // Dispara sempre (like e unlike) para sincronizar todos os contadores
-      PortfolioPrismViewer.#dispatchLike(item.id, item.likesCount, item.liked);
-      if (!likedAntes) {
-        this.#emitInteraction({ texto: '👍 Curtida', perfil });
-      }
+      PortfolioPrismViewer.#dispatchLike(item.id, item.likesCount, true);
+      this.#emitInteraction({ texto: '👍 Curtida', perfil });
     } catch {
-      item.liked      = likedAntes;
+      item.liked      = false;
       item.likesCount = countAntes;
       this.#renderMeta(item);
       this.#renderPublicActions(item);

@@ -626,10 +626,11 @@ class PortfolioBarbeirosSection {
     if (!btn) return;
     btn.classList.toggle('curtido', liked);
     btn.setAttribute('aria-pressed', String(liked));
+    // Bloqueia o botão após curtir — 1 curtida por usuário por imagem
+    btn.disabled = liked;
     const iconEl  = btn.querySelector('.pbp-like-icon');
     const countEl = btn.querySelector('.pbp-like-count');
     const n = Math.max(0, Number(count ?? 0));
-    // Quando curtido E há contagem: mostra número; senão: mostra 👍
     const mostrarNumero = liked && n > 0;
     if (iconEl)  iconEl.hidden  = mostrarNumero;
     if (countEl) {
