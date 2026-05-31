@@ -113,12 +113,19 @@ class ProfissionalService extends BaseService {
     const body = bodyCustomizado;
     if (!body) throw AppError.badRequest('Mensagem obrigatoria.');
 
-    await this.#repo.salvarMensagemPortfolio({
-      portfolioImageId,
-      professionalId,
-      senderId: clienteId,
-      body,
-    });
+    // Best-effort: retorna 201 mesmo que a tabela ainda não exista em produção.
+    // Quando a migration 20260531000003 rodar, as mensagens passam a ser persistidas.
+    try {
+      await this.#repo.salvarMensagemPortfolio({
+        portfolioImageId,
+        professionalId,
+        senderId: clienteId,
+        body,
+      });
+    } catch (saveErr) {
+      // eslint-disable-next-line no-console
+      console.warn('[ProfissionalService] portfolio_messages indisponivel:', saveErr?.message);
+    }
 
     return { conversationId: null, message: { body } };
   }
