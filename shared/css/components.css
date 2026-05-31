@@ -7885,20 +7885,23 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   margin-bottom: 10px;
   border: 1px solid rgba(212,175,55,.28);
   border-radius: 14px;
-  background: rgba(212,175,55,.07);
+  background-color: rgba(16,14,12,.72);
+  background-image:
+    linear-gradient(90deg, rgba(12,10,8,.9), rgba(12,10,8,.68) 58%, rgba(12,10,8,.36)),
+    var(--beiro-workplace-bg, url('/shared/img/Logo01.png'));
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: cover, cover;
   cursor: pointer;
   transition: background .18s, border-color .18s, transform .14s;
   -webkit-tap-highlight-color: transparent;
 }
 .beiro-workplace-card:active { transform: scale(.98); background: rgba(212,175,55,.13); }
-.beiro-workplace-card__media {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
-  border-radius: 10px;
-  object-fit: cover;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(212,175,55,.22);
+.beiro-workplace-card:active {
+  background-image:
+    linear-gradient(90deg, rgba(12,10,8,.86), rgba(12,10,8,.62) 58%, rgba(12,10,8,.3)),
+    var(--beiro-workplace-bg, url('/shared/img/Logo01.png'));
+  background-repeat: no-repeat, no-repeat;
 }
 .beiro-workplace-card__info { flex: 1; min-width: 0; text-align: left; }
 .beiro-workplace-card__name {
@@ -8042,7 +8045,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: relative;
   width: min(86vw, 460px);
   aspect-ratio: 1 / 1;
-  margin-top: 36px;
+  margin-top: 72px;
   perspective: 1100px;
   overflow: visible;
   touch-action: pan-y;
