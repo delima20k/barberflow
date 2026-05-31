@@ -1,23 +1,23 @@
 'use strict';
 
 // =============================================================
-// SWCliente — Service Worker do App Cliente (POO)
+// SWCliente â€” Service Worker do App Cliente (POO)
 //
 // Cache multi-tier:
-//   CACHE_STATIC — JS, CSS, fontes  (cache-first + stale-while-revalidate)
-//   CACHE_IMAGES — imagens          (cache-first + stale-while-revalidate)
-//   CACHE_SHELL  — HTML/navegação   (network-first + cache offline)
+//   CACHE_STATIC â€” JS, CSS, fontes  (cache-first + stale-while-revalidate)
+//   CACHE_IMAGES â€” imagens          (cache-first + stale-while-revalidate)
+//   CACHE_SHELL  â€” HTML/navegaÃ§Ã£o   (network-first + cache offline)
 //
 // Background Sync:
-//   bf-sync-queue   → replaya requests pendentes da OfflineSyncQueue
-//   bf-sync-cleanup → purga imagens > 7 dias do CACHE_IMAGES
+//   bf-sync-queue   â†’ replaya requests pendentes da OfflineSyncQueue
+//   bf-sync-cleanup â†’ purga imagens > 7 dias do CACHE_IMAGES
 //
 // Periodic Background Sync:
-//   bf-periodic-cache-refresh → atualiza silenciosamente CACHE_STATIC
+//   bf-periodic-cache-refresh â†’ atualiza silenciosamente CACHE_STATIC
 // =============================================================
-// Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
+// VersÃ£o do Service Worker â€” bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260530j';
+const SW_CLI_VERSION = '20260530k';
 
 class SWCliente {
 
@@ -30,7 +30,7 @@ class SWCliente {
     `bf-cli-shell-${SW_CLI_VERSION}`,
   ]);
 
-  // Assets JS/CSS — pré-cacheados em CACHE_STATIC
+  // Assets JS/CSS â€” prÃ©-cacheados em CACHE_STATIC
   static #ASSETS_STATIC = [
     '/cliente/assets/css/styles.css',
     '/cliente/assets/js/app.js',
@@ -75,7 +75,7 @@ class SWCliente {
     '/shared/js/BarbeariaPage.js',
   ];
 
-  // Imagens — pré-cacheadas em CACHE_IMAGES
+  // Imagens â€” prÃ©-cacheadas em CACHE_IMAGES
   static #ASSETS_IMAGES = [
     '/shared/img/Logo01.png',
     '/shared/img/icone-do-App.png',
@@ -95,7 +95,7 @@ class SWCliente {
     '/shared/img/login.svg',
   ];
 
-  // ── Instala: pré-cacheia static em CACHE_STATIC e imagens em CACHE_IMAGES ──
+  // â”€â”€ Instala: prÃ©-cacheia static em CACHE_STATIC e imagens em CACHE_IMAGES â”€â”€
   static install(e) {
     e.waitUntil((async () => {
       const [cs, ci] = await Promise.all([
@@ -110,7 +110,7 @@ class SWCliente {
     })());
   }
 
-  // ── Ativa: remove TODOS os caches não reconhecidos e assume controle ──────
+  // â”€â”€ Ativa: remove TODOS os caches nÃ£o reconhecidos e assume controle â”€â”€â”€â”€â”€â”€
   static activate(e) {
     e.waitUntil(
       caches.keys()
@@ -123,7 +123,7 @@ class SWCliente {
     );
   }
 
-  // ── Roteamento de fetch: shell / imagens / estático ───────────────────────
+  // â”€â”€ Roteamento de fetch: shell / imagens / estÃ¡tico â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static fetch(e) {
     const url = new URL(e.request.url);
     if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
@@ -141,7 +141,7 @@ class SWCliente {
     e.respondWith(SWCliente.#estrategiaEstatico(e.request));
   }
 
-  // ── Estratégia SHELL: network-first + offline fallback ───────────────────
+  // â”€â”€ EstratÃ©gia SHELL: network-first + offline fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static async #estrategiaShell(request) {
     try {
       const response = await fetch(request);
@@ -157,12 +157,12 @@ class SWCliente {
     }
   }
 
-  // ── Estratégia IMAGENS: cache-first + stale-while-revalidate ─────────────
+  // â”€â”€ EstratÃ©gia IMAGENS: cache-first + stale-while-revalidate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static async #estrategiaImagens(request) {
     const cached       = await caches.match(request);
     const fetchAndSave = fetch(request).then(res => {
       if (res && res.status === 200 && res.type !== 'opaque') {
-        const clone = res.clone(); // clonar ANTES de qualquer operação async
+        const clone = res.clone(); // clonar ANTES de qualquer operaÃ§Ã£o async
         caches.open(SWCliente.#CACHE_IMAGES).then(c => c.put(request, clone));
       }
       return res;
@@ -173,12 +173,12 @@ class SWCliente {
       || new Response('', { status: 504, statusText: 'Gateway Timeout' });
   }
 
-  // ── Estratégia ESTÁTICO: cache-first + stale-while-revalidate ────────────
+  // â”€â”€ EstratÃ©gia ESTÃTICO: cache-first + stale-while-revalidate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static async #estrategiaEstatico(request) {
     const cached       = await caches.match(request);
     const fetchAndSave = fetch(request).then(res => {
       if (res && res.status === 200 && res.type !== 'opaque') {
-        const clone = res.clone(); // clonar ANTES de qualquer operação async
+        const clone = res.clone(); // clonar ANTES de qualquer operaÃ§Ã£o async
         caches.open(SWCliente.#CACHE_STATIC).then(c => c.put(request, clone));
       }
       return res;
@@ -189,37 +189,37 @@ class SWCliente {
       || new Response('', { status: 504, statusText: 'Gateway Timeout' });
   }
 
-  // ── Background Sync: replaya fila offline + limpa imagens antigas ────────
+  // â”€â”€ Background Sync: replaya fila offline + limpa imagens antigas â”€â”€â”€â”€â”€â”€â”€â”€
   static sync(e) {
     if (e.tag === 'bf-sync-queue')   { e.waitUntil(SWCliente.#processarSyncQueue());  return; }
     if (e.tag === 'bf-sync-cleanup') { e.waitUntil(SWCliente.#limparCacheImagens()); return; }
   }
 
-  // ── Periodic Background Sync: atualiza assets estaticamente ─────────────
+  // â”€â”€ Periodic Background Sync: atualiza assets estaticamente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static periodicsync(e) {
     if (e.tag === 'bf-periodic-cache-refresh') {
       e.waitUntil(SWCliente.#refreshAssets());
     }
   }
 
-  // ── Web Push: acorda o SW, vibra o dispositivo e exibe a notificação ─────
+  // â”€â”€ Web Push: acorda o SW, vibra o dispositivo e exibe a notificaÃ§Ã£o â”€â”€â”€â”€â”€
   // Payload esperado (JSON cifrado pela Edge Function send-push):
   //   { title, body, icon, badge, tag, requireInteraction, vibrate, data: { url, barbershopId, entradaId } }
   static push(e) {
     console.log('[SW-Cliente] push recebido, tem payload:', !!e.data);
     e.waitUntil((async () => {
       let payload = {};
-      try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
+      try { payload = e.data?.json() ?? {}; } catch { /* payload vazio Ã© ok */ }
 
-      const title = payload.title ?? 'Você foi chamado! ✂️';
+      const title = payload.title ?? 'VocÃª foi chamado! âœ‚ï¸';
       const opts  = {
-        body:               payload.body    ?? 'O barbeiro está te esperando na cadeira.',
+        body:               payload.body    ?? 'O barbeiro estÃ¡ te esperando na cadeira.',
         icon:               payload.icon    ?? '/shared/img/icon-192-cliente.png',
         badge:              payload.badge   ?? '/shared/img/icon-192-cliente.png',
         tag:                payload.tag     ?? 'bf-inservice',
         requireInteraction: payload.requireInteraction ?? true,
-        // Padrão de vibração: 300ms vibra, 100ms pausa, 300ms vibra, 100ms pausa, 500ms vibra
-        // O Android toca o som de notificação do sistema automaticamente
+        // PadrÃ£o de vibraÃ§Ã£o: 300ms vibra, 100ms pausa, 300ms vibra, 100ms pausa, 500ms vibra
+        // O Android toca o som de notificaÃ§Ã£o do sistema automaticamente
         vibrate:            payload.vibrate ?? [300, 100, 300, 100, 500],
         silent:             false,
         data:               payload.data   ?? {},
@@ -230,10 +230,10 @@ class SWCliente {
     })());
   }
 
-  // ── Clique na notificação: foca aba existente ou abre nova ───────────
-  // Evita múltiplas abas: sempre tenta reutilizar aba com /cliente/.
+  // â”€â”€ Clique na notificaÃ§Ã£o: foca aba existente ou abre nova â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Evita mÃºltiplas abas: sempre tenta reutilizar aba com /cliente/.
   // Se app aberto: postMessage PUSH_NAVIGATE para disparo de deep-link.
-  // Se app fechado: abre a URL com os parâmetros de deep-link.
+  // Se app fechado: abre a URL com os parÃ¢metros de deep-link.
   static notificationclick(e) {
     e.notification.close();
 
@@ -244,10 +244,10 @@ class SWCliente {
       self.clients
         .matchAll({ type: 'window', includeUncontrolled: true })
         .then(clientList => {
-          // Procura aba do cliente já aberta
+          // Procura aba do cliente jÃ¡ aberta
           const existing = clientList.find(c => c.url.includes('/cliente/'));
           if (existing) {
-            // App aberto: envia evento de navegação e foca a aba
+            // App aberto: envia evento de navegaÃ§Ã£o e foca a aba
             existing.postMessage({
               type:         'PUSH_NAVIGATE',
               barbershopId: data.barbershopId ?? null,
@@ -255,17 +255,17 @@ class SWCliente {
             });
             return existing.focus();
           }
-          // App fechado: abre nova janela na página correta
+          // App fechado: abre nova janela na pÃ¡gina correta
           return self.clients.openWindow(targetUrl);
         }),
     );
   }
 
-  // ── Sync: processa fila de requests offline ───────────────────────────────
+  // â”€â”€ Sync: processa fila de requests offline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static async #processarSyncQueue() {
     let db;
     try   { db = await SWCliente.#abrirSyncDB(); }
-    catch { return; } // IDB indisponível — noop
+    catch { return; } // IDB indisponÃ­vel â€” noop
 
     const entries = await SWCliente.#dequeueAll(db, 'bf-sync-queue');
     await Promise.allSettled(entries.map(async entry => {
@@ -275,15 +275,15 @@ class SWCliente {
           headers: entry.headers,
           body:    (entry.method !== 'GET' && entry.method !== 'HEAD') ? entry.body : undefined,
         });
-        // Sucesso ou erro definitivo (4xx) → remove da fila; 5xx mantém para retry
+        // Sucesso ou erro definitivo (4xx) â†’ remove da fila; 5xx mantÃ©m para retry
         if (res.ok || (res.status >= 400 && res.status < 500)) {
           await SWCliente.#concluirEntry(db, entry.id);
         }
-      } catch { /* falha de rede — mantém na fila para próximo sync */ }
+      } catch { /* falha de rede â€” mantÃ©m na fila para prÃ³ximo sync */ }
     }));
   }
 
-  // ── Periodic: re-fetch silencioso de todos os assets estáticos ───────────
+  // â”€â”€ Periodic: re-fetch silencioso de todos os assets estÃ¡ticos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static async #refreshAssets() {
     const cache = await caches.open(SWCliente.#CACHE_STATIC);
     await Promise.allSettled(
@@ -295,7 +295,7 @@ class SWCliente {
     );
   }
 
-  // ── Cleanup: purga imagens com mais de 7 dias do CACHE_IMAGES ────────────
+  // â”€â”€ Cleanup: purga imagens com mais de 7 dias do CACHE_IMAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static async #limparCacheImagens() {
     const cache     = await caches.open(SWCliente.#CACHE_IMAGES);
     const requests  = await cache.keys();
@@ -309,7 +309,7 @@ class SWCliente {
     );
   }
 
-  // ── Helpers IDB (inline — SW não tem acesso à classe OfflineSyncQueue) ────
+  // â”€â”€ Helpers IDB (inline â€” SW nÃ£o tem acesso Ã  classe OfflineSyncQueue) â”€â”€â”€â”€
   static #abrirSyncDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open('barberflow-sync', 1);
@@ -346,7 +346,7 @@ class SWCliente {
     });
   }
 
-  // ── Registra todos os listeners ───────────────────────────────────────────
+  // â”€â”€ Registra todos os listeners â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   static init() {
     self.addEventListener('install',           e => SWCliente.install(e));
     self.addEventListener('activate',          e => SWCliente.activate(e));
@@ -362,5 +362,5 @@ class SWCliente {
   }
 }
 
-/* ── Ponto de entrada ─────────────────────────────────────── */
+/* â”€â”€ Ponto de entrada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 SWCliente.init();

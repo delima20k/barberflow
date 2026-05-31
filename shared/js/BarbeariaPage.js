@@ -290,7 +290,7 @@ class BarbeariaPage {
   static async #fetchServicos(id) {
     try {
       const { data, error } = await ApiService.from('services')
-        .select('id, name, price, duration_min, image_path, description')
+        .select('id, name, price, price_half, duration_min, image_path, description, category')
         .eq('barbershop_id', id)
         .eq('is_active', true)
         .order('price', { ascending: true });
@@ -423,6 +423,7 @@ class BarbeariaPage {
     this.#renderInfo(shop);
     this.#renderAcoes(shop);
     this.#renderServicos(servicos);
+    this.#renderMensalBanner(shop);
     this.#renderPortfolio(portfolio);
     this.#renderBarbeiros(shop);          // fire-and-forget: preenche carousel async
     this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
@@ -1179,54 +1180,58 @@ class BarbeariaPage {
       return;
     }
 
-    const s = InputValidator.sanitizar;
-    const isMensal = sv => /mensalida|mensal\b|plano\s+mensal/i.test(sv.name ?? '');
-    const regulares    = lista.filter(sv => !isMensal(sv));
-    const mensalidades = lista.filter(isMensal);
+    const s   = InputValidator.sanitizar;
+    const fmt = v => `R$\u00a0${Number(v ?? 0).toFixed(2).replace('.', ',')}`;
 
-    let html = '';
-
-    if (regulares.length) {
-      html += '<div class="bp-serv-carousel">';
-      for (const sv of regulares) {
-        const preco = `R$\u00a0${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
-        const nome  = s(sv.name ?? '');
-        const img   = sv.image_path
-          ? `<img src="${s(sv.image_path)}" alt="${nome}" loading="lazy" onerror="this.style.display='none'">`
-          : '<div class="bp-serv-card-vazio"></div>';
-        html += `
-          <div class="bp-serv-card-wrap">
-            <p class="bp-serv-card-nome">${nome}</p>
-            <div class="bp-serv-card">
-              ${img}
-              <span class="bp-serv-card-preco">${preco}</span>
-            </div>
-          </div>`;
-      }
-      html += '</div>';
+    // Mensalidade agora \u00e9 banner pr\u00f3prio (shop.monthly_plan_*) \u2014 n\u00e3o entra no carousel.
+    let html = '<div class="bp-serv-carousel">';
+    for (const sv of lista) {
+      const nome  = s(sv.name ?? '');
+      const preco = (sv.category === 'luzes' && sv.price_half != null)
+        ? `${fmt(sv.price_half)} / ${fmt(sv.price)}`
+        : fmt(sv.price);
+      const img = sv.image_path
+        ? `<img src="${s(sv.image_path)}" alt="${nome}" loading="lazy" onerror="this.style.display='none'">`
+        : '<div class="bp-serv-card-vazio"></div>';
+      html += `
+        <div class="bp-serv-card-wrap">
+          <p class="bp-serv-card-nome">${nome}</p>
+          <div class="bp-serv-card">
+            ${img}
+            <span class="bp-serv-card-preco">${preco}</span>
+          </div>
+        </div>`;
     }
-
-    if (mensalidades.length) {
-      html += '<p class="bp-mensal-titulo">Mensalidades</p>';
-      for (const sv of mensalidades) {
-        const preco = `R$\u00a0${Number(sv.price ?? 0).toFixed(2).replace('.', ',')}`;
-        const desc  = sv.description
-          ? s(sv.description)
-          : sv.duration_min ? `${Number(sv.duration_min)} min` : '';
-        html += `
-          <div class="bp-mensal-card">
-            <p class="bp-mensal-nome">${s(sv.name ?? '')}</p>
-            <p class="bp-mensal-preco">${preco}</p>
-            ${desc ? `<p class="bp-mensal-desc">${desc}</p>` : ''}
-          </div>`;
-      }
-    }
-
-    if (!regulares.length && !mensalidades.length) {
-      html = '<p class="bp-vazio">Nenhum servi\u00e7o cadastrado.</p>';
-    }
+    html += '</div>';
 
     el.innerHTML = html;
+  }
+
+  /**
+   * Banner de mensalidade na p\u00e1gina p\u00fablica.
+   * L\u00ea shop.monthly_plan_price / shop.monthly_plan_message; oculta se vazio.
+   * @param {object} shop
+   */
+  #renderMensalBanner(shop) {
+    const el = this.#refs.mensalBanner;
+    if (!el) return;
+
+    const preco = shop?.monthly_plan_price;
+    if (preco == null || Number(preco) <= 0) {
+      el.hidden = true;
+      el.innerHTML = '';
+      return;
+    }
+
+    const s   = InputValidator.sanitizar;
+    const val = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
+    const msg = shop.monthly_plan_message ? s(shop.monthly_plan_message) : '';
+
+    el.innerHTML = `
+      <p class="bp-mensal-banner__tag">Mensalidade</p>
+      <p class="bp-mensal-banner__valor">${val}<span class="bp-mensal-banner__periodo">/m\u00eas</span></p>
+      ${msg ? `<p class="bp-mensal-banner__msg">${msg}</p>` : ''}`;
+    el.hidden = false;
   }
 
   #abrirPortfolioViewer(index) {

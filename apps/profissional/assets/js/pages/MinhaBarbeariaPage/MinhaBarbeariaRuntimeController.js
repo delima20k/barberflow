@@ -195,6 +195,11 @@ export class MinhaBarbeariaRuntimeController {
       cfgNome:       q('mb-cfg-nome'),
       cfgProdutos:   q('mb-cfg-produtos-lista'),
       cfgAddProd:    q('mb-cfg-add-produto'),
+      servTipos:     q('mb-serv-tipos'),
+      cfgPacotes:    q('mb-cfg-pacotes-lista'),
+      cfgAddPacote:  q('mb-cfg-add-pacote'),
+      mensalValor:   q('mb-mensal-valor'),
+      mensalMsg:     q('mb-mensal-msg'),
       cfgMensalistas: q('mb-cfg-mensalistas'),
       cfgItensView:   q('mb-cfg-itens-view'),
       cfgItensWrapper: q('gi-itens-wrapper'),
@@ -279,6 +284,7 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.cfgCapaInput?.addEventListener('change',e => this.#onUploadCapa(e));
     this.#refs.cfgLogoInput?.addEventListener('change',e => this.#onUploadLogo(e));
     this.#refs.cfgAddProd?.addEventListener('click',   () => this.#adicionarLinhaProduto());
+    this.#refs.cfgAddPacote?.addEventListener('click', () => this.#adicionarLinhaPacote());
     this.#refs.cfgSalvar?.addEventListener('click',    () => this.#salvarConfiguracoes());
     this.#refs.cfgMensalistas?.addEventListener('click', () => this.#abrirMensalistaModal());
     // Convite — busca
@@ -610,7 +616,7 @@ export class MinhaBarbeariaRuntimeController {
 
   static async #fetchServicos(barbershopId) {
     const { data, error } = await SupabaseService.services()
-      .select('id, name, description, duration_min, price, image_path')
+      .select('id, name, description, duration_min, price, price_half, image_path, category')
       .eq('barbershop_id', barbershopId)
       .eq('is_active', true)
       .order('price', { ascending: true });
@@ -2309,6 +2315,10 @@ export class MinhaBarbeariaRuntimeController {
       servicos.forEach(s => this.#adicionarItemNaView(s));
     }
 
+    // Serviços por tipo + pacotes + mensalidade
+    this.#renderServicosTipados(servicos ?? []);
+    this.#preencherMensalidade(shop);
+
     // Picker de fonte do nome
     if (typeof FonteSalao !== 'undefined') {
       const pickerEl = document.getElementById('mb-cfg-fonte-picker');
@@ -2567,7 +2577,16 @@ export class MinhaBarbeariaRuntimeController {
       const foundedRaw  = (this.#refs.cfgFounded?.value  ?? '').trim();
       const foundedYear = foundedRaw ? (parseInt(foundedRaw, 10) || null) : null;
 
-      const payload = { whatsapp, founded_year: foundedYear };
+      const mensalRaw = (this.#refs.mensalValor?.value ?? '').trim();
+      const mensalNum = mensalRaw ? parseFloat(mensalRaw) : null;
+      const mensalMsg = (this.#refs.mensalMsg?.value ?? '').trim() || null;
+
+      const payload = {
+        whatsapp,
+        founded_year: foundedYear,
+        monthly_plan_price:   (mensalNum != null && !isNaN(mensalNum)) ? mensalNum : null,
+        monthly_plan_message: mensalMsg,
+      };
       if (nome) payload.name = nome;
 
       const { error } = await SupabaseService.barbershops()
@@ -2576,6 +2595,7 @@ export class MinhaBarbeariaRuntimeController {
       if (error) throw error;
 
       await this.#salvarProdutos();
+      await this.#salvarServicosTipados();
 
       // Fechar campos editáveis e atualizar exibição
       this.#_fecharEl(this.#refs.cfgNome,    this.#refs.cfgNomeDisplay,    this.#refs.cfgNomeLapis);
@@ -2587,6 +2607,8 @@ export class MinhaBarbeariaRuntimeController {
         if (nome) this.#shopData.name = nome;
         this.#shopData.whatsapp     = whatsapp;
         this.#shopData.founded_year = foundedYear;
+        this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
+        this.#shopData.monthly_plan_message = payload.monthly_plan_message;
         this.#renderInfoCard(this.#shopData);
       }
 
@@ -2633,6 +2655,241 @@ export class MinhaBarbeariaRuntimeController {
     const { error } = await SupabaseService.services()
       .upsert(upserts, { onConflict: 'id' });
     if (error) throw error;
+  }
+
+  // ── Serviços por tipo + pacotes + mensalidade ────────────────
+
+  /** Tipos fixos de serviço exibidos como LIs no config. */
+  static #TIPOS_SERVICO = [
+    { cat: 'corte',       label: 'Corte',       nome: true },
+    { cat: 'luzes',       label: 'Luzes',       luzes: true },
+    { cat: 'barba',       label: 'Barba',       nome: true },
+    { cat: 'pezinho',     label: 'Pezinho' },
+    { cat: 'sobrancelha', label: 'Sobrancelha' },
+  ];
+
+  /** Renderiza as LIs fixas (tipos) e os pacotes já salvos. */
+  #renderServicosTipados(servicos) {
+    const ul = this.#refs.servTipos;
+    if (ul) {
+      ul.innerHTML = '';
+      MinhaBarbeariaRuntimeController.#TIPOS_SERVICO.forEach(tipo => {
+        const svc = servicos.find(s => s.category === tipo.cat) ?? null;
+        ul.appendChild(this.#criarLiTipo(tipo, svc));
+      });
+    }
+
+    const pacotesLista = this.#refs.cfgPacotes;
+    if (pacotesLista) {
+      pacotesLista.innerHTML = '';
+      servicos.filter(s => s.category === 'pacote')
+              .forEach(s => this.#adicionarLinhaPacote(s));
+    }
+  }
+
+  /** Cria uma LI de tipo fixo, reutilizando o markup de imagem/preço dos produtos. */
+  #criarLiTipo(tipo, svc) {
+    const esc  = MinhaBarbeariaRuntimeController.#escapeAttr;
+    const uid  = `tipo-${tipo.cat}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const imgSrc = svc?.image_path
+      ? (typeof ApiService !== 'undefined' ? ApiService.getLogoUrl(svc.image_path) : svc.image_path)
+      : '/shared/img/Logo01.png';
+
+    const li = document.createElement('li');
+    li.className = 'mb-serv-tipo-li';
+    li.dataset.category = tipo.cat;
+    li.dataset.mediaUid = uid;
+    if (svc?.id)         li.dataset.produtoId = svc.id;
+    if (svc?.image_path) li.dataset.imagePath = svc.image_path;
+
+    const precoVal = svc?.price != null ? Number(svc.price).toFixed(2) : '';
+    const meiaVal  = svc?.price_half != null ? Number(svc.price_half).toFixed(2) : '';
+    const nomeVal  = svc ? esc(svc.name ?? '') : '';
+
+    const nomeHtml = tipo.nome
+      ? `<div class="mb-cfg-prod-field-group">
+           <label class="mb-prod-label">Nome</label>
+           <input type="text" class="mb-cfg-prod-nome" placeholder="${esc(tipo.label)}" value="${nomeVal}" maxlength="60">
+         </div>`
+      : '';
+
+    const precoHtml = tipo.luzes
+      ? `<div class="mb-luzes-row">
+           <div class="mb-cfg-prod-field-group">
+             <label class="mb-prod-label">Meia</label>
+             <div class="mb-prod-preco-row">
+               <span class="mb-prod-preco-prefix">R$</span>
+               <input type="number" class="mb-cfg-prod-preco" data-role="meia" placeholder="0,00" min="0" step="0.01" value="${meiaVal}">
+             </div>
+           </div>
+           <div class="mb-cfg-prod-field-group">
+             <label class="mb-prod-label">Inteira</label>
+             <div class="mb-prod-preco-row">
+               <span class="mb-prod-preco-prefix">R$</span>
+               <input type="number" class="mb-cfg-prod-preco" data-role="inteira" placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+             </div>
+           </div>
+         </div>`
+      : `<div class="mb-cfg-prod-field-group">
+           <label class="mb-prod-label">Preço</label>
+           <div class="mb-prod-preco-row">
+             <span class="mb-prod-preco-prefix">R$</span>
+             <input type="number" class="mb-cfg-prod-preco" placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+           </div>
+         </div>`;
+
+    li.innerHTML = `
+      <span class="mb-serv-tipo-label">${esc(tipo.label)}</span>
+      <div class="mb-prod-li--painel">
+        <div class="mb-cfg-prod-img-wrap">
+          <img class="mb-cfg-prod-img-preview" src="${esc(imgSrc)}" alt="">
+          <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+          <input type="file" id="${uid}" accept="image/*" style="display:none">
+        </div>
+        <div class="mb-cfg-prod-fields">
+          ${nomeHtml}
+          ${precoHtml}
+        </div>
+      </div>`;
+
+    li.querySelector(`#${uid}`)
+      .addEventListener('change', e => this.#onUploadImagemItem(e, li, uid));
+
+    return li;
+  }
+
+  /** Adiciona uma linha de pacote personalizado (nome + preço + imagem). */
+  #adicionarLinhaPacote(svc = null) {
+    const lista = this.#refs.cfgPacotes;
+    if (!lista) return;
+
+    const esc  = MinhaBarbeariaRuntimeController.#escapeAttr;
+    const uid  = `pac-img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const imgSrc = svc?.image_path
+      ? (typeof ApiService !== 'undefined' ? ApiService.getLogoUrl(svc.image_path) : svc.image_path)
+      : '/shared/img/Logo01.png';
+    const precoVal = svc?.price != null ? Number(svc.price).toFixed(2) : '';
+    const nomeVal  = svc ? esc(svc.name ?? '') : '';
+
+    const row = document.createElement('div');
+    row.className = 'mb-cfg-produto-row';
+    row.dataset.category = 'pacote';
+    row.dataset.mediaUid = uid;
+    if (svc?.id)         row.dataset.produtoId = svc.id;
+    if (svc?.image_path) row.dataset.imagePath = svc.image_path;
+
+    row.innerHTML = `
+      <div class="mb-prod-form-view">
+        <div class="mb-prod-li--painel">
+          <div class="mb-cfg-prod-img-wrap">
+            <img class="mb-cfg-prod-img-preview" src="${esc(imgSrc)}" alt="">
+            <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+            <input type="file" id="${uid}" accept="image/*" style="display:none">
+          </div>
+          <div class="mb-cfg-prod-fields">
+            <div class="mb-cfg-prod-field-group">
+              <label class="mb-prod-label">Nome do pacote</label>
+              <input type="text" class="mb-cfg-prod-nome" placeholder="Ex.: Pacote Completo" value="${nomeVal}" maxlength="60">
+            </div>
+            <div class="mb-cfg-prod-field-group">
+              <label class="mb-prod-label">Preço</label>
+              <div class="mb-prod-preco-row">
+                <span class="mb-prod-preco-prefix">R$</span>
+                <input type="number" class="mb-cfg-prod-preco" placeholder="0,00" min="0" step="0.01" value="${precoVal}">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-prod-form-acoes">
+          <button class="btn-flow btn-flow--outline mb-prod-form-cancel-btn" type="button">Remover</button>
+        </div>
+      </div>`;
+
+    row.querySelector('.mb-prod-form-cancel-btn')
+       .addEventListener('click', () => { this.#mediaP2P.cancelar(uid); row.remove(); });
+    row.querySelector(`#${uid}`)
+       .addEventListener('change', e => this.#onUploadImagemItem(e, row, uid));
+
+    lista.appendChild(row);
+  }
+
+  /** Preenche os campos de mensalidade a partir do registro da barbearia. */
+  #preencherMensalidade(shop) {
+    if (this.#refs.mensalValor) {
+      this.#refs.mensalValor.value = shop?.monthly_plan_price != null
+        ? Number(shop.monthly_plan_price).toFixed(2)
+        : '';
+    }
+    if (this.#refs.mensalMsg) {
+      this.#refs.mensalMsg.value = shop?.monthly_plan_message ?? '';
+    }
+  }
+
+  /** Salva os serviços tipados (5 LIs fixas) + pacotes em `services` com `category`. */
+  async #salvarServicosTipados() {
+    const linhas = [];
+    this.#refs.servTipos?.querySelectorAll('.mb-serv-tipo-li')
+      .forEach(li => linhas.push({ el: li, pacote: false }));
+    this.#refs.cfgPacotes?.querySelectorAll('.mb-cfg-produto-row')
+      .forEach(row => linhas.push({ el: row, pacote: true }));
+
+    for (const { el, pacote } of linhas) {
+      const cat = el.dataset.category;
+      let price = null, priceHalf = null, nome;
+
+      if (cat === 'luzes') {
+        const inteira = parseFloat(el.querySelector('[data-role="inteira"]')?.value || '');
+        const meia    = parseFloat(el.querySelector('[data-role="meia"]')?.value || '');
+        price     = isNaN(inteira) ? null : inteira;
+        priceHalf = isNaN(meia)    ? null : meia;
+        nome = (el.querySelector('.mb-cfg-prod-nome')?.value?.trim()) || 'Luzes';
+        if (price == null && priceHalf == null) continue; // nada preenchido → ignora
+      } else {
+        const p = parseFloat(el.querySelector('.mb-cfg-prod-preco')?.value || '');
+        price = isNaN(p) ? null : p;
+        const label = MinhaBarbeariaRuntimeController.#TIPOS_SERVICO.find(t => t.cat === cat)?.label ?? cat;
+        nome = (el.querySelector('.mb-cfg-prod-nome')?.value?.trim()) || (pacote ? '' : label);
+        if (price == null) continue;          // sem preço → ignora
+        if (pacote && !nome) continue;         // pacote exige nome
+      }
+
+      const imagePath = await this.#resolverImagemServicoLinha(el);
+
+      const payload = {
+        barbershop_id: this.#barbershopId,
+        name:          nome,
+        category:      cat,
+        price:         price ?? 0,
+        duration_min:  el.dataset.duracao ? parseInt(el.dataset.duracao, 10) : 30,
+        is_active:     true,
+      };
+      if (cat === 'luzes')      payload.price_half = priceHalf;
+      if (el.dataset.produtoId) payload.id         = el.dataset.produtoId;
+      if (imagePath)            payload.image_path = imagePath;
+
+      const { data, error } = await SupabaseService.services()
+        .upsert(payload, { onConflict: 'id' })
+        .select('id, image_path')
+        .single();
+      if (error) throw error;
+      if (data?.id)         el.dataset.produtoId = data.id;
+      if (data?.image_path) el.dataset.imagePath = data.image_path;
+    }
+  }
+
+  /** Faz upload da imagem pendente (MediaP2P) via BFF e retorna o path final. */
+  async #resolverImagemServicoLinha(el) {
+    let imagePath = el.dataset.imagePath || null;
+    const uid = el.dataset.mediaUid;
+    if (uid && this.#mediaP2P.temPendente(uid)) {
+      const file = this.#mediaP2P.getFile(uid);
+      const buffer = await file.arrayBuffer();
+      const { data, error } = await BffApiService.barbearias.salvarImagemServico(buffer, file.type || 'image/jpeg');
+      if (error) throw error;
+      imagePath = data.publicUrl;
+      this.#mediaP2P.cancelar(uid);
+    }
+    return imagePath;
   }
 
   // ── Upload de mídia (vídeo/imagem) ───────────────────────────
