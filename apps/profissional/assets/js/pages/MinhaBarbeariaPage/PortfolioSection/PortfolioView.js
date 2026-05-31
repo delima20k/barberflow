@@ -152,7 +152,10 @@ export class PortfolioView {
     });
   }
 
-  /** Detecta press-and-hold (600ms) e mostra overlay de exclusão. */
+  /**
+   * Detecta press-and-hold (600ms) e dispara onRemove diretamente.
+   * A lógica de confirmação fica no PortfolioController via ImageDeletionService (SRP).
+   */
   #bindLongPress(card, imageId) {
     let timer = null;
     let disparou = false;
@@ -170,9 +173,7 @@ export class PortfolioView {
       timer = setTimeout(() => {
         disparou = true;
         cancelar();
-        PortfolioView.#mostrarOverlayExcluir(card, () => {
-          this.#onRemove?.(imageId);
-        });
+        this.#onRemove?.(imageId);
       }, 600);
     });
 
@@ -184,51 +185,6 @@ export class PortfolioView {
     card.addEventListener('pointermove', e => {
       if (timer && (Math.abs(e.movementX ?? 0) > 8 || Math.abs(e.movementY ?? 0) > 8)) cancelar();
     });
-  }
-
-  /**
-   * Exibe overlay de exclusão sobre o card.
-   * Usa <div> (não <button>) para evitar nested interactive content.
-   */
-  static #mostrarOverlayExcluir(card, onConfirm) {
-    card.querySelector('.mb-portfolio-delete-overlay')?.remove();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'mb-portfolio-delete-overlay';
-
-    const opExcluir = document.createElement('div');
-    opExcluir.className = 'mb-portfolio-delete-overlay__op mb-portfolio-delete-overlay__op--danger';
-    opExcluir.setAttribute('role', 'button');
-    opExcluir.setAttribute('tabindex', '0');
-    opExcluir.textContent = '🗑 Excluir imagem';
-
-    const opCancelar = document.createElement('div');
-    opCancelar.className = 'mb-portfolio-delete-overlay__op';
-    opCancelar.setAttribute('role', 'button');
-    opCancelar.setAttribute('tabindex', '0');
-    opCancelar.textContent = 'Cancelar';
-
-    const fechar = () => overlay.remove();
-
-    opExcluir.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
-    opExcluir.addEventListener('click', e => { e.stopPropagation(); fechar(); onConfirm(); });
-
-    opCancelar.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); });
-    opCancelar.addEventListener('click', e => { e.stopPropagation(); fechar(); });
-
-    overlay.append(opExcluir, opCancelar);
-    card.appendChild(overlay);
-
-    // Fecha se o toque sair do card
-    setTimeout(() => {
-      const fecharFora = e => {
-        if (!card.contains(e.target)) {
-          fechar();
-          document.removeEventListener('pointerdown', fecharFora, true);
-        }
-      };
-      document.addEventListener('pointerdown', fecharFora, true);
-    }, 0);
   }
 
   #abrirViewer(item, items) {

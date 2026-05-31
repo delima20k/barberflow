@@ -568,7 +568,19 @@ class ParceriasPage {
       timer = setTimeout(() => {
         segurou = true;
         el.classList.remove('parcerias-foto-item--pressionado');
-        this.#abrirModalExcluirFoto(photoId);
+        ImageDeletionService.confirmarEExcluir(photoId).then(r => {
+          if (r.deleted) {
+            this.#renderFotos(this.#fotos.filter(f => f.id !== photoId));
+            return;
+          }
+          if (r.error && typeof NotificationService !== 'undefined') {
+            NotificationService.mostrarToast(
+              'Erro ao excluir foto. Tente novamente.',
+              '',
+              NotificationService.TIPOS?.SISTEMA ?? 'sistema',
+            );
+          }
+        });
       }, 600);
     });
 
@@ -717,63 +729,7 @@ class ParceriasPage {
     this.#fotoViewerCountEl = count;
   }
 
-  #abrirModalExcluirFoto(photoId) {
-    const overlay = document.createElement('div');
-    overlay.className = 'pci-overlay';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-
-    overlay.innerHTML = `
-      <div class="pci-card">
-        <p class="pci-titulo">Excluir foto?</p>
-        <p style="font-size:.87rem;color:var(--text-2);margin-bottom:18px;text-align:center;">
-          Esta ação não pode ser desfeita.
-        </p>
-        <div class="pci-acoes">
-          <button class="btn btn-danger" data-pci="excluir">Excluir</button>
-          <button class="btn btn-outline" data-pci="cancelar">Cancelar</button>
-        </div>
-      </div>`;
-
-    const _fechar = () => {
-      document.removeEventListener('keydown', onKey);
-      overlay.classList.add('pci-overlay--saindo');
-      setTimeout(() => overlay.remove(), 230);
-    };
-
-    const onKey = e => { if (e.key === 'Escape') _fechar(); };
-    document.addEventListener('keydown', onKey);
-
-    overlay.addEventListener('click', e => {
-      const pci = e.target.closest('[data-pci]')?.dataset?.pci;
-      if (pci === 'excluir') {
-        _fechar();
-        this.#excluirFoto(photoId);
-        return;
-      }
-      if (pci === 'cancelar' || e.target === overlay) _fechar();
-    });
-
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.classList.add('pci-overlay--visivel'));
-  }
-
-  async #excluirFoto(photoId) {
-    const { error } = await BffApiService.profissionais.removerPortfolioImagem(photoId);
-    if (error) {
-      LoggerService.error('[ParceriasPage] excluirFoto:', error);
-      if (typeof NotificationService !== 'undefined') {
-        NotificationService.mostrarToast(
-          'Erro ao excluir foto. Tente novamente.',
-          '',
-          NotificationService.TIPOS?.SISTEMA ?? 'sistema',
-        );
-      }
-      return;
-    }
-    const novos = this.#fotos.filter(f => f.id !== photoId);
-    this.#renderFotos(novos);
-  }
+  // #abrirModalExcluirFoto e #excluirFoto removidos — lógica centralizada em ImageDeletionService
 
   async #uploadFoto(file) {
     if (!file) return;
