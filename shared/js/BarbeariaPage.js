@@ -295,23 +295,14 @@ class BarbeariaPage {
 
   static async #fetchServicos(id) {
     try {
+      // Nota: price_half e category serão adicionados após aplicar migration 20260530000001
       const { data, error } = await ApiService.from('services')
-        .select('id, name, price, price_half, duration_min, image_path, description, category')
+        .select('id, name, price, duration_min, image_path, description')
         .eq('barbershop_id', id)
         .eq('is_active', true)
         .order('price', { ascending: true });
-      if (!error) return data ?? [];
-
-      // Fallback: migration pendente — colunas price_half/category ainda não existem
-      if (error.code === '42703' || String(error.message ?? '').includes('does not exist')) {
-        const { data: d2 } = await ApiService.from('services')
-          .select('id, name, price, duration_min, image_path, description')
-          .eq('barbershop_id', id)
-          .eq('is_active', true)
-          .order('price', { ascending: true });
-        return d2 ?? [];
-      }
-      return [];
+      if (error) return [];
+      return data ?? [];
     } catch { return []; }
   }
 
