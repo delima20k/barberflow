@@ -179,9 +179,11 @@ class ProfissionalService extends BaseService {
     const result = await this.#repo.removerPortfolioImagem(userId, imageId);
     if (!result?.deleted) throw AppError.notFound('Imagem do portfolio nao encontrada.');
 
-    if (result.storage_path) {
-      await this.#repo.removerArquivoPortfolio(result.storage_path);
-    }
+    // Remove arquivos do storage (imagem original + thumbnail, quando existirem)
+    await Promise.allSettled([
+      result.storage_path   ? this.#repo.removerArquivoPortfolio(result.storage_path)   : Promise.resolve(),
+      result.thumbnail_path ? this.#repo.removerArquivoPortfolio(result.thumbnail_path) : Promise.resolve(),
+    ]);
 
     return { deleted: true };
   }

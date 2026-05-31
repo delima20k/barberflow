@@ -201,24 +201,34 @@ class ProfissionalRepository extends BaseRepository {
       .eq('owner_id', userId)
       .eq('owner_type', 'professional')
       .neq('status', 'deleted')
-      .select('id, storage_path')
+      .select('id, storage_path, thumbnail_path')
       .maybeSingle();
     if (error) this._throwDbError(error, 'removerPortfolioImagem');
 
     if (data?.id) {
-      // Limpa dados relacionados: curtidas e mensagens do portfólio
+      // Limpa todos os dados relacionados:
+      // - likes polimórficos (tabela likes)
+      // - likes dedicados (tabela portfolio_likes — ON DELETE CASCADE não dispara em soft-delete)
+      // - mensagens vinculadas à imagem
       await Promise.allSettled([
         this._db.from('likes')
           .delete()
           .eq('content_id', imageId)
           .eq('content_type', 'portfolio_image'),
+        this._db.from('portfolio_likes')
+          .delete()
+          .eq('portfolio_image_id', imageId),
         this._db.from('portfolio_messages')
           .delete()
           .eq('portfolio_image_id', imageId),
       ]);
     }
 
-    return { deleted: Boolean(data?.id), storage_path: data?.storage_path ?? null };
+    return {
+      deleted: Boolean(data?.id),
+      storage_path: data?.storage_path ?? null,
+      thumbnail_path: data?.thumbnail_path ?? null,
+    };
   }
 
   // ── Portfolio — gerenciamento próprio ─────────────────────────────

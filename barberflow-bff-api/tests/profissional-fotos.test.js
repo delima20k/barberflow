@@ -77,7 +77,7 @@ function criarRepo(overrides = {}) {
     buscarRoleUsuario:      async () => 'professional',
     listarPortfolioPublico: async () => ({ items: [], total: 0 }),
     atualizarPortfolioImagem: async () => FOTO_ROW,
-    removerPortfolioImagem: async () => ({ deleted: true, storage_path: FOTO_ROW.storage_path }),
+    removerPortfolioImagem: async () => ({ deleted: true, storage_path: FOTO_ROW.storage_path, thumbnail_path: null }),
     removerArquivoPortfolio: async () => {},
     listarMeuPortfolio:     async () => ({ items: [FOTO_ROW], total: 1 }),
     contarPortfolioImagens: async () => 0,
@@ -214,9 +214,26 @@ suite('ProfissionalService — removerPortfolioImagem com storage', () => {
     assert.strictEqual(removeuStorage, true, 'devia ter removido do storage');
   });
 
+  test('remove thumbnail_path do storage quando existir', async () => {
+    const THUMB_PATH = `${USER_ID}/fotos/abc_thumb.webp`;
+    const removidos = [];
+    const service = new ProfissionalService(criarRepo({
+      removerPortfolioImagem: async () => ({
+        deleted: true,
+        storage_path: `${USER_ID}/fotos/abc.webp`,
+        thumbnail_path: THUMB_PATH,
+      }),
+      removerArquivoPortfolio: async (path) => { removidos.push(path); },
+    }));
+
+    await service.removerPortfolioImagem(USER_ID, PHOTO_ID);
+
+    assert.ok(removidos.includes(THUMB_PATH), 'devia remover thumbnail do storage');
+  });
+
   test('não lança erro se storage_path for nulo', async () => {
     const service = new ProfissionalService(criarRepo({
-      removerPortfolioImagem: async () => ({ deleted: true, storage_path: null }),
+      removerPortfolioImagem: async () => ({ deleted: true, storage_path: null, thumbnail_path: null }),
     }));
     const result = await service.removerPortfolioImagem(USER_ID, PHOTO_ID);
     assert.strictEqual(result.deleted, true);
@@ -224,7 +241,7 @@ suite('ProfissionalService — removerPortfolioImagem com storage', () => {
 
   test('lança 404 quando imagem não encontrada', async () => {
     const service = new ProfissionalService(criarRepo({
-      removerPortfolioImagem: async () => ({ deleted: false, storage_path: null }),
+      removerPortfolioImagem: async () => ({ deleted: false, storage_path: null, thumbnail_path: null }),
     }));
     await assert.rejects(
       () => service.removerPortfolioImagem(USER_ID, PHOTO_ID),
