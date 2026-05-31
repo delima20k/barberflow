@@ -4546,9 +4546,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-radius: 14px;
   padding: 16px 20px;
   margin: 12px 0 14px;
-  background:
-    linear-gradient(135deg, rgba(0,0,0,.46), rgba(0,0,0,.12)),
-    linear-gradient(135deg, #1a1008 0%, #6B4A32 30%, #C75A1A 62%, #D4AF37 84%, #0b0704 100%);
+  background: linear-gradient(135deg, #1a1008 0%, #6B4A32 28%, #C75A1A 56%, #D4AF37 78%, #0b0704 100%);
   border: 1px solid rgba(212,175,55,.32);
   box-shadow: 0 6px 22px rgba(0,0,0,.38), inset 0 1px 0 rgba(212,175,55,.14);
   display: flex;
@@ -4556,20 +4554,29 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 5px;
 }
 .bp-mensal-banner[hidden] { display: none; }
+.bp-mensal-banner__linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
 .bp-mensal-banner__tag {
   margin: 0;
-  font-size: .68rem;
-  font-weight: 700;
+  font-size: .9rem;
+  font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--gold, #D4AF37);
+  text-shadow: 0 2px 6px rgba(0,0,0,.72);
 }
 .bp-mensal-banner__valor {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.62rem;
   font-weight: 800;
   color: #fff;
   line-height: 1.1;
+  text-shadow: 0 2px 8px rgba(0,0,0,.78);
 }
 .bp-mensal-banner__periodo {
   font-size: .8rem;
@@ -4581,6 +4588,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   margin: 0;
   font-size: .82rem;
   color: var(--gold, #D4AF37);
+  text-shadow: 0 2px 6px rgba(0,0,0,.7);
 }
 
 /* ── Config: serviços por tipo (UL/LI) + luzes meia/inteira ────── */

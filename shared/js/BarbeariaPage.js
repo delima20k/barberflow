@@ -1237,8 +1237,10 @@ class BarbeariaPage {
     const msg = msgRaw ? s(msgRaw) : '';
 
     el.innerHTML = `
-      <p class="bp-mensal-banner__tag">Mensalidade</p>
-      <p class="bp-mensal-banner__valor">${val}<span class="bp-mensal-banner__periodo">/m\u00eas</span></p>
+      <div class="bp-mensal-banner__linha">
+        <p class="bp-mensal-banner__tag">Mensalidade</p>
+        <p class="bp-mensal-banner__valor">${val}<span class="bp-mensal-banner__periodo">/m\u00eas</span></p>
+      </div>
       ${msg ? `<p class="bp-mensal-banner__msg">${msg}</p>` : ''}`;
     el.hidden = false;
   }

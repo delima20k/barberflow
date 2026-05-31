@@ -60,6 +60,9 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(renderizar, /#renderMensalBanner\(shop, servicos\)/);
     assert.match(renderMensalBanner, /servicos\.find\(sv => sv\.category === 'mensalidade'\)/);
     assert.match(renderMensalBanner, /precoShop > 0 \? precoShop : precoServico/);
+    assert.match(renderMensalBanner, /bp-mensal-banner__linha/);
+    assert.match(renderMensalBanner, /<p class="bp-mensal-banner__tag">Mensalidade<\/p>/);
+    assert.match(renderMensalBanner, /<p class="bp-mensal-banner__valor">\$\{val\}/);
     assert.match(renderMensalBanner, /shop\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name/);
   });
 
@@ -97,6 +100,7 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(bannerCss, /#6B4A32/i);
     assert.match(bannerCss, /#D4AF37/i);
     assert.match(bannerCss, /#C75A1A/i);
+    assert.match(css, /\.bp-mensal-banner__linha\s*\{[\s\S]*display:\s*flex/);
     assert.match(tagCss, /color:\s*var\(--gold/);
     assert.match(valorCss, /color:\s*#fff/);
     assert.match(msgCss, /color:\s*var\(--gold/);
