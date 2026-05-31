@@ -4496,19 +4496,22 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* ── Serviços em tabela de colunas na página pública ───────────── */
 .bp-serv-carousel {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 18px;
+  flex-direction: column;
+  gap: 14px;
   overflow-x: visible;
   padding: 4px 0 10px;
-  flex-wrap: wrap;
 }
 .bp-serv-carousel::-webkit-scrollbar { display: none; }
+.bp-serv-linha {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
 .bp-serv-coluna {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1 1 180px;
   min-width: 0;
 }
 .bp-serv-item {
@@ -4535,6 +4538,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: .88rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .bp-serv-linha {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Cards de mensalidade ──────────────────────────────────────── */
@@ -4601,6 +4610,26 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: .8rem;
   font-weight: 700;
   color: var(--gold, #D4AF37);
+}
+.mb-serv-tipo-li[data-category="corte"],
+.mb-serv-tipo-li[data-category="barba"] {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.mb-serv-tipo-li[data-category="corte"] .mb-serv-tipo-label,
+.mb-serv-tipo-li[data-category="barba"] .mb-serv-tipo-label {
+  flex: 0 0 58px;
+}
+.mb-serv-tipo-li[data-category="corte"] .mb-prod-li--painel,
+.mb-serv-tipo-li[data-category="barba"] .mb-prod-li--painel {
+  flex: 1;
+  align-items: center;
+}
+.mb-serv-tipo-li[data-category="corte"] .mb-cfg-prod-fields,
+.mb-serv-tipo-li[data-category="barba"] .mb-cfg-prod-fields {
+  flex-direction: row;
+  align-items: end;
 }
 .mb-luzes-row {
   display: flex;
@@ -7471,7 +7500,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .mb-prod-form-view {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
   padding: 12px;
   border: 1px solid rgba(212,175,55,.18);
@@ -7482,6 +7512,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 /* Linha principal dentro do form: imagem + campos lado a lado */
@@ -7501,12 +7532,22 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   gap: 10px;
   min-width: 0;
 }
+.mb-prod-form-view .mb-prod-li--painel {
+  flex: 1;
+  align-items: center;
+}
+.mb-prod-form-view .mb-cfg-prod-fields {
+  flex-direction: row;
+  align-items: end;
+}
 
 /* Grupo label + input em coluna */
 .mb-cfg-prod-field-group {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 /* Label dos campos do item */
 .mb-prod-label {
@@ -7536,6 +7577,24 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   overflow: hidden;
   background: rgba(255,255,255,.06);
   border: 1px dashed rgba(212,175,55,.4);
+}
+
+@media (max-width: 560px) {
+  .mb-serv-tipo-li[data-category="corte"],
+  .mb-serv-tipo-li[data-category="barba"],
+  .mb-prod-form-view {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .mb-serv-tipo-li[data-category="corte"] .mb-serv-tipo-label,
+  .mb-serv-tipo-li[data-category="barba"] .mb-serv-tipo-label {
+    flex-basis: auto;
+  }
+  .mb-serv-tipo-li[data-category="corte"] .mb-cfg-prod-fields,
+  .mb-serv-tipo-li[data-category="barba"] .mb-cfg-prod-fields,
+  .mb-prod-form-view .mb-cfg-prod-fields {
+    flex-direction: column;
+  }
 }
 .mb-cfg-prod-img-wrap img {
   width: 100%;

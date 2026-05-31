@@ -482,6 +482,29 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       'pseudo-elemento deve preencher o espaco ate a ponta direita',
     );
   });
+
+  test('corte barba e pacotes devem usar formulario em linha no config', () => {
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /\.mb-serv-tipo-li\[data-category="corte"\],[\s\S]*\.mb-serv-tipo-li\[data-category="barba"\]\s*\{[\s\S]*flex-direction:\s*row;[\s\S]*align-items:\s*center;/,
+      'LIs de corte e barba devem ficar em linha',
+    );
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /\.mb-serv-tipo-li\[data-category="corte"\] \.mb-cfg-prod-fields,[\s\S]*\.mb-serv-tipo-li\[data-category="barba"\] \.mb-cfg-prod-fields\s*\{[\s\S]*flex-direction:\s*row;/,
+      'campos de corte e barba devem ficar lado a lado',
+    );
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /\.mb-prod-form-view\s*\{[\s\S]*flex-direction:\s*row;[\s\S]*align-items:\s*center;/,
+      'formulario de pacotes deve seguir o mesmo padrao em linha',
+    );
+    assert.match(
+      SRC_COMPONENTS_CSS,
+      /\.mb-prod-form-view \.mb-cfg-prod-fields\s*\{[\s\S]*flex-direction:\s*row;/,
+      'campos de pacotes devem ficar em linha',
+    );
+  });
 });
 
 describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
