@@ -111,6 +111,7 @@ class PortfolioGallery {
       professionalAvatarUrl: this.#professionalMeta.avatarUrl ?? this.#professionalMeta.avatar_url ?? '',
       thumbUrl: PortfolioGallery.#storageUrl(item.thumbnailPath || item.storagePath),
       fullUrl: PortfolioGallery.#storageUrl(item.storagePath || item.thumbnailPath),
+      portfolioPublicActions: Boolean(item.id),
     })).filter(item => item.thumbUrl || item.fullUrl);
   }
 
