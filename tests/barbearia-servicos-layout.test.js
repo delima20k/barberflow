@@ -82,11 +82,30 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(helpers, /monthly_plan_message/);
     assert.match(helpers, /duration_min/);
     assert.match(helpers, /image_path/);
-    assert.match(helpers, /includes\('mensalidade'\)/);
+    assert.match(helpers, /mensalidade\|mensal\|mensalista/);
     assert.match(helpers, /#obterMensalBanner\(\)/);
     assert.match(helpers, /document\.createElement\('div'\)/);
     assert.match(helpers, /id = 'bp-mensal-banner'/);
     assert.match(helpers, /insertAdjacentElement\('afterend', el\)/);
+  });
+
+  test('mensalidade cadastrada como plano mensal nunca fica no carousel', () => {
+    const helpers = js.slice(
+      js.indexOf('static #isMensalidadeServico'),
+      js.indexOf('#obterMensalBanner', js.indexOf('static #isMensalidadeServico')),
+    );
+    const renderServicos = js.slice(
+      js.indexOf('#renderServicos(lista, shop = null)'),
+      js.indexOf('static #isMensalidadeServico', js.indexOf('#renderServicos(lista, shop = null)')),
+    );
+    const renderMensalBanner = js.slice(
+      js.lastIndexOf('#renderMensalBanner(shop, servicos = [])'),
+      js.indexOf('#abrirPortfolioViewer', js.lastIndexOf('#renderMensalBanner(shop, servicos = [])')),
+    );
+
+    assert.match(helpers, /\\b\(mensalidade\|mensal\|mensalista\)\\b/);
+    assert.match(renderServicos, /filter\(sv => !BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
+    assert.match(renderMensalBanner, /servicos\.find\(sv => BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
   });
 
   test('realtime da barbearia recarrega servicos para atualizar banner aberto', () => {

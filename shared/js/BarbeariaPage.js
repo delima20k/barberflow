@@ -1231,7 +1231,7 @@ class BarbeariaPage {
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
-    if (texto.includes('mensalidade')) return true;
+    if (/\b(mensalidade|mensal|mensalista)\b/.test(texto)) return true;
 
     const precoShop = Number(shop?.monthly_plan_price ?? 0);
     const precoServico = Number(servico?.price ?? 0);
