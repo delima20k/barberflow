@@ -511,6 +511,11 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
+      /#upsertServicoComFallback\(payload\)[\s\S]*PGRST204[\s\S]*price_half[\s\S]*delete payloadCompat\.price_half/,
+      'luzes deve repetir o save sem price_half quando o schema do Supabase ainda nao tiver a coluna',
+    );
+    assert.match(
+      SRC_MB_PAGE,
       /btn\?\.dataset\.saved === 'true'[\s\S]*#setEstadoBotaoServico\(btn, false\)[\s\S]*\.focus\(\)/,
       'clique no visto deve voltar para OK e focar o campo para atualizar o servico',
     );
@@ -523,6 +528,29 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       SRC_COMPONENTS_CSS,
       /\.mb-serv-tipo-li\s*\{[\s\S]*overflow:\s*hidden;/,
       'card de cada servico deve esconder overflow',
+    );
+  });
+
+  test('mensalidade deve ter salvamento proprio e fallback para schema antigo', () => {
+    assert.match(
+      SRC_INDEX,
+      /id="mb-mensal-salvar"[\s\S]*Salvar mensalidade[\s\S]*<\/button>/,
+      'secao de mensalidade deve ter botao proprio de salvar',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /mensalSalvar:\s+q\('mb-mensal-salvar'\)/,
+      'runtime deve mapear o botao de salvar mensalidade',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /mensalSalvar\?\.addEventListener\('click', \(\) => this\.#salvarMensalidade\(\)\)/,
+      'botao de mensalidade deve chamar salvamento proprio',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /#atualizarBarbeariaComFallback\(payload\)[\s\S]*PGRST204[\s\S]*monthly_plan_\(price\|message\)[\s\S]*delete payloadCompat\.monthly_plan_price;[\s\S]*delete payloadCompat\.monthly_plan_message;[\s\S]*!Object\.keys\(payloadCompat\)\.length/,
+      'save geral deve repetir sem mensalidade se o schema remoto ainda nao tiver as colunas',
     );
   });
 

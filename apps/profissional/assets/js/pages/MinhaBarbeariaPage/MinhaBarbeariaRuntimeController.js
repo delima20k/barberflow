@@ -200,6 +200,7 @@ export class MinhaBarbeariaRuntimeController {
       cfgAddPacote:  q('mb-cfg-add-pacote'),
       mensalValor:   q('mb-mensal-valor'),
       mensalMsg:     q('mb-mensal-msg'),
+      mensalSalvar:  q('mb-mensal-salvar'),
       cfgMensalistas: q('mb-cfg-mensalistas'),
       cfgItensView:   q('mb-cfg-itens-view'),
       cfgItensWrapper: q('gi-itens-wrapper'),
@@ -286,6 +287,7 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.cfgAddProd?.addEventListener('click',   () => this.#adicionarLinhaProduto());
     this.#refs.cfgAddPacote?.addEventListener('click', () => this.#adicionarLinhaPacote());
     this.#refs.cfgSalvar?.addEventListener('click',    () => this.#salvarConfiguracoes());
+    this.#refs.mensalSalvar?.addEventListener('click', () => this.#salvarMensalidade());
     this.#refs.cfgMensalistas?.addEventListener('click', () => this.#abrirMensalistaModal());
     // Convite — busca
     this.#refs.conviteBtnBuscar?.addEventListener('click', () => this.#buscarBarbeiro());
@@ -2578,21 +2580,14 @@ export class MinhaBarbeariaRuntimeController {
       const foundedRaw  = (this.#refs.cfgFounded?.value  ?? '').trim();
       const foundedYear = foundedRaw ? (parseInt(foundedRaw, 10) || null) : null;
 
-      const mensalRaw = (this.#refs.mensalValor?.value ?? '').trim();
-      const mensalNum = mensalRaw ? parseFloat(mensalRaw) : null;
-      const mensalMsg = (this.#refs.mensalMsg?.value ?? '').trim() || null;
-
       const payload = {
         whatsapp,
         founded_year: foundedYear,
-        monthly_plan_price:   (mensalNum != null && !isNaN(mensalNum)) ? mensalNum : null,
-        monthly_plan_message: mensalMsg,
+        ...this.#montarPayloadMensalidade(),
       };
       if (nome) payload.name = nome;
 
-      const { error } = await SupabaseService.barbershops()
-        .update(payload)
-        .eq('id', this.#barbershopId);
+      const { error, mensalidadeIndisponivel } = await this.#atualizarBarbeariaComFallback(payload);
       if (error) throw error;
 
       await this.#salvarProdutos();
@@ -2608,12 +2603,19 @@ export class MinhaBarbeariaRuntimeController {
         if (nome) this.#shopData.name = nome;
         this.#shopData.whatsapp     = whatsapp;
         this.#shopData.founded_year = foundedYear;
-        this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
-        this.#shopData.monthly_plan_message = payload.monthly_plan_message;
+        if (!mensalidadeIndisponivel) {
+          this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
+          this.#shopData.monthly_plan_message = payload.monthly_plan_message;
+        }
         this.#renderInfoCard(this.#shopData);
       }
 
-      AnimationService.gaspar(msg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
+      AnimationService.gaspar(
+        msg,
+        mensalidadeIndisponivel ? 'Salvo. Mensalidade aguarda atualização do banco.' : 'Salvo com Sucesso',
+        3500,
+        'gaspar-ok',
+      );
       if (nome && this.#refs.nome) {
         this.#refs.nome.textContent = nome;
         if (this.#shopData?.font_key && typeof FonteSalao !== 'undefined')
@@ -2625,6 +2627,74 @@ export class MinhaBarbeariaRuntimeController {
       if (msg) msg.textContent = '❌ Erro ao salvar. Tente novamente.';
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Salvar alterações'; }
+    }
+  }
+
+  #montarPayloadMensalidade() {
+    const mensalRaw = (this.#refs.mensalValor?.value ?? '').trim();
+    const mensalNum = mensalRaw ? parseFloat(mensalRaw) : null;
+    return {
+      monthly_plan_price:   (mensalNum != null && !isNaN(mensalNum)) ? mensalNum : null,
+      monthly_plan_message: (this.#refs.mensalMsg?.value ?? '').trim() || null,
+    };
+  }
+
+  async #atualizarBarbeariaComFallback(payload) {
+    const salvar = dados => SupabaseService.barbershops()
+      .update(dados)
+      .eq('id', this.#barbershopId);
+
+    const resultado = await salvar(payload);
+    if (
+      resultado.error?.code === 'PGRST204' &&
+      /monthly_plan_(price|message)/.test(String(resultado.error?.message || ''))
+    ) {
+      const payloadCompat = { ...payload };
+      delete payloadCompat.monthly_plan_price;
+      delete payloadCompat.monthly_plan_message;
+      if (!Object.keys(payloadCompat).length) {
+        return { data: null, error: null, mensalidadeIndisponivel: true };
+      }
+      const compat = await salvar(payloadCompat);
+      return { ...compat, mensalidadeIndisponivel: true };
+    }
+    return { ...resultado, mensalidadeIndisponivel: false };
+  }
+
+  async #salvarMensalidade() {
+    if (!this.#barbershopId) return;
+
+    const btn = this.#refs.mensalSalvar;
+    const msg = this.#refs.cfgMsg;
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+    if (msg) msg.textContent = '';
+
+    try {
+      const payload = this.#montarPayloadMensalidade();
+      const { error, mensalidadeIndisponivel } = await this.#atualizarBarbeariaComFallback(payload);
+      if (error) throw error;
+
+      if (mensalidadeIndisponivel) {
+        AnimationService.gaspar(
+          msg,
+          'Mensalidade precisa da migration 20260530000001 no Supabase.',
+          4500,
+          'gaspar-erro',
+        );
+        return;
+      }
+
+      if (this.#shopData) {
+        this.#shopData.monthly_plan_price   = payload.monthly_plan_price;
+        this.#shopData.monthly_plan_message = payload.monthly_plan_message;
+        this.#renderInfoCard(this.#shopData);
+      }
+      AnimationService.gaspar(msg, 'Mensalidade salva', 3500, 'gaspar-ok');
+    } catch (err) {
+      LoggerService?.error?.('[MinhaBarbeariaPage] salvarMensalidade:', err);
+      if (msg) msg.textContent = 'Erro ao salvar mensalidade. Tente novamente.';
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar mensalidade'; }
     }
   }
 
@@ -2854,24 +2924,40 @@ export class MinhaBarbeariaRuntimeController {
         barbershop_id: this.#barbershopId,
         name:          nome,
         category:      cat,
-        price:         price ?? 0,
+        price:         cat === 'luzes' ? (price ?? priceHalf ?? 0) : (price ?? 0),
         duration_min:  el.dataset.duracao ? parseInt(el.dataset.duracao, 10) : 30,
         is_active:     true,
       };
-      if (cat === 'luzes')      payload.price_half = priceHalf;
+      if (cat === 'luzes' && priceHalf != null) payload.price_half = priceHalf;
       if (el.dataset.produtoId) payload.id         = el.dataset.produtoId;
       if (imagePath)            payload.image_path = imagePath;
 
-      const { data, error } = await SupabaseService.services()
-        .upsert(payload, { onConflict: 'id' })
-        .select('id, image_path')
-        .single();
+      const { data, error } = await this.#upsertServicoComFallback(payload);
       if (error) throw error;
       if (data?.id)         el.dataset.produtoId = data.id;
       if (data?.image_path) el.dataset.imagePath = data.image_path;
       salvos += 1;
     }
     return salvos;
+  }
+
+  async #upsertServicoComFallback(payload) {
+    const salvar = dados => SupabaseService.services()
+      .upsert(dados, { onConflict: 'id' })
+      .select('id, image_path')
+      .single();
+
+    const resultado = await salvar(payload);
+    if (
+      resultado.error?.code === 'PGRST204' &&
+      payload.price_half !== undefined &&
+      String(resultado.error?.message || '').includes('price_half')
+    ) {
+      const payloadCompat = { ...payload };
+      delete payloadCompat.price_half;
+      return salvar(payloadCompat);
+    }
+    return resultado;
   }
 
   async #salvarServicoTipadoUnico(li) {
