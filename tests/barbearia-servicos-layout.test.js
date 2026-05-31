@@ -30,6 +30,7 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(renderServicos, /itens\.slice\(i, i \+ 5\)\.join\(''\)/);
     assert.match(renderServicos, /<h2 class="bp-serv-nome">/);
     assert.match(renderServicos, /<span class="bp-serv-preco">/);
+    assert.match(renderServicos, /filter\(sv => sv\.category !== 'mensalidade'\)/);
     assert.doesNotMatch(renderServicos, /bp-serv-card|bp-serv-card-vazio|<img|image_path/);
     assert.match(carouselCss, /display:\s*flex/);
     assert.match(carouselCss, /flex-direction:\s*row/);
@@ -38,5 +39,24 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(colunaCss, /flex:\s*0 0 calc\(\(100% - 18px\) \/ 2\)/);
     assert.doesNotMatch(css, /\.bp-serv-linha/);
     assert.match(css, /\.bp-serv-preco\s*\{[\s\S]*color:\s*var\(--gold/);
+  });
+
+  test('banner de mensalidade usa servico fallback quando barbershops nao tem colunas novas', () => {
+    const fetchServicos = js.slice(
+      js.indexOf('static async #fetchServicos'),
+      js.indexOf('static async #fetchPortfolio'),
+    );
+    const idxRenderizar = js.lastIndexOf('#renderizar(shop, servicos, portfolio)');
+    const renderizar = js.slice(idxRenderizar, idxRenderizar + 500);
+    const renderMensalBanner = js.slice(
+      js.indexOf('#renderMensalBanner'),
+      js.indexOf('#abrirPortfolioViewer', js.indexOf('#renderMensalBanner')),
+    );
+
+    assert.match(fetchServicos, /select\('id, name, category, price, duration_min, image_path, description'\)/);
+    assert.match(renderizar, /#renderMensalBanner\(shop, servicos\)/);
+    assert.match(renderMensalBanner, /servicos\.find\(sv => sv\.category === 'mensalidade'\)/);
+    assert.match(renderMensalBanner, /shop\?\.monthly_plan_price \?\? mensalidadeServico\?\.price/);
+    assert.match(renderMensalBanner, /shop\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name/);
   });
 });

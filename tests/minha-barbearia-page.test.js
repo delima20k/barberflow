@@ -439,7 +439,7 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
-      /itensView\.innerHTML\s*=\s*'';\s*servicos\.forEach\(s => this\.#adicionarItemNaView\(s\)\);/s,
+      /itensView\.innerHTML\s*=\s*'';\s*servicos[\s\S]*\.filter\(s => s\.category !== 'mensalidade'\)[\s\S]*\.forEach\(s => this\.#adicionarItemNaView\(s\)\);/s,
       'servicos ja salvos devem aparecer em mb-cfg-itens-view',
     );
   });
@@ -509,10 +509,10 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       /async #salvarServicosTipados\(linhaUnica = null\)[\s\S]*if \(linhaUnica && el !== linhaUnica\) continue;[\s\S]*if \(cat === 'luzes'\)[\s\S]*nome = .*'Luzes'/,
       'card de luzes deve salvar com nome fixo e permitir OK quando meia ou inteira estiver preenchido',
     );
-    assert.match(
+    assert.doesNotMatch(
       SRC_MB_PAGE,
-      /#upsertServicoComFallback\(payload\)[\s\S]*PGRST204[\s\S]*price_half[\s\S]*delete payloadCompat\.price_half/,
-      'luzes deve repetir o save sem price_half quando o schema do Supabase ainda nao tiver a coluna',
+      /payload\.price_half|#upsertServicoComFallback/,
+      'luzes nao deve enviar price_half enquanto o schema remoto nao tiver a coluna',
     );
     assert.match(
       SRC_MB_PAGE,
@@ -549,9 +549,13 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
     assert.match(
       SRC_MB_PAGE,
-      /#atualizarBarbeariaComFallback\(payload\)[\s\S]*PGRST204[\s\S]*monthly_plan_\(price\|message\)[\s\S]*delete payloadCompat\.monthly_plan_price;[\s\S]*delete payloadCompat\.monthly_plan_message;[\s\S]*!Object\.keys\(payloadCompat\)\.length/,
-      'save geral deve repetir sem mensalidade se o schema remoto ainda nao tiver as colunas',
+      /#salvarMensalidadeServico\(\)[\s\S]*description:\s+payload\.monthly_plan_message[\s\S]*category:\s+'mensalidade'[\s\S]*price:\s+payload\.monthly_plan_price \?\? 0/,
+      'mensalidade deve persistir em services para funcionar no schema remoto atual',
     );
+    const idxUpdateShop = SRC_MB_PAGE.indexOf('async #atualizarBarbeariaSemMensalidade');
+    const updateShop = SRC_MB_PAGE.slice(idxUpdateShop, SRC_MB_PAGE.indexOf('#salvarMensalidade()', idxUpdateShop));
+    assert.match(updateShop, /SupabaseService\.barbershops\(\)[\s\S]*\.update\(payload\)/);
+    assert.doesNotMatch(updateShop, /monthly_plan_price|monthly_plan_message/);
   });
 
   test('lixeira dos itens salvos exclui direto sem confirmacao textual', () => {

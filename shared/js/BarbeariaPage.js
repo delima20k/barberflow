@@ -295,7 +295,7 @@ class BarbeariaPage {
     try {
       // Nota: price_half e category serão adicionados após aplicar migration 20260530000001
       const { data, error } = await ApiService.from('services')
-        .select('id, name, price, duration_min, image_path, description')
+        .select('id, name, category, price, duration_min, image_path, description')
         .eq('barbershop_id', id)
         .eq('is_active', true)
         .order('price', { ascending: true });
@@ -428,7 +428,7 @@ class BarbeariaPage {
     this.#renderInfo(shop);
     this.#renderAcoes(shop);
     this.#renderServicos(servicos);
-    this.#renderMensalBanner(shop);
+    this.#renderMensalBanner(shop, servicos);
     this.#renderPortfolio(portfolio);
     this.#renderBarbeiros(shop);          // fire-and-forget: preenche carousel async
     this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
@@ -1188,7 +1188,7 @@ class BarbeariaPage {
     const s   = InputValidator.sanitizar;
     const fmt = v => `R$\u00a0${Number(v ?? 0).toFixed(2).replace('.', ',')}`;
 
-    const itens = lista.map(sv => {
+    const itens = lista.filter(sv => sv.category !== 'mensalidade').map(sv => {
       const nome  = s(sv.name ?? '');
       const preco = (sv.category === 'luzes' && sv.price_half != null)
         ? `${fmt(sv.price_half)} / ${fmt(sv.price)}`
@@ -1213,14 +1213,16 @@ class BarbeariaPage {
 
   /**
    * Banner de mensalidade na p\u00e1gina p\u00fablica.
-   * L\u00ea shop.monthly_plan_price / shop.monthly_plan_message; oculta se vazio.
+   * Le shop.monthly_plan_* ou o servico fallback category=mensalidade; oculta se vazio.
    * @param {object} shop
+   * @param {Array<object>} servicos
    */
-  #renderMensalBanner(shop) {
+  #renderMensalBanner(shop, servicos = []) {
     const el = this.#refs.mensalBanner;
     if (!el) return;
 
-    const preco = shop?.monthly_plan_price;
+    const mensalidadeServico = servicos.find(sv => sv.category === 'mensalidade') ?? null;
+    const preco = shop?.monthly_plan_price ?? mensalidadeServico?.price;
     if (preco == null || Number(preco) <= 0) {
       el.hidden = true;
       el.innerHTML = '';
@@ -1229,7 +1231,8 @@ class BarbeariaPage {
 
     const s   = InputValidator.sanitizar;
     const val = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
-    const msg = shop.monthly_plan_message ? s(shop.monthly_plan_message) : '';
+    const msgRaw = shop.monthly_plan_message ?? mensalidadeServico?.description ?? mensalidadeServico?.name ?? '';
+    const msg = msgRaw ? s(msgRaw) : '';
 
     el.innerHTML = `
       <p class="bp-mensal-banner__tag">Mensalidade</p>
