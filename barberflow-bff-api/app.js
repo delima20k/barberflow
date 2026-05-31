@@ -138,6 +138,23 @@ function criarApp(db = null) {
   v1Router.use('/profissionais', conviteProRoute(_db));
   app.use('/api/v1', v1Router);
 
+  // ── Reset pontual de curtidas (ONE-TIME, protegido por RESET_LIKES_KEY) ─────
+  // Uso: POST /api/v1/admin/reset-likes com header X-Reset-Key: <RESET_LIKES_KEY>
+  // Após usar: remova RESET_LIKES_KEY do env para desabilitar.
+  v1Router.post('/admin/reset-likes', async (req, res) => {
+    const key = process.env.RESET_LIKES_KEY;
+    if (!key || req.headers['x-reset-key'] !== key) {
+      return res.status(401).json({ ok: false, error: 'Nao autorizado.' });
+    }
+    try {
+      await _db.from('likes').delete().eq('content_type', 'portfolio_image');
+      await _db.from('portfolio_images').update({ likes_count: 0 }).neq('id', '00000000-0000-0000-0000-000000000000');
+      return res.json({ ok: true, message: 'Curtidas zeradas com sucesso.' });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err?.message ?? 'Erro ao resetar.' });
+    }
+  });
+
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.
   app.use('/api/media', mediaRoute(_db));
 
