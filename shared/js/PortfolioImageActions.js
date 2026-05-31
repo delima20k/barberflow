@@ -357,6 +357,8 @@ class PortfolioImageActions {
     }
 
     // 4. Bot\u00E3o p\u00FAblico no viewer cliente (pp-prism-public-like)
+    // O viewer re-renderiza sozinho via listener interno \u2014 aqui apenas atualiza
+    // o contador e o \u00EDcone para o caso de o viewer n\u00E3o estar montado
     if (n !== null) {
       const publicActions = document.querySelector(`.pp-prism-public-actions[data-portfolio-image-id="${safeId}"]`);
       if (publicActions) {
@@ -364,11 +366,7 @@ class PortfolioImageActions {
         const iconEl  = publicActions.querySelector('[data-public-like-icon]');
         if (countEl) { countEl.textContent = String(n); countEl.hidden = n <= 0; }
         if (iconEl)  { iconEl.hidden = n > 0; }
-        const likeBtn = publicActions.querySelector('.pp-prism-public-like');
-        if (likeBtn) {
-          likeBtn.classList.toggle('is-liked', ativo);
-          likeBtn.setAttribute('aria-pressed', String(ativo));
-        }
+        // is-liked e aria-pressed s\u00E3o gerenciados pelo viewer interno
       }
     }
   }

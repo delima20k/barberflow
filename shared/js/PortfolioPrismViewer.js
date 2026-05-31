@@ -487,9 +487,9 @@ class PortfolioPrismViewer {
       }
       this.#renderMeta(item);
       this.#renderPublicActions(item);
+      // Dispara sempre (like e unlike) para sincronizar todos os contadores
+      PortfolioPrismViewer.#dispatchLike(item.id, item.likesCount, item.liked);
       if (!likedAntes) {
-        // Dispara evento global para sincronizar todos os contadores desta imagem
-        PortfolioPrismViewer.#dispatchLike(item.id, item.likesCount);
         this.#emitInteraction({ texto: '👍 Curtida', perfil });
       }
     } catch {
@@ -540,10 +540,10 @@ class PortfolioPrismViewer {
   }
 
   /** Dispatch evento global para sincronizar contadores de curtida. */
-  static #dispatchLike(imageId, likesCount) {
+  static #dispatchLike(imageId, likesCount, liked) {
     try {
       document.dispatchEvent(new CustomEvent('barberflow:portfolio-like', {
-        detail: { imageId, likesCount },
+        detail: { imageId, likesCount, liked: Boolean(liked) },
         bubbles: false,
       }));
     } catch { /* best-effort */ }
@@ -729,6 +729,23 @@ class PortfolioPrismViewer {
     this.#publicSendBtn?.addEventListener('click', e => {
       e.preventDefault();
       if (this.#publicInput) this.#handlePublicMessage(this.#publicInput.value);
+    });
+
+    // Listener externo: re-renderiza o botão de curtida se um evento global
+    // atualizar a contagem desta imagem (ex: curtida feita no carrossel ou pro app)
+    document.addEventListener('barberflow:portfolio-like', e => {
+      if (this.#overlay?.hidden) return;
+      const { imageId, likesCount, liked } = e.detail ?? {};
+      if (!imageId) return;
+      const item = this.#items.find(i => i?.id === imageId);
+      if (!item) return;
+      item.liked      = Boolean(liked);
+      item.likesCount = Math.max(0, Number(likesCount ?? 0));
+      // Só re-renderiza se for o item atual visível
+      if (this.#items[this.#index]?.id === imageId) {
+        this.#renderMeta(item);
+        this.#renderPublicActions(item);
+      }
     });
 
     // ResizeObserver — recalcula raio quando o stage mudar de tamanho
