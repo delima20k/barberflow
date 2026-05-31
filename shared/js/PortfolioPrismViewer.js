@@ -204,16 +204,19 @@ class PortfolioPrismViewer {
 
     const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
     if (this.#publicLike) {
-      this.#publicLike.classList.toggle('is-liked', Boolean(item?.liked));
+      const isLiked = Boolean(item?.liked);
+      this.#publicLike.classList.toggle('is-liked', isLiked);
       this.#publicLike.disabled = false;
-      this.#publicLike.setAttribute('aria-pressed', item?.liked ? 'true' : 'false');
+      this.#publicLike.setAttribute('aria-pressed', isLiked ? 'true' : 'false');
       const count = this.#publicLike.querySelector('[data-public-like-count]');
-      const icon = this.#publicLike.querySelector('[data-public-like-icon]');
+      const icon  = this.#publicLike.querySelector('[data-public-like-icon]');
+      // Quando há curtidas (>=1): mostra o número no lugar do ícone 👍.
+      // Quando zero curtidas: mostra apenas o ícone 👍.
       if (count) {
-        count.textContent = String(likesCount);
-        count.hidden = likesCount <= 0;
+        count.textContent = likesCount > 0 ? String(likesCount) : '';
+        count.style.display = likesCount > 0 ? '' : 'none';
       }
-      if (icon) icon.hidden = likesCount > 0;
+      if (icon) icon.style.display = likesCount > 0 ? 'none' : '';
     }
     if (this.#publicInput) {
       if (imageAnterior !== imageId) this.#publicInput.value = '';
@@ -475,13 +478,20 @@ class PortfolioPrismViewer {
         ? await BffApiService.profissionais.descurtirPortfolioImagem(item.id)
         : await BffApiService.profissionais.curtirPortfolioImagem(item.id);
       if (error) throw error;
-      item.liked = Boolean(data?.liked);
-      item.likesCount = Math.max(0, Number(data?.likesCount ?? countNovo));
+      // Só sobrescreve o estado otimista com o valor do servidor quando ele vem explícito.
+      // Se o servidor retornar null/undefined em "liked", mantém o estado otimista.
+      if (data?.liked !== undefined && data?.liked !== null) {
+        item.liked = Boolean(data.liked);
+      }
+      if (data?.likesCount !== undefined && data?.likesCount !== null) {
+        item.likesCount = Math.max(0, Number(data.likesCount));
+      }
       this.#renderMeta(item);
       this.#renderPublicActions(item);
       if (!likedAntes) this.#emitInteraction('Curtida');
     } catch {
-      item.liked = likedAntes;
+      // Rollback apenas em erro real de rede/servidor
+      item.liked     = likedAntes;
       item.likesCount = countAntes;
       this.#renderMeta(item);
       this.#renderPublicActions(item);

@@ -52,11 +52,18 @@ class SendMessageUseCase {
     });
     if (messageResult.isFail()) return messageResult;
     const saved = await this.#chatRepository.saveMessage(messageResult.getValue());
-    await this.#outboxRepository.save({
-      eventName: JOB_TYPES.DELIVER_CHAT_MESSAGE,
-      queue: QUEUES.NOTIFICATIONS,
-      payload: { messageId: saved.id },
-    });
+    // Outbox é best-effort: falha não deve quebrar o envio da mensagem.
+    // Se a tabela domain_events_outbox ainda não existe no ambiente, loga e continua.
+    try {
+      await this.#outboxRepository.save({
+        eventName: JOB_TYPES.DELIVER_CHAT_MESSAGE,
+        queue: QUEUES.NOTIFICATIONS,
+        payload: { messageId: saved.id },
+      });
+    } catch (outboxErr) {
+      /* eslint-disable no-console */
+      console.warn('[SendMessageUseCase] outbox.save falhou (best-effort):', outboxErr?.message);
+    }
     return Result.ok(saved.toJSON());
   }
 
