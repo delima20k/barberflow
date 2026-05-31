@@ -8355,11 +8355,23 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
 }
+.pf-msg-modal__likes-badge {
+  margin: 4px 16px 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-block;
+  min-height: 0;
+}
+.pf-msg-modal__likes-badge:empty { display: none; }
 .pf-msg-modal__status {
-  padding: 12px 16px;
+  padding: 8px 16px;
   color: var(--bf-text-secondary, rgba(255,255,255,.6));
   font-size: 13px;
-  min-height: 24px;
+  min-height: 20px;
 }
 .pf-msg-modal__list {
   padding: 0 16px;

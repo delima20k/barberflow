@@ -105,12 +105,9 @@ class PortfolioImageActions {
     const imageId = btn.dataset.portfolioImageId;
     if (!professionalId || typeof BffApiService === 'undefined') return;
 
-    // Barbeiro visualizando próprio portfólio: abre modal de mensagens recebidas
-    const isProApp = typeof Pro !== 'undefined';
-    const perfilAtual = (typeof AuthService !== 'undefined') ? AuthService.getPerfil?.() : null;
-    const ehDono = perfilAtual?.id && perfilAtual.id === professionalId;
-
-    if (isProApp && ehDono && imageId) {
+    // No app profissional: abre modal com todas as mensagens/emojis/curtidas da imagem.
+    // A API /mensagens verifica ownership — retorna 403 se não for do barbeiro logado.
+    if (typeof Pro !== 'undefined' && imageId) {
       await PortfolioImageActions.#abrirModalMensagensRecebidas(imageId);
       return;
     }
@@ -150,27 +147,62 @@ class PortfolioImageActions {
   static async #abrirModalMensagensRecebidas(imageId) {
     if (!imageId || typeof BffApiService === 'undefined') return;
 
-    const modal = PortfolioImageActions.#criarModalMensagens();
+    const modal  = PortfolioImageActions.#criarModalMensagens();
     const list   = modal.querySelector('.pf-msg-modal__list');
     const status = modal.querySelector('.pf-msg-modal__status');
+    const likesBadge = modal.querySelector('.pf-msg-modal__likes-badge');
 
-    status.textContent = 'Carregando mensagens...';
+    status.textContent = 'Carregando...';
     list.innerHTML = '';
+    if (likesBadge) likesBadge.textContent = '';
     modal.hidden = false;
     document.body.classList.add('pf-msg-modal-open');
 
     try {
       const { data, error } = await BffApiService.profissionais.listarMensagensPortfolioImagem(imageId);
       if (error) throw error;
-      const items = Array.isArray(data) ? data : (data?.messages ?? []);
-      status.textContent = items.length ? '' : 'Nenhuma mensagem recebida nesta imagem ainda.';
-      items.forEach(msg => list.appendChild(PortfolioImageActions.#itemMensagemModal(msg)));
+      const messages   = Array.isArray(data) ? data : (data?.messages ?? []);
+      const likesCount = Number(data?.likesCount ?? 0);
+
+      // Badge de curtidas
+      if (likesBadge) {
+        likesBadge.textContent = likesCount > 0
+          ? `👍 ${likesCount} curtida${likesCount === 1 ? '' : 's'}`
+          : '';
+      }
+
+      status.textContent = messages.length ? '' : 'Nenhuma mensagem recebida ainda.';
+      messages.forEach(msg => list.appendChild(PortfolioImageActions.#itemMensagemModal(msg)));
     } catch (err) {
       status.textContent = 'Nao foi possivel carregar as mensagens.';
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[PortfolioImageActions] mensagens recebidas falharam:', err?.message ?? err);
       }
     }
+  }
+
+  /**
+   * Busca reações de uma imagem e retorna array para replay no viewer.
+   * Público — chamado pelo PortfolioPrismViewer do app profissional.
+   */
+  static async buscarReacoesParaReplay(imageId) {
+    if (!imageId || typeof BffApiService === 'undefined') return [];
+    try {
+      const { data, error } = await BffApiService.profissionais.listarMensagensPortfolioImagem(imageId);
+      if (error || !data) return [];
+      const msgs = Array.isArray(data) ? data : (data?.messages ?? []);
+      const likes = Number(data?.likesCount ?? 0);
+      const resultado = msgs.map(m => ({
+        texto: m.body ?? '',
+        avatarUrl: m.sender?.avatarUrl ?? null,
+        nome: m.sender?.nome ?? '',
+      }));
+      // Adiciona os likes como reações de curtida
+      if (likes > 0) {
+        resultado.push({ texto: `👍 ${likes} curtida${likes === 1 ? '' : 's'}`, avatarUrl: null, nome: '' });
+      }
+      return resultado;
+    } catch { return []; }
   }
 
   /** Cria (ou retorna) o modal de mensagens recebidas. Singleton no DOM. */
@@ -198,6 +230,7 @@ class PortfolioImageActions {
           <strong class="pf-msg-modal__title">💬 Mensagens do portfólio</strong>
           <button type="button" class="pf-msg-modal__close" aria-label="Fechar">✕</button>
         </div>
+        <p class="pf-msg-modal__likes-badge"></p>
         <p class="pf-msg-modal__status"></p>
         <div class="pf-msg-modal__list" role="list"></div>
       </div>

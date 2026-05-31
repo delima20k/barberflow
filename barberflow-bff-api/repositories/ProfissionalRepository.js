@@ -694,19 +694,30 @@ class ProfissionalRepository extends BaseRepository {
     this._uuid('professionalId', professionalId);
     this._uuid('imageId', imageId);
 
-    // Busca mensagens diretamente da tabela portfolio_messages
-    const { data: msgs, error: msgsError } = await this._db
-      .from('portfolio_messages')
-      .select('id, sender_id, body, created_at')
-      .eq('portfolio_image_id', imageId)
-      .eq('professional_id', professionalId)
-      .order('created_at', { ascending: false })
-      .limit(Math.min(limit, 100));
+    // Busca mensagens + contagem de curtidas em paralelo
+    const [msgsResult, likeResult] = await Promise.all([
+      this._db
+        .from('portfolio_messages')
+        .select('id, sender_id, body, created_at')
+        .eq('portfolio_image_id', imageId)
+        .eq('professional_id', professionalId)
+        .order('created_at', { ascending: false })
+        .limit(Math.min(limit, 100)),
+      this._db
+        .from('likes')
+        .select('id', { head: true, count: 'exact' })
+        .eq('content_id', imageId)
+        .eq('content_type', 'portfolio_image'),
+    ]);
 
-    if (msgsError) this._throwDbError(msgsError, 'listarMensagensPortfolioImagem');
-    if (!(msgs ?? []).length) return { messages: [], ownerVerified: true };
+    if (msgsResult.error) this._throwDbError(msgsResult.error, 'listarMensagensPortfolioImagem');
 
-    // Busca perfis dos remetentes
+    const msgs = msgsResult.data ?? [];
+    const likesCount = Math.max(0, Number(likeResult.count ?? 0));
+
+    if (!msgs.length) return { messages: [], likesCount, ownerVerified: true };
+
+    // Busca perfis dos remetentes de uma só vez
     const senderIds = [...new Set(msgs.map(m => m.sender_id))];
     const { data: perfis } = await this._db
       .from('profiles')
@@ -730,7 +741,7 @@ class ProfissionalRepository extends BaseRepository {
       };
     });
 
-    return { messages, ownerVerified: true };
+    return { messages, likesCount, ownerVerified: true };
   }
 
   static #camposBarbearia(barbershop, isOwnerWorkplace = false) {

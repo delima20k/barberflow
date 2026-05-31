@@ -402,6 +402,7 @@ class ProfissionalService extends BaseService {
     }
 
     return {
+      likesCount: result.likesCount ?? 0,
       messages: result.messages.map(m => ({
         id: m.id,
         body: m.body,

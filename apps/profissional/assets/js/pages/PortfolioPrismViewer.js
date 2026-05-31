@@ -55,6 +55,9 @@ class PortfolioPrismViewer {
   #animando        = false;
   #finalizeTimer   = null;
   #resizeObserver  = null;
+  #reactionLayer   = null;
+  #floatTimers     = new Set();
+  #replayTimer     = null;
 
   #onKeydown       = null;
 
@@ -97,6 +100,7 @@ class PortfolioPrismViewer {
 
     this.#pararTodosVideos(true);
     this.#limparTimer();
+    this.#cancelarReplay();
     this.#dragStart = null;
     this.#dragLast = null;
     this.#dragActive = false;
@@ -153,6 +157,12 @@ class PortfolioPrismViewer {
       if (typeof PortfolioImageActions !== 'undefined') {
         try { this.#actions.appendChild(PortfolioImageActions.criar(item)); } catch (_) {}
       }
+    }
+
+    // Cancela replay anterior e dispara o novo para esta imagem
+    this.#cancelarReplay();
+    if (item?.id) {
+      setTimeout(() => this.#replayReacoes(item.id), 600);
     }
 
     // Reset visual do cubo (volta para rotação base zero, sem animação)
@@ -374,6 +384,77 @@ class PortfolioPrismViewer {
     if (this.#finalizeTimer) { clearTimeout(this.#finalizeTimer); this.#finalizeTimer = null; }
   }
 
+  #cancelarReplay() {
+    if (this.#replayTimer) { clearTimeout(this.#replayTimer); this.#replayTimer = null; }
+    this.#floatTimers.forEach(t => clearTimeout(t));
+    this.#floatTimers.clear();
+    this.#reactionLayer?.replaceChildren();
+  }
+
+  /**
+   * Busca reações da imagem e exibe uma por uma como floats.
+   * @param {string} imageId
+   */
+  async #replayReacoes(imageId) {
+    if (!imageId || typeof PortfolioImageActions === 'undefined') return;
+    if (!BffApiService) return;
+
+    const reacoes = await PortfolioImageActions.buscarReacoesParaReplay(imageId);
+    if (!reacoes?.length || this.#overlay?.hidden) return;
+
+    const INTERVALO_MS = 700;
+    reacoes.forEach((r, i) => {
+      const t = setTimeout(() => {
+        if (!this.#overlay || this.#overlay.hidden) return;
+        this.#emitirFloat(r);
+        this.#floatTimers.delete(t);
+      }, i * INTERVALO_MS);
+      this.#floatTimers.add(t);
+    });
+  }
+
+  /** Cria e anima um float com avatar, nome e texto sobre a imagem. */
+  #emitirFloat({ texto, avatarUrl, nome } = {}) {
+    if (!this.#reactionLayer) return;
+
+    const textoSeg = String(texto ?? '').slice(0, 80);
+    const nomeSeg  = String(nome ?? '').trim().slice(0, 30);
+
+    const el = document.createElement('div');
+    el.className = 'pp-prism-float';
+
+    if (avatarUrl || nomeSeg) {
+      const avatar = document.createElement('img');
+      avatar.className = 'pp-prism-float__avatar';
+      avatar.alt = nomeSeg || '';
+      avatar.loading = 'lazy';
+      if (avatarUrl) { avatar.src = avatarUrl; } else { avatar.hidden = true; }
+      avatar.onerror = () => { avatar.hidden = true; };
+
+      const info = document.createElement('span');
+      info.className = 'pp-prism-float__info';
+      if (nomeSeg) {
+        const nEl = document.createElement('strong');
+        nEl.className = 'pp-prism-float__nome';
+        nEl.textContent = nomeSeg;
+        info.appendChild(nEl);
+      }
+      const bEl = document.createElement('span');
+      bEl.className = 'pp-prism-float__texto';
+      bEl.textContent = textoSeg;
+      info.appendChild(bEl);
+      el.append(avatar, info);
+    } else {
+      el.textContent = textoSeg;
+    }
+
+    this.#reactionLayer.appendChild(el);
+    const remover = () => { el.remove(); this.#floatTimers.delete(timer); };
+    el.addEventListener('animationend', remover, { once: true });
+    const timer = setTimeout(remover, 2600);
+    this.#floatTimers.add(timer);
+  }
+
   // ───────────────────────────────────────────────────────────
   // Bootstrap DOM
   // ───────────────────────────────────────────────────────────
@@ -396,6 +477,7 @@ class PortfolioPrismViewer {
       <button type="button" class="pp-prism-close" aria-label="Fechar">×</button>
       <div class="pp-prism-stage" aria-live="polite">
         <div class="pp-prism-cube">${facesHtml}</div>
+        <div class="pp-prism-reactions" aria-hidden="true"></div>
       </div>
       <figcaption class="pp-prism-title"></figcaption>
       <div class="pp-prism-actions"></div>
@@ -404,14 +486,15 @@ class PortfolioPrismViewer {
 
     document.body.appendChild(overlay);
 
-    this.#overlay = overlay;
-    this.#stage   = overlay.querySelector('.pp-prism-stage');
-    this.#cube    = overlay.querySelector('.pp-prism-cube');
-    this.#faces   = [...overlay.querySelectorAll('.pp-prism-face')];
-    this.#medias  = this.#faces.map(f => f.querySelector('.pp-prism-media'));
-    this.#title   = overlay.querySelector('.pp-prism-title');
-    this.#actions = overlay.querySelector('.pp-prism-actions');
-    this.#count   = overlay.querySelector('.pp-prism-count');
+    this.#overlay       = overlay;
+    this.#stage         = overlay.querySelector('.pp-prism-stage');
+    this.#cube          = overlay.querySelector('.pp-prism-cube');
+    this.#faces         = [...overlay.querySelectorAll('.pp-prism-face')];
+    this.#medias        = this.#faces.map(f => f.querySelector('.pp-prism-media'));
+    this.#title         = overlay.querySelector('.pp-prism-title');
+    this.#actions       = overlay.querySelector('.pp-prism-actions');
+    this.#count         = overlay.querySelector('.pp-prism-count');
+    this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
 
     overlay.addEventListener('click', e => {
       if (e.target === overlay || e.target.closest('.pp-prism-close')) this.close();
