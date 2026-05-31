@@ -508,32 +508,49 @@ class ParceriasPage {
       title: foto?.title || `Foto ${index + 1}`,
       thumbUrl: url,
       fullUrl: url,
+      // professionalId: ID do usuário logado (dono das imagens em parcerias)
+      professionalId: foto.professionalId ?? foto.ownerId ?? perfil?.id ?? '',
       professionalName: perfil?.full_name ?? perfil?.fullName ?? 'Barbeiro',
       professionalAvatarUrl: avatarUrl,
       likesCount: foto?.likesCount ?? 0,
+      portfolioOwnerView: true,
     };
   }
 
   #criarCardFoto(foto, index) {
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'parcerias-foto-item';
-    item.setAttribute('aria-label', 'Abrir foto do portfolio');
+    // Usa article como wrapper para permitir aninhar PortfolioImageActions (botões) dentro
+    const card = document.createElement('article');
+    card.className = 'parcerias-foto-item';
+    card.dataset.portfolioImageId = foto.id ?? '';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'parcerias-foto-item__btn';
+    btn.setAttribute('aria-label', 'Abrir foto do portfolio');
 
     const img = document.createElement('img');
     img.src     = ParceriasPage.#fotoUrl(foto);
     img.alt     = 'Foto do portfólio';
     img.loading = 'lazy';
-    img.onerror = () => { item.style.display = 'none'; };
-    item.appendChild(img);
+    img.onerror = () => { card.style.display = 'none'; };
+    btn.appendChild(img);
 
     const hint = document.createElement('span');
     hint.className = 'parcerias-foto-item__hint';
     hint.textContent = 'Segure para excluir';
-    item.appendChild(hint);
+    btn.appendChild(hint);
 
-    this.#bindFotoInteracoes(item, foto.id, index);
-    return item;
+    card.appendChild(btn);
+
+    // Adiciona botões de ação (like + mensagem) se disponíveis
+    if (typeof PortfolioImageActions !== 'undefined' && foto.id) {
+      const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+      const itemComProfId = { ...foto, professionalId: foto.professionalId ?? perfil?.id ?? '' };
+      card.appendChild(PortfolioImageActions.criar(itemComProfId));
+    }
+
+    this.#bindFotoInteracoes(btn, foto.id, index);
+    return card;
   }
 
   #bindFotoInteracoes(el, photoId, index) {

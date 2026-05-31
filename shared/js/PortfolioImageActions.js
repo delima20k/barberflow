@@ -189,7 +189,10 @@ class PortfolioImageActions {
       status.textContent = messages.length ? '' : 'Nenhuma mensagem recebida ainda.';
       messages.forEach(msg => list.appendChild(PortfolioImageActions.#itemMensagemModal(msg)));
     } catch (err) {
-      status.textContent = 'Nao foi possivel carregar as mensagens.';
+      const status403 = err?.status === 403 || String(err?.message ?? '').includes('403');
+      status.textContent = status403
+        ? 'Apenas o dono da imagem pode ver as mensagens.'
+        : 'Nao foi possivel carregar as mensagens.';
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn('[PortfolioImageActions] mensagens recebidas falharam:', err?.message ?? err);
       }
