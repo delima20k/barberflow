@@ -524,8 +524,16 @@ class PortfolioPrismViewer {
       if (error) throw error;
       if (this.#publicInput) this.#publicInput.value = '';
       this.#emitInteraction({ texto, perfil, type: PortfolioPrismViewer.#isEmojiText(texto) ? 'emoji' : 'message' });
-    } catch {
-      this.#emitInteraction({ texto: '✗ Falha ao enviar', perfil: null });
+    } catch (err) {
+      let textoErro = '✗ Falha ao enviar';
+      if (err?.status === 429) {
+        textoErro = '✗ Limite atingido';
+      } else if (String(err?.message ?? '').includes('nao permitida')) {
+        textoErro = '✗ Conteúdo bloqueado';
+      } else if (String(err?.message ?? '').includes('Máximo')) {
+        textoErro = '✗ Mensagem muito grande';
+      }
+      this.#emitInteraction({ texto: textoErro, perfil: null });
     } finally {
       if (this.#publicInput)   this.#publicInput.disabled   = false;
       if (this.#publicSendBtn) this.#publicSendBtn.disabled  = false;
@@ -723,8 +731,8 @@ class PortfolioPrismViewer {
       <div class="pp-prism-public-actions" hidden>
         <img class="pp-prism-public-logo" src="/shared/img/icon-512-cliente.png" alt="BarberFlow" loading="lazy">
         <div class="pp-prism-message-wrap">
-          <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Mensagem" aria-label="Mensagem">
-          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem">➤</button>
+          <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Elogie este trabalho..." aria-label="Mensagem">
+          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem">Enviar</button>
         </div>
         <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
           <span data-public-like-icon aria-hidden="true">👍</span>

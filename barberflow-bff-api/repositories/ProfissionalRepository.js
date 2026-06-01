@@ -792,6 +792,9 @@ class ProfissionalRepository extends BaseRepository {
     this._uuid('professionalId', professionalId);
     this._uuid('imageId', imageId);
 
+    // Janela de 48h: mensagens mais antigas são descartadas
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+
     // Busca mensagens + contagem de curtidas em paralelo
     const [msgsResult, likeResult] = await Promise.all([
       this._db
@@ -799,6 +802,7 @@ class ProfissionalRepository extends BaseRepository {
         .select('id, sender_id, body, created_at')
         .eq('portfolio_image_id', imageId)
         .eq('professional_id', professionalId)
+        .gte('created_at', cutoff)
         .order('created_at', { ascending: false })
         .limit(Math.min(limit, 100)),
       this._db

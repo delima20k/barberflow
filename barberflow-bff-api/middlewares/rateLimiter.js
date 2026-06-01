@@ -81,6 +81,18 @@ class RateLimiterMiddleware {
     skip:            (req) => ['GET', 'HEAD', 'OPTIONS'].includes(req.method),
     handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
   });
+
+  // 10 mensagens de portfólio por IP/usuário a cada 5 minutos
+  static portfolioMensagem = rateLimit({
+    windowMs:        5 * 60 * 1000,
+    max:             10,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    store:           _criarRedisStore(),
+    keyGenerator:    (req) => `portfolio:${req.user?.id ?? req.ip}`,
+    skip:            () => process.env.APP_ENV === 'test',
+    handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
+  });
 }
 
 module.exports = RateLimiterMiddleware;

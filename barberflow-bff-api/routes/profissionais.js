@@ -4,6 +4,7 @@ const { Router } = require('express');
 const express = require('express');
 
 const AuthMiddleware = require('../middlewares/auth');
+const RateLimiterMiddleware = require('../middlewares/rateLimiter');
 const ProfissionalController = require('../controllers/ProfissionalController');
 const ProfissionalRepository = require('../repositories/ProfissionalRepository');
 const { SupabaseChatRepository } = require('../infrastructure/chat/SupabaseChatRepository');
@@ -41,6 +42,6 @@ module.exports = function criarProfissionaisRoute(db, deps = {}) {
   router.get('/me/portfolio/:imageId/mensagens', AuthMiddleware.verificar, controller.mensagensPortfolioImagem.bind(controller));
   router.get('/:id/perfil-publico', controller.perfilPublico.bind(controller));
   router.get('/:id/portfolio', controller.portfolio.bind(controller));
-  router.post('/:id/mensagem-barbearia', AuthMiddleware.verificar, controller.mensagemBarbearia.bind(controller));
+  router.post('/:id/mensagem-barbearia', AuthMiddleware.verificar, RateLimiterMiddleware.portfolioMensagem, controller.mensagemBarbearia.bind(controller));
   return router;
 };

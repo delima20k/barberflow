@@ -3,6 +3,7 @@
 class PortfolioImageActions {
   static #delegado = false;
   static #curtidas = new Set();
+  static #imagemAberta = null;
 
   static criar(item, { professionalId = null } = {}) {
     PortfolioImageActions.instalarDelegacao();
@@ -77,6 +78,11 @@ class PortfolioImageActions {
       else PortfolioImageActions.#curtidas.delete(imageId);
       // Sincroniza todos os elementos na página
       PortfolioImageActions.#sincronizarBotao(imageId, Boolean(liked), likesCount);
+    });
+
+    // Listener global: nova mensagem recebida via Realtime
+    document.addEventListener('barberflow:portfolio-message-nova', event => {
+      PortfolioImageActions.#processarNovaMensagemRealtime(event.detail);
     });
   }
 
@@ -188,6 +194,15 @@ class PortfolioImageActions {
 
       status.textContent = messages.length ? '' : 'Nenhuma mensagem recebida ainda.';
       messages.forEach(msg => list.appendChild(PortfolioImageActions.#itemMensagemModal(msg)));
+
+      const titleEl = modal.querySelector('.pf-msg-modal__title');
+      if (titleEl) titleEl.textContent = `💬 Mensagens (${messages.length})`;
+
+      PortfolioImageActions.#imagemAberta = imageId;
+      if (typeof PortfolioMessageRealtimeService !== 'undefined') {
+        const profId = (typeof AuthService !== 'undefined') ? (AuthService.getPerfil?.()?.id ?? null) : null;
+        if (profId) PortfolioMessageRealtimeService.iniciar(profId);
+      }
     } catch (err) {
       const status403 = err?.status === 403 || String(err?.message ?? '').includes('403');
       status.textContent = status403
@@ -257,6 +272,8 @@ class PortfolioImageActions {
     const fechar = () => {
       modal.hidden = true;
       document.body.classList.remove('pf-msg-modal-open');
+      PortfolioImageActions.#imagemAberta = null;
+      if (typeof PortfolioMessageRealtimeService !== 'undefined') PortfolioMessageRealtimeService.parar();
     };
 
     modal.querySelector('.pf-msg-modal__close').addEventListener('click', fechar);
@@ -371,6 +388,31 @@ class PortfolioImageActions {
         if (iconEl)  { iconEl.hidden = n > 0; }
         // is-liked e aria-pressed s\u00E3o gerenciados pelo viewer interno
       }
+    }
+  }
+
+  /**
+   * Processa nova mensagem recebida via Realtime e a prepend ao modal aberto.
+   * Só age se o modal estiver visível e a imagem aberta coincidir.
+   *
+   * @param {object} msg — payload do CustomEvent barberflow:portfolio-message-nova
+   */
+  static #processarNovaMensagemRealtime(msg) {
+    if (!msg || PortfolioImageActions.#imagemAberta !== msg.portfolioImageId) return;
+
+    const modal = document.querySelector('.pf-msg-modal');
+    if (!modal || modal.hidden) return;
+
+    const list   = modal.querySelector('.pf-msg-modal__list');
+    const status = modal.querySelector('.pf-msg-modal__status');
+    const titleEl = modal.querySelector('.pf-msg-modal__title');
+
+    if (status) status.textContent = '';
+    if (list) list.prepend(PortfolioImageActions.#itemMensagemModal(msg));
+
+    if (titleEl) {
+      const atual = Number(titleEl.textContent.replace(/\D/g, '') || 0);
+      titleEl.textContent = `\uD83D\uDCAC Mensagens (${atual + 1})`;
     }
   }
 }

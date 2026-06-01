@@ -99,7 +99,7 @@ class ProfissionalController extends BaseController {
     await this.handle(res, async () => {
       res.setHeader('Cache-Control', 'private, no-store');
       const dto = await this.#service.listarMensagensPortfolioImagem(req.user.id, req.params.imageId);
-      this.success(res, dto.messages);
+      this.success(res, dto);
     });
   }
 
