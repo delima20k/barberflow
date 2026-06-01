@@ -4543,11 +4543,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .bp-divider {
   width: 100%;
-  height: 1px;
   margin: 16px 0;
   padding: 0 16px;
   box-sizing: border-box;
-  background: linear-gradient(to right, transparent 0%, var(--gold-border, rgba(212, 175, 55, 0.2)) 15%, var(--gold-border, rgba(212, 175, 55, 0.2)) 85%, transparent 100%);
+  border-bottom: 1px solid #8b4513;
 }
 .bp-divider[hidden] { display: none; }
 
