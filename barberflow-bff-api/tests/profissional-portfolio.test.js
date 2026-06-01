@@ -28,6 +28,8 @@ function criarRepo(overrides = {}) {
     }),
     atualizarPortfolioImagem: async (_userId, imageId, payload) => ({ id: imageId, ...payload }),
     removerPortfolioImagem: async () => ({ deleted: true }),
+    listarInteracoesPortfolio: async () => new Map(),
+    salvarMensagemPortfolio: async () => {},
     listarCurtidasPortfolio: async () => [IMAGE_ID],
     curtirPortfolioImagem: async () => ({ exists: true, liked: true, likes_count: 5 }),
     descurtirPortfolioImagem: async () => ({ exists: true, liked: false, likes_count: 4 }),
@@ -50,6 +52,11 @@ suite('ProfissionalService - portfolio publico', () => {
         storagePath: 'images/original/pro-1.webp',
         thumbnailPath: 'images/thumbs/pro-1.webp',
         likesCount: 4,
+        interactions: [{
+          type: 'like',
+          body: '👍',
+          count: 4,
+        }],
         viewsCount: 12,
         isFeatured: true,
         updatedAt: '2026-05-25T12:00:00Z',
@@ -58,6 +65,43 @@ suite('ProfissionalService - portfolio publico', () => {
       limit: 12,
       offset: 0,
     });
+  });
+
+  test('deve anexar mensagens historicas do portfolio em lote', async () => {
+    const service = new ProfissionalService(criarRepo({
+      listarInteracoesPortfolio: async (ids) => {
+        assert.deepEqual(ids, [IMAGE_ID]);
+        return new Map([[IMAGE_ID, [{
+          id: 'msg-1',
+          body: 'Ficou top',
+          createdAt: '2026-05-31T10:00:00Z',
+          sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: 'https://cdn/avatar.webp' },
+        }, {
+          id: 'msg-2',
+          body: '😂',
+          createdAt: '2026-05-31T10:01:00Z',
+          sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: null },
+        }]]]);
+      },
+    }));
+
+    const dto = await service.listarPortfolioPublico(PRO_ID, { limit: 12 });
+
+    assert.deepEqual(dto.items[0].interactions, [{
+      type: 'message',
+      body: 'Ficou top',
+      createdAt: '2026-05-31T10:00:00Z',
+      sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: 'https://cdn/avatar.webp' },
+    }, {
+      type: 'emoji',
+      body: '😂',
+      createdAt: '2026-05-31T10:01:00Z',
+      sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: null },
+    }, {
+      type: 'like',
+      body: '👍',
+      count: 4,
+    }]);
   });
 
   test('deve atualizar imagem do portfolio com allowlist', async () => {
@@ -151,7 +195,7 @@ suite('ProfissionalService - portfolio publico', () => {
   });
 
   test('deve enviar mensagem de portfolio com texto informado mantendo contexto da barbearia', async () => {
-    let chamadaMensagem = null;
+    let mensagemPortfolio = null;
     const service = new ProfissionalService(criarRepo({
       buscarContextoMensagem: async () => ({
         professional_id: PRO_ID,
@@ -159,10 +203,11 @@ suite('ProfissionalService - portfolio publico', () => {
         barbershop_id: '990e8400-e29b-41d4-a716-446655440005',
         professional_name: 'Lima',
       }),
-      encontrarConversaDireta: async () => 'conv-1',
+      salvarMensagemPortfolio: async (payload) => {
+        mensagemPortfolio = payload;
+      },
     }), {
       execute: async (payload) => {
-        chamadaMensagem = payload;
         return { isFail: () => false, getValue: () => ({ id: 'message-1', body: payload.body }) };
       },
     });
@@ -173,10 +218,14 @@ suite('ProfissionalService - portfolio publico', () => {
       clientMessageId: 'client-msg-1',
     });
 
-    assert.equal(dto.conversationId, 'conv-1');
-    assert.equal(chamadaMensagem.body, 'Corte top');
-    assert.equal(chamadaMensagem.clientMessageId, 'client-msg-1');
-    assert.equal(chamadaMensagem.attachments.length, 0);
+    assert.equal(dto.conversationId, null);
+    assert.deepEqual(dto.message, { body: 'Corte top' });
+    assert.deepEqual(mensagemPortfolio, {
+      portfolioImageId: IMAGE_ID,
+      professionalId: PRO_ID,
+      senderId: CLIENT_ID,
+      body: 'Corte top',
+    });
   });
 
   test('deve rejeitar mensagem de portfolio vazia quando body e informado', async () => {

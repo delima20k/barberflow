@@ -783,6 +783,7 @@ describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
     assert.match(SRC_PORTFOLIO_CONTROLLER, /professionalName/);
     assert.match(SRC_PORTFOLIO_CONTROLLER, /professionalAvatarUrl/);
     assert.match(SRC_PORTFOLIO_CONTROLLER, /likesCount/);
+    assert.match(SRC_PORTFOLIO_CONTROLLER, /interactions:\s*Array\.isArray\(item\.interactions\)/);
     assert.match(SRC_PORTFOLIO_VIEW, /\.open\(item,\s*items\)/);
   });
 
@@ -803,6 +804,7 @@ describe('MinhaBarbeariaPage - portfolio da barbearia', () => {
     assert.match(SRC_PORTFOLIO_BARBEIROS, /professionalName:\s*barber\.full_name/);
     assert.match(SRC_PORTFOLIO_BARBEIROS, /professionalAvatarUrl:\s*avatarUrl/);
     assert.match(SRC_PORTFOLIO_BARBEIROS, /likesCount:\s*item\.likes_count/);
+    assert.match(SRC_PORTFOLIO_BARBEIROS, /interactions:\s*item\.interactions/);
   });
 
   test('galeria da Minha Barbearia usa carrossel horizontal em row', () => {

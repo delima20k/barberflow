@@ -185,6 +185,7 @@ class PortfolioPrismViewer {
     }
 
     this.#renderFaces();
+    this.#replayInteractions(item);
   }
 
   #renderPublicActions(item) {
@@ -491,7 +492,7 @@ class PortfolioPrismViewer {
       this.#renderMeta(item);
       this.#renderPublicActions(item);
       PortfolioPrismViewer.#dispatchLike(item.id, item.likesCount, true);
-      this.#emitInteraction({ texto: '👍 Curtida', perfil });
+      this.#emitInteraction({ texto: '👍', perfil, type: 'like' });
     } catch {
       item.liked      = false;
       item.likesCount = countAntes;
@@ -522,7 +523,7 @@ class PortfolioPrismViewer {
       const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
       if (error) throw error;
       if (this.#publicInput) this.#publicInput.value = '';
-      this.#emitInteraction({ texto, perfil });
+      this.#emitInteraction({ texto, perfil, type: PortfolioPrismViewer.#isEmojiText(texto) ? 'emoji' : 'message' });
     } catch {
       this.#emitInteraction({ texto: '✗ Falha ao enviar', perfil: null });
     } finally {
@@ -553,19 +554,33 @@ class PortfolioPrismViewer {
    * Cria e anima um float com avatar + nome + texto sobre a imagem.
    * @param {{ texto: string, perfil: object|null }} opts
    */
-  #emitInteraction({ texto, perfil } = {}) {
+  #replayInteractions(item) {
+    this.#limparInteracoes();
+    const interactions = PortfolioPrismViewer.#normalizarInteracoes(item);
+    interactions.forEach((interaction, index) => {
+      const timer = setTimeout(() => {
+        this.#floatTimers.delete(timer);
+        this.#emitInteraction(interaction);
+      }, Math.min(index * 220, 4800));
+      this.#floatTimers.add(timer);
+    });
+  }
+
+  #emitInteraction({ texto, perfil, sender, type = 'message' } = {}) {
     if (!this.#reactionLayer) return;
 
     const textoSeg = String(texto ?? '').slice(0, 80);
-    const nome     = String(perfil?.full_name ?? '').trim().slice(0, 30);
+    const nome     = String(sender?.nome ?? perfil?.full_name ?? '').trim().slice(0, 30);
     const avatarPath = perfil?.avatar_path ?? null;
-    const avatarUrl  = (avatarPath && typeof ApiService !== 'undefined' && ApiService.getAvatarUrl)
-      ? ApiService.getAvatarUrl(avatarPath) : null;
+    const avatarUrl  = sender?.avatarUrl
+      || ((avatarPath && typeof ApiService !== 'undefined' && ApiService.getAvatarUrl)
+        ? ApiService.getAvatarUrl(avatarPath) : null);
+    const tipo = ['emoji', 'like'].includes(type) ? type : 'message';
 
     const el = document.createElement('div');
-    el.className = 'pp-prism-float';
+    el.className = PortfolioPrismViewer.#floatClass(tipo);
 
-    if (avatarUrl || nome) {
+    if (tipo === 'message' && (avatarUrl || nome)) {
       const avatar = document.createElement('img');
       avatar.className = 'pp-prism-float__avatar';
       avatar.alt = nome || '';
@@ -603,6 +618,54 @@ class PortfolioPrismViewer {
     el.addEventListener('animationend', remover, { once: true });
     const timer = setTimeout(remover, 2400);
     this.#floatTimers.add(timer);
+  }
+
+  static #floatClass(type) {
+    if (type === 'emoji') return 'pp-prism-float pp-prism-float--emoji';
+    if (type === 'like') return 'pp-prism-float pp-prism-float--like';
+    return 'pp-prism-float pp-prism-float--message';
+  }
+
+  static #normalizarInteracoes(item) {
+    const base = Array.isArray(item?.interactions) ? item.interactions : [];
+    const normalizadas = [];
+    for (const interaction of base) {
+      const type = PortfolioPrismViewer.#normalizarTipo(interaction?.type, interaction?.body);
+      const count = Math.max(1, Number(interaction?.count ?? 1));
+      const texto = String(interaction?.body ?? (type === 'like' ? '👍' : '')).trim();
+      if (!texto) continue;
+      if (type === 'like') {
+        const total = Math.min(count, 24);
+        for (let i = 0; i < total; i += 1) {
+          normalizadas.push({ type: 'like', texto: '👍' });
+        }
+        continue;
+      }
+      normalizadas.push({
+        type,
+        texto,
+        sender: interaction?.sender ?? null,
+      });
+    }
+
+    const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
+    const temLike = base.some(interaction => interaction?.type === 'like');
+    if (likesCount > 0 && !temLike) {
+      const total = Math.min(likesCount, 24);
+      for (let i = 0; i < total; i += 1) normalizadas.push({ type: 'like', texto: '👍' });
+    }
+    return normalizadas;
+  }
+
+  static #normalizarTipo(type, body) {
+    if (type === 'like') return 'like';
+    if (type === 'emoji' || PortfolioPrismViewer.#isEmojiText(body)) return 'emoji';
+    return 'message';
+  }
+
+  static #isEmojiText(value) {
+    const texto = String(value ?? '').trim();
+    return Boolean(texto) && texto.length <= 12 && /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D\s]+$/u.test(texto);
   }
 
   #limparInteracoes() {

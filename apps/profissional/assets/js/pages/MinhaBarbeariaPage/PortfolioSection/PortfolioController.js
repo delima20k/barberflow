@@ -130,6 +130,7 @@ export class PortfolioController {
       storagePath,
       thumbnailPath,
       likesCount: item.likesCount ?? item.likes_count ?? 0,
+      interactions: Array.isArray(item.interactions) ? item.interactions : [],
       thumbUrl,
       fullUrl,
     };

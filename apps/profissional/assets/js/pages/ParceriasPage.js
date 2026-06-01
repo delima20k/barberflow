@@ -513,6 +513,7 @@ class ParceriasPage {
       professionalName: perfil?.full_name ?? perfil?.fullName ?? 'Barbeiro',
       professionalAvatarUrl: avatarUrl,
       likesCount: foto?.likesCount ?? 0,
+      interactions: Array.isArray(foto?.interactions) ? foto.interactions : [],
       portfolioOwnerView: true,
     };
   }

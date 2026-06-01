@@ -173,6 +173,47 @@ class ProfissionalRepository extends BaseRepository {
     return { items: data ?? [], total: count ?? 0 };
   }
 
+  async listarInteracoesPortfolio(imageIds) {
+    const ids = Array.isArray(imageIds) ? [...new Set(imageIds.filter(Boolean))] : [];
+    ids.forEach(id => this._uuid('imageIds[]', id));
+    if (!ids.length) return new Map();
+
+    const { data: mensagens, error } = await this._db
+      .from('portfolio_messages')
+      .select('id, portfolio_image_id, sender_id, body, created_at')
+      .in('portfolio_image_id', ids)
+      .order('created_at', { ascending: true });
+    if (error) this._throwDbError(error, 'listarInteracoesPortfolio.mensagens');
+
+    const senderIds = [...new Set((mensagens ?? []).map(msg => msg.sender_id).filter(Boolean))];
+    let perfis = [];
+    if (senderIds.length) {
+      const perfisResult = await this._db
+        .from('profiles')
+        .select('id, full_name, avatar_path')
+        .in('id', senderIds);
+      if (perfisResult.error) this._throwDbError(perfisResult.error, 'listarInteracoesPortfolio.profiles');
+      perfis = perfisResult.data ?? [];
+    }
+
+    const perfilMap = new Map(perfis.map(perfil => [perfil.id, perfil]));
+    const grouped = new Map(ids.map(id => [id, []]));
+    for (const msg of mensagens ?? []) {
+      const perfil = perfilMap.get(msg.sender_id) ?? {};
+      grouped.get(msg.portfolio_image_id)?.push({
+        id: msg.id,
+        body: msg.body ?? '',
+        createdAt: msg.created_at ?? null,
+        sender: {
+          id: msg.sender_id ?? null,
+          nome: perfil.full_name ?? 'Usuário',
+          avatarUrl: perfil.avatar_path ? ProfissionalRepository.#avatarUrl(perfil.avatar_path) : null,
+        },
+      });
+    }
+    return grouped;
+  }
+
   async atualizarPortfolioImagem(userId, imageId, payload) {
     this._uuid('userId', userId);
     this._uuid('imageId', imageId);
@@ -710,6 +751,12 @@ class ProfissionalRepository extends BaseRepository {
       || code === 'PGRST200'
       || /column .* does not exist/i.test(message)
       || /could not find .* column/i.test(message);
+  }
+
+  static #avatarUrl(avatarPath) {
+    const base = process.env.SUPABASE_URL ?? '';
+    if (!base || !avatarPath) return null;
+    return `${base}/storage/v1/object/public/avatars/${avatarPath}`;
   }
 
   /**

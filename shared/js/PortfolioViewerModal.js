@@ -8,6 +8,8 @@ class PortfolioViewerModal {
   #avatar = null;
   #name = null;
   #likes = null;
+  #reactionLayer = null;
+  #floatTimers = new Set();
   #title = null;
   #actions = null;
   #count = null;
@@ -41,6 +43,7 @@ class PortfolioViewerModal {
     if (!this.#overlay) return;
     this.#overlay.hidden = true;
     this.#overlay.setAttribute('aria-hidden', 'true');
+    this.#limparInteracoes();
     this.#faces.forEach(face => {
       const img = face.querySelector('img');
       if (img) img.src = '';
@@ -104,6 +107,7 @@ class PortfolioViewerModal {
     }
 
     this.#renderFaces();
+    this.#replayInteractions(item);
   }
 
   #renderMeta(item) {
@@ -140,6 +144,112 @@ class PortfolioViewerModal {
       img.src = item?.fullUrl || item?.thumbUrl || '';
       img.alt = item?.title || 'Portfolio';
     });
+  }
+
+  #replayInteractions(item) {
+    this.#limparInteracoes();
+    const interactions = PortfolioViewerModal.#normalizarInteracoes(item);
+    interactions.forEach((interaction, index) => {
+      const timer = setTimeout(() => {
+        this.#floatTimers.delete(timer);
+        this.#emitInteraction(interaction);
+      }, Math.min(index * 220, 4800));
+      this.#floatTimers.add(timer);
+    });
+  }
+
+  #emitInteraction({ texto, sender, type = 'message' } = {}) {
+    if (!this.#reactionLayer) return;
+    const tipo = ['emoji', 'like'].includes(type) ? type : 'message';
+    const textoSeg = String(texto ?? '').slice(0, 80);
+    const nome = String(sender?.nome ?? '').trim().slice(0, 30);
+    const avatarUrl = sender?.avatarUrl ?? null;
+
+    const el = document.createElement('div');
+    el.className = PortfolioViewerModal.#floatClass(tipo);
+
+    if (tipo === 'message' && (avatarUrl || nome)) {
+      const avatar = document.createElement('img');
+      avatar.className = 'pp-prism-float__avatar';
+      avatar.alt = nome || '';
+      avatar.loading = 'lazy';
+      if (avatarUrl) avatar.src = avatarUrl;
+      else avatar.hidden = true;
+      avatar.onerror = () => { avatar.hidden = true; };
+
+      const info = document.createElement('span');
+      info.className = 'pp-prism-float__info';
+      if (nome) {
+        const nomeEl = document.createElement('strong');
+        nomeEl.className = 'pp-prism-float__nome';
+        nomeEl.textContent = nome;
+        info.appendChild(nomeEl);
+      }
+      const bodyEl = document.createElement('span');
+      bodyEl.className = 'pp-prism-float__texto';
+      bodyEl.textContent = textoSeg;
+      info.appendChild(bodyEl);
+      el.append(avatar, info);
+    } else {
+      el.textContent = textoSeg;
+    }
+
+    this.#reactionLayer.appendChild(el);
+    const remover = () => {
+      el.remove();
+      if (timer) this.#floatTimers.delete(timer);
+    };
+    el.addEventListener('animationend', remover, { once: true });
+    const timer = setTimeout(remover, 4200);
+    this.#floatTimers.add(timer);
+  }
+
+  static #floatClass(type) {
+    if (type === 'emoji') return 'pp-prism-float pp-prism-float--emoji';
+    if (type === 'like') return 'pp-prism-float pp-prism-float--like';
+    return 'pp-prism-float pp-prism-float--message';
+  }
+
+  static #normalizarInteracoes(item) {
+    const base = Array.isArray(item?.interactions) ? item.interactions : [];
+    const normalizadas = [];
+    for (const interaction of base) {
+      const type = PortfolioViewerModal.#normalizarTipo(interaction?.type, interaction?.body);
+      const count = Math.max(1, Number(interaction?.count ?? 1));
+      const texto = String(interaction?.body ?? (type === 'like' ? '👍' : '')).trim();
+      if (!texto) continue;
+      if (type === 'like') {
+        const total = Math.min(count, 24);
+        for (let i = 0; i < total; i += 1) normalizadas.push({ type: 'like', texto: '👍' });
+        continue;
+      }
+      normalizadas.push({ type, texto, sender: interaction?.sender ?? null });
+    }
+
+    const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
+    const temLike = base.some(interaction => interaction?.type === 'like');
+    if (likesCount > 0 && !temLike) {
+      const total = Math.min(likesCount, 24);
+      for (let i = 0; i < total; i += 1) normalizadas.push({ type: 'like', texto: '👍' });
+    }
+    return normalizadas;
+  }
+
+  static #normalizarTipo(type, body) {
+    if (type === 'like') return 'like';
+    if (type === 'emoji' || PortfolioViewerModal.#isEmojiText(body)) return 'emoji';
+    return 'message';
+  }
+
+  static #isEmojiText(value) {
+    const texto = String(value ?? '').trim();
+    return Boolean(texto) && texto.length <= 12 && /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D\s]+$/u.test(texto);
+  }
+
+  #limparInteracoes() {
+    this.#reactionLayer?.replaceChildren();
+    this.#floatTimers.forEach(timer => clearTimeout(timer));
+    this.#floatTimers.clear();
   }
 
   #itemAt(offset) {
@@ -194,6 +304,7 @@ class PortfolioViewerModal {
           <figure class="portfolio-viewer__face portfolio-viewer__face--back"><img class="portfolio-viewer__img" alt=""></figure>
           <figure class="portfolio-viewer__face portfolio-viewer__face--left"><img class="portfolio-viewer__img" alt=""></figure>
         </div>
+        <div class="portfolio-viewer__reactions" aria-hidden="true"></div>
       </div>
       <figcaption class="portfolio-viewer__title"></figcaption>
       <div class="portfolio-viewer__actions"></div>
@@ -247,6 +358,7 @@ class PortfolioViewerModal {
     this.#avatar = overlay.querySelector('.portfolio-viewer__avatar');
     this.#name = overlay.querySelector('.portfolio-viewer__name');
     this.#likes = overlay.querySelector('.portfolio-viewer__likes');
+    this.#reactionLayer = overlay.querySelector('.portfolio-viewer__reactions');
     this.#title = overlay.querySelector('.portfolio-viewer__title');
     this.#actions = overlay.querySelector('.portfolio-viewer__actions');
     this.#count = overlay.querySelector('.portfolio-viewer__count');

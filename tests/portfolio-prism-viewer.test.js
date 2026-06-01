@@ -45,7 +45,10 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /#reactionLayer/);
     assert.match(js, /#renderPublicActions/);
     assert.match(js, /#emitInteraction/);
+    assert.match(js, /#replayInteractions/);
+    assert.match(js, /#normalizarInteracoes/);
     assert.match(js, /portfolioPublicActions/);
+    assert.match(js, /interactions/);
     assert.match(js, /pp-prism-public-actions/);
     assert.match(js, /pp-prism-public-logo" src="\/shared\/img\/icon-512-cliente\.png"/);
     assert.match(js, /pp-prism-message-input/);
@@ -70,6 +73,12 @@ describe('PortfolioPrismViewer', () => {
     assert.match(proPublicButtonCss, /border:\s*0/);
     assert.match(proPublicButtonCss, /background:\s*transparent/);
     assert.match(css, /@keyframes\s+pp-prism-float-up/);
+    assert.match(css, /\.pp-prism-float--emoji/);
+    assert.match(css, /\.pp-prism-float--like/);
+    assert.match(css, /@keyframes\s+pp-prism-emoji-burst/);
+    assert.match(css, /@keyframes\s+pp-prism-like-rise/);
+    assert.match(proCss, /\.pp-prism-float--emoji/);
+    assert.match(proCss, /\.pp-prism-float--like/);
   });
 
   test('portfolio publico legado da barbearia tambem habilita a barra publica', () => {
@@ -82,11 +91,13 @@ describe('PortfolioPrismViewer', () => {
     assert.match(bloco, /id:\s*img\.id/);
     assert.match(bloco, /professionalId:/);
     assert.match(bloco, /likesCount:/);
+    assert.match(bloco, /interactions:\s*img\.interactions/);
     assert.match(bloco, /portfolioPublicActions:\s*Boolean\(img\.id\)/);
   });
 
   test('galeria publica marca itens para barra publica e usa BFF para curtidas', () => {
     assert.match(publicSectionJs, /portfolioPublicActions:\s*true/);
+    assert.match(publicSectionJs, /interactions:\s*item\.interactions/);
     assert.match(publicSectionJs, /BffApiService\.profissionais\.listarCurtidasPortfolio/);
     assert.match(publicSectionJs, /BffApiService\.profissionais\.curtirPortfolioImagem/);
     assert.match(publicSectionJs, /BffApiService\.profissionais\.descurtirPortfolioImagem/);
@@ -121,7 +132,8 @@ describe('PortfolioPrismViewer', () => {
       css.indexOf('.pbp-like-btn:active'),
     );
 
-    assert.match(blocoCarrossel, />👍 <span class="pbp-like-count">/);
+    assert.match(blocoCarrossel, /class="pbp-like-icon"[\s\S]*>👍<\/span>/);
+    assert.match(blocoCarrossel, /class="pbp-like-count"/);
     assert.doesNotMatch(blocoCarrossel, /ðŸ’Ž|💎/);
     assert.match(barberRowCss, /background:\s*transparent/);
     assert.match(barberRowCss, /border:\s*0/);

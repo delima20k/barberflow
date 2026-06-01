@@ -93,8 +93,9 @@ class BarbeariaService extends BaseService {
 
     const result = await this.#repo.listarPortfolioAgregado(barbershopId, idsUnicos, { limit, offset });
     const profileMap = await this.#profilesMap(idsUnicos);
+    const interactionsMap = await this.#portfolioInteractionsMap(result?.items ?? []);
     return {
-      items: (result?.items ?? []).map(row => BarbeariaService.#portfolioDto(row, profileMap, shop)),
+      items: (result?.items ?? []).map(row => BarbeariaService.#portfolioDto(row, profileMap, shop, interactionsMap.get(row.id))),
       total: Number(result?.total ?? 0),
       limit,
       offset,
@@ -350,11 +351,22 @@ class BarbeariaService extends BaseService {
     return new Map((profiles ?? []).map(profile => [profile.id, profile]));
   }
 
-  static #portfolioDto(row, profileMap = new Map(), shop = null) {
+  async #portfolioInteractionsMap(items) {
+    const ids = (items ?? []).map(item => item?.id).filter(Boolean);
+    if (!ids.length || typeof this.#repo.listarInteracoesPortfolio !== 'function') return new Map();
+    try {
+      return await this.#repo.listarInteracoesPortfolio(ids);
+    } catch {
+      return new Map();
+    }
+  }
+
+  static #portfolioDto(row, profileMap = new Map(), shop = null, interactions = []) {
     const professionalId = row.owner_type === 'barbershop'
       ? shop?.owner_id ?? null
       : row.owner_id ?? null;
     const owner = row.owner ?? row.profile ?? profileMap.get(professionalId) ?? null;
+    const likesCount = Math.max(0, Number(row.likes_count ?? 0));
     return {
       id: row.id,
       ownerId: row.owner_id ?? null,
@@ -364,7 +376,8 @@ class BarbeariaService extends BaseService {
       category: row.category ?? null,
       storagePath: row.storage_path ?? null,
       thumbnailPath: row.thumbnail_path ?? null,
-      likesCount: row.likes_count ?? 0,
+      likesCount,
+      interactions: BarbeariaService.#portfolioInteractionsDto(interactions, likesCount),
       viewsCount: row.views_count ?? 0,
       isFeatured: Boolean(row.is_featured),
       updatedAt: row.updated_at ?? null,
@@ -372,6 +385,34 @@ class BarbeariaService extends BaseService {
       professionalName: owner?.full_name ?? null,
       professionalAvatarPath: owner?.avatar_path ?? null,
     };
+  }
+
+  static #portfolioInteractionsDto(interactions = [], likesCount = 0) {
+    const items = (Array.isArray(interactions) ? interactions : [])
+      .map(item => {
+        const body = String(item?.body ?? '').trim();
+        if (!body) return null;
+        return {
+          type: BarbeariaService.#isEmoji(body) ? 'emoji' : 'message',
+          body,
+          createdAt: item?.createdAt ?? item?.created_at ?? null,
+          sender: {
+            id: item?.sender?.id ?? item?.sender_id ?? null,
+            nome: item?.sender?.nome ?? item?.sender?.fullName ?? item?.sender?.full_name ?? 'Usuário',
+            avatarUrl: item?.sender?.avatarUrl ?? item?.sender?.avatar_url ?? null,
+          },
+        };
+      })
+      .filter(Boolean);
+    if (likesCount > 0) {
+      items.push({ type: 'like', body: '👍', count: likesCount });
+    }
+    return items;
+  }
+
+  static #isEmoji(value) {
+    const texto = String(value ?? '').trim();
+    return Boolean(texto) && texto.length <= 12 && /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D\s]+$/u.test(texto);
   }
 }
 

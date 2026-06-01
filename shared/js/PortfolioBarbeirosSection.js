@@ -566,6 +566,7 @@ class PortfolioBarbeirosSection {
           storage_path: item.storagePath ?? item.storage_path ?? item.thumbnailPath ?? item.thumbnail_path,
           title: item.title ?? '',
           likes_count: item.likesCount ?? item.likes_count ?? 0,
+          interactions: item.interactions ?? [],
         })).filter(item => item.id && item.thumbnail_path);
       }
     }
@@ -614,6 +615,7 @@ class PortfolioBarbeirosSection {
         thumbUrl,
         fullUrl,
         likesCount: item.likes_count ?? 0,
+        interactions: item.interactions ?? [],
         liked: curtidosSet.has(item.id),
         portfolioPublicActions: true,
       };

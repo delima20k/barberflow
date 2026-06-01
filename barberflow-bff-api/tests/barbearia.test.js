@@ -2,6 +2,8 @@
 
 const { suite, test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const http   = require('node:http');
 
 // ── Configura env antes de importar o app ────────────────────────
@@ -358,5 +360,20 @@ suite('BarbeariaController - PATCH /api/v1/barbearias/minha/imagem', () => {
 
     assert.strictEqual(status, 400);
     assert.strictEqual(body.ok, false);
+  });
+});
+
+suite('BarbeariaService - portfolio agregado', () => {
+  test('portfolio agregado anexa interactions sem criar rota nova', () => {
+    const serviceJs = fs.readFileSync(path.join(__dirname, '..', 'services', 'BarbeariaService.js'), 'utf8');
+    const repoJs = fs.readFileSync(path.join(__dirname, '..', 'repositories', 'BarbeariaRepository.js'), 'utf8');
+
+    assert.match(serviceJs, /#portfolioInteractionsMap/);
+    assert.match(serviceJs, /listarInteracoesPortfolio/);
+    assert.match(serviceJs, /interactions:\s*BarbeariaService\.#portfolioInteractionsDto/);
+    assert.match(serviceJs, /type:\s*BarbeariaService\.#isEmoji\(body\) \? 'emoji' : 'message'/);
+    assert.match(repoJs, /async listarInteracoesPortfolio\(imageIds\)/);
+    assert.match(repoJs, /\.in\('portfolio_image_id', ids\)/);
+    assert.match(repoJs, /\.from\('profiles'\)/);
   });
 });

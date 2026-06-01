@@ -48,4 +48,20 @@ describe('PortfolioViewerModal', () => {
     assert.match(css, /\.portfolio-viewer__avatar\s*\{[\s\S]*width:\s*48px/);
     assert.match(css, /\.portfolio-viewer__meta-text\s*\{[\s\S]*display:\s*inline-flex/);
   });
+
+  test('fallback modal reaproveita interactions historicas do portfolio', () => {
+    const js = fs.readFileSync(path.join(ROOT, 'shared/js/PortfolioViewerModal.js'), 'utf8');
+    const css = fs.readFileSync(path.join(ROOT, 'shared/css/components.css'), 'utf8');
+
+    assert.match(js, /#reactionLayer/);
+    assert.match(js, /#replayInteractions/);
+    assert.match(js, /#normalizarInteracoes/);
+    assert.match(js, /interactions/);
+    assert.match(js, /portfolio-viewer__reactions/);
+    assert.match(js, /pp-prism-float--emoji/);
+    assert.match(js, /pp-prism-float--like/);
+    assert.match(css, /\.portfolio-viewer__reactions/);
+    assert.match(css, /\.pp-prism-float--emoji/);
+    assert.match(css, /\.pp-prism-float--like/);
+  });
 });

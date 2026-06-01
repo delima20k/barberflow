@@ -1312,6 +1312,7 @@ class BarbeariaPage {
           fullUrl: url,
           thumbUrl: url,
           likesCount: img.likes_count ?? img.likesCount ?? 0,
+          interactions: img.interactions ?? [],
           liked: Boolean(img.liked),
           portfolioPublicActions: Boolean(img.id),
         };
