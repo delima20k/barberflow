@@ -1,0 +1,725 @@
+/* ============================================================
+   BARBERFLOW - MAP CARD PREMIUM MODULE
+   Visual-only refinements for map integration.
+============================================================ */
+
+/* Section hierarchy and spacing */
+#section-mapa,
+.section-mapa {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#section-mapa .sec-title,
+.section-mapa .sec-title {
+  margin: 0;
+}
+
+.map-toggle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.map-toggle-text {
+  margin: 0;
+  font-family: var(--font);
+  font-size: .78rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.map-toggle-btn {
+  all: unset;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 74, 50, .28);
+  background: #fff;
+  color: var(--gold-dark);
+  font-family: var(--font);
+  font-size: .74rem;
+  font-weight: 600;
+  letter-spacing: .2px;
+  box-shadow: 0 4px 10px rgba(43, 27, 18, .12);
+  transition: transform var(--ease), box-shadow var(--ease), background var(--ease);
+}
+
+.map-toggle-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 14px rgba(43, 27, 18, .16);
+}
+
+.map-toggle-btn:active {
+  transform: scale(.97);
+}
+
+.map-collapse-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.map-collapse-panel[hidden] {
+  display: none !important;
+}
+
+.mapa-fechado .map-toggle-text {
+  color: var(--text-dim);
+}
+
+/* Reusable map card shell */
+.map-card {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--gold-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .98) 0%, #f7efe6 100%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
+  padding: 8px;
+}
+
+.map-card .mapa-container,
+#section-mapa .mapa-container {
+  position: relative;
+  width: 100%;
+  height: clamp(250px, 40vh, 320px);
+  border-radius: 14px;
+  border: 1px solid rgba(107, 74, 50, .16);
+  overflow: hidden;
+  background: #f2e7da;
+}
+
+#nearby-map-widget {
+  margin-top: 10px;
+}
+
+/* Contador de barbearias próximas */
+.nearby-contador {
+  margin: 12px 16px 4px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text, #2A211B);
+  letter-spacing: .02em;
+}
+
+/* Leaflet visual integration */
+.mapa-container .leaflet-control-attribution {
+  background: rgba(255, 255, 255, .86) !important;
+  color: var(--text-muted) !important;
+  border: 1px solid rgba(107, 74, 50, .18) !important;
+  border-radius: 10px !important;
+  margin: 6px !important;
+  font-size: .57rem !important;
+}
+
+.mapa-container .leaflet-control-attribution a {
+  color: var(--gold-dark) !important;
+}
+
+.mapa-container .leaflet-bar {
+  border: none !important;
+  box-shadow: 0 6px 14px rgba(43, 27, 18, .2) !important;
+}
+
+.mapa-container .leaflet-bar a {
+  background: rgba(255, 255, 255, .94) !important;
+  color: var(--gold-dark) !important;
+  border: 1px solid rgba(107, 74, 50, .2) !important;
+}
+
+.mapa-container .leaflet-bar a:hover {
+  background: #fff !important;
+}
+
+/* Floating GPS FAB */
+.mapa-gps-fab {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(107, 74, 50, .24);
+  background: #fff;
+  color: var(--gold-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .2);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease;
+}
+
+.mapa-gps-fab:active {
+  transform: scale(.95);
+}
+
+.mapa-gps-fab:hover {
+  box-shadow: 0 8px 20px rgba(43, 27, 18, .25);
+}
+
+.mapa-gps-fab-icon {
+  font-size: 1.18rem;
+  line-height: 1;
+}
+
+.mapa-gps-fab-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.mapa-gps-fab--carregando {
+  background: #F2B705;
+  color: #2B1B12;
+  border-color: rgba(242, 183, 5, .95);
+  box-shadow: 0 0 0 5px rgba(242, 183, 5, .22), 0 8px 18px rgba(107, 74, 50, .35);
+}
+
+.mapa-gps-fab--erro {
+  background: #8B2500;
+  color: #fff;
+  border-color: rgba(139, 37, 0, .9);
+}
+
+.mapa-gps-fab--oculto {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(18px) scale(.92);
+}
+
+/* User marker refinement */
+.mapa-marker-user-dot {
+  width: 12px;
+  height: 12px;
+  background: #2f7be8;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 4px rgba(47, 123, 232, .2), 0 0 10px rgba(47, 123, 232, .35);
+}
+
+.mapa-marker-user-pulse {
+  background: rgba(47, 123, 232, .18);
+}
+
+/* Avatar do usuário no marcador */
+.mapa-marker-user--avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.mapa-marker-user-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2.5px solid #D4AF37;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px rgba(212, 175, 55, .4),
+    0 4px 12px rgba(43, 27, 18, .3);
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+/* Barber marker refinement */
+.mapa-av {
+  filter: drop-shadow(0 4px 10px rgba(43, 27, 18, .35));
+}
+
+.mapa-av__ring {
+  border: 2px solid rgba(107, 74, 50, .45);
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px rgba(212, 160, 23, .35),
+    0 6px 14px rgba(43, 27, 18, .24);
+  background: #fff;
+}
+
+.mapa-av__initials {
+  color: var(--gold-dark);
+  background: linear-gradient(180deg, #fff 0%, #f4e9dc 100%);
+}
+
+.mapa-av__pin {
+  border-top-color: rgba(107, 74, 50, .92);
+}
+
+/* Barber shop marker: small house with the barbershop image and address number */
+.mapa-shop-marker {
+  position: relative;
+  width: 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(15, 17, 21, .3));
+  animation: mapa-shop-marker-enter .22s ease-out both;
+  transition: transform .18s ease, filter .18s ease;
+  pointer-events: auto;
+}
+
+.mapa-shop-marker:hover {
+  transform: translateY(-2px) scale(1.04);
+  filter: drop-shadow(0 12px 20px rgba(15, 17, 21, .36));
+}
+.mapa-shop-marker:active { transform: scale(.96); }
+
+/* Label de nome premium acima do marcador da barbearia — em fluxo flex */
+.mapa-shop-marker__store-name {
+  padding: 5px 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .75);
+  border: 2px solid #ffbf00;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 12px rgba(255, 191, 0, .35);
+  pointer-events: none;
+  align-self: center;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  z-index: 4;
+}
+
+.mapa-shop-marker__body {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  z-index: 2;
+}
+
+.mapa-shop-marker__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mapa-shop-marker__img {
+  position: absolute;
+  top: 25px;
+  left: 12px;
+  width: 48px;
+  height: 29px;
+  border-radius: 3px;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 0 0 1px rgba(15, 17, 21, .18);
+  z-index: 1;
+}
+
+.mapa-shop-marker__initials {
+  position: absolute;
+  top: 25px;
+  left: 12px;
+  width: 48px;
+  height: 29px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #FFFFFF;
+  background: linear-gradient(180deg, #0F1115 0%, #30343B 100%);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  user-select: none;
+  z-index: 1;
+}
+
+/* Badge de status (Aberta / Fechado) — visível só ao toque no mapa */
+.mapa-shop-marker__status {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: transparent;
+  font-size: .5rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.mapa-shop-marker__status--aberta {
+  color: #F2B705;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7), 0 0 6px rgba(0, 0, 0, .4);
+}
+
+.mapa-shop-marker__status--fechado {
+  color: #C81E1E;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7), 0 0 6px rgba(0, 0, 0, .4);
+}
+
+/* JS adiciona essa classe no touchstart do container do mapa */
+.mapa-container--tocando .mapa-shop-marker__status {
+  opacity: 1;
+}
+
+.mapa-shop-marker__pin {
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-right: 2px solid rgba(15, 17, 21, .82);
+  border-bottom: 2px solid rgba(15, 17, 21, .82);
+  background: #FFFFFF;
+  transform: rotate(45deg);
+  border-radius: 0 0 4px 0;
+  z-index: 0;
+}
+
+.mapa-shop-marker__label {
+  width: 112px;
+  min-height: 27px;
+  margin-top: 3px;
+  padding: 3px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  color: #0F1115;
+  text-align: center;
+  line-height: 1.05;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, .9), 0 0 6px rgba(255, 255, 255, .6);
+  z-index: 2;
+}
+
+.mapa-shop-marker__name,
+.mapa-shop-marker__number {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.mapa-shop-marker__name {
+  font-size: .62rem;
+  font-weight: 800;
+}
+
+.mapa-shop-marker__number {
+  font-size: .56rem;
+  font-weight: 700;
+  color: #6B4A32;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+}
+
+@keyframes mapa-shop-marker-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOJA MARKER — componente HTML/CSS puro (substitui mapa-shop-pin.webp)
+   A imagem de capa fica exatamente dentro de .loja-marker__frame com
+   object-fit: cover, respeitando a moldura dourada.
+═══════════════════════════════════════════════════════════ */
+.loja-marker {
+  position: relative;
+  width: 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(15, 17, 21, .3));
+  animation: mapa-shop-marker-enter .22s ease-out both;
+  transition: transform .18s ease, filter .18s ease;
+  pointer-events: auto;
+}
+
+.loja-marker:hover {
+  transform: translateY(-2px) scale(1.04);
+  filter: drop-shadow(0 12px 20px rgba(15, 17, 21, .36));
+}
+
+.loja-marker:active { transform: scale(.96); }
+
+.loja-marker__store-name {
+  padding: 5px 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .75);
+  border: 2px solid #ffbf00;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 12px rgba(255, 191, 0, .35);
+  pointer-events: none;
+  align-self: center;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  z-index: 4;
+}
+
+.loja-marker__building {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px 8px 2px 2px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1.5px rgba(255, 191, 0, .3), 0 4px 12px rgba(0, 0, 0, .4);
+  flex-shrink: 0;
+}
+
+.loja-marker__roof {
+  width: 100%;
+  height: 18px;
+  background: linear-gradient(180deg, #1a1520 0%, #0f1115 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid #ffbf00;
+  flex-shrink: 0;
+}
+
+.loja-marker__roof-sign {
+  font-size: .45rem;
+  font-weight: 800;
+  color: #ffbf00;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.loja-marker__facade {
+  width: 100%;
+  background: linear-gradient(180deg, #1e1a28 0%, #16121e 100%);
+  padding: 7px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Moldura dourada: a imagem de capa fica exatamente dentro deste frame */
+.loja-marker__frame {
+  position: relative;
+  width: 58px;
+  height: 33px;
+  border: 2px solid #ffbf00;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(255, 191, 0, .45), inset 0 0 5px rgba(0, 0, 0, .4);
+}
+
+.loja-marker__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.loja-marker__initials {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0f1115 0%, #30343b 100%);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.loja-marker__base {
+  width: 100%;
+  height: 10px;
+  background: linear-gradient(180deg, #0a0a10 0%, #050507 100%);
+  border-top: 1px solid rgba(255, 191, 0, .15);
+  flex-shrink: 0;
+}
+
+.loja-marker__status {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: .46rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+
+.loja-marker__status--aberta  { color: #f2b705; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.loja-marker__status--fechado { color: #c81e1e; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+
+.mapa-container--tocando .loja-marker__status { opacity: 1; }
+
+.loja-marker__pin {
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-right: 2px solid rgba(15, 17, 21, .82);
+  border-bottom: 2px solid rgba(15, 17, 21, .82);
+  background: #0f1115;
+  transform: rotate(45deg);
+  border-radius: 0 0 4px 0;
+  flex-shrink: 0;
+}
+
+.loja-marker__label {
+  width: 112px;
+  min-height: 24px;
+  margin-top: 3px;
+  padding: 2px 6px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: #0f1115;
+  text-align: center;
+  line-height: 1.05;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, .9), 0 0 6px rgba(255, 255, 255, .6);
+}
+
+.loja-marker__name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .62rem;
+  font-weight: 800;
+}
+
+.loja-marker__number {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .56rem;
+  font-weight: 700;
+  color: #6b4a32;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5);
+}
+
+/* Tooltip and popup premium light */
+.mapa-tooltip-nome.leaflet-tooltip {
+  background: rgba(255, 255, 255, .95) !important;
+  border: 1px solid rgba(107, 74, 50, .24) !important;
+  color: var(--gold-dark) !important;
+  box-shadow: 0 4px 12px rgba(43, 27, 18, .15) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #fff !important;
+  border: 1px solid rgba(107, 74, 50, .24) !important;
+  box-shadow: 0 10px 24px rgba(43, 27, 18, .2) !important;
+}
+
+.leaflet-popup-tip {
+  background: #fff !important;
+}
+
+.mapa-popup__avatar {
+  border: 1.5px solid rgba(107, 74, 50, .32);
+  box-shadow: 0 0 0 2px rgba(212, 160, 23, .24);
+}
+
+.mapa-popup__nome {
+  color: var(--gold-dark);
+}
+
+/* Profissional placeholder in same visual language */
+.map-card--placeholder .map-box {
+  height: clamp(220px, 34vh, 280px);
+  border-radius: 14px;
+  border: 1px solid rgba(107, 74, 50, .18);
+  background:
+    radial-gradient(circle at 86% 18%, rgba(242, 183, 5, .2), transparent 38%),
+    linear-gradient(180deg, #f7efe6 0%, #efe2d4 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.map-card--placeholder .map-pin {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  background: rgba(255, 255, 255, .92);
+  border: 1.5px solid rgba(107, 74, 50, .28);
+  box-shadow: 0 8px 18px rgba(43, 27, 18, .14);
+}
+
+.map-box-note {
+  font-size: .74rem;
+  color: var(--text-dim);
+}
+
+@media (min-width: 640px) {
+  .map-card .mapa-container,
+  #section-mapa .mapa-container {
+    height: clamp(270px, 38vh, 360px);
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "rpc": "get_clientes_favoritos_modal",
+  "description": "Retorna clientes que favoritaram a barbearia OU o barbeiro específico. Usado no modal de seleção de cadeira (in_service).",
+  "signature": {
+    "name": "get_clientes_favoritos_modal",
+    "params": [
+      { "name": "p_barbershop_id",   "type": "UUID" },
+      { "name": "p_professional_id", "type": "UUID" }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "id",          "type": "UUID" },
+        { "name": "full_name",   "type": "TEXT" },
+        { "name": "email",       "type": "TEXT" },
+        { "name": "avatar_path", "type": "TEXT" },
+        { "name": "updated_at",  "type": "TIMESTAMPTZ" }
+      ]
+    },
+    "language": "sql",
+    "securityDefiner": true
+  },
+  "errors": [],
+  "sources": [
+    "barbershop_interactions WHERE type='favorite' AND barbershop_id=$1",
+    "favorite_professionals WHERE professional_id=$2"
+  ],
+  "examples": {
+    "validInput": {
+      "p_barbershop_id":   "cccc0000-0000-4000-8000-000000000001",
+      "p_professional_id": "bbbb0000-0000-4000-8000-000000000001"
+    },
+    "expectedOutputFields": ["id", "full_name", "email", "avatar_path", "updated_at"]
+  },
+  "grants": ["authenticated"],
+  "migration": "20260503000002_modal_rpc_functions.sql"
+}

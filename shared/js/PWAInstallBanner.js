@@ -1,0 +1,278 @@
+'use strict';
+
+// =============================================================
+// PWAInstallBanner.js — Banner de instalação do PWA.
+//
+// Responsabilidade ÚNICA: exibir um convite para instalar o app
+// toda vez que o usuário estiver na tela inicial (tela-inicio),
+// enquanto o app ainda não estiver instalado (standalone).
+//
+// CAMADA: interfaces — injeta DOM, escuta eventos do browser.
+//
+// Funcionamento:
+//   • Captura `beforeinstallprompt` (Android/Chrome) e exibe botão "Instalar"
+//   • Detecta iOS/Safari e exibe instrução de atalho (sem prompt nativo)
+//   • Usa MutationObserver nas .tela para saber quando home está ativa
+//   • Após instalar, esconde permanentemente via appinstalled
+//
+// Configuração (definir ANTES de init):
+//   PWAInstallBanner.iconSrc = '/shared/img/icon-192-cliente.png';
+//   PWAInstallBanner.nomeApp = 'BarberFlow';
+//
+// Uso:
+//   PWAInstallBanner.init();   // chamado no DOMContentLoaded de cada app
+// =============================================================
+
+class PWAInstallBanner {
+
+  static #BANNER_ID = 'pwa-install-banner';
+
+  /** Deferred prompt do browser (Android/Chrome). */
+  static #deferred = null;
+
+  /** Referência ao elemento DOM do banner. */
+  static #banner = null;
+
+  /** MutationObserver nas telas para detectar retorno à home. */
+  static #observer = null;
+
+  /** Instalado com sucesso — não exibir mais. */
+  static #instalado = false;
+
+  /** Referência direta ao botão de instalação. */
+  static #btnInstalar = null;
+
+  /** Controla se o banner deve ser mostrado (cancela rAF pendente se fechado antes de pintar). */
+  static #aberto = false;
+
+  // ── Configuráveis por app ─────────────────────────────────
+  /** Caminho do ícone exibido no banner (definir antes de init). */
+  static iconSrc = '/shared/img/icon-192-cliente.png';
+
+  /** Nome do app exibido no banner (definir antes de init). */
+  static nomeApp = 'BarberFlow';
+
+  // ── Handlers nomeados para permitir re-registro idempotente ─────────
+  // beforeinstallprompt pode disparar ANTES do DOMContentLoaded.
+  // Usar referências estáticas garante que addEventListener com a mesma
+  // função seja no-op em browsers reais (não duplica), mas ainda permite
+  // que init() re-registre após limpeza de listeners em testes.
+  static #onBeforeInstallPrompt = (e) => {
+    PWAInstallBanner.#deferred = e;
+    PWAInstallBanner.#atualizarBotao();
+  };
+
+  static #onAppInstalled = () => {
+    PWAInstallBanner.#instalado = true;
+    PWAInstallBanner.#fechar(true);
+  };
+
+  // ── Registro antecipado no parsing da classe ─────────────────────────
+  static {
+    window.addEventListener('beforeinstallprompt', PWAInstallBanner.#onBeforeInstallPrompt);
+    window.addEventListener('appinstalled',         PWAInstallBanner.#onAppInstalled);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PÚBLICO
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Inicializa o banner. Chamar uma vez no DOMContentLoaded.
+   * Não faz nada se o app já estiver instalado (standalone).
+   */
+  static init() {
+    // Re-registra usando as mesmas referências — no-op em browsers reais,
+    // mas necessário em testes onde o shim de window é resetado entre casos.
+    window.addEventListener('beforeinstallprompt', PWAInstallBanner.#onBeforeInstallPrompt);
+    window.addEventListener('appinstalled',         PWAInstallBanner.#onAppInstalled);
+
+    if (PWAInstallBanner.#estaInstalado()) return;
+
+    // Injeta o banner no body (flutuante, fora do fluxo de telas)
+    PWAInstallBanner.#injetar();
+
+    // Observa navegação via mudanças de classe nas telas
+    PWAInstallBanner.#observarNavegacao();
+
+    // Exibe imediatamente — app abre sempre na home
+    PWAInstallBanner.#mostrar();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PRIVADOS
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Verifica se o app já está rodando em modo instalado (standalone).
+   * Cobre Android/Chrome e iOS/Safari.
+   * @returns {boolean}
+   */
+  static #estaInstalado() {
+    return window.matchMedia('(display-mode: standalone)').matches
+        || navigator.standalone === true;
+  }
+
+  /**
+   * Detecta iOS/Safari onde `beforeinstallprompt` não existe.
+   * @returns {boolean}
+   */
+  static #isIOS() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent)
+        && /safari/i.test(navigator.userAgent)
+        && !/crios|fxios|opios/i.test(navigator.userAgent);
+  }
+
+  /**
+   * Injeta o elemento do banner no document.body.
+   * Chamado apenas uma vez.
+   */
+  static #injetar() {
+    if (document.getElementById(PWAInstallBanner.#BANNER_ID)) return;
+
+    const banner = document.createElement('div');
+    banner.id        = PWAInstallBanner.#BANNER_ID;
+    banner.className = 'pwa-banner';
+    banner.hidden    = true;
+    banner.setAttribute('role', 'complementary');
+    banner.setAttribute('aria-label', 'Instalar aplicativo');
+
+    const icon = document.createElement('img');
+    icon.className = 'pwa-banner__icon';
+    icon.src       = PWAInstallBanner.iconSrc;
+    icon.alt       = PWAInstallBanner.nomeApp;
+    icon.loading   = 'lazy';
+
+    const texto = document.createElement('div');
+    texto.className = 'pwa-banner__texto';
+    const titulo = document.createElement('strong');
+    titulo.textContent = 'Instale o App';
+    const sub = document.createElement('span');
+    sub.className  = 'pwa-banner__sub';
+    sub.id         = 'pwa-banner-sub';
+    sub.textContent = PWAInstallBanner.#isIOS()
+      ? 'Toque em Compartilhar → "Adicionar à Tela de Início"'
+      : 'Rápido, offline e sem anúncios';
+    texto.appendChild(titulo);
+    texto.appendChild(sub);
+
+    const btnInstalar = document.createElement('button');
+    btnInstalar.className    = 'pwa-banner__btn';
+    btnInstalar.id           = 'pwa-install-btn';
+    btnInstalar.textContent  = 'Instalar';
+    btnInstalar.addEventListener('click', () => PWAInstallBanner.#instalar());
+
+    // Botão fica oculto até beforeinstallprompt confirmar que o app é instalável.
+    // Em iOS não há prompt nativo — instrução manual é o único caminho.
+    btnInstalar.hidden = true;
+    PWAInstallBanner.#btnInstalar = btnInstalar;
+    if (PWAInstallBanner.#deferred) PWAInstallBanner.#atualizarBotao();
+
+    const btnFechar = document.createElement('button');
+    btnFechar.className   = 'pwa-banner__fechar';
+    btnFechar.setAttribute('aria-label', 'Fechar');
+    btnFechar.textContent = '✕';
+    btnFechar.addEventListener('click', () => PWAInstallBanner.#fechar());
+
+    banner.appendChild(icon);
+    banner.appendChild(texto);
+    banner.appendChild(btnInstalar);
+    banner.appendChild(btnFechar);
+
+    document.body.appendChild(banner);
+    PWAInstallBanner.#banner = banner;
+  }
+
+  /**
+   * Usa MutationObserver nas telas para detectar quando o usuário
+   * navega para fora e de volta para a home.
+   * Home = nenhuma .tela possui a classe 'ativa'.
+   */
+  static #observarNavegacao() {
+    const telas = Array.from(document.querySelectorAll('.tela'));
+    if (!telas.length) return;
+
+    PWAInstallBanner.#observer = new MutationObserver(() => {
+      if (PWAInstallBanner.#instalado || PWAInstallBanner.#estaInstalado()) return;
+      const algumAtivo = document.querySelector('.tela.ativa');
+      if (algumAtivo) {
+        PWAInstallBanner.#fechar();
+      } else {
+        PWAInstallBanner.#mostrar();
+      }
+    });
+
+    telas.forEach(t => {
+      PWAInstallBanner.#observer.observe(t, {
+        attributes:      true,
+        attributeFilter: ['class'],
+      });
+    });
+  }
+
+  /**
+   * Atualiza o texto do botão quando o deferred prompt chegar
+   * depois da injeção do banner.
+   */
+  static #atualizarBotao() {
+    if (PWAInstallBanner.#btnInstalar) PWAInstallBanner.#btnInstalar.hidden = false;
+  }
+
+  /**
+   * Exibe o banner com animação de entrada.
+   */
+  static #mostrar() {
+    const b = PWAInstallBanner.#banner;
+    if (!b) return;
+    b.hidden = false;
+    PWAInstallBanner.#aberto = true;
+    // requestAnimationFrame garante frame boundary sem forçar reflow síncrono.
+    // Verifica #aberto para cancelar se #fechar() for chamado antes do paint.
+    requestAnimationFrame(() => {
+      if (PWAInstallBanner.#aberto) b.classList.add('pwa-banner--visivel');
+    });
+  }
+
+  /**
+   * Esconde o banner com animação de saída.
+   * @param {boolean} [permanente=false] — se true, para o observer também
+   */
+  static #fechar(permanente = false) {
+    const b = PWAInstallBanner.#banner;
+    if (!b) return;
+    PWAInstallBanner.#aberto = false;
+    b.classList.remove('pwa-banner--visivel');
+    const onEnd = () => {
+      b.hidden = true;
+      b.removeEventListener('transitionend', onEnd);
+    };
+    b.addEventListener('transitionend', onEnd);
+    if (permanente) {
+      PWAInstallBanner.#observer?.disconnect();
+    }
+  }
+
+  /**
+   * Aciona o prompt nativo de instalação (Android/Chrome).
+   * No iOS não há prompt — o botão não existe.
+   */
+  static async #instalar() {
+    if (!PWAInstallBanner.#deferred) return;
+    try {
+      await PWAInstallBanner.#deferred.prompt();
+      const { outcome } = await PWAInstallBanner.#deferred.userChoice;
+      if (outcome === 'accepted') {
+        PWAInstallBanner.#instalado = true;
+        PWAInstallBanner.#fechar(true);
+      } else {
+        // Usuário recusou — fecha o banner sem marcar como instalado
+        PWAInstallBanner.#fechar();
+      }
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[PWAInstallBanner] prompt falhou:', err?.message);
+      }
+    }
+    PWAInstallBanner.#deferred = null;
+  }
+}

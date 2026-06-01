@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "rpc": "buscar_perfis_por_nome",
+  "description": "Busca perfis por ILIKE no full_name. Usado no input de busca do modal de seleção de cliente no app profissional.",
+  "signature": {
+    "name": "buscar_perfis_por_nome",
+    "params": [
+      { "name": "p_termo",  "type": "TEXT" },
+      { "name": "p_limite", "type": "INT", "default": "20" }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "id",          "type": "UUID" },
+        { "name": "full_name",   "type": "TEXT" },
+        { "name": "avatar_path", "type": "TEXT" },
+        { "name": "updated_at",  "type": "TIMESTAMPTZ" }
+      ]
+    },
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "errors": [],
+  "limits": {
+    "p_limite": { "min": 1, "max": 50, "enforced": true }
+  },
+  "examples": {
+    "validInput": { "p_termo": "João", "p_limite": 10 },
+    "expectedOutputFields": ["id", "full_name", "avatar_path", "updated_at"]
+  },
+  "grants": ["authenticated"],
+  "migration": "20260503000002_modal_rpc_functions.sql"
+}

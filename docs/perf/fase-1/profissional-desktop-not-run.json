@@ -1,0 +1,8 @@
+{
+  "status": "not_run",
+  "target": "apps/profissional/index.html",
+  "profile": "desktop",
+  "checkedAt": "2026-05-23",
+  "reason": "Lighthouse e Chrome/Edge nao estao disponiveis no PATH do ambiente atual.",
+  "metrics": null
+}

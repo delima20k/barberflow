@@ -1,0 +1,117 @@
+{
+  "version": 2,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "src/**"
+    }
+  },
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/" },
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/css/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/js/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/img/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/cliente/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/cliente/" },
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/profissional/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/profissional/" },
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/shared/css/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/shared/js/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/shared/img/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/shared/fonts/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/:app(cliente|profissional)/assets/css/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/:app(cliente|profissional)/assets/js/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(), microphone=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://esm.sh; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://*.r2.dev; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://bff.berberflow.shop https://app.berberflow.shop https://pro.berberflow.shop https://barberflow.vercel.app https://barberflow-profissional.vercel.app https://barberflow-pro-one.vercel.app https://barberflow-cliente.vercel.app https://androidpublisher.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'" }
+      ]
+    }
+  ],
+  "redirects": [
+    { "source": "/cliente",      "destination": "/cliente/",      "permanent": false },
+    { "source": "/profissional", "destination": "/profissional/", "permanent": false }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    { "source": "/sw.js",           "destination": "/apps/profissional/sw.js"         },
+    { "source": "/manifest.json",   "destination": "/apps/profissional/manifest.json"  },
+    { "source": "/assets/:path*",   "destination": "/apps/profissional/assets/:path*"  },
+    { "source": "/",                         "destination": "/apps/profissional/index.html" },
+    { "source": "/cliente/",                 "destination": "/apps/cliente/index.html"      },
+    { "source": "/cliente/:path*",           "destination": "/apps/cliente/:path*"          },
+    { "source": "/profissional/",            "destination": "/apps/profissional/index.html" },
+    { "source": "/profissional/:path*",      "destination": "/apps/profissional/:path*"     },
+    { "source": "/apps/cliente/",            "destination": "/apps/cliente/index.html"      },
+    { "source": "/apps/cliente/:path*",      "destination": "/apps/cliente/:path*"          },
+    { "source": "/apps/profissional/",       "destination": "/apps/profissional/index.html" },
+    { "source": "/apps/profissional/:path*", "destination": "/apps/profissional/:path*"     }
+  ]
+}

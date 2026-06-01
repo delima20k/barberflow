@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "regions": ["gru1"],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
+    },
+    "server.js": {
+      "maxDuration": 30,
+      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store, no-cache, must-revalidate" },
+        { "key": "Vary",          "value": "Origin" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api" }
+  ]
+}

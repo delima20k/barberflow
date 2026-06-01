@@ -1,0 +1,191 @@
+name: db-validate
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - 'db/**'
+      - 'scripts/db-*.js'
+      - 'scripts/rls-policy-report.js'
+      - 'tests/db-*.test.js'
+      - 'tests/rls-policy-report.test.js'
+      - '.github/workflows/db-validate.yml'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - 'db/**'
+      - 'scripts/db-*.js'
+      - 'scripts/rls-policy-report.js'
+      - 'tests/db-*.test.js'
+      - 'tests/rls-policy-report.test.js'
+      - '.github/workflows/db-validate.yml'
+
+env:
+  NODE_VERSION: '22'
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  db-validate:
+    name: db-validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Resolve changed migrations
+        id: changes
+        shell: bash
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}"
+          git diff --name-only "$BASE_SHA" HEAD > .db-validate-changed-files
+          echo "changed=$(paste -sd, .db-validate-changed-files)" >> "$GITHUB_OUTPUT"
+          cat .db-validate-changed-files
+
+      - name: PR checklist pre-migration
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execFileSync } = require('node:child_process');
+            const body = execFileSync('node', ['scripts/db-validate.js', '--checklist'], { encoding: 'utf8' });
+            const marker = '<!-- db-validate-checklist -->';
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const previous = comments.data.find(comment => comment.body.includes(marker));
+            const nextBody = `${marker}\n${body}`;
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: previous.id,
+                body: nextBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: nextBody,
+              });
+            }
+
+      - name: 1. Schema diff staging vs snapshot
+        env:
+          SUPABASE_STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_STAGING_DB_URL" ]; then
+            echo "::error::SUPABASE_STAGING_DB_URL ausente. Configure o secret de staging para db-validate."
+            exit 1
+          fi
+          pg_dump "$SUPABASE_STAGING_DB_URL" --schema-only --no-owner --no-privileges > staging-schema.sql
+          if ! diff -u db/snapshots/schema-current.sql staging-schema.sql > schema-diff.patch; then
+            cat schema-diff.patch
+            exit 1
+          fi
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: 2. Migration dry-run em banco isolado
+        shell: bash
+        run: |
+          supabase start
+          supabase db reset
+          node scripts/db-validate.js --check-rollbacks --changed-files "${{ steps.changes.outputs.changed }}"
+          if compgen -G "db/rollbacks/*.down.sql" > /dev/null; then
+            for rollback in db/rollbacks/*.down.sql; do
+              psql "$LOCAL_DB_URL" -v ON_ERROR_STOP=1 -f "$rollback"
+            done
+            supabase db reset
+          fi
+
+      - name: 3. Contract tests de RPC
+        run: node --test tests/db-contracts.test.js
+
+      - name: 4. RLS tests completos
+        shell: bash
+        run: |
+          node --test tests/rls-policy-report.test.js
+          node scripts/rls-policy-report.js --fail-on-missing-rls
+          psql "$LOCAL_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rls_crud_suite.sql
+
+      - name: 5. Counter consistency check
+        continue-on-error: true
+        env:
+          SUPABASE_STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+          COUNTER_DRIFT_THRESHOLD: ${{ vars.COUNTER_DRIFT_THRESHOLD || '0' }}
+        run: psql "$SUPABASE_STAGING_DB_URL" -v ON_ERROR_STOP=1 -v drift_threshold="$COUNTER_DRIFT_THRESHOLD" -f db/audit/counter-consistency.sql
+
+      - name: 6. Performance baseline
+        continue-on-error: true
+        env:
+          SUPABASE_STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+        shell: bash
+        run: |
+          set -o pipefail
+          psql "$SUPABASE_STAGING_DB_URL" -v ON_ERROR_STOP=1 -f db/perf/critical-queries.sql | tee perf-plan.txt
+          if [ -f db/perf/plan-baseline.txt ]; then
+            if ! diff -u db/perf/plan-baseline.txt perf-plan.txt > perf-plan.diff; then
+              cat perf-plan.diff
+              echo "::warning::Performance baseline mudou. Revise seq scans, index scans e custo estimado."
+              exit 1
+            fi
+          else
+            echo "::warning::db/perf/plan-baseline.txt ausente; EXPLAIN ANALYZE foi publicado sem diff historico."
+          fi
+
+      - name: 7. Data integrity
+        env:
+          SUPABASE_STAGING_DB_URL: ${{ secrets.SUPABASE_STAGING_DB_URL }}
+        run: psql "$SUPABASE_STAGING_DB_URL" -v ON_ERROR_STOP=1 -f db/audit/data-integrity.sql
+
+      - name: Static db-validate readiness
+        run: node scripts/db-validate.js --local
+
+      - name: Upload db-validate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-validate-artifacts
+          path: |
+            schema-diff.patch
+            staging-schema.sql
+            perf-plan.txt
+            perf-plan.diff
+          retention-days: 30
+
+      - name: Stop Supabase local
+        if: always()
+        run: supabase stop --no-backup

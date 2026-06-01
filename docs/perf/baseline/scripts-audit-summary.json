@@ -1,0 +1,1104 @@
+{
+  "createdAt": "2026-05-22T16:11:42.532Z",
+  "totals": {
+    "scripts": 280,
+    "unique": 190,
+    "blocking": 280,
+    "localBytes": 2812141,
+    "localGzipBytes": 776514
+  },
+  "top": [
+    {
+      "id": 29,
+      "htmlFile": "apps/profissional/index.html",
+      "line": 2105,
+      "order": 1,
+      "src": "/shared/js/supabase.min.js",
+      "localRel": "shared/js/supabase.min.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 187736,
+      "minBytes": 101686,
+      "gzipBytes": 48501,
+      "type": "vendor",
+      "strategy": "blocking",
+      "usage": "shared/on-demand",
+      "family": "supabase",
+      "provides": [
+        "T",
+        "A",
+        "P",
+        "Se",
+        "Re",
+        "Ce",
+        "Ie",
+        "He",
+        "Xe",
+        "Rt",
+        "Ct",
+        "Pt",
+        "Bt",
+        "Ht",
+        "Wt",
+        "Kt",
+        "Ft",
+        "Or",
+        "Cr",
+        "Pr",
+        "Lr",
+        "Br",
+        "Wr",
+        "Yr"
+      ],
+      "impact": 54.7,
+      "deps": []
+    },
+    {
+      "id": 176,
+      "htmlFile": "apps/cliente/index.html",
+      "line": 1051,
+      "order": 1,
+      "src": "/shared/js/supabase.min.js",
+      "localRel": "shared/js/supabase.min.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 187736,
+      "minBytes": 101686,
+      "gzipBytes": 48501,
+      "type": "vendor",
+      "strategy": "blocking",
+      "usage": "shared/on-demand",
+      "family": "supabase",
+      "provides": [
+        "T",
+        "A",
+        "P",
+        "Se",
+        "Re",
+        "Ce",
+        "Ie",
+        "He",
+        "Xe",
+        "Rt",
+        "Ct",
+        "Pt",
+        "Bt",
+        "Ht",
+        "Wt",
+        "Kt",
+        "Ft",
+        "Or",
+        "Cr",
+        "Pr",
+        "Lr",
+        "Br",
+        "Wr",
+        "Yr"
+      ],
+      "impact": 54.7,
+      "deps": []
+    },
+    {
+      "id": 159,
+      "htmlFile": "apps/profissional/index.html",
+      "line": 2274,
+      "order": 131,
+      "src": "assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js",
+      "localRel": "apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 108923,
+      "minBytes": 71531,
+      "gzipBytes": 26036,
+      "type": "legado",
+      "strategy": "blocking",
+      "usage": "pagina especifica",
+      "family": "minhabarbeariaruntimecontroller",
+      "provides": [
+        "MinhaBarbeariaRuntimeController",
+        "MAX_BYTES"
+      ],
+      "impact": 29.68,
+      "deps": [
+        "A",
+        "Se",
+        "Re",
+        "Pr",
+        "LoggerService",
+        "ApiService",
+        "SupabaseService",
+        "URL",
+        "InputValidator",
+        "AuthService",
+        "AnimationService",
+        "BarbershopRepository"
+      ]
+    },
+    {
+      "id": 61,
+      "htmlFile": "apps/profissional/index.html",
+      "line": 2162,
+      "order": 33,
+      "src": "/shared/js/BarbeariaPage.js",
+      "localRel": "shared/js/BarbeariaPage.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 51520,
+      "minBytes": 26794,
+      "gzipBytes": 13054,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "shared/on-demand",
+      "family": "barbeariapage",
+      "provides": [
+        "BarbeariaPage",
+        "TEXTO_FILA"
+      ],
+      "impact": 14.76,
+      "deps": [
+        "P",
+        "Se",
+        "Re",
+        "LoggerService",
+        "ApiService",
+        "SupabaseService",
+        "InputValidator",
+        "AuthService",
+        "AppState",
+        "ID",
+        "BarbershopRepository",
+        "CacheManager"
+      ]
+    },
+    {
+      "id": 274,
+      "htmlFile": "apps/cliente/index.html",
+      "line": 1178,
+      "order": 99,
+      "src": "/shared/js/BarbeariaPage.js",
+      "localRel": "shared/js/BarbeariaPage.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 51520,
+      "minBytes": 26794,
+      "gzipBytes": 13054,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "shared/on-demand",
+      "family": "barbeariapage",
+      "provides": [
+        "BarbeariaPage",
+        "TEXTO_FILA"
+      ],
+      "impact": 14.76,
+      "deps": [
+        "P",
+        "Se",
+        "Re",
+        "LoggerService",
+        "ApiService",
+        "SupabaseService",
+        "InputValidator",
+        "AuthService",
+        "AppState",
+        "ID",
+        "BarbershopRepository",
+        "BarbershopService"
+      ]
+    },
+    {
+      "id": 65,
+      "htmlFile": "apps/profissional/index.html",
+      "line": 2169,
+      "order": 37,
+      "src": "/shared/js/BarbershopService.js",
+      "localRel": "shared/js/BarbershopService.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 34083,
+      "minBytes": 17358,
+      "gzipBytes": 8746,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "boot/shared core",
+      "family": "barbershopservice",
+      "provides": [
+        "BarbershopService",
+        "R",
+        "PRIOR_N"
+      ],
+      "impact": 9.87,
+      "deps": [
+        "P",
+        "Se",
+        "LoggerService",
+        "SupabaseService",
+        "AuthGuard",
+        "GeoService",
+        "BarbershopRepository",
+        "ProfileRepository"
+      ]
+    },
+    {
+      "id": 205,
+      "htmlFile": "apps/cliente/index.html",
+      "line": 1101,
+      "order": 30,
+      "src": "/shared/js/BarbershopService.js",
+      "localRel": "shared/js/BarbershopService.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 34083,
+      "minBytes": 17358,
+      "gzipBytes": 8746,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "boot/shared core",
+      "family": "barbershopservice",
+      "provides": [
+        "BarbershopService",
+        "R",
+        "PRIOR_N"
+      ],
+      "impact": 9.87,
+      "deps": [
+        "P",
+        "Se",
+        "LoggerService",
+        "SupabaseService",
+        "AuthGuard",
+        "GeoService",
+        "BarbershopRepository",
+        "ProfileRepository"
+      ]
+    },
+    {
+      "id": 94,
+      "htmlFile": "apps/profissional/index.html",
+      "line": 2201,
+      "order": 66,
+      "src": "/shared/js/MapWidget.js",
+      "localRel": "shared/js/MapWidget.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 26502,
+      "minBytes": 13624,
+      "gzipBytes": 7353,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "on-demand/evento",
+      "family": "mapwidget",
+      "provides": [
+        "MapWidget",
+        "Rt"
+      ],
+      "impact": 8.22,
+      "deps": [
+        "A",
+        "P",
+        "Re",
+        "Rt",
+        "ApiService",
+        "URL",
+        "SessionCache",
+        "AuthService",
+        "GeoService",
+        "BarbeariaApiClient",
+        "NearbyBarbershopsWidget",
+        "LojaMarker"
+      ]
+    },
+    {
+      "id": 235,
+      "htmlFile": "apps/cliente/index.html",
+      "line": 1134,
+      "order": 60,
+      "src": "/shared/js/MapWidget.js",
+      "localRel": "shared/js/MapWidget.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 26502,
+      "minBytes": 13624,
+      "gzipBytes": 7353,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "on-demand/evento",
+      "family": "mapwidget",
+      "provides": [
+        "MapWidget",
+        "Rt"
+      ],
+      "impact": 8.22,
+      "deps": [
+        "A",
+        "P",
+        "Re",
+        "Rt",
+        "ApiService",
+        "URL",
+        "SessionCache",
+        "AuthService",
+        "GeoService",
+        "BarbeariaApiClient",
+        "NearbyBarbershopsWidget",
+        "LojaMarker"
+      ]
+    },
+    {
+      "id": 92,
+      "htmlFile": "apps/profissional/index.html",
+      "line": 2199,
+      "order": 64,
+      "src": "/shared/js/NearbyBarbershopsWidget.js",
+      "localRel": "shared/js/NearbyBarbershopsWidget.js",
+      "exists": true,
+      "external": false,
+      "rawBytes": 30607,
+      "minBytes": 18521,
+      "gzipBytes": 6792,
+      "type": "proprio",
+      "strategy": "blocking",
+      "usage": "on-demand/evento",
+      "family": "nearbybarbershopswidget",
+      "provides": [
+        "NearbyBarbershopsWidget",
+        "Rt"
+      ],
+      "impact": 7.83,
+      "deps": [
+        "P",
+        "Se",
+        "Rt",
+        "LoggerService",
+        "SupabaseService",
+        "URL",
+        "GeoService",
+        "BarbershopRepository",
+        "ProfileRepository",
+        "BarbershopService",
+        "ProfessionalService",
+        "StatusFechamentoModal"
+      ]
+    }
+  ],
+  "missing": [],
+  "duplicateRefs": [
+    {
+      "key": "shared/js/LogoutScreen.js",
+      "pages": [
+        "cliente.html:1333",
+        "profissional.html:1291"
+      ]
+    },
+    {
+      "key": "shared/js/AnimationService.js",
+      "pages": [
+        "cliente.html:1335",
+        "profissional.html:1293"
+      ]
+    },
+    {
+      "key": "shared/js/MenuService.js",
+      "pages": [
+        "cliente.html:1336",
+        "profissional.html:1294"
+      ]
+    },
+    {
+      "key": "shared/js/UserService.js",
+      "pages": [
+        "cliente.html:1337",
+        "profissional.html:1295"
+      ]
+    },
+    {
+      "key": "shared/js/AvatarService.js",
+      "pages": [
+        "cliente.html:1338",
+        "profissional.html:1296"
+      ]
+    },
+    {
+      "key": "shared/js/SplashService.js",
+      "pages": [
+        "cliente.html:1339",
+        "profissional.html:1297"
+      ]
+    },
+    {
+      "key": "shared/js/AppState.js",
+      "pages": [
+        "cliente.html:1341",
+        "profissional.html:1299"
+      ]
+    },
+    {
+      "key": "shared/js/AuthGuard.js",
+      "pages": [
+        "cliente.html:1343",
+        "profissional.html:1301"
+      ]
+    },
+    {
+      "key": "shared/js/PermissionService.js",
+      "pages": [
+        "cliente.html:1344",
+        "profissional.html:1302"
+      ]
+    },
+    {
+      "key": "shared/js/Router.js",
+      "pages": [
+        "cliente.html:1345",
+        "profissional.html:1303"
+      ]
+    },
+    {
+      "key": "shared/js/BarberPole.js",
+      "pages": [
+        "cliente.html:1346",
+        "profissional.html:1304"
+      ]
+    },
+    {
+      "key": "shared/js/PerfilEditor.js",
+      "pages": [
+        "cliente.html:1347",
+        "profissional.html:1305"
+      ]
+    },
+    {
+      "key": "(inline)",
+      "pages": [
+        "cliente.html:1348",
+        "profissional.html:1306",
+        "apps/profissional/index.html:2298"
+      ]
+    },
+    {
+      "key": "/shared/js/supabase.min.js",
+      "pages": [
+        "apps/profissional/index.html:2105",
+        "apps/cliente/index.html:1051"
+      ]
+    },
+    {
+      "key": "/shared/js/LoggerService.js",
+      "pages": [
+        "apps/profissional/index.html:2107",
+        "apps/cliente/index.html:1053"
+      ]
+    },
+    {
+      "key": "/shared/js/ApiService.js",
+      "pages": [
+        "apps/profissional/index.html:2109",
+        "apps/cliente/index.html:1055"
+      ]
+    },
+    {
+      "key": "/shared/js/SupabaseService.js",
+      "pages": [
+        "apps/profissional/index.html:2111",
+        "apps/cliente/index.html:1057"
+      ]
+    },
+    {
+      "key": "/shared/js/SessionCache.js",
+      "pages": [
+        "apps/profissional/index.html:2113",
+        "apps/cliente/index.html:1059"
+      ]
+    },
+    {
+      "key": "/shared/js/NavConfig.js",
+      "pages": [
+        "apps/profissional/index.html:2115",
+        "apps/cliente/index.html:1061"
+      ]
+    },
+    {
+      "key": "/shared/js/InputValidator.js",
+      "pages": [
+        "apps/profissional/index.html:2117",
+        "apps/cliente/index.html:1063"
+      ]
+    },
+    {
+      "key": "/shared/js/AuthService.js",
+      "pages": [
+        "apps/profissional/index.html:2119",
+        "apps/cliente/index.html:1065"
+      ]
+    },
+    {
+      "key": "/shared/js/AuthUI.js",
+      "pages": [
+        "apps/profissional/index.html:2120",
+        "apps/cliente/index.html:1066"
+      ]
+    },
+    {
+      "key": "/shared/js/LogoutScreen.js",
+      "pages": [
+        "apps/profissional/index.html:2122",
+        "apps/cliente/index.html:1068"
+      ]
+    },
+    {
+      "key": "/shared/js/AnimationService.js",
+      "pages": [
+        "apps/profissional/index.html:2124",
+        "apps/cliente/index.html:1070"
+      ]
+    },
+    {
+      "key": "/shared/js/MenuService.js",
+      "pages": [
+        "apps/profissional/index.html:2125",
+        "apps/cliente/index.html:1071"
+      ]
+    },
+    {
+      "key": "/shared/js/UserService.js",
+      "pages": [
+        "apps/profissional/index.html:2126",
+        "apps/cliente/index.html:1072"
+      ]
+    },
+    {
+      "key": "/shared/js/BackendApiService.js",
+      "pages": [
+        "apps/profissional/index.html:2127",
+        "apps/cliente/index.html:1073"
+      ]
+    },
+    {
+      "key": "/shared/js/AvatarService.js",
+      "pages": [
+        "apps/profissional/index.html:2128",
+        "apps/cliente/index.html:1074"
+      ]
+    },
+    {
+      "key": "/shared/js/SplashService.js",
+      "pages": [
+        "apps/profissional/index.html:2129",
+        "apps/cliente/index.html:1075"
+      ]
+    },
+    {
+      "key": "/shared/js/AppState.js",
+      "pages": [
+        "apps/profissional/index.html:2131",
+        "apps/cliente/index.html:1077"
+      ]
+    },
+    {
+      "key": "/shared/js/GuestMode.js",
+      "pages": [
+        "apps/profissional/index.html:2133",
+        "apps/cliente/index.html:1079"
+      ]
+    },
+    {
+      "key": "/shared/js/AuthGuard.js",
+      "pages": [
+        "apps/profissional/index.html:2135",
+        "apps/cliente/index.html:1081"
+      ]
+    },
+    {
+      "key": "/shared/js/PermissionService.js",
+      "pages": [
+        "apps/profissional/index.html:2136",
+        "apps/cliente/index.html:1082"
+      ]
+    },
+    {
+      "key": "/shared/js/NavigationViewService.js",
+      "pages": [
+        "apps/profissional/index.html:2138",
+        "apps/cliente/index.html:1084"
+      ]
+    },
+    {
+      "key": "/shared/js/Router.js",
+      "pages": [
+        "apps/profissional/index.html:2140",
+        "apps/cliente/index.html:1086"
+      ]
+    },
+    {
+      "key": "/shared/js/BarberPole.js",
+      "pages": [
+        "apps/profissional/index.html:2142",
+        "apps/cliente/index.html:1088"
+      ]
+    },
+    {
+      "key": "/shared/js/LogoGlow.js",
+      "pages": [
+        "apps/profissional/index.html:2144",
+        "apps/cliente/index.html:1090"
+      ]
+    },
+    {
+      "key": "/shared/js/StoryViewer.js",
+      "pages": [
+        "apps/profissional/index.html:2146",
+        "apps/cliente/index.html:1092"
+      ]
+    },
+    {
+      "key": "/shared/js/StoriesLayout.js",
+      "pages": [
+        "apps/profissional/index.html:2148",
+        "apps/cliente/index.html:1094"
+      ]
+    },
+    {
+      "key": "/shared/js/GeoService.js",
+      "pages": [
+        "apps/profissional/index.html:2150",
+        "apps/cliente/index.html:1096"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbershopRepository.js",
+      "pages": [
+        "apps/profissional/index.html:2152",
+        "apps/cliente/index.html:1098"
+      ]
+    },
+    {
+      "key": "/shared/js/CacheManager.js",
+      "pages": [
+        "apps/profissional/index.html:2154",
+        "apps/cliente/index.html:1171"
+      ]
+    },
+    {
+      "key": "/shared/js/StateManager.js",
+      "pages": [
+        "apps/profissional/index.html:2156",
+        "apps/cliente/index.html:1172"
+      ]
+    },
+    {
+      "key": "/shared/js/ResourceLoader.js",
+      "pages": [
+        "apps/profissional/index.html:2158",
+        "apps/cliente/index.html:1173"
+      ]
+    },
+    {
+      "key": "/shared/js/NavigationManager.js",
+      "pages": [
+        "apps/profissional/index.html:2160",
+        "apps/cliente/index.html:1174"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbeariaPage.js",
+      "pages": [
+        "apps/profissional/index.html:2162",
+        "apps/cliente/index.html:1178"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbeiroPage.js",
+      "pages": [
+        "apps/profissional/index.html:2164",
+        "apps/cliente/index.html:1179"
+      ]
+    },
+    {
+      "key": "/shared/js/ProfileRepository.js",
+      "pages": [
+        "apps/profissional/index.html:2167",
+        "apps/cliente/index.html:1099"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbershopService.js",
+      "pages": [
+        "apps/profissional/index.html:2169",
+        "apps/cliente/index.html:1101"
+      ]
+    },
+    {
+      "key": "/shared/js/ProfessionalService.js",
+      "pages": [
+        "apps/profissional/index.html:2170",
+        "apps/cliente/index.html:1102"
+      ]
+    },
+    {
+      "key": "/shared/js/StatusFechamentoModal.js",
+      "pages": [
+        "apps/profissional/index.html:2171",
+        "apps/cliente/index.html:1103"
+      ]
+    },
+    {
+      "key": "/shared/js/CadeiraService.js",
+      "pages": [
+        "apps/profissional/index.html:2173",
+        "apps/cliente/index.html:1106"
+      ]
+    },
+    {
+      "key": "/shared/js/CorteModal.js",
+      "pages": [
+        "apps/profissional/index.html:2175",
+        "apps/cliente/index.html:1107"
+      ]
+    },
+    {
+      "key": "/shared/js/FluxoDeFila.js",
+      "pages": [
+        "apps/profissional/index.html:2182",
+        "apps/cliente/index.html:1112"
+      ]
+    },
+    {
+      "key": "/shared/js/ConfirmacaoCorteModal.js",
+      "pages": [
+        "apps/profissional/index.html:2183",
+        "apps/cliente/index.html:1118"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbeiroCard.js",
+      "pages": [
+        "apps/profissional/index.html:2186",
+        "apps/cliente/index.html:1108"
+      ]
+    },
+    {
+      "key": "/shared/js/Cadeira.js",
+      "pages": [
+        "apps/profissional/index.html:2187",
+        "apps/cliente/index.html:1109"
+      ]
+    },
+    {
+      "key": "/shared/js/FilaController.js",
+      "pages": [
+        "apps/profissional/index.html:2188",
+        "apps/cliente/index.html:1110"
+      ]
+    },
+    {
+      "key": "/shared/js/ModalController.js",
+      "pages": [
+        "apps/profissional/index.html:2189",
+        "apps/cliente/index.html:1121"
+      ]
+    },
+    {
+      "key": "/shared/js/ClienteController.js",
+      "pages": [
+        "apps/profissional/index.html:2190",
+        "apps/cliente/index.html:1122"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbeariaStatusSync.js",
+      "pages": [
+        "apps/profissional/index.html:2191",
+        "apps/cliente/index.html:1123"
+      ]
+    },
+    {
+      "key": "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",
+      "pages": [
+        "apps/profissional/index.html:2193",
+        "apps/cliente/index.html:1125"
+      ]
+    },
+    {
+      "key": "/shared/js/BffApiService.js",
+      "pages": [
+        "apps/profissional/index.html:2196",
+        "apps/cliente/index.html:1128"
+      ]
+    },
+    {
+      "key": "/shared/js/BffAuthClient.js",
+      "pages": [
+        "apps/profissional/index.html:2197",
+        "apps/cliente/index.html:1129"
+      ]
+    },
+    {
+      "key": "/shared/js/BarbeariaApiClient.js",
+      "pages": [
+        "apps/profissional/index.html:2198",
+        "apps/cliente/index.html:1131"
+      ]
+    },
+    {
+      "key": "/shared/js/NearbyBarbershopsWidget.js",
+      "pages": [
+        "apps/profissional/index.html:2199",
+        "apps/cliente/index.html:1132"
+      ]
+    },
+    {
+      "key": "/shared/js/LojaMarker.js",
+      "pages": [
+        "apps/profissional/index.html:2200",
+        "apps/cliente/index.html:1133"
+      ]
+    },
+    {
+      "key": "/shared/js/MapWidget.js",
+      "pages": [
+        "apps/profissional/index.html:2201",
+        "apps/cliente/index.html:1134"
+      ]
+    },
+    {
+      "key": "/shared/js/SearchWidget.js",
+      "pages": [
+        "apps/profissional/index.html:2203",
+        "apps/cliente/index.html:1136"
+      ]
+    },
+    {
+      "key": "/shared/js/FonteSalao.js",
+      "pages": [
+        "apps/profissional/index.html:2205",
+        "apps/cliente/index.html:1138"
+      ]
+    },
+    {
+      "key": "/shared/js/CapaBarbearia.js",
+      "pages": [
+        "apps/profissional/index.html:2206",
+        "apps/cliente/index.html:1139"
+      ]
+    },
+    {
+      "key": "/shared/js/MapPanelModule.js",
+      "pages": [
+        "apps/profissional/index.html:2210",
+        "apps/cliente/index.html:1141"
+      ]
+    },
+    {
+      "key": "/shared/js/MapOrientationModule.js",
+      "pages": [
+        "apps/profissional/index.html:2212",
+        "apps/cliente/index.html:1143"
+      ]
+    },
+    {
+      "key": "/shared/js/MessageService.js",
+      "pages": [
+        "apps/profissional/index.html:2221",
+        "apps/cliente/index.html:1144"
+      ]
+    },
+    {
+      "key": "/shared/js/MessageCryptoService.js",
+      "pages": [
+        "apps/profissional/index.html:2222",
+        "apps/cliente/index.html:1145"
+      ]
+    },
+    {
+      "key": "/shared/js/MessageSignalingService.js",
+      "pages": [
+        "apps/profissional/index.html:2223",
+        "apps/cliente/index.html:1146"
+      ]
+    },
+    {
+      "key": "/shared/js/P2PMessageConnectionService.js",
+      "pages": [
+        "apps/profissional/index.html:2224",
+        "apps/cliente/index.html:1147"
+      ]
+    },
+    {
+      "key": "/shared/js/MessagesWidget.js",
+      "pages": [
+        "apps/profissional/index.html:2225",
+        "apps/cliente/index.html:1148"
+      ]
+    },
+    {
+      "key": "/shared/js/NotificationService.js",
+      "pages": [
+        "apps/profissional/index.html:2226",
+        "apps/cliente/index.html:1149"
+      ]
+    },
+    {
+      "key": "/shared/js/PushSubscriptionService.js",
+      "pages": [
+        "apps/profissional/index.html:2227",
+        "apps/cliente/index.html:1175"
+      ]
+    },
+    {
+      "key": "/shared/js/OfflineSyncQueue.js",
+      "pages": [
+        "apps/profissional/index.html:2228",
+        "apps/cliente/index.html:1176"
+      ]
+    },
+    {
+      "key": "/shared/js/QueueRepository.js",
+      "pages": [
+        "apps/profissional/index.html:2230",
+        "apps/cliente/index.html:1105"
+      ]
+    },
+    {
+      "key": "/shared/js/LgpdService.js",
+      "pages": [
+        "apps/profissional/index.html:2231",
+        "apps/cliente/index.html:1150"
+      ]
+    },
+    {
+      "key": "/shared/js/TermsPage.js",
+      "pages": [
+        "apps/profissional/index.html:2232",
+        "apps/cliente/index.html:1151"
+      ]
+    },
+    {
+      "key": "/shared/js/PerfilEditor.js",
+      "pages": [
+        "apps/profissional/index.html:2233",
+        "apps/cliente/index.html:1152"
+      ]
+    },
+    {
+      "key": "/shared/js/FooterScrollManager.js",
+      "pages": [
+        "apps/profissional/index.html:2234",
+        "apps/cliente/index.html:1153"
+      ]
+    },
+    {
+      "key": "/shared/js/HeaderScrollBehavior.js",
+      "pages": [
+        "apps/profissional/index.html:2235",
+        "apps/cliente/index.html:1154"
+      ]
+    },
+    {
+      "key": "/shared/js/PWAInstallBanner.js",
+      "pages": [
+        "apps/profissional/index.html:2281",
+        "apps/cliente/index.html:1180"
+      ]
+    },
+    {
+      "key": "/shared/js/QueueConfirmService.js",
+      "pages": [
+        "apps/profissional/index.html:2290",
+        "apps/cliente/index.html:1185"
+      ]
+    }
+  ],
+  "dupFamilies": [
+    {
+      "fam": "logoutscreen",
+      "variants": [
+        "shared/js/LogoutScreen.js",
+        "/shared/js/LogoutScreen.js"
+      ]
+    },
+    {
+      "fam": "animationservice",
+      "variants": [
+        "shared/js/AnimationService.js",
+        "/shared/js/AnimationService.js"
+      ]
+    },
+    {
+      "fam": "menuservice",
+      "variants": [
+        "shared/js/MenuService.js",
+        "/shared/js/MenuService.js"
+      ]
+    },
+    {
+      "fam": "userservice",
+      "variants": [
+        "shared/js/UserService.js",
+        "/shared/js/UserService.js"
+      ]
+    },
+    {
+      "fam": "avatarservice",
+      "variants": [
+        "shared/js/AvatarService.js",
+        "/shared/js/AvatarService.js"
+      ]
+    },
+    {
+      "fam": "splashservice",
+      "variants": [
+        "shared/js/SplashService.js",
+        "/shared/js/SplashService.js"
+      ]
+    },
+    {
+      "fam": "appstate",
+      "variants": [
+        "shared/js/AppState.js",
+        "/shared/js/AppState.js"
+      ]
+    },
+    {
+      "fam": "authguard",
+      "variants": [
+        "shared/js/AuthGuard.js",
+        "/shared/js/AuthGuard.js"
+      ]
+    },
+    {
+      "fam": "permissionservice",
+      "variants": [
+        "shared/js/PermissionService.js",
+        "/shared/js/PermissionService.js"
+      ]
+    },
+    {
+      "fam": "router",
+      "variants": [
+        "shared/js/Router.js",
+        "/shared/js/Router.js"
+      ]
+    },
+    {
+      "fam": "barberpole",
+      "variants": [
+        "shared/js/BarberPole.js",
+        "/shared/js/BarberPole.js"
+      ]
+    },
+    {
+      "fam": "perfileditor",
+      "variants": [
+        "shared/js/PerfilEditor.js",
+        "/shared/js/PerfilEditor.js"
+      ]
+    },
+    {
+      "fam": "supabase",
+      "variants": [
+        "/shared/js/supabase.min.js",
+        "/shared/js/SupabaseService.js"
+      ]
+    }
+  ]
+}

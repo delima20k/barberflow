@@ -1,0 +1,8 @@
+# Arquivos desnecessários em produção — não incluir no bundle Vercel
+tests/
+scripts/
+*.txt
+*.md
+.env
+.env.*
+!.env.example

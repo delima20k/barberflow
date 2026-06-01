@@ -1,0 +1,1217 @@
+-- ================================================================
+-- BARBERFLOW — Script único para aplicar todas as migrations pendentes
+-- Execute este arquivo no Supabase SQL Editor:
+--   https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+--
+-- É seguro rodar mais de uma vez (todas as operações são idempotentes).
+-- ================================================================
+
+-- ────────────────────────────────────────────────────────────────
+-- 0. BARBERSHOP_INTERACTIONS — curtidas/descurtidas/favoritos em barbearias
+--    (cria apenas se não existir — idempotente)
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE barbershops
+  ADD COLUMN IF NOT EXISTS likes_count     INTEGER      NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS dislikes_count  INTEGER      NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rating_score    NUMERIC(3,1) NOT NULL DEFAULT 0.0;
+
+CREATE TABLE IF NOT EXISTS public.barbershop_interactions (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  barbershop_id UUID        NOT NULL REFERENCES public.barbershops(id) ON DELETE CASCADE,
+  user_id       UUID        NOT NULL REFERENCES auth.users(id)         ON DELETE CASCADE,
+  type          TEXT        NOT NULL CHECK (type IN ('like', 'dislike', 'favorite')),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (barbershop_id, user_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bi_barbershop ON public.barbershop_interactions (barbershop_id);
+CREATE INDEX IF NOT EXISTS idx_bi_user       ON public.barbershop_interactions (user_id);
+
+ALTER TABLE public.barbershop_interactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "bi_select_own" ON public.barbershop_interactions;
+CREATE POLICY "bi_select_own"
+  ON public.barbershop_interactions FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "bi_insert_own" ON public.barbershop_interactions;
+CREATE POLICY "bi_insert_own"
+  ON public.barbershop_interactions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "bi_delete_own" ON public.barbershop_interactions;
+CREATE POLICY "bi_delete_own"
+  ON public.barbershop_interactions FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ────────────────────────────────────────────────────────────────
+-- 1. PROFILES_PUBLIC — expõe rating_avg e rating_count dos profissionais
+-- ────────────────────────────────────────────────────────────────
+CREATE OR REPLACE VIEW public.profiles_public AS
+  SELECT
+    p.id,
+    p.full_name,
+    p.phone,
+    p.avatar_path,
+    p.role,
+    p.pro_type,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+    COALESCE(pr.rating_avg,   0.00) AS rating_avg,
+    COALESCE(pr.rating_count, 0)    AS rating_count
+  FROM  public.profiles     p
+  LEFT JOIN public.professionals pr ON pr.id = p.id
+  WHERE p.is_active = true;
+
+GRANT SELECT ON public.profiles_public TO anon, authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 2. FAVORITE_PROFESSIONALS — barbeiros favoritos do cliente
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.favorite_professionals (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID        NOT NULL REFERENCES public.profiles(id)       ON DELETE CASCADE,
+  professional_id UUID        NOT NULL REFERENCES public.professionals(id)  ON DELETE CASCADE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, professional_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fav_pro_user ON public.favorite_professionals(user_id);
+CREATE INDEX IF NOT EXISTS idx_fav_pro_pro  ON public.favorite_professionals(professional_id);
+
+ALTER TABLE public.favorite_professionals ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "fav_pro_select_own" ON public.favorite_professionals;
+CREATE POLICY "fav_pro_select_own"
+  ON public.favorite_professionals FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "fav_pro_insert_own" ON public.favorite_professionals;
+CREATE POLICY "fav_pro_insert_own"
+  ON public.favorite_professionals FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "fav_pro_delete_own" ON public.favorite_professionals;
+CREATE POLICY "fav_pro_delete_own"
+  ON public.favorite_professionals FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ────────────────────────────────────────────────────────────────
+-- 3. PROFESSIONAL_LIKES — curtidas de clientes em barbeiros
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.professional_likes (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  professional_id UUID        NOT NULL REFERENCES public.professionals(id) ON DELETE CASCADE,
+  user_id         UUID        NOT NULL REFERENCES public.profiles(id)      ON DELETE CASCADE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (professional_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pro_likes_pro  ON public.professional_likes(professional_id);
+CREATE INDEX IF NOT EXISTS idx_pro_likes_user ON public.professional_likes(user_id);
+
+ALTER TABLE public.professional_likes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "pro_likes_select_own" ON public.professional_likes;
+CREATE POLICY "pro_likes_select_own"
+  ON public.professional_likes FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "pro_likes_insert_own" ON public.professional_likes;
+CREATE POLICY "pro_likes_insert_own"
+  ON public.professional_likes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "pro_likes_delete_own" ON public.professional_likes;
+CREATE POLICY "pro_likes_delete_own"
+  ON public.professional_likes FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Trigger: mantém rating_count sincronizado em professionals
+CREATE OR REPLACE FUNCTION fn_update_professional_likes_count()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE public.professionals
+       SET rating_count = rating_count + 1
+     WHERE id = NEW.professional_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.professionals
+       SET rating_count = GREATEST(rating_count - 1, 0)
+     WHERE id = OLD.professional_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_professional_likes ON public.professional_likes;
+CREATE TRIGGER trg_professional_likes
+  AFTER INSERT OR DELETE ON public.professional_likes
+  FOR EACH ROW EXECUTE FUNCTION fn_update_professional_likes_count();
+
+-- ────────────────────────────────────────────────────────────────
+-- 4. ENSURE PROFESSIONALS ROW — backfill + trigger automático
+-- ────────────────────────────────────────────────────────────────
+INSERT INTO public.professionals (id)
+SELECT p.id
+FROM public.profiles p
+WHERE p.role = 'professional'
+  AND NOT EXISTS (SELECT 1 FROM public.professionals pr WHERE pr.id = p.id)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.handle_profile_professional()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  IF NEW.role = 'professional' THEN
+    INSERT INTO public.professionals (id)
+    VALUES (NEW.id)
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_profile_professional ON public.profiles;
+CREATE TRIGGER trg_profile_professional
+  AFTER INSERT OR UPDATE OF role ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_profile_professional();
+
+-- ────────────────────────────────────────────────────────────────
+-- 5. BAYESIAN RATING — fórmula Bayesiana para barbershops
+-- ────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION fn_update_barbershop_rating()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_id       UUID;
+  v_likes    INT;
+  v_dislikes INT;
+  v_avg      NUMERIC;
+  v_score    NUMERIC(3,1);
+  PRIOR_N    CONSTANT NUMERIC := 5;
+  PRIOR_MEAN CONSTANT NUMERIC := 3.0;
+BEGIN
+  v_id := COALESCE(NEW.barbershop_id, OLD.barbershop_id);
+
+  SELECT
+    COUNT(*) FILTER (WHERE type = 'like'),
+    COUNT(*) FILTER (WHERE type = 'dislike')
+  INTO v_likes, v_dislikes
+  FROM barbershop_interactions
+  WHERE barbershop_id = v_id;
+
+  IF (v_likes + v_dislikes) = 0 THEN
+    v_score := 0.0;
+  ELSE
+    v_avg := (v_likes * 5.0 + v_dislikes * 1.0) / (v_likes + v_dislikes);
+    v_score := ROUND(
+      (PRIOR_MEAN * PRIOR_N + v_avg * (v_likes + v_dislikes))
+      / (PRIOR_N + (v_likes + v_dislikes))
+    , 1);
+  END IF;
+
+  UPDATE barbershops
+     SET likes_count    = v_likes,
+         dislikes_count = v_dislikes,
+         rating_score   = v_score
+   WHERE id = v_id;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Recalcula scores existentes com a nova fórmula Bayesiana
+UPDATE barbershops b
+   SET rating_score = (
+     SELECT CASE
+       WHEN (lk + dl) = 0 THEN 0.0
+       ELSE ROUND(
+         (3.0 * 5 + ((lk * 5.0 + dl * 1.0) / (lk + dl)) * (lk + dl))
+         / (5 + (lk + dl))
+       , 1)
+     END
+     FROM (
+       SELECT
+         COUNT(*) FILTER (WHERE type = 'like')    AS lk,
+         COUNT(*) FILTER (WHERE type = 'dislike') AS dl
+       FROM barbershop_interactions
+       WHERE barbershop_id = b.id
+     ) stats
+   );
+
+-- ================================================================
+-- FIM — todas as tabelas, triggers e views foram criadas/atualizadas
+-- ================================================================
+
+
+-- ────────────────────────────────────────────────────────────────
+-- 6. SERVICES.IMAGE_PATH — imagem por serviço da barbearia
+--    Migration: 20260428000001_services_image_path.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.services
+  ADD COLUMN IF NOT EXISTS image_path TEXT DEFAULT NULL;
+
+COMMENT ON COLUMN public.services.image_path IS
+  'Path no bucket barbershops para a imagem do serviço (ex: <uuid>/services/<file>.webp).';
+
+-- Políticas de storage para upload de imagens de serviços
+-- (dono da barbearia faz upload em barbershops/<barbershop_id>/services/**)
+DROP POLICY IF EXISTS "barbershops_services_owner_insert" ON storage.objects;
+CREATE POLICY "barbershops_services_owner_insert"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'barbershops' AND
+    (storage.foldername(name))[2] = 'services' AND
+    EXISTS (
+      SELECT 1 FROM public.barbershops b
+      WHERE b.id::text = (storage.foldername(name))[1]
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "barbershops_services_owner_update" ON storage.objects;
+CREATE POLICY "barbershops_services_owner_update"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'barbershops' AND
+    (storage.foldername(name))[2] = 'services' AND
+    EXISTS (
+      SELECT 1 FROM public.barbershops b
+      WHERE b.id::text = (storage.foldername(name))[1]
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "barbershops_services_owner_delete" ON storage.objects;
+CREATE POLICY "barbershops_services_owner_delete"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'barbershops' AND
+    (storage.foldername(name))[2] = 'services' AND
+    EXISTS (
+      SELECT 1 FROM public.barbershops b
+      WHERE b.id::text = (storage.foldername(name))[1]
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+-- ────────────────────────────────────────────────────────────────
+-- 7. MEDIA-IMAGES BUCKET — avatars, services, portfolio (BFF pipeline)
+--    Migration: 20260428121847_create_storage_buckets.sql
+-- ────────────────────────────────────────────────────────────────
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'media-images',
+  'media-images',
+  true,
+  10485760,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "media-images: leitura pública"     ON storage.objects;
+DROP POLICY IF EXISTS "media-images: upload pelo dono"    ON storage.objects;
+DROP POLICY IF EXISTS "media-images: atualização pelo dono" ON storage.objects;
+DROP POLICY IF EXISTS "media-images: deleção pelo dono"   ON storage.objects;
+
+CREATE POLICY "media-images: leitura pública"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'media-images');
+
+CREATE POLICY "media-images: upload pelo dono"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'media-images' AND
+    auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-images: atualização pelo dono"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'media-images' AND
+    auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-images: deleção pelo dono"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'media-images' AND
+    auth.uid()::text = split_part(name, '/', 2)
+  );
+
+-- ────────────────────────────────────────────────────────────────
+-- 8. MEDIA-BARBERSHOP BUCKET — imagens de logo/cover/banner
+--    Migration: 20260428130605_create_barbershop_bucket.sql
+-- ────────────────────────────────────────────────────────────────
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'media-barbershop',
+  'media-barbershop',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "media-barbershop: leitura pública"      ON storage.objects;
+DROP POLICY IF EXISTS "media-barbershop: upload pelo dono"     ON storage.objects;
+DROP POLICY IF EXISTS "media-barbershop: atualização pelo dono" ON storage.objects;
+DROP POLICY IF EXISTS "media-barbershop: deleção pelo dono"    ON storage.objects;
+
+CREATE POLICY "media-barbershop: leitura pública"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'media-barbershop');
+
+CREATE POLICY "media-barbershop: upload pelo dono"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'media-barbershop'
+    AND auth.role() = 'authenticated'
+    AND auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-barbershop: atualização pelo dono"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'media-barbershop'
+    AND auth.uid()::text = split_part(name, '/', 2)
+  );
+
+CREATE POLICY "media-barbershop: deleção pelo dono"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'media-barbershop'
+    AND auth.uid()::text = split_part(name, '/', 2)
+  );
+
+-- ────────────────────────────────────────────────────────────────
+-- 9. P2P_PEERS — tabela de peers WebRTC para redistribuição de mídia
+--    Migration: 20260428130606_create_p2p_peers.sql
+-- ────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.p2p_peers (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  media_id   TEXT        NOT NULL,
+  peer_id    UUID        NOT NULL,
+  user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  region     TEXT        NOT NULL DEFAULT '',
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS p2p_peers_media_expires
+  ON public.p2p_peers (media_id, expires_at);
+
+CREATE INDEX IF NOT EXISTS p2p_peers_user_expires
+  ON public.p2p_peers (user_id, expires_at);
+
+ALTER TABLE public.p2p_peers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "p2p_peers: insert pelo usuário autenticado" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: insert pelo usuário autenticado"
+  ON public.p2p_peers FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "p2p_peers: select por usuários autenticados" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: select por usuários autenticados"
+  ON public.p2p_peers FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "p2p_peers: delete pelo dono" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: delete pelo dono"
+  ON public.p2p_peers FOR DELETE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "p2p_peers: update pelo dono" ON public.p2p_peers;
+CREATE POLICY "p2p_peers: update pelo dono"
+  ON public.p2p_peers FOR UPDATE
+  USING (auth.uid() = user_id);
+
+COMMENT ON TABLE  public.p2p_peers IS 'Peers WebRTC disponíveis para redistribuição de mídia (TTL: 5 min)';
+COMMENT ON COLUMN public.p2p_peers.media_id   IS 'ID do arquivo em cache no IndexedDB do peer';
+COMMENT ON COLUMN public.p2p_peers.peer_id    IS 'UUID de sessão P2P gerado pelo frontend';
+COMMENT ON COLUMN public.p2p_peers.user_id    IS 'Usuário dono deste anúncio';
+COMMENT ON COLUMN public.p2p_peers.region     IS 'Região geográfica (opcional) para preferência local';
+COMMENT ON COLUMN public.p2p_peers.expires_at IS 'Timestamp de expiração do anúncio (5 min após announce)';
+
+-- ────────────────────────────────────────────────────────────────
+-- 10. PROFILES.EMAIL — coluna email em profiles, sincronizada com auth.users
+--    Migration: 20260503000001_profiles_email.sql
+-- ────────────────────────────────────────────────────────────────
+
+-- 9.1 Adiciona coluna (idempotente)
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS email text;
+
+-- 9.2 Retroalimenta registros existentes
+UPDATE public.profiles p
+SET    email = u.email
+FROM   auth.users u
+WHERE  p.id = u.id
+  AND  p.email IS NULL;
+
+-- 9.3 Índice para busca rápida (ilike)
+CREATE INDEX IF NOT EXISTS idx_profiles_email
+  ON public.profiles (email);
+
+-- 9.4 Atualiza trigger de criação de usuário para copiar email
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, phone, role, email)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'phone', NULL),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'client'),
+    NEW.email
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET email = EXCLUDED.email;
+  RETURN NEW;
+END;
+$$;
+
+-- 9.5 Função para sincronizar email quando o usuário altera o e-mail no Auth
+CREATE OR REPLACE FUNCTION public.sync_profile_email()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.profiles
+  SET    email = NEW.email
+  WHERE  id = NEW.id;
+  RETURN NEW;
+END;
+$$;
+
+-- 9.6 Trigger de sincronização de email
+DROP TRIGGER IF EXISTS on_auth_user_email_updated ON auth.users;
+CREATE TRIGGER on_auth_user_email_updated
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.sync_profile_email();
+
+-- ================================================================
+-- FIM ATUALIZADO — execute este arquivo completo no SQL Editor do Supabase:
+-- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+-- ================================================================
+
+
+-- ────────────────────────────────────────────────────────────────
+-- Migration: 20260430000001 — close_reason em barbershops
+-- Motivo de fechamento: null = normal, 'almoco', 'janta'
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS close_reason TEXT DEFAULT NULL;
+
+CREATE OR REPLACE FUNCTION public.fn_clear_close_reason()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.is_open = TRUE AND OLD.is_open = FALSE THEN
+    NEW.close_reason := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_clear_close_reason ON public.barbershops;
+CREATE TRIGGER trg_clear_close_reason
+  BEFORE UPDATE ON public.barbershops
+  FOR EACH ROW EXECUTE FUNCTION public.fn_clear_close_reason();
+
+-- ────────────────────────────────────────────────────────────────
+-- 11. MODAL SELETOR DE CLIENTES — RPCs SECURITY DEFINER
+--     Migration: 20260503000002_modal_rpc_functions.sql
+-- ────────────────────────────────────────────────────────────────
+
+-- 11.1 Busca de perfis por nome (input de busca da modal)
+CREATE OR REPLACE FUNCTION public.buscar_perfis_por_nome(
+  p_termo  TEXT,
+  p_limite INT DEFAULT 20
+)
+RETURNS TABLE (
+  id          UUID,
+  full_name   TEXT,
+  email       TEXT,
+  avatar_path TEXT,
+  updated_at  TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  p_limite := GREATEST(1, LEAST(p_limite, 50));
+  RETURN QUERY
+    SELECT p.id, p.full_name, p.email, p.avatar_path, p.updated_at
+    FROM   public.profiles p
+    WHERE  p.full_name ILIKE '%' || p_termo || '%'
+       AND p.is_active = TRUE
+    ORDER BY p.full_name
+    LIMIT  p_limite;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.buscar_perfis_por_nome(TEXT, INT) TO authenticated;
+
+-- 11.2 Favoritos da modal (quem favoritou a barbearia ou o barbeiro)
+CREATE OR REPLACE FUNCTION public.get_clientes_favoritos_modal(
+  p_barbershop_id   UUID,
+  p_professional_id UUID
+)
+RETURNS TABLE (
+  id          UUID,
+  full_name   TEXT,
+  email       TEXT,
+  avatar_path TEXT,
+  updated_at  TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT DISTINCT
+      p.id,
+      p.full_name,
+      p.email,
+      p.avatar_path,
+      p.updated_at
+    FROM public.profiles p
+    WHERE p.id IN (
+      SELECT bi.user_id
+      FROM   public.barbershop_interactions bi
+      WHERE  bi.barbershop_id = p_barbershop_id
+        AND  bi.type = 'favorite'
+      UNION
+      SELECT fp.user_id
+      FROM   public.favorite_professionals fp
+      WHERE  fp.professional_id = p_professional_id
+    )
+    ORDER BY p.full_name;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_clientes_favoritos_modal(UUID, UUID) TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 12. BUSCA UNIFICADA — search_users (com total_count para paginação)
+--     Migration: 20260503000003_search_indexes_and_rpc.sql
+-- ────────────────────────────────────────────────────────────────
+
+-- 12.1 Índices de performance
+CREATE INDEX IF NOT EXISTS idx_profiles_full_name_lower
+  ON public.profiles (LOWER(full_name));
+
+CREATE INDEX IF NOT EXISTS idx_profiles_email_lower
+  ON public.profiles (LOWER(email));
+
+CREATE INDEX IF NOT EXISTS idx_profiles_fts
+  ON public.profiles
+  USING GIN (
+    to_tsvector(
+      'portuguese',
+      COALESCE(full_name, '') || ' ' || COALESCE(email, '')
+    )
+  );
+
+CREATE INDEX IF NOT EXISTS idx_barbershops_name_lower
+  ON public.barbershops (LOWER(name));
+
+-- 12.2 RPC search_users com total_count
+--
+-- Retorna resultados paginados e total_count (via window function),
+-- calculado ANTES do LIMIT/OFFSET — reflete o total real do WHERE.
+CREATE OR REPLACE FUNCTION public.search_users(
+  p_term   TEXT    DEFAULT NULL,
+  p_role   TEXT    DEFAULT NULL,
+  p_limit  INTEGER DEFAULT 20,
+  p_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id              UUID,
+  full_name       TEXT,
+  email           TEXT,
+  role            TEXT,
+  avatar_path     TEXT,
+  barbershop_name TEXT,
+  updated_at      TIMESTAMPTZ,
+  total_count     BIGINT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    p.id,
+    p.full_name,
+    p.email,
+    p.role,
+    p.avatar_path,
+    b.name  AS barbershop_name,
+    p.updated_at,
+    COUNT(*) OVER() AS total_count
+  FROM public.profiles p
+  LEFT JOIN public.barbershops b
+    ON  b.owner_id  = p.id
+    AND b.is_active = TRUE
+  WHERE
+    (
+      p_term IS NULL
+      OR p.full_name ILIKE '%' || p_term || '%'
+      OR p.email     ILIKE '%' || p_term || '%'
+      OR b.name      ILIKE '%' || p_term || '%'
+    )
+    AND (p_role IS NULL OR p.role = p_role)
+    AND p.is_active = TRUE
+  ORDER BY
+    CASE WHEN p_term IS NOT NULL AND p.full_name ILIKE p_term || '%' THEN 0 ELSE 1 END,
+    p.full_name
+  LIMIT  GREATEST(1, LEAST(p_limit,  50))
+  OFFSET GREATEST(0, p_offset);
+$$;
+
+GRANT EXECUTE ON FUNCTION public.search_users(TEXT, TEXT, INTEGER, INTEGER) TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 13. CLIENTES WALK-IN — guest_name em queue_entries
+--     Migration: 20260505000001_queue_entries_guest_name.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.queue_entries ADD COLUMN IF NOT EXISTS guest_name TEXT;
+
+COMMENT ON COLUMN public.queue_entries.guest_name IS
+  'Nome avulso informado pelo barbeiro para cliente sem cadastro (walk-in).';
+
+-- ────────────────────────────────────────────────────────────────
+-- 14. CONFIRMAÇÃO DE PRESENÇA DO CLIENTE NA CADEIRA
+--     Migration: 20260507000003_queue_client_confirmation.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.queue_entries
+  ADD COLUMN IF NOT EXISTS client_confirmed TEXT
+    CHECK (client_confirmed IN ('yes', 'no_waiting', 'absent')),
+  ADD COLUMN IF NOT EXISTS first_no_at TIMESTAMPTZ;
+
+COMMENT ON COLUMN public.queue_entries.client_confirmed IS
+  'Estado de confirmação de presença do cliente na cadeira: yes | no_waiting | absent';
+
+COMMENT ON COLUMN public.queue_entries.first_no_at IS
+  'Timestamp do primeiro "Não" — base para cálculo do grace period de 5 min';
+
+CREATE OR REPLACE FUNCTION public.confirmar_presenca_cliente(
+  p_entry_id   UUID,
+  p_confirmado BOOLEAN,
+  p_grace_used BOOLEAN
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_entry   RECORD;
+  v_profId  UUID;
+BEGIN
+  SELECT qe.id, qe.professional_id, qe.barbershop_id,
+         p.full_name AS client_name
+  INTO v_entry
+  FROM public.queue_entries qe
+  LEFT JOIN public.profiles p ON p.id = qe.client_id
+  WHERE qe.id        = p_entry_id
+    AND qe.client_id = auth.uid()
+    AND qe.status    = 'in_service'
+  LIMIT 1;
+
+  IF v_entry IS NULL THEN
+    RETURN;
+  END IF;
+
+  v_profId := v_entry.professional_id;
+
+  IF p_confirmado THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'yes',
+        first_no_at      = NULL
+    WHERE id = p_entry_id;
+
+  ELSIF NOT p_grace_used THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'no_waiting',
+        first_no_at      = NOW()
+    WHERE id = p_entry_id;
+
+  ELSE
+    UPDATE public.queue_entries
+    SET client_confirmed = 'absent'
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_absent',
+        'Cliente ausente 🔔',
+        COALESCE(v_entry.client_name, 'Cliente') || ' não confirmou presença na cadeira.',
+        jsonb_build_object(
+          'client_absent',  true,
+          'entry_id',       p_entry_id,
+          'client_name',    COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',  v_entry.barbershop_id
+        ),
+        false,
+        NOW()
+      );
+    END IF;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.confirmar_presenca_cliente(UUID, BOOLEAN, BOOLEAN)
+  TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 15. NOTIFICAR BARBEIRO NO PRIMEIRO "NÃO" DO CLIENTE
+--     Migration: 20260507000004_notify_barber_on_first_no.sql
+-- ────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.confirmar_presenca_cliente(
+  p_entry_id   UUID,
+  p_confirmado BOOLEAN,
+  p_grace_used BOOLEAN
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_entry   RECORD;
+  v_profId  UUID;
+BEGIN
+  SELECT qe.id, qe.professional_id, qe.barbershop_id,
+         p.full_name AS client_name
+  INTO v_entry
+  FROM public.queue_entries qe
+  LEFT JOIN public.profiles p ON p.id = qe.client_id
+  WHERE qe.id        = p_entry_id
+    AND qe.client_id = auth.uid()
+    AND qe.status    = 'in_service'
+  LIMIT 1;
+
+  IF v_entry IS NULL THEN
+    RETURN;
+  END IF;
+
+  v_profId := v_entry.professional_id;
+
+  IF p_confirmado THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'yes',
+        first_no_at      = NULL
+    WHERE id = p_entry_id;
+
+  ELSIF NOT p_grace_used THEN
+    -- Primeiro "Não" — registra timestamp e notifica barbeiro imediatamente
+    UPDATE public.queue_entries
+    SET client_confirmed = 'no_waiting',
+        first_no_at      = NOW()
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_not_seated',
+        'Cliente ainda não está pronto',
+        COALESCE(v_entry.client_name, 'Cliente') || ' avisou que ainda não está sentado na cadeira.',
+        jsonb_build_object(
+          'client_not_seated', true,
+          'entry_id',          p_entry_id,
+          'client_name',       COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',     v_entry.barbershop_id
+        ),
+        false,
+        NOW()
+      );
+    END IF;
+
+  ELSE
+    -- Segundo "Não" (grace expirado) — marca ausente e notifica barbeiro
+    UPDATE public.queue_entries
+    SET client_confirmed = 'absent'
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_absent',
+        'Cliente ausente 🔔',
+        COALESCE(v_entry.client_name, 'Cliente') || ' não confirmou presença na cadeira.',
+        jsonb_build_object(
+          'client_absent',  true,
+          'entry_id',       p_entry_id,
+          'client_name',    COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',  v_entry.barbershop_id
+        ),
+        false,
+        NOW()
+      );
+    END IF;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.confirmar_presenca_cliente(UUID, BOOLEAN, BOOLEAN)
+  TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 16. REALTIME NA TABELA NOTIFICATIONS
+--     Migration: 20260507000005_notifications_realtime.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.notifications REPLICA IDENTITY FULL;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+
+-- ────────────────────────────────────────────────────────────────
+-- 16. client_confirmed: adiciona valor 'arriving' (cliente a caminho)
+--     Migration: 20260512000001_client_at_shop_presenca.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.queue_entries
+  DROP CONSTRAINT IF EXISTS queue_entries_client_confirmed_check;
+
+ALTER TABLE public.queue_entries
+  ADD CONSTRAINT queue_entries_client_confirmed_check
+  CHECK (client_confirmed IN ('yes', 'no_waiting', 'absent', 'arriving'));
+
+COMMENT ON COLUMN public.queue_entries.client_confirmed IS
+  'Estados: yes=presente(in_service) | no_waiting=ausente(in_service) | absent=grace expirado(in_service) | arriving=a caminho(waiting)';
+
+-- ────────────────────────────────────────────────────────────────
+-- 17. NOTIFICATIONS — política INSERT + RPC notificar_barbeiro_chegada
+--     Migration: 20260513000001_notificar_barbeiro_rpc.sql
+--
+-- Corrige 403 Forbidden no insert de notificações pelo app cliente:
+-- a política INSERT estava ausente neste script consolidado.
+-- O RPC com SECURITY DEFINER torna o insert robusto contra futuros
+-- ajustes de RLS.
+-- ────────────────────────────────────────────────────────────────
+
+-- Política de INSERT: qualquer usuário autenticado pode criar notificações
+DROP POLICY IF EXISTS "notifications_insert_service" ON public.notifications;
+CREATE POLICY "notifications_insert_service"
+  ON public.notifications
+  FOR INSERT
+  WITH CHECK (true);
+
+-- RPC com SECURITY DEFINER: bypassa RLS, controle feito dentro da função
+CREATE OR REPLACE FUNCTION public.notificar_barbeiro_chegada(
+  p_professional_id UUID,
+  p_type            TEXT,
+  p_title           TEXT,
+  p_body            TEXT,
+  p_data            JSONB
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_professional_id IS NULL THEN RETURN; END IF;
+  INSERT INTO public.notifications (
+    user_id, type, title, body, data, is_read, created_at
+  ) VALUES (
+    p_professional_id,
+    p_type,
+    p_title,
+    COALESCE(p_body, ''),
+    COALESCE(p_data, '{}'),
+    false,
+    NOW()
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.notificar_barbeiro_chegada(UUID, TEXT, TEXT, TEXT, JSONB)
+  TO authenticated;
+
+-- ────────────────────────────────────────────────────────────────
+-- 18. NOTIFICAÇÃO — profissional recebe alerta do próximo cliente
+--     quando atendimento é finalizado (status → 'done')
+--
+--     Problema:  fn_notify_queue_clients notificava apenas clientes
+--                em espera; o profissional nunca era informado sobre
+--                quem seria atendido a seguir.
+--     Solução:   Após o loop existente (inalterado), insere notificação
+--                para NEW.professional_id:
+--                  • queue_next_client — há cliente aguardando
+--                  • queue_empty       — fila vazia após atendimento
+--                Walk-ins (sem client_id) são incluídos via guest_name.
+--     Migration: 20260516_notify_professional_queue_done.sql
+-- ────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.fn_notify_queue_clients()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  rec           RECORD;
+  posicao_rank  INT := 0;
+  v_proximo     RECORD;
+BEGIN
+  IF NEW.status IS DISTINCT FROM 'done' THEN
+    RETURN NEW;
+  END IF;
+
+  -- 1. Notificar clientes cadastrados em espera (comportamento existente)
+  FOR rec IN
+    SELECT
+      client_id,
+      position,
+      ROW_NUMBER() OVER (ORDER BY position ASC) AS rank
+    FROM public.queue_entries
+    WHERE barbershop_id = NEW.barbershop_id
+      AND status        = 'waiting'
+      AND client_id     IS NOT NULL
+  LOOP
+    posicao_rank := rec.rank;
+    INSERT INTO public.notifications (user_id, type, title, body, data, is_read, created_at)
+    VALUES (
+      rec.client_id,
+      'queue_update',
+      'Fila avançou',
+      CASE
+        WHEN posicao_rank = 1 THEN 'Você é o próximo! Dirija-se à cadeira.'
+        ELSE 'Você está na posição ' || posicao_rank || ' da fila.'
+      END,
+      jsonb_build_object(
+        'position',      posicao_rank,
+        'barbershop_id', NEW.barbershop_id,
+        'is_next',       (posicao_rank = 1)
+      ),
+      false,
+      NOW()
+    );
+  END LOOP;
+
+  -- 2. Notificar profissional sobre o próximo cliente (novo)
+  IF NEW.professional_id IS NOT NULL THEN
+    SELECT
+      qe.id                                                    AS entry_id,
+      COALESCE(p.full_name, qe.guest_name, 'Cliente walk-in') AS client_name
+    INTO v_proximo
+    FROM public.queue_entries qe
+    LEFT JOIN public.profiles p ON p.id = qe.client_id
+    WHERE qe.barbershop_id = NEW.barbershop_id
+      AND qe.status        = 'waiting'
+    ORDER BY qe.position ASC
+    LIMIT 1;
+
+    IF v_proximo IS NOT NULL THEN
+      INSERT INTO public.notifications (user_id, type, title, body, data, is_read, created_at)
+      VALUES (
+        NEW.professional_id,
+        'queue_next_client',
+        'Próximo cliente',
+        v_proximo.client_name || ' está aguardando na fila.',
+        jsonb_build_object(
+          'entry_id',      v_proximo.entry_id,
+          'client_name',   v_proximo.client_name,
+          'barbershop_id', NEW.barbershop_id,
+          'is_next',       true
+        ),
+        false,
+        NOW()
+      );
+    ELSE
+      INSERT INTO public.notifications (user_id, type, title, body, data, is_read, created_at)
+      VALUES (
+        NEW.professional_id,
+        'queue_empty',
+        'Fila vazia',
+        'Não há mais clientes aguardando.',
+        jsonb_build_object('barbershop_id', NEW.barbershop_id),
+        false,
+        NOW()
+      );
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- ================================================================
+-- FIM — execute este arquivo completo no SQL Editor do Supabase:
+-- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+-- ================================================================
+
+
+-- ────────────────────────────────────────────────────────────────
+-- 19. POSTGIS — busca de barbearias por proximidade geográfica
+--     Migration: 20260517000001_postgis_barbershops.sql
+--
+-- Habilita PostGIS, adiciona coluna geom, popula dados existentes,
+-- cria índice GIST e a RPC get_barbershops_nearby usada pelo BFF.
+-- Idempotente: todas as operações usam IF NOT EXISTS / CREATE OR REPLACE.
+-- ────────────────────────────────────────────────────────────────
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+ALTER TABLE barbershops
+  ADD COLUMN IF NOT EXISTS geom GEOMETRY(Point, 4326);
+
+UPDATE barbershops
+SET geom = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+WHERE latitude  IS NOT NULL
+  AND longitude IS NOT NULL
+  AND geom      IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_barbershops_geom
+  ON barbershops USING GIST (geom);
+
+CREATE OR REPLACE FUNCTION sync_barbershop_geom()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL THEN
+    NEW.geom = ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_barbershop_geom ON barbershops;
+CREATE TRIGGER trg_sync_barbershop_geom
+  BEFORE INSERT OR UPDATE OF latitude, longitude ON barbershops
+  FOR EACH ROW EXECUTE FUNCTION sync_barbershop_geom();
+
+CREATE OR REPLACE FUNCTION get_barbershops_nearby(
+  lat         DOUBLE PRECISION,
+  lng         DOUBLE PRECISION,
+  raio_metros DOUBLE PRECISION,
+  limit_val   INT DEFAULT 50
+)
+RETURNS TABLE (
+  id             UUID,
+  name           TEXT,
+  address        TEXT,
+  city           TEXT,
+  latitude       DOUBLE PRECISION,
+  longitude      DOUBLE PRECISION,
+  logo_path      TEXT,
+  cover_path     TEXT,
+  is_open        BOOLEAN,
+  close_reason   TEXT,
+  rating_avg     NUMERIC,
+  rating_count   INT,
+  rating_score   NUMERIC,
+  likes_count    INT,
+  dislikes_count INT,
+  font_key       TEXT,
+  distancia_m    DOUBLE PRECISION
+)
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    b.id, b.name, b.address, b.city,
+    b.latitude, b.longitude,
+    b.logo_path, b.cover_path,
+    b.is_open, b.close_reason,
+    b.rating_avg, b.rating_count, b.rating_score,
+    b.likes_count, b.dislikes_count, b.font_key,
+    ST_Distance(
+      b.geom::geography,
+      ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography
+    ) AS distancia_m
+  FROM barbershops b
+  WHERE
+    b.is_active = TRUE
+    AND b.geom IS NOT NULL
+    AND ST_DWithin(
+      b.geom::geography,
+      ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography,
+      raio_metros
+    )
+  ORDER BY distancia_m ASC
+  LIMIT limit_val;
+$$;
+
+-- ────────────────────────────────────────────────────────────────
+-- 20. BARBERSHOPS — colunas opcionais garantidas idempotentemente
+--     Migration: 20260517000004_barbershops_missing_columns.sql
+--
+-- Adiciona IF NOT EXISTS: likes_count, dislikes_count, rating_score,
+-- font_key, close_reason — colunas adicionadas por migrations de Abril
+-- que podem não existir em instâncias Supabase mais antigas.
+-- Também garante a policy de leitura pública para a role anon.
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS likes_count     INTEGER       NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS dislikes_count  INTEGER       NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS rating_score    NUMERIC(3,1)  NOT NULL DEFAULT 0.0,
+  ADD COLUMN IF NOT EXISTS font_key        TEXT,
+  ADD COLUMN IF NOT EXISTS close_reason    TEXT;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename  = 'barbershops'
+      AND policyname = 'anon_select_active_barbershops'
+  ) THEN
+    CREATE POLICY "anon_select_active_barbershops"
+      ON public.barbershops
+      FOR SELECT
+      TO anon
+      USING (is_active = TRUE);
+  END IF;
+END $$;
+
+-- ────────────────────────────────────────────────────────────────
+-- 21. SERVICOS TIPADOS E MENSALIDADE
+--     Migration: 20260530000001_servico_tipo_e_mensalidade.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.services
+  ADD COLUMN IF NOT EXISTS price_half NUMERIC(8,2);
+
+COMMENT ON COLUMN public.services.price_half IS
+  'Preco da variante "meia" (ex.: Luzes meia). price = variante inteira.';
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS monthly_plan_price   NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS monthly_plan_message TEXT;
+
+COMMENT ON COLUMN public.barbershops.monthly_plan_price IS
+  'Valor da mensalidade anunciada no banner da pagina publica (null = sem banner).';
+COMMENT ON COLUMN public.barbershops.monthly_plan_message IS
+  'Mensagem promocional exibida no banner de mensalidade.';
+
+-- ================================================================
+-- FIM FINAL — execute este arquivo completo no SQL Editor do Supabase:
+-- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new
+-- ================================================================

@@ -1,0 +1,184 @@
+'use strict';
+
+/**
+ * AvatarService — SRP: responsável EXCLUSIVAMENTE pelo avatar do usuário.
+ *
+ * Responsabilidades:
+ *  - preview instantâneo antes do upload (Blob URL local, zero latência)
+ *  - upload via BFF /api/media/upload-image?contexto=avatars
+ *    (pipeline server-side: crop 1:1 + resize 200×200 + WebP ≤20KB)
+ *  - cache local via SessionCache
+ *
+ * API pública:
+ *   AvatarService.preview(input)
+ *   AvatarService.abrirUpload(routerInstance)
+ */
+const AvatarService = (() => {
+  'use strict';
+
+  /** IDs dos elementos de avatar que devem ser atualizados em tela. */
+  const AVATAR_IDS = ['menu-avatar-img', 'header-avatar-img', 'perfil-avatar-img'];
+
+  /**
+   * Aplica o src informado em todos os elementos de avatar da página.
+   * @param {string} src
+   * @param {object} [styles] — estilos inline opcionais (ex: { filter: 'none', opacity: '1' })
+   */
+  function _aplicarSrc(src, styles = {}) {
+    AVATAR_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.src = src;
+      Object.assign(el.style, styles);
+    });
+  }
+
+  /**
+   * Atualiza todos os elementos dinâmicos que exibem o avatar do usuário
+   * identificado por userId (cards de barbeiro renderizados em tela).
+   * @param {string} userId
+   * @param {string} url
+   */
+  function _aplicarSrcDinamico(userId, url) {
+    if (!userId) return;
+
+    // Cards BarbeiroCard em tela-barbearia (BarbeariaPage.js) — classe .bbc-avatar
+    document.querySelectorAll(`[data-barber-id="${userId}"] .bbc-avatar img`).forEach(img => {
+      img.src = url;
+    });
+
+    // Cards barber-row na home (NearbyBarbershopsWidget.initHomeBarbeiros)
+    document.querySelectorAll(`[data-professional-id="${userId}"] .avatar img`).forEach(img => {
+      img.src = url;
+    });
+
+    // BarbeiroPage — avatar aberto no painel lateral (tela-barbeiro)
+    const beiroAvatar = document.getElementById('beiro-avatar');
+    if (beiroAvatar && beiroAvatar.dataset.barberId === userId) {
+      beiroAvatar.src = url;
+    }
+  }
+
+  /**
+   * Envia o arquivo como buffer binário para o BFF, que executa o pipeline
+   * server-side: crop 1:1 central → resize 200×200 → WebP ≤20KB.
+   * Retorna a publicUrl processada.
+   * @param {File} file
+   * @returns {Promise<string>} publicUrl
+   */
+  async function _enviarParaBFF(file) {
+    const buffer = await file.arrayBuffer();
+    const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer, {
+      contentType: file.type || 'image/jpeg',
+    });
+    if (!res.ok) {
+      const corpo = await res.json().catch(() => ({}));
+      throw new Error(corpo.error ?? `Upload falhou (${res.status})`);
+    }
+    const { publicUrl } = await res.json();
+    return publicUrl;
+  }
+
+  /**
+   * Fallback: upload direto ao bucket 'avatars' via Supabase Storage (sem BFF).
+   * Usado quando o BFF falha (bucket media-images ausente, CORS, timeout, etc.).
+   * @param {File}   file
+   * @param {string} userId
+   * @returns {Promise<string>} publicUrl
+   */
+  async function _uploadFallback(file, userId) {
+    const url = await ProfileRepository.updateAvatar(userId, file);
+    return url;
+  }
+
+  /**
+   * Faz o upload do avatar via BFF com pipeline de otimização server-side.
+   * Se o BFF falhar, executa fallback direto ao bucket 'avatars'.
+   * @param {File} file
+   */
+  async function _uploadViaBFF(file) {
+    try {
+      const user   = UserService.getUser?.() ?? UserService.getUserId?.();
+      const userId = typeof user === 'string' ? user : user?.id;
+      if (!userId) return;
+
+      let publicUrl;
+      try {
+        publicUrl = await _enviarParaBFF(file);
+        // Persiste avatar_path no banco — sem isso o avatar some no próximo reload
+        await ProfileRepository.update(userId, { avatar_path: publicUrl });
+      } catch (bffErr) {
+        // BFF indisponível (bucket ausente, CORS, timeout) — fallback direto ao Storage
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[AvatarService] BFF falhou, usando fallback Storage:', bffErr.message);
+        }
+        publicUrl = await _uploadFallback(file, userId);
+        // ProfileRepository.updateAvatar já persiste o avatar_path internamente
+      }
+
+      _aplicarSrc(publicUrl);
+      _aplicarSrcDinamico(userId, publicUrl);
+
+      // Recarrega apenas o container da home (renderizado por NearbyBarbershopsWidget)
+      // NÃO recarregar #barbeiros-lista — é gerenciado por BarbeirosPage, não por NearbyBarbershopsWidget
+      const homeEl = document.getElementById('home-barbeiros-lista');
+      if (homeEl && typeof NearbyBarbershopsWidget !== 'undefined') {
+        NearbyBarbershopsWidget.initHomeBarbeiros('home-barbeiros-lista');
+      }
+      if (typeof SessionCache !== 'undefined') {
+        SessionCache.salvarAvatar(publicUrl);
+        // Atualiza avatar_path no perfil em cache para que o próximo reload use o path novo
+        const { perfil } = SessionCache.restaurar();
+        if (perfil) {
+          perfil.avatar_path = publicUrl;
+          perfil.updated_at  = new Date().toISOString();
+          SessionCache.salvar(perfil, null);
+        }
+      }
+
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('✅ Avatar atualizado', '', NotificationService.TIPOS.SISTEMA);
+      }
+    } catch (e) {
+      if (typeof LoggerService !== 'undefined') LoggerService.warn('[AvatarService] Erro no upload:', e.message);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast('Erro ao salvar avatar', e?.message ?? 'Tente novamente.', NotificationService.TIPOS.SISTEMA);
+      }
+    }
+  }
+
+  /**
+   * Exibe preview instantâneo do arquivo selecionado e inicia o upload em background.
+   * @param {HTMLInputElement} input
+   */
+  function preview(input) {
+    if (!input.files || !input.files[0]) return;
+    const file     = input.files[0];
+    const localUrl = URL.createObjectURL(file);
+    // Preview imediato (Blob URL local — zero latência)
+    _aplicarSrc(localUrl, { filter: 'none', opacity: '1' });
+    // Upload em background — sem bloquear a UI
+    _uploadViaBFF(file).then(() => URL.revokeObjectURL(localUrl));
+  }
+
+  /**
+   * Verifica se o usuário está logado e, se sim, dispara o input de arquivo.
+   * Caso não logado: fecha o menu e navega para a tela de login.
+   * @param {object} router — instância do Router
+   */
+  function abrirUpload(router) {
+    const logado = typeof AppState !== 'undefined'
+      ? AppState.get('isLogado') === true
+      : (typeof UserService !== 'undefined' ? !!UserService.getPerfil() : false);
+
+    if (!logado) {
+      if (typeof MenuService !== 'undefined') MenuService.fechar();
+      router.nav('login');
+      return;
+    }
+
+    document.getElementById('menu-avatar-input')?.click();
+  }
+
+  return Object.freeze({ preview, abrirUpload });
+})();

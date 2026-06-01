@@ -1,0 +1,344 @@
+'use strict';
+
+const { createContainer, asClass, asValue, InjectionMode } = require('awilix');
+
+const { getSupabaseClient } = require('../config/supabase');
+
+// ── Infrastructure: cache ──────────────────────────────────────
+const { MemoryCache }        = require('../infrastructure/cache/MemoryCache');
+const { RedisCache }         = require('../infrastructure/cache/RedisCache');
+const { CacheMetrics }       = require('../infrastructure/cache/CacheMetrics');
+const { SingleFlightCache }  = require('../infrastructure/cache/SingleFlightCache');
+
+// ── Infrastructure: queue ──────────────────────────────────────
+const { InMemoryQueueService } = require('../infrastructure/queue/InMemoryQueueService');
+const { BullMQAdapter }        = require('../infrastructure/queue/BullMQAdapter');
+const { DeadLetterQueue }      = require('../infrastructure/queue/DeadLetterQueue');
+
+// ── Infrastructure: outbox ─────────────────────────────────────
+const { OutboxRepository } = require('../infrastructure/outbox/OutboxRepository');
+const { OutboxRelay }      = require('../infrastructure/outbox/OutboxRelay');
+
+// ── Application: handlers ──────────────────────────────────────
+const { NotificationHandler }    = require('../application/handlers/NotificationHandler');
+const { MediaProcessingHandler } = require('../application/handlers/MediaProcessingHandler');
+const { FeedGenerationHandler }  = require('../application/handlers/FeedGenerationHandler');
+const { WebhookHandler }         = require('../application/handlers/WebhookHandler');
+const { AnalyticsHandler }       = require('../application/handlers/AnalyticsHandler');
+
+// ── Infrastructure: db ─────────────────────────────────────────
+const { AgendamentoRepository } = require('../infrastructure/db/AgendamentoRepository');
+const { FilaRepository }        = require('../infrastructure/db/FilaRepository');
+const { SupabaseUnitOfWork }    = require('../infrastructure/shared/SupabaseUnitOfWork');
+
+// ── Infrastructure: events ─────────────────────────────────────
+const { DomainEventPublisher }       = require('../infrastructure/events/DomainEventPublisher');
+const { CacheInvalidationSubscriber } = require('../infrastructure/events/CacheInvalidationSubscriber');
+
+// ── Application: use cases ─────────────────────────────────────
+const { CriarAgendamentoUseCase }          = require('../application/agendamento/CriarAgendamentoUseCase');
+const { AtualizarStatusAgendamentoUseCase } = require('../application/agendamento/AtualizarStatusAgendamentoUseCase');
+const { BuscarAgendamentoUseCase }         = require('../application/agendamento/BuscarAgendamentoUseCase');
+const { EntrarNaFilaUseCase }              = require('../application/fila/EntrarNaFilaUseCase');
+const { AtualizarStatusFilaUseCase }       = require('../application/fila/AtualizarStatusFilaUseCase');
+const { ListarFilaUseCase }               = require('../application/fila/ListarFilaUseCase');
+const { CachedUseCaseDecorator }          = require('../application/shared/CachedUseCaseDecorator');
+
+// ── Config ─────────────────────────────────────────────────────
+const { CACHE_TTL }       = require('../config/cacheTtl');
+const { CacheKeyBuilder } = require('../infrastructure/cache/CacheKeyBuilder');
+
+// ── Interfaces: middlewares ────────────────────────────────────
+const { IdempotencyMiddleware } = require('../interfaces/bff/middlewares/IdempotencyMiddleware');
+
+// ── Realtime: domain ──────────────────────────────────────────
+const { RoomManager }     = require('../domain/realtime/RoomManager');
+const { PresenceService } = require('../domain/realtime/PresenceService');
+
+// ── Realtime: infrastructure ──────────────────────────────────
+const { RedisPubSubAdapter }  = require('../infrastructure/realtime/RedisPubSubAdapter');
+const { EventReplayBuffer }   = require('../infrastructure/realtime/EventReplayBuffer');
+const { RealtimeMetrics }     = require('../infrastructure/realtime/RealtimeMetrics');
+
+// ── Realtime: application ─────────────────────────────────────
+const { SubscribeToRoomUseCase }       = require('../application/realtime/SubscribeToRoomUseCase');
+const { UnsubscribeFromRoomUseCase }   = require('../application/realtime/UnsubscribeFromRoomUseCase');
+const { PublishToChannelUseCase }      = require('../application/realtime/PublishToChannelUseCase');
+const { ReplayEventsUseCase }          = require('../application/realtime/ReplayEventsUseCase');
+
+// ── Realtime: interfaces ──────────────────────────────────────
+const { ConnectionRegistry } = require('../interfaces/bff/realtime/ConnectionRegistry');
+const { ChannelRouter }      = require('../interfaces/bff/realtime/ChannelRouter');
+
+// ── Realtime: config ──────────────────────────────────────────
+const { MAX_CONN_PER_CHANNEL } = require('../config/realtime');
+
+/**
+ * Monta e retorna o container awilix configurado.
+ * Deve ser chamado uma vez no boot da aplicação.
+ * @returns {import('awilix').AwilixContainer}
+ */
+function buildContainer() {
+  const container = createContainer({ injectionMode: InjectionMode.PROXY });
+
+  // ── Infraestrutura base ────────────────────────────────────────
+  const supabaseClient = getSupabaseClient();
+  container.register({ supabaseClient: asValue(supabaseClient) });
+
+  // ── Cache: driver raw (ICache) ─────────────────────────────────
+  const cacheDriver = process.env.CACHE_DRIVER ?? 'memory';
+  let redisClient = null;
+  if (cacheDriver === 'redis' && process.env.REDIS_URL) {
+    const Redis = require('ioredis'); // eslint-disable-line global-require
+    redisClient = new Redis(process.env.REDIS_URL, { lazyConnect: true });
+    container.register({ redisClient: asValue(redisClient) });
+    container.register({ rawCache: asClass(RedisCache).singleton() });
+  } else {
+    container.register({ rawCache: asClass(MemoryCache).singleton() });
+  }
+
+  // ── Cache: métricas + single-flight ───────────────────────────
+  // Singleton: um conjunto de métricas por processo
+  const metrics = new CacheMetrics();
+  container.register({ cacheMetrics: asValue(metrics) });
+
+  // SingleFlightCache depende de rawCache + cacheMetrics (injeção via PROXY)
+  container.register({ cache: asClass(SingleFlightCache).singleton() });
+
+  // ── Queue service ──────────────────────────────────────────────
+  // BullMQAdapter em produção (Redis disponível); InMemory nos demais envs
+  const resolvedCacheForQueue = container.resolve('cache');
+  const queueService = (cacheDriver === 'redis' && redisClient)
+    ? new BullMQAdapter({ redisClient })
+    : new InMemoryQueueService();
+  container.register({ queueService: asValue(queueService) });
+  container.register({ deadLetterQueue: asValue(new DeadLetterQueue({ cache: resolvedCacheForQueue })) });
+
+  // ── Outbox ─────────────────────────────────────────────────────
+  container.register({ outboxRepository: asValue(new OutboxRepository({ supabaseClient })) });
+  const outboxRelay = new OutboxRelay({
+    outboxRepository: new OutboxRepository({ supabaseClient }),
+    queueService,
+    intervalMs: Number(process.env.OUTBOX_POLL_INTERVAL_MS ?? 5000),
+  });
+  container.register({ outboxRelay: asValue(outboxRelay) });
+
+  // ── Job handlers (singleton — stateless) ──────────────────────
+  // Deps reais são injetadas aqui; stubs usados onde serviço ainda não existe
+  const pushServiceStub = {
+    enviarAoBarbeiro: async () => ({ enviados: 0, invalidas: 0 }),
+  };
+  const imageProcessorStub = {
+    process: async () => { throw new Error('imageProcessor not wired — inject BarbeariaMediaService'); },
+  };
+  const mediaRepositoryStub = { save: async () => {} };
+  const feedRepositoryStub  = { generate: async () => [] };
+  const analyticsRepoStub   = { track: async () => {} };
+  const httpClientStub      = { post: async () => ({ ok: true, status: 200 }) };
+
+  const notificationHandler  = new NotificationHandler({ pushService: pushServiceStub });
+  const mediaHandler         = new MediaProcessingHandler({ imageProcessor: imageProcessorStub, mediaRepository: mediaRepositoryStub });
+  const feedHandler          = new FeedGenerationHandler({ feedRepository: feedRepositoryStub, cacheService: resolvedCacheForQueue });
+  const webhookHandler       = new WebhookHandler({ httpClient: httpClientStub });
+  const analyticsHandler     = new AnalyticsHandler({ analyticsRepository: analyticsRepoStub });
+
+  container.register({
+    notificationHandler:  asValue(notificationHandler),
+    mediaHandler:         asValue(mediaHandler),
+    feedHandler:          asValue(feedHandler),
+    webhookHandler:       asValue(webhookHandler),
+    analyticsHandler:     asValue(analyticsHandler),
+  });
+
+  // Registra handlers no queueService in-memory (útil em testes de integração)
+  if (queueService instanceof InMemoryQueueService) {
+    queueService.registerHandler(notificationHandler);
+    queueService.registerHandler(mediaHandler);
+    queueService.registerHandler(feedHandler);
+    queueService.registerHandler(webhookHandler);
+    queueService.registerHandler(analyticsHandler);
+  }
+
+  // ── Idempotency middleware ─────────────────────────────────────
+  container.register({ idempotencyMiddleware: asClass(IdempotencyMiddleware).singleton() });
+
+  // ── Repositórios ───────────────────────────────────────────────
+  container.register({
+    unitOfWork:            asClass(SupabaseUnitOfWork).singleton(),
+    agendamentoRepository: asClass(AgendamentoRepository).singleton(),
+    filaRepository:        asClass(FilaRepository).singleton(),
+  });
+
+  // ── Event publisher + cache invalidation ──────────────────────
+  const publisher = DomainEventPublisher.getInstance();
+  container.register({ domainEventPublisher: asValue(publisher) });
+
+  // Subscriber registra seus handlers no publisher imediatamente
+  // (precisa de cache resolvido — usar resolve diretamente)
+  const cacheForSubscriber = container.resolve('cache');
+  const subscriber = new CacheInvalidationSubscriber({ cache: cacheForSubscriber });
+  subscriber.register(publisher);
+  container.register({ cacheInvalidationSubscriber: asValue(subscriber) });
+
+  // ── Use Cases: write (scoped — nova instância por request) ──────
+  container.register({
+    criarAgendamentoUseCase:           asClass(CriarAgendamentoUseCase).scoped(),
+    atualizarStatusAgendamentoUseCase: asClass(AtualizarStatusAgendamentoUseCase).scoped(),
+    entrarNaFilaUseCase:               asClass(EntrarNaFilaUseCase).scoped(),
+    atualizarStatusFilaUseCase:        asClass(AtualizarStatusFilaUseCase).scoped(),
+  });
+
+  // ── Use Cases: read com cache (singleton — key fn é pura) ───────
+  const resolvedCache          = container.resolve('cache');
+  const resolvedAgendamentoRepo = container.resolve('agendamentoRepository');
+  const resolvedFilaRepo        = container.resolve('filaRepository');
+
+  container.register({
+    buscarAgendamentoUseCase: asValue(
+      new CachedUseCaseDecorator({
+        useCase:      new BuscarAgendamentoUseCase({ agendamentoRepository: resolvedAgendamentoRepo }),
+        cacheService: resolvedCache,
+        keyFn:        cmd => CacheKeyBuilder.build('agendamento', 'agendamento', cmd.id),
+        ttlSeconds:   CACHE_TTL.AGENDAMENTO_SINGLE,
+      }),
+    ),
+
+    listarFilaUseCase: asValue(
+      new CachedUseCaseDecorator({
+        useCase:      new ListarFilaUseCase({ filaRepository: resolvedFilaRepo }),
+        cacheService: resolvedCache,
+        keyFn:        cmd => CacheKeyBuilder.buildList('fila', 'entrada', { barbershopId: cmd.barbershopId }),
+        ttlSeconds:   CACHE_TTL.FILA_LIST,
+      }),
+    ),
+  });
+
+  // ── Realtime ───────────────────────────────────────────────────
+  // Singletons por processo; sincronização entre instâncias via Redis Pub/Sub.
+  const roomManager     = new RoomManager({ maxConnPerChannel: MAX_CONN_PER_CHANNEL });
+  const presenceService = new PresenceService();
+  const realtimeMetrics = new RealtimeMetrics();
+  const connectionRegistry = new ConnectionRegistry();
+
+  container.register({
+    roomManager:        asValue(roomManager),
+    presenceService:    asValue(presenceService),
+    realtimeMetrics:    asValue(realtimeMetrics),
+    connectionRegistry: asValue(connectionRegistry),
+  });
+
+  // EventReplayBuffer usa Redis quando disponível; sem Redis não suporta replay.
+  const eventReplayBuffer = (cacheDriver === 'redis' && redisClient)
+    ? new EventReplayBuffer({ redisClient })
+    : { supportsReplay: () => false, append: async () => {}, since: async () => [], purge: async () => {} };
+  container.register({ eventReplayBuffer: asValue(eventReplayBuffer) });
+
+  // PubSub: Redis em produção; stub in-memory em dev/test
+  let pubSubService;
+  if (cacheDriver === 'redis' && redisClient) {
+    pubSubService = new RedisPubSubAdapter({ redisClient });
+  } else {
+    // Stub em memória para desenvolvimento sem Redis
+    const { InMemoryPubSubStub } = require('../infrastructure/realtime/InMemoryPubSubStub');
+    pubSubService = new InMemoryPubSubStub();
+  }
+  container.register({ pubSubService: asValue(pubSubService) });
+
+  const subscribeToRoomUseCase = new SubscribeToRoomUseCase({
+    roomManager,
+    presenceService,
+    pubSubService,
+    eventReplayBuffer,
+  });
+  const unsubscribeFromRoomUseCase = new UnsubscribeFromRoomUseCase({
+    roomManager,
+    presenceService,
+    pubSubService,
+  });
+  const publishToChannelUseCase = new PublishToChannelUseCase({
+    pubSubService,
+    eventReplayBuffer,
+    realtimeMetrics,
+  });
+  const replayEventsUseCase = new ReplayEventsUseCase({ eventReplayBuffer });
+
+  container.register({
+    subscribeToRoomUseCase:     asValue(subscribeToRoomUseCase),
+    unsubscribeFromRoomUseCase: asValue(unsubscribeFromRoomUseCase),
+    publishToChannelUseCase:    asValue(publishToChannelUseCase),
+    replayEventsUseCase:        asValue(replayEventsUseCase),
+  });
+
+  const channelRouter = new ChannelRouter({
+    subscribeToRoomUseCase,
+    unsubscribeFromRoomUseCase,
+    connectionRegistry,
+    realtimeMetrics,
+  });
+  container.register({ channelRouter: asValue(channelRouter) });
+
+  // ── Geo bounded context ───────────────────────────────────────
+  const { HaversineStrategy }          = require('../infrastructure/geo/HaversineStrategy');
+  const { VincentyStrategy }           = require('../infrastructure/geo/VincentyStrategy');
+  const { PostGISGeoRepository }       = require('../infrastructure/geo/PostGISGeoRepository');
+  const { RedisGeoCache }              = require('../infrastructure/geo/RedisGeoCache');
+  const { NominatimGeocoderAdapter }   = require('../infrastructure/geo/NominatimGeocoderAdapter');
+  const { GeocodingCacheDecorator }    = require('../infrastructure/geo/GeocodingCacheDecorator');
+  const { DistanceCalculator }         = require('../domain/geo/services/DistanceCalculator');
+  const { UpdateUserLocationUseCase }  = require('../application/geo/UpdateUserLocationUseCase');
+  const { GetNearbyPlacesUseCase }     = require('../application/geo/GetNearbyPlacesUseCase');
+  const { ReverseGeocodeUseCase }      = require('../application/geo/ReverseGeocodeUseCase');
+  const { GeoRateLimiter }             = require('../middlewares/geoRateLimit');
+
+  const haversineStrategy = new HaversineStrategy();
+  const vincentyStrategy  = new VincentyStrategy();
+  const distanceCalculator = new DistanceCalculator({ strategy: haversineStrategy });
+
+  const supabaseForGeo = getSupabaseClient();
+  const postGISGeoRepository = new PostGISGeoRepository({ supabase: supabaseForGeo });
+
+  let geoRepository = postGISGeoRepository;
+  let reverseGeocoder;
+
+  const nominatimGeocoder = new NominatimGeocoderAdapter();
+
+  if (redisClient) {
+    const redisGeoCache = new RedisGeoCache({ repository: postGISGeoRepository, redis: redisClient });
+    geoRepository = redisGeoCache;
+    container.register({ redisGeoCache: asValue(redisGeoCache) });
+
+    const geocodingCacheDecorator = new GeocodingCacheDecorator({ geocoder: nominatimGeocoder, redis: redisClient });
+    reverseGeocoder = geocodingCacheDecorator;
+    container.register({ geocodingCacheDecorator: asValue(geocodingCacheDecorator) });
+  } else {
+    reverseGeocoder = nominatimGeocoder;
+  }
+
+  const geoRateLimiter = new GeoRateLimiter(redisClient ?? null);
+
+  const updateUserLocationUseCase = new UpdateUserLocationUseCase({
+    geoRepository,
+    geoCache: geoRepository,
+    eventBus: publisher,
+  });
+  const getNearbyPlacesUseCase  = new GetNearbyPlacesUseCase({ geoRepository });
+  const reverseGeocodeUseCase   = new ReverseGeocodeUseCase({ reverseGeocoder });
+
+  container.register({
+    haversineStrategy:           asValue(haversineStrategy),
+    vincentyStrategy:            asValue(vincentyStrategy),
+    distanceCalculator:          asValue(distanceCalculator),
+    postGISGeoRepository:        asValue(postGISGeoRepository),
+    geoRepository:               asValue(geoRepository),
+    nominatimGeocoder:           asValue(nominatimGeocoder),
+    reverseGeocoder:             asValue(reverseGeocoder),
+    geoRateLimiter:              asValue(geoRateLimiter),
+    updateUserLocationUseCase:   asValue(updateUserLocationUseCase),
+    getNearbyPlacesUseCase:      asValue(getNearbyPlacesUseCase),
+    reverseGeocodeUseCase:       asValue(reverseGeocodeUseCase),
+  });
+
+  return container;
+}
+
+module.exports = { buildContainer };

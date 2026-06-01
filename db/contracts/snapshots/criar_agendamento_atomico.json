@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "rpc": "criar_agendamento_atomico",
+  "description": "Cria um agendamento de forma atômica com advisory lock para evitar double-booking.",
+  "signature": {
+    "name": "criar_agendamento_atomico",
+    "params": [
+      { "name": "p_client_id",       "type": "UUID" },
+      { "name": "p_professional_id", "type": "UUID" },
+      { "name": "p_barbershop_id",   "type": "UUID" },
+      { "name": "p_service_id",      "type": "UUID" },
+      { "name": "p_scheduled_at",    "type": "TIMESTAMPTZ" },
+      { "name": "p_duration_min",    "type": "INT" },
+      { "name": "p_notes",           "type": "TEXT",    "default": "NULL" },
+      { "name": "p_price_charged",   "type": "NUMERIC", "default": "NULL" }
+    ],
+    "returns": { "type": "SETOF", "of": "public.appointments" },
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "errors": [
+    {
+      "code": "P0001",
+      "message": "SCHEDULE_CONFLICT",
+      "http_status": 409,
+      "condition": "Overlap de horário com agendamento existente do mesmo profissional"
+    }
+  ],
+  "sideEffects": [
+    "INSERT em public.appointments com status='pending'"
+  ],
+  "examples": {
+    "validInput": {
+      "p_client_id":       "aaaa0000-0000-4000-8000-000000000001",
+      "p_professional_id": "bbbb0000-0000-4000-8000-000000000001",
+      "p_barbershop_id":   "cccc0000-0000-4000-8000-000000000001",
+      "p_service_id":      "dddd0000-0000-4000-8000-000000000001",
+      "p_scheduled_at":    "2026-06-01T10:00:00Z",
+      "p_duration_min":    30
+    },
+    "expectedOutputFields": ["id", "client_id", "professional_id", "barbershop_id", "service_id", "scheduled_at", "duration_min", "status", "price_charged", "notes", "created_at", "updated_at"]
+  },
+  "grants": ["authenticated"],
+  "migration": "20260516000003_atomic_appointment_rpc.sql"
+}

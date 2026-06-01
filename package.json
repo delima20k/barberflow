@@ -1,0 +1,50 @@
+{
+  "scripts": {
+    "api": "node api.js",
+    "start": "node api.js",
+    "start:pm2": "pm2 start ecosystem.config.js --env production",
+    "reload:pm2": "pm2 reload ecosystem.config.js --update-env",
+    "stop:pm2": "pm2 stop barberflow-api",
+    "logs:pm2": "pm2 logs barberflow-api",
+    "dev": "node server.js",
+    "dev:vite": "vite --host 0.0.0.0",
+    "build:vite": "vite build && node scripts/check-bundle-size.js",
+    "preview:vite": "vite preview --host 0.0.0.0",
+    "perf:lhci": "lhci autorun --config=./lighthouserc.cjs",
+    "test": "jest",
+    "test:db": "node --test tests/db-schema-snapshot.test.js tests/db-contracts.test.js tests/rls-policy-report.test.js tests/db-validate-pipeline.test.js",
+    "test:rls": "node --test tests/rls-policy-report.test.js",
+    "db:rls": "node scripts/rls-policy-report.js --fail-on-missing-rls",
+    "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js",
+    "db:snapshot": "node scripts/db-snapshot.js --generate",
+    "db:check": "node scripts/db-snapshot.js --check",
+    "db:diff": "node scripts/db-diff.js --diff",
+    "db:coverage": "node scripts/db-diff.js --coverage",
+    "db:validate": "node scripts/db-validate.js --local"
+  },
+  "devDependencies": {
+    "@lhci/cli": "^0.15.1",
+    "jest": "^29.7.0",
+    "jimp": "^1.6.1",
+    "rollup-plugin-visualizer": "^7.0.1",
+    "sharp": "^0.34.5",
+    "vite": "^8.0.14",
+    "vite-plugin-compression": "^0.5.1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1037.0",
+    "@aws-sdk/s3-request-presigner": "^3.1037.0",
+    "@supabase/supabase-js": "^2.104.1",
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.4.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0"
+  }
+}

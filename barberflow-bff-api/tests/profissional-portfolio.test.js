@@ -1,0 +1,251 @@
+'use strict';
+
+const { suite, test } = require('node:test');
+const assert = require('node:assert/strict');
+
+const ProfissionalService = require('../services/ProfissionalService');
+
+const CLIENT_ID = '550e8400-e29b-41d4-a716-446655440000';
+const PRO_ID = '660e8400-e29b-41d4-a716-446655440001';
+const IMAGE_ID = '770e8400-e29b-41d4-a716-446655440002';
+
+function criarRepo(overrides = {}) {
+  return {
+    listarPortfolioPublico: async () => ({
+      items: [{
+        id: IMAGE_ID,
+        title: 'Degrade baixo',
+        description: 'Finalizado na navalha',
+        category: 'degrade',
+        storage_path: 'images/original/pro-1.webp',
+        thumbnail_path: 'images/thumbs/pro-1.webp',
+        likes_count: 4,
+        views_count: 12,
+        is_featured: true,
+        updated_at: '2026-05-25T12:00:00Z',
+      }],
+      total: 1,
+    }),
+    atualizarPortfolioImagem: async (_userId, imageId, payload) => ({ id: imageId, ...payload }),
+    removerPortfolioImagem: async () => ({ deleted: true }),
+    listarInteracoesPortfolio: async () => new Map(),
+    salvarMensagemPortfolio: async () => {},
+    listarCurtidasPortfolio: async () => [IMAGE_ID],
+    curtirPortfolioImagem: async () => ({ exists: true, liked: true, likes_count: 5 }),
+    descurtirPortfolioImagem: async () => ({ exists: true, liked: false, likes_count: 4 }),
+    ...overrides,
+  };
+}
+
+suite('ProfissionalService - portfolio publico', () => {
+  test('deve listar portfolio publico sem depender de usuario autenticado', async () => {
+    const service = new ProfissionalService(criarRepo());
+
+    const dto = await service.listarPortfolioPublico(PRO_ID, { limit: 12 });
+
+    assert.deepEqual(dto, {
+      items: [{
+        id: IMAGE_ID,
+        title: 'Degrade baixo',
+        description: 'Finalizado na navalha',
+        category: 'degrade',
+        storagePath: 'images/original/pro-1.webp',
+        thumbnailPath: 'images/thumbs/pro-1.webp',
+        likesCount: 4,
+        interactions: [{
+          type: 'like',
+          body: '👍',
+          count: 4,
+        }],
+        viewsCount: 12,
+        isFeatured: true,
+        updatedAt: '2026-05-25T12:00:00Z',
+      }],
+      total: 1,
+      limit: 12,
+      offset: 0,
+    });
+  });
+
+  test('deve anexar mensagens historicas do portfolio em lote', async () => {
+    const service = new ProfissionalService(criarRepo({
+      listarInteracoesPortfolio: async (ids) => {
+        assert.deepEqual(ids, [IMAGE_ID]);
+        return new Map([[IMAGE_ID, [{
+          id: 'msg-1',
+          body: 'Ficou top',
+          createdAt: '2026-05-31T10:00:00Z',
+          sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: 'https://cdn/avatar.webp' },
+        }, {
+          id: 'msg-2',
+          body: '😂',
+          createdAt: '2026-05-31T10:01:00Z',
+          sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: null },
+        }]]]);
+      },
+    }));
+
+    const dto = await service.listarPortfolioPublico(PRO_ID, { limit: 12 });
+
+    assert.deepEqual(dto.items[0].interactions, [{
+      type: 'message',
+      body: 'Ficou top',
+      createdAt: '2026-05-31T10:00:00Z',
+      sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: 'https://cdn/avatar.webp' },
+    }, {
+      type: 'emoji',
+      body: '😂',
+      createdAt: '2026-05-31T10:01:00Z',
+      sender: { id: CLIENT_ID, nome: 'Cliente', avatarUrl: null },
+    }, {
+      type: 'like',
+      body: '👍',
+      count: 4,
+    }]);
+  });
+
+  test('deve atualizar imagem do portfolio com allowlist', async () => {
+    const recebidos = [];
+    const service = new ProfissionalService(criarRepo({
+      atualizarPortfolioImagem: async (userId, imageId, payload) => {
+        recebidos.push({ userId, imageId, payload });
+        return { id: imageId, ...payload };
+      },
+    }));
+
+    const dto = await service.atualizarPortfolioImagem(PRO_ID, IMAGE_ID, {
+      title: 'Corte social',
+      description: 'Tesoura e acabamento',
+      category: 'social',
+      isFeatured: true,
+      owner_id: CLIENT_ID,
+    });
+
+    assert.deepEqual(recebidos[0], {
+      userId: PRO_ID,
+      imageId: IMAGE_ID,
+      payload: {
+        title: 'Corte social',
+        description: 'Tesoura e acabamento',
+        category: 'social',
+        is_featured: true,
+      },
+    });
+    assert.equal(dto.id, IMAGE_ID);
+  });
+
+  test('deve remover imagem validando owner no repository', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      removerPortfolioImagem: async (userId, imageId) => {
+        chamado = { userId, imageId };
+        return { deleted: true };
+      },
+    }));
+
+    const dto = await service.removerPortfolioImagem(PRO_ID, IMAGE_ID);
+
+    assert.deepEqual(chamado, { userId: PRO_ID, imageId: IMAGE_ID });
+    assert.deepEqual(dto, { deleted: true });
+  });
+
+  test('deve curtir imagem do portfolio via repository', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      curtirPortfolioImagem: async (userId, imageId) => {
+        chamado = { userId, imageId };
+        return { exists: true, liked: true, likes_count: 5 };
+      },
+    }));
+
+    const dto = await service.curtirPortfolioImagem(CLIENT_ID, IMAGE_ID);
+
+    assert.deepEqual(chamado, { userId: CLIENT_ID, imageId: IMAGE_ID });
+    assert.deepEqual(dto, { imageId: IMAGE_ID, liked: true, likesCount: 5 });
+  });
+
+  test('deve listar curtidas do usuario por ids de portfolio', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      listarCurtidasPortfolio: async (userId, ids) => {
+        chamado = { userId, ids };
+        return [IMAGE_ID];
+      },
+    }));
+
+    const dto = await service.listarCurtidasPortfolio(CLIENT_ID, `${IMAGE_ID},${PRO_ID}`);
+
+    assert.deepEqual(chamado, { userId: CLIENT_ID, ids: [IMAGE_ID, PRO_ID] });
+    assert.deepEqual(dto, { likedIds: [IMAGE_ID] });
+  });
+
+  test('deve descurtir imagem do portfolio via repository', async () => {
+    let chamado = null;
+    const service = new ProfissionalService(criarRepo({
+      descurtirPortfolioImagem: async (userId, imageId) => {
+        chamado = { userId, imageId };
+        return { exists: true, liked: false, likes_count: 4 };
+      },
+    }));
+
+    const dto = await service.descurtirPortfolioImagem(CLIENT_ID, IMAGE_ID);
+
+    assert.deepEqual(chamado, { userId: CLIENT_ID, imageId: IMAGE_ID });
+    assert.deepEqual(dto, { imageId: IMAGE_ID, liked: false, likesCount: 4 });
+  });
+
+  test('deve enviar mensagem de portfolio com texto informado mantendo contexto da barbearia', async () => {
+    let mensagemPortfolio = null;
+    const service = new ProfissionalService(criarRepo({
+      buscarContextoMensagem: async () => ({
+        professional_id: PRO_ID,
+        owner_id: '880e8400-e29b-41d4-a716-446655440004',
+        barbershop_id: '990e8400-e29b-41d4-a716-446655440005',
+        professional_name: 'Lima',
+      }),
+      salvarMensagemPortfolio: async (payload) => {
+        mensagemPortfolio = payload;
+      },
+    }), {
+      execute: async (payload) => {
+        return { isFail: () => false, getValue: () => ({ id: 'message-1', body: payload.body }) };
+      },
+    });
+
+    const dto = await service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
+      body: 'Corte top',
+      portfolioImageId: IMAGE_ID,
+      clientMessageId: 'client-msg-1',
+    });
+
+    assert.equal(dto.conversationId, null);
+    assert.deepEqual(dto.message, { body: 'Corte top' });
+    assert.deepEqual(mensagemPortfolio, {
+      portfolioImageId: IMAGE_ID,
+      professionalId: PRO_ID,
+      senderId: CLIENT_ID,
+      body: 'Corte top',
+    });
+  });
+
+  test('deve rejeitar mensagem de portfolio vazia quando body e informado', async () => {
+    const service = new ProfissionalService(criarRepo());
+
+    await assert.rejects(
+      () => service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, { body: '   ' }),
+      /Mensagem obrigatoria/,
+    );
+  });
+
+  test('deve rejeitar mensagem de portfolio acima de 20 caracteres', async () => {
+    const service = new ProfissionalService(criarRepo());
+
+    await assert.rejects(
+      () => service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
+        body: 'mensagem com mais de vinte',
+        portfolioImageId: IMAGE_ID,
+      }),
+      /20 caracteres/i,
+    );
+  });
+});

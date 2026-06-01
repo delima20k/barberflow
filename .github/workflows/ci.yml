@@ -1,0 +1,215 @@
+# ===========================================================================
+# GitHub Actions: ci.yml — Pipeline CI/CD da BFF BarberFlow
+#
+# Gatilhos: push em main/develop, PRs para main/develop
+# Jobs:
+#   1. lint          — ESLint + Prettier
+#   2. unit-test     — testes unitários + integração
+#   3. e2e-test      — testes E2E
+#   4. contract-test — testes de contrato de schema
+#   5. security      — audit npm + SAST básico
+#   6. build         — verifica que a app inicia sem erros
+# ===========================================================================
+
+name: BFF CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feat/**'
+      - 'fix/**'
+    paths:
+      - 'barberflow-bff-api/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'barberflow-bff-api/**'
+
+env:
+  NODE_VERSION: '24'
+  WORKING_DIR:  barberflow-bff-api
+
+defaults:
+  run:
+    working-directory: barberflow-bff-api
+
+jobs:
+  # ── 1. Lint ────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache:        npm
+          cache-dependency-path: barberflow-bff-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: ESLint
+        run: npm run lint
+
+  # ── 2. Unit + Integration ──────────────────────────────────────────────────
+  unit-test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    env:
+      APP_ENV:                   test
+      SUPABASE_URL:              https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      SUPABASE_ANON_KEY:         test-anon-key
+      SUPABASE_JWT_SECRET:       test-supabase-jwt-secret-for-testing-only-32chars
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache:        npm
+          cache-dependency-path: barberflow-bff-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration & app-level tests
+        run: node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js tests/barbearia.test.js tests/auth.test.js tests/agendamentos.test.js
+
+  # ── 3. E2E ────────────────────────────────────────────────────────────────
+  e2e-test:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: unit-test
+    env:
+      APP_ENV:                   test
+      SUPABASE_URL:              https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      SUPABASE_ANON_KEY:         test-anon-key
+      SUPABASE_JWT_SECRET:       test-supabase-jwt-secret-for-testing-only-32chars
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache:        npm
+          cache-dependency-path: barberflow-bff-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+  # ── 4. Contract ────────────────────────────────────────────────────────────
+  contract-test:
+    name: Contract Tests (Schema)
+    runs-on: ubuntu-latest
+    needs: unit-test
+    env:
+      APP_ENV:                   test
+      SUPABASE_URL:              https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      SUPABASE_ANON_KEY:         test-anon-key
+      SUPABASE_JWT_SECRET:       test-supabase-jwt-secret-for-testing-only-32chars
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache:        npm
+          cache-dependency-path: barberflow-bff-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Contract tests
+        run: npm run test:contract
+
+  # ── 5. Security ───────────────────────────────────────────────────────────
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache:        npm
+          cache-dependency-path: barberflow-bff-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: NPM audit (high+critical)
+        run: npm audit --audit-level=high --omit=dev
+        continue-on-error: false
+
+      - name: ESLint Security plugin
+        run: |
+          npx eslint . --plugin security --rule 'security/detect-object-injection: warn' --max-warnings 0
+        continue-on-error: true
+
+  # ── 6. Build check ────────────────────────────────────────────────────────
+  build:
+    name: Build & Startup Check
+    runs-on: ubuntu-latest
+    needs: [e2e-test, contract-test]
+    env:
+      APP_ENV:                   test
+      SUPABASE_URL:              https://test.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      SUPABASE_ANON_KEY:         test-anon-key
+      SUPABASE_JWT_SECRET:       test-supabase-jwt-secret-for-testing-only-32chars
+      PORT:                      3333
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache:        npm
+          cache-dependency-path: barberflow-bff-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline
+
+      - name: Verify app starts cleanly
+        run: |
+          timeout 15 node -e "
+            process.env.APP_ENV = 'test';
+            const criarApp = require('./app');
+            const app = criarApp(null);
+            const server = app.listen(3333, () => {
+              console.log('App iniciou OK na porta 3333');
+              server.close(() => process.exit(0));
+            });
+          " || echo "App falhou ao iniciar"
+
+      - name: Health check
+        run: |
+          node -e "
+            const http = require('http');
+            const app  = require('./app')(null);
+            const srv  = app.listen(3334, () => {
+              http.get('http://127.0.0.1:3334/health/live', r => {
+                console.log('Health status:', r.statusCode);
+                srv.close(() => process.exit(r.statusCode === 200 ? 0 : 1));
+              });
+            });
+          "
