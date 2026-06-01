@@ -60,6 +60,17 @@ describe('BarbeiroPage e BarbeariaPage - destaque do barbeiro', () => {
     assert.match(BARBEARIA_JS, /async abrirPorId\(id,\s*\{\s*highlightBarberId\s*=\s*null\s*\}\s*=\s*\{\}\)/);
     assert.match(BARBEARIA_JS, /this\.#highlightBarberId\s*=\s*InputValidator\.uuid\(highlightBarberId\)\.ok/);
   });
+
+  test('BarbeariaPage deve permitir mensagem no perfil publico para profissional logado', () => {
+    assert.match(BARBEARIA_JS, /if \(shop\.whatsapp\) \{\s*const digits = shop\.whatsapp\.replace/s);
+    assert.doesNotMatch(BARBEARIA_JS, /!isProfissional && shop\.whatsapp/);
+  });
+
+  test('BarbeariaPage deve manter cadeira e atendimento restritos ao cliente', () => {
+    assert.match(BARBEARIA_JS, /#onCadeiraClick[\s\S]*ClienteController\.podeInteragir\(\)/);
+    assert.match(BARBEARIA_JS, /#onProducaoClick[\s\S]*ClienteController\.podeInteragir\(\)/);
+    assert.match(BARBEARIA_JS, /#onProducaoArrivingClick[\s\S]*ClienteController\.podeInteragir\(\)/);
+  });
 });
 
 describe('BarbershopRepository - workplace principal', () => {

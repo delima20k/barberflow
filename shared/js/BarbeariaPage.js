@@ -1181,9 +1181,9 @@ class BarbeariaPage {
 
     BarbershopService.assegurarDelegacao();
 
-    // WhatsApp: oculto sempre para profissional (não pode enviar mensagem)
+    // WhatsApp: liberado no perfil publico; cadeira/agendamento seguem restritos ao cliente.
     if (this.#refs.whatsBtn) {
-      if (!isProfissional && shop.whatsapp) {
+      if (shop.whatsapp) {
         const digits = shop.whatsapp.replace(/\D/g, '');
         this.#refs.whatsBtn.href   = `https://wa.me/${digits}`;
         this.#refs.whatsBtn.hidden = false;
