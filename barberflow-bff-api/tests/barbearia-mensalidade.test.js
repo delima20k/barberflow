@@ -26,6 +26,9 @@ const mockShopData = {
 };
 
 const chamadasDb = [];
+// erroQuery: simula erro no await query (usado pela lógica sem .single())
+// erroSingle: mantido por compatibilidade com testes que verificam .single()
+let erroQuery  = null;
 let erroSingle = null;
 
 const criarQB = (returnData) => {
@@ -42,7 +45,9 @@ const criarQB = (returnData) => {
     ),
     maybeSingle: () => Promise.resolve({ data: returnData, error: null }),
   };
-  q.then = (resolve) => resolve({ data: returnData, error: null });
+  q.then = (resolve) => resolve(
+    erroQuery ? { data: null, error: erroQuery } : { data: returnData, error: null },
+  );
   return q;
 };
 
@@ -193,7 +198,8 @@ suite('BarbeariaController — PATCH /api/v1/barbearias/minha/mensalidade', () =
   });
 
   test('200 com fallback quando colunas de mensalidade ainda não chegaram no schema cache', async () => {
-    erroSingle = {
+    // Simula PGRST204 no await query (sem .single()) — migration pendente.
+    erroQuery = {
       code:    'PGRST204',
       message: 'Could not find columns in the schema cache',
       details: "Could not find the 'monthly_plan_message' column of 'barbershops'",
@@ -210,7 +216,7 @@ suite('BarbeariaController — PATCH /api/v1/barbearias/minha/mensalidade', () =
       assert.strictEqual(body.dados.monthly_plan_price, 90);
       assert.strictEqual(body.dados.monthly_plan_message, 'Plano mensal');
     } finally {
-      erroSingle = null;
+      erroQuery = null;
     }
   });
 

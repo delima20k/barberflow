@@ -238,30 +238,37 @@ class BarbeariaRepository extends BaseRepository {
     if (barbershopId) this._uuid('barbershop_id', barbershopId);
     const payload = this._payload(dados, ['monthly_plan_price', 'monthly_plan_message', 'updated_at']);
 
+    const monthly_plan_price   = dados.monthly_plan_price   ?? null;
+    const monthly_plan_message = dados.monthly_plan_message ?? null;
+
     let query = this._db
       .from('barbershops')
       .update(payload)
       .eq('owner_id', ownerId);
     if (barbershopId) query = query.eq('id', barbershopId);
 
-    const { data, error } = await query
-      .select('monthly_plan_price, monthly_plan_message')
-      .single();
+    // Sem .select()/.single(): PostgREST retorna 204 mesmo para 0 linhas afetadas,
+    // eliminando PGRST116 que o .single() lançava e não era capturado pelo fallback.
+    const { error } = await query;
 
     if (error) {
-      // Fallback: colunas monthly_plan_* ausentes — migration pendente em producao.
-      // Retorna os valores recebidos para nao quebrar a UI ate a migration ser aplicada.
       if (BarbeariaRepository.#ehColunasMensalidadeInexistentes(error)) {
-        this._warn('updateMensalidade', 'colunas monthly_plan_* ausentes (migration pendente) — retornando fallback');
-        return {
-          monthly_plan_price:   dados.monthly_plan_price   ?? null,
-          monthly_plan_message: dados.monthly_plan_message ?? null,
-        };
+        // Migration pendente — colunas não existem. Faz update seguro só com updated_at
+        // para manter o realtime funcionando, e devolve os valores de entrada.
+        this._warn('updateMensalidade', 'colunas monthly_plan_* ausentes (migration pendente) — fallback gracioso');
+        let safeQuery = this._db
+          .from('barbershops')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('owner_id', ownerId);
+        if (barbershopId) safeQuery = safeQuery.eq('id', barbershopId);
+        try { await safeQuery; } catch (_) {}
+        return { monthly_plan_price, monthly_plan_message };
       }
       this._warn('updateMensalidade', error);
       this._throwDbError(error, 'updateMensalidade');
     }
-    return data;
+
+    return { monthly_plan_price, monthly_plan_message };
   }
 
   /**

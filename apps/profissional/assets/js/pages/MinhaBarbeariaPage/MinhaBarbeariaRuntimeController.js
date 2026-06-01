@@ -582,15 +582,43 @@ export class MinhaBarbeariaRuntimeController {
       sessionStorage.removeItem('bf_parceria_barbershop_id');
     }
 
+    // Tenta carregar incluindo monthly_plan_* (migration 20260530000001).
+    // Se as colunas não existirem (PGRST204 = schema cache miss), faz fallback
+    // sem elas — a página carrega normalmente e o banner fica oculto até que a
+    // migration seja aplicada.
+    const SELECT_FULL = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at, monthly_plan_price, monthly_plan_message';
+    const SELECT_SAFE = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at';
+
     const { data, error } = await SupabaseService.barbershops()
-      .select('id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at')
+      .select(SELECT_FULL)
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data ?? null;
+    if (!error) return data ?? null;
+
+    // Colunas monthly_plan_* ausentes — migration pendente.
+    const codErr = String(error.code ?? '');
+    const msgErr = String(error.message ?? '').toLowerCase();
+    const ehMigrationPendente = codErr === 'PGRST204' || codErr === '42703' ||
+      msgErr.includes('monthly_plan') || msgErr.includes('schema cache');
+
+    if (ehMigrationPendente) {
+      const { data: dataSafe, error: errSafe } = await SupabaseService.barbershops()
+        .select(SELECT_SAFE)
+        .eq('owner_id', ownerId)
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+      if (errSafe && errSafe.code !== 'PGRST116') throw errSafe;
+      return dataSafe
+        ? { ...dataSafe, monthly_plan_price: null, monthly_plan_message: null }
+        : null;
+    }
+
+    if (error.code !== 'PGRST116') throw error;
+    return null;
   }
 
   static async #fetchPerfilDono(shop, perfilLogado) {
