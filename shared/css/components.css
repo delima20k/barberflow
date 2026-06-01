@@ -8313,7 +8313,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   padding: 0 36px 0 12px;
   outline: none;
 }
-.pp-prism-message-input::placeholder { color: rgba(255,255,255,.62); }
 .pp-prism-message-send {
   position: absolute;
   right: 4px;
@@ -8329,6 +8328,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
   font-size: 13px;
+  line-height: 1;
   cursor: pointer;
   transition: background .15s;
 }

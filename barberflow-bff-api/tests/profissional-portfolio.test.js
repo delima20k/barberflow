@@ -236,4 +236,16 @@ suite('ProfissionalService - portfolio publico', () => {
       /Mensagem obrigatoria/,
     );
   });
+
+  test('deve rejeitar mensagem de portfolio acima de 20 caracteres', async () => {
+    const service = new ProfissionalService(criarRepo());
+
+    await assert.rejects(
+      () => service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
+        body: 'mensagem com mais de vinte',
+        portfolioImageId: IMAGE_ID,
+      }),
+      /20 caracteres/i,
+    );
+  });
 });

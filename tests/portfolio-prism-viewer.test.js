@@ -52,6 +52,12 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /pp-prism-public-actions/);
     assert.match(js, /pp-prism-public-logo" src="\/shared\/img\/icon-512-cliente\.png"/);
     assert.match(js, /pp-prism-message-input/);
+    assert.match(js, /#PUBLIC_MESSAGE_MAX_LENGTH\s*=\s*20/);
+    assert.match(js, /maxlength="\$\{PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH\}"/);
+    assert.doesNotMatch(js, /placeholder=/);
+    assert.match(js, /class="pp-prism-message-send"[\s\S]*<span aria-hidden="true">✈<\/span>/);
+    assert.doesNotMatch(js, />Enviar<\/button>/);
+    assert.match(js, /Array\.from\(texto\)\.length\s*>\s*PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH/);
     assert.match(js, /static #sadEmoji\(\)/);
     assert.match(js, /data-public-emoji="\$\{PortfolioPrismViewer\.#laughEmoji\(\)\}"/);
     assert.match(js, /data-public-emoji="\$\{PortfolioPrismViewer\.#sadEmoji\(\)\}"/);

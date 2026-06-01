@@ -76,8 +76,19 @@ class ProfissionalService extends BaseService {
   async iniciarMensagemBarbearia(clienteId, professionalId, dados = {}) {
     this._uuid('clienteId', clienteId);
     this._uuid('professionalId', professionalId);
+    const portfolioBodyMaxLength = 20;
+
+    let portfolioImageId = null;
+    if (Object.prototype.hasOwnProperty.call(dados ?? {}, 'portfolioImageId') && dados.portfolioImageId) {
+      this._uuid('portfolioImageId', dados.portfolioImageId);
+      portfolioImageId = dados.portfolioImageId;
+    }
 
     const bodyInformado = Object.prototype.hasOwnProperty.call(dados ?? {}, 'body');
+    const bodyRaw = bodyInformado ? String(dados.body ?? '').replace(/\0/g, '').trim() : '';
+    if (portfolioImageId && bodyRaw && Array.from(bodyRaw).length > portfolioBodyMaxLength) {
+      throw AppError.badRequest(`body: Máximo de ${portfolioBodyMaxLength} caracteres.`);
+    }
     const bodyCustomizado = bodyInformado
       ? this._texto('body', dados.body ?? '', 240, false)
       : '';
@@ -91,12 +102,6 @@ class ProfissionalService extends BaseService {
       if (mod.bloqueado) {
         throw AppError.badRequest('Mensagem nao permitida. Revise o conteudo antes de enviar.');
       }
-    }
-
-    let portfolioImageId = null;
-    if (Object.prototype.hasOwnProperty.call(dados ?? {}, 'portfolioImageId') && dados.portfolioImageId) {
-      this._uuid('portfolioImageId', dados.portfolioImageId);
-      portfolioImageId = dados.portfolioImageId;
     }
 
     let clientMessageId = null;

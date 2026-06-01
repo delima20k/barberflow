@@ -26,6 +26,7 @@ class PortfolioPrismViewer {
   static #THRESHOLD_DIST_RATIO  = 0.18;
   static #VELOCITY_THRESHOLD    = 0.35;                // px/ms
   static #DRAG_MIN_PX           = 8;                   // gesto horizontal só após este deslocamento
+  static #PUBLIC_MESSAGE_MAX_LENGTH = 20;
   // Ordem visual das 6 faces ao redor do índice atual.
   // Face 0 = frontal; 1/2/3 giram à direita; -2/-1 giram à esquerda.
   static #FACE_OFFSETS          = [0, 1, 2, 3, -2, -1];
@@ -507,6 +508,10 @@ class PortfolioPrismViewer {
     const item = this.#itemAtual();
     const texto = String(body ?? '').trim();
     if (!item?.portfolioPublicActions || !item?.professionalId || !texto) return;
+    if (Array.from(texto).length > PortfolioPrismViewer.#PUBLIC_MESSAGE_MAX_LENGTH) {
+      this.#emitInteraction({ texto: '✗ Máximo 20 caracteres', perfil: null });
+      return;
+    }
     if (typeof BffApiService === 'undefined') return;
 
     const perfil = PortfolioPrismViewer.#perfilAtual();
@@ -731,8 +736,8 @@ class PortfolioPrismViewer {
       <div class="pp-prism-public-actions" hidden>
         <img class="pp-prism-public-logo" src="/shared/img/icon-512-cliente.png" alt="BarberFlow" loading="lazy">
         <div class="pp-prism-message-wrap">
-          <input class="pp-prism-message-input" type="text" maxlength="240" placeholder="Elogie este trabalho..." aria-label="Mensagem">
-          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem">Enviar</button>
+          <input class="pp-prism-message-input" type="text" maxlength="${PortfolioPrismViewer.#PUBLIC_MESSAGE_MAX_LENGTH}" aria-label="Mensagem">
+          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem"><span aria-hidden="true">✈</span></button>
         </div>
         <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
           <span data-public-like-icon aria-hidden="true">👍</span>

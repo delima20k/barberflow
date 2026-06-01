@@ -67,15 +67,15 @@ suite('ProfissionalService – mensagens de portfólio (envio)', () => {
     );
   });
 
-  test('deve rejeitar mensagem com mais de 240 caracteres', async () => {
+  test('deve rejeitar mensagem com mais de 20 caracteres', async () => {
     const service = new ProfissionalService(criarRepo());
 
     await assert.rejects(
       () => service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
-        body:            'a'.repeat(241),
+        body:            'Mensagem passou limite',
         portfolioImageId: IMAGE_ID,
       }),
-      /Máximo/i,
+      /20 caracteres/i,
     );
   });
 
@@ -84,7 +84,7 @@ suite('ProfissionalService – mensagens de portfólio (envio)', () => {
 
     await assert.rejects(
       () => service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
-        body:            'puta merda esse corte',
+        body:            'puta merda',
         portfolioImageId: IMAGE_ID,
       }),
       /Mensagem nao permitida/i,
@@ -105,22 +105,21 @@ suite('ProfissionalService – mensagens de portfólio (envio)', () => {
     assert.equal(salvo.body, '😂');
   });
 
-  test('deve aceitar mensagem no limite exato de 240 caracteres', async () => {
-    // 'Corte incrivel!!' = 16 chars × 15 = 240 exatos; sem espaço final; sem char repetido 7+
-    const corpo240 = 'Corte incrivel!!'.repeat(15);
-    assert.equal(corpo240.length, 240);
+  test('deve aceitar mensagem no limite exato de 20 caracteres', async () => {
+    const corpo20 = 'Corte incrivel 2026!';
+    assert.equal(corpo20.length, 20);
 
     let salvo = null;
     const service = new ProfissionalService(criarRepo({
       salvarMensagemPortfolio: async (payload) => { salvo = payload; },
-    }), { execute: async () => ({ isFail: () => false, getValue: () => ({ id: 'x', body: corpo240 }) }) });
+    }), { execute: async () => ({ isFail: () => false, getValue: () => ({ id: 'x', body: corpo20 }) }) });
 
     await service.iniciarMensagemBarbearia(CLIENT_ID, PRO_ID, {
-      body:            corpo240,
+      body:            corpo20,
       portfolioImageId: IMAGE_ID,
     });
 
-    assert.equal(salvo.body.length, 240);
+    assert.equal(salvo.body.length, 20);
   });
 });
 
