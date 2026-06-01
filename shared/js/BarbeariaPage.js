@@ -1319,11 +1319,11 @@ class BarbeariaPage {
     const msgRaw = shop?.monthly_plan_message ?? mensalidadeServico?.description ?? mensalidadeServico?.name ?? '';
     const msg    = msgRaw ? s(String(msgRaw)) : '';
     const tituloMensalidade = 'Plano Mensalidade';
-    const descricaoMensalidade = 'Compartilhe a mensalidade com seus colegas para cortarem cabelo a qualquer horário, qualquer dia, durante o mês. Você pode cortar o cabelo quantas vezes quiser!';
+    const descricaoMensalidade = `Avise a barbearia <span style="font-weight: bold; color: yellow;"><strong>${s(shop?.name ?? 'barbearia')}</strong></span> que você está interessado no plano mensal. Peça mais detalhes ou solicite sua inclusão de forma simples e rápida! <span style="font-weight: bold; background: linear-gradient(to right, #d4af37, #8b4513); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Clique no banner</span>.`;
 
     el.innerHTML = `
       <h2 class="bp-mensal-banner__titulo">${s(tituloMensalidade)}</h2>
-      <p class="bp-mensal-banner__descricao">${s(descricaoMensalidade)}</p>
+      <p class="bp-mensal-banner__descricao">${descricaoMensalidade}</p>
       <button class="bp-mensal-trigger" type="button" aria-label="Ver plano de mensalidade">
         <div class="bp-mensal-trigger__linha">
           <span class="bp-mensal-trigger__tag">Mensalidade</span>
@@ -1367,11 +1367,6 @@ class BarbeariaPage {
     const s       = InputValidator.sanitizar;
     const val     = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
     const msg     = msgRaw ? s(String(msgRaw)) : '';
-    const whats   = String(shop?.whatsapp ?? '').replace(/\D/g, '');
-    const whatsHref = whats
-      ? `https://wa.me/55${whats}?text=${encodeURIComponent('Ol\u00e1! Tenho interesse no plano de mensalidade.')}`
-      : '';
-
     overlay.innerHTML = `
       <div class="bp-mensal-modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-mensal-modal-titulo">
         <button class="bp-mensal-modal-fechar" type="button" aria-label="Fechar modal de mensalidade">
@@ -1383,9 +1378,7 @@ class BarbeariaPage {
             ${val}<span class="bp-mensal-modal-per">/m\u00eas</span>
           </p>
           ${msg ? `<p class="bp-mensal-modal-msg">${msg}</p>` : ''}
-          ${whatsHref
-            ? `<a class="bp-mensal-modal-cta" href="${whatsHref}" target="_blank" rel="noopener noreferrer">Entrar em contato</a>`
-            : ''}
+          <button class="bp-mensal-modal-cta" type="button">Tenho interesse no plano</button>
         </div>
       </div>`;
 
@@ -1394,6 +1387,16 @@ class BarbeariaPage {
 
     // Fechar no X
     overlay.querySelector('.bp-mensal-modal-fechar').onclick = () => this.#fecharMensalModal();
+    overlay.querySelector('.bp-mensal-modal-cta').onclick = (e) => {
+      if (typeof MensalidadeInterestService === 'undefined') return;
+      MensalidadeInterestService.enviar({
+        barbershopId: shop?.id ?? this.#shopId,
+        planName: 'Plano Mensalidade',
+        monthlyPrice: preco,
+        btn: e.currentTarget,
+        onSuccess: () => this.#fecharMensalModal(true),
+      }).catch(() => {});
+    };
 
     // Fechar clicando fora do card
     overlay.onclick = (e) => { if (e.target === overlay) this.#fecharMensalModal(); };
