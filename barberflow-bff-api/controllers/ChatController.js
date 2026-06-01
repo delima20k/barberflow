@@ -6,12 +6,17 @@ class ChatController extends BaseController {
   #sendMessageUseCase;
   #listMessagesUseCase;
   #softDeleteMessageUseCase;
+  #listConversationsUseCase;
+  #getOrCreateConversationUseCase;
 
-  constructor({ sendMessageUseCase, listMessagesUseCase, softDeleteMessageUseCase }) {
+  constructor({ sendMessageUseCase, listMessagesUseCase, softDeleteMessageUseCase,
+                listConversationsUseCase, getOrCreateConversationUseCase }) {
     super();
-    this.#sendMessageUseCase = sendMessageUseCase;
-    this.#listMessagesUseCase = listMessagesUseCase;
-    this.#softDeleteMessageUseCase = softDeleteMessageUseCase;
+    this.#sendMessageUseCase             = sendMessageUseCase;
+    this.#listMessagesUseCase            = listMessagesUseCase;
+    this.#softDeleteMessageUseCase       = softDeleteMessageUseCase;
+    this.#listConversationsUseCase       = listConversationsUseCase;
+    this.#getOrCreateConversationUseCase = getOrCreateConversationUseCase;
   }
 
   async send(req, res) {
@@ -50,6 +55,28 @@ class ChatController extends BaseController {
       });
       if (result.isFail()) throw this._erro(result.getError(), 404);
       this.success(res, result.getValue());
+    });
+  }
+
+  async listConversations(req, res) {
+    await this.handle(res, async () => {
+      const result = await this.#listConversationsUseCase.execute({ userId: req.user.id });
+      if (!result.ok) throw this._erro(result.error, 400);
+      res.setHeader('Cache-Control', 'private, no-store');
+      this.success(res, result.value);
+    });
+  }
+
+  async getOrCreate(req, res) {
+    await this.handle(res, async () => {
+      const { targetUserId } = req.body ?? {};
+      if (!targetUserId) throw this._erro('targetUserId obrigatorio.', 400);
+      const result = await this.#getOrCreateConversationUseCase.execute({
+        requesterId: req.user.id,
+        targetUserId,
+      });
+      if (!result.ok) throw this._erro(result.error, 400);
+      this.success(res, result.value);
     });
   }
 

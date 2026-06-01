@@ -7,12 +7,23 @@ const BarbeariaService    = require('../services/BarbeariaService');
 const BarbeariaMediaService = require('../services/BarbeariaMediaService');
 const BarbeariaController = require('../controllers/BarbeariaController');
 const AuthMiddleware      = require('../middlewares/auth');
+const { SupabaseChatRepository } = require('../infrastructure/chat/SupabaseChatRepository');
+const { OutboxRepository } = require('../infrastructure/outbox/OutboxRepository');
+const { BlockPolicy } = require('../domain/chat/policies/BlockPolicy');
+const { SendMessageUseCase } = require('../application/chat/SendMessageUseCase');
 
 // ── Factory: recebe db injetado por criarApp() ───────────────────
 // Permite isolamento de dependências em testes (evita caching de módulo).
 module.exports = function criarBarbeariaRoute(db) {
   const repo = new BarbeariaRepository(db);
-  const svc  = new BarbeariaService(repo);
+  const chatRepository = new SupabaseChatRepository(db);
+  const blockPolicy = new BlockPolicy({ blockRepository: chatRepository });
+  const sendMessageUseCase = new SendMessageUseCase({
+    chatRepository,
+    blockPolicy,
+    outboxRepository: new OutboxRepository({ supabase: db }),
+  });
+  const svc  = new BarbeariaService(repo, sendMessageUseCase);
   const mediaSvc = new BarbeariaMediaService(repo);
   const ctrl = new BarbeariaController(svc, mediaSvc);
 
@@ -36,6 +47,7 @@ module.exports = function criarBarbeariaRoute(db) {
   // Deve vir ANTES de /:barbershop_id para evitar conflito de parâmetro dinâmico.
   router.get('/portfolio/interacoes',                       ctrl.portfolioInteracoes.bind(ctrl));
   // FIM ALTERAÇÃO
+  router.post('/:barbershop_id/mensalidade/interesse',      AuthMiddleware.verificar, ctrl.interesseMensalidade.bind(ctrl));
   router.get('/:barbershop_id/gestao',                      AuthMiddleware.verificar, ctrl.getGestaoVinculada.bind(ctrl));
   router.post('/:barbershop_id/stories',                    AuthMiddleware.verificar, ctrl.salvarStoryProfissional.bind(ctrl));
   router.get('/:barbershop_id/portfolio',                   ctrl.portfolio.bind(ctrl));

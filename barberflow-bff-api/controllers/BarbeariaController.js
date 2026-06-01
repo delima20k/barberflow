@@ -157,6 +157,20 @@ class BarbeariaController extends BaseController {
   }
 
   /**
+   * POST /api/v1/barbearias/:barbershop_id/mensalidade/interesse
+   * Envia interesse no plano mensal via chat interno canonico da BFF.
+   */
+  async interesseMensalidade(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const dto = await this.#service.enviarInteresseMensalidade(req.user.id, barbershopId, req.body ?? {});
+      this.created(res, dto);
+    });
+  }
+
+  /**
    * PATCH /api/v1/barbearias/minha/imagem?tipo=logo|cover
    * Atualiza logo/capa da barbearia do usuario autenticado via BFF.
    */

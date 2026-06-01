@@ -330,6 +330,60 @@ class BarbeariaRepository extends BaseRepository {
     return data ?? null;
   }
 
+  async encontrarConversaDireta(clientId, ownerId) {
+    this._uuid('clientId', clientId);
+    this._uuid('ownerId', ownerId);
+
+    const { data: clientParts, error: clientError } = await this._db
+      .from('chat_participants')
+      .select('conversation_id')
+      .eq('user_id', clientId)
+      .is('left_at', null)
+      .limit(50);
+    if (clientError) this._throwDbError(clientError, 'encontrarConversaDireta.client');
+
+    const conversationIds = (clientParts ?? []).map(row => row.conversation_id).filter(Boolean);
+    if (conversationIds.length === 0) return null;
+
+    const { data: ownerParts, error: ownerError } = await this._db
+      .from('chat_participants')
+      .select('conversation_id')
+      .eq('user_id', ownerId)
+      .is('left_at', null)
+      .in('conversation_id', conversationIds)
+      .limit(1);
+    if (ownerError) this._throwDbError(ownerError, 'encontrarConversaDireta.owner');
+
+    return ownerParts?.[0]?.conversation_id ?? null;
+  }
+
+  async criarConversaDireta(dados) {
+    this._uuid('clientId', dados.clientId);
+    this._uuid('ownerId', dados.ownerId);
+    this._uuid('createdBy', dados.createdBy);
+
+    const { data: conversation, error: conversationError } = await this._db
+      .from('chat_conversations')
+      .insert({
+        type: 'direct',
+        created_by: dados.createdBy,
+        metadata: dados.metadata ?? null,
+      })
+      .select('id')
+      .single();
+    if (conversationError) this._throwDbError(conversationError, 'criarConversaDireta.conversation');
+
+    const { error: participantsError } = await this._db
+      .from('chat_participants')
+      .insert([
+        { conversation_id: conversation.id, user_id: dados.clientId, role: 'member' },
+        { conversation_id: conversation.id, user_id: dados.ownerId, role: 'member' },
+      ]);
+    if (participantsError) this._throwDbError(participantsError, 'criarConversaDireta.participants');
+
+    return conversation.id;
+  }
+
   async getProfessionalIdsAtivos(barbershopId) {
     this._uuid('barbershopId', barbershopId);
     const { data, error } = await this._db

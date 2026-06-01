@@ -10,6 +10,8 @@ class ChatRepository {
   async countRecentDuplicateBodies(_conversationId, _senderId, _body, _windowSeconds) { throw new Error('ChatRepository.countRecentDuplicateBodies nao implementado.'); }
   async hasBidirectionalBlock(_leftUserId, _rightUserId) { throw new Error('ChatRepository.hasBidirectionalBlock nao implementado.'); }
   async softDeleteMessage(_messageId, _senderId, _retentionUntil) { throw new Error('ChatRepository.softDeleteMessage nao implementado.'); }
+  async listConversationsForUser(_userId) { throw new Error('ChatRepository.listConversationsForUser nao implementado.'); }
+  async findOrCreateDirect(_userA, _userB) { throw new Error('ChatRepository.findOrCreateDirect nao implementado.'); }
 }
 
 module.exports = { ChatRepository };

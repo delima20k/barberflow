@@ -17,7 +17,7 @@
 // =============================================================
 // VersÃƒÂ£o do Service Worker Ã¢â‚¬â€ bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260601k';
+const SW_CLI_VERSION = '20260601m';
 
 class SWCliente {
 
@@ -63,6 +63,7 @@ class SWCliente {
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
     '/shared/js/BffApiService.js',
+    '/shared/js/MensalidadeInterestService.js',
     '/shared/js/BffAuthClient.js',
     '/shared/js/AgendaBffClient.js',
     '/shared/js/BarbeariaApiClient.js',
@@ -73,6 +74,13 @@ class SWCliente {
     '/shared/js/PortfolioPrismViewer.js',
     '/shared/js/PortfolioBarbeirosSection.js',
     '/shared/js/BarbeariaPage.js',
+    '/shared/js/ConversationRepository.js',
+    '/shared/js/ChatApiClient.js',
+    '/shared/js/MessageModerationService.js',
+    '/shared/js/ConversationListService.js',
+    '/shared/js/ChatModal.js',
+    '/shared/js/ChatSearchWidget.js',
+    '/shared/js/UniversalChatPage.js',
   ];
 
   // Imagens Ã¢â‚¬â€ prÃƒÂ©-cacheadas em CACHE_IMAGES

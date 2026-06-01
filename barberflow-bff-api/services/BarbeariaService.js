@@ -15,11 +15,13 @@ class BarbeariaService extends BaseService {
 
   /** @type {import('../repositories/BarbeariaRepository')} */
   #repo;
+  #sendMessageUseCase;
 
   /** @param {import('../repositories/BarbeariaRepository')} repo */
-  constructor(repo) {
+  constructor(repo, sendMessageUseCase = null) {
     super('BarbeariaService');
     this.#repo = repo;
+    this.#sendMessageUseCase = sendMessageUseCase;
   }
 
   // ── Listagens ────────────────────────────────────────────────────
@@ -186,6 +188,68 @@ class BarbeariaService extends BaseService {
       monthly_plan_message: msg !== undefined ? (msg !== null ? String(msg) : null) : null,
       updated_at:           new Date().toISOString(),
     });
+  }
+
+  /**
+   * Envia interesse no plano de mensalidade pelo chat canonico da BFF.
+   * P2P textual nao e usado aqui: a persistencia via BFF/outbox e a fonte de verdade,
+   * e a entrega P2P pode ser plugada futuramente como otimizacao apos persistir.
+   * @param {string} userId
+   * @param {string} barbershopId
+   * @param {object} dados
+   * @returns {Promise<{conversationId:string, message:object}>}
+   */
+  async enviarInteresseMensalidade(userId, barbershopId, dados = {}) {
+    this._uuid('userId', userId);
+    this._uuid('barbershopId', barbershopId);
+
+    if (!this.#sendMessageUseCase) {
+      throw AppError.unavailable('Chat interno temporariamente indisponivel.');
+    }
+
+    const clientMessageId = this._texto('clientMessageId', dados.clientMessageId ?? '', 80, true);
+    const planName = this._texto('planName', dados.planName ?? 'Plano Mensalidade', 80, false) || 'Plano Mensalidade';
+    const monthlyPrice = BarbeariaService.#normalizarPrecoMensal(dados.monthlyPrice);
+
+    const shop = await this.#repo.getAtivaPorId(barbershopId);
+    if (!shop?.id || !shop.owner_id) throw AppError.notFound('Barbearia nao encontrada.');
+    if (shop.owner_id === userId) {
+      throw AppError.conflict('Nao e possivel enviar interesse para a propria barbearia.');
+    }
+
+    let conversationId = await this.#repo.encontrarConversaDireta(userId, shop.owner_id);
+    if (!conversationId) {
+      conversationId = await this.#repo.criarConversaDireta({
+        clientId: userId,
+        ownerId: shop.owner_id,
+        createdBy: userId,
+        metadata: {
+          source: 'monthly_plan_interest',
+          barbershopId: shop.id,
+          barbershopName: shop.name ?? null,
+        },
+      });
+    }
+
+    const body = BarbeariaService.#montarMensagemInteresse({
+      barbershopName: shop.name,
+      planName,
+      monthlyPrice,
+    });
+    if (!body.trim()) throw AppError.badRequest('Mensagem obrigatoria.');
+
+    const result = await this.#sendMessageUseCase.execute({
+      conversationId,
+      senderId: userId,
+      clientMessageId,
+      body,
+      attachments: [],
+    });
+    if (result.isFail()) {
+      throw AppError.badRequest(result.getError());
+    }
+
+    return { conversationId, message: result.getValue() };
   }
 
   /**
@@ -365,6 +429,24 @@ class BarbeariaService extends BaseService {
       throw AppError.badRequest('offset deve ser um inteiro maior ou igual a 0.');
     }
     return offset;
+  }
+
+  static #normalizarPrecoMensal(valor) {
+    if (valor === null || valor === undefined || valor === '') return null;
+    const n = Number(valor);
+    if (!isFinite(n) || Number.isNaN(n) || n < 0) return null;
+    return n;
+  }
+
+  static #montarMensagemInteresse({ barbershopName, planName, monthlyPrice }) {
+    const partes = [
+      `Ola! Tenho interesse no plano de mensalidade da barbearia ${barbershopName ?? 'selecionada'}. Gostaria de saber mais informacoes.`,
+      `Plano: ${planName}.`,
+    ];
+    if (monthlyPrice != null) {
+      partes.push(`Valor: R$ ${monthlyPrice.toFixed(2).replace('.', ',')}.`);
+    }
+    return partes.join(' ');
   }
 
   async #profilesMap(ids) {

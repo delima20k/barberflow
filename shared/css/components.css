@@ -8639,3 +8639,120 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: 11px;
   color: var(--bf-text-muted, rgba(255,255,255,.45));
 }
+
+/* ══════════════════════════════════════════════════════
+   Chat Universal — adicionado em 20260601
+   ══════════════════════════════════════════════════════ */
+
+/* ── Favoritos strip ──────────────────────────────────── */
+.msgs-favoritos-titulo {
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 12px 0 6px;
+}
+.msgs-favoritos-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.msgs-favoritos-strip::-webkit-scrollbar { display: none; }
+.msgs-fav-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 64px;
+  cursor: pointer;
+  user-select: none;
+}
+.msgs-fav-card:active { opacity: .75; }
+.msgs-fav-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--gold-muted, rgba(212,160,23,.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gold, #D4A017);
+  border: 2px solid var(--gold-border, rgba(212,160,23,.3));
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.msgs-fav-card-nome {
+  font-size: .68rem;
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 64px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Search ───────────────────────────────────────────── */
+#msgs-search-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+.msgs-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--gold-border, rgba(212,160,23,.3));
+  border-radius: var(--r-full, 9999px);
+  background: var(--card, #fff);
+  color: var(--text, #2A211B);
+  font-size: .9rem;
+  outline: none;
+  box-sizing: border-box;
+}
+.msgs-search-input:focus { border-color: var(--gold, #D4A017); }
+.msgs-search-results {
+  position: absolute;
+  left: 0; right: 0;
+  background: var(--card, #fff);
+  border: 1px solid var(--gold-border, rgba(212,160,23,.3));
+  border-radius: var(--r-md, 16px);
+  z-index: 200;
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+}
+.msgs-search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.msgs-search-item:hover { background: var(--gold-muted, rgba(212,160,23,.08)); }
+.msgs-search-item-nome { font-size: .9rem; font-weight: 600; color: var(--text, #2A211B); }
+.msgs-search-item-sub  { font-size: .75rem; color: var(--text-muted); }
+
+/* ── Chat bubble states ───────────────────────────────── */
+.chat-balao--enviando { opacity: .6; }
+.chat-balao--falhou   { opacity: .5; border: 1px solid #c0392b !important; }
+.chat-status-bff      {
+  font-size: .7rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 4px 0;
+  opacity: .7;
+}
+#chat-mod-aviso {
+  font-size: .8rem;
+  color: #c0392b;
+  padding: 4px 10px;
+  text-align: center;
+  background: rgba(192,57,43,.1);
+  border-radius: 8px;
+  margin: 0 12px 4px;
+  display: none;
+}

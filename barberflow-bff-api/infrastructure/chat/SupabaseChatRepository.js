@@ -110,6 +110,35 @@ class SupabaseChatRepository extends ChatRepository {
     return Boolean(data);
   }
 
+  async listConversationsForUser(userId) {
+    // Busca conversas ativas com última mensagem e contagem de não lidas
+    const { data, error } = await this.#db.rpc('list_conversations_for_user', {
+      p_user_id: userId,
+    });
+    if (error) throw this.#error(error);
+    return (data ?? []).map(row => ({
+      id:        row.id,
+      type:      row.type,
+      createdAt: row.created_at,
+      lastMessage: row.last_message_body != null ? {
+        body:      row.last_message_body,
+        createdAt: row.last_message_at,
+        senderId:  row.last_message_sender_id,
+      } : null,
+      unreadCount:        Number(row.unread_count ?? 0),
+      otherParticipantIds: (row.other_participant_ids ?? []),
+    }));
+  }
+
+  async findOrCreateDirect(userA, userB) {
+    const { data, error } = await this.#db.rpc('find_or_create_direct_conversation', {
+      p_user_a: userA,
+      p_user_b: userB,
+    });
+    if (error) throw this.#error(error);
+    return this.findConversation(data);
+  }
+
   async softDeleteMessage(messageId, senderId, retentionUntil) {
     const { data, error } = await this.#db
       .from('chat_messages')

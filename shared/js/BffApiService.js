@@ -258,6 +258,9 @@ class BffApiService {
     salvarMensalidade: (payload) =>
       BffApiService.patch('/api/v1/barbearias/minha/mensalidade', payload),
 
+    enviarInteresseMensalidade: (barbershopId, payload) =>
+      BffApiService.post(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/mensalidade/interesse`, payload),
+
     // INÍCIO ALTERAÇÃO - Carregar interactions de imagens de portfolio da barbearia
     // Novo endpoint público: retorna mapa {imageId: interactions[]} para exibir
     // mensagens/emojis/curtidas animadas ao abrir o viewer em tela cheia.
