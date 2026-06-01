@@ -1,7 +1,7 @@
 # SKILL INDEX — AGENTE DELIMA
 
 > Indice geral — skills do projeto BarberFlow + biblioteca de seguranca.
-> **Ultima atualizacao:** 2026-05-31 | **565 skills de seguranca** + **9 skills do projeto**
+> **Ultima atualizacao:** 2026-06-01 | **565 skills de seguranca** + **10 skills do projeto**
 > Leia **skill-mapping.md** para mapear intencoes a skills antes de qualquer tarefa.
 
 ---
@@ -18,6 +18,7 @@
 - [Skill 07 — ver tabela abaixo](#skills-do-projeto-arquitetura-barberflow-1)
 - [Skill 08 — ver tabela abaixo](#skills-do-projeto-arquitetura-barberflow-1)
 - [Skill 09 — ver tabela abaixo](#skills-do-projeto-arquitetura-barberflow-1)
+- [Skill 10 — ver tabela abaixo](#skills-do-projeto-arquitetura-barberflow-1)
 
 ### Skills de Seguranca e Qualidade (Biblioteca)
 - [API Security](#api-security)
@@ -45,7 +46,8 @@
 | 06 | [`skills/skill-06-p2p-mensagens.md`](skills/skill-06-p2p-mensagens.md) | WebRTC, P2P, chat BFF, E2E, MediaP2P | Mensagens, chat, video, midia P2P |
 | 07 | [`skills/skill-07-testes.md`](skills/skill-07-testes.md) | TDD, node:test, red-green-refactor, cobertura | Testes, TDD, validacoes, edge cases |
 | 08 | [`skills/skill-08-performance.md`](skills/skill-08-performance.md) | Cache, paginacao, custo, debounce, N+1 | Performance, otimizacao, custo de infra |
-| 09 | [`skills/skill-09-refatoracao.md`](skills/skill-09-refatoracao.md) | Escopo, checklist, check final, commit | Refatoracao, revisao final, limpeza |
+| 09 | [`skills/skill-09-refatoracao.md`](skills/skill-09-refatoracao.md) | Escopo, checklist, check final, template de entrega | Refatoracao, revisao final, limpeza, entrega |
+| 10 | [`skills/skill-10-leitura-contexto.md`](skills/skill-10-leitura-contexto.md) | Protocolo de inicio, checklist de identificacao, banco, paridade | Inicio de sessao, nova tarefa, identificar projeto |
 
 ---
 
@@ -53,6 +55,7 @@
 
 | Tipo de tarefa | Arquivos a ler |
 |---|---|
+| **Inicio de sessao / nova tarefa** | **`skill-10-leitura-contexto.md`** |
 | Qualquer tarefa (base obrigatoria) | `skill-01-base.md` |
 | Nova funcionalidade completa | `skill-01-base.md`, `skill-07-testes.md`, `skill-09-refatoracao.md` |
 | Front-end / nova tela / layout / CSS | `skill-02-frontend.md` |
