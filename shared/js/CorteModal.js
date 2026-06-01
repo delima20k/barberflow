@@ -36,47 +36,50 @@ class CorteModal {
       const overlay = document.createElement('div');
       overlay.className = 'crtm-overlay';
 
-      // Modo mensalista: só mostra o card do plano, sem serviços avulsos
+      // Modo mensalista: exibe "👑 Plano Mensal" como primeiro item checklist + todos os serviços.
+      // Mensalidade não entra no cálculo financeiro (preço = 0).
       if (clienteMensalista) {
         overlay.innerHTML = `
-          <div class="crtm-card" role="dialog" aria-modal="true" aria-label="Confirmar mensalista">
+          <div class="crtm-card" role="dialog" aria-modal="true" aria-label="Selecionar cortes (mensalista)">
             <div class="crtm-header">
               <p class="crtm-titulo">Mensalista: <strong>${CorteModal.#escapar(clienteNome)}</strong></p>
               <button class="crtm-fechar" aria-label="Fechar">✕</button>
             </div>
-            <ul class="crtm-lista" role="group" aria-label="Plano mensal"></ul>
+            <ul class="crtm-lista" role="group" aria-label="Plano mensal e serviços"></ul>
             <div class="crtm-footer">
-              <label class="crtm-confirmacao-mensalista">
-                <input type="checkbox" class="crtm-chk-mensalista">
-                Confirmo que sou mensalista e desejo entrar na fila.
-              </label>
-              <button class="crtm-btn crtm-btn--confirmar" disabled>Confirmar Mensalista</button>
+              <p class="crtm-total">Total: <strong class="crtm-total-val">R$ 0,00</strong></p>
+              <button class="crtm-btn crtm-btn--confirmar" disabled>Confirmar</button>
               <button class="crtm-btn crtm-btn--cancelar">Cancelar</button>
             </div>
           </div>`;
 
-        const listaEl = overlay.querySelector('.crtm-lista');
-        const feeStr = mensalistaFee > 0
-          ? mensalistaFee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/mês'
-          : 'sem cobrança adicional';
-        const cortesStr = `${mensalistaCortesCount} corte${mensalistaCortesCount !== 1 ? 's' : ''} este mês`;
+        const listaEl      = overlay.querySelector('.crtm-lista');
+        const confirmarBtn = overlay.querySelector('.crtm-btn--confirmar');
+        const totalVal     = overlay.querySelector('.crtm-total-val');
 
-        const card = document.createElement('li');
-        card.className = 'crtm-plano-mensal';
-        card.innerHTML = `
-          <span class="crtm-plano-mensal-icone">👑</span>
-          <span class="crtm-plano-mensal-info">
-            <span class="crtm-plano-mensal-titulo">Plano Mensal — ${CorteModal.#escapar(feeStr)}</span>
-            <span class="crtm-plano-mensal-cortes">${CorteModal.#escapar(cortesStr)}</span>
-          </span>`;
-        listaEl.appendChild(card);
+        listaEl.appendChild(CorteModal.#criarItemMensalista({ mensalistaFee, mensalistaCortesCount }));
+        listaServicos.forEach(s => listaEl.appendChild(CorteModal.#criarItem(s)));
 
-        overlay.querySelector('.crtm-chk-mensalista').addEventListener('change', e => {
-          overlay.querySelector('.crtm-btn--confirmar').disabled = !e.target.checked;
+        const atualizar = () => {
+          const selecionados = CorteModal.#getSelecionados(overlay);
+          const total = selecionados
+            .filter(s => s.id !== CorteModal.MENSALISTA_ID)
+            .reduce((acc, s) => acc + (s.price ?? 0), 0);
+          totalVal.textContent = CorteModal.#formatarPreco(total);
+          confirmarBtn.disabled = selecionados.length === 0;
+        };
+
+        listaEl.addEventListener('change', atualizar);
+
+        confirmarBtn.addEventListener('click', () => {
+          const ids = CorteModal.#getSelecionados(overlay)
+            .map(s => s.id)
+            .filter(id => id !== CorteModal.MENSALISTA_ID);
+          _fechar(ids);
         });
-        overlay.querySelector('.crtm-btn--confirmar').addEventListener('click', () => _fechar([]));
+
         overlay.querySelector('.crtm-btn--cancelar').addEventListener('click', () => _fechar(null));
-        overlay.querySelector('.crtm-fechar').addEventListener('click', () => _fechar(null));
+        overlay.querySelector('.crtm-fechar').addEventListener('click',         () => _fechar(null));
         overlay.addEventListener('click', e => { if (e.target === overlay) _fechar(null); });
         const onKey = e => { if (e.key === 'Escape') _fechar(null); };
         document.addEventListener('keydown', onKey);
@@ -215,6 +218,54 @@ class CorteModal {
       price:        0,
       duration_min: null,
     });
+  }
+
+  /**
+   * Cria o item visual "👑 Plano Mensal" para o modo mensalista.
+   * Checkbox com dataset.servicePreco = '0' — nunca entra no cálculo financeiro.
+   * @param {{mensalistaFee?:number, mensalistaCortesCount?:number}} opts
+   * @returns {HTMLLIElement}
+   */
+  static #criarItemMensalista({ mensalistaFee = 0, mensalistaCortesCount = 0 } = {}) {
+    const li = document.createElement('li');
+    li.className = 'crtm-item crtm-item--mensalista';
+
+    const id = `crtm-svc-${CorteModal.MENSALISTA_ID}`;
+
+    const chk = document.createElement('input');
+    chk.type              = 'checkbox';
+    chk.id                = id;
+    chk.className         = 'crtm-checkbox';
+    chk.dataset.serviceId    = CorteModal.MENSALISTA_ID;
+    chk.dataset.servicePreco = '0';
+
+    const label = document.createElement('label');
+    label.htmlFor   = id;
+    label.className = 'crtm-label';
+
+    const nomeEl       = document.createElement('span');
+    nomeEl.className   = 'crtm-svc-nome';
+    nomeEl.textContent = '👑 Plano Mensal';
+
+    const metaEl   = document.createElement('span');
+    metaEl.className = 'crtm-svc-meta';
+    const partes   = [];
+    if (mensalistaFee > 0)
+      partes.push(CorteModal.#formatarPreco(mensalistaFee) + '/mês');
+    if (mensalistaCortesCount > 0)
+      partes.push(`${mensalistaCortesCount} corte${mensalistaCortesCount !== 1 ? 's' : ''} este mês`);
+    metaEl.textContent = partes.join(' · ');
+
+    label.appendChild(nomeEl);
+    label.appendChild(metaEl);
+
+    const thumb = document.createElement('div');
+    thumb.className = 'crtm-img crtm-img--vazio crtm-img--mensalista';
+
+    li.appendChild(chk);
+    li.appendChild(thumb);
+    li.appendChild(label);
+    return li;
   }
 
   /**
