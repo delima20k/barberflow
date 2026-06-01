@@ -29,8 +29,10 @@ const MOCK_SESSION = { user: MOCK_USER, access_token: 'jwt-mock-token' };
  *
  * @returns {{ sandbox: vm.Context, authCallbacks: Function[] }}
  */
-function criarSandbox() {
+function criarSandbox(overrides = {}) {
   const authCallbacks = [];
+  let session = overrides.session ?? null;
+  let signOutChamado = false;
 
   const mockClient = {
     auth: {
@@ -38,8 +40,13 @@ function criarSandbox() {
         authCallbacks.push(cb);
         return { data: { subscription: { unsubscribe: () => {} } } };
       },
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      getUser:    () => Promise.resolve({ data: { user: null },    error: null }),
+      getSession: () => Promise.resolve({ data: { session }, error: null }),
+      getUser:    () => Promise.resolve(overrides.getUserResult ?? { data: { user: null }, error: null }),
+      signOut:    () => {
+        signOutChamado = true;
+        session = null;
+        return Promise.resolve({ error: null });
+      },
     },
   };
 
@@ -58,7 +65,7 @@ function criarSandbox() {
   carregar(sandbox, 'shared/js/AppState.js');
   carregar(sandbox, 'shared/js/SupabaseService.js');
 
-  return { sandbox, authCallbacks };
+  return { sandbox, authCallbacks, get signOutChamado() { return signOutChamado; } };
 }
 
 /**
@@ -133,6 +140,23 @@ describe('SupabaseService.#initAuthSync() — sincronização AppState', () => {
     // Logout
     cb('SIGNED_OUT', null);
     assert.strictEqual(ctx.sandbox.AppState.get('isLogado'), false);
+  });
+
+  test('getUser() com 403 limpa sessão local inválida para não reutilizar JWT rejeitado', async () => {
+    const ctx = criarSandbox({
+      session: { access_token: 'jwt-invalido', user: MOCK_USER },
+      getUserResult: {
+        data:  { user: null },
+        error: { status: 403, message: 'Forbidden' },
+      },
+    });
+
+    const user = await ctx.sandbox.SupabaseService.getUser();
+    const session = await ctx.sandbox.SupabaseService.getSession();
+
+    assert.strictEqual(user, null);
+    assert.strictEqual(session, null);
+    assert.strictEqual(ctx.signOutChamado, true);
   });
 
 });

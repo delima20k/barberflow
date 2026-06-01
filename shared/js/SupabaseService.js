@@ -220,6 +220,11 @@ class SupabaseService {
             error.message?.toLowerCase().includes('session') ||
             error.status === 403
           ) {
+            if (error.status === 403) {
+              try { await SupabaseService.#getClient().auth.signOut({ scope: 'local' }); } catch { /* sem-op */ }
+              SupabaseService.#sessionCache = null;
+              SupabaseService.#sessionCacheTs = Date.now();
+            }
             SupabaseService.#userCache   = null;
             SupabaseService.#userCacheTs = Date.now();
             return null;
