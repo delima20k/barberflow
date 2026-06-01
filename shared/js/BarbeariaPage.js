@@ -1267,6 +1267,9 @@ class BarbeariaPage {
     (secaoServicos ?? this.#refs.servicosLista).insertAdjacentElement('afterend', el);
     this.#refs.divider = el;
     return el;
+  }
+
+  static #isMensalidadeServico(servico, shop = null) {
     const texto = [
       servico?.category,
       servico?.name,
