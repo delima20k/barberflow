@@ -55,7 +55,7 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /#PUBLIC_MESSAGE_MAX_LENGTH\s*=\s*20/);
     assert.match(js, /maxlength="\$\{PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH\}"/);
     assert.doesNotMatch(js, /placeholder=/);
-    assert.match(js, /class="pp-prism-message-send"[\s\S]*<span aria-hidden="true">✈<\/span>/);
+    assert.match(js, /class="pp-prism-message-send"[\s\S]*<span aria-hidden="true">➤<\/span>/);
     assert.doesNotMatch(js, />Enviar<\/button>/);
     assert.match(js, /Array\.from\(texto\)\.length\s*>\s*PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH/);
     assert.match(js, /static #sadEmoji\(\)/);

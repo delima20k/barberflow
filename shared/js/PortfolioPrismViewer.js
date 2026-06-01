@@ -737,7 +737,7 @@ class PortfolioPrismViewer {
         <img class="pp-prism-public-logo" src="/shared/img/icon-512-cliente.png" alt="BarberFlow" loading="lazy">
         <div class="pp-prism-message-wrap">
           <input class="pp-prism-message-input" type="text" maxlength="${PortfolioPrismViewer.#PUBLIC_MESSAGE_MAX_LENGTH}" aria-label="Mensagem">
-          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem"><span aria-hidden="true">✈</span></button>
+          <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem"><span aria-hidden="true">➤</span></button>
         </div>
         <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
           <span data-public-like-icon aria-hidden="true">👍</span>
