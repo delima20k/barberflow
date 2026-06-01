@@ -1,6 +1,6 @@
 # SKILL — AGENTE DELIMA
 
-> **Arquivo mestre.** Leia este arquivo antes de qualquer tarefa.
+> **Arquivo mestre.** Leia este arquivo e o índice antes de qualquer tarefa.
 > Nenhuma etapa pode ser pulada.
 
 ---
@@ -11,87 +11,56 @@
 **Stack:** HTML5, CSS3, JS OOP, Node.js, Supabase, PostgreSQL, PWA, WebRTC, TDD
 **Missão:** construir sistemas rápidos, baratos, seguros, escaláveis, visualmente premium e fáceis de manter.
 
-> Identidade e objetivos completos → [`skill-01-base.md`](skills/skill-01-base.md)
-
----
-
-## PROTOCOLO DE INÍCIO (toda sessão ou tarefa nova)
-
-> Ordem de leitura, checklist de identificação do projeto, regra de banco e paridade entre apps:
-> **[`skill-10-leitura-contexto.md`](skills/skill-10-leitura-contexto.md)** — leia este arquivo primeiro.
+> Identidade e objetivos completos: `.github/agents/workflows/skills/skill-01-base.md`
 
 ---
 
 ## REGRA OBRIGATÓRIA DE CONSULTA
 
-1. Leia [`skill-10-leitura-contexto.md`](skills/skill-10-leitura-contexto.md) — protocolo de início
-2. Consulte [`skill-index.md`](skill-index.md) — índice completo de skills
-3. Consulte [`skill-mapping.md`](skill-mapping.md) — mapeamento intenção → skills
-4. Leia somente os arquivos de skill necessários para a tarefa
-5. Consulte `CLASS_REGISTRY.md` antes de criar qualquer classe nova
-6. Se a regra não existir: implemente como sênior, documente e atualize o índice
+Antes de qualquer implementação, correção ou refatoração:
 
-> Fluxo de validação completo → [`skill-01-base.md`](skills/skill-01-base.md)
+1. Leia primeiro este arquivo: `.github/agents/workflows/skill.md`
+2. Consulte o índice geral: `.github/agents/workflows/skill-index.md`
+3. Identifique quais arquivos de skill são relacionados à tarefa.
+4. Leia somente os arquivos necessários para aquela tarefa, evitando consumo desnecessário de contexto.
+5. Aplique todas as regras do agente DELIMA: OOP, Clean Architecture, SOLID, DRY, segurança, performance, testes, baixo custo, escalabilidade e refatoração controlada.
+6. Consulte `CLASS_REGISTRY.md` antes de criar qualquer classe nova.
+7. Se a regra não existir em nenhum arquivo de skill, implemente como desenvolvedor sênior, documente a nova boa prática no arquivo correto e atualize o índice geral.
 
 ---
 
 ## REGRA DE FALLBACK — TAREFA NÃO DOCUMENTADA
 
+Se nenhum arquivo de skill cobrir a tarefa:
+
 1. Implemente como desenvolvedor sênior: OOP, Clean Architecture, SOLID, DRY, segurança, performance, testes, baixo custo, escalabilidade.
 2. Não crie função solta. Não duplique lógica. Consulte `CLASS_REGISTRY.md` antes de criar classes.
 3. Documente a nova boa prática no arquivo de skill mais adequado.
-4. Atualize `skill-index.md` com nome da seção, arquivo, descrição e tipo de tarefa.
+4. Atualize `skill-index.md` com nome da seção, linha, descrição e tipo de tarefa.
 
-> Protocolo completo → [`skill-01-base.md`](skills/skill-01-base.md)
+> Protocolo completo: `.github/agents/workflows/skills/skill-01-base.md`
 
 ---
 
-## REGRAS GLOBAIS
+## REGRAS GLOBAIS (valem para qualquer tarefa)
 
-- ✅ 100% OOP — nenhuma função solta
-- ✅ Reutilizar classes; consultar `CLASS_REGISTRY.md` antes de criar
+- ✅ 100% orientação a objetos — **nenhuma função solta**
+- ✅ Reutilizar classes antes de criar; consultar `CLASS_REGISTRY.md` antes de criar qualquer classe
 - ✅ Registrar toda classe nova em `CLASS_REGISTRY.md` antes do commit
-- ✅ Backend controla regra de negócio; frontend apenas consome
-- ✅ Código modular, desacoplado, escalável — SRP em toda classe
+- ✅ Backend controla regra de negócio; frontend apenas consome dados
+- ✅ Código modular, desacoplado e escalável — SRP em toda classe
 - ❌ NUNCA duplicar lógica (DRY sempre)
 - ❌ NUNCA usar Firebase — stack é exclusivamente Supabase + PostgreSQL
-- ❌ NUNCA salvar mídia no banco — usar Storage
+- ❌ NUNCA salvar mídia no banco — usar storage
 - ❌ NUNCA ignorar segurança ou performance
-- ❌ NUNCA usar Realtime para vídeos ou feeds pesados
+- ❌ NUNCA usar Realtime para vídeos ou feeds pesados. Realtime leve é permitido para **fila**, **status de agendamento** e **chat textual privado via BFF/outbox**
 
-> Regras completas e proibições → [`skill-01-base.md`](skills/skill-01-base.md)
-
----
-
-## MAPA DE SKILLS DO PROJETO
-
-| # | Arquivo | Quando usar |
-|---|---|---|
-| 01 | [`skill-01-base.md`](skills/skill-01-base.md) | Qualquer tarefa — base obrigatória |
-| 02 | [`skill-02-frontend.md`](skills/skill-02-frontend.md) | Telas, layout, animações, CSS, UI |
-| 03 | [`skill-03-backend.md`](skills/skill-03-backend.md) | BFF, services, controllers, rotas |
-| 04 | [`skill-04-seguranca.md`](skills/skill-04-seguranca.md) | Segurança, auth, JWT, headers, inputs |
-| 05 | [`skill-05-banco.md`](skills/skill-05-banco.md) | Banco, queries, migrations, storage |
-| 06 | [`skill-06-p2p-mensagens.md`](skills/skill-06-p2p-mensagens.md) | Chat, WebRTC, P2P, mensagens |
-| 07 | [`skill-07-testes.md`](skills/skill-07-testes.md) | TDD, node:test, validações, edge cases |
-| 08 | [`skill-08-performance.md`](skills/skill-08-performance.md) | Cache, paginação, custo, N+1 |
-| 09 | [`skill-09-refatoracao.md`](skills/skill-09-refatoracao.md) | Revisão final, checklist, entrega |
-| 10 | [`skill-10-leitura-contexto.md`](skills/skill-10-leitura-contexto.md) | Protocolo de início, contexto, banco, paridade |
+> Regras completas, proibições e fluxo de validação: `.github/agents/workflows/skills/skill-01-base.md`
 
 ---
 
-## BIBLIOTECA DE SEGURANÇA
+## ÍNDICE GERAL
 
-565 skills em 10 domínios → [`skill-index.md`](skill-index.md) | Mapeamento → [`skill-mapping.md`](skill-mapping.md)
+Consulte o índice para encontrar o arquivo de skill correto para cada tarefa:
 
-| Intenção no prompt | Skills a carregar |
-|---|---|
-| BFF / API / endpoint | `api-security` + `identity-and-access-management` |
-| Refatorar / código | `web-application-security` + `code-quality` |
-| Segurança geral | `api-security` + `security-operations` + `cloud-security` |
-| Testes / TDD | `code-quality` + `web-application-security` |
-| Escalabilidade | `code-quality` + `cloud-security` + `devsecops` |
-| Deploy / pipeline | `devsecops` + `cloud-security` |
-| Incidente / erro | `incident-response` + `threat-intelligence` |
-| IA / modelos | `ai-security` + `security-operations` |
-| GPS / geo | `api-security` + `security-operations` |
+`.github/agents/workflows/skill-index.md`

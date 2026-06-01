@@ -57,24 +57,5 @@ Percorrer **todos os 8 pontos** nos arquivos modificados:
 
 ---
 
-## 5. TEMPLATE DE ENTREGA (resumo obrigatório ao final)
-
-Ao entregar qualquer tarefa, incluir resumo curto com:
-
-| Item | Preencher |
-|---|---|
-| **Arquivos criados** | lista com caminho relativo |
-| **Arquivos alterados** | lista com caminho relativo |
-| **Classes criadas** | nome + camada DDD |
-| **Classes reutilizadas** | nome das classes reaproveitadas |
-| **Impacto no BFF** | novo endpoint? rota alterada? nenhum? |
-| **Impacto no banco** | migration nova? query nova? nenhum? |
-| **Impacto cliente** | `apps/cliente/` afetado? como? |
-| **Impacto profissional** | `apps/profissional/` afetado? como? |
-| **Testes feitos** | quais testes rodaram e resultado (pass/fail) |
-| **Riscos encontrados** | edge cases, dependências externas, migrações pendentes |
-
----
-
 > **REGRA FINAL:** Sempre perguntar — *"Existe uma forma mais barata, mais inteligente, mais segura e mais escalável de fazer isso?"*
 > Se existir: **FAZER MELHOR.**
