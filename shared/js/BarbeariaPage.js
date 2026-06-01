@@ -42,8 +42,10 @@ class BarbeariaPage {
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
-  #portfolioViewer = null;  // PortfolioPrismViewer — lazy, criado no 1º clique
-  #portfolioData   = [];    // lista de fotos ativas — alimentado em #renderPortfolio
+  #portfolioViewer      = null;  // PortfolioPrismViewer — lazy, criado no 1º clique
+  #portfolioData        = [];    // lista de fotos ativas — alimentado em #renderPortfolio
+  #mensalModal          = null;  // overlay do modal de mensalidade — lazy, criado na 1ª abertura
+  #mensalModalKeyHandler = null; // handler Escape para remoção limpa no fechar
 
   constructor() {}
 
@@ -1291,9 +1293,10 @@ class BarbeariaPage {
   }
 
   /**
-   * Banner de mensalidade na p\u00e1gina p\u00fablica.
-   * Le shop.monthly_plan_* ou o servico fallback category=mensalidade; oculta se vazio.
-   * @param {object} shop
+   * Card trigger de mensalidade na p\u00e1gina p\u00fablica.
+   * Exibe bot\u00e3o compacto com pre\u00e7o; clique abre modal separado.
+   * N\u00e3o renderiza junto \u00e0 lista de servi\u00e7os.
+   * @param {object}        shop
    * @param {Array<object>} servicos
    */
   #renderMensalBanner(shop, servicos = []) {
@@ -1301,27 +1304,131 @@ class BarbeariaPage {
     if (!el) return;
 
     const mensalidadeServico = servicos.find(sv => BarbeariaPage.#isMensalidadeServico(sv, shop)) ?? null;
-    const precoShop = Number(shop?.monthly_plan_price ?? 0);
+    const precoShop    = Number(shop?.monthly_plan_price ?? 0);
     const precoServico = Number(mensalidadeServico?.price ?? 0);
-    const preco = precoShop > 0 ? precoShop : precoServico;
-    if (preco == null || Number(preco) <= 0) {
+    const preco        = precoShop > 0 ? precoShop : precoServico;
+
+    if (!preco || preco <= 0) {
       el.hidden = true;
       el.innerHTML = '';
       return;
     }
 
-    const s   = InputValidator.sanitizar;
-    const val = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
-    const msgRaw = shop.monthly_plan_message ?? mensalidadeServico?.description ?? mensalidadeServico?.name ?? '';
-    const msg = msgRaw ? s(msgRaw) : '';
+    const s      = InputValidator.sanitizar;
+    const val    = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
+    const msgRaw = shop?.monthly_plan_message ?? mensalidadeServico?.description ?? mensalidadeServico?.name ?? '';
+    const msg    = msgRaw ? s(String(msgRaw)) : '';
 
     el.innerHTML = `
-      <div class="bp-mensal-banner__linha">
-        <p class="bp-mensal-banner__tag">Mensalidade</p>
-        <p class="bp-mensal-banner__valor">${val}<span class="bp-mensal-banner__periodo">/m\u00eas</span></p>
-      </div>
-      ${msg ? `<p class="bp-mensal-banner__msg">${msg}</p>` : ''}`;
+      <button class="bp-mensal-trigger" type="button" aria-label="Ver plano de mensalidade">
+        <div class="bp-mensal-trigger__linha">
+          <span class="bp-mensal-trigger__tag">Mensalidade</span>
+          <span class="bp-mensal-trigger__valor">${val}<span class="bp-mensal-trigger__per">/m\u00eas</span></span>
+        </div>
+        ${msg ? `<p class="bp-mensal-trigger__msg">${msg}</p>` : ''}
+        <span class="bp-mensal-trigger__icone" aria-hidden="true">&#8250;</span>
+      </button>`;
     el.hidden = false;
+
+    // onclick sobrescreve handler anterior \u2014 sem listeners duplicados em re-renders
+    el.querySelector('.bp-mensal-trigger').onclick = () =>
+      this.#abrirMensalModal(preco, msgRaw, shop);
+  }
+
+  /**
+   * Cria o overlay do modal de mensalidade de forma lazy (1\u00aa abertura).
+   * @returns {HTMLElement|null}
+   */
+  #obterMensalModal() {
+    if (this.#mensalModal) return this.#mensalModal;
+    if (typeof document === 'undefined') return null;
+    const el = document.createElement('div');
+    el.className = 'bp-mensal-modal-overlay';
+    el.hidden = true;
+    document.body.appendChild(el);
+    this.#mensalModal = el;
+    return el;
+  }
+
+  /**
+   * Abre o modal de mensalidade com os dados da barbearia.
+   * @param {number} preco
+   * @param {string} msgRaw
+   * @param {object} shop
+   */
+  #abrirMensalModal(preco, msgRaw, shop) {
+    const overlay = this.#obterMensalModal();
+    if (!overlay) return;
+
+    const s       = InputValidator.sanitizar;
+    const val     = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
+    const msg     = msgRaw ? s(String(msgRaw)) : '';
+    const whats   = String(shop?.whatsapp ?? '').replace(/\D/g, '');
+    const whatsHref = whats
+      ? `https://wa.me/55${whats}?text=${encodeURIComponent('Ol\u00e1! Tenho interesse no plano de mensalidade.')}`
+      : '';
+
+    overlay.innerHTML = `
+      <div class="bp-mensal-modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-mensal-modal-titulo">
+        <button class="bp-mensal-modal-fechar" type="button" aria-label="Fechar modal de mensalidade">
+          <span aria-hidden="true">&#x2715;</span>
+        </button>
+        <div class="bp-mensal-modal-corpo">
+          <p class="bp-mensal-modal-tag">Plano de Mensalidade</p>
+          <p class="bp-mensal-modal-valor" id="bp-mensal-modal-titulo">
+            ${val}<span class="bp-mensal-modal-per">/m\u00eas</span>
+          </p>
+          ${msg ? `<p class="bp-mensal-modal-msg">${msg}</p>` : ''}
+          ${whatsHref
+            ? `<a class="bp-mensal-modal-cta" href="${whatsHref}" target="_blank" rel="noopener noreferrer">Entrar em contato</a>`
+            : ''}
+        </div>
+      </div>`;
+
+    overlay.hidden = false;
+    requestAnimationFrame(() => overlay.classList.add('bp-mensal-modal-overlay--visivel'));
+
+    // Fechar no X
+    overlay.querySelector('.bp-mensal-modal-fechar').onclick = () => this.#fecharMensalModal();
+
+    // Fechar clicando fora do card
+    overlay.onclick = (e) => { if (e.target === overlay) this.#fecharMensalModal(); };
+
+    // Fechar no Escape
+    this.#mensalModalKeyHandler = (e) => { if (e.key === 'Escape') this.#fecharMensalModal(); };
+    document.addEventListener('keydown', this.#mensalModalKeyHandler);
+
+    // Foca o bot\u00e3o de fechar para acessibilidade
+    setTimeout(() => overlay.querySelector('.bp-mensal-modal-fechar')?.focus(), 50);
+  }
+
+  /**
+   * Fecha o modal de mensalidade.
+   * @param {boolean} [imediato=false] \u2014 fecha sem anima\u00e7\u00e3o (chamado em navega\u00e7\u00e3o)
+   */
+  #fecharMensalModal(imediato = false) {
+    const overlay = this.#mensalModal;
+    if (!overlay || overlay.hidden) return;
+
+    if (this.#mensalModalKeyHandler) {
+      document.removeEventListener('keydown', this.#mensalModalKeyHandler);
+      this.#mensalModalKeyHandler = null;
+    }
+
+    if (imediato) {
+      overlay.hidden = true;
+      overlay.classList.remove('bp-mensal-modal-overlay--visivel');
+      overlay.innerHTML = '';
+      return;
+    }
+
+    overlay.classList.remove('bp-mensal-modal-overlay--visivel');
+    overlay.classList.add('bp-mensal-modal-overlay--saindo');
+    setTimeout(() => {
+      overlay.hidden = true;
+      overlay.classList.remove('bp-mensal-modal-overlay--saindo');
+      overlay.innerHTML = '';
+    }, 230);
   }
 
   #abrirPortfolioViewer(index) {
@@ -1464,6 +1571,8 @@ class BarbeariaPage {
       this.#refs.favBtn.disabled = false;
       this.#refs.favBtn.removeAttribute('aria-disabled');
     }
+    // Fecha modal de mensalidade se estiver aberto
+    this.#fecharMensalModal(true);
     // Reseta o dig para que a nova barbearia inicie a animação do zero
     this.#pararDig();
     this.#dig = null;

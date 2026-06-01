@@ -4539,29 +4539,41 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   white-space: nowrap;
 }
 
-/* ── Cards de mensalidade ──────────────────────────────────────── */
-/* ── Banner de mensalidade full-width (página pública) ─────────── */
+/* ── Mensalidade — container + trigger card + modal ────────────── */
+
+/* Container: wrapper transparente; só controla visibilidade */
 .bp-mensal-banner {
+  width: 100%;
+  margin: 12px 0 14px;
+}
+.bp-mensal-banner[hidden] { display: none; }
+
+/* Trigger card — botão clicável que abre o modal */
+.bp-mensal-trigger {
   width: 100%;
   border-radius: 14px;
   padding: 16px 20px;
-  margin: 12px 0 14px;
   background: linear-gradient(135deg, #1a1008 0%, #6B4A32 28%, #C75A1A 56%, #D4AF37 78%, #0b0704 100%);
   border: 1px solid rgba(212,175,55,.32);
   box-shadow: 0 6px 22px rgba(0,0,0,.38), inset 0 1px 0 rgba(212,175,55,.14);
   display: flex;
   flex-direction: column;
   gap: 5px;
+  cursor: pointer;
+  position: relative;
+  text-align: left;
+  transition: opacity .18s ease;
 }
-.bp-mensal-banner[hidden] { display: none; }
-.bp-mensal-banner__linha {
+.bp-mensal-trigger:active { opacity: .78; }
+.bp-mensal-trigger__linha {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
+  padding-right: 22px;
 }
-.bp-mensal-banner__tag {
+.bp-mensal-trigger__tag {
   margin: 0;
   font-size: .9rem;
   font-weight: 800;
@@ -4570,7 +4582,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: var(--gold, #D4AF37);
   text-shadow: 0 2px 6px rgba(0,0,0,.72);
 }
-.bp-mensal-banner__valor {
+.bp-mensal-trigger__valor {
   margin: 0;
   font-size: 1.62rem;
   font-weight: 800;
@@ -4578,18 +4590,128 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   line-height: 1.1;
   text-shadow: 0 2px 8px rgba(0,0,0,.78);
 }
-.bp-mensal-banner__periodo {
+.bp-mensal-trigger__per {
   font-size: .8rem;
   font-weight: 600;
   color: rgba(255,255,255,.82);
   margin-left: 4px;
 }
-.bp-mensal-banner__msg {
+.bp-mensal-trigger__msg {
   margin: 0;
   font-size: .82rem;
   color: var(--gold, #D4AF37);
   text-shadow: 0 2px 6px rgba(0,0,0,.7);
 }
+.bp-mensal-trigger__icone {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: rgba(255,255,255,.65);
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Modal overlay — cobre toda a tela, abre como bottom-sheet */
+.bp-mensal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.52);
+  z-index: 2200;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.bp-mensal-modal-overlay--visivel { opacity: 1; }
+.bp-mensal-modal-overlay--saindo  { opacity: 0; }
+.bp-mensal-modal-overlay[hidden]  { display: none; }
+
+/* Card do modal (bottom-sheet) */
+.bp-mensal-modal-card {
+  background: var(--card, #fff9f0);
+  border-radius: 22px 22px 0 0;
+  width: 100%;
+  max-height: 72vh;
+  overflow-y: auto;
+  padding: 22px 20px 36px;
+  position: relative;
+  transform: translateY(28px);
+  transition: transform .22s ease;
+}
+.bp-mensal-modal-overlay--visivel .bp-mensal-modal-card {
+  transform: translateY(0);
+}
+
+/* Botão fechar */
+.bp-mensal-modal-fechar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--fg-muted, #888);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 50%;
+  line-height: 1;
+  transition: background .15s;
+}
+.bp-mensal-modal-fechar:hover { background: rgba(0,0,0,.07); }
+
+/* Corpo do modal */
+.bp-mensal-modal-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+.bp-mensal-modal-tag {
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--gold, #C75A1A);
+}
+.bp-mensal-modal-valor {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--fg, #1a1008);
+  line-height: 1.05;
+}
+.bp-mensal-modal-per {
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--fg-muted, #666);
+  margin-left: 4px;
+}
+.bp-mensal-modal-msg {
+  margin: 0;
+  font-size: .95rem;
+  color: var(--fg-muted, #555);
+  line-height: 1.5;
+}
+.bp-mensal-modal-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 13px 22px;
+  background: #25D366;
+  color: #fff;
+  border-radius: 13px;
+  font-weight: 700;
+  font-size: .95rem;
+  text-decoration: none;
+  transition: opacity .18s;
+}
+.bp-mensal-modal-cta:active { opacity: .82; }
 
 /* ── Config: serviços por tipo (UL/LI) + luzes meia/inteira ────── */
 .mb-serv-tipos {
