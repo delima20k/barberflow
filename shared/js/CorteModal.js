@@ -61,6 +61,7 @@ class CorteModal {
         listaServicos.forEach(s => listaEl.appendChild(CorteModal.#criarItem(s)));
 
         const atualizar = () => {
+          CorteModal.#sincronizarCortesComPlanoMensal(overlay);
           const selecionados = CorteModal.#getSelecionados(overlay);
           const total = selecionados
             .filter(s => s.id !== CorteModal.MENSALISTA_ID)
@@ -72,10 +73,7 @@ class CorteModal {
         listaEl.addEventListener('change', atualizar);
 
         confirmarBtn.addEventListener('click', () => {
-          const ids = CorteModal.#getSelecionados(overlay)
-            .map(s => s.id)
-            .filter(id => id !== CorteModal.MENSALISTA_ID);
-          _fechar(ids);
+          _fechar(CorteModal.#criarResultado(overlay));
         });
 
         overlay.querySelector('.crtm-btn--cancelar').addEventListener('click', () => _fechar(null));
@@ -123,8 +121,11 @@ class CorteModal {
       ].forEach(el => listaEl.appendChild(el));
 
       const atualizar = () => {
+        CorteModal.#sincronizarCortesComPlanoMensal(overlay);
         const selecionados = CorteModal.#getSelecionados(overlay);
-        const total = selecionados.reduce((acc, s) => acc + (s.price ?? 0), 0);
+        const total = selecionados
+          .filter(s => s.id !== CorteModal.MENSALISTA_ID)
+          .reduce((acc, s) => acc + (s.price ?? 0), 0);
         totalVal.textContent = CorteModal.#formatarPreco(total);
         confirmarBtn.disabled = selecionados.length === 0;
       };
@@ -132,7 +133,7 @@ class CorteModal {
       listaEl.addEventListener('change', atualizar);
 
       confirmarBtn.addEventListener('click', () => {
-        const ids = CorteModal.#getSelecionados(overlay).map(s => s.id);
+        const ids = CorteModal.#criarResultado(overlay);
         _fechar(ids.length ? ids : null);
       });
 
@@ -173,6 +174,9 @@ class CorteModal {
     chk.className        = 'crtm-checkbox';
     chk.dataset.serviceId    = servico.id;
     chk.dataset.servicePreco = String(servico.price ?? 0);
+    chk.dataset.serviceNome  = servico.name ?? '';
+    li.dataset.serviceId     = servico.id;
+    li.dataset.serviceNome   = servico.name ?? '';
 
     const label = document.createElement('label');
     label.htmlFor = id;
@@ -238,6 +242,9 @@ class CorteModal {
     chk.className         = 'crtm-checkbox';
     chk.dataset.serviceId    = CorteModal.MENSALISTA_ID;
     chk.dataset.servicePreco = '0';
+    chk.dataset.serviceNome  = 'Plano Mensal';
+    li.dataset.serviceId     = CorteModal.MENSALISTA_ID;
+    li.dataset.serviceNome   = 'Plano Mensal';
 
     const label = document.createElement('label');
     label.htmlFor   = id;
@@ -279,6 +286,78 @@ class CorteModal {
         id:    chk.dataset.serviceId,
         price: parseFloat(chk.dataset.servicePreco) || 0,
       }));
+  }
+
+  /**
+   * Oculta e desmarca serviços de corte quando o Plano Mensal está ativo.
+   * O corte já está incluído na mensalidade; extras seguem selecionáveis.
+   * @param {HTMLElement} overlay
+   */
+  static #sincronizarCortesComPlanoMensal(overlay) {
+    const planoSelecionado = CorteModal.#isPlanoMensalSelecionado(overlay);
+    const itens = Array.from(overlay.querySelectorAll('.crtm-item'));
+    itens.forEach(item => {
+      if (item.dataset.serviceId === CorteModal.MENSALISTA_ID) return;
+      if (!CorteModal.#isServicoCorte(item.dataset.serviceNome)) {
+        item.hidden = false;
+        item.setAttribute?.('aria-hidden', 'false');
+        return;
+      }
+
+      item.hidden = planoSelecionado;
+      item.setAttribute?.('aria-hidden', planoSelecionado ? 'true' : 'false');
+      if (planoSelecionado) {
+        const chk = item.querySelector('.crtm-checkbox');
+        if (chk) chk.checked = false;
+      }
+    });
+  }
+
+  /**
+   * Cria o resultado público sem o ID sentinela; mantém metadado não enumerável
+   * para o runtime saber que deve tratar o corte como mensalidade.
+   * @param {HTMLElement} overlay
+   * @returns {string[]}
+   */
+  static #criarResultado(overlay) {
+    const selecionados = CorteModal.#getSelecionados(overlay);
+    const ids = selecionados
+      .map(s => s.id)
+      .filter(id => id !== CorteModal.MENSALISTA_ID);
+    Object.defineProperty(ids, 'planoMensalidadeSelecionado', {
+      value:        selecionados.some(s => s.id === CorteModal.MENSALISTA_ID),
+      enumerable:   false,
+      configurable: true,
+    });
+    return ids;
+  }
+
+  /**
+   * @param {HTMLElement} overlay
+   * @returns {boolean}
+   */
+  static #isPlanoMensalSelecionado(overlay) {
+    return Array.from(overlay.querySelectorAll('.crtm-checkbox:checked'))
+      .some(chk => chk.dataset.serviceId === CorteModal.MENSALISTA_ID);
+  }
+
+  /**
+   * @param {string} nome
+   * @returns {boolean}
+   */
+  static #isServicoCorte(nome) {
+    return CorteModal.#normalizarTexto(nome).includes('corte');
+  }
+
+  /**
+   * @param {string} texto
+   * @returns {string}
+   */
+  static #normalizarTexto(texto) {
+    return String(texto ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
   }
 
   /**

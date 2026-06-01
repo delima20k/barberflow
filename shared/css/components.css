@@ -4548,6 +4548,21 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .bp-mensal-banner[hidden] { display: none; }
 
+.bp-mensal-banner__titulo {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--gold, #D4AF37);
+  letter-spacing: .01em;
+}
+
+.bp-mensal-banner__descricao {
+  margin: 0 0 10px;
+  font-size: .86rem;
+  line-height: 1.45;
+  color: var(--text-muted, #d6d0c7);
+}
+
 /* Trigger card — botão clicável que abre o modal */
 .bp-mensal-trigger {
   width: 100%;

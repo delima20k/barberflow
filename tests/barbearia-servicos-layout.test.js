@@ -62,10 +62,17 @@ describe('BarbeariaPage servicos publicos', () => {
     assert.match(renderMensalBanner, /this\.#obterMensalBanner\(\)/);
     assert.match(renderMensalBanner, /servicos\.find\(sv => BarbeariaPage\.#isMensalidadeServico\(sv, shop\)\)/);
     assert.match(renderMensalBanner, /precoShop > 0 \? precoShop : precoServico/);
-    assert.match(renderMensalBanner, /bp-mensal-banner__linha/);
-    assert.match(renderMensalBanner, /<p class="bp-mensal-banner__tag">Mensalidade<\/p>/);
-    assert.match(renderMensalBanner, /<p class="bp-mensal-banner__valor">\$\{val\}/);
-    assert.match(renderMensalBanner, /shop\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name/);
+    assert.match(renderMensalBanner, /const tituloMensalidade = 'Plano Mensalidade'/);
+    assert.match(
+      renderMensalBanner,
+      /const descricaoMensalidade = 'Compartilhe a mensalidade com seus colegas para cortarem cabelo a qualquer horário, qualquer dia, durante o mês\. Você pode cortar o cabelo quantas vezes quiser!'/,
+    );
+    assert.match(renderMensalBanner, /<h2 class="bp-mensal-banner__titulo">\$\{s\(tituloMensalidade\)\}<\/h2>/);
+    assert.match(renderMensalBanner, /<p class="bp-mensal-banner__descricao">\$\{s\(descricaoMensalidade\)\}<\/p>/);
+    assert.match(renderMensalBanner, /bp-mensal-trigger__linha/);
+    assert.match(renderMensalBanner, /<span class="bp-mensal-trigger__tag">Mensalidade<\/span>/);
+    assert.match(renderMensalBanner, /<span class="bp-mensal-trigger__valor">\$\{val\}/);
+    assert.match(renderMensalBanner, /shop\?\.monthly_plan_message \?\? mensalidadeServico\?\.description \?\? mensalidadeServico\?\.name \?\? ''/);
   });
 
   test('banner de mensalidade cria container e reconhece cadastro por nome', () => {
@@ -142,25 +149,39 @@ describe('BarbeariaPage servicos publicos', () => {
       css.indexOf('.bp-mensal-banner {'),
       css.indexOf('.bp-mensal-banner[hidden]'),
     );
+    const tituloCss = css.slice(
+      css.indexOf('.bp-mensal-banner__titulo'),
+      css.indexOf('.bp-mensal-banner__descricao'),
+    );
+    const descricaoCss = css.slice(
+      css.indexOf('.bp-mensal-banner__descricao'),
+      css.indexOf('/* Trigger card'),
+    );
+    const triggerCss = css.slice(
+      css.indexOf('.bp-mensal-trigger {'),
+      css.indexOf('.bp-mensal-trigger:active'),
+    );
     const tagCss = css.slice(
-      css.indexOf('.bp-mensal-banner__tag'),
-      css.indexOf('.bp-mensal-banner__valor'),
+      css.indexOf('.bp-mensal-trigger__tag'),
+      css.indexOf('.bp-mensal-trigger__valor'),
     );
     const valorCss = css.slice(
-      css.indexOf('.bp-mensal-banner__valor'),
-      css.indexOf('.bp-mensal-banner__periodo'),
+      css.indexOf('.bp-mensal-trigger__valor'),
+      css.indexOf('.bp-mensal-trigger__per'),
     );
     const msgCss = css.slice(
-      css.indexOf('.bp-mensal-banner__msg'),
-      css.indexOf('/* ── Config:'),
+      css.indexOf('.bp-mensal-trigger__msg'),
+      css.indexOf('.bp-mensal-trigger__icone'),
     );
 
-    assert.match(bannerCss, /background:\s*linear-gradient/);
-    assert.match(bannerCss, /#1a1008/);
-    assert.match(bannerCss, /#6B4A32/i);
-    assert.match(bannerCss, /#D4AF37/i);
-    assert.match(bannerCss, /#C75A1A/i);
-    assert.match(css, /\.bp-mensal-banner__linha\s*\{[\s\S]*display:\s*flex/);
+    assert.match(triggerCss, /background:\s*linear-gradient/);
+    assert.match(triggerCss, /#1a1008/);
+    assert.match(triggerCss, /#6B4A32/i);
+    assert.match(triggerCss, /#D4AF37/i);
+    assert.match(triggerCss, /#C75A1A/i);
+    assert.match(css, /\.bp-mensal-trigger__linha\s*\{[\s\S]*display:\s*flex/);
+    assert.match(tituloCss, /color:\s*var\(--gold/);
+    assert.match(descricaoCss, /color:\s*var\(--text-muted/);
     assert.match(tagCss, /color:\s*var\(--gold/);
     assert.match(valorCss, /color:\s*#fff/);
     assert.match(msgCss, /color:\s*var\(--gold/);

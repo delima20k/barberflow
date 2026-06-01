@@ -164,6 +164,7 @@ function carregarCorteModal() {
   const servicos = vm.runInContext(`[
     { id: 'svc-1', name: 'Corte Simples', price: 30, duration_min: 30 },
     { id: 'svc-2', name: 'Corte + Barba', price: 50, duration_min: 50 },
+    { id: 'svc-3', name: 'Sobrancelha', price: 20, duration_min: 15 },
   ]`, sb);
   return { CorteModal: sb.CorteModal, document, body, servicos };
 }
@@ -241,15 +242,15 @@ describe('CorteModal', () => {
       const overlay = ultimoOverlay(body);
       const lista   = overlay.querySelector('.crtm-lista');
 
-      // Marca Plano Mensal (idx 0) e svc-2 (idx 2)
+      // Marca Plano Mensal (idx 0) e um serviço extra sem corte (idx 3)
       lista.children[0].querySelector('.crtm-checkbox').checked = true;
-      lista.children[2].querySelector('.crtm-checkbox').checked = true;
+      lista.children[3].querySelector('.crtm-checkbox').checked = true;
       lista.dispatchEvent({ type: 'change' });
 
       overlay.querySelector('.crtm-btn--confirmar').dispatchEvent({ type: 'click' });
       const ids = await p;
       assert.ok(!ids.includes(CorteModal.MENSALISTA_ID), 'MENSALISTA_ID não deve aparecer no retorno');
-      assert.ok(ids.includes('svc-2'), 'svc-2 deve estar no retorno');
+      assert.ok(ids.includes('svc-3'), 'serviço extra deve estar no retorno');
     });
 
     test('confirmar com serviço selecionado → resolve [svc.id]', async () => {
@@ -290,6 +291,32 @@ describe('CorteModal', () => {
       // Limpa Promise pendente
       overlay.querySelector('.crtm-btn--cancelar').dispatchEvent({ type: 'click' });
       await p;
+    });
+
+    test('Plano Mensal selecionado oculta cortes e retorna somente serviços extras', async () => {
+      const { CorteModal, body, servicos } = carregarCorteModal();
+      const p = CorteModal.abrir({ servicos, clienteNome: 'Nina', clienteMensalista: true });
+      const overlay = ultimoOverlay(body);
+      const lista   = overlay.querySelector('.crtm-lista');
+
+      const mensalChk = lista.children[0].querySelector('.crtm-checkbox');
+      const corteChk  = lista.children[1].querySelector('.crtm-checkbox');
+      const extraChk  = lista.children[3].querySelector('.crtm-checkbox');
+
+      corteChk.checked = true;
+      mensalChk.checked = true;
+      extraChk.checked = true;
+      lista.dispatchEvent({ type: 'change' });
+
+      assert.equal(lista.children[1].hidden, true, 'serviço com corte deve ficar oculto');
+      assert.equal(lista.children[2].hidden, true, 'serviço com corte deve ficar oculto');
+      assert.equal(corteChk.checked, false, 'corte oculto deve ser desmarcado');
+      assert.equal(lista.children[3].hidden, false, 'serviço extra deve permanecer visível');
+
+      overlay.querySelector('.crtm-btn--confirmar').dispatchEvent({ type: 'click' });
+      const ids = await p;
+      assert.deepEqual([...ids], ['svc-3']);
+      assert.equal(ids.planoMensalidadeSelecionado, true);
     });
 
     test('botão confirmar começa desabilitado e habilita após selecionar item', async () => {

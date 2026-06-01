@@ -1318,8 +1318,12 @@ class BarbeariaPage {
     const val    = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
     const msgRaw = shop?.monthly_plan_message ?? mensalidadeServico?.description ?? mensalidadeServico?.name ?? '';
     const msg    = msgRaw ? s(String(msgRaw)) : '';
+    const tituloMensalidade = 'Plano Mensalidade';
+    const descricaoMensalidade = 'Compartilhe a mensalidade com seus colegas para cortarem cabelo a qualquer horário, qualquer dia, durante o mês. Você pode cortar o cabelo quantas vezes quiser!';
 
     el.innerHTML = `
+      <h2 class="bp-mensal-banner__titulo">${s(tituloMensalidade)}</h2>
+      <p class="bp-mensal-banner__descricao">${s(descricaoMensalidade)}</p>
       <button class="bp-mensal-trigger" type="button" aria-label="Ver plano de mensalidade">
         <div class="bp-mensal-trigger__linha">
           <span class="bp-mensal-trigger__tag">Mensalidade</span>
