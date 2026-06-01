@@ -47,6 +47,8 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /#emitInteraction/);
     assert.match(js, /#replayInteractions/);
     assert.match(js, /#normalizarInteracoes/);
+    assert.match(js, /#FLOAT_STACK_SIZE\s*=\s*8/);
+    assert.match(js, /--pp-prism-float-stack/);
     assert.match(js, /portfolioPublicActions/);
     assert.match(js, /interactions/);
     assert.match(js, /pp-prism-public-actions/);
@@ -79,12 +81,14 @@ describe('PortfolioPrismViewer', () => {
     assert.match(proPublicButtonCss, /border:\s*0/);
     assert.match(proPublicButtonCss, /background:\s*transparent/);
     assert.match(css, /@keyframes\s+pp-prism-float-up/);
+    assert.match(css, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* 0\.5rem\)\)/);
     assert.match(css, /\.pp-prism-float--emoji/);
     assert.match(css, /\.pp-prism-float--like/);
     assert.match(css, /@keyframes\s+pp-prism-emoji-burst/);
     assert.match(css, /@keyframes\s+pp-prism-like-rise/);
     assert.match(proCss, /\.pp-prism-float--emoji/);
     assert.match(proCss, /\.pp-prism-float--like/);
+    assert.match(proCss, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* 0\.5rem\)\)/);
   });
 
   test('portfolio publico legado da barbearia tambem habilita a barra publica', () => {

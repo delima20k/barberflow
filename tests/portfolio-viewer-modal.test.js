@@ -56,11 +56,14 @@ describe('PortfolioViewerModal', () => {
     assert.match(js, /#reactionLayer/);
     assert.match(js, /#replayInteractions/);
     assert.match(js, /#normalizarInteracoes/);
+    assert.match(js, /#FLOAT_STACK_SIZE\s*=\s*8/);
+    assert.match(js, /--pp-prism-float-stack/);
     assert.match(js, /interactions/);
     assert.match(js, /portfolio-viewer__reactions/);
     assert.match(js, /pp-prism-float--emoji/);
     assert.match(js, /pp-prism-float--like/);
     assert.match(css, /\.portfolio-viewer__reactions/);
+    assert.match(css, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* 0\.5rem\)\)/);
     assert.match(css, /\.pp-prism-float--emoji/);
     assert.match(css, /\.pp-prism-float--like/);
   });

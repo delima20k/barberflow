@@ -27,6 +27,7 @@ class PortfolioPrismViewer {
   static #VELOCITY_THRESHOLD    = 0.35;                // px/ms
   static #DRAG_MIN_PX           = 8;                   // gesto horizontal só após este deslocamento
   static #PUBLIC_MESSAGE_MAX_LENGTH = 20;
+  static #FLOAT_STACK_SIZE      = 8;
   // Ordem visual das 6 faces ao redor do índice atual.
   // Face 0 = frontal; 1/2/3 giram à direita; -2/-1 giram à esquerda.
   static #FACE_OFFSETS          = [0, 1, 2, 3, -2, -1];
@@ -68,6 +69,7 @@ class PortfolioPrismViewer {
   #finalizeTimer   = null;
   #resizeObserver  = null;
   #floatTimers      = new Set();
+  #floatSequence    = 0;
 
   #onKeydown       = null;
 
@@ -592,6 +594,11 @@ class PortfolioPrismViewer {
 
     const el = document.createElement('div');
     el.className = PortfolioPrismViewer.#floatClass(tipo);
+    el.style.setProperty(
+      '--pp-prism-float-stack',
+      String(this.#floatSequence % PortfolioPrismViewer.#FLOAT_STACK_SIZE),
+    );
+    this.#floatSequence += 1;
 
     if (tipo === 'message' && (avatarUrl || nome)) {
       const avatar = document.createElement('img');
@@ -685,6 +692,7 @@ class PortfolioPrismViewer {
     this.#reactionLayer?.replaceChildren();
     this.#floatTimers.forEach(timer => clearTimeout(timer));
     this.#floatTimers.clear();
+    this.#floatSequence = 0;
   }
 
   static #clientMessageId() {

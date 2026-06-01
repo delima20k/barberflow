@@ -1,6 +1,8 @@
 'use strict';
 
 class PortfolioViewerModal {
+  static #FLOAT_STACK_SIZE = 8;
+
   #overlay = null;
   #cube = null;
   #faces = [];
@@ -10,6 +12,7 @@ class PortfolioViewerModal {
   #likes = null;
   #reactionLayer = null;
   #floatTimers = new Set();
+  #floatSequence = 0;
   #title = null;
   #actions = null;
   #count = null;
@@ -167,6 +170,11 @@ class PortfolioViewerModal {
 
     const el = document.createElement('div');
     el.className = PortfolioViewerModal.#floatClass(tipo);
+    el.style.setProperty(
+      '--pp-prism-float-stack',
+      String(this.#floatSequence % PortfolioViewerModal.#FLOAT_STACK_SIZE),
+    );
+    this.#floatSequence += 1;
 
     if (tipo === 'message' && (avatarUrl || nome)) {
       const avatar = document.createElement('img');
@@ -250,6 +258,7 @@ class PortfolioViewerModal {
     this.#reactionLayer?.replaceChildren();
     this.#floatTimers.forEach(timer => clearTimeout(timer));
     this.#floatTimers.clear();
+    this.#floatSequence = 0;
   }
 
   #itemAt(offset) {

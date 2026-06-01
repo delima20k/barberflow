@@ -3860,7 +3860,7 @@
 .pp-prism-float {
   position: absolute;
   left: 50%;
-  bottom: 18px;
+  bottom: calc(18px + (var(--pp-prism-float-stack, 0) * 0.5rem));
   max-width: min(82%, 340px);
   display: flex;
   align-items: center;
