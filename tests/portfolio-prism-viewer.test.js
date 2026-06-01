@@ -58,6 +58,7 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /maxlength="\$\{PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH\}"/);
     assert.doesNotMatch(js, /placeholder=/);
     assert.match(js, /class="pp-prism-message-send"[\s\S]*<span aria-hidden="true">➤<\/span>/);
+    assert.doesNotMatch(js, /✈/);
     assert.doesNotMatch(js, />Enviar<\/button>/);
     assert.match(js, /Array\.from\(texto\)\.length\s*>\s*PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH/);
     assert.match(js, /static #sadEmoji\(\)/);
@@ -112,6 +113,28 @@ describe('PortfolioPrismViewer', () => {
     assert.match(publicSectionJs, /BffApiService\.profissionais\.curtirPortfolioImagem/);
     assert.match(publicSectionJs, /BffApiService\.profissionais\.descurtirPortfolioImagem/);
     assert.doesNotMatch(publicSectionJs, /ApiService\.from\('likes'\)/);
+  });
+
+  test('pagina publica do barbeiro usa o viewer compartilhado com barra publica', () => {
+    const barbeiroPageJs = fs.readFileSync(path.join(ROOT, 'shared/js/BarbeiroPage.js'), 'utf8');
+    const galleryJs = fs.readFileSync(path.join(ROOT, 'shared/js/PortfolioGallery.js'), 'utf8');
+
+    assert.match(barbeiroPageJs, /new PortfolioGallery\(this\.#refs\.portfolio,\s*\{[\s\S]*new PortfolioPrismViewer\(\)/);
+    assert.match(galleryJs, /portfolioPublicActions:\s*Boolean\(item\.id\)/);
+    assert.match(galleryJs, /interactions:\s*item\.interactions|\.{3}item/);
+  });
+
+  test('telas profissionais usam o viewer compartilhado com interacoes', () => {
+    const parceriasJs = fs.readFileSync(path.join(ROOT, 'apps/profissional/assets/js/pages/ParceriasPage.js'), 'utf8');
+    const minhaBarbeariaPortfolioJs = fs.readFileSync(
+      path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/PortfolioSection/PortfolioView.js'),
+      'utf8',
+    );
+
+    assert.match(parceriasJs, /new PortfolioPrismViewer\(\)/);
+    assert.match(parceriasJs, /interactions:\s*Array\.isArray\(foto\?\.interactions\)/);
+    assert.match(minhaBarbeariaPortfolioJs, /new PortfolioPrismViewer\(\)/);
+    assert.match(minhaBarbeariaPortfolioJs, /this\.#viewer\.open\(item,\s*items\)/);
   });
 
   test('card normal do portfolio publico nao mostra botao de mensagem', () => {

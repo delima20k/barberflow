@@ -19,17 +19,12 @@ e todas as boas práticas serão seguidas antes de qualquer implementação.
 
 1º "Prompt Inicial de Sessão"
 ------------------pronpt-1--------------------------
-Antes de implementar QUALQUER pedido meu, siga obrigatoriamente o fluxo do AGENTE DELIMA.
-
-==================================================
-1. LEITURA OBRIGATÓRIA INICIAL (SEMPRE)
-==================================================
-
 ANTES de qualquer alteração, leitura ou implementação, leia nesta ordem:
 
 1. README.md do projeto
-2. .github/agents/workflow/skill.md
-3. .github/agents/workflow/skill-index.md
+2. .github/agents/workflows/skill-mapping.md
+3. .github/agents/workflows/skill.md
+4. .github/agents/workflows/skill-index.md
 
 OBJETIVO:
 O README.md deve ser lido primeiro para entender o contexto completo da aplicação.
@@ -97,16 +92,64 @@ Nunca assumir banco sem validar.
 Depois do README:
 
 Leia:
-.github/agents/workflow/skill.md
+.github/agents/workflows/skill.md
 
 Depois:
-.github/agents/workflow/skill-index.md
+.github/agents/workflows/skill-index.md
 
 Use o índice para identificar apenas skills relevantes em:
 
-.github/agents/workflow/skills/
+.github/agents/workflows/skills/
 
 Leia somente o necessário para economizar contexto.
+
+==================================================
+3.1 MAPEAMENTO AUTOMÁTICO DE SKILLS
+==================================================
+
+Após ler skill-mapping.md, identifique a intenção
+do prompt e carregue automaticamente as skills
+correspondentes:
+
+- BFF / API / Endpoints
+  → api-security + jwt-security
+
+- Refatoração / Código
+  → secure-code-review + code-quality
+
+- Segurança
+  → api-security + threat-detection + cloud-security
+
+- Testes
+  → secure-code-review + code-quality
+
+- Escalabilidade
+  → code-quality + cloud-security + devsecops
+
+- GPS / Geolocalização
+  → api-security + threat-detection
+
+- Deploy / Pipeline
+  → devsecops + cloud-security
+
+- Incidente / Erro crítico
+  → incident-response + threat-intelligence
+
+- IA / Modelos
+  → ai-security + threat-detection
+
+- Banco / Migrations
+  → security-operations + devsecops
+
+- Mensagens / Chat
+  → api-security + threat-detection
+
+- Autenticação / JWT
+  → identity-and-access-management + api-security
+
+REGRA:
+Nunca implementar sem antes carregar as skills
+correspondentes à intenção do prompt.
 
 ==================================================
 4. PRIORIDADE DE ARQUITETURA
@@ -236,6 +279,7 @@ Então:
 Depois:
 - documentar no skill adequado
 - atualizar skill-index.md
+- atualizar skill-mapping.md
 - atualizar CLASS_REGISTRY.md (se houver nova classe)
 
 ==================================================
@@ -252,6 +296,7 @@ Nunca:
 - criar classe redundante
 - pular leitura do README
 - assumir banco sem validar
+- implementar sem carregar skills correspondentes
 
 ==================================================
 11. REVISÃO FINAL OBRIGATÓRIA
@@ -300,15 +345,15 @@ O que deve ser feito: Utilize este prompt uma única vez para instruir o Copilot
 ---------------------------------PROMPT------------------ 
  Ativa o Agente Delima, Antes de implementar qualquer pedido meu, leia primeiro:
 
-.github/agents/workflow/skill.md
+.github/agents/workflows/skill.md
 
 Depois consulte:
 
-.github/agents/workflow/skill-index.md
+.github/agents/workflows/skill-index.md
 
 Use o índice para ler somente os arquivos necessários em:
 
-.github/agents/workflow/skills/
+.github/agents/workflows/skills/
 
 Siga OOP, Clean Architecture, SOLID, DRY, segurança, performance, testes, baixo custo, escalabilidade e refatoração controlada. Consulte CLASS_REGISTRY.md antes de criar classes novas.
 

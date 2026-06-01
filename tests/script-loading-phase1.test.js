@@ -37,7 +37,7 @@ function assertBefore(order, first, second) {
 describe('fase 1 de carregamento de scripts', () => {
   test('cliente usa defer em todos os scripts externos', () => {
     const tags = externalScriptTags(readHtml('apps/cliente/index.html'));
-    assert.equal(tags.length, 114);
+    assert.equal(tags.length, 116);
     assert.deepEqual(
       tags.filter((tag) => !/\b(?:defer|async|type=)/.test(tag)),
       [],
@@ -46,7 +46,7 @@ describe('fase 1 de carregamento de scripts', () => {
 
   test('profissional usa defer em todos os scripts externos', () => {
     const tags = externalScriptTags(readHtml('apps/profissional/index.html'));
-    assert.equal(tags.length, 121);
+    assert.equal(tags.length, 124);
     assert.deepEqual(
       tags.filter((tag) => !/\b(?:defer|async|type=)/.test(tag)),
       [],
@@ -60,6 +60,7 @@ describe('fase 1 de carregamento de scripts', () => {
     assertBefore(order, '/shared/js/SupabaseService.js', '/shared/js/AuthService.js');
     assertBefore(order, '/shared/js/NavigationViewService.js', '/shared/js/Router.js');
     assertBefore(order, '/shared/js/BffApiService.js', '/shared/js/PortfolioGallery.js');
+    assertBefore(order, '/shared/js/PortfolioPrismViewer.js', '/shared/js/PortfolioGallery.js');
     assertBefore(order, '/shared/js/Router.js', 'assets/js/pages/LoginPage.js');
     assertBefore(order, 'assets/js/AppBootstrap.js', 'assets/js/app.js');
   });
@@ -71,6 +72,8 @@ describe('fase 1 de carregamento de scripts', () => {
     assertBefore(order, '/shared/js/SupabaseService.js', '/shared/js/AuthService.js');
     assertBefore(order, '/shared/js/NavigationViewService.js', '/shared/js/Router.js');
     assertBefore(order, '/shared/js/BffApiService.js', '/shared/js/PortfolioGallery.js');
+    assertBefore(order, '/shared/js/PortfolioPrismViewer.js', '/shared/js/PortfolioGallery.js');
+    assertBefore(order, '/shared/js/PortfolioGallery.js', '/shared/js/BarbeiroPage.js');
     assertBefore(order, 'assets/js/AppBootstrap.js', 'assets/js/app.js');
   });
 

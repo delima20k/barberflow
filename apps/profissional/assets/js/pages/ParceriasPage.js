@@ -168,6 +168,7 @@ class ParceriasPage {
     row.className   = 'parcerias-row mb-barbeiro-row mb-barbeiro-row--dono';
     row.dataset.id  = b.id;
     row.dataset.barbershopId = b.id;
+    row.dataset.parceiro = 'true'; // impede BarbeariaPage.#bindListenerGlobal de interceptar
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
@@ -216,10 +217,10 @@ class ParceriasPage {
     row.appendChild(avatarWrap);
     row.appendChild(info);
     row.appendChild(meta);
-    row.addEventListener('click', () => ParceriasPage.#abrirGestaoBarbearia(b.id));
+    row.addEventListener('click', () => ParceriasPage.#entrarComoParceiro(b.id));
     btnAgendar.addEventListener('click', e => {
       e.stopPropagation();
-      ParceriasPage.#abrirGestaoBarbearia(b.id);
+      ParceriasPage.#entrarComoParceiro(b.id);
     });
     if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
     return row;
@@ -230,6 +231,22 @@ class ParceriasPage {
     document.dispatchEvent(new CustomEvent('barberflow:abrir-barbearia', {
       detail: { barbershopId },
     }));
+  }
+
+  /**
+   * Entra na barbearia vinculada como parceiro (barbeiro não-dono).
+   * Seta bf_parceria_barbershop_id no sessionStorage para que
+   * MinhaBarbeariaRuntimeController carregue a barbearia em modo parceiro.
+   */
+  static #entrarComoParceiro(barbershopId) {
+    if (!barbershopId) return;
+    try {
+      sessionStorage.setItem('bf_parceria_barbershop_id', barbershopId);
+    } catch { /* quota/privado — ignora */ }
+    const router = (typeof Pro !== 'undefined' && Pro)
+                || (typeof App !== 'undefined' && App)
+                || null;
+    if (router) router.nav('minha-barbearia');
   }
 
   // ═══════════════════════════════════════════════════════════

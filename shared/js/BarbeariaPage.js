@@ -191,7 +191,8 @@ class BarbeariaPage {
   #bindListenerGlobal() {
     document.addEventListener('click', e => {
       const card = e.target.closest('[data-barbershop-id]');
-      if (!card || e.target.closest('[data-action]')) return;
+      // data-parceiro="true" → card de barbearia vinculada; o listener do elemento trata a navegação
+      if (!card || card.dataset.parceiro === 'true' || e.target.closest('[data-action]')) return;
 
       const id = card.dataset.barbershopId;
       if (!InputValidator.uuid(id).ok) {
