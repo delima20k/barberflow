@@ -507,6 +507,9 @@ class PortfolioPrismViewer {
   }
 
   async #handlePublicMessage(body) {
+    // INÍCIO ALTERAÇÃO - Mensagens da modal de imagem
+    // Correção: persistir mensagem em item.interactions após envio bem-sucedido,
+    // garantindo que a mensagem reapareça ao retornar para a mesma imagem.
     const item = this.#itemAtual();
     const texto = String(body ?? '').trim();
     if (!item?.portfolioPublicActions || !item?.professionalId || !texto) return;
@@ -530,7 +533,26 @@ class PortfolioPrismViewer {
       const { error } = await BffApiService.profissionais.iniciarMensagemBarbearia(item.professionalId, payload);
       if (error) throw error;
       if (this.#publicInput) this.#publicInput.value = '';
-      this.#emitInteraction({ texto, perfil, type: PortfolioPrismViewer.#isEmojiText(texto) ? 'emoji' : 'message' });
+      const tipo = PortfolioPrismViewer.#isEmojiText(texto) ? 'emoji' : 'message';
+      this.#emitInteraction({ texto, perfil, type: tipo });
+
+      // Persiste a mensagem localmente para que ela seja reproduzida ao
+      // retornar para esta imagem na mesma sessão do viewer.
+      if (!Array.isArray(item.interactions)) item.interactions = [];
+      const avatarUrl = perfil?.avatar_path
+        ? ((typeof ApiService !== 'undefined' && ApiService.getAvatarUrl)
+            ? ApiService.getAvatarUrl(perfil.avatar_path)
+            : null)
+        : null;
+      item.interactions.push({
+        type: tipo,
+        body: texto,
+        sender: {
+          id:        perfil?.id        ?? null,
+          nome:      perfil?.full_name ?? '',
+          avatarUrl: avatarUrl,
+        },
+      });
     } catch (err) {
       let textoErro = '✗ Falha ao enviar';
       if (err?.status === 429) {
@@ -546,6 +568,7 @@ class PortfolioPrismViewer {
       if (this.#publicSendBtn) this.#publicSendBtn.disabled  = false;
       this.#publicEmojis.forEach(btn => { btn.disabled = false; });
     }
+    // FIM ALTERAÇÃO
   }
 
   /** Obtém perfil do usuário logado (best-effort). */

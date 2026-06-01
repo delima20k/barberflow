@@ -8150,14 +8150,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   pointer-events: none;
 }
 
+/* INÍCIO ALTERAÇÃO - Gap mínimo de 10px entre elementos animados */
 .pp-prism-float {
   position: absolute;
   left: 50%;
-  bottom: calc(18px + (var(--pp-prism-float-stack, 0) * 0.5rem));
+  bottom: calc(18px + (var(--pp-prism-float-stack, 0) * 10px));
   max-width: min(82%, 340px);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+/* FIM ALTERAÇÃO */
   padding: 0;
   background: none;
   border-radius: 0;

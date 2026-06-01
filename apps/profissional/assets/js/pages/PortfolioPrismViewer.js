@@ -55,9 +55,15 @@ class PortfolioPrismViewer {
   #animando        = false;
   #finalizeTimer   = null;
   #resizeObserver  = null;
+  // INÍCIO ALTERAÇÃO - Animações dos floats no viewer profissional
+  // Adicionado #floatSequence para controlar o stacking dos floats (gap 10px),
+  // e #FLOAT_STACK_SIZE para limitar a altura máxima de empilhamento.
+  static #FLOAT_STACK_SIZE = 8;
   #reactionLayer   = null;
   #floatTimers     = new Set();
+  #floatSequence   = 0;
   #replayTimer     = null;
+  // FIM ALTERAÇÃO
 
   #onKeydown       = null;
 
@@ -389,6 +395,10 @@ class PortfolioPrismViewer {
     this.#floatTimers.forEach(t => clearTimeout(t));
     this.#floatTimers.clear();
     this.#reactionLayer?.replaceChildren();
+    // INÍCIO ALTERAÇÃO - Animações dos floats no viewer profissional
+    // Reseta sequência ao cancelar para que o próximo replay comece do índice 0.
+    this.#floatSequence = 0;
+    // FIM ALTERAÇÃO
   }
 
   /**
@@ -413,6 +423,9 @@ class PortfolioPrismViewer {
     });
   }
 
+  // INÍCIO ALTERAÇÃO - Animações dos floats no viewer profissional
+  // Corrigido: aplica --pp-prism-float-stack para gap de 10px entre floats,
+  // e detecta tipo (emoji, like, message) para usar a animação CSS correta.
   /** Cria e anima um float com avatar, nome e texto sobre a imagem. */
   #emitirFloat({ texto, avatarUrl, nome } = {}) {
     if (!this.#reactionLayer) return;
@@ -420,10 +433,26 @@ class PortfolioPrismViewer {
     const textoSeg = String(texto ?? '').slice(0, 80);
     const nomeSeg  = String(nome ?? '').trim().slice(0, 30);
 
-    const el = document.createElement('div');
-    el.className = 'pp-prism-float';
+    // Detecta tipo para aplicar a animação CSS correta
+    const isLike  = /^👍/.test(textoSeg);
+    const isEmoji = !isLike && /^[\p{Emoji_Presentation}\p{Extended_Pictographic}️‍\s]+$/u.test(textoSeg)
+                  && textoSeg.length <= 12;
+    const tipo = isLike ? 'like' : (isEmoji ? 'emoji' : 'message');
 
-    if (avatarUrl || nomeSeg) {
+    const el = document.createElement('div');
+    // Classe base + modificador de tipo para animação específica
+    if (tipo === 'emoji') el.className = 'pp-prism-float pp-prism-float--emoji';
+    else if (tipo === 'like') el.className = 'pp-prism-float pp-prism-float--like';
+    else el.className = 'pp-prism-float pp-prism-float--message';
+
+    // Stacking: cada float começa 10px acima do anterior (evita sobreposição)
+    el.style.setProperty(
+      '--pp-prism-float-stack',
+      String(this.#floatSequence % PortfolioPrismViewer.#FLOAT_STACK_SIZE),
+    );
+    this.#floatSequence += 1;
+
+    if (tipo === 'message' && (avatarUrl || nomeSeg)) {
       const avatar = document.createElement('img');
       avatar.className = 'pp-prism-float__avatar';
       avatar.alt = nomeSeg || '';
@@ -454,6 +483,7 @@ class PortfolioPrismViewer {
     const timer = setTimeout(remover, 2600);
     this.#floatTimers.add(timer);
   }
+  // FIM ALTERAÇÃO
 
   // ───────────────────────────────────────────────────────────
   // Bootstrap DOM
