@@ -4539,6 +4539,18 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   white-space: nowrap;
 }
 
+/* ── Separador entre carousel de serviços e banner de mensalidade ── */
+
+.bp-divider {
+  width: 100%;
+  height: 1px;
+  margin: 16px 0;
+  padding: 0 16px;
+  box-sizing: border-box;
+  background: linear-gradient(to right, transparent 0%, var(--gold-border, rgba(212, 175, 55, 0.2)) 15%, var(--gold-border, rgba(212, 175, 55, 0.2)) 85%, transparent 100%);
+}
+.bp-divider[hidden] { display: none; }
+
 /* ── Mensalidade — container + trigger card + modal ────────────── */
 
 /* Container: wrapper transparente; só controla visibilidade */
