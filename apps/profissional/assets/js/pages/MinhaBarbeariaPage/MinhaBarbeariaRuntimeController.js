@@ -32,10 +32,6 @@ import { QueueRealtimeClient } from './QueueRealtimeClient.js';
 
 export class MinhaBarbeariaRuntimeController {
 
-  // Cache de sessão: evita re-sondar colunas monthly_plan_* após primeira detecção.
-  // null = desconhecido; true = colunas existem; false = ausentes (migration pendente)
-  static #colunasMonthlyOk = null;
-
   // ── Estado ─────────────────────────────────────────────────
   #telaEl          = null;
   #panelEl         = null;   // mb-config-panel
@@ -586,55 +582,34 @@ export class MinhaBarbeariaRuntimeController {
       sessionStorage.removeItem('bf_parceria_barbershop_id');
     }
 
-    const SELECT_SAFE = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at';
-
-    // Cache: se já detectamos que monthly_plan_* não existe, vai direto no SELECT_SAFE
-    // evitando o 400 em todas as chamadas subsequentes da sessão.
-    if (MinhaBarbeariaRuntimeController.#colunasMonthlyOk === false) {
-      return MinhaBarbeariaRuntimeController.#fetchBarbeariaSafe(ownerId, SELECT_SAFE);
-    }
-
-    const SELECT_FULL = SELECT_SAFE + ', monthly_plan_price, monthly_plan_message';
+    // Colunas confirmadas no schema remoto (migrations aplicadas até 20260517000004).
+    // monthly_plan_price e monthly_plan_message NÃO incluídas: migration 20260530000001
+    // ainda não aplicada ao remoto — adicionar aqui após `supabase db push`.
+    const SELECT = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at';
 
     const { data, error } = await SupabaseService.barbershops()
-      .select(SELECT_FULL)
+      .select(SELECT)
       .eq('owner_id', ownerId)
       .eq('is_active', true)
       .limit(1)
       .single();
 
-    if (!error) {
-      MinhaBarbeariaRuntimeController.#colunasMonthlyOk = true;
-      return data ?? null;
-    }
+    if (!error) return data ?? null;
 
-    // Detecta colunas ausentes: PGRST204 (schema cache), 42703 (PostgreSQL),
-    // ou qualquer 400 que mencione a coluna ou schema.
-    const codErr = String(error.code ?? '');
-    const msgErr = String(error.message ?? '').toLowerCase();
-    const ehColunasAusentes =
-      codErr === 'PGRST204' || codErr === '42703' ||
-      msgErr.includes('monthly_plan') || msgErr.includes('schema cache') ||
-      msgErr.includes('does not exist') || msgErr.includes('column');
+    // PGRST116 = 0 rows (.single() sem resultado) — profissional sem barbearia ativa
+    if (error.code === 'PGRST116') return null;
 
-    if (ehColunasAusentes) {
-      MinhaBarbeariaRuntimeController.#colunasMonthlyOk = false;
-      return MinhaBarbeariaRuntimeController.#fetchBarbeariaSafe(ownerId, SELECT_SAFE);
-    }
-
-    if (error.code !== 'PGRST116') throw error;
-    return null;
-  }
-
-  static async #fetchBarbeariaSafe(ownerId, SELECT_SAFE) {
-    const { data, error } = await SupabaseService.barbershops()
-      .select(SELECT_SAFE)
-      .eq('owner_id', ownerId)
-      .eq('is_active', true)
-      .limit(1)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data ? { ...data, monthly_plan_price: null, monthly_plan_message: null } : null;
+    LoggerService.error('[MinhaBarbeariaPage] #fetchMinhaBarbearia — query falhou', {
+      tabela:   'barbershops',
+      owner_id: ownerId,
+      select:   SELECT,
+      filtros:  { owner_id: ownerId, is_active: true },
+      code:     error.code,
+      message:  error.message,
+      details:  error.details,
+      hint:     error.hint,
+    });
+    throw error;
   }
 
   static async #fetchPerfilDono(shop, perfilLogado) {
