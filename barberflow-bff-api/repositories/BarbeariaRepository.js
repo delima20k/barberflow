@@ -240,7 +240,6 @@ class BarbeariaRepository extends BaseRepository {
       .from('barbershops')
       .update(payload)
       .eq('owner_id', ownerId)
-      .eq('is_active', true)
       .select('monthly_plan_price, monthly_plan_message')
       .single();
 

@@ -25,12 +25,14 @@ const mockShopData = {
   monthly_plan_message: 'Mensalidade padrão',
 };
 
+const chamadasDb = [];
+
 const criarQB = (returnData) => {
   const q = {
     select:      () => q,
     update:      () => q,
     upsert:      () => q,
-    eq:          () => q,
+    eq:          (col, val) => { chamadasDb.push(['eq', col, val]); return q; },
     neq:         () => q,
     order:       () => q,
     limit:       () => Promise.resolve({ data: [], error: null }),
@@ -149,6 +151,22 @@ suite('BarbeariaController — PATCH /api/v1/barbearias/minha/mensalidade', () =
     });
     assert.strictEqual(status, 200);
     assert.strictEqual(body.ok, true);
+  });
+
+  test('não exige barbearia ativa para salvar configuração da mensalidade', async () => {
+    chamadasDb.length = 0;
+
+    const { status, body } = await patchMensalidade({
+      monthly_plan_price:   75,
+      monthly_plan_message: 'Mensalidade para clientes fixos',
+    });
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+    assert.deepStrictEqual(
+      chamadasDb.filter(([metodo]) => metodo === 'eq'),
+      [['eq', 'owner_id', TEST_USER_ID]],
+    );
   });
 
   test('200 com reset (preço e mensagem nulos)', async () => {
