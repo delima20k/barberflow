@@ -1331,10 +1331,19 @@ class BarbeariaPage {
       .filter(img => img.thumbnail_path)
       .map(img => {
         const url = ApiService.getPortfolioThumbUrl?.(img.thumbnail_path) ?? '';
+        // INÍCIO ALTERAÇÃO - professionalId correto para imagens da barbearia
+        // Usa this.#shopData.owner_id (user UUID do dono) em vez de img.owner_id
+        // (que é o UUID da barbearia). Sem isso, #handlePublicMessage retorna cedo
+        // (!professionalId falsy) e a mensagem nunca é enviada nem salva no banco.
+        const professionalId = img.professional_id
+          ?? img.professionalId
+          ?? this.#shopData?.owner_id
+          ?? '';
+        // FIM ALTERAÇÃO
         return {
           id: img.id,
           title: img.title ?? `Foto ${++vi}`,
-          professionalId: img.professional_id ?? img.professionalId ?? img.owner_id ?? img.ownerId ?? '',
+          professionalId,
           professionalName: img.professional_name ?? img.professionalName ?? img.barber_name ?? img.barberName ?? '',
           professionalAvatarUrl: img.professional_avatar_url ?? img.professionalAvatarUrl ?? img.avatar_url ?? img.avatarUrl ?? '',
           fullUrl: url,
