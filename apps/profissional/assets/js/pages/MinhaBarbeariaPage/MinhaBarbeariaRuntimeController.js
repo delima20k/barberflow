@@ -32,6 +32,10 @@ import { QueueRealtimeClient } from './QueueRealtimeClient.js';
 
 export class MinhaBarbeariaRuntimeController {
 
+  // Cache de sessão: evita re-sondar colunas monthly_plan_* após primeira detecção.
+  // null = desconhecido; true = colunas existem; false = ausentes (migration pendente)
+  static #colunasMonthlyOk = null;
+
   // ── Estado ─────────────────────────────────────────────────
   #telaEl          = null;
   #panelEl         = null;   // mb-config-panel
@@ -582,12 +586,15 @@ export class MinhaBarbeariaRuntimeController {
       sessionStorage.removeItem('bf_parceria_barbershop_id');
     }
 
-    // Tenta carregar incluindo monthly_plan_* (migration 20260530000001).
-    // Se as colunas não existirem (PGRST204 = schema cache miss), faz fallback
-    // sem elas — a página carrega normalmente e o banner fica oculto até que a
-    // migration seja aplicada.
-    const SELECT_FULL = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at, monthly_plan_price, monthly_plan_message';
     const SELECT_SAFE = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at';
+
+    // Cache: se já detectamos que monthly_plan_* não existe, vai direto no SELECT_SAFE
+    // evitando o 400 em todas as chamadas subsequentes da sessão.
+    if (MinhaBarbeariaRuntimeController.#colunasMonthlyOk === false) {
+      return MinhaBarbeariaRuntimeController.#fetchBarbeariaSafe(ownerId, SELECT_SAFE);
+    }
+
+    const SELECT_FULL = SELECT_SAFE + ', monthly_plan_price, monthly_plan_message';
 
     const { data, error } = await SupabaseService.barbershops()
       .select(SELECT_FULL)
@@ -596,29 +603,38 @@ export class MinhaBarbeariaRuntimeController {
       .limit(1)
       .single();
 
-    if (!error) return data ?? null;
+    if (!error) {
+      MinhaBarbeariaRuntimeController.#colunasMonthlyOk = true;
+      return data ?? null;
+    }
 
-    // Colunas monthly_plan_* ausentes — migration pendente.
+    // Detecta colunas ausentes: PGRST204 (schema cache), 42703 (PostgreSQL),
+    // ou qualquer 400 que mencione a coluna ou schema.
     const codErr = String(error.code ?? '');
     const msgErr = String(error.message ?? '').toLowerCase();
-    const ehMigrationPendente = codErr === 'PGRST204' || codErr === '42703' ||
-      msgErr.includes('monthly_plan') || msgErr.includes('schema cache');
+    const ehColunasAusentes =
+      codErr === 'PGRST204' || codErr === '42703' ||
+      msgErr.includes('monthly_plan') || msgErr.includes('schema cache') ||
+      msgErr.includes('does not exist') || msgErr.includes('column');
 
-    if (ehMigrationPendente) {
-      const { data: dataSafe, error: errSafe } = await SupabaseService.barbershops()
-        .select(SELECT_SAFE)
-        .eq('owner_id', ownerId)
-        .eq('is_active', true)
-        .limit(1)
-        .single();
-      if (errSafe && errSafe.code !== 'PGRST116') throw errSafe;
-      return dataSafe
-        ? { ...dataSafe, monthly_plan_price: null, monthly_plan_message: null }
-        : null;
+    if (ehColunasAusentes) {
+      MinhaBarbeariaRuntimeController.#colunasMonthlyOk = false;
+      return MinhaBarbeariaRuntimeController.#fetchBarbeariaSafe(ownerId, SELECT_SAFE);
     }
 
     if (error.code !== 'PGRST116') throw error;
     return null;
+  }
+
+  static async #fetchBarbeariaSafe(ownerId, SELECT_SAFE) {
+    const { data, error } = await SupabaseService.barbershops()
+      .select(SELECT_SAFE)
+      .eq('owner_id', ownerId)
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? { ...data, monthly_plan_price: null, monthly_plan_message: null } : null;
   }
 
   static async #fetchPerfilDono(shop, perfilLogado) {
