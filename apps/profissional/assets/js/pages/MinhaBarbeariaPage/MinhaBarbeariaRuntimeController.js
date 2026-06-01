@@ -582,10 +582,7 @@ export class MinhaBarbeariaRuntimeController {
       sessionStorage.removeItem('bf_parceria_barbershop_id');
     }
 
-    // Colunas confirmadas no schema remoto (migrations aplicadas até 20260517000004).
-    // monthly_plan_price e monthly_plan_message NÃO incluídas: migration 20260530000001
-    // ainda não aplicada ao remoto — adicionar aqui após `supabase db push`.
-    const SELECT = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at';
+    const SELECT = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at, monthly_plan_price, monthly_plan_message';
 
     const { data, error } = await SupabaseService.barbershops()
       .select(SELECT)
