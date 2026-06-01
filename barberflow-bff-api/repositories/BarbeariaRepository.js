@@ -226,6 +226,8 @@ class BarbeariaRepository extends BaseRepository {
 
   /**
    * Atualiza preço e mensagem do plano mensal da barbearia do owner autenticado.
+   * Fallback gracioso: se as colunas ainda não existem no banco remoto
+   * (migration 20260530000001 pendente), retorna os valores recebidos sem errar.
    * @param {string} ownerId
    * @param {object} dados
    * @returns {Promise<object>}
@@ -243,10 +245,36 @@ class BarbeariaRepository extends BaseRepository {
       .single();
 
     if (error) {
+      // Fallback: colunas monthly_plan_* ausentes — migration pendente em producao.
+      // Retorna os valores recebidos para nao quebrar a UI ate a migration ser aplicada.
+      if (BarbeariaRepository.#ehColunasMensalidadeInexistentes(error)) {
+        this._warn('updateMensalidade', 'colunas monthly_plan_* ausentes (migration pendente) — retornando fallback');
+        return {
+          monthly_plan_price:   dados.monthly_plan_price   ?? null,
+          monthly_plan_message: dados.monthly_plan_message ?? null,
+        };
+      }
       this._warn('updateMensalidade', error);
       this._throwDbError(error, 'updateMensalidade');
     }
     return data;
+  }
+
+  /**
+   * Detecta o erro de coluna inexistente para monthly_plan_price / monthly_plan_message.
+   * Codigo 42703 = undefined_column no PostgreSQL; PGRST204 = schema cache miss no PostgREST.
+   * @param {object} error
+   * @returns {boolean}
+   */
+  static #ehColunasMensalidadeInexistentes(error) {
+    if (!error) return false;
+    const code = String(error.code ?? '');
+    const msg  = String(error.message ?? '').toLowerCase();
+    return (
+      code === '42703' || code === 'PGRST204' || msg.includes('schema cache')
+    ) && (
+      msg.includes('monthly_plan') || msg.includes('monthly_plan_price') || msg.includes('monthly_plan_message')
+    );
   }
 
   /**
