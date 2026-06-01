@@ -234,12 +234,17 @@ class BarbeariaRepository extends BaseRepository {
    */
   async updateMensalidade(ownerId, dados) {
     this._uuid('ownerId', ownerId);
+    const barbershopId = dados?.barbershop_id ?? null;
+    if (barbershopId) this._uuid('barbershop_id', barbershopId);
     const payload = this._payload(dados, ['monthly_plan_price', 'monthly_plan_message', 'updated_at']);
 
-    const { data, error } = await this._db
+    let query = this._db
       .from('barbershops')
       .update(payload)
-      .eq('owner_id', ownerId)
+      .eq('owner_id', ownerId);
+    if (barbershopId) query = query.eq('id', barbershopId);
+
+    const { data, error } = await query
       .select('monthly_plan_price, monthly_plan_message')
       .single();
 

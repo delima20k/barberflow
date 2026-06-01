@@ -1284,7 +1284,8 @@ class BarbeariaPage {
     el.id = 'bp-mensal-banner';
     el.className = 'bp-mensal-banner';
     el.hidden = true;
-    this.#refs.servicosLista.insertAdjacentElement('afterend', el);
+    const secaoServicos = this.#refs.servicosLista.closest?.('.bp-secao');
+    (secaoServicos ?? this.#refs.servicosLista).insertAdjacentElement('afterend', el);
     this.#refs.mensalBanner = el;
     return el;
   }

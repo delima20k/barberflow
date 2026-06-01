@@ -181,6 +181,7 @@ class BarbeariaService extends BaseService {
     }
 
     return this.#repo.updateMensalidade(userId, {
+      barbershop_id:         dados.barbershop_id ?? null,
       monthly_plan_price:   preco !== undefined ? (preco !== null ? Number(preco) : null) : null,
       monthly_plan_message: msg !== undefined ? (msg !== null ? String(msg) : null) : null,
       updated_at:           new Date().toISOString(),

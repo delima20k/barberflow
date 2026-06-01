@@ -172,6 +172,26 @@ suite('BarbeariaController — PATCH /api/v1/barbearias/minha/mensalidade', () =
     );
   });
 
+  test('filtra a mensalidade pela barbearia aberta quando barbershop_id é enviado', async () => {
+    chamadasDb.length = 0;
+
+    const { status, body } = await patchMensalidade({
+      barbershop_id:         mockShopData.id,
+      monthly_plan_price:   80,
+      monthly_plan_message: 'Plano da barbearia aberta',
+    });
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+    assert.deepStrictEqual(
+      chamadasDb.filter(([metodo]) => metodo === 'eq'),
+      [
+        ['eq', 'owner_id', TEST_USER_ID],
+        ['eq', 'id', mockShopData.id],
+      ],
+    );
+  });
+
   test('200 com fallback quando colunas de mensalidade ainda não chegaram no schema cache', async () => {
     erroSingle = {
       code:    'PGRST204',

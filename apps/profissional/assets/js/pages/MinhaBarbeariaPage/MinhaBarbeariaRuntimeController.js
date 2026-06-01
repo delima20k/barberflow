@@ -2627,8 +2627,9 @@ export class MinhaBarbeariaRuntimeController {
 
   #montarPayloadMensalidade() {
     const mensalRaw = (this.#refs.mensalValor?.value ?? '').trim();
-    const mensalNum = mensalRaw ? parseFloat(mensalRaw) : null;
+    const mensalNum = mensalRaw ? Number(mensalRaw.replace(',', '.')) : null;
     return {
+      barbershop_id:         this.#barbershopId,
       monthly_plan_price:   (mensalNum != null && !isNaN(mensalNum)) ? mensalNum : null,
       monthly_plan_message: (this.#refs.mensalMsg?.value ?? '').trim() || null,
     };
