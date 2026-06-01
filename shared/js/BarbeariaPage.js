@@ -1319,7 +1319,7 @@ class BarbeariaPage {
     const msgRaw = shop?.monthly_plan_message ?? mensalidadeServico?.description ?? mensalidadeServico?.name ?? '';
     const msg    = msgRaw ? s(String(msgRaw)) : '';
     const tituloMensalidade = 'Plano Mensalidade';
-    const descricaoMensalidade = `Avise a barbearia <span style="font-weight: bold; color: yellow;"><strong>${s(shop?.name ?? 'barbearia')}</strong></span> que você está interessado no plano mensal. Peça mais detalhes ou solicite sua inclusão de forma simples e rápida! <span style="font-weight: bold; background: linear-gradient(to right, #d4af37, #8b4513); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Clique no banner</span>.`;
+    const descricaoMensalidade = `Avise a barbearia <span style="font-weight: bold; color: #8b4513;"><strong>${s(shop?.name ?? 'barbearia')}</strong></span> que você está interessado no plano mensal. Peça mais detalhes ou solicite sua inclusão de forma simples e rápida! <span style="font-weight: bold; background: linear-gradient(to right, #d4af37, #8b4513); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Clique no banner</span>.`;
 
     el.innerHTML = `
       <h2 class="bp-mensal-banner__titulo">${s(tituloMensalidade)}</h2>
