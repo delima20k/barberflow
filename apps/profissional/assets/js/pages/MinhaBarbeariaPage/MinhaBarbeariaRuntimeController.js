@@ -1152,8 +1152,8 @@ export class MinhaBarbeariaRuntimeController {
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
     if (!serviceIds) return;
 
-    // Registra client como mensalista ativo desta sessão se escolheu Plano Mensal
-    if (clienteMensalista && serviceIds.length === 0 && !clienteSel.anonymous) {
+    // Registra como mensalista ativo independentemente dos serviços adicionais selecionados
+    if (clienteMensalista && !clienteSel.anonymous) {
       this.#mensalistasAtivos.add(clienteSel.id);
     }
     const serviceIdsParaSalvar = serviceIds.filter(id => id !== CorteModal.MENSALISTA_ID);

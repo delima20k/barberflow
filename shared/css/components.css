@@ -4373,6 +4373,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   cursor: pointer;
 }
 .crtm-item:hover { background: var(--card2, #f0e8d8); }
+/* Modificador: item do Plano Mensal (visual/contextual, sem valor financeiro) */
+.crtm-item--mensalista {
+  background: linear-gradient(135deg, rgba(212,175,55,.12) 0%, rgba(212,175,55,.04) 100%);
+  border-left: 3px solid var(--gold, #D4AF37);
+  border-radius: 0 8px 8px 0;
+  margin: 2px 0 6px;
+}
+.crtm-item--mensalista:hover {
+  background: linear-gradient(135deg, rgba(212,175,55,.22) 0%, rgba(212,175,55,.10) 100%);
+}
+.crtm-img--mensalista::after { content: '👑'; }
 .crtm-img {
   flex-shrink: 0;
   width: 48px;
