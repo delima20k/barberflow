@@ -268,7 +268,11 @@ class BarbeariaRepository extends BaseRepository {
   static #ehColunasMensalidadeInexistentes(error) {
     if (!error) return false;
     const code = String(error.code ?? '');
-    const msg  = String(error.message ?? '').toLowerCase();
+    const msg  = [
+      error.message,
+      error.details,
+      error.hint,
+    ].filter(Boolean).join(' ').toLowerCase();
     return (
       code === '42703' || code === 'PGRST204' || msg.includes('schema cache')
     ) && (

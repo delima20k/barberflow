@@ -1191,6 +1191,26 @@ BEGIN
   END IF;
 END $$;
 
+-- ────────────────────────────────────────────────────────────────
+-- 21. SERVICOS TIPADOS E MENSALIDADE
+--     Migration: 20260530000001_servico_tipo_e_mensalidade.sql
+-- ────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.services
+  ADD COLUMN IF NOT EXISTS price_half NUMERIC(8,2);
+
+COMMENT ON COLUMN public.services.price_half IS
+  'Preco da variante "meia" (ex.: Luzes meia). price = variante inteira.';
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS monthly_plan_price   NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS monthly_plan_message TEXT;
+
+COMMENT ON COLUMN public.barbershops.monthly_plan_price IS
+  'Valor da mensalidade anunciada no banner da pagina publica (null = sem banner).';
+COMMENT ON COLUMN public.barbershops.monthly_plan_message IS
+  'Mensagem promocional exibida no banner de mensalidade.';
+
 -- ================================================================
 -- FIM FINAL — execute este arquivo completo no SQL Editor do Supabase:
 -- https://supabase.com/dashboard/project/jfvjisqnzapxxagkbxcu/sql/new

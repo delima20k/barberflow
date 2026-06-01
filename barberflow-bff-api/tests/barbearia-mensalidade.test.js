@@ -26,6 +26,7 @@ const mockShopData = {
 };
 
 const chamadasDb = [];
+let erroSingle = null;
 
 const criarQB = (returnData) => {
   const q = {
@@ -36,7 +37,9 @@ const criarQB = (returnData) => {
     neq:         () => q,
     order:       () => q,
     limit:       () => Promise.resolve({ data: [], error: null }),
-    single:      () => Promise.resolve({ data: returnData, error: null }),
+    single:      () => Promise.resolve(
+      erroSingle ? { data: null, error: erroSingle } : { data: returnData, error: null },
+    ),
     maybeSingle: () => Promise.resolve({ data: returnData, error: null }),
   };
   q.then = (resolve) => resolve({ data: returnData, error: null });
@@ -167,6 +170,28 @@ suite('BarbeariaController — PATCH /api/v1/barbearias/minha/mensalidade', () =
       chamadasDb.filter(([metodo]) => metodo === 'eq'),
       [['eq', 'owner_id', TEST_USER_ID]],
     );
+  });
+
+  test('200 com fallback quando colunas de mensalidade ainda não chegaram no schema cache', async () => {
+    erroSingle = {
+      code:    'PGRST204',
+      message: 'Could not find columns in the schema cache',
+      details: "Could not find the 'monthly_plan_message' column of 'barbershops'",
+    };
+
+    try {
+      const { status, body } = await patchMensalidade({
+        monthly_plan_price:   90,
+        monthly_plan_message: 'Plano mensal',
+      });
+
+      assert.strictEqual(status, 200);
+      assert.strictEqual(body.ok, true);
+      assert.strictEqual(body.dados.monthly_plan_price, 90);
+      assert.strictEqual(body.dados.monthly_plan_message, 'Plano mensal');
+    } finally {
+      erroSingle = null;
+    }
   });
 
   test('200 com reset (preço e mensagem nulos)', async () => {
