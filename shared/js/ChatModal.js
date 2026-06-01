@@ -112,10 +112,16 @@ class ChatModal {
       P2PMessageConnectionService.onMessage(peerId, ({ texto, hora }) => {
         const areaMsg = document.getElementById('chat-mensagens');
         if (areaMsg) {
-          areaMsg.appendChild(ChatModal.#renderBolha({ de: 'outro', texto, hora }));
+          areaMsg.appendChild(ChatModal.#renderBolha({
+            de: 'outro',
+            texto,
+            hora,
+            senderId: peerId,
+            sender: ChatModal.#remetenteConversa(),
+          }));
           areaMsg.scrollTop = areaMsg.scrollHeight;
         }
-        ChatModal.#despacharNovaMensagem(convId, texto);
+        ChatModal.#despacharNovaMensagem(convId, texto, ChatModal.#remetenteConversa());
       });
       const statusAtual = P2PMessageConnectionService.getStatus(peerId);
       if (statusAtual !== 'secure' && statusAtual !== 'connecting' && statusAtual !== 'key-exchange') {
@@ -188,7 +194,15 @@ class ChatModal {
 
     // ── Renderiza bolha otimista ─────────────────────────────
     const area = document.getElementById('chat-mensagens');
-    const bolha = ChatModal.#renderBolha({ de: 'eu', texto, hora, status: 'enviando' });
+    const bolha = ChatModal.#renderBolha({
+      de: 'eu',
+      texto,
+      hora,
+      status: 'enviando',
+      senderId: ChatModal.#uid,
+      sender: ChatModal.#remetenteLocal(),
+      createdAt: new Date().toISOString(),
+    });
     if (area) { area.appendChild(bolha); area.scrollTop = area.scrollHeight; }
 
     // ── Caminho P2P (seguro) ─────────────────────────────────
@@ -251,7 +265,15 @@ class ChatModal {
       if (msg.deletedAt) continue;
       const de   = msg.senderId === ChatModal.#uid ? 'eu' : 'outro';
       const hora = ChatModal.#formatarHora(msg.createdAt);
-      fragment.appendChild(ChatModal.#renderBolha({ de, texto: msg.body, hora, status: 'enviado' }));
+      fragment.appendChild(ChatModal.#renderBolha({
+        de,
+        texto: msg.body,
+        hora,
+        status: 'enviado',
+        senderId: msg.senderId,
+        sender: msg.sender,
+        createdAt: msg.createdAt,
+      }));
     }
     // Insere no início da área para não sobrepor bolhas otimistas
     area.insertBefore(fragment, area.firstChild);
@@ -284,7 +306,7 @@ class ChatModal {
 
     // Ignora mensagens de outras conversas
     if (msg.conversationId !== ChatModal.#conversa.convId) {
-      ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body);
+      ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body, msg.sender, msg.createdAt);
       return;
     }
 
@@ -294,18 +316,61 @@ class ChatModal {
     const area = document.getElementById('chat-mensagens');
     if (!area) return;
     const hora = ChatModal.#formatarHora(msg.createdAt);
-    area.appendChild(ChatModal.#renderBolha({ de: 'outro', texto: msg.body, hora }));
+    area.appendChild(ChatModal.#renderBolha({
+      de: 'outro',
+      texto: msg.body,
+      hora,
+      senderId: msg.senderId,
+      sender: msg.sender,
+      createdAt: msg.createdAt,
+    }));
     area.scrollTop = area.scrollHeight;
-    ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body);
+    ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body, msg.sender, msg.createdAt);
   }
 
   /**
    * Cria elemento de bolha de mensagem.
    * Usa textContent em todos os campos para prevenir XSS.
    */
-  static #renderBolha({ de, texto, hora, status = 'enviado' }) {
+  static #renderBolha({ de, texto, hora, status = 'enviado', sender = null, senderId = null, createdAt = null }) {
+    const remetente = ChatModal.#remetenteFallback({ de, sender, senderId });
     const wrap = document.createElement('div');
-    wrap.className = `chat-bubble-wrap chat-bubble-wrap--${de}`;
+    wrap.className = `chat-bubble-wrap chat-bubble-wrap--${de} chat-message-row chat-message-row--${de}`;
+    wrap.dataset.senderId = remetente.id ?? '';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'chat-message-avatar';
+    avatar.setAttribute('aria-label', remetente.name);
+    const avatarUrl = ChatModal.#avatarUrl(remetente);
+    if (avatarUrl) {
+      const img = document.createElement('img');
+      img.alt = remetente.name;
+      img.src = avatarUrl;
+      img.onerror = () => {
+        img.remove();
+        avatar.textContent = ChatModal.#iniciais(remetente.name);
+      };
+      avatar.appendChild(img);
+    } else {
+      avatar.textContent = ChatModal.#iniciais(remetente.name);
+    }
+
+    const col = document.createElement('div');
+    col.className = 'chat-message-content';
+
+    const meta = document.createElement('div');
+    meta.className = 'chat-message-meta';
+
+    const nomeEl = document.createElement('span');
+    nomeEl.className = 'chat-message-sender';
+    nomeEl.textContent = remetente.name;
+
+    const dataEl = document.createElement('span');
+    dataEl.className = 'chat-message-date';
+    dataEl.textContent = ChatModal.#formatarDataHora(createdAt, hora);
+
+    meta.appendChild(nomeEl);
+    meta.appendChild(dataEl);
 
     const balao = document.createElement('div');
     balao.className = `chat-balao chat-balao--${de === 'eu' ? 'eu' : 'outro'}`;
@@ -321,7 +386,15 @@ class ChatModal {
 
     balao.appendChild(corpo);
     balao.appendChild(horaEl);
-    wrap.appendChild(balao);
+    col.appendChild(meta);
+    col.appendChild(balao);
+    if (de === 'eu') {
+      wrap.appendChild(col);
+      wrap.appendChild(avatar);
+    } else {
+      wrap.appendChild(avatar);
+      wrap.appendChild(col);
+    }
     return wrap;
   }
 
@@ -360,10 +433,49 @@ class ChatModal {
   }
 
   /** Despacha CustomEvent para atualizar badge na lista de conversas. */
-  static #despacharNovaMensagem(convId, body) {
+  static #despacharNovaMensagem(convId, body, sender = null, createdAt = null) {
     document.dispatchEvent(new CustomEvent('chatflow:mensagem-nova', {
-      detail: { convId, preview: body }
+      detail: { convId, preview: body, sender, createdAt }
     }));
+  }
+
+  static #remetenteLocal() {
+    const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    return {
+      id: perfil?.id ?? ChatModal.#uid ?? null,
+      name: perfil?.full_name ?? perfil?.name ?? 'Voce',
+      avatarPath: perfil?.avatar_path ?? null,
+      role: perfil?.role ?? null,
+    };
+  }
+
+  static #remetenteConversa() {
+    return {
+      id: ChatModal.#conversa?.peerId ?? null,
+      name: ChatModal.#conversa?.nome ?? 'Contato',
+      avatarUrl: ChatModal.#conversa?.avatar ?? null,
+      role: null,
+    };
+  }
+
+  static #remetenteFallback({ de, sender, senderId }) {
+    const base = de === 'eu' ? ChatModal.#remetenteLocal() : ChatModal.#remetenteConversa();
+    return {
+      id: sender?.id ?? senderId ?? base.id ?? null,
+      name: sender?.name ?? sender?.full_name ?? base.name ?? 'Usuario',
+      avatarPath: sender?.avatarPath ?? sender?.avatar_path ?? base.avatarPath ?? null,
+      avatarUrl: sender?.avatarUrl ?? sender?.avatar ?? base.avatarUrl ?? null,
+      role: sender?.role ?? base.role ?? null,
+    };
+  }
+
+  static #avatarUrl(remetente) {
+    if (remetente?.avatarUrl) return remetente.avatarUrl;
+    if (!remetente?.avatarPath) return null;
+    if (typeof ApiService !== 'undefined' && typeof ApiService.getAvatarUrl === 'function') {
+      return ApiService.getAvatarUrl(remetente.avatarPath);
+    }
+    return remetente.avatarPath;
   }
 
   static async #obterUid() {
@@ -393,5 +505,16 @@ class ChatModal {
     try {
       return new Date(isoString).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } catch { return ''; }
+  }
+
+  static #formatarDataHora(isoString, horaFallback = '') {
+    try {
+      if (!isoString) return horaFallback ?? '';
+      const data = new Date(isoString);
+      if (Number.isNaN(data.getTime())) return horaFallback ?? '';
+      return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        + ' '
+        + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch { return horaFallback ?? ''; }
   }
 }

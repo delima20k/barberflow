@@ -61,6 +61,7 @@ class SupabaseChatRepository extends ChatRepository {
     if (!message || !conversation) return null;
     return {
       message,
+      sender: await this.#buscarRemetente(message.senderId),
       recipients: conversation.recipientIds(message.senderId),
       muteRules: await this.#listMuteRules(message.conversationId),
     };
@@ -75,7 +76,7 @@ class SupabaseChatRepository extends ChatRepository {
       p_cursor_id: parsedCursor?.id ?? null,
     });
     if (error) throw this.#error(error);
-    const items = (data ?? []).map(row => this.#toMessage(row).toJSON());
+    const items = await this.#enriquecerMensagensComRemetente((data ?? []).map(row => this.#toMessage(row).toJSON()));
     return { items, nextCursor: items.length === limit ? items[items.length - 1].sortKey : null };
   }
 
@@ -189,6 +190,46 @@ class SupabaseChatRepository extends ChatRepository {
       userId: row.user_id,
       mutedUntil: row.muted_until,
     }));
+  }
+
+  async #enriquecerMensagensComRemetente(messages) {
+    if (!messages.length) return messages;
+    const ids = [...new Set(messages.map(message => message.senderId).filter(Boolean))];
+    const profiles = await this.#buscarRemetentes(ids);
+    return messages.map(message => ({
+      ...message,
+      sender: SupabaseChatRepository.#senderDto(profiles.get(message.senderId), message.senderId),
+    }));
+  }
+
+  async #buscarRemetente(senderId) {
+    if (!senderId) return null;
+    const profiles = await this.#buscarRemetentes([senderId]);
+    return SupabaseChatRepository.#senderDto(profiles.get(senderId), senderId);
+  }
+
+  async #buscarRemetentes(senderIds) {
+    const ids = [...new Set((senderIds ?? []).filter(Boolean))];
+    if (!ids.length) return new Map();
+    try {
+      const { data, error } = await this.#db
+        .from('profiles')
+        .select('id, full_name, avatar_path, role')
+        .in('id', ids);
+      if (error) throw this.#error(error);
+      return new Map((data ?? []).map(profile => [profile.id, profile]));
+    } catch (_) {
+      return new Map();
+    }
+  }
+
+  static #senderDto(profile, senderId) {
+    return {
+      id: profile?.id ?? senderId ?? null,
+      name: profile?.full_name ?? null,
+      avatarPath: profile?.avatar_path ?? null,
+      role: profile?.role ?? null,
+    };
   }
 
   #toConversation(row) {

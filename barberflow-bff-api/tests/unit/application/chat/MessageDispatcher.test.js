@@ -47,6 +47,35 @@ describe('MessageDispatcher', () => {
     });
   });
 
+  it('inclui dados do remetente no payload realtime sem alterar a mensagem canonica', async () => {
+    const realtime = [];
+    const dispatcher = new MessageDispatcher({
+      publishToChannelUseCase: { execute: async event => { realtime.push(event); return { ok: true }; } },
+      presenceLink: new PresenceLink({ presenceService: { isPresent: () => true } }),
+      pushGateway: { notifyMessage: async () => {} },
+      blockPolicy: { canExchange: async () => true },
+    });
+
+    await dispatcher.dispatch({
+      message: createMessage(),
+      recipients: ['user-b'],
+      sender: {
+        id: 'user-a',
+        name: 'Cliente Teste',
+        avatarPath: 'user-a/avatar.webp',
+        role: 'client',
+      },
+    });
+
+    assert.deepEqual(realtime[0].payload.message.sender, {
+      id: 'user-a',
+      name: 'Cliente Teste',
+      avatarPath: 'user-a/avatar.webp',
+      role: 'client',
+    });
+    assert.equal(realtime[0].payload.message.senderId, 'user-a');
+  });
+
   it('nao envia push para destinatario online ou mutado', async () => {
     const pushes = [];
     const dispatcher = new MessageDispatcher({

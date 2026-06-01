@@ -30,6 +30,26 @@ describe('ChatModal — análise estática de segurança e contrato', () => {
     assert.ok(SRC.includes('.textContent = texto'), 'corpo da mensagem deve usar textContent');
   });
 
+  test('renderiza identificacao visual do remetente em cada mensagem', () => {
+    assert.ok(SRC.includes('chat-message-avatar'), 'deve renderizar avatar por mensagem');
+    assert.ok(SRC.includes('chat-message-sender'), 'deve renderizar nome do remetente');
+    assert.ok(SRC.includes('chat-message-date'), 'deve renderizar data da mensagem');
+    assert.ok(SRC.includes('sender?.name'), 'deve consumir sender.name vindo da BFF/realtime');
+    assert.ok(SRC.includes('#remetenteFallback'), 'deve ter fallback de remetente sem anonimato');
+  });
+
+  test('avatar personalizado e fallback usam DOM seguro', () => {
+    assert.ok(SRC.includes("document.createElement('img')"), 'avatar personalizado deve usar img criada via DOM');
+    assert.ok(SRC.includes('img.alt'), 'avatar deve ter texto alternativo');
+    assert.ok(SRC.includes('avatar.textContent ='), 'fallback deve usar inicial via textContent');
+    assert.ok(SRC.includes('ApiService.getAvatarUrl'), 'avatarPath deve resolver URL publica pelo ApiService');
+  });
+
+  test('mensagem otimista usa remetente local do AuthService', () => {
+    assert.ok(SRC.includes('#remetenteLocal()'), 'deve montar remetente local');
+    assert.ok(SRC.includes('AuthService.getPerfil'), 'deve buscar perfil local em cache');
+  });
+
   test('não usa innerHTML para injetar texto de usuário (apenas limpar com vazio é permitido)', () => {
     // innerHTML = '' (limpar) é aceitável. O que NÃO é aceitável é inserir variáveis com texto do usuário.
     // Verifica que nenhum innerHTML recebe uma template string ou variável com conteúdo de mensagem.

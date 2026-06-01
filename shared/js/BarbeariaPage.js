@@ -153,7 +153,6 @@ class BarbeariaPage {
       favBtn:        q('#bp-fav-btn'),
       servicosLista: q('#bp-servicos-lista'),
       mensalBanner:  q('#bp-mensal-banner'),
-      divider:       q('#bp-divider'),
       portfolioGrid:            q('#bp-portfolio-grid'),
       portfolioBarbeirosWrap:   q('#bp-portfolio-barbeiros-wrap'),
       portfolioBarbeiros:       q('#bp-portfolio-barbeiros'),
@@ -1250,22 +1249,24 @@ class BarbeariaPage {
 
     el.innerHTML = html;
     
-    // Insere o separador entre serviços e mensalidade
-    this.#obterDivider();
+    // Insere e exibe o separador entre serviços e mensalidade
+    const divider = this.#obterDivider();
+    if (divider) divider.hidden = false;
   }
 
   /** Cria e insere o divider entre carousel de serviços e banner de mensalidade. */
   #obterDivider() {
-    if (this.#refs.divider) return this.#refs.divider;
+    let el = document.getElementById('bp-divider');
+    if (el) return el;
+    
     if (!this.#refs.servicosLista || typeof document === 'undefined') return null;
 
-    const el = document.createElement('div');
+    el = document.createElement('div');
     el.id = 'bp-divider';
     el.className = 'bp-divider';
     el.hidden = true;
     const secaoServicos = this.#refs.servicosLista.closest?.('.bp-secao');
     (secaoServicos ?? this.#refs.servicosLista).insertAdjacentElement('afterend', el);
-    this.#refs.divider = el;
     return el;
   }
 
@@ -1331,7 +1332,7 @@ class BarbeariaPage {
       el.hidden = true;
       el.innerHTML = '';
       // Também oculta o divider quando não há mensalidade
-      const divider = this.#refs.divider;
+      const divider = document.getElementById('bp-divider');
       if (divider) divider.hidden = true;
       return;
     }
@@ -1357,7 +1358,7 @@ class BarbeariaPage {
     el.hidden = false;
 
     // Também exibe o divider (separador)
-    const divider = this.#refs.divider;
+    const divider = document.getElementById('bp-divider');
     if (divider) divider.hidden = false;
 
     // onclick sobrescreve handler anterior \u2014 sem listeners duplicados em re-renders

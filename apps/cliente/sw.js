@@ -17,7 +17,7 @@
 // =============================================================
 // VersÃƒÂ£o do Service Worker Ã¢â‚¬â€ bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260601m';
+const SW_CLI_VERSION = '20260601n';
 
 class SWCliente {
 
@@ -37,6 +37,7 @@ class SWCliente {
     '/cliente/assets/js/ClienteStartupSplash.js',
     '/shared/css/tokens.css',
     '/shared/css/components.css',
+    '/shared/css/notifications.css',
     '/shared/js/LoggerService.js',
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
@@ -51,6 +52,7 @@ class SWCliente {
     '/shared/js/QueueRealtimeNotifier.js',
     '/shared/js/QueueStateUpdater.js',
     '/shared/js/QueuePositionNotificationService.js',
+    '/shared/js/NotificationService.js',
     '/shared/js/QueuePositionPresenter.js',
     '/shared/js/FilaPresencaService.js',
     '/shared/js/ChegadaProducaoService.js',

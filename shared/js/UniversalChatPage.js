@@ -59,7 +59,8 @@ class UniversalChatPage {
 
     // Atualiza badge ao receber mensagem nova
     document.addEventListener('chatflow:mensagem-nova', e => {
-      UniversalChatPage.#atualizarBadge(e.detail?.convId, e.detail?.preview);
+      UniversalChatPage.#atualizarBadge(e.detail?.convId, e.detail?.preview, e.detail?.createdAt);
+      UniversalChatPage.#notificarMensagemNova(e.detail);
     });
 
     // Inicia escuta de ofertas P2P
@@ -299,7 +300,7 @@ class UniversalChatPage {
     });
   }
 
-  static #atualizarBadge(convId, preview) {
+  static #atualizarBadge(convId, preview, createdAt = null) {
     if (!convId || !UniversalChatPage.#lista) return;
 
     const card = UniversalChatPage.#lista.querySelector(`[data-conv-id="${CSS.escape(convId)}"]`);
@@ -311,6 +312,7 @@ class UniversalChatPage {
     if (conv) {
       conv.badge   = (conv.badge ?? 0) + 1;
       conv.preview = preview ?? conv.preview;
+      conv.hora    = createdAt ? UniversalChatPage.#formatarHora(createdAt) : conv.hora;
     }
 
     // Atualiza badge DOM
@@ -326,6 +328,50 @@ class UniversalChatPage {
     // Atualiza preview DOM
     const previewEl = card.querySelector('.chat-preview');
     if (previewEl && preview) previewEl.textContent = preview;
+
+    const horaEl = card.querySelector('.chat-time');
+    if (horaEl && createdAt) horaEl.textContent = UniversalChatPage.#formatarHora(createdAt);
+  }
+
+  static #notificarMensagemNova(detail = {}) {
+    if (!detail?.convId || !detail?.preview) return;
+    if (document.getElementById('tela-chat')?.classList.contains('ativa')) return;
+    if (typeof NotificationService === 'undefined') return;
+
+    const sender = detail?.sender ?? {};
+    const nome = sender?.name ?? sender?.full_name ?? 'Nova mensagem';
+    const preview = String(detail.preview ?? '').slice(0, 90);
+    const avatarUrl = UniversalChatPage.#avatarUrl(sender);
+    NotificationService.mostrarToast(
+      nome,
+      preview,
+      NotificationService.TIPOS?.ENGAJAMENTO ?? NotificationService.TIPOS?.SISTEMA,
+      () => UniversalChatPage.abrirModal(detail.convId),
+      null,
+      { avatarUrl, initials: ChatModal.iniciais(nome) },
+    );
+  }
+
+  static #avatarUrl(sender) {
+    if (sender?.avatarUrl) return sender.avatarUrl;
+    const path = sender?.avatarPath ?? sender?.avatar_path ?? null;
+    if (!path) return null;
+    if (typeof ApiService !== 'undefined' && typeof ApiService.getAvatarUrl === 'function') {
+      return ApiService.getAvatarUrl(path);
+    }
+    return path;
+  }
+
+  static #formatarHora(isoString) {
+    try {
+      const d = new Date(isoString);
+      const agora = new Date();
+      const diffDias = Math.floor((agora - d) / 86400000);
+      if (diffDias === 0) return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (diffDias === 1) return 'ontem';
+      if (diffDias < 7) return d.toLocaleDateString('pt-BR', { weekday: 'short' });
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    } catch { return ''; }
   }
 
   static async #iniciarEscutaOfertas() {

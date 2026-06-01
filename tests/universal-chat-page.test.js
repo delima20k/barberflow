@@ -43,6 +43,19 @@ describe('UniversalChatPage — análise estática', () => {
     assert.ok(SRC.includes('.textContent ='), 'preview deve usar textContent');
   });
 
+  test('atualiza preview, horario, badge e destaque ao receber nova mensagem', () => {
+    assert.ok(SRC.includes('previewEl.textContent = preview'), 'deve atualizar trecho da ultima mensagem');
+    assert.ok(SRC.includes('horaEl.textContent'), 'deve atualizar horario da ultima mensagem');
+    assert.ok(SRC.includes('chat-badge'), 'deve atualizar indicador de nao lida');
+    assert.ok(SRC.includes('barber-row--unread'), 'deve destacar conversa correspondente');
+  });
+
+  test('notificacao in-app de nova mensagem inclui remetente e trecho', () => {
+    assert.ok(SRC.includes('#notificarMensagemNova'), 'deve centralizar notificacao in-app');
+    assert.ok(SRC.includes('detail?.sender'), 'deve consumir remetente do evento de chat');
+    assert.ok(SRC.includes('NotificationService.mostrarToast'), 'deve usar notificacao in-app existente');
+  });
+
   test('escuta customEvent chatflow:mensagem-nova', () => {
     assert.ok(SRC.includes("'chatflow:mensagem-nova'"), 'deve ouvir evento de nova mensagem');
   });

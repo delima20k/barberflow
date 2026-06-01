@@ -108,6 +108,34 @@
   margin-top: 1px;
 }
 
+.notif-toast--com-avatar .notif-toast-icone {
+  display: none;
+}
+
+.notif-toast-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gold-muted);
+  border: 1.5px solid var(--gold-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--gold-dark);
+  text-transform: uppercase;
+}
+
+.notif-toast-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .notif-toast-corpo {
   flex: 1;
   min-width: 0;

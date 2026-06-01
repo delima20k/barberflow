@@ -28,19 +28,19 @@ class MessageDispatcher {
     this.#clock = clock;
   }
 
-  async dispatch({ message, recipients = [], muteRules = [] }) {
+  async dispatch({ message, recipients = [], muteRules = [], sender = null }) {
     if (!message) throw new TypeError('MessageDispatcher.message obrigatoria.');
     const muted = new Map(muteRules.map(rule => [rule.userId, rule]));
-    const deliveries = recipients.map(recipientId => this.#dispatchOne(message, recipientId, muted.get(recipientId)));
+    const deliveries = recipients.map(recipientId => this.#dispatchOne(message, recipientId, muted.get(recipientId), sender));
     await Promise.all(deliveries);
   }
 
-  async #dispatchOne(message, recipientId, muteRule) {
+  async #dispatchOne(message, recipientId, muteRule, sender) {
     if (!(await this.#blockPolicy.canExchange(message.senderId, recipientId))) return;
     await this.#publishToChannelUseCase.execute({
       channel: PresenceLink.userChannel(recipientId),
       type: EVENT_TYPES.CHAT_MESSAGE_CREATED,
-      payload: { message: message.toJSON() },
+      payload: { message: MessageDispatcher.#withSender(message.toJSON(), sender) },
     });
     if (this.#presenceLink.isOnline(recipientId)) return;
     if (muteRule?.shouldSkipPush(this.#clock.now())) return;
@@ -50,6 +50,22 @@ class MessageDispatcher {
       messageId: message.id,
       senderId: message.senderId,
     });
+  }
+
+  static #withSender(messageJson, sender) {
+    return {
+      ...messageJson,
+      sender: MessageDispatcher.#senderDto(sender, messageJson.senderId),
+    };
+  }
+
+  static #senderDto(sender, senderId) {
+    return {
+      id: sender?.id ?? senderId ?? null,
+      name: sender?.name ?? null,
+      avatarPath: sender?.avatarPath ?? null,
+      role: sender?.role ?? null,
+    };
   }
 }
 

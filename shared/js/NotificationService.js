@@ -246,7 +246,7 @@ class NotificationService {
    *                                      ou no ✕. Útil para mensagens que
    *                                      exigem leitura confirmada.
    */
-  static mostrarToast(titulo, body = '', tipo = NotificationService.TIPOS.SISTEMA, onClick = null, acaoLabel = null) {
+  static mostrarToast(titulo, body = '', tipo = NotificationService.TIPOS.SISTEMA, onClick = null, acaoLabel = null, opcoes = null) {
     const container = document.getElementById('notif-toast-container');
     if (!container) return;
 
@@ -273,6 +273,12 @@ class NotificationService {
       </div>
       <button class="notif-toast-fechar" aria-label="Fechar">✕</button>
     `;
+
+    if (opcoes?.avatarUrl || opcoes?.initials) {
+      const avatar = NotificationService.#criarAvatarToast(opcoes);
+      toast.insertBefore(avatar, toast.querySelector('.notif-toast-corpo'));
+      toast.classList.add('notif-toast--com-avatar');
+    }
 
     // Fechar via ✕
     toast.querySelector('.notif-toast-fechar').addEventListener('click', (e) => {
@@ -506,6 +512,26 @@ class NotificationService {
     el.setAttribute('aria-live', 'polite');
     el.setAttribute('aria-atomic', 'false');
     document.body.appendChild(el);
+  }
+
+  static #criarAvatarToast({ avatarUrl = null, initials = '?' } = {}) {
+    const avatar = document.createElement('div');
+    avatar.className = 'notif-toast-avatar';
+
+    if (avatarUrl) {
+      const img = document.createElement('img');
+      img.alt = initials || '?';
+      img.src = avatarUrl;
+      img.onerror = () => {
+        img.remove();
+        avatar.textContent = initials || '?';
+      };
+      avatar.appendChild(img);
+      return avatar;
+    }
+
+    avatar.textContent = initials || '?';
+    return avatar;
   }
 
   static #fecharToast(toast) {
