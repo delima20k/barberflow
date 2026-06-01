@@ -257,6 +257,15 @@ class BffApiService {
 
     salvarMensalidade: (payload) =>
       BffApiService.patch('/api/v1/barbearias/minha/mensalidade', payload),
+
+    // INÍCIO ALTERAÇÃO - Carregar interactions de imagens de portfolio da barbearia
+    // Novo endpoint público: retorna mapa {imageId: interactions[]} para exibir
+    // mensagens/emojis/curtidas animadas ao abrir o viewer em tela cheia.
+    listarInteracoes: (ids) =>
+      BffApiService.get('/api/v1/barbearias/portfolio/interacoes', {
+        ids: Array.isArray(ids) ? ids.join(',') : String(ids ?? ''),
+      }),
+    // FIM ALTERAÇÃO
   };
 
   // ── Namespace: financeiro ────────────────────────────────────

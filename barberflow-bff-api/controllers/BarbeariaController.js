@@ -82,6 +82,40 @@ class BarbeariaController extends BaseController {
     });
   }
 
+  // INÍCIO ALTERAÇÃO - Endpoint de interactions do portfolio da barbearia
+  // Novo endpoint público que retorna mensagens/emojis/curtidas por imagem.
+  // Usado por BarbeariaPage.#fetchPortfolio para carregar interactions das imagens
+  // da barbearia e exibir animações ao abrir o viewer em tela cheia.
+  /**
+   * GET /api/v1/barbearias/portfolio/interacoes?ids=id1,id2,...
+   * Retorna mapa de interactions por imageId para as imagens informadas.
+   * Público — sem autenticação.
+   */
+  async portfolioInteracoes(req, res) {
+    await this.handle(res, async () => {
+      const idsParam = String(req.query.ids ?? '').trim();
+      if (!idsParam) {
+        this.success(res, {});
+        return;
+      }
+      const ids = idsParam
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => /^[0-9a-f-]{36}$/i.test(s))
+        .slice(0, 20); // max 20 IDs por chamada
+
+      if (!ids.length) {
+        this.success(res, {});
+        return;
+      }
+
+      const mapaInteracoes = await this.#service.listarInteracoesPortfolio(ids);
+      this.cachePublico(res, 30, 60);
+      this.success(res, mapaInteracoes);
+    });
+  }
+  // FIM ALTERAÇÃO
+
   /**
    * GET /api/v1/barbearias/:barbershop_id/portfolio
    * Lista o portfolio geral da barbearia/equipe.

@@ -31,6 +31,11 @@ module.exports = function criarBarbeariaRoute(db) {
   router.get('/minha/equipe-status',                        AuthMiddleware.verificar, ctrl.getEquipeComStatus.bind(ctrl));
   router.post('/minha/dispensar/:professional_id',          AuthMiddleware.verificar, ctrl.dispensarBarbeiro.bind(ctrl));
   router.delete('/minha/convites/:invite_id',               AuthMiddleware.verificar, ctrl.cancelarConvite.bind(ctrl));
+  // INÍCIO ALTERAÇÃO - Rota pública de interactions do portfolio da barbearia
+  // GET /portfolio/interacoes?ids=id1,id2 — sem auth, retorna mapa {imageId: interactions[]}
+  // Deve vir ANTES de /:barbershop_id para evitar conflito de parâmetro dinâmico.
+  router.get('/portfolio/interacoes',                       ctrl.portfolioInteracoes.bind(ctrl));
+  // FIM ALTERAÇÃO
   router.get('/:barbershop_id/gestao',                      AuthMiddleware.verificar, ctrl.getGestaoVinculada.bind(ctrl));
   router.post('/:barbershop_id/stories',                    AuthMiddleware.verificar, ctrl.salvarStoryProfissional.bind(ctrl));
   router.get('/:barbershop_id/portfolio',                   ctrl.portfolio.bind(ctrl));

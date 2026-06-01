@@ -75,6 +75,26 @@ class BarbeariaService extends BaseService {
     }
   }
 
+  // INÍCIO ALTERAÇÃO - Service de interactions do portfolio da barbearia
+  // Retorna mapa {imageId: interactions[]} usado pelo novo endpoint público.
+  // best-effort: retorna {} se portfolio_messages ainda não existir no banco.
+  async listarInteracoesPortfolio(imageIds) {
+    const ids = Array.isArray(imageIds) ? imageIds.filter(Boolean) : [];
+    if (!ids.length) return {};
+    try {
+      const mapaInteracoes = await this.#repo.listarInteracoesPortfolio(ids);
+      const resultado = {};
+      for (const id of ids) {
+        const msgs = mapaInteracoes.get(id) ?? [];
+        resultado[id] = BarbeariaService.#portfolioInteractionsDto(msgs, 0);
+      }
+      return resultado;
+    } catch {
+      return {};
+    }
+  }
+  // FIM ALTERAÇÃO
+
   async listarPortfolio(barbershopId, filtros = {}) {
     this._uuid('barbershopId', barbershopId);
     const limit = BarbeariaService.#normalizarPortfolioLimit(filtros.limit);

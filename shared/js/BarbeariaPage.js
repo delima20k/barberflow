@@ -305,7 +305,13 @@ class BarbeariaPage {
     } catch { return []; }
   }
 
+  // INÍCIO ALTERAÇÃO - Portfolio com interactions via BFF (barbearia pública)
+  // Corrigido: mantém a query original (owner_type='barbershop') e adiciona
+  // fetch de interactions via BFF para os IDs já carregados, garantindo que
+  // mensagens/emojis/curtidas subam animados ao abrir o viewer em tela cheia.
+  // Nenhuma mudança no conjunto de imagens exibidas — apenas interactions enriquecidas.
   static async #fetchPortfolio(id) {
+    let items = [];
     try {
       const { data, error } = await ApiService.from('portfolio_images')
         .select('id, thumbnail_path, title')
@@ -315,9 +321,30 @@ class BarbeariaPage {
         .order('likes_count', { ascending: false })
         .limit(9);
       if (error) return [];
-      return data ?? [];
+      items = data ?? [];
     } catch { return []; }
+
+    if (!items.length) return items;
+
+    // Busca interactions para estas imagens via BFF (best-effort)
+    try {
+      if (typeof BffApiService !== 'undefined') {
+        const ids = items.map(img => img.id).filter(Boolean).join(',');
+        if (ids) {
+          const { data: intData } = await BffApiService.barbearias.listarInteracoes(ids);
+          if (intData && typeof intData === 'object') {
+            items = items.map(img => ({
+              ...img,
+              interactions: Array.isArray(intData[img.id]) ? intData[img.id] : [],
+            }));
+          }
+        }
+      }
+    } catch { /* best-effort — retorna itens sem interactions se BFF indisponível */ }
+
+    return items;
   }
+  // FIM ALTERAÇÃO
 
   /**
    * Busca os barbeiros vinculados ao salão.
