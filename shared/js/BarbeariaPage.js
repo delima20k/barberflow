@@ -40,6 +40,34 @@ class BarbeariaPage {
   /** Intervalo de polling de status da barbearia em ms (fallback para Realtime). */
   static #SHOP_POLL_MS = 20_000;
 
+  static #isMensalidadeServico(servico, shop = null) {
+    const texto = [
+      servico?.category,
+      servico?.name,
+      servico?.description,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    if (/\b(mensalidade|mensal|mensalista)\b/.test(texto)) return true;
+
+    const precoShop = Number(shop?.monthly_plan_price ?? 0);
+    const precoServico = Number(servico?.price ?? 0);
+    const mensagemShop = String(shop?.monthly_plan_message ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const textoConfereComMensagem = Boolean(mensagemShop) && texto.includes(mensagemShop);
+    const pareceCadastroMensal = precoShop > 0
+      && precoServico === precoShop
+      && Number(servico?.duration_min ?? 30) === 30
+      && !servico?.image_path;
+
+    return pareceCadastroMensal || textoConfereComMensagem;
+  }
+
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
   #portfolioViewer      = null;  // PortfolioPrismViewer — lazy, criado no 1º clique
@@ -1270,34 +1298,7 @@ class BarbeariaPage {
     return el;
   }
 
-  static #isMensalidadeServico(servico, shop = null) {
-    const texto = [
-      servico?.category,
-      servico?.name,
-      servico?.description,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    if (/\b(mensalidade|mensal|mensalista)\b/.test(texto)) return true;
-
-    const precoShop = Number(shop?.monthly_plan_price ?? 0);
-    const precoServico = Number(servico?.price ?? 0);
-    const mensagemShop = String(shop?.monthly_plan_message ?? '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    const textoConfereComMensagem = Boolean(mensagemShop) && texto.includes(mensagemShop);
-    const pareceCadastroMensal = precoShop > 0
-      && precoServico === precoShop
-      && Number(servico?.duration_min ?? 30) === 30
-      && !servico?.image_path;
-
-    return pareceCadastroMensal || textoConfereComMensagem;
-  }
-
+  // static #isMensalidadeServico fica declarado acima por compatibilidade de parsing no WebView.
   #obterMensalBanner() {
     if (this.#refs.mensalBanner) return this.#refs.mensalBanner;
     if (!this.#refs.servicosLista || typeof document === 'undefined') return null;
