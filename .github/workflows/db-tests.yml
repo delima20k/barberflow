@@ -196,7 +196,7 @@ jobs:
           echo "✅ Todas as RPCs críticas têm contrato documentado."
 
       - name: Upload relatório como artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: rpc-coverage-report
@@ -251,7 +251,7 @@ jobs:
         run: supabase stop --no-backup
 
       - name: Upload report RLS como artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: rls-coverage-report
