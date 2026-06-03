@@ -249,6 +249,32 @@ class BarbeariaController extends BaseController {
   }
 
   /**
+   * GET /api/v1/barbearias/:barbershop_id/barbeiros-status
+   */
+  async listarStatusBarbeiros(req, res) {
+    await this.handle(res, async () => {
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const dados = await this.#service.listarStatusBarbeiros(barbershopId);
+      this.cachePublico(res, 10, 30);
+      this.success(res, dados, { total: dados.length });
+    });
+  }
+
+  /**
+   * PATCH /api/v1/barbearias/:barbershop_id/me/status
+   */
+  async atualizarMeuStatusBarbeiro(req, res) {
+    await this.handle(res, async () => {
+      res.setHeader('Cache-Control', 'private, no-store');
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const dados = await this.#service.atualizarMeuStatusBarbeiro(req.user.id, barbershopId, req.body ?? {});
+      this.success(res, dados);
+    });
+  }
+
+  /**
    * POST /api/v1/barbearias/minha/dispensar/:professional_id
    */
   async dispensarBarbeiro(req, res) {

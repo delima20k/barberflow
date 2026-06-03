@@ -1543,9 +1543,7 @@
 ================================================================ */
 .mb-modo-parceiro #mb-gps-btn,
 .mb-modo-parceiro #mb-mais-btn,
-.mb-modo-parceiro #mb-equipe-convidar-btn,
-.mb-modo-parceiro #mb-status-toggle,
-.mb-modo-parceiro #mb-gi-botoes {
+.mb-modo-parceiro #mb-equipe-convidar-btn {
   opacity: .4;
   filter: grayscale(1);
   pointer-events: none;

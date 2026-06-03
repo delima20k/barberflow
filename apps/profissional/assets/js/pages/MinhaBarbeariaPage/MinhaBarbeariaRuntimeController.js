@@ -50,6 +50,9 @@ export class MinhaBarbeariaRuntimeController {
   #perfilDono           = null;   // perfil real do owner_id da barbearia
   #servicos             = [];     // serviços da barbearia — reutilizados nas modais de corte
   #profissionalId       = null;   // UUID do profissional logado (para sentar na fila)
+  #atividadeStatus      = new Map();
+  #barbeiroParceiroAtivo = false;
+  #barbeiroAtividadeStatus = null;
   #mensalistasAtivos    = new Set(); // client IDs que escolheram Plano Mensal nesta sessão
   #coordsGps            = null;   // coordenadas GPS capturadas no sub-painel
   #digGps               = null;   // instância DigText para o p.gps-dig
@@ -307,7 +310,9 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.slot2?.addEventListener('click', () => this.#abrirStoryViewer(0));
     this.#refs.slot3?.addEventListener('click', () => this.#abrirStoryViewer(1));
     // Toggle de status aberta/fechada
-    this.#refs.statusToggle?.addEventListener('click', () => this.#toggleStatusAberto());
+    this.#refs.statusToggle?.addEventListener('click', () => {
+      if (!this.#contextoParceiro) this.#toggleStatusAberto();
+    });
     // Convites enviados — cancelar/dispensar (delegação)
     this.#refs.convitesStatusLista?.addEventListener('click', e => {
       const btnCancelar  = e.target.closest('[data-cancelar-convite]');
@@ -521,13 +526,16 @@ export class MinhaBarbeariaRuntimeController {
 
       if (typeof BarbeiroEsperaFluxo !== 'undefined') BarbeiroEsperaFluxo.restaurar();
 
-      const [servicos, stories, quotaHoje, barbeiros, filaEntradas] = await Promise.all([
+      const [servicos, stories, quotaHoje, barbeiros, filaEntradas, statusBarbeiros] = await Promise.all([
         MinhaBarbeariaRuntimeController.#fetchServicos(shop.id),
         MinhaBarbeariaRuntimeController.#fetchStoriesAtivos(shop.id),
         MinhaBarbeariaRuntimeController.#fetchQuotaHoje(perfil.id, shop.id),
         MinhaBarbeariaRuntimeController.#fetchBarbeiros(shop.id),
         CadeiraService.sincronizarFilas(shop.id),
+        MinhaBarbeariaRuntimeController.#fetchStatusBarbeiros(shop.id),
       ]);
+      this.#atividadeStatus = MinhaBarbeariaRuntimeController.#mapaStatusBarbeiros(statusBarbeiros);
+      this.#barbeiroParceiroAtivo = this.#statusDisponivel(this.#profissionalId);
 
       // Armazena serviços para reuso nos re-renders das cadeiras
       this.#servicos = servicos;
@@ -565,12 +573,57 @@ export class MinhaBarbeariaRuntimeController {
   #aplicarModoParceiro() {
     const parceiro = this.#contextoParceiro === true;
     this.#telaEl?.classList.toggle('mb-modo-parceiro', parceiro);
-    [this.#refs.gpsBtn, this.#refs.maisBtn, this.#refs.convidarBtn, this.#refs.statusToggle]
+    [this.#refs.gpsBtn, this.#refs.maisBtn, this.#refs.convidarBtn]
       .forEach(el => {
         if (!el) return;
         el.disabled = parceiro;
         el.setAttribute('aria-disabled', String(parceiro));
       });
+    if (parceiro) this.#ativarControleAtividadeParceiro();
+    else this.#desativarControleAtividadeParceiro();
+  }
+
+  #ativarControleAtividadeParceiro() {
+    if (typeof BarbeiroAtividadeStatus === 'undefined' || !this.#barbershopId || !this.#profissionalId) return;
+    this.#desativarControleAtividadeParceiro();
+    const perfil = AuthService.getPerfil();
+    const statusAtual = this.#atividadeStatus.get(this.#profissionalId) || {
+      barbershop_id: this.#barbershopId,
+      professional_id: this.#profissionalId,
+      is_available: false,
+    };
+    this.#barbeiroParceiroAtivo = statusAtual.is_available === true;
+    this.#barbeiroAtividadeStatus = new BarbeiroAtividadeStatus({
+      barbershopId: this.#barbershopId,
+      professionalId: this.#profissionalId,
+      nome: perfil?.full_name || perfil?.name || 'Barbeiro',
+      toggleEl: this.#refs.statusToggle,
+      textoEl: this.#refs.statusTxt,
+      onChange: (_isAvailable, row) => this.#onAtividadeParceiroAtualizada(row),
+    });
+    this.#barbeiroAtividadeStatus.atualizarStatus(statusAtual, { emit: false });
+    this.#barbeiroAtividadeStatus.init().catch(err => {
+      LoggerService.warn('[MinhaBarbeariaPage] status parceiro:', err?.message || err);
+    });
+  }
+
+  #desativarControleAtividadeParceiro() {
+    this.#barbeiroAtividadeStatus?.destroy();
+    this.#barbeiroAtividadeStatus = null;
+    this.#refs.statusToggle?.classList.remove('mb-status-toggle--barbeiro-ativo', 'mb-status-toggle--barbeiro-inativo');
+    this.#refs.statusTxt?.classList.remove('mb-status-txt--barbeiro-ativo', 'mb-status-txt--barbeiro-inativo');
+  }
+
+  #onAtividadeParceiroAtualizada(row = {}) {
+    if (!row.professional_id) return;
+    this.#atividadeStatus.set(row.professional_id, {
+      ...row,
+      is_available: row.is_available === true,
+    });
+    if (row.professional_id === this.#profissionalId) {
+      this.#barbeiroParceiroAtivo = row.is_available === true;
+    }
+    this.#reRenderEquipe();
   }
 
   // ── Fetchers ────────────────────────────────────────────────
@@ -607,6 +660,31 @@ export class MinhaBarbeariaRuntimeController {
       hint:     error.hint,
     });
     throw error;
+  }
+
+  static async #fetchStatusBarbeiros(barbershopId) {
+    if (!barbershopId) return [];
+    if (typeof BarbeiroAtividadeStatus !== 'undefined') {
+      return BarbeiroAtividadeStatus.listar(barbershopId);
+    }
+    try {
+      const { data, error } = await BffApiService.barbearias.statusBarbeiros(barbershopId);
+      if (error) return [];
+      return Array.isArray(data) ? data : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static #mapaStatusBarbeiros(lista = []) {
+    if (typeof BarbeiroAtividadeStatus !== 'undefined') return BarbeiroAtividadeStatus.mapa(lista);
+    return new Map((Array.isArray(lista) ? lista : []).map(item => [
+      item.professional_id,
+      {
+        ...item,
+        is_available: item?.is_available === true,
+      },
+    ]));
   }
 
   static async #fetchPerfilDono(shop, perfilLogado) {
@@ -724,6 +802,8 @@ export class MinhaBarbeariaRuntimeController {
         filaEntradas:    filaDonoEntradas,
         isOwner:         this.#podeGerenciarCadeira(filaDonoId),
         professionalId:  filaDonoId,
+        mostrarAtividade: this.#atividadeStatus.has(filaDonoId),
+        isAvailable:     this.#statusDisponivel(filaDonoId),
         onCadeiraClick:  (tipo, ocupada, entrada) =>
           this.#onCadeiraClick(tipo, ocupada, entrada, filaDonoId),
       })
@@ -742,6 +822,8 @@ export class MinhaBarbeariaRuntimeController {
           filaEntradas:   filaB,
           isOwner:        podeGerenciarCadeiras,
           professionalId: b.id,
+          mostrarAtividade: true,
+          isAvailable:    this.#statusDisponivel(b.id),
           onCadeiraClick: (tipo, ocupada, entrada) =>
             this.#onCadeiraClick(tipo, ocupada, entrada, b.id),
         })
@@ -833,10 +915,13 @@ export class MinhaBarbeariaRuntimeController {
 
     try {
       const perfil = AuthService.getPerfil();
-      const [barbeiros, filaEntradas] = await Promise.all([
+      const [barbeiros, filaEntradas, statusBarbeiros] = await Promise.all([
         MinhaBarbeariaRuntimeController.#fetchBarbeiros(this.#barbershopId),
         CadeiraService.sincronizarFilas(this.#barbershopId),
+        MinhaBarbeariaRuntimeController.#fetchStatusBarbeiros(this.#barbershopId),
       ]);
+      this.#atividadeStatus = MinhaBarbeariaRuntimeController.#mapaStatusBarbeiros(statusBarbeiros);
+      this.#barbeiroParceiroAtivo = this.#statusDisponivel(this.#profissionalId);
       if (!this.#perfilDono) {
         this.#perfilDono = await MinhaBarbeariaRuntimeController.#fetchPerfilDono(this.#shopData, perfil);
       }
@@ -1083,7 +1168,15 @@ export class MinhaBarbeariaRuntimeController {
   }
 
   #podeGerenciarCadeira(professionalId) {
-    return !!professionalId && professionalId === this.#profissionalId;
+    const propriaCadeira = !!professionalId && professionalId === this.#profissionalId;
+    if (!propriaCadeira) return false;
+    if (this.#contextoParceiro) return this.#barbeiroParceiroAtivo === true;
+    return true;
+  }
+
+  #statusDisponivel(professionalId) {
+    if (!professionalId) return false;
+    return this.#atividadeStatus.get(professionalId)?.is_available === true;
   }
 
   /**
@@ -1708,12 +1801,15 @@ export class MinhaBarbeariaRuntimeController {
    * @param {string}    professionalId  UUID do barbeiro desta row
    * @param {Function}  onCadeiraClick  (tipo, ocupada, entrada) => void
    */
-  static #criarBarbeiroRow({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null, cortes = null, filaEntradas = [], isOwner = false, professionalId = null, onCadeiraClick = null }) {
+  static #criarBarbeiroRow({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null, cortes = null, filaEntradas = [], isOwner = false, professionalId = null, onCadeiraClick = null, mostrarAtividade = false, isAvailable = false }) {
     const row = document.createElement('div');
     row.className = `mb-barbeiro-row mb-barbeiro-row--${variant}`;
 
     // Card do barbeiro (coluna esquerda)
     const bCard = MinhaBarbeariaRuntimeController.#criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge, cortes });
+    if (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined') {
+      bCard.appendChild(BarbeiroAtividadeStatus.criarParagrafo({ professionalId, isAvailable }));
+    }
     if (onClick) bCard.addEventListener('click', onClick);
     row.appendChild(bCard);
 

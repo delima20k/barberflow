@@ -332,6 +332,33 @@ class BarbeariaService extends BaseService {
   }
 
   /**
+   * Lista status operacional dos barbeiros vinculados a uma barbearia.
+   * Endpoint público: retorna apenas nome, profissional e boolean operacional.
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}
+   */
+  async listarStatusBarbeiros(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    return this.#repo.listarStatusBarbeiros(barbershopId);
+  }
+
+  /**
+   * Atualiza disponibilidade operacional do barbeiro autenticado.
+   * @param {string} userId
+   * @param {string} barbershopId
+   * @param {object} payload
+   * @returns {Promise<object>}
+   */
+  async atualizarMeuStatusBarbeiro(userId, barbershopId, payload = {}) {
+    this._uuid('userId', userId);
+    this._uuid('barbershopId', barbershopId);
+    if (typeof payload.is_available !== 'boolean') {
+      throw AppError.badRequest('is_available deve ser boolean.');
+    }
+    return this.#repo.atualizarMeuStatusBarbeiro(barbershopId, userId, payload.is_available);
+  }
+
+  /**
    * Dispensa barbeiro da barbearia do owner.
    * @param {string} userId
    * @param {string} professionalId

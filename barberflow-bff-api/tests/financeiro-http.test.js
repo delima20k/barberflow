@@ -90,6 +90,17 @@ class FakeQuery {
       return { data: [{ monthly_fee: 100 }, { monthly_fee: 80 }], error: null };
     }
 
+    if (this.table === 'professional_barbershop_presence') {
+      const rows = this.db.presenceRows.length
+        ? this.db.presenceRows
+        : [];
+      const filtered = rows.filter(row =>
+        (!this.filters.barbershop_id || row.barbershop_id === this.filters.barbershop_id)
+        && (!this.filters.professional_id || row.professional_id === this.filters.professional_id)
+      );
+      return { data: this.single ? (filtered[0] ?? null) : filtered, error: null };
+    }
+
     return { data: [], error: null };
   }
 }
@@ -98,9 +109,31 @@ class FakeDb {
   constructor({ forbidden = false } = {}) {
     this.forbidden = forbidden;
     this.rpcCalls = [];
+    this.presenceRows = [];
+    this.upsertCalls = [];
   }
 
   from(table) {
+    if (table === 'professional_barbershop_presence') {
+      return {
+        upsert: (payload) => {
+          this.upsertCalls.push(payload);
+          const index = this.presenceRows.findIndex(row =>
+            row.barbershop_id === payload.barbershop_id
+            && row.professional_id === payload.professional_id
+          );
+          const next = { ...payload };
+          if (index >= 0) this.presenceRows[index] = next;
+          else this.presenceRows.push(next);
+          return {
+            select: () => ({
+              single: async () => ({ data: next, error: null }),
+            }),
+          };
+        },
+        select: () => new FakeQuery(this, table),
+      };
+    }
     return new FakeQuery(this, table);
   }
 
@@ -252,4 +285,56 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
   assert.equal(res.body.dados.cards.lucroBarbearia.total, 192);
   assert.ok(res.body.dados.cards.meuLucro !== null);
   assert.equal(res.body.dados.cards.meuLucro.total, 288);
+});
+
+test('GET /barbearias/:id/barbeiros-status retorna default false quando ausente', async () => {
+  const app = criarApp(new FakeDb());
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'GET', `/api/v1/barbearias/${SHOP_ID}/barbeiros-status`);
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.dados[0].professional_id, PROF_ID);
+  assert.equal(res.body.dados[0].is_available, false);
+});
+
+test('PATCH /barbearias/:id/me/status valida boolean e vínculo', async () => {
+  const db = new FakeDb();
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+
+  const invalid = await request(port, 'PATCH', `/api/v1/barbearias/${SHOP_ID}/me/status`, {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: { is_available: 'sim' },
+  });
+  assert.equal(invalid.status, 400);
+
+  const valid = await request(port, 'PATCH', `/api/v1/barbearias/${SHOP_ID}/me/status`, {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: { is_available: true },
+  });
+
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(valid.status, 200);
+  assert.equal(valid.body.dados.is_available, true);
+  assert.equal(db.upsertCalls[0].professional_id, USER_ID);
+});
+
+test('PATCH /barbearias/:id/me/status retorna 403 sem vínculo', async () => {
+  const app = criarApp(new FakeDb({ forbidden: true }));
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'PATCH', `/api/v1/barbearias/${SHOP_ID}/me/status`, {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: { is_available: true },
+  });
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 403);
 });

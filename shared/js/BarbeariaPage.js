@@ -32,6 +32,9 @@ class BarbeariaPage {
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
   #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)
   #canalShopId      = null;   // shop.id do canal de status (evita reconexão desnecessária)
+  #canalAtividade   = null;   // canal Supabase Realtime de disponibilidade de barbeiros
+  #canalAtividadeShopId = null;
+  #atividadeStatus  = new Map();
   #timerShopPoll    = null;   // timer de polling periódico de status (fallback quando Realtime falha)
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
   #highlightBarberId = null;  // barber-id a destacar após abrir barbearia via card do barbeiro
@@ -208,6 +211,7 @@ class BarbeariaPage {
         // mesmo quando o usuário navega para outra tela.
         this.#pararRealtimeFila();
         this.#pararRealtimeShop();
+        this.#pararRealtimeAtividade();
         this.#pararPollingShop();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
@@ -249,6 +253,7 @@ class BarbeariaPage {
       if (this.#shopData) {
         this.#iniciarRealtimeFila(this.#shopData);
         this.#iniciarRealtimeShop(this.#shopData);
+        this.#iniciarRealtimeAtividade(this.#shopData);
         this.#iniciarPollingShop(this.#shopId);
       }
       return;
@@ -386,6 +391,25 @@ class BarbeariaPage {
     return BarbershopRepository.getBarbersByShop(shop.id, shop.owner_id ?? null);
   }
 
+  static async #fetchStatusBarbeiros(barbershopId) {
+    if (!barbershopId) return [];
+    if (typeof BarbeiroAtividadeStatus !== 'undefined') {
+      return BarbeiroAtividadeStatus.listar(barbershopId);
+    }
+    try {
+      const { data, error } = await BffApiService.barbearias.statusBarbeiros(barbershopId);
+      if (error) return [];
+      return Array.isArray(data) ? data : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static #mapaStatusBarbeiros(lista = []) {
+    if (typeof BarbeiroAtividadeStatus !== 'undefined') return BarbeiroAtividadeStatus.mapa(lista);
+    return new Map((Array.isArray(lista) ? lista : []).map(item => [item.professional_id, item]));
+  }
+
   /**
    * Cria uma row de barbeiro: BarbeiroCard + cadeira de produção + cadeiras de fila.
    * @param {object}        opts
@@ -399,17 +423,24 @@ class BarbeariaPage {
    * @param {string|null}   opts.clienteLogadoId         id do cliente autenticado (ou null)
    * @returns {HTMLDivElement}
    */
-  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, clienteLogadoId = null }) {
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, clienteLogadoId = null, mostrarAtividade = false, isAvailable = false }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
-    row.appendChild(BarbeiroCard.criar({
+    const card = BarbeiroCard.criar({
       nome:       barbeiro.full_name ?? 'Barbeiro',
       avatarPath: barbeiro.avatar_path ?? null,
       updatedAt:  barbeiro.updated_at ?? null,
       isOwner,
       barberId:   barbeiro.id ?? null,
-    }));
+    });
+    if (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined') {
+      card.appendChild(BarbeiroAtividadeStatus.criarParagrafo({
+        professionalId: barbeiro.id ?? '',
+        isAvailable,
+      }));
+    }
+    row.appendChild(card);
 
     const wrap = document.createElement('div');
     wrap.className = 'cdr-cadeiras-wrap';
@@ -492,6 +523,7 @@ class BarbeariaPage {
     this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
+    this.#iniciarRealtimeAtividade(shop);
     this.#iniciarPollingShop(shop.id);
     this.#mostrarConteudo();
   }
@@ -516,7 +548,7 @@ class BarbeariaPage {
     let filaAtiva = [];
 
     try {
-      const [b, f] = await Promise.all([
+      const [b, f, s] = await Promise.all([
         barbeiros
           ? Promise.resolve(barbeiros)
           : BarbeariaPage.#fetchBarbeiros(shop).then(data => {
@@ -524,9 +556,11 @@ class BarbeariaPage {
               return data;
             }),
         CadeiraService.getFilaAtiva(shop.id),
+        BarbeariaPage.#fetchStatusBarbeiros(shop.id),
       ]);
       barbeiros = b;
       filaAtiva  = f;
+      this.#atividadeStatus = BarbeariaPage.#mapaStatusBarbeiros(s);
     } catch (err) {
       LoggerService.warn('[BarbeariaPage] #renderBarbeiros:', err?.message);
       barbeiros = barbeiros ?? [];
@@ -565,6 +599,8 @@ class BarbeariaPage {
         isOwner:               b.id === shop.owner_id,
         filaEntradas:          filaB,
         podeInteragir,
+        mostrarAtividade:      this.#atividadeStatus.has(b.id),
+        isAvailable:           this.#atividadeStatus.get(b.id)?.is_available === true,
         clienteLogadoId,
         onProducaoVaziaClick:     clientePodeInteragir
           ? () => this.#onProducaoClick(b.id)
@@ -709,6 +745,28 @@ class BarbeariaPage {
       try { SupabaseService.removeChannel(this.#canalShop); } catch (_) {}
       this.#canalShop   = null;
       this.#canalShopId = null;
+    }
+  }
+
+  #iniciarRealtimeAtividade(shop) {
+    if (!shop?.id || typeof BarbeiroAtividadeStatus === 'undefined') return;
+    if (this.#canalAtividadeShopId === shop.id && this.#canalAtividade) return;
+    this.#pararRealtimeAtividade();
+    this.#canalAtividade = BarbeiroAtividadeStatus.assinar(shop.id, payload => {
+      const row = payload?.new || payload?.old || {};
+      if (row?.barbershop_id !== shop.id) return;
+      if (this.#shopData?.id === shop.id) {
+        this.#renderBarbeiros(this.#shopData).catch(() => {});
+      }
+    });
+    this.#canalAtividadeShopId = this.#canalAtividade ? shop.id : null;
+  }
+
+  #pararRealtimeAtividade() {
+    if (this.#canalAtividade) {
+      try { SupabaseService.removeChannel(this.#canalAtividade); } catch (_) {}
+      this.#canalAtividade = null;
+      this.#canalAtividadeShopId = null;
     }
   }
 

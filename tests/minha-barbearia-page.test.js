@@ -654,11 +654,16 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
 
 describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
 
-  test('centraliza permissao de cadeira no professionalId logado', () => {
+  test('centraliza permissao de cadeira no professionalId logado e status do parceiro', () => {
     assert.match(
       SRC_MB_PAGE,
-      /#podeGerenciarCadeira\(professionalId\)\s*\{[\s\S]*return\s+!!professionalId\s*&&\s*professionalId\s*===\s*this\.#profissionalId;/,
+      /const propriaCadeira\s*=\s*!!professionalId\s*&&\s*professionalId\s*===\s*this\.#profissionalId;/,
       'deve permitir gerenciar apenas a row cujo professionalId e o usuario logado',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /if\s*\(this\.#contextoParceiro\)\s*return\s+this\.#barbeiroParceiroAtivo\s*===\s*true;/,
+      'no modo parceiro deve exigir status ativo para cadeira clicavel',
     );
   });
 

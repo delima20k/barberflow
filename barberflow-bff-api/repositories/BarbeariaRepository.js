@@ -765,6 +765,90 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
+   * Lista status operacional dos barbeiros vinculados a uma barbearia.
+   * Ausência de presença persistida é normalizada como is_available=false.
+   * @param {string} barbershopId
+   * @returns {Promise<object[]>}
+   */
+  async listarStatusBarbeiros(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+
+    const { data: links, error: linksError } = await this._db
+      .from('professional_shop_links')
+      .select('professional_id')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_active', true);
+
+    if (linksError) this._throwDbError(linksError, 'listarStatusBarbeiros.links');
+
+    const ids = [...new Set((links || []).map(link => link.professional_id).filter(Boolean))];
+    if (!ids.length) return [];
+
+    const [{ data: perfis, error: perfisError }, { data: presencas, error: presencasError }] = await Promise.all([
+      this._db
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', ids),
+      this._db
+        .from('professional_barbershop_presence')
+        .select('barbershop_id, professional_id, is_available, updated_at, updated_by')
+        .eq('barbershop_id', barbershopId)
+        .in('professional_id', ids),
+    ]);
+
+    if (perfisError) this._throwDbError(perfisError, 'listarStatusBarbeiros.perfis');
+    if (presencasError) this._throwDbError(presencasError, 'listarStatusBarbeiros.presencas');
+
+    const perfilMap = new Map((perfis || []).map(item => [item.id, item]));
+    const presencaMap = new Map((presencas || []).map(item => [item.professional_id, item]));
+
+    return ids.map(professionalId => {
+      const presenca = presencaMap.get(professionalId) || {};
+      const perfil = perfilMap.get(professionalId) || {};
+      return {
+        barbershop_id: barbershopId,
+        professional_id: professionalId,
+        professional_name: perfil.full_name || 'Barbeiro',
+        is_available: presenca.is_available === true,
+        updated_at: presenca.updated_at || null,
+        updated_by: presenca.updated_by || null,
+      };
+    });
+  }
+
+  /**
+   * Atualiza o status operacional do profissional autenticado na barbearia.
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @param {boolean} isAvailable
+   * @returns {Promise<object>}
+   */
+  async atualizarMeuStatusBarbeiro(barbershopId, professionalId, isAvailable) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('professionalId', professionalId);
+
+    const temVinculo = await this.profissionalTemVinculoAtivo(barbershopId, professionalId);
+    if (!temVinculo) throw AppError.forbidden('Profissional sem vinculo ativo com a barbearia.');
+
+    const payload = {
+      barbershop_id: barbershopId,
+      professional_id: professionalId,
+      is_available: isAvailable === true,
+      updated_at: new Date().toISOString(),
+      updated_by: professionalId,
+    };
+
+    const { data, error } = await this._db
+      .from('professional_barbershop_presence')
+      .upsert(payload, { onConflict: 'barbershop_id,professional_id' })
+      .select('barbershop_id, professional_id, is_available, updated_at, updated_by')
+      .single();
+
+    if (error) this._throwDbError(error, 'atualizarMeuStatusBarbeiro');
+    return data;
+  }
+
+  /**
    * Dispensa barbeiro: desativa vínculo e acordo.
    * @param {string} barbershopId
    * @param {string} professionalId

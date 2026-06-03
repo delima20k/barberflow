@@ -249,6 +249,14 @@ class BffApiService {
     gestaoVinculada: (barbershopId) =>
       BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/gestao`),
 
+    statusBarbeiros: (barbershopId) =>
+      BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/barbeiros-status`),
+
+    atualizarMeuStatusBarbeiro: (barbershopId, isAvailable) =>
+      BffApiService.patch(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/me/status`, {
+        is_available: isAvailable === true,
+      }),
+
     portfolio: (barbershopId, params = {}) =>
       BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/portfolio`, params),
 
