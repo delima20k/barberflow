@@ -62,6 +62,7 @@ export class MinhaBarbeariaRuntimeController {
   #mediaP2P             = null; // preview local P2P — upload adiado para o save
   #storyMediaAdapter    = null;
   #canalFila            = null;   // canal Supabase Realtime de queue_entries
+  #canalAtividade       = null;   // canal Supabase Realtime de professional_barbershop_presence
   #pollingTimer         = null;   // fallback polling quando Realtime indisponível
   #renderizandoEquipe   = false;  // guard: evita re-renders simultâneos de cadeiras
   #reRenderPendente     = false;  // sinaliza update chegado durante render em curso
@@ -143,10 +144,12 @@ export class MinhaBarbeariaRuntimeController {
         } else if (this.#barbershopId && !this.#canalFila) {
           // Canal pode ter sido parado ao navegar para outra tela — reinicia
           this.#iniciarRealtimeFila(this.#barbershopId);
+          this.#iniciarRealtimeAtividade(this.#barbershopId);
         }
       } else {
         this.#digBoasVindas?.parar();
         this.#pararRealtimeFila();
+        this.#pararRealtimeAtividade();
       }
     }).observe(this.#telaEl, { attributes: true, attributeFilter: ['class'] });
   }
@@ -556,6 +559,7 @@ export class MinhaBarbeariaRuntimeController {
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
       this.#iniciarRealtimeFila(shop.id);
+      this.#iniciarRealtimeAtividade(shop.id);
       this.#processarPushPendente();
       this.#aplicarModoParceiro();
       if (this.#refs.convitesStatusSection) this.#refs.convitesStatusSection.hidden = true;
@@ -892,6 +896,30 @@ export class MinhaBarbeariaRuntimeController {
     if (this.#pollingTimer) {
       clearInterval(this.#pollingTimer);
       this.#pollingTimer = null;
+    }
+  }
+
+  /**
+   * Assina mudanças em professional_barbershop_presence para atualizar
+   * os textos Ativo/Inativo de todos os barbeiros parceiros em tempo real.
+   */
+  #iniciarRealtimeAtividade(barbershopId) {
+    if (!barbershopId || this.#canalAtividade) return;
+    try {
+      this.#canalAtividade = BarbeiroAtividadeStatus.assinar(
+        barbershopId,
+        () => this.#reRenderEquipe(),
+      );
+    } catch (e) {
+      LoggerService.warn('[MinhaBarbeariaPage] Realtime atividade indisponível:', e?.message);
+    }
+  }
+
+  /** Para o canal Realtime de atividade e limpa a referência. */
+  #pararRealtimeAtividade() {
+    if (this.#canalAtividade) {
+      try { SupabaseService.removeChannel(this.#canalAtividade); } catch (_) {}
+      this.#canalAtividade = null;
     }
   }
 
@@ -1638,10 +1666,11 @@ export class MinhaBarbeariaRuntimeController {
   /**
    * Card em coluna (avatar + nome + badge) — filho esquerdo da row.
    */
-  static #criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge = null, cortes = null }) {
+  static #criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge = null, cortes = null, statusEl = null }) {
     const card = document.createElement('div');
     card.className = 'mb-barbeiro-card';
 
+    if (statusEl) card.appendChild(statusEl);
     card.appendChild(
       MinhaBarbeariaRuntimeController.#criarAvatarEl(avatarPath, updatedAt, nome, variant === 'dono' ? 'lg' : 'md')
     );
@@ -1806,10 +1835,10 @@ export class MinhaBarbeariaRuntimeController {
     row.className = `mb-barbeiro-row mb-barbeiro-row--${variant}`;
 
     // Card do barbeiro (coluna esquerda)
-    const bCard = MinhaBarbeariaRuntimeController.#criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge, cortes });
-    if (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined') {
-      bCard.prepend(BarbeiroAtividadeStatus.criarParagrafo({ professionalId, isAvailable }));
-    }
+    const statusEl = (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined')
+      ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId, isAvailable })
+      : null;
+    const bCard = MinhaBarbeariaRuntimeController.#criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge, cortes, statusEl });
     if (onClick) bCard.addEventListener('click', onClick);
     row.appendChild(bCard);
 

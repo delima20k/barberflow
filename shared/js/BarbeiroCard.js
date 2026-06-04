@@ -15,19 +15,21 @@ class BarbeiroCard {
 
   /**
    * Cria o elemento DOM do card de um barbeiro.
-   * @param {object}      opts
-   * @param {string}      opts.nome
-   * @param {string|null} opts.avatarPath
-   * @param {string|null} [opts.updatedAt]
-   * @param {boolean}     [opts.isOwner=false]
-   * @param {string|null} [opts.barberId=null]
+   * @param {object}           opts
+   * @param {string}           opts.nome
+   * @param {string|null}      opts.avatarPath
+   * @param {string|null}      [opts.updatedAt]
+   * @param {boolean}          [opts.isOwner=false]
+   * @param {string|null}      [opts.barberId=null]
+   * @param {HTMLElement|null} [opts.statusEl=null] — elemento de status inserido acima do avatar
    * @returns {HTMLDivElement}
    */
-  static criar({ nome, avatarPath, updatedAt = null, isOwner = false, barberId = null }) {
+  static criar({ nome, avatarPath, updatedAt = null, isOwner = false, barberId = null, statusEl = null }) {
     const card = document.createElement('div');
     card.className = `bbc-card${isOwner ? ' bbc-card--owner' : ''}`;
     if (barberId) card.dataset.barberId = barberId;
 
+    if (statusEl) card.appendChild(statusEl);
     card.appendChild(BarbeiroCard.#criarAvatar(nome, avatarPath, updatedAt));
 
     const nomeEl       = document.createElement('p');

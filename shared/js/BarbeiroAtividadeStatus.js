@@ -99,7 +99,7 @@ class BarbeiroAtividadeStatus {
       this.#toggleEl.classList.toggle('mb-status-toggle--barbeiro-inativo', !this.#isAvailable);
     }
     if (this.#textoEl) {
-      this.#textoEl.textContent = `Barbeiro ${this.#nome} ${label}`;
+      this.#textoEl.textContent = label;
       this.#textoEl.classList.toggle('mb-status-txt--barbeiro-ativo', this.#isAvailable);
       this.#textoEl.classList.toggle('mb-status-txt--barbeiro-inativo', !this.#isAvailable);
     }
@@ -165,12 +165,10 @@ class BarbeiroAtividadeStatus {
   static atualizarParagrafo(el, isAvailable = false) {
     if (!el) return;
     el.textContent = '';
-    const prefixo = document.createElement('span');
-    prefixo.textContent = 'Barbeiro';
     const valor = document.createElement('span');
     valor.className = `barbeiro-atividade-status__valor barbeiro-atividade-status__valor--${isAvailable ? 'ativo' : 'inativo'}`;
     valor.textContent = isAvailable ? 'Ativo' : 'Inativo';
-    el.append(prefixo, valor);
+    el.appendChild(valor);
   }
 
   static assinar(barbershopId, callback) {

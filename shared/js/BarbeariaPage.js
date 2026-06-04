@@ -427,19 +427,17 @@ class BarbeariaPage {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
+    const statusEl = (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined')
+      ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: barbeiro.id ?? '', isAvailable })
+      : null;
     const card = BarbeiroCard.criar({
       nome:       barbeiro.full_name ?? 'Barbeiro',
       avatarPath: barbeiro.avatar_path ?? null,
       updatedAt:  barbeiro.updated_at ?? null,
       isOwner,
       barberId:   barbeiro.id ?? null,
+      statusEl,
     });
-    if (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined') {
-      card.prepend(BarbeiroAtividadeStatus.criarParagrafo({
-        professionalId: barbeiro.id ?? '',
-        isAvailable,
-      }));
-    }
     row.appendChild(card);
 
     const wrap = document.createElement('div');
