@@ -24,7 +24,6 @@ class BarbeariaPage {
   #shopIdCache      = null;   // último ID renderizado (evita re-fetch na volta)
   #carregando       = false;  // mutex contra fetches paralelos
   #dig              = null;   // instância DigText de boas-vindas
-  #digFila          = null;   // instância DigText da seção de barbeiros
   #servicos         = [];     // serviços em cache para os handlers de cadeira
   #shopData         = null;   // objeto completo da barbearia atual
   #numeroBarbeiros  = 0;      // total de barbeiros ativos (usado na mensagem de fechamento)
@@ -188,7 +187,6 @@ class BarbeariaPage {
       portfolioBarbeirosWrap:   q('#bp-portfolio-barbeiros-wrap'),
       portfolioBarbeiros:       q('#bp-portfolio-barbeiros'),
       barbeirosScroll: q('#bp-barbeiros-scroll'),
-      filaDig:         q('#bp-fila-dig'),
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
@@ -632,14 +630,6 @@ class BarbeariaPage {
         });
       }
 
-    }
-
-    // Inicia animação DigText na seção de barbeiros
-    if (typeof DigText !== 'undefined' && this.#refs.filaDig) {
-      this.#refs.filaDig.textContent = '';
-      const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância.';
-      this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
-      this.#digFila.iniciar();
     }
   }
 
@@ -1652,8 +1642,6 @@ class BarbeariaPage {
     if (this.#refs.portfolioBarbeiros) { this.#refs.portfolioBarbeiros.innerHTML = ''; }
     if (this.#refs.portfolioBarbeirosWrap) { this.#refs.portfolioBarbeirosWrap.hidden = true; }
     if (this.#refs.barbeirosScroll) { this.#refs.barbeirosScroll.innerHTML = ''; }
-    if (this.#refs.filaDig)         { this.#refs.filaDig.textContent = ''; }
-    if (this.#digFila)              { this.#digFila.parar?.(); this.#digFila = null; }
     if (this.#refs.boasVindas) { this.#refs.boasVindas.textContent = ''; }
     if (this.#refs.ctaLogin)   { this.#refs.ctaLogin.hidden = true; this.#refs.ctaLogin.textContent = ''; }
     if (this.#refs.favBtn) {

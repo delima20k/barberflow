@@ -611,17 +611,6 @@
   font-weight: 800;
 }
 
-/* Dig de fila — mesma fonte do boas-vindas, sem fundo/borda */
-#tela-barbearia #bp-fila-dig {
-  background: none;
-  border: none;
-  padding: 0 14px;
-  margin-top: 0;
-  margin-bottom: 4px;
-  font-size: .9rem;
-  text-align: left;
-}
-
 /* CTA de login/cadastro para visitantes */
 #tela-barbearia .bp-cta-login {
   padding: 3px 14px 6px;
