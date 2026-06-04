@@ -17,7 +17,7 @@
 // =============================================================
 // VersÃƒÂ£o do Service Worker Ã¢â‚¬â€ bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260604h';
+const SW_CLI_VERSION = '20260604i';
 
 class SWCliente {
 
@@ -81,6 +81,7 @@ class SWCliente {
     '/shared/js/ChatApiClient.js',
     '/shared/js/MessageModerationService.js',
     '/shared/js/ConversationListService.js',
+    '/shared/js/ChatRealtimeService.js',
     '/shared/js/ChatModal.js',
     '/shared/js/ChatSearchWidget.js',
     '/shared/js/UniversalChatPage.js',

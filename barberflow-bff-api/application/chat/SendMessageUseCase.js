@@ -10,6 +10,7 @@ class SendMessageUseCase {
   #chatRepository;
   #outboxRepository;
   #blockPolicy;
+  #messageRealtimePublisher;
   #policy;
   #clock;
 
@@ -17,6 +18,7 @@ class SendMessageUseCase {
     chatRepository,
     outboxRepository,
     blockPolicy,
+    messageRealtimePublisher = null,
     policy = new ChatPolicyCatalog(),
     clock = { now: () => new Date() },
   }) {
@@ -26,6 +28,7 @@ class SendMessageUseCase {
     this.#chatRepository = chatRepository;
     this.#outboxRepository = outboxRepository;
     this.#blockPolicy = blockPolicy;
+    this.#messageRealtimePublisher = messageRealtimePublisher;
     this.#policy = policy;
     this.#clock = clock;
   }
@@ -64,7 +67,24 @@ class SendMessageUseCase {
       /* eslint-disable no-console */
       console.warn('[SendMessageUseCase] outbox.save falhou (best-effort):', outboxErr?.message);
     }
+    await this.#publishRealtime(saved);
     return Result.ok(saved.toJSON());
+  }
+
+  async #publishRealtime(saved) {
+    if (!this.#messageRealtimePublisher) return;
+    try {
+      const context = await this.#chatRepository.findDeliveryContext(saved.id);
+      if (!context?.message || !context?.recipients?.length) return;
+      await this.#messageRealtimePublisher.publish({
+        message: context.message,
+        recipients: context.recipients,
+        sender: context.sender ?? null,
+      });
+    } catch (realtimeErr) {
+      /* eslint-disable no-console */
+      console.warn('[SendMessageUseCase] realtime imediato falhou (best-effort):', realtimeErr?.message);
+    }
   }
 
   async #canExchangeWithAll(senderId, recipients) {

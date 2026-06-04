@@ -76,6 +76,17 @@ describe('UniversalChatPage — análise estática', () => {
     assert.ok(SRC.includes('[data-tela="mensagens"]'), 'deve funcionar em cliente e profissional');
   });
 
+  test('limpa ponto amarelo quando nao ha usuario ou conversas carregadas', () => {
+    assert.ok(
+      SRC.includes('UniversalChatPage.#conversas = []'),
+      'deve zerar estado local quando nao houver conversas validas',
+    );
+    assert.ok(
+      SRC.includes('UniversalChatPage.#atualizarIndicadorRodape()'),
+      'deve recalcular o rodape mesmo sem mensagens',
+    );
+  });
+
   test('notificacao in-app de nova mensagem inclui remetente e trecho', () => {
     assert.ok(SRC.includes('#notificarMensagemNova'), 'deve centralizar notificacao in-app');
     assert.ok(SRC.includes('detail?.sender'), 'deve consumir remetente do evento de chat');

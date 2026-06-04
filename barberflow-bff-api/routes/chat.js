@@ -13,15 +13,26 @@ const { ListConversationsUseCase } = require('../application/chat/ListConversati
 const { GetOrCreateConversationUseCase } = require('../application/chat/GetOrCreateConversationUseCase');
 const { MarkConversationReadUseCase } = require('../application/chat/MarkConversationReadUseCase');
 const { ConversationReadPublisher } = require('../application/chat/ConversationReadPublisher');
+const { MessageRealtimePublisher } = require('../application/chat/MessageRealtimePublisher');
+const { SupabaseBroadcaster } = require('../infrastructure/realtime/SupabaseBroadcaster');
 
 module.exports = function criarChatRoute(db, deps = {}) {
   const chatRepository = deps.chatRepository ?? new SupabaseChatRepository(db);
   const blockPolicy    = deps.blockPolicy    ?? new BlockPolicy({ blockRepository: chatRepository });
+  const broadcaster    = deps.realtimeBroadcaster ?? new SupabaseBroadcaster();
+  const temEntrega     = Boolean(deps.publishToChannelUseCase) || broadcaster.habilitado;
   const readPublisher  = deps.readPublisher
-    ?? (deps.publishToChannelUseCase || typeof db?.channel === 'function'
+    ?? (temEntrega
       ? new ConversationReadPublisher({
         publishToChannelUseCase: deps.publishToChannelUseCase ?? null,
-        supabaseClient: deps.supabaseRealtimeClient ?? db,
+        broadcaster,
+      })
+      : null);
+  const messageRealtimePublisher = deps.messageRealtimePublisher
+    ?? (temEntrega
+      ? new MessageRealtimePublisher({
+        publishToChannelUseCase: deps.publishToChannelUseCase ?? null,
+        broadcaster,
       })
       : null);
   const controller     = deps.controller     ?? new ChatController({
@@ -29,6 +40,7 @@ module.exports = function criarChatRoute(db, deps = {}) {
       chatRepository,
       blockPolicy,
       outboxRepository: deps.outboxRepository ?? new OutboxRepository({ supabase: db }),
+      messageRealtimePublisher,
     }),
     listMessagesUseCase:      deps.listMessagesUseCase      ?? new ListMessagesUseCase({ chatRepository }),
     softDeleteMessageUseCase: deps.softDeleteMessageUseCase ?? new SoftDeleteMessageUseCase({ chatRepository }),

@@ -5,14 +5,14 @@ const { PresenceLink } = require('./PresenceLink');
 
 class ConversationReadPublisher {
   #publishToChannelUseCase;
-  #supabaseClient;
+  #broadcaster;
 
-  constructor({ publishToChannelUseCase = null, supabaseClient = null }) {
-    if (!publishToChannelUseCase && !supabaseClient) {
-      throw new TypeError('ConversationReadPublisher requer publishToChannelUseCase ou supabaseClient.');
+  constructor({ publishToChannelUseCase = null, broadcaster = null }) {
+    if (!publishToChannelUseCase && !broadcaster) {
+      throw new TypeError('ConversationReadPublisher requer publishToChannelUseCase ou broadcaster.');
     }
     this.#publishToChannelUseCase = publishToChannelUseCase;
-    this.#supabaseClient = supabaseClient;
+    this.#broadcaster = broadcaster;
   }
 
   async publish({ conversationId, userId, lastReadMessageId = null, unreadCount = 0 }) {
@@ -37,24 +37,13 @@ class ConversationReadPublisher {
   }
 
   async #publishSupabase(channelName, payload) {
-    if (!this.#supabaseClient?.channel) return { ok: false, skipped: true };
-    const channel = this.#supabaseClient.channel(channelName, {
-      config: { private: true, broadcast: { self: false } },
+    if (!this.#broadcaster?.habilitado) return { ok: false, skipped: true };
+    return this.#broadcaster.broadcast({
+      topic: channelName,
+      event: EVENT_TYPES.CHAT_CONVERSATION_READ,
+      payload,
+      private: true,
     });
-    await new Promise(resolve => {
-      channel.subscribe(() => resolve());
-      setTimeout(resolve, 1500).unref?.();
-    });
-    try {
-      const response = await channel.send({
-        type: 'broadcast',
-        event: EVENT_TYPES.CHAT_CONVERSATION_READ,
-        payload,
-      });
-      return { ok: response === 'ok' || response?.status === 'ok', response };
-    } finally {
-      await this.#supabaseClient.removeChannel?.(channel);
-    }
   }
 }
 

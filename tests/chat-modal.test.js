@@ -95,8 +95,30 @@ describe('ChatModal — análise estática de segurança e contrato', () => {
       'deve emitir evento de leitura quando mensagem chega na conversa aberta',
     );
     assert.ok(
-      SRC.includes('ChatModal.#despacharConversaLida(msg.conversationId)'),
+      SRC.includes('ChatModal.#despacharConversaLida(detail.convId)'),
       'deve marcar a conversa aberta como lida apos renderizar mensagem realtime',
+    );
+  });
+
+  test('renderiza mensagem realtime via evento chatflow:mensagem-nova do ChatRealtimeService', () => {
+    assert.ok(
+      SRC.includes("addEventListener('chatflow:mensagem-nova'"),
+      'deve ouvir o evento de mensagem nova emitido pelo ChatRealtimeService',
+    );
+    assert.ok(
+      !SRC.includes('SupabaseService.client.channel'),
+      'ChatModal nao deve mais ser dono da assinatura do canal realtime',
+    );
+  });
+
+  test('deduplica mensagens entre historico e realtime pelo id canonico', () => {
+    assert.ok(
+      SRC.includes('#mensagensRenderizadas'),
+      'deve manter controle de mensagens ja renderizadas',
+    );
+    assert.ok(
+      SRC.includes('#jaRenderizada(msg.id)') || SRC.includes('#jaRenderizada(detail.messageId)'),
+      'deve ignorar mensagem repetida recebida por realtime ou historico',
     );
   });
 });

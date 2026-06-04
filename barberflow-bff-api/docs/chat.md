@@ -2,7 +2,7 @@
 
 ## Decisao arquitetural
 
-O chat virou contexto proprio atras da BFF. A escrita segue `salvar -> outbox -> fila -> realtime -> push se offline`, mantendo a API sem bytes de midia e sem entrega sincrona pesada.
+O chat virou contexto proprio atras da BFF. A escrita segue `salvar -> realtime imediato best-effort -> outbox -> fila -> realtime/push`, mantendo a API sem bytes de midia e preservando o outbox como garantia quando worker/rede estiverem instaveis.
 
 ## Modelo
 
@@ -28,6 +28,7 @@ O canal `chat.{userId}` e privado: somente o proprio usuario pode assinar. O ser
 ## Entrega e anti-spam
 
 - `SendMessageUseCase` valida acesso, bloqueio, rate limit por par, flood de texto repetido e idempotencia.
+- `MessageRealtimePublisher` publica `events.v1.chat.message_created` no canal privado do destinatario logo apos persistir no banco; falha nessa etapa nao desfaz o envio.
 - `ChatDeliveryHandler` carrega o contexto de entrega pelo outbox e chama `MessageDispatcher`.
 - `MessageDispatcher` revalida bloqueio bidirecional, publica realtime e envia push via `ChatPushGateway` quando `PresenceLink` indica offline.
 - `MuteRule` suprime apenas push; a mensagem continua persistida e entregue via realtime.

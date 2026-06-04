@@ -23,8 +23,9 @@ class ChatModal {
   static #conversa    = null;
   static #uid         = null;   // UUID do usuário logado
   static #modoP2P     = false;  // true quando canal DataChannel está 'secure'
-  static #rtChannel   = null;   // subscription Supabase Realtime para BFF msgs
+  static #listenerRegistrado = false; // guarda do listener chatflow:mensagem-nova
   static #paginaAnterior = null; // tela que abriu o chat (para voltar)
+  static #mensagensRenderizadas = new Set(); // message.id canonico ja renderizado
 
   // Labels de status de conexão P2P
   static #STATUS_LABEL = {
@@ -49,6 +50,7 @@ class ChatModal {
     ChatModal.#conversa     = { convId, peerId, nome, sub, avatar };
     ChatModal.#paginaAnterior = telaOrigem;
     ChatModal.#modoP2P      = false;
+    ChatModal.#mensagensRenderizadas.clear();
     ChatModal.#despacharConversaAberta(convId);
 
     // ── Preenche header do modal ─────────────────────────────
@@ -101,8 +103,9 @@ class ChatModal {
       LoggerService.warn('[ChatModal] histórico falhou:', e?.message);
     });
 
-    // ── Assina canal Realtime BFF para mensagens novas ───────
-    ChatModal.#subscribeRealtime();
+    // ── Garante assinatura realtime (canal único) + listener de render ───────
+    ChatModal.#garantirListener();
+    if (typeof ChatRealtimeService !== 'undefined') ChatRealtimeService.iniciar(ChatModal.#uid);
 
     // ── Inicia/retoma P2P ────────────────────────────────────
     if (typeof P2PMessageConnectionService !== 'undefined') {
@@ -151,7 +154,8 @@ class ChatModal {
       P2PMessageConnectionService.close(conv.peerId);
     }
 
-    ChatModal.#unsubscribeRealtime();
+    // A assinatura realtime (ChatRealtimeService) permanece ativa em nível de
+    // página para a lista continuar atualizando ao vivo sem conversa aberta.
 
     const telaChat     = document.getElementById('tela-chat');
     const telaOrigem   = document.getElementById(ChatModal.#paginaAnterior ?? 'tela-mensagens');
@@ -265,9 +269,11 @@ class ChatModal {
     const fragment = document.createDocumentFragment();
     for (const msg of ordemCronologica) {
       if (msg.deletedAt) continue;
+      if (ChatModal.#jaRenderizada(msg.id)) continue;
       const de   = msg.senderId === ChatModal.#uid ? 'eu' : 'outro';
       const hora = ChatModal.#formatarHora(msg.createdAt);
       fragment.appendChild(ChatModal.#renderBolha({
+        messageId: msg.id,
         de,
         texto: msg.body,
         hora,
@@ -282,73 +288,55 @@ class ChatModal {
     area.scrollTop = area.scrollHeight;
   }
 
-  /** Assina canal Realtime BFF `chat.{uid}` para mensagens recebidas. */
-  static #subscribeRealtime() {
-    ChatModal.#unsubscribeRealtime();
-    if (!ChatModal.#uid) return;
-
-    ChatModal.#rtChannel = SupabaseService.client
-      .channel(`chat.${ChatModal.#uid}`, { config: { private: true } })
-      .on('broadcast', { event: 'events.v1.chat.message_created' }, payload => {
-        ChatModal.#onRealtimeMensagem(payload?.payload ?? payload);
-      })
-      .on('broadcast', { event: 'events.v1.chat.conversation_read' }, payload => {
-        ChatModal.#onRealtimeConversaLida(payload?.payload ?? payload);
-      })
-      .subscribe();
+  /**
+   * Registra (uma única vez) o listener de `chatflow:mensagem-nova` emitido
+   * pelo ChatRealtimeService. Renderiza a bolha quando a mensagem pertence à
+   * conversa aberta. A assinatura do canal é responsabilidade do
+   * ChatRealtimeService (canal único `chat.{uid}`), não deste modal.
+   */
+  static #garantirListener() {
+    if (ChatModal.#listenerRegistrado) return;
+    ChatModal.#listenerRegistrado = true;
+    document.addEventListener('chatflow:mensagem-nova', e => {
+      ChatModal.#onMensagemNovaEvento(e.detail);
+    });
   }
 
-  static #unsubscribeRealtime() {
-    if (ChatModal.#rtChannel) {
-      try { SupabaseService.client.removeChannel(ChatModal.#rtChannel); } catch { /* ignora */ }
-      ChatModal.#rtChannel = null;
-    }
-  }
-
-  static #onRealtimeMensagem(payload) {
-    const msg   = payload?.message;
-    if (!msg || !ChatModal.#conversa) return;
-
-    // Ignora mensagens de outras conversas
-    if (msg.conversationId !== ChatModal.#conversa.convId) {
-      ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body, msg.sender, msg.createdAt);
-      return;
-    }
-
-    // Ignora mensagens enviadas por mim (evita duplicata com bolha otimista)
-    if (msg.senderId === ChatModal.#uid) return;
+  static #onMensagemNovaEvento(detail) {
+    // Só mensagens reais vindas do realtime carregam messageId.
+    if (!detail?.messageId || !ChatModal.#conversa) return;
+    // Pertence a outra conversa → a lista (UniversalChatPage) cuida do badge.
+    if (detail.convId !== ChatModal.#conversa.convId) return;
+    // Minha própria mensagem já foi renderizada como bolha otimista.
+    if (detail.senderId === ChatModal.#uid) return;
+    if (ChatModal.#jaRenderizada(detail.messageId)) return;
 
     const area = document.getElementById('chat-mensagens');
     if (!area) return;
-    const hora = ChatModal.#formatarHora(msg.createdAt);
     area.appendChild(ChatModal.#renderBolha({
-      de: 'outro',
-      texto: msg.body,
-      hora,
-      senderId: msg.senderId,
-      sender: msg.sender,
-      createdAt: msg.createdAt,
+      messageId: detail.messageId,
+      de:        'outro',
+      texto:     detail.body,
+      hora:      ChatModal.#formatarHora(detail.createdAt),
+      senderId:  detail.senderId,
+      sender:    detail.sender,
+      createdAt: detail.createdAt,
     }));
     area.scrollTop = area.scrollHeight;
-    ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body, msg.sender, msg.createdAt);
-    ChatModal.#despacharConversaLida(msg.conversationId);
-  }
-
-  static #onRealtimeConversaLida(payload) {
-    const conversationId = payload?.conversationId;
-    if (!conversationId) return;
-    ChatModal.#despacharConversaLida(conversationId);
+    // Conversa aberta = lida; sinaliza para limpar indicadores na lista.
+    ChatModal.#despacharConversaLida(detail.convId);
   }
 
   /**
    * Cria elemento de bolha de mensagem.
    * Usa textContent em todos os campos para prevenir XSS.
    */
-  static #renderBolha({ de, texto, hora, status = 'enviado', sender = null, senderId = null, createdAt = null }) {
+  static #renderBolha({ de, texto, hora, status = 'enviado', sender = null, senderId = null, createdAt = null, messageId = null }) {
     const remetente = ChatModal.#remetenteFallback({ de, sender, senderId });
     const wrap = document.createElement('div');
     wrap.className = `chat-bubble-wrap chat-bubble-wrap--${de} chat-message-row chat-message-row--${de}`;
     wrap.dataset.senderId = remetente.id ?? '';
+    if (messageId) wrap.dataset.messageId = messageId;
 
     const avatar = document.createElement('div');
     avatar.className = 'chat-message-avatar';
@@ -408,6 +396,13 @@ class ChatModal {
       wrap.appendChild(col);
     }
     return wrap;
+  }
+
+  static #jaRenderizada(messageId) {
+    if (!messageId) return false;
+    if (ChatModal.#mensagensRenderizadas.has(messageId)) return true;
+    ChatModal.#mensagensRenderizadas.add(messageId);
+    return false;
   }
 
   static #atualizarStatusBolha(bolha, status) {

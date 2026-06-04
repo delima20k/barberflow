@@ -39,6 +39,8 @@ class UniversalChatPage {
     UniversalChatPage.#role  = role;
 
     if (!UniversalChatPage.#lista) return;
+    UniversalChatPage.#conversas = [];
+    UniversalChatPage.#atualizarIndicadorRodape();
 
     // Inicializa busca de usuários
     ChatSearchWidget.init(role);
@@ -123,16 +125,35 @@ class UniversalChatPage {
       UniversalChatPage.#uid = await UniversalChatPage.#obterUid();
     }
     if (!UniversalChatPage.#uid) {
+      UniversalChatPage.#conversas = [];
       UniversalChatPage.#renderVazio();
+      UniversalChatPage.#atualizarIndicadorRodape();
       return;
+    }
+
+    // Assinatura realtime sempre ativa: a lista atualiza ao vivo mesmo sem
+    // conversa aberta (canal único `chat.{uid}` — idempotente).
+    if (typeof ChatRealtimeService !== 'undefined') {
+      ChatRealtimeService.iniciar(UniversalChatPage.#uid);
     }
 
     UniversalChatPage.#renderSkeleton();
 
-    const { conversas, favoritos } = await ConversationListService.carregar(
-      UniversalChatPage.#role,
-      UniversalChatPage.#uid
-    );
+    let resultado;
+    try {
+      resultado = await ConversationListService.carregar(
+        UniversalChatPage.#role,
+        UniversalChatPage.#uid
+      );
+    } catch (e) {
+      LoggerService.warn('[UniversalChatPage] carregar conversas falhou:', e?.message);
+      UniversalChatPage.#conversas = [];
+      UniversalChatPage.#renderVazio();
+      UniversalChatPage.#atualizarIndicadorRodape();
+      return;
+    }
+
+    const { conversas = [], favoritos = [] } = resultado ?? {};
 
     UniversalChatPage.#conversas = conversas;
     UniversalChatPage.#renderLista(conversas, favoritos);

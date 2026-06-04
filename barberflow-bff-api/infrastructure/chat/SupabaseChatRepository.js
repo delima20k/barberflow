@@ -126,7 +126,7 @@ class SupabaseChatRepository extends ChatRepository {
         createdAt: row.last_message_at,
         senderId:  row.last_message_sender_id,
       } : null,
-      unreadCount:        Number(row.unread_count ?? 0),
+      unreadCount:        row.last_message_sender_id === userId ? 0 : Number(row.unread_count ?? 0),
       otherParticipantIds: (row.other_participant_ids ?? []),
     }));
   }

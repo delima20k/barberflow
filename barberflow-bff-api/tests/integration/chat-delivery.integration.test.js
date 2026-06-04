@@ -52,4 +52,37 @@ describe('[Integration] Chat delivery outbox', () => {
       pushUserId: 'user-b',
     });
   });
+
+  it('envio publica realtime imediato apos persistir no banco', async () => {
+    const chatRepository = new InMemoryChatRepository();
+    chatRepository.seedConversation({ id: 'conv-1', participantIds: ['user-a', 'user-b'] });
+    const realtimeImmediate = [];
+    const useCase = new SendMessageUseCase({
+      chatRepository,
+      outboxRepository: { save: async () => 'outbox-chat' },
+      blockPolicy: { canExchange: async () => true },
+      messageRealtimePublisher: {
+        publish: async payload => realtimeImmediate.push(payload),
+      },
+    });
+
+    const result = await useCase.execute({
+      conversationId: 'conv-1',
+      senderId: 'user-a',
+      clientMessageId: 'client-msg-2',
+      body: 'Mensagem em tempo real',
+    });
+
+    assert.deepEqual({
+      ok: result.isOk(),
+      recipientId: realtimeImmediate[0].recipients[0],
+      body: realtimeImmediate[0].message.body,
+      senderId: realtimeImmediate[0].message.senderId,
+    }, {
+      ok: true,
+      recipientId: 'user-b',
+      body: 'Mensagem em tempo real',
+      senderId: 'user-a',
+    });
+  });
 });

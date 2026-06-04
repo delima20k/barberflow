@@ -56,4 +56,15 @@ describe('ConversationListService — análise estática', () => {
     assert.ok(SRC.includes('conversas'), 'deve retornar conversas');
     assert.ok(SRC.includes('favoritos'), 'deve retornar favoritos');
   });
+
+  test('nao marca como nao lida quando ultima mensagem foi enviada pelo usuario local', () => {
+    assert.ok(
+      SRC.includes('#unreadCountParaUsuario'),
+      'deve centralizar normalizacao de unreadCount',
+    );
+    assert.ok(
+      SRC.includes('item.lastMessage?.senderId === localUserId'),
+      'deve zerar unread quando a ultima mensagem foi enviada pelo usuario local',
+    );
+  });
 });

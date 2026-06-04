@@ -66,7 +66,7 @@ class ConversationListService {
         nome,
         sub:     ConversationListService.#labelRole(perfil.role),
         avatar:  avatarPath ? ApiService.getAvatarUrl(avatarPath) : null,
-        badge:   item.unreadCount ?? 0,
+        badge:   ConversationListService.#unreadCountParaUsuario(item, localUserId),
         hora:    item.lastMessage?.createdAt
                    ? ConversationListService.#formatarHora(item.lastMessage.createdAt)
                    : '',
@@ -157,6 +157,12 @@ class ConversationListService {
       client:       '👤 Cliente',
     };
     return mapa[role] ?? '💬 Mensagem';
+  }
+
+  static #unreadCountParaUsuario(item, localUserId) {
+    if (!item?.lastMessage) return 0;
+    if (item.lastMessage?.senderId === localUserId) return 0;
+    return Math.max(0, Number(item.unreadCount ?? 0));
   }
 
   static #formatarHora(isoString) {
