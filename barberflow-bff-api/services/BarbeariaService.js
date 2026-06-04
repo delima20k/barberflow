@@ -16,12 +16,14 @@ class BarbeariaService extends BaseService {
   /** @type {import('../repositories/BarbeariaRepository')} */
   #repo;
   #sendMessageUseCase;
+  #broadcaster;
 
   /** @param {import('../repositories/BarbeariaRepository')} repo */
-  constructor(repo, sendMessageUseCase = null) {
+  constructor(repo, sendMessageUseCase = null, broadcaster = null) {
     super('BarbeariaService');
     this.#repo = repo;
     this.#sendMessageUseCase = sendMessageUseCase;
+    this.#broadcaster = broadcaster;
   }
 
   // ── Listagens ────────────────────────────────────────────────────
@@ -355,7 +357,25 @@ class BarbeariaService extends BaseService {
     if (typeof payload.is_available !== 'boolean') {
       throw AppError.badRequest('is_available deve ser boolean.');
     }
-    return this.#repo.atualizarMeuStatusBarbeiro(barbershopId, userId, payload.is_available);
+    const data = await this.#repo.atualizarMeuStatusBarbeiro(barbershopId, userId, payload.is_available);
+
+    // Broadcast via HTTP (best-effort) — entrega imediata independente de
+    // postgres_changes ou estado do WebSocket do cliente.
+    if (this.#broadcaster?.habilitado) {
+      void this.#broadcaster.broadcast({
+        topic:   `barbeiro-status:${barbershopId}`,
+        event:   'status',
+        payload: {
+          barbershop_id:   barbershopId,
+          professional_id: userId,
+          is_available:    data.is_available,
+          updated_at:      data.updated_at,
+        },
+        private: false,
+      });
+    }
+
+    return data;
   }
 
   /**
