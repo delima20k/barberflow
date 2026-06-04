@@ -3672,7 +3672,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   width: 0;                /* força o flex a calcular o tamanho real pelo container */
   background: var(--card2);
   border: 1.5px solid var(--gold-border);
-  border-radius: var(--r-full);
+  border-radius: var(--r-md);
   padding: 9px 12px;       /* padding menor para ganhar espaço horizontal */
   font-size: 0.88rem;
   color: var(--text);
