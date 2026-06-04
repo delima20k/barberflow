@@ -3,6 +3,7 @@
 class BarbeiroAtividadeStatus {
   static TABELA = 'professional_barbershop_presence';
   static EVENTO_ATUALIZADO = 'barberflow:barbeiro-atividade-atualizada';
+  static EVENTO_BROADCAST = 'status';
 
   #barbershopId;
   #professionalId;
@@ -60,7 +61,11 @@ class BarbeiroAtividadeStatus {
     try {
       const res = await BffApiService.barbearias.atualizarMeuStatusBarbeiro(this.#barbershopId, !this.#isAvailable);
       if (res?.error) throw new Error(res.error);
-      this.atualizarStatus(res?.data || res?.dados || { is_available: !this.#isAvailable });
+      const row = res?.data || res?.dados || { is_available: !this.#isAvailable };
+      this.atualizarStatus(row);
+      // Broadcast imediato: propaga a mudanca a todos os clientes inscritos no canal
+      // sem depender de postgres_changes (publicacao do banco / RLS).
+      this.#transmitir(row);
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn?.('[BarbeiroAtividadeStatus] toggle:', err?.message || err);
@@ -87,6 +92,27 @@ class BarbeiroAtividadeStatus {
       const row = payload?.new || payload?.old || {};
       if (row.professional_id === this.#professionalId) this.atualizarStatus(row);
     });
+  }
+
+  /**
+   * Transmite a mudanca de status via Supabase Broadcast no canal compartilhado.
+   * Funciona instantaneamente entre apps, independente da publicacao do banco/RLS.
+   * Best-effort: falha silenciosa se o canal ainda nao estiver conectado.
+   */
+  #transmitir(row = {}) {
+    if (!this.#canal || typeof this.#canal.send !== 'function') return;
+    try {
+      void this.#canal.send({
+        type: 'broadcast',
+        event: BarbeiroAtividadeStatus.EVENTO_BROADCAST,
+        payload: {
+          barbershop_id: this.#barbershopId,
+          professional_id: this.#professionalId,
+          is_available: this.#isAvailable,
+          updated_at: row?.updated_at ?? new Date().toISOString(),
+        },
+      });
+    } catch (_) { /* broadcast best-effort */ }
   }
 
   #render() {
@@ -173,8 +199,10 @@ class BarbeiroAtividadeStatus {
 
   static assinar(barbershopId, callback) {
     if (!barbershopId || typeof SupabaseService === 'undefined') return null;
+    const emitir = payload => { if (typeof callback === 'function') callback(payload); };
     try {
       const canal = SupabaseService.channel(`barbeiro-status:${barbershopId}`)
+        // postgres_changes: mudancas persistidas no banco (requer publicacao supabase_realtime)
         .on(
           'postgres_changes',
           {
@@ -183,9 +211,13 @@ class BarbeiroAtividadeStatus {
             table: BarbeiroAtividadeStatus.TABELA,
             filter: `barbershop_id=eq.${barbershopId}`,
           },
-          payload => {
-            if (typeof callback === 'function') callback(payload);
-          },
+          emitir,
+        )
+        // broadcast: propagacao imediata cliente-a-cliente, independente do banco/RLS
+        .on(
+          'broadcast',
+          { event: BarbeiroAtividadeStatus.EVENTO_BROADCAST },
+          msg => emitir({ new: msg?.payload || {} }),
         )
         .subscribe(status => {
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
