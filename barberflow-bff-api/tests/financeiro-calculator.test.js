@@ -69,7 +69,7 @@ test('FinanceiroCalculator calcula comparativos positivos, negativos e base zero
   assert.equal(calculator.comparativo(Money.zero(), Money.zero()), 0);
 });
 
-test('FinanceiroCalculator isOwner: lucroBarbearia = receitaLiquida (100%)', () => {
+test('FinanceiroCalculator isOwner: lucroBarbearia = participacao da barbearia', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({
     periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
@@ -84,8 +84,112 @@ test('FinanceiroCalculator isOwner: lucroBarbearia = receitaLiquida (100%)', () 
   });
 
   assert.equal(dashboard.isOwner, true);
-  assert.equal(dashboard.cards.lucroBarbearia.total, 480);
+  assert.equal(dashboard.cards.receitaLiquida.total, 192);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 192);
   assert.equal(dashboard.cards.meuLucro, null);
+});
+
+test('FinanceiroCalculator owner: resumo usa participacao da barbearia e aluguel proporcional', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: {
+      tipo: 'semana',
+      de: '2026-05-01',
+      ate: '2026-05-07',
+      inicio: new Date('2026-05-01T00:00:00'),
+      fim: new Date('2026-05-07T23:59:59'),
+    },
+    transacoes: [
+      { professional_id: 'prof-a', gross_amount: 100, amount: 100, payment_method: 'pix', paid_at: '2026-05-02T12:00:00.000Z' },
+      { professional_id: 'prof-b', gross_amount: 200, amount: 190, payment_method: 'credito', paid_at: '2026-05-03T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [
+      { professional_id: 'prof-a', type: 'percentage', value: 40, is_active: true },
+      { professional_id: 'prof-b', type: 'percentage', value: 50, is_active: true },
+      { professional_id: 'prof-rent', type: 'rent', value: 310, is_active: true },
+      { professional_id: 'prof-fixed', type: 'fixed', value: 999, notes: 'bonus operacional', is_active: true },
+    ],
+    profissionais: [
+      { professionalId: 'prof-a', nome: 'Ana', ativo: true },
+      { professionalId: 'prof-b', nome: 'Bia', ativo: true },
+      { professionalId: 'prof-rent', nome: 'Rafa', ativo: true },
+    ],
+    statusEquipe: { online: 2, onlineIds: ['prof-a', 'prof-rent'] },
+    isOwner: true,
+  });
+
+  assert.equal(dashboard.cards.totalCortes.total, 2);
+  assert.equal(dashboard.cards.receitaBruta.total, 300);
+  assert.equal(dashboard.cards.receitaLiquida.total, 205);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 205);
+  assert.equal(dashboard.cards.lucroBarbearia.limitacaoDespesas, false);
+  assert.equal(dashboard.cards.mensalistas.total, 70);
+  assert.equal(dashboard.cards.mensalistas.count, 1);
+});
+
+test('FinanceiroCalculator owner: lucro desconta despesas reais', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: {
+      tipo: 'mes',
+      de: '2026-05-01',
+      ate: '2026-05-31',
+      inicio: new Date('2026-05-01T00:00:00'),
+      fim: new Date('2026-05-31T23:59:59'),
+    },
+    transacoes: [
+      { professional_id: 'prof-a', gross_amount: 100, amount: 100, payment_method: 'pix', paid_at: '2026-05-02T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [
+      { professional_id: 'prof-a', type: 'percentage', value: 40, is_active: true },
+      { professional_id: 'prof-rent', type: 'rent', value: 310, is_active: true },
+    ],
+    despesas: [
+      { amount: 25, type: 'expense', status: 'paid', paid_at: '2026-05-10T12:00:00.000Z' },
+    ],
+    profissionais: [
+      { professionalId: 'prof-a', nome: 'Ana', ativo: true },
+      { professionalId: 'prof-rent', nome: 'Rafa', ativo: true, vinculado: true },
+    ],
+    isOwner: true,
+  });
+
+  assert.equal(dashboard.cards.receitaLiquida.total, 350);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 325);
+  assert.equal(dashboard.cards.lucroBarbearia.despesas, 25);
+  assert.equal(dashboard.cards.lucroBarbearia.limitacaoDespesas, false);
+});
+
+test('FinanceiroCalculator owner: mensalistas inclui apenas parceiro ativo vinculado', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: {
+      tipo: 'mes',
+      de: '2026-05-01',
+      ate: '2026-05-31',
+      inicio: new Date('2026-05-01T00:00:00'),
+      fim: new Date('2026-05-31T23:59:59'),
+    },
+    transacoes: [],
+    transacoesAnteriores: [],
+    agreements: [
+      { professional_id: 'prof-ativo', type: 'chair_rental', value: 300, is_active: true },
+      { professional_id: 'prof-inativo', type: 'chair_rental', value: 200, is_active: true },
+      { professional_id: 'owner-id', type: 'chair_rental', value: 999, is_active: true },
+      { professional_id: 'cliente-ou-solto', type: 'chair_rental', value: 700, is_active: true },
+    ],
+    profissionais: [
+      { professionalId: 'owner-id', nome: 'Dono', papel: 'owner', ativo: true, vinculado: false },
+      { professionalId: 'prof-ativo', nome: 'Ana', papel: 'professional', ativo: true, vinculado: true },
+      { professionalId: 'prof-inativo', nome: 'Bia', papel: 'professional', ativo: false, vinculado: true },
+    ],
+    isOwner: true,
+  });
+
+  assert.equal(dashboard.cards.mensalistas.total, 300);
+  assert.equal(dashboard.cards.mensalistas.count, 1);
 });
 
 test('FinanceiroCalculator nao-dono: meuLucro = porcentagem do barbeiro viewer', () => {
@@ -154,4 +258,3 @@ test('FinanceiroCalculator exclui entradas "outros" de metodosPagamento', () => 
   const outrosEntry = metodos.find(m => m.metodo === 'outros');
   assert.equal(outrosEntry, undefined, 'metodo "outros" nao deve aparecer em metodosPagamento');
 });
-

@@ -61,9 +61,9 @@ class FinanceiroRepository extends BaseRepository {
   async listarAgreements(barbershopId, ate) {
     const { data, error } = await this._db
       .from('agreements')
-      .select('id, professional_id, barbershop_id, type, value, is_active, valid_from, valid_until')
+      .select('id, professional_id, barbershop_id, type, value, is_active, valid_from, valid_until, notes')
       .eq('barbershop_id', barbershopId)
-      .eq('type', 'percentage')
+      .in('type', ['percentage', 'fixed', 'rent', 'chair_rental'])
       .eq('is_active', true)
       .lte('valid_from', ate.toISOString())
       .or(`valid_until.is.null,valid_until.gte.${ate.toISOString()}`)
@@ -73,15 +73,42 @@ class FinanceiroRepository extends BaseRepository {
     return data || [];
   }
 
-  async listarProfissionais(barbershopId) {
-    const { data: links, error: linksError } = await this._db
-      .from('professional_shop_links')
-      .select('professional_id, is_active')
-      .eq('barbershop_id', barbershopId);
+  async listarDespesas(barbershopId, periodo) {
+    const { data, error } = await this._db
+      .from('transactions')
+      .select('id, barbershop_id, amount, gross_amount, payment_method, status, type, paid_at, created_at')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'expense')
+      .eq('status', 'paid')
+      .gte('paid_at', periodo.inicio.toISOString())
+      .lte('paid_at', periodo.fim.toISOString())
+      .order('paid_at', { ascending: true })
+      .limit(5000);
 
+    if (error) this._throwDbError(error, 'listarDespesas');
+    return data || [];
+  }
+
+  async listarProfissionais(barbershopId) {
+    const [{ data: shop, error: shopError }, { data: links, error: linksError }] = await Promise.all([
+      this._db
+        .from('barbershops')
+        .select('owner_id')
+        .eq('id', barbershopId)
+        .maybeSingle(),
+      this._db
+        .from('professional_shop_links')
+        .select('professional_id, is_active')
+        .eq('barbershop_id', barbershopId),
+    ]);
+
+    if (shopError) this._throwDbError(shopError, 'listarProfissionais.shop');
     if (linksError) this._throwDbError(linksError, 'listarProfissionais.links');
 
-    const ids = [...new Set((links || []).map(link => link.professional_id).filter(Boolean))];
+    const ids = [...new Set([
+      shop?.owner_id,
+      ...(links || []).map(link => link.professional_id),
+    ].filter(Boolean))];
     if (ids.length === 0) return [];
 
     const [{ data: profissionais, error: profError }, { data: perfis, error: perfisError }] = await Promise.all([
@@ -101,19 +128,34 @@ class FinanceiroRepository extends BaseRepository {
     const profissionaisMap = new Map((profissionais || []).map(item => [item.id, item]));
     const perfisMap = new Map((perfis || []).map(item => [item.id, item]));
 
-    return (links || []).map(link => {
-      const profissional = profissionaisMap.get(link.professional_id) || {};
-      const perfil = perfisMap.get(link.professional_id) || {};
+    const linkMap = new Map((links || []).map(link => [link.professional_id, link]));
+    return ids.map(id => {
+      const link = linkMap.get(id);
+      const profissional = profissionaisMap.get(id) || {};
+      const perfil = perfisMap.get(id) || {};
       return {
-        professionalId: link.professional_id,
+        professionalId: id,
+        papel: id === shop?.owner_id ? 'owner' : 'professional',
+        vinculado: Boolean(link),
         nome: perfil.full_name || 'Profissional',
         avatarUrl: profissional.avatar_path || perfil.avatar_path || '',
-        ativo: link.is_active !== false && profissional.is_active !== false && perfil.is_active !== false,
+        ativo: (link?.is_active ?? true) !== false && profissional.is_active !== false && perfil.is_active !== false,
       };
     });
   }
 
   async listarStatusEquipe(barbershopId) {
+    const { data: presencas, error: presencaError } = await this._db
+      .from('professional_barbershop_presence')
+      .select('professional_id, is_available')
+      .eq('barbershop_id', barbershopId)
+      .eq('is_available', true);
+
+    if (!presencaError) {
+      const onlineIds = [...new Set((presencas || []).map(item => item.professional_id).filter(Boolean))];
+      return { online: onlineIds.length, onlineIds };
+    }
+
     try {
       const { data, error } = await this._db
         .from('attendance_sessions')

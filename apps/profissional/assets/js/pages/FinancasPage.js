@@ -16,7 +16,7 @@ class FinancasPage {
   #customDe = null;
   #customAte = null;
   #shopId = null;
-  #canalTransacoes = null;
+  #canaisResumo = [];
   #carregando = false;
   #resolvendo = false;
   #dados = null;
@@ -451,16 +451,14 @@ class FinancasPage {
   }
 
   #iniciarRealtime() {
-    if (this.#canalTransacoes || !this.#shopId || typeof SupabaseService === 'undefined') return;
+    if (this.#canaisResumo.length || !this.#shopId || typeof SupabaseService === 'undefined') return;
     try {
-      this.#canalTransacoes = SupabaseService.channel(`financas:${this.#shopId}`)
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'transactions',
-          filter: `barbershop_id=eq.${this.#shopId}`,
-        }, () => this.#carregar())
-        .subscribe();
+      this.#canaisResumo = [
+        this.#assinarTabelaResumo('transactions'),
+        this.#assinarTabelaResumo('agreements'),
+        this.#assinarTabelaResumo('professional_shop_links'),
+        this.#assinarTabelaResumo('professional_barbershop_presence'),
+      ].filter(Boolean);
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn?.('[FinancasPage] Realtime indisponivel:', err?.message);
@@ -468,10 +466,23 @@ class FinancasPage {
     }
   }
 
+  #assinarTabelaResumo(tabela) {
+    return SupabaseService.channel(`financas:${tabela}:${this.#shopId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: tabela,
+        filter: `barbershop_id=eq.${this.#shopId}`,
+      }, () => this.#carregar())
+      .subscribe();
+  }
+
   #pararRealtime() {
-    if (!this.#canalTransacoes) return;
-    try { SupabaseService.removeChannel(this.#canalTransacoes); } catch (_) {}
-    this.#canalTransacoes = null;
+    if (!this.#canaisResumo.length) return;
+    for (const canal of this.#canaisResumo) {
+      try { SupabaseService.removeChannel(canal); } catch (_) {}
+    }
+    this.#canaisResumo = [];
   }
 
   #alternarCustom(visivel) {

@@ -163,4 +163,15 @@ describe('FinancasPage — contrato BFF', () => {
     assert.equal(data.cards.receitaLiquida.total, 175.5);
     assert.equal(data.barbeiros[0].valorBarbeiro.toFixed(2), '55.00');
   });
+
+  test('assina fontes que afetam o resumo financeiro da barbearia', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /#assinarTabelaResumo\('transactions'\)/);
+    assert.match(src, /#assinarTabelaResumo\('agreements'\)/);
+    assert.match(src, /#assinarTabelaResumo\('professional_shop_links'\)/);
+    assert.match(src, /#assinarTabelaResumo\('professional_barbershop_presence'\)/);
+  });
 });

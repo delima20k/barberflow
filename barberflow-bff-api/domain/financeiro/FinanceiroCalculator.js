@@ -63,16 +63,47 @@ class FinanceiroCalculator {
     };
   }
 
-  calcularDashboard({ periodo, transacoes = [], transacoesAnteriores = [], agreements = [], profissionais = [], statusEquipe = {}, isOwner = false, viewerProfessionalId = null, mensalistas = null }) {
+  calcularDashboard({
+    periodo,
+    transacoes = [],
+    transacoesAnteriores = [],
+    agreements = [],
+    profissionais = [],
+    statusEquipe = {},
+    isOwner = false,
+    viewerProfessionalId = null,
+    mensalistas = null,
+    despesas = [],
+    despesasAnteriores = [],
+  }) {
     const agreementMap = this.#agreementMap(agreements);
     const barbeiroMap = this.#barbeiroMap(profissionais, statusEquipe);
     const atual = this.#agregar(transacoes, agreementMap, barbeiroMap);
     const anterior = this.#agregar(transacoesAnteriores, agreementMap, barbeiroMap);
     const barbeiros = this.#barbeirosOrdenados(atual.barbeiros, anterior.barbeiros, barbeiroMap);
+    const mensalidadesAtual = this.#mensalidadesParceiros(agreements, periodo, barbeiroMap);
+    const mensalidadesAnterior = this.#mensalidadesParceiros(agreements, this.#periodoAnterior(periodo), barbeiroMap);
+    const despesasAtual = this.#somarDespesas(despesas);
+    const despesasAnterior = this.#somarDespesas(despesasAnteriores);
+    const receitaLiquidaOwner = atual.shop.plus(mensalidadesAtual.total);
+    const receitaLiquidaOwnerAnterior = anterior.shop.plus(mensalidadesAnterior.total);
 
     const lucroBarbeariaCard = isOwner
-      ? this.#cardMoney(atual.net, anterior.net)
+      ? {
+        ...this.#cardMoney(
+          receitaLiquidaOwner.minus(despesasAtual),
+          receitaLiquidaOwnerAnterior.minus(despesasAnterior),
+        ),
+        despesas: despesasAtual.toNumber(),
+        limitacaoDespesas: false,
+      }
       : this.#cardMoney(atual.shop, anterior.shop);
+    const receitaLiquidaCard = isOwner
+      ? this.#cardMoney(receitaLiquidaOwner, receitaLiquidaOwnerAnterior)
+      : this.#cardMoney(atual.net, anterior.net);
+    const online = this.#onlineCount(barbeiroMap, statusEquipe);
+    const ativos = [...barbeiroMap.values()].filter(item => item.ativo).length;
+    const inativos = Math.max(0, barbeiroMap.size - online);
 
     let meuLucro = null;
     if (!isOwner && viewerProfessionalId) {
@@ -89,23 +120,31 @@ class FinanceiroCalculator {
       isOwner,
       comparativo: {
         receitaBruta: this.comparativo(atual.gross, anterior.gross),
-        receitaLiquida: this.comparativo(atual.net, anterior.net),
-        lucroBarbearia: this.comparativo(atual.shop, anterior.shop),
+        receitaLiquida: this.comparativo(
+          isOwner ? receitaLiquidaOwner : atual.net,
+          isOwner ? receitaLiquidaOwnerAnterior : anterior.net,
+        ),
+        lucroBarbearia: this.comparativo(
+          isOwner ? receitaLiquidaOwner.minus(despesasAtual) : atual.shop,
+          isOwner ? receitaLiquidaOwnerAnterior.minus(despesasAnterior) : anterior.shop,
+        ),
         cortes: this.comparativo(atual.cortes, anterior.cortes),
       },
       cards: {
         receitaBruta: this.#cardMoney(atual.gross, anterior.gross),
-        receitaLiquida: this.#cardMoney(atual.net, anterior.net),
+        receitaLiquida: receitaLiquidaCard,
         lucroBarbearia: lucroBarbeariaCard,
         meuLucro,
         totalCortes: this.#cardNumber(atual.cortes, anterior.cortes),
         totalBarbeiros: {
           total: barbeiroMap.size,
-          ativos: [...barbeiroMap.values()].filter(item => item.ativo).length,
-          online: Number(statusEquipe.online ?? 0),
-          inativos: [...barbeiroMap.values()].filter(item => !item.ativo).length,
+          ativos,
+          online,
+          inativos,
         },
-        mensalistas: mensalistas ?? { total: 0, count: 0 },
+        mensalistas: isOwner
+          ? { total: mensalidadesAtual.total.toNumber(), count: mensalidadesAtual.count }
+          : (mensalistas ?? { total: 0, count: 0 }),
       },
       metodosPagamento: [...atual.metodos.values()]
         .filter(m => m.metodo !== 'outros')
@@ -119,9 +158,9 @@ class FinanceiroCalculator {
       ],
       statusEquipe: {
         total: barbeiroMap.size,
-        online: Number(statusEquipe.online ?? 0),
-        ativos: [...barbeiroMap.values()].filter(item => item.ativo).length,
-        inativos: [...barbeiroMap.values()].filter(item => !item.ativo).length,
+        online,
+        ativos,
+        inativos,
       },
     };
   }
@@ -267,11 +306,97 @@ class FinanceiroCalculator {
   #agreementMap(agreements) {
     const map = new Map();
     for (const agreement of agreements) {
+      if (String(agreement.type || 'percentage').toLowerCase() !== 'percentage') continue;
       const value = Math.min(100, Math.max(0, Number(agreement.value || 0)));
       if (!agreement.professional_id) continue;
       map.set(agreement.professional_id, { shopPercent: value, configured: true });
     }
     return map;
+  }
+
+  #mensalidadesParceiros(agreements, periodo, barbeiroMap) {
+    const total = { total: Money.zero(), count: 0 };
+    for (const agreement of agreements || []) {
+      if (!this.#ehProfissionalMensalista(agreement, barbeiroMap)) continue;
+      if (!this.#ehMensalidadeParceiro(agreement)) continue;
+      const valor = this.#valorMensalProporcional(agreement, periodo);
+      if (valor.cents <= 0) continue;
+      total.total = total.total.plus(valor);
+      total.count += 1;
+    }
+    return total;
+  }
+
+  #ehProfissionalMensalista(agreement, barbeiroMap) {
+    if (!agreement?.professional_id) return false;
+    const profissional = barbeiroMap.get(agreement.professional_id);
+    if (!profissional || profissional.ativo === false) return false;
+    if (profissional.papel === 'owner') return false;
+    return profissional.vinculado !== false;
+  }
+
+  #ehMensalidadeParceiro(agreement) {
+    const type = String(agreement?.type || '').toLowerCase();
+    if (type === 'rent' || type === 'chair_rental') return true;
+    if (type !== 'fixed') return false;
+    const contexto = [
+      agreement.notes,
+      agreement.message,
+      agreement.description,
+      agreement.metadata?.kind,
+      agreement.metadata?.type,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return contexto.includes('aluguel de cadeira')
+      || contexto.includes('cadeira')
+      || contexto.includes('mensalidade');
+  }
+
+  #valorMensalProporcional(agreement, periodo) {
+    const mensal = Money.from(agreement?.value || 0);
+    if (mensal.cents <= 0 || !periodo?.inicio || !periodo?.fim) return Money.zero();
+
+    let inicio = this.#inicioDia(periodo.inicio);
+    let fim = this.#inicioDia(periodo.fim);
+    const validFrom = this.#dateOrNull(agreement.valid_from);
+    const validUntil = this.#dateOrNull(agreement.valid_until);
+    if (validFrom && validFrom > inicio) inicio = validFrom;
+    if (validUntil && validUntil < fim) fim = validUntil;
+    if (inicio > fim) return Money.zero();
+
+    let cents = 0;
+    let cursor = new Date(inicio.getFullYear(), inicio.getMonth(), 1);
+    while (cursor <= fim) {
+      const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+      const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+      const segmentoInicio = inicio > monthStart ? inicio : monthStart;
+      const segmentoFim = fim < monthEnd ? fim : monthEnd;
+      if (segmentoInicio <= segmentoFim) {
+        const diasMes = monthEnd.getDate();
+        const diasCobertos = this.#diasEntre(segmentoInicio, segmentoFim);
+        cents += Math.round((mensal.cents * diasCobertos) / diasMes);
+      }
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    }
+    return Money.fromCents(cents);
+  }
+
+  #somarDespesas(despesas) {
+    return (despesas || []).reduce((total, despesa) => (
+      total.plus(despesa?.amount ?? despesa?.gross_amount ?? 0)
+    ), Money.zero());
+  }
+
+  #periodoAnterior(periodo) {
+    if (!periodo?.inicioAnterior || !periodo?.fimAnterior) return periodo;
+    return { ...periodo, inicio: periodo.inicioAnterior, fim: periodo.fimAnterior };
+  }
+
+  #onlineCount(barbeiroMap, statusEquipe) {
+    const onlineIds = Array.isArray(statusEquipe?.onlineIds) ? statusEquipe.onlineIds : [];
+    if (onlineIds.length > 0) {
+      return onlineIds.filter(id => barbeiroMap.has(id)).length;
+    }
+    return Math.min(barbeiroMap.size, Math.max(0, Number(statusEquipe?.online ?? 0)));
   }
 
   #barbeiroMap(profissionais, statusEquipe) {
@@ -284,6 +409,8 @@ class FinanceiroCalculator {
         nome: profissional.nome || profissional.full_name || profissional.name || 'Profissional',
         avatarUrl: profissional.avatarUrl || profissional.avatar_url || '',
         ativo: profissional.ativo !== false && profissional.is_active !== false,
+        papel: profissional.papel || profissional.role || 'professional',
+        vinculado: profissional.vinculado !== false,
         status: onlineIds.has(id) ? 'online' : (profissional.status || 'offline'),
       });
     }
@@ -311,6 +438,21 @@ class FinanceiroCalculator {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  #inicioDia(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  #dateOrNull(value) {
+    if (!value) return null;
+    const date = this.#inicioDia(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  #diasEntre(inicio, fim) {
+    return Math.floor((fim.getTime() - inicio.getTime()) / DAY_MS) + 1;
   }
 
   #labelMetodo(metodo) {

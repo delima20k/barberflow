@@ -35,25 +35,48 @@ class FinanceiroBffService extends BaseService {
       ate: periodo.anteriorAte,
     };
 
-    const [transacoes, transacoesAnteriores, agreements, profissionais, statusEquipe, mensalistas] = await Promise.all([
+    const mensalistasPromise = isOwner
+      ? Promise.resolve(null)
+      : this.#repo.listarTotalMensalistas(barbershopId);
+    const despesasPromise = isOwner
+      ? this.#repo.listarDespesas(barbershopId, periodo)
+      : Promise.resolve([]);
+    const despesasAnterioresPromise = isOwner
+      ? this.#repo.listarDespesas(barbershopId, periodoAnterior)
+      : Promise.resolve([]);
+
+    const [
+      transacoes,
+      transacoesAnteriores,
+      agreements,
+      profissionais,
+      statusEquipe,
+      mensalistas,
+      despesas,
+      despesasAnteriores,
+    ] = await Promise.all([
       this.#repo.listarTransacoes(barbershopId, periodo),
       this.#repo.listarTransacoes(barbershopId, periodoAnterior),
       this.#repo.listarAgreements(barbershopId, periodo.fim),
       this.#repo.listarProfissionais(barbershopId),
       this.#repo.listarStatusEquipe(barbershopId),
-      this.#repo.listarTotalMensalistas(barbershopId),
+      mensalistasPromise,
+      despesasPromise,
+      despesasAnterioresPromise,
     ]);
 
     return this.#calculator.calcularDashboard({
       periodo,
       transacoes,
       transacoesAnteriores,
-      agreements,
+      agreements: this.#agreementsComDono(agreements, acesso, isOwner),
       profissionais,
       statusEquipe,
       isOwner,
       viewerProfessionalId,
       mensalistas,
+      despesas,
+      despesasAnteriores,
     });
   }
 
@@ -96,6 +119,29 @@ class FinanceiroBffService extends BaseService {
     } catch (error) {
       throw AppError.badRequest(error.message);
     }
+  }
+
+  #agreementsComDono(agreements, acesso, isOwner) {
+    if (!isOwner || !acesso?.shop?.owner_id) return agreements;
+
+    const ownerId = acesso.shop.owner_id;
+    const temAcordoPercentualDono = (agreements || []).some(agreement =>
+      agreement?.professional_id === ownerId
+      && String(agreement?.type || '').toLowerCase() === 'percentage'
+    );
+    if (temAcordoPercentualDono) return agreements;
+
+    return [
+      ...(agreements || []),
+      {
+        professional_id: ownerId,
+        barbershop_id: acesso.shop.id,
+        type: 'percentage',
+        value: 100,
+        is_active: true,
+        origem: 'owner_default',
+      },
+    ];
   }
 }
 

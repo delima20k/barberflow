@@ -55,23 +55,49 @@ class FakeQuery {
     }
 
     if (this.table === 'transactions') {
-      const items = [{
-        id: '44444444-4444-4444-8444-444444444444',
-        barbershop_id: SHOP_ID,
-        professional_id: PROF_ID,
-        gross_amount: 500,
-        amount: 480,
-        payment_method: 'credito',
-        status: 'paid',
-        type: 'revenue',
-        paid_at: '2026-05-20T12:00:00.000Z',
-        created_at: '2026-05-20T12:00:00.000Z',
-      }];
-      return { data: items.filter(item => !this.filters.professional_id || item.professional_id === this.filters.professional_id), error: null };
+      const items = [
+        {
+          id: '44444444-4444-4444-8444-444444444444',
+          barbershop_id: SHOP_ID,
+          professional_id: PROF_ID,
+          gross_amount: 500,
+          amount: 480,
+          payment_method: 'credito',
+          status: 'paid',
+          type: 'revenue',
+          paid_at: '2026-05-20T12:00:00.000Z',
+          created_at: '2026-05-20T12:00:00.000Z',
+        },
+        {
+          id: '66666666-6666-4666-8666-666666666666',
+          barbershop_id: SHOP_ID,
+          professional_id: null,
+          gross_amount: 50,
+          amount: 50,
+          payment_method: 'pix',
+          status: 'paid',
+          type: 'expense',
+          paid_at: '2026-05-22T12:00:00.000Z',
+          created_at: '2026-05-22T12:00:00.000Z',
+        },
+      ];
+      const filtered = items.filter(item =>
+        (!this.filters.professional_id || item.professional_id === this.filters.professional_id)
+        && (!this.filters.type || item.type === this.filters.type)
+        && (!this.filters.status || item.status === this.filters.status)
+      );
+      return { data: filtered, error: null };
     }
 
     if (this.table === 'agreements') {
-      return { data: [{ professional_id: PROF_ID, barbershop_id: SHOP_ID, type: 'percentage', value: 40, is_active: true }], error: null };
+      return {
+        data: [
+          { professional_id: PROF_ID, barbershop_id: SHOP_ID, type: 'percentage', value: 40, is_active: true, valid_from: '2026-01-01' },
+          { professional_id: PROF_ID, barbershop_id: SHOP_ID, type: 'rent', value: 310, is_active: true, valid_from: '2026-01-01' },
+          { professional_id: PROF_ID, barbershop_id: SHOP_ID, type: 'fixed', value: 999, is_active: true, valid_from: '2026-01-01', notes: 'bonus operacional' },
+        ],
+        error: null,
+      };
     }
 
     if (this.table === 'professionals') {
@@ -176,6 +202,7 @@ suite('Financeiro BFF HTTP', () => {
 
   before(async () => {
     fakeDb = new FakeDb();
+    fakeDb.presenceRows = [{ barbershop_id: SHOP_ID, professional_id: PROF_ID, is_available: true }];
     const app = criarApp(fakeDb);
     await new Promise(resolve => { server = app.listen(0, '127.0.0.1', resolve); });
     port = server.address().port;
@@ -198,19 +225,24 @@ suite('Financeiro BFF HTTP', () => {
   });
 
   test('GET /dashboard retorna 200 para usuario vinculado e dados agregados', async () => {
-    const res = await request(port, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=mes`, {
+    const res = await request(port, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=custom&de=2026-05-01&ate=2026-05-31`, {
       headers: { Authorization: `Bearer ${token()}` },
     });
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
-    // USER_ID é owner da barbearia → lucroBarbearia = 100% da receitaLiquida
+    // Owner ve participacao da barbearia, aluguel de cadeira e despesas reais.
     assert.equal(res.body.dados.isOwner, true);
     assert.equal(res.body.dados.cards.receitaBruta.total, 500);
-    assert.equal(res.body.dados.cards.receitaLiquida.total, 480);
-    assert.equal(res.body.dados.cards.lucroBarbearia.total, 480);
+    assert.equal(res.body.dados.cards.receitaLiquida.total, 502);
+    assert.equal(res.body.dados.cards.lucroBarbearia.total, 452);
+    assert.equal(res.body.dados.cards.lucroBarbearia.despesas, 50);
+    assert.equal(res.body.dados.cards.lucroBarbearia.limitacaoDespesas, false);
     assert.equal(res.body.dados.cards.meuLucro, null);
-    assert.equal(res.body.dados.cards.mensalistas.total, 180);
-    assert.equal(res.body.dados.cards.mensalistas.count, 2);
+    assert.equal(res.body.dados.cards.mensalistas.total, 310);
+    assert.equal(res.body.dados.cards.mensalistas.count, 1);
+    assert.equal(res.body.dados.cards.totalBarbeiros.total, 2);
+    assert.equal(res.body.dados.cards.totalBarbeiros.online, 1);
+    assert.equal(res.body.dados.cards.totalBarbeiros.inativos, 1);
     assert.equal(res.body.dados.barbeiros[0].nome, 'Joao Premium');
   });
 
