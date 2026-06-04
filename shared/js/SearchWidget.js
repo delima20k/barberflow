@@ -178,27 +178,35 @@ class SearchWidget {
 
     const t = InputValidator.escaparFiltroPostgREST(termo);
     try {
-      const { data, error } = await ApiService.from('barbershops')
-        .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg')
-        .eq('is_active', true)
-        .or(
-          `name.ilike.%${t}%,` +
-          `address.ilike.%${t}%,` +
-          `city.ilike.%${t}%,` +
-          `zip_code.ilike.%${t}%`
-        )
-        .order('rating_avg', { ascending: false })
-        .limit(SearchWidget.#LIMIT);
+      const [shopRes, profRes] = await Promise.all([
+        ApiService.from('barbershops')
+          .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg, likes_count, dislikes_count, rating_score, close_reason, cover_path, font_key')
+          .eq('is_active', true)
+          .or(
+            `name.ilike.%${t}%,` +
+            `address.ilike.%${t}%,` +
+            `city.ilike.%${t}%,` +
+            `zip_code.ilike.%${t}%`
+          )
+          .order('rating_avg', { ascending: false })
+          .limit(SearchWidget.#LIMIT),
 
-      if (error) {
-        console.error('[SearchWidget] Supabase error:', error);
-        throw error;
-      }
+        ApiService.from('profiles_public')
+          .select('id, full_name, avatar_path, pro_type, rating_count, updated_at')
+          .eq('role', 'professional')
+          .in('pro_type', ['barbeiro', 'barbearia'])
+          .ilike('full_name', `%${t}%`)
+          .order('rating_count', { ascending: false })
+          .limit(10),
+      ]);
 
-      if (!data.length) {
+      const shops = shopRes.error ? [] : (shopRes.data ?? []);
+      const profs = profRes.error ? [] : (profRes.data ?? []);
+
+      if (!shops.length && !profs.length) {
         SearchWidget.#renderVazio(termo);
       } else {
-        SearchWidget.#renderLista(data);
+        SearchWidget.#renderLista(shops, profs);
       }
     } catch (err) {
       console.error('[SearchWidget] buscar exception:', err);
@@ -264,11 +272,33 @@ class SearchWidget {
   }
 
 
-  static #renderLista(lista) {
+  static #renderLista(barbearias = [], profissionais = []) {
     SearchWidget.#dig?.parar();
     const wrap = document.createElement('div');
     wrap.className = 'nearby-lista';
-    lista.forEach(b => wrap.appendChild(SearchWidget.#criarBarberRow(b)));
+
+    if (barbearias.length) {
+      if (profissionais.length) {
+        const h = document.createElement('p');
+        h.className   = 'nearby-gps-msg';
+        h.textContent = 'Barbearias';
+        h.style.cssText = 'margin:8px 0 4px;font-weight:700;font-size:.8rem;opacity:.7;';
+        wrap.appendChild(h);
+      }
+      barbearias.forEach(b => wrap.appendChild(SearchWidget.#criarBarberRow(b)));
+    }
+
+    if (profissionais.length) {
+      if (barbearias.length) {
+        const h = document.createElement('p');
+        h.className   = 'nearby-gps-msg';
+        h.textContent = 'Barbeiros';
+        h.style.cssText = 'margin:12px 0 4px;font-weight:700;font-size:.8rem;opacity:.7;';
+        wrap.appendChild(h);
+      }
+      profissionais.forEach(p => wrap.appendChild(SearchWidget.#criarProfissionalRow(p)));
+    }
+
     SearchWidget.#montar(wrap);
   }
 
@@ -304,58 +334,142 @@ class SearchWidget {
   }
 
   /**
-   * Cria uma .barber-row a partir dos dados de uma barbearia.
-   * @param {{ name, address, city, logo_path, is_open, rating_avg }} b
+   * Cria uma .barber-row para barbearia — mesmo padrão de NearbyBarbershopsWidget.
+   * @param {object} b — dados da barbearia (barbershops)
    * @returns {HTMLElement}
    */
   static #criarBarberRow(b) {
+    const likes    = Number(b.likes_count    ?? 0);
+    const dislikes = Number(b.dislikes_count ?? 0);
+    const score    = b.rating_score != null
+      ? Number(b.rating_score)
+      : (BarbershopService.calcRatingScore(likes, dislikes) || Number(b.rating_avg ?? 0));
+
     const row = document.createElement('div');
     row.className = 'barber-row barber-card';
+    if (b.id) row.dataset.barbershopId = b.id;
+    row.dataset.likes    = likes;
+    row.dataset.dislikes = dislikes;
 
-    // Avatar
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
-    const avatarImg       = document.createElement('img');
-    avatarImg.src         = b.logo_path || '/shared/img/Logo01.png';
-    avatarImg.alt         = b.name;
-    avatarImg.onerror     = () => { avatarImg.src = '/shared/img/Logo01.png'; };
-    avatarWrap.appendChild(avatarImg);
+    if (b.logo_path) {
+      const img   = document.createElement('img');
+      img.src     = b.logo_path.startsWith('http')
+        ? b.logo_path
+        : (SupabaseService.getLogoUrl(b.logo_path) || '');
+      img.alt     = b.name;
+      img.loading = 'lazy';
+      img.onerror = () => { avatarWrap.textContent = '💈'; };
+      avatarWrap.appendChild(img);
+    } else { avatarWrap.textContent = '💈'; }
 
-    // Info
     const info = document.createElement('div');
     info.className = 'barber-info';
 
-    const nome = document.createElement('p');
-    nome.className  = 'barber-name';
-    nome.textContent = b.name;
-    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nome, b.font_key);
+    const nomeEl = document.createElement('p');
+    nomeEl.className   = 'barber-name';
+    nomeEl.textContent = b.name;
+    if (typeof FonteSalao !== 'undefined') FonteSalao.aplicarFonte(nomeEl, b.font_key);
 
     const sub = document.createElement('p');
-    sub.className  = 'barber-sub';
-    sub.textContent = `📍 ${[b.address, b.city].filter(Boolean).join(' · ')} · ⭐ ${Number(b.rating_avg ?? 0).toFixed(1)} · Barbearia`;
+    sub.className   = 'barber-sub';
+    sub.textContent = `📍 ${[b.address, b.city].filter(Boolean).join(' · ')} · Barbearia`;
 
-    info.appendChild(nome);
+    const starsRow = document.createElement('div');
+    starsRow.className = 'top-card__stars';
+    starsRow.innerHTML = `${BarbershopService.criarEstrelasHTML(score)}<span class="dc-rating-num">${score.toFixed(1)}</span><button type="button" class="top-card__likes" data-action="barbershop-like" aria-label="Curtir barbearia" title="Curtir barbearia"><span class="tcl-ico">👍</span><span class="dc-count">${likes}</span></button>`;
+
+    info.appendChild(nomeEl);
     info.appendChild(sub);
+    info.appendChild(starsRow);
+    row.appendChild(avatarWrap);
+    row.appendChild(info);
 
-    // Meta
-    const meta = document.createElement('div');
-    meta.className = 'barber-meta';
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
 
-    const stars = document.createElement('span');
-    stars.className  = 'stars';
-    stars.textContent = `★ ${Number(b.rating_avg ?? 0).toFixed(1)}`;
+    if (b.id) {
+      const actions = document.createElement('div');
+      actions.className = 'top-card__actions';
+      const badge = document.createElement('span');
+      const _sfm  = typeof StatusFechamentoModal !== 'undefined' ? StatusFechamentoModal : null;
+      badge.className   = `dc-badge ${_sfm ? _sfm.classBadge(b.is_open, b.close_reason ?? null).replace('bp-badge', 'dc-badge') : (b.is_open ? 'dc-badge--open' : 'dc-badge--closed')}`;
+      badge.textContent = _sfm ? _sfm.labelStatus(b.is_open, b.close_reason ?? null) : (b.is_open ? 'Aberto' : 'Fechado');
+      actions.appendChild(badge);
+      if (typeof BarbershopService !== 'undefined' && BarbershopService.criarBotaoFavoritoCard) {
+        actions.appendChild(BarbershopService.criarBotaoFavoritoCard(b.id));
+      }
+      row.appendChild(actions);
+    }
 
-    const badge = document.createElement('span');
-    badge.className  = b.is_open ? 'badge' : 'badge closed';
-    badge.textContent = b.is_open ? 'Aberto' : 'Fechado';
+    return row;
+  }
 
-    meta.appendChild(stars);
-    meta.appendChild(badge);
+  /**
+   * Cria uma .barber-row para barbeiro profissional — mesmo padrão de BarbeirosPage.
+   * @param {object} p — dados do profissional (profiles_public)
+   * @returns {HTMLElement}
+   */
+  static #criarProfissionalRow(p) {
+    const ratingCount = parseInt(p.rating_count || 0, 10);
+    const ratingVal   = ProfessionalService.estrelasPorCurtidas(ratingCount);
+
+    const row = document.createElement('div');
+    row.className          = 'barber-row barber-card';
+    row.dataset.professionalId = p.id;
+    row.dataset.barberId       = p.id;
+
+    const avatarWrap = document.createElement('div');
+    avatarWrap.className = 'avatar gold';
+    if (p.avatar_path) {
+      const img   = document.createElement('img');
+      img.alt     = p.full_name || 'Barbeiro';
+      img.loading = 'lazy';
+      img.onerror = () => { avatarWrap.textContent = '💈'; };
+      img.src     = SupabaseService.resolveAvatarUrl(p.avatar_path, p.updated_at) || '';
+      avatarWrap.appendChild(img);
+    } else { avatarWrap.textContent = '💈'; }
+
+    const info = document.createElement('div');
+    info.className = 'barber-info';
+
+    const nomeEl = document.createElement('p');
+    nomeEl.className   = 'barber-name';
+    nomeEl.textContent = p.full_name || 'Barbeiro';
+    info.appendChild(nomeEl);
+
+    if (p.pro_type === 'barbearia') {
+      const ownerBadge = document.createElement('span');
+      ownerBadge.className   = 'barber-owner-badge';
+      ownerBadge.textContent = '🏪 Tem Barbearia';
+      info.appendChild(ownerBadge);
+    }
+
+    const starsRow = document.createElement('div');
+    starsRow.className = 'top-card__stars';
+    starsRow.innerHTML = `${BarbershopService.criarEstrelasHTML(ratingVal)}<span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
+    starsRow.appendChild(ProfessionalService.criarBotaoLike(p.id, ratingCount));
+    info.appendChild(starsRow);
 
     row.appendChild(avatarWrap);
     row.appendChild(info);
-    row.appendChild(meta);
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
+
+    const actions = document.createElement('div');
+    actions.className = 'top-card__actions card-actions-brand';
+
+    const brand = document.createElement('div');
+    brand.className = 'card-brand';
+    const brandImg = document.createElement('img');
+    brandImg.src       = '/shared/img/nomeAppBarber.png';
+    brandImg.alt       = 'BarberFlow';
+    brandImg.loading   = 'lazy';
+    brandImg.className = 'card-brand-logo';
+    brand.appendChild(brandImg);
+    actions.appendChild(brand);
+
+    actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
+    row.appendChild(actions);
+
     return row;
   }
 

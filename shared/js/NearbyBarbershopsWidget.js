@@ -373,9 +373,20 @@ class NearbyBarbershopsWidget {
         row.appendChild(avatarWrap);
         row.appendChild(info);
 
-        // Canto superior direito: apenas favorito com confetes
+        // Canto superior direito: brand logo + favorito (igual ao padrão de BarbeirosPage)
         const actions = document.createElement('div');
-        actions.className = 'top-card__actions';
+        actions.className = 'top-card__actions card-actions-brand';
+
+        const brand = document.createElement('div');
+        brand.className = 'card-brand';
+        const brandImg = document.createElement('img');
+        brandImg.src       = '/shared/img/nomeAppBarber.png';
+        brandImg.alt       = 'BarberFlow';
+        brandImg.loading   = 'lazy';
+        brandImg.className = 'card-brand-logo';
+        brand.appendChild(brandImg);
+        actions.appendChild(brand);
+
         actions.appendChild(ProfessionalService.criarBotaoFavorito(p.id));
         row.appendChild(actions);
 

@@ -141,29 +141,64 @@ class FavoritesPage {
       </div>`;
   }
 
-  /** Cria um barber-row para um profissional favorito. */
+  /** Cria um barber-row para um profissional favorito (mesmo padrão de BarbeirosPage). */
   #criarBarbeiroRow(p) {
-    const perfil   = p.profiles ?? {};
-    const nome     = perfil.full_name ?? 'Barbeiro';
-    const path     = perfil.avatar_path ?? p.avatar_path ?? null;
-    const avatar   = path ? (SupabaseService.resolveAvatarUrl(path) || '') : '/shared/img/icones-perfil.png';
-    const r        = Math.round(Number(p.rating_avg ?? 0));
-    const stars    = '★'.repeat(r) + '☆'.repeat(5 - r);
-    const specs    = (p.specialties ?? []).slice(0, 2).join(' · ');
+    const proId    = p.id;
+    const nome     = p.profiles?.full_name ?? 'Barbeiro';
+    const path     = p.profiles?.avatar_path ?? p.avatar_path ?? null;
+    const ratingVal = Number(p.rating_avg ?? 0);
 
     const row = document.createElement('div');
-    row.className   = 'barber-row';
-    row.dataset.id  = p.id;
+    row.className          = 'barber-row barber-card';
+    row.dataset.professionalId = proId;
+    row.dataset.barberId       = proId;
 
-    row.innerHTML = `
-      <div class="avatar gold">
-        <img src="${avatar}" alt="${nome}" onerror="this.outerHTML='✂️'" loading="lazy">
-      </div>
-      <div class="barber-info">
-        <p class="barber-name">${nome}</p>
-        ${specs ? `<p class="barber-sub">${specs}</p>` : ''}
-        <div class="stars" style="margin-top:3px;">${stars}</div>
-      </div>`;
+    // Avatar
+    const avatarWrap = document.createElement('div');
+    avatarWrap.className = 'avatar gold';
+    if (path) {
+      const img   = document.createElement('img');
+      img.alt     = nome;
+      img.loading = 'lazy';
+      img.onerror = () => { avatarWrap.textContent = '💈'; };
+      img.src     = SupabaseService.resolveAvatarUrl(path) || '';
+      avatarWrap.appendChild(img);
+    } else { avatarWrap.textContent = '💈'; }
+
+    // Info: nome + top-card__stars
+    const info = document.createElement('div');
+    info.className = 'barber-info';
+
+    const nomeEl = document.createElement('p');
+    nomeEl.className   = 'barber-name';
+    nomeEl.textContent = nome;
+    info.appendChild(nomeEl);
+
+    const starsRow = document.createElement('div');
+    starsRow.className = 'top-card__stars';
+    starsRow.innerHTML = `${BarbershopService.criarEstrelasHTML(ratingVal)}<span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;
+    starsRow.appendChild(ProfessionalService.criarBotaoLike(proId, 0));
+    info.appendChild(starsRow);
+
+    row.appendChild(avatarWrap);
+    row.appendChild(info);
+
+    // Canto superior direito: brand logo + botão favorito
+    const actions = document.createElement('div');
+    actions.className = 'top-card__actions card-actions-brand';
+
+    const brand = document.createElement('div');
+    brand.className = 'card-brand';
+    const brandImg = document.createElement('img');
+    brandImg.src       = '/shared/img/nomeAppBarber.png';
+    brandImg.alt       = 'BarberFlow';
+    brandImg.loading   = 'lazy';
+    brandImg.className = 'card-brand-logo';
+    brand.appendChild(brandImg);
+    actions.appendChild(brand);
+
+    actions.appendChild(ProfessionalService.criarBotaoFavorito(proId));
+    row.appendChild(actions);
 
     return row;
   }
