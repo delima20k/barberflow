@@ -140,6 +140,26 @@ class SupabaseChatRepository extends ChatRepository {
     return this.findConversation(data);
   }
 
+  async markConversationRead(conversationId, userId) {
+    const participant = await this.#findActiveParticipant(conversationId, userId);
+    if (!participant) return null;
+
+    const lastMessage = await this.#findLastMessageId(conversationId);
+    const { error } = await this.#db
+      .from('chat_participants')
+      .update({ last_read_message_id: lastMessage?.id ?? null })
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId)
+      .is('left_at', null);
+    if (error) throw this.#error(error);
+
+    return {
+      conversationId,
+      lastReadMessageId: lastMessage?.id ?? null,
+      unreadCount: 0,
+    };
+  }
+
   async softDeleteMessage(messageId, senderId, retentionUntil) {
     const { data, error } = await this.#db
       .from('chat_messages')
@@ -165,6 +185,32 @@ class SupabaseChatRepository extends ChatRepository {
       .maybeSingle();
     if (error) throw this.#error(error);
     return data ? this.#toMessage(data) : null;
+  }
+
+  async #findActiveParticipant(conversationId, userId) {
+    const { data, error } = await this.#db
+      .from('chat_participants')
+      .select('conversation_id, user_id')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId)
+      .is('left_at', null)
+      .maybeSingle();
+    if (error) throw this.#error(error);
+    return data ?? null;
+  }
+
+  async #findLastMessageId(conversationId) {
+    const { data, error } = await this.#db
+      .from('chat_messages')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw this.#error(error);
+    return data ?? null;
   }
 
   async #saveAttachments(messageId, attachments) {

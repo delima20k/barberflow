@@ -13,6 +13,7 @@ class InMemoryChatRepository extends ChatRepository {
   #clientKeys = new Map();
   #blocks = new Set();
   #muteRules = [];
+  #readState = new Map();
 
   constructor({ clock = { now: () => new Date() } } = {}) {
     super();
@@ -108,6 +109,17 @@ class InMemoryChatRepository extends ChatRepository {
     const deleted = message.softDelete({ deletedAt: this.#clock.now(), retentionUntil });
     this.#messages.set(deleted.id, deleted);
     return deleted;
+  }
+
+  async markConversationRead(conversationId, userId) {
+    const conversation = await this.findConversation(conversationId);
+    if (!conversation?.participant(userId)?.isActive) return null;
+    const lastMessage = [...this.#messages.values()]
+      .filter(message => message.conversationId === conversationId && !message.deletedAt)
+      .sort((left, right) => right.sortKey.localeCompare(left.sortKey))[0] ?? null;
+    const lastReadMessageId = lastMessage?.id ?? null;
+    this.#readState.set(`${conversationId}:${userId}`, lastReadMessageId);
+    return { conversationId, lastReadMessageId, unreadCount: 0 };
   }
 
   static #blockKey(left, right) {

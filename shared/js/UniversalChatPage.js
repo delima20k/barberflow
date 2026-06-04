@@ -22,6 +22,7 @@ class UniversalChatPage {
   static #role      = 'cliente';
   static #uid       = null;
   static #conversas = [];     // ConvItem[] — mantido em memória para busca rápida
+  static #conversaAbertaId = null;
 
   // ══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -61,6 +62,13 @@ class UniversalChatPage {
     document.addEventListener('chatflow:mensagem-nova', e => {
       UniversalChatPage.#atualizarBadge(e.detail?.convId, e.detail?.preview, e.detail?.createdAt);
       UniversalChatPage.#notificarMensagemNova(e.detail);
+    });
+    document.addEventListener('chatflow:conversa-aberta', e => {
+      UniversalChatPage.#conversaAbertaId = e.detail?.convId ?? null;
+      UniversalChatPage.#marcarConversaComoLida(UniversalChatPage.#conversaAbertaId);
+    });
+    document.addEventListener('chatflow:conversa-fechada', () => {
+      UniversalChatPage.#conversaAbertaId = null;
     });
 
     // Inicia escuta de ofertas P2P
@@ -125,6 +133,7 @@ class UniversalChatPage {
 
     UniversalChatPage.#conversas = conversas;
     UniversalChatPage.#renderLista(conversas, favoritos);
+    UniversalChatPage.#atualizarIndicadorRodape();
   }
 
   static #renderSkeleton() {
@@ -302,6 +311,10 @@ class UniversalChatPage {
 
   static #atualizarBadge(convId, preview, createdAt = null) {
     if (!convId || !UniversalChatPage.#lista) return;
+    if (convId === UniversalChatPage.#conversaAbertaId) {
+      UniversalChatPage.#marcarConversaComoLida(convId);
+      return;
+    }
 
     const card = UniversalChatPage.#lista.querySelector(`[data-conv-id="${CSS.escape(convId)}"]`);
     if (!card) return;
@@ -331,6 +344,40 @@ class UniversalChatPage {
 
     const horaEl = card.querySelector('.chat-time');
     if (horaEl && createdAt) horaEl.textContent = UniversalChatPage.#formatarHora(createdAt);
+
+    UniversalChatPage.#atualizarIndicadorRodape();
+  }
+
+  static async #marcarConversaComoLida(convId) {
+    if (!convId) return;
+    const conv = UniversalChatPage.#conversas.find(c => (c.convId ?? c.id) === convId);
+    if (conv) conv.badge = 0;
+
+    const card = UniversalChatPage.#lista?.querySelector(`[data-conv-id="${CSS.escape(convId)}"]`);
+    if (card) {
+      card.classList.remove('barber-row--unread');
+      card.querySelector('.chat-badge')?.remove();
+    }
+    UniversalChatPage.#atualizarIndicadorRodape();
+
+    if (typeof ChatApiClient !== 'undefined') {
+      const { error } = await ChatApiClient.marcarConversaComoLida(convId);
+      if (error) LoggerService.warn('[UniversalChatPage] marcar lida falhou:', error?.message);
+    }
+  }
+
+  static #atualizarIndicadorRodape() {
+    const totalNaoLidas = UniversalChatPage.#conversas
+      .reduce((total, conv) => total + Math.max(0, Number(conv.badge ?? 0)), 0);
+    document.querySelectorAll('.nav-btn[data-tela="mensagens"], [data-tela="mensagens"].nav-btn')
+      .forEach(btn => {
+        btn.classList.toggle('nav-btn--unread', totalNaoLidas > 0);
+        if (totalNaoLidas > 0) {
+          btn.setAttribute('aria-label', `Mensagens, ${totalNaoLidas} nao lidas`);
+        } else {
+          btn.removeAttribute('aria-label');
+        }
+      });
   }
 
   static #notificarMensagemNova(detail = {}) {

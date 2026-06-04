@@ -11,6 +11,7 @@ const { ListMessagesUseCase } = require('../application/chat/ListMessagesUseCase
 const { SoftDeleteMessageUseCase } = require('../application/chat/SoftDeleteMessageUseCase');
 const { ListConversationsUseCase } = require('../application/chat/ListConversationsUseCase');
 const { GetOrCreateConversationUseCase } = require('../application/chat/GetOrCreateConversationUseCase');
+const { MarkConversationReadUseCase } = require('../application/chat/MarkConversationReadUseCase');
 
 module.exports = function criarChatRoute(db, deps = {}) {
   const chatRepository = deps.chatRepository ?? new SupabaseChatRepository(db);
@@ -26,10 +27,13 @@ module.exports = function criarChatRoute(db, deps = {}) {
     listConversationsUseCase: deps.listConversationsUseCase ?? new ListConversationsUseCase({ chatRepository }),
     getOrCreateConversationUseCase: deps.getOrCreateConversationUseCase
       ?? new GetOrCreateConversationUseCase({ chatRepository, blockPolicy }),
+    markConversationReadUseCase: deps.markConversationReadUseCase
+      ?? new MarkConversationReadUseCase({ chatRepository }),
   });
   const router = Router();
   router.get ('/conversations',                           AuthMiddleware.verificar, controller.listConversations.bind(controller));
   router.post('/conversations',                           AuthMiddleware.verificar, controller.getOrCreate.bind(controller));
+  router.patch('/conversations/:conversationId/read',     AuthMiddleware.verificar, controller.markRead.bind(controller));
   router.get ('/conversations/:conversationId/messages',  AuthMiddleware.verificar, controller.list.bind(controller));
   router.post('/conversations/:conversationId/messages',  AuthMiddleware.verificar, controller.send.bind(controller));
   router.delete('/messages/:messageId',                   AuthMiddleware.verificar, controller.remove.bind(controller));

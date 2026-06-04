@@ -67,6 +67,7 @@ suite('E2E — Chat', () => {
     server = await createTestServer({
       // Conversa com participantes ativos
       chat_conversations:      () => ({ data: CONV_ROW, error: null }),
+      chat_participants:       () => ({ data: { conversation_id: CONV_ID, user_id: TEST_USER_ID }, error: null }),
       // Mensagens da conversa
       chat_messages:           () => ({ data: [MSG_ROW], error: null }),
       chat_message_attachments: () => ({ data: [], error: null }),
@@ -135,6 +136,22 @@ suite('E2E — Chat', () => {
       },
     );
     assert.ok(status >= 400 && status < 500, `esperado 4xx, recebeu ${status}`);
+  });
+
+  test('PATCH conversa lida — token válido → 200', async () => {
+    const { status, body } = await request(
+      server, 'PATCH', `/api/v1/chat/conversations/${CONV_ID}/read`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    assert.strictEqual(status, 200);
+    assert.equal(body.dados.unreadCount, 0);
+  });
+
+  test('PATCH conversa lida — sem auth → 401', async () => {
+    const { status } = await request(
+      server, 'PATCH', `/api/v1/chat/conversations/${CONV_ID}/read`,
+    );
+    assert.strictEqual(status, 401);
   });
 
   // ── Deleção ───────────────────────────────────────────────────────

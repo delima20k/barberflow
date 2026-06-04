@@ -12,6 +12,7 @@ class ChatRepository {
   async softDeleteMessage(_messageId, _senderId, _retentionUntil) { throw new Error('ChatRepository.softDeleteMessage nao implementado.'); }
   async listConversationsForUser(_userId) { throw new Error('ChatRepository.listConversationsForUser nao implementado.'); }
   async findOrCreateDirect(_userA, _userB) { throw new Error('ChatRepository.findOrCreateDirect nao implementado.'); }
+  async markConversationRead(_conversationId, _userId) { throw new Error('ChatRepository.markConversationRead nao implementado.'); }
 }
 
 module.exports = { ChatRepository };

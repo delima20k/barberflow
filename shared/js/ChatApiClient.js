@@ -40,6 +40,18 @@ class ChatApiClient {
   }
 
   /**
+   * Marca uma conversa como lida para o usuário autenticado.
+   * @param {string} conversationId
+   * @returns {Promise<{ data: { conversationId: string, lastReadMessageId: string|null, unreadCount: number }, error: Error|null }>}
+   */
+  static async marcarConversaComoLida(conversationId) {
+    return BffApiService.patch(
+      `/api/v1/chat/conversations/${encodeURIComponent(conversationId)}/read`,
+      {}
+    );
+  }
+
+  /**
    * Soft-delete de uma mensagem (somente o remetente pode deletar).
    * @param {string} messageId
    * @returns {Promise<{ data: null, error: Error|null }>}

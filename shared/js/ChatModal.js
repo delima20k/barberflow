@@ -49,6 +49,7 @@ class ChatModal {
     ChatModal.#conversa     = { convId, peerId, nome, sub, avatar };
     ChatModal.#paginaAnterior = telaOrigem;
     ChatModal.#modoP2P      = false;
+    ChatModal.#despacharConversaAberta(convId);
 
     // ── Preenche header do modal ─────────────────────────────
     const avEl   = document.getElementById('chat-modal-avatar-inner');
@@ -144,6 +145,7 @@ class ChatModal {
     const conv = ChatModal.#conversa;
     ChatModal.#conversa = null;
     ChatModal.#modoP2P  = false;
+    ChatModal.#despacharConversaFechada(conv?.convId);
 
     if (conv?.peerId && typeof P2PMessageConnectionService !== 'undefined') {
       P2PMessageConnectionService.close(conv.peerId);
@@ -436,6 +438,18 @@ class ChatModal {
   static #despacharNovaMensagem(convId, body, sender = null, createdAt = null) {
     document.dispatchEvent(new CustomEvent('chatflow:mensagem-nova', {
       detail: { convId, preview: body, sender, createdAt }
+    }));
+  }
+
+  static #despacharConversaAberta(convId) {
+    document.dispatchEvent(new CustomEvent('chatflow:conversa-aberta', {
+      detail: { convId }
+    }));
+  }
+
+  static #despacharConversaFechada(convId) {
+    document.dispatchEvent(new CustomEvent('chatflow:conversa-fechada', {
+      detail: { convId }
     }));
   }
 

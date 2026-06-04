@@ -1035,6 +1035,7 @@
   justify-content: center;
   border-radius: var(--r-full);
   transition: background var(--ease);
+  position: relative;
 }
 .nav-btn.ativo .nav-pill { background: var(--gold-muted); }
 
@@ -1050,6 +1051,18 @@
 .nav-btn:hover img {
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   opacity: 1;
+}
+
+.nav-btn--unread .nav-pill::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--surface, #2b1b12);
 }
 
 .nav-label {

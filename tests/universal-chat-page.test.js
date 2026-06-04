@@ -50,6 +50,24 @@ describe('UniversalChatPage — análise estática', () => {
     assert.ok(SRC.includes('barber-row--unread'), 'deve destacar conversa correspondente');
   });
 
+  test('limpa badge e destaque ao marcar conversa aberta como lida', () => {
+    assert.ok(SRC.includes('#marcarConversaComoLida'), 'deve centralizar limpeza de nao lidas');
+    assert.ok(SRC.includes("card.classList.remove('barber-row--unread')"), 'deve remover destaque amarelo');
+    assert.ok(SRC.includes("card.querySelector('.chat-badge')?.remove()"), 'deve remover contador amarelo');
+    assert.ok(SRC.includes('ChatApiClient.marcarConversaComoLida'), 'deve persistir leitura via BFF');
+  });
+
+  test('nao incrementa nao lidas quando a conversa esta aberta', () => {
+    assert.ok(SRC.includes('#conversaAbertaId'), 'deve rastrear conversa aberta');
+    assert.ok(SRC.includes('convId === UniversalChatPage.#conversaAbertaId'), 'deve comparar evento com conversa aberta');
+  });
+
+  test('atualiza ponto amarelo do rodape de mensagens', () => {
+    assert.ok(SRC.includes('#atualizarIndicadorRodape'), 'deve centralizar indicador do rodape');
+    assert.ok(SRC.includes('nav-btn--unread'), 'deve usar classe reutilizavel de unread no botao');
+    assert.ok(SRC.includes('[data-tela="mensagens"]'), 'deve funcionar em cliente e profissional');
+  });
+
   test('notificacao in-app de nova mensagem inclui remetente e trecho', () => {
     assert.ok(SRC.includes('#notificarMensagemNova'), 'deve centralizar notificacao in-app');
     assert.ok(SRC.includes('detail?.sender'), 'deve consumir remetente do evento de chat');

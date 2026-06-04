@@ -8,15 +8,18 @@ class ChatController extends BaseController {
   #softDeleteMessageUseCase;
   #listConversationsUseCase;
   #getOrCreateConversationUseCase;
+  #markConversationReadUseCase;
 
   constructor({ sendMessageUseCase, listMessagesUseCase, softDeleteMessageUseCase,
-                listConversationsUseCase, getOrCreateConversationUseCase }) {
+                listConversationsUseCase, getOrCreateConversationUseCase,
+                markConversationReadUseCase }) {
     super();
     this.#sendMessageUseCase             = sendMessageUseCase;
     this.#listMessagesUseCase            = listMessagesUseCase;
     this.#softDeleteMessageUseCase       = softDeleteMessageUseCase;
     this.#listConversationsUseCase       = listConversationsUseCase;
     this.#getOrCreateConversationUseCase = getOrCreateConversationUseCase;
+    this.#markConversationReadUseCase    = markConversationReadUseCase;
   }
 
   async send(req, res) {
@@ -76,6 +79,18 @@ class ChatController extends BaseController {
         targetUserId,
       });
       if (!result.ok) throw this._erro(result.error, 400);
+      this.success(res, result.value);
+    });
+  }
+
+  async markRead(req, res) {
+    await this.handle(res, async () => {
+      const result = await this.#markConversationReadUseCase.execute({
+        conversationId: req.params.conversationId,
+        userId: req.user.id,
+      });
+      if (!result.ok) throw this._erro(result.error, 403);
+      res.setHeader('Cache-Control', 'private, no-store');
       this.success(res, result.value);
     });
   }
