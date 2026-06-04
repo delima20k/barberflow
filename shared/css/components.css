@@ -8854,12 +8854,15 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .barbeiro-atividade-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin: 4px 0 0;
-  font-size: .78rem;
-  line-height: 1.25;
+  justify-content: center;
+  gap: 1px 3px;
+  margin: 0;
+  font-size: .55rem;
+  line-height: 1.2;
   color: rgba(45, 31, 22, .72);
+  width: 100%;
 }
 
 .barbeiro-atividade-status__valor {

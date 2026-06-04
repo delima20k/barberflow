@@ -435,7 +435,7 @@ class BarbeariaPage {
       barberId:   barbeiro.id ?? null,
     });
     if (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined') {
-      card.appendChild(BarbeiroAtividadeStatus.criarParagrafo({
+      card.prepend(BarbeiroAtividadeStatus.criarParagrafo({
         professionalId: barbeiro.id ?? '',
         isAvailable,
       }));
@@ -445,6 +445,10 @@ class BarbeariaPage {
     const wrap = document.createElement('div');
     wrap.className = 'cdr-cadeiras-wrap';
 
+    // Barbeiro parceiro inativo bloqueia toda interação com as cadeiras
+    const barbeiroInterativo = !mostrarAtividade || isAvailable;
+    const podeInteragirEfetivo = podeInteragir && barbeiroInterativo;
+
     // Cadeira de produção (atendimento)
     const emServico      = filaEntradas.find(e => e.status === 'in_service') ?? null;
     const ehMinhaEntrada = emServico != null && emServico.client?.id === clienteLogadoId;
@@ -452,8 +456,8 @@ class BarbeariaPage {
       tipo:            'producao',
       entrada:         emServico,
       posicao:         0,
-      podeInteragir:   podeInteragir && !emServico,
-      onClick:         (!emServico && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
+      podeInteragir:   podeInteragirEfetivo && !emServico,
+      onClick:         (!emServico && podeInteragirEfetivo && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
       confirmacao:     emServico?.client_confirmed ?? null,
       onArrivingClick: (ehMinhaEntrada && (emServico?.client_confirmed === 'arriving' || emServico?.client_confirmed === null) && onProducaoArrivingClick)
         ? () => onProducaoArrivingClick(emServico)
@@ -478,8 +482,8 @@ class BarbeariaPage {
       tipo:          'fila',
       entrada:       null,
       posicao:       naFila.length + 1,
-      podeInteragir,
-      onClick:       onCadeiraVaziaClick ?? null,
+      podeInteragir: podeInteragirEfetivo,
+      onClick:       podeInteragirEfetivo ? (onCadeiraVaziaClick ?? null) : null,
     }));
     wrap.appendChild(filaWrap);
     row.appendChild(wrap);
