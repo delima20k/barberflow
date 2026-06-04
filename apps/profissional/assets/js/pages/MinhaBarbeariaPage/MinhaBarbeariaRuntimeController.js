@@ -1808,7 +1808,7 @@ export class MinhaBarbeariaRuntimeController {
     // Card do barbeiro (coluna esquerda)
     const bCard = MinhaBarbeariaRuntimeController.#criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge, cortes });
     if (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined') {
-      bCard.appendChild(BarbeiroAtividadeStatus.criarParagrafo({ professionalId, isAvailable }));
+      bCard.prepend(BarbeiroAtividadeStatus.criarParagrafo({ professionalId, isAvailable }));
     }
     if (onClick) bCard.addEventListener('click', onClick);
     row.appendChild(bCard);

@@ -8853,6 +8853,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: none;
 }
 .barbeiro-atividade-status {
+  order: -1;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
