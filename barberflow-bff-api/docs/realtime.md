@@ -99,6 +99,7 @@ barberflow-bff-api/
 | `events.v1.fila.entrada_removida` | `fila.{shopId}` | `{ entradaId }` | barbeiros + cliente |
 | `events.v1.notificacao.nova` | `notificacoes.{userId}` | `{ notificacaoId, titulo, corpo }` | usuário |
 | `events.v1.chat.message_created` | `chat.{userId}` | `{ message }` | participante destinatario |
+| `events.v1.chat.conversation_read` | `chat.{userId}` | `{ conversationId, userId, lastReadMessageId, unreadCount }` | proprio usuario |
 | `events.v1.chat.typing_changed` | `chat.{userId}` | `{ conversationId, senderId, active }` | participante destinatario |
 | `events.v1.barbershop.status_alterado` | `barbershop.status.{shopId}` | `{ isOpen, closeReason? }` | clientes |
 | `events.v1.presence.usuario_entrou` | `presence.{shopId}` | `{ userId }` | barbeiros |

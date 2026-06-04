@@ -57,6 +57,7 @@ const EVENT_TYPES = Object.freeze({
   FILA_ENTRADA_REMOVIDA:        'events.v1.fila.entrada_removida',
   NOTIFICACAO_NOVA:             'events.v1.notificacao.nova',
   CHAT_MESSAGE_CREATED:         'events.v1.chat.message_created',
+  CHAT_CONVERSATION_READ:        'events.v1.chat.conversation_read',
   CHAT_TYPING_CHANGED:          'events.v1.chat.typing_changed',
   BARBERSHOP_STATUS_ALTERADO:   'events.v1.barbershop.status_alterado',
   PRESENCE_USUARIO_ENTROU:      'events.v1.presence.usuario_entrou',

@@ -292,6 +292,9 @@ class ChatModal {
       .on('broadcast', { event: 'events.v1.chat.message_created' }, payload => {
         ChatModal.#onRealtimeMensagem(payload?.payload ?? payload);
       })
+      .on('broadcast', { event: 'events.v1.chat.conversation_read' }, payload => {
+        ChatModal.#onRealtimeConversaLida(payload?.payload ?? payload);
+      })
       .subscribe();
   }
 
@@ -328,6 +331,13 @@ class ChatModal {
     }));
     area.scrollTop = area.scrollHeight;
     ChatModal.#despacharNovaMensagem(msg.conversationId, msg.body, msg.sender, msg.createdAt);
+    ChatModal.#despacharConversaLida(msg.conversationId);
+  }
+
+  static #onRealtimeConversaLida(payload) {
+    const conversationId = payload?.conversationId;
+    if (!conversationId) return;
+    ChatModal.#despacharConversaLida(conversationId);
   }
 
   /**
@@ -449,6 +459,12 @@ class ChatModal {
 
   static #despacharConversaFechada(convId) {
     document.dispatchEvent(new CustomEvent('chatflow:conversa-fechada', {
+      detail: { convId }
+    }));
+  }
+
+  static #despacharConversaLida(convId) {
+    document.dispatchEvent(new CustomEvent('chatflow:conversa-lida', {
       detail: { convId }
     }));
   }

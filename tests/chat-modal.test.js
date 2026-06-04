@@ -89,4 +89,14 @@ describe('ChatModal — análise estática de segurança e contrato', () => {
       'fallback BFF deve existir quando P2P falha'
     );
   });
+  test('marca conversa aberta como lida quando realtime entrega nova mensagem', () => {
+    assert.ok(
+      SRC.includes('#despacharConversaLida'),
+      'deve emitir evento de leitura quando mensagem chega na conversa aberta',
+    );
+    assert.ok(
+      SRC.includes('ChatModal.#despacharConversaLida(msg.conversationId)'),
+      'deve marcar a conversa aberta como lida apos renderizar mensagem realtime',
+    );
+  });
 });

@@ -57,6 +57,14 @@ describe('UniversalChatPage — análise estática', () => {
     assert.ok(SRC.includes('ChatApiClient.marcarConversaComoLida'), 'deve persistir leitura via BFF');
   });
 
+  test('escuta evento realtime de conversa lida para limpar indicadores', () => {
+    assert.ok(SRC.includes("'chatflow:conversa-lida'"), 'deve ouvir evento de conversa lida');
+    assert.ok(
+      SRC.includes('UniversalChatPage.#limparIndicadoresConversaLida'),
+      'deve centralizar limpeza visual de conversa lida',
+    );
+  });
+
   test('nao incrementa nao lidas quando a conversa esta aberta', () => {
     assert.ok(SRC.includes('#conversaAbertaId'), 'deve rastrear conversa aberta');
     assert.ok(SRC.includes('convId === UniversalChatPage.#conversaAbertaId'), 'deve comparar evento com conversa aberta');

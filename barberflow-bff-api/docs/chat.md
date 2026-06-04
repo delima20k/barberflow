@@ -20,6 +20,7 @@ Leitura por conversa usa o indice `idx_chat_messages_conversation_created_desc` 
 | Evento | Canal | Payload |
 |---|---|---|
 | `events.v1.chat.message_created` | `chat.{userId}` | `{ message: { id, conversationId, senderId, clientMessageId, body, attachments, createdAt, deletedAt, retentionUntil, status, sortKey } }` |
+| `events.v1.chat.conversation_read` | `chat.{userId}` | `{ conversationId, userId, lastReadMessageId, unreadCount }` |
 | `events.v1.chat.typing_changed` | `chat.{userId}` | `{ conversationId, senderId, active }` |
 
 O canal `chat.{userId}` e privado: somente o proprio usuario pode assinar. O servidor nunca publica em canal aberto por `conversation_id`, reduzindo risco de leak por subscribe indevido.
