@@ -122,6 +122,19 @@ class InMemoryChatRepository extends ChatRepository {
     return { conversationId, lastReadMessageId, unreadCount: 0 };
   }
 
+  async purgeExpiredMessages(olderThanDays = 7) {
+    const cutoff = this.#clock.now().getTime() - olderThanDays * 24 * 60 * 60 * 1000;
+    let deleted = 0;
+    for (const [id, msg] of this.#messages) {
+      if (msg.createdAt.getTime() <= cutoff) {  // inclusivo: exatamente N dias ou mais
+        this.#messages.delete(id);
+        this.#clientKeys.delete(`${msg.senderId}:${msg.clientMessageId}`);
+        deleted++;
+      }
+    }
+    return deleted;
+  }
+
   static #blockKey(left, right) {
     return [left, right].sort().join(':');
   }

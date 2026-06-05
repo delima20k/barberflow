@@ -13,6 +13,7 @@ class ChatRepository {
   async listConversationsForUser(_userId) { throw new Error('ChatRepository.listConversationsForUser nao implementado.'); }
   async findOrCreateDirect(_userA, _userB) { throw new Error('ChatRepository.findOrCreateDirect nao implementado.'); }
   async markConversationRead(_conversationId, _userId) { throw new Error('ChatRepository.markConversationRead nao implementado.'); }
+  async purgeExpiredMessages(_olderThanDays) { throw new Error('ChatRepository.purgeExpiredMessages nao implementado.'); }
 }
 
 module.exports = { ChatRepository };

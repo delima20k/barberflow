@@ -38,6 +38,17 @@ class ConversationKeyService {
   static #keyPair   = null;  // { publicKey: CryptoKey, privateKey: CryptoKey }
   static #pubKeyB64 = null;  // string base64 SPKI
 
+  // Indica se um novo par de chaves foi gerado nesta sessão (IndexedDB estava vazio).
+  // true = novo dispositivo ou storage apagado → histórico anterior não decifrável.
+  // LIMITAÇÃO CONHECIDA:
+  //   - Troca de dispositivo: chave privada NÃO é portável. Histórico cifrado com a
+  //     chave anterior mostra "🔒 Mensagem cifrada" — correto por design E2E.
+  //   - IndexedDB apagado: mesmo comportamento. Mensagens futuras funcionarão normalmente.
+  //   - Múltiplos devices simultaneamente: cada device tem par próprio. Mensagens novas
+  //     são cifradas com o par do device remetente. O receptor usa sua chave local
+  //     derivando com a chave pública do remetente → ambos chegam ao mesmo segredo ECDH.
+  static #keyWasGenerated = false;
+
   // ═══════════════════════════════════════════════════════════
   // Público
   // ═══════════════════════════════════════════════════════════
@@ -54,9 +65,12 @@ class ConversationKeyService {
     const stored = await ConversationKeyService.#lerDB(db, ConversationKeyService.#KEY_RECORD);
 
     if (stored?.publicKey && stored?.privateKey) {
-      ConversationKeyService.#keyPair   = { publicKey: stored.publicKey, privateKey: stored.privateKey };
-      ConversationKeyService.#pubKeyB64 = stored.publicKeyB64 ?? null;
+      ConversationKeyService.#keyPair         = { publicKey: stored.publicKey, privateKey: stored.privateKey };
+      ConversationKeyService.#pubKeyB64       = stored.publicKeyB64 ?? null;
+      ConversationKeyService.#keyWasGenerated = false;
     } else {
+      // IndexedDB vazio: novo device ou storage apagado → gera novo par de chaves.
+      // Histórico cifrado com chave anterior não será decifrável (limitação E2E by design).
       const kp  = await MessageCryptoService.generateKeyPair();
       const b64 = await MessageCryptoService.exportPublicKey(kp.publicKey);
       await ConversationKeyService.#escreverDB(db, {
@@ -65,8 +79,9 @@ class ConversationKeyService {
         privateKey:   kp.privateKey,
         publicKeyB64: b64,
       });
-      ConversationKeyService.#keyPair   = kp;
-      ConversationKeyService.#pubKeyB64 = b64;
+      ConversationKeyService.#keyPair         = kp;
+      ConversationKeyService.#pubKeyB64       = b64;
+      ConversationKeyService.#keyWasGenerated = true;
     }
 
     // Upsert idempotente: garante que o BFF tem a chave atual
@@ -112,11 +127,20 @@ class ConversationKeyService {
     return ConversationKeyService.#pubKeyB64;
   }
 
+  /**
+   * True se um novo par de chaves foi gerado nesta sessão (storage estava vazio).
+   * Útil para exibir aviso ao usuário de que o histórico anterior pode não ser decifrável.
+   */
+  static wasKeyGenerated() {
+    return ConversationKeyService.#keyWasGenerated;
+  }
+
   /** Limpa o cache de sessão (chamar no logout). */
   static limpar() {
     ConversationKeyService.#derivedKeys.clear();
-    ConversationKeyService.#keyPair   = null;
-    ConversationKeyService.#pubKeyB64 = null;
+    ConversationKeyService.#keyPair         = null;
+    ConversationKeyService.#pubKeyB64       = null;
+    ConversationKeyService.#keyWasGenerated = false;
   }
 
   // ═══════════════════════════════════════════════════════════

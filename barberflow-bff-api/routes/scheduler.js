@@ -12,6 +12,7 @@ const { InMemoryDistributedLock } = require('../infrastructure/scheduler/InMemor
 const { InMemorySchedulerRepository } = require('../infrastructure/scheduler/InMemorySchedulerRepository');
 const { RedisDistributedLock } = require('../infrastructure/scheduler/RedisDistributedLock');
 const { SupabaseSchedulerRepository } = require('../infrastructure/scheduler/SupabaseSchedulerRepository');
+const { SupabaseChatRepository } = require('../infrastructure/chat/SupabaseChatRepository');
 
 let controller;
 
@@ -39,6 +40,7 @@ function buildController(db) {
     repository,
     outboxRelay,
     queueService,
+    chatRepository: new SupabaseChatRepository(db),
     instanceId: 'http-admin',
   });
   controller = new SchedulerController({ schedulerService: built.service });

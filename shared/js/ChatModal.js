@@ -32,6 +32,12 @@ class ChatModal {
   static #paginaAnterior = null; // tela que abriu o chat (para voltar)
   static #mensagensRenderizadas = new Set(); // message.id canonico ja renderizado
 
+  // Deduplicação P2P × Realtime: mensagem entregue pelo DataChannel é
+  // registrada aqui para suprimir a cópia que chega via realtime (~100-500ms depois).
+  // Map<fingerprint, expiryMs> — janela de 8s é mais que suficiente.
+  static #recentP2PReceived = new Map();
+  static #P2P_DEDUP_MS = 8_000;
+
   // Labels de status de conexão P2P
   static #STATUS_LABEL = {
     connecting:   '⏳ Conectando...',
@@ -56,6 +62,7 @@ class ChatModal {
     ChatModal.#paginaAnterior = telaOrigem;
     ChatModal.#modoP2P      = false;
     ChatModal.#mensagensRenderizadas.clear();
+    ChatModal.#recentP2PReceived.clear();
     ChatModal.#despacharConversaAberta(convId);
 
     // ── Preenche header do modal ─────────────────────────────
@@ -141,6 +148,11 @@ class ChatModal {
           }));
           areaMsg.scrollTop = areaMsg.scrollHeight;
         }
+        // Registra fingerprint para suprimir a cópia que chega via realtime
+        ChatModal.#recentP2PReceived.set(
+          ChatModal.#fingerprint(texto),
+          Date.now() + ChatModal.#P2P_DEDUP_MS,
+        );
         ChatModal.#despacharNovaMensagem(convId, texto, ChatModal.#remetenteConversa());
       });
       const statusAtual = P2PMessageConnectionService.getStatus(peerId);
@@ -396,6 +408,16 @@ class ChatModal {
       }
     }
 
+    // Deduplicação P2P × Realtime:
+    // Se esta mensagem já foi entregue pelo DataChannel, suprime a cópia do realtime.
+    const fp = ChatModal.#fingerprint(texto);
+    if (ChatModal.#recentP2PReceived.has(fp) && ChatModal.#recentP2PReceived.get(fp) > Date.now()) {
+      ChatModal.#recentP2PReceived.delete(fp);
+      // Registra o messageId canônico do BFF para deduplicação futura
+      if (detail.messageId) ChatModal.#mensagensRenderizadas.add(detail.messageId);
+      return;
+    }
+
     area.appendChild(ChatModal.#renderBolha({
       messageId: detail.messageId,
       de:        'outro',
@@ -624,5 +646,12 @@ class ChatModal {
         + ' '
         + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } catch { return horaFallback ?? ''; }
+  }
+
+  // Fingerprint leve para deduplicação P2P × Realtime (não criptográfico).
+  // Usa os primeiros 128 chars do texto — suficiente para distinguir mensagens
+  // distintas dentro da janela de 8s.
+  static #fingerprint(text) {
+    return String(text ?? '').slice(0, 128);
   }
 }

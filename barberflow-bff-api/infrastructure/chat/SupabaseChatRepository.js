@@ -314,6 +314,14 @@ class SupabaseChatRepository extends ChatRepository {
     });
   }
 
+  async purgeExpiredMessages(olderThanDays = 7) {
+    const { data, error } = await this.#db.rpc('purge_expired_chat_messages', {
+      p_older_than_days: olderThanDays,
+    });
+    if (error) throw this.#error(error);
+    return Number(data ?? 0);
+  }
+
   #error(error) {
     return Object.assign(new Error(error.message), { code: error.code });
   }

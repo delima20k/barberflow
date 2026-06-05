@@ -9,9 +9,19 @@ const { CronExpression } = require('../../domain/scheduler/value-objects/CronExp
 const { RetryPolicy } = require('../../domain/scheduler/value-objects/RetryPolicy');
 const { OutboxRelayTask } = require('./tasks/OutboxRelayTask');
 const { NotificationDigestTask } = require('./tasks/NotificationDigestTask');
+const { ChatMessagePurgeTask } = require('./tasks/ChatMessagePurgeTask');
+const { PurgeExpiredChatMessagesUseCase } = require('../chat/PurgeExpiredChatMessagesUseCase');
 
 class SchedulerFactory {
-  static build({ lock, repository, outboxRelay, notificationRepository = null, queueService = null, instanceId = null }) {
+  static build({
+    lock,
+    repository,
+    outboxRelay,
+    notificationRepository = null,
+    queueService = null,
+    chatRepository = null,
+    instanceId = null,
+  }) {
     const registry = new TaskRegistry();
     registry
       .register(SchedulerFactory.#task({
@@ -34,6 +44,25 @@ class SchedulerFactory {
         handler: new NotificationDigestTask({ notificationRepository, queueService }),
         description: 'Agrupa e libera digests de notificacoes.',
       }));
+
+    // Tarefa de expiração de mensagens: registrada somente quando chatRepository disponível
+    if (chatRepository) {
+      registry.register(SchedulerFactory.#task({
+        name: 'chat.purge-expired-messages',
+        ownerContext: 'chat',
+        cron: '0 3 * * *', // diariamente às 03:00 UTC
+        timezone: 'UTC',
+        timeoutMs: 60_000,
+        retryPolicy: new RetryPolicy({ maxAttempts: 2, baseDelayMs: 5_000, maxDelayMs: 30_000 }),
+        handler: new ChatMessagePurgeTask({
+          purgeExpiredChatMessagesUseCase: new PurgeExpiredChatMessagesUseCase({
+            chatRepository,
+            olderThanDays: 7,
+          }),
+        }),
+        description: 'Remove permanentemente mensagens de chat com mais de 7 dias.',
+      }));
+    }
 
     const metrics = new SchedulerMetrics();
     const runner = new SchedulerRunner({ registry, lock, repository, metrics, instanceId });
