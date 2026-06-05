@@ -29,6 +29,8 @@ function dashboardFixture(overrides = {}) {
       cortes: 2,
       receitaLiquida: 27.2,
       valorBarbeiro: 27.2,
+      pendingPayoutAmount: 27.2,
+      cutsPendingPayout: 2,
       valorBarbearia: 40.8,
       porcentagemBarbearia: 60,
       porcentagemBarbeiro: 40,
@@ -83,6 +85,10 @@ function criarSandbox({ shopId = SHOP_ID, retorno = dashboardFixture() } = {}) {
       financeiro: {
         dashboard: fn().mockResolvedValue({ data: retorno, error: null }),
         aplicarTaxaMetodo: fn().mockResolvedValue({ data: { aplicado: true }, error: null }),
+        confirmarPagamentoBarbeiro: fn().mockResolvedValue({
+          data: { payout: { amount: 27.2 }, updatedBalance: { pendingPayoutAmount: 0 } },
+          error: null,
+        }),
       },
     },
     AuthService: { getPerfil: fn().mockReturnValue({ id: PROF_ID }) },
@@ -164,6 +170,48 @@ describe('FinancasPage — contrato BFF', () => {
     assert.equal(data.barbeiros[0].valorBarbeiro.toFixed(2), '55.00');
   });
 
+  test('renderiza valor total a pagar recebido da BFF', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /Valor total a pagar/);
+    assert.match(src, /barbeiro\.pendingPayoutAmount/);
+  });
+
+  test('renderiza botao Pagar apenas com saldo e owner', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /fin-payout-btn/);
+    assert.match(src, /Pagar/);
+    assert.match(src, /dados\.isOwner/);
+    assert.match(src, /Number\(barbeiro\.pendingPayoutAmount \|\| 0\) > 0/);
+  });
+
+  test('modal de pagamento mostra periodo, valor e cortes finalizados recebidos', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /#abrirModalPagamento/);
+    assert.match(src, /Cortes finalizados\/recebidos no periodo/);
+    assert.match(src, /#periodoLabel/);
+    assert.match(src, /this\.#moeda\(barbeiro\.pendingPayoutAmount\)/);
+  });
+
+  test('frontend confirma payout somente pela BFF e bloqueia duplo clique', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /BffApiService\.financeiro\.confirmarPagamentoBarbeiro/);
+    assert.match(src, /#payoutEmAndamento/);
+    assert.doesNotMatch(src, /pendingPayoutAmount\s*=|const\s+pendingPayoutAmount/);
+    assert.doesNotMatch(src, /gross_amount/);
+  });
+
   test('assina fontes que afetam o resumo financeiro da barbearia', () => {
     const src = fs.readFileSync(
       path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
@@ -187,5 +235,6 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /item\.feePercent/);
     assert.doesNotMatch(src, /gross_amount/);
     assert.doesNotMatch(src, /amount\s*\*\s*\(/);
+    assert.doesNotMatch(src, /pendingPayoutAmount\s*=|const\s+pendingPayoutAmount/);
   });
 });

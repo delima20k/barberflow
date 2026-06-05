@@ -16,6 +16,7 @@ module.exports = function criarFinanceiroRoute(db) {
 
   router.get('/dashboard', controller.dashboard.bind(controller));
   router.get('/barbeiros/:professional_id/extrato', controller.extratoBarbeiro.bind(controller));
+  router.post('/pagamentos-barbeiro', controller.confirmarPagamentoBarbeiro.bind(controller));
   router.patch('/taxas-metodo', controller.aplicarTaxaMetodo.bind(controller));
 
   return router;

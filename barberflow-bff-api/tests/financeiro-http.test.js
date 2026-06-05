@@ -151,6 +151,23 @@ class FakeQuery {
       return { data: this.single ? (rows[0] ?? null) : rows, error: null };
     }
 
+    if (this.table === 'professional_payouts') {
+      const rows = this.db.payoutRows.filter(row =>
+        (!this.filters.barbershop_id || row.barbershop_id === this.filters.barbershop_id)
+        && (!this.filters.professional_id || row.professional_id === this.filters.professional_id)
+        && (!this.filters.status || Array.isArray(this.filters.status) || row.status === this.filters.status)
+        && (!Array.isArray(this.filters.status) || this.filters.status.includes(row.status))
+      );
+      return { data: this.single ? (rows[0] ?? null) : rows, error: null };
+    }
+
+    if (this.table === 'professional_payout_items') {
+      const rows = this.db.payoutItemRows.filter(row =>
+        (!this.filters.payout_id || this.filters.payout_id.includes(row.payout_id))
+      );
+      return { data: this.single ? (rows[0] ?? null) : rows, error: null };
+    }
+
     return { data: [], error: null };
   }
 }
@@ -163,6 +180,9 @@ class FakeDb {
     this.upsertCalls = [];
     this.feeRows = [{ barbershop_id: SHOP_ID, payment_method: 'credit', fee_percent: 4 }];
     this.feeUpsertCalls = [];
+    this.payoutRows = [];
+    this.payoutItemRows = [];
+    this.failedPayouts = [];
     this.linkRows = [
       { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
       { professional_id: INACTIVE_PROF_ID, barbershop_id: SHOP_ID, is_active: false },
@@ -170,6 +190,63 @@ class FakeDb {
   }
 
   from(table) {
+    if (table === 'professional_payouts') {
+      return {
+        select: () => new FakeQuery(this, table),
+        insert: (payload) => {
+          const row = {
+            id: `payout-${this.payoutRows.length + 1}`,
+            ...payload,
+            created_at: payload.created_at || new Date().toISOString(),
+            updated_at: payload.updated_at || new Date().toISOString(),
+          };
+          this.payoutRows.push(row);
+          return {
+            select: () => ({
+              single: async () => ({ data: row, error: null }),
+            }),
+          };
+        },
+        update: (payload) => ({
+          eq: (key, value) => ({
+            select: () => ({
+              single: async () => {
+                const row = this.payoutRows.find(item => item[key] === value);
+                if (!row) return { data: null, error: { message: 'not found' } };
+                Object.assign(row, payload);
+                if (payload.status === 'failed') this.failedPayouts.push(row.id);
+                return { data: row, error: null };
+              },
+            }),
+          }),
+        }),
+      };
+    }
+    if (table === 'professional_payout_items') {
+      return {
+        select: () => new FakeQuery(this, table),
+        insert: (payload) => {
+          const rows = Array.isArray(payload) ? payload : [payload];
+          const conflito = rows.find(row =>
+            this.payoutItemRows.some(item => item.transaction_id === row.transaction_id)
+          );
+          if (conflito) {
+            return {
+              select: async () => ({ data: null, error: { code: '23505', message: 'duplicate key value' } }),
+            };
+          }
+          const inserted = rows.map((row, index) => ({
+            id: `payout-item-${this.payoutItemRows.length + index + 1}`,
+            ...row,
+            created_at: row.created_at || new Date().toISOString(),
+          }));
+          this.payoutItemRows.push(...inserted);
+          return {
+            select: async () => ({ data: inserted, error: null }),
+          };
+        },
+      };
+    }
     if (table === 'financial_payment_method_fees') {
       return {
         select: () => new FakeQuery(this, table),
@@ -215,6 +292,36 @@ class FakeDb {
 
   async rpc(name, payload) {
     this.rpcCalls.push({ name, payload });
+    if (name === 'confirmar_professional_payout_atomic') {
+      const conflito = (payload.p_transaction_ids || []).find(id =>
+        this.payoutItemRows.some(item => item.transaction_id === id)
+      );
+      if (conflito) return { data: null, error: { code: '23505', message: 'duplicate key value' } };
+
+      const payout = {
+        id: `payout-${this.payoutRows.length + 1}`,
+        barbershop_id: payload.p_barbershop_id,
+        professional_id: payload.p_professional_id,
+        amount: payload.p_amount,
+        period_start: payload.p_period_start,
+        period_end: payload.p_period_end,
+        status: 'confirmed',
+        paid_at: new Date().toISOString(),
+        created_by: payload.p_created_by,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const items = (payload.p_transaction_ids || []).map((transactionId, index) => ({
+        id: `payout-item-${this.payoutItemRows.length + index + 1}`,
+        payout_id: payout.id,
+        transaction_id: transactionId,
+        amount: payload.p_item_amounts[index],
+        created_at: new Date().toISOString(),
+      }));
+      this.payoutRows.push(payout);
+      this.payoutItemRows.push(...items);
+      return { data: payout, error: null };
+    }
     return { data: { updated: 2 }, error: null };
   }
 }
@@ -294,6 +401,49 @@ suite('Financeiro BFF HTTP', () => {
     assert.equal(res.body.dados.cards.totalBarbeiros.online, 1);
     assert.equal(res.body.dados.cards.totalBarbeiros.inativos, 1);
     assert.equal(res.body.dados.barbeiros[0].nome, 'Joao Premium');
+    assert.equal(res.body.dados.barbeiros[0].pendingPayoutAmount, 192);
+    assert.equal(res.body.dados.barbeiros[0].cutsPendingPayout, 1);
+  });
+
+  test('POST /pagamentos-barbeiro registra payout e atualiza saldo do dashboard', async () => {
+    const created = await request(port, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+      headers: { Authorization: `Bearer ${token()}` },
+      body: {
+        barbershop_id: SHOP_ID,
+        professional_id: PROF_ID,
+        periodo: 'custom',
+        de: '2026-05-01',
+        ate: '2026-05-31',
+        displayed_amount: 192,
+      },
+    });
+    assert.equal(created.status, 200);
+    assert.equal(created.body.dados.payout.amount, 192);
+    assert.equal(created.body.dados.updatedBalance.pendingPayoutAmount, 0);
+    assert.equal(fakeDb.payoutRows[0].status, 'confirmed');
+    assert.equal(fakeDb.payoutItemRows[0].transaction_id, '44444444-4444-4444-8444-444444444444');
+
+    const dashboard = await request(port, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=custom&de=2026-05-01&ate=2026-05-31`, {
+      headers: { Authorization: `Bearer ${token()}` },
+    });
+    assert.equal(dashboard.body.dados.barbeiros[0].pendingPayoutAmount, 0);
+    assert.equal(dashboard.body.dados.barbeiros[0].cutsPendingPayout, 0);
+  });
+
+  test('POST /pagamentos-barbeiro protege contra pagamento duplicado do mesmo corte', async () => {
+    const res = await request(port, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+      headers: { Authorization: `Bearer ${token()}` },
+      body: {
+        barbershop_id: SHOP_ID,
+        professional_id: PROF_ID,
+        periodo: 'custom',
+        de: '2026-05-01',
+        ate: '2026-05-31',
+        displayed_amount: 192,
+      },
+    });
+    assert.equal(res.status, 409);
+    assert.equal(fakeDb.payoutItemRows.length, 1);
   });
 
   test('PATCH /taxas-metodo valida metodo e porcentagem', async () => {
@@ -320,7 +470,7 @@ suite('Financeiro BFF HTTP', () => {
       body: { barbershop_id: SHOP_ID, metodo: 'crédito', porcentagem: '4,5', periodo: 'mes' },
     });
     assert.equal(valid.status, 200);
-    assert.equal(fakeDb.rpcCalls.length, 0);
+    assert.equal(fakeDb.rpcCalls.filter(call => call.name !== 'confirmar_professional_payout_atomic').length, 0);
     assert.equal(fakeDb.feeUpsertCalls[0].payment_method, 'credit');
     assert.equal(fakeDb.feeUpsertCalls[0].fee_percent, 4.5);
   });
@@ -351,9 +501,11 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
       }
       if (table === 'transactions') {
         // transacoes do proprio viewer (USER_ID) com 40% para o barbeiro
-        const orig = query.then.bind(query);
         query.then = (resolve, reject) =>
-          Promise.resolve({ data: [{ id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, amount: 480, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' }], error: null }).then(resolve, reject);
+          Promise.resolve({ data: [
+            { id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, amount: 480, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' },
+            { id: '88888888-8888-4888-8888-888888888888', barbershop_id: SHOP_ID, professional_id: PROF_ID, gross_amount: 900, amount: 900, payment_method: 'pix', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' },
+          ].filter(item => !query.filters.professional_id || item.professional_id === query.filters.professional_id), error: null }).then(resolve, reject);
       }
       if (table === 'agreements') {
         const orig = query.then.bind(query);
@@ -378,6 +530,67 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
   assert.equal(res.body.dados.cards.lucroBarbearia.total, 288);
   assert.ok(res.body.dados.cards.meuLucro !== null);
   assert.equal(res.body.dados.cards.meuLucro.total, 192);
+  assert.equal(res.body.dados.barbeiros.length, 1);
+  assert.equal(res.body.dados.barbeiros[0].professionalId, USER_ID);
+  assert.equal(res.body.dados.barbeiros[0].pendingPayoutAmount, 192);
+});
+
+test('POST /pagamentos-barbeiro retorna 403 para parceiro nao-dono', async () => {
+  class FakeDbParceiro extends FakeDb {
+    from(table) {
+      const query = super.from(table);
+      if (table === 'barbershops') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: { id: SHOP_ID, owner_id: '00000000-0000-4000-8000-000000000000', is_active: true }, error: null }).then(resolve, reject);
+      }
+      return query;
+    }
+  }
+
+  const db = new FakeDbParceiro();
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: {
+      barbershop_id: SHOP_ID,
+      professional_id: PROF_ID,
+      periodo: 'custom',
+      de: '2026-05-01',
+      ate: '2026-05-31',
+      displayed_amount: 192,
+    },
+  });
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 403);
+  assert.equal(db.payoutRows.length, 0);
+});
+
+test('POST /pagamentos-barbeiro rejeita valor exibido desatualizado sem criar payout', async () => {
+  const db = new FakeDb();
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: {
+      barbershop_id: SHOP_ID,
+      professional_id: PROF_ID,
+      periodo: 'custom',
+      de: '2026-05-01',
+      ate: '2026-05-31',
+      displayed_amount: 191,
+    },
+  });
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 409);
+  assert.equal(db.payoutRows.length, 0);
+  assert.equal(db.payoutItemRows.length, 0);
 });
 
 test('GET /barbearias/:id/barbeiros-status retorna default false quando ausente', async () => {

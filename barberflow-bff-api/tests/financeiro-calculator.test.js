@@ -38,11 +38,52 @@ test('FinanceiroCalculator divide pelo percentual do barbeiro apos taxas de meto
   assert.equal(dashboard.cards.lucroBarbearia.total, 288);
   assert.equal(barbeiro.valorBarbeiro, 192);
   assert.equal(barbeiro.valorBarbearia, 288);
+  assert.equal(barbeiro.pendingPayoutAmount, 192);
+  assert.equal(barbeiro.cutsPendingPayout, 1);
   assert.equal(barbeiro.taxas, 20);
   assert.equal(barbeiro.receitaLiquida, 480);
   assert.equal(barbeiro.porcentagemBarbearia, 60);
   assert.equal(barbeiro.porcentagemBarbeiro, 40);
   assert.equal(barbeiro.agreementConfigured, true);
+});
+
+test('FinanceiroCalculator desconta do saldo pendente cortes ja vinculados a payout', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { id: 'tx-paga', professional_id: 'prof-joao', gross_amount: 100, payment_method: 'pix', paid_at: '2026-05-10T12:00:00.000Z' },
+      { id: 'tx-aberta', professional_id: 'prof-joao', gross_amount: 200, payment_method: 'pix', paid_at: '2026-05-11T12:00:00.000Z' },
+    ],
+    agreements: [{ professional_id: 'prof-joao', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [{ professionalId: 'prof-joao', nome: 'Joao', ativo: true }],
+    payoutItems: [{ transaction_id: 'tx-paga', status: 'confirmed' }],
+  });
+
+  const barbeiro = dashboard.barbeiros[0];
+  assert.equal(dashboard.cards.receitaBruta.total, 300);
+  assert.equal(barbeiro.valorBarbeiro, 120);
+  assert.equal(barbeiro.pendingPayoutAmount, 80);
+  assert.equal(barbeiro.cutsPendingPayout, 1);
+});
+
+test('FinanceiroCalculator calcula itens elegiveis para payout sem confiar no frontend', () => {
+  const calculator = new FinanceiroCalculator();
+  const payout = calculator.calcularPayoutProfissional({
+    professionalId: 'prof-joao',
+    transacoes: [
+      { id: 'tx-ja-registrada', professional_id: 'prof-joao', gross_amount: 100, payment_method: 'credito', paid_at: '2026-05-10T12:00:00.000Z' },
+      { id: 'tx-nova', professional_id: 'prof-joao', gross_amount: 200, payment_method: 'credito', paid_at: '2026-05-11T12:00:00.000Z' },
+    ],
+    agreements: [{ professional_id: 'prof-joao', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [{ professionalId: 'prof-joao', nome: 'Joao', ativo: true }],
+    taxasMetodoPagamento: [{ payment_method: 'credit', fee_percent: 5 }],
+    payoutItems: [{ transaction_id: 'tx-ja-registrada', status: 'confirmed' }],
+  });
+
+  assert.equal(payout.amount, 76);
+  assert.equal(payout.cuts, 1);
+  assert.deepEqual(payout.items, [{ transactionId: 'tx-nova', amount: 76 }]);
 });
 
 test('FinanceiroCalculator usa o acordo percentual mais recente do profissional', () => {
@@ -81,6 +122,8 @@ test('FinanceiroCalculator nao inventa percentual quando parceiro nao tem agreem
   const barbeiro = dashboard.barbeiros[0];
   assert.equal(dashboard.cards.lucroBarbearia.total, 0);
   assert.equal(barbeiro.valorBarbeiro, 0);
+  assert.equal(barbeiro.pendingPayoutAmount, 0);
+  assert.equal(barbeiro.cutsPendingPayout, 0);
   assert.equal(barbeiro.valorBarbearia, 0);
   assert.equal(barbeiro.porcentagemBarbearia, 0);
   assert.equal(barbeiro.porcentagemBarbeiro, 0);
@@ -143,6 +186,8 @@ test('FinanceiroCalculator isOwner: lucroBarbearia = participacao da barbearia',
   assert.equal(dashboard.cards.meuLucro, null);
   assert.equal(dashboard.barbeiros[0].porcentagemBarbeiro, 100);
   assert.equal(dashboard.barbeiros[0].porcentagemBarbearia, 100);
+  assert.equal(dashboard.barbeiros[0].pendingPayoutAmount, 480);
+  assert.equal(dashboard.barbeiros[0].cutsPendingPayout, 1);
   assert.equal(dashboard.barbeiros[0].agreementConfigured, true);
 });
 
@@ -444,12 +489,16 @@ test('FinanceiroCalculator divide dono e parceiro sobre liquido apos taxa de car
   assert.equal(dono.taxas, 5);
   assert.equal(dono.receitaLiquida, 95);
   assert.equal(dono.valorBarbeiro, 95);
+  assert.equal(dono.pendingPayoutAmount, 95);
+  assert.equal(dono.cutsPendingPayout, 1);
   assert.equal(dono.valorBarbearia, 95);
   assert.equal(dono.agreementConfigured, true);
   assert.equal(parceiro.receitaBruta, 100);
   assert.equal(parceiro.taxas, 5);
   assert.equal(parceiro.receitaLiquida, 95);
   assert.equal(parceiro.valorBarbeiro, 38);
+  assert.equal(parceiro.pendingPayoutAmount, 38);
+  assert.equal(parceiro.cutsPendingPayout, 1);
   assert.equal(parceiro.valorBarbearia, 57);
   assert.equal(parceiro.valorBarbeiro + parceiro.valorBarbearia, parceiro.receitaLiquida);
 });

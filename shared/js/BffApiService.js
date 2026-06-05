@@ -353,6 +353,23 @@ class BffApiService {
         de,
         ate,
       }),
+
+    confirmarPagamentoBarbeiro: ({
+      barbershopId,
+      professionalId,
+      periodo = 'mes',
+      de = null,
+      ate = null,
+      displayedAmount = 0,
+    } = {}) =>
+      BffApiService.post('/api/v1/financeiro/pagamentos-barbeiro', {
+        barbershop_id: barbershopId,
+        professional_id: professionalId,
+        periodo,
+        de,
+        ate,
+        displayed_amount: displayedAmount,
+      }),
   };
 
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──

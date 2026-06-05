@@ -19,6 +19,7 @@ class FinancasPage {
   #canaisResumo = [];
   #carregando = false;
   #resolvendo = false;
+  #payoutEmAndamento = false;
   #dados = null;
   #refs = {};
 
@@ -186,7 +187,7 @@ class FinancasPage {
     this.#renderGraficos(dados);
     this.#renderMetodos(dados.metodosPagamento || []);
     this.#renderStatusEquipe(dados.statusEquipe || dados.cards?.totalBarbeiros || {});
-    this.#renderBarbeiros(dados.barbeiros || []);
+    this.#renderBarbeiros(dados.barbeiros || [], dados.isOwner === true);
   }
 
   #renderResumo(cards, isOwner = false) {
@@ -378,7 +379,7 @@ class FinancasPage {
     `;
   }
 
-  #renderBarbeiros(barbeiros) {
+  #renderBarbeiros(barbeiros, isOwner = false) {
     const el = this.#refs.barbeiros;
     if (!el) return;
     if (this.#refs.tituloBarbeiros) this.#refs.tituloBarbeiros.hidden = !barbeiros.length;
@@ -395,6 +396,7 @@ class FinancasPage {
         : FinancasPage.#escapar(inicial);
       const status = barbeiro.status === 'online' ? 'trabalhando' : (barbeiro.ativo ? 'ativo' : 'inativo');
       const semAcordo = !barbeiro.agreementConfigured;
+      const podePagar = isOwner && Number(barbeiro.pendingPayoutAmount || 0) > 0;
 
       return `
         <article class="fin-barber-card" data-prof-id="${FinancasPage.#escapar(barbeiro.professionalId)}">
@@ -416,12 +418,96 @@ class FinancasPage {
             <div><dt>Barbeiro</dt><dd>${this.#numero(barbeiro.porcentagemBarbeiro)}%</dd></div>
           </dl>
           <div class="fin-split-result">
+            <div class="fin-payout-row">
+              <p><span>Valor total a pagar</span><strong>${this.#moeda(barbeiro.pendingPayoutAmount)}</strong></p>
+              ${podePagar ? `<button type="button" class="fin-payout-btn" data-prof-id="${FinancasPage.#escapar(barbeiro.professionalId)}">Pagar</button>` : ''}
+            </div>
             <p><span>Barbeiro recebe</span><strong>${this.#moeda(barbeiro.valorBarbeiro)}</strong></p>
             <p><span>Barbearia recebe</span><strong>${this.#moeda(barbeiro.valorBarbearia)}</strong></p>
           </div>
         </article>
       `;
     }).join('');
+
+    el.querySelectorAll('.fin-payout-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const barbeiro = barbeiros.find(item => item.professionalId === btn.dataset.profId);
+        if (barbeiro) this.#abrirModalPagamento(barbeiro);
+      });
+    });
+  }
+
+  #abrirModalPagamento(barbeiro) {
+    if (!barbeiro || this.#payoutEmAndamento || document.querySelector('.fin-payout-modal')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 'fin-payout-modal';
+    overlay.innerHTML = `
+      <div class="fin-payout-modal__box" role="dialog" aria-modal="true" aria-labelledby="fin-payout-title">
+        <div class="fin-payout-modal__head">
+          <h3 id="fin-payout-title">Confirmar pagamento</h3>
+          <button type="button" class="fin-payout-modal__close" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="fin-payout-modal__body">
+          <p><span>Barbeiro</span><strong>${FinancasPage.#escapar(barbeiro.nome)}</strong></p>
+          <p><span>Valor</span><strong>${this.#moeda(barbeiro.pendingPayoutAmount)}</strong></p>
+          <p><span>Periodo</span><strong>${FinancasPage.#escapar(this.#periodoLabel())}</strong></p>
+          <p><span>Cortes finalizados/recebidos no periodo</span><strong>${this.#numero(barbeiro.cutsPendingPayout)}</strong></p>
+        </div>
+        <p class="fin-payout-modal__erro" hidden></p>
+        <div class="fin-payout-modal__actions">
+          <button type="button" class="fin-payout-cancel">Cancelar</button>
+          <button type="button" class="fin-payout-confirm">Confirmar</button>
+        </div>
+      </div>
+    `;
+
+    const fechar = () => overlay.remove();
+    overlay.querySelector('.fin-payout-modal__close')?.addEventListener('click', fechar);
+    overlay.querySelector('.fin-payout-cancel')?.addEventListener('click', fechar);
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) fechar();
+    });
+    overlay.querySelector('.fin-payout-confirm')?.addEventListener('click', () =>
+      this.#confirmarPagamentoBarbeiro(barbeiro, overlay)
+    );
+    document.body?.appendChild(overlay);
+  }
+
+  async #confirmarPagamentoBarbeiro(barbeiro, overlay) {
+    if (this.#payoutEmAndamento || !this.#shopId || !barbeiro?.professionalId) return;
+    this.#payoutEmAndamento = true;
+    const confirmBtn = overlay.querySelector('.fin-payout-confirm');
+    const erroEl = overlay.querySelector('.fin-payout-modal__erro');
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (erroEl) {
+      erroEl.hidden = true;
+      erroEl.textContent = '';
+    }
+
+    try {
+      const { error } = await BffApiService.financeiro.confirmarPagamentoBarbeiro({
+        barbershopId: this.#shopId,
+        professionalId: barbeiro.professionalId,
+        periodo: this.#periodoAtual,
+        de: this.#customDe,
+        ate: this.#customAte,
+        displayedAmount: barbeiro.pendingPayoutAmount,
+      });
+      if (error) throw error;
+      overlay.remove();
+      await this.#carregar();
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn?.('[FinancasPage] erro ao confirmar pagamento:', err?.message);
+      }
+      if (erroEl) {
+        erroEl.textContent = err?.message || 'Nao foi possivel registrar o pagamento.';
+        erroEl.hidden = false;
+      }
+      if (confirmBtn) confirmBtn.disabled = false;
+    } finally {
+      this.#payoutEmAndamento = false;
+    }
   }
 
   async #onMenosPercent(metodo) {
@@ -500,6 +586,20 @@ class FinancasPage {
 
   #alternarCustom(visivel) {
     if (this.#refs.customWrap) this.#refs.customWrap.hidden = !visivel;
+  }
+
+  #periodoLabel() {
+    if (this.#periodoAtual === 'custom') {
+      return `${this.#customDe || ''} ate ${this.#customAte || ''}`.trim();
+    }
+    const labels = {
+      hoje: 'Hoje',
+      ontem: 'Ontem',
+      semana: 'Semana',
+      mes: 'Mes',
+      ano: 'Ano',
+    };
+    return labels[this.#periodoAtual] || 'Periodo';
   }
 
   #mostrarLoading(visivel) {

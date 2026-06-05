@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "rpc": "confirmar_professional_payout_atomic",
+  "description": "Cria payout confirmado e itens de transacao de forma atomica para pagamento de barbeiro.",
+  "signature": {
+    "name": "confirmar_professional_payout_atomic",
+    "params": [
+      { "name": "p_barbershop_id", "type": "UUID" },
+      { "name": "p_professional_id", "type": "UUID" },
+      { "name": "p_amount", "type": "NUMERIC" },
+      { "name": "p_period_start", "type": "TIMESTAMPTZ" },
+      { "name": "p_period_end", "type": "TIMESTAMPTZ" },
+      { "name": "p_created_by", "type": "UUID" },
+      { "name": "p_transaction_ids", "type": "UUID[]" },
+      { "name": "p_item_amounts", "type": "NUMERIC[]" }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "id", "type": "UUID" },
+        { "name": "barbershop_id", "type": "UUID" },
+        { "name": "professional_id", "type": "UUID" },
+        { "name": "amount", "type": "NUMERIC" },
+        { "name": "period_start", "type": "TIMESTAMPTZ" },
+        { "name": "period_end", "type": "TIMESTAMPTZ" },
+        { "name": "status", "type": "TEXT" },
+        { "name": "paid_at", "type": "TIMESTAMPTZ" },
+        { "name": "created_by", "type": "UUID" },
+        { "name": "created_at", "type": "TIMESTAMPTZ" },
+        { "name": "updated_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "errors": [
+    { "code": "22023", "description": "Parametros invalidos, periodo invalido, valor nao positivo ou arrays vazios/divergentes." },
+    { "code": "23505", "description": "transaction_id ja vinculado a outro professional_payout_item." }
+  ],
+  "examples": {
+    "validInput": {
+      "p_amount": 192,
+      "p_transaction_ids": ["44444444-4444-4444-8444-444444444444"],
+      "p_item_amounts": [192]
+    },
+    "expectedOutputFields": ["id", "barbershop_id", "professional_id", "amount", "status", "paid_at"]
+  },
+  "grants": ["authenticated", "service_role"],
+  "migration": "20260605000003_professional_payouts.sql"
+}

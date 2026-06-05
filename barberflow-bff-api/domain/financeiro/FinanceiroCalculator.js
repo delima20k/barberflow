@@ -76,11 +76,13 @@ class FinanceiroCalculator {
     despesas = [],
     despesasAnteriores = [],
     taxasMetodoPagamento = [],
+    payoutItems = [],
   }) {
     const barbeiroMap = this.#barbeiroMap(profissionais, statusEquipe);
     const agreementMap = this.#agreementMap(agreements, barbeiroMap);
     const taxaMetodoMap = this.#taxaMetodoMap(taxasMetodoPagamento);
-    const atual = this.#agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap);
+    const payoutTransactionIds = this.#payoutTransactionIds(payoutItems);
+    const atual = this.#agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap, payoutTransactionIds);
     const anterior = this.#agregar(transacoesAnteriores, agreementMap, barbeiroMap, taxaMetodoMap);
     const barbeiros = this.#barbeirosOrdenados(atual.barbeiros, anterior.barbeiros, barbeiroMap, agreementMap);
     const mensalidadesAtual = this.#mensalidadesParceiros(agreements, periodo, barbeiroMap);
@@ -175,7 +177,36 @@ class FinanceiroCalculator {
     return Number((((atualNumero - anteriorNumero) / anteriorNumero) * 100).toFixed(1));
   }
 
-  #agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap) {
+  calcularPayoutProfissional({
+    professionalId,
+    transacoes = [],
+    agreements = [],
+    profissionais = [],
+    taxasMetodoPagamento = [],
+    payoutItems = [],
+  }) {
+    const barbeiroMap = this.#barbeiroMap(profissionais, {});
+    const agreementMap = this.#agreementMap(agreements, barbeiroMap);
+    const taxaMetodoMap = this.#taxaMetodoMap(taxasMetodoPagamento);
+    const payoutTransactionIds = this.#payoutTransactionIds(payoutItems);
+    const items = [];
+    let amount = Money.zero();
+
+    for (const tx of transacoes || []) {
+      if (!tx?.id || tx.professional_id !== professionalId || payoutTransactionIds.has(tx.id)) continue;
+      const profissional = barbeiroMap.get(professionalId);
+      const agreement = this.#agreementFor(professionalId, agreementMap, profissional);
+      const financial = this.#transacaoFinanceira(tx, taxaMetodoMap);
+      const split = this.#splitTransaction(financial.net, agreement, profissional);
+      if (split.barberDisplay.cents <= 0) continue;
+      amount = amount.plus(split.barberDisplay);
+      items.push({ transactionId: tx.id, amount: split.barberDisplay.toNumber() });
+    }
+
+    return { amount: amount.toNumber(), cuts: items.length, items };
+  }
+
+  #agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap, payoutTransactionIds = new Set()) {
     const total = {
       gross: Money.zero(),
       net: Money.zero(),
@@ -203,7 +234,15 @@ class FinanceiroCalculator {
       total.cortes += 1;
 
       this.#somarMetodo(total.metodos, tx.payment_method, financial);
-      this.#somarBarbeiro(total.barbeiros, professionalId, profissional, agreement, financial, split);
+      this.#somarBarbeiro(
+        total.barbeiros,
+        professionalId,
+        profissional,
+        agreement,
+        financial,
+        split,
+        payoutTransactionIds.has(tx.id),
+      );
     }
 
     return total;
@@ -229,7 +268,7 @@ class FinanceiroCalculator {
     metodos.set(key, atual);
   }
 
-  #somarBarbeiro(map, professionalId, profissional, agreement, financial, split) {
+  #somarBarbeiro(map, professionalId, profissional, agreement, financial, split, payoutRegistrado = false) {
     const atual = map.get(professionalId) || {
       professionalId,
       nome: profissional?.nome || 'Profissional',
@@ -244,6 +283,8 @@ class FinanceiroCalculator {
       porcentagemBarbeiro: agreement.barberPercent,
       valorBarbeiro: Money.zero(),
       valorBarbearia: Money.zero(),
+      pendingPayoutAmount: Money.zero(),
+      cutsPendingPayout: 0,
       agreementConfigured: agreement.configured,
     };
 
@@ -253,6 +294,10 @@ class FinanceiroCalculator {
     atual.receitaLiquida = atual.receitaLiquida.plus(financial.net);
     atual.valorBarbeiro = atual.valorBarbeiro.plus(split.barberDisplay);
     atual.valorBarbearia = atual.valorBarbearia.plus(split.shopDisplay);
+    if (!payoutRegistrado) {
+      atual.pendingPayoutAmount = atual.pendingPayoutAmount.plus(split.barberDisplay);
+      if (split.barberDisplay.cents > 0) atual.cutsPendingPayout += 1;
+    }
     map.set(professionalId, atual);
   }
 
@@ -277,6 +322,8 @@ class FinanceiroCalculator {
         porcentagemBarbeiro: atual?.porcentagemBarbeiro ?? agreement.barberPercent,
         valorBarbeiro: (atual?.valorBarbeiro || Money.zero()).toNumber(),
         valorBarbearia: (atual?.valorBarbearia || Money.zero()).toNumber(),
+        pendingPayoutAmount: (atual?.pendingPayoutAmount || Money.zero()).toNumber(),
+        cutsPendingPayout: atual?.cutsPendingPayout || 0,
         agreementConfigured: atual?.agreementConfigured ?? agreement.configured,
         crescimentoPct: this.comparativo(atual?.receitaLiquida || Money.zero(), anterior?.receitaLiquida || Money.zero()),
       };
@@ -581,6 +628,12 @@ class FinanceiroCalculator {
       credit_card: 'credit',
     };
     return aliases[raw] || 'outros';
+  }
+
+  #payoutTransactionIds(payoutItems) {
+    return new Set((payoutItems || [])
+      .map(item => item?.transaction_id || item?.transactionId)
+      .filter(Boolean));
   }
 }
 

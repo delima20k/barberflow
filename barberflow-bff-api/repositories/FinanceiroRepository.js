@@ -58,8 +58,8 @@ class FinanceiroRepository extends BaseRepository {
     return data || [];
   }
 
-  async listarAgreements(barbershopId, ate) {
-    const { data, error } = await this._db
+  async listarAgreements(barbershopId, ate, professionalId = null) {
+    let query = this._db
       .from('agreements')
       .select('id, professional_id, barbershop_id, type, value, is_active, valid_from, valid_until, notes')
       .eq('barbershop_id', barbershopId)
@@ -69,6 +69,9 @@ class FinanceiroRepository extends BaseRepository {
       .or(`valid_until.is.null,valid_until.gte.${ate.toISOString()}`)
       .order('valid_from', { ascending: false });
 
+    if (professionalId) query = query.eq('professional_id', professionalId);
+
+    const { data, error } = await query;
     if (error) this._throwDbError(error, 'listarAgreements');
     return data || [];
   }
@@ -100,7 +103,47 @@ class FinanceiroRepository extends BaseRepository {
     return data || [];
   }
 
-  async listarProfissionais(barbershopId) {
+  async listarPayoutItemsRegistrados(barbershopId, periodo, professionalId = null) {
+    let payoutQuery = this._db
+      .from('professional_payouts')
+      .select('id, barbershop_id, professional_id, status, period_start, period_end')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'confirmed')
+      .lte('period_start', periodo.fim.toISOString())
+      .gte('period_end', periodo.inicio.toISOString())
+      .limit(5000);
+
+    if (professionalId) payoutQuery = payoutQuery.eq('professional_id', professionalId);
+
+    const { data: payouts, error: payoutError } = await payoutQuery;
+    if (payoutError) this._throwDbError(payoutError, 'listarPayoutItemsRegistrados.payouts');
+
+    const ids = (payouts || []).map(row => row.id).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    const { data: items, error: itemError } = await this._db
+      .from('professional_payout_items')
+      .select('payout_id, transaction_id, amount')
+      .in('payout_id', ids)
+      .limit(5000);
+
+    if (itemError) this._throwDbError(itemError, 'listarPayoutItemsRegistrados.items');
+
+    const payoutMap = new Map((payouts || []).map(row => [row.id, row]));
+    return (items || []).map(item => {
+      const payout = payoutMap.get(item.payout_id) || {};
+      return {
+        payout_id: item.payout_id,
+        transaction_id: item.transaction_id,
+        amount: item.amount,
+        status: payout.status,
+        barbershop_id: payout.barbershop_id,
+        professional_id: payout.professional_id,
+      };
+    });
+  }
+
+  async listarProfissionais(barbershopId, professionalId = null) {
     const [{ data: shop, error: shopError }, { data: links, error: linksError }] = await Promise.all([
       this._db
         .from('barbershops')
@@ -117,10 +160,11 @@ class FinanceiroRepository extends BaseRepository {
     if (shopError) this._throwDbError(shopError, 'listarProfissionais.shop');
     if (linksError) this._throwDbError(linksError, 'listarProfissionais.links');
 
-    const ids = [...new Set([
+    let ids = [...new Set([
       shop?.owner_id,
       ...(links || []).map(link => link.professional_id),
     ].filter(Boolean))];
+    if (professionalId) ids = ids.filter(id => id === professionalId);
     if (ids.length === 0) return [];
 
     const [{ data: profissionais, error: profError }, { data: perfis, error: perfisError }] = await Promise.all([
@@ -235,6 +279,31 @@ class FinanceiroRepository extends BaseRepository {
       .single();
 
     if (error) this._throwDbError(error, 'salvarTaxaMetodoPagamento');
+    return data;
+  }
+
+  async criarPayoutComItens({ createdBy, barbershopId, professionalId, amount, periodo, items }) {
+    this._uuid('createdBy', createdBy);
+    this._uuid('barbershop_id', barbershopId);
+    this._uuid('professional_id', professionalId);
+
+    const { data, error } = await this._db.rpc('confirmar_professional_payout_atomic', {
+      p_barbershop_id: barbershopId,
+      p_professional_id: professionalId,
+      p_amount: amount,
+      p_period_start: periodo.inicio.toISOString(),
+      p_period_end: periodo.fim.toISOString(),
+      p_created_by: createdBy,
+      p_transaction_ids: (items || []).map(item => item.transactionId),
+      p_item_amounts: (items || []).map(item => item.amount),
+    });
+
+    if (error) {
+      if (error.code === '23505') {
+        throw AppError.conflict('Pagamento ja registrado para um ou mais cortes finalizados/recebidos no periodo.');
+      }
+      this._throwDbError(error, 'criarPayoutComItens.rpc');
+    }
     return data;
   }
 }

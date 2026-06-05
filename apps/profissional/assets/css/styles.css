@@ -3543,6 +3543,131 @@
   font-size: .95rem;
   overflow-wrap: anywhere;
 }
+
+.fin-payout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.fin-payout-row p {
+  flex: 1;
+}
+
+.fin-payout-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: .55rem .8rem;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  min-width: 72px;
+}
+
+.fin-payout-btn:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.fin-payout-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, .52);
+}
+
+.fin-payout-modal__box {
+  width: min(420px, 100%);
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .28);
+}
+
+.fin-payout-modal__head,
+.fin-payout-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: 1rem;
+}
+
+.fin-payout-modal__head {
+  border-bottom: 1px solid rgba(15, 23, 42, .08);
+}
+
+.fin-payout-modal__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.fin-payout-modal__close {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.fin-payout-modal__body {
+  display: grid;
+  gap: .7rem;
+  padding: 1rem;
+}
+
+.fin-payout-modal__body p,
+.fin-payout-modal__erro {
+  margin: 0;
+}
+
+.fin-payout-modal__body p {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fin-payout-modal__body span {
+  color: #64748b;
+}
+
+.fin-payout-modal__erro {
+  margin: 0 1rem;
+  border-radius: 8px;
+  padding: .65rem .75rem;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.fin-payout-cancel,
+.fin-payout-confirm {
+  border: 0;
+  border-radius: 8px;
+  padding: .7rem 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fin-payout-cancel {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.fin-payout-confirm {
+  background: #0f766e;
+  color: #fff;
+}
+
+.fin-payout-confirm:disabled {
+  opacity: .6;
+  cursor: wait;
+}
 .fin-loading {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

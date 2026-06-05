@@ -1,6 +1,6 @@
 'use strict';
 
-const rateLimit  = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const { logger } = require('./logger');
 
 const IS_PROD = process.env.APP_ENV === 'production';
@@ -89,7 +89,7 @@ class RateLimiterMiddleware {
     standardHeaders: 'draft-7',
     legacyHeaders:   false,
     store:           _criarRedisStore(),
-    keyGenerator:    (req) => `portfolio:${req.user?.id ?? req.ip}`,
+    keyGenerator:    (req) => `portfolio:${req.user?.id ?? ipKeyGenerator(req.ip)}`,
     skip:            () => process.env.APP_ENV === 'test',
     handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
   });

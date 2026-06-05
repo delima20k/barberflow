@@ -33,6 +33,13 @@ class FinanceiroController extends BaseController {
       this.success(res, dados);
     });
   }
+
+  async confirmarPagamentoBarbeiro(req, res) {
+    await this.handle(res, async () => {
+      const dados = await this.#service.confirmarPagamentoBarbeiro(req.user.id, req.body);
+      this.success(res, dados);
+    });
+  }
 }
 
 module.exports = FinanceiroController;

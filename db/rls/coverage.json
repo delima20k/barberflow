@@ -87,6 +87,16 @@
       "sensitiveColumns": ["barbershop_id", "payment_method", "fee_percent"],
       "tests": ["supabase/tests/rls_crud_suite.sql"]
     },
+    "public.professional_payouts": {
+      "operations": ["select", "insert", "update"],
+      "sensitiveColumns": ["barbershop_id", "professional_id", "amount", "period_start", "period_end", "status", "paid_at", "created_by"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/financeiro-http.test.js"]
+    },
+    "public.professional_payout_items": {
+      "operations": ["select", "insert"],
+      "sensitiveColumns": ["payout_id", "transaction_id", "amount"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/financeiro-http.test.js"]
+    },
     "public.subscriptions": {
       "operations": ["select", "insert", "update", "delete"],
       "sensitiveColumns": ["user_id", "plan", "price", "payment_token"],
@@ -118,6 +128,7 @@
     "buscar_perfis_por_nome",
     "get_clientes_favoritos_modal",
     "get_clientes_favoritos_barbearia",
-    "notificar_barbeiro_chegada"
+    "notificar_barbeiro_chegada",
+    "confirmar_professional_payout_atomic"
   ]
 }
