@@ -60,7 +60,36 @@ class AppBootstrap {
     // 2. Widgets Supabase: execução sequencial — evita múltiplos locks concorrentes
     AppBootstrap.#_executarSequencial();
 
+    // 3. E2EE: registra a chave pública do usuário logado (independe de abrir o chat)
+    AppBootstrap.#iniciarChavesE2E();
+
     AppBootstrap.#registrarSW();
+  }
+
+  /**
+   * Registra a chave pública E2EE assim que o usuário está logado — em qualquer
+   * tela, sem precisar abrir o chat. Garante que outros usuários consigam
+   * criptografar mensagens para este destinatário mesmo com o chat fechado.
+   * @private
+   */
+  static #iniciarChavesE2E() {
+    if (typeof ConversationKeyService === 'undefined') return;
+
+    // Registra imediatamente se já estiver logado na abertura da página
+    if (typeof AppState !== 'undefined' && AppState.get('isLogado')) {
+      ConversationKeyService.inicializar().catch(() => {});
+    }
+
+    // Registra ao logar; limpa o cache ao deslogar
+    if (typeof AppState !== 'undefined') {
+      AppState.onAuth(isLogado => {
+        if (isLogado) {
+          ConversationKeyService.inicializar().catch(() => {});
+        } else if (typeof ConversationKeyService.limpar === 'function') {
+          ConversationKeyService.limpar();
+        }
+      });
+    }
   }
 
   /**
