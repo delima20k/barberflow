@@ -137,6 +137,12 @@ class UniversalChatPage {
       ChatRealtimeService.iniciar(UniversalChatPage.#uid);
     }
 
+    // Registra a chave pública E2EE assim que o usuário entra na área de mensagens.
+    // Garante que o peer tenha a chave registrada sem precisar abrir uma conversa.
+    if (typeof ConversationKeyService !== 'undefined') {
+      ConversationKeyService.inicializar().catch(() => {});
+    }
+
     UniversalChatPage.#renderSkeleton();
 
     let resultado;
