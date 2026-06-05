@@ -12,7 +12,7 @@ test('Money opera em centavos e evita erro de ponto flutuante', () => {
   assert.equal(Money.from(480).timesPercent(40).toNumber(), 192);
 });
 
-test('FinanceiroCalculator desconta taxas antes de dividir entre barbearia e barbeiro', () => {
+test('FinanceiroCalculator divide pelo percentual do barbeiro apos taxas de metodo', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({
     periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
@@ -34,12 +34,13 @@ test('FinanceiroCalculator desconta taxas antes de dividir entre barbearia e bar
   const barbeiro = dashboard.barbeiros[0];
   assert.equal(dashboard.cards.receitaBruta.total, 500);
   assert.equal(dashboard.cards.receitaLiquida.total, 480);
-  assert.equal(dashboard.cards.lucroBarbearia.total, 192);
-  assert.equal(barbeiro.valorBarbeiro, 288);
-  assert.equal(barbeiro.valorBarbearia, 192);
-  assert.equal(barbeiro.taxas, 20);
-  assert.equal(barbeiro.porcentagemBarbearia, 40);
-  assert.equal(barbeiro.porcentagemBarbeiro, 60);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 288);
+  assert.equal(barbeiro.valorBarbeiro, 192);
+  assert.equal(barbeiro.valorBarbearia, 288);
+  assert.equal(barbeiro.taxas, 288);
+  assert.equal(barbeiro.receitaLiquida, 192);
+  assert.equal(barbeiro.porcentagemBarbearia, 60);
+  assert.equal(barbeiro.porcentagemBarbeiro, 40);
   assert.equal(barbeiro.agreementConfigured, true);
 });
 
@@ -59,12 +60,13 @@ test('FinanceiroCalculator usa o acordo percentual mais recente do profissional'
   });
 
   const barbeiro = dashboard.barbeiros[0];
-  assert.equal(barbeiro.porcentagemBarbearia, 40);
-  assert.equal(barbeiro.valorBarbearia, 40);
-  assert.equal(barbeiro.valorBarbeiro, 60);
+  assert.equal(barbeiro.porcentagemBarbearia, 60);
+  assert.equal(barbeiro.porcentagemBarbeiro, 40);
+  assert.equal(barbeiro.valorBarbearia, 60);
+  assert.equal(barbeiro.valorBarbeiro, 40);
 });
 
-test('FinanceiroCalculator usa 0% para barbearia quando nao ha agreement ativo', () => {
+test('FinanceiroCalculator nao inventa percentual quando parceiro nao tem agreement ativo', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({
     periodo: { tipo: 'semana', de: '2026-05-18', ate: '2026-05-24' },
@@ -77,9 +79,38 @@ test('FinanceiroCalculator usa 0% para barbearia quando nao ha agreement ativo',
 
   const barbeiro = dashboard.barbeiros[0];
   assert.equal(dashboard.cards.lucroBarbearia.total, 0);
-  assert.equal(barbeiro.valorBarbeiro, 95);
+  assert.equal(barbeiro.valorBarbeiro, 0);
   assert.equal(barbeiro.valorBarbearia, 0);
+  assert.equal(barbeiro.porcentagemBarbearia, 0);
+  assert.equal(barbeiro.porcentagemBarbeiro, 0);
   assert.equal(barbeiro.agreementConfigured, false);
+});
+
+test('FinanceiroCalculator respeita acordos 50/50 e 80/20 como percentual do barbeiro', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'prof-50', gross_amount: 100, amount: 100, paid_at: '2026-05-10T12:00:00.000Z' },
+      { professional_id: 'prof-80', gross_amount: 100, amount: 100, paid_at: '2026-05-10T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [
+      { professional_id: 'prof-50', type: 'percentage', value: 50, is_active: true },
+      { professional_id: 'prof-80', type: 'percentage', value: 80, is_active: true },
+    ],
+    profissionais: [
+      { professionalId: 'prof-50', nome: 'Meio a meio', ativo: true },
+      { professionalId: 'prof-80', nome: 'Oitenta', ativo: true },
+    ],
+  });
+
+  const meio = dashboard.barbeiros.find(item => item.professionalId === 'prof-50');
+  const oitenta = dashboard.barbeiros.find(item => item.professionalId === 'prof-80');
+  assert.equal(meio.valorBarbeiro, 50);
+  assert.equal(meio.valorBarbearia, 50);
+  assert.equal(oitenta.valorBarbeiro, 80);
+  assert.equal(oitenta.valorBarbearia, 20);
 });
 
 test('FinanceiroCalculator calcula comparativos positivos, negativos e base zero', () => {
@@ -99,15 +130,35 @@ test('FinanceiroCalculator isOwner: lucroBarbearia = participacao da barbearia',
     ],
     transacoesAnteriores: [],
     agreements: [{ professional_id: 'prof-dono', type: 'percentage', value: 40, is_active: true }],
-    profissionais: [{ professionalId: 'prof-dono', nome: 'Dono', ativo: true }],
+    profissionais: [{ professionalId: 'prof-dono', nome: 'Dono', papel: 'owner', ativo: true }],
     statusEquipe: { online: 1, onlineIds: ['prof-dono'] },
     isOwner: true,
   });
 
   assert.equal(dashboard.isOwner, true);
-  assert.equal(dashboard.cards.receitaLiquida.total, 192);
-  assert.equal(dashboard.cards.lucroBarbearia.total, 192);
+  assert.equal(dashboard.cards.receitaLiquida.total, 480);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 480);
   assert.equal(dashboard.cards.meuLucro, null);
+  assert.equal(dashboard.barbeiros[0].porcentagemBarbeiro, 100);
+  assert.equal(dashboard.barbeiros[0].porcentagemBarbearia, 100);
+  assert.equal(dashboard.barbeiros[0].agreementConfigured, true);
+});
+
+test('FinanceiroCalculator owner: dono sem cortes nao mostra acordo ausente', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [],
+    transacoesAnteriores: [],
+    agreements: [],
+    profissionais: [{ professionalId: 'owner-id', nome: 'Dono', papel: 'owner', ativo: true }],
+    isOwner: true,
+  });
+
+  const dono = dashboard.barbeiros[0];
+  assert.equal(dono.porcentagemBarbeiro, 100);
+  assert.equal(dono.porcentagemBarbearia, 100);
+  assert.equal(dono.agreementConfigured, true);
 });
 
 test('FinanceiroCalculator owner: resumo usa participacao da barbearia e aluguel proporcional', () => {
@@ -142,8 +193,8 @@ test('FinanceiroCalculator owner: resumo usa participacao da barbearia e aluguel
 
   assert.equal(dashboard.cards.totalCortes.total, 2);
   assert.equal(dashboard.cards.receitaBruta.total, 300);
-  assert.equal(dashboard.cards.receitaLiquida.total, 205);
-  assert.equal(dashboard.cards.lucroBarbearia.total, 205);
+  assert.equal(dashboard.cards.receitaLiquida.total, 225);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 225);
   assert.equal(dashboard.cards.lucroBarbearia.limitacaoDespesas, false);
   assert.equal(dashboard.cards.mensalistas.total, 70);
   assert.equal(dashboard.cards.mensalistas.count, 1);
@@ -177,8 +228,8 @@ test('FinanceiroCalculator owner: lucro desconta despesas reais', () => {
     isOwner: true,
   });
 
-  assert.equal(dashboard.cards.receitaLiquida.total, 350);
-  assert.equal(dashboard.cards.lucroBarbearia.total, 325);
+  assert.equal(dashboard.cards.receitaLiquida.total, 370);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 345);
   assert.equal(dashboard.cards.lucroBarbearia.despesas, 25);
   assert.equal(dashboard.cards.lucroBarbearia.limitacaoDespesas, false);
 });
@@ -275,9 +326,9 @@ test('FinanceiroCalculator nao-dono: meuLucro = porcentagem do barbeiro viewer',
   });
 
   assert.equal(dashboard.isOwner, false);
-  assert.equal(dashboard.cards.lucroBarbearia.total, 192);
+  assert.equal(dashboard.cards.lucroBarbearia.total, 288);
   assert.ok(dashboard.cards.meuLucro !== null);
-  assert.equal(dashboard.cards.meuLucro.total, 288);
+  assert.equal(dashboard.cards.meuLucro.total, 192);
 });
 
 test('FinanceiroCalculator valida periodo custom com de e ate', () => {

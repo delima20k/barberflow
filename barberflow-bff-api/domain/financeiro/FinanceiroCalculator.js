@@ -75,12 +75,14 @@ class FinanceiroCalculator {
     mensalistas = null,
     despesas = [],
     despesasAnteriores = [],
+    taxasMetodoPagamento = [],
   }) {
-    const agreementMap = this.#agreementMap(agreements);
     const barbeiroMap = this.#barbeiroMap(profissionais, statusEquipe);
-    const atual = this.#agregar(transacoes, agreementMap, barbeiroMap);
-    const anterior = this.#agregar(transacoesAnteriores, agreementMap, barbeiroMap);
-    const barbeiros = this.#barbeirosOrdenados(atual.barbeiros, anterior.barbeiros, barbeiroMap);
+    const agreementMap = this.#agreementMap(agreements, barbeiroMap);
+    const taxaMetodoMap = this.#taxaMetodoMap(taxasMetodoPagamento);
+    const atual = this.#agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap);
+    const anterior = this.#agregar(transacoesAnteriores, agreementMap, barbeiroMap, taxaMetodoMap);
+    const barbeiros = this.#barbeirosOrdenados(atual.barbeiros, anterior.barbeiros, barbeiroMap, agreementMap);
     const mensalidadesAtual = this.#mensalidadesParceiros(agreements, periodo, barbeiroMap);
     const mensalidadesAnterior = this.#mensalidadesParceiros(agreements, this.#periodoAnterior(periodo), barbeiroMap);
     const despesasAtual = this.#somarDespesas(despesas);
@@ -150,7 +152,7 @@ class FinanceiroCalculator {
         .filter(m => m.metodo !== 'outros')
         .sort((a, b) => b.receitaLiquida - a.receitaLiquida),
       barbeiros,
-      series: this.#series(transacoes, agreementMap),
+      series: this.#series(transacoes, agreementMap, barbeiroMap),
       donut: [
         { label: 'Barbearia', value: atual.shop.toNumber(), color: '#0f766e' },
         { label: 'Barbeiros', value: atual.barbers.toNumber(), color: '#2563eb' },
@@ -173,7 +175,7 @@ class FinanceiroCalculator {
     return Number((((atualNumero - anteriorNumero) / anteriorNumero) * 100).toFixed(1));
   }
 
-  #agregar(transacoes, agreementMap, barbeiroMap) {
+  #agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap) {
     const total = {
       gross: Money.zero(),
       net: Money.zero(),
@@ -187,29 +189,34 @@ class FinanceiroCalculator {
 
     for (const tx of transacoes) {
       const professionalId = tx.professional_id || 'sem-profissional';
-      const agreement = agreementMap.get(professionalId) || { shopPercent: 0, configured: false };
+      const profissional = barbeiroMap.get(professionalId);
+      const agreement = this.#agreementFor(professionalId, agreementMap, profissional);
       const gross = Money.from(tx.gross_amount ?? tx.amount);
       const net = Money.from(tx.amount);
       const fees = gross.minus(net).maxZero();
-      const shop = net.timesPercent(agreement.shopPercent);
-      const barber = net.minus(shop);
+      const split = this.#splitTransaction(net, agreement, profissional);
 
       total.gross = total.gross.plus(gross);
       total.net = total.net.plus(net);
       total.fees = total.fees.plus(fees);
-      total.shop = total.shop.plus(shop);
-      total.barbers = total.barbers.plus(barber);
+      total.shop = total.shop.plus(split.shopTotal);
+      total.barbers = total.barbers.plus(split.barberTotal);
       total.cortes += 1;
 
-      this.#somarMetodo(total.metodos, tx.payment_method, gross, net, fees);
-      this.#somarBarbeiro(total.barbeiros, professionalId, barbeiroMap.get(professionalId), agreement, gross, net, fees, shop, barber);
+      this.#somarMetodo(total.metodos, tx.payment_method, gross, taxaMetodoMap);
+      this.#somarBarbeiro(total.barbeiros, professionalId, profissional, agreement, gross, split);
     }
 
     return total;
   }
 
-  #somarMetodo(metodos, metodo, gross, net, fees) {
-    const key = metodo || 'outros';
+  #somarMetodo(metodos, metodo, gross, taxaMetodoMap) {
+    const key = this.#normalizarMetodoPagamento(metodo);
+    const feePercent = key === 'credit' || key === 'debit'
+      ? Number(taxaMetodoMap.get(key) || 0)
+      : 0;
+    const fees = gross.timesPercent(feePercent).maxZero();
+    const net = gross.minus(fees).maxZero();
     const atual = metodos.get(key) || {
       metodo: key,
       label: this.#labelMetodo(key),
@@ -217,15 +224,17 @@ class FinanceiroCalculator {
       receitaBruta: 0,
       receitaLiquida: 0,
       taxas: 0,
+      feePercent,
     };
     atual.cortes += 1;
+    atual.feePercent = feePercent;
     atual.receitaBruta = Money.from(atual.receitaBruta).plus(gross).toNumber();
     atual.receitaLiquida = Money.from(atual.receitaLiquida).plus(net).toNumber();
     atual.taxas = Money.from(atual.taxas).plus(fees).toNumber();
     metodos.set(key, atual);
   }
 
-  #somarBarbeiro(map, professionalId, profissional, agreement, gross, net, fees, shop, barber) {
+  #somarBarbeiro(map, professionalId, profissional, agreement, gross, split) {
     const atual = map.get(professionalId) || {
       professionalId,
       nome: profissional?.nome || 'Profissional',
@@ -237,7 +246,7 @@ class FinanceiroCalculator {
       taxas: Money.zero(),
       receitaLiquida: Money.zero(),
       porcentagemBarbearia: agreement.shopPercent,
-      porcentagemBarbeiro: Math.max(0, 100 - agreement.shopPercent),
+      porcentagemBarbeiro: agreement.barberPercent,
       valorBarbeiro: Money.zero(),
       valorBarbearia: Money.zero(),
       agreementConfigured: agreement.configured,
@@ -245,18 +254,19 @@ class FinanceiroCalculator {
 
     atual.cortes += 1;
     atual.receitaBruta = atual.receitaBruta.plus(gross);
-    atual.taxas = atual.taxas.plus(fees);
-    atual.receitaLiquida = atual.receitaLiquida.plus(net);
-    atual.valorBarbeiro = atual.valorBarbeiro.plus(barber);
-    atual.valorBarbearia = atual.valorBarbearia.plus(shop);
+    atual.taxas = atual.taxas.plus(split.cardTaxas);
+    atual.receitaLiquida = atual.receitaLiquida.plus(split.barberDisplay);
+    atual.valorBarbeiro = atual.valorBarbeiro.plus(split.barberDisplay);
+    atual.valorBarbearia = atual.valorBarbearia.plus(split.shopDisplay);
     map.set(professionalId, atual);
   }
 
-  #barbeirosOrdenados(atualMap, anteriorMap, barbeiroMap) {
+  #barbeirosOrdenados(atualMap, anteriorMap, barbeiroMap, agreementMap) {
     const ids = new Set([...barbeiroMap.keys(), ...atualMap.keys()]);
     return [...ids].map(id => {
       const atual = atualMap.get(id);
       const base = barbeiroMap.get(id) || {};
+      const agreement = this.#agreementFor(id, agreementMap, base);
       const anterior = anteriorMap.get(id);
       return {
         professionalId: id,
@@ -268,28 +278,29 @@ class FinanceiroCalculator {
         receitaBruta: (atual?.receitaBruta || Money.zero()).toNumber(),
         taxas: (atual?.taxas || Money.zero()).toNumber(),
         receitaLiquida: (atual?.receitaLiquida || Money.zero()).toNumber(),
-        porcentagemBarbearia: atual?.porcentagemBarbearia ?? 0,
-        porcentagemBarbeiro: atual?.porcentagemBarbeiro ?? 100,
+        porcentagemBarbearia: atual?.porcentagemBarbearia ?? agreement.shopPercent,
+        porcentagemBarbeiro: atual?.porcentagemBarbeiro ?? agreement.barberPercent,
         valorBarbeiro: (atual?.valorBarbeiro || Money.zero()).toNumber(),
         valorBarbearia: (atual?.valorBarbearia || Money.zero()).toNumber(),
-        agreementConfigured: atual?.agreementConfigured ?? false,
+        agreementConfigured: atual?.agreementConfigured ?? agreement.configured,
         crescimentoPct: this.comparativo(atual?.receitaLiquida || Money.zero(), anterior?.receitaLiquida || Money.zero()),
       };
     }).sort((a, b) => b.receitaLiquida - a.receitaLiquida);
   }
 
-  #series(transacoes, agreementMap) {
+  #series(transacoes, agreementMap, barbeiroMap) {
     const buckets = new Map();
     for (const tx of transacoes) {
       const key = this.#dateOnly(new Date(tx.paid_at || tx.created_at || Date.now()));
-      const agreement = agreementMap.get(tx.professional_id) || { shopPercent: 0 };
+      const profissional = barbeiroMap.get(tx.professional_id);
+      const agreement = this.#agreementFor(tx.professional_id, agreementMap, profissional);
       const gross = Money.from(tx.gross_amount ?? tx.amount);
       const net = Money.from(tx.amount);
-      const shop = net.timesPercent(agreement.shopPercent);
+      const split = this.#splitTransaction(net, agreement, profissional);
       const current = buckets.get(key) || { data: key, receitaBruta: Money.zero(), receitaLiquida: Money.zero(), lucroBarbearia: Money.zero() };
       current.receitaBruta = current.receitaBruta.plus(gross);
       current.receitaLiquida = current.receitaLiquida.plus(net);
-      current.lucroBarbearia = current.lucroBarbearia.plus(shop);
+      current.lucroBarbearia = current.lucroBarbearia.plus(split.shopTotal);
       buckets.set(key, current);
     }
 
@@ -303,16 +314,80 @@ class FinanceiroCalculator {
       }));
   }
 
-  #agreementMap(agreements) {
+  #agreementMap(agreements, barbeiroMap) {
     const map = new Map();
     for (const agreement of agreements) {
       if (String(agreement.type || 'percentage').toLowerCase() !== 'percentage') continue;
-      const value = Math.min(100, Math.max(0, Number(agreement.value || 0)));
       if (!agreement.professional_id) continue;
       if (map.has(agreement.professional_id)) continue;
-      map.set(agreement.professional_id, { shopPercent: value, configured: true });
+      const profissional = barbeiroMap.get(agreement.professional_id);
+      if (profissional?.papel === 'owner') {
+        map.set(agreement.professional_id, {
+          barberPercent: 100,
+          shopPercent: 100,
+          configured: true,
+          owner: true,
+        });
+        continue;
+      }
+      const barberPercent = Math.min(100, Math.max(0, Number(agreement.value || 0)));
+      map.set(agreement.professional_id, {
+        barberPercent,
+        shopPercent: Math.max(0, 100 - barberPercent),
+        configured: true,
+        owner: false,
+      });
     }
     return map;
+  }
+
+  #agreementFor(professionalId, agreementMap, profissional) {
+    if (profissional?.papel === 'owner') {
+      return {
+        barberPercent: 100,
+        shopPercent: 100,
+        configured: true,
+        owner: true,
+      };
+    }
+    return agreementMap.get(professionalId) || {
+      barberPercent: 0,
+      shopPercent: 0,
+      configured: false,
+      owner: false,
+    };
+  }
+
+  #splitTransaction(net, agreement, profissional) {
+    if (agreement.owner === true || profissional?.papel === 'owner') {
+      return {
+        shopTotal: net,
+        barberTotal: Money.zero(),
+        barberDisplay: net,
+        shopDisplay: net,
+        cardTaxas: Money.zero(),
+      };
+    }
+
+    if (agreement.configured !== true) {
+      return {
+        shopTotal: Money.zero(),
+        barberTotal: Money.zero(),
+        barberDisplay: Money.zero(),
+        shopDisplay: Money.zero(),
+        cardTaxas: Money.zero(),
+      };
+    }
+
+    const barber = net.timesPercent(agreement.barberPercent);
+    const shop = net.minus(barber);
+    return {
+      shopTotal: shop,
+      barberTotal: barber,
+      barberDisplay: barber,
+      shopDisplay: shop,
+      cardTaxas: shop,
+    };
   }
 
   #mensalidadesParceiros(agreements, periodo, barbeiroMap) {
@@ -464,14 +539,43 @@ class FinanceiroCalculator {
   #labelMetodo(metodo) {
     const labels = {
       credit: 'Credito',
-      credito: 'Credito',
       debit: 'Debito',
-      debito: 'Debito',
       pix: 'Pix',
       dinheiro: 'Dinheiro',
-      cash: 'Dinheiro',
     };
     return labels[metodo] || 'Outros';
+  }
+
+  #taxaMetodoMap(taxasMetodoPagamento) {
+    const map = new Map();
+    for (const taxa of taxasMetodoPagamento || []) {
+      const metodo = this.#normalizarMetodoPagamento(taxa?.payment_method);
+      if (metodo !== 'credit' && metodo !== 'debit') continue;
+      const pct = Math.min(30, Math.max(0, Number(taxa?.fee_percent || 0)));
+      map.set(metodo, pct);
+    }
+    return map;
+  }
+
+  #normalizarMetodoPagamento(metodo) {
+    const raw = String(metodo || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const aliases = {
+      dinheiro: 'dinheiro',
+      cash: 'dinheiro',
+      money: 'dinheiro',
+      pix: 'pix',
+      debito: 'debit',
+      debit: 'debit',
+      debit_card: 'debit',
+      credito: 'credit',
+      credit: 'credit',
+      credit_card: 'credit',
+    };
+    return aliases[raw] || 'outros';
   }
 }
 

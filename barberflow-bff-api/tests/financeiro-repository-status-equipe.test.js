@@ -23,11 +23,17 @@ class FakeQuery {
     this.db = db;
     this.table = table;
     this.filters = {};
+    this.selected = '';
+    this.limitValue = null;
     this.single = false;
   }
 
-  select() { return this; }
+  select(cols) { this.selected = cols; this.db.selects.push({ table: this.table, cols }); return this; }
   eq(key, value) { this.filters[key] = value; return this; }
+  gte(key, value) { this.filters[`${key}:gte`] = value; return this; }
+  lte(key, value) { this.filters[`${key}:lte`] = value; return this; }
+  order() { return this; }
+  limit(value) { this.limitValue = value; return this; }
   maybeSingle() { this.single = true; return this; }
 
   then(resolve, reject) {
@@ -47,6 +53,11 @@ class FakeQuery {
       return { data: rows, error: null };
     }
 
+    if (this.table === 'transactions') {
+      this.db.lastTransactionsQuery = this;
+      return { data: this.db.transactions, error: null };
+    }
+
     return { data: [], error: null };
   }
 }
@@ -55,6 +66,9 @@ class FakeDb {
   constructor({ isOpen, presencas }) {
     this.shop = { owner_id: OWNER_ID, is_open: isOpen };
     this.presencas = presencas;
+    this.transactions = [];
+    this.selects = [];
+    this.lastTransactionsQuery = null;
   }
 
   from(table) {
@@ -103,4 +117,24 @@ test('FinanceiroRepository.listarStatusEquipe nao duplica dono com presenca ativ
 
   assert.equal(status.online, 1);
   assert.deepEqual(status.onlineIds, [OWNER_ID]);
+});
+
+test('FinanceiroRepository.listarTransacoes filtra receita paga da barbearia e periodo sem SELECT star', async () => {
+  const db = new FakeDb({ isOpen: true, presencas: [] });
+  const repo = new FinanceiroRepository(db);
+  const periodo = {
+    inicio: new Date('2026-05-01T00:00:00.000Z'),
+    fim: new Date('2026-05-31T23:59:59.999Z'),
+  };
+
+  await repo.listarTransacoes(SHOP_ID, periodo);
+
+  const query = db.lastTransactionsQuery;
+  assert.equal(query.filters.barbershop_id, SHOP_ID);
+  assert.equal(query.filters.type, 'revenue');
+  assert.equal(query.filters.status, 'paid');
+  assert.equal(query.filters['paid_at:gte'], periodo.inicio.toISOString());
+  assert.equal(query.filters['paid_at:lte'], periodo.fim.toISOString());
+  assert.notEqual(query.selected, '*');
+  assert.equal(query.limitValue, 5000);
 });

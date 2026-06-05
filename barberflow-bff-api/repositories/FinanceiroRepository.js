@@ -89,6 +89,17 @@ class FinanceiroRepository extends BaseRepository {
     return data || [];
   }
 
+  async listarTaxasMetodoPagamento(barbershopId) {
+    this._uuid('barbershop_id', barbershopId);
+    const { data, error } = await this._db
+      .from('financial_payment_method_fees')
+      .select('barbershop_id, payment_method, fee_percent')
+      .eq('barbershop_id', barbershopId);
+
+    if (error) this._throwDbError(error, 'listarTaxasMetodoPagamento');
+    return data || [];
+  }
+
   async listarProfissionais(barbershopId) {
     const [{ data: shop, error: shopError }, { data: links, error: linksError }] = await Promise.all([
       this._db
@@ -206,16 +217,24 @@ class FinanceiroRepository extends BaseRepository {
     return { total: Math.round(total * 100) / 100, count: rows.length };
   }
 
-  async aplicarTaxaMetodo(userId, barbershopId, metodo, periodo, porcentagem) {    const { data, error } = await this._db.rpc('aplicar_desconto_metodo', {
-      p_barbershop_id: barbershopId,
-      p_metodo: metodo,
-      p_de: periodo.de,
-      p_ate: periodo.ate,
-      p_porcentagem: porcentagem,
-      p_user_id: userId,
-    });
+  async salvarTaxaMetodoPagamento(userId, barbershopId, metodo, porcentagem) {
+    this._uuid('userId', userId);
+    this._uuid('barbershop_id', barbershopId);
 
-    if (error) this._throwDbError(error, 'aplicarTaxaMetodo');
+    const payload = {
+      barbershop_id: barbershopId,
+      payment_method: metodo,
+      fee_percent: porcentagem,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await this._db
+      .from('financial_payment_method_fees')
+      .upsert(payload, { onConflict: 'barbershop_id,payment_method' })
+      .select('barbershop_id, payment_method, fee_percent, updated_at')
+      .single();
+
+    if (error) this._throwDbError(error, 'salvarTaxaMetodoPagamento');
     return data;
   }
 }

@@ -254,8 +254,8 @@ suite('Financeiro BFF HTTP', () => {
     // Owner ve participacao da barbearia, aluguel de cadeira e despesas reais.
     assert.equal(res.body.dados.isOwner, true);
     assert.equal(res.body.dados.cards.receitaBruta.total, 500);
-    assert.equal(res.body.dados.cards.receitaLiquida.total, 502);
-    assert.equal(res.body.dados.cards.lucroBarbearia.total, 452);
+    assert.equal(res.body.dados.cards.receitaLiquida.total, 598);
+    assert.equal(res.body.dados.cards.lucroBarbearia.total, 548);
     assert.equal(res.body.dados.cards.lucroBarbearia.despesas, 50);
     assert.equal(res.body.dados.cards.lucroBarbearia.limitacaoDespesas, false);
     assert.equal(res.body.dados.cards.meuLucro, null);
@@ -310,7 +310,7 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
           Promise.resolve({ data: { id: SHOP_ID, owner_id: '00000000-0000-4000-8000-000000000000', is_active: true }, error: null }).then(resolve, reject);
       }
       if (table === 'transactions') {
-        // transacoes do próprio viewer (USER_ID) com 40% barbearia
+        // transacoes do proprio viewer (USER_ID) com 40% para o barbeiro
         const orig = query.then.bind(query);
         query.then = (resolve, reject) =>
           Promise.resolve({ data: [{ id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, amount: 480, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' }], error: null }).then(resolve, reject);
@@ -335,9 +335,9 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
   await new Promise((resolve, reject) => server2.close(err => (err ? reject(err) : resolve())));
   assert.equal(res.status, 200);
   assert.equal(res.body.dados.isOwner, false);
-  assert.equal(res.body.dados.cards.lucroBarbearia.total, 192);
+  assert.equal(res.body.dados.cards.lucroBarbearia.total, 288);
   assert.ok(res.body.dados.cards.meuLucro !== null);
-  assert.equal(res.body.dados.cards.meuLucro.total, 288);
+  assert.equal(res.body.dados.cards.meuLucro.total, 192);
 });
 
 test('GET /barbearias/:id/barbeiros-status retorna default false quando ausente', async () => {

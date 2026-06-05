@@ -54,6 +54,7 @@ class FinanceiroBffService extends BaseService {
       mensalistas,
       despesas,
       despesasAnteriores,
+      taxasMetodoPagamento,
     ] = await Promise.all([
       this.#repo.listarTransacoes(barbershopId, periodo),
       this.#repo.listarTransacoes(barbershopId, periodoAnterior),
@@ -63,6 +64,7 @@ class FinanceiroBffService extends BaseService {
       mensalistasPromise,
       despesasPromise,
       despesasAnterioresPromise,
+      this.#repo.listarTaxasMetodoPagamento(barbershopId),
     ]);
 
     return this.#calculator.calcularDashboard({
@@ -77,6 +79,7 @@ class FinanceiroBffService extends BaseService {
       mensalistas,
       despesas,
       despesasAnteriores,
+      taxasMetodoPagamento,
     });
   }
 
@@ -98,19 +101,20 @@ class FinanceiroBffService extends BaseService {
     if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
     this._uuid('barbershop_id', barbershopId);
 
-    const metodo = String(payload.metodo || '').trim().toLowerCase();
-    this._enum('metodo', metodo, ['credito', 'credit', 'debito', 'debit', 'pix', 'dinheiro', 'cash']);
+    const metodo = this.#normalizarMetodoTaxavel(payload.metodo);
 
-    const porcentagem = Number(payload.porcentagem);
-    if (!Number.isFinite(porcentagem) || porcentagem < 0 || porcentagem > 100) {
-      throw AppError.badRequest('porcentagem deve estar entre 0 e 100.');
+    const porcentagem = this.#normalizarPorcentagem(payload.porcentagem);
+    if (!Number.isFinite(porcentagem) || porcentagem < 0 || porcentagem > 30) {
+      throw AppError.badRequest('porcentagem deve estar entre 0 e 30.');
     }
 
-    const periodo = this.#resolverPeriodo(payload);
-    await this.#repo.verificarAcesso(userId, barbershopId);
+    const acesso = await this.#repo.verificarAcesso(userId, barbershopId);
+    if (acesso.papel !== 'owner') {
+      throw AppError.forbidden('Apenas o dono da barbearia pode alterar taxas de pagamento.');
+    }
 
-    const resultado = await this.#repo.aplicarTaxaMetodo(userId, barbershopId, metodo, periodo, porcentagem);
-    return { aplicado: true, metodo, porcentagem, periodo, resultado };
+    const taxa = await this.#repo.salvarTaxaMetodoPagamento(userId, barbershopId, metodo, porcentagem);
+    return { aplicado: true, metodo, porcentagem, taxa };
   }
 
   #resolverPeriodo(filtros) {
@@ -142,6 +146,34 @@ class FinanceiroBffService extends BaseService {
         origem: 'owner_default',
       },
     ];
+  }
+
+  #normalizarMetodoTaxavel(valor) {
+    const metodo = String(valor || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    const aliases = {
+      credito: 'credit',
+      credit: 'credit',
+      credit_card: 'credit',
+      debito: 'debit',
+      debit: 'debit',
+      debit_card: 'debit',
+    };
+    const normalizado = aliases[metodo];
+    if (!normalizado) {
+      throw AppError.badRequest('metodo deve ser debito ou credito.');
+    }
+    return normalizado;
+  }
+
+  #normalizarPorcentagem(valor) {
+    const normalizado = String(valor ?? '').trim().replace(',', '.');
+    if (normalizado === '') return Number.NaN;
+    return Number(normalizado);
   }
 }
 

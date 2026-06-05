@@ -55,8 +55,8 @@ class MenosPercentualModal {
               id="mpm-input"
               class="mpm-input"
               type="number"
-              min="0.01"
-              max="99.99"
+              min="0"
+              max="30"
               step="0.01"
               placeholder="ex: 1,5"
               inputmode="decimal"
@@ -129,7 +129,7 @@ class MenosPercentualModal {
   static #parsePct(val) {
     const str = String(val ?? '').trim().replace(',', '.');
     const n   = Number(str);
-    if (str === '' || Number.isNaN(n) || n <= 0 || n >= 100) return null;
+    if (str === '' || Number.isNaN(n) || n < 0 || n > 30) return null;
     return n;
   }
 

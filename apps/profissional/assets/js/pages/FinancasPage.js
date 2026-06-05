@@ -355,7 +355,7 @@ class FinancasPage {
             <p>${FinancasPage.#escapar(item.label || item.metodo)}</p>
             <strong>${this.#moeda(item.receitaLiquida)}</strong>
             <span class="fin-metodo-bruto">Bruto: ${this.#moeda(item.receitaBruta)}</span>
-            <span>${this.#numero(item.cortes)} cortes · ${this.#moeda(item.taxas)} taxas</span>
+            <span>${this.#numero(item.cortes)} cortes · ${this.#moeda(item.taxas)} taxas${temTaxa ? ` · ${this.#numero(item.feePercent)}%` : ''}</span>
           </div>
           ${temTaxa ? `<button type="button" class="fin-taxa-btn" data-metodo="${FinancasPage.#escapar(item.metodo)}">Menos %</button>` : ''}
         </article>
@@ -458,6 +458,7 @@ class FinancasPage {
         this.#assinarTabelaResumo('agreements'),
         this.#assinarTabelaResumo('professional_shop_links'),
         this.#assinarTabelaResumo('professional_barbershop_presence'),
+        this.#assinarTabelaResumo('financial_payment_method_fees'),
         this.#assinarBarbeariaResumo(),
       ].filter(Boolean);
     } catch (err) {
