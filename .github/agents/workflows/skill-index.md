@@ -15,7 +15,7 @@
 | 03 | [`skills/skill-03-backend.md`](skills/skill-03-backend.md) | Services, controllers, repositories, BFF, APIs | Backend, BFF, rotas, controllers, services |
 | 04 | [`skills/skill-04-seguranca.md`](skills/skill-04-seguranca.md) | OWASP, JWT, CSP, autenticação, criptografia, validação de entrada | Segurança, auth, tokens, headers, inputs |
 | 05 | [`skills/skill-05-banco.md`](skills/skill-05-banco.md) | Supabase, PostgreSQL, RLS, migrations, storage, paginação | Banco, queries, migrations, storage, Supabase |
-| 06 | [`skills/skill-06-p2p-mensagens.md`](skills/skill-06-p2p-mensagens.md) | WebRTC, P2P, chat canonico BFF, criptografia ponta a ponta, MediaP2P | Mensagens, chat, vídeo, mídia P2P |
+| 06 | [`skills/skill-06-p2p-mensagens.md`](skills/skill-06-p2p-mensagens.md) | WebRTC, P2P, chat canonico BFF, criptografia ponta a ponta E2E storage, MediaP2P | Mensagens, chat, vídeo, mídia P2P, E2E storage, criptografia no banco |
 | 07 | [`skills/skill-07-testes.md`](skills/skill-07-testes.md) | TDD, node:test, fluxo red-green-refactor, cobertura | Testes, TDD, validações, edge cases |
 | 08 | [`skills/skill-08-performance.md`](skills/skill-08-performance.md) | Cache, paginação, custo, debounce, Blob URLs, N+1 | Performance, otimização, custo de infra |
 | 09 | [`skills/skill-09-refatoracao.md`](skills/skill-09-refatoracao.md) | Escopo, checklist pós-implementação, check final, commit | Refatoração, revisão final, limpeza de código |

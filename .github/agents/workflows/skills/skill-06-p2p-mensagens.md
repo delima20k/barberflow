@@ -49,7 +49,66 @@
 
 ---
 
-## 5. SCAFFOLD — EXPANDIR AQUI
+## 5. CRIPTOGRAFIA E2E NO STORAGE (BFF/BANCO)
+
+### Princípio
+- O BFF nunca conhece o conteúdo de mensagens novas — apenas persiste `encrypted_payload`.
+- A descriptografia ocorre **somente no browser** do participante autorizado.
+- Mensagens legadas com `body` em claro continuam funcionando (compatibilidade retroativa).
+
+### Estrutura do payload de armazenamento
+```json
+{ "v": 1, "alg": "AES-GCM-256", "iv": "base64", "ct": "base64", "kid": "peerId" }
+```
+- `v` — versão do schema (para rotação futura)
+- `alg` — algoritmo (auditoria)
+- `iv` — nonce AES-GCM, 12 bytes, único por mensagem
+- `ct` — ciphertext base64
+- `kid` — UUID do outro participante (indica qual chave pública usar no ECDH)
+
+### Classes envolvidas
+| Classe | Responsabilidade |
+|---|---|
+| `MessageCryptoService` | ECDH P-256 + HKDF + AES-GCM-256 (primitivas — browser + Node 18+) |
+| `ConversationKeyService` | Par de chaves ECDH de longo prazo no IndexedDB; deriva chave de conversa via ECDH |
+| `MessageStorageCipher` | `encryptForStorage` / `decryptFromStorage` — wrapper sobre MessageCryptoService |
+| `UserKeyRepository` | Port BFF para `user_keys` (chave pública por usuário) |
+| `RegisterUserKeyUseCase` | Upsert da chave pública do usuário autenticado |
+| `GetUserKeyUseCase` | Leitura da chave pública de outro usuário |
+
+### Regras obrigatórias
+1. **Envio**: `ChatModal.enviar()` cifra com `MessageStorageCipher.encryptForStorage` antes de chamar `ChatApiClient.enviarMensagem`.
+2. **BFF**: `ChatController.send()` valida que `encrypted_payload` tem `v,alg,iv,ct`; seta `body = ''`.
+3. **Banco**: `Message.create()` aceita `body = ''` quando `encryptedPayload` presente.
+4. **Histórico**: `ChatModal.#carregarHistorico()` decifra em paralelo (`Promise.all`) antes de renderizar.
+5. **Realtime**: `ChatRealtimeService` inclui `encryptedPayload` no detail do `chatflow:mensagem-nova`.
+6. **Sem duplicação**: P2P usa DataChannel (chave efêmera própria); BFF persiste `encrypted_payload` (chave de longo prazo). `clientMessageId` deduplication no upsert.
+7. **Chave privada**: non-extractable no Web Crypto; armazenada como CryptoKey opaca no IndexedDB.
+8. **Nenhum segredo em log**: `LoggerService.warn` nunca recebe chave ou texto puro.
+9. **Fallback legado**: se `ConversationKeyService` falhar (peer sem chave), fallback para `body` com TODO de política obrigatória futura.
+
+### Fluxo com P2P ativo
+```
+enviar() → MessageStorageCipher.encryptForStorage()
+         → P2PMessageConnectionService.sendMessage(plainText)   ← entrega em tempo real (DataChannel cifrado)
+         → ChatApiClient.enviarMensagem({encrypted_payload})    ← persistência BFF (background)
+```
+
+### Fluxo sem P2P (fallback BFF)
+```
+enviar() → MessageStorageCipher.encryptForStorage()
+         → ChatApiClient.enviarMensagem({encrypted_payload})
+         → BFF persiste encrypted_payload (body = '')
+         → realtime entrega encrypted_payload ao receptor
+         → receptor: MessageStorageCipher.decryptFromStorage() no browser
+```
+
+### Rotação de chaves (futuro)
+- Campo `e2e_key_version` em `chat_messages` reservado para rotação.
+- Campo `kid` no payload identifica o peer cuja chave pública foi usada.
+- `ConversationKeyService.limpar()` deve ser chamado no logout.
+
+## 6. SCAFFOLD — EXPANDIR AQUI
 
 > Esta seção deve ser expandida quando o fluxo P2P completo for implementado.
 > Documentar: sinalização, troca de SDP, ICE servers, gerenciamento de estado da chamada, UI de mídia.

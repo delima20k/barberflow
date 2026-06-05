@@ -6,7 +6,7 @@ const { Message } = require('../../domain/chat/entities/Message');
 const { MuteRule } = require('../../domain/chat/policies/MuteRule');
 
 class SupabaseChatRepository extends ChatRepository {
-  static MESSAGE_SELECT = 'id, conversation_id, sender_id, client_message_id, body, created_at, deleted_at, retention_until, chat_message_attachments(media_id, variant, kind)';
+  static MESSAGE_SELECT = 'id, conversation_id, sender_id, client_message_id, body, encrypted_payload, e2e_key_version, created_at, deleted_at, retention_until, chat_message_attachments(media_id, variant, kind)';
   #db;
 
   constructor(db) {
@@ -46,6 +46,8 @@ class SupabaseChatRepository extends ChatRepository {
         sender_id: message.senderId,
         client_message_id: message.clientMessageId,
         body: message.body,
+        encrypted_payload: message.encryptedPayload ?? null,
+        e2e_key_version: message.e2eKeyVersion ?? null,
         created_at: message.createdAt.toISOString(),
       }, { onConflict: 'sender_id,client_message_id' })
       .select(SupabaseChatRepository.MESSAGE_SELECT)
@@ -299,6 +301,8 @@ class SupabaseChatRepository extends ChatRepository {
       senderId: row.sender_id,
       clientMessageId: row.client_message_id,
       body: row.body,
+      encryptedPayload: row.encrypted_payload ?? null,
+      e2eKeyVersion: row.e2e_key_version ?? null,
       createdAt: row.created_at,
       deletedAt: row.deleted_at,
       retentionUntil: row.retention_until,

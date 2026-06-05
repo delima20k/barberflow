@@ -66,15 +66,17 @@ class ChatRealtimeService {
     if (!msg?.conversationId) return;
     // Detail enriquecido: preserva o contrato da lista (convId/preview/createdAt)
     // e adiciona o que o ChatModal precisa (messageId/senderId/body/sender).
+    // preview usa '🔒' quando a mensagem está criptografada (body vazio).
     document.dispatchEvent(new CustomEvent('chatflow:mensagem-nova', {
       detail: {
-        convId:    msg.conversationId,
-        messageId: msg.id ?? null,
-        senderId:  msg.senderId ?? null,
-        preview:   msg.body ?? '',
-        body:      msg.body ?? '',
-        sender:    msg.sender ?? null,
-        createdAt: msg.createdAt ?? null,
+        convId:           msg.conversationId,
+        messageId:        msg.id ?? null,
+        senderId:         msg.senderId ?? null,
+        preview:          msg.body || (msg.encryptedPayload ? '🔒' : ''),
+        body:             msg.body ?? '',
+        encryptedPayload: msg.encryptedPayload ?? null,
+        sender:           msg.sender ?? null,
+        createdAt:        msg.createdAt ?? null,
       },
     }));
   }

@@ -9,10 +9,13 @@ class ChatController extends BaseController {
   #listConversationsUseCase;
   #getOrCreateConversationUseCase;
   #markConversationReadUseCase;
+  #registerUserKeyUseCase;
+  #getUserKeyUseCase;
 
   constructor({ sendMessageUseCase, listMessagesUseCase, softDeleteMessageUseCase,
                 listConversationsUseCase, getOrCreateConversationUseCase,
-                markConversationReadUseCase }) {
+                markConversationReadUseCase, registerUserKeyUseCase = null,
+                getUserKeyUseCase = null }) {
     super();
     this.#sendMessageUseCase             = sendMessageUseCase;
     this.#listMessagesUseCase            = listMessagesUseCase;
@@ -20,16 +23,30 @@ class ChatController extends BaseController {
     this.#listConversationsUseCase       = listConversationsUseCase;
     this.#getOrCreateConversationUseCase = getOrCreateConversationUseCase;
     this.#markConversationReadUseCase    = markConversationReadUseCase;
+    this.#registerUserKeyUseCase         = registerUserKeyUseCase;
+    this.#getUserKeyUseCase              = getUserKeyUseCase;
   }
 
   async send(req, res) {
     await this.handle(res, async () => {
+      const { body, clientMessageId, attachments, encrypted_payload, e2e_key_version } = req.body ?? {};
+
+      // Valida estrutura mínima do encrypted_payload quando presente
+      if (encrypted_payload !== undefined && encrypted_payload !== null) {
+        const { v, alg, iv, ct } = encrypted_payload;
+        if (!v || !alg || !iv || !ct) {
+          throw this._erro('encrypted_payload invalido: requer v, alg, iv, ct.', 400);
+        }
+      }
+
       const result = await this.#sendMessageUseCase.execute({
-        conversationId: req.params.conversationId,
-        senderId: req.user.id,
-        clientMessageId: req.body?.clientMessageId,
-        body: req.body?.body,
-        attachments: req.body?.attachments,
+        conversationId:   req.params.conversationId,
+        senderId:         req.user.id,
+        clientMessageId,
+        body:             encrypted_payload ? '' : (body ?? ''),
+        encryptedPayload: encrypted_payload ?? null,
+        e2eKeyVersion:    e2e_key_version ?? null,
+        attachments,
       });
       if (result.isFail()) throw this._erro(result.getError(), this.#sendStatus(result.getError()));
       this.created(res, result.getValue());
@@ -92,6 +109,30 @@ class ChatController extends BaseController {
       if (!result.ok) throw this._erro(result.error, 403);
       res.setHeader('Cache-Control', 'private, no-store');
       this.success(res, result.value);
+    });
+  }
+
+  /** POST /me/public-key — registra ou atualiza a chave pública ECDH do usuário autenticado. */
+  async registerPublicKey(req, res) {
+    await this.handle(res, async () => {
+      if (!this.#registerUserKeyUseCase) throw this._erro('Funcionalidade indisponivel.', 503);
+      const { publicKey } = req.body ?? {};
+      if (!publicKey) throw this._erro('publicKey obrigatorio.', 400);
+      const result = await this.#registerUserKeyUseCase.execute({ userId: req.user.id, publicKey });
+      if (result.isFail()) throw this._erro(result.getError(), 400);
+      this.success(res, result.getValue());
+    });
+  }
+
+  /** GET /users/:userId/public-key — retorna a chave pública ECDH de outro usuário. */
+  async getPublicKey(req, res) {
+    await this.handle(res, async () => {
+      if (!this.#getUserKeyUseCase) throw this._erro('Funcionalidade indisponivel.', 503);
+      const result = await this.#getUserKeyUseCase.execute({ targetUserId: req.params.userId });
+      if (result.isFail()) throw this._erro(result.getError(), 404);
+      // Chave pública é dado público; cache curto é seguro
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      this.success(res, result.getValue());
     });
   }
 

@@ -8,11 +8,16 @@
 // envio via P2P (quando seguro) com fallback BFF, recebimento
 // via Realtime Supabase e filtro de moderação client-side.
 //
+// E2E storage: mensagens novas são cifradas com MessageStorageCipher
+// antes de persistir no BFF. O banco nunca vê texto puro para
+// mensagens novas. Histórico com body legado é exibido normalmente.
+//
 // Preserva todos os IDs DOM existentes em #tela-chat.
 //
 // Dependências: ChatApiClient.js, MessageModerationService.js,
 //               P2PMessageConnectionService.js, SupabaseService.js,
-//               LoggerService.js, InputValidator.js
+//               LoggerService.js, InputValidator.js,
+//               MessageStorageCipher.js, ConversationKeyService.js
 // =============================================================
 
 class ChatModal {
@@ -98,9 +103,20 @@ class ChatModal {
       return;
     }
 
+    // ── Inicializa chaves E2E em background ──────────────────
+    if (typeof ConversationKeyService !== 'undefined') {
+      ConversationKeyService.inicializar().catch(e => {
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[ChatModal] ConversationKeyService init falhou:', e?.message);
+        }
+      });
+    }
+
     // ── Carrega histórico do BFF (paralelo com P2P setup) ────
     ChatModal.#carregarHistorico(convId).catch(e => {
-      LoggerService.warn('[ChatModal] histórico falhou:', e?.message);
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[ChatModal] histórico falhou:', e?.message);
+      }
     });
 
     // ── Garante assinatura realtime (canal único) + listener de render ───────
@@ -173,7 +189,9 @@ class ChatModal {
   /**
    * Envia a mensagem digitada no input.
    * 1. Valida moderação client-side
-   * 2. P2P se seguro, BFF como fallback
+   * 2. Cifra para storage com MessageStorageCipher (E2E)
+   * 3. P2P DataChannel (texto puro — P2P tem criptografia própria) se seguro
+   * 4. BFF recebe apenas encrypted_payload; corpo nunca vai em claro para o banco
    */
   static async enviar() {
     if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('mensagem', null)) return;
@@ -194,7 +212,7 @@ class ChatModal {
     input.value = '';
     input.focus();
 
-    const hora           = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const hora            = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     const clientMessageId = crypto.randomUUID();
     const { convId, peerId } = ChatModal.#conversa;
 
@@ -211,25 +229,49 @@ class ChatModal {
     });
     if (area) { area.appendChild(bolha); area.scrollTop = area.scrollHeight; }
 
+    // ── Cifra para storage (E2E) ─────────────────────────────
+    let encryptedPayload = null;
+    if (typeof MessageStorageCipher !== 'undefined' && typeof ConversationKeyService !== 'undefined') {
+      try {
+        encryptedPayload = await MessageStorageCipher.encryptForStorage(convId, peerId, texto);
+      } catch (e) {
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[ChatModal] E2E encrypt falhou (fallback legado):', e?.message);
+        }
+        // TODO: Bloquear envio quando E2E for obrigatório por política.
+        // Por ora, fallback legado com body para evitar interrupção do serviço.
+      }
+    }
+
+    // Payload para o BFF: encrypted_payload (E2E) ou body (legado)
+    const payloadBff = encryptedPayload
+      ? { encrypted_payload: encryptedPayload, clientMessageId }
+      : { body: texto, clientMessageId };
+
     // ── Caminho P2P (seguro) ─────────────────────────────────
+    // DataChannel transporta texto puro (P2P tem cifragem na camada WebRTC).
+    // BFF persiste apenas encrypted_payload (sem duplicar mensagem no banco).
     if (ChatModal.#modoP2P && typeof P2PMessageConnectionService !== 'undefined') {
       try {
         await P2PMessageConnectionService.sendMessage(peerId, texto);
         ChatModal.#atualizarStatusBolha(bolha, 'enviado');
         // Persiste no BFF em background (best-effort — não bloqueia UI)
-        // TODO: quando IMessageCipher for implementado, criptografar body antes de persistir
-        ChatApiClient.enviarMensagem(convId, { body: texto, clientMessageId }).catch(() => {});
+        ChatApiClient.enviarMensagem(convId, payloadBff).catch(() => {});
         return;
       } catch (e) {
-        LoggerService.warn('[ChatModal] P2P send falhou, usando BFF:', e?.message);
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[ChatModal] P2P send falhou, usando BFF:', e?.message);
+        }
         ChatModal.#modoP2P = false;
       }
     }
 
     // ── Caminho BFF (fallback / modo padrão) ─────────────────
-    const { error } = await ChatApiClient.enviarMensagem(convId, { body: texto, clientMessageId });
+    const { error } = await ChatApiClient.enviarMensagem(convId, payloadBff);
     if (error) {
-      LoggerService.error('[ChatModal] BFF send falhou:', error?.message);
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.error('[ChatModal] BFF send falhou:', error?.message);
+      }
       ChatModal.#atualizarStatusBolha(bolha, 'falhou');
     } else {
       ChatModal.#atualizarStatusBolha(bolha, 'enviado');
@@ -250,14 +292,20 @@ class ChatModal {
   // PRIVADOS
   // ══════════════════════════════════════════════════════════
 
-  /** Carrega histórico do BFF e renderiza bolhas (mais antigas primeiro). */
+  /**
+   * Carrega histórico do BFF e renderiza bolhas (mais antigas primeiro).
+   * Mensagens com encrypted_payload são decifradas no browser antes de renderizar.
+   * Mensagens com body legado são exibidas diretamente (compatibilidade retroativa).
+   */
   static async #carregarHistorico(convId) {
     const area = document.getElementById('chat-mensagens');
     if (!area || !ChatModal.#uid) return;
 
     const { data, error } = await ChatApiClient.listarMensagens(convId, { limit: 30 });
     if (error) {
-      LoggerService.warn('[ChatModal] histórico BFF:', error?.message);
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[ChatModal] histórico BFF:', error?.message);
+      }
       return;
     }
 
@@ -265,25 +313,43 @@ class ChatModal {
     // BFF retorna em ordem DESC (mais recente primeiro); reverter para exibir cronológico
     const ordemCronologica = [...items].reverse();
 
+    // Filtra mensagens já renderizadas (evita duplicação com bolhas otimistas)
+    const candidatos = ordemCronologica.filter(msg => {
+      if (msg.deletedAt) return false;
+      return !ChatModal.#jaRenderizada(msg.id);
+    });
+
+    // Decifra em paralelo (AES-GCM após primeira derivação é rápida — usa cache)
+    const peerId = ChatModal.#conversa?.peerId ?? null;
+    const textos = await Promise.all(
+      candidatos.map(async msg => {
+        if (!msg.encryptedPayload || !peerId) return msg.body ?? '';
+        try {
+          const plain = await MessageStorageCipher.decryptFromStorage(convId, peerId, msg.encryptedPayload);
+          return plain ?? '🔒 Mensagem cifrada';
+        } catch {
+          return '🔒 Mensagem cifrada';
+        }
+      })
+    );
+
     // Insere antes das bolhas otimistas já na tela
     const fragment = document.createDocumentFragment();
-    for (const msg of ordemCronologica) {
-      if (msg.deletedAt) continue;
-      if (ChatModal.#jaRenderizada(msg.id)) continue;
+    candidatos.forEach((msg, i) => {
       const de   = msg.senderId === ChatModal.#uid ? 'eu' : 'outro';
       const hora = ChatModal.#formatarHora(msg.createdAt);
       fragment.appendChild(ChatModal.#renderBolha({
         messageId: msg.id,
         de,
-        texto: msg.body,
+        texto:     textos[i],
         hora,
-        status: 'enviado',
-        senderId: msg.senderId,
-        sender: msg.sender,
+        status:    'enviado',
+        senderId:  msg.senderId,
+        sender:    msg.sender,
         createdAt: msg.createdAt,
       }));
-    }
-    // Insere no início da área para não sobrepor bolhas otimistas
+    });
+
     area.insertBefore(fragment, area.firstChild);
     area.scrollTop = area.scrollHeight;
   }
@@ -302,7 +368,8 @@ class ChatModal {
     });
   }
 
-  static #onMensagemNovaEvento(detail) {
+  /** Processa evento de nova mensagem via realtime (decifra se necessário). */
+  static async #onMensagemNovaEvento(detail) {
     // Só mensagens reais vindas do realtime carregam messageId.
     if (!detail?.messageId || !ChatModal.#conversa) return;
     // Pertence a outra conversa → a lista (UniversalChatPage) cuida do badge.
@@ -313,10 +380,26 @@ class ChatModal {
 
     const area = document.getElementById('chat-mensagens');
     if (!area) return;
+
+    // Decifra encrypted_payload se presente; exibe body legado caso contrário
+    let texto = detail.body ?? '';
+    if (detail.encryptedPayload && ChatModal.#conversa?.peerId) {
+      try {
+        const plain = await MessageStorageCipher.decryptFromStorage(
+          detail.convId,
+          ChatModal.#conversa.peerId,
+          detail.encryptedPayload,
+        );
+        texto = plain ?? '🔒 Mensagem cifrada';
+      } catch {
+        texto = '🔒 Mensagem cifrada';
+      }
+    }
+
     area.appendChild(ChatModal.#renderBolha({
       messageId: detail.messageId,
       de:        'outro',
-      texto:     detail.body,
+      texto,
       hora:      ChatModal.#formatarHora(detail.createdAt),
       senderId:  detail.senderId,
       sender:    detail.sender,

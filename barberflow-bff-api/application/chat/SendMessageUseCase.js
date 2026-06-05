@@ -50,8 +50,14 @@ class SendMessageUseCase {
     if (await this.#isFlood(command)) return Result.fail('Flood de mensagens detectado.');
 
     const messageResult = Message.create({
-      ...command,
-      createdAt: this.#clock.now(),
+      conversationId:   command.conversationId,
+      senderId:         command.senderId,
+      clientMessageId:  command.clientMessageId,
+      body:             command.body ?? '',
+      encryptedPayload: command.encryptedPayload ?? null,
+      e2eKeyVersion:    command.e2eKeyVersion ?? null,
+      attachments:      command.attachments ?? [],
+      createdAt:        this.#clock.now(),
     });
     if (messageResult.isFail()) return messageResult;
     const saved = await this.#chatRepository.saveMessage(messageResult.getValue());

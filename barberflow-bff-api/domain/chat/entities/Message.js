@@ -19,6 +19,8 @@ class Message {
     senderId,
     clientMessageId,
     body = '',
+    encryptedPayload = null,
+    e2eKeyVersion = null,
     attachments = [],
     createdAt = new Date(),
     id = crypto.randomUUID(),
@@ -29,8 +31,8 @@ class Message {
     if (typeof body !== 'string' || body.length > Message.BODY_MAX_LENGTH) {
       return Result.fail('Message.body invalido.');
     }
-    if (!body.trim() && attachments.length === 0) {
-      return Result.fail('Message requer texto ou anexo.');
+    if (!body.trim() && attachments.length === 0 && !encryptedPayload) {
+      return Result.fail('Message requer texto, anexo ou encrypted_payload.');
     }
     return Result.ok(Message.restore({
       id,
@@ -38,6 +40,8 @@ class Message {
       senderId,
       clientMessageId,
       body,
+      encryptedPayload,
+      e2eKeyVersion,
       attachments,
       createdAt,
     }));
@@ -56,6 +60,8 @@ class Message {
       senderId: props.senderId,
       clientMessageId: props.clientMessageId,
       body: deletedAt ? '' : String(props.body ?? ''),
+      encryptedPayload: deletedAt ? null : (props.encryptedPayload ?? null),
+      e2eKeyVersion: props.e2eKeyVersion ?? null,
       attachments: Object.freeze((props.attachments ?? []).map(item => item instanceof Attachment ? item : Attachment.restore(item))),
       createdAt,
       deletedAt,
@@ -75,6 +81,8 @@ class Message {
   get senderId() { return this.#props.senderId; }
   get clientMessageId() { return this.#props.clientMessageId; }
   get body() { return this.#props.body; }
+  get encryptedPayload() { return this.#props.encryptedPayload; }
+  get e2eKeyVersion() { return this.#props.e2eKeyVersion; }
   get attachments() { return this.#props.attachments; }
   get createdAt() { return this.#props.createdAt; }
   get deletedAt() { return this.#props.deletedAt; }
@@ -98,6 +106,8 @@ class Message {
       senderId: this.senderId,
       clientMessageId: this.clientMessageId,
       body: this.body,
+      encryptedPayload: this.encryptedPayload ?? null,
+      e2eKeyVersion: this.e2eKeyVersion ?? null,
       attachments: this.attachments.map(attachment => attachment.toJSON()),
       createdAt: this.createdAt.toISOString(),
       deletedAt: this.deletedAt?.toISOString() ?? null,
