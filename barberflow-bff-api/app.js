@@ -58,6 +58,7 @@ const feedRoute             = require('./routes/feed');
 const chatRoute             = require('./routes/chat');
 const schedulerRoute        = require('./routes/scheduler');
 const conviteProRoute       = require('./routes/convites-pro');
+const p2pRoute              = require('./routes/p2p');
 const SupabaseClient         = require('./utils/SupabaseClient');
 
 /**
@@ -157,6 +158,9 @@ function criarApp(db = null) {
 
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.
   app.use('/api/media', mediaRoute(_db));
+
+  // ── P2P ICE config ────────────────────────────────────────────
+  app.use('/api/p2p', p2pRoute());
 
   // ── 11. Auth — /api/auth/* ───────────────────────────────────
   app.use('/api/auth', RateLimiterMiddleware.auth);
