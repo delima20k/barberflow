@@ -155,8 +155,23 @@ class FinanceiroRepository extends BaseRepository {
       .order('period_start', { ascending: false })
       .limit(limite);
 
-    if (error) this._throwDbError(error, 'listarAcertosSemanais');
+    if (error) {
+      if (this.#isTabelaAcertoSemanalAusente(error)) {
+        this._warn('listarAcertosSemanais.tabela_ausente', error);
+        return [];
+      }
+      this._throwDbError(error, 'listarAcertosSemanais');
+    }
     return data || [];
+  }
+
+  #isTabelaAcertoSemanalAusente(error) {
+    const code = String(error?.code || '');
+    const message = String(error?.message || error?.details || '');
+    return code === '42P01'
+      || code === 'PGRST205'
+      || code === 'PGRST204'
+      || /professional_weekly_settlements/i.test(message);
   }
 
   async listarProfissionais(barbershopId, professionalId = null) {

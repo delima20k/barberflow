@@ -169,6 +169,15 @@ class FakeQuery {
     }
 
     if (this.table === 'professional_weekly_settlements') {
+      if (this.db.failWeeklySettlementSelect) {
+        return {
+          data: null,
+          error: {
+            code: this.db.failWeeklySettlementSelect,
+            message: 'relation "public.professional_weekly_settlements" does not exist',
+          },
+        };
+      }
       const rows = this.db.weeklySettlementRows.filter(row =>
         (!this.filters.barbershop_id || row.barbershop_id === this.filters.barbershop_id)
         && (!this.filters.professional_id || row.professional_id === this.filters.professional_id)
@@ -183,7 +192,7 @@ class FakeQuery {
 }
 
 class FakeDb {
-  constructor({ forbidden = false } = {}) {
+  constructor({ forbidden = false, failWeeklySettlementSelect = null } = {}) {
     this.forbidden = forbidden;
     this.rpcCalls = [];
     this.presenceRows = [];
@@ -194,6 +203,7 @@ class FakeDb {
     this.payoutItemRows = [];
     this.weeklySettlementRows = [];
     this.weeklySettlementUpsertCalls = [];
+    this.failWeeklySettlementSelect = failWeeklySettlementSelect;
     this.failedPayouts = [];
     this.linkRows = [
       { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
@@ -592,6 +602,34 @@ test('GET /dashboard owner nao recebe acertoSemanal de parceiro', async () => {
   assert.equal(res.status, 200);
   assert.equal(res.body.dados.isOwner, true);
   assert.equal(res.body.dados.acertoSemanal, undefined);
+});
+
+test('GET /dashboard parceiro nao quebra quando tabela de acerto semanal ainda nao existe', async () => {
+  class FakeDbParceiro extends FakeDb {
+    from(table) {
+      const query = super.from(table);
+      if (table === 'barbershops') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: { id: SHOP_ID, owner_id: '00000000-0000-4000-8000-000000000000', is_active: true }, error: null }).then(resolve, reject);
+      }
+      return query;
+    }
+  }
+
+  const db = new FakeDbParceiro({ failWeeklySettlementSelect: '42P01' });
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=semana`, {
+    headers: { Authorization: `Bearer ${token()}` },
+  });
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.dados.isOwner, false);
+  assert.equal(res.body.dados.acertoSemanal.resumo.status, 'pending');
+  assert.equal(res.body.dados.acertoSemanal.historico[0].status, 'pending');
 });
 
 test('POST /acertos-semanais/confirmar permite parceiro confirmar repasse semanal e e idempotente', async () => {
