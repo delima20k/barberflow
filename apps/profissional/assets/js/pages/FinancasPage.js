@@ -458,6 +458,7 @@ class FinancasPage {
         this.#assinarTabelaResumo('agreements'),
         this.#assinarTabelaResumo('professional_shop_links'),
         this.#assinarTabelaResumo('professional_barbershop_presence'),
+        this.#assinarBarbeariaResumo(),
       ].filter(Boolean);
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
@@ -473,6 +474,17 @@ class FinancasPage {
         schema: 'public',
         table: tabela,
         filter: `barbershop_id=eq.${this.#shopId}`,
+      }, () => this.#carregar())
+      .subscribe();
+  }
+
+  #assinarBarbeariaResumo() {
+    return SupabaseService.channel(`financas:barbershops:${this.#shopId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'barbershops',
+        filter: `id=eq.${this.#shopId}`,
       }, () => this.#carregar())
       .subscribe();
   }

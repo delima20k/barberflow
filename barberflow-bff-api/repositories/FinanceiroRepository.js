@@ -146,14 +146,28 @@ class FinanceiroRepository extends BaseRepository {
   }
 
   async listarStatusEquipe(barbershopId) {
-    const { data: presencas, error: presencaError } = await this._db
-      .from('professional_barbershop_presence')
-      .select('professional_id, is_available')
-      .eq('barbershop_id', barbershopId)
-      .eq('is_available', true);
+    const [
+      { data: shop, error: shopError },
+      { data: presencas, error: presencaError },
+    ] = await Promise.all([
+      this._db
+        .from('barbershops')
+        .select('owner_id, is_open')
+        .eq('id', barbershopId)
+        .maybeSingle(),
+      this._db
+        .from('professional_barbershop_presence')
+        .select('professional_id, is_available')
+        .eq('barbershop_id', barbershopId)
+        .eq('is_available', true),
+    ]);
+
+    if (shopError) this._throwDbError(shopError, 'listarStatusEquipe.shop');
 
     if (!presencaError) {
-      const onlineIds = [...new Set((presencas || []).map(item => item.professional_id).filter(Boolean))];
+      const onlineSet = new Set((presencas || []).map(item => item.professional_id).filter(Boolean));
+      if (shop?.is_open === true && shop?.owner_id) onlineSet.add(shop.owner_id);
+      const onlineIds = [...onlineSet];
       return { online: onlineIds.length, onlineIds };
     }
 

@@ -213,6 +213,52 @@ test('FinanceiroCalculator owner: mensalistas inclui apenas parceiro ativo vincu
   assert.equal(dashboard.cards.mensalistas.count, 1);
 });
 
+test('FinanceiroCalculator statusEquipe: ativos acompanham profissionais trabalhando', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-31' },
+    transacoes: [],
+    transacoesAnteriores: [],
+    agreements: [],
+    profissionais: [
+      { professionalId: 'owner-id', nome: 'Dono', papel: 'owner', ativo: true, vinculado: false },
+      { professionalId: 'prof-online', nome: 'Parceiro Online', papel: 'professional', ativo: true, vinculado: true },
+      { professionalId: 'prof-offline', nome: 'Parceiro Offline', papel: 'professional', ativo: true, vinculado: true },
+    ],
+    statusEquipe: { onlineIds: ['owner-id', 'prof-online'] },
+    isOwner: true,
+  });
+
+  assert.equal(dashboard.cards.totalBarbeiros.total, 3);
+  assert.equal(dashboard.cards.totalBarbeiros.online, 2);
+  assert.equal(dashboard.cards.totalBarbeiros.ativos, 2);
+  assert.equal(dashboard.cards.totalBarbeiros.inativos, 1);
+  assert.equal(dashboard.statusEquipe.online, 2);
+  assert.equal(dashboard.statusEquipe.ativos, 2);
+  assert.equal(dashboard.statusEquipe.inativos, 1);
+});
+
+test('FinanceiroCalculator statusEquipe: nao duplica dono e ignora online fora da barbearia', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-31' },
+    transacoes: [],
+    transacoesAnteriores: [],
+    agreements: [],
+    profissionais: [
+      { professionalId: 'owner-id', nome: 'Dono', papel: 'owner', ativo: true },
+      { professionalId: 'prof-offline', nome: 'Parceiro Offline', papel: 'professional', ativo: true },
+    ],
+    statusEquipe: { onlineIds: ['owner-id', 'owner-id', 'prof-outra-barbearia'] },
+    isOwner: true,
+  });
+
+  assert.equal(dashboard.cards.totalBarbeiros.total, 2);
+  assert.equal(dashboard.cards.totalBarbeiros.online, 1);
+  assert.equal(dashboard.cards.totalBarbeiros.ativos, 1);
+  assert.equal(dashboard.cards.totalBarbeiros.inativos, 1);
+});
+
 test('FinanceiroCalculator nao-dono: meuLucro = porcentagem do barbeiro viewer', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({

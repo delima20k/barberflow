@@ -102,7 +102,7 @@ class FinanceiroCalculator {
       ? this.#cardMoney(receitaLiquidaOwner, receitaLiquidaOwnerAnterior)
       : this.#cardMoney(atual.net, anterior.net);
     const online = this.#onlineCount(barbeiroMap, statusEquipe);
-    const ativos = [...barbeiroMap.values()].filter(item => item.ativo).length;
+    const ativos = online;
     const inativos = Math.max(0, barbeiroMap.size - online);
 
     let meuLucro = null;
@@ -395,7 +395,12 @@ class FinanceiroCalculator {
   #onlineCount(barbeiroMap, statusEquipe) {
     const onlineIds = Array.isArray(statusEquipe?.onlineIds) ? statusEquipe.onlineIds : [];
     if (onlineIds.length > 0) {
-      return onlineIds.filter(id => barbeiroMap.get(id)?.ativo !== false).length;
+      const idsValidos = new Set();
+      for (const id of onlineIds) {
+        const barbeiro = barbeiroMap.get(id);
+        if (barbeiro && barbeiro.ativo !== false) idsValidos.add(id);
+      }
+      return idsValidos.size;
     }
     return Math.min(barbeiroMap.size, Math.max(0, Number(statusEquipe?.online ?? 0)));
   }

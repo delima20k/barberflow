@@ -173,5 +173,8 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /#assinarTabelaResumo\('agreements'\)/);
     assert.match(src, /#assinarTabelaResumo\('professional_shop_links'\)/);
     assert.match(src, /#assinarTabelaResumo\('professional_barbershop_presence'\)/);
+    assert.match(src, /#assinarBarbeariaResumo\(\)/);
+    assert.match(src, /table:\s+'barbershops'/);
+    assert.match(src, /filter:\s+`id=eq\.\$\{this\.#shopId\}`/);
   });
 });
