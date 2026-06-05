@@ -469,7 +469,7 @@ class P2PMessageConnectionService {
    */
   static async #buscarIceConfig() {
     try {
-      const token = P2PMessageConnectionService.#obterToken();
+      const token = await P2PMessageConnectionService.#obterToken();
       const bff   = P2PMessageConnectionService.#bffUrl();
       const resp  = await fetch(`${bff}/api/p2p/ice-config`, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -482,11 +482,23 @@ class P2PMessageConnectionService {
     }
   }
 
-  static #obterToken() {
-    if (typeof AuthService !== 'undefined') {
-      return AuthService.getToken?.() ?? AuthService.getPerfil?.()?.access_token ?? '';
-    }
-    return '';
+  static async #obterToken() {
+    try {
+      if (typeof SupabaseService !== 'undefined' && typeof SupabaseService.getSession === 'function') {
+        const session = await SupabaseService.getSession();
+        if (session?.access_token) return session.access_token;
+      }
+    } catch { /* fallback abaixo */ }
+    try {
+      const raw = localStorage.getItem('sb-jfvjisqnzapxxagkbxcu-auth-token');
+      if (!raw) return '';
+      const parsed    = JSON.parse(raw);
+      const token     = parsed?.access_token ?? null;
+      const expiresAt = parsed?.expires_at;
+      if (!token || !expiresAt) return '';
+      if (Date.now() / 1000 > expiresAt - 60) return '';
+      return token;
+    } catch { return ''; }
   }
 
   static #bffUrl() {
