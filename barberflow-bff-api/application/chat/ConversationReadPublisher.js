@@ -15,10 +15,10 @@ class ConversationReadPublisher {
     this.#broadcaster = broadcaster;
   }
 
-  async publish({ conversationId, userId, lastReadMessageId = null, unreadCount = 0 }) {
+  async publish({ conversationId, userId, lastReadMessageId = null, unreadCount = 0, readByUserId = null }) {
     if (!conversationId || !userId) return { ok: false, error: 'conversationId e userId obrigatorios.' };
     const channel = PresenceLink.userChannel(userId);
-    const payload = { conversationId, userId, lastReadMessageId, unreadCount };
+    const payload = { conversationId, userId, lastReadMessageId, unreadCount, readByUserId };
     const results = await Promise.allSettled([
       this.#publishGateway(channel, payload),
       this.#publishSupabase(channel, payload),

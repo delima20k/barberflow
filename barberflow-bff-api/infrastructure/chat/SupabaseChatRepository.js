@@ -155,6 +155,20 @@ class SupabaseChatRepository extends ChatRepository {
       .is('left_at', null);
     if (error) throw this.#error(error);
 
+    // Registra recibo de leitura da última mensagem (auditoria)
+    if (lastMessage?.id) {
+      const { error: receiptError } = await this.#db
+        .from('chat_read_receipts')
+        .upsert(
+          { message_id: lastMessage.id, user_id: userId },
+          { onConflict: 'message_id,user_id' },
+        );
+      if (receiptError) {
+        /* eslint-disable no-console */
+        console.warn('[SupabaseChatRepository] chat_read_receipts upsert falhou (best-effort):', receiptError.message);
+      }
+    }
+
     return {
       conversationId,
       lastReadMessageId: lastMessage?.id ?? null,

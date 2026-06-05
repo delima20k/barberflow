@@ -28,7 +28,8 @@ class ChatModal {
   static #conversa    = null;
   static #uid         = null;   // UUID do usuário logado
   static #modoP2P     = false;  // true quando canal DataChannel está 'secure'
-  static #listenerRegistrado = false; // guarda do listener chatflow:mensagem-nova
+  static #listenerRegistrado     = false; // guarda do listener chatflow:mensagem-nova
+  static #listenerLidaRegistrado = false; // guarda do listener chatflow:conversa-lida
   static #paginaAnterior = null; // tela que abriu o chat (para voltar)
   static #mensagensRenderizadas = new Set(); // message.id canonico ja renderizado
 
@@ -125,6 +126,9 @@ class ChatModal {
         LoggerService.warn('[ChatModal] histórico falhou:', e?.message);
       }
     });
+
+    // Marca conversa como lida assim que o usuário a abre
+    ChatApiClient.marcarConversaComoLida(convId).catch(() => {});
 
     // ── Garante assinatura realtime (canal único) + listener de render ───────
     ChatModal.#garantirListener();
@@ -378,11 +382,18 @@ class ChatModal {
    * ChatRealtimeService (canal único `chat.{uid}`), não deste modal.
    */
   static #garantirListener() {
-    if (ChatModal.#listenerRegistrado) return;
-    ChatModal.#listenerRegistrado = true;
-    document.addEventListener('chatflow:mensagem-nova', e => {
-      ChatModal.#onMensagemNovaEvento(e.detail);
-    });
+    if (!ChatModal.#listenerRegistrado) {
+      ChatModal.#listenerRegistrado = true;
+      document.addEventListener('chatflow:mensagem-nova', e => {
+        ChatModal.#onMensagemNovaEvento(e.detail);
+      });
+    }
+    if (!ChatModal.#listenerLidaRegistrado) {
+      ChatModal.#listenerLidaRegistrado = true;
+      document.addEventListener('chatflow:conversa-lida', e => {
+        ChatModal.#onConversaLida(e.detail);
+      });
+    }
   }
 
   /** Processa evento de nova mensagem via realtime (decifra se necessário). */
@@ -435,6 +446,8 @@ class ChatModal {
     area.scrollTop = area.scrollHeight;
     // Conversa aberta = lida; sinaliza para limpar indicadores na lista.
     ChatModal.#despacharConversaLida(detail.convId);
+    // Confirma leitura no BFF para que o remetente receba ✓✓
+    ChatApiClient.marcarConversaComoLida(detail.convId).catch(() => {});
   }
 
   /**
@@ -496,6 +509,13 @@ class ChatModal {
 
     balao.appendChild(corpo);
     balao.appendChild(horaEl);
+    // Indicador de status (✓ enviado / ✓✓ lido) apenas nas minhas mensagens
+    if (de === 'eu') {
+      const statusEl = document.createElement('span');
+      statusEl.className = 'chat-bubble-status';
+      statusEl.textContent = status === 'enviando' ? '…' : '✓';
+      balao.appendChild(statusEl);
+    }
     col.appendChild(meta);
     col.appendChild(balao);
     if (de === 'eu') {
@@ -520,10 +540,16 @@ class ChatModal {
     const balao = bolha.querySelector('.chat-balao');
     if (!balao) return;
     balao.classList.remove('chat-balao--enviando', 'chat-balao--falhou');
+    const statusEl = balao.querySelector('.chat-bubble-status');
     if (status === 'falhou') {
       balao.classList.add('chat-balao--falhou');
       balao.title = 'Falha ao enviar — toque para reenviar';
+      if (statusEl) statusEl.textContent = '';
+    } else if (status === 'enviando') {
+      balao.classList.add('chat-balao--enviando');
+      if (statusEl) statusEl.textContent = '…';
     }
+    // 'enviado' → ✓ já definido em #renderBolha; não precisa alterar
   }
 
   /** Mostra badge de status de conexão P2P/BFF acima do campo de texto. */
@@ -666,6 +692,20 @@ class ChatModal {
         + ' '
         + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } catch { return horaFallback ?? ''; }
+  }
+
+  /** Atualiza ✓✓ azul quando o peer lê nossas mensagens. */
+  static #onConversaLida(detail) {
+    if (!ChatModal.#conversa) return;
+    if (detail.convId !== ChatModal.#conversa.convId) return;
+    // Só interessa quando o PEER (não eu mesmo) fez a leitura
+    if (!detail.readByUserId || detail.readByUserId !== ChatModal.#conversa.peerId) return;
+
+    const area = document.getElementById('chat-mensagens');
+    area?.querySelectorAll('.chat-message-row--eu .chat-bubble-status').forEach(el => {
+      el.textContent = '✓✓';
+      el.classList.add('chat-bubble-status--lido');
+    });
   }
 
   // Fingerprint leve para deduplicação P2P × Realtime (não criptográfico).

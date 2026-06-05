@@ -85,7 +85,12 @@ class ChatRealtimeService {
     const conversationId = payload?.conversationId;
     if (!conversationId) return;
     document.dispatchEvent(new CustomEvent('chatflow:conversa-lida', {
-      detail: { convId: conversationId, conversationId },
+      detail: {
+        convId:            conversationId,
+        conversationId,
+        readByUserId:      payload?.readByUserId ?? null,
+        lastReadMessageId: payload?.lastReadMessageId ?? null,
+      },
     }));
   }
 }

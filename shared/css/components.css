@@ -3635,7 +3635,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-bottom-right-radius: 4px;
 }
 .chat-bubble-outro .chat-balao {
-  background: var(--card);
+  background: #F5E9DC;
   border: 1px solid var(--gold-border);
   color: var(--text);
   border-bottom-left-radius: 4px;
@@ -3645,6 +3645,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: 0.64rem;
   color: var(--text-dim);
   padding: 0 4px;
+}
+
+.chat-bubble-status {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  margin-left: 3px;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+.chat-bubble-status--lido {
+  color: #2196F3;
 }
 
 /* ── Rodapé do modal (input de envio) ───────────────────── */

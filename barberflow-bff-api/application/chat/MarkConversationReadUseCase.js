@@ -19,12 +19,26 @@ class MarkConversationReadUseCase {
 
     if (this.#readPublisher) {
       try {
+        // 1. Notifica o leitor → limpa badge no dispositivo de quem leu
         await this.#readPublisher.publish({
           conversationId: result.conversationId,
           userId,
           lastReadMessageId: result.lastReadMessageId ?? null,
           unreadCount: result.unreadCount ?? 0,
         });
+
+        // 2. Notifica o(s) remetente(s) → atualiza ✓✓ no dispositivo de quem enviou
+        const conversation = await this.#chatRepository.findConversation(conversationId);
+        const senderIds = conversation?.recipientIds(userId) ?? [];
+        await Promise.allSettled(senderIds.map(senderId =>
+          this.#readPublisher.publish({
+            conversationId: result.conversationId,
+            userId: senderId,
+            lastReadMessageId: result.lastReadMessageId ?? null,
+            unreadCount: 0,
+            readByUserId: userId,
+          })
+        ));
       } catch (_) {
         // Leitura persistida no banco e resposta HTTP nao devem falhar por fanout realtime.
       }
