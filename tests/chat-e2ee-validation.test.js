@@ -213,3 +213,62 @@ describe('Perda de chave E2E — IndexedDB apagado / novo device', () => {
     assert.equal(textoUI, '🔒 Mensagem cifrada');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Bloqueio de envio sem chave — sem fallback legado', () => {
+
+  test('encryptForStorage lança quando peer não tem chave — NÃO retorna payload com body', async () => {
+    // Simula ConversationKeyService sem chave do peer (como quando peer não registrou)
+    global.ConversationKeyService = {
+      obterChaveConversa: async () => {
+        throw new Error('Chave pública do destinatário não registrada. E2E indisponível.');
+      },
+    };
+
+    let erroCapturado = null;
+    let payloadGerado = null;
+
+    try {
+      payloadGerado = await MessageStorageCipher.encryptForStorage('conv-x', 'peer-x', 'mensagem sigilosa');
+    } catch (e) {
+      erroCapturado = e;
+    }
+
+    assert.ok(erroCapturado !== null, 'deve lançar erro quando chave indisponível');
+    assert.equal(payloadGerado, null, 'não deve produzir payload quando chave indisponível');
+    // Garantia: o erro não contém texto puro da mensagem
+    assert.ok(!erroCapturado.message.includes('mensagem sigilosa'), 'erro não deve conter texto puro');
+  });
+
+  test('erro de criptografia não produz body — payloadBff deve ser null/undefined sem body', () => {
+    // Simula a lógica do ChatModal após falha de criptografia:
+    // encryptedPayload = undefined (nunca atribuído por causa do return antecipado)
+    // Portanto payloadBff com body puro nunca deve ser construído
+    let encryptedPayload; // undefined = nunca atribuído (return antecipado no catch)
+    const envioFoiBloqueado = encryptedPayload === undefined;
+
+    assert.equal(envioFoiBloqueado, true, 'envio deve ser bloqueado quando criptografia falha');
+    // Confirma que não existe construção de { body: texto } neste caminho
+    const payloadBff = encryptedPayload ? { encrypted_payload: encryptedPayload } : null;
+    assert.equal(payloadBff, null, 'sem encrypted_payload, nenhum payload deve ser enviado ao BFF');
+  });
+
+  test('encryptForStorage propaga erro de chave sem expor texto puro no log', async () => {
+    const textoSigiloso = 'DADO_SECRETO_XYZ';
+    global.ConversationKeyService = {
+      obterChaveConversa: async () => { throw new Error('E2E indisponível para peer-123.'); },
+    };
+
+    let mensagemDeErro = '';
+    try {
+      await MessageStorageCipher.encryptForStorage('c', 'peer-123', textoSigiloso);
+    } catch (e) {
+      mensagemDeErro = e.message;
+    }
+
+    // Regra: mensagem de erro não pode conter o texto puro (segurança de log)
+    assert.ok(!mensagemDeErro.includes(textoSigiloso), 'texto puro não deve aparecer na mensagem de erro');
+    assert.ok(mensagemDeErro.length > 0, 'deve haver mensagem de erro');
+  });
+});

@@ -241,24 +241,29 @@ class ChatModal {
     });
     if (area) { area.appendChild(bolha); area.scrollTop = area.scrollHeight; }
 
-    // ── Cifra para storage (E2E) ─────────────────────────────
-    let encryptedPayload = null;
-    if (typeof MessageStorageCipher !== 'undefined' && typeof ConversationKeyService !== 'undefined') {
-      try {
-        encryptedPayload = await MessageStorageCipher.encryptForStorage(convId, peerId, texto);
-      } catch (e) {
-        if (typeof LoggerService !== 'undefined') {
-          LoggerService.warn('[ChatModal] E2E encrypt falhou (fallback legado):', e?.message);
-        }
-        // TODO: Bloquear envio quando E2E for obrigatório por política.
-        // Por ora, fallback legado com body para evitar interrupção do serviço.
-      }
+    // ── Cifra para storage (E2E) — OBRIGATÓRIO ──────────────
+    // Sem chave disponível: bloqueia o envio. NÃO usa fallback com body puro.
+    if (typeof MessageStorageCipher === 'undefined' || typeof ConversationKeyService === 'undefined') {
+      ChatModal.#exibirErroCriptografia();
+      ChatModal.#atualizarStatusBolha(bolha, 'falhou');
+      return;
     }
 
-    // Payload para o BFF: encrypted_payload (E2E) ou body (legado)
-    const payloadBff = encryptedPayload
-      ? { encrypted_payload: encryptedPayload, clientMessageId }
-      : { body: texto, clientMessageId };
+    let encryptedPayload;
+    try {
+      encryptedPayload = await MessageStorageCipher.encryptForStorage(convId, peerId, texto);
+    } catch (e) {
+      // Peer sem chave registrada, IndexedDB vazio ou outro erro de criptografia.
+      // Bloquear envio — nunca enviar body puro como fallback.
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[ChatModal] Envio bloqueado: criptografia indisponível.');
+      }
+      ChatModal.#exibirErroCriptografia();
+      ChatModal.#atualizarStatusBolha(bolha, 'falhou');
+      return;
+    }
+
+    const payloadBff = { encrypted_payload: encryptedPayload, clientMessageId };
 
     // ── Caminho P2P (seguro) ─────────────────────────────────
     // DataChannel transporta texto puro (P2P tem cifragem na camada WebRTC).
@@ -527,6 +532,21 @@ class ChatModal {
     if (!el) return;
     const label = ChatModal.#STATUS_LABEL[status] ?? '';
     if (label) el.textContent = label;
+  }
+
+  /** Exibe erro de criptografia ao usuário. Desaparece em 5s. */
+  static #exibirErroCriptografia() {
+    let el = document.getElementById('chat-mod-aviso');
+    if (!el) {
+      el = document.createElement('span');
+      el.id = 'chat-mod-aviso';
+      el.setAttribute('role', 'alert');
+      document.querySelector('.chat-modal-footer')?.prepend(el);
+    }
+    el.textContent = 'Não foi possível enviar esta mensagem com segurança. Reabra a conversa ou tente novamente.';
+    el.style.display = 'block';
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.display = 'none'; }, 5000);
   }
 
   /** Exibe aviso de moderação sem bloquear a UI. Desaparece em 3s. */

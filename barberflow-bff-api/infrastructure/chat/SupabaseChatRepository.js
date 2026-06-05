@@ -45,7 +45,7 @@ class SupabaseChatRepository extends ChatRepository {
         conversation_id: message.conversationId,
         sender_id: message.senderId,
         client_message_id: message.clientMessageId,
-        body: message.body,
+        body: message.encryptedPayload ? null : (message.body || null),
         encrypted_payload: message.encryptedPayload ?? null,
         e2e_key_version: message.e2eKeyVersion ?? null,
         created_at: message.createdAt.toISOString(),

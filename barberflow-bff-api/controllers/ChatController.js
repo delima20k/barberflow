@@ -31,7 +31,12 @@ class ChatController extends BaseController {
     await this.handle(res, async () => {
       const { body, clientMessageId, attachments, encrypted_payload, e2e_key_version } = req.body ?? {};
 
-      // Valida estrutura mínima do encrypted_payload quando presente
+      // Rejeita mensagem nova com body em texto puro (sem encrypted_payload)
+      if (!encrypted_payload && body?.trim()) {
+        throw this._erro('Mensagem nova requer encrypted_payload. Envio em texto puro bloqueado.', 400);
+      }
+
+      // Valida estrutura mínima do encrypted_payload
       if (encrypted_payload !== undefined && encrypted_payload !== null) {
         const { v, alg, iv, ct } = encrypted_payload;
         if (!v || !alg || !iv || !ct) {
@@ -43,7 +48,7 @@ class ChatController extends BaseController {
         conversationId:   req.params.conversationId,
         senderId:         req.user.id,
         clientMessageId,
-        body:             encrypted_payload ? '' : (body ?? ''),
+        body:             null, // body sempre null para mensagens novas; legado é somente leitura
         encryptedPayload: encrypted_payload ?? null,
         e2eKeyVersion:    e2e_key_version ?? null,
         attachments,

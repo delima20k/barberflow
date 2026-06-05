@@ -28,11 +28,16 @@ class Message {
     if (!conversationId || !senderId || !clientMessageId) {
       return Result.fail('Message requer conversationId, senderId e clientMessageId.');
     }
-    if (typeof body !== 'string' || body.length > Message.BODY_MAX_LENGTH) {
+    if (body !== null && body !== undefined && (typeof body !== 'string' || body.length > Message.BODY_MAX_LENGTH)) {
       return Result.fail('Message.body invalido.');
     }
-    if (!body.trim() && attachments.length === 0 && !encryptedPayload) {
-      return Result.fail('Message requer texto, anexo ou encrypted_payload.');
+    // Mensagens com texto requerem encrypted_payload — body puro não é aceito em mensagens novas.
+    if ((body ?? '').trim() && !encryptedPayload) {
+      return Result.fail('Mensagens com texto requerem encrypted_payload. Body em texto puro nao e aceito.');
+    }
+    // Precisa de pelo menos payload cifrado ou anexo
+    if (!encryptedPayload && attachments.length === 0) {
+      return Result.fail('Message requer encrypted_payload ou anexo.');
     }
     return Result.ok(Message.restore({
       id,
