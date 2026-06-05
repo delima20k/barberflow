@@ -742,15 +742,7 @@ export class MinhaBarbeariaRuntimeController {
 
   static async #fetchStoriesAtivos(barbershopId) {
     try {
-      const agora = new Date().toISOString();
-      const { data, error } = await SupabaseService.client
-        .from('stories')
-        .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at')
-        .eq('barbershop_id', barbershopId)
-        .gt('expires_at', agora)
-        .order('created_at', { ascending: false })
-        .limit(2);
-
+      const { data, error } = await BffApiService.barbearias.listarStories(barbershopId);
       if (error) return [];
       return data ?? [];
     } catch (_) { return []; }
@@ -2049,10 +2041,10 @@ export class MinhaBarbeariaRuntimeController {
     const story = this.#storiesData[slotIndex];
     if (!story || typeof PortfolioPrismViewer === 'undefined') return;
     const items = this.#storiesData.map(s => ({
-      fullUrl:   SupabaseService.getLogoUrl(s.storage_path),
+      fullUrl:   s.media_url ?? SupabaseService.getLogoUrl(s.storage_path),
       thumbUrl:  s.thumbnail_path
         ? SupabaseService.getLogoUrl(s.thumbnail_path)
-        : SupabaseService.getLogoUrl(s.storage_path),
+        : (s.media_url ?? SupabaseService.getLogoUrl(s.storage_path)),
       title:     this.#shopData?.name ?? '',
       mediaType: s.media_type,
     }));
@@ -3195,6 +3187,7 @@ export class MinhaBarbeariaRuntimeController {
         storage_path: uploadResult.path,
         media_type: uploadResult.mediaType,
         expires_at: uploadResult.expiresAt,
+        media_id: uploadResult.mediaId ?? null,
       });
       if (dbErr) throw dbErr;
 

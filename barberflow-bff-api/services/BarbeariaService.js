@@ -2,6 +2,7 @@
 
 const BaseService = require('./BaseService');
 const AppError    = require('../utils/AppError');
+const R2Client    = require('../../src/infra/R2Client');
 
 /**
  * BarbeariaService — Regras de negócio para barbearias no BFF.
@@ -422,6 +423,13 @@ class BarbeariaService extends BaseService {
       throw AppError.badRequest('Apenas videos podem ser publicados nos stories da barbearia por este endpoint.');
     }
 
+    const mediaId = dados.media_id ?? dados.mediaId ?? null;
+    if (mediaId !== null) {
+      this._uuid('media_id', mediaId);
+      const existe = await this.#repo.existeMediaPorIdEOwner(mediaId, userId, 'stories');
+      if (!existe) throw AppError.badRequest('media_id invalido ou nao pertence a este usuario.');
+    }
+
     const shopOwner = await this.#repo.getAtivaPorOwner(userId);
     const isOwner = shopOwner?.id === barbershopId;
     const temVinculo = isOwner || await this.#repo.profissionalTemVinculoAtivo(barbershopId, userId);
@@ -443,7 +451,34 @@ class BarbeariaService extends BaseService {
       thumbnail_path: dados.thumbnail_path ?? dados.thumbnailPath ?? null,
       media_type: mediaType,
       expires_at: expiresAt.toISOString(),
+      media_id: mediaId,
     });
+  }
+
+  /**
+   * Lista stories ativos de uma barbearia.
+   * Stories com media_id recebem URL assinada R2 (60s). Legados usam storage_path.
+   * @param {string} barbershopId
+   * @returns {Promise<Array>}
+   */
+  async listarStoriesAtivos(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    const stories = await this.#repo.listarStoriesAtivos(barbershopId);
+    if (!stories.length) return stories;
+
+    if (process.env.STORIES_STORAGE_BACKEND !== 'r2') return stories;
+
+    try {
+      const r2 = R2Client.getInstance();
+      return Promise.all(stories.map(async story => {
+        const r2Path = story.media_files?.path ?? null;
+        if (!story.media_id || !r2Path) return story;
+        const mediaUrl = await r2.presignedGet(r2Path, 60);
+        return { ...story, media_url: mediaUrl };
+      }));
+    } catch (_) {
+      return stories;
+    }
   }
 
   static #validarRaio(raioKm) {

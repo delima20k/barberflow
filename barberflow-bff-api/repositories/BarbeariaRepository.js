@@ -986,7 +986,7 @@ class BarbeariaRepository extends BaseRepository {
     const { data, error } = await this._db
       .from('stories')
       .insert(payload)
-      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, expires_at, created_at')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, expires_at, created_at, media_id')
       .single();
 
     if (error) {
@@ -995,6 +995,57 @@ class BarbeariaRepository extends BaseRepository {
     }
 
     return data;
+  }
+
+  /**
+   * Lista stories ativos de uma barbearia com path do media_files para URL assinada.
+   * @param {string} barbershopId
+   * @returns {Promise<Array>}
+   */
+  async listarStoriesAtivos(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    const agora = new Date().toISOString();
+    const { data, error } = await this._db
+      .from('stories')
+      .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files(path)')
+      .eq('barbershop_id', barbershopId)
+      .gt('expires_at', agora)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      this._warn('listarStoriesAtivos', error);
+      this._throwDbError(error, 'listarStoriesAtivos');
+    }
+
+    return data ?? [];
+  }
+
+  /**
+   * Verifica se um media_files pertence ao owner e está no contexto correto.
+   * Impede que media_id de outros usuários sejam associados a stories.
+   * @param {string} mediaId
+   * @param {string} ownerId
+   * @param {string} contexto
+   * @returns {Promise<boolean>}
+   */
+  async existeMediaPorIdEOwner(mediaId, ownerId, contexto) {
+    this._uuid('mediaId', mediaId);
+    this._uuid('ownerId', ownerId);
+    const { count, error } = await this._db
+      .from('media_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('id', mediaId)
+      .eq('owner_id', ownerId)
+      .eq('contexto', contexto)
+      .neq('status', 'reserved');
+
+    if (error) {
+      this._warn('existeMediaPorIdEOwner', error);
+      this._throwDbError(error, 'existeMediaPorIdEOwner');
+    }
+
+    return (count ?? 0) > 0;
   }
 
   static #avatarUrl(avatarPath) {

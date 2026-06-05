@@ -308,6 +308,18 @@ class BarbeariaController extends BaseController {
    * @returns {number}
    */
   /**
+   * Lista stories ativos de uma barbearia com URLs assinadas para R2.
+   */
+  async listarStories(req, res) {
+    await this.handle(res, async () => {
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      const stories = await this.#service.listarStoriesAtivos(barbershopId);
+      this.success(res, stories);
+    });
+  }
+
+  /**
    * Registra story enviado por profissional vinculado.
    */
   async salvarStoryProfissional(req, res) {

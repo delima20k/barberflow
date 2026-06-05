@@ -263,15 +263,19 @@ create table if not exists public.stories (
   views_count    int not null default 0,
   region_key     text,
   expires_at     timestamptz not null default (now() + interval '24 hours'),
-  created_at     timestamptz not null default now()
+  created_at     timestamptz not null default now(),
+  media_id       uuid references public.media_files(id) on delete set null
 );
 
 comment on table public.stories is
   'Stories de 24h. Somente metadados. Mídia fica no Storage em /stories/. Limpar expirados com cron.';
+comment on column public.stories.media_id is
+  'FK para media_files. Preenchido em stories novos (R2). NULL mantém compatibilidade com storage_path legado.';
 
 create index idx_stories_owner      on public.stories(owner_id, created_at);
 create index idx_stories_expires    on public.stories(expires_at);
 create index idx_stories_barbershop on public.stories(barbershop_id, expires_at);
+create index idx_stories_media_id   on public.stories(media_id) where media_id is not null;
 
 create table if not exists public.story_views (
   id         uuid primary key default uuid_generate_v4(),

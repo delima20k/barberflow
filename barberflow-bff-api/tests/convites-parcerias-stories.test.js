@@ -51,6 +51,8 @@ suite('ConviteService - aceitar convite', () => {
   });
 });
 
+const MEDIA_ID = '00000000-0000-4000-8000-000000000004';
+
 suite('BarbeariaService - stories de parceiro', () => {
   test('salva story de video quando profissional tem vinculo ativo e quota disponivel', async () => {
     let payloadSalvo = null;
@@ -76,6 +78,54 @@ suite('BarbeariaService - stories de parceiro', () => {
 
     assert.strictEqual(result.storage_path, 'stories/pro/video.mp4');
     assert.strictEqual(payloadSalvo.owner_id, USER_ID);
+    assert.strictEqual(payloadSalvo.media_id, null);
+  });
+
+  test('salva story com media_id quando fornecido e pertence ao usuario', async () => {
+    let payloadSalvo = null;
+    const service = new BarbeariaService({
+      getAtivaPorOwner: async () => null,
+      profissionalTemVinculoAtivo: async () => true,
+      contarStoriesAtivos: async () => 0,
+      existeMediaPorIdEOwner: async (mediaId, ownerId, contexto) => {
+        assert.strictEqual(mediaId, MEDIA_ID);
+        assert.strictEqual(ownerId, USER_ID);
+        assert.strictEqual(contexto, 'stories');
+        return true;
+      },
+      salvarStory: async (payload) => {
+        payloadSalvo = payload;
+        return { id: INVITE_ID, ...payload };
+      },
+    });
+
+    const result = await service.salvarStoryProfissional(USER_ID, SHOP_ID, {
+      storage_path: 'stories/pro/video.mp4',
+      media_type: 'video',
+      media_id: MEDIA_ID,
+    });
+
+    assert.strictEqual(result.media_id, MEDIA_ID);
+    assert.strictEqual(payloadSalvo.media_id, MEDIA_ID);
+  });
+
+  test('rejeita story quando media_id nao pertence ao usuario', async () => {
+    const service = new BarbeariaService({
+      getAtivaPorOwner: async () => null,
+      profissionalTemVinculoAtivo: async () => true,
+      contarStoriesAtivos: async () => 0,
+      existeMediaPorIdEOwner: async () => false,
+      salvarStory: async () => ({ id: INVITE_ID }),
+    });
+
+    await assert.rejects(
+      () => service.salvarStoryProfissional(USER_ID, SHOP_ID, {
+        storage_path: 'stories/pro/video.mp4',
+        media_type: 'video',
+        media_id: MEDIA_ID,
+      }),
+      err => err.status === 400,
+    );
   });
 
   test('bloqueia segundo story ativo para barbeiro parceiro', async () => {

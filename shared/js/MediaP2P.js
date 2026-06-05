@@ -149,7 +149,7 @@ class MediaP2P {
     }
 
     this.#revogar(uid); // libera memória após conclusão bem-sucedida
-    return { path, publicUrl };
+    return { path, publicUrl, mediaId };
   }
 
   /**

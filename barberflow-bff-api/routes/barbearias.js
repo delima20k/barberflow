@@ -53,6 +53,7 @@ module.exports = function criarBarbeariaRoute(db) {
   router.get('/:barbershop_id/barbeiros-status',            ctrl.listarStatusBarbeiros.bind(ctrl));
   router.patch('/:barbershop_id/me/status',                 AuthMiddleware.verificar, ctrl.atualizarMeuStatusBarbeiro.bind(ctrl));
   router.get('/:barbershop_id/gestao',                      AuthMiddleware.verificar, ctrl.getGestaoVinculada.bind(ctrl));
+  router.get('/:barbershop_id/stories',                     ctrl.listarStories.bind(ctrl));
   router.post('/:barbershop_id/stories',                    AuthMiddleware.verificar, ctrl.salvarStoryProfissional.bind(ctrl));
   router.get('/:barbershop_id/portfolio',                   ctrl.portfolio.bind(ctrl));
   router.get('/destaque', ctrl.destaque.bind(ctrl));
