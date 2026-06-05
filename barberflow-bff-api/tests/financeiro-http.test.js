@@ -168,6 +168,16 @@ class FakeQuery {
       return { data: this.single ? (rows[0] ?? null) : rows, error: null };
     }
 
+    if (this.table === 'professional_weekly_settlements') {
+      const rows = this.db.weeklySettlementRows.filter(row =>
+        (!this.filters.barbershop_id || row.barbershop_id === this.filters.barbershop_id)
+        && (!this.filters.professional_id || row.professional_id === this.filters.professional_id)
+        && (!this.filters['period_start:gte'] || row.period_start >= this.filters['period_start:gte'])
+        && (!this.filters['period_end:lte'] || row.period_end <= this.filters['period_end:lte'])
+      );
+      return { data: this.single ? (rows[0] ?? null) : rows, error: null };
+    }
+
     return { data: [], error: null };
   }
 }
@@ -182,6 +192,8 @@ class FakeDb {
     this.feeUpsertCalls = [];
     this.payoutRows = [];
     this.payoutItemRows = [];
+    this.weeklySettlementRows = [];
+    this.weeklySettlementUpsertCalls = [];
     this.failedPayouts = [];
     this.linkRows = [
       { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
@@ -285,6 +297,33 @@ class FakeDb {
           };
         },
         select: () => new FakeQuery(this, table),
+      };
+    }
+    if (table === 'professional_weekly_settlements') {
+      return {
+        select: () => new FakeQuery(this, table),
+        upsert: (payload) => {
+          this.weeklySettlementUpsertCalls.push(payload);
+          const index = this.weeklySettlementRows.findIndex(row =>
+            row.barbershop_id === payload.barbershop_id
+            && row.professional_id === payload.professional_id
+            && row.period_start === payload.period_start
+            && row.period_end === payload.period_end
+          );
+          const row = {
+            id: index >= 0 ? this.weeklySettlementRows[index].id : `settlement-${this.weeklySettlementRows.length + 1}`,
+            ...payload,
+            created_at: payload.created_at || new Date().toISOString(),
+            updated_at: payload.updated_at || new Date().toISOString(),
+          };
+          if (index >= 0) this.weeklySettlementRows[index] = row;
+          else this.weeklySettlementRows.push(row);
+          return {
+            select: () => ({
+              single: async () => ({ data: row, error: null }),
+            }),
+          };
+        },
       };
     }
     return new FakeQuery(this, table);
@@ -533,6 +572,139 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
   assert.equal(res.body.dados.barbeiros.length, 1);
   assert.equal(res.body.dados.barbeiros[0].professionalId, USER_ID);
   assert.equal(res.body.dados.barbeiros[0].pendingPayoutAmount, 192);
+  assert.equal(res.body.dados.acertoSemanal.resumo.valorARepassarBarbearia, 288);
+  assert.equal(res.body.dados.acertoSemanal.resumo.valorLiquidoBarbeiro, 192);
+  assert.equal(res.body.dados.acertoSemanal.resumo.status, 'pending');
+  assert.equal(res.body.dados.acertoSemanal.historico.length, 1);
+});
+
+test('GET /dashboard owner nao recebe acertoSemanal de parceiro', async () => {
+  const db = new FakeDb();
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=semana`, {
+    headers: { Authorization: `Bearer ${token()}` },
+  });
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.dados.isOwner, true);
+  assert.equal(res.body.dados.acertoSemanal, undefined);
+});
+
+test('POST /acertos-semanais/confirmar permite parceiro confirmar repasse semanal e e idempotente', async () => {
+  class FakeDbParceiro extends FakeDb {
+    from(table) {
+      const query = super.from(table);
+      if (table === 'barbershops') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: { id: SHOP_ID, owner_id: '00000000-0000-4000-8000-000000000000', is_active: true }, error: null }).then(resolve, reject);
+      }
+      if (table === 'transactions') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: [
+            { id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, amount: 480, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' },
+          ].filter(item => !query.filters.professional_id || item.professional_id === query.filters.professional_id), error: null }).then(resolve, reject);
+      }
+      if (table === 'agreements') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: [{ professional_id: USER_ID, barbershop_id: SHOP_ID, type: 'percentage', value: 40, is_active: true }], error: null }).then(resolve, reject);
+      }
+      return query;
+    }
+  }
+
+  const db = new FakeDbParceiro();
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const body = {
+    barbershop_id: SHOP_ID,
+    periodo: 'semana',
+    displayed_amount: 288,
+  };
+
+  const first = await request(port, 'POST', '/api/v1/financeiro/acertos-semanais/confirmar', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body,
+  });
+  const second = await request(port, 'POST', '/api/v1/financeiro/acertos-semanais/confirmar', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body,
+  });
+
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(first.status, 200);
+  assert.equal(first.body.dados.settlement.status, 'paid');
+  assert.equal(second.status, 200);
+  assert.equal(db.weeklySettlementRows.length, 1);
+  assert.equal(db.weeklySettlementRows[0].shop_amount, 288);
+  assert.equal(db.weeklySettlementRows[0].confirmed_by, USER_ID);
+});
+
+test('POST /acertos-semanais/confirmar rejeita owner, sem vinculo e valor desatualizado', async () => {
+  const ownerDb = new FakeDb();
+  const ownerApp = criarApp(ownerDb);
+  const ownerServer = await new Promise(resolve => {
+    const srv = ownerApp.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const ownerPort = ownerServer.address().port;
+  const ownerRes = await request(ownerPort, 'POST', '/api/v1/financeiro/acertos-semanais/confirmar', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: { barbershop_id: SHOP_ID, periodo: 'semana', displayed_amount: 288 },
+  });
+  await new Promise((resolve, reject) => ownerServer.close(err => (err ? reject(err) : resolve())));
+  assert.equal(ownerRes.status, 403);
+  assert.equal(ownerDb.weeklySettlementRows.length, 0);
+
+  const forbiddenApp = criarApp(new FakeDb({ forbidden: true }));
+  const forbiddenServer = await new Promise(resolve => {
+    const srv = forbiddenApp.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const forbiddenPort = forbiddenServer.address().port;
+  const forbiddenRes = await request(forbiddenPort, 'POST', '/api/v1/financeiro/acertos-semanais/confirmar', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: { barbershop_id: SHOP_ID, periodo: 'semana', displayed_amount: 288 },
+  });
+  await new Promise((resolve, reject) => forbiddenServer.close(err => (err ? reject(err) : resolve())));
+  assert.equal(forbiddenRes.status, 403);
+
+  class FakeDbParceiro extends FakeDb {
+    from(table) {
+      const query = super.from(table);
+      if (table === 'barbershops') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: { id: SHOP_ID, owner_id: '00000000-0000-4000-8000-000000000000', is_active: true }, error: null }).then(resolve, reject);
+      }
+      if (table === 'transactions') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: [{ id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z' }], error: null }).then(resolve, reject);
+      }
+      if (table === 'agreements') {
+        query.then = (resolve, reject) =>
+          Promise.resolve({ data: [{ professional_id: USER_ID, barbershop_id: SHOP_ID, type: 'percentage', value: 40, is_active: true }], error: null }).then(resolve, reject);
+      }
+      return query;
+    }
+  }
+
+  const staleDb = new FakeDbParceiro();
+  const staleApp = criarApp(staleDb);
+  const staleServer = await new Promise(resolve => {
+    const srv = staleApp.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const stalePort = staleServer.address().port;
+  const staleRes = await request(stalePort, 'POST', '/api/v1/financeiro/acertos-semanais/confirmar', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: { barbershop_id: SHOP_ID, periodo: 'semana', displayed_amount: 287 },
+  });
+  await new Promise((resolve, reject) => staleServer.close(err => (err ? reject(err) : resolve())));
+  assert.equal(staleRes.status, 409);
+  assert.equal(staleDb.weeklySettlementRows.length, 0);
 });
 
 test('POST /pagamentos-barbeiro retorna 403 para parceiro nao-dono', async () => {
@@ -567,6 +739,30 @@ test('POST /pagamentos-barbeiro retorna 403 para parceiro nao-dono', async () =>
   await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
   assert.equal(res.status, 403);
   assert.equal(db.payoutRows.length, 0);
+});
+
+test('POST /pagamentos-barbeiro rejeita payout para o dono da barbearia', async () => {
+  const db = new FakeDb();
+  const app = criarApp(db);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+  const res = await request(port, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+    headers: { Authorization: `Bearer ${token()}` },
+    body: {
+      barbershop_id: SHOP_ID,
+      professional_id: USER_ID,
+      periodo: 'custom',
+      de: '2026-05-01',
+      ate: '2026-05-31',
+      displayed_amount: 192,
+    },
+  });
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 403);
+  assert.equal(db.payoutRows.length, 0);
+  assert.equal(db.payoutItemRows.length, 0);
 });
 
 test('POST /pagamentos-barbeiro rejeita valor exibido desatualizado sem criar payout', async () => {

@@ -26,6 +26,7 @@ function dashboardFixture(overrides = {}) {
     barbeiros: overrides.barbeiros || [{
       professionalId: PROF_ID,
       nome: 'Barbeiro',
+      papel: 'professional',
       cortes: 2,
       receitaLiquida: 27.2,
       valorBarbeiro: 27.2,
@@ -39,6 +40,7 @@ function dashboardFixture(overrides = {}) {
     series: overrides.series || [],
     donut: overrides.donut || [],
     statusEquipe: overrides.statusEquipe || { total: 1, online: 0, ativos: 1, inativos: 0 },
+    acertoSemanal: overrides.acertoSemanal,
   };
 }
 
@@ -87,6 +89,10 @@ function criarSandbox({ shopId = SHOP_ID, retorno = dashboardFixture() } = {}) {
         aplicarTaxaMetodo: fn().mockResolvedValue({ data: { aplicado: true }, error: null }),
         confirmarPagamentoBarbeiro: fn().mockResolvedValue({
           data: { payout: { amount: 27.2 }, updatedBalance: { pendingPayoutAmount: 0 } },
+          error: null,
+        }),
+        confirmarAcertoSemanal: fn().mockResolvedValue({
+          data: { settlement: { status: 'paid' } },
           error: null,
         }),
       },
@@ -179,7 +185,7 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /barbeiro\.pendingPayoutAmount/);
   });
 
-  test('renderiza botao Pagar apenas com saldo e owner', () => {
+  test('renderiza botao Pagar apenas para parceiro com saldo e owner', () => {
     const src = fs.readFileSync(
       path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
       'utf8',
@@ -188,6 +194,7 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /Pagar/);
     assert.match(src, /dados\.isOwner/);
     assert.match(src, /Number\(barbeiro\.pendingPayoutAmount \|\| 0\) > 0/);
+    assert.match(src, /barbeiro\.papel !== 'owner'/);
   });
 
   test('modal de pagamento mostra periodo, valor e cortes finalizados recebidos', () => {
@@ -210,6 +217,31 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /#payoutEmAndamento/);
     assert.doesNotMatch(src, /pendingPayoutAmount\s*=|const\s+pendingPayoutAmount/);
     assert.doesNotMatch(src, /gross_amount/);
+  });
+
+  test('renderiza resumo de acerto semanal com valor a repassar e historico', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /Resumo de Acerto Semanal/);
+    assert.match(src, /Valor a Repassar para a Barbearia/);
+    assert.match(src, /Produção Bruta da Semana|Producao Bruta da Semana/);
+    assert.match(src, /Status/);
+    assert.match(src, /Histórico|Historico/);
+    assert.match(src, /acertoSemanal/);
+  });
+
+  test('frontend confirma acerto semanal somente pela BFF e nao recalcula repasse', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /BffApiService\.financeiro\.confirmarAcertoSemanal/);
+    assert.match(src, /#acertoEmAndamento/);
+    assert.match(src, /Confirmar repasse/);
+    assert.doesNotMatch(src, /valorARepassarBarbearia\s*=/);
+    assert.doesNotMatch(src, /participacaoBarbearia\s*=/);
   });
 
   test('assina fontes que afetam o resumo financeiro da barbearia', () => {

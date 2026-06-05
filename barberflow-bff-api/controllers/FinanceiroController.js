@@ -40,6 +40,13 @@ class FinanceiroController extends BaseController {
       this.success(res, dados);
     });
   }
+
+  async confirmarAcertoSemanal(req, res) {
+    await this.handle(res, async () => {
+      const dados = await this.#service.confirmarAcertoSemanal(req.user.id, req.body);
+      this.success(res, dados);
+    });
+  }
 }
 
 module.exports = FinanceiroController;

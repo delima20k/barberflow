@@ -260,6 +260,9 @@ class BffApiService {
     portfolio: (barbershopId, params = {}) =>
       BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/portfolio`, params),
 
+    listarStories: (barbershopId) =>
+      BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`),
+
     publicarStory: (barbershopId, payload) =>
       BffApiService.post(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`, payload),
 
@@ -368,6 +371,17 @@ class BffApiService {
         periodo,
         de,
         ate,
+        displayed_amount: displayedAmount,
+      }),
+
+    confirmarAcertoSemanal: ({
+      barbershopId,
+      periodo = 'semana',
+      displayedAmount = 0,
+    } = {}) =>
+      BffApiService.post('/api/v1/financeiro/acertos-semanais/confirmar', {
+        barbershop_id: barbershopId,
+        periodo,
         displayed_amount: displayedAmount,
       }),
   };

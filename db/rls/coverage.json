@@ -97,6 +97,11 @@
       "sensitiveColumns": ["payout_id", "transaction_id", "amount"],
       "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/financeiro-http.test.js"]
     },
+    "public.professional_weekly_settlements": {
+      "operations": ["select", "insert", "update"],
+      "sensitiveColumns": ["barbershop_id", "professional_id", "period_start", "period_end", "gross_amount", "shop_amount", "barber_amount", "fees_amount", "net_amount", "status", "confirmed_at", "confirmed_by"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/financeiro-http.test.js"]
+    },
     "public.subscriptions": {
       "operations": ["select", "insert", "update", "delete"],
       "sensitiveColumns": ["user_id", "plan", "price", "payment_token"],

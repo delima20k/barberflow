@@ -3571,6 +3571,106 @@
   cursor: wait;
 }
 
+.fin-settlement-panel {
+  gap: 1rem;
+}
+
+.fin-settlement-status {
+  border-radius: 999px;
+  padding: .35rem .65rem;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.fin-settlement-status--pending {
+  background: rgba(245, 158, 11, .14);
+  color: #92400e;
+}
+
+.fin-settlement-status--paid {
+  background: rgba(16, 185, 129, .14);
+  color: #047857;
+}
+
+.fin-settlement-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .85rem;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #0f766e;
+  color: #fff;
+}
+
+.fin-settlement-highlight span {
+  font-size: .82rem;
+  font-weight: 700;
+  opacity: .88;
+}
+
+.fin-settlement-highlight strong {
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+}
+
+.fin-settlement-confirm {
+  border: 0;
+  border-radius: 8px;
+  padding: .65rem .85rem;
+  background: #fff;
+  color: #0f766e;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fin-settlement-confirm:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
+.fin-settlement-metrics {
+  margin-top: 0;
+}
+
+.fin-settlement-history {
+  display: grid;
+  gap: .45rem;
+}
+
+.fin-settlement-history h3 {
+  margin: 0;
+  font-size: .95rem;
+}
+
+.fin-settlement-history p {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: .75rem;
+  margin: 0;
+  border-top: 1px solid rgba(15, 23, 42, .08);
+  padding-top: .45rem;
+}
+
+.fin-settlement-history span,
+.fin-settlement-history em {
+  color: #64748b;
+  font-size: .82rem;
+}
+
+@media (max-width: 560px) {
+  .fin-settlement-highlight,
+  .fin-settlement-history p {
+    grid-template-columns: 1fr;
+  }
+
+  .fin-settlement-highlight {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .fin-payout-modal {
   position: fixed;
   inset: 0;

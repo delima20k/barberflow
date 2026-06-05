@@ -206,6 +206,36 @@ class FinanceiroCalculator {
     return { amount: amount.toNumber(), cuts: items.length, items };
   }
 
+  calcularAcertoSemanal({
+    professionalId,
+    periodo,
+    transacoes = [],
+    agreements = [],
+    profissionais = [],
+    taxasMetodoPagamento = [],
+    settlements = [],
+  }) {
+    const barbeiroMap = this.#barbeiroMap(profissionais, {});
+    const agreementMap = this.#agreementMap(agreements, barbeiroMap);
+    const taxaMetodoMap = this.#taxaMetodoMap(taxasMetodoPagamento);
+    const profissional = barbeiroMap.get(professionalId);
+    const agreement = this.#agreementFor(professionalId, agreementMap, profissional);
+    const totais = this.#totaisAcertoSemanal(professionalId, transacoes, agreement, profissional, taxaMetodoMap);
+    const settlementAtual = this.#settlementDaSemana(settlements, periodo);
+    const resumo = this.#resumoAcertoSemanal({
+      professionalId,
+      periodo,
+      totais,
+      agreement,
+      settlement: settlementAtual,
+    });
+
+    return {
+      resumo,
+      historico: this.#historicoAcertoSemanal(resumo, settlements),
+    };
+  }
+
   #agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap, payoutTransactionIds = new Set()) {
     const total = {
       gross: Money.zero(),
@@ -268,11 +298,133 @@ class FinanceiroCalculator {
     metodos.set(key, atual);
   }
 
+  #totaisAcertoSemanal(professionalId, transacoes, agreement, profissional, taxaMetodoMap) {
+    const metodos = {
+      pix: Money.zero(),
+      dinheiro: Money.zero(),
+      debit: Money.zero(),
+      credit: Money.zero(),
+    };
+    const totais = {
+      gross: Money.zero(),
+      net: Money.zero(),
+      fees: Money.zero(),
+      shop: Money.zero(),
+      barber: Money.zero(),
+      cortes: 0,
+      metodos,
+    };
+
+    for (const tx of transacoes || []) {
+      if (tx?.professional_id !== professionalId) continue;
+      const metodo = this.#normalizarMetodoPagamento(tx.payment_method);
+      const financial = this.#transacaoFinanceira(tx, taxaMetodoMap);
+      const split = this.#splitTransaction(financial.net, agreement, profissional);
+      totais.gross = totais.gross.plus(financial.gross);
+      totais.net = totais.net.plus(financial.net);
+      totais.fees = totais.fees.plus(financial.fees);
+      totais.shop = totais.shop.plus(split.shopDisplay);
+      totais.barber = totais.barber.plus(split.barberDisplay);
+      totais.cortes += 1;
+      if (Object.prototype.hasOwnProperty.call(metodos, metodo)) {
+        metodos[metodo] = metodos[metodo].plus(financial.gross);
+      }
+    }
+
+    return totais;
+  }
+
+  #resumoAcertoSemanal({ professionalId, periodo, totais, agreement, settlement }) {
+    const status = settlement?.status === 'paid' ? 'paid' : 'pending';
+    return {
+      professionalId,
+      periodo: {
+        tipo: 'semana',
+        de: periodo?.de || this.#dateOnly(periodo?.inicio || new Date()),
+        ate: periodo?.ate || this.#dateOnly(periodo?.fim || new Date()),
+        inicio: periodo?.inicio,
+        fim: periodo?.fim,
+      },
+      semanaReferencia: `${periodo?.de || ''} a ${periodo?.ate || ''}`.trim(),
+      producaoBrutaSemana: totais.gross.toNumber(),
+      metodos: {
+        pix: totais.metodos.pix.toNumber(),
+        dinheiro: totais.metodos.dinheiro.toNumber(),
+        debit: totais.metodos.debit.toNumber(),
+        credit: totais.metodos.credit.toNumber(),
+      },
+      totalRecebidoPix: totais.metodos.pix.toNumber(),
+      totalRecebidoDinheiro: totais.metodos.dinheiro.toNumber(),
+      totalRecebidoDebito: totais.metodos.debit.toNumber(),
+      totalRecebidoCredito: totais.metodos.credit.toNumber(),
+      taxasMaquininha: totais.fees.toNumber(),
+      participacaoBarbearia: totais.shop.toNumber(),
+      participacaoBarbeiro: totais.barber.toNumber(),
+      valorLiquidoBarbeiro: totais.barber.toNumber(),
+      valorARepassarBarbearia: totais.shop.toNumber(),
+      receitaLiquida: totais.net.toNumber(),
+      cortes: totais.cortes,
+      porcentagemBarbearia: agreement.shopPercent,
+      porcentagemBarbeiro: agreement.barberPercent,
+      agreementConfigured: agreement.configured,
+      status,
+      settlementId: settlement?.id || null,
+      confirmedAt: settlement?.confirmed_at || settlement?.confirmedAt || null,
+    };
+  }
+
+  #historicoAcertoSemanal(resumo, settlements) {
+    const atualKey = `${resumo.periodo.de}:${resumo.periodo.ate}`;
+    const historico = [{
+      settlementId: resumo.settlementId,
+      semanaReferencia: resumo.semanaReferencia,
+      periodo: resumo.periodo,
+      valorBrutoProduzido: resumo.producaoBrutaSemana,
+      valorBarbearia: resumo.participacaoBarbearia,
+      valorBarbeiro: resumo.participacaoBarbeiro,
+      taxas: resumo.taxasMaquininha,
+      valorLiquido: resumo.valorLiquidoBarbeiro,
+      status: resumo.status,
+      confirmedAt: resumo.confirmedAt,
+    }];
+
+    for (const settlement of settlements || []) {
+      const inicio = this.#dateOnlyPersisted(settlement.period_start || settlement.periodStart);
+      const fim = this.#dateOnlyPersisted(settlement.period_end || settlement.periodEnd);
+      if (`${inicio}:${fim}` === atualKey) continue;
+      historico.push({
+        settlementId: settlement.id || null,
+        semanaReferencia: `${inicio} a ${fim}`,
+        periodo: { tipo: 'semana', de: inicio, ate: fim },
+        valorBrutoProduzido: Money.from(settlement.gross_amount || settlement.grossAmount).toNumber(),
+        valorBarbearia: Money.from(settlement.shop_amount || settlement.shopAmount).toNumber(),
+        valorBarbeiro: Money.from(settlement.barber_amount || settlement.barberAmount).toNumber(),
+        taxas: Money.from(settlement.fees_amount || settlement.feesAmount).toNumber(),
+        valorLiquido: Money.from(settlement.net_amount || settlement.netAmount || settlement.barber_amount).toNumber(),
+        status: settlement.status || 'paid',
+        confirmedAt: settlement.confirmed_at || settlement.confirmedAt || null,
+      });
+    }
+
+    return historico.sort((a, b) => String(b.periodo.de).localeCompare(String(a.periodo.de))).slice(0, 8);
+  }
+
+  #settlementDaSemana(settlements, periodo) {
+    const inicio = periodo?.de;
+    const fim = periodo?.ate;
+    return (settlements || []).find(settlement =>
+      this.#dateOnlyPersisted(settlement.period_start || settlement.periodStart) === inicio
+      && this.#dateOnlyPersisted(settlement.period_end || settlement.periodEnd) === fim
+      && settlement.status === 'paid'
+    ) || null;
+  }
+
   #somarBarbeiro(map, professionalId, profissional, agreement, financial, split, payoutRegistrado = false) {
     const atual = map.get(professionalId) || {
       professionalId,
       nome: profissional?.nome || 'Profissional',
       avatarUrl: profissional?.avatarUrl || '',
+      papel: profissional?.papel || 'professional',
       status: profissional?.status || 'offline',
       ativo: profissional?.ativo !== false,
       cortes: 0,
@@ -312,6 +464,7 @@ class FinanceiroCalculator {
         professionalId: id,
         nome: atual?.nome || base.nome || 'Profissional',
         avatarUrl: atual?.avatarUrl || base.avatarUrl || '',
+        papel: atual?.papel || base.papel || 'professional',
         status: atual?.status || base.status || 'offline',
         ativo: atual?.ativo ?? base.ativo ?? true,
         cortes: atual?.cortes || 0,
@@ -560,6 +713,13 @@ class FinanceiroCalculator {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  #dateOnlyPersisted(value) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      return value.slice(0, 10);
+    }
+    return this.#dateOnly(new Date(value));
   }
 
   #inicioDia(value) {

@@ -143,6 +143,22 @@ class FinanceiroRepository extends BaseRepository {
     });
   }
 
+  async listarAcertosSemanais(barbershopId, professionalId, limite = 8) {
+    this._uuid('barbershop_id', barbershopId);
+    this._uuid('professional_id', professionalId);
+
+    const { data, error } = await this._db
+      .from('professional_weekly_settlements')
+      .select('id, barbershop_id, professional_id, period_start, period_end, gross_amount, shop_amount, barber_amount, fees_amount, net_amount, status, confirmed_at, confirmed_by, created_at, updated_at')
+      .eq('barbershop_id', barbershopId)
+      .eq('professional_id', professionalId)
+      .order('period_start', { ascending: false })
+      .limit(limite);
+
+    if (error) this._throwDbError(error, 'listarAcertosSemanais');
+    return data || [];
+  }
+
   async listarProfissionais(barbershopId, professionalId = null) {
     const [{ data: shop, error: shopError }, { data: links, error: linksError }] = await Promise.all([
       this._db
@@ -304,6 +320,37 @@ class FinanceiroRepository extends BaseRepository {
       }
       this._throwDbError(error, 'criarPayoutComItens.rpc');
     }
+    return data;
+  }
+
+  async confirmarAcertoSemanal({ confirmedBy, barbershopId, professionalId, periodo, resumo }) {
+    this._uuid('confirmedBy', confirmedBy);
+    this._uuid('barbershop_id', barbershopId);
+    this._uuid('professional_id', professionalId);
+
+    const payload = {
+      barbershop_id: barbershopId,
+      professional_id: professionalId,
+      period_start: periodo.inicio.toISOString(),
+      period_end: periodo.fim.toISOString(),
+      gross_amount: resumo.producaoBrutaSemana,
+      shop_amount: resumo.valorARepassarBarbearia,
+      barber_amount: resumo.participacaoBarbeiro,
+      fees_amount: resumo.taxasMaquininha,
+      net_amount: resumo.valorLiquidoBarbeiro,
+      status: 'paid',
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: confirmedBy,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await this._db
+      .from('professional_weekly_settlements')
+      .upsert(payload, { onConflict: 'barbershop_id,professional_id,period_start,period_end' })
+      .select('id, barbershop_id, professional_id, period_start, period_end, gross_amount, shop_amount, barber_amount, fees_amount, net_amount, status, confirmed_at, confirmed_by, created_at, updated_at')
+      .single();
+
+    if (error) this._throwDbError(error, 'confirmarAcertoSemanal');
     return data;
   }
 }

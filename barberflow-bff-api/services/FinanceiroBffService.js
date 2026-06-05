@@ -70,7 +70,7 @@ class FinanceiroBffService extends BaseService {
       this.#repo.listarPayoutItemsRegistrados(barbershopId, periodo, viewerProfessionalId),
     ]);
 
-    return this.#calculator.calcularDashboard({
+    const dashboard = this.#calculator.calcularDashboard({
       periodo,
       transacoes,
       transacoesAnteriores,
@@ -85,6 +85,17 @@ class FinanceiroBffService extends BaseService {
       taxasMetodoPagamento,
       payoutItems,
     });
+
+    if (!isOwner && viewerProfessionalId) {
+      dashboard.acertoSemanal = await this.#montarAcertoSemanal({
+        barbershopId,
+        professionalId: viewerProfessionalId,
+        acesso,
+        taxasMetodoPagamento,
+      });
+    }
+
+    return dashboard;
   }
 
   async extratoBarbeiro(userId, professionalId, filtros = {}) {
@@ -136,6 +147,9 @@ class FinanceiroBffService extends BaseService {
     const acesso = await this.#repo.verificarAcesso(userId, barbershopId);
     if (acesso.papel !== 'owner') {
       throw AppError.forbidden('Apenas o dono da barbearia pode registrar pagamento ao barbeiro.');
+    }
+    if (professionalId === acesso.shop?.owner_id) {
+      throw AppError.forbidden('Nao e permitido registrar payout para o dono da barbearia.');
     }
 
     const [
@@ -209,6 +223,90 @@ class FinanceiroBffService extends BaseService {
       payout,
       updatedBalance,
     };
+  }
+
+  async confirmarAcertoSemanal(userId, payload = {}) {
+    const barbershopId = payload.barbershop_id;
+    if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+    this._uuid('barbershop_id', barbershopId);
+
+    const periodo = this.#resolverPeriodo({ periodo: 'semana' });
+    const displayedAmount = Money.from(payload.displayed_amount);
+    if (displayedAmount.cents < 0) throw AppError.badRequest('displayed_amount invalido.');
+
+    const acesso = await this.#repo.verificarAcesso(userId, barbershopId);
+    if (acesso.papel === 'owner') {
+      throw AppError.forbidden('Dono da barbearia nao confirma acerto semanal de barbeiro.');
+    }
+
+    const acertoSemanal = await this.#montarAcertoSemanal({
+      barbershopId,
+      professionalId: userId,
+      acesso,
+      periodo,
+    });
+    const amount = Money.from(acertoSemanal.resumo.valorARepassarBarbearia);
+    if (amount.cents <= 0) {
+      throw AppError.conflict('Nao ha valor de repasse semanal para confirmar.');
+    }
+    if (displayedAmount.cents !== amount.cents) {
+      throw AppError.conflict('Valor exibido desatualizado. Atualize o dashboard financeiro antes de confirmar.');
+    }
+
+    const settlement = await this.#repo.confirmarAcertoSemanal({
+      confirmedBy: userId,
+      barbershopId,
+      professionalId: userId,
+      periodo,
+      resumo: acertoSemanal.resumo,
+    });
+
+    const atualizado = await this.#montarAcertoSemanal({
+      barbershopId,
+      professionalId: userId,
+      acesso,
+      periodo,
+    });
+
+    return {
+      confirmado: true,
+      settlement,
+      acertoSemanal: atualizado,
+    };
+  }
+
+  async #montarAcertoSemanal({
+    barbershopId,
+    professionalId,
+    acesso,
+    periodo = null,
+    taxasMetodoPagamento = null,
+    settlements = null,
+  }) {
+    const periodoSemanal = periodo || this.#resolverPeriodo({ periodo: 'semana' });
+    const [
+      transacoesSemana,
+      agreementsSemana,
+      profissionaisSemana,
+      taxasSemana,
+      settlementsSemana,
+    ] = await Promise.all([
+      this.#repo.listarTransacoes(barbershopId, periodoSemanal, professionalId),
+      this.#repo.listarAgreements(barbershopId, periodoSemanal.fim, professionalId),
+      this.#repo.listarProfissionais(barbershopId, professionalId),
+      taxasMetodoPagamento ? Promise.resolve(taxasMetodoPagamento) : this.#repo.listarTaxasMetodoPagamento(barbershopId),
+      settlements ? Promise.resolve(settlements) : this.#repo.listarAcertosSemanais(barbershopId, professionalId),
+    ]);
+
+    return this.#calculator.calcularAcertoSemanal({
+      professionalId,
+      periodo: periodoSemanal,
+      transacoes: transacoesSemana,
+      agreements: this.#agreementsComDono(agreementsSemana, acesso, false),
+      profissionais: profissionaisSemana,
+      taxasMetodoPagamento: taxasSemana,
+      settlements: settlementsSemana,
+    });
   }
 
   #resolverPeriodo(filtros) {

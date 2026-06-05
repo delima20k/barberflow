@@ -86,6 +86,90 @@ test('FinanceiroCalculator calcula itens elegiveis para payout sem confiar no fr
   assert.deepEqual(payout.items, [{ transactionId: 'tx-nova', amount: 76 }]);
 });
 
+test('FinanceiroCalculator calcula acerto semanal do barbeiro com metodos, taxas e percentuais', () => {
+  const calculator = new FinanceiroCalculator();
+  const acerto = calculator.calcularAcertoSemanal({
+    professionalId: 'prof-joao',
+    periodo: {
+      tipo: 'semana',
+      de: '2026-05-18',
+      ate: '2026-05-24',
+      inicio: new Date('2026-05-18T00:00:00.000Z'),
+      fim: new Date('2026-05-24T23:59:59.999Z'),
+    },
+    transacoes: [
+      { id: 'tx-pix', professional_id: 'prof-joao', gross_amount: 100, payment_method: 'pix', paid_at: '2026-05-18T12:00:00.000Z' },
+      { id: 'tx-cash', professional_id: 'prof-joao', gross_amount: 200, payment_method: 'dinheiro', paid_at: '2026-05-19T12:00:00.000Z' },
+      { id: 'tx-debit', professional_id: 'prof-joao', gross_amount: 300, payment_method: 'debito', paid_at: '2026-05-20T12:00:00.000Z' },
+      { id: 'tx-credit', professional_id: 'prof-joao', gross_amount: 400, payment_method: 'credito', paid_at: '2026-05-21T12:00:00.000Z' },
+    ],
+    agreements: [{ professional_id: 'prof-joao', type: 'percentage', value: 70, is_active: true }],
+    profissionais: [{ professionalId: 'prof-joao', nome: 'Joao', papel: 'professional' }],
+    taxasMetodoPagamento: [
+      { payment_method: 'debit', fee_percent: 2 },
+      { payment_method: 'credit', fee_percent: 5 },
+    ],
+    settlements: [],
+  });
+
+  assert.equal(acerto.resumo.producaoBrutaSemana, 1000);
+  assert.equal(acerto.resumo.metodos.pix, 100);
+  assert.equal(acerto.resumo.metodos.dinheiro, 200);
+  assert.equal(acerto.resumo.metodos.debit, 300);
+  assert.equal(acerto.resumo.metodos.credit, 400);
+  assert.equal(acerto.resumo.taxasMaquininha, 26);
+  assert.equal(acerto.resumo.participacaoBarbearia, 292.2);
+  assert.equal(acerto.resumo.participacaoBarbeiro, 681.8);
+  assert.equal(acerto.resumo.valorLiquidoBarbeiro, 681.8);
+  assert.equal(acerto.resumo.valorARepassarBarbearia, 292.2);
+  assert.equal(acerto.resumo.status, 'pending');
+  assert.equal(acerto.resumo.agreementConfigured, true);
+});
+
+test('FinanceiroCalculator marca acerto semanal como pago e nao inventa percentual sem acordo', () => {
+  const calculator = new FinanceiroCalculator();
+  const periodo = {
+    tipo: 'semana',
+    de: '2026-05-18',
+    ate: '2026-05-24',
+    inicio: new Date('2026-05-18T00:00:00.000Z'),
+    fim: new Date('2026-05-24T23:59:59.999Z'),
+  };
+
+  const pago = calculator.calcularAcertoSemanal({
+    professionalId: 'prof-joao',
+    periodo,
+    transacoes: [{ id: 'tx', professional_id: 'prof-joao', gross_amount: 100, payment_method: 'pix' }],
+    agreements: [{ professional_id: 'prof-joao', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [{ professionalId: 'prof-joao', nome: 'Joao' }],
+    settlements: [{
+      period_start: '2026-05-18T00:00:00.000Z',
+      period_end: '2026-05-24T23:59:59.999Z',
+      status: 'paid',
+      gross_amount: 100,
+      shop_amount: 60,
+      barber_amount: 40,
+      fees_amount: 0,
+      net_amount: 100,
+    }],
+  });
+
+  assert.equal(pago.resumo.status, 'paid');
+  assert.equal(pago.historico[0].status, 'paid');
+
+  const semAcordo = calculator.calcularAcertoSemanal({
+    professionalId: 'prof-sem-acordo',
+    periodo,
+    transacoes: [{ id: 'tx', professional_id: 'prof-sem-acordo', gross_amount: 100, payment_method: 'pix' }],
+    agreements: [],
+    profissionais: [{ professionalId: 'prof-sem-acordo', nome: 'Sem Acordo' }],
+  });
+
+  assert.equal(semAcordo.resumo.valorARepassarBarbearia, 0);
+  assert.equal(semAcordo.resumo.valorLiquidoBarbeiro, 0);
+  assert.equal(semAcordo.resumo.agreementConfigured, false);
+});
+
 test('FinanceiroCalculator usa o acordo percentual mais recente do profissional', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({

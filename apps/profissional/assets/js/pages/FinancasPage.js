@@ -20,6 +20,7 @@ class FinancasPage {
   #carregando = false;
   #resolvendo = false;
   #payoutEmAndamento = false;
+  #acertoEmAndamento = false;
   #dados = null;
   #refs = {};
 
@@ -236,6 +237,7 @@ class FinancasPage {
     const donut = dados.donut || [];
 
     this.#refs.graficos.innerHTML = `
+      ${this.#renderAcertoSemanal(dados.acertoSemanal)}
       <section class="fin-chart-panel fin-chart-panel--wide">
         <div class="fin-panel-head">
           <div>
@@ -263,6 +265,58 @@ class FinancasPage {
           </div>
         </div>
         ${this.#donutChart(donut)}
+      </section>
+    `;
+
+    this.#refs.graficos.querySelector('.fin-settlement-confirm')?.addEventListener('click', () =>
+      this.#confirmarAcertoSemanal(dados.acertoSemanal)
+    );
+  }
+
+  #renderAcertoSemanal(acertoSemanal) {
+    const resumo = acertoSemanal?.resumo;
+    if (!resumo) return '';
+
+    const statusPago = resumo.status === 'paid';
+    const podeConfirmar = !statusPago && Number(resumo.valorARepassarBarbearia || 0) > 0;
+    const historico = acertoSemanal.historico || [];
+    return `
+      <section class="fin-chart-panel fin-settlement-panel fin-chart-panel--wide">
+        <div class="fin-panel-head">
+          <div>
+            <p class="fin-eyebrow">Acerto semanal</p>
+            <h2>Resumo de Acerto Semanal</h2>
+          </div>
+          <span class="fin-settlement-status ${statusPago ? 'fin-settlement-status--paid' : 'fin-settlement-status--pending'}">
+            Status: ${statusPago ? 'Pago' : 'Pendente'}
+          </span>
+        </div>
+        <div class="fin-settlement-highlight">
+          <span>Valor a Repassar para a Barbearia</span>
+          <strong>${this.#moeda(resumo.valorARepassarBarbearia)}</strong>
+          ${podeConfirmar ? '<button type="button" class="fin-settlement-confirm">Confirmar repasse</button>' : ''}
+        </div>
+        <dl class="fin-barber-metrics fin-settlement-metrics">
+          <div><dt>Produção Bruta da Semana</dt><dd>${this.#moeda(resumo.producaoBrutaSemana)}</dd></div>
+          <div><dt>Pix</dt><dd>${this.#moeda(resumo.metodos?.pix)}</dd></div>
+          <div><dt>Dinheiro</dt><dd>${this.#moeda(resumo.metodos?.dinheiro)}</dd></div>
+          <div><dt>Débito</dt><dd>${this.#moeda(resumo.metodos?.debit)}</dd></div>
+          <div><dt>Crédito</dt><dd>${this.#moeda(resumo.metodos?.credit)}</dd></div>
+          <div><dt>Taxas de maquininha aplicadas</dt><dd>${this.#moeda(resumo.taxasMaquininha)}</dd></div>
+          <div><dt>Participação da Barbearia</dt><dd>${this.#moeda(resumo.participacaoBarbearia)}</dd></div>
+          <div><dt>Participação do Barbeiro</dt><dd>${this.#moeda(resumo.participacaoBarbeiro)}</dd></div>
+          <div><dt>Valor Líquido do Barbeiro</dt><dd>${this.#moeda(resumo.valorLiquidoBarbeiro)}</dd></div>
+        </dl>
+        <div class="fin-settlement-history">
+          <h3>Histórico</h3>
+          ${historico.length ? historico.map(item => `
+            <p>
+              <span>${FinancasPage.#escapar(item.semanaReferencia || '')}</span>
+              <strong>${this.#moeda(item.valorBarbearia)}</strong>
+              <em>${item.status === 'paid' ? 'Pago' : 'Pendente'}</em>
+            </p>
+          `).join('') : '<p><span>Sem fechamentos semanais.</span><strong>R$ 0,00</strong><em>Pendente</em></p>'}
+        </div>
       </section>
     `;
   }
@@ -396,7 +450,7 @@ class FinancasPage {
         : FinancasPage.#escapar(inicial);
       const status = barbeiro.status === 'online' ? 'trabalhando' : (barbeiro.ativo ? 'ativo' : 'inativo');
       const semAcordo = !barbeiro.agreementConfigured;
-      const podePagar = isOwner && Number(barbeiro.pendingPayoutAmount || 0) > 0;
+      const podePagar = isOwner && barbeiro.papel !== 'owner' && Number(barbeiro.pendingPayoutAmount || 0) > 0;
 
       return `
         <article class="fin-barber-card" data-prof-id="${FinancasPage.#escapar(barbeiro.professionalId)}">
@@ -507,6 +561,32 @@ class FinancasPage {
       if (confirmBtn) confirmBtn.disabled = false;
     } finally {
       this.#payoutEmAndamento = false;
+    }
+  }
+
+  async #confirmarAcertoSemanal(acertoSemanal) {
+    const resumo = acertoSemanal?.resumo;
+    if (this.#acertoEmAndamento || !this.#shopId || !resumo) return;
+    this.#acertoEmAndamento = true;
+    const btn = this.#refs.graficos?.querySelector('.fin-settlement-confirm');
+    if (btn) btn.disabled = true;
+
+    try {
+      const { error } = await BffApiService.financeiro.confirmarAcertoSemanal({
+        barbershopId: this.#shopId,
+        periodo: 'semana',
+        displayedAmount: resumo.valorARepassarBarbearia,
+      });
+      if (error) throw error;
+      await this.#carregar();
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn?.('[FinancasPage] erro ao confirmar acerto semanal:', err?.message);
+      }
+      this.#mostrarErro(err?.message || 'Nao foi possivel confirmar o repasse semanal.');
+      if (btn) btn.disabled = false;
+    } finally {
+      this.#acertoEmAndamento = false;
     }
   }
 
