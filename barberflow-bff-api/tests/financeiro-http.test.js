@@ -16,6 +16,7 @@ const criarApp = require('../app');
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const SHOP_ID = '22222222-2222-4222-8222-222222222222';
 const PROF_ID = '33333333-3333-4333-8333-333333333333';
+const INACTIVE_PROF_ID = '77777777-7777-4777-8777-777777777777';
 
 class FakeQuery {
   constructor(db, table) {
@@ -51,7 +52,11 @@ class FakeQuery {
         const link = this.db.forbidden ? null : { professional_id: USER_ID, barbershop_id: SHOP_ID, is_active: true };
         return { data: this.single ? link : (link ? [link] : []), error: null };
       }
-      return { data: [{ professional_id: PROF_ID, is_active: true }], error: null };
+      const rows = this.db.linkRows.filter(row =>
+        (!this.filters.barbershop_id || row.barbershop_id === this.filters.barbershop_id)
+        && (this.filters.is_active === undefined || row.is_active === this.filters.is_active)
+      );
+      return { data: rows, error: null };
     }
 
     if (this.table === 'transactions') {
@@ -101,11 +106,23 @@ class FakeQuery {
     }
 
     if (this.table === 'professionals') {
-      return { data: [{ id: PROF_ID, avatar_path: '', is_active: true }], error: null };
+      return {
+        data: [
+          { id: PROF_ID, avatar_path: '', is_active: true },
+          { id: INACTIVE_PROF_ID, avatar_path: '', is_active: true },
+        ],
+        error: null,
+      };
     }
 
     if (this.table === 'profiles') {
-      return { data: [{ id: PROF_ID, full_name: 'Joao Premium', avatar_path: '', is_active: true }], error: null };
+      return {
+        data: [
+          { id: PROF_ID, full_name: 'Joao Premium', avatar_path: '', is_active: true },
+          { id: INACTIVE_PROF_ID, full_name: 'Parceiro Desativado', avatar_path: '', is_active: true },
+        ],
+        error: null,
+      };
     }
 
     if (this.table === 'attendance_sessions') {
@@ -137,6 +154,10 @@ class FakeDb {
     this.rpcCalls = [];
     this.presenceRows = [];
     this.upsertCalls = [];
+    this.linkRows = [
+      { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
+      { professional_id: INACTIVE_PROF_ID, barbershop_id: SHOP_ID, is_active: false },
+    ];
   }
 
   from(table) {

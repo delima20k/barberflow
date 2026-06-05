@@ -309,6 +309,7 @@ class FinanceiroCalculator {
       if (String(agreement.type || 'percentage').toLowerCase() !== 'percentage') continue;
       const value = Math.min(100, Math.max(0, Number(agreement.value || 0)));
       if (!agreement.professional_id) continue;
+      if (map.has(agreement.professional_id)) continue;
       map.set(agreement.professional_id, { shopPercent: value, configured: true });
     }
     return map;
@@ -394,7 +395,7 @@ class FinanceiroCalculator {
   #onlineCount(barbeiroMap, statusEquipe) {
     const onlineIds = Array.isArray(statusEquipe?.onlineIds) ? statusEquipe.onlineIds : [];
     if (onlineIds.length > 0) {
-      return onlineIds.filter(id => barbeiroMap.has(id)).length;
+      return onlineIds.filter(id => barbeiroMap.get(id)?.ativo !== false).length;
     }
     return Math.min(barbeiroMap.size, Math.max(0, Number(statusEquipe?.online ?? 0)));
   }

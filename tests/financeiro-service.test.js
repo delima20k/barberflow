@@ -130,7 +130,7 @@ describe('FinanceiroService.registrarCorte', () => {
     assert.equal(ev.detail.barbershopId, SHOP_ID, 'detalhe deve conter barbershopId correto');
   });
 
-  test('retorna amount=0 quando serviços sem preço', async () => {
+  test('nao cria transacao quando servicos sem preco', async () => {
     const { sandbox } = criarSandbox({ servicosPrecos: [] });
     await sandbox.FinanceiroService.registrarCorte({
       entradaId:      ENTRADA_ID,
@@ -140,11 +140,10 @@ describe('FinanceiroService.registrarCorte', () => {
       paymentMethod:  'cartao',
     });
 
-    const [payload] = sandbox.FinanceiroRepository.criarTransacao.calls[0];
-    assert.equal(payload.amount, 0, 'amount deve ser 0 quando sem serviços');
+    assert.equal(sandbox.FinanceiroRepository.criarTransacao.calls.length, 0);
   });
 
-  test('retorna amount=0 quando serviços têm price null/undefined', async () => {
+  test('nao cria transacao quando servicos tem price null/undefined', async () => {
     const { sandbox } = criarSandbox({ servicosPrecos: [null, undefined, 0] });
     // Sobrescreve o mock de ApiService para retornar preços nulos
     sandbox.ApiService.from = fn().mockImplementation(() => ({
@@ -166,8 +165,7 @@ describe('FinanceiroService.registrarCorte', () => {
       paymentMethod:  'pix',
     });
 
-    const [payload] = sandbox.FinanceiroRepository.criarTransacao.calls[0];
-    assert.equal(payload.amount, 0, 'amount deve ser 0 com preços nulos/undefined');
+    assert.equal(sandbox.FinanceiroRepository.criarTransacao.calls.length, 0);
   });
 
   test('lança TypeError quando entradaId inválido', async () => {

@@ -99,7 +99,8 @@ class FinanceiroRepository extends BaseRepository {
       this._db
         .from('professional_shop_links')
         .select('professional_id, is_active')
-        .eq('barbershop_id', barbershopId),
+        .eq('barbershop_id', barbershopId)
+        .eq('is_active', true),
     ]);
 
     if (shopError) this._throwDbError(shopError, 'listarProfissionais.shop');

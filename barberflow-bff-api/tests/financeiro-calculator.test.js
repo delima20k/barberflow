@@ -43,6 +43,27 @@ test('FinanceiroCalculator desconta taxas antes de dividir entre barbearia e bar
   assert.equal(barbeiro.agreementConfigured, true);
 });
 
+test('FinanceiroCalculator usa o acordo percentual mais recente do profissional', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'prof-parceiro', gross_amount: 100, amount: 100, paid_at: '2026-05-10T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [
+      { professional_id: 'prof-parceiro', type: 'percentage', value: 40, is_active: true, valid_from: '2026-05-01' },
+      { professional_id: 'prof-parceiro', type: 'percentage', value: 20, is_active: true, valid_from: '2026-04-01' },
+    ],
+    profissionais: [{ professionalId: 'prof-parceiro', nome: 'Parceiro', ativo: true }],
+  });
+
+  const barbeiro = dashboard.barbeiros[0];
+  assert.equal(barbeiro.porcentagemBarbearia, 40);
+  assert.equal(barbeiro.valorBarbearia, 40);
+  assert.equal(barbeiro.valorBarbeiro, 60);
+});
+
 test('FinanceiroCalculator usa 0% para barbearia quando nao ha agreement ativo', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({
