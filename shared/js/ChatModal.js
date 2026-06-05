@@ -111,13 +111,20 @@ class ChatModal {
       return;
     }
 
-    // ── Inicializa chaves E2E em background ──────────────────
+    // ── Inicializa e verifica chaves E2E ─────────────────────
+    // Aguarda o registro da chave local no BFF antes de habilitar o envio.
+    // Depois verifica se o peer também tem chave; se não tiver, avisa o usuário.
     if (typeof ConversationKeyService !== 'undefined') {
-      ConversationKeyService.inicializar().catch(e => {
-        if (typeof LoggerService !== 'undefined') {
-          LoggerService.warn('[ChatModal] ConversationKeyService init falhou:', e?.message);
-        }
-      });
+      ConversationKeyService.inicializar()
+        .then(() => ChatApiClient.obterChavePublicaUsuario(peerId))
+        .then(({ data, error }) => {
+          if (error || !data?.publicKey) {
+            ChatModal.#exibirAvisoPeerSemChave();
+          }
+        })
+        .catch(() => {
+          ChatModal.#exibirAvisoPeerSemChave();
+        });
     }
 
     // ── Carrega histórico do BFF (paralelo com P2P setup) ────
@@ -558,6 +565,25 @@ class ChatModal {
     if (!el) return;
     const label = ChatModal.#STATUS_LABEL[status] ?? '';
     if (label) el.textContent = label;
+  }
+
+  /**
+   * Aviso não-bloqueante quando o destinatário ainda não registrou sua chave E2E.
+   * Aparece ao abrir a conversa, some após 8s. Ao tentar enviar, aparece o erro
+   * específico de envio bloqueado.
+   */
+  static #exibirAvisoPeerSemChave() {
+    let el = document.getElementById('chat-mod-aviso');
+    if (!el) {
+      el = document.createElement('span');
+      el.id = 'chat-mod-aviso';
+      el.setAttribute('role', 'status');
+      document.querySelector('.chat-modal-footer')?.prepend(el);
+    }
+    el.textContent = 'O destinatário precisa abrir o app para ativar a segurança E2E.';
+    el.style.display = 'block';
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.display = 'none'; }, 8000);
   }
 
   /** Exibe erro de criptografia ao usuário. Desaparece em 5s. */

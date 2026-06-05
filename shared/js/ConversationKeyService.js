@@ -84,11 +84,16 @@ class ConversationKeyService {
       ConversationKeyService.#keyWasGenerated = true;
     }
 
-    // Upsert idempotente: garante que o BFF tem a chave atual
+    // Registra chave no BFF — aguarda para garantir que está disponível antes do envio
     if (ConversationKeyService.#pubKeyB64 && typeof ChatApiClient !== 'undefined') {
-      ChatApiClient.registrarChavePublica(ConversationKeyService.#pubKeyB64).catch(() => {
-        // TODO: retry na próxima sessão se o BFF estiver indisponível
-      });
+      try {
+        await ChatApiClient.registrarChavePublica(ConversationKeyService.#pubKeyB64);
+      } catch {
+        // BFF indisponível — tentará novamente na próxima sessão
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[ConversationKeyService] registro de chave falhou (tentará novamente).');
+        }
+      }
     }
   }
 
