@@ -4458,6 +4458,8 @@ RETURNS TABLE (
   sender_id uuid,
   client_message_id text,
   body text,
+  encrypted_payload jsonb,
+  e2e_key_version integer,
   created_at timestamptz,
   deleted_at timestamptz,
   retention_until timestamptz,
@@ -4471,6 +4473,8 @@ AS $$
          m.sender_id,
          m.client_message_id,
          CASE WHEN m.deleted_at IS NULL THEN m.body ELSE '' END AS body,
+         CASE WHEN m.deleted_at IS NULL THEN m.encrypted_payload ELSE NULL END AS encrypted_payload,
+         m.e2e_key_version,
          m.created_at,
          m.deleted_at,
          m.retention_until,
@@ -4492,6 +4496,9 @@ AS $$
    ORDER BY m.created_at DESC, m.id DESC
    LIMIT LEAST(GREATEST(p_limit, 1), 100);
 $$;
+
+COMMENT ON FUNCTION public.get_chat_messages_reverse IS
+  'Retorna mensagens de uma conversa em ordem DESC com cursor. Inclui encrypted_payload para E2E client-side.';
 
 ALTER TABLE public.chat_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;

@@ -71,16 +71,29 @@ class SupabaseChatRepository extends ChatRepository {
   }
 
   async listMessagesReverse({ conversationId, cursor = null, limit = 30 }) {
-    const parsedCursor = SupabaseChatRepository.#parseCursor(cursor);
-    const { data, error } = await this.#db.rpc('get_chat_messages_reverse', {
-      p_conversation_id: conversationId,
-      p_limit: limit,
-      p_cursor_created_at: parsedCursor?.createdAt ?? null,
-      p_cursor_id: parsedCursor?.id ?? null,
-    });
+    const parsedCursor  = SupabaseChatRepository.#parseCursor(cursor);
+    const clampedLimit  = Math.min(Math.max(Number(limit) || 30, 1), 100);
+
+    let query = this.#db
+      .from('chat_messages')
+      .select(SupabaseChatRepository.MESSAGE_SELECT)
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .order('id',          { ascending: false })
+      .limit(clampedLimit);
+
+    if (parsedCursor?.createdAt && parsedCursor?.id) {
+      query = query.or(
+        `created_at.lt.${parsedCursor.createdAt},and(created_at.eq.${parsedCursor.createdAt},id.lt.${parsedCursor.id})`,
+      );
+    }
+
+    const { data, error } = await query;
     if (error) throw this.#error(error);
-    const items = await this.#enriquecerMensagensComRemetente((data ?? []).map(row => this.#toMessage(row).toJSON()));
-    return { items, nextCursor: items.length === limit ? items[items.length - 1].sortKey : null };
+    const items = await this.#enriquecerMensagensComRemetente(
+      (data ?? []).map(row => this.#toMessage(row).toJSON()),
+    );
+    return { items, nextCursor: items.length === clampedLimit ? items[items.length - 1].sortKey : null };
   }
 
   async countRecentPairMessages(senderId, recipientIds, windowSeconds) {
