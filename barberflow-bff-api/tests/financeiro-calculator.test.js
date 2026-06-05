@@ -29,6 +29,7 @@ test('FinanceiroCalculator divide pelo percentual do barbeiro apos taxas de meto
     agreements: [{ professional_id: 'prof-joao', type: 'percentage', value: 40, is_active: true }],
     profissionais: [{ professionalId: 'prof-joao', nome: 'Joao', ativo: true }],
     statusEquipe: { online: 1, onlineIds: ['prof-joao'] },
+    taxasMetodoPagamento: [{ payment_method: 'credit', fee_percent: 4 }],
   });
 
   const barbeiro = dashboard.barbeiros[0];
@@ -37,8 +38,8 @@ test('FinanceiroCalculator divide pelo percentual do barbeiro apos taxas de meto
   assert.equal(dashboard.cards.lucroBarbearia.total, 288);
   assert.equal(barbeiro.valorBarbeiro, 192);
   assert.equal(barbeiro.valorBarbearia, 288);
-  assert.equal(barbeiro.taxas, 288);
-  assert.equal(barbeiro.receitaLiquida, 192);
+  assert.equal(barbeiro.taxas, 20);
+  assert.equal(barbeiro.receitaLiquida, 480);
   assert.equal(barbeiro.porcentagemBarbearia, 60);
   assert.equal(barbeiro.porcentagemBarbeiro, 40);
   assert.equal(barbeiro.agreementConfigured, true);
@@ -126,13 +127,14 @@ test('FinanceiroCalculator isOwner: lucroBarbearia = participacao da barbearia',
   const dashboard = calculator.calcularDashboard({
     periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
     transacoes: [
-      { professional_id: 'prof-dono', gross_amount: 500, amount: 480, payment_method: 'dinheiro', paid_at: '2026-05-10T12:00:00.000Z' },
+      { professional_id: 'prof-dono', gross_amount: 500, amount: 480, payment_method: 'credito', paid_at: '2026-05-10T12:00:00.000Z' },
     ],
     transacoesAnteriores: [],
     agreements: [{ professional_id: 'prof-dono', type: 'percentage', value: 40, is_active: true }],
     profissionais: [{ professionalId: 'prof-dono', nome: 'Dono', papel: 'owner', ativo: true }],
     statusEquipe: { online: 1, onlineIds: ['prof-dono'] },
     isOwner: true,
+    taxasMetodoPagamento: [{ payment_method: 'credit', fee_percent: 4 }],
   });
 
   assert.equal(dashboard.isOwner, true);
@@ -189,6 +191,7 @@ test('FinanceiroCalculator owner: resumo usa participacao da barbearia e aluguel
     ],
     statusEquipe: { online: 2, onlineIds: ['prof-a', 'prof-rent'] },
     isOwner: true,
+    taxasMetodoPagamento: [{ payment_method: 'credit', fee_percent: 5 }],
   });
 
   assert.equal(dashboard.cards.totalCortes.total, 2);
@@ -323,6 +326,7 @@ test('FinanceiroCalculator nao-dono: meuLucro = porcentagem do barbeiro viewer',
     statusEquipe: {},
     isOwner: false,
     viewerProfessionalId: 'prof-viewer',
+    taxasMetodoPagamento: [{ payment_method: 'credit', fee_percent: 4 }],
   });
 
   assert.equal(dashboard.isOwner, false);
@@ -375,4 +379,77 @@ test('FinanceiroCalculator exclui entradas "outros" de metodosPagamento', () => 
   const metodos = dashboard.metodosPagamento;
   const outrosEntry = metodos.find(m => m.metodo === 'outros');
   assert.equal(outrosEntry, undefined, 'metodo "outros" nao deve aparecer em metodosPagamento');
+});
+
+test('FinanceiroCalculator calcula metodosPagamento com taxas configuradas sem mutar amount', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'p1', gross_amount: 100, amount: 90, payment_method: 'credit_card', paid_at: '2026-05-10T12:00:00.000Z' },
+      { professional_id: 'p1', gross_amount: 50, amount: 50, payment_method: 'débito', paid_at: '2026-05-11T12:00:00.000Z' },
+      { professional_id: 'p1', gross_amount: 40, amount: 30, payment_method: 'money', paid_at: '2026-05-12T12:00:00.000Z' },
+      { professional_id: 'p1', gross_amount: 30, amount: 25, payment_method: 'PIX', paid_at: '2026-05-13T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [],
+    profissionais: [],
+    statusEquipe: {},
+    taxasMetodoPagamento: [
+      { payment_method: 'credit', fee_percent: 5 },
+      { payment_method: 'debit', fee_percent: 2 },
+    ],
+  });
+
+  const metodos = new Map(dashboard.metodosPagamento.map(item => [item.metodo, item]));
+  assert.equal(metodos.get('credit').receitaBruta, 100);
+  assert.equal(metodos.get('credit').taxas, 5);
+  assert.equal(metodos.get('credit').receitaLiquida, 95);
+  assert.equal(metodos.get('credit').feePercent, 5);
+  assert.equal(metodos.get('debit').receitaBruta, 50);
+  assert.equal(metodos.get('debit').taxas, 1);
+  assert.equal(metodos.get('debit').receitaLiquida, 49);
+  assert.equal(metodos.get('dinheiro').taxas, 0);
+  assert.equal(metodos.get('dinheiro').receitaLiquida, 40);
+  assert.equal(metodos.get('pix').taxas, 0);
+  assert.equal(metodos.get('pix').receitaLiquida, 30);
+});
+
+test('FinanceiroCalculator divide dono e parceiro sobre liquido apos taxa de cartao', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      { professional_id: 'owner-id', gross_amount: 100, amount: 100, payment_method: 'credito', paid_at: '2026-05-10T12:00:00.000Z' },
+      { professional_id: 'partner-id', gross_amount: 100, amount: 100, payment_method: 'credito', paid_at: '2026-05-10T12:00:00.000Z' },
+    ],
+    transacoesAnteriores: [],
+    agreements: [{ professional_id: 'partner-id', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [
+      { professionalId: 'owner-id', nome: 'Alan', papel: 'owner', ativo: true },
+      { professionalId: 'partner-id', nome: 'Lima', papel: 'professional', ativo: true, vinculado: true },
+    ],
+    statusEquipe: {},
+    isOwner: true,
+    taxasMetodoPagamento: [{ payment_method: 'credit', fee_percent: 5 }],
+  });
+
+  const dono = dashboard.barbeiros.find(item => item.professionalId === 'owner-id');
+  const parceiro = dashboard.barbeiros.find(item => item.professionalId === 'partner-id');
+
+  assert.equal(dashboard.cards.receitaBruta.total, 200);
+  assert.equal(dashboard.cards.receitaLiquida.total, 152);
+  assert.equal(dashboard.donut.find(item => item.label === 'Taxas').value, 10);
+  assert.equal(dono.receitaBruta, 100);
+  assert.equal(dono.taxas, 5);
+  assert.equal(dono.receitaLiquida, 95);
+  assert.equal(dono.valorBarbeiro, 95);
+  assert.equal(dono.valorBarbearia, 95);
+  assert.equal(dono.agreementConfigured, true);
+  assert.equal(parceiro.receitaBruta, 100);
+  assert.equal(parceiro.taxas, 5);
+  assert.equal(parceiro.receitaLiquida, 95);
+  assert.equal(parceiro.valorBarbeiro, 38);
+  assert.equal(parceiro.valorBarbearia, 57);
+  assert.equal(parceiro.valorBarbeiro + parceiro.valorBarbearia, parceiro.receitaLiquida);
 });

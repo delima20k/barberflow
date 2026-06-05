@@ -144,6 +144,13 @@ class FakeQuery {
       return { data: this.single ? (filtered[0] ?? null) : filtered, error: null };
     }
 
+    if (this.table === 'financial_payment_method_fees') {
+      const rows = this.db.feeRows.filter(row =>
+        (!this.filters.barbershop_id || row.barbershop_id === this.filters.barbershop_id)
+      );
+      return { data: this.single ? (rows[0] ?? null) : rows, error: null };
+    }
+
     return { data: [], error: null };
   }
 }
@@ -154,6 +161,8 @@ class FakeDb {
     this.rpcCalls = [];
     this.presenceRows = [];
     this.upsertCalls = [];
+    this.feeRows = [{ barbershop_id: SHOP_ID, payment_method: 'credit', fee_percent: 4 }];
+    this.feeUpsertCalls = [];
     this.linkRows = [
       { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
       { professional_id: INACTIVE_PROF_ID, barbershop_id: SHOP_ID, is_active: false },
@@ -161,6 +170,26 @@ class FakeDb {
   }
 
   from(table) {
+    if (table === 'financial_payment_method_fees') {
+      return {
+        select: () => new FakeQuery(this, table),
+        upsert: (payload) => {
+          this.feeUpsertCalls.push(payload);
+          const index = this.feeRows.findIndex(row =>
+            row.barbershop_id === payload.barbershop_id
+            && row.payment_method === payload.payment_method
+          );
+          const next = { ...payload };
+          if (index >= 0) this.feeRows[index] = next;
+          else this.feeRows.push(next);
+          return {
+            select: () => ({
+              single: async () => ({ data: next, error: null }),
+            }),
+          };
+        },
+      };
+    }
     if (table === 'professional_barbershop_presence') {
       return {
         upsert: (payload) => {
@@ -274,15 +303,26 @@ suite('Financeiro BFF HTTP', () => {
     });
     assert.equal(invalid.status, 400);
 
+    const invalidPix = await request(port, 'PATCH', '/api/v1/financeiro/taxas-metodo', {
+      headers: { Authorization: `Bearer ${token()}` },
+      body: { barbershop_id: SHOP_ID, metodo: 'pix', porcentagem: 4 },
+    });
+    assert.equal(invalidPix.status, 400);
+
+    const invalidPct = await request(port, 'PATCH', '/api/v1/financeiro/taxas-metodo', {
+      headers: { Authorization: `Bearer ${token()}` },
+      body: { barbershop_id: SHOP_ID, metodo: 'credito', porcentagem: 31 },
+    });
+    assert.equal(invalidPct.status, 400);
+
     const valid = await request(port, 'PATCH', '/api/v1/financeiro/taxas-metodo', {
       headers: { Authorization: `Bearer ${token()}` },
-      body: { barbershop_id: SHOP_ID, metodo: 'credito', porcentagem: 4, periodo: 'mes' },
+      body: { barbershop_id: SHOP_ID, metodo: 'crédito', porcentagem: '4,5', periodo: 'mes' },
     });
     assert.equal(valid.status, 200);
-    const rpc = fakeDb.rpcCalls[0];
-    assert.equal(rpc.name, 'aplicar_desconto_metodo');
-    // BFF deve passar p_user_id para que o RPC possa verificar acesso sem auth.uid()
-    assert.equal(rpc.payload.p_user_id, USER_ID);
+    assert.equal(fakeDb.rpcCalls.length, 0);
+    assert.equal(fakeDb.feeUpsertCalls[0].payment_method, 'credit');
+    assert.equal(fakeDb.feeUpsertCalls[0].fee_percent, 4.5);
   });
 });
 

@@ -182,16 +182,15 @@ describe('MenosPercentualModal', () => {
     assert.equal(resultado.porcentagem, null);
   });
 
-  test('valida que porcentagem 0 não dispara confirmação', async () => {
-    // Verifica que a lógica de validação rejeita 0
+  test('valida que porcentagem 0 remove taxa configurada', async () => {
     assert.ok(
-      !ehPorcentagemValida(0),
-      'porcentagem 0 deve ser inválida',
+      ehPorcentagemValida(0),
+      'porcentagem 0 deve ser válida',
     );
   });
 
-  test('valida que porcentagem 100 não dispara confirmação', () => {
-    assert.ok(!ehPorcentagemValida(100));
+  test('valida que porcentagem acima de 30 não dispara confirmação', () => {
+    assert.ok(!ehPorcentagemValida(30.01));
   });
 
   test('valida que porcentagem 1.5 é válida', () => {
@@ -216,5 +215,5 @@ describe('MenosPercentualModal', () => {
 // Extrai lógica de validação para teste isolado
 function ehPorcentagemValida(v) {
   const n = Number(v);
-  return !Number.isNaN(n) && n > 0 && n < 100;
+  return !Number.isNaN(n) && n >= 0 && n <= 30;
 }

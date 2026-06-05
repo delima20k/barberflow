@@ -152,7 +152,7 @@ class FinanceiroCalculator {
         .filter(m => m.metodo !== 'outros')
         .sort((a, b) => b.receitaLiquida - a.receitaLiquida),
       barbeiros,
-      series: this.#series(transacoes, agreementMap, barbeiroMap),
+      series: this.#series(transacoes, agreementMap, barbeiroMap, taxaMetodoMap),
       donut: [
         { label: 'Barbearia', value: atual.shop.toNumber(), color: '#0f766e' },
         { label: 'Barbeiros', value: atual.barbers.toNumber(), color: '#2563eb' },
@@ -191,9 +191,8 @@ class FinanceiroCalculator {
       const professionalId = tx.professional_id || 'sem-profissional';
       const profissional = barbeiroMap.get(professionalId);
       const agreement = this.#agreementFor(professionalId, agreementMap, profissional);
-      const gross = Money.from(tx.gross_amount ?? tx.amount);
-      const net = Money.from(tx.amount);
-      const fees = gross.minus(net).maxZero();
+      const financial = this.#transacaoFinanceira(tx, taxaMetodoMap);
+      const { gross, net, fees } = financial;
       const split = this.#splitTransaction(net, agreement, profissional);
 
       total.gross = total.gross.plus(gross);
@@ -203,20 +202,16 @@ class FinanceiroCalculator {
       total.barbers = total.barbers.plus(split.barberTotal);
       total.cortes += 1;
 
-      this.#somarMetodo(total.metodos, tx.payment_method, gross, taxaMetodoMap);
-      this.#somarBarbeiro(total.barbeiros, professionalId, profissional, agreement, gross, split);
+      this.#somarMetodo(total.metodos, tx.payment_method, financial);
+      this.#somarBarbeiro(total.barbeiros, professionalId, profissional, agreement, financial, split);
     }
 
     return total;
   }
 
-  #somarMetodo(metodos, metodo, gross, taxaMetodoMap) {
+  #somarMetodo(metodos, metodo, financial) {
     const key = this.#normalizarMetodoPagamento(metodo);
-    const feePercent = key === 'credit' || key === 'debit'
-      ? Number(taxaMetodoMap.get(key) || 0)
-      : 0;
-    const fees = gross.timesPercent(feePercent).maxZero();
-    const net = gross.minus(fees).maxZero();
+    const { gross, net, fees, feePercent } = financial;
     const atual = metodos.get(key) || {
       metodo: key,
       label: this.#labelMetodo(key),
@@ -234,7 +229,7 @@ class FinanceiroCalculator {
     metodos.set(key, atual);
   }
 
-  #somarBarbeiro(map, professionalId, profissional, agreement, gross, split) {
+  #somarBarbeiro(map, professionalId, profissional, agreement, financial, split) {
     const atual = map.get(professionalId) || {
       professionalId,
       nome: profissional?.nome || 'Profissional',
@@ -253,9 +248,9 @@ class FinanceiroCalculator {
     };
 
     atual.cortes += 1;
-    atual.receitaBruta = atual.receitaBruta.plus(gross);
-    atual.taxas = atual.taxas.plus(split.cardTaxas);
-    atual.receitaLiquida = atual.receitaLiquida.plus(split.barberDisplay);
+    atual.receitaBruta = atual.receitaBruta.plus(financial.gross);
+    atual.taxas = atual.taxas.plus(financial.fees);
+    atual.receitaLiquida = atual.receitaLiquida.plus(financial.net);
     atual.valorBarbeiro = atual.valorBarbeiro.plus(split.barberDisplay);
     atual.valorBarbearia = atual.valorBarbearia.plus(split.shopDisplay);
     map.set(professionalId, atual);
@@ -288,14 +283,13 @@ class FinanceiroCalculator {
     }).sort((a, b) => b.receitaLiquida - a.receitaLiquida);
   }
 
-  #series(transacoes, agreementMap, barbeiroMap) {
+  #series(transacoes, agreementMap, barbeiroMap, taxaMetodoMap) {
     const buckets = new Map();
     for (const tx of transacoes) {
       const key = this.#dateOnly(new Date(tx.paid_at || tx.created_at || Date.now()));
       const profissional = barbeiroMap.get(tx.professional_id);
       const agreement = this.#agreementFor(tx.professional_id, agreementMap, profissional);
-      const gross = Money.from(tx.gross_amount ?? tx.amount);
-      const net = Money.from(tx.amount);
+      const { gross, net } = this.#transacaoFinanceira(tx, taxaMetodoMap);
       const split = this.#splitTransaction(net, agreement, profissional);
       const current = buckets.get(key) || { data: key, receitaBruta: Money.zero(), receitaLiquida: Money.zero(), lucroBarbearia: Money.zero() };
       current.receitaBruta = current.receitaBruta.plus(gross);
@@ -544,6 +538,17 @@ class FinanceiroCalculator {
       dinheiro: 'Dinheiro',
     };
     return labels[metodo] || 'Outros';
+  }
+
+  #transacaoFinanceira(tx, taxaMetodoMap) {
+    const gross = Money.from(tx?.gross_amount ?? tx?.amount);
+    const metodo = this.#normalizarMetodoPagamento(tx?.payment_method);
+    const feePercent = metodo === 'credit' || metodo === 'debit'
+      ? Number(taxaMetodoMap.get(metodo) || 0)
+      : 0;
+    const fees = gross.timesPercent(feePercent).maxZero();
+    const net = gross.minus(fees).maxZero();
+    return { gross, fees, net, feePercent };
   }
 
   #taxaMetodoMap(taxasMetodoPagamento) {

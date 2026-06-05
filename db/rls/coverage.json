@@ -82,6 +82,11 @@
       "sensitiveColumns": ["professional_id", "barbershop_id", "amount", "gross_amount"],
       "tests": ["supabase/tests/rls_crud_suite.sql"]
     },
+    "public.financial_payment_method_fees": {
+      "operations": ["select", "insert", "update"],
+      "sensitiveColumns": ["barbershop_id", "payment_method", "fee_percent"],
+      "tests": ["supabase/tests/rls_crud_suite.sql"]
+    },
     "public.subscriptions": {
       "operations": ["select", "insert", "update", "delete"],
       "sensitiveColumns": ["user_id", "plan", "price", "payment_token"],

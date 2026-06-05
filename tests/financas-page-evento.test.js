@@ -173,8 +173,19 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /#assinarTabelaResumo\('agreements'\)/);
     assert.match(src, /#assinarTabelaResumo\('professional_shop_links'\)/);
     assert.match(src, /#assinarTabelaResumo\('professional_barbershop_presence'\)/);
+    assert.match(src, /#assinarTabelaResumo\('financial_payment_method_fees'\)/);
     assert.match(src, /#assinarBarbeariaResumo\(\)/);
     assert.match(src, /table:\s+'barbershops'/);
     assert.match(src, /filter:\s+`id=eq\.\$\{this\.#shopId\}`/);
+  });
+
+  test('renderiza taxa de metodo vinda da BFF sem recalcular no frontend', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /item\.feePercent/);
+    assert.doesNotMatch(src, /gross_amount/);
+    assert.doesNotMatch(src, /amount\s*\*\s*\(/);
   });
 });
