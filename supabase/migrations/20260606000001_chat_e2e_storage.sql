@@ -16,6 +16,9 @@
 -- ============================================================
 
 -- 1. Atualiza RPC para incluir encrypted_payload no retorno
+-- DROP necessário pois CREATE OR REPLACE não pode alterar o tipo de retorno
+DROP FUNCTION IF EXISTS public.get_chat_messages_reverse(uuid, integer, timestamptz, uuid);
+
 CREATE OR REPLACE FUNCTION public.get_chat_messages_reverse(
   p_conversation_id uuid,
   p_limit integer DEFAULT 30,
