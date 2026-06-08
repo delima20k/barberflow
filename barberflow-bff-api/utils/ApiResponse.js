@@ -51,9 +51,10 @@ class ApiResponse {
    * @param {boolean} [isProd=false]
    */
   static fail(res, err, isProd = false) {
-    const status   = err.status ?? 500;
-    const isPublic = status < 500 || !isProd;
-    const message  = isPublic
+    const status      = err.status ?? 500;
+    const operational = err.isOperational ?? false;
+    const isPublic    = status < 500 || !isProd || operational;
+    const message     = isPublic
       ? (err.message ?? 'Erro interno.')
       : 'Erro interno do servidor.';
     res.status(status).json({ ok: false, error: message });

@@ -588,7 +588,14 @@ class FinanceiroRepository extends BaseRepository {
       .select('id, barbershop_id, professional_id, period_start, period_end, gross_amount, shop_amount, barber_amount, fees_amount, net_amount, status, confirmed_at, confirmed_by, created_at, updated_at')
       .single();
 
-    if (error) this._throwDbError(error, 'confirmarAcertoSemanal');
+    if (error) {
+      if (this.#isTabelaAcertoSemanalAusente(error)) {
+        throw AppError.unavailable(
+          'Funcionalidade de acerto semanal nao disponivel. Execute a migration 20260605000004_professional_weekly_settlements no Supabase Dashboard.'
+        );
+      }
+      this._throwDbError(error, 'confirmarAcertoSemanal');
+    }
     return data;
   }
 }
