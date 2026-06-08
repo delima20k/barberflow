@@ -17,6 +17,8 @@ module.exports = {
       // Domínios oficiais berberflow.shop
       'https://app.berberflow.shop',
       'https://pro.berberflow.shop',
+      // Painel administrativo
+      'https://barberflow-adimin.vercel.app',
     ],
   },
   timeoutMs: parseInt(process.env.REQUEST_TIMEOUT_MS ?? '30000', 10),

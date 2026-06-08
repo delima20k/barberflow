@@ -91,6 +91,8 @@ const ALLOWED_ORIGINS = new Set([
   // Domínios oficiais berberflow.shop
   'https://app.berberflow.shop',
   'https://pro.berberflow.shop',
+  // Painel administrativo
+  'https://barberflow-adimin.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001',
 ]);
