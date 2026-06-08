@@ -26,17 +26,18 @@ class ConfigEncryptionService {
 
     if (!raw || raw.length !== 64 || !/^[0-9a-fA-F]{64}$/.test(raw)) {
       if (process.env.NODE_ENV === 'production') {
-        throw new Error(
-          '[ConfigEncryptionService] ADMIN_ENCRYPT_KEY ausente ou inválida. ' +
-          'Defina uma string hex de 64 caracteres (32 bytes) para AES-256-GCM.'
+        // Não lança aqui para não derrubar o startup do BFF.
+        // O erro é lançado apenas em encrypt()/decrypt() — rotas admin
+        // retornam 500 enquanto ADMIN_ENCRYPT_KEY não estiver configurada.
+        this.#key = null;
+      } else {
+        // Em dev/test usa chave nula com aviso — nunca em produção.
+        console.warn(
+          '[ConfigEncryptionService] ADMIN_ENCRYPT_KEY não configurada. ' +
+          'Usando chave de desenvolvimento (INSEGURO — apenas dev/test).'
         );
+        this.#key = Buffer.from(DEV_KEY_HEX, 'hex');
       }
-      // Em dev/test usa chave nula com aviso — nunca em produção.
-      console.warn(
-        '[ConfigEncryptionService] ADMIN_ENCRYPT_KEY não configurada. ' +
-        'Usando chave de desenvolvimento (INSEGURO — apenas dev/test).'
-      );
-      this.#key = Buffer.from(DEV_KEY_HEX, 'hex');
     } else {
       this.#key = Buffer.from(raw, 'hex');
     }
@@ -48,6 +49,7 @@ class ConfigEncryptionService {
    * @returns {{ valueEnc: string, iv: string, authTag: string }}
    */
   encrypt(plaintext) {
+    if (!this.#key) throw new Error('[ConfigEncryptionService] ADMIN_ENCRYPT_KEY não configurada. Defina uma string hex de 64 caracteres nas variáveis de ambiente.');
     const iv     = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv(ALGORITHM, this.#key, iv);
 
@@ -70,6 +72,7 @@ class ConfigEncryptionService {
    * @throws {Error} se os dados forem inválidos ou adulterados
    */
   decrypt({ valueEnc, iv, authTag }) {
+    if (!this.#key) throw new Error('[ConfigEncryptionService] ADMIN_ENCRYPT_KEY não configurada. Defina uma string hex de 64 caracteres nas variáveis de ambiente.');
     const decipher = crypto.createDecipheriv(
       ALGORITHM,
       this.#key,
