@@ -16,6 +16,8 @@
     "test:rls": "node --test tests/rls-policy-report.test.js",
     "db:rls": "node scripts/rls-policy-report.js --fail-on-missing-rls",
     "test:bff": "node --test barberflow-bff-api/tests/app.test.js barberflow-bff-api/tests/health.test.js barberflow-bff-api/tests/middlewares.test.js",
+    "load:smoke": "node load-tests/run.js --vus=1 --duration=30 --stage=smoke",
+    "load:test": "node load-tests/run.js",
     "db:snapshot": "node scripts/db-snapshot.js --generate",
     "db:check": "node scripts/db-snapshot.js --check",
     "db:diff": "node scripts/db-diff.js --diff",

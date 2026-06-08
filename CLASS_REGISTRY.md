@@ -759,6 +759,15 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `DbValidationRunner` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Avalia resultados simulados ou reais do pipeline, usado pelos testes do proprio pipeline. |
 | `DbValidationStep` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Value object de um passo do pipeline, com comando, severidade e descricao. |
 | `MigrationRollbackGuard` | [scripts/db-validate.js](scripts/db-validate.js) | infra | Verifica se migrations alteradas possuem rollback documentado por comentario ou arquivo `.down.sql`. |
+## Load Testing
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `BarberFlowScenario` | [load-tests/lib/BarberFlowScenario.js](load-tests/lib/BarberFlowScenario.js) | infra | Define os fluxos de carga da BFF para perfil, cadastro controlado, login, chat, fila/agendamento e notificacoes dry-run. |
+| `LoadTestConfig` | [load-tests/lib/LoadTestConfig.js](load-tests/lib/LoadTestConfig.js) | infra | Valida configuracao do runner de carga, bloqueia VUs fora das etapas autorizadas e gera prefixo `loadtest_<data>_<grupo>`. |
+| `LoadTestHttpClient` | [load-tests/lib/LoadTestHttpClient.js](load-tests/lib/LoadTestHttpClient.js) | infra | Cliente HTTP nativo com timeout, token opcional e coleta de duracao/status por endpoint. |
+| `LoadTestMetrics` | [load-tests/lib/LoadTestMetrics.js](load-tests/lib/LoadTestMetrics.js) | infra | Agrega amostras de carga, percentis p50/p95/p99, taxa de erro e recursos do processo runner. |
+| `LoadTestRunner` | [load-tests/lib/LoadTestRunner.js](load-tests/lib/LoadTestRunner.js) | infra | Orquestra VUs fixos, duracao controlada, coleta final de `/metrics` e escrita do relatorio JSON. |
 ### Perfil Público Profissional BFF
 
 | Classe | Arquivo | Camada | Descrição |

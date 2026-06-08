@@ -1,0 +1,15 @@
+{
+  "LOADTEST_BASE_URL": "http://127.0.0.1:3002",
+  "LOADTEST_EMAIL": "usuario_de_teste@example.com",
+  "LOADTEST_PASSWORD": "senha-do-usuario-de-teste",
+  "LOADTEST_ACCESS_TOKEN": "jwt-opcional-para-fluxos-autenticados",
+  "LOADTEST_CLIENT_TOKEN": "jwt-cliente-de-teste",
+  "LOADTEST_PROFESSIONAL_TOKEN": "jwt-profissional-de-teste",
+  "LOADTEST_BARBERSHOP_ID": "uuid-da-barbearia-de-teste",
+  "LOADTEST_PROFESSIONAL_ID": "uuid-do-profissional-de-teste",
+  "LOADTEST_SERVICE_ID": "uuid-do-servico-de-teste",
+  "LOADTEST_CONVERSATION_ID": "uuid-da-conversa-de-teste",
+  "LOADTEST_QUEUE_ENTRY_ID": "uuid-da-entrada-de-fila-de-teste",
+  "LOADTEST_ENABLE_WRITES": "false",
+  "LOADTEST_ENABLE_PUSH": "false"
+}

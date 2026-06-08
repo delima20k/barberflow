@@ -1,0 +1,123 @@
+{
+  "startedAt": "2026-06-08T14:55:38.744Z",
+  "endedAt": "2026-06-08T14:55:43.746Z",
+  "baseUrl": "http://127.0.0.1:3002",
+  "scenario": "all",
+  "stage": "smoke",
+  "vus": 1,
+  "durationSeconds": 5,
+  "testDataPrefix": "loadtest_20260608_smoke",
+  "totalRequests": 7465,
+  "totalErrors": 7465,
+  "errorRate": 1,
+  "endpoints": {
+    "GET /api/v1/health": {
+      "requests": 1244,
+      "errors": 1244,
+      "errorRate": 1,
+      "minMs": 0.44,
+      "avgMs": 0.63,
+      "p50Ms": 0.55,
+      "p95Ms": 0.7,
+      "p99Ms": 1.18,
+      "maxMs": 58.53,
+      "statuses": {
+        "0": 1244
+      }
+    },
+    "GET /api/v1/barbearias/destaque": {
+      "requests": 1244,
+      "errors": 1244,
+      "errorRate": 1,
+      "minMs": 0.44,
+      "avgMs": 0.61,
+      "p50Ms": 0.55,
+      "p95Ms": 0.73,
+      "p99Ms": 1.37,
+      "maxMs": 11.69,
+      "statuses": {
+        "0": 1244
+      }
+    },
+    "GET /api/v1/barbearias/todas": {
+      "requests": 1244,
+      "errors": 1244,
+      "errorRate": 1,
+      "minMs": 0.44,
+      "avgMs": 0.57,
+      "p50Ms": 0.55,
+      "p95Ms": 0.7,
+      "p99Ms": 1.17,
+      "maxMs": 3.19,
+      "statuses": {
+        "0": 1244
+      }
+    },
+    "POST /api/auth/login": {
+      "requests": 2488,
+      "errors": 2488,
+      "errorRate": 1,
+      "minMs": 0.49,
+      "avgMs": 0.67,
+      "p50Ms": 0.62,
+      "p95Ms": 0.8,
+      "p99Ms": 1.39,
+      "maxMs": 13.21,
+      "statuses": {
+        "0": 2488
+      }
+    },
+    "GET /metrics": {
+      "requests": 1245,
+      "errors": 1245,
+      "errorRate": 1,
+      "minMs": 0.44,
+      "avgMs": 0.59,
+      "p50Ms": 0.55,
+      "p95Ms": 0.71,
+      "p99Ms": 1.16,
+      "maxMs": 7.7,
+      "statuses": {
+        "0": 1245
+      }
+    }
+  },
+  "resources": [
+    {
+      "at": "2026-06-08T14:55:39.745Z",
+      "rssMb": 131.7,
+      "heapUsedMb": 34.02,
+      "userCpuMs": 843,
+      "systemCpuMs": 515
+    },
+    {
+      "at": "2026-06-08T14:55:40.745Z",
+      "rssMb": 202.5,
+      "heapUsedMb": 50.86,
+      "userCpuMs": 1750,
+      "systemCpuMs": 718
+    },
+    {
+      "at": "2026-06-08T14:55:41.744Z",
+      "rssMb": 213.83,
+      "heapUsedMb": 57.64,
+      "userCpuMs": 2796,
+      "systemCpuMs": 859
+    },
+    {
+      "at": "2026-06-08T14:55:42.746Z",
+      "rssMb": 220.08,
+      "heapUsedMb": 28.15,
+      "userCpuMs": 3984,
+      "systemCpuMs": 937
+    },
+    {
+      "at": "2026-06-08T14:55:43.745Z",
+      "rssMb": 221.21,
+      "heapUsedMb": 59.8,
+      "userCpuMs": 4593,
+      "systemCpuMs": 1390
+    }
+  ],
+  "bffMetrics": null
+}
