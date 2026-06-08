@@ -69,6 +69,12 @@ class R2Client {
     R2Client.#instance ??= new R2Client();
     return R2Client.#instance;
   }
+
+  /** Destrói o singleton para forçar releitura de process.env na próxima chamada a getInstance(). */
+  static reset() {
+    R2Client.#instance = null;
+  }
+
   // ── Download P2P (URL assinada de leitura) ────────────────────
 
   /**

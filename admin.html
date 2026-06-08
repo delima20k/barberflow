@@ -76,6 +76,10 @@
         <span class="adm-nav__icon" aria-hidden="true">💰</span>
         Financeiro
       </button>
+      <button class="adm-nav__item" data-aba="configuracoes" type="button">
+        <span class="adm-nav__icon" aria-hidden="true">⚙️</span>
+        Configurações
+      </button>
     </nav>
 
     <!-- Conteúdo principal -->
@@ -224,6 +228,140 @@
 
       </section>
 
+      <!-- ─── Aba: Configurações ──────────────────────────── -->
+      <section id="adm-aba-configuracoes" class="adm-aba" aria-label="Configurações do sistema">
+
+        <!-- Login Supabase (exibido quando não autenticado) -->
+        <div id="adm-cfg-login">
+          <div class="adm-aba__header">
+            <h2 class="adm-aba__titulo">Configurações — Acesso Admin</h2>
+          </div>
+          <p class="adm-cfg-desc">
+            Esta área requer autenticação separada via Supabase.<br>
+            Use o e-mail e senha do seu usuário registrado em <strong>admin_users</strong>.
+          </p>
+          <form id="adm-cfg-login-form" class="adm-cfg-login-form" novalidate autocomplete="off">
+            <label>
+              E-mail
+              <input name="email" type="email" required placeholder="admin@barberflow.com" autocomplete="username">
+            </label>
+            <label>
+              Senha
+              <input name="senha" type="password" required placeholder="••••••••" autocomplete="current-password">
+            </label>
+            <p id="adm-cfg-login-erro" class="adm-login-erro" aria-live="polite"></p>
+            <button type="submit" class="btn btn--primary">Entrar</button>
+          </form>
+        </div>
+
+        <!-- Formulário R2 (exibido após autenticação) -->
+        <div id="adm-cfg-form" style="display:none">
+
+          <div class="adm-aba__header">
+            <h2 class="adm-aba__titulo">Configurações → Cloudflare R2</h2>
+            <div class="adm-aba__controles">
+              <button id="adm-cfg-btn-testar" class="btn btn--secondary btn--sm" type="button">
+                Testar Conexão
+              </button>
+              <button id="adm-cfg-btn-salvar" class="btn btn--primary btn--sm" type="button">
+                Salvar
+              </button>
+            </div>
+          </div>
+
+          <form id="adm-cfg-r2-form" class="adm-cfg-form" autocomplete="off" novalidate>
+
+            <!-- Account ID -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-accountId" class="adm-cfg-label">
+                Account ID
+                <span class="adm-cfg-hint">R2_ACCOUNT_ID</span>
+              </label>
+              <input id="adm-cfg-accountId" name="accountId" type="text"
+                     class="adm-cfg-input" placeholder="ex: abc1234567890abcdef">
+            </div>
+
+            <!-- Access Key ID -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-accessKeyId" class="adm-cfg-label">
+                Access Key ID
+                <span class="adm-cfg-hint">R2_ACCESS_KEY_ID</span>
+              </label>
+              <input id="adm-cfg-accessKeyId" name="accessKeyId" type="text"
+                     class="adm-cfg-input" placeholder="ex: 1234567890abcdef1234">
+            </div>
+
+            <!-- Secret Access Key -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-secretAccessKey" class="adm-cfg-label">
+                Secret Access Key
+                <span class="adm-cfg-hint">R2_SECRET_ACCESS_KEY</span>
+              </label>
+              <div class="adm-cfg-input-group">
+                <input id="adm-cfg-secretAccessKey" name="secretAccessKey" type="password"
+                       class="adm-cfg-input" placeholder="Salvo — não exibido">
+                <button type="button" class="btn btn--secondary btn--sm adm-cfg-toggle-btn"
+                        data-toggle-senha="adm-cfg-secretAccessKey">Mostrar</button>
+              </div>
+            </div>
+
+            <!-- Bucket Name -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-bucketName" class="adm-cfg-label">
+                Bucket Name
+                <span class="adm-cfg-hint">R2_BUCKET_NAME</span>
+              </label>
+              <input id="adm-cfg-bucketName" name="bucketName" type="text"
+                     class="adm-cfg-input" placeholder="ex: barberflow-media">
+            </div>
+
+            <!-- Public URL -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-publicUrl" class="adm-cfg-label">
+                Public URL
+                <span class="adm-cfg-hint">R2_PUBLIC_URL</span>
+              </label>
+              <input id="adm-cfg-publicUrl" name="publicUrl" type="url"
+                     class="adm-cfg-input" placeholder="ex: https://pub-xxx.r2.dev">
+            </div>
+
+            <!-- Media Confirm Secret -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-mediaConfirmSecret" class="adm-cfg-label">
+                Media Confirm Secret
+                <span class="adm-cfg-hint">MEDIA_CONFIRM_SECRET</span>
+              </label>
+              <div class="adm-cfg-input-group">
+                <input id="adm-cfg-mediaConfirmSecret" name="mediaConfirmSecret" type="password"
+                       class="adm-cfg-input" placeholder="Salvo — não exibido">
+                <button type="button" class="btn btn--secondary btn--sm adm-cfg-toggle-btn"
+                        data-toggle-senha="adm-cfg-mediaConfirmSecret">Mostrar</button>
+                <button id="adm-cfg-btn-gerar-secret" type="button"
+                        class="btn btn--secondary btn--sm">Gerar automaticamente</button>
+              </div>
+            </div>
+
+            <!-- Storage Backend -->
+            <div class="adm-cfg-campo">
+              <label for="adm-cfg-storageBackend" class="adm-cfg-label">
+                Storage Backend
+                <span class="adm-cfg-hint">STORIES_STORAGE_BACKEND</span>
+              </label>
+              <select id="adm-cfg-storageBackend" name="storageBackend" class="adm-select">
+                <option value="r2">r2 (Cloudflare R2)</option>
+                <option value="supabase">supabase (Supabase Storage)</option>
+              </select>
+            </div>
+
+          </form>
+
+          <!-- Resultado do teste de conexão -->
+          <pre id="adm-cfg-teste-resultado" class="adm-cfg-teste-resultado"></pre>
+
+        </div><!-- /adm-cfg-form -->
+
+      </section>
+
     </main>
   </div>
 </div>
@@ -249,7 +387,9 @@
 <!-- ════════════════════════════════════════════════════════
      SCRIPTS
 ════════════════════════════════════════════════════════ -->
+<script src="shared/js/supabase.min.js"></script>
 <script src="apps/profissional/assets/js/admin/AdminApiService.js"></script>
+<script src="apps/profissional/assets/js/admin/AdminTabConfiguracoes.js"></script>
 <script src="apps/profissional/assets/js/admin/AdminDashboard.js"></script>
 
 </body>

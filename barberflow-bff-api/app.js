@@ -59,7 +59,9 @@ const chatRoute             = require('./routes/chat');
 const schedulerRoute        = require('./routes/scheduler');
 const conviteProRoute       = require('./routes/convites-pro');
 const p2pRoute              = require('./routes/p2p');
+const adminConfigRoute      = require('./routes/adminConfig');
 const SupabaseClient         = require('./utils/SupabaseClient');
+const { R2ConfigService }    = require('./application/admin/R2ConfigService');
 
 /**
  * Valida variáveis de ambiente obrigatórias no startup.
@@ -82,6 +84,14 @@ function criarApp(db = null) {
   // Inicializa sistemas de observabilidade (idempotente)
   Metrics.init();
   SentryClient.init();
+
+  // Carrega configurações de storage do banco e injeta em process.env.
+  // Execução não-bloqueante: falha silenciosa para não impedir o startup.
+  if (process.env.APP_ENV !== 'test') {
+    new R2ConfigService(_db).patchProcessEnv().catch(err => {
+      console.warn('[startup] patchProcessEnv falhou (continua):', err?.message ?? err);
+    });
+  }
 
   const app = express();
 
@@ -137,6 +147,7 @@ function criarApp(db = null) {
   v1Router.use('/chat',          AbuseMiddleware.forHttp(), chatRoute(_db));
   v1Router.use('/scheduler',     schedulerRoute(_db));
   v1Router.use('/profissionais', conviteProRoute(_db));
+  v1Router.use('/admin/config', adminConfigRoute(_db));
   app.use('/api/v1', v1Router);
 
   // ── Reset pontual de curtidas (ONE-TIME, protegido por RESET_LIKES_KEY) ─────

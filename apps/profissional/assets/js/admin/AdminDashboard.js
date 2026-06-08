@@ -756,22 +756,24 @@ class AdminTabFinanceiro {
 
 class AdminDashboard {
 
-  /** @type {AdminApiService}   */ #api;
-  /** @type {AdminToast}        */ #toast;
-  /** @type {AdminModal}        */ #modal;
-  /** @type {AdminTabUsuarios}  */ #tabUsuarios;
-  /** @type {AdminTabBarbeiros} */ #tabBarbeiros;
-  /** @type {AdminTabFinanceiro}*/ #tabFinanceiro;
+  /** @type {AdminApiService}        */ #api;
+  /** @type {AdminToast}             */ #toast;
+  /** @type {AdminModal}             */ #modal;
+  /** @type {AdminTabUsuarios}       */ #tabUsuarios;
+  /** @type {AdminTabBarbeiros}      */ #tabBarbeiros;
+  /** @type {AdminTabFinanceiro}     */ #tabFinanceiro;
+  /** @type {AdminTabConfiguracoes}  */ #tabConfiguracoes;
 
   /** @type {string} */ #abaAtiva = 'usuarios';
 
   constructor() {
-    this.#api          = AdminApiService.getInstance();
-    this.#toast        = new AdminToast();
-    this.#modal        = new AdminModal();
-    this.#tabUsuarios  = new AdminTabUsuarios(this.#api, this.#toast, this.#modal);
-    this.#tabBarbeiros = new AdminTabBarbeiros(this.#api, this.#toast, this.#modal);
-    this.#tabFinanceiro= new AdminTabFinanceiro(this.#api, this.#toast, this.#modal);
+    this.#api               = AdminApiService.getInstance();
+    this.#toast             = new AdminToast();
+    this.#modal             = new AdminModal();
+    this.#tabUsuarios       = new AdminTabUsuarios(this.#api, this.#toast, this.#modal);
+    this.#tabBarbeiros      = new AdminTabBarbeiros(this.#api, this.#toast, this.#modal);
+    this.#tabFinanceiro     = new AdminTabFinanceiro(this.#api, this.#toast, this.#modal);
+    this.#tabConfiguracoes  = new AdminTabConfiguracoes(this.#toast);
   }
 
   init() {
@@ -781,6 +783,7 @@ class AdminDashboard {
     this.#tabUsuarios.init();
     this.#tabBarbeiros.init();
     this.#tabFinanceiro.init();
+    this.#tabConfiguracoes.init();
 
     // Logout automático ao receber evento de 401
     window.addEventListener('adm:logout', () => this.#fazerLogout());
@@ -858,6 +861,8 @@ class AdminDashboard {
       this.#tabBarbeiros.carregar();
     } else if (aba === 'financeiro') {
       this.#tabFinanceiro.carregar();
+    } else if (aba === 'configuracoes') {
+      this.#tabConfiguracoes.ativar();
     }
   }
 

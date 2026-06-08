@@ -592,3 +592,143 @@ html, body {
     right: 12px;
   }
 }
+
+/* ── Aba: Configurações ─────────────────────────────────────── */
+
+.adm-cfg-desc {
+  font-size: .88rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.adm-cfg-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 380px;
+}
+
+.adm-cfg-login-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.adm-cfg-login-form input {
+  padding: 9px 13px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  font-size: .9rem;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.adm-cfg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 640px;
+  margin-top: 16px;
+}
+
+.adm-cfg-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm-cfg-label {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.adm-cfg-hint {
+  font-size: .72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.adm-cfg-input {
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  font-size: .9rem;
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color var(--ease);
+}
+
+.adm-cfg-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.adm-cfg-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adm-cfg-input-group .adm-cfg-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-cfg-toggle-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.adm-cfg-teste-resultado {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--r-sm);
+  font-size: .82rem;
+  font-family: 'Courier New', monospace;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: none;
+}
+
+.adm-cfg-teste-resultado:not(:empty) {
+  display: block;
+}
+
+.adm-cfg-teste-resultado--ok {
+  background: rgba(34, 197, 94, .1);
+  border: 1px solid rgba(34, 197, 94, .35);
+  color: #166534;
+}
+
+.adm-cfg-teste-resultado--erro {
+  background: rgba(239, 68, 68, .08);
+  border: 1px solid rgba(239, 68, 68, .3);
+  color: #991b1b;
+}
+
+@media (max-width: 520px) {
+  .adm-cfg-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .adm-cfg-toggle-btn { width: 100%; }
+}
