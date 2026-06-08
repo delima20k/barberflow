@@ -77,6 +77,8 @@ class FinanceiroCalculator {
     despesasAnteriores = [],
     taxasMetodoPagamento = [],
     payoutItems = [],
+    transacoesPayoutAberto = null,
+    resumoHistoricoFinanceiro = [],
   }) {
     const barbeiroMap = this.#barbeiroMap(profissionais, statusEquipe);
     const agreementMap = this.#agreementMap(agreements, barbeiroMap);
@@ -84,7 +86,18 @@ class FinanceiroCalculator {
     const payoutTransactionIds = this.#payoutTransactionIds(payoutItems);
     const atual = this.#agregar(transacoes, agreementMap, barbeiroMap, taxaMetodoMap, payoutTransactionIds);
     const anterior = this.#agregar(transacoesAnteriores, agreementMap, barbeiroMap, taxaMetodoMap);
-    const barbeiros = this.#barbeirosOrdenados(atual.barbeiros, anterior.barbeiros, barbeiroMap, agreementMap);
+    const cicloAberto = Array.isArray(transacoesPayoutAberto)
+      ? this.#agregar(transacoesPayoutAberto, agreementMap, barbeiroMap, taxaMetodoMap)
+      : null;
+    const historicoMap = this.#historicoFinanceiroMap(resumoHistoricoFinanceiro);
+    const barbeiros = this.#barbeirosOrdenados(
+      atual.barbeiros,
+      anterior.barbeiros,
+      barbeiroMap,
+      agreementMap,
+      cicloAberto?.barbeiros || null,
+      historicoMap,
+    );
     const mensalidadesAtual = this.#mensalidadesParceiros(agreements, periodo, barbeiroMap);
     const mensalidadesAnterior = this.#mensalidadesParceiros(agreements, this.#periodoAnterior(periodo), barbeiroMap);
     const despesasAtual = this.#somarDespesas(despesas);
@@ -110,13 +123,20 @@ class FinanceiroCalculator {
     const inativos = Math.max(0, barbeiroMap.size - online);
 
     let meuLucro = null;
+    let meusCardsCiclo = null;
     if (!isOwner && viewerProfessionalId) {
       const meuBarbeiro = atual.barbeiros.get(viewerProfessionalId);
       const meuBarbeiroAnterior = anterior.barbeiros.get(viewerProfessionalId);
+      const meuResumo = barbeiros.find(item => item.professionalId === viewerProfessionalId) || {};
       meuLucro = this.#cardMoney(
         meuBarbeiro?.valorBarbeiro || Money.zero(),
         meuBarbeiroAnterior?.valorBarbeiro || Money.zero(),
       );
+      meusCardsCiclo = {
+        saldoPendenteAtual: this.#cardMoney(Money.from(meuResumo.saldoPendenteAtual), Money.zero()),
+        totalRecebido: this.#cardMoney(Money.from(meuResumo.totalRecebido), Money.zero()),
+        faturamentoHistorico: this.#cardMoney(Money.from(meuResumo.faturamentoHistorico), Money.zero()),
+      };
     }
 
     return {
@@ -149,6 +169,9 @@ class FinanceiroCalculator {
         mensalistas: isOwner
           ? { total: mensalidadesAtual.total.toNumber(), count: mensalidadesAtual.count }
           : (mensalistas ?? { total: 0, count: 0 }),
+        saldoPendenteAtual: meusCardsCiclo?.saldoPendenteAtual || this.#cardMoney(Money.zero(), Money.zero()),
+        totalRecebido: meusCardsCiclo?.totalRecebido || this.#cardMoney(Money.zero(), Money.zero()),
+        faturamentoHistorico: meusCardsCiclo?.faturamentoHistorico || this.#cardMoney(Money.zero(), Money.zero()),
       },
       metodosPagamento: [...atual.metodos.values()]
         .filter(m => m.metodo !== 'outros')
@@ -454,13 +477,20 @@ class FinanceiroCalculator {
     map.set(professionalId, atual);
   }
 
-  #barbeirosOrdenados(atualMap, anteriorMap, barbeiroMap, agreementMap) {
+  #barbeirosOrdenados(atualMap, anteriorMap, barbeiroMap, agreementMap, cicloAbertoMap = null, historicoMap = new Map()) {
     const ids = new Set([...barbeiroMap.keys(), ...atualMap.keys()]);
+    for (const id of cicloAbertoMap?.keys?.() || []) ids.add(id);
+    for (const id of historicoMap.keys()) ids.add(id);
     return [...ids].map(id => {
       const atual = atualMap.get(id);
+      const cicloAberto = cicloAbertoMap?.get(id);
+      const historico = historicoMap.get(id) || {};
       const base = barbeiroMap.get(id) || {};
       const agreement = this.#agreementFor(id, agreementMap, base);
       const anterior = anteriorMap.get(id);
+      const saldoPendenteAtual = cicloAbertoMap
+        ? (cicloAberto?.pendingPayoutAmount || Money.zero())
+        : (atual?.pendingPayoutAmount || Money.zero());
       return {
         professionalId: id,
         nome: atual?.nome || base.nome || 'Profissional',
@@ -477,12 +507,32 @@ class FinanceiroCalculator {
         porcentagemBarbeiro: atual?.porcentagemBarbeiro ?? agreement.barberPercent,
         valorBarbeiro: (atual?.valorBarbeiro || Money.zero()).toNumber(),
         valorBarbearia: (atual?.valorBarbearia || Money.zero()).toNumber(),
-        pendingPayoutAmount: (atual?.pendingPayoutAmount || Money.zero()).toNumber(),
-        cutsPendingPayout: atual?.cutsPendingPayout || 0,
+        pendingPayoutAmount: saldoPendenteAtual.toNumber(),
+        saldoPendenteAtual: saldoPendenteAtual.toNumber(),
+        cutsPendingPayout: cicloAbertoMap ? (cicloAberto?.cutsPendingPayout || 0) : (atual?.cutsPendingPayout || 0),
+        totalRecebido: Money.from(historico.totalRecebido).toNumber(),
+        faturamentoHistorico: Money.from(historico.faturamentoHistorico).toNumber(),
+        payoutsCount: Number(historico.payoutsCount || 0),
+        lastPayoutAt: historico.lastPayoutAt || null,
         agreementConfigured: atual?.agreementConfigured ?? agreement.configured,
         crescimentoPct: this.comparativo(atual?.receitaLiquida || Money.zero(), anterior?.receitaLiquida || Money.zero()),
       };
     }).sort((a, b) => b.receitaLiquida - a.receitaLiquida);
+  }
+
+  #historicoFinanceiroMap(rows) {
+    const map = new Map();
+    for (const row of rows || []) {
+      const professionalId = row?.professional_id || row?.professionalId;
+      if (!professionalId) continue;
+      map.set(professionalId, {
+        faturamentoHistorico: row.faturamento_historico ?? row.faturamentoHistorico ?? 0,
+        totalRecebido: row.total_recebido ?? row.totalRecebido ?? 0,
+        payoutsCount: row.payouts_count ?? row.payoutsCount ?? 0,
+        lastPayoutAt: row.last_payout_at ?? row.lastPayoutAt ?? null,
+      });
+    }
+    return map;
   }
 
   #series(transacoes, agreementMap, barbeiroMap, taxaMetodoMap) {

@@ -60,33 +60,7 @@ class FakeQuery {
     }
 
     if (this.table === 'transactions') {
-      const items = [
-        {
-          id: '44444444-4444-4444-8444-444444444444',
-          barbershop_id: SHOP_ID,
-          professional_id: PROF_ID,
-          gross_amount: 500,
-          amount: 480,
-          payment_method: 'credito',
-          status: 'paid',
-          type: 'revenue',
-          paid_at: '2026-05-20T12:00:00.000Z',
-          created_at: '2026-05-20T12:00:00.000Z',
-        },
-        {
-          id: '66666666-6666-4666-8666-666666666666',
-          barbershop_id: SHOP_ID,
-          professional_id: null,
-          gross_amount: 50,
-          amount: 50,
-          payment_method: 'pix',
-          status: 'paid',
-          type: 'expense',
-          paid_at: '2026-05-22T12:00:00.000Z',
-          created_at: '2026-05-22T12:00:00.000Z',
-        },
-      ];
-      const filtered = items.filter(item =>
+      const filtered = this.db.transactionRows.filter(item =>
         (!this.filters.professional_id || item.professional_id === this.filters.professional_id)
         && (!this.filters.type || item.type === this.filters.type)
         && (!this.filters.status || item.status === this.filters.status)
@@ -205,6 +179,32 @@ class FakeDb {
     this.weeklySettlementUpsertCalls = [];
     this.failWeeklySettlementSelect = failWeeklySettlementSelect;
     this.failedPayouts = [];
+    this.transactionRows = [
+      {
+        id: '44444444-4444-4444-8444-444444444444',
+        barbershop_id: SHOP_ID,
+        professional_id: PROF_ID,
+        gross_amount: 500,
+        amount: 480,
+        payment_method: 'credito',
+        status: 'paid',
+        type: 'revenue',
+        paid_at: '2026-05-20T12:00:00.000Z',
+        created_at: '2026-05-20T12:00:00.000Z',
+      },
+      {
+        id: '66666666-6666-4666-8666-666666666666',
+        barbershop_id: SHOP_ID,
+        professional_id: null,
+        gross_amount: 50,
+        amount: 50,
+        payment_method: 'pix',
+        status: 'paid',
+        type: 'expense',
+        paid_at: '2026-05-22T12:00:00.000Z',
+        created_at: '2026-05-22T12:00:00.000Z',
+      },
+    ];
     this.linkRows = [
       { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
       { professional_id: INACTIVE_PROF_ID, barbershop_id: SHOP_ID, is_active: false },
@@ -341,6 +341,53 @@ class FakeDb {
 
   async rpc(name, payload) {
     this.rpcCalls.push({ name, payload });
+    if (name === 'get_professional_unpaid_transactions') {
+      const paidIds = new Set(this.payoutItemRows.map(item => item.transaction_id));
+      const rows = this.transactionRows.filter(item =>
+        item.barbershop_id === payload.p_barbershop_id
+        && (!payload.p_professional_id || item.professional_id === payload.p_professional_id)
+        && item.type === 'revenue'
+        && item.status === 'paid'
+        && !paidIds.has(item.id)
+      );
+      return { data: rows, error: null };
+    }
+    if (name === 'get_professional_financial_history_summary') {
+      const professionals = new Set([
+        PROF_ID,
+        ...this.linkRows
+          .filter(row => row.barbershop_id === payload.p_barbershop_id && row.is_active === true)
+          .map(row => row.professional_id),
+      ]);
+      const rows = [...professionals]
+        .filter(professionalId => !payload.p_professional_id || professionalId === payload.p_professional_id)
+        .map(professionalId => {
+          const faturamentoHistorico = this.transactionRows
+            .filter(item =>
+              item.barbershop_id === payload.p_barbershop_id
+              && item.professional_id === professionalId
+              && item.type === 'revenue'
+              && item.status === 'paid'
+            )
+            .reduce((sum, item) => sum + Number(item.gross_amount ?? item.amount ?? 0), 0);
+          const payouts = this.payoutRows.filter(item =>
+            item.barbershop_id === payload.p_barbershop_id
+            && item.professional_id === professionalId
+            && item.status === 'confirmed'
+          );
+          return {
+            professional_id: professionalId,
+            faturamento_historico: faturamentoHistorico,
+            total_recebido: payouts.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+            payouts_count: payouts.length,
+            last_payout_at: payouts.reduce((last, item) => {
+              const paidAt = item.paid_at || item.created_at || null;
+              return !last || String(paidAt) > String(last) ? paidAt : last;
+            }, null),
+          };
+        });
+      return { data: rows, error: null };
+    }
     if (name === 'confirmar_professional_payout_atomic') {
       const conflito = (payload.p_transaction_ids || []).find(id =>
         this.payoutItemRows.some(item => item.transaction_id === id)
@@ -496,6 +543,68 @@ suite('Financeiro BFF HTTP', () => {
     assert.equal(fakeDb.payoutItemRows.length, 1);
   });
 
+  test('GET /dashboard e POST /pagamentos-barbeiro mantem ciclo aberto separado do historico', async () => {
+    const db = new FakeDb();
+    const app = criarApp(db);
+    const localServer = await new Promise(resolve => {
+      const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+    });
+    const localPort = localServer.address().port;
+    try {
+      const antes = await request(localPort, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=custom&de=2026-05-01&ate=2026-05-31`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      assert.equal(antes.status, 200);
+      assert.equal(antes.body.dados.barbeiros[0].saldoPendenteAtual, 192);
+      assert.equal(antes.body.dados.barbeiros[0].totalRecebido, 0);
+      assert.equal(antes.body.dados.barbeiros[0].faturamentoHistorico, 500);
+
+      const payout = await request(localPort, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+        headers: { Authorization: `Bearer ${token()}` },
+        body: {
+          barbershop_id: SHOP_ID,
+          professional_id: PROF_ID,
+          periodo: 'custom',
+          de: '2026-05-01',
+          ate: '2026-05-31',
+          displayed_amount: 192,
+        },
+      });
+      assert.equal(payout.status, 200);
+      assert.equal(payout.body.dados.updatedBalance.saldoPendenteAtual, 0);
+      assert.equal(payout.body.dados.updatedBalance.totalRecebido, 192);
+
+      const depois = await request(localPort, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=custom&de=2026-05-01&ate=2026-05-31`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      assert.equal(depois.body.dados.barbeiros[0].saldoPendenteAtual, 0);
+      assert.equal(depois.body.dados.barbeiros[0].totalRecebido, 192);
+      assert.equal(depois.body.dados.barbeiros[0].faturamentoHistorico, 500);
+
+      db.transactionRows.push({
+        id: '88888888-8888-4888-8888-888888888888',
+        barbershop_id: SHOP_ID,
+        professional_id: PROF_ID,
+        gross_amount: 100,
+        amount: 100,
+        payment_method: 'pix',
+        status: 'paid',
+        type: 'revenue',
+        paid_at: '2026-06-02T12:00:00.000Z',
+        created_at: '2026-06-02T12:00:00.000Z',
+      });
+
+      const novoCiclo = await request(localPort, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=custom&de=2026-05-01&ate=2026-05-31`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      assert.equal(novoCiclo.body.dados.barbeiros[0].saldoPendenteAtual, 40);
+      assert.equal(novoCiclo.body.dados.barbeiros[0].totalRecebido, 192);
+      assert.equal(novoCiclo.body.dados.barbeiros[0].faturamentoHistorico, 600);
+    } finally {
+      await new Promise((resolve, reject) => localServer.close(err => (err ? reject(err) : resolve())));
+    }
+  });
+
   test('PATCH /taxas-metodo valida metodo e porcentagem', async () => {
     const invalid = await request(port, 'PATCH', '/api/v1/financeiro/taxas-metodo', {
       headers: { Authorization: `Bearer ${token()}` },
@@ -520,7 +629,13 @@ suite('Financeiro BFF HTTP', () => {
       body: { barbershop_id: SHOP_ID, metodo: 'crédito', porcentagem: '4,5', periodo: 'mes' },
     });
     assert.equal(valid.status, 200);
-    assert.equal(fakeDb.rpcCalls.filter(call => call.name !== 'confirmar_professional_payout_atomic').length, 0);
+    assert.equal(fakeDb.rpcCalls.filter(call =>
+      ![
+        'confirmar_professional_payout_atomic',
+        'get_professional_unpaid_transactions',
+        'get_professional_financial_history_summary',
+      ].includes(call.name)
+    ).length, 0);
     assert.equal(fakeDb.feeUpsertCalls[0].payment_method, 'credit');
     assert.equal(fakeDb.feeUpsertCalls[0].fee_percent, 4.5);
   });
@@ -542,6 +657,18 @@ test('GET /dashboard retorna 403 sem vinculo com a barbearia', async () => {
 test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acordo', async () => {
   // FakeDb com owner_id diferente de USER_ID → papel = 'professional'
   class FakeDbNaoOwner extends FakeDb {
+    constructor() {
+      super();
+      this.transactionRows = [
+        { id: '55555555-5555-4555-8555-555555555555', barbershop_id: SHOP_ID, professional_id: USER_ID, gross_amount: 500, amount: 480, payment_method: 'credito', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' },
+        { id: '88888888-8888-4888-8888-888888888888', barbershop_id: SHOP_ID, professional_id: PROF_ID, gross_amount: 900, amount: 900, payment_method: 'pix', status: 'paid', type: 'revenue', paid_at: '2026-05-20T12:00:00.000Z', created_at: '2026-05-20T12:00:00.000Z' },
+      ];
+      this.linkRows = [
+        { professional_id: USER_ID, barbershop_id: SHOP_ID, is_active: true },
+        { professional_id: PROF_ID, barbershop_id: SHOP_ID, is_active: true },
+      ];
+    }
+
     from(table) {
       const query = super.from(table);
       if (table === 'barbershops') {

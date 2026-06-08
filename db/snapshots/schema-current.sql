@@ -1,6 +1,6 @@
 -- BarberFlow Schema Snapshot
--- Gerado em: 2026-05-29
--- Migrations: 103
+-- Gerado em: 2026-06-08
+-- Migrations: 124
 -- NÃO editar manualmente. Regenerar com: node scripts/db-snapshot.js
 
 
@@ -263,19 +263,15 @@ create table if not exists public.stories (
   views_count    int not null default 0,
   region_key     text,
   expires_at     timestamptz not null default (now() + interval '24 hours'),
-  created_at     timestamptz not null default now(),
-  media_id       uuid references public.media_files(id) on delete set null
+  created_at     timestamptz not null default now()
 );
 
 comment on table public.stories is
   'Stories de 24h. Somente metadados. Mídia fica no Storage em /stories/. Limpar expirados com cron.';
-comment on column public.stories.media_id is
-  'FK para media_files. Preenchido em stories novos (R2). NULL mantém compatibilidade com storage_path legado.';
 
 create index idx_stories_owner      on public.stories(owner_id, created_at);
 create index idx_stories_expires    on public.stories(expires_at);
 create index idx_stories_barbershop on public.stories(barbershop_id, expires_at);
-create index idx_stories_media_id   on public.stories(media_id) where media_id is not null;
 
 create table if not exists public.story_views (
   id         uuid primary key default uuid_generate_v4(),
@@ -3824,22 +3820,6 @@ BEGIN
   END IF;
 END $$;
 
--- MIGRATION: 20260530000001_servico_tipo_e_mensalidade.sql
-ALTER TABLE public.services
-  ADD COLUMN IF NOT EXISTS price_half NUMERIC(8,2);
-
-COMMENT ON COLUMN public.services.price_half IS
-  'Preco da variante "meia" (ex.: Luzes meia). price = variante inteira.';
-
-ALTER TABLE public.barbershops
-  ADD COLUMN IF NOT EXISTS monthly_plan_price   NUMERIC(10,2),
-  ADD COLUMN IF NOT EXISTS monthly_plan_message TEXT;
-
-COMMENT ON COLUMN public.barbershops.monthly_plan_price IS
-  'Valor da mensalidade anunciada no banner da pagina publica (null = sem banner).';
-COMMENT ON COLUMN public.barbershops.monthly_plan_message IS
-  'Mensagem promocional exibida no banner de mensalidade.';
-
 -- MIGRATION: 20260519000001_queue_client_confirmed_arriving_check.sql
 ALTER TABLE public.queue_entries
   DROP CONSTRAINT IF EXISTS queue_entries_client_confirmed_check;
@@ -4462,8 +4442,6 @@ RETURNS TABLE (
   sender_id uuid,
   client_message_id text,
   body text,
-  encrypted_payload jsonb,
-  e2e_key_version integer,
   created_at timestamptz,
   deleted_at timestamptz,
   retention_until timestamptz,
@@ -4477,8 +4455,6 @@ AS $$
          m.sender_id,
          m.client_message_id,
          CASE WHEN m.deleted_at IS NULL THEN m.body ELSE '' END AS body,
-         CASE WHEN m.deleted_at IS NULL THEN m.encrypted_payload ELSE NULL END AS encrypted_payload,
-         m.e2e_key_version,
          m.created_at,
          m.deleted_at,
          m.retention_until,
@@ -4500,9 +4476,6 @@ AS $$
    ORDER BY m.created_at DESC, m.id DESC
    LIMIT LEAST(GREATEST(p_limit, 1), 100);
 $$;
-
-COMMENT ON FUNCTION public.get_chat_messages_reverse IS
-  'Retorna mensagens de uma conversa em ordem DESC com cursor. Inclui encrypted_payload para E2E client-side.';
 
 ALTER TABLE public.chat_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_participants ENABLE ROW LEVEL SECURITY;
@@ -6583,3 +6556,1176 @@ CREATE POLICY "queue_delete_responsible_professional"
   USING (
     auth.uid() = professional_id
   );
+
+-- MIGRATION: 20260530000001_servico_tipo_e_mensalidade.sql
+ALTER TABLE public.services
+  ADD COLUMN IF NOT EXISTS price_half numeric(8,2);
+
+COMMENT ON COLUMN public.services.price_half IS
+  'Preco da variante "meia" (ex.: Luzes meia). price = variante inteira.';
+
+ALTER TABLE public.barbershops
+  ADD COLUMN IF NOT EXISTS monthly_plan_price   numeric(10,2),
+  ADD COLUMN IF NOT EXISTS monthly_plan_message text;
+
+COMMENT ON COLUMN public.barbershops.monthly_plan_price IS
+  'Valor da mensalidade anunciada no banner da pagina publica (null = sem banner).';
+COMMENT ON COLUMN public.barbershops.monthly_plan_message IS
+  'Mensagem promocional exibida no banner de mensalidade.';
+
+-- MIGRATION: 20260531000001_portfolio_messages_index.sql
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_portfolio_image_id
+  ON public.chat_conversations USING gin (metadata jsonb_path_ops)
+  WHERE metadata ? 'portfolioImageId';
+
+COMMENT ON INDEX idx_chat_conversations_portfolio_image_id
+  IS 'Busca rápida de conversas originadas de uma imagem de portfólio via metadata->portfolioImageId';
+
+-- MIGRATION: 20260531000002_domain_events_outbox.sql
+CREATE TABLE IF NOT EXISTS public.domain_events_outbox (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_name   text NOT NULL,
+  payload      jsonb NOT NULL DEFAULT '{}'::jsonb,
+  queue        text NOT NULL,
+  status       text NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending','processing','done','failed')),
+  attempts     integer NOT NULL DEFAULT 0,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  processed_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbox_status_created
+  ON public.domain_events_outbox(status, created_at)
+  WHERE status = 'pending';
+
+ALTER TABLE public.domain_events_outbox ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.domain_events_outbox
+  IS 'Outbox Pattern: eventos de domínio pendentes de entrega pelo BFF (service_role only)';
+
+-- MIGRATION: 20260531000003_portfolio_messages.sql
+CREATE TABLE IF NOT EXISTS public.portfolio_messages (
+  id                 uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  portfolio_image_id uuid        NOT NULL,
+  professional_id    uuid        NOT NULL,
+  sender_id          uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  body               text        NOT NULL CHECK (char_length(body) BETWEEN 1 AND 240),
+  created_at         timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_messages_image
+  ON public.portfolio_messages(portfolio_image_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_messages_professional
+  ON public.portfolio_messages(professional_id, created_at DESC);
+
+ALTER TABLE public.portfolio_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "profissional_le_mensagens_portfolio"
+  ON public.portfolio_messages FOR SELECT
+  USING (auth.uid() = professional_id);
+
+CREATE POLICY "cliente_envia_mensagem_portfolio"
+  ON public.portfolio_messages FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+
+COMMENT ON TABLE public.portfolio_messages
+  IS 'Reações e mensagens de clientes em imagens de portfólio de barbeiros';
+
+-- MIGRATION: 20260531000004_reset_portfolio_likes.sql
+DELETE FROM public.likes WHERE content_type = 'portfolio_image';
+
+UPDATE public.portfolio_images SET likes_count = 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_unique_user_content
+  ON public.likes(user_id, content_id, content_type);
+
+COMMENT ON INDEX idx_likes_unique_user_content
+  IS 'Garante que cada usuário só pode curtir uma vez por conteúdo';
+
+-- MIGRATION: 20260601000001_reset_curtidas_zero.sql
+DELETE FROM public.likes WHERE content_type = 'portfolio_image';
+
+UPDATE public.portfolio_images SET likes_count = 0;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_likes_unique_user_content
+  ON public.likes(user_id, content_id, content_type);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'likes_unique_per_user_content'
+  ) THEN
+    ALTER TABLE public.likes
+      ADD CONSTRAINT likes_unique_per_user_content
+      UNIQUE (user_id, content_id, content_type);
+  END IF;
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
+
+-- MIGRATION: 20260601000002_chat_find_or_create.sql
+CREATE OR REPLACE FUNCTION public.find_or_create_direct_conversation(
+  p_user_a uuid,
+  p_user_b uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_conv_id uuid;
+BEGIN
+
+  SELECT c.id INTO v_conv_id
+  FROM chat_conversations c
+  WHERE c.type = 'direct'
+    AND c.archived_at IS NULL
+    AND EXISTS (
+      SELECT 1 FROM chat_participants
+      WHERE conversation_id = c.id AND user_id = p_user_a AND left_at IS NULL
+    )
+    AND EXISTS (
+      SELECT 1 FROM chat_participants
+      WHERE conversation_id = c.id AND user_id = p_user_b AND left_at IS NULL
+    )
+    AND (
+      SELECT COUNT(*) FROM chat_participants cp
+      WHERE cp.conversation_id = c.id AND cp.left_at IS NULL
+    ) = 2
+  LIMIT 1;
+
+  IF v_conv_id IS NOT NULL THEN
+    RETURN v_conv_id;
+  END IF;
+
+  INSERT INTO chat_conversations (type, created_by)
+  VALUES ('direct', p_user_a)
+  RETURNING id INTO v_conv_id;
+
+  INSERT INTO chat_participants (conversation_id, user_id, role)
+  VALUES
+    (v_conv_id, p_user_a, 'owner'),
+    (v_conv_id, p_user_b, 'member');
+
+  RETURN v_conv_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.list_conversations_for_user(
+  p_user_id uuid
+)
+RETURNS TABLE (
+  id                      uuid,
+  type                    text,
+  created_at              timestamptz,
+  last_message_body       text,
+  last_message_at         timestamptz,
+  last_message_sender_id  uuid,
+  unread_count            bigint,
+  other_participant_ids   uuid[]
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT
+    c.id,
+    c.type,
+    c.created_at,
+    lm.body           AS last_message_body,
+    lm.created_at     AS last_message_at,
+    lm.sender_id      AS last_message_sender_id,
+    COALESCE(unread.cnt, 0)::bigint AS unread_count,
+    ARRAY(
+      SELECT op.user_id
+      FROM chat_participants op
+      WHERE op.conversation_id = c.id
+        AND op.user_id <> p_user_id
+        AND op.left_at IS NULL
+    ) AS other_participant_ids
+  FROM chat_conversations c
+  JOIN chat_participants me
+    ON me.conversation_id = c.id
+   AND me.user_id = p_user_id
+   AND me.left_at IS NULL
+  LEFT JOIN LATERAL (
+    SELECT body, created_at, sender_id
+    FROM chat_messages
+    WHERE conversation_id = c.id
+      AND deleted_at IS NULL
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  ) lm ON true
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*) AS cnt
+    FROM chat_messages m2
+    WHERE m2.conversation_id = c.id
+      AND m2.sender_id <> p_user_id
+      AND m2.deleted_at IS NULL
+      AND (
+        me.last_read_message_id IS NULL
+        OR m2.created_at > (
+          SELECT created_at FROM chat_messages
+          WHERE id = me.last_read_message_id
+        )
+      )
+  ) unread ON true
+  WHERE c.archived_at IS NULL
+  ORDER BY COALESCE(lm.created_at, c.created_at) DESC NULLS LAST;
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conv_latest
+  ON public.chat_messages(conversation_id, created_at DESC, id DESC)
+  WHERE deleted_at IS NULL;
+
+ALTER TABLE public.chat_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_participants   ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "chat_conversations_select" ON public.chat_conversations;
+CREATE POLICY "chat_conversations_select"
+  ON public.chat_conversations FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.chat_participants
+      WHERE conversation_id = id
+        AND user_id = auth.uid()
+        AND left_at IS NULL
+    )
+  );
+
+DROP POLICY IF EXISTS "chat_participants_select" ON public.chat_participants;
+CREATE POLICY "chat_participants_select"
+  ON public.chat_participants FOR SELECT
+  USING (
+    conversation_id IN (
+      SELECT conversation_id FROM public.chat_participants
+      WHERE user_id = auth.uid() AND left_at IS NULL
+    )
+  );
+
+-- MIGRATION: 20260601000002_zerar_curtidas_agora.sql
+DELETE FROM public.likes WHERE content_type = 'portfolio_image';
+
+UPDATE public.portfolio_images SET likes_count = 0;
+
+-- MIGRATION: 20260601000003_cascade_delete_portfolio.sql
+CREATE OR REPLACE FUNCTION public.limpar_dados_portfolio_image()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+
+  DELETE FROM public.likes
+  WHERE content_id = OLD.id AND content_type = 'portfolio_image';
+
+  DELETE FROM public.portfolio_messages
+  WHERE portfolio_image_id = OLD.id;
+
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_limpar_dados_portfolio_image ON public.portfolio_images;
+CREATE TRIGGER trg_limpar_dados_portfolio_image
+  BEFORE DELETE ON public.portfolio_images
+  FOR EACH ROW EXECUTE FUNCTION public.limpar_dados_portfolio_image();
+
+COMMENT ON TRIGGER trg_limpar_dados_portfolio_image ON public.portfolio_images
+  IS 'Remove likes e portfolio_messages antes de deletar a imagem';
+
+-- MIGRATION: 20260603000001_professional_barbershop_presence.sql
+CREATE TABLE IF NOT EXISTS public.professional_barbershop_presence (
+  barbershop_id   uuid NOT NULL REFERENCES public.barbershops(id) ON DELETE CASCADE,
+  professional_id uuid NOT NULL REFERENCES public.professionals(id) ON DELETE CASCADE,
+  is_available    boolean NOT NULL DEFAULT false,
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  updated_by      uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  PRIMARY KEY (barbershop_id, professional_id)
+);
+
+COMMENT ON TABLE public.professional_barbershop_presence IS
+  'Disponibilidade operacional do barbeiro parceiro na barbearia. Nao confundir com vinculo ativo.';
+
+CREATE INDEX IF NOT EXISTS idx_pbp_barbershop_available
+  ON public.professional_barbershop_presence (barbershop_id, is_available);
+
+DROP TRIGGER IF EXISTS trg_professional_barbershop_presence_updated_at
+  ON public.professional_barbershop_presence;
+CREATE TRIGGER trg_professional_barbershop_presence_updated_at
+  BEFORE UPDATE ON public.professional_barbershop_presence
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE public.professional_barbershop_presence ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "pbp_select_public" ON public.professional_barbershop_presence;
+CREATE POLICY "pbp_select_public"
+  ON public.professional_barbershop_presence
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "pbp_insert_linked_professional" ON public.professional_barbershop_presence;
+CREATE POLICY "pbp_insert_linked_professional"
+  ON public.professional_barbershop_presence
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = professional_id
+    AND updated_by = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.professional_shop_links psl
+      WHERE psl.barbershop_id = professional_barbershop_presence.barbershop_id
+        AND psl.professional_id = auth.uid()
+        AND psl.is_active = true
+    )
+  );
+
+DROP POLICY IF EXISTS "pbp_update_linked_professional" ON public.professional_barbershop_presence;
+CREATE POLICY "pbp_update_linked_professional"
+  ON public.professional_barbershop_presence
+  FOR UPDATE
+  USING (
+    auth.uid() = professional_id
+    AND EXISTS (
+      SELECT 1
+      FROM public.professional_shop_links psl
+      WHERE psl.barbershop_id = professional_barbershop_presence.barbershop_id
+        AND psl.professional_id = auth.uid()
+        AND psl.is_active = true
+    )
+  )
+  WITH CHECK (
+    auth.uid() = professional_id
+    AND updated_by = auth.uid()
+  );
+
+-- MIGRATION: 20260604000001_professional_barbershop_presence_realtime.sql
+ALTER TABLE public.professional_barbershop_presence REPLICA IDENTITY FULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'professional_barbershop_presence'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.professional_barbershop_presence;
+  END IF;
+END $$;
+
+-- MIGRATION: 20260604000002_chat_realtime_private_channels.sql
+DROP POLICY IF EXISTS "chat_private_channel_select_own"
+  ON realtime.messages;
+
+CREATE POLICY "chat_private_channel_select_own"
+  ON realtime.messages
+  FOR SELECT
+  TO authenticated
+  USING (
+    realtime.topic() = 'chat.' || auth.uid()::text
+  );
+
+COMMENT ON POLICY "chat_private_channel_select_own"
+  ON realtime.messages
+  IS 'Permite assinatura privada do canal chat.{userId} apenas ao proprio usuario autenticado.';
+
+-- MIGRATION: 20260605000001_user_keys.sql
+CREATE TABLE IF NOT EXISTS public.user_keys (
+  user_id    uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  public_key text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.user_keys ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "user_keys_select_authenticated" ON public.user_keys;
+CREATE POLICY "user_keys_select_authenticated"
+  ON public.user_keys
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "user_keys_insert_own" ON public.user_keys;
+CREATE POLICY "user_keys_insert_own"
+  ON public.user_keys
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_keys_update_own" ON public.user_keys;
+CREATE POLICY "user_keys_update_own"
+  ON public.user_keys
+  FOR UPDATE
+  TO authenticated
+  USING (user_id = auth.uid());
+
+COMMENT ON TABLE public.user_keys IS
+  'Chaves públicas ECDH P-256 de longo prazo dos usuários para E2E do chat. Chave privada permanece no browser.';
+
+-- MIGRATION: 20260605000002_financial_payment_method_fees.sql
+CREATE TABLE IF NOT EXISTS public.financial_payment_method_fees (
+  id             uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  barbershop_id  uuid NOT NULL REFERENCES public.barbershops(id) ON DELETE CASCADE,
+  payment_method text NOT NULL,
+  fee_percent    numeric(5,2) NOT NULL DEFAULT 0,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chk_fpmf_method CHECK (payment_method IN ('debit', 'credit')),
+  CONSTRAINT chk_fpmf_fee_percent CHECK (fee_percent >= 0 AND fee_percent <= 30),
+  CONSTRAINT uq_fpmf_shop_method UNIQUE (barbershop_id, payment_method)
+);
+
+COMMENT ON TABLE public.financial_payment_method_fees IS
+  'Taxas percentuais de debito/credito usadas pela BFF para calcular resumo financeiro por metodo. Nao altera transacoes.';
+
+CREATE INDEX IF NOT EXISTS idx_fpmf_barbershop
+  ON public.financial_payment_method_fees (barbershop_id);
+
+DROP TRIGGER IF EXISTS trg_financial_payment_method_fees_updated_at
+  ON public.financial_payment_method_fees;
+CREATE TRIGGER trg_financial_payment_method_fees_updated_at
+  BEFORE UPDATE ON public.financial_payment_method_fees
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE public.financial_payment_method_fees ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "fpmf_select_shop_members" ON public.financial_payment_method_fees;
+CREATE POLICY "fpmf_select_shop_members"
+  ON public.financial_payment_method_fees
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = financial_payment_method_fees.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM public.professional_shop_links psl
+      WHERE psl.barbershop_id = financial_payment_method_fees.barbershop_id
+        AND psl.professional_id = auth.uid()
+        AND psl.is_active = true
+    )
+  );
+
+DROP POLICY IF EXISTS "fpmf_insert_owner" ON public.financial_payment_method_fees;
+CREATE POLICY "fpmf_insert_owner"
+  ON public.financial_payment_method_fees
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = financial_payment_method_fees.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "fpmf_update_owner" ON public.financial_payment_method_fees;
+CREATE POLICY "fpmf_update_owner"
+  ON public.financial_payment_method_fees
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = financial_payment_method_fees.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = financial_payment_method_fees.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+-- MIGRATION: 20260605000003_professional_payouts.sql
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+CREATE TABLE IF NOT EXISTS public.professional_payouts (
+  id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  barbershop_id   uuid NOT NULL REFERENCES public.barbershops(id) ON DELETE RESTRICT,
+  professional_id uuid NOT NULL REFERENCES public.professionals(id) ON DELETE RESTRICT,
+  amount          numeric(12,2) NOT NULL CHECK (amount > 0),
+  period_start    timestamptz NOT NULL,
+  period_end      timestamptz NOT NULL,
+  status          text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'failed', 'cancelled')),
+  paid_at         timestamptz,
+  created_by      uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT professional_payouts_period_check CHECK (period_start <= period_end),
+  CONSTRAINT professional_payouts_paid_at_check CHECK (
+    (status = 'confirmed' AND paid_at IS NOT NULL)
+    OR (status <> 'confirmed' AND paid_at IS NULL)
+  )
+);
+
+CREATE TABLE IF NOT EXISTS public.professional_payout_items (
+  id             uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  payout_id      uuid NOT NULL REFERENCES public.professional_payouts(id) ON DELETE CASCADE,
+  transaction_id uuid NOT NULL REFERENCES public.transactions(id) ON DELETE RESTRICT,
+  amount         numeric(12,2) NOT NULL CHECK (amount > 0),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT professional_payout_items_transaction_unique UNIQUE (transaction_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_professional_payouts_shop_prof_status_paid
+  ON public.professional_payouts (barbershop_id, professional_id, status, paid_at);
+
+CREATE INDEX IF NOT EXISTS idx_professional_payout_items_payout
+  ON public.professional_payout_items (payout_id);
+
+CREATE INDEX IF NOT EXISTS idx_professional_payout_items_transaction
+  ON public.professional_payout_items (transaction_id);
+
+DROP TRIGGER IF EXISTS trg_professional_payouts_updated_at
+  ON public.professional_payouts;
+CREATE TRIGGER trg_professional_payouts_updated_at
+  BEFORE UPDATE ON public.professional_payouts
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE public.professional_payouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.professional_payout_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "professional_payouts_select_shop_owner_or_self"
+  ON public.professional_payouts;
+CREATE POLICY "professional_payouts_select_shop_owner_or_self"
+  ON public.professional_payouts
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = professional_payouts.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+    OR professional_payouts.professional_id = auth.uid()
+  );
+
+DROP POLICY IF EXISTS "professional_payouts_insert_owner"
+  ON public.professional_payouts;
+CREATE POLICY "professional_payouts_insert_owner"
+  ON public.professional_payouts
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = professional_payouts.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "professional_payouts_update_owner"
+  ON public.professional_payouts;
+CREATE POLICY "professional_payouts_update_owner"
+  ON public.professional_payouts
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = professional_payouts.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = professional_payouts.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "professional_payout_items_select_via_payout"
+  ON public.professional_payout_items;
+CREATE POLICY "professional_payout_items_select_via_payout"
+  ON public.professional_payout_items
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.professional_payouts p
+      WHERE p.id = professional_payout_items.payout_id
+        AND (
+          EXISTS (
+            SELECT 1
+            FROM public.barbershops b
+            WHERE b.id = p.barbershop_id
+              AND b.owner_id = auth.uid()
+          )
+          OR p.professional_id = auth.uid()
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "professional_payout_items_insert_owner"
+  ON public.professional_payout_items;
+CREATE POLICY "professional_payout_items_insert_owner"
+  ON public.professional_payout_items
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.professional_payouts p
+      JOIN public.barbershops b ON b.id = p.barbershop_id
+      WHERE p.id = professional_payout_items.payout_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+CREATE OR REPLACE FUNCTION public.confirmar_professional_payout_atomic(
+  p_barbershop_id uuid,
+  p_professional_id uuid,
+  p_amount numeric,
+  p_period_start timestamptz,
+  p_period_end timestamptz,
+  p_created_by uuid,
+  p_transaction_ids uuid[],
+  p_item_amounts numeric[]
+)
+RETURNS TABLE (
+  id uuid,
+  barbershop_id uuid,
+  professional_id uuid,
+  amount numeric,
+  period_start timestamptz,
+  period_end timestamptz,
+  status text,
+  paid_at timestamptz,
+  created_by uuid,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_payout_id uuid;
+  v_paid_at timestamptz := now();
+  v_transaction_count integer;
+  v_distinct_transaction_count integer;
+  v_item_total numeric;
+BEGIN
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'p_amount must be positive' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_period_start IS NULL OR p_period_end IS NULL OR p_period_start > p_period_end THEN
+    RAISE EXCEPTION 'invalid payout period' USING ERRCODE = '22023';
+  END IF;
+
+  IF coalesce(array_length(p_transaction_ids, 1), 0) = 0 THEN
+    RAISE EXCEPTION 'p_transaction_ids must not be empty' USING ERRCODE = '22023';
+  END IF;
+
+  IF array_length(p_transaction_ids, 1) <> array_length(p_item_amounts, 1) THEN
+    RAISE EXCEPTION 'transaction and amount arrays must have same length' USING ERRCODE = '22023';
+  END IF;
+
+  IF auth.role() <> 'service_role' THEN
+    IF auth.uid() IS NULL OR auth.uid() <> p_created_by THEN
+      RAISE EXCEPTION 'payout creator does not match authenticated user' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.barbershops b
+    WHERE b.id = p_barbershop_id
+      AND b.owner_id = p_created_by
+  ) THEN
+    RAISE EXCEPTION 'payout creator is not barbershop owner' USING ERRCODE = '42501';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.barbershops b
+    WHERE b.id = p_barbershop_id
+      AND (
+        b.owner_id = p_professional_id
+        OR EXISTS (
+          SELECT 1
+          FROM public.professional_shop_links psl
+          WHERE psl.barbershop_id = p_barbershop_id
+            AND psl.professional_id = p_professional_id
+            AND psl.is_active = true
+        )
+      )
+  ) THEN
+    RAISE EXCEPTION 'professional is not linked to barbershop' USING ERRCODE = '23503';
+  END IF;
+
+  SELECT
+    count(*),
+    count(DISTINCT tx.transaction_id),
+    coalesce(sum(amounts.item_amount), 0)
+  INTO v_transaction_count, v_distinct_transaction_count, v_item_total
+  FROM unnest(p_transaction_ids) WITH ORDINALITY AS tx(transaction_id, ord)
+  JOIN unnest(p_item_amounts) WITH ORDINALITY AS amounts(item_amount, ord)
+    ON amounts.ord = tx.ord;
+
+  IF v_transaction_count <> v_distinct_transaction_count THEN
+    RAISE EXCEPTION 'duplicate transaction in payout payload' USING ERRCODE = '23505';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM unnest(p_item_amounts) AS amounts(item_amount)
+    WHERE amounts.item_amount <= 0
+  ) THEN
+    RAISE EXCEPTION 'item amounts must be positive' USING ERRCODE = '22023';
+  END IF;
+
+  IF round(v_item_total, 2) <> round(p_amount, 2) THEN
+    RAISE EXCEPTION 'payout amount does not match item total' USING ERRCODE = '22023';
+  END IF;
+
+  IF (
+    SELECT count(*)
+    FROM public.transactions t
+    WHERE t.id = ANY(p_transaction_ids)
+      AND t.barbershop_id = p_barbershop_id
+      AND t.professional_id = p_professional_id
+      AND t.type = 'revenue'
+      AND t.status = 'paid'
+      AND t.paid_at >= p_period_start
+      AND t.paid_at <= p_period_end
+  ) <> v_transaction_count THEN
+    RAISE EXCEPTION 'payout contains ineligible or missing transactions' USING ERRCODE = '23503';
+  END IF;
+
+  INSERT INTO public.professional_payouts (
+    barbershop_id,
+    professional_id,
+    amount,
+    period_start,
+    period_end,
+    status,
+    paid_at,
+    created_by
+  )
+  VALUES (
+    p_barbershop_id,
+    p_professional_id,
+    p_amount,
+    p_period_start,
+    p_period_end,
+    'confirmed',
+    v_paid_at,
+    p_created_by
+  )
+  RETURNING professional_payouts.id INTO v_payout_id;
+
+  INSERT INTO public.professional_payout_items (
+    payout_id,
+    transaction_id,
+    amount
+  )
+  SELECT
+    v_payout_id,
+    tx.transaction_id,
+    amounts.item_amount
+  FROM unnest(p_transaction_ids) WITH ORDINALITY AS tx(transaction_id, ord)
+  JOIN unnest(p_item_amounts) WITH ORDINALITY AS amounts(item_amount, ord)
+    ON amounts.ord = tx.ord;
+
+  RETURN QUERY
+  SELECT
+    p.id,
+    p.barbershop_id,
+    p.professional_id,
+    p.amount,
+    p.period_start,
+    p.period_end,
+    p.status,
+    p.paid_at,
+    p.created_by,
+    p.created_at,
+    p.updated_at
+  FROM public.professional_payouts p
+  WHERE p.id = v_payout_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.confirmar_professional_payout_atomic(
+  uuid,
+  uuid,
+  numeric,
+  timestamptz,
+  timestamptz,
+  uuid,
+  uuid[],
+  numeric[]
+) TO authenticated, service_role;
+
+-- MIGRATION: 20260605000004_professional_weekly_settlements.sql
+CREATE TABLE IF NOT EXISTS public.professional_weekly_settlements (
+  id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  barbershop_id   uuid NOT NULL REFERENCES public.barbershops(id) ON DELETE RESTRICT,
+  professional_id uuid NOT NULL REFERENCES public.professionals(id) ON DELETE RESTRICT,
+  period_start    timestamptz NOT NULL,
+  period_end      timestamptz NOT NULL,
+  gross_amount    numeric(12,2) NOT NULL DEFAULT 0 CHECK (gross_amount >= 0),
+  shop_amount     numeric(12,2) NOT NULL DEFAULT 0 CHECK (shop_amount >= 0),
+  barber_amount   numeric(12,2) NOT NULL DEFAULT 0 CHECK (barber_amount >= 0),
+  fees_amount     numeric(12,2) NOT NULL DEFAULT 0 CHECK (fees_amount >= 0),
+  net_amount      numeric(12,2) NOT NULL DEFAULT 0 CHECK (net_amount >= 0),
+  status          text NOT NULL DEFAULT 'paid' CHECK (status IN ('paid')),
+  confirmed_at    timestamptz NOT NULL,
+  confirmed_by    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT professional_weekly_settlements_period_check CHECK (period_start <= period_end),
+  CONSTRAINT professional_weekly_settlements_confirmed_by_check CHECK (confirmed_by = professional_id),
+  CONSTRAINT professional_weekly_settlements_unique_week UNIQUE (
+    barbershop_id,
+    professional_id,
+    period_start,
+    period_end
+  )
+);
+
+CREATE INDEX IF NOT EXISTS idx_prof_weekly_settlements_shop_prof_period
+  ON public.professional_weekly_settlements (barbershop_id, professional_id, period_start DESC);
+
+CREATE INDEX IF NOT EXISTS idx_prof_weekly_settlements_status_confirmed
+  ON public.professional_weekly_settlements (status, confirmed_at DESC);
+
+DROP TRIGGER IF EXISTS trg_professional_weekly_settlements_updated_at
+  ON public.professional_weekly_settlements;
+CREATE TRIGGER trg_professional_weekly_settlements_updated_at
+  BEFORE UPDATE ON public.professional_weekly_settlements
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+ALTER TABLE public.professional_weekly_settlements ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "professional_weekly_settlements_select_owner_or_self"
+  ON public.professional_weekly_settlements;
+CREATE POLICY "professional_weekly_settlements_select_owner_or_self"
+  ON public.professional_weekly_settlements
+  FOR SELECT
+  USING (
+    professional_id = auth.uid()
+    OR EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = professional_weekly_settlements.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "professional_weekly_settlements_insert_self"
+  ON public.professional_weekly_settlements;
+CREATE POLICY "professional_weekly_settlements_insert_self"
+  ON public.professional_weekly_settlements
+  FOR INSERT
+  WITH CHECK (
+    professional_id = auth.uid()
+    AND confirmed_by = auth.uid()
+    AND EXISTS (
+      SELECT 1
+      FROM public.professional_shop_links psl
+      WHERE psl.barbershop_id = professional_weekly_settlements.barbershop_id
+        AND psl.professional_id = auth.uid()
+        AND psl.is_active = true
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = professional_weekly_settlements.barbershop_id
+        AND b.owner_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "professional_weekly_settlements_update_self"
+  ON public.professional_weekly_settlements;
+CREATE POLICY "professional_weekly_settlements_update_self"
+  ON public.professional_weekly_settlements
+  FOR UPDATE
+  USING (
+    professional_id = auth.uid()
+    AND confirmed_by = auth.uid()
+  )
+  WITH CHECK (
+    professional_id = auth.uid()
+    AND confirmed_by = auth.uid()
+  );
+
+-- MIGRATION: 20260606000001_chat_e2e_storage.sql
+DROP FUNCTION IF EXISTS public.get_chat_messages_reverse(uuid, integer, timestamptz, uuid);
+
+CREATE OR REPLACE FUNCTION public.get_chat_messages_reverse(
+  p_conversation_id uuid,
+  p_limit integer DEFAULT 30,
+  p_cursor_created_at timestamptz DEFAULT NULL,
+  p_cursor_id uuid DEFAULT NULL
+)
+RETURNS TABLE (
+  id uuid,
+  conversation_id uuid,
+  sender_id uuid,
+  client_message_id text,
+  body text,
+  encrypted_payload jsonb,
+  e2e_key_version integer,
+  created_at timestamptz,
+  deleted_at timestamptz,
+  retention_until timestamptz,
+  attachments jsonb
+)
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT m.id,
+         m.conversation_id,
+         m.sender_id,
+         m.client_message_id,
+         CASE WHEN m.deleted_at IS NULL THEN m.body ELSE '' END AS body,
+         CASE WHEN m.deleted_at IS NULL THEN m.encrypted_payload ELSE NULL END AS encrypted_payload,
+         m.e2e_key_version,
+         m.created_at,
+         m.deleted_at,
+         m.retention_until,
+         COALESCE(
+           jsonb_agg(
+             jsonb_build_object('media_id', a.media_id, 'variant', a.variant, 'kind', a.kind)
+             ORDER BY a.created_at
+           ) FILTER (WHERE a.id IS NOT NULL),
+           '[]'::jsonb
+         ) AS attachments
+    FROM public.chat_messages m
+    LEFT JOIN public.chat_message_attachments a ON a.message_id = m.id
+   WHERE m.conversation_id = p_conversation_id
+     AND (
+       p_cursor_created_at IS NULL
+       OR (m.created_at, m.id) < (p_cursor_created_at, p_cursor_id)
+     )
+   GROUP BY m.id
+   ORDER BY m.created_at DESC, m.id DESC
+   LIMIT LEAST(GREATEST(p_limit, 1), 100);
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_encrypted
+  ON public.chat_messages(conversation_id, created_at DESC)
+  WHERE encrypted_payload IS NOT NULL;
+
+COMMENT ON FUNCTION public.get_chat_messages_reverse IS
+  'Retorna mensagens de uma conversa em ordem DESC com cursor. Inclui encrypted_payload para E2E client-side.';
+
+-- MIGRATION: 20260606000002_chat_message_expiry.sql
+CREATE OR REPLACE FUNCTION public.purge_expired_chat_messages(
+  p_older_than_days integer DEFAULT 7
+)
+RETURNS integer
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_deleted integer;
+BEGIN
+  IF p_older_than_days < 1 OR p_older_than_days > 365 THEN
+    RAISE EXCEPTION 'p_older_than_days deve estar entre 1 e 365 (recebido: %)', p_older_than_days;
+  END IF;
+
+  DELETE FROM public.chat_messages
+  WHERE created_at <= now() - make_interval(days => p_older_than_days);
+
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+  RETURN v_deleted;
+END;
+$$;
+
+COMMENT ON FUNCTION public.purge_expired_chat_messages IS
+  'Remove permanentemente mensagens de chat com mais de N dias (padrão: 7). '
+  'Chamado pelo BFF scheduler task chat.purge-expired-messages às 03:00 UTC. '
+  'Cascade apaga attachments, statuses e receipts. Conversas/participantes preservados.';
+
+-- MIGRATION: 20260606000003_chat_body_nullable.sql
+ALTER TABLE public.chat_messages ALTER COLUMN body DROP NOT NULL;
+ALTER TABLE public.chat_messages ALTER COLUMN body DROP DEFAULT;
+
+COMMENT ON COLUMN public.chat_messages.body IS
+  'NULL = mensagem cifrada (usar encrypted_payload). '
+  '''''' = mensagem soft-deletada. '
+  'texto = mensagem legada (compatibilidade retroativa, leitura apenas).';
+
+-- MIGRATION: 20260607000001_stories_media_id.sql
+ALTER TABLE public.stories
+  ADD COLUMN IF NOT EXISTS media_id UUID REFERENCES public.media_files(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_stories_media_id
+  ON public.stories(media_id)
+  WHERE media_id IS NOT NULL;
+
+COMMENT ON COLUMN public.stories.media_id IS
+  'FK para media_files. Preenchido em stories novos (R2). NULL mantém compatibilidade com storage_path legado.';
+
+-- MIGRATION: 20260608000001_professional_financial_cycle_summary.sql
+CREATE OR REPLACE FUNCTION public.get_professional_financial_history_summary(
+  p_barbershop_id uuid,
+  p_professional_id uuid DEFAULT NULL
+)
+RETURNS TABLE (
+  professional_id uuid,
+  faturamento_historico numeric,
+  total_recebido numeric,
+  payouts_count integer,
+  last_payout_at timestamptz
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH profissionais_escopo AS (
+    SELECT b.owner_id AS professional_id
+    FROM public.barbershops b
+    WHERE b.id = p_barbershop_id
+      AND (
+        auth.role() = 'service_role'
+        OR b.owner_id = auth.uid()
+        OR EXISTS (
+          SELECT 1
+          FROM public.professional_shop_links access_link
+          WHERE access_link.barbershop_id = p_barbershop_id
+            AND access_link.professional_id = auth.uid()
+            AND access_link.is_active = true
+        )
+      )
+
+    UNION
+
+    SELECT psl.professional_id
+    FROM public.professional_shop_links psl
+    WHERE psl.barbershop_id = p_barbershop_id
+      AND psl.is_active = true
+      AND EXISTS (
+        SELECT 1
+        FROM public.barbershops b
+        WHERE b.id = p_barbershop_id
+          AND (
+            auth.role() = 'service_role'
+            OR b.owner_id = auth.uid()
+            OR EXISTS (
+              SELECT 1
+              FROM public.professional_shop_links access_link
+              WHERE access_link.barbershop_id = p_barbershop_id
+                AND access_link.professional_id = auth.uid()
+                AND access_link.is_active = true
+            )
+          )
+      )
+  ),
+  transacoes_historicas AS (
+    SELECT
+      t.professional_id,
+      COALESCE(SUM(COALESCE(t.gross_amount, t.amount, 0)), 0) AS faturamento_historico
+    FROM public.transactions t
+    WHERE t.barbershop_id = p_barbershop_id
+      AND (p_professional_id IS NULL OR t.professional_id = p_professional_id)
+      AND t.type = 'revenue'
+      AND t.status = 'paid'
+    GROUP BY t.professional_id
+  ),
+  payouts_historicos AS (
+    SELECT
+      p.professional_id,
+      COALESCE(SUM(p.amount) FILTER (WHERE p.status = 'confirmed'), 0) AS total_recebido,
+      COUNT(*) FILTER (WHERE p.status = 'confirmed')::integer AS payouts_count,
+      MAX(p.paid_at) FILTER (WHERE p.status = 'confirmed') AS last_payout_at
+    FROM public.professional_payouts p
+    WHERE p.barbershop_id = p_barbershop_id
+      AND (p_professional_id IS NULL OR p.professional_id = p_professional_id)
+    GROUP BY p.professional_id
+  )
+  SELECT
+    pe.professional_id,
+    COALESCE(th.faturamento_historico, 0) AS faturamento_historico,
+    COALESCE(ph.total_recebido, 0) AS total_recebido,
+    COALESCE(ph.payouts_count, 0) AS payouts_count,
+    ph.last_payout_at
+  FROM profissionais_escopo pe
+  LEFT JOIN transacoes_historicas th ON th.professional_id = pe.professional_id
+  LEFT JOIN payouts_historicos ph ON ph.professional_id = pe.professional_id
+  WHERE pe.professional_id IS NOT NULL
+    AND (p_professional_id IS NULL OR pe.professional_id = p_professional_id)
+  ORDER BY pe.professional_id;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_professional_unpaid_transactions(
+  p_barbershop_id uuid,
+  p_professional_id uuid DEFAULT NULL,
+  p_limit integer DEFAULT 5000
+)
+RETURNS TABLE (
+  id uuid,
+  barbershop_id uuid,
+  professional_id uuid,
+  amount numeric,
+  gross_amount numeric,
+  payment_method text,
+  status text,
+  type text,
+  paid_at timestamptz,
+  created_at timestamptz
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    t.id,
+    t.barbershop_id,
+    t.professional_id,
+    t.amount,
+    t.gross_amount,
+    t.payment_method::text,
+    t.status::text,
+    t.type::text,
+    t.paid_at,
+    t.created_at
+  FROM public.transactions t
+  WHERE t.barbershop_id = p_barbershop_id
+    AND EXISTS (
+      SELECT 1
+      FROM public.barbershops b
+      WHERE b.id = p_barbershop_id
+        AND (
+          auth.role() = 'service_role'
+          OR b.owner_id = auth.uid()
+          OR EXISTS (
+            SELECT 1
+            FROM public.professional_shop_links access_link
+            WHERE access_link.barbershop_id = p_barbershop_id
+              AND access_link.professional_id = auth.uid()
+              AND access_link.is_active = true
+          )
+        )
+    )
+    AND (p_professional_id IS NULL OR t.professional_id = p_professional_id)
+    AND t.type = 'revenue'
+    AND t.status = 'paid'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.professional_payout_items ppi
+      WHERE ppi.transaction_id = t.id
+    )
+  ORDER BY t.paid_at ASC, t.created_at ASC
+  LIMIT LEAST(GREATEST(COALESCE(p_limit, 5000), 1), 5000);
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_professional_financial_history_summary(uuid, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_professional_unpaid_transactions(uuid, uuid, integer) TO authenticated, service_role;

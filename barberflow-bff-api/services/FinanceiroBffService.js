@@ -57,6 +57,8 @@ class FinanceiroBffService extends BaseService {
       despesasAnteriores,
       taxasMetodoPagamento,
       payoutItems,
+      transacoesPayoutAberto,
+      resumoHistoricoFinanceiro,
     ] = await Promise.all([
       this.#repo.listarTransacoes(barbershopId, periodo, viewerProfessionalId),
       this.#repo.listarTransacoes(barbershopId, periodoAnterior, viewerProfessionalId),
@@ -68,6 +70,8 @@ class FinanceiroBffService extends BaseService {
       despesasAnterioresPromise,
       this.#repo.listarTaxasMetodoPagamento(barbershopId),
       this.#repo.listarPayoutItemsRegistrados(barbershopId, periodo, viewerProfessionalId),
+      this.#repo.listarTransacoesPayoutAberto(barbershopId, viewerProfessionalId),
+      this.#repo.listarResumoHistoricoProfissionais(barbershopId, viewerProfessionalId),
     ]);
 
     const dashboard = this.#calculator.calcularDashboard({
@@ -84,6 +88,8 @@ class FinanceiroBffService extends BaseService {
       despesasAnteriores,
       taxasMetodoPagamento,
       payoutItems,
+      transacoesPayoutAberto,
+      resumoHistoricoFinanceiro,
     });
 
     if (!isOwner && viewerProfessionalId) {
@@ -157,13 +163,11 @@ class FinanceiroBffService extends BaseService {
       agreements,
       profissionais,
       taxasMetodoPagamento,
-      payoutItems,
     ] = await Promise.all([
-      this.#repo.listarTransacoes(barbershopId, periodo, professionalId),
+      this.#repo.listarTransacoesPayoutAberto(barbershopId, professionalId),
       this.#repo.listarAgreements(barbershopId, periodo.fim, professionalId),
       this.#repo.listarProfissionais(barbershopId, professionalId),
       this.#repo.listarTaxasMetodoPagamento(barbershopId),
-      this.#repo.listarPayoutItemsRegistrados(barbershopId, periodo, professionalId),
     ]);
 
     if (!profissionais.some(item => item.professionalId === professionalId)) {
@@ -177,7 +181,6 @@ class FinanceiroBffService extends BaseService {
       agreements: agreementsComDono,
       profissionais,
       taxasMetodoPagamento,
-      payoutItems,
     });
 
     const amount = Money.from(calculado.amount);
@@ -193,9 +196,14 @@ class FinanceiroBffService extends BaseService {
       barbershopId,
       professionalId,
       amount: amount.toNumber(),
-      periodo,
+      periodo: this.#periodoDoPayout(transacoes, calculado.items, periodo),
       items: calculado.items,
     });
+
+    const [transacoesPayoutAberto, resumoHistoricoAtualizado] = await Promise.all([
+      this.#repo.listarTransacoesPayoutAberto(barbershopId, professionalId),
+      this.#repo.listarResumoHistoricoProfissionais(barbershopId, professionalId),
+    ]);
 
     const dashboardAtualizado = this.#calculator.calcularDashboard({
       periodo,
@@ -205,16 +213,8 @@ class FinanceiroBffService extends BaseService {
       statusEquipe: {},
       isOwner: true,
       taxasMetodoPagamento,
-      payoutItems: [
-        ...payoutItems,
-        ...calculado.items.map(item => ({
-          transaction_id: item.transactionId,
-          amount: item.amount,
-          status: 'confirmed',
-          barbershop_id: barbershopId,
-          professional_id: professionalId,
-        })),
-      ],
+      transacoesPayoutAberto,
+      resumoHistoricoFinanceiro: resumoHistoricoAtualizado,
     });
 
     const updatedBalance = dashboardAtualizado.barbeiros.find(item => item.professionalId === professionalId) || null;
@@ -366,6 +366,25 @@ class FinanceiroBffService extends BaseService {
     const normalizado = String(valor ?? '').trim().replace(',', '.');
     if (normalizado === '') return Number.NaN;
     return Number(normalizado);
+  }
+
+  #periodoDoPayout(transacoes, items, fallbackPeriodo) {
+    const ids = new Set((items || []).map(item => item.transactionId).filter(Boolean));
+    const datas = (transacoes || [])
+      .filter(tx => ids.has(tx.id))
+      .map(tx => new Date(tx.paid_at || tx.created_at))
+      .filter(date => !Number.isNaN(date.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (datas.length === 0) return fallbackPeriodo;
+
+    return {
+      ...fallbackPeriodo,
+      inicio: datas[0],
+      fim: datas[datas.length - 1],
+      de: datas[0].toISOString().slice(0, 10),
+      ate: datas[datas.length - 1].toISOString().slice(0, 10),
+    };
   }
 }
 

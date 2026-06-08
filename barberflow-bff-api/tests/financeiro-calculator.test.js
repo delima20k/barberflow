@@ -67,6 +67,44 @@ test('FinanceiroCalculator desconta do saldo pendente cortes ja vinculados a pay
   assert.equal(barbeiro.cutsPendingPayout, 1);
 });
 
+test('FinanceiroCalculator separa ciclo aberto de recebido e faturamento historico', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-31' },
+    transacoes: [
+      { id: 'tx-ja-paga', professional_id: 'prof-joao', gross_amount: 500, amount: 500, payment_method: 'pix', paid_at: '2026-05-10T12:00:00.000Z' },
+      { id: 'tx-novo-ciclo', professional_id: 'prof-joao', gross_amount: 200, amount: 200, payment_method: 'pix', paid_at: '2026-05-25T12:00:00.000Z' },
+    ],
+    transacoesPayoutAberto: [
+      { id: 'tx-novo-ciclo', professional_id: 'prof-joao', gross_amount: 200, amount: 200, payment_method: 'pix', paid_at: '2026-05-25T12:00:00.000Z' },
+    ],
+    resumoHistoricoFinanceiro: [{
+      professional_id: 'prof-joao',
+      faturamento_historico: 700,
+      total_recebido: 200,
+      payouts_count: 1,
+      last_payout_at: '2026-05-24T12:00:00.000Z',
+    }],
+    agreements: [{ professional_id: 'prof-joao', type: 'percentage', value: 40, is_active: true }],
+    profissionais: [{ professionalId: 'prof-joao', nome: 'Joao', ativo: true }],
+    isOwner: false,
+    viewerProfessionalId: 'prof-joao',
+  });
+
+  const barbeiro = dashboard.barbeiros[0];
+  assert.equal(barbeiro.valorBarbeiro, 280);
+  assert.equal(barbeiro.pendingPayoutAmount, 80);
+  assert.equal(barbeiro.saldoPendenteAtual, 80);
+  assert.equal(barbeiro.cutsPendingPayout, 1);
+  assert.equal(barbeiro.totalRecebido, 200);
+  assert.equal(barbeiro.faturamentoHistorico, 700);
+  assert.equal(barbeiro.payoutsCount, 1);
+  assert.equal(barbeiro.lastPayoutAt, '2026-05-24T12:00:00.000Z');
+  assert.equal(dashboard.cards.saldoPendenteAtual.total, 80);
+  assert.equal(dashboard.cards.totalRecebido.total, 200);
+  assert.equal(dashboard.cards.faturamentoHistorico.total, 700);
+});
+
 test('FinanceiroCalculator preserva avatarPath do perfil no card do barbeiro', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({

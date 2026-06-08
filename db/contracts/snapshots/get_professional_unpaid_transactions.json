@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "rpc": "get_professional_unpaid_transactions",
+  "description": "Lista transacoes pagas ainda nao vinculadas a professional_payout_items.",
+  "signature": {
+    "name": "get_professional_unpaid_transactions",
+    "params": [
+      { "name": "p_barbershop_id", "type": "UUID" },
+      { "name": "p_professional_id", "type": "UUID", "default": null },
+      { "name": "p_limit", "type": "INTEGER", "default": 5000 }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "id", "type": "UUID" },
+        { "name": "barbershop_id", "type": "UUID" },
+        { "name": "professional_id", "type": "UUID" },
+        { "name": "amount", "type": "NUMERIC" },
+        { "name": "gross_amount", "type": "NUMERIC" },
+        { "name": "payment_method", "type": "TEXT" },
+        { "name": "status", "type": "TEXT" },
+        { "name": "type", "type": "TEXT" },
+        { "name": "paid_at", "type": "TIMESTAMPTZ" },
+        { "name": "created_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    "language": "sql",
+    "securityDefiner": true
+  },
+  "grants": ["authenticated", "service_role"],
+  "migration": "20260608000001_professional_financial_cycle_summary.sql"
+}

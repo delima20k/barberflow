@@ -201,7 +201,14 @@ class FinancasPage {
     const lucroPrincipalCard  = isOwner ? cards?.lucroBarbearia : (cards?.meuLucro ?? cards?.lucroBarbearia);
     const lucroPrincipalIcon  = isOwner ? '100%' : 'ML';
 
+    const cicloItems = isOwner ? [] : [
+      { label: 'Valor pendente atual', valor: this.#moeda(cards?.saldoPendenteAtual?.total), meta: 'Ciclo aberto', icon: 'VP' },
+      { label: 'Total recebido', valor: this.#moeda(cards?.totalRecebido?.total), meta: 'Confirmado', icon: 'TR' },
+      { label: 'Faturamento historico', valor: this.#moeda(cards?.faturamentoHistorico?.total), meta: 'Servicos pagos', icon: 'FH' },
+    ];
+
     const items = [
+      ...cicloItems,
       { label: 'Receita Bruta', valor: this.#moeda(cards?.receitaBruta?.total), meta: this.#variacao(cards?.receitaBruta?.variacaoPct), icon: 'R$' },
       { label: 'Receita Liquida', valor: this.#moeda(cards?.receitaLiquida?.total), meta: this.#variacao(cards?.receitaLiquida?.variacaoPct), icon: 'LQ' },
       { label: lucroPrincipalLabel, valor: this.#moeda(lucroPrincipalCard?.total), meta: this.#variacao(lucroPrincipalCard?.variacaoPct), icon: lucroPrincipalIcon },
@@ -471,12 +478,14 @@ class FinancasPage {
             <div><dt>Bruto</dt><dd>${this.#moeda(barbeiro.receitaBruta)}</dd></div>
             <div><dt>Taxas</dt><dd>${this.#moeda(barbeiro.taxas)}</dd></div>
             <div><dt>Liquido</dt><dd>${this.#moeda(barbeiro.receitaLiquida)}</dd></div>
+            <div><dt>Total recebido</dt><dd>${this.#moeda(barbeiro.totalRecebido)}</dd></div>
+            <div><dt>Fatur. historico</dt><dd>${this.#moeda(barbeiro.faturamentoHistorico)}</dd></div>
             <div><dt>Barbearia</dt><dd>${this.#numero(barbeiro.porcentagemBarbearia)}%</dd></div>
             <div><dt>Barbeiro</dt><dd>${this.#numero(barbeiro.porcentagemBarbeiro)}%</dd></div>
           </dl>
           <div class="fin-split-result">
             <div class="fin-payout-row">
-              <p><span>Valor total a pagar</span><strong>${this.#moeda(barbeiro.pendingPayoutAmount)}</strong></p>
+              <p><span>Valor pendente atual</span><strong>${this.#moeda(barbeiro.saldoPendenteAtual ?? barbeiro.pendingPayoutAmount)}</strong></p>
               ${podePagar ? `<button type="button" class="fin-payout-btn" data-prof-id="${FinancasPage.#escapar(barbeiro.professionalId)}">Pagar</button>` : ''}
             </div>
             <p><span>Barbeiro recebe</span><strong>${this.#moeda(barbeiro.valorBarbeiro)}</strong></p>
@@ -512,9 +521,9 @@ class FinancasPage {
         </div>
         <div class="fin-payout-modal__body">
           <p><span>Barbeiro</span><strong>${FinancasPage.#escapar(barbeiro.nome)}</strong></p>
-          <p><span>Valor</span><strong>${this.#moeda(barbeiro.pendingPayoutAmount)}</strong></p>
+          <p><span>Valor pendente atual</span><strong>${this.#moeda(barbeiro.saldoPendenteAtual ?? barbeiro.pendingPayoutAmount)}</strong></p>
           <p><span>Periodo</span><strong>${FinancasPage.#escapar(this.#periodoLabel())}</strong></p>
-          <p><span>Cortes finalizados/recebidos no periodo</span><strong>${this.#numero(barbeiro.cutsPendingPayout)}</strong></p>
+          <p><span>Cortes pendentes no ciclo aberto</span><strong>${this.#numero(barbeiro.cutsPendingPayout)}</strong></p>
         </div>
         <p class="fin-payout-modal__erro" hidden></p>
         <div class="fin-payout-modal__actions">
@@ -554,7 +563,7 @@ class FinancasPage {
         periodo: this.#periodoAtual,
         de: this.#customDe,
         ate: this.#customAte,
-        displayedAmount: barbeiro.pendingPayoutAmount,
+        displayedAmount: barbeiro.saldoPendenteAtual ?? barbeiro.pendingPayoutAmount,
       });
       if (error) throw error;
       overlay.remove();

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "rpc": "get_professional_financial_history_summary",
+  "description": "Resume faturamento bruto historico e payouts confirmados por profissional.",
+  "signature": {
+    "name": "get_professional_financial_history_summary",
+    "params": [
+      { "name": "p_barbershop_id", "type": "UUID" },
+      { "name": "p_professional_id", "type": "UUID", "default": null }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "professional_id", "type": "UUID" },
+        { "name": "faturamento_historico", "type": "NUMERIC" },
+        { "name": "total_recebido", "type": "NUMERIC" },
+        { "name": "payouts_count", "type": "INTEGER" },
+        { "name": "last_payout_at", "type": "TIMESTAMPTZ" }
+      ]
+    },
+    "language": "sql",
+    "securityDefiner": true
+  },
+  "grants": ["authenticated", "service_role"],
+  "migration": "20260608000001_professional_financial_cycle_summary.sql"
+}

@@ -103,6 +103,33 @@ class FinanceiroRepository extends BaseRepository {
     return data || [];
   }
 
+  async listarResumoHistoricoProfissionais(barbershopId, professionalId = null) {
+    this._uuid('barbershop_id', barbershopId);
+    if (professionalId) this._uuid('professional_id', professionalId);
+
+    const { data, error } = await this._db.rpc('get_professional_financial_history_summary', {
+      p_barbershop_id: barbershopId,
+      p_professional_id: professionalId,
+    });
+
+    if (error) this._throwDbError(error, 'listarResumoHistoricoProfissionais');
+    return data || [];
+  }
+
+  async listarTransacoesPayoutAberto(barbershopId, professionalId = null) {
+    this._uuid('barbershop_id', barbershopId);
+    if (professionalId) this._uuid('professional_id', professionalId);
+
+    const { data, error } = await this._db.rpc('get_professional_unpaid_transactions', {
+      p_barbershop_id: barbershopId,
+      p_professional_id: professionalId,
+      p_limit: 5000,
+    });
+
+    if (error) this._throwDbError(error, 'listarTransacoesPayoutAberto');
+    return data || [];
+  }
+
   async listarPayoutItemsRegistrados(barbershopId, periodo, professionalId = null) {
     let payoutQuery = this._db
       .from('professional_payouts')
