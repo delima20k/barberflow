@@ -466,17 +466,20 @@ class BarbeariaService extends BaseService {
     const stories = await this.#repo.listarStoriesAtivos(barbershopId);
     if (!stories.length) return stories;
 
-    if (process.env.STORIES_STORAGE_BACKEND !== 'r2') return stories;
-
     try {
       const r2 = R2Client.getInstance();
       return Promise.all(stories.map(async story => {
         const r2Path = story.media_files?.path ?? null;
         if (!story.media_id || !r2Path) return story;
-        const mediaUrl = await r2.presignedGet(r2Path, 60);
-        return { ...story, media_url: mediaUrl };
+        try {
+          const mediaUrl = await r2.presignedGet(r2Path, 3600);
+          return { ...story, media_url: mediaUrl };
+        } catch {
+          const fallback = story.media_files?.public_url || null;
+          return { ...story, media_url: fallback };
+        }
       }));
-    } catch (_) {
+    } catch {
       return stories;
     }
   }

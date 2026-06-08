@@ -1007,7 +1007,7 @@ class BarbeariaRepository extends BaseRepository {
     const agora = new Date().toISOString();
     const { data, error } = await this._db
       .from('stories')
-      .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files(path)')
+      .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url)')
       .eq('barbershop_id', barbershopId)
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })

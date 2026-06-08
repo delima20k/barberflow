@@ -2041,10 +2041,10 @@ export class MinhaBarbeariaRuntimeController {
     const story = this.#storiesData[slotIndex];
     if (!story || typeof PortfolioPrismViewer === 'undefined') return;
     const items = this.#storiesData.map(s => ({
-      fullUrl:   s.media_url ?? SupabaseService.getLogoUrl(s.storage_path),
+      fullUrl:   s.media_url ?? (s.media_id ? null : SupabaseService.getLogoUrl(s.storage_path)),
       thumbUrl:  s.thumbnail_path
         ? SupabaseService.getLogoUrl(s.thumbnail_path)
-        : (s.media_url ?? SupabaseService.getLogoUrl(s.storage_path)),
+        : (s.media_url ?? (s.media_id ? null : SupabaseService.getLogoUrl(s.storage_path))),
       title:     this.#shopData?.name ?? '',
       mediaType: s.media_type,
     }));
