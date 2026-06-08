@@ -88,9 +88,13 @@ function criarApp(db = null) {
   // Carrega configurações de storage do banco e injeta em process.env.
   // Execução não-bloqueante: falha silenciosa para não impedir o startup.
   if (process.env.APP_ENV !== 'test') {
-    new R2ConfigService(_db).patchProcessEnv().catch(err => {
-      console.warn('[startup] patchProcessEnv falhou (continua):', err?.message ?? err);
-    });
+    try {
+      new R2ConfigService(_db).patchProcessEnv().catch(err => {
+        console.warn('[startup] patchProcessEnv falhou (continua):', err?.message ?? err);
+      });
+    } catch (err) {
+      console.warn('[startup] R2ConfigService init falhou (continua):', err?.message ?? err);
+    }
   }
 
   const app = express();
