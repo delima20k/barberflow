@@ -179,6 +179,7 @@ class FakeDb {
     this.weeklySettlementUpsertCalls = [];
     this.failWeeklySettlementSelect = failWeeklySettlementSelect;
     this.failedPayouts = [];
+    this.rpcErrors = {};
     this.transactionRows = [
       {
         id: '44444444-4444-4444-8444-444444444444',
@@ -341,6 +342,9 @@ class FakeDb {
 
   async rpc(name, payload) {
     this.rpcCalls.push({ name, payload });
+    if (this.rpcErrors[name]) {
+      return { data: null, error: this.rpcErrors[name] };
+    }
     if (name === 'get_professional_unpaid_transactions') {
       const paidIds = new Set(this.payoutItemRows.map(item => item.transaction_id));
       const rows = this.transactionRows.filter(item =>
@@ -600,6 +604,45 @@ suite('Financeiro BFF HTTP', () => {
       assert.equal(novoCiclo.body.dados.barbeiros[0].saldoPendenteAtual, 40);
       assert.equal(novoCiclo.body.dados.barbeiros[0].totalRecebido, 192);
       assert.equal(novoCiclo.body.dados.barbeiros[0].faturamentoHistorico, 600);
+    } finally {
+      await new Promise((resolve, reject) => localServer.close(err => (err ? reject(err) : resolve())));
+    }
+  });
+
+  test('GET /dashboard e POST /pagamentos-barbeiro usam fallback quando RPCs financeiras ainda nao existem', async () => {
+    const db = new FakeDb();
+    db.rpcErrors = {
+      get_professional_unpaid_transactions: { code: 'PGRST202', message: 'Could not find the function' },
+      get_professional_financial_history_summary: { code: '42883', message: 'function does not exist' },
+      confirmar_professional_payout_atomic: { code: 'PGRST202', message: 'Could not find the function' },
+    };
+    const app = criarApp(db);
+    const localServer = await new Promise(resolve => {
+      const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+    });
+    const localPort = localServer.address().port;
+    try {
+      const dashboard = await request(localPort, 'GET', `/api/v1/financeiro/dashboard?barbershop_id=${SHOP_ID}&periodo=custom&de=2026-05-01&ate=2026-05-31`, {
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      assert.equal(dashboard.status, 200);
+      assert.equal(dashboard.body.dados.barbeiros[0].saldoPendenteAtual, 192);
+      assert.equal(dashboard.body.dados.barbeiros[0].faturamentoHistorico, 500);
+
+      const payout = await request(localPort, 'POST', '/api/v1/financeiro/pagamentos-barbeiro', {
+        headers: { Authorization: `Bearer ${token()}` },
+        body: {
+          barbershop_id: SHOP_ID,
+          professional_id: PROF_ID,
+          periodo: 'custom',
+          de: '2026-05-01',
+          ate: '2026-05-31',
+          displayed_amount: 192,
+        },
+      });
+      assert.equal(payout.status, 200);
+      assert.equal(payout.body.dados.updatedBalance.saldoPendenteAtual, 0);
+      assert.equal(payout.body.dados.updatedBalance.totalRecebido, 192);
     } finally {
       await new Promise((resolve, reject) => localServer.close(err => (err ? reject(err) : resolve())));
     }

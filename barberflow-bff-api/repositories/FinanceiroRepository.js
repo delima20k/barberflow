@@ -112,7 +112,13 @@ class FinanceiroRepository extends BaseRepository {
       p_professional_id: professionalId,
     });
 
-    if (error) this._throwDbError(error, 'listarResumoHistoricoProfissionais');
+    if (error) {
+      if (this.#isRpcFinanceiraAusente(error)) {
+        this._warn('listarResumoHistoricoProfissionais.rpc_ausente', error);
+        return this.#listarResumoHistoricoProfissionaisFallback(barbershopId, professionalId);
+      }
+      this._throwDbError(error, 'listarResumoHistoricoProfissionais');
+    }
     return data || [];
   }
 
@@ -126,8 +132,139 @@ class FinanceiroRepository extends BaseRepository {
       p_limit: 5000,
     });
 
-    if (error) this._throwDbError(error, 'listarTransacoesPayoutAberto');
+    if (error) {
+      if (this.#isRpcFinanceiraAusente(error)) {
+        this._warn('listarTransacoesPayoutAberto.rpc_ausente', error);
+        return this.#listarTransacoesPayoutAbertoFallback(barbershopId, professionalId);
+      }
+      this._throwDbError(error, 'listarTransacoesPayoutAberto');
+    }
     return data || [];
+  }
+
+  async #listarResumoHistoricoProfissionaisFallback(barbershopId, professionalId = null) {
+    const [transacoes, payouts] = await Promise.all([
+      this.#listarTransacoesPagasHistoricas(barbershopId, professionalId),
+      this.#listarPayoutsConfirmados(barbershopId, professionalId),
+    ]);
+
+    const resumoMap = new Map();
+    const obterResumo = id => {
+      if (!resumoMap.has(id)) {
+        resumoMap.set(id, {
+          professional_id: id,
+          faturamento_historico: 0,
+          total_recebido: 0,
+          payouts_count: 0,
+          last_payout_at: null,
+        });
+      }
+      return resumoMap.get(id);
+    };
+
+    for (const transacao of transacoes) {
+      if (!transacao.professional_id) continue;
+      const resumo = obterResumo(transacao.professional_id);
+      resumo.faturamento_historico += Number(transacao.gross_amount ?? transacao.amount ?? 0);
+    }
+
+    for (const payout of payouts) {
+      if (!payout.professional_id) continue;
+      const resumo = obterResumo(payout.professional_id);
+      resumo.total_recebido += Number(payout.amount || 0);
+      resumo.payouts_count += 1;
+
+      const pagoEm = payout.paid_at || payout.created_at || null;
+      if (pagoEm && (!resumo.last_payout_at || new Date(pagoEm) > new Date(resumo.last_payout_at))) {
+        resumo.last_payout_at = pagoEm;
+      }
+    }
+
+    return [...resumoMap.values()].map(resumo => ({
+      ...resumo,
+      faturamento_historico: Math.round(resumo.faturamento_historico * 100) / 100,
+      total_recebido: Math.round(resumo.total_recebido * 100) / 100,
+    }));
+  }
+
+  async #listarTransacoesPayoutAbertoFallback(barbershopId, professionalId = null) {
+    const [transacoes, payoutItems] = await Promise.all([
+      this.#listarTransacoesPagasHistoricas(barbershopId, professionalId),
+      this.#listarPayoutItemsConfirmados(barbershopId, professionalId),
+    ]);
+
+    const pagasSet = new Set((payoutItems || []).map(item => item.transaction_id).filter(Boolean));
+    return transacoes.filter(transacao => !pagasSet.has(transacao.id));
+  }
+
+  async #listarTransacoesPagasHistoricas(barbershopId, professionalId = null) {
+    let query = this._db
+      .from('transactions')
+      .select('id, barbershop_id, professional_id, amount, gross_amount, payment_method, status, type, paid_at, created_at')
+      .eq('barbershop_id', barbershopId)
+      .eq('type', 'revenue')
+      .eq('status', 'paid')
+      .order('paid_at', { ascending: true })
+      .limit(5000);
+
+    if (professionalId) query = query.eq('professional_id', professionalId);
+
+    const { data, error } = await query;
+    if (error) this._throwDbError(error, 'listarTransacoesPagasHistoricas');
+    return data || [];
+  }
+
+  async #listarPayoutsConfirmados(barbershopId, professionalId = null) {
+    let query = this._db
+      .from('professional_payouts')
+      .select('id, barbershop_id, professional_id, amount, status, paid_at, created_at')
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'confirmed')
+      .limit(5000);
+
+    if (professionalId) query = query.eq('professional_id', professionalId);
+
+    const { data, error } = await query;
+    if (error) this._throwDbError(error, 'listarPayoutsConfirmados');
+    return data || [];
+  }
+
+  async #listarPayoutItemsConfirmados(barbershopId, professionalId = null) {
+    const payouts = await this.#listarPayoutsConfirmados(barbershopId, professionalId);
+    const ids = payouts.map(row => row.id).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    const { data: items, error } = await this._db
+      .from('professional_payout_items')
+      .select('payout_id, transaction_id, amount')
+      .in('payout_id', ids)
+      .limit(5000);
+
+    if (error) this._throwDbError(error, 'listarPayoutItemsConfirmados.items');
+    return this.#mapPayoutItems(payouts, items || []);
+  }
+
+  #mapPayoutItems(payouts, items) {
+    const payoutMap = new Map((payouts || []).map(row => [row.id, row]));
+    return (items || []).map(item => {
+      const payout = payoutMap.get(item.payout_id) || {};
+      return {
+        payout_id: item.payout_id,
+        transaction_id: item.transaction_id,
+        amount: item.amount,
+        status: payout.status,
+        barbershop_id: payout.barbershop_id,
+        professional_id: payout.professional_id,
+      };
+    });
+  }
+
+  #isRpcFinanceiraAusente(error) {
+    const code = String(error?.code || '');
+    const message = String(error?.message || error?.details || '');
+    return code === 'PGRST202'
+      || code === '42883'
+      || /could not find the function|function .* does not exist|undefined_function/i.test(message);
   }
 
   async listarPayoutItemsRegistrados(barbershopId, periodo, professionalId = null) {
@@ -156,18 +293,7 @@ class FinanceiroRepository extends BaseRepository {
 
     if (itemError) this._throwDbError(itemError, 'listarPayoutItemsRegistrados.items');
 
-    const payoutMap = new Map((payouts || []).map(row => [row.id, row]));
-    return (items || []).map(item => {
-      const payout = payoutMap.get(item.payout_id) || {};
-      return {
-        payout_id: item.payout_id,
-        transaction_id: item.transaction_id,
-        amount: item.amount,
-        status: payout.status,
-        barbershop_id: payout.barbershop_id,
-        professional_id: payout.professional_id,
-      };
-    });
+    return this.#mapPayoutItems(payouts || [], items || []);
   }
 
   async listarAcertosSemanais(barbershopId, professionalId, limite = 8) {
@@ -362,9 +488,77 @@ class FinanceiroRepository extends BaseRepository {
       if (error.code === '23505') {
         throw AppError.conflict('Pagamento ja registrado para um ou mais cortes finalizados/recebidos no periodo.');
       }
+      if (this.#isRpcFinanceiraAusente(error)) {
+        this._warn('criarPayoutComItens.rpc_ausente', error);
+        return this.#criarPayoutComItensFallback({ createdBy, barbershopId, professionalId, amount, periodo, items });
+      }
       this._throwDbError(error, 'criarPayoutComItens.rpc');
     }
     return data;
+  }
+
+  async #criarPayoutComItensFallback({ createdBy, barbershopId, professionalId, amount, periodo, items }) {
+    const agora = new Date().toISOString();
+    const selectPayout = 'id, barbershop_id, professional_id, amount, period_start, period_end, status, paid_at, created_by, created_at, updated_at';
+    const { data: payout, error: payoutError } = await this._db
+      .from('professional_payouts')
+      .insert({
+        barbershop_id: barbershopId,
+        professional_id: professionalId,
+        amount,
+        period_start: periodo.inicio.toISOString(),
+        period_end: periodo.fim.toISOString(),
+        status: 'confirmed',
+        paid_at: agora,
+        created_by: createdBy,
+        created_at: agora,
+        updated_at: agora,
+      })
+      .select(selectPayout)
+      .single();
+
+    if (payoutError) this._throwDbError(payoutError, 'criarPayoutComItensFallback.payout');
+
+    const itemRows = (items || []).map(item => ({
+      payout_id: payout.id,
+      transaction_id: item.transactionId,
+      amount: item.amount,
+      created_at: agora,
+    }));
+
+    const { error: itemError } = await this._db
+      .from('professional_payout_items')
+      .insert(itemRows)
+      .select('payout_id, transaction_id, amount');
+
+    if (itemError) {
+      await this.#marcarPayoutFallbackFalho(payout.id);
+      if (itemError.code === '23505') {
+        throw AppError.conflict('Pagamento ja registrado para um ou mais cortes finalizados/recebidos no periodo.');
+      }
+      this._throwDbError(itemError, 'criarPayoutComItensFallback.items');
+    }
+
+    return payout;
+  }
+
+  async #marcarPayoutFallbackFalho(payoutId) {
+    try {
+      const { error } = await this._db
+        .from('professional_payouts')
+        .update({
+          status: 'failed',
+          paid_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', payoutId)
+        .select('id')
+        .single();
+
+      if (error) this._warn('marcarPayoutFallbackFalho', error);
+    } catch (error) {
+      this._warn('marcarPayoutFallbackFalho', error);
+    }
   }
 
   async confirmarAcertoSemanal({ confirmedBy, barbershopId, professionalId, periodo, resumo }) {
