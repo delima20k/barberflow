@@ -67,6 +67,32 @@ test('FinanceiroCalculator desconta do saldo pendente cortes ja vinculados a pay
   assert.equal(barbeiro.cutsPendingPayout, 1);
 });
 
+test('FinanceiroCalculator preserva avatarPath do perfil no card do barbeiro', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-24' },
+    transacoes: [
+      {
+        professional_id: 'prof-avatar',
+        gross_amount: 100,
+        payment_method: 'pix',
+        paid_at: '2026-05-10T12:00:00.000Z',
+      },
+    ],
+    transacoesAnteriores: [],
+    agreements: [{ professional_id: 'prof-avatar', type: 'percentage', value: 50, is_active: true }],
+    profissionais: [{
+      professionalId: 'prof-avatar',
+      nome: 'Avatar Perfil',
+      avatarPath: 'avatars/prof-avatar.webp',
+      avatarUrl: 'avatars/prof-avatar.webp',
+      ativo: true,
+    }],
+  });
+
+  assert.equal(dashboard.barbeiros[0].avatarPath, 'avatars/prof-avatar.webp');
+});
+
 test('FinanceiroCalculator calcula itens elegiveis para payout sem confiar no frontend', () => {
   const calculator = new FinanceiroCalculator();
   const payout = calculator.calcularPayoutProfissional({

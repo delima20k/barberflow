@@ -423,6 +423,7 @@ class FinanceiroCalculator {
     const atual = map.get(professionalId) || {
       professionalId,
       nome: profissional?.nome || 'Profissional',
+      avatarPath: profissional?.avatarPath || profissional?.avatar_path || '',
       avatarUrl: profissional?.avatarUrl || '',
       papel: profissional?.papel || 'professional',
       status: profissional?.status || 'offline',
@@ -463,6 +464,7 @@ class FinanceiroCalculator {
       return {
         professionalId: id,
         nome: atual?.nome || base.nome || 'Profissional',
+        avatarPath: atual?.avatarPath || base.avatarPath || '',
         avatarUrl: atual?.avatarUrl || base.avatarUrl || '',
         papel: atual?.papel || base.papel || 'professional',
         status: atual?.status || base.status || 'offline',
@@ -682,6 +684,7 @@ class FinanceiroCalculator {
       if (!id) continue;
       map.set(id, {
         nome: profissional.nome || profissional.full_name || profissional.name || 'Profissional',
+        avatarPath: profissional.avatarPath || profissional.avatar_path || '',
         avatarUrl: profissional.avatarUrl || profissional.avatar_url || '',
         ativo: profissional.ativo !== false && profissional.is_active !== false,
         papel: profissional.papel || profissional.role || 'professional',

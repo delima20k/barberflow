@@ -220,12 +220,14 @@ class FinanceiroRepository extends BaseRepository {
       const link = linkMap.get(id);
       const profissional = profissionaisMap.get(id) || {};
       const perfil = perfisMap.get(id) || {};
+      const avatarPath = perfil.avatar_path || profissional.avatar_path || '';
       return {
         professionalId: id,
         papel: id === shop?.owner_id ? 'owner' : 'professional',
         vinculado: Boolean(link),
         nome: perfil.full_name || 'Profissional',
-        avatarUrl: profissional.avatar_path || perfil.avatar_path || '',
+        avatarPath,
+        avatarUrl: avatarPath,
         ativo: (link?.is_active ?? true) !== false && profissional.is_active !== false && perfil.is_active !== false,
       };
     });

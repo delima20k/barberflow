@@ -146,8 +146,8 @@ class FinancasPage {
   }
 
   async #carregar() {
-    if (this.#carregando || !this.#shopId) return;
-    if (this.#periodoAtual === 'custom' && (!this.#customDe || !this.#customAte)) return;
+    if (this.#carregando || !this.#shopId) return false;
+    if (this.#periodoAtual === 'custom' && (!this.#customDe || !this.#customAte)) return false;
 
     this.#carregando = true;
     this.#mostrarLoading(true);
@@ -165,6 +165,7 @@ class FinancasPage {
       this.#dados = data;
       this.#render(data);
       this.#mostrarVazio(!data?.cards?.totalCortes?.total);
+      return true;
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn?.('[FinancasPage] erro ao carregar dashboard financeiro:', err?.message);
@@ -172,6 +173,7 @@ class FinancasPage {
       this.#render(null);
       this.#mostrarErro('Nao foi possivel carregar os dados financeiros agora.');
       this.#mostrarVazio(false);
+      return false;
     } finally {
       this.#carregando = false;
       this.#mostrarLoading(false);
@@ -445,8 +447,9 @@ class FinancasPage {
 
     el.innerHTML = barbeiros.map(barbeiro => {
       const inicial = String(barbeiro.nome || '?').trim().charAt(0).toUpperCase() || '?';
-      const avatar = barbeiro.avatarUrl && /^https?:\/\//.test(barbeiro.avatarUrl)
-        ? `<img src="${FinancasPage.#escapar(barbeiro.avatarUrl)}" alt="">`
+      const avatarUrl = FinancasPage.#resolverAvatarUrl(barbeiro);
+      const avatar = avatarUrl
+        ? `<img src="${FinancasPage.#escapar(avatarUrl)}" alt="${FinancasPage.#escapar(barbeiro.nome || 'Barbeiro')}" loading="lazy">`
         : FinancasPage.#escapar(inicial);
       const status = barbeiro.status === 'online' ? 'trabalhando' : (barbeiro.ativo ? 'ativo' : 'inativo');
       const semAcordo = !barbeiro.agreementConfigured;
@@ -455,7 +458,7 @@ class FinancasPage {
       return `
         <article class="fin-barber-card" data-prof-id="${FinancasPage.#escapar(barbeiro.professionalId)}">
           <div class="fin-barber-head">
-            <div class="fin-barber-avatar">${avatar}</div>
+            <div class="fin-barber-avatar" data-inicial="${FinancasPage.#escapar(inicial)}">${avatar}</div>
             <div>
               <h3>${FinancasPage.#escapar(barbeiro.nome)}</h3>
               <p class="fin-status fin-status--${FinancasPage.#escapar(status)}">${FinancasPage.#escapar(status)}</p>
@@ -488,6 +491,12 @@ class FinancasPage {
         const barbeiro = barbeiros.find(item => item.professionalId === btn.dataset.profId);
         if (barbeiro) this.#abrirModalPagamento(barbeiro);
       });
+    });
+    el.querySelectorAll('.fin-barber-avatar img').forEach(img => {
+      img.addEventListener('error', () => {
+        const wrap = img.closest('.fin-barber-avatar');
+        if (wrap) wrap.textContent = wrap.dataset.inicial || '?';
+      }, { once: true });
     });
   }
 
@@ -572,13 +581,22 @@ class FinancasPage {
     if (btn) btn.disabled = true;
 
     try {
-      const { error } = await BffApiService.financeiro.confirmarAcertoSemanal({
+      const { data, error } = await BffApiService.financeiro.confirmarAcertoSemanal({
         barbershopId: this.#shopId,
         periodo: 'semana',
         displayedAmount: resumo.valorARepassarBarbearia,
       });
       if (error) throw error;
-      await this.#carregar();
+
+      if (data?.acertoSemanal && this.#dados) {
+        this.#dados = { ...this.#dados, acertoSemanal: data.acertoSemanal };
+        this.#renderGraficos(this.#dados);
+      }
+
+      const recarregado = await this.#carregar();
+      if (!recarregado) {
+        this.#renderGraficos(this.#dados);
+      }
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn?.('[FinancasPage] erro ao confirmar acerto semanal:', err?.message);
@@ -732,5 +750,18 @@ class FinancasPage {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  static #resolverAvatarUrl(barbeiro) {
+    const path = barbeiro?.avatarPath || barbeiro?.avatar_path || barbeiro?.avatarUrl || barbeiro?.avatar_url || '';
+    if (!path) return '';
+    if (/^https?:\/\//.test(path)) return path;
+    if (typeof ApiService !== 'undefined' && ApiService.resolveAvatarUrl) {
+      return ApiService.resolveAvatarUrl(path, barbeiro?.updatedAt || barbeiro?.updated_at || null);
+    }
+    if (typeof SupabaseService !== 'undefined' && SupabaseService.resolveAvatarUrl) {
+      return SupabaseService.resolveAvatarUrl(path, barbeiro?.updatedAt || barbeiro?.updated_at || null);
+    }
+    return '';
   }
 }

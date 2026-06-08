@@ -108,7 +108,7 @@ class FakeQuery {
     if (this.table === 'professionals') {
       return {
         data: [
-          { id: PROF_ID, avatar_path: '', is_active: true },
+          { id: PROF_ID, avatar_path: 'professionals/joao-antigo.webp', is_active: true },
           { id: INACTIVE_PROF_ID, avatar_path: '', is_active: true },
         ],
         error: null,
@@ -118,7 +118,7 @@ class FakeQuery {
     if (this.table === 'profiles') {
       return {
         data: [
-          { id: PROF_ID, full_name: 'Joao Premium', avatar_path: '', is_active: true },
+          { id: PROF_ID, full_name: 'Joao Premium', avatar_path: 'avatars/joao-premium.webp', is_active: true },
           { id: INACTIVE_PROF_ID, full_name: 'Parceiro Desativado', avatar_path: '', is_active: true },
         ],
         error: null,
@@ -450,6 +450,7 @@ suite('Financeiro BFF HTTP', () => {
     assert.equal(res.body.dados.cards.totalBarbeiros.online, 1);
     assert.equal(res.body.dados.cards.totalBarbeiros.inativos, 1);
     assert.equal(res.body.dados.barbeiros[0].nome, 'Joao Premium');
+    assert.equal(res.body.dados.barbeiros[0].avatarPath, 'avatars/joao-premium.webp');
     assert.equal(res.body.dados.barbeiros[0].pendingPayoutAmount, 192);
     assert.equal(res.body.dados.barbeiros[0].cutsPendingPayout, 1);
   });
