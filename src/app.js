@@ -118,10 +118,16 @@ function criarApp() {
   // callback(new Error), gerando 500 SEM headers — browser vê CORS error.
   app.use((req, res, next) => {
     const origin = req.headers.origin;
+
+    // Vary + no-store em TODAS as respostas — impede CDN de cachear preflight
+    // bloqueado e servir resposta stale após redeploy (paridade com CorsMiddleware do BFF).
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('CDN-Cache-Control', 'no-store');
+
     if (origemPermitida(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Vary', 'Origin');
     }
 
     if (req.method === 'OPTIONS') {
