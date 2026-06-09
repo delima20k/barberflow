@@ -34,44 +34,52 @@ class ErrorHandler {
    */
   // eslint-disable-next-line no-unused-vars
   static handle(err, req, res, _next) {
-    const IS_PROD = process.env.APP_ENV === 'production';
-    const status  = err.status ?? err.statusCode ?? 500;
+    try {
+      const IS_PROD = process.env.APP_ENV === 'production';
+      const status  = err?.status ?? err?.statusCode ?? 500;
 
-    const ctx = _ctx();
-    const correlationId = ctx?.correlationId ?? null;
-    const traceId       = ctx?.traceId       ?? null;
-    const userId        = ctx?.userId        ?? null;
+      const ctx = _ctx();
+      const correlationId = ctx?.correlationId ?? null;
+      const traceId       = ctx?.traceId       ?? null;
+      const userId        = ctx?.userId        ?? null;
 
-    if (status >= 500) {
-      logger.error(
-        { err, method: req.method, path: req.path, correlationId, traceId, userId },
-        '[BFF] Erro interno não tratado',
-      );
+      if (status >= 500) {
+        logger.error(
+          { err, method: req.method, path: req.path, correlationId, traceId, userId },
+          '[BFF] Erro interno não tratado',
+        );
 
-      // Envia ao Sentry com contexto de domínio (sem PII)
-      _sentry()?.captureError(err, {
-        userId,
-        route:   `${req.method} ${req.path}`,
-        traceId,
-        correlationId,
-        domain:  'bff',
-        command: req.body?.command ?? null,
-      });
-    } else if (status >= 400) {
-      logger.warn(
-        { status, method: req.method, path: req.path, correlationId, traceId },
-        '[BFF] Erro de cliente',
-      );
+        // Envia ao Sentry com contexto de domínio (sem PII)
+        _sentry()?.captureError(err, {
+          userId,
+          route:   `${req.method} ${req.path}`,
+          traceId,
+          correlationId,
+          domain:  'bff',
+          command: req.body?.command ?? null,
+        });
+      } else if (status >= 400) {
+        logger.warn(
+          { status, method: req.method, path: req.path, correlationId, traceId },
+          '[BFF] Erro de cliente',
+        );
+      }
+
+      // Todos os AppError (operacionais ou não) → ApiResponse.fail decide visibilidade da mensagem
+      // NUNCA usar Object.assign sobre AppError: getters readonly lançam TypeError em strict mode
+      if (err instanceof AppError) {
+        return ApiResponse.fail(res, err, IS_PROD);
+      }
+
+      // Erro genérico não-AppError: cria novo Error simples para evitar mutação
+      const fallback = Object.assign(new Error(err?.message ?? 'Erro interno.'), { status });
+      ApiResponse.fail(res, fallback, IS_PROD);
+    } catch {
+      // Garantia final: nunca retornar HTML mesmo que o próprio handler falhe
+      if (!res.headersSent) {
+        res.status(500).json({ ok: false, error: 'Erro interno do servidor.' });
+      }
     }
-
-    // AppError operacional: mensagem pode ir ao cliente
-    if (err instanceof AppError && err.isOperational) {
-      return ApiResponse.fail(res, err, IS_PROD);
-    }
-
-    // Erro inesperado: status + mensagem genérica em produção
-    const wrapped = Object.assign(err, { status });
-    ApiResponse.fail(res, wrapped, IS_PROD);
   }
 }
 
