@@ -388,13 +388,13 @@ class BarbeariaController extends BaseController {
       .filter(timing => timing.component === 'supabase')
       .reduce((sum, timing) => sum + (Number(timing.durationMs) || 0), 0);
 
-    res.setHeader(
-      'Server-Timing',
-      [
-        `bff;dur=${handlerDurationMs.toFixed(2)}`,
-        `supabase;dur=${supabaseDurationMs.toFixed(2)}`,
-      ].join(', '),
-    );
+    const bffDuration = handlerDurationMs.toFixed(2);
+    const supabaseDuration = supabaseDurationMs.toFixed(2);
+
+    res.setHeader('Timing-Allow-Origin', '*');
+    res.setHeader('Server-Timing', `bff;dur=${bffDuration}, supabase;dur=${supabaseDuration}`);
+    res.setHeader('X-BFF-Duration-Ms', bffDuration);
+    res.setHeader('X-Supabase-Duration-Ms', supabaseDuration);
   }
 }
 
