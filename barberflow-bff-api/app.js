@@ -60,6 +60,7 @@ const schedulerRoute        = require('./routes/scheduler');
 const conviteProRoute       = require('./routes/convites-pro');
 const p2pRoute              = require('./routes/p2p');
 const adminConfigRoute      = require('./routes/adminConfig');
+const adminRoute            = require('./routes/admin');
 const SupabaseClient         = require('./utils/SupabaseClient');
 const { R2ConfigService }    = require('./application/admin/R2ConfigService');
 
@@ -170,6 +171,11 @@ function criarApp(db = null) {
       return res.status(500).json({ ok: false, error: err?.message ?? 'Erro ao resetar.' });
     }
   });
+
+  // ── Admin dashboard — /api/v1/admin/* ─────────────────────────
+  // Registrado após reset-likes para que aquele handler específico
+  // seja avaliado primeiro pelo roteador v1.
+  v1Router.use('/admin', adminRoute(_db));
 
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.
   app.use('/api/media', mediaRoute(_db));

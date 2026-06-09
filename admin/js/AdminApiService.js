@@ -15,7 +15,7 @@
 class AdminApiService {
 
   static #STORAGE_KEY = 'adm_token';
-  static #BASE_URL    = 'https://barberflow.vercel.app/api/admin';
+  static #BASE_URL    = 'https://bff.berberflow.shop/api/v1/admin';
   static #instance    = null;
 
   /** @type {string|null} */
