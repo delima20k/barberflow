@@ -63,32 +63,87 @@ class AdminService {
    * @throws {AppError(401)} credenciais inválidas (mensagem genérica)
    */
   async login(email, senha) {
-    AdminService.#email('email', email);
-    if (!senha?.trim()) throw AppError.unauthorized('Credenciais inválidas.');
+    const _ts = () => new Date().toISOString();
+    // DEBUG_LOGIN_START
+    try {
+      console.log(JSON.stringify({ etapa: '1_inicio', sucesso: true, timestamp: _ts() }));
 
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminHash  = process.env.ADMIN_PASSWORD_HASH;
-    const secret     = process.env.ADMIN_JWT_SECRET;
+      AdminService.#email('email', email);
+      if (!senha?.trim()) throw AppError.unauthorized('Credenciais inválidas.');
 
-    if (!adminEmail || !adminHash || !secret) {
-      throw AppError.internal('Configuração de admin ausente no servidor.');
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminHash  = process.env.ADMIN_PASSWORD_HASH;
+      const secret     = process.env.ADMIN_JWT_SECRET;
+
+      console.log(JSON.stringify({
+        etapa: '2_env_lidas', sucesso: true, timestamp: _ts(),
+        temEmail: !!adminEmail, temHash: !!adminHash, temSecret: !!secret,
+        hashLen: adminHash?.length ?? 0, secretLen: secret?.length ?? 0,
+      }));
+
+      if (!adminEmail || !adminHash || !secret) {
+        console.log(JSON.stringify({ etapa: '3_env_validacao', sucesso: false, timestamp: _ts() }));
+        throw AppError.internal('Configuração de admin ausente no servidor.');
+      }
+
+      console.log(JSON.stringify({ etapa: '3_env_validacao', sucesso: true, timestamp: _ts() }));
+
+      const emailOk = email.trim().toLowerCase() === adminEmail.trim().toLowerCase();
+
+      console.log(JSON.stringify({ etapa: '4_email_comparado', sucesso: emailOk, timestamp: _ts() }));
+
+      if (!emailOk) throw AppError.unauthorized('Credenciais inválidas.');
+
+      console.log(JSON.stringify({ etapa: '5_antes_bcrypt', sucesso: true, timestamp: _ts() }));
+
+      let senhaOk;
+      try {
+        senhaOk = await bcrypt.compare(senha, adminHash);
+      } catch (bcryptErr) {
+        console.error(JSON.stringify({
+          etapa: '6_bcrypt_excecao', sucesso: false, timestamp: _ts(),
+          errorName: bcryptErr?.name, errorMessage: bcryptErr?.message,
+          stack: bcryptErr?.stack,
+        }));
+        throw bcryptErr;
+      }
+
+      console.log(JSON.stringify({ etapa: '6_bcrypt_resultado', sucesso: senhaOk, timestamp: _ts() }));
+
+      if (!senhaOk) throw AppError.unauthorized('Credenciais inválidas.');
+
+      console.log(JSON.stringify({ etapa: '7_antes_jwt', sucesso: true, timestamp: _ts() }));
+
+      let token;
+      try {
+        token = jwt.sign(
+          { email: adminEmail, type: 'admin' },
+          secret,
+          { expiresIn: '4h', issuer: 'barberflow', algorithm: 'HS256' }
+        );
+      } catch (jwtErr) {
+        console.error(JSON.stringify({
+          etapa: '7_jwt_excecao', sucesso: false, timestamp: _ts(),
+          errorName: jwtErr?.name, errorMessage: jwtErr?.message,
+          stack: jwtErr?.stack,
+        }));
+        throw jwtErr;
+      }
+
+      console.log(JSON.stringify({ etapa: '8_jwt_gerado', sucesso: true, timestamp: _ts() }));
+
+      return { token };
+
+    } catch (err) {
+      if (!(err instanceof AppError)) {
+        console.error(JSON.stringify({
+          etapa: 'excecao_inesperada', sucesso: false, timestamp: _ts(),
+          errorName: err?.name, errorMessage: err?.message, stack: err?.stack,
+        }));
+      }
+      throw err;
     }
-
-    const emailOk = email.trim().toLowerCase() === adminEmail.trim().toLowerCase();
-    const senhaOk = emailOk && await bcrypt.compare(senha, adminHash);
-
-    // Mensagem intencionalmente genérica — não expõe se o e-mail existe
-    if (!emailOk || !senhaOk) {
-      throw AppError.unauthorized('Credenciais inválidas.');
-    }
-
-    const token = jwt.sign(
-      { email: adminEmail, type: 'admin' },
-      secret,
-      { expiresIn: '4h', issuer: 'barberflow', algorithm: 'HS256' }
-    );
-
-    return { token };
+    // DEBUG_LOGIN_END
   }
 
   // ── Totais ─────────────────────────────────────────────────
