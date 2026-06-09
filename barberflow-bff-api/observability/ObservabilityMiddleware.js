@@ -45,13 +45,26 @@ class ObservabilityMiddleware {
 
     const tp      = ObservabilityMiddleware.#parseTraceparent(req.headers['traceparent']);
     const traceId = tp?.traceId ?? randomUUID().replace(/-/g, '');
+    const diagnosticsEnabled = req.headers['x-load-test'] === 'barberflow'
+      || req.headers['x-bff-diagnostics'] === 'barberflow';
 
     // Propaga para o cliente — permite correlacionar logs/traces de ponta a ponta
     res.setHeader('x-correlation-id', correlationId);
     res.setHeader('x-trace-id',       traceId);
     res.setHeader('x-request-id',     requestId);
 
-    CorrelationContext.run({ correlationId, traceId, requestId }, next);
+    CorrelationContext.run({
+      correlationId,
+      traceId,
+      requestId,
+      diagnostics: diagnosticsEnabled
+        ? {
+            enabled: true,
+            endpoint: `${req.method} ${req.path}`,
+            timings: [],
+          }
+        : null,
+    }, next);
   }
 }
 

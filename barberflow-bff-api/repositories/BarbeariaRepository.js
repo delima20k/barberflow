@@ -1,7 +1,11 @@
 'use strict';
 
+const { performance } = require('node:perf_hooks');
+
 const BaseRepository = require('./BaseRepository');
 const AppError       = require('../utils/AppError');
+const { logger }     = require('../middlewares/logger');
+const { CorrelationContext } = require('../observability/CorrelationContext');
 
 /**
  * BarbeariaRepository — Repositório de barbearias para o BFF.
@@ -45,6 +49,32 @@ class BarbeariaRepository extends BaseRepository {
   static #ordenarDestaqueSafe(query) {
     return BarbeariaRepository.#ORDER_DESTAQUE_SAFE
       .reduce((q, col) => q.order(col, { ascending: false }), query);
+  }
+
+  static #logSupabaseDiagnostic({ endpoint, repositoryMethod, supabaseDurationMs, rowsReturned, limit, hasError }) {
+    const diagnostics = CorrelationContext.diagnostics;
+    if (!diagnostics?.enabled) return;
+
+    const payload = {
+      endpoint: diagnostics.endpoint ?? endpoint,
+      repositoryMethod,
+      supabaseDurationMs: Number(supabaseDurationMs.toFixed(2)),
+      rowsReturned,
+      limit,
+      hasError,
+      timestamp: new Date().toISOString(),
+    };
+
+    CorrelationContext.addDiagnosticTiming({
+      component: 'supabase',
+      repositoryMethod,
+      durationMs: payload.supabaseDurationMs,
+      rowsReturned,
+      limit,
+      hasError,
+    });
+
+    logger.info(payload, '[BFF] diagnostico supabase barbearias');
   }
 
   /**
@@ -117,12 +147,21 @@ class BarbeariaRepository extends BaseRepository {
    * @returns {Promise<object[]>}
    */
   async getFeatured(limit = 6) {
+    const started = performance.now();
     const { data, error } = await BarbeariaRepository.#ordenarDestaqueSafe(
       this._db
         .from('barbershops')
         .select(BarbeariaRepository.#SELECT_SAFE)
         .eq('is_active', true),
     ).limit(limit);
+    BarbeariaRepository.#logSupabaseDiagnostic({
+      endpoint: 'GET /api/v1/barbearias/destaque',
+      repositoryMethod: 'BarbeariaRepository.getFeatured',
+      supabaseDurationMs: performance.now() - started,
+      rowsReturned: Array.isArray(data) ? data.length : 0,
+      limit,
+      hasError: Boolean(error),
+    });
 
     if (!error) return data ?? [];
 
@@ -158,12 +197,21 @@ class BarbeariaRepository extends BaseRepository {
    * @returns {Promise<object[]>}
    */
   async getAll(limit = 60) {
+    const started = performance.now();
     const { data, error } = await BarbeariaRepository.#ordenar(
       this._db
         .from('barbershops')
         .select(BarbeariaRepository.#SELECT)
         .eq('is_active', true),
     ).limit(limit);
+    BarbeariaRepository.#logSupabaseDiagnostic({
+      endpoint: 'GET /api/v1/barbearias/todas',
+      repositoryMethod: 'BarbeariaRepository.getAll',
+      supabaseDurationMs: performance.now() - started,
+      rowsReturned: Array.isArray(data) ? data.length : 0,
+      limit,
+      hasError: Boolean(error),
+    });
 
     if (!error) return data ?? [];
 

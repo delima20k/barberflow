@@ -1,7 +1,10 @@
 'use strict';
 
+const { performance } = require('node:perf_hooks');
+
 const BaseController = require('./BaseController');
 const AppError       = require('../utils/AppError');
+const { CorrelationContext } = require('../observability/CorrelationContext');
 
 /**
  * BarbeariaController — Endpoints públicos de barbearias para o BFF.
@@ -56,10 +59,12 @@ class BarbeariaController extends BaseController {
    */
   async destaque(req, res) {
     await this.handle(res, async () => {
+      const handlerStarted = performance.now();
       const limit = BarbeariaController.#parseLimit(req.query.limit, 'limit', 1, 100, 6);
 
       const lista = await this.#service.listarDestaque(limit);
 
+      BarbeariaController.#setDiagnosticsTiming(res, performance.now() - handlerStarted);
       if (this.etag(req, res, lista)) return;
       this.cachePublico(res, 60, 300);
       this.success(res, lista, { total: lista.length });
@@ -72,10 +77,12 @@ class BarbeariaController extends BaseController {
    */
   async todas(req, res) {
     await this.handle(res, async () => {
+      const handlerStarted = performance.now();
       const limit = BarbeariaController.#parseLimit(req.query.limit, 'limit', 1, 100, 60);
 
       const lista = await this.#service.listarTodas(limit);
 
+      BarbeariaController.#setDiagnosticsTiming(res, performance.now() - handlerStarted);
       if (this.etag(req, res, lista)) return;
       this.cachePublico(res, 60, 300);
       this.success(res, lista, { total: lista.length });
@@ -371,6 +378,23 @@ class BarbeariaController extends BaseController {
       throw AppError.badRequest(`ParÃ¢metro '${nome}' deve ser um inteiro maior ou igual a 0.`);
     }
     return num;
+  }
+
+  static #setDiagnosticsTiming(res, handlerDurationMs) {
+    const diagnostics = CorrelationContext.diagnostics;
+    if (!diagnostics?.enabled || res.headersSent) return;
+
+    const supabaseDurationMs = (diagnostics.timings ?? [])
+      .filter(timing => timing.component === 'supabase')
+      .reduce((sum, timing) => sum + (Number(timing.durationMs) || 0), 0);
+
+    res.setHeader(
+      'Server-Timing',
+      [
+        `bff;dur=${handlerDurationMs.toFixed(2)}`,
+        `supabase;dur=${supabaseDurationMs.toFixed(2)}`,
+      ].join(', '),
+    );
   }
 }
 
