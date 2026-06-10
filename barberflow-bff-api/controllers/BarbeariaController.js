@@ -64,6 +64,7 @@ class BarbeariaController extends BaseController {
 
       const lista = await this.#service.listarDestaque(limit);
 
+      BarbeariaController.#setCacheDiagnosticHeader(res);
       BarbeariaController.#setDiagnosticsTiming(res, performance.now() - handlerStarted);
       if (this.etag(req, res, lista)) return;
       this.cachePublico(res, 60, 300);
@@ -82,6 +83,7 @@ class BarbeariaController extends BaseController {
 
       const lista = await this.#service.listarTodas(limit);
 
+      BarbeariaController.#setCacheDiagnosticHeader(res);
       BarbeariaController.#setDiagnosticsTiming(res, performance.now() - handlerStarted);
       if (this.etag(req, res, lista)) return;
       this.cachePublico(res, 60, 300);
@@ -390,11 +392,18 @@ class BarbeariaController extends BaseController {
 
     const bffDuration = handlerDurationMs.toFixed(2);
     const supabaseDuration = supabaseDurationMs.toFixed(2);
+    const cacheStatus = CorrelationContext.getStore().cache?.status ?? 'BYPASS';
 
     res.setHeader('Timing-Allow-Origin', '*');
-    res.setHeader('Server-Timing', `bff;dur=${bffDuration}, supabase;dur=${supabaseDuration}`);
+    res.setHeader('Server-Timing', `bff;dur=${bffDuration}, supabase;dur=${supabaseDuration}, cache;desc="${cacheStatus}"`);
     res.setHeader('X-BFF-Duration-Ms', bffDuration);
     res.setHeader('X-Supabase-Duration-Ms', supabaseDuration);
+  }
+
+  static #setCacheDiagnosticHeader(res) {
+    if (res.headersSent) return;
+    const cacheStatus = CorrelationContext.getStore().cache?.status ?? 'BYPASS';
+    res.setHeader('X-Barberflow-Cache', cacheStatus);
   }
 }
 

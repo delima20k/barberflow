@@ -12,6 +12,7 @@ const { OutboxRepository } = require('../infrastructure/outbox/OutboxRepository'
 const { BlockPolicy } = require('../domain/chat/policies/BlockPolicy');
 const { SendMessageUseCase } = require('../application/chat/SendMessageUseCase');
 const { SupabaseBroadcaster } = require('../infrastructure/realtime/SupabaseBroadcaster');
+const { BarbershopPublicCacheProvider } = require('../infrastructure/cache/BarbershopPublicCacheProvider');
 
 // ── Factory: recebe db injetado por criarApp() ───────────────────
 // Permite isolamento de dependências em testes (evita caching de módulo).
@@ -25,7 +26,8 @@ module.exports = function criarBarbeariaRoute(db) {
     outboxRepository: new OutboxRepository({ supabase: db }),
   });
   const broadcaster = new SupabaseBroadcaster();
-  const svc  = new BarbeariaService(repo, sendMessageUseCase, broadcaster);
+  const publicCache = BarbershopPublicCacheProvider.create();
+  const svc  = new BarbeariaService(repo, sendMessageUseCase, broadcaster, publicCache);
   const mediaSvc = new BarbeariaMediaService(repo);
   const ctrl = new BarbeariaController(svc, mediaSvc);
 

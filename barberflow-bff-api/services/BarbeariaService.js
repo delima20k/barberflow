@@ -3,6 +3,9 @@
 const BaseService = require('./BaseService');
 const AppError    = require('../utils/AppError');
 const R2Client    = require('../../src/infra/R2Client');
+const { CACHE_TTL } = require('../config/cacheTtl');
+const { CacheKeyBuilder } = require('../infrastructure/cache/CacheKeyBuilder');
+const { CorrelationContext } = require('../observability/CorrelationContext');
 
 /**
  * BarbeariaService — Regras de negócio para barbearias no BFF.
@@ -18,13 +21,15 @@ class BarbeariaService extends BaseService {
   #repo;
   #sendMessageUseCase;
   #broadcaster;
+  #publicCache;
 
   /** @param {import('../repositories/BarbeariaRepository')} repo */
-  constructor(repo, sendMessageUseCase = null, broadcaster = null) {
+  constructor(repo, sendMessageUseCase = null, broadcaster = null, publicCache = null) {
     super('BarbeariaService');
     this.#repo = repo;
     this.#sendMessageUseCase = sendMessageUseCase;
     this.#broadcaster = broadcaster;
+    this.#publicCache = publicCache;
   }
 
   // ── Listagens ────────────────────────────────────────────────────
@@ -60,7 +65,11 @@ class BarbeariaService extends BaseService {
   async listarDestaque(limit = 6) {
     BarbeariaService.#validarLimit(limit);
     try {
-      return await this.#repo.getFeatured(limit);
+      return await this.#readPublicListCache(
+        'featured',
+        limit,
+        () => this.#repo.getFeatured(limit),
+      );
     } catch (err) {
       throw AppError.unavailable('Serviço de barbearias em destaque temporariamente indisponível.');
     }
@@ -74,7 +83,11 @@ class BarbeariaService extends BaseService {
   async listarTodas(limit = 60) {
     BarbeariaService.#validarLimit(limit);
     try {
-      return await this.#repo.getAll(limit);
+      return await this.#readPublicListCache(
+        'all',
+        limit,
+        () => this.#repo.getAll(limit),
+      );
     } catch (err) {
       throw AppError.unavailable('Serviço de barbearias temporariamente indisponível.');
     }
@@ -136,9 +149,13 @@ class BarbeariaService extends BaseService {
   async salvarEndereco(userId, dados = {}) {
     this._uuid('userId', userId);
 
-    const lat = Number(dados.lat);
-    const lng = Number(dados.lng);
-    this._coordenada(lat, lng);
+    const hasCoords = dados.lat != null && dados.lng != null;
+    let lat, lng;
+    if (hasCoords) {
+      lat = Number(dados.lat);
+      lng = Number(dados.lng);
+      this._coordenada(lat, lng);
+    }
 
     const rua = this._texto('address', dados.address, 160, true);
     const numero = this._texto('numero', dados.numero ?? '', 30, false);
@@ -155,8 +172,7 @@ class BarbeariaService extends BaseService {
       state: state || null,
       zip_code: zipCode || null,
       neighborhood: neighborhood || null,
-      latitude: lat,
-      longitude: lng,
+      ...(hasCoords ? { latitude: lat, longitude: lng } : {}),
       updated_at: new Date().toISOString(),
     });
   }
@@ -482,6 +498,46 @@ class BarbeariaService extends BaseService {
     } catch {
       return stories;
     }
+  }
+
+  async #readPublicListCache(endpoint, limit, fetchFn) {
+    const key = CacheKeyBuilder.build('barbershops', endpoint, `limit:${limit}`);
+    const ttl = CACHE_TTL.BARBEARIA_PUBLIC_LIST;
+
+    if (!this.#publicCache) {
+      BarbeariaService.#setCacheDiagnostic('BYPASS', key);
+      return fetchFn();
+    }
+
+    try {
+      const cached = await this.#publicCache.get(key);
+      if (cached !== null) {
+        BarbeariaService.#setCacheDiagnostic('HIT', key);
+        return cached;
+      }
+    } catch {
+      BarbeariaService.#setCacheDiagnostic('ERROR', key);
+      return fetchFn();
+    }
+
+    const fresh = await fetchFn();
+    try {
+      await this.#publicCache.set(key, fresh, ttl);
+      BarbeariaService.#setCacheDiagnostic('MISS', key);
+    } catch {
+      BarbeariaService.#setCacheDiagnostic('ERROR', key);
+    }
+    return fresh;
+  }
+
+  static #setCacheDiagnostic(status, key) {
+    const store = CorrelationContext.getStore();
+    if (!store) return;
+    store.cache = {
+      status,
+      key,
+      context: 'barbershops_public',
+    };
   }
 
   static #validarRaio(raioKm) {

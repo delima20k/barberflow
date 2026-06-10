@@ -25,6 +25,7 @@ const CACHE_TTL = Object.freeze({
   // Dados de perfil raramente mudam (nome, logo, endereço)
   BARBEARIA_PROFILE:        300,   //  5 min
   BARBEARIA_NEARBY:          60,   //  1 min — depende da geolocalização do usuário
+  BARBEARIA_PUBLIC_LIST:     60,   //  1 min — endpoints públicos /destaque e /todas
 
   // ── Serviços & produtos ─────────────────────────────────────────
   // Catálogo de serviços — atualiza raramente

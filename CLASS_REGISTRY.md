@@ -38,6 +38,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `BarberWorkplaceInfo` | [shared/js/BarberWorkplaceInfo.js](shared/js/BarberWorkplaceInfo.js) | interfaces | Section reutilizável do perfil público para dados da barbearia e CTA `Mensagem para a barbearia`. |
 | `BarberPole` | [shared/js/BarberPole.js](shared/js/BarberPole.js) | interfaces | Animação decorativa do poste de barbearia |
 | `BarbershopRepository` | [shared/js/BarbershopRepository.js](shared/js/BarbershopRepository.js) | infra | CRUD de barbearias, interações (like/favorite), listagens por geolocalização |
+| `BarbershopPublicCacheProvider` | [barberflow-bff-api/infrastructure/cache/BarbershopPublicCacheProvider.js](barberflow-bff-api/infrastructure/cache/BarbershopPublicCacheProvider.js) | infra | Factory de cache Redis opcional para endpoints públicos de barbearias, com fallback sem cache quando Redis não está configurado. |
 | `BarbershopService` | [shared/js/BarbershopService.js](shared/js/BarbershopService.js) | application | Regras de negócio para barbearias: favoritos em cache, like/dislike, delegation |
 | `CacheManager` | [shared/js/CacheManager.js](shared/js/CacheManager.js) | infra | Cache em memória com TTL e limpeza por escopo (clearScope). Evita stale data ao trocar de contexto. |
 | `CapaBarbearia` | [shared/js/CapaBarbearia.js](shared/js/CapaBarbearia.js) | interfaces | Upload e exibição da capa (cover) da barbearia |
