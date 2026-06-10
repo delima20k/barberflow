@@ -8,10 +8,6 @@ class BarbershopPublicCacheProvider {
   static #upstashClient = null;
 
   static create() {
-    if (process.env.CACHE_DRIVER === 'memory') {
-      return null;
-    }
-
     if (process.env.REDIS_URL) {
       return BarbershopPublicCacheProvider.#createRedisUrlCache();
     }
