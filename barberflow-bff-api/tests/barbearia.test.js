@@ -28,6 +28,7 @@ const _qb = () => {
     order:   () => q,
     limit:   () => Promise.resolve({ data: [], error: null }),
     single:  () => Promise.resolve({ data: { id: 'shop-1', owner_id: '00000000-0000-4000-8000-000000000001', is_active: true }, error: null }),
+    maybeSingle: () => Promise.resolve({ data: { id: 'shop-1', owner_id: '00000000-0000-4000-8000-000000000001', is_active: true }, error: null }),
   };
   return q;
 };
