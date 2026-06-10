@@ -46,8 +46,8 @@ class BarbeariaMediaService extends BaseService {
     if (!cfg) throw AppError.badRequest("Query 'tipo' deve ser 'logo' ou 'cover'.");
     BarbeariaMediaService.#validarEntrada(arquivo, mime);
 
-    const shop = await this.#repo.getAtivaPorOwner(userId);
-    if (!shop?.id) throw AppError.notFound('Barbearia ativa nao encontrada.');
+    const shop = await this.#repo.getPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia nao encontrada.');
 
     const buffer = await BarbeariaMediaService.#processarImagem(arquivo, cfg);
     const path = `${shop.id}/${cfg.nome}`;
@@ -76,8 +76,8 @@ class BarbeariaMediaService extends BaseService {
     this._uuid('userId', userId);
     BarbeariaMediaService.#validarEntrada(arquivo, mime);
 
-    const shop = await this.#repo.getAtivaPorOwner(userId);
-    if (!shop?.id) throw AppError.notFound('Barbearia ativa nao encontrada.');
+    const shop = await this.#repo.getPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia nao encontrada.');
 
     const buffer = await BarbeariaMediaService.#processarImagem(arquivo, BarbeariaMediaService.#SERVICO_CFG);
     const path = `${shop.id}/services/${crypto.randomUUID()}.webp`;

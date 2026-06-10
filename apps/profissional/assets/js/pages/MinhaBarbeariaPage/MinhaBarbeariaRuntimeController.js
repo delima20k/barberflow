@@ -3434,9 +3434,6 @@ export class MinhaBarbeariaRuntimeController {
     if (!this.#barbershopId) {
       this.#mostrarGpsMsg('Barbearia não encontrada.', 'erro'); return;
     }
-    if (!this.#coordsGps) {
-      this.#mostrarGpsMsg('Ative o GPS para salvar a posição no mapa.', 'erro'); return;
-    }
 
     const perfil = AuthService.getPerfil();
     const ownerId = this.#shopData?.owner_id ?? perfil?.id;
@@ -3456,8 +3453,9 @@ export class MinhaBarbeariaRuntimeController {
       state:        state   || null,
       zip_code:     cep     || null,
       neighborhood: bairro  || null,
-      lat:          this.#coordsGps.lat,
-      lng:          this.#coordsGps.lng,
+      ...(this.#coordsGps
+        ? { lat: this.#coordsGps.lat, lng: this.#coordsGps.lng }
+        : {}),
     };
 
     const btn = this.#refs.gpsBtnSalvar;
@@ -3479,7 +3477,7 @@ export class MinhaBarbeariaRuntimeController {
         this.#renderInfoCard(this.#shopData);
       }
       this.#preencherGpsForm();
-      if (typeof GpsPanelMap !== 'undefined') {
+      if (typeof GpsPanelMap !== 'undefined' && this.#coordsGps) {
         GpsPanelMap.carregar(
           this.#coordsGps.lat,
           this.#coordsGps.lng,

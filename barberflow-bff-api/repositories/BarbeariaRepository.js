@@ -362,6 +362,26 @@ class BarbeariaRepository extends BaseRepository {
     return data ?? null;
   }
 
+  /**
+   * Busca a barbearia pertencente ao owner autenticado, independente de is_active.
+   * Usado para operacoes de gestao do proprio perfil (upload de imagem, etc.).
+   * @param {string} ownerId
+   * @returns {Promise<object|null>}
+   */
+  async getPorOwner(ownerId) {
+    this._uuid('ownerId', ownerId);
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select(BarbeariaRepository.#SELECT_OWNER)
+      .eq('owner_id', ownerId)
+      .maybeSingle();
+    if (error) {
+      this._warn('getPorOwner', error);
+      this._throwDbError(error, 'getPorOwner');
+    }
+    return data ?? null;
+  }
+
   async getAtivaPorId(barbershopId) {
     this._uuid('barbershopId', barbershopId);
     const { data, error } = await this._db
@@ -708,7 +728,6 @@ class BarbeariaRepository extends BaseRepository {
       .from('barbershops')
       .update({ [campo]: path, updated_at: updatedAt })
       .eq('owner_id', ownerId)
-      .eq('is_active', true)
       .select(BarbeariaRepository.#SELECT_OWNER)
       .single();
 
