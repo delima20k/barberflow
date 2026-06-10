@@ -54,7 +54,7 @@ class BarbeariaMediaService extends BaseService {
     const updatedAt = new Date().toISOString();
 
     await this.#repo.uploadImagemBarbearia(path, buffer, 'image/webp');
-    await this.#repo.updateImagem(userId, cfg.campo, path, updatedAt);
+    await this.#repo.updateImagem(shop.id, cfg.campo, path, updatedAt);
 
     return {
       path,

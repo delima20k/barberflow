@@ -365,6 +365,7 @@ class BarbeariaRepository extends BaseRepository {
   /**
    * Busca a barbearia pertencente ao owner autenticado, independente de is_active.
    * Usado para operacoes de gestao do proprio perfil (upload de imagem, etc.).
+   * Usa limit(1) para tolerar owners com mais de um registro na tabela.
    * @param {string} ownerId
    * @returns {Promise<object|null>}
    */
@@ -374,6 +375,8 @@ class BarbeariaRepository extends BaseRepository {
       .from('barbershops')
       .select(BarbeariaRepository.#SELECT_OWNER)
       .eq('owner_id', ownerId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (error) {
       this._warn('getPorOwner', error);
@@ -711,15 +714,15 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
-   * Atualiza o path de logo/capa da barbearia do owner.
-   * @param {string} ownerId
+   * Atualiza o path de logo/capa da barbearia pelo seu id primario.
+   * @param {string} shopId
    * @param {'logo_path'|'cover_path'} campo
    * @param {string} path
    * @param {string} updatedAt
    * @returns {Promise<object>}
    */
-  async updateImagem(ownerId, campo, path, updatedAt) {
-    this._uuid('ownerId', ownerId);
+  async updateImagem(shopId, campo, path, updatedAt) {
+    this._uuid('shopId', shopId);
     if (!['logo_path', 'cover_path'].includes(campo)) {
       throw new TypeError('campo de imagem invalido');
     }
@@ -727,7 +730,7 @@ class BarbeariaRepository extends BaseRepository {
     const { data, error } = await this._db
       .from('barbershops')
       .update({ [campo]: path, updated_at: updatedAt })
-      .eq('owner_id', ownerId)
+      .eq('id', shopId)
       .select(BarbeariaRepository.#SELECT_OWNER)
       .single();
 
