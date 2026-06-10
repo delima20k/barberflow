@@ -85,11 +85,10 @@ class CriarBarbeariaPage {
       return;
     }
 
-    // Verifica se já existe barbearia (evita duplicata)
+    // Verifica se já existe barbearia (evita duplicata — ativa ou inativa)
     const { data: existente } = await SupabaseService.barbershops()
       .select('id')
       .eq('owner_id', perfil.id)
-      .eq('is_active', true)
       .limit(1)
       .maybeSingle();
 

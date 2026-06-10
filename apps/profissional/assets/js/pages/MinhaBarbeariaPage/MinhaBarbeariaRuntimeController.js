@@ -645,6 +645,7 @@ export class MinhaBarbeariaRuntimeController {
       .select(SELECT)
       .eq('owner_id', ownerId)
       .eq('is_active', true)
+      .order('updated_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -717,7 +718,7 @@ export class MinhaBarbeariaRuntimeController {
   static async #fetchServicos(barbershopId) {
     // Nota: price_half e category são adicionados após aplicar migration 20260530000001
     const { data, error } = await SupabaseService.services()
-      .select('id, name, description, category, duration_min, price, image_path')
+      .select('id, name, description, category, duration_min, price, price_half, image_path')
       .eq('barbershop_id', barbershopId)
       .eq('is_active', true)
       .order('price', { ascending: true });
@@ -3066,6 +3067,7 @@ export class MinhaBarbeariaRuntimeController {
         duration_min:  el.dataset.duracao ? parseInt(el.dataset.duracao, 10) : 30,
         is_active:     true,
       };
+      if (cat === 'luzes') payload.price_half = priceHalf ?? null;
       if (el.dataset.produtoId) payload.id         = el.dataset.produtoId;
       if (imagePath)            payload.image_path = imagePath;
 
