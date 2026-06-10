@@ -12,7 +12,8 @@ class BarbershopPublicCacheProvider {
       return BarbershopPublicCacheProvider.#createRedisUrlCache();
     }
 
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    const upstashConfig = BarbershopPublicCacheProvider.#getUpstashConfig();
+    if (upstashConfig) {
       return BarbershopPublicCacheProvider.#createUpstashCache();
     }
 
@@ -32,12 +33,20 @@ class BarbershopPublicCacheProvider {
 
   static #createUpstashCache() {
     const { Redis } = require('@upstash/redis'); // eslint-disable-line global-require
+    const { url, token } = BarbershopPublicCacheProvider.#getUpstashConfig();
     BarbershopPublicCacheProvider.#upstashClient ??= new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      url,
+      token,
     });
 
     return new UpstashRestCache({ redisClient: BarbershopPublicCacheProvider.#upstashClient });
+  }
+
+  static #getUpstashConfig() {
+    const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+    if (!url || !token) return null;
+    return { url, token };
   }
 }
 
