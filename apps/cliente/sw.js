@@ -17,7 +17,7 @@
 // =============================================================
 // VersÃƒÂ£o do Service Worker Ã¢â‚¬â€ bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260611c';
+const SW_CLI_VERSION = '20260611d';
 
 class SWCliente {
 

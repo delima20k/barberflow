@@ -181,6 +181,12 @@ class BarbeariaService extends BaseService {
     }, barbershopId);
 
     if (!result) throw AppError.notFound('Barbearia não encontrada.');
+
+    await Promise.allSettled([
+      this.#publicCache?.del(CacheKeyBuilder.build('barbershops', 'all',      'limit:60')),
+      this.#publicCache?.del(CacheKeyBuilder.build('barbershops', 'featured', 'limit:6')),
+    ]);
+
     return result;
   }
 

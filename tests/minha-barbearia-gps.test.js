@@ -71,3 +71,8 @@ test('MinhaBarbeariaPage reabre endereco salvo preservando numero e complemento'
   assert.match(source, /gpsNumDisplay\) this\.#refs\.gpsNumDisplay\.textContent = endereco\.numero \|\|/);
   assert.match(source, /gpsCompDisplay\) this\.#refs\.gpsCompDisplay\.textContent = endereco\.complemento \|\|/);
 });
+
+test('MapWidget — normalizarCoordenada retorna null para valor null', () => {
+  const source = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
+  assert.match(source, /valor\s*===\s*null\s*\|\|\s*valor\s*===\s*undefined/);
+});

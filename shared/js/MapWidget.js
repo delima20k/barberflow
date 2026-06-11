@@ -506,6 +506,7 @@ class MapWidget {
   }
 
   static #normalizarCoordenada(valor, min, max) {
+    if (valor === null || valor === undefined) return null;
     const numero = Number(valor);
     if (!isFinite(numero) || numero < min || numero > max) return null;
     return numero;
