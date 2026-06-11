@@ -3493,8 +3493,10 @@ export class MinhaBarbeariaRuntimeController {
       _sucesso = true;
       AnimationService.gaspar(this.#refs.gpsMsg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
       NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
+      const _evtDetail = { barbershopId: this.#barbershopId };
+      console.log('[DELIMA-DEBUG] 1/5 DISPATCH barberflow:barbearia-endereco-atualizado', _evtDetail);
       document.dispatchEvent(new CustomEvent('barberflow:barbearia-endereco-atualizado', {
-        detail: { barbershopId: this.#barbershopId },
+        detail: _evtDetail,
       }));
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarGps:', err);

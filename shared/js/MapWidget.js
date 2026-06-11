@@ -60,7 +60,8 @@ class MapWidget {
     document.addEventListener('geo:negado',    () => MapWidget.onGPSNegado(),    { once: false });
 
     // Atualiza marcadores quando barbearia salva novo endereço/GPS
-    document.addEventListener('barberflow:barbearia-endereco-atualizado', async () => {
+    document.addEventListener('barberflow:barbearia-endereco-atualizado', async (e) => {
+      console.log('[DELIMA-DEBUG] 2/5 LISTENER recebeu evento de endereco atualizado', e.detail);
       try {
         await MapWidget.recarregarBarbearias();
       } catch (err) {
@@ -108,14 +109,18 @@ class MapWidget {
    * Usado apos salvar a localizacao de uma barbearia no painel profissional.
    */
   static async recarregarBarbearias() {
+    console.log('[DELIMA-DEBUG] 3/5 recarregarBarbearias() — mapa:', !!MapWidget.#mapa, '| posUsuario:', !!MapWidget.#posUsuario);
     if (typeof BarbeariaApiClient !== 'undefined') {
       BarbeariaApiClient.invalidarCache?.();
+      console.log('[DELIMA-DEBUG] 3/5 cache BarbeariaApiClient invalidado');
     }
-    if (!MapWidget.#mapa) return;
+    if (!MapWidget.#mapa) { console.warn('[DELIMA-DEBUG] 3/5 ABORT: #mapa é null'); return; }
     if (!MapWidget.#posUsuario) {
+      console.log('[DELIMA-DEBUG] 3/5 sem posUsuario → #carregarBarbeariasGlobais()');
       await MapWidget.#carregarBarbeariasGlobais();
       return;
     }
+    console.log('[DELIMA-DEBUG] 3/5 com posUsuario → #carregar()');
     await MapWidget.#carregar();
   }
 
@@ -233,13 +238,17 @@ class MapWidget {
   /** Lista barbearias ativas com endereco e coordenadas via BFF. */
   static async #buscarTodasBarbearias() {
     const data = await BarbeariaApiClient.getTodas();
-    return (data ?? [])
+    console.log('[DELIMA-DEBUG] 4/5 getTodas() retornou', (data ?? []).length, 'barbearias');
+    const resultado = (data ?? [])
       .map(s => ({
         ...s,
         latitude:  s.latitude  != null ? Number(s.latitude)  : null,
         longitude: s.longitude != null ? Number(s.longitude) : null,
       }))
       .filter(s => s.address && MapWidget.#barbeariaComMapaValido(s));
+    console.log('[DELIMA-DEBUG] 4/5 após filtro (address + coords válidos):', resultado.length, 'barbearias');
+    resultado.forEach(b => console.log('[DELIMA-DEBUG] 4/5 →', b.name, '| lat:', b.latitude, '| lng:', b.longitude));
+    return resultado;
   }
 
   static #haversine(lat1, lon1, lat2, lon2) {
@@ -349,7 +358,8 @@ class MapWidget {
 
   /** Adiciona um marcador avatar no mapa para cada barbearia da lista. */
   static #renderMarcadores(lista) {
-    if (!MapWidget.#layerBarbearias) return;
+    console.log('[DELIMA-DEBUG] 5/5 #renderMarcadores() — lista.length:', lista?.length, '| layerBarbearias:', !!MapWidget.#layerBarbearias);
+    if (!MapWidget.#layerBarbearias) { console.warn('[DELIMA-DEBUG] 5/5 ABORT: #layerBarbearias é null'); return; }
     MapWidget.#layerBarbearias.clearLayers();
 
     lista.forEach(b => {
