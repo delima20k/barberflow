@@ -236,8 +236,8 @@ class MapWidget {
     return (data ?? [])
       .map(s => ({
         ...s,
-        latitude:  Number(s.latitude),
-        longitude: Number(s.longitude),
+        latitude:  s.latitude  != null ? Number(s.latitude)  : null,
+        longitude: s.longitude != null ? Number(s.longitude) : null,
       }))
       .filter(s => s.address && MapWidget.#barbeariaComMapaValido(s));
   }
