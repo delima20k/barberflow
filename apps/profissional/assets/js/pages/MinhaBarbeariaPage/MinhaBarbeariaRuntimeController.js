@@ -3473,8 +3473,10 @@ export class MinhaBarbeariaRuntimeController {
         Object.assign(this.#shopData, atualizadoBanco ?? {}, {
           address: enderecoCompleto, city: city||null, state: state||null, zip_code: cep||null,
           neighborhood: bairro || null,
-          latitude:  this.#coordsGps.lat,
-          longitude: this.#coordsGps.lng,
+          ...(this.#coordsGps ? {
+            latitude:  this.#coordsGps.lat,
+            longitude: this.#coordsGps.lng,
+          } : {}),
         });
         this.#renderInfoCard(this.#shopData);
       }

@@ -280,10 +280,29 @@ class BarbershopService {
   static async salvarEnderecoGps(ownerId, dados = {}) {
     if (!ownerId) throw new TypeError('[BarbershopService] owner_id invalido');
 
-    const lat = Number(dados.lat);
-    const lng = Number(dados.lng);
+    let lat = Number(dados.lat);
+    let lng = Number(dados.lng);
+
+    // Fallback: sem GPS mas com CEP → geocodificar via ViaCEP + Nominatim
     if (!isFinite(lat) || !isFinite(lng)) {
-      throw new TypeError('[BarbershopService] coordenadas invalidas');
+      const cepLimpo = String(dados.zip_code ?? dados.zipCode ?? '').replace(/\D/g, '');
+      if (cepLimpo.length === 8) {
+        try {
+          const geo   = await BarbershopService.geocodificarCep(cepLimpo);
+          const query = encodeURIComponent(`${geo.address}, ${geo.city}, ${geo.state}, Brasil`);
+          const res   = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
+            { headers: { 'Accept-Language': 'pt-BR' } }
+          );
+          const lista = await res.json();
+          if (lista?.length) {
+            lat = parseFloat(lista[0].lat);
+            lng = parseFloat(lista[0].lon);
+          }
+        } catch {
+          // geocodificação falhou — continua sem coordenadas (BFF aceita null)
+        }
+      }
     }
 
     const address = String(dados.address ?? '').trim();
@@ -304,14 +323,14 @@ class BarbershopService {
 
     const { data, error } = await BffApiService.patch('/api/v1/barbearias/minha/endereco', {
       address,
-      numero:       numero || null,
-      complemento:  complemento || null,
-      lat,
-      lng,
-      city:         city || null,
-      state:        state || null,
-      zip_code:     zipCode || null,
+      numero:       numero       || null,
+      complemento:  complemento  || null,
+      city:         city         || null,
+      state:        state        || null,
+      zip_code:     zipCode      || null,
       neighborhood: neighborhood || null,
+      // Inclui coords apenas quando válidas — BFF ignora se ausentes
+      ...(isFinite(lat) && isFinite(lng) ? { lat, lng } : {}),
     });
     if (error) throw error;
     return data;
