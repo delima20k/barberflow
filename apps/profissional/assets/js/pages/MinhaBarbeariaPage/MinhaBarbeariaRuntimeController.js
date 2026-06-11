@@ -3493,6 +3493,9 @@ export class MinhaBarbeariaRuntimeController {
       _sucesso = true;
       AnimationService.gaspar(this.#refs.gpsMsg, '✓ Salvo com Sucesso', 3500, 'gaspar-ok');
       NotificationService?.mostrarToast('Localização', 'Endereço atualizado!', 'sistema');
+      document.dispatchEvent(new CustomEvent('barberflow:barbearia-endereco-atualizado', {
+        detail: { barbershopId: this.#barbershopId },
+      }));
     } catch (err) {
       console.error('[MinhaBarbeariaPage] salvarGps:', err);
       this.#mostrarGpsMsg('Erro ao salvar. Tente novamente.', 'erro');

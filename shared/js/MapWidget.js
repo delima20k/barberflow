@@ -59,6 +59,15 @@ class MapWidget {
     document.addEventListener('geo:concedido', () => MapWidget.onGPSConcedido(), { once: false });
     document.addEventListener('geo:negado',    () => MapWidget.onGPSNegado(),    { once: false });
 
+    // Atualiza marcadores quando barbearia salva novo endereço/GPS
+    document.addEventListener('barberflow:barbearia-endereco-atualizado', async () => {
+      try {
+        await MapWidget.recarregarBarbearias();
+      } catch (err) {
+        console.warn('[MapWidget] erro ao recarregar barbearias', err);
+      }
+    });
+
     const permissao = await GeoService.verificarPermissao();
     if (permissao === 'granted') {
       await MapWidget.#carregar();
