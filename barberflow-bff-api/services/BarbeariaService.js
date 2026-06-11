@@ -149,6 +149,10 @@ class BarbeariaService extends BaseService {
   async salvarEndereco(userId, dados = {}) {
     this._uuid('userId', userId);
 
+    if (!dados.barbershop_id) throw AppError.badRequest('barbershop_id é obrigatório.');
+    const barbershopId = String(dados.barbershop_id).trim();
+    this._uuid('barbershop_id', barbershopId);
+
     const hasCoords = dados.lat != null && dados.lng != null;
     let lat, lng;
     if (hasCoords) {
@@ -157,24 +161,27 @@ class BarbeariaService extends BaseService {
       this._coordenada(lat, lng);
     }
 
-    const rua = this._texto('address', dados.address, 160, true);
-    const numero = this._texto('numero', dados.numero ?? '', 30, false);
-    const complemento = this._texto('complemento', dados.complemento ?? '', 80, false);
-    const city = this._texto('city', dados.city ?? '', 80, false);
-    const state = this._texto('state', dados.state ?? '', 2, false).toUpperCase();
-    const zipCode = this._texto('zip_code', dados.zip_code ?? dados.zipCode ?? '', 12, false);
-    const neighborhood = this._texto('neighborhood', dados.neighborhood ?? '', 80, false);
-    const address = [rua, numero, complemento].filter(Boolean).join(', ');
+    const rua          = this._texto('address',      dados.address,                          160, true);
+    const numero       = this._texto('numero',       dados.numero       ?? '',               30,  false);
+    const complemento  = this._texto('complemento',  dados.complemento  ?? '',               80,  false);
+    const city         = this._texto('city',         dados.city         ?? '',               80,  false);
+    const state        = this._texto('state',        dados.state        ?? '',               2,   false).toUpperCase();
+    const zipCode      = this._texto('zip_code',     dados.zip_code ?? dados.zipCode ?? '',  12,  false);
+    const neighborhood = this._texto('neighborhood', dados.neighborhood  ?? '',               80,  false);
+    const address      = [rua, numero, complemento].filter(Boolean).join(', ');
 
-    return this.#repo.updateEndereco(userId, {
+    const result = await this.#repo.updateEndereco(userId, {
       address,
-      city: city || null,
-      state: state || null,
-      zip_code: zipCode || null,
-      neighborhood: neighborhood || null,
-      ...(hasCoords ? { latitude: lat, longitude: lng } : {}),
+      ...(city         ? { city }                  : {}),
+      ...(state        ? { state }                 : {}),
+      ...(zipCode      ? { zip_code: zipCode }     : {}),
+      ...(neighborhood ? { neighborhood }          : {}),
+      ...(hasCoords    ? { latitude: lat, longitude: lng } : {}),
       updated_at: new Date().toISOString(),
-    });
+    }, barbershopId);
+
+    if (!result) throw AppError.notFound('Barbearia não encontrada.');
+    return result;
   }
 
   /**

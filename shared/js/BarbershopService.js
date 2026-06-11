@@ -321,6 +321,8 @@ class BarbershopService {
       throw new Error('[BarbershopService] BFF indisponivel para salvar endereco da barbearia');
     }
 
+    const barbershopId = String(dados.barbershop_id ?? '').trim() || null;
+
     const { data, error } = await BffApiService.patch('/api/v1/barbearias/minha/endereco', {
       address,
       numero:       numero       || null,
@@ -329,8 +331,8 @@ class BarbershopService {
       state:        state        || null,
       zip_code:     zipCode      || null,
       neighborhood: neighborhood || null,
-      // Inclui coords apenas quando válidas — BFF ignora se ausentes
-      ...(isFinite(lat) && isFinite(lng) ? { lat, lng } : {}),
+      ...(barbershopId                   ? { barbershop_id: barbershopId } : {}),
+      ...(isFinite(lat) && isFinite(lng) ? { lat, lng }                   : {}),
     });
     if (error) throw error;
     return data;

@@ -245,7 +245,7 @@ class BarbeariaRepository extends BaseRepository {
    * @param {object} dados
    * @returns {Promise<object>}
    */
-  async updateEndereco(ownerId, dados) {
+  async updateEndereco(ownerId, dados, barbershopId) {
     this._uuid('ownerId', ownerId);
     const payload = this._payload(dados, [
       'address',
@@ -262,8 +262,9 @@ class BarbeariaRepository extends BaseRepository {
       .from('barbershops')
       .update(payload)
       .eq('owner_id', ownerId)
+      .eq('id', barbershopId)
       .select(BarbeariaRepository.#SELECT_ENDERECO)
-      .single();
+      .maybeSingle();
 
     if (error) {
       this._warn('updateEndereco', error);

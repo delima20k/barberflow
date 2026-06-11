@@ -3449,12 +3449,13 @@ export class MinhaBarbeariaRuntimeController {
 
     const payload = {
       address,
-      numero:      num     || null,
-      complemento: comp    || null,
-      city:         city    || null,
-      state:        state   || null,
-      zip_code:     cep     || null,
-      neighborhood: bairro  || null,
+      numero:        num              || null,
+      complemento:   comp             || null,
+      city:          city             || null,
+      state:         state            || null,
+      zip_code:      cep              || null,
+      neighborhood:  bairro           || null,
+      barbershop_id: this.#barbershopId,
       ...(this.#coordsGps
         ? { lat: this.#coordsGps.lat, lng: this.#coordsGps.lng }
         : {}),
