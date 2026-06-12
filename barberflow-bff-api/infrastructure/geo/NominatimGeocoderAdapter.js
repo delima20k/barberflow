@@ -73,26 +73,36 @@ class NominatimGeocoderAdapter extends IReverseGeocoder {
 
   /**
    * Geocodificação direta: endereço estruturado → coordenadas.
-   * Tentativa 1: busca livre (logradouro, bairro, cidade, UF, Brasil).
-   * Tentativa 2 (fallback): busca estruturada por CEP (postalcode + country).
+   * Tentativa 1: busca estruturada (street/city/state) — não exige bairro;
+   *              bairros do ViaCEP frequentemente divergem dos nomes no OSM.
+   * Tentativa 2: busca livre SEM bairro (logradouro, cidade, Brasil).
+   * Tentativa 3 (fallback): busca estruturada por CEP (postalcode + country).
    *
    * @param {object} params
    * @param {string} [params.address]      — logradouro (sem número)
-   * @param {string} [params.neighborhood] — bairro
+   * @param {string} [params.neighborhood] — bairro (aceito, mas não usado nas queries)
    * @param {string} [params.city]
    * @param {string} [params.state]        — UF
    * @param {string} [params.zipCode]      — CEP (com ou sem hífen)
    * @returns {Promise<Result<{ lat: number, lng: number }|null, string>>}
    */
   async forwardGeocode({ address, neighborhood, city, state, zipCode } = {}) {
-    // Tentativa 1 — query livre
-    const partes = [address, neighborhood, city, state, 'Brasil'].filter(Boolean);
-    if (partes.length > 1) {
-      const r1 = await this.#search(`q=${encodeURIComponent(partes.join(', '))}`);
+    // Tentativa 1 — busca estruturada street/city/state
+    if (address && city) {
+      const p = new URLSearchParams({ street: address, city, country: 'br' });
+      if (state) p.set('state', state);
+      const r1 = await this.#search(p.toString());
       if (r1.isOk() && r1.getValue()) return r1;
     }
 
-    // Tentativa 2 — CEP estruturado
+    // Tentativa 2 — query livre sem bairro
+    const partes = [address, city, 'Brasil'].filter(Boolean);
+    if (partes.length > 1) {
+      const r2 = await this.#search(`q=${encodeURIComponent(partes.join(', '))}&countrycodes=br`);
+      if (r2.isOk() && r2.getValue()) return r2;
+    }
+
+    // Tentativa 3 — CEP estruturado
     const cepLimpo = String(zipCode ?? '').replace(/\D/g, '');
     if (cepLimpo.length === 8) {
       return this.#search(`postalcode=${cepLimpo}&country=br`);

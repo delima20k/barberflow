@@ -128,6 +128,22 @@ test('Invariante: NominatimGeocoderAdapter possui forwardGeocode com fallback po
   assert.match(fonte, /'User-Agent':\s*this\.#userAgent/);
 });
 
+test('Fix 422: forwardGeocode usa busca estruturada street/city antes da livre e sem bairro', () => {
+  const fonte  = lerFonte('barberflow-bff-api/infrastructure/geo/NominatimGeocoderAdapter.js');
+  const metodo = extrairMetodo(fonte, 'async forwardGeocode(', '\n  async #search(');
+
+  // Tentativa 1: busca estruturada (street/city/state) — bairro do ViaCEP diverge do OSM
+  assert.match(metodo, /street:\s*address/);
+  assert.match(metodo, /city,\s*country:\s*'br'/);
+  // Query livre não inclui mais o bairro (fonte do mismatch)
+  assert.doesNotMatch(metodo, /\[address,\s*neighborhood/);
+  // Busca estruturada vem ANTES da query livre
+  const posEstruturada = metodo.indexOf('street: address');
+  const posLivre       = metodo.indexOf('countrycodes=br');
+  assert.ok(posEstruturada !== -1 && posLivre !== -1 && posEstruturada < posLivre,
+    'busca estruturada deve ser a Tentativa 1, antes da query livre');
+});
+
 test('Invariante: geocoder injetado na factory de rotas de barbearias', () => {
   const fonte = lerFonte('barberflow-bff-api/routes/barbearias.js');
 

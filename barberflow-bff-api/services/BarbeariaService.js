@@ -192,7 +192,7 @@ class BarbeariaService extends BaseService {
     }
     if (!hasCoords) {
       throw AppError.unprocessable(
-        'Não foi possível localizar as coordenadas do endereço. Verifique o CEP e tente novamente.'
+        'Endereço não encontrado no provedor de geolocalização. Confira rua e cidade e tente novamente.'
       );
     }
 
