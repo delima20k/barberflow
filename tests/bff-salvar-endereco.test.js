@@ -100,3 +100,37 @@ test('MinhaBarbeariaRuntimeController envia barbershop_id no payload de #salvarG
 
   assert.match(metodo, /barbershop_id:\s*this\.#barbershopId/);
 });
+
+// ─── Invariante: endereço salvo ⇒ coordenadas salvas ────────────────────────
+
+test('Invariante: BarbeariaService.salvarEndereco geocodifica no servidor e rejeita 422 sem coords', () => {
+  const fonte  = lerFonte('barberflow-bff-api/services/BarbeariaService.js');
+  const metodo = extrairMetodo(fonte, 'async salvarEndereco(', '\n  /**');
+
+  // Geocodificação server-side quando cliente não envia coords
+  assert.match(metodo, /forwardGeocode\(/);
+  // Falha de geocodificação → 422
+  assert.match(metodo, /AppError\.unprocessable\(/);
+  // Payload sempre persiste coordenadas (sem spread condicional de hasCoords)
+  assert.match(metodo, /latitude:\s*lat,/);
+  assert.match(metodo, /longitude:\s*lng,/);
+  assert.doesNotMatch(metodo, /hasCoords\s*\?\s*\{\s*latitude/);
+});
+
+test('Invariante: NominatimGeocoderAdapter possui forwardGeocode com fallback por CEP', () => {
+  const fonte = lerFonte('barberflow-bff-api/infrastructure/geo/NominatimGeocoderAdapter.js');
+
+  assert.match(fonte, /async forwardGeocode\(/);
+  // Fallback estruturado por CEP (postalcode + country br)
+  assert.match(fonte, /postalcode=/);
+  assert.match(fonte, /country=br/);
+  // User-Agent obrigatório nas buscas
+  assert.match(fonte, /'User-Agent':\s*this\.#userAgent/);
+});
+
+test('Invariante: geocoder injetado na factory de rotas de barbearias', () => {
+  const fonte = lerFonte('barberflow-bff-api/routes/barbearias.js');
+
+  assert.match(fonte, /NominatimGeocoderAdapter/);
+  assert.match(fonte, /new BarbeariaService\(repo,\s*sendMessageUseCase,\s*broadcaster,\s*publicCache,\s*geocoder\)/);
+});

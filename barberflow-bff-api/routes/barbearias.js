@@ -13,6 +13,7 @@ const { BlockPolicy } = require('../domain/chat/policies/BlockPolicy');
 const { SendMessageUseCase } = require('../application/chat/SendMessageUseCase');
 const { SupabaseBroadcaster } = require('../infrastructure/realtime/SupabaseBroadcaster');
 const { BarbershopPublicCacheProvider } = require('../infrastructure/cache/BarbershopPublicCacheProvider');
+const { NominatimGeocoderAdapter } = require('../infrastructure/geo/NominatimGeocoderAdapter');
 
 // ── Factory: recebe db injetado por criarApp() ───────────────────
 // Permite isolamento de dependências em testes (evita caching de módulo).
@@ -27,7 +28,8 @@ module.exports = function criarBarbeariaRoute(db) {
   });
   const broadcaster = new SupabaseBroadcaster();
   const publicCache = BarbershopPublicCacheProvider.create();
-  const svc  = new BarbeariaService(repo, sendMessageUseCase, broadcaster, publicCache);
+  const geocoder = new NominatimGeocoderAdapter({ userAgent: 'BarberFlow-BFF/1.0 (delima20k@gmail.com)' });
+  const svc  = new BarbeariaService(repo, sendMessageUseCase, broadcaster, publicCache, geocoder);
   const mediaSvc = new BarbeariaMediaService(repo);
   const ctrl = new BarbeariaController(svc, mediaSvc);
 

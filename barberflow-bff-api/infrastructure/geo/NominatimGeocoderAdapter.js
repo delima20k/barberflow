@@ -71,6 +71,71 @@ class NominatimGeocoderAdapter extends IReverseGeocoder {
     }
   }
 
+  /**
+   * Geocodificação direta: endereço estruturado → coordenadas.
+   * Tentativa 1: busca livre (logradouro, bairro, cidade, UF, Brasil).
+   * Tentativa 2 (fallback): busca estruturada por CEP (postalcode + country).
+   *
+   * @param {object} params
+   * @param {string} [params.address]      — logradouro (sem número)
+   * @param {string} [params.neighborhood] — bairro
+   * @param {string} [params.city]
+   * @param {string} [params.state]        — UF
+   * @param {string} [params.zipCode]      — CEP (com ou sem hífen)
+   * @returns {Promise<Result<{ lat: number, lng: number }|null, string>>}
+   */
+  async forwardGeocode({ address, neighborhood, city, state, zipCode } = {}) {
+    // Tentativa 1 — query livre
+    const partes = [address, neighborhood, city, state, 'Brasil'].filter(Boolean);
+    if (partes.length > 1) {
+      const r1 = await this.#search(`q=${encodeURIComponent(partes.join(', '))}`);
+      if (r1.isOk() && r1.getValue()) return r1;
+    }
+
+    // Tentativa 2 — CEP estruturado
+    const cepLimpo = String(zipCode ?? '').replace(/\D/g, '');
+    if (cepLimpo.length === 8) {
+      return this.#search(`postalcode=${cepLimpo}&country=br`);
+    }
+
+    return Result.ok(null);
+  }
+
+  /**
+   * Executa busca /search na Nominatim e extrai o primeiro resultado.
+   * @param {string} queryString — parâmetros já codificados (sem format/limit)
+   * @returns {Promise<Result<{ lat: number, lng: number }|null, string>>}
+   */
+  async #search(queryString) {
+    await this.#throttle();
+
+    try {
+      const url = `${NOMINATIM_BASE}/search?${queryString}&format=json&limit=1`;
+
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': this.#userAgent,
+          'Accept':     'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        return Result.fail(`NominatimGeocoderAdapter: HTTP ${res.status} (forward)`);
+      }
+
+      const lista = await res.json();
+      if (!Array.isArray(lista) || !lista.length) return Result.ok(null);
+
+      const lat = parseFloat(lista[0].lat);
+      const lng = parseFloat(lista[0].lon);
+      if (!isFinite(lat) || !isFinite(lng)) return Result.ok(null);
+
+      return Result.ok({ lat, lng });
+    } catch (err) {
+      return Result.fail(`NominatimGeocoderAdapter: ${err.message}`);
+    }
+  }
+
   // ── Throttle ───────────────────────────────────────────────────
 
   /**

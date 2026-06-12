@@ -131,35 +131,44 @@ suite('BarbeariaService.listarProximas() — validação de raio', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BarbeariaService — graceful degradation quando banco falha
+// BarbeariaService — falha de banco vira AppError 503 (Service Unavailable)
 // ─────────────────────────────────────────────────────────────────────────────
 
 suite('BarbeariaService — graceful degradation (banco falha)', () => {
 
   const ERRO_BANCO = new Error('DB connection refused');
 
-  test('listarProximas retorna [] quando repo.getNearby lança', async () => {
+  test('listarProximas lança AppError(503) quando repo.getNearby lança', async () => {
     const repo = { getNearby: async () => { throw ERRO_BANCO; } };
     const svc  = new BarbeariaService(repo);
-    const rows = await svc.listarProximas(LAT, LNG, RAIO);
 
-    assert.deepStrictEqual(rows, [], 'deve retornar [] sem propagar exceção');
+    await assert.rejects(
+      () => svc.listarProximas(LAT, LNG, RAIO),
+      (err) => err.status === 503,
+      'falha de banco deve virar AppError.unavailable, não vazar erro cru',
+    );
   });
 
-  test('listarDestaque retorna [] quando repo.getFeatured lança', async () => {
+  test('listarDestaque lança AppError(503) quando repo.getFeatured lança', async () => {
     const repo = { getFeatured: async () => { throw ERRO_BANCO; } };
     const svc  = new BarbeariaService(repo);
-    const rows = await svc.listarDestaque(6);
 
-    assert.deepStrictEqual(rows, [], 'deve retornar [] sem propagar exceção');
+    await assert.rejects(
+      () => svc.listarDestaque(6),
+      (err) => err.status === 503,
+      'falha de banco deve virar AppError.unavailable, não vazar erro cru',
+    );
   });
 
-  test('listarTodas retorna [] quando repo.getAll lança', async () => {
+  test('listarTodas lança AppError(503) quando repo.getAll lança', async () => {
     const repo = { getAll: async () => { throw ERRO_BANCO; } };
     const svc  = new BarbeariaService(repo);
-    const rows = await svc.listarTodas(60);
 
-    assert.deepStrictEqual(rows, [], 'deve retornar [] sem propagar exceção');
+    await assert.rejects(
+      () => svc.listarTodas(60),
+      (err) => err.status === 503,
+      'falha de banco deve virar AppError.unavailable, não vazar erro cru',
+    );
   });
 
   test('listarProximas com coordenadas inválidas ainda lança AppError(400) — não engole validação', async () => {
@@ -188,6 +197,7 @@ suite('BarbeariaService.salvarEndereco() — endereco completo da barbearia', ()
     const svc = new BarbeariaService(repo);
 
     const result = await svc.salvarEndereco('550e8400-e29b-41d4-a716-446655440000', {
+      barbershop_id: '660e8400-e29b-41d4-a716-446655440111',
       address: 'Rua A',
       numero: '123',
       complemento: 'Sala 2',
@@ -212,6 +222,7 @@ suite('BarbeariaService.salvarEndereco() — endereco completo da barbearia', ()
 
     await assert.rejects(
       () => svc.salvarEndereco('550e8400-e29b-41d4-a716-446655440000', {
+        barbershop_id: '660e8400-e29b-41d4-a716-446655440111',
         address: 'Rua A',
         lat: 'abc',
         lng: -46.63,

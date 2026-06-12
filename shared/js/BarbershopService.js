@@ -287,6 +287,7 @@ class BarbershopService {
     if (!isFinite(lat) || !isFinite(lng)) {
       const cepLimpo = String(dados.zip_code ?? dados.zipCode ?? '').replace(/\D/g, '');
       if (cepLimpo.length === 8) {
+        console.log('[Endereco] iniciando geocodificação CEP', cepLimpo); // TEMP
         try {
           const geo   = await BarbershopService.geocodificarCep(cepLimpo);
           const query = encodeURIComponent(`${geo.address}, ${geo.city}, ${geo.state}, Brasil`);
@@ -299,8 +300,10 @@ class BarbershopService {
             lat = parseFloat(lista[0].lat);
             lng = parseFloat(lista[0].lon);
           }
-        } catch {
-          // geocodificação falhou — continua sem coordenadas (BFF aceita null)
+          console.log('[Endereco] geocodificação retornou', { lat, lng }); // TEMP
+        } catch (err) {
+          // geocodificação falhou no cliente — BFF fará server-side
+          console.warn('[Endereco] geocodificação cliente falhou — BFF fará server-side', err?.message); // TEMP
         }
       }
     }
@@ -323,6 +326,7 @@ class BarbershopService {
 
     const barbershopId = String(dados.barbershop_id ?? '').trim() || null;
 
+    console.log('[Endereco] payload ao BFF', { temCoords: isFinite(lat) && isFinite(lng) }); // TEMP
     const { data, error } = await BffApiService.patch('/api/v1/barbearias/minha/endereco', {
       address,
       numero:       numero       || null,
