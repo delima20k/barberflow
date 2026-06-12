@@ -472,14 +472,22 @@
   animation: mapa-shop-marker-enter .22s ease-out both;
   transition: transform .18s ease, filter .18s ease;
   pointer-events: auto;
+  transform: scale(var(--mz, 1));
+  transform-origin: 50% 79%; /* alinha com ICON_ANCHOR y=117/148 — pin não se desloca */
 }
 
 .loja-marker:hover {
-  transform: translateY(-2px) scale(1.04);
+  transform: translateY(-2px) scale(calc(var(--mz, 1) * 1.06));
   filter: drop-shadow(0 12px 20px rgba(15, 17, 21, .36));
 }
 
-.loja-marker:active { transform: scale(.96); }
+.loja-marker:active { transform: scale(calc(var(--mz, 1) * 0.96)); }
+
+.loja-marker--active {
+  transform: scale(calc(var(--mz, 1) * 2.2)) !important;
+  filter: drop-shadow(0 16px 32px rgba(15, 17, 21, .55)) !important;
+  transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), filter .25s ease !important;
+}
 
 .loja-marker__store-name {
   padding: 5px 12px;

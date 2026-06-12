@@ -180,6 +180,9 @@ class MapWidget {
     // LayerGroup reutilizável para os marcadores das barbearias
     MapWidget.#layerBarbearias = L.layerGroup().addTo(MapWidget.#mapa);
 
+    // Escala os marcadores a cada mudança de zoom
+    MapWidget.#mapa.on('zoomend', () => MapWidget.#aplicarEscalaZoom());
+
     // Garante que o Leaflet conhece as dimensões reais do container
     // após o primeiro ciclo de renderização do CSS.
     setTimeout(() => MapWidget.#mapa?.invalidateSize(), 0);
@@ -442,8 +445,57 @@ class MapWidget {
           direction:  'bottom',
           offset:     [0, 27],
           className:  'mapa-tooltip-nome',
-        });
+        })
+        .on('click',      (e) => MapWidget.#ativarMarcador(e.target))
+        .on('popupclose', (e) => MapWidget.#desativarMarcador(e.target));
     });
+
+    // Aplica escala do zoom atual após os marcadores serem inseridos no DOM
+    requestAnimationFrame(() => MapWidget.#aplicarEscalaZoom());
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PRIVADO — Escala responsiva ao zoom e expansão ao clicar
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Interpola a escala visual do marcador pelo nível de zoom usando smoothstep.
+   * zoom 8 → 0.28 (≈22px de building) · zoom 19 → 1.0 (80px, tamanho real).
+   */
+  static #calcularEscala(zoom) {
+    const minZ = 8, maxZ = 19, minS = 0.28, maxS = 1.0;
+    const t     = Math.max(0, Math.min(1, (zoom - minZ) / (maxZ - minZ)));
+    const eased = t * t * (3 - 2 * t); // smoothstep
+    return +(minS + eased * (maxS - minS)).toFixed(3);
+  }
+
+  /** Atualiza a CSS custom property --mz em todos os .loja-marker do layer. */
+  static #aplicarEscalaZoom() {
+    if (!MapWidget.#mapa || !MapWidget.#layerBarbearias) return;
+    const scale = MapWidget.#calcularEscala(MapWidget.#mapa.getZoom());
+    MapWidget.#layerBarbearias.eachLayer(layer => {
+      layer.getElement?.()?.querySelector('.loja-marker')
+        ?.style.setProperty('--mz', scale);
+    });
+  }
+
+  /** Expande o marcador clicado e eleva seu z-index sobre os demais. */
+  static #ativarMarcador(marker) {
+    MapWidget.#layerBarbearias?.eachLayer(layer => {
+      layer.getElement?.()?.querySelector('.loja-marker')
+        ?.classList.remove('loja-marker--active');
+      if (layer !== marker) layer.setZIndexOffset?.(0);
+    });
+    marker.getElement?.()?.querySelector('.loja-marker')
+      ?.classList.add('loja-marker--active');
+    marker.setZIndexOffset?.(1000);
+  }
+
+  /** Reverte a expansão e o z-index do marcador ao fechar o popup. */
+  static #desativarMarcador(marker) {
+    marker.getElement?.()?.querySelector('.loja-marker')
+      ?.classList.remove('loja-marker--active');
+    marker.setZIndexOffset?.(0);
   }
 
   // ═══════════════════════════════════════════════════════════
