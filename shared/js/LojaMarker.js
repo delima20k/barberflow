@@ -7,13 +7,13 @@
 
 class LojaMarker {
   /** @type {[number,number]} Dimensões do ícone Leaflet [largura, altura] */
-  static get ICON_SIZE()    { return [116, 148]; }
+  static get ICON_SIZE()    { return [116, 128]; }
 
   /** @type {[number,number]} Ponto de ancoragem [x, y] — ponta do pin */
-  static get ICON_ANCHOR()  { return [58,  117]; }
+  static get ICON_ANCHOR()  { return [58,   82]; }
 
   /** @type {[number,number]} Deslocamento do popup em relação ao anchor */
-  static get POPUP_ANCHOR() { return [0,  -119]; }
+  static get POPUP_ANCHOR() { return [0,   -84]; }
 
   /**
    * Gera o HTML string do marcador da barbearia.
@@ -54,7 +54,6 @@ class LojaMarker {
       : '';
 
     return `<div class="loja-marker">
-  <div class="loja-marker__store-name">${nomeCurto}</div>
   <div class="loja-marker__building">
     <div class="loja-marker__roof">
       <span class="loja-marker__roof-sign">&#9988; BARBER</span>
@@ -69,6 +68,7 @@ class LojaMarker {
     <div class="loja-marker__base"></div>
   </div>
   <div class="loja-marker__pin"></div>
+  <div class="loja-marker__store-name">${nomeCurto}</div>
   <div class="loja-marker__label">
     ${ruaHtml}
     ${numHtml}
