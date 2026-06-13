@@ -10,6 +10,8 @@ const { PresenceLink } = require('../../application/chat/PresenceLink');
 const { InMemoryChatRepository } = require('../../infrastructure/chat/InMemoryChatRepository');
 const { JOB_TYPES, QUEUES } = require('../../config/queues');
 
+const ENCRYPTED_PAYLOAD = { v: 1, alg: 'AES-GCM-256', iv: 'iv', ct: 'ct', kid: 'peer' };
+
 describe('[Integration] Chat delivery outbox', () => {
   it('envio salva, agenda outbox, publica realtime e cai para push quando offline', async () => {
     const chatRepository = new InMemoryChatRepository();
@@ -34,7 +36,8 @@ describe('[Integration] Chat delivery outbox', () => {
       conversationId: 'conv-1',
       senderId: 'user-a',
       clientMessageId: 'client-msg-1',
-      body: 'Mensagem confiavel',
+      body: null,
+      encryptedPayload: ENCRYPTED_PAYLOAD,
     });
     await handler.handle({ payload: outboxEvents[0].payload });
 
@@ -70,19 +73,68 @@ describe('[Integration] Chat delivery outbox', () => {
       conversationId: 'conv-1',
       senderId: 'user-a',
       clientMessageId: 'client-msg-2',
-      body: 'Mensagem em tempo real',
+      body: null,
+      encryptedPayload: ENCRYPTED_PAYLOAD,
     });
 
     assert.deepEqual({
       ok: result.isOk(),
       recipientId: realtimeImmediate[0].recipients[0],
-      body: realtimeImmediate[0].message.body,
+      encryptedPayload: realtimeImmediate[0].message.encryptedPayload,
       senderId: realtimeImmediate[0].message.senderId,
     }, {
       ok: true,
       recipientId: 'user-b',
-      body: 'Mensagem em tempo real',
+      encryptedPayload: ENCRYPTED_PAYLOAD,
       senderId: 'user-a',
+    });
+  });
+
+  it('envio salva e responde sem esperar realtime lento', async () => {
+    const chatRepository = new InMemoryChatRepository();
+    chatRepository.seedConversation({ id: 'conv-1', participantIds: ['user-a', 'user-b'] });
+    let outboxSaved = false;
+    let publishStarted = false;
+    const warnings = [];
+    const useCase = new SendMessageUseCase({
+      chatRepository,
+      outboxRepository: { save: async () => { outboxSaved = true; return 'outbox-chat'; } },
+      blockPolicy: { canExchange: async () => true },
+      messageRealtimePublisher: {
+        publish: async () => {
+          publishStarted = true;
+          await new Promise(resolve => setTimeout(resolve, 200));
+          return { ok: true };
+        },
+      },
+      realtimeTimeoutMs: 20,
+      logger: { warn: (...args) => warnings.push(args.join(' ')), info: () => {} },
+    });
+
+    const startedAt = performance.now();
+    const result = await useCase.execute({
+      conversationId: 'conv-1',
+      senderId: 'user-a',
+      clientMessageId: 'client-msg-timeout',
+      body: null,
+      encryptedPayload: ENCRYPTED_PAYLOAD,
+    });
+    const elapsedMs = performance.now() - startedAt;
+
+    assert.deepEqual({
+      ok: result.isOk(),
+      outboxSaved,
+      publishStarted,
+      fastEnough: elapsedMs < 120,
+      hasRealtimeWarning: warnings.some(line => line.includes('realtime imediato falhou')),
+      leaksPayload: warnings.some(line => line.includes('AES-GCM') || line.includes('ct')),
+    }, {
+      ok: true,
+      outboxSaved: true,
+      publishStarted: true,
+      fastEnough: true,
+      hasRealtimeWarning: true,
+      leaksPayload: false,
     });
   });
 });

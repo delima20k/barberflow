@@ -6,6 +6,8 @@ const assert = require('node:assert/strict');
 const { SendMessageUseCase } = require('../../application/chat/SendMessageUseCase');
 const { InMemoryChatRepository } = require('../../infrastructure/chat/InMemoryChatRepository');
 
+const encryptedPayload = ct => ({ v: 1, alg: 'AES-GCM-256', iv: 'iv', ct, kid: 'peer' });
+
 describe('[Integration] Chat ordering', () => {
   it('duas mensagens simultaneas mantem ordem total e cursor reverso estavel', async () => {
     const chatRepository = new InMemoryChatRepository({
@@ -19,8 +21,20 @@ describe('[Integration] Chat ordering', () => {
     });
 
     await Promise.all([
-      useCase.execute({ conversationId: 'conv-1', senderId: 'user-a', clientMessageId: 'client-1', body: 'Primeira' }),
-      useCase.execute({ conversationId: 'conv-1', senderId: 'user-b', clientMessageId: 'client-2', body: 'Segunda' }),
+      useCase.execute({
+        conversationId: 'conv-1',
+        senderId: 'user-a',
+        clientMessageId: 'client-1',
+        body: null,
+        encryptedPayload: encryptedPayload('primeira'),
+      }),
+      useCase.execute({
+        conversationId: 'conv-1',
+        senderId: 'user-b',
+        clientMessageId: 'client-2',
+        body: null,
+        encryptedPayload: encryptedPayload('segunda'),
+      }),
     ]);
     const firstPage = await chatRepository.listMessagesReverse({ conversationId: 'conv-1', limit: 1 });
     const secondPage = await chatRepository.listMessagesReverse({

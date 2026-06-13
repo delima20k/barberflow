@@ -17,15 +17,18 @@ class SupabaseBroadcaster {
   #url;
   #serviceKey;
   #fetch;
+  #timeoutMs;
 
   constructor({
     url = process.env.SUPABASE_URL,
     serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY,
     fetchImpl = globalThis.fetch,
+    timeoutMs = Number(process.env.SUPABASE_BROADCAST_TIMEOUT_MS ?? 750),
   } = {}) {
     this.#url = String(url || '').replace(/\/+$/, '');
     this.#serviceKey = serviceKey || '';
     this.#fetch = typeof fetchImpl === 'function' ? fetchImpl : null;
+    this.#timeoutMs = Math.max(1, Number(timeoutMs) || 750);
   }
 
   /** true quando ha URL, service key e fetch disponiveis. */
@@ -44,6 +47,10 @@ class SupabaseBroadcaster {
    */
   async broadcast({ topic, event, payload, private: isPrivate = true }) {
     if (!this.habilitado || !topic || !event) return { ok: false, skipped: true };
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeout = controller
+      ? setTimeout(() => controller.abort(), this.#timeoutMs)
+      : null;
     try {
       const res = await this.#fetch(`${this.#url}/realtime/v1/api/broadcast`, {
         method: 'POST',
@@ -55,10 +62,18 @@ class SupabaseBroadcaster {
         body: JSON.stringify({
           messages: [{ topic, event, payload, private: isPrivate }],
         }),
+        signal: controller?.signal,
       });
       return { ok: res.status === 202 || res.ok === true, status: res.status };
     } catch (err) {
-      return { ok: false, error: err?.message || String(err) };
+      const timedOut = controller?.signal?.aborted === true;
+      return {
+        ok: false,
+        timedOut,
+        error: timedOut ? `broadcast timeout after ${this.#timeoutMs}ms` : (err?.message || String(err)),
+      };
+    } finally {
+      if (timeout) clearTimeout(timeout);
     }
   }
 }

@@ -13,6 +13,8 @@ class SendMessageUseCase {
   #messageRealtimePublisher;
   #policy;
   #clock;
+  #logger;
+  #realtimeTimeoutMs;
 
   constructor({
     chatRepository,
@@ -21,6 +23,8 @@ class SendMessageUseCase {
     messageRealtimePublisher = null,
     policy = new ChatPolicyCatalog(),
     clock = { now: () => new Date() },
+    logger = console,
+    realtimeTimeoutMs = Number(process.env.CHAT_REALTIME_IMMEDIATE_TIMEOUT_MS ?? 750),
   }) {
     if (!chatRepository || !outboxRepository || !blockPolicy) {
       throw new TypeError('SendMessageUseCase requer repository, outbox e blockPolicy.');
@@ -31,65 +35,91 @@ class SendMessageUseCase {
     this.#messageRealtimePublisher = messageRealtimePublisher;
     this.#policy = policy;
     this.#clock = clock;
+    this.#logger = logger;
+    this.#realtimeTimeoutMs = Math.max(1, Number(realtimeTimeoutMs) || 750);
   }
 
   async execute(command = {}) {
-    const previous = await this.#chatRepository.findByClientMessageId(command.senderId, command.clientMessageId);
-    if (previous) return Result.ok(previous.toJSON());
-
-    const conversation = await this.#chatRepository.findConversation(command.conversationId);
-    if (!ConversationAccessPolicy.canSend(conversation, command.senderId)) {
-      return Result.fail('Conversa indisponivel para o remetente.');
-    }
-    const recipients = conversation.recipientIds(command.senderId);
-    if (recipients.length === 0) return Result.fail('Conversa sem destinatario ativo.');
-    if (!(await this.#canExchangeWithAll(command.senderId, recipients))) {
-      return Result.fail('Mensagem bloqueada.');
-    }
-    if (await this.#isRateLimited(command, recipients)) return Result.fail('Rate limit do chat excedido.');
-    if (await this.#isFlood(command)) return Result.fail('Flood de mensagens detectado.');
-
-    const messageResult = Message.create({
-      conversationId:   command.conversationId,
-      senderId:         command.senderId,
-      clientMessageId:  command.clientMessageId,
-      body:             command.body ?? '',
-      encryptedPayload: command.encryptedPayload ?? null,
-      e2eKeyVersion:    command.e2eKeyVersion ?? null,
-      attachments:      command.attachments ?? [],
-      createdAt:        this.#clock.now(),
-    });
-    if (messageResult.isFail()) return messageResult;
-    const saved = await this.#chatRepository.saveMessage(messageResult.getValue());
-    // Outbox é best-effort: falha não deve quebrar o envio da mensagem.
-    // Se a tabela domain_events_outbox ainda não existe no ambiente, loga e continua.
+    const metrics = SendMessageUseCase.#metrics();
     try {
-      await this.#outboxRepository.save({
-        eventName: JOB_TYPES.DELIVER_CHAT_MESSAGE,
-        queue: QUEUES.NOTIFICATIONS,
-        payload: { messageId: saved.id },
+      const previous = await this.#measure(metrics, 'findByClientMessageId', () => (
+        this.#chatRepository.findByClientMessageId(command.senderId, command.clientMessageId)
+      ));
+      if (previous) return Result.ok(previous.toJSON());
+
+      const conversation = await this.#measure(metrics, 'findConversation', () => (
+        this.#chatRepository.findConversation(command.conversationId)
+      ));
+      const participantsCheck = this.#measureSync(metrics, 'participantsChecks', () => {
+        if (!ConversationAccessPolicy.canSend(conversation, command.senderId)) {
+          return { ok: false, error: 'Conversa indisponivel para o remetente.' };
+        }
+        const recipients = conversation.recipientIds(command.senderId);
+        if (recipients.length === 0) return { ok: false, error: 'Conversa sem destinatario ativo.' };
+        return { ok: true, recipients };
       });
-    } catch (outboxErr) {
-      /* eslint-disable no-console */
-      console.warn('[SendMessageUseCase] outbox.save falhou (best-effort):', outboxErr?.message);
+      if (!participantsCheck.ok) return Result.fail(participantsCheck.error);
+
+      const { recipients } = participantsCheck;
+      const checksError = await this.#measure(metrics, 'rateLimitBloqueio', async () => {
+        if (!(await this.#canExchangeWithAll(command.senderId, recipients))) return 'Mensagem bloqueada.';
+        if (await this.#isRateLimited(command, recipients)) return 'Rate limit do chat excedido.';
+        if (await this.#isFlood(command)) return 'Flood de mensagens detectado.';
+        return null;
+      });
+      if (checksError) return Result.fail(checksError);
+
+      const messageResult = Message.create({
+        conversationId:   command.conversationId,
+        senderId:         command.senderId,
+        clientMessageId:  command.clientMessageId,
+        body:             command.body ?? '',
+        encryptedPayload: command.encryptedPayload ?? null,
+        e2eKeyVersion:    command.e2eKeyVersion ?? null,
+        attachments:      command.attachments ?? [],
+        createdAt:        this.#clock.now(),
+      });
+      if (messageResult.isFail()) return messageResult;
+
+      const saved = await this.#measure(metrics, 'saveMessage', () => (
+        this.#chatRepository.saveMessage(messageResult.getValue())
+      ));
+
+      try {
+        await this.#measure(metrics, 'outboxSave', () => this.#outboxRepository.save({
+          eventName: JOB_TYPES.DELIVER_CHAT_MESSAGE,
+          queue: QUEUES.NOTIFICATIONS,
+          payload: { messageId: saved.id },
+        }));
+      } catch (outboxErr) {
+        this.#warn('outbox.save falhou (best-effort)', outboxErr);
+      }
+
+      await this.#publishRealtime(saved, metrics);
+      return Result.ok(saved.toJSON());
+    } finally {
+      metrics.totalHandler = SendMessageUseCase.#elapsed(metrics.startedAt);
+      this.#info('chat.send timings', SendMessageUseCase.#sanitizeMetrics(metrics));
     }
-    await this.#publishRealtime(saved);
-    return Result.ok(saved.toJSON());
   }
 
-  async #publishRealtime(saved) {
+  async #publishRealtime(saved, metrics) {
     if (!this.#messageRealtimePublisher) return;
     try {
-      const context = await this.#chatRepository.findDeliveryContext(saved.id);
+      const context = await this.#measure(metrics, 'findDeliveryContext', () => (
+        this.#chatRepository.findDeliveryContext(saved.id)
+      ));
       if (!context?.message || !context?.recipients?.length) return;
-      await this.#messageRealtimePublisher.publish({
-        message: context.message,
-        recipients: context.recipients,
-        sender: context.sender ?? null,
-      });
+      await this.#measure(metrics, 'realtimePublish', () => this.#withTimeout(
+        Promise.resolve().then(() => this.#messageRealtimePublisher.publish({
+          message: context.message,
+          recipients: context.recipients,
+          sender: context.sender ?? null,
+        })),
+        this.#realtimeTimeoutMs,
+      ));
     } catch (realtimeErr) {
-      /* eslint-disable no-console */
-      console.warn('[SendMessageUseCase] realtime imediato falhou (best-effort):', realtimeErr?.message);
+      this.#warn('realtime imediato falhou (best-effort)', realtimeErr);
     }
   }
 
@@ -116,6 +146,67 @@ class SendMessageUseCase {
       this.#policy.floodWindowSeconds,
     );
     return total >= this.#policy.duplicateFloodLimit;
+  }
+
+  async #measure(metrics, name, fn) {
+    const start = SendMessageUseCase.#now();
+    try {
+      return await fn();
+    } finally {
+      metrics[name] = SendMessageUseCase.#elapsed(start);
+    }
+  }
+
+  #measureSync(metrics, name, fn) {
+    const start = SendMessageUseCase.#now();
+    try {
+      return fn();
+    } finally {
+      metrics[name] = SendMessageUseCase.#elapsed(start);
+    }
+  }
+
+  async #withTimeout(promise, timeoutMs) {
+    let timer = null;
+    const operation = Promise.resolve(promise);
+    operation.catch(() => null);
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const err = new Error(`realtime publish timeout after ${timeoutMs}ms`);
+        err.code = 'REALTIME_PUBLISH_TIMEOUT';
+        reject(err);
+      }, timeoutMs);
+    });
+    try {
+      return await Promise.race([operation, timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  #warn(message, err) {
+    this.#logger?.warn?.(`[SendMessageUseCase] ${message}:`, err?.message || String(err));
+  }
+
+  #info(message, metrics) {
+    this.#logger?.info?.(`[SendMessageUseCase] ${message}`, metrics);
+  }
+
+  static #metrics() {
+    return { startedAt: SendMessageUseCase.#now() };
+  }
+
+  static #now() {
+    return Number(globalThis.performance?.now?.() ?? Date.now());
+  }
+
+  static #elapsed(start) {
+    return Number((SendMessageUseCase.#now() - start).toFixed(2));
+  }
+
+  static #sanitizeMetrics(metrics) {
+    const { startedAt: _startedAt, ...safe } = metrics;
+    return safe;
   }
 }
 

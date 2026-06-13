@@ -67,4 +67,37 @@ describe('SupabaseBroadcaster', () => {
     assert.equal(res.ok, false);
     assert.match(res.error, /network down/);
   });
+
+  test('broadcast aborta fetch lento com timeout curto', async () => {
+    let signalReceived = false;
+    const b = new SupabaseBroadcaster({
+      url: 'https://x.co',
+      serviceKey: 'k',
+      timeoutMs: 10,
+      fetchImpl: async (_url, opts) => {
+        signalReceived = Boolean(opts.signal);
+        await new Promise((resolve, reject) => {
+          opts.signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+          setTimeout(resolve, 200);
+        });
+        return { status: 202 };
+      },
+    });
+
+    const startedAt = performance.now();
+    const res = await b.broadcast({ topic: 'chat.x', event: 'e', payload: { message: { id: 'm1' } } });
+    const elapsedMs = performance.now() - startedAt;
+
+    assert.deepEqual({
+      ok: res.ok,
+      timedOut: res.timedOut,
+      signalReceived,
+      fastEnough: elapsedMs < 120,
+    }, {
+      ok: false,
+      timedOut: true,
+      signalReceived: true,
+      fastEnough: true,
+    });
+  });
 });
