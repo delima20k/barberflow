@@ -69,7 +69,7 @@ class AdminService {
       console.log(JSON.stringify({ etapa: '1_inicio', sucesso: true, timestamp: _ts() }));
 
       AdminService.#email('email', email);
-      if (!senha?.trim()) throw AppError.unauthorized('Credenciais inválidas.');
+      if (!senha?.trim()) throw AppError.badRequest('Payload inválido: os campos email e senha são obrigatórios.');
 
       const adminEmail = process.env.ADMIN_EMAIL;
       const adminHash  = process.env.ADMIN_PASSWORD_HASH;
