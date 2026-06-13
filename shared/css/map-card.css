@@ -463,6 +463,9 @@
 ═══════════════════════════════════════════════════════════ */
 .loja-marker {
   position: relative;
+  --marker-scale: var(--mz, 1);
+  --active-scale: 1;
+  --avatar-size: 80px;
   width: 116px;
   display: flex;
   flex-direction: column;
@@ -470,23 +473,24 @@
   cursor: pointer;
   filter: drop-shadow(0 8px 16px rgba(15, 17, 21, .3));
   animation: mapa-shop-marker-enter .22s ease-out both;
-  transition: transform .18s ease, filter .18s ease;
+  transition: transform .22s cubic-bezier(.22, .61, .36, 1), filter .22s ease;
   pointer-events: auto;
-  transform: scale(var(--mz, 1));
+  transform: translateZ(0) scale(calc(var(--marker-scale) * var(--active-scale)));
   transform-origin: 50% 64%; /* alinha com ICON_ANCHOR y=82/128 — pin não se desloca */
+  will-change: transform;
 }
 
 .loja-marker:hover {
-  transform: translateY(-2px) scale(calc(var(--mz, 1) * 1.06));
+  --active-scale: 1.06;
   filter: drop-shadow(0 12px 20px rgba(15, 17, 21, .36));
 }
 
-.loja-marker:active { transform: scale(calc(var(--mz, 1) * 0.96)); }
+.loja-marker:active { --active-scale: .96; }
 
 .loja-marker--active {
-  transform: scale(calc(var(--mz, 1) * 2.2)) !important;
+  --active-scale: 1.38;
   filter: drop-shadow(0 16px 32px rgba(15, 17, 21, .55)) !important;
-  transition: transform .25s cubic-bezier(.34, 1.56, .64, 1), filter .25s ease !important;
+  transition: transform .24s cubic-bezier(.34, 1.25, .64, 1), filter .24s ease !important;
 }
 
 .loja-marker__store-name {
@@ -495,10 +499,10 @@
   background: transparent;
   border: none;
   color: #0f1115;
-  font-size: 11px;
+  font-size: clamp(8px, calc(7px + var(--marker-scale) * 4px), 12px);
   font-weight: 700;
   white-space: nowrap;
-  max-width: 112px;
+  max-width: var(--avatar-size);
   overflow: hidden;
   text-overflow: ellipsis;
   backdrop-filter: none;
@@ -512,7 +516,7 @@
 }
 
 .loja-marker__building {
-  width: 80px;
+  width: var(--avatar-size);
   display: flex;
   flex-direction: column;
   border-radius: 8px 8px 2px 2px;
@@ -556,7 +560,7 @@
 /* Moldura dourada: preenche a facade do building */
 .loja-marker__frame {
   position: relative;
-  width: 76px;
+  width: calc(var(--avatar-size) - 4px);
   height: 43px;
   border: 2px solid #ffbf00;
   border-radius: 0;
@@ -568,6 +572,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -627,7 +632,7 @@
 }
 
 .loja-marker__label {
-  width: 112px;
+  width: var(--avatar-size);
   min-height: 24px;
   margin-top: 3px;
   padding: 2px 6px 3px;
@@ -648,7 +653,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: .62rem;
+  font-size: clamp(7px, calc(6px + var(--marker-scale) * 3px), 10px);
   font-weight: 800;
 }
 
@@ -658,7 +663,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: .56rem;
+  font-size: clamp(6px, calc(5px + var(--marker-scale) * 2px), 8px);
   font-weight: 700;
   color: #6b4a32;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .5);

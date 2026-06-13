@@ -70,3 +70,21 @@ test('LojaMarker CSS define frame dourado com object-fit cover', () => {
   assert.ok(css.includes('object-fit: cover'),      'imagem usa object-fit cover');
   assert.ok(css.includes('#ffbf00'),                'borda dourada presente');
 });
+
+test('LojaMarker CSS mantem avatar e nome proporcionais ao zoom', () => {
+  const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
+  const storeNameRuleStart = css.indexOf('.loja-marker__store-name');
+  const storeNameRule = css.slice(storeNameRuleStart, css.indexOf('}', storeNameRuleStart));
+  const imageRuleStart = css.indexOf('.loja-marker__img');
+  const imageRule = css.slice(imageRuleStart, css.indexOf('}', imageRuleStart));
+
+  assert.match(css, /--marker-scale:\s*var\(--mz,\s*1\)/);
+  assert.match(css, /--active-scale:\s*1/);
+  assert.match(storeNameRule, /font-size:\s*clamp\(/);
+  assert.match(storeNameRule, /background:\s*transparent/);
+  assert.match(storeNameRule, /border:\s*none/);
+  assert.match(storeNameRule, /max-width:\s*var\(--avatar-size\)/);
+  assert.match(imageRule, /width:\s*100%/);
+  assert.match(imageRule, /height:\s*100%/);
+  assert.match(imageRule, /object-fit:\s*cover/);
+});

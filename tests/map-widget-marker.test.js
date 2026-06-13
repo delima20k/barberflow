@@ -63,10 +63,10 @@ test('MapWidget invalida cache antes de recarregar barbearias do mapa', () => {
   const idx = js.indexOf('static async recarregarBarbearias');
   assert.ok(idx > 0, 'recarregarBarbearias deve existir');
 
-  const bloco = js.slice(idx, idx + 500);
+  const bloco = js.slice(idx, idx + 900);
   assert.match(bloco, /BarbeariaApiClient\.invalidarCache\?\.\(\)/);
   assert.ok(
-    bloco.indexOf('BarbeariaApiClient.invalidarCache') < bloco.indexOf('if (!MapWidget.#mapa) return'),
+    bloco.indexOf('BarbeariaApiClient.invalidarCache') < bloco.indexOf('if (!MapWidget.#mapa)'),
     'cache deve ser invalidado mesmo quando o mapa ainda nao foi inicializado',
   );
   assert.ok(
@@ -122,6 +122,24 @@ test('MapWidget exibe label de nome premium da barbearia acima do marcador no ma
   assert.match(css, /rgba\(0,\s*0,\s*0/);
   assert.match(css, /text-overflow:\s*ellipsis/);
   assert.match(css, /pointer-events:\s*none/);
+});
+
+test('MapWidget aplica escala responsiva do marcador durante o zoom sem alterar dados do mapa', () => {
+  const js  = fs.readFileSync(path.join(root, 'shared/js/MapWidget.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'shared/css/map-card.css'), 'utf8');
+
+  assert.match(js, /#agendarEscalaZoom/);
+  assert.match(js, /\.on\('zoom'/);
+  assert.match(js, /\.on\('zoomend'/);
+  assert.match(js, /requestAnimationFrame/);
+  assert.match(js, /#calcularEscala/);
+  assert.match(js, /style\.setProperty\('--mz'/);
+
+  assert.match(css, /--marker-scale:\s*var\(--mz,\s*1\)/);
+  assert.match(css, /transform:\s*translateZ\(0\)\s*scale\(calc\(var\(--marker-scale\)\s*\*\s*var\(--active-scale\)\)\)/);
+  assert.match(css, /will-change:\s*transform/);
+  assert.match(css, /\.loja-marker--active\s*{/);
+  assert.doesNotMatch(css, /2\.2\)/);
 });
 
 test('Service workers entregam scripts atuais do mapa no cliente e profissional', () => {

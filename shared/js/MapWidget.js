@@ -33,6 +33,7 @@ class MapWidget {
   static #carregando      = false; // lock para evitar chamadas duplas
   static #posUsuario      = null;  // última posição válida do usuário
   static #headingAccum    = null;  // ângulo acumulado (evita giro de 360° na borda 0/360)
+  static #zoomScaleFrame  = null;  // requestAnimationFrame da escala visual dos markers
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -180,8 +181,9 @@ class MapWidget {
     // LayerGroup reutilizável para os marcadores das barbearias
     MapWidget.#layerBarbearias = L.layerGroup().addTo(MapWidget.#mapa);
 
-    // Escala os marcadores a cada mudança de zoom
-    MapWidget.#mapa.on('zoomend', () => MapWidget.#aplicarEscalaZoom());
+    // Escala os marcadores durante o zoom e consolida ao final, sem alterar dados/GPS.
+    MapWidget.#mapa.on('zoom',    () => MapWidget.#agendarEscalaZoom());
+    MapWidget.#mapa.on('zoomend', () => MapWidget.#agendarEscalaZoom());
 
     // Garante que o Leaflet conhece as dimensões reais do container
     // após o primeiro ciclo de renderização do CSS.
@@ -460,13 +462,22 @@ class MapWidget {
 
   /**
    * Interpola a escala visual do marcador pelo nível de zoom usando smoothstep.
-   * zoom 8 → 0.28 (≈22px de building) · zoom 19 → 1.0 (80px, tamanho real).
+   * zoom 8 → 0.42 (≈34px de building) · zoom 19 → 1.16 (avatar levemente ampliado).
    */
   static #calcularEscala(zoom) {
-    const minZ = 8, maxZ = 19, minS = 0.28, maxS = 1.0;
+    const minZ = 8, maxZ = 19, minS = 0.42, maxS = 1.16;
     const t     = Math.max(0, Math.min(1, (zoom - minZ) / (maxZ - minZ)));
     const eased = t * t * (3 - 2 * t); // smoothstep
     return +(minS + eased * (maxS - minS)).toFixed(3);
+  }
+
+  /** Agenda a escala no próximo frame para evitar flicker em scroll/pinch zoom. */
+  static #agendarEscalaZoom() {
+    if (MapWidget.#zoomScaleFrame !== null) return;
+    MapWidget.#zoomScaleFrame = requestAnimationFrame(() => {
+      MapWidget.#zoomScaleFrame = null;
+      MapWidget.#aplicarEscalaZoom();
+    });
   }
 
   /** Atualiza a CSS custom property --mz em todos os .loja-marker do layer. */
