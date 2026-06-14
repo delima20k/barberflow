@@ -206,7 +206,10 @@ class StoriesWidget {
     if (this.#context === 'public-shop' || this.#context === 'my-shop') return 'individual';
     if (this.#context === 'feed') return 'feed';
     if (this.#barbershopId) return 'grupo';
-    return 'scan';
+    // 'home' sem barbershopId → feed (agrupa por barbershop_id via BFF)
+    // 'scan' ativado apenas com context: 'scan' explícito (modo legado)
+    if (this.#context === 'scan') return 'scan';
+    return 'feed';
   }
 
   /**
@@ -311,38 +314,46 @@ class StoriesWidget {
   }
 
   /**
-   * Modo scan: 1 card por owner, todos os stories no StoriesStore.
-   * Remove bindings MediaViewer/stopPropagation — StoryViewer é ativado
-   * naturalmente via StoriesLayout event delegation.
+   * Modo scan (DEPRECIADO — usar context: 'feed' na home).
+   * Modo legado para cards estáticos HTML com data-shop-id.
+   * Agrupa por shopId (não por owner_id) para garantir 1 card por barbearia.
+   *
+   * @deprecated Ativado apenas com context: 'scan' explícito.
+   *             Homes devem usar context: 'feed' via iniciarHome().
    */
   async #carregarPorCards() {
-    const cards = [...this.#scrollEl.querySelectorAll('.story-card[data-owner-id]')];
+    // Tenta data-shop-id primeiro (correto), fallback para data-owner-id (legado)
+    const cards = [
+      ...this.#scrollEl.querySelectorAll('.story-card[data-shop-id]'),
+      ...this.#scrollEl.querySelectorAll('.story-card[data-owner-id]:not([data-shop-id])'),
+    ];
 
-    // Agrupa por ownerId, mantendo apenas o PRIMEIRO card por owner
-    const primeiroCardPorOwner = new Map();
+    // Agrupa por shopId, mantendo apenas o PRIMEIRO card por barbearia
+    const primeiroCardPorShop = new Map();
     for (const card of cards) {
-      const oid = card.dataset.ownerId;
-      if (!oid || oid.startsWith('00000000')) continue;
-      if (!primeiroCardPorOwner.has(oid)) {
-        primeiroCardPorOwner.set(oid, card);
+      // Prefere data-shop-id (agrupamento por barbearia); fallback data-owner-id legado
+      const sid = card.dataset.shopId ?? card.dataset.ownerId;
+      if (!sid || sid.startsWith('00000000')) continue;
+      if (!primeiroCardPorShop.has(sid)) {
+        primeiroCardPorShop.set(sid, card);
       } else {
-        card.hidden = true; // oculta card duplicado do mesmo owner
+        card.hidden = true; // oculta card duplicado da mesma barbearia
       }
     }
 
-    if (!primeiroCardPorOwner.size) return;
+    if (!primeiroCardPorShop.size) return;
 
     // Busca todos os stories em paralelo
-    const buscas = [...primeiroCardPorOwner.keys()].map(oid =>
-      BffApiService.barbearias.listarStories(oid)
-        .then(({ data }) => ({ oid, stories: Array.isArray(data) ? data : [] }))
-        .catch(() => ({ oid, stories: [] })),
+    const buscas = [...primeiroCardPorShop.keys()].map(sid =>
+      BffApiService.barbearias.listarStories(sid)
+        .then(({ data }) => ({ sid, stories: Array.isArray(data) ? data : [] }))
+        .catch(() => ({ sid, stories: [] })),
     );
 
     const resultados = await Promise.all(buscas);
 
-    for (const { oid, stories } of resultados) {
-      const card = primeiroCardPorOwner.get(oid);
+    for (const { sid, stories } of resultados) {
+      const card = primeiroCardPorShop.get(sid);
       if (!card) continue;
 
       if (!stories.length) {
@@ -351,20 +362,31 @@ class StoriesWidget {
       }
 
       // Armazena todos os stories da barbearia no cache
-      StoriesStore.set(oid, stories);
+      StoriesStore.set(sid, stories);
 
-      // Popula thumbnail com o primeiro story
+      // Popula thumbnail com o primeiro story (como <img>, sem autoplay)
       const primeiroStory = stories[0];
-      const video = card.querySelector('.story-video');
-      if (video && primeiroStory?.media_url) {
-        video.src     = primeiroStory.media_url;
-        video.preload = 'none';
-        const posterUrl = StoriesWidget.#resolverThumbUrl(primeiroStory.thumbnail_path, null, null);
-        if (posterUrl) video.poster = posterUrl;
+      const thumbEl = card.querySelector('.story-video');
+      if (thumbEl) {
+        const thumbSrc = StoriesWidget.#resolverThumbUrl(
+          primeiroStory.thumbnail_path,
+          primeiroStory.media_url,
+          primeiroStory.media_type,
+        );
+        if (thumbSrc && thumbEl.tagName === 'VIDEO') {
+          // card HTML estático ainda usa <video> — aplica poster para evitar download
+          thumbEl.setAttribute('poster', thumbSrc);
+          thumbEl.removeAttribute('src');
+          thumbEl.preload = 'none';
+          const wrap = thumbEl.closest('.story-video-wrap');
+          wrap?.classList.add('is-loaded');
+        } else if (thumbSrc && thumbEl.tagName === 'IMG') {
+          thumbEl.src = thumbSrc;
+        }
       }
 
-      // Marca com shopId (não mais storyId individual)
-      card.dataset.shopId = oid;
+      // Garante data-shop-id correto (agrupamento por barbearia)
+      card.dataset.shopId = sid;
 
       // Badge contador: somente se há mais de 1 story
       this.#atualizarContador(card, stories.length);
@@ -529,15 +551,25 @@ class StoriesWidget {
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    const video = document.createElement('video');
-    video.setAttribute('playsinline', '');
-    video.muted     = true;
-    video.loop      = true;
-    video.preload   = 'none';
+    // Thumbnail estática — não carrega vídeo no card (sem autoplay, sem download pesado)
+    const thumbSrc = StoriesWidget.#resolverThumbUrl(
+      first?.thumbnail_path,
+      first?.media_url,
+      first?.media_type,
+    );
+    const video = document.createElement('img');
     video.className = 'story-video';
-    if (first?.media_url) video.src = first.media_url;
-    const posterUrl = StoriesWidget.#resolverThumbUrl(first?.thumbnail_path, null, null);
-    if (posterUrl) video.poster = posterUrl;
+    video.alt       = '';
+    video.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    if (thumbSrc) {
+      video.src     = thumbSrc;
+      video.onerror = function() { this.style.display = 'none'; };
+      video.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+      video.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+      if (video.complete) wrap.classList.add('is-loaded');
+    } else {
+      wrap.classList.add('is-loaded');
+    }
 
     const playBtn = document.createElement('div');
     playBtn.className   = 'story-play-btn';
