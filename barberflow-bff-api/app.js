@@ -40,6 +40,7 @@ const { ObservabilityMiddleware } = require('./observability/ObservabilityMiddle
 const { MetricsMiddleware }       = require('./observability/MetricsMiddleware');
 const { Metrics }                 = require('./observability/Metrics');
 const { SentryClient }            = require('./observability/SentryClient');
+const RequestDiagnosticsMiddleware = require('./observability/RequestDiagnosticsMiddleware');
 
 const healthRoute    = require('./routes/health');
 const healthzRoute   = require('./routes/healthz');
@@ -110,6 +111,7 @@ function criarApp(db = null) {
   // ── 2. ObservabilityMiddleware ───────────────────────────────
   // Deve vir ANTES do logger HTTP para enriquecer logs com correlationId.
   app.use(ObservabilityMiddleware.handle);
+  app.use(RequestDiagnosticsMiddleware.initAppointment);
 
   // ── 3. Helmet (headers OWASP) ────────────────────────────────
   app.use(helmet({
@@ -127,8 +129,8 @@ function criarApp(db = null) {
   app.use(MetricsMiddleware.handle);
 
   // ── 7. Rate limiting ─────────────────────────────────────────
-  app.use('/api/', RateLimiterMiddleware.geral);
-  app.use('/api/', RateLimiterMiddleware.escrita);
+  app.use('/api/', RequestDiagnosticsMiddleware.measure('rate_limit_general', RateLimiterMiddleware.geral));
+  app.use('/api/', RequestDiagnosticsMiddleware.measure('rate_limit_write', RateLimiterMiddleware.escrita));
 
   // ── 8. Timeout ───────────────────────────────────────────────
   app.use(TimeoutMiddleware.handle);
@@ -189,7 +191,7 @@ function criarApp(db = null) {
   app.use('/api/auth', authRoute);
 
   // ── 12. Agendamentos — /api/agendamentos/* ───────────────────
-  app.use('/api/agendamentos', AbuseMiddleware.forHttp());
+  app.use('/api/agendamentos', RequestDiagnosticsMiddleware.measure('abuse_rate_limit', AbuseMiddleware.forHttp()));
   app.use('/api/agendamentos', agendamentosRoute);
 
   // ── 13. Health checks ────────────────────────────────────────

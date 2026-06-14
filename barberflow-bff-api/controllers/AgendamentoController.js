@@ -1,6 +1,7 @@
 'use strict';
 
 const BaseController = require('./BaseController');
+const RequestDiagnostics = require('../observability/RequestDiagnostics');
 
 /**
  * AgendamentoController — Endpoint handlers para /api/agendamentos.
@@ -42,7 +43,10 @@ class AgendamentoController extends BaseController {
    */
   async criar(req, res) {
     await this.handle(res, async () => {
-      const dados = await this.#service.criar(req.body, req.user.id);
+      const diagnostics = RequestDiagnostics.current(req);
+      const dados = diagnostics
+        ? await diagnostics.time('total_handler', () => this.#service.criar(req.body, req.user.id, { diagnostics }))
+        : await this.#service.criar(req.body, req.user.id);
       this.created(res, dados);
     });
   }

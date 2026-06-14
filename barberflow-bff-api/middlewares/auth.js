@@ -3,6 +3,7 @@
 const jwt            = require('jsonwebtoken');
 const SupabaseClient = require('../utils/SupabaseClient');
 const { logger }     = require('./logger');
+const RequestDiagnostics = require('../observability/RequestDiagnostics');
 
 /**
  * Cache TTL simples para o path de fallback (sem SUPABASE_JWT_SECRET).
@@ -69,6 +70,14 @@ class AuthMiddleware {
   }
 
   static async verificar(req, res, next) {
+    const diagnostics = RequestDiagnostics.current(req);
+    const authStartedAt = process.hrtime.bigint();
+    const finishAuthDiagnostic = (mode) => {
+      if (!diagnostics) return;
+      diagnostics.note('authMode', mode);
+      diagnostics.record('auth', Number(process.hrtime.bigint() - authStartedAt) / 1e6);
+    };
+
     const auth = req.headers['authorization'] ?? '';
 
     if (!auth.startsWith('Bearer ')) {
@@ -83,6 +92,7 @@ class AuthMiddleware {
       try {
         const payload = jwt.verify(token, secret, { algorithms: [AuthMiddleware.#ALGORITHM] });
         req.user = { id: payload.sub, email: payload.email ?? '' };
+        finishAuthDiagnostic('local');
         return next();
       } catch (err) {
         // JsonWebTokenError('invalid algorithm'): token é RS256, emitido após a migração
@@ -98,6 +108,7 @@ class AuthMiddleware {
       const cached = fallbackCache.get(token);
       if (cached) {
         req.user = cached;
+        finishAuthDiagnostic('fallback_cache');
         return next();
       }
 
@@ -109,6 +120,7 @@ class AuthMiddleware {
       const user = { id: data.user.id, email: data.user.email ?? '' };
       fallbackCache.set(token, user);
       req.user = user;
+      finishAuthDiagnostic('fallback_network');
       return next();
     } catch {
       return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });

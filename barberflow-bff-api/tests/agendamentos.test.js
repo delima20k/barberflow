@@ -140,6 +140,10 @@ const TOKEN = jwt.sign(
   { algorithm: 'HS256', expiresIn: '1h' },
 );
 const AUTH = { Authorization: `Bearer ${TOKEN}` };
+const DIAGNOSTIC_AUTH = {
+  ...AUTH,
+  'X-Barberflow-Diagnostics': 'appointment',
+};
 
 // ── HTTP helpers ──────────────────────────────────────────────────
 function criarReq(method, path, body, headers = {}) {
@@ -160,8 +164,8 @@ function criarReq(method, path, body, headers = {}) {
       let raw = '';
       res.on('data', (c) => { raw += c; });
       res.on('end', () => {
-        try   { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
-        catch { resolve({ status: res.statusCode, body: raw }); }
+        try   { resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(raw) }); }
+        catch { resolve({ status: res.statusCode, headers: res.headers, body: raw }); }
       });
     });
     r.on('error', reject);
@@ -223,13 +227,26 @@ suite('AgendamentoController — POST /api/agendamentos', () => {
   });
 
   test('cria agendamento com payload válido → 201', async () => {
-    const { status, body } = await post(BASE, PAYLOAD, AUTH);
+    const { status, headers, body } = await post(BASE, PAYLOAD, AUTH);
     assert.strictEqual(status, 201);
     assert.strictEqual(body.ok, true);
     assert.ok(body.dados?.id, 'id ausente na resposta');
+    assert.strictEqual(headers['x-appointment-diagnostics'], undefined);
+    assert.strictEqual(headers['server-timing'], undefined);
   });
 
   test('retorna 400 com professional_id inválido (não é UUID)', async () => {
+    const { status: statusDiag, headers, body: bodyDiag } = await post(BASE, PAYLOAD, DIAGNOSTIC_AUTH);
+    assert.strictEqual(statusDiag, 201);
+    assert.strictEqual(bodyDiag.ok, true);
+    assert.match(headers['x-appointment-diagnostics'], /auth=/);
+    assert.match(headers['x-appointment-diagnostics'], /payload_validation=/);
+    assert.match(headers['x-appointment-diagnostics'], /service_validation=/);
+    assert.match(headers['x-appointment-diagnostics'], /rpc_criar_agendamento_atomico=/);
+    assert.match(headers['x-appointment-diagnostics'], /get_by_id_joins=/);
+    assert.match(headers['x-appointment-diagnostics'], /total_handler=/);
+    assert.match(headers['server-timing'], /rpc_criar_agendamento_atomico;dur=/);
+
     const { status } = await post(BASE, { ...PAYLOAD, professional_id: 'nao-e-uuid' }, AUTH);
     assert.strictEqual(status, 400);
   });

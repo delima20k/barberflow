@@ -98,10 +98,11 @@ class AgendamentoRepository extends BaseRepository {
    * @param {object} dados — campos validados pelo serviço
    * @returns {Promise<object>} — agendamento com joins completos
    */
-  async criarAtomico(dados) {
+  async criarAtomico(dados, opts = {}) {
+    const diagnostics = opts.diagnostics ?? null;
     const p = this._payload(dados, AgendamentoRepository.#CAMPOS_CRIACAO);
 
-    const { data, error } = await this._db
+    const createViaRpc = () => this._db
       .rpc('criar_agendamento_atomico', {
         p_client_id:       p.client_id,
         p_professional_id: p.professional_id,
@@ -114,6 +115,10 @@ class AgendamentoRepository extends BaseRepository {
       })
       .single();
 
+    const { data, error } = diagnostics
+      ? await diagnostics.time('rpc_criar_agendamento_atomico', createViaRpc)
+      : await createViaRpc();
+
     // P0001 = exceção definida pelo usuário (SCHEDULE_CONFLICT)
     if (error?.code === 'P0001') {
       throw AppError.conflict('Horário não disponível: conflito com agendamento existente.');
@@ -121,7 +126,9 @@ class AgendamentoRepository extends BaseRepository {
     if (error) this._throwDbError(error, 'criarAtomico');
 
     // Busca com joins completos (RPC retorna apenas colunas brutas)
-    return this.getById(data.id);
+    return diagnostics
+      ? diagnostics.time('get_by_id_joins', () => this.getById(data.id))
+      : this.getById(data.id);
   }
 
   /**

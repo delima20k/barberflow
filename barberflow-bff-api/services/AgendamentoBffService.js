@@ -61,22 +61,33 @@ class AgendamentoBffService extends BaseService {
    * @param {string} clientId — UUID injetado do JWT
    * @returns {Promise<object>}
    */
-  async criar(dados, clientId) {
+  async criar(dados, clientId, opts = {}) {
+    const diagnostics = opts.diagnostics ?? null;
     // Validação de UUIDs obrigatórios na fronteira de entrada
-    this._uuid('professional_id', dados.professional_id);
-    this._uuid('barbershop_id',   dados.barbershop_id);
-    this._uuid('service_id',      dados.service_id);
+    const validatePayload = () => {
+      this._uuid('professional_id', dados.professional_id);
+      this._uuid('barbershop_id',   dados.barbershop_id);
+      this._uuid('service_id',      dados.service_id);
+    };
+    if (diagnostics) await diagnostics.time('payload_validation', async () => validatePayload());
+    else validatePayload();
+
+    diagnostics?.note('serviceLookup', 'not_performed_in_bff');
+    diagnostics?.note('professionalLookup', 'not_performed_in_bff');
+    diagnostics?.note('notificationsOutbox', 'not_present_in_appointment_flow');
 
     // Monta payload completo com client_id do JWT e status padrão
     const payload = { ...dados, client_id: clientId };
-    const ag      = Agendamento.fromRow(payload);
+    const validateService = () => Agendamento.fromRow(payload).validar();
 
     // Validação da entidade (data futura, duration_min, status allowlist)
-    const { ok, erros } = ag.validar();
+    const { ok, erros } = diagnostics
+      ? await diagnostics.time('service_validation', async () => validateService())
+      : validateService();
     if (!ok) throw AppError.badRequest(erros.join('; '));
 
     // RPC atômica: verifica conflito + insere na mesma transação (sem race condition)
-    return this.#repo.criarAtomico(payload);
+    return this.#repo.criarAtomico(payload, { diagnostics });
   }
 
   /**
