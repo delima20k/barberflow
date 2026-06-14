@@ -536,7 +536,18 @@ class BarbeariaService extends BaseService {
         }
       }));
     } catch {
-      return stories;
+      return Promise.all(stories.map(async story => {
+        const path = story.media_files?.path ?? null;
+        if (!story.media_id || !path) return story;
+        try {
+          const { data } = await this.#repo._db.storage
+            .from('media-private')
+            .createSignedUrl(path, 3600);
+          return { ...story, media_url: data?.signedUrl ?? null };
+        } catch {
+          return { ...story, media_url: story.media_files?.public_url || null };
+        }
+      }));
     }
   }
 
