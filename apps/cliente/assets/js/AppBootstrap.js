@@ -43,6 +43,7 @@ class AppBootstrap {
     { label: 'NotificationService', fn: () => NotificationService.init()                        },
     { label: 'NotifPermissao',      fn: () => NotificationService.solicitarPushPermissao()     },
     { label: 'PushSubscription',    fn: () => AppBootstrap.#iniciarPushSubscription()           },
+    { label: 'StoriesWidget.home',  fn: () => StoriesWidget.iniciarHome(document.getElementById('tela-inicio')) },
   ];
 
   // Widgets que fazem queries Supabase de dados (PostgREST) — execução SEQUENCIAL

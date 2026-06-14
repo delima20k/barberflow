@@ -76,6 +76,7 @@ class BarbeariaPage {
   #portfolioData        = [];    // lista de fotos ativas — alimentado em #renderPortfolio
   #mensalModal          = null;  // overlay do modal de mensalidade — lazy, criado na 1ª abertura
   #mensalModalKeyHandler = null; // handler Escape para remoção limpa no fechar
+  #storiesWidget        = null;  // StoriesWidget — recarregado a cada barbearia
 
   constructor() {}
 
@@ -192,6 +193,8 @@ class BarbeariaPage {
       boasVindas:    q('#bp-boas-vindas'),
       ctaLogin:      q('#bp-cta-login'),
       infoFixa:      dq('#bp-info-fixa'),
+      storiesScroll: q('.bp-stories-section .stories-scroll'),
+      storiesSection: q('.bp-stories-section'),
     };
   }
 
@@ -521,6 +524,7 @@ class BarbeariaPage {
     this.#renderPortfolio(portfolio);
     this.#renderBarbeiros(shop);          // fire-and-forget: preenche carousel async
     this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
+    this.#renderStories(shop);            // fire-and-forget: carrega stories da barbearia
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
     this.#iniciarRealtimeAtividade(shop);
@@ -1609,6 +1613,28 @@ class BarbeariaPage {
       .catch(() => { if (wrap) wrap.hidden = true; });
   }
 
+  /**
+   * Carrega os stories ativos da barbearia e popula a section .bp-stories-section.
+   * Fire-and-forget — não bloqueia o render principal.
+   * @param {object} shop
+   */
+  #renderStories(shop) {
+    const scrollEl = this.#refs.storiesScroll;
+    if (!scrollEl || typeof StoriesWidget === 'undefined') return;
+
+    const logoSrc = (typeof ApiService !== 'undefined' && shop.logo_path)
+      ? ApiService.getLogoUrl(shop.logo_path)
+      : null;
+
+    const shopId = shop.id;
+    this.#storiesWidget = new StoriesWidget(scrollEl, {
+      barbershopId: shopId,
+      shopName:     shop.name ?? '',
+      shopLogoSrc:  logoSrc,
+    });
+    this.#storiesWidget.carregar().catch(() => {});
+  }
+
   // ══════════════════════════════════════════════════════════
   // CONTROLE DE VISIBILIDADE
   // Apenas gerenciam o DOM — nenhum estado de negócio aqui.
@@ -1659,6 +1685,10 @@ class BarbeariaPage {
     // Reseta o dig para que a nova barbearia inicie a animação do zero
     this.#pararDig();
     this.#dig = null;
+    // Limpa stories da barbearia anterior
+    if (this.#refs.storiesScroll) this.#refs.storiesScroll.innerHTML = '';
+    if (this.#refs.storiesSection) this.#refs.storiesSection.hidden = false;
+    this.#storiesWidget = null;
     // Invalida o cache de tela para forçar re-fetch ao entrar novamente
     this.#shopIdCache = null;
     this.#servicos    = [];
