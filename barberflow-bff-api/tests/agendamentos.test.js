@@ -61,6 +61,7 @@ const mockCfg = {
   criado:       AG_MOCK,
   atualizado:   { ...AG_MOCK, status: 'confirmed' },
   conflitos:    [],
+  fromCalls:    [],
 };
 
 // ── Builder fluente do Supabase (detecta operação pelo método chamado) ──
@@ -114,7 +115,10 @@ function criarRpcBuilder() {
 }
 
 SupabaseClient.getInstance = () => ({
-  from: () => criarBuilder(),
+  from: (table) => {
+    mockCfg.fromCalls.push(table);
+    return criarBuilder();
+  },
   rpc:  () => criarRpcBuilder(),
 });
 
@@ -227,10 +231,16 @@ suite('AgendamentoController — POST /api/agendamentos', () => {
   });
 
   test('cria agendamento com payload válido → 201', async () => {
+    mockCfg.fromCalls = [];
     const { status, headers, body } = await post(BASE, PAYLOAD, AUTH);
     assert.strictEqual(status, 201);
     assert.strictEqual(body.ok, true);
     assert.ok(body.dados?.id, 'id ausente na resposta');
+    assert.strictEqual(body.dados.client_id, TEST_USER_ID);
+    assert.strictEqual(body.dados.professional_id, UUID_PRO);
+    assert.strictEqual(body.dados.client, undefined, 'POST nao deve carregar joins completos');
+    assert.strictEqual(body.dados.professional, undefined, 'POST nao deve carregar joins completos');
+    assert.deepStrictEqual(mockCfg.fromCalls, [], 'POST deve usar apenas RPC atomica, sem getById com joins');
     assert.strictEqual(headers['x-appointment-diagnostics'], undefined);
     assert.strictEqual(headers['server-timing'], undefined);
   });
@@ -243,7 +253,8 @@ suite('AgendamentoController — POST /api/agendamentos', () => {
     assert.match(headers['x-appointment-diagnostics'], /payload_validation=/);
     assert.match(headers['x-appointment-diagnostics'], /service_validation=/);
     assert.match(headers['x-appointment-diagnostics'], /rpc_criar_agendamento_atomico=/);
-    assert.match(headers['x-appointment-diagnostics'], /get_by_id_joins=/);
+    assert.match(headers['x-appointment-diagnostics'], /rpc_return_light=/);
+    assert.doesNotMatch(headers['x-appointment-diagnostics'], /get_by_id_joins=/);
     assert.match(headers['x-appointment-diagnostics'], /total_handler=/);
     assert.match(headers['server-timing'], /rpc_criar_agendamento_atomico;dur=/);
 

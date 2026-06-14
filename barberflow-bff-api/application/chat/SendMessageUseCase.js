@@ -95,7 +95,7 @@ class SendMessageUseCase {
         this.#warn('outbox.save falhou (best-effort)', outboxErr);
       }
 
-      await this.#publishRealtime(saved, metrics);
+      this.#publishRealtime(saved, recipients, metrics);
       return Result.ok(saved.toJSON());
     } finally {
       metrics.totalHandler = SendMessageUseCase.#elapsed(metrics.startedAt);
@@ -103,24 +103,20 @@ class SendMessageUseCase {
     }
   }
 
-  async #publishRealtime(saved, metrics) {
+  #publishRealtime(saved, recipients, metrics) {
     if (!this.#messageRealtimePublisher) return;
-    try {
-      const context = await this.#measure(metrics, 'findDeliveryContext', () => (
-        this.#chatRepository.findDeliveryContext(saved.id)
-      ));
-      if (!context?.message || !context?.recipients?.length) return;
-      await this.#measure(metrics, 'realtimePublish', () => this.#withTimeout(
-        Promise.resolve().then(() => this.#messageRealtimePublisher.publish({
-          message: context.message,
-          recipients: context.recipients,
-          sender: context.sender ?? null,
-        })),
+    if (!saved || !Array.isArray(recipients) || recipients.length === 0) return;
+    metrics.realtimePublish = 'scheduled';
+    Promise.resolve()
+      .then(() => this.#withTimeout(
+        this.#messageRealtimePublisher.publish({
+          message: saved,
+          recipients,
+          sender: null,
+        }),
         this.#realtimeTimeoutMs,
-      ));
-    } catch (realtimeErr) {
-      this.#warn('realtime imediato falhou (best-effort)', realtimeErr);
-    }
+      ))
+      .catch(realtimeErr => this.#warn('realtime imediato falhou (best-effort)', realtimeErr));
   }
 
   async #canExchangeWithAll(senderId, recipients) {

@@ -228,7 +228,7 @@ describe('[Integration] OutboxRelay end-to-end', () => {
     const rows = [];
     const outboxRepo = {
       listPending:     async () => [...rows.filter(r => r.status === 'pending')],
-      markProcessing:  async id => { const r = rows.find(r => r.id === id); if (r) r.status = 'processing'; },
+      markProcessing:  async id => { const r = rows.find(r => r.id === id); if (!r || r.status !== 'pending') return false; r.status = 'processing'; return true; },
       markDone:        async id => { const r = rows.find(r => r.id === id); if (r) r.status = 'done'; },
       markFailed:      async id => { const r = rows.find(r => r.id === id); if (r) r.status = 'failed'; },
     };

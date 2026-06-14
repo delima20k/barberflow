@@ -50,7 +50,8 @@ const SAVED_MSG_ROW = {
   conversation_id:         CONV_ID,
   sender_id:               TEST_USER_ID,
   client_message_id:       null,
-  body:                    'Olá, tudo bem?',
+  body:                    null,
+  encrypted_payload:       { v: 1, alg: 'AES-GCM', ct: 'ciphertext' },
   created_at:              new Date().toISOString(),
   deleted_at:              null,
   retention_until:         null,
@@ -113,7 +114,7 @@ suite('E2E — Chat', () => {
       server, 'POST', `/api/v1/chat/conversations/${CONV_ID}/messages`,
       {
         headers: { Authorization: `Bearer ${token}` },
-        body:    { body: 'Olá, tudo bem?', clientMessageId: 'cmi-novo-001' },
+        body:    { encryptedPayload: { v: 1, alg: 'AES-GCM', ct: 'ciphertext' }, clientMessageId: 'cmi-novo-001' },
       },
     );
     assert.ok(status >= 200 && status < 300, `esperado 2xx, recebeu ${status}`);

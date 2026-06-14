@@ -76,6 +76,7 @@ describe('[Integration] Chat delivery outbox', () => {
       body: null,
       encryptedPayload: ENCRYPTED_PAYLOAD,
     });
+    await Promise.resolve();
 
     assert.deepEqual({
       ok: result.isOk(),
@@ -90,11 +91,15 @@ describe('[Integration] Chat delivery outbox', () => {
     });
   });
 
-  it('envio salva e responde sem esperar realtime lento', async () => {
+  it('envio salva e responde sem esperar realtime lento nem buscar contexto extra', async () => {
     const chatRepository = new InMemoryChatRepository();
     chatRepository.seedConversation({ id: 'conv-1', participantIds: ['user-a', 'user-b'] });
+    chatRepository.findDeliveryContext = async () => {
+      throw new Error('findDeliveryContext nao deve rodar no caminho sincrono do POST');
+    };
     let outboxSaved = false;
     let publishStarted = false;
+    let publishFinished = false;
     const warnings = [];
     const useCase = new SendMessageUseCase({
       chatRepository,
@@ -104,6 +109,7 @@ describe('[Integration] Chat delivery outbox', () => {
         publish: async () => {
           publishStarted = true;
           await new Promise(resolve => setTimeout(resolve, 200));
+          publishFinished = true;
           return { ok: true };
         },
       },
@@ -120,11 +126,13 @@ describe('[Integration] Chat delivery outbox', () => {
       encryptedPayload: ENCRYPTED_PAYLOAD,
     });
     const elapsedMs = performance.now() - startedAt;
+    await Promise.resolve();
 
     assert.deepEqual({
       ok: result.isOk(),
       outboxSaved,
       publishStarted,
+      publishFinished,
       fastEnough: elapsedMs < 120,
       hasRealtimeWarning: warnings.some(line => line.includes('realtime imediato falhou')),
       leaksPayload: warnings.some(line => line.includes('AES-GCM') || line.includes('ct')),
@@ -132,8 +140,9 @@ describe('[Integration] Chat delivery outbox', () => {
       ok: true,
       outboxSaved: true,
       publishStarted: true,
+      publishFinished: false,
       fastEnough: true,
-      hasRealtimeWarning: true,
+      hasRealtimeWarning: false,
       leaksPayload: false,
     });
   });

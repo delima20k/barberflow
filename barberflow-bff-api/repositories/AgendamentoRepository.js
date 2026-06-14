@@ -125,10 +125,24 @@ class AgendamentoRepository extends BaseRepository {
     }
     if (error) this._throwDbError(error, 'criarAtomico');
 
-    // Busca com joins completos (RPC retorna apenas colunas brutas)
+    // Caminho quente do POST: a RPC retorna as colunas do agendamento criado.
+    // Evita o getById com embeds PostgREST; telas que precisam dos joins usam GET/listagem.
+    const toLight = () => AgendamentoRepository.#toLight(data);
     return diagnostics
-      ? diagnostics.time('get_by_id_joins', () => this.getById(data.id))
-      : this.getById(data.id);
+      ? diagnostics.time('rpc_return_light', toLight)
+      : toLight();
+  }
+
+  static #toLight(row) {
+    if (!row) return null;
+    const {
+      client,
+      professional,
+      service,
+      barbershop,
+      ...light
+    } = row;
+    return light;
   }
 
   /**
