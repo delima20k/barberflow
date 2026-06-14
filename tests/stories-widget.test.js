@@ -313,12 +313,12 @@ test('StoriesWidget modo scan ignora cards com IDs de demonstração 00000000', 
 
 // ── Novos testes — StoryPlayer e preload ─────────────────────────────────────
 
-test('StoriesWidget define classe StoryPlayer com abrirVideo e story-player', () => {
-  assert.match(src, /class StoryPlayer/);
-  assert.match(src, /abrirVideo/);
-  assert.match(src, /story-player/);
+test('StoriesWidget define MediaViewer singleton e open()', () => {
+  assert.match(src, /class MediaViewer/);
+  assert.match(src, /getInstance\(\)/);
+  assert.match(src, /open\s*\(\s*\{/);
+  assert.match(src, /media-viewer/);
   assert.match(src, /is-loaded/);
-  assert.match(src, /#bindClicks/);
 });
 
 test('StoriesWidget.carregar popula card com video.preload = metadata', async () => {
@@ -368,7 +368,7 @@ test('StoriesWidget.carregar popula card com video.preload = metadata', async ()
   await widget.carregar();
 
   assert.ok(capturedVideo, 'video deve ter sido criado');
-  assert.strictEqual(capturedVideo.preload, 'metadata', 'preload deve ser metadata');
+  assert.strictEqual(capturedVideo.preload, 'none', 'preload inicial deve ser none — IntersectionObserver ativa lazy load');
   assert.ok(typeof capturedVideo.onloadedmetadata === 'function' || capturedVideo.onloadedmetadata === null,
     'onloadedmetadata deve ter sido atribuído (ou nulo se div)');
 });

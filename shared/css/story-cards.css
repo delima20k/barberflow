@@ -266,19 +266,20 @@
   .story-card-name { font-size: .86rem; }
 }
 
-/* ── StoryPlayer — fullscreen video overlay ──────────────────── */
-.story-player {
+/* ── MediaViewer — fullscreen overlay unificado (stories vídeo) ─ */
+/* Visual espelha .pp-prism-viewer: mesmas cores, mesmo botão fechar */
+.media-viewer {
   position: fixed;
   inset: 0;
-  z-index: 9000;
-  background: rgba(0, 0, 0, .96);
+  z-index: 9000;               /* acima de .pp-prism-viewer (z:1000) e qualquer painel */
+  background: rgba(8, 6, 4, .94); /* idêntico ao .pp-prism-viewer */
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
 }
 
-.story-player__video {
+.media-viewer__video {
   width: auto;
   height: 100%;
   max-width: 100%;
@@ -287,26 +288,72 @@
   display: block;
 }
 
-.story-player__close {
+/* Idêntico ao .pp-prism-close — visual unificado sem duplicar CSS */
+.media-viewer__close {
   all: unset;
   position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 1;
-  width: 44px;
-  height: 44px;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .15);
   background: rgba(0, 0, 0, .55);
   color: #fff;
-  font-size: 1.6rem;
-  line-height: 1;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s, transform .2s;
+}
+.media-viewer__close:hover,
+.media-viewer__close:focus-visible {
+  background: rgba(255, 255, 255, .12);
+  transform: scale(1.06);
+}
+
+/* Botão de som — aparece quando autoplay com som é bloqueado */
+.media-viewer__sound {
+  all: unset;
+  position: absolute;
+  bottom: max(32px, env(safe-area-inset-bottom, 32px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .12);
+  border: 1px solid rgba(255, 255, 255, .2);
+  color: #fff;
+  font-size: .92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+  white-space: nowrap;
+}
+.media-viewer__sound:hover { background: rgba(255, 255, 255, .22); }
+
+body.media-viewer-open { overflow: hidden; }
+
+/* ── Story card — estados de erro e retry ────────────────────── */
+.story-card.story-failed .story-play-btn { display: none; }
+
+.story-retry-btn {
+  all: unset;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 2rem;
+  color: rgba(255, 255, 255, .9);
+  background: rgba(43, 27, 18, .32);
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, .25);
-  transition: background .15s ease;
+  z-index: 5;
+  border-radius: inherit;
+  transition: background .2s;
 }
-.story-player__close:hover { background: rgba(0, 0, 0, .8); }
-
-body.story-player-open { overflow: hidden; }
+.story-retry-btn:hover { background: rgba(43, 27, 18, .5); }

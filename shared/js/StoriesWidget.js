@@ -1,82 +1,116 @@
 'use strict';
 
 // =============================================================
-// StoryPlayer — player fullscreen de vídeo para stories
+// MediaViewer — player fullscreen unificado (imagem e vídeo)
 //
-// Overlay de z-index 9000 com áudio habilitado.
-// Encapsulado aqui para manter toda lógica de stories isolada.
+// Singleton. Visual espelha .pp-prism-viewer (mesmas cores, mesmo
+// botão fechar) com z-index 9000 para ficar acima de qualquer painel.
+// Áudio: tenta play() com som; se bloqueado exibe botão de áudio —
+// nunca force-muta automaticamente.
+//
+// CSS: .media-viewer / .media-viewer__* (em story-cards.css)
 // =============================================================
 
-class StoryPlayer {
+class MediaViewer {
+
+  static #instance = null;
 
   #overlayEl = null;
   #videoEl   = null;
   #keyFn     = null;
 
-  /**
-   * Abre o overlay fullscreen reproduzindo o vídeo indicado.
-   * @param {string} src    — URL do vídeo (media_url do story)
-   * @param {string} poster — URL do poster (opcional)
-   */
-  abrirVideo(src, poster = '') {
-    this.fechar();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'story-player';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-
-    const btn = document.createElement('button');
-    btn.className = 'story-player__close';
-    btn.setAttribute('aria-label', 'Fechar');
-    btn.textContent = '×';
-    btn.addEventListener('click', () => this.fechar());
-
-    const video = document.createElement('video');
-    video.className = 'story-player__video';
-    video.src       = src;
-    video.poster    = poster;
-    video.controls  = true;
-    video.autoplay  = true;
-    video.muted     = false;
-    video.setAttribute('playsinline', '');
-    video.setAttribute('preload', 'auto');
-
-    overlay.appendChild(btn);
-    overlay.appendChild(video);
-    document.body.appendChild(overlay);
-    document.body.classList.add('story-player-open');
-
-    this.#overlayEl = overlay;
-    this.#videoEl   = video;
-
-    // Tenta com som; fallback silencioso se política de autoplay bloquear
-    video.play().catch(() => {
-      video.muted = true;
-      video.play().catch(() => {});
-    });
-
-    this.#keyFn = (e) => { if (e.key === 'Escape') this.fechar(); };
-    document.addEventListener('keydown', this.#keyFn);
-
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.fechar(); });
+  static getInstance() {
+    if (!MediaViewer.#instance) MediaViewer.#instance = new MediaViewer();
+    return MediaViewer.#instance;
   }
 
-  /** Pausa o vídeo, remove o overlay e limpa estado. */
+  /**
+   * Abre o viewer fullscreen.
+   * @param {{ type: 'video', src: string, poster?: string }} item
+   */
+  open({ type, src, poster = '' }) {
+    if (type === 'video') this.#abrirVideo(src, poster);
+  }
+
+  /** Pausa e remove o overlay. Libera o vídeo completamente. */
   fechar() {
     if (this.#videoEl) {
       this.#videoEl.pause();
+      this.#videoEl.currentTime = 0;
       this.#videoEl.removeAttribute('src');
-      this.#videoEl.load();
+      if (typeof this.#videoEl.load === 'function') this.#videoEl.load();
     }
     this.#overlayEl?.remove();
     this.#overlayEl = null;
     this.#videoEl   = null;
-    document.body.classList.remove('story-player-open');
+    document.body.classList.remove('media-viewer-open');
     if (this.#keyFn) {
       document.removeEventListener('keydown', this.#keyFn);
       this.#keyFn = null;
     }
+  }
+
+  // ── Privados ─────────────────────────────────────────────────
+
+  #abrirVideo(src, poster) {
+    this.fechar();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'media-viewer';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'media-viewer__close';
+    closeBtn.setAttribute('aria-label', 'Fechar');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => this.fechar());
+
+    const video = document.createElement('video');
+    video.className  = 'media-viewer__video';
+    video.src        = src;
+    video.poster     = poster;
+    video.controls   = true;
+    video.autoplay   = true;
+    video.muted      = false;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('preload', 'auto');
+
+    overlay.appendChild(closeBtn);
+    overlay.appendChild(video);
+    document.body.appendChild(overlay);
+    document.body.classList.add('media-viewer-open');
+
+    this.#overlayEl = overlay;
+    this.#videoEl   = video;
+
+    // Tenta play com som; se autoplay bloqueado → mostra botão de áudio
+    video.play().catch((err) => {
+      if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+        this.#mostrarBotaoSom(video);
+      }
+    });
+
+    // Fechar com Escape
+    this.#keyFn = (e) => { if (e.key === 'Escape') this.fechar(); };
+    document.addEventListener('keydown', this.#keyFn);
+
+    // Fechar clicando no fundo escuro
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.fechar(); });
+  }
+
+  #mostrarBotaoSom(video) {
+    if (!this.#overlayEl || this.#overlayEl.querySelector('.media-viewer__sound')) return;
+    const btn = document.createElement('button');
+    btn.className = 'media-viewer__sound';
+    btn.type = 'button';
+    btn.textContent = '🔊 Tocar com som';
+    btn.addEventListener('click', () => {
+      video.muted = false;
+      video.play().catch(() => {});
+      btn.remove();
+    });
+    this.#overlayEl.appendChild(btn);
   }
 }
 
@@ -88,10 +122,11 @@ class StoryPlayer {
 //   - Modo barbearia: rebuild completo do .stories-scroll com cards reais
 //   - Modo scan: percorre cards existentes por data-owner-id e popula o src
 //     do .story-video; ignora IDs de demonstração (prefixo 00000000)
-//   - Intercepta cliques [data-action="story-open"] (capture phase) e abre
-//     StoryPlayer — fullscreen com áudio, z-index 9000, acima de qualquer painel
+//   - Carregamento lazy via IntersectionObserver (threshold 10%, root=scroll)
+//   - Clique no wrap abre MediaViewer com áudio; stopPropagation impede StoryViewer
+//   - Erro de vídeo: exibe ↻ retry (nunca oculta o card)
 //
-// Dependências: BffApiService.js, ApiService.js
+// Dependências: BffApiService.js, ApiService.js, MediaViewer (acima)
 // =============================================================
 
 class StoriesWidget {
@@ -100,11 +135,9 @@ class StoriesWidget {
   #barbershopId = null;
   #shopName     = null;
   #shopLogoSrc  = null;
-  #player       = new StoryPlayer();
-  #clicksBound  = false;
 
   /**
-   * @param {HTMLElement} scrollEl         — container .stories-scroll
+   * @param {HTMLElement} scrollEl           — container .stories-scroll
    * @param {object}      [opts]
    * @param {string|null} [opts.barbershopId] — UUID da barbearia (modo rebuild)
    * @param {string|null} [opts.shopName]     — nome exibido nos cards
@@ -124,12 +157,12 @@ class StoriesWidget {
   /** Carrega e renderiza os stories. Fire-and-forget seguro. */
   async carregar() {
     if (!this.#scrollEl || typeof BffApiService === 'undefined') return;
-    this.#bindClicks();
     if (this.#barbershopId) {
       await this.#carregarPorBarbearia();
     } else {
       await this.#carregarPorCards();
     }
+    this.#bindObserver();
   }
 
   /**
@@ -144,28 +177,8 @@ class StoriesWidget {
   }
 
   // ══════════════════════════════════════════════════════════
-  // PRIVADOS
+  // PRIVADOS — carregamento
   // ══════════════════════════════════════════════════════════
-
-  /**
-   * Registra listener capture-phase no scroll para interceptar cliques em
-   * [data-action="story-open"] antes que StoriesLayout chame StoryViewer.abrir().
-   * Idempotente — só registra uma vez por instância.
-   */
-  #bindClicks() {
-    if (this.#clicksBound || !this.#scrollEl?.addEventListener) return;
-    this.#clicksBound = true;
-    this.#scrollEl.addEventListener('click', (e) => {
-      const wrap = e.target.closest('[data-action="story-open"]');
-      if (!wrap) return;
-      e.stopPropagation();
-      const card = wrap.closest('.story-card');
-      const vid  = card?.querySelector('.story-video');
-      const src  = vid?.src;
-      if (!src) return;
-      this.#player.abrirVideo(src, vid?.poster ?? '');
-    }, { capture: true });
-  }
 
   /** Modo rebuild: busca stories da barbearia e reconstrói os cards do zero. */
   async #carregarPorBarbearia() {
@@ -193,8 +206,8 @@ class StoriesWidget {
 
   /**
    * Modo scan: percorre os .story-card existentes pelo data-owner-id.
-   * Cards com IDs de demonstração (00000000-…) são ignorados (mantidos intactos).
-   * Cards com IDs reais recebem o src do primeiro story encontrado.
+   * Cards com IDs de demonstração (00000000-…) são ignorados.
+   * Cards com IDs reais recebem o src e um handler de clique localizado.
    */
   async #carregarPorCards() {
     const cards = [...this.#scrollEl.querySelectorAll('.story-card[data-owner-id]')];
@@ -224,18 +237,113 @@ class StoriesWidget {
         const story = stories[i];
         const card  = cardsDoOwner[i];
         if (!story?.media_url) { card.hidden = true; continue; }
+
         const video = card.querySelector('.story-video');
         if (video) {
           video.src     = story.media_url;
-          video.preload = 'metadata';
-          if (typeof video.load === 'function') video.load();
-          const wrap = card.querySelector('.story-video-wrap');
-          video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
-          video.onerror          = () => { card.hidden = true; };
+          video.preload = 'none';
         }
         card.dataset.storyId = story.id ?? '';
+
+        // Vincular clique localizado no wrap (previne StoryViewer.abrir do StoriesLayout)
+        const wrap = card.querySelector('.story-video-wrap');
+        if (wrap && !wrap.dataset.playerBound) {
+          wrap.dataset.playerBound = '1';
+          const v = video;
+          wrap.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const src = v?.src;
+            if (!src) return;
+            MediaViewer.getInstance().open({ type: 'video', src, poster: v?.poster ?? '' });
+          });
+        }
       }
     }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // PRIVADOS — carregamento lazy e erros
+  // ══════════════════════════════════════════════════════════
+
+  /**
+   * Registra IntersectionObserver no scroll para carregar vídeos sob demanda.
+   * Quando o card entra na viewport: load() do metadata.
+   * Quando sai: pause() (sem descarregar).
+   * Fallback para browsers sem IntersectionObserver: carrega todos imediatamente.
+   */
+  #bindObserver() {
+    if (!this.#scrollEl?.querySelectorAll) return;
+
+    const allCards = [...this.#scrollEl.querySelectorAll('.story-card')];
+    if (!allCards.length) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      // Fallback: carregar todos imediatamente
+      for (const card of allCards) {
+        const video = card.querySelector('.story-video');
+        const wrap  = card.querySelector('.story-video-wrap');
+        if (!video || !video.src) continue;
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
+        video.onerror = () => this.#aoErrarVideo(card, video);
+        if (typeof video.load === 'function') video.load();
+      }
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const card  = entry.target;
+        const video = card.querySelector('.story-video');
+        const wrap  = card.querySelector('.story-video-wrap');
+        if (!video) continue;
+
+        if (entry.isIntersecting && !video.dataset.observerBound) {
+          video.dataset.observerBound = '1';
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
+          video.onerror = () => this.#aoErrarVideo(card, video);
+          if (typeof video.load === 'function') video.load();
+        } else if (!entry.isIntersecting) {
+          if (video.src && !video.paused) video.pause();
+        }
+      }
+    }, { root: this.#scrollEl, threshold: 0.1 });
+
+    for (const card of allCards) observer.observe(card);
+  }
+
+  /**
+   * Trata erro de carregamento de vídeo.
+   * Mantém o card visível, adiciona classe story-failed e exibe botão ↻.
+   * @param {HTMLElement} card
+   * @param {HTMLVideoElement} video
+   */
+  #aoErrarVideo(card, video) {
+    card.classList.add('story-failed');
+    const wrap = card.querySelector('.story-video-wrap');
+    if (!wrap || wrap.querySelector('.story-retry-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'story-retry-btn';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Tentar novamente');
+    btn.textContent = '↻';
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      card.classList.remove('story-failed');
+      btn.remove();
+      delete video.dataset.observerBound;
+      const src = video.src;
+      video.src = src;
+      video.preload = 'metadata';
+      if (typeof video.load === 'function') video.load();
+    });
+
+    wrap.appendChild(btn);
   }
 
   /** Oculta a section pai ou o próprio scroll se não houver section. */
@@ -245,9 +353,14 @@ class StoriesWidget {
     this.#scrollEl.hidden = true;
   }
 
+  // ══════════════════════════════════════════════════════════
+  // PRIVADOS — construção de cards
+  // ══════════════════════════════════════════════════════════
+
   /**
-   * Cria um card de story compatível com StoryPlayer.
-   * Estrutura espelha os cards estáticos do HTML — mantém compatibilidade total.
+   * Cria um card de story compatível com a estrutura estática do HTML.
+   * Vídeo com preload='none' — o IntersectionObserver ativa o carregamento.
+   * Clique no wrap abre MediaViewer (stopPropagation impede StoryViewer).
    * @param {object} story — objeto retornado pelo BFF
    * @returns {HTMLDivElement}
    */
@@ -265,13 +378,21 @@ class StoriesWidget {
 
     const video = document.createElement('video');
     video.setAttribute('playsinline', '');
-    video.muted   = true;
-    video.loop    = true;
-    video.preload = 'metadata';
+    video.muted     = true;
+    video.loop      = true;
+    video.preload   = 'none';
     video.className = 'story-video';
-    video.src = story.media_url;
-    video.onloadedmetadata = () => wrap.classList.add('is-loaded');
-    video.onerror          = () => { card.hidden = true; };
+    video.src       = story.media_url;
+
+    // Bind localizado — stopPropagation garante que StoryViewer não seja invocado
+    if (typeof wrap.addEventListener === 'function') {
+      wrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!video.src) return;
+        MediaViewer.getInstance().open({ type: 'video', src: video.src, poster: video.poster || '' });
+      });
+    }
 
     const playBtn = document.createElement('div');
     playBtn.className = 'story-play-btn';
