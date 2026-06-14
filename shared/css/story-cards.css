@@ -357,3 +357,54 @@ body.media-viewer-open { overflow: hidden; }
   transition: background .2s;
 }
 .story-retry-btn:hover { background: rgba(43, 27, 18, .5); }
+
+/* ── Badge de contagem de stories no card (Ajuste 6 — mostra somente se > 1) ─ */
+.story-count-badge {
+  position: absolute;
+  top: 8px;
+  left: 44px;                   /* à direita do .story-shop-badge */
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(43, 27, 18, .65);
+  border: 1px solid rgba(212, 175, 55, .55);
+  color: rgba(255, 255, 255, .92);
+  font-family: var(--font);
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+/* ── Botão "🔊 Tocar com som" dentro do viewer fullscreen ─────────── */
+.sv-sound-btn {
+  all: unset;
+  position: absolute;
+  bottom: max(80px, calc(env(safe-area-inset-bottom, 0px) + 80px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgba(43, 27, 18, .78);
+  border: 1px solid rgba(212, 175, 55, .45);
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background .2s;
+}
+.sv-sound-btn:hover  { background: rgba(212, 175, 55, .25); }
+.sv-sound-btn:active { transform: translateX(-50%) scale(.96); }

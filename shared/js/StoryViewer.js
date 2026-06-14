@@ -131,13 +131,14 @@ class StoryProgressLayer {
 
 class StoryViewer {
 
-  static #cards      = [];
-  static #idx        = 0;
-  static #flipping   = false;
-
-  // story metadata do card ativo
-  static #storyId  = null;
-  static #ownerId  = null;
+  // Estado centralizado: barbearia e stories carregados (Ajuste 2)
+  static #viewerState = {
+    shopId:       null,
+    stories:      [],
+    currentIndex: 0,
+    cardEl:       null,
+    storyId:      null,
+  };
 
   static #swipeStartX = 0;
   static #swipeDx     = 0;
@@ -146,6 +147,9 @@ class StoryViewer {
 
   static #ativo = null;
   static #prox  = null;
+
+  static #fecharTimeoutId = null; // controla o setTimeout de #fecharOverlay
+  static #flipping        = false;
 
   static #els = {
     overlay:   null,
@@ -170,13 +174,39 @@ class StoryViewer {
 
   // ── API PÚBLICA ────────────────────────────────────────────
 
-  static abrir(wrap) {
-    const cardEl    = wrap.closest('.story-card');
-    const container = wrap.closest('.stories-scroll');
-    if (!cardEl || !container) return;
+  /**
+   * Abre o viewer para a barbearia do card clicado.
+   * Recupera todos os stories do StoriesStore.
+   * Fallback (cards legacy/demo sem shopId): abre MediaViewer com o vídeo do card.
+   * @param {Element} el — .story-card ou qualquer elemento filho
+   */
+  static abrir(el) {
+    const cardEl = el?.closest?.('.story-card');
+    if (!cardEl) return;
 
-    StoryViewer.#cards = [...container.querySelectorAll('.story-card')];
-    StoryViewer.#idx   = StoryViewer.#cards.indexOf(cardEl);
+    const shopId  = cardEl.dataset.shopId;
+    const stories = (shopId && typeof StoriesStore !== 'undefined')
+      ? StoriesStore.get(shopId)
+      : [];
+
+    // Fallback: card legacy / demo sem stories no cache → MediaViewer
+    if (!stories.length) {
+      const video = cardEl.querySelector('.story-video');
+      const src   = video?.src;
+      if (src && typeof MediaViewer !== 'undefined') {
+        MediaViewer.getInstance().open({ type: 'video', src, poster: video.poster ?? '' });
+      }
+      return;
+    }
+
+    // Estado centralizado — 1 card = 1 barbearia = N stories
+    StoryViewer.#viewerState = {
+      shopId,
+      stories,
+      currentIndex: 0,
+      cardEl,
+      storyId: stories[0]?.id ?? null,
+    };
 
     StoryViewer.#garantirDOM();
 
@@ -188,30 +218,51 @@ class StoryViewer {
     StoryViewer.#prox.style.display = 'none';
 
     StoryViewer.#renderizar();
-    StoryProgressLayer.render(StoryViewer.#els.stage, StoryViewer.#cards.length, StoryViewer.#idx);
+    StoryProgressLayer.render(
+      StoryViewer.#els.stage,
+      stories.length,
+      0,
+    );
     StoryViewer.#abrirOverlay();
   }
 
   static fechar() {
     if (!StoryViewer.#els.overlay) return;
-    StoryViewer.#els.video?.pause();
+
+    // Pausa e libera vídeo de ambos os inners (Ajuste 7 — cleanup obrigatório)
+    for (const inner of [StoryViewer.#els.innerA, StoryViewer.#els.innerB]) {
+      if (!inner) continue;
+      const v = inner.querySelector('.sv-video');
+      if (v) {
+        v.pause();
+        v.removeAttribute('src');
+        if (typeof v.load === 'function') v.load();
+        delete v.dataset.observerBound;
+      }
+    }
+
+    // Remove botão de som residual
+    StoryViewer.#els.overlay.querySelector('.sv-sound-btn')?.remove();
+
     StoryViewer.#flipping   = false;
     StoryViewer.#swipeAtivo = false;
     StoryViewer.#fecharOverlay();
   }
 
   static async prev() {
-    if (StoryViewer.#flipping || StoryViewer.#idx <= 0) return;
+    const { currentIndex } = StoryViewer.#viewerState;
+    if (StoryViewer.#flipping || currentIndex <= 0) return;
     StoryViewer.#flipping = true;
-    StoryViewer.#idx--;
+    StoryViewer.#viewerState.currentIndex--;
     await StoryViewer.#transicao3D(-1);
     StoryViewer.#flipping = false;
   }
 
   static async next() {
-    if (StoryViewer.#flipping || StoryViewer.#idx >= StoryViewer.#cards.length - 1) return;
+    const { currentIndex, stories } = StoryViewer.#viewerState;
+    if (StoryViewer.#flipping || currentIndex >= stories.length - 1) return;
     StoryViewer.#flipping = true;
-    StoryViewer.#idx++;
+    StoryViewer.#viewerState.currentIndex++;
     await StoryViewer.#transicao3D(+1);
     StoryViewer.#flipping = false;
   }
@@ -221,18 +272,18 @@ class StoryViewer {
     if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', null)) return;
 
     const { likeBtn, likeCount } = StoryViewer.#els;
-    const card = StoryViewer.#cards[StoryViewer.#idx];
-    if (!likeBtn || !card) return;
+    if (!likeBtn || !likeCount) return;
 
-    const curtido      = likeBtn.classList.toggle('curtido');
-    const cardLikeBtn  = card.querySelector('.story-like-btn');
-    const cardLikeSpan = card.querySelector('.story-like-count');
-
-    cardLikeBtn?.classList.toggle('curtido', curtido);
-
+    const curtido = likeBtn.classList.toggle('curtido');
     const novoVal = (parseInt(likeCount.textContent) || 0) + (curtido ? 1 : -1);
     likeCount.textContent = novoVal;
-    if (cardLikeSpan) cardLikeSpan.textContent = novoVal;
+
+    // Notifica o card de origem via CustomEvent (sem acoplamento direto — Ajuste 5)
+    const { cardEl, shopId, currentIndex } = StoryViewer.#viewerState;
+    cardEl?.dispatchEvent(new CustomEvent('story:like', {
+      bubbles: true,
+      detail: { shopId, storyIndex: currentIndex, curtido, count: novoVal },
+    }));
   }
 
   // ── PRIVADO — DOM ──────────────────────────────────────────
@@ -289,8 +340,9 @@ class StoryViewer {
     const video = document.createElement('video');
     video.className = 'sv-video';
     video.setAttribute('playsinline', '');
-    video.setAttribute('autoplay',    '');
     video.setAttribute('loop',        '');
+    video.controls = true;
+    video.muted    = false;
 
     const svTop = document.createElement('div');
     svTop.className = 'sv-top';
@@ -409,23 +461,31 @@ class StoryViewer {
 
   // ── PRIVADO — Renderização ─────────────────────────────────
 
-  static #lerCard(idx = StoryViewer.#idx) {
-    const card = StoryViewer.#cards[idx];
-    const vid  = card?.querySelector('.story-video');
+  /**
+   * Lê os dados do story a exibir a partir do estado centralizado.
+   * @param {number} [idx] — índice do story (padrão: currentIndex)
+   * @returns {object|null}
+   */
+  static #lerCard(idx = StoryViewer.#viewerState.currentIndex) {
+    const { stories, cardEl } = StoryViewer.#viewerState;
+    const story = stories[idx];
+    if (!story) return null;
+
     return {
-      storyId:   card?.dataset.storyId                                              || null,
-      ownerId:   card?.dataset.ownerId                                              || null,
-      videoSrc:  vid?.src                                                           || '',
-      poster:    vid?.getAttribute('poster')                                      || '',
-      badgeSrc:  card?.querySelector('.story-shop-badge')?.src                   || '',
-      nome:      card?.querySelector('.story-card-name')?.textContent             || '',
-      addr:      card?.querySelector('.story-card-addr')?.textContent             || '',
-      likeCount: card?.querySelector('.story-like-count')?.textContent            || '0',
-      curtido:   card?.querySelector('.story-like-btn')?.classList.contains('curtido') ?? false,
+      storyId:   story.id          ?? null,
+      ownerId:   story.owner_id    ?? null,
+      videoSrc:  story.media_url   ?? '',
+      poster:    story.thumbnail_path ?? '',
+      badgeSrc:  cardEl?.querySelector('.story-shop-badge')?.src ?? '',
+      nome:      cardEl?.querySelector('.story-card-name')?.textContent ?? '',
+      addr:      cardEl?.querySelector('.story-card-addr')?.textContent ?? '',
+      likeCount: String(story.views_count ?? 0),
+      curtido:   false,
     };
   }
 
   static #preencherInner(inner, dados) {
+    if (!dados) return;
     const video     = inner.querySelector('.sv-video');
     const badge     = inner.querySelector('.sv-badge');
     const nome      = inner.querySelector('.sv-nome');
@@ -434,8 +494,10 @@ class StoryViewer {
     const likeCount = inner.querySelector('.sv-like-btn span');
 
     video.pause();
-    video.poster = dados.poster;
-    video.src    = dados.videoSrc;
+    video.muted    = false;
+    video.controls = true;
+    video.poster   = dados.poster;
+    video.src      = dados.videoSrc;
 
     badge.src             = dados.badgeSrc;
     nome.textContent      = dados.nome;
@@ -447,11 +509,22 @@ class StoryViewer {
   static #renderizar() {
     StoryViewer.#atualizarCacheAtivo();
     const dados = StoryViewer.#lerCard();
-    StoryViewer.#storyId = dados.storyId;
-    StoryViewer.#ownerId = dados.ownerId;
+    if (!dados) return;
+
+    // Atualiza storyId no estado (usado pelos comentários)
+    const { stories, currentIndex } = StoryViewer.#viewerState;
+    StoryViewer.#viewerState.storyId = stories[currentIndex]?.id ?? null;
+
     StoryViewer.#preencherInner(StoryViewer.#ativo, dados);
-    StoryViewer.#els.video?.play().catch(() => {});
+    StoryViewer.#reproduzirComSom(StoryViewer.#els.video);
     StoryViewer.#atualizarNavegacao();
+    StoryProgressLayer.render(
+      StoryViewer.#els.stage,
+      stories.length,
+      currentIndex,
+    );
+    // Preload do próximo story para evitar tela preta (Ajuste 4)
+    StoryViewer.#preloadProximo();
   }
 
   static #precarregarProx(idx, dir) {
@@ -469,15 +542,18 @@ class StoryViewer {
 
   static #atualizarNavegacao() {
     const { prev, next } = StoryViewer.#els;
-    if (prev) prev.style.visibility = StoryViewer.#idx > 0 ? '' : 'hidden';
-    if (next) next.style.visibility = StoryViewer.#idx < StoryViewer.#cards.length - 1 ? '' : 'hidden';
+    const { currentIndex, stories } = StoryViewer.#viewerState;
+    if (prev) prev.style.visibility = currentIndex > 0 ? '' : 'hidden';
+    if (next) next.style.visibility = currentIndex < stories.length - 1 ? '' : 'hidden';
   }
 
   // ── PRIVADO — Animação 3D ──────────────────────────────────
 
   static async #transicao3D(dir) {
-    StoryViewer.#precarregarProx(StoryViewer.#idx, dir);
+    StoryViewer.#precarregarProx(StoryViewer.#viewerState.currentIndex, dir);
     StoryViewer.#els.video?.pause();
+    // Remove botão de som anterior antes de iniciar novo vídeo
+    StoryViewer.#els.overlay?.querySelector('.sv-sound-btn')?.remove();
 
     await StorySwipeTransition.completar(
       StoryViewer.#ativo,
@@ -495,11 +571,28 @@ class StoryViewer {
     StorySwipeTransition.limpar(StoryViewer.#prox);
     StoryViewer.#prox.style.display = 'none';
 
+    // Limpa o src do buffer reutilizado (antigo ativo) para liberar memória
+    const proxVideo = StoryViewer.#prox.querySelector('.sv-video');
+    if (proxVideo) { proxVideo.removeAttribute('src'); }
+
     StorySwipeTransition.limpar(StoryViewer.#ativo);
     StoryViewer.#atualizarCacheAtivo();
-    StoryViewer.#els.video?.play().catch(() => {});
+
+    // Atualiza storyId no estado
+    const { stories, currentIndex } = StoryViewer.#viewerState;
+    StoryViewer.#viewerState.storyId = stories[currentIndex]?.id ?? null;
+
+    // Remove botão de som residual e reproduz o novo vídeo com som
+    StoryViewer.#els.overlay?.querySelector('.sv-sound-btn')?.remove();
+    StoryViewer.#reproduzirComSom(StoryViewer.#els.video);
     StoryViewer.#atualizarNavegacao();
-    StoryProgressLayer.render(StoryViewer.#els.stage, StoryViewer.#cards.length, StoryViewer.#idx);
+    StoryProgressLayer.render(
+      StoryViewer.#els.stage,
+      stories.length,
+      currentIndex,
+    );
+    // Preload do próximo story (Ajuste 4)
+    StoryViewer.#preloadProximo();
   }
 
   // ── PRIVADO — Overlay ──────────────────────────────────────
@@ -515,10 +608,71 @@ class StoryViewer {
   static #fecharOverlay() {
     const { overlay } = StoryViewer.#els;
     overlay.classList.remove('sv-ativo');
-    setTimeout(() => {
-      overlay.style.display        = '';
-      document.body.style.overflow = '';
+    if (StoryViewer.#fecharTimeoutId) {
+      clearTimeout(StoryViewer.#fecharTimeoutId);
+    }
+    StoryViewer.#fecharTimeoutId = setTimeout(() => {
+      StoryViewer.#fecharTimeoutId    = null;
+      overlay.style.display           = '';
+      document.body.style.overflow    = '';
     }, 300);
+  }
+
+  // ── PRIVADO — Reprodução com som + fallback (Ajuste 3 / Ajuste 7) ─────
+
+  /**
+   * Reproduz o vídeo com som. Se o browser bloquear (autoplay policy),
+   * exibe o botão "🔊 Tocar com som". Nunca muta automaticamente.
+   * @param {HTMLVideoElement|null} video
+   */
+  static #reproduzirComSom(video) {
+    if (!video) return;
+    video.muted = false;
+    video.play().catch(err => {
+      if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') {
+        StoryViewer.#mostrarBotaoSom(video);
+      }
+    });
+  }
+
+  /**
+   * Injeta botão "🔊 Tocar com som" no overlay.
+   * Removido automaticamente ao fechar/navegar.
+   * @param {HTMLVideoElement} video
+   */
+  static #mostrarBotaoSom(video) {
+    if (!StoryViewer.#els.overlay) return;
+    if (StoryViewer.#els.overlay.querySelector('.sv-sound-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.className   = 'sv-sound-btn';
+    btn.type        = 'button';
+    btn.textContent = '🔊 Tocar com som';
+    btn.addEventListener('click', () => {
+      video.muted = false;
+      video.play().catch(() => {});
+      btn.remove();
+    });
+    StoryViewer.#els.overlay.appendChild(btn);
+  }
+
+  /**
+   * Faz preload do próximo story no buffer prox (apenas src + metadata).
+   * Evita tela preta na navegação para frente (Ajuste 4).
+   */
+  static #preloadProximo() {
+    const { stories, currentIndex } = StoryViewer.#viewerState;
+    const proxIdx = currentIndex + 1;
+    if (proxIdx >= stories.length) return;
+
+    const dados = StoryViewer.#lerCard(proxIdx);
+    if (!dados?.videoSrc) return;
+
+    const proxVideo = StoryViewer.#prox?.querySelector('.sv-video');
+    if (proxVideo && !proxVideo.src) {
+      proxVideo.preload = 'metadata';
+      proxVideo.src     = dados.videoSrc;
+    }
   }
 
   // ── PRIVADO — Eventos ──────────────────────────────────────
@@ -550,8 +704,8 @@ class StoryViewer {
 
       if (!StoryViewer.#swipeAtivo && Math.abs(dx) > 8) {
         const dir     = dx < 0 ? +1 : -1;
-        const proxIdx = StoryViewer.#idx + dir;
-        if (proxIdx < 0 || proxIdx >= StoryViewer.#cards.length) return;
+        const proxIdx = StoryViewer.#viewerState.currentIndex + dir;
+        if (proxIdx < 0 || proxIdx >= StoryViewer.#viewerState.stories.length) return;
 
         StoryViewer.#swipeDir   = dir;
         StoryViewer.#swipeAtivo = true;
@@ -581,7 +735,7 @@ class StoryViewer {
 
       if (Math.abs(dx) >= StoryViewer.#SWIPE_MIN) {
         StoryViewer.#flipping = true;
-        StoryViewer.#idx += dir;
+        StoryViewer.#viewerState.currentIndex += dir;
         await StorySwipeTransition.completar(
           StoryViewer.#ativo,
           StoryViewer.#prox,
@@ -659,7 +813,7 @@ class StoryViewer {
 
     lista.innerHTML = '';
 
-    const storyId = StoryViewer.#storyId;
+    const storyId = StoryViewer.#viewerState.storyId;
     if (!storyId || typeof MessageService === 'undefined') {
       const vazio = document.createElement('p');
       vazio.className   = 'sv-comment-vazio';
@@ -700,8 +854,8 @@ class StoryViewer {
     input.value    = '';
     input.disabled = true;
 
-    const storyId = StoryViewer.#storyId;
-    const ownerId = StoryViewer.#ownerId;
+    const storyId = StoryViewer.#viewerState.storyId;
+    const ownerId = StoryViewer.#viewerState.stories[StoryViewer.#viewerState.currentIndex]?.owner_id ?? null;
 
     // Renderiza otimisticamente
     const lista = inner.querySelector('.sv-comment-lista');

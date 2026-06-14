@@ -1,6 +1,35 @@
 'use strict';
 
 // =============================================================
+// StoriesStore — cache em memória de stories agrupados por barbearia
+//
+// Evita armazenar arrays JSON em data-attributes do DOM.
+// ShopId → stories[] do BFF. Acessível por StoriesWidget e StoryViewer.
+// =============================================================
+
+class StoriesStore {
+
+  static #cache = new Map();
+
+  static set(shopId, stories) {
+    if (shopId && Array.isArray(stories)) StoriesStore.#cache.set(shopId, stories);
+  }
+
+  static get(shopId) {
+    return StoriesStore.#cache.get(shopId) ?? [];
+  }
+
+  static has(shopId) {
+    return StoriesStore.#cache.has(shopId);
+  }
+
+  /** Limpa o cache (ex.: ao fazer logout). */
+  static clear() {
+    StoriesStore.#cache.clear();
+  }
+}
+
+// =============================================================
 // MediaViewer — player fullscreen unificado (imagem e vídeo)
 //
 // Singleton. Visual espelha .pp-prism-viewer (mesmas cores, mesmo
@@ -115,18 +144,18 @@ class MediaViewer {
 }
 
 // =============================================================
-// StoriesWidget — carregamento dinâmico de stories por barbearia
+// StoriesWidget — carregamento dinâmico de stories agrupados por barbearia
 //
 // Responsabilidades:
 //   - Buscar stories via BFF (GET /api/v1/barbearias/:id/stories)
-//   - Modo barbearia: rebuild completo do .stories-scroll com cards reais
-//   - Modo scan: percorre cards existentes por data-owner-id e popula o src
-//     do .story-video; ignora IDs de demonstração (prefixo 00000000)
+//   - Modo barbearia: cria UM card para a barbearia com todos os stories no StoriesStore
+//   - Modo scan: 1 card por owner, armazena todos os stories no StoriesStore,
+//     sem MediaViewer — StoryViewer ativado via StoriesLayout event delegation
 //   - Carregamento lazy via IntersectionObserver (threshold 10%, root=scroll)
-//   - Clique no wrap abre MediaViewer com áudio; stopPropagation impede StoryViewer
+//   - Badge contador: mostra "+N" somente se stories.length > 1
 //   - Erro de vídeo: exibe ↻ retry (nunca oculta o card)
 //
-// Dependências: BffApiService.js, ApiService.js, MediaViewer (acima)
+// Dependências: StoriesStore, BffApiService.js, MediaViewer (fallback legacy)
 // =============================================================
 
 class StoriesWidget {
@@ -180,7 +209,7 @@ class StoriesWidget {
   // PRIVADOS — carregamento
   // ══════════════════════════════════════════════════════════
 
-  /** Modo rebuild: busca stories da barbearia e reconstrói os cards do zero. */
+  /** Modo rebuild: cria UM card para a barbearia com todos os stories. */
   async #carregarPorBarbearia() {
     const { data: stories, error } =
       await BffApiService.barbearias.listarStories(this.#barbershopId);
@@ -190,74 +219,79 @@ class StoriesWidget {
       return;
     }
 
+    StoriesStore.set(this.#barbershopId, stories);
     this.#scrollEl.innerHTML = '';
-    for (const story of stories) {
-      if (!story.media_url) continue;
-      this.#scrollEl.appendChild(this.#criarCard(story));
-    }
+    this.#scrollEl.appendChild(this.#criarCardGrupo(stories, this.#barbershopId));
 
-    if (!this.#scrollEl.children.length) {
-      this.#ocultarSecao();
-    } else {
-      const section = this.#scrollEl.closest('.bp-stories-section');
-      if (section) section.hidden = false;
-    }
+    const section = this.#scrollEl.closest('.bp-stories-section');
+    if (section) section.hidden = false;
   }
 
   /**
-   * Modo scan: percorre os .story-card existentes pelo data-owner-id.
-   * Cards com IDs de demonstração (00000000-…) são ignorados.
-   * Cards com IDs reais recebem o src e um handler de clique localizado.
+   * Modo scan: 1 card por owner, todos os stories no StoriesStore.
+   * Remove bindings MediaViewer/stopPropagation — StoryViewer é ativado
+   * naturalmente via StoriesLayout event delegation.
    */
   async #carregarPorCards() {
     const cards = [...this.#scrollEl.querySelectorAll('.story-card[data-owner-id]')];
-    const reais = new Map();
 
+    // Agrupa por ownerId, mantendo apenas o PRIMEIRO card por owner
+    const primeiroCardPorOwner = new Map();
     for (const card of cards) {
       const oid = card.dataset.ownerId;
       if (!oid || oid.startsWith('00000000')) continue;
-      if (!reais.has(oid)) reais.set(oid, []);
-      reais.get(oid).push(card);
+      if (!primeiroCardPorOwner.has(oid)) {
+        primeiroCardPorOwner.set(oid, card);
+      } else {
+        card.hidden = true; // oculta card duplicado do mesmo owner
+      }
     }
 
-    if (!reais.size) return;
+    if (!primeiroCardPorOwner.size) return;
 
-    const buscas = [...reais.keys()].map(oid =>
+    // Busca todos os stories em paralelo
+    const buscas = [...primeiroCardPorOwner.keys()].map(oid =>
       BffApiService.barbearias.listarStories(oid)
         .then(({ data }) => ({ oid, stories: Array.isArray(data) ? data : [] }))
         .catch(() => ({ oid, stories: [] })),
     );
 
-    const resultados   = await Promise.all(buscas);
-    const storiesPorId = new Map(resultados.map(r => [r.oid, r.stories]));
+    const resultados = await Promise.all(buscas);
 
-    for (const [oid, cardsDoOwner] of reais) {
-      const stories = storiesPorId.get(oid) ?? [];
-      for (let i = 0; i < cardsDoOwner.length; i++) {
-        const story = stories[i];
-        const card  = cardsDoOwner[i];
-        if (!story?.media_url) { card.hidden = true; continue; }
+    for (const { oid, stories } of resultados) {
+      const card = primeiroCardPorOwner.get(oid);
+      if (!card) continue;
 
-        const video = card.querySelector('.story-video');
-        if (video) {
-          video.src     = story.media_url;
-          video.preload = 'none';
-        }
-        card.dataset.storyId = story.id ?? '';
+      if (!stories.length) {
+        card.hidden = true;
+        continue;
+      }
 
-        // Vincular clique localizado no wrap (previne StoryViewer.abrir do StoriesLayout)
-        const wrap = card.querySelector('.story-video-wrap');
-        if (wrap && !wrap.dataset.playerBound) {
-          wrap.dataset.playerBound = '1';
-          const v = video;
-          wrap.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const src = v?.src;
-            if (!src) return;
-            MediaViewer.getInstance().open({ type: 'video', src, poster: v?.poster ?? '' });
-          });
-        }
+      // Armazena todos os stories da barbearia no cache
+      StoriesStore.set(oid, stories);
+
+      // Popula thumbnail com o primeiro story
+      const primeiroStory = stories[0];
+      const video = card.querySelector('.story-video');
+      if (video && primeiroStory?.media_url) {
+        video.src     = primeiroStory.media_url;
+        video.preload = 'none';
+        if (primeiroStory.thumbnail_path) video.poster = primeiroStory.thumbnail_path;
+      }
+
+      // Marca com shopId (não mais storyId individual)
+      card.dataset.shopId = oid;
+
+      // Badge contador: somente se há mais de 1 story
+      this.#atualizarContador(card, stories.length);
+
+      // Sincroniza likes do viewer com o card via CustomEvent (sem acoplamento)
+      const likeCountEl = card.querySelector('.story-like-count');
+      if (likeCountEl) {
+        card.addEventListener('story:like', (e) => {
+          const { count } = e.detail ?? {};
+          if (typeof count === 'number') likeCountEl.textContent = String(count);
+        });
       }
     }
   }
@@ -275,7 +309,8 @@ class StoriesWidget {
   #bindObserver() {
     if (!this.#scrollEl?.querySelectorAll) return;
 
-    const allCards = [...this.#scrollEl.querySelectorAll('.story-card')];
+    // Ignora cards ocultos (sem stories ou duplicados)
+    const allCards = [...this.#scrollEl.querySelectorAll('.story-card:not([hidden])')];
     if (!allCards.length) return;
 
     if (typeof IntersectionObserver === 'undefined') {
@@ -358,22 +393,27 @@ class StoriesWidget {
   // ══════════════════════════════════════════════════════════
 
   /**
-   * Cria um card de story compatível com a estrutura estática do HTML.
-   * Vídeo com preload='none' — o IntersectionObserver ativa o carregamento.
-   * Clique no wrap abre MediaViewer (stopPropagation impede StoryViewer).
-   * @param {object} story — objeto retornado pelo BFF
+   * Cria 1 card representando TODA a barbearia (não um story individual).
+   * Thumbnail = primeiro story. Badge = quantidade de stories (se > 1).
+   * StoriesStore é populado aqui para que StoryViewer possa recuperar os dados.
+   *
+   * @param {object[]} stories — array completo retornado pelo BFF
+   * @param {string|null} shopId — UUID da barbearia (fallback: stories[0].owner_id)
    * @returns {HTMLDivElement}
    */
-  #criarCard(story) {
+  #criarCardGrupo(stories, shopId = null) {
+    const first   = stories[0];
+    const ownerId = shopId ?? first?.owner_id ?? '';
+    StoriesStore.set(ownerId, stories);
+
     const logoSrc = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
 
     const card = document.createElement('div');
-    card.className = 'card-mini story-card';
-    card.dataset.storyId = story.id ?? '';
-    card.dataset.ownerId = story.owner_id ?? '';
+    card.className      = 'card-mini story-card';
+    card.dataset.shopId = ownerId;
 
     const wrap = document.createElement('div');
-    wrap.className = 'story-video-wrap';
+    wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
     const video = document.createElement('video');
@@ -382,27 +422,18 @@ class StoriesWidget {
     video.loop      = true;
     video.preload   = 'none';
     video.className = 'story-video';
-    video.src       = story.media_url;
-
-    // Bind localizado — stopPropagation garante que StoryViewer não seja invocado
-    if (typeof wrap.addEventListener === 'function') {
-      wrap.addEventListener('click', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!video.src) return;
-        MediaViewer.getInstance().open({ type: 'video', src: video.src, poster: video.poster || '' });
-      });
-    }
+    if (first?.media_url)      video.src    = first.media_url;
+    if (first?.thumbnail_path) video.poster = first.thumbnail_path;
 
     const playBtn = document.createElement('div');
-    playBtn.className = 'story-play-btn';
+    playBtn.className   = 'story-play-btn';
     playBtn.textContent = '▶';
 
     const badge = document.createElement('img');
     badge.className = 'story-shop-badge';
-    badge.src = logoSrc;
-    badge.alt = '';
-    badge.onerror = function() { this.style.display = 'none'; };
+    badge.src       = logoSrc;
+    badge.alt       = '';
+    badge.onerror   = function() { this.style.display = 'none'; };
 
     wrap.appendChild(video);
     wrap.appendChild(playBtn);
@@ -412,7 +443,7 @@ class StoriesWidget {
     info.className = 'story-card-info';
 
     const nameP = document.createElement('p');
-    nameP.className = 'story-card-name';
+    nameP.className   = 'story-card-name';
     nameP.textContent = this.#shopName ?? '';
 
     const addrP = document.createElement('p');
@@ -422,17 +453,17 @@ class StoriesWidget {
     info.appendChild(addrP);
 
     const likeBtn = document.createElement('button');
-    likeBtn.className = 'story-like-btn';
-    likeBtn.type = 'button';
-    likeBtn.dataset.action = 'like';
+    likeBtn.className        = 'story-like-btn';
+    likeBtn.type             = 'button';
+    likeBtn.dataset.action   = 'like';
 
     const likeImg = document.createElement('img');
     likeImg.src = '/shared/img/icones_curtir.png';
     likeImg.alt = 'curtir';
 
     const likeCount = document.createElement('span');
-    likeCount.className = 'story-like-count';
-    likeCount.textContent = String(story.views_count ?? 0);
+    likeCount.className   = 'story-like-count';
+    likeCount.textContent = String(first?.views_count ?? 0);
 
     likeBtn.appendChild(likeImg);
     likeBtn.appendChild(likeCount);
@@ -441,6 +472,31 @@ class StoriesWidget {
     card.appendChild(info);
     card.appendChild(likeBtn);
 
+    // Badge de contagem: somente se há mais de 1 story
+    this.#atualizarContador(card, stories.length);
+
+    // Sincroniza likes do viewer com o card via CustomEvent (sem acoplamento)
+    card.addEventListener('story:like', (e) => {
+      const { count } = e.detail ?? {};
+      if (typeof count === 'number') likeCount.textContent = String(count);
+    });
+
     return card;
+  }
+
+  /**
+   * Adiciona ou atualiza o badge de contagem de stories no card.
+   * Mostra somente se total > 1. Formato: "+3".
+   * @param {HTMLElement} card
+   * @param {number} total
+   */
+  #atualizarContador(card, total) {
+    card.querySelector('.story-count-badge')?.remove();
+    if (total <= 1) return;
+
+    const countBadge = document.createElement('span');
+    countBadge.className   = 'story-count-badge';
+    countBadge.textContent = `+${total}`;
+    card.appendChild(countBadge);
   }
 }
