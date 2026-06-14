@@ -190,6 +190,8 @@ class StoriesWidget {
       await this.#carregarPorBarbearia();
     } else if (modo === 'individual') {
       await this.#carregarPorBarbeariIndividual();
+    } else if (modo === 'feed') {
+      await this.#carregarFeed();
     } else {
       await this.#carregarPorCards();
     }
@@ -198,28 +200,85 @@ class StoriesWidget {
 
   /**
    * Resolve o modo baseado no contexto e na presença de barbershopId.
-   * @returns {'scan'|'grupo'|'individual'}
+   * @returns {'scan'|'grupo'|'individual'|'feed'}
    */
   #resolverModo() {
     if (this.#context === 'public-shop' || this.#context === 'my-shop') return 'individual';
+    if (this.#context === 'feed') return 'feed';
     if (this.#barbershopId) return 'grupo';
     return 'scan';
   }
 
   /**
    * Convenience: cria e carrega um StoriesWidget para o scroll da home.
-   * Modo scan — percorre cards existentes por data-owner-id.
+   * Modo feed: busca barbearias em destaque e carrega stories de cada uma.
    * @param {HTMLElement|null} telaInicio — elemento #tela-inicio
    */
   static iniciarHome(telaInicio) {
     const scroll = telaInicio?.querySelector?.('.stories-scroll');
     if (!scroll) return;
-    new StoriesWidget(scroll).carregar().catch(() => {});
+    new StoriesWidget(scroll, { context: 'feed' }).carregar().catch(() => {});
   }
 
   // ══════════════════════════════════════════════════════════
   // PRIVADOS — carregamento
   // ══════════════════════════════════════════════════════════
+
+  /**
+   * Modo feed: 1 card por barbearia ativa com stories (home cliente + profissional).
+   * Busca barbearias em destaque e carrega os stories de cada uma em paralelo.
+   *
+   * Performance: Promise.allSettled em paralelo (max 8 barbearias).
+   * Isolamento: falha de 1 barbearia não impede as demais.
+   * Escala: fácil aumentar o limite ou trocar por endpoint dedicado sem reescrita.
+   */
+  async #carregarFeed() {
+    const { data: barbearias, error } = await BffApiService.barbearias.listarDestaque();
+    if (error || !Array.isArray(barbearias) || !barbearias.length) {
+      this.#ocultarSecao();
+      return;
+    }
+
+    // Max 8: equilibra visibilidade com custo de requests
+    const candidatas = barbearias.slice(0, 8);
+
+    // Busca stories de todas em paralelo — evita N+1 sequencial
+    const resultados = await Promise.allSettled(
+      candidatas.map(shop =>
+        BffApiService.barbearias.listarStories(shop.id)
+          .then(({ data }) => ({
+            shop,
+            stories: Array.isArray(data) && data.length ? data : null,
+          }))
+          .catch(() => ({ shop, stories: null }))
+      )
+    );
+
+    // Filtra somente barbearias com stories ativos
+    const comStories = resultados
+      .filter(r => r.status === 'fulfilled' && r.value.stories)
+      .map(r => r.value);
+
+    if (!comStories.length) {
+      this.#ocultarSecao();
+      return;
+    }
+
+    this.#scrollEl.innerHTML = '';
+
+    for (const { shop, stories } of comStories) {
+      const logoUrl = typeof ApiService !== 'undefined'
+        ? ApiService.getLogoUrl(shop.logo_path)
+        : (shop.logo_path ?? '');
+      const card = this.#criarCardGrupo(stories, shop.id, shop.name ?? '', logoUrl);
+      this.#scrollEl.appendChild(card);
+    }
+
+    // Recalibra carrossel com os novos cards dinâmicos (StoriesCarousel é idempotente)
+    if (typeof StoriesCarousel !== 'undefined') {
+      StoriesCarousel.aplicar(this.#scrollEl.parentElement ?? document);
+    }
+  }
 
   /** Modo grupo: cria UM card para a barbearia com todos os stories (Home). */
   async #carregarPorBarbearia() {
@@ -470,14 +529,16 @@ class StoriesWidget {
    *
    * @param {object[]} stories — array completo retornado pelo BFF
    * @param {string|null} shopId — UUID da barbearia (fallback: stories[0].owner_id)
+   * @param {string|null} shopName — sobrescreve this.#shopName (modo feed)
+   * @param {string|null} logoUrl — sobrescreve this.#shopLogoSrc (modo feed)
    * @returns {HTMLDivElement}
    */
-  #criarCardGrupo(stories, shopId = null) {
+  #criarCardGrupo(stories, shopId = null, shopName = null, logoUrl = null) {
     const first   = stories[0];
     const ownerId = shopId ?? first?.owner_id ?? '';
     StoriesStore.set(ownerId, stories);
 
-    const logoSrc = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
+    const logoSrc = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
 
     const card = document.createElement('div');
     card.className      = 'card-mini story-card';
@@ -516,7 +577,7 @@ class StoriesWidget {
 
     const nameP = document.createElement('p');
     nameP.className   = 'story-card-name';
-    nameP.textContent = this.#shopName ?? '';
+    nameP.textContent = shopName ?? this.#shopName ?? '';
 
     const addrP = document.createElement('p');
     addrP.className = 'story-card-addr';
