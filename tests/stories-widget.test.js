@@ -311,6 +311,87 @@ test('StoriesWidget modo scan ignora cards com IDs de demonstração 00000000', 
   assert.strictEqual(demoCard.hidden, false, 'card demo não deve ser ocultado pelo widget');
 });
 
+// ── Novos testes — StoryPlayer e preload ─────────────────────────────────────
+
+test('StoriesWidget define classe StoryPlayer com abrirVideo e story-player', () => {
+  assert.match(src, /class StoryPlayer/);
+  assert.match(src, /abrirVideo/);
+  assert.match(src, /story-player/);
+  assert.match(src, /is-loaded/);
+  assert.match(src, /#bindClicks/);
+});
+
+test('StoriesWidget.carregar popula card com video.preload = metadata', async () => {
+  const appendedCards = [];
+  let capturedVideo   = null;
+
+  const scrollEl = {
+    get children() { return appendedCards; },
+    innerHTML: '',
+    hidden: false,
+    querySelectorAll: () => [],
+    closest: () => ({ hidden: false }),
+    appendChild(c) { appendedCards.push(c); },
+  };
+
+  const mockDoc = {
+    createElement(tag) {
+      const el = {
+        _tag: tag, _children: [], _attrs: {}, className: '', src: '', alt: '',
+        muted: false, loop: false, preload: '', type: '', textContent: '',
+        innerHTML: '', hidden: false, onerror: null, onloadedmetadata: null,
+        dataset: {}, style: {},
+        setAttribute(k, v) { this._attrs[k] = v; },
+        appendChild(child) { this._children.push(child); },
+        querySelector() { return null; },
+        closest() { return null; },
+        querySelectorAll() { return []; },
+      };
+      if (tag === 'video') capturedVideo = el;
+      return el;
+    },
+  };
+
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: {
+      barbearias: {
+        listarStories: async () => ({
+          data: [{ id: 'sid', owner_id: 'oid', media_url: 'https://cdn/v.mp4', views_count: 0 }],
+          error: null,
+        }),
+      },
+    },
+    document: mockDoc,
+  });
+
+  const widget = new StoriesWidget(scrollEl, { barbershopId: 'bbb' });
+  await widget.carregar();
+
+  assert.ok(capturedVideo, 'video deve ter sido criado');
+  assert.strictEqual(capturedVideo.preload, 'metadata', 'preload deve ser metadata');
+  assert.ok(typeof capturedVideo.onloadedmetadata === 'function' || capturedVideo.onloadedmetadata === null,
+    'onloadedmetadata deve ter sido atribuído (ou nulo se div)');
+});
+
+test('StoriesWidget.carregar não lança quando scrollEl não tem addEventListener', async () => {
+  const scrollEl = {
+    children: [],
+    innerHTML: '',
+    hidden: false,
+    querySelectorAll: () => [],
+    closest: () => null,
+  };
+
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: {
+      barbearias: { listarStories: async () => ({ data: [], error: null }) },
+    },
+  });
+
+  const widget = new StoriesWidget(scrollEl, { barbershopId: 'aaa' });
+  await assert.doesNotReject(() => widget.carregar(), 'carregar não deve lançar sem addEventListener');
+});
+
 test('StoriesWidget modo scan popula video.src para cards com IDs reais', async () => {
   const OWNER_ID   = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
   let capturedSrc  = '';

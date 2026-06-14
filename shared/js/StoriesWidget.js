@@ -1,23 +1,107 @@
 'use strict';
 
 // =============================================================
-// StoriesWidget.js — Carregamento dinâmico de stories por barbearia (OOP)
+// StoryPlayer — player fullscreen de vídeo para stories
+//
+// Overlay de z-index 9000 com áudio habilitado.
+// Encapsulado aqui para manter toda lógica de stories isolada.
+// =============================================================
+
+class StoryPlayer {
+
+  #overlayEl = null;
+  #videoEl   = null;
+  #keyFn     = null;
+
+  /**
+   * Abre o overlay fullscreen reproduzindo o vídeo indicado.
+   * @param {string} src    — URL do vídeo (media_url do story)
+   * @param {string} poster — URL do poster (opcional)
+   */
+  abrirVideo(src, poster = '') {
+    this.fechar();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'story-player';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    const btn = document.createElement('button');
+    btn.className = 'story-player__close';
+    btn.setAttribute('aria-label', 'Fechar');
+    btn.textContent = '×';
+    btn.addEventListener('click', () => this.fechar());
+
+    const video = document.createElement('video');
+    video.className = 'story-player__video';
+    video.src       = src;
+    video.poster    = poster;
+    video.controls  = true;
+    video.autoplay  = true;
+    video.muted     = false;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('preload', 'auto');
+
+    overlay.appendChild(btn);
+    overlay.appendChild(video);
+    document.body.appendChild(overlay);
+    document.body.classList.add('story-player-open');
+
+    this.#overlayEl = overlay;
+    this.#videoEl   = video;
+
+    // Tenta com som; fallback silencioso se política de autoplay bloquear
+    video.play().catch(() => {
+      video.muted = true;
+      video.play().catch(() => {});
+    });
+
+    this.#keyFn = (e) => { if (e.key === 'Escape') this.fechar(); };
+    document.addEventListener('keydown', this.#keyFn);
+
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.fechar(); });
+  }
+
+  /** Pausa o vídeo, remove o overlay e limpa estado. */
+  fechar() {
+    if (this.#videoEl) {
+      this.#videoEl.pause();
+      this.#videoEl.removeAttribute('src');
+      this.#videoEl.load();
+    }
+    this.#overlayEl?.remove();
+    this.#overlayEl = null;
+    this.#videoEl   = null;
+    document.body.classList.remove('story-player-open');
+    if (this.#keyFn) {
+      document.removeEventListener('keydown', this.#keyFn);
+      this.#keyFn = null;
+    }
+  }
+}
+
+// =============================================================
+// StoriesWidget — carregamento dinâmico de stories por barbearia
 //
 // Responsabilidades:
 //   - Buscar stories via BFF (GET /api/v1/barbearias/:id/stories)
 //   - Modo barbearia: rebuild completo do .stories-scroll com cards reais
 //   - Modo scan: percorre cards existentes por data-owner-id e popula o src
 //     do .story-video; ignora IDs de demonstração (prefixo 00000000)
+//   - Intercepta cliques [data-action="story-open"] (capture phase) e abre
+//     StoryPlayer — fullscreen com áudio, z-index 9000, acima de qualquer painel
 //
 // Dependências: BffApiService.js, ApiService.js
 // =============================================================
 
 class StoriesWidget {
 
-  #scrollEl      = null;
-  #barbershopId  = null;
-  #shopName      = null;
-  #shopLogoSrc   = null;
+  #scrollEl     = null;
+  #barbershopId = null;
+  #shopName     = null;
+  #shopLogoSrc  = null;
+  #player       = new StoryPlayer();
+  #clicksBound  = false;
 
   /**
    * @param {HTMLElement} scrollEl         — container .stories-scroll
@@ -40,6 +124,7 @@ class StoriesWidget {
   /** Carrega e renderiza os stories. Fire-and-forget seguro. */
   async carregar() {
     if (!this.#scrollEl || typeof BffApiService === 'undefined') return;
+    this.#bindClicks();
     if (this.#barbershopId) {
       await this.#carregarPorBarbearia();
     } else {
@@ -61,6 +146,26 @@ class StoriesWidget {
   // ══════════════════════════════════════════════════════════
   // PRIVADOS
   // ══════════════════════════════════════════════════════════
+
+  /**
+   * Registra listener capture-phase no scroll para interceptar cliques em
+   * [data-action="story-open"] antes que StoriesLayout chame StoryViewer.abrir().
+   * Idempotente — só registra uma vez por instância.
+   */
+  #bindClicks() {
+    if (this.#clicksBound || !this.#scrollEl?.addEventListener) return;
+    this.#clicksBound = true;
+    this.#scrollEl.addEventListener('click', (e) => {
+      const wrap = e.target.closest('[data-action="story-open"]');
+      if (!wrap) return;
+      e.stopPropagation();
+      const card = wrap.closest('.story-card');
+      const vid  = card?.querySelector('.story-video');
+      const src  = vid?.src;
+      if (!src) return;
+      this.#player.abrirVideo(src, vid?.poster ?? '');
+    }, { capture: true });
+  }
 
   /** Modo rebuild: busca stories da barbearia e reconstrói os cards do zero. */
   async #carregarPorBarbearia() {
@@ -92,8 +197,8 @@ class StoriesWidget {
    * Cards com IDs reais recebem o src do primeiro story encontrado.
    */
   async #carregarPorCards() {
-    const cards  = [...this.#scrollEl.querySelectorAll('.story-card[data-owner-id]')];
-    const reais  = new Map();
+    const cards = [...this.#scrollEl.querySelectorAll('.story-card[data-owner-id]')];
+    const reais = new Map();
 
     for (const card of cards) {
       const oid = card.dataset.ownerId;
@@ -120,7 +225,14 @@ class StoriesWidget {
         const card  = cardsDoOwner[i];
         if (!story?.media_url) { card.hidden = true; continue; }
         const video = card.querySelector('.story-video');
-        if (video) video.src = story.media_url;
+        if (video) {
+          video.src     = story.media_url;
+          video.preload = 'metadata';
+          if (typeof video.load === 'function') video.load();
+          const wrap = card.querySelector('.story-video-wrap');
+          video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
+          video.onerror          = () => { card.hidden = true; };
+        }
         card.dataset.storyId = story.id ?? '';
       }
     }
@@ -134,7 +246,7 @@ class StoriesWidget {
   }
 
   /**
-   * Cria um card de story compatível com StoryViewer.
+   * Cria um card de story compatível com StoryPlayer.
    * Estrutura espelha os cards estáticos do HTML — mantém compatibilidade total.
    * @param {object} story — objeto retornado pelo BFF
    * @returns {HTMLDivElement}
@@ -155,9 +267,11 @@ class StoriesWidget {
     video.setAttribute('playsinline', '');
     video.muted   = true;
     video.loop    = true;
-    video.preload = 'none';
+    video.preload = 'metadata';
     video.className = 'story-video';
     video.src = story.media_url;
+    video.onloadedmetadata = () => wrap.classList.add('is-loaded');
+    video.onerror          = () => { card.hidden = true; };
 
     const playBtn = document.createElement('div');
     playBtn.className = 'story-play-btn';
