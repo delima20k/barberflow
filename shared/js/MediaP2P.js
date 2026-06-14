@@ -120,7 +120,8 @@ class MediaP2P {
       throw new Error(`[MediaP2P] Falha ao obter URL presigned: ${error ?? presResp.status}`);
     }
 
-    const { uploadUrl, path, publicUrl, token: hmac, expiresAt, mediaId } = await presResp.json();
+    const { dados } = await presResp.json();
+    const { uploadUrl, path, publicUrl, token: hmac, expiresAt, mediaId } = dados ?? {};
 
     // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
     const uploadResp = await fetch(uploadUrl, {
