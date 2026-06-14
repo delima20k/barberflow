@@ -2020,14 +2020,16 @@ export class MinhaBarbeariaRuntimeController {
       const shopName = shop.name ?? '';
 
       stories.forEach((story, idx) => {
+        // Thumbnail: converte storage path para URL; não usa media_url de vídeo como img
         const thumbUrl = story.thumbnail_path
           ? SupabaseService.getLogoUrl(story.thumbnail_path)
-          : story.media_url ?? null;
+          : (story.media_type !== 'video' ? story.media_url ?? null : null);
 
         const card = document.createElement('div');
         card.className        = 'card-mini story-card mb-story-slot';
         card.dataset.shopId   = shop.id;
         card.dataset.storyIdx = String(idx);
+        card.setAttribute('data-sv-bound', '1'); // evita double-listener do StoriesLayout
 
         const wrap = document.createElement('div');
         wrap.className = 'story-video-wrap';
@@ -2038,8 +2040,14 @@ export class MinhaBarbeariaRuntimeController {
           img.alt          = 'story';
           img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
           img.onerror = function() { this.style.display = 'none'; };
+          // is-loaded: pára shimmer quando a imagem carrega/falha
+          img.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+          img.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+          if (img.complete) wrap.classList.add('is-loaded');
           wrap.appendChild(img);
         } else {
+          // Sem thumbnail: remove shimmer imediatamente e mostra ícone
+          wrap.classList.add('is-loaded');
           const placeholder = document.createElement('div');
           placeholder.className   = 'mb-slot-vazio';
           placeholder.textContent = story.media_type === 'video' ? '▶' : '📸';

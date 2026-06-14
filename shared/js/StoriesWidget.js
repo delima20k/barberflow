@@ -319,7 +319,8 @@ class StoriesWidget {
       if (video && primeiroStory?.media_url) {
         video.src     = primeiroStory.media_url;
         video.preload = 'none';
-        if (primeiroStory.thumbnail_path) video.poster = primeiroStory.thumbnail_path;
+        const posterUrl = StoriesWidget.#resolverThumbUrl(primeiroStory.thumbnail_path, null, null);
+        if (posterUrl) video.poster = posterUrl;
       }
 
       // Marca com shopId (não mais storyId individual)
@@ -361,11 +362,24 @@ class StoriesWidget {
       for (const card of allCards) {
         const video = card.querySelector('.story-video');
         const wrap  = card.querySelector('.story-video-wrap');
-        if (!video || !video.src) continue;
-        video.preload = 'metadata';
-        video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
-        video.onerror = () => this.#aoErrarVideo(card, video);
-        if (typeof video.load === 'function') video.load();
+        if (!video) continue;
+
+        if (video.tagName === 'IMG') {
+          // Thumbnail estática: marcar is-loaded via load/error
+          if (video.complete) { wrap?.classList.add('is-loaded'); }
+          else {
+            video.addEventListener('load',  () => wrap?.classList.add('is-loaded'), { once: true });
+            video.addEventListener('error', () => wrap?.classList.add('is-loaded'), { once: true });
+          }
+        } else if (!video.src) {
+          // Vídeo demo sem src: parar shimmer e mostrar poster
+          wrap?.classList.add('is-loaded');
+        } else {
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
+          video.onerror = () => this.#aoErrarVideo(card, video);
+          if (typeof video.load === 'function') video.load();
+        }
       }
       return;
     }
@@ -379,12 +393,26 @@ class StoriesWidget {
 
         if (entry.isIntersecting && !video.dataset.observerBound) {
           video.dataset.observerBound = '1';
-          video.preload = 'metadata';
-          video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
-          video.onerror = () => this.#aoErrarVideo(card, video);
-          if (typeof video.load === 'function') video.load();
+
+          if (video.tagName === 'IMG') {
+            // Thumbnail estática: marcar is-loaded via load/error
+            if (video.complete) { wrap?.classList.add('is-loaded'); }
+            else {
+              video.addEventListener('load',  () => wrap?.classList.add('is-loaded'), { once: true });
+              video.addEventListener('error', () => wrap?.classList.add('is-loaded'), { once: true });
+            }
+          } else if (!video.src) {
+            // Vídeo demo sem src: parar shimmer e mostrar poster, sem load()
+            wrap?.classList.add('is-loaded');
+          } else {
+            // Vídeo real: lazy loading normal
+            video.preload = 'metadata';
+            video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
+            video.onerror = () => this.#aoErrarVideo(card, video);
+            if (typeof video.load === 'function') video.load();
+          }
         } else if (!entry.isIntersecting) {
-          if (video.src && !video.paused) video.pause();
+          if (video.tagName !== 'IMG' && video.src && !video.paused) video.pause();
         }
       }
     }, { root: this.#scrollEl, threshold: 0.1 });
@@ -465,8 +493,9 @@ class StoriesWidget {
     video.loop      = true;
     video.preload   = 'none';
     video.className = 'story-video';
-    if (first?.media_url)      video.src    = first.media_url;
-    if (first?.thumbnail_path) video.poster = first.thumbnail_path;
+    if (first?.media_url) video.src = first.media_url;
+    const posterUrl = StoriesWidget.#resolverThumbUrl(first?.thumbnail_path, null, null);
+    if (posterUrl) video.poster = posterUrl;
 
     const playBtn = document.createElement('div');
     playBtn.className   = 'story-play-btn';
@@ -518,6 +547,12 @@ class StoriesWidget {
     // Badge de contagem: somente se há mais de 1 story
     this.#atualizarContador(card, stories.length);
 
+    // Click handler direto (card criado dinamicamente — StoriesLayout não o vê)
+    card.setAttribute('data-sv-bound', '1');
+    card.addEventListener('click', () => {
+      if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(card);
+    });
+
     // Sincroniza likes do viewer com o card via CustomEvent (sem acoplamento)
     card.addEventListener('story:like', (e) => {
       const { count } = e.detail ?? {};
@@ -525,6 +560,27 @@ class StoriesWidget {
     });
 
     return card;
+  }
+
+  /**
+   * Converte storage path de thumbnail para URL pública acessível.
+   * Usa SupabaseService > ApiService > caminho bruto como fallback.
+   * Para media_url de vídeo como fallback: ignora (retorna vazio).
+   *
+   * @param {string|null} thumbnailPath — storage path da thumbnail
+   * @param {string|null} mediaUrl      — URL já resolvida do vídeo/imagem
+   * @param {string|null} mediaType     — 'video' | 'image' | null
+   * @returns {string}
+   */
+  static #resolverThumbUrl(thumbnailPath, mediaUrl, mediaType) {
+    if (thumbnailPath) {
+      if (typeof SupabaseService !== 'undefined') return SupabaseService.getLogoUrl(thumbnailPath);
+      if (typeof ApiService      !== 'undefined') return ApiService.getLogoUrl(thumbnailPath);
+      return thumbnailPath;
+    }
+    // Fallback: usa media_url somente se for imagem (não vídeo)
+    if (mediaType !== 'video' && mediaUrl) return mediaUrl;
+    return '';
   }
 
   /**
@@ -555,7 +611,8 @@ class StoriesWidget {
    */
   #criarCardIndividual(story, idx, shopId) {
     const logoSrc  = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    const thumbSrc = story.thumbnail_path ?? story.media_url ?? '';
+    // Converte thumbnail_path para URL pública; para vídeo sem thumb, não usa media_url
+    const thumbSrc = StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type);
 
     const card = document.createElement('div');
     card.className          = 'card-mini story-card';
@@ -574,7 +631,14 @@ class StoriesWidget {
       thumb.alt       = '';
       thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       thumb.onerror = function() { this.style.display = 'none'; };
+      // Marca is-loaded quando a imagem carrega (card dinâmico — StoriesLayout não o vê)
+      thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+      thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+      if (thumb.complete) wrap.classList.add('is-loaded');
       wrap.appendChild(thumb);
+    } else {
+      // Sem thumbnail: mostra shimmer removido imediatamente
+      wrap.classList.add('is-loaded');
     }
 
     const playBtn = document.createElement('div');
@@ -624,6 +688,12 @@ class StoriesWidget {
     card.appendChild(wrap);
     card.appendChild(info);
     card.appendChild(likeBtn);
+
+    // Click handler direto (card criado dinamicamente — StoriesLayout não o vê)
+    card.setAttribute('data-sv-bound', '1');
+    card.addEventListener('click', () => {
+      if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(card);
+    });
 
     // Sincroniza likes do viewer com o card via CustomEvent
     card.addEventListener('story:like', (e) => {
