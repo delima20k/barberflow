@@ -4,11 +4,11 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 30,
-      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
+      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**,../src/infra/**"
     },
     "server.js": {
       "maxDuration": 30,
-      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**"
+      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**,../src/infra/**"
     }
   },
   "headers": [
