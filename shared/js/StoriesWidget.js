@@ -226,52 +226,33 @@ class StoriesWidget {
 
   /**
    * Modo feed: 1 card por barbearia ativa com stories (home cliente + profissional).
-   * Busca barbearias em destaque e carrega os stories de cada uma em paralelo.
+   * Chama endpoint dedicado que busca diretamente na tabela stories
+   * e agrupa por barbearia — barbearias sem stories nunca aparecem.
    *
-   * Performance: Promise.allSettled em paralelo (max 8 barbearias).
-   * Isolamento: falha de 1 barbearia não impede as demais.
-   * Escala: fácil aumentar o limite ou trocar por endpoint dedicado sem reescrita.
+   * Performance: 1 request total (BFF agrega e resolve URLs).
+   * Escalabilidade: max 8 barbearias, max 10 stories por barbearia.
    */
   async #carregarFeed() {
-    const { data: barbearias, error } = await BffApiService.barbearias.listarDestaque();
-    if (error || !Array.isArray(barbearias) || !barbearias.length) {
-      this.#ocultarSecao();
-      return;
-    }
-
-    // Max 8: equilibra visibilidade com custo de requests
-    const candidatas = barbearias.slice(0, 8);
-
-    // Busca stories de todas em paralelo — evita N+1 sequencial
-    const resultados = await Promise.allSettled(
-      candidatas.map(shop =>
-        BffApiService.barbearias.listarStories(shop.id)
-          .then(({ data }) => ({
-            shop,
-            stories: Array.isArray(data) && data.length ? data : null,
-          }))
-          .catch(() => ({ shop, stories: null }))
-      )
-    );
-
-    // Filtra somente barbearias com stories ativos
-    const comStories = resultados
-      .filter(r => r.status === 'fulfilled' && r.value.stories)
-      .map(r => r.value);
-
-    if (!comStories.length) {
+    const { data: feed, error } = await BffApiService.barbearias.feedStories();
+    if (error || !Array.isArray(feed) || !feed.length) {
       this.#ocultarSecao();
       return;
     }
 
     this.#scrollEl.innerHTML = '';
 
-    for (const { shop, stories } of comStories) {
+    for (const { shop, stories } of feed) {
+      if (!Array.isArray(stories) || !stories.length) continue;
       const logoUrl = typeof ApiService !== 'undefined'
         ? ApiService.getLogoUrl(shop.logo_path)
         : (shop.logo_path ?? '');
       const card = this.#criarCardGrupo(stories, shop.id, shop.name ?? '', logoUrl);
       this.#scrollEl.appendChild(card);
+    }
+
+    if (!this.#scrollEl.children.length) {
+      this.#ocultarSecao();
+      return;
     }
 
     // Recalibra carrossel com os novos cards dinâmicos (StoriesCarousel é idempotente)

@@ -329,6 +329,18 @@ class BarbeariaController extends BaseController {
   }
 
   /**
+   * GET /api/v1/barbearias/stories/feed
+   * Retorna barbearias com stories ativos para o feed da home.
+   * Pública — não exige autenticação.
+   */
+  async listarFeedStories(req, res) {
+    await this.handle(res, async () => {
+      const feed = await this.#service.listarFeedStories();
+      this.success(res, feed);
+    });
+  }
+
+  /**
    * Registra story enviado por profissional vinculado.
    */
   async salvarStoryProfissional(req, res) {

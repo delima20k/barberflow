@@ -1124,6 +1124,87 @@ class BarbeariaRepository extends BaseRepository {
     if (!base || !avatarPath) return null;
     return `${base}/storage/v1/object/public/avatars/${avatarPath}`;
   }
+
+  /**
+   * Retorna stories ativos agrupados por barbearia, ordenados pelo mais recente.
+   * Usado no feed da home — traz somente barbearias que postaram stories.
+   *
+   * Query em 2 passos (sem JOIN cross-table complexo):
+   *   1. stories (com media_files join) — filtra expires_at, ordena desc
+   *   2. barbershops — 1 query .in() para os IDs únicos detectados
+   *
+   * Complexidade: O(N) linhas de stories + 1 query de barbershops.
+   * Não usa N+1 por barbearia.
+   *
+   * @param {number} [maxShops=8] — número máximo de barbearias no feed
+   * @returns {Promise<Array<{shop: object, stories: object[]}>>}
+   */
+  async listarFeedStoriesAgrupados(maxShops = 8) {
+    const agora = new Date().toISOString();
+
+    // Traz stories suficientes para cobrir maxShops barbearias
+    // (margem * 10 cobre o caso de 1 barbearia dominar os primeiros resultados)
+    const limite = maxShops * 10 + 10;
+
+    const { data: stories, error } = await this._db
+      .from('stories')
+      .select(
+        'id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, ' +
+        'views_count, created_at, expires_at, media_id, ' +
+        'media_files!stories_media_id_fkey(path, public_url)',
+      )
+      .gt('expires_at', agora)
+      .order('created_at', { ascending: false })
+      .limit(limite);
+
+    if (error) {
+      this._warn('listarFeedStoriesAgrupados', error);
+      this._throwDbError(error, 'listarFeedStoriesAgrupados');
+    }
+
+    if (!stories?.length) return [];
+
+    // Identifica barbershop_ids únicos preservando a ordem do story mais recente
+    const seenIds = new Set();
+    const barbershopIds = [];
+    for (const s of stories) {
+      if (s.barbershop_id && !seenIds.has(s.barbershop_id)) {
+        seenIds.add(s.barbershop_id);
+        barbershopIds.push(s.barbershop_id);
+        if (barbershopIds.length >= maxShops) break;
+      }
+    }
+
+    if (!barbershopIds.length) return [];
+
+    // 1 query para buscar nome e logo de todas as barbearias detectadas
+    const { data: shops, error: shopsError } = await this._db
+      .from('barbershops')
+      .select('id, name, logo_path')
+      .in('id', barbershopIds);
+
+    if (shopsError) this._warn('listarFeedStoriesAgrupados:shops', shopsError);
+
+    const shopMap = new Map((shops ?? []).map(s => [s.id, s]));
+
+    // Agrupa stories por barbearia (máx 10 por barbearia)
+    const grouped = new Map();
+    for (const story of stories) {
+      if (!seenIds.has(story.barbershop_id)) continue;
+      const arr = grouped.get(story.barbershop_id) ?? [];
+      if (arr.length < 10) {
+        arr.push(story);
+        grouped.set(story.barbershop_id, arr);
+      }
+    }
+
+    return barbershopIds
+      .filter(id => (grouped.get(id) ?? []).length > 0)
+      .map(id => ({
+        shop:    shopMap.get(id) ?? { id, name: '', logo_path: null },
+        stories: grouped.get(id),
+      }));
+  }
 }
 
 module.exports = BarbeariaRepository;

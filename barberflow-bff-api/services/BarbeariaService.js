@@ -512,16 +512,15 @@ class BarbeariaService extends BaseService {
   }
 
   /**
-   * Lista stories ativos de uma barbearia.
-   * Stories com media_id recebem URL assinada R2 (60s). Legados usam storage_path.
-   * @param {string} barbershopId
-   * @returns {Promise<Array>}
+  /**
+   * Resolve URLs assinadas dos stories (R2 → Supabase Storage → fallback).
+   * Extrai lógica comum de listarStoriesAtivos e listarFeedStories (DRY).
+   * Stories sem media_id são retornados sem alteração.
+   * @param {object[]} stories
+   * @returns {Promise<object[]>}
    */
-  async listarStoriesAtivos(barbershopId) {
-    this._uuid('barbershopId', barbershopId);
-    const stories = await this.#repo.listarStoriesAtivos(barbershopId);
+  async #resolverUrlsStories(stories) {
     if (!stories.length) return stories;
-
     try {
       const r2 = R2Client.getInstance();
       return Promise.all(stories.map(async story => {
@@ -531,8 +530,7 @@ class BarbeariaService extends BaseService {
           const mediaUrl = await r2.presignedGet(r2Path, 3600);
           return { ...story, media_url: mediaUrl };
         } catch {
-          const fallback = story.media_files?.public_url || null;
-          return { ...story, media_url: fallback };
+          return { ...story, media_url: story.media_files?.public_url || null };
         }
       }));
     } catch {
@@ -549,6 +547,35 @@ class BarbeariaService extends BaseService {
         }
       }));
     }
+  }
+
+  /**
+   * Lista stories ativos de uma barbearia.
+   * Stories com media_id recebem URL assinada R2 (60s). Legados usam storage_path.
+   * @param {string} barbershopId
+   * @returns {Promise<Array>}
+   */
+  async listarStoriesAtivos(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    const stories = await this.#repo.listarStoriesAtivos(barbershopId);
+    return this.#resolverUrlsStories(stories);
+  }
+
+  /**
+   * Retorna feed de stories agrupados por barbearia para a home.
+   * Somente barbearias com stories ativos aparecem — ordenadas por mais recente.
+   * @returns {Promise<Array<{shop: object, stories: object[]}>>}
+   */
+  async listarFeedStories() {
+    const grupos = await this.#repo.listarFeedStoriesAgrupados();
+    if (!grupos.length) return [];
+
+    return Promise.all(
+      grupos.map(async ({ shop, stories }) => ({
+        shop,
+        stories: await this.#resolverUrlsStories(stories),
+      })),
+    );
   }
 
   async #readPublicListCache(endpoint, limit, fetchFn) {

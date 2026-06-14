@@ -263,9 +263,9 @@ class BffApiService {
     listarStories: (barbershopId) =>
       BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`),
 
-    /** Lista barbearias em destaque (home feed de stories). Rota pública. */
-    listarDestaque: (limit = 8) =>
-      BffApiService.get('/api/v1/barbearias/destaque', { limit }),
+    /** Feed da home: barbearias com stories ativos agrupados, ordenados por mais recente. */
+    feedStories: () =>
+      BffApiService.get('/api/v1/barbearias/stories/feed'),
 
     publicarStory: (barbershopId, payload) =>
       BffApiService.post(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/stories`, payload),

@@ -53,6 +53,9 @@ module.exports = function criarBarbeariaRoute(db) {
   // Deve vir ANTES de /:barbershop_id para evitar conflito de parâmetro dinâmico.
   router.get('/portfolio/interacoes',                       ctrl.portfolioInteracoes.bind(ctrl));
   // FIM ALTERAÇÃO
+  // Feed de stories da home: barbearias com stories ativos (public, sem auth).
+  // Registrado ANTES de /:barbershop_id para evitar conflito de parâmetro.
+  router.get('/stories/feed',                               ctrl.listarFeedStories.bind(ctrl));
   router.post('/:barbershop_id/mensalidade/interesse',      AuthMiddleware.verificar, ctrl.interesseMensalidade.bind(ctrl));
   router.get('/:barbershop_id/barbeiros-status',            ctrl.listarStatusBarbeiros.bind(ctrl));
   router.patch('/:barbershop_id/me/status',                 AuthMiddleware.verificar, ctrl.atualizarMeuStatusBarbeiro.bind(ctrl));
