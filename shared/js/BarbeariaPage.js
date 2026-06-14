@@ -24,6 +24,7 @@ class BarbeariaPage {
   #shopIdCache      = null;   // último ID renderizado (evita re-fetch na volta)
   #carregando       = false;  // mutex contra fetches paralelos
   #dig              = null;   // instância DigText de boas-vindas
+  #digFila          = null;   // instância DigText da seção de barbeiros
   #servicos         = [];     // serviços em cache para os handlers de cadeira
   #shopData         = null;   // objeto completo da barbearia atual
   #numeroBarbeiros  = 0;      // total de barbeiros ativos (usado na mensagem de fechamento)
@@ -31,9 +32,6 @@ class BarbeariaPage {
   #canalFilaShopId  = null;   // shop.id do canal ativo (evita reconexão desnecessária)
   #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)
   #canalShopId      = null;   // shop.id do canal de status (evita reconexão desnecessária)
-  #canalAtividade   = null;   // canal Supabase Realtime de disponibilidade de barbeiros
-  #canalAtividadeShopId = null;
-  #atividadeStatus  = new Map();
   #timerShopPoll    = null;   // timer de polling periódico de status (fallback quando Realtime falha)
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
   #highlightBarberId = null;  // barber-id a destacar após abrir barbearia via card do barbeiro
@@ -42,41 +40,12 @@ class BarbeariaPage {
   /** Intervalo de polling de status da barbearia em ms (fallback para Realtime). */
   static #SHOP_POLL_MS = 20_000;
 
-  static #isMensalidadeServico(servico, shop = null) {
-    const texto = [
-      servico?.category,
-      servico?.name,
-      servico?.description,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    if (/\b(mensalidade|mensal|mensalista)\b/.test(texto)) return true;
-
-    const precoShop = Number(shop?.monthly_plan_price ?? 0);
-    const precoServico = Number(servico?.price ?? 0);
-    const mensagemShop = String(shop?.monthly_plan_message ?? '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    const textoConfereComMensagem = Boolean(mensagemShop) && texto.includes(mensagemShop);
-    const pareceCadastroMensal = precoShop > 0
-      && precoServico === precoShop
-      && Number(servico?.duration_min ?? 30) === 30
-      && !servico?.image_path;
-
-    return pareceCadastroMensal || textoConfereComMensagem;
-  }
-
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
   #portfolioViewer      = null;  // PortfolioPrismViewer — lazy, criado no 1º clique
   #portfolioData        = [];    // lista de fotos ativas — alimentado em #renderPortfolio
   #mensalModal          = null;  // overlay do modal de mensalidade — lazy, criado na 1ª abertura
   #mensalModalKeyHandler = null; // handler Escape para remoção limpa no fechar
-  #storiesWidget        = null;  // StoriesWidget — recarregado a cada barbearia
 
   constructor() {}
 
@@ -188,13 +157,12 @@ class BarbeariaPage {
       portfolioBarbeirosWrap:   q('#bp-portfolio-barbeiros-wrap'),
       portfolioBarbeiros:       q('#bp-portfolio-barbeiros'),
       barbeirosScroll: q('#bp-barbeiros-scroll'),
+      filaDig:         q('#bp-fila-dig'),
       skeleton:      q('#bp-skeleton'),
       conteudo:      q('#bp-conteudo'),
       boasVindas:    q('#bp-boas-vindas'),
       ctaLogin:      q('#bp-cta-login'),
       infoFixa:      dq('#bp-info-fixa'),
-      storiesScroll: q('.bp-stories-section .stories-scroll'),
-      storiesSection: q('.bp-stories-section'),
     };
   }
 
@@ -212,7 +180,6 @@ class BarbeariaPage {
         // mesmo quando o usuário navega para outra tela.
         this.#pararRealtimeFila();
         this.#pararRealtimeShop();
-        this.#pararRealtimeAtividade();
         this.#pararPollingShop();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
@@ -254,7 +221,6 @@ class BarbeariaPage {
       if (this.#shopData) {
         this.#iniciarRealtimeFila(this.#shopData);
         this.#iniciarRealtimeShop(this.#shopData);
-        this.#iniciarRealtimeAtividade(this.#shopData);
         this.#iniciarPollingShop(this.#shopId);
       }
       return;
@@ -392,25 +358,6 @@ class BarbeariaPage {
     return BarbershopRepository.getBarbersByShop(shop.id, shop.owner_id ?? null);
   }
 
-  static async #fetchStatusBarbeiros(barbershopId) {
-    if (!barbershopId) return [];
-    if (typeof BarbeiroAtividadeStatus !== 'undefined') {
-      return BarbeiroAtividadeStatus.listar(barbershopId);
-    }
-    try {
-      const { data, error } = await BffApiService.barbearias.statusBarbeiros(barbershopId);
-      if (error) return [];
-      return Array.isArray(data) ? data : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  static #mapaStatusBarbeiros(lista = []) {
-    if (typeof BarbeiroAtividadeStatus !== 'undefined') return BarbeiroAtividadeStatus.mapa(lista);
-    return new Map((Array.isArray(lista) ? lista : []).map(item => [item.professional_id, item]));
-  }
-
   /**
    * Cria uma row de barbeiro: BarbeiroCard + cadeira de produção + cadeiras de fila.
    * @param {object}        opts
@@ -424,29 +371,20 @@ class BarbeariaPage {
    * @param {string|null}   opts.clienteLogadoId         id do cliente autenticado (ou null)
    * @returns {HTMLDivElement}
    */
-  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, clienteLogadoId = null, mostrarAtividade = false, isAvailable = false }) {
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, clienteLogadoId = null }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
-    const statusEl = (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined')
-      ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: barbeiro.id ?? '', isAvailable })
-      : null;
-    const card = BarbeiroCard.criar({
+    row.appendChild(BarbeiroCard.criar({
       nome:       barbeiro.full_name ?? 'Barbeiro',
       avatarPath: barbeiro.avatar_path ?? null,
       updatedAt:  barbeiro.updated_at ?? null,
       isOwner,
       barberId:   barbeiro.id ?? null,
-      statusEl,
-    });
-    row.appendChild(card);
+    }));
 
     const wrap = document.createElement('div');
     wrap.className = 'cdr-cadeiras-wrap';
-
-    // Barbeiro parceiro inativo bloqueia toda interação com as cadeiras
-    const barbeiroInterativo = !mostrarAtividade || isAvailable;
-    const podeInteragirEfetivo = podeInteragir && barbeiroInterativo;
 
     // Cadeira de produção (atendimento)
     const emServico      = filaEntradas.find(e => e.status === 'in_service') ?? null;
@@ -455,8 +393,8 @@ class BarbeariaPage {
       tipo:            'producao',
       entrada:         emServico,
       posicao:         0,
-      podeInteragir:   podeInteragirEfetivo && !emServico,
-      onClick:         (!emServico && podeInteragirEfetivo && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
+      podeInteragir:   podeInteragir && !emServico,
+      onClick:         (!emServico && onProducaoVaziaClick) ? onProducaoVaziaClick : null,
       confirmacao:     emServico?.client_confirmed ?? null,
       onArrivingClick: (ehMinhaEntrada && (emServico?.client_confirmed === 'arriving' || emServico?.client_confirmed === null) && onProducaoArrivingClick)
         ? () => onProducaoArrivingClick(emServico)
@@ -481,8 +419,8 @@ class BarbeariaPage {
       tipo:          'fila',
       entrada:       null,
       posicao:       naFila.length + 1,
-      podeInteragir: podeInteragirEfetivo,
-      onClick:       podeInteragirEfetivo ? (onCadeiraVaziaClick ?? null) : null,
+      podeInteragir,
+      onClick:       onCadeiraVaziaClick ?? null,
     }));
     wrap.appendChild(filaWrap);
     row.appendChild(wrap);
@@ -522,14 +460,43 @@ class BarbeariaPage {
     this.#renderServicos(servicos, shop);
     this.#renderMensalBanner(shop, servicos);
     this.#renderPortfolio(portfolio);
+    this.#renderStories(shop);            // fire-and-forget: preenche carrossel de stories
     this.#renderBarbeiros(shop);          // fire-and-forget: preenche carousel async
     this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
-    this.#renderStories(shop);            // fire-and-forget: carrega stories da barbearia
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
-    this.#iniciarRealtimeAtividade(shop);
     this.#iniciarPollingShop(shop.id);
     this.#mostrarConteudo();
+  }
+
+  /**
+   * Carrega e exibe os stories da barbearia pública no carrossel.
+   * Modo individual: 1 card por story, thumbnail estática, viewer no índice clicado.
+   * Fire-and-forget — não bloqueia o render principal.
+   * @param {object} shop
+   */
+  #renderStories(shop) {
+    if (typeof StoriesWidget === 'undefined') return;
+    const section = this.#telaEl?.querySelector?.('.bp-stories-section');
+    if (!section) return;
+
+    let scroll = section.querySelector('.stories-scroll');
+    if (!scroll) {
+      scroll = document.createElement('div');
+      scroll.className = 'stories-scroll';
+      section.insertBefore(scroll, section.firstChild);
+    }
+
+    const logoSrc = shop.logo_path
+      ? (typeof SupabaseService !== 'undefined' ? SupabaseService.getLogoUrl(shop.logo_path) : null)
+      : null;
+
+    new StoriesWidget(scroll, {
+      barbershopId: shop.id,
+      shopName:     shop.name ?? shop.trade_name ?? '',
+      shopLogoSrc:  logoSrc,
+      context:      'public-shop',
+    }).carregar().catch(() => {});
   }
 
   /**
@@ -552,7 +519,7 @@ class BarbeariaPage {
     let filaAtiva = [];
 
     try {
-      const [b, f, s] = await Promise.all([
+      const [b, f] = await Promise.all([
         barbeiros
           ? Promise.resolve(barbeiros)
           : BarbeariaPage.#fetchBarbeiros(shop).then(data => {
@@ -560,11 +527,9 @@ class BarbeariaPage {
               return data;
             }),
         CadeiraService.getFilaAtiva(shop.id),
-        BarbeariaPage.#fetchStatusBarbeiros(shop.id),
       ]);
       barbeiros = b;
       filaAtiva  = f;
-      this.#atividadeStatus = BarbeariaPage.#mapaStatusBarbeiros(s);
     } catch (err) {
       LoggerService.warn('[BarbeariaPage] #renderBarbeiros:', err?.message);
       barbeiros = barbeiros ?? [];
@@ -603,8 +568,6 @@ class BarbeariaPage {
         isOwner:               b.id === shop.owner_id,
         filaEntradas:          filaB,
         podeInteragir,
-        mostrarAtividade:      this.#atividadeStatus.has(b.id),
-        isAvailable:           this.#atividadeStatus.get(b.id)?.is_available === true,
         clienteLogadoId,
         onProducaoVaziaClick:     clientePodeInteragir
           ? () => this.#onProducaoClick(b.id)
@@ -634,6 +597,14 @@ class BarbeariaPage {
         });
       }
 
+    }
+
+    // Inicia animação DigText na seção de barbeiros
+    if (typeof DigText !== 'undefined' && this.#refs.filaDig) {
+      this.#refs.filaDig.textContent = '';
+      const TEXTO_FILA = 'Escolha um barbeiro de sua preferência e entre para a fila — seu corte está a um toque de distância.';
+      this.#digFila = new DigText(this.#refs.filaDig, [TEXTO_FILA], { velocidade: 28, loop: false });
+      this.#digFila.iniciar();
     }
   }
 
@@ -741,28 +712,6 @@ class BarbeariaPage {
       try { SupabaseService.removeChannel(this.#canalShop); } catch (_) {}
       this.#canalShop   = null;
       this.#canalShopId = null;
-    }
-  }
-
-  #iniciarRealtimeAtividade(shop) {
-    if (!shop?.id || typeof BarbeiroAtividadeStatus === 'undefined') return;
-    if (this.#canalAtividadeShopId === shop.id && this.#canalAtividade) return;
-    this.#pararRealtimeAtividade();
-    this.#canalAtividade = BarbeiroAtividadeStatus.assinar(shop.id, payload => {
-      const row = payload?.new || payload?.old || {};
-      if (row?.barbershop_id !== shop.id) return;
-      if (this.#shopData?.id === shop.id) {
-        this.#renderBarbeiros(this.#shopData).catch(() => {});
-      }
-    });
-    this.#canalAtividadeShopId = this.#canalAtividade ? shop.id : null;
-  }
-
-  #pararRealtimeAtividade() {
-    if (this.#canalAtividade) {
-      try { SupabaseService.removeChannel(this.#canalAtividade); } catch (_) {}
-      this.#canalAtividade = null;
-      this.#canalAtividadeShopId = null;
     }
   }
 
@@ -1352,7 +1301,34 @@ class BarbeariaPage {
     return el;
   }
 
-  // static #isMensalidadeServico fica declarado acima por compatibilidade de parsing no WebView.
+  static #isMensalidadeServico(servico, shop = null) {
+    const texto = [
+      servico?.category,
+      servico?.name,
+      servico?.description,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    if (/\b(mensalidade|mensal|mensalista)\b/.test(texto)) return true;
+
+    const precoShop = Number(shop?.monthly_plan_price ?? 0);
+    const precoServico = Number(servico?.price ?? 0);
+    const mensagemShop = String(shop?.monthly_plan_message ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    const textoConfereComMensagem = Boolean(mensagemShop) && texto.includes(mensagemShop);
+    const pareceCadastroMensal = precoShop > 0
+      && precoServico === precoShop
+      && Number(servico?.duration_min ?? 30) === 30
+      && !servico?.image_path;
+
+    return pareceCadastroMensal || textoConfereComMensagem;
+  }
+
   #obterMensalBanner() {
     if (this.#refs.mensalBanner) return this.#refs.mensalBanner;
     if (!this.#refs.servicosLista || typeof document === 'undefined') return null;
@@ -1613,28 +1589,6 @@ class BarbeariaPage {
       .catch(() => { if (wrap) wrap.hidden = true; });
   }
 
-  /**
-   * Carrega os stories ativos da barbearia e popula a section .bp-stories-section.
-   * Fire-and-forget — não bloqueia o render principal.
-   * @param {object} shop
-   */
-  #renderStories(shop) {
-    const scrollEl = this.#refs.storiesScroll;
-    if (!scrollEl || typeof StoriesWidget === 'undefined') return;
-
-    const logoSrc = (typeof ApiService !== 'undefined' && shop.logo_path)
-      ? ApiService.getLogoUrl(shop.logo_path)
-      : null;
-
-    const shopId = shop.id;
-    this.#storiesWidget = new StoriesWidget(scrollEl, {
-      barbershopId: shopId,
-      shopName:     shop.name ?? '',
-      shopLogoSrc:  logoSrc,
-    });
-    this.#storiesWidget.carregar().catch(() => {});
-  }
-
   // ══════════════════════════════════════════════════════════
   // CONTROLE DE VISIBILIDADE
   // Apenas gerenciam o DOM — nenhum estado de negócio aqui.
@@ -1668,6 +1622,8 @@ class BarbeariaPage {
     if (this.#refs.portfolioBarbeiros) { this.#refs.portfolioBarbeiros.innerHTML = ''; }
     if (this.#refs.portfolioBarbeirosWrap) { this.#refs.portfolioBarbeirosWrap.hidden = true; }
     if (this.#refs.barbeirosScroll) { this.#refs.barbeirosScroll.innerHTML = ''; }
+    if (this.#refs.filaDig)         { this.#refs.filaDig.textContent = ''; }
+    if (this.#digFila)              { this.#digFila.parar?.(); this.#digFila = null; }
     if (this.#refs.boasVindas) { this.#refs.boasVindas.textContent = ''; }
     if (this.#refs.ctaLogin)   { this.#refs.ctaLogin.hidden = true; this.#refs.ctaLogin.textContent = ''; }
     if (this.#refs.favBtn) {
@@ -1685,10 +1641,6 @@ class BarbeariaPage {
     // Reseta o dig para que a nova barbearia inicie a animação do zero
     this.#pararDig();
     this.#dig = null;
-    // Limpa stories da barbearia anterior
-    if (this.#refs.storiesScroll) this.#refs.storiesScroll.innerHTML = '';
-    if (this.#refs.storiesSection) this.#refs.storiesSection.hidden = false;
-    this.#storiesWidget = null;
     // Invalida o cache de tela para forçar re-fetch ao entrar novamente
     this.#shopIdCache = null;
     this.#servicos    = [];

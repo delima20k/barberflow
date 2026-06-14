@@ -309,9 +309,6 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.gpsBtnBuscar?.addEventListener('click', () => this.#buscarCep());
     this.#refs.gpsBtnGps?.addEventListener('click',    () => this.#ativarGps());
     this.#refs.gpsBtnSalvar?.addEventListener('click', () => this.#salvarGps());
-    // Stories — abrir viewer 3D ao clicar no slot
-    this.#refs.slot2?.addEventListener('click', () => this.#abrirStoryViewer(0));
-    this.#refs.slot3?.addEventListener('click', () => this.#abrirStoryViewer(1));
     // Toggle de status aberta/fechada
     this.#refs.statusToggle?.addEventListener('click', () => {
       if (!this.#contextoParceiro) this.#toggleStatusAberto();
@@ -2009,48 +2006,96 @@ export class MinhaBarbeariaRuntimeController {
 
     this.#storiesData = stories;
 
-    const slots = [this.#refs.slot2, this.#refs.slot3];
-    slots.forEach((slot, i) => {
-      if (!slot) return;
-      const story = stories[i];
-      if (!story) return;
+    // Popula o cache para o StoryViewer
+    if (typeof StoriesStore !== 'undefined') {
+      StoriesStore.set(shop.id, stories);
+    }
 
-      const thumbUrl = story.thumbnail_path
-        ? SupabaseService.getLogoUrl(story.thumbnail_path)
-        : null;
+    // Remove cards dinâmicos anteriores (.mb-story-slot) do scroll
+    const scroll = document.getElementById('mb-stories-scroll');
+    if (scroll) {
+      [...scroll.querySelectorAll('.mb-story-slot')].forEach(el => el.remove());
+
       const badgeSrc = this.#refs.coverImg?.src || '/shared/img/Logo01.png';
+      const shopName = shop.name ?? '';
 
-      slot.innerHTML = `
-        <div class="story-video-wrap">
-          ${thumbUrl
-            ? `<img src="${thumbUrl}" alt="story" style="width:100%;height:100%;object-fit:cover;"
-                    onerror="this.style.display='none'">`
-            : `<div class="mb-slot-vazio">${story.media_type === 'video' ? '▶' : '📸'}</div>`
-          }
-          <div class="story-play-btn">▶</div>
-          <img class="story-shop-badge" src="${badgeSrc}" alt="" onerror="this.style.display='none'">
-        </div>
-        <div class="story-card-info">
-          <p class="story-card-name">${shop.name ?? ''}</p>
-          <p class="story-card-addr">${new Date(story.created_at).toLocaleDateString('pt-BR')}</p>
-        </div>
-      `;
-    });
+      stories.forEach((story, idx) => {
+        const thumbUrl = story.thumbnail_path
+          ? SupabaseService.getLogoUrl(story.thumbnail_path)
+          : story.media_url ?? null;
+
+        const card = document.createElement('div');
+        card.className        = 'card-mini story-card mb-story-slot';
+        card.dataset.shopId   = shop.id;
+        card.dataset.storyIdx = String(idx);
+
+        const wrap = document.createElement('div');
+        wrap.className = 'story-video-wrap';
+
+        if (thumbUrl) {
+          const img = document.createElement('img');
+          img.src          = thumbUrl;
+          img.alt          = 'story';
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          img.onerror = function() { this.style.display = 'none'; };
+          wrap.appendChild(img);
+        } else {
+          const placeholder = document.createElement('div');
+          placeholder.className   = 'mb-slot-vazio';
+          placeholder.textContent = story.media_type === 'video' ? '▶' : '📸';
+          wrap.appendChild(placeholder);
+        }
+
+        const playBtn = document.createElement('div');
+        playBtn.className   = 'story-play-btn';
+        playBtn.textContent = '▶';
+        wrap.appendChild(playBtn);
+
+        const badge = document.createElement('img');
+        badge.className = 'story-shop-badge';
+        badge.src       = badgeSrc;
+        badge.alt       = '';
+        badge.onerror   = function() { this.style.display = 'none'; };
+        wrap.appendChild(badge);
+
+        const info = document.createElement('div');
+        info.className = 'story-card-info';
+
+        const nameP = document.createElement('p');
+        nameP.className   = 'story-card-name';
+        nameP.textContent = shopName;
+        info.appendChild(nameP);
+
+        const addrP = document.createElement('p');
+        addrP.className   = 'story-card-addr';
+        addrP.textContent = story.created_at
+          ? new Date(story.created_at).toLocaleDateString('pt-BR')
+          : '';
+        info.appendChild(addrP);
+
+        card.appendChild(wrap);
+        card.appendChild(info);
+
+        // Abre StoryViewer no índice correto ao clicar
+        card.addEventListener('click', () => {
+          if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(card);
+        });
+
+        scroll.appendChild(card);
+      });
+    }
   }
 
-  #abrirStoryViewer(slotIndex) {
-    const story = this.#storiesData[slotIndex];
-    if (!story || typeof PortfolioPrismViewer === 'undefined') return;
-    const items = this.#storiesData.map(s => ({
-      fullUrl:   s.media_url ?? (s.media_id ? null : SupabaseService.getLogoUrl(s.storage_path)),
-      thumbUrl:  s.thumbnail_path
-        ? SupabaseService.getLogoUrl(s.thumbnail_path)
-        : (s.media_url ?? (s.media_id ? null : SupabaseService.getLogoUrl(s.storage_path))),
-      title:     this.#shopData?.name ?? '',
-      mediaType: s.media_type,
-    }));
-    this.#storyViewer ??= new PortfolioPrismViewer();
-    this.#storyViewer.open(items[slotIndex], items);
+  #abrirStoryViewer(idx) {
+    const shopId = this.#shopData?.id;
+    if (!shopId || typeof StoryViewer === 'undefined') return;
+
+    // Cria um card sintético para o StoryViewer reconhecer shopId + storyIdx
+    const syntheticCard = document.createElement('div');
+    syntheticCard.className        = 'story-card';
+    syntheticCard.dataset.shopId   = shopId;
+    syntheticCard.dataset.storyIdx = String(idx);
+    StoryViewer.abrir(syntheticCard);
   }
 
   #renderServicos(lista) {

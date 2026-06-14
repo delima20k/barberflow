@@ -177,6 +177,7 @@ class StoryViewer {
   /**
    * Abre o viewer para a barbearia do card clicado.
    * Recupera todos os stories do StoriesStore.
+   * Se o card tiver data-storyIdx, inicia no índice correto (modo individual).
    * Fallback (cards legacy/demo sem shopId): abre MediaViewer com o vídeo do card.
    * @param {Element} el — .story-card ou qualquer elemento filho
    */
@@ -199,13 +200,19 @@ class StoryViewer {
       return;
     }
 
+    // Suporte a data-storyIdx: cards individuais (barbearia pública / minha barbearia)
+    const rawIdx     = parseInt(cardEl.dataset.storyIdx ?? '0', 10);
+    const startIndex = Number.isFinite(rawIdx) && rawIdx >= 0 && rawIdx < stories.length
+      ? rawIdx
+      : 0;
+
     // Estado centralizado — 1 card = 1 barbearia = N stories
     StoryViewer.#viewerState = {
       shopId,
       stories,
-      currentIndex: 0,
+      currentIndex: startIndex,
       cardEl,
-      storyId: stories[0]?.id ?? null,
+      storyId: stories[startIndex]?.id ?? null,
     };
 
     StoryViewer.#garantirDOM();
@@ -221,7 +228,7 @@ class StoryViewer {
     StoryProgressLayer.render(
       StoryViewer.#els.stage,
       stories.length,
-      0,
+      startIndex,
     );
     StoryViewer.#abrirOverlay();
   }

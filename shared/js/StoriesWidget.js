@@ -144,16 +144,12 @@ class MediaViewer {
 }
 
 // =============================================================
-// StoriesWidget — carregamento dinâmico de stories agrupados por barbearia
+// StoriesWidget — carregamento dinâmico de stories por contexto
 //
-// Responsabilidades:
-//   - Buscar stories via BFF (GET /api/v1/barbearias/:id/stories)
-//   - Modo barbearia: cria UM card para a barbearia com todos os stories no StoriesStore
-//   - Modo scan: 1 card por owner, armazena todos os stories no StoriesStore,
-//     sem MediaViewer — StoryViewer ativado via StoriesLayout event delegation
-//   - Carregamento lazy via IntersectionObserver (threshold 10%, root=scroll)
-//   - Badge contador: mostra "+N" somente se stories.length > 1
-//   - Erro de vídeo: exibe ↻ retry (nunca oculta o card)
+// Contextos:
+//   'home'        — modo grupo: 1 card por barbearia (StoriesStore)
+//   'public-shop' — modo individual: 1 card por story, abre viewer no índice
+//   'my-shop'     — modo individual: 1 card por story, abre viewer no índice
 //
 // Dependências: StoriesStore, BffApiService.js, MediaViewer (fallback legacy)
 // =============================================================
@@ -164,19 +160,22 @@ class StoriesWidget {
   #barbershopId = null;
   #shopName     = null;
   #shopLogoSrc  = null;
+  #context      = 'home'; // 'home' | 'public-shop' | 'my-shop'
 
   /**
-   * @param {HTMLElement} scrollEl           — container .stories-scroll
+   * @param {HTMLElement} scrollEl
    * @param {object}      [opts]
-   * @param {string|null} [opts.barbershopId] — UUID da barbearia (modo rebuild)
-   * @param {string|null} [opts.shopName]     — nome exibido nos cards
-   * @param {string|null} [opts.shopLogoSrc]  — URL do logo para o badge do card
+   * @param {string|null} [opts.barbershopId]
+   * @param {string|null} [opts.shopName]
+   * @param {string|null} [opts.shopLogoSrc]
+   * @param {string}      [opts.context]  'home' | 'public-shop' | 'my-shop'
    */
-  constructor(scrollEl, { barbershopId = null, shopName = null, shopLogoSrc = null } = {}) {
+  constructor(scrollEl, { barbershopId = null, shopName = null, shopLogoSrc = null, context = 'home' } = {}) {
     this.#scrollEl     = scrollEl;
     this.#barbershopId = barbershopId;
     this.#shopName     = shopName;
     this.#shopLogoSrc  = shopLogoSrc;
+    this.#context      = context;
   }
 
   // ══════════════════════════════════════════════════════════
@@ -186,12 +185,25 @@ class StoriesWidget {
   /** Carrega e renderiza os stories. Fire-and-forget seguro. */
   async carregar() {
     if (!this.#scrollEl || typeof BffApiService === 'undefined') return;
-    if (this.#barbershopId) {
+    const modo = this.#resolverModo();
+    if (modo === 'grupo') {
       await this.#carregarPorBarbearia();
+    } else if (modo === 'individual') {
+      await this.#carregarPorBarbeariIndividual();
     } else {
       await this.#carregarPorCards();
     }
     this.#bindObserver();
+  }
+
+  /**
+   * Resolve o modo baseado no contexto e na presença de barbershopId.
+   * @returns {'scan'|'grupo'|'individual'}
+   */
+  #resolverModo() {
+    if (this.#context === 'public-shop' || this.#context === 'my-shop') return 'individual';
+    if (this.#barbershopId) return 'grupo';
+    return 'scan';
   }
 
   /**
@@ -209,7 +221,7 @@ class StoriesWidget {
   // PRIVADOS — carregamento
   // ══════════════════════════════════════════════════════════
 
-  /** Modo rebuild: cria UM card para a barbearia com todos os stories. */
+  /** Modo grupo: cria UM card para a barbearia com todos os stories (Home). */
   async #carregarPorBarbearia() {
     const { data: stories, error } =
       await BffApiService.barbearias.listarStories(this.#barbershopId);
@@ -222,6 +234,37 @@ class StoriesWidget {
     StoriesStore.set(this.#barbershopId, stories);
     this.#scrollEl.innerHTML = '';
     this.#scrollEl.appendChild(this.#criarCardGrupo(stories, this.#barbershopId));
+
+    const section = this.#scrollEl.closest('.bp-stories-section');
+    if (section) section.hidden = false;
+  }
+
+  /**
+   * Modo individual: N cards (1 por story) para barbearia pública / minha barbearia.
+   * Card usa thumbnail <img> estática, sem autoplay.
+   * Clicar abre StoryViewer posicionado no índice daquele story.
+   */
+  async #carregarPorBarbeariIndividual() {
+    const { data: stories, error } =
+      await BffApiService.barbearias.listarStories(this.#barbershopId);
+
+    if (error || !Array.isArray(stories) || !stories.length) {
+      this.#ocultarSecao();
+      return;
+    }
+
+    StoriesStore.set(this.#barbershopId, stories);
+
+    this.#scrollEl.innerHTML = '';
+    stories.forEach((story, idx) => {
+      const card = this.#criarCardIndividual(story, idx, this.#barbershopId);
+      this.#scrollEl.appendChild(card);
+    });
+
+    if (!this.#scrollEl.children.length) {
+      this.#ocultarSecao();
+      return;
+    }
 
     const section = this.#scrollEl.closest('.bp-stories-section');
     if (section) section.hidden = false;
@@ -498,5 +541,96 @@ class StoriesWidget {
     countBadge.className   = 'story-count-badge';
     countBadge.textContent = `+${total}`;
     card.appendChild(countBadge);
+  }
+
+  /**
+   * Cria 1 card individual representando um único story.
+   * Usa thumbnail <img> estática (sem autoplay).
+   * Ao clicar abre StoryViewer posicionado no índice correto dentro dos stories da barbearia.
+   *
+   * @param {object} story  — objeto do BFF
+   * @param {number} idx    — índice dentro do array (para o viewer iniciar no story certo)
+   * @param {string} shopId — UUID da barbearia (já populado no StoriesStore)
+   * @returns {HTMLDivElement}
+   */
+  #criarCardIndividual(story, idx, shopId) {
+    const logoSrc  = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
+    const thumbSrc = story.thumbnail_path ?? story.media_url ?? '';
+
+    const card = document.createElement('div');
+    card.className          = 'card-mini story-card';
+    card.dataset.shopId     = shopId;
+    card.dataset.storyIdx   = String(idx);
+
+    const wrap = document.createElement('div');
+    wrap.className      = 'story-video-wrap';
+    wrap.dataset.action = 'story-open';
+
+    // Thumbnail estática — não carrega o vídeo no card
+    if (thumbSrc) {
+      const thumb = document.createElement('img');
+      thumb.className = 'story-video'; // mantém classe para CSS compartilhado
+      thumb.src       = thumbSrc;
+      thumb.alt       = '';
+      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      thumb.onerror = function() { this.style.display = 'none'; };
+      wrap.appendChild(thumb);
+    }
+
+    const playBtn = document.createElement('div');
+    playBtn.className   = 'story-play-btn';
+    playBtn.textContent = '▶';
+    wrap.appendChild(playBtn);
+
+    const badge = document.createElement('img');
+    badge.className = 'story-shop-badge';
+    badge.src       = logoSrc;
+    badge.alt       = '';
+    badge.onerror   = function() { this.style.display = 'none'; };
+    wrap.appendChild(badge);
+
+    const info = document.createElement('div');
+    info.className = 'story-card-info';
+
+    const nameP = document.createElement('p');
+    nameP.className   = 'story-card-name';
+    nameP.textContent = this.#shopName ?? '';
+
+    const addrP = document.createElement('p');
+    addrP.className   = 'story-card-addr';
+    addrP.textContent = story.created_at
+      ? new Date(story.created_at).toLocaleDateString('pt-BR')
+      : '';
+
+    info.appendChild(nameP);
+    info.appendChild(addrP);
+
+    const likeBtn = document.createElement('button');
+    likeBtn.className      = 'story-like-btn';
+    likeBtn.type           = 'button';
+    likeBtn.dataset.action = 'like';
+
+    const likeImg = document.createElement('img');
+    likeImg.src = '/shared/img/icones_curtir.png';
+    likeImg.alt = 'curtir';
+
+    const likeCount = document.createElement('span');
+    likeCount.className   = 'story-like-count';
+    likeCount.textContent = String(story.views_count ?? 0);
+
+    likeBtn.appendChild(likeImg);
+    likeBtn.appendChild(likeCount);
+
+    card.appendChild(wrap);
+    card.appendChild(info);
+    card.appendChild(likeBtn);
+
+    // Sincroniza likes do viewer com o card via CustomEvent
+    card.addEventListener('story:like', (e) => {
+      const { count } = e.detail ?? {};
+      if (typeof count === 'number') likeCount.textContent = String(count);
+    });
+
+    return card;
   }
 }
