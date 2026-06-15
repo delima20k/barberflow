@@ -232,6 +232,67 @@ describe('ExpandedFixtureWriteRunner', () => {
     );
   });
 
+  it('deve continuar chat quando agendamento tiver conflito esperado', async () => {
+    const fixture = buildExpandedFixture();
+    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.berberflow.shop' });
+    const assignment = runner.assignments()[0];
+    runner.tokens.set(assignment.client.id, 'client.jwt');
+    runner.tokens.set(assignment.professional.id, 'professional.jwt');
+    runner.createAppointment = async () => ({
+      kind: 'expected-conflict',
+      message: 'Horario nao disponivel',
+      durationMs: 10,
+      httpStatus: 409,
+      requestId: 'req-appointment',
+      timings: { total_handler: 10 },
+      diagnosticsHeader: 'total_handler=10',
+    });
+    runner.http = {
+      async get() {
+        return { ok: true, status: 200, durationMs: 5, requestId: 'req-queue' };
+      },
+      async post(pathname) {
+        if (pathname === '/api/v1/chat/conversations') {
+          return { ok: true, status: 201, body: { dados: { id: 'conversation-1' } }, durationMs: 7, requestId: 'req-conversation' };
+        }
+        return {
+          ok: true,
+          status: 201,
+          body: { dados: { id: 'message-1' } },
+          durationMs: 9,
+          requestId: 'req-message',
+          chatDiagnostics: 'auth=1;total_handler=9',
+          chatTimings: { auth: 1, total_handler: 9 },
+        };
+      },
+    };
+    const state = {
+      vu: assignment.vu,
+      barbershopId: assignment.slot.barbershopId,
+      professionalId: assignment.slot.professionalId,
+      clientId: assignment.client.id,
+      iterations: 1,
+      writeAttempts: 1,
+      writeIterations: 0,
+      writes: 0,
+      skipsByWriteLimit: 0,
+      expectedConflicts: 0,
+      errors: 0,
+      inconsistencies: 0,
+      checks: [],
+      created: { appointments: [], messages: [], conversations: [] },
+    };
+
+    await runner.executeWriteAttempt({ state, assignment });
+
+    assert.equal(state.expectedConflicts, 1);
+    assert.equal(state.errors, 0);
+    assert.equal(state.writeIterations, 1);
+    assert.equal(state.writes, 1);
+    assert.deepEqual(state.created.messages, ['message-1']);
+    assert.ok(state.checks.some(check => check.name === 'chat_enviar_mensagem' && check.diagnosticsHeader === 'auth=1;total_handler=9'));
+  });
+
   it('deve separar metricas por dominio e fase', () => {
     const metrics = [
       { domain: 'agendamento', phase: 'agendamento_criar', ok: true, status: 201, durationMs: 100, timeout: false },

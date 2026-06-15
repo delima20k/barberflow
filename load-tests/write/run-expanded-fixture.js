@@ -332,6 +332,7 @@ class ExpandedFixtureWriteRunner {
     const clientToken = this.tokens.get(assignment.client.id);
     const professionalToken = this.tokens.get(assignment.professional.id);
     const appointment = await this.createAppointment({ assignment, clientToken });
+    let countedWriteIteration = false;
     if (appointment.kind === 'expected-conflict') {
       state.expectedConflicts += 1;
       state.checks.push({
@@ -346,9 +347,7 @@ class ExpandedFixtureWriteRunner {
         timings: appointment.timings,
         diagnosticsHeader: appointment.diagnosticsHeader,
       });
-      return;
-    }
-    if (appointment.kind === 'error') {
+    } else if (appointment.kind === 'error') {
       state.errors += 1;
       state.checks.push({
         name: 'agendamento_criar',
@@ -362,27 +361,28 @@ class ExpandedFixtureWriteRunner {
         diagnosticsHeader: appointment.diagnosticsHeader,
       });
       return;
+    } else {
+      state.writeIterations += 1;
+      countedWriteIteration = true;
+      state.writes += 1;
+      state.created.appointments.push(appointment.data.id);
+      const linksOk = appointment.data.barbershop_id === assignment.slot.barbershopId
+        && appointment.data.professional_id === assignment.slot.professionalId
+        && appointment.data.service_id === assignment.slot.serviceId;
+      if (!linksOk) state.inconsistencies += 1;
+      state.checks.push({
+        name: 'agendamento_criar',
+        status: 'ok',
+        resourceId: appointment.data.id,
+        endpoint: '/api/agendamentos',
+        durationMs: appointment.durationMs,
+        httpStatus: appointment.httpStatus,
+        requestId: appointment.requestId,
+        timings: appointment.timings,
+        diagnosticsHeader: appointment.diagnosticsHeader,
+      });
+      state.checks.push({ name: 'agendamento_vinculo', status: linksOk ? 'ok' : 'error' });
     }
-
-    state.writeIterations += 1;
-    state.writes += 1;
-    state.created.appointments.push(appointment.data.id);
-    const linksOk = appointment.data.barbershop_id === assignment.slot.barbershopId
-      && appointment.data.professional_id === assignment.slot.professionalId
-      && appointment.data.service_id === assignment.slot.serviceId;
-    if (!linksOk) state.inconsistencies += 1;
-    state.checks.push({
-      name: 'agendamento_criar',
-      status: 'ok',
-      resourceId: appointment.data.id,
-      endpoint: '/api/agendamentos',
-      durationMs: appointment.durationMs,
-      httpStatus: appointment.httpStatus,
-      requestId: appointment.requestId,
-      timings: appointment.timings,
-      diagnosticsHeader: appointment.diagnosticsHeader,
-    });
-    state.checks.push({ name: 'agendamento_vinculo', status: linksOk ? 'ok' : 'error' });
 
     const queueEndpoint = `/api/v1/fila?barbershop_id=${encodeURIComponent(assignment.slot.barbershopId)}`;
     const queue = await this.http.get(queueEndpoint, {
@@ -465,6 +465,7 @@ class ExpandedFixtureWriteRunner {
       return;
     }
     const messageData = this.data(message);
+    if (!countedWriteIteration) state.writeIterations += 1;
     state.writes += 1;
     if (messageData?.id) state.created.messages.push(messageData.id);
     state.checks.push({
