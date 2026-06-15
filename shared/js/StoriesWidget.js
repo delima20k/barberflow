@@ -573,22 +573,36 @@ class StoriesWidget {
     // fallback para logo da barbearia (thumbnail_path é null nos stories de vídeo pois
     // o upload não gera thumbnail — nunca usar avatar do barbeiro como preview principal)
     const thumbFallback = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    const thumbSrc = first?.thumbnail_url
+    // thumbResolved: URL real (thumbnail_url do BFF ou thumbnail_path legacy). Null = nenhum thumb gerado.
+    const thumbResolved = first?.thumbnail_url
       || StoriesWidget.#resolverThumbUrl(
           first?.thumbnail_path,
           first?.media_url,
           first?.media_type,
         )
-      || thumbFallback;
-    const video = document.createElement('img');
-    video.className = 'story-video';
-    video.alt       = '';
+      || null;
+    // Fallback client-side para vídeos sem thumbnail gerada: <video> mostra o frame 0.5s
+    let video;
+    if (!thumbResolved && first?.media_url && first?.media_type === 'video') {
+      video = document.createElement('video');
+      video.muted       = true;
+      video.playsInline = true;
+      video.preload     = 'metadata';
+      video.src         = first.media_url;
+      video.addEventListener('loadedmetadata', () => { video.currentTime = 0.5; }, { once: true });
+      video.addEventListener('seeked',  () => wrap.classList.add('is-loaded'), { once: true });
+      video.addEventListener('error',   () => wrap.classList.add('is-loaded'), { once: true });
+    } else {
+      video = document.createElement('img');
+      video.alt     = '';
+      video.src     = thumbResolved || thumbFallback;
+      video.onerror = function() { this.style.display = 'none'; };
+      video.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+      video.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+      if (video.complete) wrap.classList.add('is-loaded');
+    }
+    video.className    = 'story-video';
     video.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    video.src     = thumbSrc;
-    video.onerror = function() { this.style.display = 'none'; };
-    video.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
-    video.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-    if (video.complete) wrap.classList.add('is-loaded');
 
     const playBtn = document.createElement('div');
     playBtn.className   = 'story-play-btn';
@@ -757,21 +771,32 @@ class StoriesWidget {
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    // Thumbnail estática — não carrega o vídeo no card
+    // Thumbnail: prefere URL gerada (thumbnail_url), depois fallback client-side via <video>
     if (thumbSrc) {
       const thumb = document.createElement('img');
-      thumb.className = 'story-video'; // mantém classe para CSS compartilhado
+      thumb.className = 'story-video';
       thumb.src       = thumbSrc;
       thumb.alt       = '';
       thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
       thumb.onerror = function() { this.style.display = 'none'; };
-      // Marca is-loaded quando a imagem carrega (card dinâmico — StoriesLayout não o vê)
       thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
       thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
       if (thumb.complete) wrap.classList.add('is-loaded');
       wrap.appendChild(thumb);
+    } else if (story.media_url && story.media_type === 'video') {
+      // Sem thumbnail gerada — usa <video> para exibir frame real do vídeo
+      const thumb = document.createElement('video');
+      thumb.className    = 'story-video';
+      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      thumb.muted        = true;
+      thumb.playsInline  = true;
+      thumb.preload      = 'metadata';
+      thumb.src          = story.media_url;
+      thumb.addEventListener('loadedmetadata', () => { thumb.currentTime = 0.5; }, { once: true });
+      thumb.addEventListener('seeked',  () => wrap.classList.add('is-loaded'), { once: true });
+      thumb.addEventListener('error',   () => wrap.classList.add('is-loaded'), { once: true });
+      wrap.appendChild(thumb);
     } else {
-      // Sem thumbnail: mostra shimmer removido imediatamente
       wrap.classList.add('is-loaded');
     }
 
