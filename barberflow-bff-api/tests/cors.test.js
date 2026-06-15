@@ -90,6 +90,18 @@ suite('CorsMiddleware — origens de produção (.shop)', () => {
         captured.headers['Access-Control-Allow-Headers']?.includes('Content-Type'),
         'Content-Type deve estar nos headers permitidos',
       );
+      assert.ok(
+        captured.headers['Access-Control-Allow-Headers']?.includes('X-BarberFlow-Diagnostics'),
+        'X-BarberFlow-Diagnostics deve estar nos headers permitidos para diagnostico de producao',
+      );
+      assert.ok(
+        captured.headers['Access-Control-Expose-Headers']?.includes('X-Chat-Diagnostics'),
+        'X-Chat-Diagnostics deve estar exposto para leitura pelo browser',
+      );
+      assert.ok(
+        captured.headers['Access-Control-Expose-Headers']?.includes('Server-Timing'),
+        'Server-Timing deve estar exposto para leitura pelo browser',
+      );
       assert.strictEqual(
         captured.headers['Access-Control-Max-Age'],
         '86400',
@@ -345,6 +357,11 @@ suite('CorsMiddleware — integração (servidor real, config produção)', () =
       'https://app.berberflow.shop',
     );
     assert.strictEqual(headers['access-control-allow-credentials'], 'true');
+    assert.ok(headers['access-control-expose-headers']?.includes('X-Chat-Diagnostics'));
+    assert.ok(headers['access-control-expose-headers']?.includes('X-Appointment-Diagnostics'));
+    assert.ok(headers['access-control-expose-headers']?.includes('Server-Timing'));
+    assert.ok(headers['access-control-expose-headers']?.includes('X-Request-Id'));
+    assert.ok(headers['access-control-expose-headers']?.includes('X-Correlation-Id'));
     assert.ok(
       headers['cache-control']?.includes('private'),
       'GET de origem permitida deve ter Cache-Control: private no servidor real',

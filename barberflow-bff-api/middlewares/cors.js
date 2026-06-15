@@ -13,6 +13,8 @@ const config = require('../config');
  * Headers CORS só são setados se a origem for permitida.
  */
 class CorsMiddleware {
+  static #ALLOW_HEADERS = 'Content-Type,Authorization,apikey,x-client-info,X-BarberFlow-Diagnostics';
+  static #EXPOSE_HEADERS = 'X-Chat-Diagnostics,X-Appointment-Diagnostics,Server-Timing,X-Request-Id,X-Correlation-Id';
 
   static #allowedOrigins = new Set([
     ...config.cors.allowedOrigins,
@@ -63,11 +65,12 @@ class CorsMiddleware {
     if (CorsMiddleware.#isAllowed(origin)) {
       res.setHeader('Access-Control-Allow-Origin',      origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Expose-Headers', CorsMiddleware.#EXPOSE_HEADERS);
     }
 
     if (req.method === 'OPTIONS') {
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,apikey,x-client-info');
+      res.setHeader('Access-Control-Allow-Headers', CorsMiddleware.#ALLOW_HEADERS);
       res.setHeader('Access-Control-Max-Age', '86400');
       return res.status(200).end();
     }

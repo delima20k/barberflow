@@ -147,11 +147,22 @@ suite('E2E — Chat', () => {
 
     assert.ok(status >= 200 && status < 300, `esperado 2xx, recebeu ${status}`);
     assert.match(headers['x-chat-diagnostics'], /auth=/);
+    assert.match(headers['x-chat-diagnostics'], /findByClientMessageId=/);
+    assert.match(headers['x-chat-diagnostics'], /findConversation=/);
+    assert.match(headers['x-chat-diagnostics'], /participantsChecks=/);
+    assert.match(headers['x-chat-diagnostics'], /rateLimitBloqueio=/);
     assert.match(headers['x-chat-diagnostics'], /saveMessage=/);
     assert.match(headers['x-chat-diagnostics'], /outboxSave=/);
     assert.match(headers['x-chat-diagnostics'], /realtimePublish=scheduled/);
     assert.match(headers['x-chat-diagnostics'], /total_handler=/);
+    assert.match(headers['server-timing'], /auth;dur=/);
+    assert.match(headers['server-timing'], /findByClientMessageId;dur=/);
+    assert.match(headers['server-timing'], /findConversation;dur=/);
+    assert.match(headers['server-timing'], /participantsChecks;dur=/);
+    assert.match(headers['server-timing'], /rateLimitBloqueio;dur=/);
     assert.match(headers['server-timing'], /saveMessage;dur=/);
+    assert.match(headers['server-timing'], /outboxSave;dur=/);
+    assert.match(headers['server-timing'], /total_handler;dur=/);
   });
 
   test('POST mensagens — sem auth → 401', async () => {
