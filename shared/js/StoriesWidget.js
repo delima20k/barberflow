@@ -368,19 +368,22 @@ class StoriesWidget {
       const primeiroStory = stories[0];
       const thumbEl = card.querySelector('.story-video');
       if (thumbEl) {
+        // thumbnail_path é null na maioria dos stories de vídeo (upload não gera thumb);
+        // fallback seguro: logo da barbearia (nunca avatar do barbeiro como preview principal)
+        const thumbFallback = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
         const thumbSrc = StoriesWidget.#resolverThumbUrl(
           primeiroStory.thumbnail_path,
           primeiroStory.media_url,
           primeiroStory.media_type,
-        );
-        if (thumbSrc && thumbEl.tagName === 'VIDEO') {
+        ) || thumbFallback;
+        if (thumbEl.tagName === 'VIDEO') {
           // card HTML estático ainda usa <video> — aplica poster para evitar download
           thumbEl.setAttribute('poster', thumbSrc);
           thumbEl.removeAttribute('src');
           thumbEl.preload = 'none';
           const wrap = thumbEl.closest('.story-video-wrap');
           wrap?.classList.add('is-loaded');
-        } else if (thumbSrc && thumbEl.tagName === 'IMG') {
+        } else {
           thumbEl.src = thumbSrc;
         }
       }
@@ -566,25 +569,24 @@ class StoriesWidget {
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    // Thumbnail estática — não carrega vídeo no card (sem autoplay, sem download pesado)
+    // Thumbnail: prefere thumbnail_path (quando disponível), media_url para imagens,
+    // fallback para logo da barbearia (thumbnail_path é null nos stories de vídeo pois
+    // o upload não gera thumbnail — nunca usar avatar do barbeiro como preview principal)
+    const thumbFallback = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
     const thumbSrc = StoriesWidget.#resolverThumbUrl(
       first?.thumbnail_path,
       first?.media_url,
       first?.media_type,
-    );
+    ) || thumbFallback;
     const video = document.createElement('img');
     video.className = 'story-video';
     video.alt       = '';
     video.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    if (thumbSrc) {
-      video.src     = thumbSrc;
-      video.onerror = function() { this.style.display = 'none'; };
-      video.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
-      video.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-      if (video.complete) wrap.classList.add('is-loaded');
-    } else {
-      wrap.classList.add('is-loaded');
-    }
+    video.src     = thumbSrc;
+    video.onerror = function() { this.style.display = 'none'; };
+    video.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+    video.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+    if (video.complete) wrap.classList.add('is-loaded');
 
     const playBtn = document.createElement('div');
     playBtn.className   = 'story-play-btn';
