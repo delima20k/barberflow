@@ -735,28 +735,43 @@ class ExpandedFixtureWriteRunner {
 
   static summarizeChatDiagnostics(items) {
     const breakdown = {};
-    const headerItems = items.filter(item => item.chatDiagnostics);
+    const textBreakdown = {};
+    const diagnosticItems = items.filter(item => item.phase === 'chat_enviar_mensagem');
+    const headerItems = diagnosticItems.filter(item => item.chatDiagnostics);
     for (const item of headerItems) {
       for (const [step, value] of Object.entries(item.chatTimings ?? {})) {
-        if (!Number.isFinite(value)) continue;
-        breakdown[step] ??= [];
-        breakdown[step].push(value);
+        if (Number.isFinite(value)) {
+          breakdown[step] ??= [];
+          breakdown[step].push(value);
+          continue;
+        }
+        textBreakdown[step] ??= new Map();
+        const key = String(value);
+        textBreakdown[step].set(key, (textBreakdown[step].get(key) ?? 0) + 1);
       }
     }
-    const chatBreakdown = Object.fromEntries(Object.entries(breakdown).map(([step, values]) => [step, {
+    const numericBreakdown = Object.fromEntries(Object.entries(breakdown).map(([step, values]) => [step, {
       p50: ExpandedFixtureWriteRunner.percentile(values, 50),
       p95: ExpandedFixtureWriteRunner.percentile(values, 95),
       p99: ExpandedFixtureWriteRunner.percentile(values, 99),
       max: values.length ? Math.max(...values) : null,
       samples: values.length,
     }]));
+    const markerBreakdown = Object.fromEntries(Object.entries(textBreakdown).map(([step, counts]) => [step, {
+      value: [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+      values: Object.fromEntries(counts),
+      samples: [...counts.values()].reduce((sum, count) => sum + count, 0),
+    }]));
+    const chatBreakdown = { ...numericBreakdown, ...markerBreakdown };
     const topChatBottlenecks = Object.entries(chatBreakdown)
+      .filter(([, stats]) => Number.isFinite(stats.p95))
       .map(([step, stats]) => ({ step, p95: stats.p95, max: stats.max, samples: stats.samples }))
       .sort((a, b) => (b.p95 ?? 0) - (a.p95 ?? 0))
       .slice(0, 5);
     return {
+      chatDiagnosticsScope: 'chat_enviar_mensagem',
       chatDiagnosticsHeaderCount: headerItems.length,
-      chatDiagnosticsMissingCount: items.length - headerItems.length,
+      chatDiagnosticsMissingCount: diagnosticItems.length - headerItems.length,
       chatBreakdown,
       topChatBottlenecks,
     };

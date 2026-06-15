@@ -366,11 +366,14 @@ describe('ExpandedFixtureWriteRunner', () => {
 
     const summary = ExpandedFixtureWriteRunner.summarizeMetricsByDomain(metrics);
 
+    assert.equal(summary.chat.chatDiagnosticsScope, 'chat_enviar_mensagem');
     assert.equal(summary.chat.chatDiagnosticsHeaderCount, 2);
-    assert.equal(summary.chat.chatDiagnosticsMissingCount, 1);
+    assert.equal(summary.chat.chatDiagnosticsMissingCount, 0);
     assert.equal(summary.chat.chatBreakdown.saveMessage.p50, 30);
     assert.equal(summary.chat.chatBreakdown.saveMessage.p95, 34);
     assert.equal(summary.chat.chatBreakdown.total_handler.p99, 100);
+    assert.equal(summary.chat.chatBreakdown.realtimePublish.value, 'scheduled');
+    assert.equal(summary.chat.chatBreakdown.realtimePublish.samples, 2);
     assert.equal(summary.chat.topChatBottlenecks[0].step, 'total_handler');
     assert.equal(summary.chat.topChatBottlenecks[1].step, 'saveMessage');
   });
