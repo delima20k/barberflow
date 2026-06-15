@@ -408,3 +408,100 @@ body.media-viewer-open { overflow: hidden; }
 }
 .sv-sound-btn:hover  { background: rgba(212, 175, 55, .25); }
 .sv-sound-btn:active { transform: translateX(-50%) scale(.96); }
+
+/* ── Overlays de identidade sobre a thumbnail do card ──────────── */
+.story-barber-overlay {
+  position: absolute;
+  top: 46px;
+  left: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.story-barber-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(255, 255, 255, .85);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(43, 27, 18, .25);
+}
+
+.story-barber-name {
+  font-family: var(--font);
+  font-size: .72rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 80px;
+  text-overflow: ellipsis;
+}
+
+.story-shop-overlay {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.story-shop-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, .6);
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(43, 27, 18, .2);
+}
+
+.story-shop-name {
+  font-family: var(--font);
+  font-size: .68rem;
+  color: rgba(255, 255, 255, .9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+  max-width: 64px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Overlay do barbeiro no viewer fullscreen ───────────────────── */
+.sv-barber-overlay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  pointer-events: none;
+}
+
+.sv-barber-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(212, 175, 55, .75);
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+}
+
+.sv-barber-name {
+  font-family: var(--font);
+  font-size: .88rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 160px;
+  text-overflow: ellipsis;
+}

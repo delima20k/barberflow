@@ -376,6 +376,17 @@ class StoryViewer {
     svInfo.append(nome, addr);
     svTop.append(badge, svInfo, btnFechar);
 
+    // Overlay do barbeiro por vídeo (abaixo do topo, à esquerda)
+    const svBarberOverlay = document.createElement('div');
+    svBarberOverlay.className = 'sv-barber-overlay';
+    const svBarberAvatar = document.createElement('img');
+    svBarberAvatar.className = 'sv-barber-avatar';
+    svBarberAvatar.alt = '';
+    svBarberAvatar.style.display = 'none';
+    const svBarberName = document.createElement('span');
+    svBarberName.className = 'sv-barber-name';
+    svBarberOverlay.append(svBarberAvatar, svBarberName);
+
     const svBottom = document.createElement('div');
     svBottom.className = 'sv-bottom';
 
@@ -437,7 +448,7 @@ class StoryViewer {
     comentInputWrap.append(comentInput, comentEnviar);
 
     comentPanel.append(comentHeader, comentLista, comentInputWrap);
-    inner.append(video, svTop, svBottom, comentPanel);
+    inner.append(video, svTop, svBarberOverlay, svBottom, comentPanel);
     return inner;
   }
 
@@ -479,26 +490,30 @@ class StoryViewer {
     if (!story) return null;
 
     return {
-      storyId:   story.id          ?? null,
-      ownerId:   story.owner_id    ?? null,
-      videoSrc:  story.media_url   ?? '',
-      poster:    story.thumbnail_path ?? '',
-      badgeSrc:  cardEl?.querySelector('.story-shop-badge')?.src ?? '',
-      nome:      cardEl?.querySelector('.story-card-name')?.textContent ?? '',
-      addr:      cardEl?.querySelector('.story-card-addr')?.textContent ?? '',
-      likeCount: String(story.views_count ?? 0),
-      curtido:   false,
+      storyId:          story.id          ?? null,
+      ownerId:          story.owner_id    ?? null,
+      videoSrc:         story.media_url   ?? '',
+      poster:           story.thumbnail_url ?? story.thumbnail_path ?? '',
+      badgeSrc:         cardEl?.querySelector('.story-shop-badge')?.src ?? '',
+      nome:             cardEl?.querySelector('.story-card-name')?.textContent ?? '',
+      addr:             cardEl?.querySelector('.story-card-addr')?.textContent ?? '',
+      likeCount:        String(story.views_count ?? 0),
+      curtido:          false,
+      barberNome:       story.poster_name        ?? null,
+      barberAvatarPath: story.poster_avatar_path ?? null,
     };
   }
 
   static #preencherInner(inner, dados) {
     if (!dados) return;
-    const video     = inner.querySelector('.sv-video');
-    const badge     = inner.querySelector('.sv-badge');
-    const nome      = inner.querySelector('.sv-nome');
-    const addr      = inner.querySelector('.sv-addr');
-    const likeBtn   = inner.querySelector('.sv-like-btn');
-    const likeCount = inner.querySelector('.sv-like-btn span');
+    const video        = inner.querySelector('.sv-video');
+    const badge        = inner.querySelector('.sv-badge');
+    const nome         = inner.querySelector('.sv-nome');
+    const addr         = inner.querySelector('.sv-addr');
+    const likeBtn      = inner.querySelector('.sv-like-btn');
+    const likeCount    = inner.querySelector('.sv-like-btn span');
+    const barberAvatar = inner.querySelector('.sv-barber-avatar');
+    const barberName   = inner.querySelector('.sv-barber-name');
 
     video.pause();
     video.muted    = false;
@@ -511,6 +526,20 @@ class StoryViewer {
     addr.textContent      = dados.addr;
     likeCount.textContent = dados.likeCount;
     likeBtn.classList.toggle('curtido', dados.curtido);
+
+    // Avatar do barbeiro por vídeo (source: story.poster_avatar_path)
+    if (barberAvatar && dados.barberAvatarPath) {
+      const avatarUrl = typeof ApiService !== 'undefined'
+        ? ApiService.getAvatarUrl(dados.barberAvatarPath)
+        : dados.barberAvatarPath;
+      barberAvatar.src = avatarUrl;
+      barberAvatar.style.display = '';
+    } else if (barberAvatar) {
+      barberAvatar.style.display = 'none';
+    }
+    if (barberName) {
+      barberName.textContent = dados.barberNome ?? '';
+    }
   }
 
   static #renderizar() {

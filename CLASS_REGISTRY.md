@@ -476,6 +476,8 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `SupabaseMediaStorageGateway` | [barberflow-bff-api/infrastructure/media/SupabaseMediaStorageGateway.js](barberflow-bff-api/infrastructure/media/SupabaseMediaStorageGateway.js) | infra | URLs pre-assinadas, fonte, variantes e acesso assinado no Storage. |
 | `ThumbnailStep` | [barberflow-bff-api/application/media/steps/ThumbnailStep.js](barberflow-bff-api/application/media/steps/ThumbnailStep.js) | application | Gera presets globais `thumb`, `medium` e `full` em WebP versionado com metadados de dimensao/tamanho. |
 | `TranscodeStep` | [barberflow-bff-api/application/media/steps/TranscodeStep.js](barberflow-bff-api/application/media/steps/TranscodeStep.js) | application | Preserva original versionado e delega variantes de video. |
+| `VideoThumbnailExtractor` | [barberflow-bff-api/infrastructure/media/VideoThumbnailExtractor.js](barberflow-bff-api/infrastructure/media/VideoThumbnailExtractor.js) | infra | Extrai primeiro frame de MP4 via FFmpeg (fluent-ffmpeg + ffmpeg-static). Injeta runFfmpeg para teste. Retorna null em erro (degradacao graciosa). |
+| `VideoThumbnailStep` | [barberflow-bff-api/application/media/steps/VideoThumbnailStep.js](barberflow-bff-api/application/media/steps/VideoThumbnailStep.js) | application | Step de pipeline que gera variantes `thumb` e `medium` WebP a partir do frame extraido de videos MP4. Skip automatico se mediaKind != 'video'. |
 | `VirusScanStep` | [barberflow-bff-api/application/media/steps/VirusScanStep.js](barberflow-bff-api/application/media/steps/VirusScanStep.js) | application | Bloqueia objetos infectados antes dos demais steps. |
 
 ### Chat Bounded Context BFF

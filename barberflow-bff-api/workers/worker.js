@@ -43,6 +43,7 @@ const { MimeValidationStep }      = require('../application/media/steps/MimeVali
 const { MetadataExtractStep }     = require('../application/media/steps/MetadataExtractStep');
 const { ThumbnailStep }           = require('../application/media/steps/ThumbnailStep');
 const { TranscodeStep }           = require('../application/media/steps/TranscodeStep');
+const { VideoThumbnailStep }      = require('../application/media/steps/VideoThumbnailStep');
 const { CDNPublishStep }          = require('../application/media/steps/CDNPublishStep');
 const { NotificationHandler }     = require('../application/handlers/NotificationHandler');
 const { ChatDeliveryHandler }      = require('../application/handlers/ChatDeliveryHandler');
@@ -89,6 +90,7 @@ const pushService = new PushService(supabase, webpush);
 // Stubs para repositórios ainda não implementados
 const { SupabaseMediaRepository }     = require('../infrastructure/media/SupabaseMediaRepository');
 const { SupabaseMediaStorageGateway } = require('../infrastructure/media/SupabaseMediaStorageGateway');
+const { R2StorageGateway }            = require('../infrastructure/media/R2StorageGateway');
 const { NoopVirusScanner }            = require('../infrastructure/media/NoopVirusScanner');
 const { NoopVideoTranscoder }         = require('../infrastructure/media/NoopVideoTranscoder');
 const { SupabaseFeedRepository }      = require('../infrastructure/feed/SupabaseFeedRepository');
@@ -119,13 +121,17 @@ const { RedisDistributedLock }        = require('../infrastructure/scheduler/Red
 const { SupabaseSchedulerRepository } = require('../infrastructure/scheduler/SupabaseSchedulerRepository');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
-const mediaStorage = new SupabaseMediaStorageGateway({ db: supabase });
+const useR2 = process.env.STORIES_STORAGE_BACKEND === 'r2';
+const mediaStorage = useR2
+  ? new R2StorageGateway()
+  : new SupabaseMediaStorageGateway({ db: supabase });
 const mediaPipeline = new MediaPipeline([
   new VirusScanStep({ scanner: new NoopVirusScanner() }),
   new MimeValidationStep(),
   new MetadataExtractStep({ duplicateFinder: mediaRepository }),
   new ThumbnailStep(),
   new TranscodeStep({ transcoder: new NoopVideoTranscoder() }),
+  new VideoThumbnailStep(),
   new CDNPublishStep({ storage: mediaStorage, mediaRepository }),
 ]);
 const imageProcessor = new MediaPipelineProcessor({

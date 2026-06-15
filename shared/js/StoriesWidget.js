@@ -573,11 +573,13 @@ class StoriesWidget {
     // fallback para logo da barbearia (thumbnail_path é null nos stories de vídeo pois
     // o upload não gera thumbnail — nunca usar avatar do barbeiro como preview principal)
     const thumbFallback = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    const thumbSrc = StoriesWidget.#resolverThumbUrl(
-      first?.thumbnail_path,
-      first?.media_url,
-      first?.media_type,
-    ) || thumbFallback;
+    const thumbSrc = first?.thumbnail_url
+      || StoriesWidget.#resolverThumbUrl(
+          first?.thumbnail_path,
+          first?.media_url,
+          first?.media_type,
+        )
+      || thumbFallback;
     const video = document.createElement('img');
     video.className = 'story-video';
     video.alt       = '';
@@ -597,6 +599,47 @@ class StoriesWidget {
     badge.src       = displayLogo;
     badge.alt       = '';
     badge.onerror   = function() { this.style.display = 'none'; };
+
+    // Overlay do barbeiro que postou (topo-esquerdo, abaixo do badge)
+    const barberAvatarSrcGrupo = first?.poster_avatar_path
+      ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(first.poster_avatar_path) : first.poster_avatar_path)
+      : null;
+    if (barberAvatarSrcGrupo || first?.poster_name) {
+      const barberOverlay = document.createElement('div');
+      barberOverlay.className = 'story-barber-overlay';
+      if (barberAvatarSrcGrupo) {
+        const barberAvatarImg = document.createElement('img');
+        barberAvatarImg.className = 'story-barber-avatar';
+        barberAvatarImg.src = barberAvatarSrcGrupo;
+        barberAvatarImg.alt = '';
+        barberAvatarImg.onerror = function() { this.style.display = 'none'; };
+        barberOverlay.appendChild(barberAvatarImg);
+      }
+      const barberNameSpan = document.createElement('span');
+      barberNameSpan.className = 'story-barber-name';
+      barberNameSpan.textContent = first?.poster_name ?? displayName;
+      barberOverlay.appendChild(barberNameSpan);
+      wrap.appendChild(barberOverlay);
+    }
+
+    // Overlay da barbearia (canto inferior direito)
+    const shopNameText = shopName ?? this.#shopName ?? '';
+    const shopLogoSrcGrupo = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
+    if (shopNameText) {
+      const shopOverlay = document.createElement('div');
+      shopOverlay.className = 'story-shop-overlay';
+      const shopLogoImg = document.createElement('img');
+      shopLogoImg.className = 'story-shop-logo';
+      shopLogoImg.src = shopLogoSrcGrupo;
+      shopLogoImg.alt = '';
+      shopLogoImg.onerror = function() { this.style.display = 'none'; };
+      const shopNameSpan = document.createElement('span');
+      shopNameSpan.className = 'story-shop-name';
+      shopNameSpan.textContent = shopNameText;
+      shopOverlay.appendChild(shopLogoImg);
+      shopOverlay.appendChild(shopNameSpan);
+      wrap.appendChild(shopOverlay);
+    }
 
     wrap.appendChild(video);
     wrap.appendChild(playBtn);
@@ -702,8 +745,8 @@ class StoriesWidget {
    */
   #criarCardIndividual(story, idx, shopId) {
     const logoSrc  = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    // Converte thumbnail_path para URL pública; para vídeo sem thumb, não usa media_url
-    const thumbSrc = StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type);
+    const thumbSrc = story.thumbnail_url
+      || StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type);
 
     const card = document.createElement('div');
     card.className          = 'card-mini story-card';
@@ -743,6 +786,45 @@ class StoriesWidget {
     badge.alt       = '';
     badge.onerror   = function() { this.style.display = 'none'; };
     wrap.appendChild(badge);
+
+    // Overlay do barbeiro que postou este story individual (topo-esquerdo, abaixo do badge)
+    const barberAvatarSrcInd = story.poster_avatar_path
+      ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(story.poster_avatar_path) : story.poster_avatar_path)
+      : null;
+    if (barberAvatarSrcInd || story.poster_name) {
+      const barberOverlayInd = document.createElement('div');
+      barberOverlayInd.className = 'story-barber-overlay';
+      if (barberAvatarSrcInd) {
+        const barberAvatarImgInd = document.createElement('img');
+        barberAvatarImgInd.className = 'story-barber-avatar';
+        barberAvatarImgInd.src = barberAvatarSrcInd;
+        barberAvatarImgInd.alt = '';
+        barberAvatarImgInd.onerror = function() { this.style.display = 'none'; };
+        barberOverlayInd.appendChild(barberAvatarImgInd);
+      }
+      const barberNameSpanInd = document.createElement('span');
+      barberNameSpanInd.className = 'story-barber-name';
+      barberNameSpanInd.textContent = story.poster_name ?? this.#shopName ?? '';
+      barberOverlayInd.appendChild(barberNameSpanInd);
+      wrap.appendChild(barberOverlayInd);
+    }
+
+    // Overlay da barbearia (canto inferior direito)
+    if (this.#shopName) {
+      const shopOverlayInd = document.createElement('div');
+      shopOverlayInd.className = 'story-shop-overlay';
+      const shopLogoImgInd = document.createElement('img');
+      shopLogoImgInd.className = 'story-shop-logo';
+      shopLogoImgInd.src = logoSrc;
+      shopLogoImgInd.alt = '';
+      shopLogoImgInd.onerror = function() { this.style.display = 'none'; };
+      const shopNameSpanInd = document.createElement('span');
+      shopNameSpanInd.className = 'story-shop-name';
+      shopNameSpanInd.textContent = this.#shopName;
+      shopOverlayInd.appendChild(shopLogoImgInd);
+      shopOverlayInd.appendChild(shopNameSpanInd);
+      wrap.appendChild(shopOverlayInd);
+    }
 
     const info = document.createElement('div');
     info.className = 'story-card-info';

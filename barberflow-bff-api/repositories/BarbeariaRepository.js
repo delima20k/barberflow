@@ -1078,7 +1078,7 @@ class BarbeariaRepository extends BaseRepository {
     const agora = new Date().toISOString();
     const { data, error } = await this._db
       .from('stories')
-      .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url)')
+      .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))')
       .eq('barbershop_id', barbershopId)
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
@@ -1151,7 +1151,7 @@ class BarbeariaRepository extends BaseRepository {
       .select(
         'id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, ' +
         'views_count, created_at, expires_at, media_id, ' +
-        'media_files!stories_media_id_fkey(path, public_url)',
+        'media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))',
       )
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
@@ -1226,6 +1226,7 @@ class BarbeariaRepository extends BaseRepository {
           ...story,
           poster_name:         posterMap.get(story.owner_id)?.full_name   ?? null,
           poster_avatar_path:  posterMap.get(story.owner_id)?.avatar_path ?? null,
+          thumb_storage_path:  story.media_files?.media_variants?.find(v => v.name === 'thumb')?.storage_path ?? null,
         })),
       }));
   }

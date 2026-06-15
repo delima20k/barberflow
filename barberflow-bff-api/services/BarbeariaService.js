@@ -524,26 +524,32 @@ class BarbeariaService extends BaseService {
     try {
       const r2 = R2Client.getInstance();
       return Promise.all(stories.map(async story => {
-        const r2Path = story.media_files?.path ?? null;
+        const r2Path    = story.media_files?.path ?? null;
+        const thumbPath = story.thumb_storage_path
+          ?? story.media_files?.media_variants?.find(v => v.name === 'thumb')?.storage_path
+          ?? null;
         if (!story.media_id || !r2Path) return story;
         try {
-          const mediaUrl = await r2.presignedGet(r2Path, 3600);
-          return { ...story, media_url: mediaUrl };
+          const [mediaUrl, thumbnailUrl] = await Promise.all([
+            r2.presignedGet(r2Path, 3600),
+            thumbPath ? r2.presignedGet(thumbPath, 3600).catch(() => null) : Promise.resolve(null),
+          ]);
+          return { ...story, media_url: mediaUrl, thumbnail_url: thumbnailUrl };
         } catch {
-          return { ...story, media_url: story.media_files?.public_url || null };
+          return { ...story, media_url: story.media_files?.public_url || null, thumbnail_url: null };
         }
       }));
     } catch {
       return Promise.all(stories.map(async story => {
-        const path = story.media_files?.path ?? null;
-        if (!story.media_id || !path) return story;
+        const filePath = story.media_files?.path ?? null;
+        if (!story.media_id || !filePath) return story;
         try {
           const { data } = await this.#repo._db.storage
             .from('media-private')
-            .createSignedUrl(path, 3600);
-          return { ...story, media_url: data?.signedUrl ?? null };
+            .createSignedUrl(filePath, 3600);
+          return { ...story, media_url: data?.signedUrl ?? null, thumbnail_url: null };
         } catch {
-          return { ...story, media_url: story.media_files?.public_url || null };
+          return { ...story, media_url: story.media_files?.public_url || null, thumbnail_url: null };
         }
       }));
     }
