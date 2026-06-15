@@ -67,7 +67,6 @@ class MediaViewer {
       this.#videoEl.pause();
       this.#videoEl.currentTime = 0;
       this.#videoEl.removeAttribute('src');
-      if (typeof this.#videoEl.load === 'function') this.#videoEl.load();
     }
     this.#overlayEl?.remove();
     this.#overlayEl = null;
@@ -410,113 +409,47 @@ class StoriesWidget {
   // ══════════════════════════════════════════════════════════
 
   /**
-   * Registra IntersectionObserver no scroll para carregar vídeos sob demanda.
-   * Quando o card entra na viewport: load() do metadata.
-   * Quando sai: pause() (sem descarregar).
-   * Fallback para browsers sem IntersectionObserver: carrega todos imediatamente.
-   */
-  #bindObserver() {
+   * Marca thumbnails estaticas quando os cards entram na viewport.
+   * Cards de stories nunca carregam o video completo.
+   */  #bindObserver() {
     if (!this.#scrollEl?.querySelectorAll) return;
 
-    // Ignora cards ocultos (sem stories ou duplicados)
     const allCards = [...this.#scrollEl.querySelectorAll('.story-card:not([hidden])')];
     if (!allCards.length) return;
 
-    if (typeof IntersectionObserver === 'undefined') {
-      // Fallback: carregar todos imediatamente
-      for (const card of allCards) {
-        const video = card.querySelector('.story-video');
-        const wrap  = card.querySelector('.story-video-wrap');
-        if (!video) continue;
-
-        if (video.tagName === 'IMG') {
-          // Thumbnail estática: marcar is-loaded via load/error
-          if (video.complete) { wrap?.classList.add('is-loaded'); }
-          else {
-            video.addEventListener('load',  () => wrap?.classList.add('is-loaded'), { once: true });
-            video.addEventListener('error', () => wrap?.classList.add('is-loaded'), { once: true });
-          }
-        } else if (!video.src) {
-          // Vídeo demo sem src: parar shimmer e mostrar poster
-          wrap?.classList.add('is-loaded');
-        } else {
-          video.preload = 'metadata';
-          video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
-          video.onerror = () => this.#aoErrarVideo(card, video);
-          if (typeof video.load === 'function') video.load();
-        }
+    const marcarThumbnail = (card) => {
+      const media = card.querySelector('.story-video');
+      const wrap = card.querySelector('.story-video-wrap');
+      if (!media || !wrap) return;
+      if (media.tagName !== 'IMG') {
+        wrap.classList.add('is-loaded');
+        return;
       }
+      if (media.complete) {
+        wrap.classList.add('is-loaded');
+        return;
+      }
+      media.addEventListener('load', () => wrap.classList.add('is-loaded'), { once: true });
+      media.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+    };
+
+    if (typeof IntersectionObserver === 'undefined') {
+      allCards.forEach(marcarThumbnail);
       return;
     }
 
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
-        const card  = entry.target;
-        const video = card.querySelector('.story-video');
-        const wrap  = card.querySelector('.story-video-wrap');
-        if (!video) continue;
-
-        if (entry.isIntersecting && !video.dataset.observerBound) {
-          video.dataset.observerBound = '1';
-
-          if (video.tagName === 'IMG') {
-            // Thumbnail estática: marcar is-loaded via load/error
-            if (video.complete) { wrap?.classList.add('is-loaded'); }
-            else {
-              video.addEventListener('load',  () => wrap?.classList.add('is-loaded'), { once: true });
-              video.addEventListener('error', () => wrap?.classList.add('is-loaded'), { once: true });
-            }
-          } else if (!video.src) {
-            // Vídeo demo sem src: parar shimmer e mostrar poster, sem load()
-            wrap?.classList.add('is-loaded');
-          } else {
-            // Vídeo real: lazy loading normal
-            video.preload = 'metadata';
-            video.onloadedmetadata = () => wrap?.classList.add('is-loaded');
-            video.onerror = () => this.#aoErrarVideo(card, video);
-            if (typeof video.load === 'function') video.load();
-          }
-        } else if (!entry.isIntersecting) {
-          if (video.tagName !== 'IMG' && video.src && !video.paused) video.pause();
-        }
+        if (!entry.isIntersecting) continue;
+        const card = entry.target;
+        if (card.dataset.thumbObserved) continue;
+        card.dataset.thumbObserved = '1';
+        marcarThumbnail(card);
       }
     }, { root: this.#scrollEl, threshold: 0.1 });
 
     for (const card of allCards) observer.observe(card);
   }
-
-  /**
-   * Trata erro de carregamento de vídeo.
-   * Mantém o card visível, adiciona classe story-failed e exibe botão ↻.
-   * @param {HTMLElement} card
-   * @param {HTMLVideoElement} video
-   */
-  #aoErrarVideo(card, video) {
-    card.classList.add('story-failed');
-    const wrap = card.querySelector('.story-video-wrap');
-    if (!wrap || wrap.querySelector('.story-retry-btn')) return;
-
-    const btn = document.createElement('button');
-    btn.className = 'story-retry-btn';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', 'Tentar novamente');
-    btn.textContent = '↻';
-
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      card.classList.remove('story-failed');
-      btn.remove();
-      delete video.dataset.observerBound;
-      const src = video.src;
-      video.src = src;
-      video.preload = 'metadata';
-      if (typeof video.load === 'function') video.load();
-    });
-
-    wrap.appendChild(btn);
-  }
-
   /** Oculta a section pai ou o próprio scroll se não houver section. */
   #ocultarSecao() {
     const section = this.#scrollEl.closest('.bp-stories-section');
@@ -581,28 +514,15 @@ class StoriesWidget {
           first?.media_type,
         )
       || null;
-    // Fallback client-side para vídeos sem thumbnail gerada: <video> mostra o frame 0.5s
-    let video;
-    if (!thumbResolved && first?.media_url && first?.media_type === 'video') {
-      video = document.createElement('video');
-      video.muted       = true;
-      video.playsInline = true;
-      video.preload     = 'metadata';
-      video.src         = first.media_url;
-      video.addEventListener('loadedmetadata', () => { video.currentTime = 0.5; }, { once: true });
-      video.addEventListener('seeked',  () => wrap.classList.add('is-loaded'), { once: true });
-      video.addEventListener('error',   () => wrap.classList.add('is-loaded'), { once: true });
-    } else {
-      video = document.createElement('img');
-      video.alt     = '';
-      video.src     = thumbResolved || thumbFallback;
-      video.onerror = function() { this.style.display = 'none'; };
-      video.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
-      video.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-      if (video.complete) wrap.classList.add('is-loaded');
-    }
-    video.className    = 'story-video';
-    video.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    const thumb = document.createElement('img');
+    thumb.alt = '';
+    thumb.src = thumbResolved || thumbFallback;
+    thumb.onerror = function() { this.style.display = 'none'; };
+    thumb.addEventListener('load', () => wrap.classList.add('is-loaded'), { once: true });
+    thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+    if (thumb.complete) wrap.classList.add('is-loaded');
+    thumb.className = 'story-video';
+    thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
 
     const playBtn = document.createElement('div');
     playBtn.className   = 'story-play-btn';
@@ -655,7 +575,7 @@ class StoriesWidget {
       wrap.appendChild(shopOverlay);
     }
 
-    wrap.appendChild(video);
+    wrap.appendChild(thumb);
     wrap.appendChild(playBtn);
     wrap.appendChild(badge);
 
@@ -771,35 +691,16 @@ class StoriesWidget {
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    // Thumbnail: prefere URL gerada (thumbnail_url), depois fallback client-side via <video>
-    if (thumbSrc) {
-      const thumb = document.createElement('img');
-      thumb.className = 'story-video';
-      thumb.src       = thumbSrc;
-      thumb.alt       = '';
-      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      thumb.onerror = function() { this.style.display = 'none'; };
-      thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
-      thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-      if (thumb.complete) wrap.classList.add('is-loaded');
-      wrap.appendChild(thumb);
-    } else if (story.media_url && story.media_type === 'video') {
-      // Sem thumbnail gerada — usa <video> para exibir frame real do vídeo
-      const thumb = document.createElement('video');
-      thumb.className    = 'story-video';
-      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      thumb.muted        = true;
-      thumb.playsInline  = true;
-      thumb.preload      = 'metadata';
-      thumb.src          = story.media_url;
-      thumb.addEventListener('loadedmetadata', () => { thumb.currentTime = 0.5; }, { once: true });
-      thumb.addEventListener('seeked',  () => wrap.classList.add('is-loaded'), { once: true });
-      thumb.addEventListener('error',   () => wrap.classList.add('is-loaded'), { once: true });
-      wrap.appendChild(thumb);
-    } else {
-      wrap.classList.add('is-loaded');
-    }
-
+    const thumb = document.createElement('img');
+    thumb.className = 'story-video';
+    thumb.src = thumbSrc || logoSrc;
+    thumb.alt = '';
+    thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    thumb.onerror = function() { this.style.display = 'none'; };
+    thumb.addEventListener('load', () => wrap.classList.add('is-loaded'), { once: true });
+    thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+    if (thumb.complete) wrap.classList.add('is-loaded');
+    wrap.appendChild(thumb);
     const playBtn = document.createElement('div');
     playBtn.className   = 'story-play-btn';
     playBtn.textContent = '▶';

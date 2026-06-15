@@ -29,8 +29,9 @@ test('StoriesWidget ignora IDs de demonstração iniciando com 00000000', () => 
   assert.match(src, /startsWith\('00000000'\)/);
 });
 
-test('StoriesWidget cria cards com video.src = story.media_url', () => {
-  assert.match(src, /video\.src\s*=\s*story\.media_url/);
+test('StoriesWidget cria cards com thumbnail estatica sem carregar video completo', () => {
+  assert.doesNotMatch(src, /thumb\.src\s*=\s*story\.media_url/);
+  assert.doesNotMatch(src, /video\.src\s*=\s*story\.media_url/);
   assert.match(src, /story-video/);
   assert.match(src, /story-card/);
   assert.match(src, /story-play-btn/);
@@ -75,6 +76,8 @@ function buildDOMStub() {
       setAttribute(k, v) { this._attrs[k] = v; },
       getAttribute(k) { return this._attrs[k] ?? null; },
       appendChild(child) { this._children.push(child); },
+      addEventListener() {},
+      removeEventListener() {},
       querySelector(sel) {
         // Simple querySelector: find first child matching class selector
         const cls = sel.startsWith('.') ? sel.slice(1) : null;
@@ -136,6 +139,8 @@ function buildStoriesWidgetClass(globalMocks = {}) {
           setAttribute(k, v) { this._attrs[k] = v; },
           getAttribute(k) { return this._attrs[k] ?? null; },
           appendChild(child) { this._children.push(child); },
+          addEventListener() {},
+          removeEventListener() {},
           querySelector(sel) {
             const cls = sel.startsWith('.') ? sel.slice(1) : null;
             if (!cls) return null;
@@ -205,6 +210,7 @@ test('StoriesWidget.carregar oculta section quando BFF retorna lista vazia', asy
 test('StoriesWidget.carregar popula scroll com cards quando BFF retorna stories', async () => {
   const appendedCards = [];
   let capturedVideo   = null;
+  let capturedImage   = null;
 
   const scrollEl = {
     get children() { return appendedCards; },
@@ -222,7 +228,7 @@ test('StoriesWidget.carregar popula scroll com cards quando BFF retorna stories'
     views_count: 42,
   };
 
-  // Injeta document mock que captura o elemento <video> criado
+  // Injeta document mock que captura os elementos criados
   const mockDoc = {
     createElement(tag) {
       const el = {
@@ -244,11 +250,14 @@ test('StoriesWidget.carregar popula scroll com cards quando BFF retorna stories'
         style: {},
         setAttribute(k, v) { this._attrs[k] = v; },
         appendChild(child) { this._children.push(child); },
+        addEventListener() {},
+        removeEventListener() {},
         querySelector() { return null; },
         closest() { return null; },
         querySelectorAll() { return []; },
       };
       if (tag === 'video') capturedVideo = el;
+      if (tag === 'img') capturedImage = el;
       return el;
     },
   };
@@ -264,6 +273,7 @@ test('StoriesWidget.carregar popula scroll com cards quando BFF retorna stories'
     barbershopId: '11111111-0000-0000-0000-000000000001',
     shopName:     'Barbearia Teste',
     shopLogoSrc:  'https://cdn/logo.jpg',
+    context:      'public-shop',
   });
   await widget.carregar();
 
@@ -271,13 +281,50 @@ test('StoriesWidget.carregar popula scroll com cards quando BFF retorna stories'
 
   const card = appendedCards[0];
   assert.ok((card.className ?? '').includes('story-card'), 'card deve ter classe story-card');
-  assert.strictEqual(card.dataset.storyId, fakeStory.id,       'storyId no dataset');
-  assert.strictEqual(card.dataset.ownerId, fakeStory.owner_id, 'ownerId no dataset');
+  assert.strictEqual(card.dataset.shopId, '11111111-0000-0000-0000-000000000001', 'shopId no dataset');
+  assert.strictEqual(card.dataset.storyIdx, '0', 'storyIdx no dataset');
 
-  assert.ok(capturedVideo, 'elemento <video> deve ter sido criado');
-  assert.strictEqual(capturedVideo.src, fakeStory.media_url, 'video.src deve ser media_url');
+  assert.strictEqual(capturedVideo, null, 'card nao deve criar elemento <video>');
+  assert.ok(capturedImage, 'card deve criar thumbnail <img>');
+  assert.notStrictEqual(capturedImage.src, fakeStory.media_url, 'thumbnail nao deve usar video media_url');
 });
 
+test('StoriesWidget public-shop renderiza N cards e preserva indice clicado', async () => {
+  const appendedCards = [];
+  const scrollEl = {
+    get children() { return appendedCards; },
+    innerHTML: '',
+    hidden: false,
+    querySelectorAll: () => [],
+    closest: () => ({ hidden: false }),
+    appendChild(c) { appendedCards.push(c); },
+  };
+
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: {
+      barbearias: {
+        listarStories: async () => ({
+          data: [
+            { id: 's1', owner_id: 'owner', media_url: 'https://cdn/1.mp4', media_type: 'video' },
+            { id: 's2', owner_id: 'owner', media_url: 'https://cdn/2.mp4', media_type: 'video' },
+            { id: 's3', owner_id: 'owner', media_url: 'https://cdn/3.mp4', media_type: 'video' },
+          ],
+          error: null,
+        }),
+      },
+    },
+  });
+
+  const widget = new StoriesWidget(scrollEl, {
+    barbershopId: 'shop-public',
+    shopName: 'Barbearia Publica',
+    context: 'public-shop',
+  });
+  await widget.carregar();
+
+  assert.strictEqual(appendedCards.length, 3, 'public-shop deve renderizar 1 card por video');
+  assert.deepStrictEqual(appendedCards.map(card => card.dataset.storyIdx), ['0', '1', '2']);
+});
 test('StoriesWidget modo scan ignora cards com IDs de demonstração 00000000', async () => {
   let hiddenCalled = false;
   const demoCard = {
@@ -304,7 +351,7 @@ test('StoriesWidget modo scan ignora cards com IDs de demonstração 00000000', 
     },
   });
 
-  const widget = new StoriesWidget(scrollEl); // sem barbershopId → modo scan
+  const widget = new StoriesWidget(scrollEl, { context: 'scan' });
   await widget.carregar();
 
   // Card de demonstração deve ser ignorado (sem chamada ao BFF e sem ocultar)
@@ -321,9 +368,10 @@ test('StoriesWidget define MediaViewer singleton e open()', () => {
   assert.match(src, /is-loaded/);
 });
 
-test('StoriesWidget.carregar popula card com video.preload = metadata', async () => {
+test('StoriesWidget.carregar popula card de video com imagem estatica', async () => {
   const appendedCards = [];
-  let capturedVideo   = null;
+  let capturedVideo = null;
+  let capturedImage = null;
 
   const scrollEl = {
     get children() { return appendedCards; },
@@ -343,11 +391,14 @@ test('StoriesWidget.carregar popula card com video.preload = metadata', async ()
         dataset: {}, style: {},
         setAttribute(k, v) { this._attrs[k] = v; },
         appendChild(child) { this._children.push(child); },
+        addEventListener() {},
+        removeEventListener() {},
         querySelector() { return null; },
         closest() { return null; },
         querySelectorAll() { return []; },
       };
       if (tag === 'video') capturedVideo = el;
+      if (tag === 'img') capturedImage = el;
       return el;
     },
   };
@@ -356,7 +407,7 @@ test('StoriesWidget.carregar popula card com video.preload = metadata', async ()
     BffApiService: {
       barbearias: {
         listarStories: async () => ({
-          data: [{ id: 'sid', owner_id: 'oid', media_url: 'https://cdn/v.mp4', views_count: 0 }],
+          data: [{ id: 'sid', owner_id: 'oid', media_url: 'https://cdn/v.mp4', media_type: 'video', views_count: 0 }],
           error: null,
         }),
       },
@@ -367,12 +418,10 @@ test('StoriesWidget.carregar popula card com video.preload = metadata', async ()
   const widget = new StoriesWidget(scrollEl, { barbershopId: 'bbb' });
   await widget.carregar();
 
-  assert.ok(capturedVideo, 'video deve ter sido criado');
-  assert.strictEqual(capturedVideo.preload, 'none', 'preload inicial deve ser none — IntersectionObserver ativa lazy load');
-  assert.ok(typeof capturedVideo.onloadedmetadata === 'function' || capturedVideo.onloadedmetadata === null,
-    'onloadedmetadata deve ter sido atribuído (ou nulo se div)');
+  assert.strictEqual(capturedVideo, null, 'card nao deve criar video');
+  assert.ok(capturedImage, 'card deve criar img estatica');
+  assert.doesNotMatch(capturedImage.src, /v\.mp4$/, 'img nao deve apontar para o video completo');
 });
-
 test('StoriesWidget.carregar não lança quando scrollEl não tem addEventListener', async () => {
   const scrollEl = {
     children: [],
@@ -392,16 +441,25 @@ test('StoriesWidget.carregar não lança quando scrollEl não tem addEventListen
   await assert.doesNotReject(() => widget.carregar(), 'carregar não deve lançar sem addEventListener');
 });
 
-test('StoriesWidget modo scan popula video.src para cards com IDs reais', async () => {
-  const OWNER_ID   = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-  let capturedSrc  = '';
+test('StoriesWidget modo scan usa poster estatico para cards com IDs reais', async () => {
+  const OWNER_ID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+  let capturedSrc = '';
+  let capturedPoster = '';
 
   const realCard = {
     dataset: { ownerId: OWNER_ID, storyId: '' },
     hidden: false,
     querySelector(sel) {
       if (sel === '.story-video') {
-        return { set src(v) { capturedSrc = v; }, get src() { return capturedSrc; } };
+        return {
+          tagName: 'VIDEO',
+          preload: '',
+          set src(v) { capturedSrc = v; },
+          get src() { return capturedSrc; },
+          setAttribute(k, v) { if (k === 'poster') capturedPoster = v; },
+          removeAttribute(k) { if (k === 'src') capturedSrc = ''; },
+          closest() { return { classList: { add() {} } }; },
+        };
       }
       return null;
     },
@@ -411,14 +469,19 @@ test('StoriesWidget modo scan popula video.src para cards com IDs reais', async 
     children: [],
     innerHTML: '',
     hidden: false,
-    querySelectorAll: (sel) => sel.includes('.story-card') ? [realCard] : [],
+    querySelectorAll: (sel) => {
+      if (sel.includes('[data-owner-id]')) return [realCard];
+      if (sel.includes('[data-shop-id]')) return [];
+      return [];
+    },
     closest: () => null,
   };
 
   const fakeStory = {
-    id:        'story-real-1',
-    owner_id:  OWNER_ID,
+    id: 'story-real-1',
+    owner_id: OWNER_ID,
     media_url: 'https://supabase.example.com/signed/video.mp4',
+    media_type: 'video',
   };
 
   const StoriesWidget = buildStoriesWidgetClass({
@@ -432,10 +495,11 @@ test('StoriesWidget modo scan popula video.src para cards com IDs reais', async 
     },
   });
 
-  const widget = new StoriesWidget(scrollEl);
+  const widget = new StoriesWidget(scrollEl, { context: 'scan' });
   await widget.carregar();
 
-  assert.strictEqual(capturedSrc, fakeStory.media_url,  'video.src deve ser media_url');
-  assert.strictEqual(realCard.dataset.storyId, fakeStory.id, 'storyId deve ser atualizado');
-  assert.strictEqual(realCard.hidden, false, 'card com story real não deve ser ocultado');
+  assert.strictEqual(capturedSrc, '', 'video estatico nao deve receber src');
+  assert.notStrictEqual(capturedPoster, fakeStory.media_url, 'poster nao deve usar video completo');
+  assert.strictEqual(realCard.dataset.shopId, OWNER_ID, 'shopId deve ser atualizado');
+  assert.strictEqual(realCard.hidden, false, 'card com story real nao deve ser ocultado');
 });

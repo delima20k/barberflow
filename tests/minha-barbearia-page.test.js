@@ -509,10 +509,15 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
       /async #salvarServicosTipados\(linhaUnica = null\)[\s\S]*if \(linhaUnica && el !== linhaUnica\) continue;[\s\S]*if \(cat === 'luzes'\)[\s\S]*nome = .*'Luzes'/,
       'card de luzes deve salvar com nome fixo e permitir OK quando meia ou inteira estiver preenchido',
     );
+    assert.match(
+      SRC_MB_PAGE,
+      /if \(cat === 'luzes'\) payload\.price_half = priceHalf \?\? null;/,
+      'luzes deve enviar price_half apos migration 20260530000001 adicionar a coluna',
+    );
     assert.doesNotMatch(
       SRC_MB_PAGE,
-      /payload\.price_half|#upsertServicoComFallback/,
-      'luzes nao deve enviar price_half enquanto o schema remoto nao tiver a coluna',
+      /#upsertServicoComFallback/,
+      'luzes nao deve usar fallback legado de upsert apos schema remoto ter price_half',
     );
     assert.match(
       SRC_MB_PAGE,

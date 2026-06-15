@@ -150,6 +150,7 @@ class StoryViewer {
 
   static #fecharTimeoutId = null; // controla o setTimeout de #fecharOverlay
   static #flipping        = false;
+  static #prismAtivo      = false;
 
   static #els = {
     overlay:   null,
@@ -215,6 +216,16 @@ class StoryViewer {
       storyId: stories[startIndex]?.id ?? null,
     };
 
+    if (typeof MediaPrismViewer !== 'undefined') {
+      StoryViewer.#prismAtivo = true;
+      MediaPrismViewer.get().open({
+        mode: 'story',
+        items: stories,
+        startIndex,
+      });
+      return;
+    }
+
     StoryViewer.#garantirDOM();
 
     StoryViewer.#ativo = StoryViewer.#els.innerA;
@@ -234,6 +245,11 @@ class StoryViewer {
   }
 
   static fechar() {
+    if (StoryViewer.#prismAtivo && typeof MediaPrismViewer !== 'undefined') {
+      MediaPrismViewer.get().close();
+      StoryViewer.#prismAtivo = false;
+      return;
+    }
     if (!StoryViewer.#els.overlay) return;
 
     // Pausa e libera vídeo de ambos os inners (Ajuste 7 — cleanup obrigatório)
@@ -243,7 +259,7 @@ class StoryViewer {
       if (v) {
         v.pause();
         v.removeAttribute('src');
-        if (typeof v.load === 'function') v.load();
+        v.remove();
         delete v.dataset.observerBound;
       }
     }
@@ -257,6 +273,10 @@ class StoryViewer {
   }
 
   static async prev() {
+    if (StoryViewer.#prismAtivo && typeof MediaPrismViewer !== 'undefined') {
+      MediaPrismViewer.get().prev();
+      return;
+    }
     const { currentIndex } = StoryViewer.#viewerState;
     if (StoryViewer.#flipping || currentIndex <= 0) return;
     StoryViewer.#flipping = true;
@@ -266,6 +286,10 @@ class StoryViewer {
   }
 
   static async next() {
+    if (StoryViewer.#prismAtivo && typeof MediaPrismViewer !== 'undefined') {
+      MediaPrismViewer.get().next();
+      return;
+    }
     const { currentIndex, stories } = StoryViewer.#viewerState;
     if (StoryViewer.#flipping || currentIndex >= stories.length - 1) return;
     StoryViewer.#flipping = true;

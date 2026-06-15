@@ -13,6 +13,34 @@ describe('PortfolioPrismViewer', () => {
   const proCss = fs.readFileSync(path.join(ROOT, 'apps/profissional/assets/css/styles.css'), 'utf8');
   const publicSectionJs = fs.readFileSync(path.join(ROOT, 'shared/js/PortfolioBarbeirosSection.js'), 'utf8');
 
+  test('mantem arquivo legado com MediaPrismViewer interno e adapter PortfolioPrismViewer', () => {
+    assert.match(js, /class MediaPrismViewer/);
+    assert.match(js, /class PortfolioPrismViewer/);
+    assert.match(js, /static get\(\)[\s\S]*MediaPrismViewer\.#instance \?\?= new MediaPrismViewer/);
+    assert.match(js, /return MediaPrismViewer\.get\(\)\.open\(\{/);
+    assert.match(js, /mode:\s*'portfolio'/);
+  });
+
+  test('modo story usa prisma com audio explicito e lazy de faces vizinhas', () => {
+    assert.match(js, /item\.mode === 'story'/);
+    assert.match(js, /el\.controls\s*=\s*this\.#isStoryMode\(\)/);
+    assert.match(js, /el\.muted\s*=\s*!this\.#isStoryMode\(\)/);
+    assert.match(js, /el\.preload\s*=\s*'metadata'/);
+    assert.match(js, /btn\.textContent\s*=\s*'🔊 Tocar com som'/);
+    assert.match(js, /Math\.abs\(offset\)\s*<=\s*1/);
+    assert.match(js, /this\.#limparSlot\(slot\)/);
+  });
+
+  test('StoryViewer coordena stories e delega renderizacao ao MediaPrismViewer', () => {
+    const storyViewerJs = fs.readFileSync(path.join(ROOT, 'shared/js/StoryViewer.js'), 'utf8');
+    assert.match(storyViewerJs, /StoriesStore\.get\(shopId\)/);
+    assert.match(storyViewerJs, /MediaPrismViewer\.get\(\)\.open\(\{/);
+    assert.match(storyViewerJs, /mode:\s*'story'/);
+    assert.match(storyViewerJs, /items:\s*stories/);
+    assert.match(storyViewerJs, /startIndex/);
+    assert.doesNotMatch(storyViewerJs, /normalizarStories|normalizarMidia|media_url:\s*story/);
+  });
+
   test('exibe avatar, nome e curtidas no topo esquerdo em tela cheia', () => {
     assert.match(js, /pp-prism-meta/);
     assert.match(js, /pp-prism-avatar/);
@@ -55,15 +83,15 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /pp-prism-public-logo" src="\/shared\/img\/icon-512-cliente\.png"/);
     assert.match(js, /pp-prism-message-input/);
     assert.match(js, /#PUBLIC_MESSAGE_MAX_LENGTH\s*=\s*20/);
-    assert.match(js, /maxlength="\$\{PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH\}"/);
+    assert.match(js, /maxlength="\$\{MediaPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH\}"/);
     assert.doesNotMatch(js, /placeholder=/);
     assert.match(js, /class="pp-prism-message-send"[\s\S]*<span aria-hidden="true">➤<\/span>/);
     assert.doesNotMatch(js, /✈/);
     assert.doesNotMatch(js, />Enviar<\/button>/);
-    assert.match(js, /Array\.from\(texto\)\.length\s*>\s*PortfolioPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH/);
+    assert.match(js, /Array\.from\(texto\)\.length\s*>\s*MediaPrismViewer\.#PUBLIC_MESSAGE_MAX_LENGTH/);
     assert.match(js, /static #sadEmoji\(\)/);
-    assert.match(js, /data-public-emoji="\$\{PortfolioPrismViewer\.#laughEmoji\(\)\}"/);
-    assert.match(js, /data-public-emoji="\$\{PortfolioPrismViewer\.#sadEmoji\(\)\}"/);
+    assert.match(js, /data-public-emoji="\$\{MediaPrismViewer\.#laughEmoji\(\)\}"/);
+    assert.match(js, /data-public-emoji="\$\{MediaPrismViewer\.#sadEmoji\(\)\}"/);
     assert.match(js, /#handlePublicMessage\(emojiBtn\.dataset\.publicEmoji/);
     assert.ok(js.includes('data-public-like-icon aria-hidden="true">👍</span>'));
     assert.match(js, /count\.hidden\s*=\s*\(?likesCount\s*<=\s*0\)?/);
@@ -82,7 +110,7 @@ describe('PortfolioPrismViewer', () => {
     assert.match(proPublicButtonCss, /border:\s*0/);
     assert.match(proPublicButtonCss, /background:\s*transparent/);
     assert.match(css, /@keyframes\s+pp-prism-float-up/);
-    assert.match(css, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* 0\.5rem\)\)/);
+    assert.match(css, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* (?:0\.5rem|10px)\)\)/);
     assert.match(css, /\.pp-prism-float--emoji/);
     assert.match(css, /\.pp-prism-float--like/);
     assert.match(css, /@keyframes\s+pp-prism-emoji-burst/);
@@ -100,7 +128,7 @@ describe('PortfolioPrismViewer', () => {
     );
 
     assert.match(bloco, /id:\s*img\.id/);
-    assert.match(bloco, /professionalId:/);
+    assert.match(bloco, /professionalId,|professionalId:/);
     assert.match(bloco, /likesCount:/);
     assert.match(bloco, /interactions:\s*img\.interactions/);
     assert.match(bloco, /portfolioPublicActions:\s*Boolean\(img\.id\)/);
