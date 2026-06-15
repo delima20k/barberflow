@@ -1182,7 +1182,7 @@ class BarbeariaRepository extends BaseRepository {
     // com barbearia auto-criada mas desativada que postaram stories com barbershop_id errado)
     const { data: shops, error: shopsError } = await this._db
       .from('barbershops')
-      .select('id, name, logo_path')
+      .select('id, name, logo_path, owner_id')
       .eq('is_active', true)
       .in('id', barbershopIds);
 
@@ -1202,11 +1202,31 @@ class BarbeariaRepository extends BaseRepository {
       }
     }
 
+    // Coleta owner_ids únicos dos stories para buscar nome e avatar do poster
+    const posterIds = new Set();
+    for (const arr of grouped.values()) {
+      for (const story of arr) {
+        if (story.owner_id) posterIds.add(story.owner_id);
+      }
+    }
+
+    // 1 query para buscar perfis dos posters (sem N+1)
+    const { data: posters } = await this._db
+      .from('profiles')
+      .select('id, full_name, avatar_path')
+      .in('id', [...posterIds]);
+
+    const posterMap = new Map((posters ?? []).map(p => [p.id, p]));
+
     return barbershopIds
       .filter(id => shopMap.has(id) && (grouped.get(id) ?? []).length > 0)
       .map(id => ({
         shop:    shopMap.get(id),
-        stories: grouped.get(id),
+        stories: grouped.get(id).map(story => ({
+          ...story,
+          poster_name:         posterMap.get(story.owner_id)?.full_name   ?? null,
+          poster_avatar_path:  posterMap.get(story.owner_id)?.avatar_path ?? null,
+        })),
       }));
   }
 }

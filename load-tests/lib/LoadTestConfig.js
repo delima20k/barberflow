@@ -1,12 +1,13 @@
 'use strict';
 
 class LoadTestConfig {
+  static DEFAULT_PROD_BASE_URL = 'https://bff.berberflow.shop';
   static #ALLOWED_VUS = new Set([1, 7, 14, 28, 56]);
   static #MAX_VUS = 56;
 
   constructor({ args = process.argv.slice(2), env = process.env, now = new Date() } = {}) {
     const parsed = LoadTestConfig.#parseArgs(args);
-    this.baseUrl = LoadTestConfig.#normalizeBaseUrl(parsed['base-url'] ?? env.LOADTEST_BASE_URL ?? 'http://127.0.0.1:3002');
+    this.baseUrl = LoadTestConfig.#normalizeBaseUrl(parsed['base-url'] ?? env.LOADTEST_BASE_URL ?? LoadTestConfig.DEFAULT_PROD_BASE_URL);
     this.vus = LoadTestConfig.#parsePositiveInt(parsed.vus ?? env.LOADTEST_VUS, 'vus');
     this.durationSeconds = LoadTestConfig.#parsePositiveInt(parsed.duration ?? env.LOADTEST_DURATION_SECONDS ?? '30', 'duration');
     this.scenario = String(parsed.scenario ?? env.LOADTEST_SCENARIO ?? 'all').trim();

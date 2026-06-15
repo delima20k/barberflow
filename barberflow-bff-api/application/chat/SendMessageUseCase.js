@@ -39,8 +39,8 @@ class SendMessageUseCase {
     this.#realtimeTimeoutMs = Math.max(1, Number(realtimeTimeoutMs) || 750);
   }
 
-  async execute(command = {}) {
-    const metrics = SendMessageUseCase.#metrics();
+  async execute(command = {}, opts = {}) {
+    const metrics = SendMessageUseCase.#metrics(opts.diagnostics ?? null);
     try {
       const previous = await this.#measure(metrics, 'findByClientMessageId', () => (
         this.#chatRepository.findByClientMessageId(command.senderId, command.clientMessageId)
@@ -99,6 +99,7 @@ class SendMessageUseCase {
       return Result.ok(saved.toJSON());
     } finally {
       metrics.totalHandler = SendMessageUseCase.#elapsed(metrics.startedAt);
+      metrics.diagnostics?.record('total_handler', metrics.totalHandler);
       this.#info('chat.send timings', SendMessageUseCase.#sanitizeMetrics(metrics));
     }
   }
@@ -107,6 +108,7 @@ class SendMessageUseCase {
     if (!this.#messageRealtimePublisher) return;
     if (!saved || !Array.isArray(recipients) || recipients.length === 0) return;
     metrics.realtimePublish = 'scheduled';
+    metrics.diagnostics?.mark('realtimePublish', 'scheduled');
     Promise.resolve()
       .then(() => this.#withTimeout(
         this.#messageRealtimePublisher.publish({
@@ -150,6 +152,7 @@ class SendMessageUseCase {
       return await fn();
     } finally {
       metrics[name] = SendMessageUseCase.#elapsed(start);
+      metrics.diagnostics?.record(name, metrics[name]);
     }
   }
 
@@ -159,6 +162,7 @@ class SendMessageUseCase {
       return fn();
     } finally {
       metrics[name] = SendMessageUseCase.#elapsed(start);
+      metrics.diagnostics?.record(name, metrics[name]);
     }
   }
 
@@ -188,8 +192,8 @@ class SendMessageUseCase {
     this.#logger?.info?.(`[SendMessageUseCase] ${message}`, metrics);
   }
 
-  static #metrics() {
-    return { startedAt: SendMessageUseCase.#now() };
+  static #metrics(diagnostics = null) {
+    return { startedAt: SendMessageUseCase.#now(), diagnostics };
   }
 
   static #now() {
@@ -201,7 +205,7 @@ class SendMessageUseCase {
   }
 
   static #sanitizeMetrics(metrics) {
-    const { startedAt: _startedAt, ...safe } = metrics;
+    const { startedAt: _startedAt, diagnostics: _diagnostics, ...safe } = metrics;
     return safe;
   }
 }

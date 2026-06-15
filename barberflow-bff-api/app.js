@@ -112,6 +112,7 @@ function criarApp(db = null) {
   // Deve vir ANTES do logger HTTP para enriquecer logs com correlationId.
   app.use(ObservabilityMiddleware.handle);
   app.use(RequestDiagnosticsMiddleware.initAppointment);
+  app.use(RequestDiagnosticsMiddleware.initChat);
 
   // ── 3. Helmet (headers OWASP) ────────────────────────────────
   app.use(helmet({

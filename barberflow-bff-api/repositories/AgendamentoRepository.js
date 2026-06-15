@@ -118,6 +118,11 @@ class AgendamentoRepository extends BaseRepository {
     const { data, error } = diagnostics
       ? await diagnostics.time('rpc_criar_agendamento_atomico', createViaRpc)
       : await createViaRpc();
+    if (diagnostics) {
+      const rpcDuration = diagnostics.timing('rpc_criar_agendamento_atomico');
+      diagnostics.record('availability_check', rpcDuration);
+      diagnostics.record('appointment_write', rpcDuration);
+    }
 
     // P0001 = exceção definida pelo usuário (SCHEDULE_CONFLICT)
     if (error?.code === 'P0001') {
@@ -129,7 +134,7 @@ class AgendamentoRepository extends BaseRepository {
     // Evita o getById com embeds PostgREST; telas que precisam dos joins usam GET/listagem.
     const toLight = () => AgendamentoRepository.#toLight(data);
     return diagnostics
-      ? diagnostics.time('rpc_return_light', toLight)
+      ? diagnostics.time('response_assembly', () => diagnostics.time('rpc_return_light', toLight))
       : toLight();
   }
 

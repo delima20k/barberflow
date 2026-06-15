@@ -4,16 +4,42 @@ class LoadTestMetrics {
   #samples = new Map();
   #startedAt = new Date();
   #resourceSamples = [];
+  #skipped = {};
+  #requestDetails = [];
 
-  record({ name, method, path, status, durationMs, error = null }) {
+  record({ name, method, path, status, durationMs, error = null, ignored = false, timestamp = new Date().toISOString(), headers = {} }) {
     const key = `${method.toUpperCase()} ${path}`;
+    const roundedDuration = LoadTestMetrics.#round(durationMs);
     if (!this.#samples.has(key)) this.#samples.set(key, []);
     this.#samples.get(key).push({
       name,
       status,
-      durationMs,
+      durationMs: roundedDuration,
       error: error ? String(error) : null,
+      ignored: Boolean(ignored),
     });
+    this.#requestDetails.push({
+      timestamp,
+      endpoint: key,
+      name,
+      method: method.toUpperCase(),
+      path,
+      status,
+      durationMs: roundedDuration,
+      error: error ? String(error) : null,
+      ignored: Boolean(ignored),
+      headers: {
+        xVercelId: headers?.xVercelId ?? null,
+        serverTiming: headers?.serverTiming ?? null,
+        bffDurationMs: headers?.bffDurationMs ?? null,
+        supabaseDurationMs: headers?.supabaseDurationMs ?? null,
+        xResponseTime: headers?.xResponseTime ?? null,
+      },
+    });
+  }
+
+  skip(name, reason) {
+    this.#skipped[name] = reason;
   }
 
   recordResourceSample() {
@@ -32,16 +58,23 @@ class LoadTestMetrics {
     const endpoints = {};
     let total = 0;
     let errors = 0;
+    let recordedTotal = 0;
+    let optionalTotal = 0;
 
     for (const [key, samples] of this.#samples.entries()) {
       const durations = samples.map(sample => sample.durationMs).sort((a, b) => a - b);
-      const endpointErrors = samples.filter(sample => sample.error || sample.status >= 400 || sample.status === 0).length;
-      total += samples.length;
+      const endpointErrors = samples.filter(sample => !sample.ignored && (sample.error || sample.status >= 400 || sample.status === 0)).length;
+      const primarySamples = samples.filter(sample => !sample.ignored).length;
+      recordedTotal += samples.length;
+      optionalTotal += samples.length - primarySamples;
+      total += primarySamples;
       errors += endpointErrors;
       endpoints[key] = {
         requests: samples.length,
+        primaryRequests: primarySamples,
+        optionalRequests: samples.length - primarySamples,
         errors: endpointErrors,
-        errorRate: LoadTestMetrics.#rate(endpointErrors, samples.length),
+        errorRate: LoadTestMetrics.#rate(endpointErrors, primarySamples),
         minMs: LoadTestMetrics.#round(durations[0] ?? 0),
         avgMs: LoadTestMetrics.#round(durations.reduce((sum, item) => sum + item, 0) / Math.max(durations.length, 1)),
         p50Ms: LoadTestMetrics.#percentile(durations, 50),
@@ -62,9 +95,14 @@ class LoadTestMetrics {
       durationSeconds: config?.durationSeconds,
       testDataPrefix: config?.prefix,
       totalRequests: total,
+      totalRecordedRequests: recordedTotal,
+      optionalRequests: optionalTotal,
       totalErrors: errors,
       errorRate: LoadTestMetrics.#rate(errors, total),
       endpoints,
+      requestDetails: this.#requestDetails,
+      slowRequests: this.#slowRequests(),
+      skipped: { ...this.#skipped },
       resources: this.#resourceSamples,
       bffMetrics,
     };
@@ -82,6 +120,13 @@ class LoadTestMetrics {
       acc[key] = (acc[key] ?? 0) + 1;
       return acc;
     }, {});
+  }
+
+  #slowRequests() {
+    return [...this.#requestDetails]
+      .filter(sample => !sample.ignored)
+      .sort((a, b) => b.durationMs - a.durationMs)
+      .slice(0, 25);
   }
 
   static #rate(count, total) {

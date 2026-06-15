@@ -1,6 +1,6 @@
 -- BarberFlow Schema Snapshot
--- Gerado em: 2026-06-08
--- Migrations: 124
+-- Gerado em: 2026-06-09
+-- Migrations: 126
 -- NÃO editar manualmente. Regenerar com: node scripts/db-snapshot.js
 
 
@@ -7729,3 +7729,95 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.get_professional_financial_history_summary(uuid, uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_professional_unpaid_transactions(uuid, uuid, integer) TO authenticated, service_role;
+
+-- MIGRATION: 20260608000002_admin_users_system_config.sql
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID        REFERENCES auth.users(id) ON DELETE CASCADE,
+  email      TEXT        NOT NULL,
+  active     BOOLEAN     NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS admin_users_user_id_idx ON public.admin_users (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS admin_users_email_idx   ON public.admin_users (email);
+
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'admin_users_updated_at'
+    AND tgrelid = 'public.admin_users'::regclass
+  ) THEN
+    CREATE TRIGGER admin_users_updated_at
+      BEFORE UPDATE ON public.admin_users
+      FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  END IF;
+END;
+$$;
+
+COMMENT ON TABLE  public.admin_users          IS 'Usuários com acesso ao painel administrativo do BarberFlow.';
+COMMENT ON COLUMN public.admin_users.user_id  IS 'FK para auth.users. Vincula o registro ao login Supabase.';
+COMMENT ON COLUMN public.admin_users.email    IS 'E-mail de verificação dupla (além do user_id).';
+COMMENT ON COLUMN public.admin_users.active   IS 'false = acesso revogado sem deletar o registro.';
+
+CREATE TABLE IF NOT EXISTS public.system_config (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  key         TEXT        NOT NULL UNIQUE,
+  value_enc   TEXT        NOT NULL,
+  iv          TEXT        NOT NULL,
+  auth_tag    TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS system_config_key_idx ON public.system_config (key);
+
+ALTER TABLE public.system_config ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'system_config_updated_at'
+    AND tgrelid = 'public.system_config'::regclass
+  ) THEN
+    CREATE TRIGGER system_config_updated_at
+      BEFORE UPDATE ON public.system_config
+      FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  END IF;
+END;
+$$;
+
+COMMENT ON TABLE  public.system_config           IS 'Configurações de sistema armazenadas criptografadas (AES-256-GCM). Acesso exclusivo via service_role.';
+COMMENT ON COLUMN public.system_config.key       IS 'Chave de configuração, ex: r2.account_id, r2.secret_access_key.';
+COMMENT ON COLUMN public.system_config.value_enc IS 'Valor criptografado (AES-256-GCM), base64url.';
+COMMENT ON COLUMN public.system_config.iv        IS 'IV de 12 bytes, base64url. Único por registro.';
+COMMENT ON COLUMN public.system_config.auth_tag  IS 'GCM auth tag de 16 bytes, base64url.';
+
+-- MIGRATION: 20260609000001_barbershops_public_ranking_indexes.sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_barbershops_public_all_ranking
+  ON public.barbershops (
+    is_active,
+    rating_score DESC,
+    rating_avg DESC,
+    likes_count DESC
+  );
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_barbershops_public_featured_ranking
+  ON public.barbershops (
+    is_active,
+    rating_avg DESC,
+    rating_count DESC
+  );

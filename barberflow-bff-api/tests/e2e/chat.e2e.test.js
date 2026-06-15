@@ -70,7 +70,17 @@ suite('E2E — Chat', () => {
       chat_conversations:      () => ({ data: CONV_ROW, error: null }),
       chat_participants:       () => ({ data: { conversation_id: CONV_ID, user_id: TEST_USER_ID }, error: null }),
       // Mensagens da conversa
-      chat_messages:           () => ({ data: [MSG_ROW], error: null }),
+      chat_messages:           ({ operation, data } = {}) => {
+        if (operation === 'insert' || operation === 'upsert') {
+          const row = Array.isArray(data) ? data[0] : data;
+          return {
+            __useMockResult: true,
+            data: { ...SAVED_MSG_ROW, ...row, id: SAVED_MSG_ROW.id, created_at: SAVED_MSG_ROW.created_at },
+            error: null,
+          };
+        }
+        return { data: [], error: null };
+      },
       chat_message_attachments: () => ({ data: [], error: null }),
       chat_mute_rules:          () => ({ data: [], error: null }),
       // Outbox
@@ -114,10 +124,34 @@ suite('E2E — Chat', () => {
       server, 'POST', `/api/v1/chat/conversations/${CONV_ID}/messages`,
       {
         headers: { Authorization: `Bearer ${token}` },
-        body:    { encryptedPayload: { v: 1, alg: 'AES-GCM', ct: 'ciphertext' }, clientMessageId: 'cmi-novo-001' },
+        body:    { encrypted_payload: { v: 1, alg: 'AES-GCM', iv: 'iv', ct: 'ciphertext' }, clientMessageId: 'cmi-novo-001' },
       },
     );
     assert.ok(status >= 200 && status < 300, `esperado 2xx, recebeu ${status}`);
+  });
+
+  test('POST mensagens — diagnostico expõe fases do caminho síncrono', async () => {
+    const { status, headers } = await request(
+      server, 'POST', `/api/v1/chat/conversations/${CONV_ID}/messages`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-BarberFlow-Diagnostics': 'chat',
+        },
+        body: {
+          encrypted_payload: { v: 1, alg: 'AES-GCM', iv: 'iv', ct: 'ciphertext' },
+          clientMessageId: 'cmi-diagnostics-001',
+        },
+      },
+    );
+
+    assert.ok(status >= 200 && status < 300, `esperado 2xx, recebeu ${status}`);
+    assert.match(headers['x-chat-diagnostics'], /auth=/);
+    assert.match(headers['x-chat-diagnostics'], /saveMessage=/);
+    assert.match(headers['x-chat-diagnostics'], /outboxSave=/);
+    assert.match(headers['x-chat-diagnostics'], /realtimePublish=scheduled/);
+    assert.match(headers['x-chat-diagnostics'], /total_handler=/);
+    assert.match(headers['server-timing'], /saveMessage;dur=/);
   });
 
   test('POST mensagens — sem auth → 401', async () => {

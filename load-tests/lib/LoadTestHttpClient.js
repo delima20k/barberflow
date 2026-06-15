@@ -25,12 +25,19 @@ class LoadTestHttpClient {
     return this.request('PATCH', path, body, options);
   }
 
+  skip(name, reason) {
+    this.#metrics.skip(name, reason);
+  }
+
   async request(method, path, body = null, options = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? this.#timeoutMs);
     const started = performance.now();
     let status = 0;
     let error = null;
+    let ignored = false;
+    let responseHeaders = {};
+    const timestamp = new Date().toISOString();
 
     try {
       const headers = {
@@ -46,8 +53,10 @@ class LoadTestHttpClient {
         signal: controller.signal,
       });
       status = response.status;
+      responseHeaders = LoadTestHttpClient.#extractHeaders(response.headers);
+      ignored = Boolean(options.optional) || LoadTestHttpClient.#isIgnoredStatus(status, options);
       const text = await response.text();
-      return { status, body: LoadTestHttpClient.#parseBody(text), ok: response.ok };
+      return { status, body: LoadTestHttpClient.#parseBody(text), ok: response.ok, headers: responseHeaders };
     } catch (err) {
       error = err?.name === 'AbortError' ? 'timeout' : (err?.message ?? 'request failed');
       return { status, body: null, ok: false, error };
@@ -60,6 +69,9 @@ class LoadTestHttpClient {
         status,
         durationMs: performance.now() - started,
         error,
+        ignored,
+        timestamp,
+        headers: responseHeaders,
       });
     }
   }
@@ -76,6 +88,42 @@ class LoadTestHttpClient {
 
   static #normalizePath(path) {
     return path.split('?')[0];
+  }
+
+  static #isIgnoredStatus(status, options) {
+    return Array.isArray(options.ignoreStatuses) && options.ignoreStatuses.includes(status);
+  }
+
+  static #extractHeaders(headers) {
+    const serverTiming = headers.get('server-timing') ?? null;
+    const bffDurationMs = LoadTestHttpClient.#serverTimingDuration(serverTiming, 'bff')
+      ?? LoadTestHttpClient.#headerNumber(headers.get('x-bff-duration-ms'));
+    const supabaseDurationMs = LoadTestHttpClient.#serverTimingDuration(serverTiming, 'supabase')
+      ?? LoadTestHttpClient.#headerNumber(headers.get('x-supabase-duration-ms'));
+    return {
+      xVercelId: headers.get('x-vercel-id') ?? null,
+      serverTiming,
+      bffDurationMs,
+      supabaseDurationMs,
+      xResponseTime: headers.get('x-response-time') ?? null,
+    };
+  }
+
+  static #headerNumber(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  static #serverTimingDuration(value, metricName) {
+    if (!value) return null;
+    const metric = String(metricName).toLowerCase();
+    const item = String(value)
+      .split(',')
+      .map(part => part.trim())
+      .find(part => part.toLowerCase().startsWith(`${metric};`));
+    const match = item?.match(/(?:^|;)\s*dur=([0-9.]+)/i);
+    return match ? Number(match[1]) : null;
   }
 }
 

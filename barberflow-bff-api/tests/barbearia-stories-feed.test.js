@@ -141,6 +141,15 @@ suite('BarbeariaRepository.listarFeedStoriesAgrupados() — contrato', () => {
       },
     };
 
+    // profiles (poster info) — retorna vazio; nao é o foco deste teste
+    // O mock de `from` cobre apenas stories e barbershops; profiles usa fallback
+    db.from = ((orig) => (table) => {
+      if (table === 'profiles') {
+        return { select: () => ({ in: async () => ({ data: [], error: null }) }) };
+      }
+      return orig(table);
+    })(db.from);
+
     const repo = new BarbeariaRepository(db);
     const grupos = await repo.listarFeedStoriesAgrupados();
 

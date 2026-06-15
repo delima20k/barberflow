@@ -38,8 +38,9 @@ const STORY_SEM_SHOP = { id: 's6', owner_id: OWNER_A,  barbershop_id: null,   me
  *   barbershops: from('barbershops').select().in()              → Promise
  * @param {object[]} stories — stories a retornar na 1ª query
  * @param {object[]} shops   — barbershops a retornar na 2ª query
+ * @param {object[]} posters  — profiles a retornar na 3ª query (poster info)
  */
-function criarDbMock(stories, shops) {
+function criarDbMock(stories, shops, posters = []) {
   return {
     from: (table) => {
       if (table === 'stories') {
@@ -53,9 +54,19 @@ function criarDbMock(stories, shops) {
           }),
         };
       }
-      // barbershops
+      if (table === 'profiles') {
+        return {
+          select: () => ({
+            in: async () => ({ data: posters, error: null }),
+          }),
+        };
+      }
+      // barbershops — suporta filtro .eq('is_active', true) antes do .in()
       return {
         select: () => ({
+          eq: (_col, _val) => ({
+            in: async () => ({ data: shops.filter(s => s.is_active !== false), error: null }),
+          }),
           in: async () => ({ data: shops, error: null }),
         }),
       };
@@ -183,5 +194,94 @@ suite('TC6: 3 stories por barbearia — badge de contagem correto', () => {
 
     assert.strictEqual(feed.length, 1);
     assert.strictEqual(feed[0].stories.length, 3, 'deve ter exatamente 3 stories no grupo (badge "+3")');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TC7 — Stories de barbearia INATIVA não criam card no feed
+// Caso real: barbeiro parceiro Lima tem barbearia auto-criada (is_active=false)
+// e postou stories com barbershop_id = Lima's inative shop.
+// Esses stories NÃO devem gerar card — só barbearias ativas devem aparecer.
+// ─────────────────────────────────────────────────────────────────────────────
+const SHOP_INATIVO = '00000000-0000-4000-8001-cccccccccccc';
+const STORY_SHOP_INATIVO = { id: 's7', owner_id: OWNER_A, barbershop_id: SHOP_INATIVO, media_id: null, expires_at: new Date(Date.now() + 3600000).toISOString(), created_at: new Date().toISOString(), media_files: null };
+
+suite('TC7: stories de barbearia inativa ignorados no feed', () => {
+  test('nao deve criar card para barbearia com is_active=false', async () => {
+    const db = criarDbMock(
+      [STORY_SHOP_INATIVO, STORY_DONO_A],
+      [
+        { id: SHOP_INATIVO, name: 'Barbearia Lima (inativa)', logo_path: null, is_active: false },
+        { id: SHOP_A,       name: 'Barbearia Black',          logo_path: null, is_active: true  },
+      ],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    assert.strictEqual(feed.length, 1, 'deve retornar apenas 1 card (barbearia ativa)');
+    assert.strictEqual(feed[0].shop.id, SHOP_A, 'o card deve ser da barbearia ATIVA');
+    assert.ok(!feed.some(g => g.shop.id === SHOP_INATIVO), 'barbearia inativa nao deve aparecer');
+  });
+
+  test('quando TODAS as barbearias sao inativas, retorna array vazio', async () => {
+    const db = criarDbMock(
+      [STORY_SHOP_INATIVO],
+      [{ id: SHOP_INATIVO, name: 'Inativa', logo_path: null, is_active: false }],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    assert.strictEqual(feed.length, 0, 'nenhum card deve aparecer quando todas as barbearias sao inativas');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TC8 — Feed retorna poster_name e poster_avatar_path por story
+// TC9 — Shop retorna com owner_id para frontend distinguir dono/parceiro
+// ─────────────────────────────────────────────────────────────────────────────
+const POSTER_DONO   = { id: OWNER_A,  full_name: 'Marcos Dono',    avatar_path: 'avatars/marcos.jpg' };
+const POSTER_PARC   = { id: BARBER_A, full_name: 'Lima Parceiro',  avatar_path: 'avatars/lima.jpg' };
+
+suite('TC8: stories retornam poster_name e poster_avatar_path', () => {
+  test('story do parceiro deve ter poster_name e poster_avatar_path do perfil do parceiro', async () => {
+    const db = criarDbMock(
+      [STORY_PARCEIRO],
+      [{ id: SHOP_A, name: 'Barbearia Black', logo_path: 'logo.png', owner_id: OWNER_A, is_active: true }],
+      [POSTER_PARC],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    const story = feed[0].stories[0];
+    assert.strictEqual(story.poster_name, 'Lima Parceiro', 'poster_name deve ser o nome do parceiro');
+    assert.strictEqual(story.poster_avatar_path, 'avatars/lima.jpg', 'poster_avatar_path deve ser o avatar do parceiro');
+  });
+
+  test('story do dono deve ter poster_name e poster_avatar_path do dono', async () => {
+    const db = criarDbMock(
+      [STORY_DONO_A],
+      [{ id: SHOP_A, name: 'Barbearia Black', logo_path: 'logo.png', owner_id: OWNER_A, is_active: true }],
+      [POSTER_DONO],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    const story = feed[0].stories[0];
+    assert.strictEqual(story.poster_name, 'Marcos Dono');
+    assert.strictEqual(story.poster_avatar_path, 'avatars/marcos.jpg');
+  });
+});
+
+suite('TC9: shop retorna com owner_id', () => {
+  test('shop.owner_id deve estar presente no feed para frontend distinguir dono/parceiro', async () => {
+    const db = criarDbMock(
+      [STORY_DONO_A],
+      [{ id: SHOP_A, name: 'Barbearia Black', logo_path: 'logo.png', owner_id: OWNER_A, is_active: true }],
+      [POSTER_DONO],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    assert.strictEqual(feed[0].shop.owner_id, OWNER_A, 'shop.owner_id deve ser retornado no feed');
   });
 });

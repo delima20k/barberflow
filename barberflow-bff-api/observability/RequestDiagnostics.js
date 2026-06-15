@@ -37,6 +37,15 @@ class RequestDiagnostics {
     this.#steps.set(step, Number(durationMs.toFixed(2)));
   }
 
+  timing(step) {
+    return this.#steps.get(step);
+  }
+
+  mark(step, value) {
+    if (value === undefined || value === null) return;
+    this.#steps.set(step, RequestDiagnostics.#safeValue(value));
+  }
+
   note(key, value) {
     if (value === undefined || value === null) return;
     this.#notes.set(key, String(value));
@@ -68,6 +77,7 @@ class RequestDiagnostics {
   toServerTiming() {
     this.finish();
     return Array.from(this.#steps.entries())
+      .filter(([, value]) => Number.isFinite(value))
       .slice(0, RequestDiagnostics.#MAX_HEADER_STEPS)
       .map(([key, value]) => `${RequestDiagnostics.#safeToken(key)};dur=${value}`)
       .join(', ');
@@ -83,6 +93,10 @@ class RequestDiagnostics {
 
   static #safeToken(value) {
     return String(value).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+  }
+
+  static #safeValue(value) {
+    return String(value).replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 64);
   }
 }
 

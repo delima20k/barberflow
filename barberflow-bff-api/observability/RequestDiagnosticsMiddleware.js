@@ -8,24 +8,44 @@ const { logger } = require('../middlewares/logger');
  */
 class RequestDiagnosticsMiddleware {
   static #HEADER_NAME = 'x-barberflow-diagnostics';
-  static #APPOINTMENT_VALUE = 'appointment';
+  static #CONFIG = Object.freeze({
+    appointment: {
+      value: 'appointment',
+      name: 'appointment_create',
+      route: 'POST /api/agendamentos',
+      path: '/api/agendamentos',
+      header: 'X-Appointment-Diagnostics',
+    },
+    chat: {
+      value: 'chat',
+      name: 'chat_send',
+      route: 'POST /api/v1/chat/conversations/:conversationId/messages',
+      pathPattern: /^\/api\/v1\/chat\/conversations\/[^/]+\/messages$/,
+      header: 'X-Chat-Diagnostics',
+    },
+  });
 
   static initAppointment(req, res, next) {
-    if (
-      req.method !== 'POST' ||
-      req.path !== '/api/agendamentos' ||
-      !RequestDiagnosticsMiddleware.#isAppointmentDiagnosticsEnabled(req)
-    ) {
+    return RequestDiagnosticsMiddleware.#init(req, res, next, RequestDiagnosticsMiddleware.#CONFIG.appointment);
+  }
+
+  static initChat(req, res, next) {
+    return RequestDiagnosticsMiddleware.#init(req, res, next, RequestDiagnosticsMiddleware.#CONFIG.chat);
+  }
+
+  static #init(req, res, next, config) {
+    if (!RequestDiagnosticsMiddleware.#matchesRoute(req, config)
+      || !RequestDiagnosticsMiddleware.#isDiagnosticsEnabled(req, config.value)) {
       return next();
     }
 
-    req.barberflowDiagnostics = new RequestDiagnostics('appointment_create');
+    req.barberflowDiagnostics = new RequestDiagnostics(config.name);
 
     const applyHeaders = () => {
       const diagnostics = RequestDiagnostics.current(req);
       if (diagnostics && !res.headersSent) {
         diagnostics.finish();
-        res.setHeader('X-Appointment-Diagnostics', diagnostics.toHeaderValue());
+        res.setHeader(config.header, diagnostics.toHeaderValue());
         res.setHeader('Server-Timing', diagnostics.toServerTiming());
       }
     };
@@ -42,9 +62,9 @@ class RequestDiagnosticsMiddleware {
       const diagnostics = RequestDiagnostics.current(req);
       if (diagnostics) {
         logger.info({
-          route: 'POST /api/agendamentos',
+          route: config.route,
           diagnostics: diagnostics.toObject(),
-        }, '[BFF] appointment diagnostics');
+        }, `[BFF] ${config.value} diagnostics`);
       }
       return originalEnd(...args);
     };
@@ -67,19 +87,25 @@ class RequestDiagnosticsMiddleware {
     };
   }
 
-  static #isAppointmentDiagnosticsEnabled(req) {
-    const value = req.headers[RequestDiagnosticsMiddleware.#HEADER_NAME];
-    if (Array.isArray(value)) {
-      return value.some((item) => RequestDiagnosticsMiddleware.#matchesAppointmentValue(item));
-    }
-    return RequestDiagnosticsMiddleware.#matchesAppointmentValue(value);
+  static #matchesRoute(req, config) {
+    if (req.method !== 'POST') return false;
+    if (config.path) return req.path === config.path;
+    return config.pathPattern?.test(req.path) === true;
   }
 
-  static #matchesAppointmentValue(value) {
+  static #isDiagnosticsEnabled(req, expectedValue) {
+    const value = req.headers[RequestDiagnosticsMiddleware.#HEADER_NAME];
+    if (Array.isArray(value)) {
+      return value.some((item) => RequestDiagnosticsMiddleware.#matchesValue(item, expectedValue));
+    }
+    return RequestDiagnosticsMiddleware.#matchesValue(value, expectedValue);
+  }
+
+  static #matchesValue(value, expectedValue) {
     return String(value ?? '')
       .split(',')
       .map((item) => item.trim().toLowerCase())
-      .includes(RequestDiagnosticsMiddleware.#APPOINTMENT_VALUE);
+      .includes(expectedValue);
   }
 }
 

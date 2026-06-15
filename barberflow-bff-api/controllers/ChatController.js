@@ -1,6 +1,7 @@
 'use strict';
 
 const BaseController = require('./BaseController');
+const RequestDiagnostics = require('../observability/RequestDiagnostics');
 
 class ChatController extends BaseController {
   #sendMessageUseCase;
@@ -29,6 +30,7 @@ class ChatController extends BaseController {
 
   async send(req, res) {
     await this.handle(res, async () => {
+      const diagnostics = RequestDiagnostics.current(req);
       const { body, clientMessageId, attachments, encrypted_payload, e2e_key_version } = req.body ?? {};
 
       // Rejeita mensagem nova com body em texto puro (sem encrypted_payload)
@@ -52,7 +54,7 @@ class ChatController extends BaseController {
         encryptedPayload: encrypted_payload ?? null,
         e2eKeyVersion:    e2e_key_version ?? null,
         attachments,
-      });
+      }, { diagnostics });
       if (result.isFail()) throw this._erro(result.getError(), this.#sendStatus(result.getError()));
       this.created(res, result.getValue());
     });

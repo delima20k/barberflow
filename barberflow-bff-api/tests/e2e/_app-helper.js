@@ -180,14 +180,31 @@ function mockDb(overrides = {}) {
     return { data: Array.isArray(d) ? (d[0] ?? null) : d, error: result.error };
   }
 
+  function _resultFor(handler, fallback, context) {
+    const result = handler(context);
+    if (result && result.__useMockResult === true) {
+      const { __useMockResult, ...clean } = result;
+      return clean;
+    }
+    return fallback;
+  }
+
   return {
     from(table) {
       const handler = overrides[table] ?? noop;
       const chainable = {
         select:      () => chainable,
-        insert:      (d) => chain({ data: Array.isArray(d) ? d : [d], error: null }),
+        insert:      (d) => chain(_resultFor(
+          handler,
+          { data: Array.isArray(d) ? d : [d], error: null },
+          { table, operation: 'insert', data: d },
+        )),
         update:      () => chainable,
-        upsert:      (d) => chain({ data: Array.isArray(d) ? d : [d], error: null }),
+        upsert:      (d) => chain(_resultFor(
+          handler,
+          { data: Array.isArray(d) ? d : [d], error: null },
+          { table, operation: 'upsert', data: d },
+        )),
         delete:      () => chainable,
         eq:          () => chainable,
         neq:         () => chainable,
