@@ -249,7 +249,7 @@ class StoriesWidget {
       const logoUrl = typeof ApiService !== 'undefined'
         ? ApiService.getLogoUrl(shop.logo_path)
         : (shop.logo_path ?? '');
-      const card = this.#criarCardGrupo(stories, shop.id, shop.name ?? '', logoUrl);
+      const card = this.#criarCardGrupo(stories, shop.id, shop.name ?? '', logoUrl, shop.owner_id ?? null);
       this.#scrollEl.appendChild(card);
     }
 
@@ -530,18 +530,33 @@ class StoriesWidget {
    * Thumbnail = primeiro story. Badge = quantidade de stories (se > 1).
    * StoriesStore é populado aqui para que StoryViewer possa recuperar os dados.
    *
-   * @param {object[]} stories — array completo retornado pelo BFF
-   * @param {string|null} shopId — UUID da barbearia (fallback: stories[0].owner_id)
-   * @param {string|null} shopName — sobrescreve this.#shopName (modo feed)
-   * @param {string|null} logoUrl — sobrescreve this.#shopLogoSrc (modo feed)
+   * @param {object[]} stories      — array completo retornado pelo BFF
+   * @param {string|null} shopId    — UUID da barbearia (fallback: stories[0].owner_id)
+   * @param {string|null} shopName  — sobrescreve this.#shopName (modo feed)
+   * @param {string|null} logoUrl   — sobrescreve this.#shopLogoSrc (modo feed)
+   * @param {string|null} shopOwnerId — UUID do dono da barbearia (modo feed); detecta parceiro vs dono
    * @returns {HTMLDivElement}
    */
-  #criarCardGrupo(stories, shopId = null, shopName = null, logoUrl = null) {
+  #criarCardGrupo(stories, shopId = null, shopName = null, logoUrl = null, shopOwnerId = null) {
     const first   = stories[0];
     const ownerId = shopId ?? first?.owner_id ?? '';
     StoriesStore.set(ownerId, stories);
 
-    const logoSrc = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
+    // Determina se o primeiro story foi postado pelo dono ou por um parceiro
+    const isParceiro = shopOwnerId && first?.owner_id && first.owner_id !== shopOwnerId;
+    let displayName, displayLogo;
+    if (isParceiro) {
+      // Parceiro: exibe nome e avatar do barbeiro que postou
+      displayName = first.poster_name ?? shopName ?? this.#shopName ?? '';
+      const avatarPath = first.poster_avatar_path ?? null;
+      displayLogo = avatarPath
+        ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(avatarPath) : avatarPath)
+        : (logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png');
+    } else {
+      // Dono: exibe logo e nome da barbearia
+      displayName = shopName ?? this.#shopName ?? '';
+      displayLogo = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
+    }
 
     const card = document.createElement('div');
     card.className      = 'card-mini story-card';
@@ -577,7 +592,7 @@ class StoriesWidget {
 
     const badge = document.createElement('img');
     badge.className = 'story-shop-badge';
-    badge.src       = logoSrc;
+    badge.src       = displayLogo;
     badge.alt       = '';
     badge.onerror   = function() { this.style.display = 'none'; };
 
@@ -590,7 +605,7 @@ class StoriesWidget {
 
     const nameP = document.createElement('p');
     nameP.className   = 'story-card-name';
-    nameP.textContent = shopName ?? this.#shopName ?? '';
+    nameP.textContent = displayName;
 
     const addrP = document.createElement('p');
     addrP.className = 'story-card-addr';
