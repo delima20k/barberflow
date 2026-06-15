@@ -53,9 +53,12 @@ function criarDbMock(stories, shops) {
           }),
         };
       }
-      // barbershops
+      // barbershops — suporta filtro .eq('is_active', true) antes do .in()
       return {
         select: () => ({
+          eq: (_col, _val) => ({
+            in: async () => ({ data: shops.filter(s => s.is_active !== false), error: null }),
+          }),
           in: async () => ({ data: shops, error: null }),
         }),
       };
@@ -183,5 +186,43 @@ suite('TC6: 3 stories por barbearia — badge de contagem correto', () => {
 
     assert.strictEqual(feed.length, 1);
     assert.strictEqual(feed[0].stories.length, 3, 'deve ter exatamente 3 stories no grupo (badge "+3")');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TC7 — Stories de barbearia INATIVA não criam card no feed
+// Caso real: barbeiro parceiro Lima tem barbearia auto-criada (is_active=false)
+// e postou stories com barbershop_id = Lima's inative shop.
+// Esses stories NÃO devem gerar card — só barbearias ativas devem aparecer.
+// ─────────────────────────────────────────────────────────────────────────────
+const SHOP_INATIVO = '00000000-0000-4000-8001-cccccccccccc';
+const STORY_SHOP_INATIVO = { id: 's7', owner_id: OWNER_A, barbershop_id: SHOP_INATIVO, media_id: null, expires_at: new Date(Date.now() + 3600000).toISOString(), created_at: new Date().toISOString(), media_files: null };
+
+suite('TC7: stories de barbearia inativa ignorados no feed', () => {
+  test('nao deve criar card para barbearia com is_active=false', async () => {
+    const db = criarDbMock(
+      [STORY_SHOP_INATIVO, STORY_DONO_A],
+      [
+        { id: SHOP_INATIVO, name: 'Barbearia Lima (inativa)', logo_path: null, is_active: false },
+        { id: SHOP_A,       name: 'Barbearia Black',          logo_path: null, is_active: true  },
+      ],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    assert.strictEqual(feed.length, 1, 'deve retornar apenas 1 card (barbearia ativa)');
+    assert.strictEqual(feed[0].shop.id, SHOP_A, 'o card deve ser da barbearia ATIVA');
+    assert.ok(!feed.some(g => g.shop.id === SHOP_INATIVO), 'barbearia inativa nao deve aparecer');
+  });
+
+  test('quando TODAS as barbearias sao inativas, retorna array vazio', async () => {
+    const db = criarDbMock(
+      [STORY_SHOP_INATIVO],
+      [{ id: SHOP_INATIVO, name: 'Inativa', logo_path: null, is_active: false }],
+    );
+    const repo = new BarbeariaRepository(db);
+    const feed = await repo.listarFeedStoriesAgrupados();
+
+    assert.strictEqual(feed.length, 0, 'nenhum card deve aparecer quando todas as barbearias sao inativas');
   });
 });

@@ -132,6 +132,9 @@ suite('BarbeariaRepository.listarFeedStoriesAgrupados() — contrato', () => {
         callCount++;
         return {
           select: () => ({
+            eq: (_col, _val) => ({
+              in: async () => ({ data: shopsData, error: null }),
+            }),
             in: async () => ({ data: shopsData, error: null }),
           }),
         };

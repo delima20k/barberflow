@@ -1178,19 +1178,23 @@ class BarbeariaRepository extends BaseRepository {
     if (!barbershopIds.length) return [];
 
     // 1 query para buscar nome e logo de todas as barbearias detectadas
+    // Filtra apenas barbearias ativas: evita cards de barbearias inativas (ex: parceiros
+    // com barbearia auto-criada mas desativada que postaram stories com barbershop_id errado)
     const { data: shops, error: shopsError } = await this._db
       .from('barbershops')
       .select('id, name, logo_path')
+      .eq('is_active', true)
       .in('id', barbershopIds);
 
     if (shopsError) this._warn('listarFeedStoriesAgrupados:shops', shopsError);
 
     const shopMap = new Map((shops ?? []).map(s => [s.id, s]));
 
-    // Agrupa stories por barbearia (máx 10 por barbearia)
+    // Agrupa stories apenas de barbearias ATIVAS (que estão no shopMap)
+    // Barbearias inativas (ex: auto-criadas para parceiros) são ignoradas
     const grouped = new Map();
     for (const story of stories) {
-      if (!seenIds.has(story.barbershop_id)) continue;
+      if (!shopMap.has(story.barbershop_id)) continue;
       const arr = grouped.get(story.barbershop_id) ?? [];
       if (arr.length < 10) {
         arr.push(story);
@@ -1199,9 +1203,9 @@ class BarbeariaRepository extends BaseRepository {
     }
 
     return barbershopIds
-      .filter(id => (grouped.get(id) ?? []).length > 0)
+      .filter(id => shopMap.has(id) && (grouped.get(id) ?? []).length > 0)
       .map(id => ({
-        shop:    shopMap.get(id) ?? { id, name: '', logo_path: null },
+        shop:    shopMap.get(id),
         stories: grouped.get(id),
       }));
   }
