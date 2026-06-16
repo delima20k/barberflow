@@ -54,8 +54,11 @@ class SupabaseChatRepository extends ChatRepository {
       .select(SupabaseChatRepository.MESSAGE_SELECT)
       .single();
     if (error) throw this.#error(error);
-    if (message.attachments.length > 0) await this.#saveAttachments(data.id, message.attachments);
-    return (await this.#findMessage(data.id)) ?? this.#toMessage(data);
+    if (message.attachments.length > 0) {
+      await this.#saveAttachments(data.id, message.attachments);
+      return (await this.#findMessage(data.id)) ?? this.#toMessage(data);
+    }
+    return this.#toMessage(data);
   }
 
   async findDeliveryContext(messageId) {
