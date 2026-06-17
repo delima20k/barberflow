@@ -22,7 +22,11 @@ const LOCK_TTL_MS = 120_000;
  */
 module.exports = function criarMediaRoute(db, deps = {}) {
   const useR2 = process.env.STORIES_STORAGE_BACKEND === 'r2';
-  const storage = deps.storage ?? (useR2 ? new R2StorageGateway() : new SupabaseMediaStorageGateway({ db }));
+  const r2Instance = deps.r2Instance ?? R2StorageGateway.tryCreate();
+  if (useR2 && !r2Instance) {
+    console.warn('[media] R2StorageGateway indisponível — endpoints de upload retornarão 503');
+  }
+  const storage = deps.storage ?? (useR2 ? r2Instance : new SupabaseMediaStorageGateway({ db }));
   const mediaRepository = deps.mediaRepository ?? new SupabaseMediaRepository(db);
   const outboxRepository = deps.outboxRepository ?? new OutboxRepository({ supabase: db });
   const signer = deps.confirmationSigner ?? new MediaConfirmationSigner();
@@ -35,9 +39,24 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   const controller = new MediaController(service);
   const router = Router();
 
-  router.post('/presigned', AuthMiddleware.verificar, controller.presigned.bind(controller));
-  router.post('/confirmar', AuthMiddleware.verificar, controller.confirmar.bind(controller));
-  router.get('/:mediaId/acesso', AuthMiddleware.verificar, controller.acesso.bind(controller));
+  router.post('/presigned', AuthMiddleware.verificar, (req, res, next) => {
+    if (useR2 && !r2Instance) {
+      return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });
+    }
+    return controller.presigned.call(controller, req, res, next);
+  });
+  router.post('/confirmar', AuthMiddleware.verificar, (req, res, next) => {
+    if (useR2 && !r2Instance) {
+      return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });
+    }
+    return controller.confirmar.call(controller, req, res, next);
+  });
+  router.get('/:mediaId/acesso', AuthMiddleware.verificar, (req, res, next) => {
+    if (useR2 && !r2Instance) {
+      return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });
+    }
+    return controller.acesso.call(controller, req, res, next);
+  });
 
   // ── Admin: cleanup manual de stories R2 ──────────────────────
   let lock = deps.lock ?? null;
@@ -50,7 +69,7 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     } catch { /* sem Redis: rota POST retorna 503 */ }
   }
   const barbeariaRepo   = deps.barbeariaRepository ?? new BarbeariaRepository(db);
-  const r2Clean         = deps.r2GatewayCleanup ?? new R2StorageGateway();
+  const r2Clean         = deps.r2GatewayCleanup ?? r2Instance;
   const supabaseClean   = deps.supabaseGatewayCleanup ?? new SupabaseMediaStorageGateway({ db });
 
   function buildPurgeUseCase(batchSize) {
@@ -84,6 +103,7 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     AuthMiddleware.verificar, SchedulerAdminMiddleware.verificar,
     async (req, res) => {
       if (!lock) return res.status(503).json({ ok: false, error: 'Lock Redis nao configurado.' });
+      if (!r2Clean) return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'R2 nao configurado.' });
       const lockHandle = await lock.acquire({ key: LOCK_KEY, ttlMs: LOCK_TTL_MS, owner: 'http-admin' });
       if (!lockHandle.acquired) {
         return res.status(409).json({ ok: false, error: 'Cleanup ja em execucao. Aguarde.' });

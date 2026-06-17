@@ -41,6 +41,11 @@ module.exports = function criarInternalCronRoute(db) {
    * Retorna 200 com relatório (skipped: true se outro processo já está executando).
    */
   router.get('/stories-cleanup', async (req, res) => {
+    const r2 = R2StorageGateway.tryCreate();
+    if (!r2) {
+      return res.status(200).json({ ok: true, skipped: true, reason: 'r2_unavailable' });
+    }
+
     let lock        = null;
     let lockHandle  = null;
 
@@ -61,7 +66,7 @@ module.exports = function criarInternalCronRoute(db) {
       const relatorio = await new PurgeExpiredStoriesUseCase({
         storyRepository:        new BarbeariaRepository(db),
         mediaRepository:        new SupabaseMediaRepository(db),
-        r2Gateway:              new R2StorageGateway(),
+        r2Gateway:              r2,
         supabaseStorageGateway: new SupabaseMediaStorageGateway({ db }),
         batchSize:              Number(process.env.STORY_CLEANUP_BATCH_SIZE ?? 50),
       }).execute({ dryRun: false, includeR2Scan: false });

@@ -134,6 +134,22 @@ class R2StorageGateway {
   get sourceBucket() {
     return process.env.R2_BUCKET_NAME ?? '';
   }
+
+  /**
+   * Tenta criar uma instância de R2StorageGateway sem lançar exceção.
+   * Retorna null se as variáveis R2 estiverem ausentes.
+   * Usar em factories de rotas para evitar falha global no boot.
+   *
+   * @returns {R2StorageGateway|null}
+   */
+  static tryCreate() {
+    try {
+      return new R2StorageGateway();
+    } catch (err) {
+      console.warn('[R2StorageGateway] Indisponível —', err.message);
+      return null;
+    }
+  }
 }
 
 module.exports = { R2StorageGateway };

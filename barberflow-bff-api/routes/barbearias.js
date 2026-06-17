@@ -39,7 +39,7 @@ module.exports = function criarBarbeariaRoute(db) {
   const deleteStoryUseCase = new DeleteStoryUseCase({
     storyRepository:        repo,
     mediaRepository:        mediaRepo,
-    r2Gateway:              new R2StorageGateway(),
+    r2Gateway:              R2StorageGateway.tryCreate(),
     supabaseStorageGateway: new SupabaseMediaStorageGateway({ db }),
   });
   const ctrl = new BarbeariaController(svc, mediaSvc, deleteStoryUseCase);
