@@ -709,6 +709,16 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `UploadError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Erro tipado para falhas de upload, token, rede, retry e cancelamento. |
 | `ValidationError` | [src/media/MediaErrors.js](src/media/MediaErrors.js) | application | Erro tipado para entradas invalidas do pipeline de midia. |
 | `VideoProcessor` | [src/media/VideoProcessor.js](src/media/VideoProcessor.js) | application | Processa video por dependencias injetadas: inspecao, thumbnail e fila futura de transcode. |
+
+## Stories R2 Cleanup (BFF)
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `StoryR2PathValidator` | [barberflow-bff-api/application/stories/StoryR2PathValidator.js](barberflow-bff-api/application/stories/StoryR2PathValidator.js) | application | Classe estática com `validar(rawKey)` → key normalizada ou Error. Rejeita URLs, barras invertidas, encoding suspeito (`%2e%2e`/`%2f`), path traversal e qualquer key fora do prefixo `stories/`. `extrairMediaId(key)` → UUID do segmento [1]. Segurança de escrita no R2. |
+| `DeleteStoryUseCase` | [barberflow-bff-api/application/stories/DeleteStoryUseCase.js](barberflow-bff-api/application/stories/DeleteStoryUseCase.js) | application | Exclusão manual de story com limpeza de storage. Valida ownership (403 se falhar), coleta paths de R2 ou detecta legado Supabase Storage, deleta em lotes de 5 (concorrência), hard-deleta `media_files` se R2 ok, sempre remove o story row. Retorna `{ storyRemoved, storageDeletionPending }`. Nunca lança 500 quando R2 falha. |
+| `PurgeExpiredStoriesUseCase` | [barberflow-bff-api/application/stories/PurgeExpiredStoriesUseCase.js](barberflow-bff-api/application/stories/PurgeExpiredStoriesUseCase.js) | application | Limpeza automática de stories expirados em 5 fases: (A) R2 expirados, (B) Supabase legados, (C) DELETE story rows, (D) retry de media_files pendentes, (E) scan de órfãos verdadeiros no R2 via generator paginado. Modo `dryRun=true` é completamente somente leitura. Retorna relatório com 16 campos. |
+| `StoryCleanupTask` | [barberflow-bff-api/application/scheduler/tasks/StoryCleanupTask.js](barberflow-bff-api/application/scheduler/tasks/StoryCleanupTask.js) | application | Wrapper da tarefa agendada (cron `0 * * * *`). Delega para `PurgeExpiredStoriesUseCase.execute({ dryRun: false })`. `STORY_CLEANUP_INCLUDE_R2_SCAN=true` habilita scan de órfãos. Registrado em `SchedulerFactory` com `media.stories-cleanup`. |
+
 ## Page Sections
 
 | Classe | Arquivo | Camada | Descricao |

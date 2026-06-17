@@ -22,6 +22,7 @@ const {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
 } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
@@ -205,6 +206,35 @@ class R2Client {
     await this.#s3.send(
       new DeleteObjectCommand({ Bucket: this.#bucket, Key: path })
     );
+  }
+
+  // ── Listagem paginada ───────────────────────────────────────
+
+  /**
+   * Generator assíncrono que itera objetos de um prefixo por página.
+   * Nunca carrega o bucket inteiro na memória — usa ContinuationToken.
+   *
+   * @param {string} prefix    — prefixo a filtrar (ex: 'stories/')
+   * @param {number} [pageSize] — máximo de objetos por página (máx: 1000)
+   * @yields {{ key: string, sizeBytes: number, lastModified: Date }[]}
+   */
+  async *listObjectsByPrefixPaginated(prefix, pageSize = 200) {
+    let continuationToken;
+    do {
+      const cmd = new ListObjectsV2Command({
+        Bucket:  this.#bucket,
+        Prefix:  prefix,
+        MaxKeys: pageSize,
+        ...(continuationToken ? { ContinuationToken: continuationToken } : {}),
+      });
+      const res = await this.#s3.send(cmd);
+      yield (res.Contents ?? []).map(obj => ({
+        key:          obj.Key,
+        sizeBytes:    obj.Size ?? 0,
+        lastModified: obj.LastModified ?? null,
+      }));
+      continuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+    } while (continuationToken);
   }
 
   // ── URL pública ─────────────────────────────────────────────

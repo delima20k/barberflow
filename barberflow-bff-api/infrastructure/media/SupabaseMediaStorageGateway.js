@@ -57,6 +57,24 @@ class SupabaseMediaStorageGateway {
     return data;
   }
 
+  /**
+   * Remove um objeto do Supabase Storage.
+   * Usado para limpar arquivos de stories legados (sem media_id, pré-pipeline R2).
+   * Best-effort: erros são absorvidos (404 = já inexistente = OK).
+   *
+   * @param {string} path   — path do arquivo no bucket
+   * @param {string} [bucket] — bucket alvo (padrão: sourceBucket)
+   * @returns {Promise<void>}
+   */
+  async deleteObject(path, bucket) {
+    this.#assertStorage();
+    const targetBucket = bucket ?? this.#sourceBucket;
+    const { error } = await this.#db.storage.from(targetBucket).remove([path]);
+    if (error && error.message && !error.message.includes('Not Found')) {
+      throw error;
+    }
+  }
+
   get sourceBucket() {
     return this.#sourceBucket;
   }

@@ -1230,6 +1230,101 @@ class BarbeariaRepository extends BaseRepository {
         })),
       }));
   }
+
+  // ── Cleanup R2 — Stories ─────────────────────────────────────
+
+  /**
+   * Retorna stories expirados com paths necessários para limpeza.
+   * Usa margem de segurança (margemMinutos) para evitar conflito com operações em andamento.
+   * @param {number} batchSize
+   * @param {number} [margemMinutos=5]
+   * @param {boolean} [somenteSemMediaId=false] — true: legados (media_id IS NULL)
+   * @returns {Promise<{id: string, media_id: string|null, storage_path: string, media_files: object|null}[]>}
+   */
+  async listarStoriesExpirados(batchSize, margemMinutos = 5, somenteSemMediaId = false) {
+    const limite = new Date(Date.now() - margemMinutos * 60 * 1000).toISOString();
+    let query = this._db.from('stories')
+      .select('id, media_id, storage_path, media_files!stories_media_id_fkey(id, path)')
+      .lt('expires_at', limite)
+      .limit(batchSize);
+    if (somenteSemMediaId) {
+      query = query.is('media_id', null);
+    } else {
+      query = query.not('media_id', 'is', null);
+    }
+    const { data, error } = await query;
+    if (error) {
+      this._warn('listarStoriesExpirados', error);
+      this._throwDbError(error, 'listarStoriesExpirados');
+    }
+    return data ?? [];
+  }
+
+  /**
+   * Bulk delete de story rows após limpeza concluída.
+   * @param {string[]} ids
+   */
+  async excluirStoriesPorIds(ids) {
+    if (!ids || ids.length === 0) return;
+    const { error } = await this._db.from('stories').delete().in('id', ids);
+    if (error) {
+      this._warn('excluirStoriesPorIds', error);
+      this._throwDbError(error, 'excluirStoriesPorIds');
+    }
+  }
+
+  /**
+   * Busca um story validando owner + barbershop para autorização de exclusão manual.
+   * @param {string} storyId
+   * @param {string} ownerId
+   * @param {string} barbershopId
+   * @returns {Promise<object|null>}
+   */
+  async buscarStoryPorIdEOwner(storyId, ownerId, barbershopId) {
+    const { data, error } = await this._db.from('stories')
+      .select('id, media_id, storage_path, media_files!stories_media_id_fkey(id, path)')
+      .eq('id', storyId)
+      .eq('owner_id', ownerId)
+      .eq('barbershop_id', barbershopId)
+      .single();
+    if (error?.code === 'PGRST116') return null;
+    if (error) {
+      this._warn('buscarStoryPorIdEOwner', error);
+      this._throwDbError(error, 'buscarStoryPorIdEOwner');
+    }
+    return data ?? null;
+  }
+
+  /**
+   * Deleta um único story por id (após limpeza do storage).
+   * @param {string} storyId
+   */
+  async excluirStoryPorId(storyId) {
+    const { error } = await this._db.from('stories').delete().eq('id', storyId);
+    if (error) {
+      this._warn('excluirStoryPorId', error);
+      this._throwDbError(error, 'excluirStoryPorId');
+    }
+  }
+
+  /**
+   * Conta outros stories que referenciam o mesmo media_id.
+   * Impede hard-delete de media_files quando há compartilhamento.
+   * @param {string} mediaId
+   * @param {string} excluindoStoryId — story que está sendo excluído (ignorar na contagem)
+   * @returns {Promise<number>}
+   */
+  async contarOutrasReferencias(mediaId, excluindoStoryId) {
+    const { count, error } = await this._db.from('stories')
+      .select('id', { count: 'exact', head: true })
+      .eq('media_id', mediaId)
+      .neq('id', excluindoStoryId);
+    if (error) {
+      this._warn('contarOutrasReferencias', error);
+      this._throwDbError(error, 'contarOutrasReferencias');
+    }
+    return count ?? 0;
+  }
 }
 
 module.exports = BarbeariaRepository;

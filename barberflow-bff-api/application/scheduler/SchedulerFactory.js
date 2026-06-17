@@ -10,7 +10,9 @@ const { RetryPolicy } = require('../../domain/scheduler/value-objects/RetryPolic
 const { OutboxRelayTask } = require('./tasks/OutboxRelayTask');
 const { NotificationDigestTask } = require('./tasks/NotificationDigestTask');
 const { ChatMessagePurgeTask } = require('./tasks/ChatMessagePurgeTask');
+const { StoryCleanupTask } = require('./tasks/StoryCleanupTask');
 const { PurgeExpiredChatMessagesUseCase } = require('../chat/PurgeExpiredChatMessagesUseCase');
+const { PurgeExpiredStoriesUseCase } = require('../stories/PurgeExpiredStoriesUseCase');
 
 class SchedulerFactory {
   static build({
@@ -21,6 +23,10 @@ class SchedulerFactory {
     queueService = null,
     chatRepository = null,
     instanceId = null,
+    barbeariaRepository = null,
+    mediaRepository = null,
+    r2Gateway = null,
+    supabaseStorageGateway = null,
   }) {
     const registry = new TaskRegistry();
     registry
@@ -61,6 +67,27 @@ class SchedulerFactory {
           }),
         }),
         description: 'Remove permanentemente mensagens de chat com mais de 7 dias.',
+      }));
+    }
+
+    if (barbeariaRepository && mediaRepository && r2Gateway && supabaseStorageGateway) {
+      registry.register(SchedulerFactory.#task({
+        name: 'media.stories-cleanup',
+        ownerContext: 'media',
+        cron: '0 * * * *',
+        timezone: 'UTC',
+        timeoutMs: 120_000,
+        retryPolicy: new RetryPolicy({ maxAttempts: 2, baseDelayMs: 5_000, maxDelayMs: 30_000 }),
+        handler: new StoryCleanupTask({
+          purgeExpiredStoriesUseCase: new PurgeExpiredStoriesUseCase({
+            storyRepository:        barbeariaRepository,
+            mediaRepository,
+            r2Gateway,
+            supabaseStorageGateway,
+            batchSize: Number(process.env.STORY_CLEANUP_BATCH_SIZE ?? 50),
+          }),
+        }),
+        description: 'Remove stories expirados e arquivos R2 orfaos. Horario.',
       }));
     }
 

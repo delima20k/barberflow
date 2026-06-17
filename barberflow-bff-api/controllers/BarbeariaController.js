@@ -24,14 +24,19 @@ class BarbeariaController extends BaseController {
   /** @type {import('../services/BarbeariaMediaService')} */
   #mediaService;
 
+  /** @type {import('../application/stories/DeleteStoryUseCase').DeleteStoryUseCase|null} */
+  #deleteStoryUseCase;
+
   /**
    * @param {import('../services/BarbeariaService')} service
    * @param {import('../services/BarbeariaMediaService')} [mediaService]
+   * @param {import('../application/stories/DeleteStoryUseCase').DeleteStoryUseCase} [deleteStoryUseCase]
    */
-  constructor(service, mediaService = null) {
+  constructor(service, mediaService = null, deleteStoryUseCase = null) {
     super();
-    this.#service      = service;
-    this.#mediaService = mediaService;
+    this.#service             = service;
+    this.#mediaService        = mediaService;
+    this.#deleteStoryUseCase  = deleteStoryUseCase;
   }
 
   // ── Handlers ─────────────────────────────────────────────────────
@@ -337,6 +342,26 @@ class BarbeariaController extends BaseController {
     await this.handle(res, async () => {
       const feed = await this.#service.listarFeedStories();
       this.success(res, feed);
+    });
+  }
+
+  /**
+   * DELETE /api/v1/barbearias/:barbershop_id/stories/:story_id
+   * Exclusão manual de story pelo dono. Retorna 200 com { storyRemoved, storageDeletionPending }.
+   */
+  async excluirStory(req, res) {
+    await this.handle(res, async () => {
+      if (!this.#deleteStoryUseCase) throw AppError.notFound('Funcionalidade nao disponivel.');
+      const barbershopId = String(req.params.barbershop_id ?? '').trim();
+      const storyId      = String(req.params.story_id      ?? '').trim();
+      if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
+      if (!storyId)      throw AppError.badRequest('story_id e obrigatorio.');
+      const resultado = await this.#deleteStoryUseCase.execute({
+        storyId,
+        ownerId:      req.user.id,
+        barbershopId,
+      });
+      this.success(res, resultado);
     });
   }
 

@@ -14,6 +14,10 @@ const { SendMessageUseCase } = require('../application/chat/SendMessageUseCase')
 const { SupabaseBroadcaster } = require('../infrastructure/realtime/SupabaseBroadcaster');
 const { BarbershopPublicCacheProvider } = require('../infrastructure/cache/BarbershopPublicCacheProvider');
 const { NominatimGeocoderAdapter } = require('../infrastructure/geo/NominatimGeocoderAdapter');
+const { SupabaseMediaRepository } = require('../infrastructure/media/SupabaseMediaRepository');
+const { R2StorageGateway } = require('../infrastructure/media/R2StorageGateway');
+const { SupabaseMediaStorageGateway } = require('../infrastructure/media/SupabaseMediaStorageGateway');
+const { DeleteStoryUseCase } = require('../application/stories/DeleteStoryUseCase');
 
 // ── Factory: recebe db injetado por criarApp() ───────────────────
 // Permite isolamento de dependências em testes (evita caching de módulo).
@@ -31,7 +35,14 @@ module.exports = function criarBarbeariaRoute(db) {
   const geocoder = new NominatimGeocoderAdapter({ userAgent: 'BarberFlow-BFF/1.0 (delima20k@gmail.com)' });
   const svc  = new BarbeariaService(repo, sendMessageUseCase, broadcaster, publicCache, geocoder);
   const mediaSvc = new BarbeariaMediaService(repo);
-  const ctrl = new BarbeariaController(svc, mediaSvc);
+  const mediaRepo = new SupabaseMediaRepository(db);
+  const deleteStoryUseCase = new DeleteStoryUseCase({
+    storyRepository:        repo,
+    mediaRepository:        mediaRepo,
+    r2Gateway:              new R2StorageGateway(),
+    supabaseStorageGateway: new SupabaseMediaStorageGateway({ db }),
+  });
+  const ctrl = new BarbeariaController(svc, mediaSvc, deleteStoryUseCase);
 
   const router = Router();
   const rawImage = express.raw({ type: ['image/png', 'image/jpeg', 'image/webp'], limit: '6mb' });
@@ -62,6 +73,7 @@ module.exports = function criarBarbeariaRoute(db) {
   router.get('/:barbershop_id/gestao',                      AuthMiddleware.verificar, ctrl.getGestaoVinculada.bind(ctrl));
   router.get('/:barbershop_id/stories',                     ctrl.listarStories.bind(ctrl));
   router.post('/:barbershop_id/stories',                    AuthMiddleware.verificar, ctrl.salvarStoryProfissional.bind(ctrl));
+  router.delete('/:barbershop_id/stories/:story_id',        AuthMiddleware.verificar, ctrl.excluirStory.bind(ctrl));
   router.get('/:barbershop_id/portfolio',                   ctrl.portfolio.bind(ctrl));
   router.get('/destaque', ctrl.destaque.bind(ctrl));
   router.get('/todas',    ctrl.todas.bind(ctrl));

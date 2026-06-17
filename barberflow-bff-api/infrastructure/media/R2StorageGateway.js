@@ -2,6 +2,7 @@
 
 const R2Client = require('../../../src/infra/R2Client');
 const AppError = require('../../utils/AppError');
+const { StoryR2PathValidator } = require('../../application/stories/StoryR2PathValidator');
 
 /**
  * R2StorageGateway — adapter Cloudflare R2 para o pipeline de mídia.
@@ -91,6 +92,36 @@ class R2StorageGateway {
    */
   async putVariant(variant) {
     await this.#r2.putBuffer(variant.path, variant.bytes, variant.contentType);
+  }
+
+  // ── Deleção (cleanup) ────────────────────────────────────────
+
+  /**
+   * Remove um objeto do R2 pertencente ao prefixo de Stories.
+   * Idempotente: objeto já inexistente é tratado como sucesso.
+   * Valida a key via StoryR2PathValidator antes de qualquer operação.
+   *
+   * @param {string} path — object key (deve iniciar com 'stories/')
+   * @returns {Promise<void>}
+   */
+  async deleteObject(path) {
+    const validKey = StoryR2PathValidator.validar(path);
+    await this.#r2.delete(validKey);
+  }
+
+  /**
+   * Generator assíncrono que itera objetos do prefixo 'stories/' página a página.
+   * Nunca carrega o bucket inteiro na memória — usa ContinuationToken internamente.
+   *
+   * @param {string} prefix   — deve iniciar com 'stories/'
+   * @param {number} [pageSize] — objetos por página (padrão: 200)
+   * @yields {{ key: string, sizeBytes: number, lastModified: Date }[]}
+   */
+  listObjectsByPrefixPaginated(prefix, pageSize = 200) {
+    if (!prefix || !prefix.startsWith(StoryR2PathValidator.ALLOWED_PREFIX)) {
+      throw AppError.badRequest(`Prefixo inválido para listagem: deve iniciar com "${StoryR2PathValidator.ALLOWED_PREFIX}".`);
+    }
+    return this.#r2.listObjectsByPrefixPaginated(prefix, pageSize);
   }
 
   // ── Metadados ───────────────────────────────────────────────

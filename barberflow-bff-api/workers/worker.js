@@ -119,6 +119,7 @@ const { SupabaseNotificationRepository } = require('../infrastructure/notificati
 const { SchedulerFactory }            = require('../application/scheduler/SchedulerFactory');
 const { RedisDistributedLock }        = require('../infrastructure/scheduler/RedisDistributedLock');
 const { SupabaseSchedulerRepository } = require('../infrastructure/scheduler/SupabaseSchedulerRepository');
+const { BarbeariaRepository }         = require('../repositories/BarbeariaRepository');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
 const useR2 = process.env.STORIES_STORAGE_BACKEND === 'r2';
@@ -212,13 +213,21 @@ registry
 const ALL_QUEUES = Object.values(QUEUES).filter(q => q !== QUEUES.DLQ);
 registry.start(ALL_QUEUES);
 
+const r2GatewayForCleanup = new R2StorageGateway();
+const supabaseGatewayForCleanup = new SupabaseMediaStorageGateway({ db: supabase });
+
 const scheduler = SchedulerFactory.build({
   lock: new RedisDistributedLock({ redisClient: redisConnection }),
   repository: new SupabaseSchedulerRepository({ supabase }),
   outboxRelay,
   notificationRepository,
   queueService,
+  chatRepository,
   instanceId: `worker-${process.pid}`,
+  barbeariaRepository: new BarbeariaRepository(supabase),
+  mediaRepository,
+  r2Gateway: r2GatewayForCleanup,
+  supabaseStorageGateway: supabaseGatewayForCleanup,
 });
 scheduler.service.start();
 
