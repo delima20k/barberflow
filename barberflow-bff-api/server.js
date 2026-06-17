@@ -32,8 +32,15 @@ wrapper.use((req, res, next) => {
   if (!_app) {
     try {
       _app = require('./app')();
-    } catch {
-      return res.status(503).json({ ok: false, error: 'Service unavailable' });
+    } catch (err) {
+      // Loga a causa real do boot — sem stack/secrets, apenas a mensagem.
+      // eslint-disable-next-line no-console
+      console.error('[BFF] criarApp() falhou no boot:', err?.message ?? err);
+      return res.status(503).json({
+        ok: false,
+        error: 'Service unavailable',
+        reason: err?.message ?? String(err),
+      });
     }
   }
   _app(req, res, next);
