@@ -1,13 +1,19 @@
 {
   "version": 2,
   "regions": ["gru1"],
+  "crons": [
+    {
+      "path": "/api/internal/cron/stories-cleanup",
+      "schedule": "0 * * * *"
+    }
+  ],
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
+      "maxDuration": 60,
       "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**,../src/infra/**"
     },
     "server.js": {
-      "maxDuration": 30,
+      "maxDuration": 60,
       "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**,../src/infra/**"
     }
   },

@@ -62,6 +62,7 @@ const conviteProRoute       = require('./routes/convites-pro');
 const p2pRoute              = require('./routes/p2p');
 const adminConfigRoute      = require('./routes/adminConfig');
 const adminRoute            = require('./routes/admin');
+const internalCronRoute     = require('./routes/internalCron');
 const SupabaseClient         = require('./utils/SupabaseClient');
 const { R2ConfigService }    = require('./application/admin/R2ConfigService');
 
@@ -182,6 +183,10 @@ function criarApp(db = null) {
 
   // Compatibilidade com MediaP2P legado ate todos os clients apontarem para /api/v1.
   app.use('/api/media', mediaRoute(_db));
+
+  // ── Cron interno — exclusivo para Vercel Cron Jobs ───────────
+  // Validado por Authorization: Bearer $CRON_SECRET (injetado pelo Vercel).
+  app.use('/api/internal/cron', internalCronRoute(_db));
 
   // ── P2P ICE config ────────────────────────────────────────────
   app.use('/api/p2p', p2pRoute());
