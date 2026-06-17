@@ -132,6 +132,26 @@ class ConversationKeyService {
     return ConversationKeyService.#pubKeyB64;
   }
 
+  /** Retorna a chave publica atual registrada do outro participante. */
+  static async obterChavePublicaPeer(peerId) {
+    return ConversationKeyService.#buscarChavePublicaPeer(peerId);
+  }
+
+  /**
+   * Deriva uma chave AES usando a chave privada local e uma chave publica SPKI.
+   * Usado para decifrar mensagens com as chaves publicas gravadas no payload E2E.
+   */
+  static async derivarChaveComPublicKey(publicKeyB64) {
+    if (!publicKeyB64) throw new Error('Chave publica obrigatoria.');
+    if (!ConversationKeyService.#keyPair) await ConversationKeyService.inicializar();
+
+    const publicKey = await MessageCryptoService.importPublicKey(publicKeyB64);
+    return MessageCryptoService.deriveSharedKey(
+      ConversationKeyService.#keyPair.privateKey,
+      publicKey,
+    );
+  }
+
   /**
    * True se um novo par de chaves foi gerado nesta sessão (storage estava vazio).
    * Útil para exibir aviso ao usuário de que o histórico anterior pode não ser decifrável.

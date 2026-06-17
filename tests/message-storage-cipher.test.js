@@ -86,6 +86,24 @@ class KeyServiceStub {
     this.#cache.set(cacheKey, key);
     return key;
   }
+
+  async publicKeyA() {
+    return MessageCryptoService.exportPublicKey(this.#kpA.publicKey);
+  }
+
+  async publicKeyB() {
+    return MessageCryptoService.exportPublicKey(this.#kpB.publicKey);
+  }
+
+  async deriveAsA(publicKeyB64) {
+    const publicKey = await MessageCryptoService.importPublicKey(publicKeyB64);
+    return MessageCryptoService.deriveSharedKey(this.#kpA.privateKey, publicKey);
+  }
+
+  async deriveAsB(publicKeyB64) {
+    const publicKey = await MessageCryptoService.importPublicKey(publicKeyB64);
+    return MessageCryptoService.deriveSharedKey(this.#kpB.privateKey, publicKey);
+  }
 }
 
 let keyStub;
@@ -212,5 +230,58 @@ describe('MessageStorageCipher round-trip encrypt → decrypt', () => {
     const corrompido = { ...payload, ct: 'dadoscorrompidos' };
     const result = await MessageStorageCipher.decryptFromStorage(CONV, PEER, corrompido);
     assert.equal(result, null);
+  });
+
+  test('payload inclui chaves publicas usadas para manter leitura apos rotacao no BFF', async () => {
+    global.ConversationKeyService = {
+      obterChaveConversa: (c, p) => keyStub.obterChaveConversa(c, p),
+      getPublicKeyB64: () => keyStub.publicKeyA(),
+      obterChavePublicaPeer: () => keyStub.publicKeyB(),
+    };
+
+    const payload = await MessageStorageCipher.encryptForStorage(CONV, PEER, 'texto persistente');
+
+    assert.equal(typeof payload.senderPublicKey, 'string');
+    assert.equal(typeof payload.recipientPublicKey, 'string');
+    assert.ok(payload.senderPublicKey.length > 50);
+    assert.ok(payload.recipientPublicKey.length > 50);
+  });
+
+  test('remetente decifra mensagem antiga mesmo se chave publica atual do peer mudou', async () => {
+    const TEXTO = 'Mensagem legivel apos recarregar';
+    global.ConversationKeyService = {
+      obterChaveConversa: (c, p) => keyStub.obterChaveConversa(c, p),
+      getPublicKeyB64: () => keyStub.publicKeyA(),
+      obterChavePublicaPeer: () => keyStub.publicKeyB(),
+      derivarChaveComPublicKey: publicKey => keyStub.deriveAsA(publicKey),
+    };
+    const payload = await MessageStorageCipher.encryptForStorage(CONV, PEER, TEXTO);
+
+    global.ConversationKeyService = {
+      obterChaveConversa: async () => { throw new Error('chave publica atual do peer mudou'); },
+      derivarChaveComPublicKey: publicKey => keyStub.deriveAsA(publicKey),
+    };
+    const decifrado = await MessageStorageCipher.decryptFromStorage(CONV, PEER, payload);
+
+    assert.equal(decifrado, TEXTO);
+  });
+
+  test('destinatario decifra mensagem usando chave publica do remetente embutida no payload', async () => {
+    const TEXTO = 'Mensagem legivel para destinatario';
+    global.ConversationKeyService = {
+      obterChaveConversa: (c, p) => keyStub.obterChaveConversa(c, p),
+      getPublicKeyB64: () => keyStub.publicKeyA(),
+      obterChavePublicaPeer: () => keyStub.publicKeyB(),
+      derivarChaveComPublicKey: publicKey => keyStub.deriveAsA(publicKey),
+    };
+    const payload = await MessageStorageCipher.encryptForStorage(CONV, PEER, TEXTO);
+
+    global.ConversationKeyService = {
+      obterChaveConversa: async () => { throw new Error('consulta ao BFF nao deve ser necessaria'); },
+      derivarChaveComPublicKey: publicKey => keyStub.deriveAsB(publicKey),
+    };
+    const decifrado = await MessageStorageCipher.decryptFromStorage(CONV, PEER, payload);
+
+    assert.equal(decifrado, TEXTO);
   });
 });

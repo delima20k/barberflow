@@ -47,13 +47,19 @@ class MessageStorageCipher {
   static async encryptForStorage(conversationId, peerId, plainText) {
     const aesKey      = await ConversationKeyService.obterChaveConversa(conversationId, peerId);
     const { iv, ct }  = await MessageCryptoService.encryptMessage(plainText, aesKey);
-    return {
+    const publicKeys  = await MessageStorageCipher.#publicKeys(peerId);
+    const payload = {
       v:   MessageStorageCipher.#SCHEMA_VERSION,
       alg: MessageStorageCipher.#ALGORITHM,
       iv,
       ct,
       kid: peerId,
     };
+
+    if (publicKeys.senderPublicKey) payload.senderPublicKey = publicKeys.senderPublicKey;
+    if (publicKeys.recipientPublicKey) payload.recipientPublicKey = publicKeys.recipientPublicKey;
+
+    return payload;
   }
 
   /**
@@ -67,6 +73,13 @@ class MessageStorageCipher {
    */
   static async decryptFromStorage(conversationId, peerId, encryptedPayload) {
     if (!MessageStorageCipher.validarPayload(encryptedPayload)) return null;
+
+    const embeddedKeys = MessageStorageCipher.#embeddedPublicKeys(encryptedPayload);
+    for (const publicKeyB64 of embeddedKeys) {
+      const plainText = await MessageStorageCipher.#tryDecryptWithPublicKey(encryptedPayload, publicKeyB64);
+      if (plainText !== null) return plainText;
+    }
+
     try {
       const aesKey = await ConversationKeyService.obterChaveConversa(conversationId, peerId);
       return await MessageCryptoService.decryptMessage(encryptedPayload, aesKey);
@@ -91,6 +104,46 @@ class MessageStorageCipher {
       typeof payload.iv  === 'string' && payload.iv.length  > 0 &&
       typeof payload.ct  === 'string' && payload.ct.length  > 0
     );
+  }
+
+  static async #publicKeys(peerId) {
+    return {
+      senderPublicKey: await MessageStorageCipher.#safeString(() => ConversationKeyService.getPublicKeyB64?.()),
+      recipientPublicKey: await MessageStorageCipher.#safeString(() => (
+        ConversationKeyService.obterChavePublicaPeer?.(peerId)
+      )),
+    };
+  }
+
+  static #embeddedPublicKeys(encryptedPayload) {
+    return [
+      encryptedPayload.senderPublicKey,
+      encryptedPayload.recipientPublicKey,
+    ].filter((key, index, keys) => (
+      typeof key === 'string' &&
+      key.length > 0 &&
+      keys.indexOf(key) === index
+    ));
+  }
+
+  static async #tryDecryptWithPublicKey(encryptedPayload, publicKeyB64) {
+    if (typeof ConversationKeyService.derivarChaveComPublicKey !== 'function') return null;
+
+    try {
+      const aesKey = await ConversationKeyService.derivarChaveComPublicKey(publicKeyB64);
+      return await MessageCryptoService.decryptMessage(encryptedPayload, aesKey);
+    } catch {
+      return null;
+    }
+  }
+
+  static async #safeString(getter) {
+    try {
+      const value = await getter();
+      return typeof value === 'string' && value.length > 0 ? value : null;
+    } catch {
+      return null;
+    }
   }
 }
 
