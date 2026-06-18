@@ -126,6 +126,41 @@ class AuthMiddleware {
       return res.status(401).json({ ok: false, error: 'Token inválido ou expirado.' });
     }
   }
+
+  static async opcional(req, _res, next) {
+    const auth = req.headers['authorization'] ?? '';
+    if (!auth.startsWith('Bearer ')) return next();
+
+    const token = auth.slice(7);
+    const secret = process.env.SUPABASE_JWT_SECRET;
+    if (secret) {
+      try {
+        const payload = jwt.verify(token, secret, { algorithms: [AuthMiddleware.#ALGORITHM] });
+        req.user = { id: payload.sub, email: payload.email ?? '' };
+        return next();
+      } catch (err) {
+        if (err.name !== 'JsonWebTokenError' || err.message !== 'invalid algorithm') return next();
+      }
+    }
+
+    try {
+      const cached = fallbackCache.get(token);
+      if (cached) {
+        req.user = cached;
+        return next();
+      }
+
+      const { data, error } = await SupabaseClient.getInstance().auth.getUser(token);
+      if (!error && data?.user) {
+        const user = { id: data.user.id, email: data.user.email ?? '' };
+        fallbackCache.set(token, user);
+        req.user = user;
+      }
+    } catch {
+      // Auth opcional: token invalido nao bloqueia listagem publica.
+    }
+    return next();
+  }
 }
 
 module.exports = AuthMiddleware;

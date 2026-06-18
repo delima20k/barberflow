@@ -561,9 +561,9 @@ class BarbeariaService extends BaseService {
    * @param {string} barbershopId
    * @returns {Promise<Array>}
    */
-  async listarStoriesAtivos(barbershopId) {
+  async listarStoriesAtivos(barbershopId, viewerId = null) {
     this._uuid('barbershopId', barbershopId);
-    const stories = await this.#repo.listarStoriesAtivos(barbershopId);
+    const stories = await this.#repo.listarStoriesAtivos(barbershopId, viewerId);
     return this.#resolverUrlsStories(stories);
   }
 
@@ -572,8 +572,8 @@ class BarbeariaService extends BaseService {
    * Somente barbearias com stories ativos aparecem — ordenadas por mais recente.
    * @returns {Promise<Array<{shop: object, stories: object[]}>>}
    */
-  async listarFeedStories() {
-    const grupos = await this.#repo.listarFeedStoriesAgrupados();
+  async listarFeedStories(viewerId = null) {
+    const grupos = await this.#repo.listarFeedStoriesAgrupados(8, viewerId);
     if (!grupos.length) return [];
 
     return Promise.all(

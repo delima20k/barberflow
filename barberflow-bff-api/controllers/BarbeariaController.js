@@ -328,7 +328,7 @@ class BarbeariaController extends BaseController {
     await this.handle(res, async () => {
       const barbershopId = String(req.params.barbershop_id ?? '').trim();
       if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');
-      const stories = await this.#service.listarStoriesAtivos(barbershopId);
+      const stories = await this.#service.listarStoriesAtivos(barbershopId, req.user?.id ?? null);
       this.success(res, stories);
     });
   }
@@ -340,7 +340,7 @@ class BarbeariaController extends BaseController {
    */
   async listarFeedStories(req, res) {
     await this.handle(res, async () => {
-      const feed = await this.#service.listarFeedStories();
+      const feed = await this.#service.listarFeedStories(req.user?.id ?? null);
       this.success(res, feed);
     });
   }
@@ -351,7 +351,7 @@ class BarbeariaController extends BaseController {
    */
   async excluirStory(req, res) {
     await this.handle(res, async () => {
-      if (!this.#deleteStoryUseCase) throw AppError.notFound('Funcionalidade nao disponivel.');
+      if (!this.#deleteStoryUseCase) throw AppError.unavailable('Servico de armazenamento de midia indisponivel.');
       const barbershopId = String(req.params.barbershop_id ?? '').trim();
       const storyId      = String(req.params.story_id      ?? '').trim();
       if (!barbershopId) throw AppError.badRequest('barbershop_id e obrigatorio.');

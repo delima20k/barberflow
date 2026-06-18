@@ -51,6 +51,26 @@ class MediaController extends BaseController {
       this.success(res, access);
     });
   }
+
+  async toggleLike(req, res) {
+    await this.handle(res, async () => {
+      if (typeof this.#service.toggleLike !== 'function') {
+        throw this._erro('Funcionalidade nao disponivel.', 503);
+      }
+      const result = await this.#service.toggleLike(req.user.id, String(req.params.mediaId ?? '').trim());
+      this.success(res, result);
+    });
+  }
+
+  async excluir(req, res) {
+    await this.handle(res, async () => {
+      if (typeof this.#service.deleteByMediaId !== 'function') {
+        throw this._erro('Funcionalidade nao disponivel.', 503);
+      }
+      const result = await this.#service.deleteByMediaId(req.user.id, String(req.params.mediaId ?? '').trim());
+      this.success(res, result);
+    });
+  }
 }
 
 module.exports = MediaController;

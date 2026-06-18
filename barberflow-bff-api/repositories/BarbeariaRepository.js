@@ -1073,12 +1073,12 @@ class BarbeariaRepository extends BaseRepository {
    * @param {string} barbershopId
    * @returns {Promise<Array>}
    */
-  async listarStoriesAtivos(barbershopId) {
+  async listarStoriesAtivos(barbershopId, viewerId = null) {
     this._uuid('barbershopId', barbershopId);
     const agora = new Date().toISOString();
     const { data, error } = await this._db
       .from('stories')
-      .select('id, owner_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, likes_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))')
       .eq('barbershop_id', barbershopId)
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
@@ -1089,7 +1089,65 @@ class BarbeariaRepository extends BaseRepository {
       this._throwDbError(error, 'listarStoriesAtivos');
     }
 
-    return data ?? [];
+    return this.#enriquecerStories(data ?? [], viewerId);
+  }
+
+  async #enriquecerStories(stories, viewerId = null, knownShopMap = null) {
+    if (!stories.length) return [];
+
+    const shopIds = knownShopMap
+      ? []
+      : [...new Set(stories.map(s => s.barbershop_id).filter(Boolean))];
+    const ownerIds = [...new Set(stories.map(s => s.owner_id).filter(Boolean))];
+    const storyIds = stories.map(s => s.id).filter(Boolean);
+
+    const { data: shops, error: shopsError } = shopIds.length
+      ? await this._db.from('barbershops').select('id, name, logo_path, owner_id').in('id', shopIds)
+      : { data: [], error: null };
+    if (shopsError) this._warn('enriquecerStories:shops', shopsError);
+
+    const { data: posters, error: postersError } = ownerIds.length
+      ? await this._db.from('profiles').select('id, full_name, avatar_path').in('id', ownerIds)
+      : { data: [], error: null };
+    if (postersError) this._warn('enriquecerStories:posters', postersError);
+
+    const likedSet = viewerId ? await this.#likedStorySet(viewerId, storyIds) : new Set();
+    const shopMap = knownShopMap ?? new Map((shops ?? []).map(shop => [shop.id, shop]));
+    const posterMap = new Map((posters ?? []).map(profile => [profile.id, profile]));
+
+    return stories.map(story => {
+      const shop = shopMap.get(story.barbershop_id) ?? null;
+      const poster = posterMap.get(story.owner_id) ?? null;
+      const tipoAutor = shop?.owner_id && story.owner_id === shop.owner_id ? 'dono' : 'parceiro';
+      return {
+        ...story,
+        likes_count: Math.max(0, Number(story.likes_count ?? 0)),
+        user_liked: likedSet.has(story.id),
+        can_delete: Boolean(viewerId && story.owner_id === viewerId),
+        tipo_autor: tipoAutor,
+        shop_name: shop?.name ?? null,
+        shop_logo_path: shop?.logo_path ?? null,
+        shop_owner_id: shop?.owner_id ?? null,
+        poster_name: poster?.full_name ?? null,
+        poster_avatar_path: poster?.avatar_path ?? null,
+        thumb_storage_path: story.media_files?.media_variants?.find(v => v.name === 'thumb')?.storage_path ?? null,
+      };
+    });
+  }
+
+  async #likedStorySet(userId, storyIds) {
+    if (!userId || !storyIds.length) return new Set();
+    const { data, error } = await this._db
+      .from('likes')
+      .select('content_id')
+      .eq('user_id', userId)
+      .eq('content_type', 'story')
+      .in('content_id', storyIds);
+    if (error) {
+      this._warn('likedStorySet', error);
+      return new Set();
+    }
+    return new Set((data ?? []).map(row => row.content_id));
   }
 
   /**
@@ -1139,7 +1197,7 @@ class BarbeariaRepository extends BaseRepository {
    * @param {number} [maxShops=8] — número máximo de barbearias no feed
    * @returns {Promise<Array<{shop: object, stories: object[]}>>}
    */
-  async listarFeedStoriesAgrupados(maxShops = 8) {
+  async listarFeedStoriesAgrupados(maxShops = 8, viewerId = null) {
     const agora = new Date().toISOString();
 
     // Traz stories suficientes para cobrir maxShops barbearias
@@ -1150,7 +1208,7 @@ class BarbeariaRepository extends BaseRepository {
       .from('stories')
       .select(
         'id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, ' +
-        'views_count, created_at, expires_at, media_id, ' +
+        'views_count, likes_count, created_at, expires_at, media_id, ' +
         'media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))',
       )
       .gt('expires_at', agora)
@@ -1202,33 +1260,26 @@ class BarbeariaRepository extends BaseRepository {
       }
     }
 
-    // Coleta owner_ids únicos dos stories para buscar nome e avatar do poster
-    const posterIds = new Set();
-    for (const arr of grouped.values()) {
-      for (const story of arr) {
-        if (story.owner_id) posterIds.add(story.owner_id);
-      }
+    const enriched = await this.#enriquecerStories([...grouped.values()].flat(), viewerId, shopMap);
+    const enrichedByShop = new Map();
+    for (const story of enriched) {
+      const arr = enrichedByShop.get(story.barbershop_id) ?? [];
+      arr.push(story);
+      enrichedByShop.set(story.barbershop_id, arr);
     }
 
-    // 1 query para buscar perfis dos posters (sem N+1)
-    const { data: posters } = await this._db
-      .from('profiles')
-      .select('id, full_name, avatar_path')
-      .in('id', [...posterIds]);
-
-    const posterMap = new Map((posters ?? []).map(p => [p.id, p]));
-
     return barbershopIds
-      .filter(id => shopMap.has(id) && (grouped.get(id) ?? []).length > 0)
+      .filter(id => shopMap.has(id) && (enrichedByShop.get(id) ?? []).length > 0)
       .map(id => ({
-        shop:    shopMap.get(id),
-        stories: grouped.get(id).map(story => ({
-          ...story,
-          poster_name:         posterMap.get(story.owner_id)?.full_name   ?? null,
-          poster_avatar_path:  posterMap.get(story.owner_id)?.avatar_path ?? null,
-          thumb_storage_path:  story.media_files?.media_variants?.find(v => v.name === 'thumb')?.storage_path ?? null,
-        })),
+        shop: shopMap.get(id),
+        stories: (enrichedByShop.get(id) ?? []).sort(BarbeariaRepository.#storyHighlightSort),
       }));
+  }
+
+  static #storyHighlightSort(a, b) {
+    const likesDiff = Number(b.likes_count ?? 0) - Number(a.likes_count ?? 0);
+    if (likesDiff !== 0) return likesDiff;
+    return new Date(a.created_at ?? 0).getTime() - new Date(b.created_at ?? 0).getTime();
   }
 
   // ── Cleanup R2 — Stories ─────────────────────────────────────
@@ -1293,6 +1344,93 @@ class BarbeariaRepository extends BaseRepository {
       this._throwDbError(error, 'buscarStoryPorIdEOwner');
     }
     return data ?? null;
+  }
+
+  async buscarStoryPorMediaIdEOwner(mediaId, ownerId) {
+    const { data, error } = await this._db.from('stories')
+      .select('id, media_id, owner_id, barbershop_id, storage_path, media_files!stories_media_id_fkey(id, path)')
+      .eq('media_id', mediaId)
+      .eq('owner_id', ownerId)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    if (error) {
+      this._warn('buscarStoryPorMediaIdEOwner', error);
+      this._throwDbError(error, 'buscarStoryPorMediaIdEOwner');
+    }
+    return data ?? null;
+  }
+
+  async buscarStoryAtivoPorMediaId(mediaId) {
+    const { data, error } = await this._db.from('stories')
+      .select('id, media_id, likes_count')
+      .eq('media_id', mediaId)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    if (error) {
+      this._warn('buscarStoryAtivoPorMediaId', error);
+      this._throwDbError(error, 'buscarStoryAtivoPorMediaId');
+    }
+    return data ?? null;
+  }
+
+  async buscarLikeStory(userId, storyId) {
+    const { data, error } = await this._db.from('likes')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_type', 'story')
+      .eq('content_id', storyId)
+      .maybeSingle();
+    if (error) {
+      this._warn('buscarLikeStory', error);
+      this._throwDbError(error, 'buscarLikeStory');
+    }
+    return data ?? null;
+  }
+
+  async adicionarLikeStory(userId, storyId) {
+    const { error } = await this._db.from('likes').insert({
+      user_id: userId,
+      content_id: storyId,
+      content_type: 'story',
+    });
+    if (error && error.code !== '23505') {
+      this._warn('adicionarLikeStory', error);
+      this._throwDbError(error, 'adicionarLikeStory');
+    }
+  }
+
+  async removerLikeStory(userId, storyId) {
+    const { error } = await this._db.from('likes')
+      .delete()
+      .eq('user_id', userId)
+      .eq('content_type', 'story')
+      .eq('content_id', storyId);
+    if (error) {
+      this._warn('removerLikeStory', error);
+      this._throwDbError(error, 'removerLikeStory');
+    }
+  }
+
+  async sincronizarLikesStory(storyId) {
+    const { count, error } = await this._db.from('likes')
+      .select('id', { count: 'exact', head: true })
+      .eq('content_type', 'story')
+      .eq('content_id', storyId);
+    if (error) {
+      this._warn('sincronizarLikesStory:count', error);
+      this._throwDbError(error, 'sincronizarLikesStory:count');
+    }
+
+    const likesCount = count ?? 0;
+    const { error: updateError } = await this._db.from('stories')
+      .update({ likes_count: likesCount })
+      .eq('id', storyId);
+    if (updateError) {
+      this._warn('sincronizarLikesStory:update', updateError);
+      this._throwDbError(updateError, 'sincronizarLikesStory:update');
+    }
+
+    return likesCount;
   }
 
   /**

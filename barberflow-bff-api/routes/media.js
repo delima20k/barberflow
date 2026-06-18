@@ -10,8 +10,10 @@ const { SupabaseMediaStorageGateway } = require('../infrastructure/media/Supabas
 const { R2StorageGateway }         = require('../infrastructure/media/R2StorageGateway');
 const { MediaConfirmationSigner } = require('../infrastructure/media/MediaConfirmationSigner');
 const { MediaUploadService }       = require('../application/media/MediaUploadService');
+const { StoryMediaInteractionService } = require('../application/media/StoryMediaInteractionService');
 const { PurgeExpiredStoriesUseCase } = require('../application/stories/PurgeExpiredStoriesUseCase');
-const { BarbeariaRepository }      = require('../repositories/BarbeariaRepository');
+const { DeleteStoryUseCase }       = require('../application/stories/DeleteStoryUseCase');
+const BarbeariaRepository          = require('../repositories/BarbeariaRepository');
 
 const LOCK_KEY    = 'scheduler:media.stories-cleanup';
 const LOCK_TTL_MS = 120_000;
@@ -38,6 +40,21 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   });
   const controller = new MediaController(service);
   const router = Router();
+  const barbeariaRepo   = deps.barbeariaRepository ?? new BarbeariaRepository(db);
+  const supabaseClean   = deps.supabaseGatewayCleanup ?? new SupabaseMediaStorageGateway({ db });
+  const deleteStoryUseCase = r2Instance
+    ? new DeleteStoryUseCase({
+        storyRepository:        barbeariaRepo,
+        mediaRepository,
+        r2Gateway:              r2Instance,
+        supabaseStorageGateway: supabaseClean,
+      })
+    : null;
+  const storyInteractionService = deps.storyInteractionService ?? new StoryMediaInteractionService({
+    storyRepository: barbeariaRepo,
+    deleteStoryUseCase,
+  });
+  const storyInteractionController = new MediaController(storyInteractionService);
 
   router.post('/presigned', AuthMiddleware.verificar, (req, res, next) => {
     if (useR2 && !r2Instance) {
@@ -58,6 +75,17 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     return controller.acesso.call(controller, req, res, next);
   });
 
+  router.post('/:mediaId/like', AuthMiddleware.verificar, (req, res, next) =>
+    storyInteractionController.toggleLike.call(storyInteractionController, req, res, next)
+  );
+
+  router.delete('/:mediaId', AuthMiddleware.verificar, (req, res, next) => {
+    if (!r2Instance) {
+      return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Servico de armazenamento de midia indisponivel.' });
+    }
+    return storyInteractionController.excluir.call(storyInteractionController, req, res, next);
+  });
+
   // ── Admin: cleanup manual de stories R2 ──────────────────────
   let lock = deps.lock ?? null;
   if (!lock && process.env.REDIS_URL) {
@@ -68,9 +96,7 @@ module.exports = function criarMediaRoute(db, deps = {}) {
       lock = new RedisDistributedLock({ redisClient });
     } catch { /* sem Redis: rota POST retorna 503 */ }
   }
-  const barbeariaRepo   = deps.barbeariaRepository ?? new BarbeariaRepository(db);
   const r2Clean         = deps.r2GatewayCleanup ?? r2Instance;
-  const supabaseClean   = deps.supabaseGatewayCleanup ?? new SupabaseMediaStorageGateway({ db });
 
   function buildPurgeUseCase(batchSize) {
     return new PurgeExpiredStoriesUseCase({
