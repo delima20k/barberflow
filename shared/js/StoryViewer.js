@@ -218,7 +218,7 @@ class StoryViewer {
       storyId: stories[startIndex]?.id ?? null,
     };
 
-    if (window.BARBERFLOW_STORY_PRISM_ENABLED === true && typeof MediaPrismViewer !== 'undefined') {
+    if (typeof MediaPrismViewer !== 'undefined') {
       StoryViewer.#prismAtivo = true;
       MediaPrismViewer.get().open({
         mode: 'story',
@@ -642,7 +642,6 @@ class StoryViewer {
   }
 
   static #renderizar() {
-    StoryViewer.#atualizarCacheAtivo();
     const dados = StoryViewer.#lerCard();
     if (!dados) return;
 
@@ -651,6 +650,8 @@ class StoryViewer {
     StoryViewer.#viewerState.storyId = stories[currentIndex]?.id ?? null;
 
     StoryViewer.#preencherInner(StoryViewer.#ativo, dados);
+    // Cache atualizado APÓS #preencherInner para capturar vídeo recriado
+    StoryViewer.#atualizarCacheAtivo();
     StoryViewer.#reproduzirComSom(StoryViewer.#els.video);
     StoryViewer.#atualizarNavegacao();
     StoryProgressLayer.render(
