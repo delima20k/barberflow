@@ -8705,7 +8705,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* Story mode: video no topo, input fixo na parte de baixo */
 .pp-prism-viewer[data-mode="story"] {
   padding-top: 64px;
-  justify-content: flex-start;
+  justify-content: center;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-stage {
   margin-top: 0;
@@ -8723,7 +8723,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   bottom: auto;
   transform: none;
   width: min(100%, 460px);
-  margin-top: auto;
   padding-bottom: max(4px, env(safe-area-inset-bottom));
 }
 
