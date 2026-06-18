@@ -62,6 +62,20 @@ class MediaController extends BaseController {
     });
   }
 
+  async salvarThumb(req, res) {
+    await this.handle(res, async () => {
+      if (typeof this.#service.salvarThumb !== 'function') {
+        throw this._erro('Funcionalidade nao disponivel.', 503);
+      }
+      const result = await this.#service.salvarThumb(
+        req.user.id,
+        String(req.params.mediaId ?? '').trim(),
+        req.body?.thumbnailBase64,
+      );
+      this.success(res, result);
+    });
+  }
+
   async excluir(req, res) {
     await this.handle(res, async () => {
       if (typeof this.#service.deleteByMediaId !== 'function') {

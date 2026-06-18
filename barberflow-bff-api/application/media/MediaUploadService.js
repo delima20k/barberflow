@@ -98,6 +98,35 @@ class MediaUploadService {
     });
   }
 
+  /**
+   * Recebe thumbnail em base64, faz upload para R2 e registra variante no banco.
+   * Chamado pelo frontend após captura via Canvas API.
+   * @param {string} ownerId
+   * @param {string} mediaId
+   * @param {string} thumbnailBase64 — JPEG em base64 sem prefixo data:
+   * @returns {Promise<{path: string}>}
+   */
+  async salvarThumb(ownerId, mediaId, thumbnailBase64) {
+    const MAX_B64_BYTES = 500_000;
+    if (typeof thumbnailBase64 !== 'string' || thumbnailBase64.length === 0 || thumbnailBase64.length > MAX_B64_BYTES) {
+      throw AppError.badRequest('Thumbnail invalida ou muito grande.');
+    }
+    const buffer = Buffer.from(thumbnailBase64, 'base64');
+    if (buffer.length < 100) throw AppError.badRequest('Thumbnail muito pequena.');
+    const media = await this.#mediaRepository.getForProcessing(mediaId, ownerId);
+    if (!media) throw AppError.forbidden('Midia nao encontrada ou sem permissao.');
+    const path = `stories/${ownerId}/thumbnails/${mediaId}.jpg`;
+    await this.#storage.putVariant({ path, bytes: buffer, contentType: 'image/jpeg' });
+    await this.#mediaRepository.salvarVariante(mediaId, {
+      name: 'thumb',
+      version: 1,
+      storagePath: path,
+      contentType: 'image/jpeg',
+      sizeBytes: buffer.length,
+    });
+    return { path };
+  }
+
   static #policy(request) {
     const context = String(request?.context ?? '').toLowerCase();
     const policy = MediaPolicyCatalog.context(context);

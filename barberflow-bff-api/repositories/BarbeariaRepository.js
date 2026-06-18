@@ -1134,7 +1134,7 @@ class BarbeariaRepository extends BaseRepository {
     return stories.map(story => {
       const shop = shopMap.get(story.barbershop_id) ?? null;
       const poster = posterMap.get(story.owner_id) ?? null;
-      const tipoAutor = shop?.owner_id && story.owner_id === shop.owner_id ? 'dono' : 'parceiro';
+      const tipoAutor = shop?.owner_id && story.owner_id === shop.owner_id ? 'barbearia' : 'parceiro';
       return {
         ...story,
         likes_count: Math.max(0, Number(story.likes_count ?? 0)),

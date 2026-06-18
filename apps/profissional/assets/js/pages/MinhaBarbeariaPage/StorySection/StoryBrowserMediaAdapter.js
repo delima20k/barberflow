@@ -23,6 +23,18 @@ export class StoryBrowserMediaAdapter {
       expiresAt,
     });
 
+    // Captura thumbnail do primeiro frame e salva de forma assíncrona (fire-and-forget).
+    // Não bloqueia o fluxo de upload — falhas são silenciosas por design.
+    if (mediaType === 'video' && uploadResult?.mediaId
+        && typeof VideoThumbnailCapture !== 'undefined'
+        && typeof BffApiService !== 'undefined') {
+      VideoThumbnailCapture.capturar(file).then(async blob => {
+        if (!blob) return;
+        const base64 = await VideoThumbnailCapture.paraBase64(blob);
+        if (base64) BffApiService.media.salvarThumb(uploadResult.mediaId, base64).catch(() => {});
+      }).catch(() => {});
+    }
+
     return {
       ...uploadResult,
       blobUrl,

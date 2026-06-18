@@ -55,6 +55,23 @@ class SupabaseMediaRepository extends BaseRepository {
     return data?.[0] ?? null;
   }
 
+  async salvarVariante(mediaId, variant) {
+    const row = {
+      media_id:     mediaId,
+      name:         variant.name,
+      version:      variant.version ?? 1,
+      storage_path: variant.storagePath,
+      mime:         variant.contentType,
+      size_bytes:   variant.sizeBytes ?? null,
+      width:        variant.width ?? null,
+      height:       variant.height ?? null,
+      metadata:     variant.metadata ?? {},
+    };
+    const { error } = await this._db.from('media_variants')
+      .upsert([row], { onConflict: 'media_id,name,version' });
+    if (error) this._throwDbError(error, 'salvarVariante');
+  }
+
   async markPublished(mediaId, variants, metadata) {
     const rows = variants.map(variant => ({
       media_id: mediaId,

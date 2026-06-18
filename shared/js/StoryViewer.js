@@ -1,75 +1,77 @@
-﻿'use strict';
-
-// =============================================================
-// StorySwipeTransition — Animação pseudo-3D entre stories (POO)
+﻿// =============================================================
+// StorySwipeTransition — Cubo 3D real entre stories (POO)
+// Perspective injetada pelo CSS .sv-stage (1200px) — não inline.
+// Cards giram em torno do eixo Y como faces de um cubo.
 // =============================================================
 
 class StorySwipeTransition {
 
-  static #DUR_COMPLETAR = 300;
+  static #DUR_COMPLETAR = 350;
   static #DUR_CANCELAR  = 380;
   static #EASE_SLIDE    = 'cubic-bezier(0.22,0.61,0.36,1)';
   static #EASE_SPRING   = 'cubic-bezier(0.34,1.56,0.64,1)';
-  static #ROT_MAX       = 14;
-  static #SCALE_MIN     = 0.88;
+  // Ângulo máximo do cubo. 85° (não 90°) evita "passar por trás" em devices lentos.
+  static #ROT_MAX       = 85;
   static #OPACITY_MIN   = 0.28;
   static #DARKEN_MAX    = 0.44;
 
-  static aplicarSwipe(ativo, prox, dx, ww, dir) {
-    const p       = Math.min(Math.abs(dx) / ww, 1);
-    const sinal   = dx < 0 ? -1 : 1;
-    const rot     = p * StorySwipeTransition.#ROT_MAX * sinal;
-    const scale   = 1 - p * (1 - StorySwipeTransition.#SCALE_MIN);
-    const opacity = 1 - p * (1 - StorySwipeTransition.#OPACITY_MIN);
-    const darken  = p * StorySwipeTransition.#DARKEN_MAX;
+  /**
+   * Animação em tempo real durante o arrasto do dedo.
+   * Ativo gira para fora; prox gira para dentro — sem translateX.
+   */
+  static aplicarSwipe(ativo, prox, dx, _ww, dir) {
+    const p     = Math.min(Math.abs(dx) / (_ww || window.innerWidth), 1);
+    // Ativo sai na direção do swipe
+    const rotAtivo = p * StorySwipeTransition.#ROT_MAX * (dx < 0 ? 1 : -1);
+    const opAtivo  = 1 - p * (1 - StorySwipeTransition.#OPACITY_MIN);
+    const darken   = p * StorySwipeTransition.#DARKEN_MAX;
 
     ativo.style.transition = '';
-    ativo.style.transform  = `translateX(${dx}px) rotateY(${rot}deg) scale(${scale})`;
-    ativo.style.opacity    = opacity;
+    ativo.style.transform  = `rotateY(${rotAtivo}deg)`;
+    ativo.style.opacity    = opAtivo;
     ativo.style.setProperty('--sv-darken', darken);
 
-    const proxX      = dir * ww + dx;
-    const proxScale  = StorySwipeTransition.#SCALE_MIN + p * (1 - StorySwipeTransition.#SCALE_MIN);
-    const proxOp     = StorySwipeTransition.#OPACITY_MIN + p * (1 - StorySwipeTransition.#OPACITY_MIN);
-    const proxRot    = -rot * 0.5;
-    const proxDarken = (1 - p) * StorySwipeTransition.#DARKEN_MAX * 0.35;
+    // Prox entra da direção oposta
+    const rotProx = (1 - p) * StorySwipeTransition.#ROT_MAX * (dx < 0 ? -1 : 1);
+    const opProx  = StorySwipeTransition.#OPACITY_MIN + p * (1 - StorySwipeTransition.#OPACITY_MIN);
+    const darkenP = (1 - p) * StorySwipeTransition.#DARKEN_MAX * 0.35;
 
     prox.style.transition = '';
-    prox.style.transform  = `translateX(${proxX}px) rotateY(${proxRot}deg) scale(${proxScale})`;
-    prox.style.opacity    = proxOp;
-    prox.style.setProperty('--sv-darken', proxDarken);
+    prox.style.transform  = `rotateY(${rotProx}deg)`;
+    prox.style.opacity    = opProx;
+    prox.style.setProperty('--sv-darken', darkenP);
   }
 
-  static completar(ativo, prox, dir, ww) {
+  static completar(ativo, prox, dir, _ww) {
     const dur = StorySwipeTransition.#DUR_COMPLETAR;
     const e   = StorySwipeTransition.#EASE_SLIDE;
     const tr  = `transform ${dur}ms ${e}, opacity ${dur}ms ${e}`;
 
     ativo.style.transition = tr;
-    ativo.style.transform  = `translateX(${-dir * ww}px) rotateY(${-dir * StorySwipeTransition.#ROT_MAX}deg) scale(${StorySwipeTransition.#SCALE_MIN})`;
+    ativo.style.transform  = `rotateY(${-dir * StorySwipeTransition.#ROT_MAX}deg)`;
     ativo.style.opacity    = StorySwipeTransition.#OPACITY_MIN;
     ativo.style.setProperty('--sv-darken', StorySwipeTransition.#DARKEN_MAX);
 
     prox.style.transition = tr;
-    prox.style.transform  = 'translateX(0) rotateY(0deg) scale(1)';
+    prox.style.transform  = 'rotateY(0deg)';
     prox.style.opacity    = '1';
     prox.style.setProperty('--sv-darken', 0);
 
     return new Promise(r => setTimeout(r, dur));
   }
 
-  static cancelar(ativo, prox, dir, ww) {
+  static cancelar(ativo, prox, dir, _ww) {
     const dur = StorySwipeTransition.#DUR_CANCELAR;
     const e   = StorySwipeTransition.#EASE_SPRING;
     const tr  = `transform ${dur}ms ${e}, opacity ${dur}ms ${e}`;
 
     ativo.style.transition = tr;
-    ativo.style.transform  = 'translateX(0) rotateY(0deg) scale(1)';
+    ativo.style.transform  = 'rotateY(0deg)';
     ativo.style.opacity    = '1';
     ativo.style.setProperty('--sv-darken', 0);
 
     prox.style.transition = tr;
-    prox.style.transform  = `translateX(${dir * ww}px) rotateY(0deg) scale(${StorySwipeTransition.#SCALE_MIN})`;
+    prox.style.transform  = `rotateY(${dir * StorySwipeTransition.#ROT_MAX}deg)`;
     prox.style.opacity    = StorySwipeTransition.#OPACITY_MIN;
     prox.style.setProperty('--sv-darken', 0);
 
@@ -216,7 +218,7 @@ class StoryViewer {
       storyId: stories[startIndex]?.id ?? null,
     };
 
-    if (typeof MediaPrismViewer !== 'undefined') {
+    if (window.BARBERFLOW_STORY_PRISM_ENABLED === true && typeof MediaPrismViewer !== 'undefined') {
       StoryViewer.#prismAtivo = true;
       MediaPrismViewer.get().open({
         mode: 'story',
@@ -298,22 +300,62 @@ class StoryViewer {
     StoryViewer.#flipping = false;
   }
 
-  static toggleLike() {
+  static async toggleLike() {
     // Guard: anônimos não podem curtir stories
     if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', null)) return;
 
     const { likeBtn, likeCount } = StoryViewer.#els;
     if (!likeBtn || !likeCount) return;
+    const { stories, currentIndex } = StoryViewer.#viewerState;
+    const story = stories[currentIndex];
+    if (!story?.media_id || typeof BffApiService === 'undefined' || !BffApiService.media?.toggleStoryLike) return;
+    if (likeBtn.disabled) return;
 
     const curtido = likeBtn.classList.toggle('curtido');
-    const novoVal = (parseInt(likeCount.textContent) || 0) + (curtido ? 1 : -1);
+    const valorAnterior = parseInt(likeCount.textContent, 10) || 0;
+    const curtidoAnterior = Boolean(story.user_liked);
+    const novoVal = Math.max(0, valorAnterior + (curtido ? 1 : -1));
     likeCount.textContent = novoVal;
+    story.user_liked = curtido;
+    story.likes_count = novoVal;
 
     // Notifica o card de origem via CustomEvent (sem acoplamento direto — Ajuste 5)
-    const { cardEl, shopId, currentIndex } = StoryViewer.#viewerState;
+    StoryViewer.#emitLike(curtido, novoVal);
+
+    likeBtn.disabled = true;
+    const { data, error } = await BffApiService.media.toggleStoryLike(story.media_id);
+    likeBtn.disabled = false;
+    if (error) {
+      story.user_liked = curtidoAnterior;
+      story.likes_count = valorAnterior;
+      likeBtn.classList.toggle('curtido', curtidoAnterior);
+      likeCount.textContent = String(valorAnterior);
+      StoryViewer.#emitLike(curtidoAnterior, valorAnterior);
+      return;
+    }
+
+    const countFinal = Math.max(0, Number(data?.likes_count ?? novoVal));
+    const likedFinal = Boolean(data?.user_liked ?? curtido);
+    story.user_liked = likedFinal;
+    story.likes_count = countFinal;
+    likeBtn.classList.toggle('curtido', likedFinal);
+    likeCount.textContent = String(countFinal);
+    StoryViewer.#emitLike(likedFinal, countFinal);
+  }
+
+  static #emitLike(curtido, count) {
+    const { cardEl, shopId, currentIndex, stories } = StoryViewer.#viewerState;
+    const story = stories[currentIndex] ?? {};
     cardEl?.dispatchEvent(new CustomEvent('story:like', {
       bubbles: true,
-      detail: { shopId, storyIndex: currentIndex, curtido, count: novoVal },
+      detail: {
+        shopId,
+        storyIndex: currentIndex,
+        storyId: story.id ?? null,
+        mediaId: story.media_id ?? null,
+        curtido,
+        count,
+      },
     }));
   }
 
@@ -518,14 +560,33 @@ class StoryViewer {
       ownerId:          story.owner_id    ?? null,
       videoSrc:         story.media_url   ?? '',
       poster:           story.thumbnail_url ?? story.thumbnail_path ?? '',
-      badgeSrc:         cardEl?.querySelector('.story-shop-badge')?.src ?? '',
-      nome:             cardEl?.querySelector('.story-card-name')?.textContent ?? '',
+      badgeSrc:         StoryViewer.#identityBadge(story, cardEl),
+      nome:             StoryViewer.#identityName(story, cardEl),
       addr:             cardEl?.querySelector('.story-card-addr')?.textContent ?? '',
-      likeCount:        String(story.views_count ?? 0),
-      curtido:          false,
-      barberNome:       story.poster_name        ?? null,
-      barberAvatarPath: story.poster_avatar_path ?? null,
+      likeCount:        String(story.likes_count ?? 0),
+      curtido:          Boolean(story.user_liked),
+      barberNome:       story.tipo_autor === 'parceiro' ? (story.poster_name ?? null) : null,
+      barberAvatarPath: story.tipo_autor === 'parceiro' ? (story.poster_avatar_path ?? null) : null,
     };
+  }
+
+  static #identityName(story, cardEl) {
+    if (story.tipo_autor === 'parceiro') return story.poster_name ?? story.shop_name ?? '';
+    return story.shop_name ?? cardEl?.querySelector('.story-card-name')?.textContent ?? '';
+  }
+
+  static #identityBadge(story, cardEl) {
+    if (story.tipo_autor === 'parceiro' && story.poster_avatar_path) {
+      return typeof ApiService !== 'undefined'
+        ? ApiService.getAvatarUrl(story.poster_avatar_path)
+        : story.poster_avatar_path;
+    }
+    if (story.shop_logo_path) {
+      return typeof ApiService !== 'undefined'
+        ? ApiService.getLogoUrl(story.shop_logo_path)
+        : story.shop_logo_path;
+    }
+    return cardEl?.querySelector('.story-shop-badge')?.src ?? '';
   }
 
   static #preencherInner(inner, dados) {
@@ -552,6 +613,7 @@ class StoryViewer {
     likeBtn.classList.toggle('curtido', dados.curtido);
 
     // Avatar do barbeiro por vídeo (source: story.poster_avatar_path)
+    const barberOverlay = inner.querySelector('.sv-barber-overlay');
     if (barberAvatar && dados.barberAvatarPath) {
       const avatarUrl = typeof ApiService !== 'undefined'
         ? ApiService.getAvatarUrl(dados.barberAvatarPath)
@@ -563,6 +625,10 @@ class StoryViewer {
     }
     if (barberName) {
       barberName.textContent = dados.barberNome ?? '';
+    }
+    // Oculta o container inteiro quando não há barbereiro identificado
+    if (barberOverlay) {
+      barberOverlay.hidden = !dados.barberNome && !dados.barberAvatarPath;
     }
   }
 
@@ -590,9 +656,9 @@ class StoryViewer {
   static #precarregarProx(idx, dir) {
     StoryViewer.#preencherInner(StoryViewer.#prox, StoryViewer.#lerCard(idx));
 
-    const ww = window.innerWidth;
+    // Posiciona o próximo card na rotação oposta, pronto para entrar no cubo
     StoryViewer.#prox.style.transition = '';
-    StoryViewer.#prox.style.transform  = `translateX(${dir * ww}px) rotateY(${-5 * dir}deg) scale(0.88)`;
+    StoryViewer.#prox.style.transform  = `rotateY(${dir * 85}deg)`;
     StoryViewer.#prox.style.opacity    = '0.28';
     StoryViewer.#prox.style.setProperty('--sv-darken', '0.2');
     StoryViewer.#prox.style.zIndex     = '2';

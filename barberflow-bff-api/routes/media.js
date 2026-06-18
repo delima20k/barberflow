@@ -18,6 +18,19 @@ const BarbeariaRepository          = require('../repositories/BarbeariaRepositor
 const LOCK_KEY    = 'scheduler:media.stories-cleanup';
 const LOCK_TTL_MS = 120_000;
 
+const unavailableStorage = {
+  createSignedUpload: async () => {
+    const err = new Error('Servico de armazenamento de midia indisponivel.');
+    err.status = 503;
+    throw err;
+  },
+  createSignedAccess: async () => {
+    const err = new Error('Servico de armazenamento de midia indisponivel.');
+    err.status = 503;
+    throw err;
+  },
+};
+
 /**
  * Factory de rotas de midia para preservar DI nos testes.
  * Quando STORIES_STORAGE_BACKEND=r2, usa R2StorageGateway em vez do Supabase Storage.
@@ -28,7 +41,7 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   if (useR2 && !r2Instance) {
     console.warn('[media] R2StorageGateway indisponível — endpoints de upload retornarão 503');
   }
-  const storage = deps.storage ?? (useR2 ? r2Instance : new SupabaseMediaStorageGateway({ db }));
+  const storage = deps.storage ?? (useR2 ? (r2Instance ?? unavailableStorage) : new SupabaseMediaStorageGateway({ db }));
   const mediaRepository = deps.mediaRepository ?? new SupabaseMediaRepository(db);
   const outboxRepository = deps.outboxRepository ?? new OutboxRepository({ supabase: db });
   const signer = deps.confirmationSigner ?? new MediaConfirmationSigner();
@@ -73,6 +86,13 @@ module.exports = function criarMediaRoute(db, deps = {}) {
       return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });
     }
     return controller.acesso.call(controller, req, res, next);
+  });
+
+  router.post('/:mediaId/thumbnail', AuthMiddleware.verificar, (req, res, next) => {
+    if (useR2 && !r2Instance) {
+      return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });
+    }
+    return controller.salvarThumb.call(controller, req, res, next);
   });
 
   router.post('/:mediaId/like', AuthMiddleware.verificar, (req, res, next) =>

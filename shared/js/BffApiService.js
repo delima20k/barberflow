@@ -179,13 +179,13 @@ class BffApiService {
         method:  'DELETE',
         headers: authHeaders,
       });
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
         const err  = new Error(json?.error ?? `HTTP ${res.status}`);
         err.status = res.status;
         return { data: null, error: err };
       }
-      return { data: null, error: null };
+      return { data: json?.dados ?? null, error: null };
     } catch (err) {
       return { data: null, error: BffApiService.#parseErroRede(err) };
     }
@@ -288,6 +288,17 @@ class BffApiService {
   };
 
   // ── Namespace: financeiro ────────────────────────────────────
+
+  static media = {
+    toggleStoryLike: (mediaId) =>
+      BffApiService.post(`/api/v1/media/${encodeURIComponent(mediaId)}/like`, {}),
+
+    deletarStory: (mediaId) =>
+      BffApiService.delete(`/api/v1/media/${encodeURIComponent(mediaId)}`),
+
+    salvarThumb: (mediaId, thumbnailBase64) =>
+      BffApiService.post(`/api/v1/media/${encodeURIComponent(mediaId)}/thumbnail`, { thumbnailBase64 }),
+  };
 
   static profissionais = {
     perfilPublico: (professionalId) =>

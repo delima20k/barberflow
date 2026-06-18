@@ -34,8 +34,10 @@ test('StoriesWidget cria cards com thumbnail estatica sem carregar video complet
   assert.doesNotMatch(src, /video\.src\s*=\s*story\.media_url/);
   assert.match(src, /story-video/);
   assert.match(src, /story-card/);
-  assert.match(src, /story-play-btn/);
-  assert.match(src, /story-card-name/);
+  // play-btn NÃO deve mais ser criado nos templates de card
+  assert.doesNotMatch(src, /playBtn\.className\s*=\s*'story-play-btn'/);
+  // story-shop-overlay NÃO deve ser criado nos templates
+  assert.doesNotMatch(src, /shopOverlay\.className\s*=.*story-shop-overlay/);
   assert.match(src, /story-like-btn/);
   assert.match(src, /story-like-count/);
 });
@@ -73,6 +75,20 @@ function buildDOMStub() {
       onerror: null,
       dataset: {},
       style: {},
+      get classList() {
+        const self = this;
+        return {
+          _set: new Set((self.className || '').split(' ').filter(Boolean)),
+          add(...cls) { cls.forEach(c => { this._set.add(c); self.className = [...this._set].join(' '); }); },
+          remove(...cls) { cls.forEach(c => { this._set.delete(c); self.className = [...this._set].join(' '); }); },
+          toggle(c, force) {
+            const has = this._set.has(c);
+            if (force === true || (!has && force === undefined)) this.add(c);
+            else if (force === false || has) this.remove(c);
+          },
+          contains(c) { return this._set.has(c); },
+        };
+      },
       setAttribute(k, v) { this._attrs[k] = v; },
       getAttribute(k) { return this._attrs[k] ?? null; },
       appendChild(child) { this._children.push(child); },
@@ -136,6 +152,20 @@ function buildStoriesWidgetClass(globalMocks = {}) {
           onerror: null,
           dataset: {},
           style: {},
+          get classList() {
+            const self = this;
+            const _set = new Set((self.className || '').split(' ').filter(Boolean));
+            return {
+              add(...cls) { cls.forEach(c => { _set.add(c); self.className = [..._set].join(' '); }); },
+              remove(...cls) { cls.forEach(c => { _set.delete(c); self.className = [..._set].join(' '); }); },
+              toggle(c, force) {
+                const has = _set.has(c);
+                if (force === true || (!has && force === undefined)) this.add(c);
+                else if (force === false || has) this.remove(c);
+              },
+              contains(c) { return _set.has(c); },
+            };
+          },
           setAttribute(k, v) { this._attrs[k] = v; },
           getAttribute(k) { return this._attrs[k] ?? null; },
           appendChild(child) { this._children.push(child); },
@@ -389,6 +419,20 @@ test('StoriesWidget.carregar popula card de video com imagem estatica', async ()
         muted: false, loop: false, preload: '', type: '', textContent: '',
         innerHTML: '', hidden: false, onerror: null, onloadedmetadata: null,
         dataset: {}, style: {},
+        get classList() {
+          const self = this;
+          const _set = new Set((self.className || '').split(' ').filter(Boolean));
+          return {
+            add(...cls) { cls.forEach(c => { _set.add(c); self.className = [..._set].join(' '); }); },
+            remove(...cls) { cls.forEach(c => { _set.delete(c); self.className = [..._set].join(' '); }); },
+            toggle(c, force) {
+              const has = _set.has(c);
+              if (force === true || (!has && force === undefined)) this.add(c);
+              else if (force === false || has) this.remove(c);
+            },
+            contains(c) { return _set.has(c); },
+          };
+        },
         setAttribute(k, v) { this._attrs[k] = v; },
         appendChild(child) { this._children.push(child); },
         addEventListener() {},

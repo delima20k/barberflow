@@ -142,6 +142,26 @@ class MediaViewer {
   }
 }
 
+class StoryDeleteModal {
+  static async confirmar() {
+    if (typeof FluxoDeFila !== 'undefined') {
+      const result = await FluxoDeFila.abrir({
+        id: 'story-delete-confirm',
+        titulo: 'Excluir video?',
+        corpo: 'Este story sera removido da barbearia e da midia.',
+        acoes: [
+          { label: 'Excluir', valor: 'excluir', variante: 'perigo' },
+          { label: 'Cancelar', valor: 'cancelar', variante: 'secundario' },
+        ],
+        fecharBtn: true,
+        tocarSom: false,
+      });
+      return result === 'excluir';
+    }
+    return window.confirm('Excluir este video?');
+  }
+}
+
 // =============================================================
 // StoriesWidget — carregamento dinâmico de stories por contexto
 //
@@ -478,21 +498,8 @@ class StoriesWidget {
     const ownerId = shopId ?? first?.owner_id ?? '';
     StoriesStore.set(ownerId, stories);
 
-    // Determina se o primeiro story foi postado pelo dono ou por um parceiro
-    const isParceiro = shopOwnerId && first?.owner_id && first.owner_id !== shopOwnerId;
-    let displayName, displayLogo;
-    if (isParceiro) {
-      // Parceiro: exibe nome e avatar do barbeiro que postou
-      displayName = first.poster_name ?? shopName ?? this.#shopName ?? '';
-      const avatarPath = first.poster_avatar_path ?? null;
-      displayLogo = avatarPath
-        ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(avatarPath) : avatarPath)
-        : (logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png');
-    } else {
-      // Dono: exibe logo e nome da barbearia
-      displayName = shopName ?? this.#shopName ?? '';
-      displayLogo = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    }
+    const displayName = shopName ?? first?.shop_name ?? this.#shopName ?? '';
+    const displayLogo = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
 
     const card = document.createElement('div');
     card.className      = 'card-mini story-card';
@@ -514,19 +521,22 @@ class StoriesWidget {
           first?.media_type,
         )
       || null;
-    const thumb = document.createElement('img');
-    thumb.alt = '';
-    thumb.src = thumbResolved || thumbFallback;
-    thumb.onerror = function() { this.style.display = 'none'; };
-    thumb.addEventListener('load', () => wrap.classList.add('is-loaded'), { once: true });
-    thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-    if (thumb.complete) wrap.classList.add('is-loaded');
-    thumb.className = 'story-video';
-    thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-
-    const playBtn = document.createElement('div');
-    playBtn.className   = 'story-play-btn';
-    playBtn.textContent = '▶';
+    // Thumbnail: exibe apenas quando há URL real — sem logo como cover.
+    // Quando não há thumb o gradiente CSS do .story-video-wrap serve de fundo.
+    if (thumbResolved) {
+      const thumb = document.createElement('img');
+      thumb.alt       = '';
+      thumb.className = 'story-video';
+      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      thumb.onerror = function() { this.style.display = 'none'; };
+      thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+      thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+      if (thumb.complete) wrap.classList.add('is-loaded');
+      thumb.src = thumbResolved;
+      wrap.appendChild(thumb);
+    } else {
+      wrap.classList.add('is-loaded');
+    }
 
     const badge = document.createElement('img');
     badge.className = 'story-shop-badge';
@@ -534,11 +544,11 @@ class StoriesWidget {
     badge.alt       = '';
     badge.onerror   = function() { this.style.display = 'none'; };
 
-    // Overlay do barbeiro que postou (topo-esquerdo, abaixo do badge)
+    // Overlay do barbeiro que postou (topo-esquerdo) — apenas fora do feed
     const barberAvatarSrcGrupo = first?.poster_avatar_path
       ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(first.poster_avatar_path) : first.poster_avatar_path)
       : null;
-    if (barberAvatarSrcGrupo || first?.poster_name) {
+    if (this.#context !== 'feed' && (barberAvatarSrcGrupo || first?.poster_name)) {
       const barberOverlay = document.createElement('div');
       barberOverlay.className = 'story-barber-overlay';
       if (barberAvatarSrcGrupo) {
@@ -556,41 +566,7 @@ class StoriesWidget {
       wrap.appendChild(barberOverlay);
     }
 
-    // Overlay da barbearia (canto inferior direito)
-    const shopNameText = shopName ?? this.#shopName ?? '';
-    const shopLogoSrcGrupo = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    if (shopNameText) {
-      const shopOverlay = document.createElement('div');
-      shopOverlay.className = 'story-shop-overlay';
-      const shopLogoImg = document.createElement('img');
-      shopLogoImg.className = 'story-shop-logo';
-      shopLogoImg.src = shopLogoSrcGrupo;
-      shopLogoImg.alt = '';
-      shopLogoImg.onerror = function() { this.style.display = 'none'; };
-      const shopNameSpan = document.createElement('span');
-      shopNameSpan.className = 'story-shop-name';
-      shopNameSpan.textContent = shopNameText;
-      shopOverlay.appendChild(shopLogoImg);
-      shopOverlay.appendChild(shopNameSpan);
-      wrap.appendChild(shopOverlay);
-    }
-
-    wrap.appendChild(thumb);
-    wrap.appendChild(playBtn);
     wrap.appendChild(badge);
-
-    const info = document.createElement('div');
-    info.className = 'story-card-info';
-
-    const nameP = document.createElement('p');
-    nameP.className   = 'story-card-name';
-    nameP.textContent = displayName;
-
-    const addrP = document.createElement('p');
-    addrP.className = 'story-card-addr';
-
-    info.appendChild(nameP);
-    info.appendChild(addrP);
 
     const likeBtn = document.createElement('button');
     likeBtn.className        = 'story-like-btn';
@@ -603,13 +579,13 @@ class StoriesWidget {
 
     const likeCount = document.createElement('span');
     likeCount.className   = 'story-like-count';
-    likeCount.textContent = String(first?.views_count ?? 0);
+    likeCount.textContent = String(first?.likes_count ?? 0);
+    likeBtn.classList?.toggle?.('curtido', Boolean(first?.user_liked));
 
     likeBtn.appendChild(likeImg);
     likeBtn.appendChild(likeCount);
 
     card.appendChild(wrap);
-    card.appendChild(info);
     card.appendChild(likeBtn);
 
     // Badge de contagem: somente se há mais de 1 story
@@ -623,9 +599,11 @@ class StoriesWidget {
 
     // Sincroniza likes do viewer com o card via CustomEvent (sem acoplamento)
     card.addEventListener('story:like', (e) => {
-      const { count } = e.detail ?? {};
+      const { count, curtido } = e.detail ?? {};
       if (typeof count === 'number') likeCount.textContent = String(count);
+      if (typeof curtido === 'boolean') likeBtn.classList?.toggle?.('curtido', curtido);
     });
+    this.#bindLikeButton(likeBtn, first, card);
 
     return card;
   }
@@ -678,7 +656,17 @@ class StoriesWidget {
    * @returns {HTMLDivElement}
    */
   #criarCardIndividual(story, idx, shopId) {
-    const logoSrc  = this.#shopLogoSrc ?? '/shared/img/Logo01.png';
+    const logoSrc  = this.#shopLogoSrc ?? (story.shop_logo_path && typeof ApiService !== 'undefined'
+      ? ApiService.getLogoUrl(story.shop_logo_path)
+      : null) ?? '/shared/img/Logo01.png';
+    const isOwnerStory = story.tipo_autor !== 'parceiro';
+    const authorAvatarSrc = story.poster_avatar_path
+      ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(story.poster_avatar_path) : story.poster_avatar_path)
+      : null;
+    const identityName = isOwnerStory
+      ? (story.shop_name ?? this.#shopName ?? '')
+      : (story.poster_name ?? story.shop_name ?? this.#shopName ?? '');
+    const identityLogo = isOwnerStory ? logoSrc : (authorAvatarSrc ?? logoSrc);
     const thumbSrc = story.thumbnail_url
       || StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type);
 
@@ -686,38 +674,38 @@ class StoriesWidget {
     card.className          = 'card-mini story-card';
     card.dataset.shopId     = shopId;
     card.dataset.storyIdx   = String(idx);
+    card.dataset.mediaId    = story.media_id ?? '';
 
     const wrap = document.createElement('div');
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    const thumb = document.createElement('img');
-    thumb.className = 'story-video';
-    thumb.src = thumbSrc || logoSrc;
-    thumb.alt = '';
-    thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-    thumb.onerror = function() { this.style.display = 'none'; };
-    thumb.addEventListener('load', () => wrap.classList.add('is-loaded'), { once: true });
-    thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-    if (thumb.complete) wrap.classList.add('is-loaded');
-    wrap.appendChild(thumb);
-    const playBtn = document.createElement('div');
-    playBtn.className   = 'story-play-btn';
-    playBtn.textContent = '▶';
-    wrap.appendChild(playBtn);
+    // Thumbnail: exibe apenas quando há URL real — sem logo como cover.
+    if (thumbSrc) {
+      const thumb = document.createElement('img');
+      thumb.className = 'story-video';
+      thumb.alt       = '';
+      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      thumb.onerror = function() { this.style.display = 'none'; };
+      thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
+      thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+      if (thumb.complete) wrap.classList.add('is-loaded');
+      thumb.src = thumbSrc;
+      wrap.appendChild(thumb);
+    } else {
+      wrap.classList.add('is-loaded');
+    }
 
     const badge = document.createElement('img');
     badge.className = 'story-shop-badge';
-    badge.src       = logoSrc;
+    badge.src       = identityLogo;
     badge.alt       = '';
     badge.onerror   = function() { this.style.display = 'none'; };
     wrap.appendChild(badge);
 
-    // Overlay do barbeiro que postou este story individual (topo-esquerdo, abaixo do badge)
-    const barberAvatarSrcInd = story.poster_avatar_path
-      ? (typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(story.poster_avatar_path) : story.poster_avatar_path)
-      : null;
-    if (barberAvatarSrcInd || story.poster_name) {
+    // Overlay do barbeiro que postou este story individual (apenas parceiros)
+    const barberAvatarSrcInd = authorAvatarSrc;
+    if (!isOwnerStory && (barberAvatarSrcInd || story.poster_name)) {
       const barberOverlayInd = document.createElement('div');
       barberOverlayInd.className = 'story-barber-overlay';
       if (barberAvatarSrcInd) {
@@ -730,43 +718,10 @@ class StoriesWidget {
       }
       const barberNameSpanInd = document.createElement('span');
       barberNameSpanInd.className = 'story-barber-name';
-      barberNameSpanInd.textContent = story.poster_name ?? this.#shopName ?? '';
+      barberNameSpanInd.textContent = identityName;
       barberOverlayInd.appendChild(barberNameSpanInd);
       wrap.appendChild(barberOverlayInd);
     }
-
-    // Overlay da barbearia (canto inferior direito)
-    if (this.#shopName) {
-      const shopOverlayInd = document.createElement('div');
-      shopOverlayInd.className = 'story-shop-overlay';
-      const shopLogoImgInd = document.createElement('img');
-      shopLogoImgInd.className = 'story-shop-logo';
-      shopLogoImgInd.src = logoSrc;
-      shopLogoImgInd.alt = '';
-      shopLogoImgInd.onerror = function() { this.style.display = 'none'; };
-      const shopNameSpanInd = document.createElement('span');
-      shopNameSpanInd.className = 'story-shop-name';
-      shopNameSpanInd.textContent = this.#shopName;
-      shopOverlayInd.appendChild(shopLogoImgInd);
-      shopOverlayInd.appendChild(shopNameSpanInd);
-      wrap.appendChild(shopOverlayInd);
-    }
-
-    const info = document.createElement('div');
-    info.className = 'story-card-info';
-
-    const nameP = document.createElement('p');
-    nameP.className   = 'story-card-name';
-    nameP.textContent = this.#shopName ?? '';
-
-    const addrP = document.createElement('p');
-    addrP.className   = 'story-card-addr';
-    addrP.textContent = story.created_at
-      ? new Date(story.created_at).toLocaleDateString('pt-BR')
-      : '';
-
-    info.appendChild(nameP);
-    info.appendChild(addrP);
 
     const likeBtn = document.createElement('button');
     likeBtn.className      = 'story-like-btn';
@@ -779,13 +734,13 @@ class StoriesWidget {
 
     const likeCount = document.createElement('span');
     likeCount.className   = 'story-like-count';
-    likeCount.textContent = String(story.views_count ?? 0);
+    likeCount.textContent = String(story.likes_count ?? 0);
+    likeBtn.classList?.toggle?.('curtido', Boolean(story.user_liked));
 
     likeBtn.appendChild(likeImg);
     likeBtn.appendChild(likeCount);
 
     card.appendChild(wrap);
-    card.appendChild(info);
     card.appendChild(likeBtn);
 
     // Click handler direto (card criado dinamicamente — StoriesLayout não o vê)
@@ -796,10 +751,90 @@ class StoriesWidget {
 
     // Sincroniza likes do viewer com o card via CustomEvent
     card.addEventListener('story:like', (e) => {
-      const { count } = e.detail ?? {};
+      const { count, curtido } = e.detail ?? {};
       if (typeof count === 'number') likeCount.textContent = String(count);
+      if (typeof curtido === 'boolean') likeBtn.classList?.toggle?.('curtido', curtido);
     });
+    this.#bindLikeButton(likeBtn, story, card);
+
+    this.#bindLongPressDelete(card, story, shopId);
 
     return card;
+  }
+
+  #bindLikeButton(likeBtn, story, card) {
+    if (!likeBtn || !story?.media_id) return;
+    likeBtn.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', null)) return;
+      if (typeof BffApiService === 'undefined' || !BffApiService.media?.toggleStoryLike) return;
+      if (likeBtn.disabled) return;
+
+      const countEl = likeBtn.querySelector('.story-like-count');
+      const previousLiked = Boolean(story.user_liked);
+      const previousCount = Math.max(0, Number(story.likes_count ?? countEl?.textContent ?? 0));
+      const optimisticLiked = !previousLiked;
+      const optimisticCount = Math.max(0, previousCount + (optimisticLiked ? 1 : -1));
+
+      story.user_liked = optimisticLiked;
+      story.likes_count = optimisticCount;
+      likeBtn.classList?.toggle?.('curtido', optimisticLiked);
+      if (countEl) countEl.textContent = String(optimisticCount);
+      likeBtn.disabled = true;
+
+      const { data, error } = await BffApiService.media.toggleStoryLike(story.media_id);
+      likeBtn.disabled = false;
+      const finalLiked = error ? previousLiked : Boolean(data?.user_liked ?? optimisticLiked);
+      const finalCount = error ? previousCount : Math.max(0, Number(data?.likes_count ?? optimisticCount));
+
+      story.user_liked = finalLiked;
+      story.likes_count = finalCount;
+      likeBtn.classList?.toggle?.('curtido', finalLiked);
+      if (countEl) countEl.textContent = String(finalCount);
+      card.dispatchEvent(new CustomEvent('story:like', {
+        bubbles: true,
+        detail: { storyId: story.id, mediaId: story.media_id, curtido: finalLiked, count: finalCount },
+      }));
+    });
+  }
+
+  #bindLongPressDelete(card, story, shopId) {
+    if (this.#context === 'feed' || this.#context === 'home') return;
+    if (!story?.can_delete || !story?.media_id) return;
+
+    let timer = null;
+    let fired = false;
+    const clear = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+    };
+    const start = (event) => {
+      if (event.target?.closest?.('.story-like-btn')) return;
+      fired = false;
+      clear();
+      timer = setTimeout(async () => {
+        fired = true;
+        const confirmed = await StoryDeleteModal.confirmar();
+        if (!confirmed || typeof BffApiService === 'undefined') return;
+        const { error } = await BffApiService.media.deletarStory(story.media_id);
+        if (error) return;
+        const stories = StoriesStore.get(shopId).filter(item => item.media_id !== story.media_id);
+        StoriesStore.set(shopId, stories);
+        card.remove();
+      }, 500);
+    };
+    const stop = () => clear();
+
+    card.addEventListener('pointerdown', start);
+    card.addEventListener('pointerup', stop);
+    card.addEventListener('pointerleave', stop);
+    card.addEventListener('pointercancel', stop);
+    card.addEventListener('click', (event) => {
+      if (!fired) return;
+      event.preventDefault();
+      event.stopPropagation();
+      fired = false;
+    }, true);
   }
 }
