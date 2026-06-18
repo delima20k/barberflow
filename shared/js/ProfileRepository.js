@@ -102,11 +102,27 @@ class ProfileRepository {
       ? file.name.split('.').pop().toLowerCase().replace('jpg', 'jpeg')
       : (contentType === 'image/webp' ? 'webp' : 'jpeg');
     const path = `${userId}/avatar.${ext}`;
+    console.info('[AvatarUploadDiagnostics][ProfileRepository]', {
+      stage: 'before-storage-upload',
+      name: file.name || null,
+      bytes: file.size,
+      contentType,
+      ext,
+      path,
+      isExpectedCompressedAvatar: (file.name === 'avatar.webp' || file.name === 'avatar.jpeg')
+        && file.size <= 30 * 1024,
+    });
 
     const { error: upErr } = await SupabaseService.storageAvatars()
       .upload(path, file, { upsert: true, contentType });
 
     if (upErr) throw upErr;
+    console.info('[AvatarUploadDiagnostics][ProfileRepository]', {
+      stage: 'after-storage-upload',
+      path,
+      contentType,
+      bytesSent: file.size,
+    });
 
     await ProfileRepository.update(userId, { avatar_path: path });
 

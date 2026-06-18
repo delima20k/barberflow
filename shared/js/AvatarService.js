@@ -19,6 +19,13 @@ const AvatarService = (() => {
   /** IDs dos elementos de avatar que devem ser atualizados em tela. */
   const AVATAR_IDS = ['menu-avatar-img', 'header-avatar-img', 'perfil-avatar-img'];
 
+  function _logDiagnostico(stage, payload = {}) {
+    console.info('[AvatarUploadDiagnostics][AvatarService]', {
+      stage,
+      ...payload,
+    });
+  }
+
   /**
    * Aplica o src informado em todos os elementos de avatar da página.
    * @param {string} src
@@ -68,6 +75,12 @@ const AvatarService = (() => {
    */
   async function _enviarParaBFF(file) {
     const buffer = await file.arrayBuffer();
+    _logDiagnostico('before-bff-upload', {
+      name: file.name || null,
+      bytes: file.size,
+      bufferBytes: buffer.byteLength,
+      contentType: file.type || 'image/jpeg',
+    });
     const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer, {
       contentType: file.type || 'image/jpeg',
       skipCompression: true,
@@ -88,6 +101,12 @@ const AvatarService = (() => {
    * @returns {Promise<string>} publicUrl
    */
   async function _uploadFallback(file, userId) {
+    _logDiagnostico('before-fallback-upload', {
+      name: file.name || null,
+      bytes: file.size,
+      contentType: file.type || 'image/jpeg',
+      isCompressedFile: file.name === 'avatar.webp' || file.name === 'avatar.jpeg',
+    });
     const url = await ProfileRepository.updateAvatar(userId, file);
     return url;
   }
@@ -103,6 +122,15 @@ const AvatarService = (() => {
     const contentType = compressed.contentType || 'image/jpeg';
     const ext = contentType === 'image/webp' ? 'webp' : 'jpeg';
     const blob = compressed.blob ?? new Blob([compressed.buffer], { type: contentType });
+    _logDiagnostico('compressed-file-created', {
+      originalName: file.name || null,
+      originalBytes: file.size,
+      compressedBytes: blob.size,
+      contentType,
+      ext,
+      targetBytes: compressed.targetBytes,
+      maxBytes: compressed.maxBytes,
+    });
     if (typeof File !== 'undefined') {
       return new File([blob], `avatar.${ext}`, { type: contentType });
     }
@@ -120,8 +148,19 @@ const AvatarService = (() => {
       const user   = UserService.getUser?.() ?? UserService.getUserId?.();
       const userId = typeof user === 'string' ? user : user?.id;
       if (!userId) return;
+      _logDiagnostico('upload-start', {
+        name: file.name || null,
+        bytes: file.size,
+        contentType: file.type || 'image/jpeg',
+      });
 
       const compressedFile = await _comprimirAvatar(file);
+      _logDiagnostico('upload-using-file', {
+        name: compressedFile.name || null,
+        bytes: compressedFile.size,
+        contentType: compressedFile.type || 'image/jpeg',
+        originalWasReused: compressedFile === file,
+      });
       let publicUrl;
       try {
         publicUrl = await _enviarParaBFF(compressedFile);

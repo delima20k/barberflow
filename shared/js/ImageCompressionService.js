@@ -42,6 +42,13 @@ class ImageCompressionService {
       const source = await ImageCompressionService.#source(fileOrBuffer, contentType);
       const selected = ImageCompressionService.#preset(preset);
       ImageCompressionService.#validateSource(source);
+      if (selected.name === 'avatar') {
+        ImageCompressionService.#logAvatarDiagnostic('before-compress', {
+          name: source.name,
+          bytes: source.size,
+          contentType: source.contentType,
+        });
+      }
       onProgress?.({ stage: 'compression-started', progress: 0.05 });
 
       if (!ImageCompressionService.#isCompressible(source.contentType)) {
@@ -57,6 +64,17 @@ class ImageCompressionService {
       const blob = await ImageCompressionService.#compressCanvas(canvas, outputMime, selected);
       const buffer = await blob.arrayBuffer();
       const blurPlaceholder = await ImageCompressionService.blurPlaceholder(source.blob, { signal }).catch(() => null);
+      if (selected.name === 'avatar') {
+        ImageCompressionService.#logAvatarDiagnostic('after-compress', {
+          name: source.name,
+          originalBytes: source.size,
+          bytes: blob.size,
+          contentType: blob.type || outputMime,
+          width: canvas.width,
+          height: canvas.height,
+          compressed: blob.size < source.size,
+        });
+      }
       onProgress?.({ stage: 'compression-completed', progress: 1 });
       return {
         buffer,
@@ -109,10 +127,15 @@ class ImageCompressionService {
 
   static async #source(fileOrBuffer, contentType) {
     if (fileOrBuffer instanceof Blob) {
-      return { blob: fileOrBuffer, contentType: fileOrBuffer.type || contentType, size: fileOrBuffer.size };
+      return {
+        blob: fileOrBuffer,
+        contentType: fileOrBuffer.type || contentType,
+        size: fileOrBuffer.size,
+        name: fileOrBuffer.name || null,
+      };
     }
     const blob = new Blob([fileOrBuffer], { type: contentType || 'application/octet-stream' });
-    return { blob, contentType: blob.type, size: blob.size };
+    return { blob, contentType: blob.type, size: blob.size, name: null };
   }
 
   static #validateSource(source) {
@@ -210,6 +233,13 @@ class ImageCompressionService {
       reader.onload = () => resolve(String(reader.result));
       reader.onerror = () => reject(reader.error ?? new Error('Falha ao gerar placeholder.'));
       reader.readAsDataURL(blob);
+    });
+  }
+
+  static #logAvatarDiagnostic(stage, payload) {
+    console.info('[AvatarUploadDiagnostics][ImageCompressionService]', {
+      stage,
+      ...payload,
     });
   }
 
