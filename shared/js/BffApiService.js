@@ -88,11 +88,11 @@ class BffApiService {
    * @param {string}      contentType — ex: 'image/jpeg'
    * @returns {Promise<{ data: any, error: Error|null }>}
    */
-  static async patchBinario(path, buffer, contentType) {
+  static async patchBinario(path, buffer, contentType, { skipCompression = false } = {}) {
     const url = `${BffApiService.#BASE_URL}${path}`;
     try {
       const authHeaders = await BffApiService.#authHeaders();
-      const upload = await BffApiService.#prepareBinaryUpload(buffer, contentType);
+      const upload = await BffApiService.#prepareBinaryUpload(buffer, contentType, { skipCompression });
       const res = await BffApiService.#fetchComTimeout(url, {
         method:  'PATCH',
         headers: { 'Content-Type': upload.contentType, ...authHeaders },
@@ -117,11 +117,11 @@ class BffApiService {
    * @param {string}      contentType — ex: 'image/jpeg'
    * @returns {Promise<{ data: any, error: Error|null }>}
    */
-  static async postBinario(path, buffer, contentType) {
+  static async postBinario(path, buffer, contentType, { skipCompression = false } = {}) {
     const url = `${BffApiService.#BASE_URL}${path}`;
     try {
       const authHeaders = await BffApiService.#authHeaders();
-      const upload = await BffApiService.#prepareBinaryUpload(buffer, contentType);
+      const upload = await BffApiService.#prepareBinaryUpload(buffer, contentType, { skipCompression });
       const res = await BffApiService.#fetchComTimeout(url, {
         method:  'POST',
         headers: { 'Content-Type': upload.contentType, ...authHeaders },
@@ -236,11 +236,12 @@ class BffApiService {
   // ── Namespace: barbearias ─────────────────────────────────────────
 
   static barbearias = {
-    salvarImagem: (tipo, buffer, mime) =>
+    salvarImagem: (tipo, buffer, mime, opts = {}) =>
       BffApiService.patchBinario(
         `/api/v1/barbearias/minha/imagem?tipo=${encodeURIComponent(tipo)}`,
         buffer,
         mime,
+        opts,
       ),
 
     salvarImagemServico: (buffer, mime) =>
@@ -417,8 +418,9 @@ class BffApiService {
     }
   }
 
-  static async #prepareBinaryUpload(buffer, contentType) {
+  static async #prepareBinaryUpload(buffer, contentType, { skipCompression = false } = {}) {
     const mime = String(contentType ?? '').toLowerCase();
+    if (skipCompression) return { buffer, contentType: mime || contentType };
     const canCompress = mime.startsWith('image/')
       && typeof ImageCompressionService !== 'undefined'
       && typeof ImageCompressionService.compress === 'function';

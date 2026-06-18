@@ -376,3 +376,29 @@ describe('BffApiService.profissionais mensagem barbearia', () => {
     });
   });
 });
+
+describe('BffApiService.uploadBinario otimizado', () => {
+  test('salvarImagem respeita skipCompression para payload ja otimizado', async () => {
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 200, json: async () => ({ dados: {} }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+    sb.ImageCompressionService = {
+      compress: fn(async () => {
+        throw new Error('nao deve recomprimir');
+      }),
+    };
+    const buffer = new ArrayBuffer(8);
+
+    const { error } = await sb.BffApiService.barbearias.salvarImagem('logo', buffer, 'image/webp', {
+      skipCompression: true,
+    });
+
+    assert.equal(error, null);
+    assert.equal(capturedOpts[0].body, buffer);
+    assert.equal(capturedOpts[0].headers['Content-Type'], 'image/webp');
+    assert.equal(sb.ImageCompressionService.compress.calls.length, 0);
+  });
+});

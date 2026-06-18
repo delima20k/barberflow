@@ -50,6 +50,14 @@ describe('BackendApiService — BASE_URL de produção', () => {
   });
 });
 
+describe('BackendApiService upload otimizado', () => {
+  test('uploadBinario aceita skipCompression e evita recompressao', () => {
+    assert.match(SRC, /uploadBinario\(path,\s*buffer,\s*\{[\s\S]*skipCompression\s*=\s*false/);
+    assert.match(SRC, /#prepareBinaryUpload\(buffer,\s*contentType,\s*\{\s*skipCompression\s*\}\)/);
+    assert.match(SRC, /if \(skipCompression\) return \{ buffer, contentType:/);
+  });
+});
+
 // ─── describe 2: consistência de URL nos frontends ───────────────
 
 describe('BackendApiService — consistência cross-file', () => {

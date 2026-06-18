@@ -97,13 +97,14 @@ class ProfileRepository {
    * @returns {Promise<string>} URL pública
    */
   static async updateAvatar(userId, file) {
+    const contentType = String(file.type || 'image/jpeg').toLowerCase();
     const ext  = file.name
       ? file.name.split('.').pop().toLowerCase().replace('jpg', 'jpeg')
-      : 'jpeg';
+      : (contentType === 'image/webp' ? 'webp' : 'jpeg');
     const path = `${userId}/avatar.${ext}`;
 
     const { error: upErr } = await SupabaseService.storageAvatars()
-      .upload(path, file, { upsert: true, contentType: file.type || 'image/jpeg' });
+      .upload(path, file, { upsert: true, contentType });
 
     if (upErr) throw upErr;
 

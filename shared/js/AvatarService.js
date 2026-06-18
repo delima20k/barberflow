@@ -70,6 +70,7 @@ const AvatarService = (() => {
     const buffer = await file.arrayBuffer();
     const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer, {
       contentType: file.type || 'image/jpeg',
+      skipCompression: true,
     });
     if (!res.ok) {
       const corpo = await res.json().catch(() => ({}));
@@ -91,6 +92,24 @@ const AvatarService = (() => {
     return url;
   }
 
+  async function _comprimirAvatar(file) {
+    if (typeof ImageCompressionService === 'undefined' || typeof ImageCompressionService.compress !== 'function') {
+      throw new Error('Compressao de avatar indisponivel.');
+    }
+    const compressed = await ImageCompressionService.compress(file, {
+      contentType: file.type || 'image/jpeg',
+      preset: 'AVATAR',
+    });
+    const contentType = compressed.contentType || 'image/jpeg';
+    const ext = contentType === 'image/webp' ? 'webp' : 'jpeg';
+    const blob = compressed.blob ?? new Blob([compressed.buffer], { type: contentType });
+    if (typeof File !== 'undefined') {
+      return new File([blob], `avatar.${ext}`, { type: contentType });
+    }
+    blob.name = `avatar.${ext}`;
+    return blob;
+  }
+
   /**
    * Faz o upload do avatar via BFF com pipeline de otimização server-side.
    * Se o BFF falhar, executa fallback direto ao bucket 'avatars'.
@@ -102,9 +121,10 @@ const AvatarService = (() => {
       const userId = typeof user === 'string' ? user : user?.id;
       if (!userId) return;
 
+      const compressedFile = await _comprimirAvatar(file);
       let publicUrl;
       try {
-        publicUrl = await _enviarParaBFF(file);
+        publicUrl = await _enviarParaBFF(compressedFile);
         // Persiste avatar_path no banco — sem isso o avatar some no próximo reload
         await ProfileRepository.update(userId, { avatar_path: publicUrl });
       } catch (bffErr) {
@@ -112,7 +132,7 @@ const AvatarService = (() => {
         if (typeof LoggerService !== 'undefined') {
           LoggerService.warn('[AvatarService] BFF falhou, usando fallback Storage:', bffErr.message);
         }
-        publicUrl = await _uploadFallback(file, userId);
+        publicUrl = await _uploadFallback(compressedFile, userId);
         // ProfileRepository.updateAvatar já persiste o avatar_path internamente
       }
 

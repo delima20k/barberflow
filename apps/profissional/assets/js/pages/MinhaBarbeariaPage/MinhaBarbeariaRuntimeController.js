@@ -3268,10 +3268,21 @@ export class MinhaBarbeariaRuntimeController {
    * @returns {Promise<{url: string, path: string, updated_at: string}>}
    */
   async #uploadImagemBarbearia(file, tipo) {
-    const buffer = await file.arrayBuffer();
-    const mime   = file.type || 'image/jpeg';
+    let buffer = await file.arrayBuffer();
+    let mime   = file.type || 'image/jpeg';
+    let skipCompression = false;
 
-    const { data, error } = await BffApiService.barbearias.salvarImagem(tipo, buffer, mime);
+    if (tipo === 'logo' && typeof ImageCompressionService !== 'undefined') {
+      const compressed = await ImageCompressionService.compress(file, {
+        contentType: mime,
+        preset: 'LOGO',
+      });
+      buffer = compressed.buffer;
+      mime = compressed.contentType || mime;
+      skipCompression = true;
+    }
+
+    const { data, error } = await BffApiService.barbearias.salvarImagem(tipo, buffer, mime, { skipCompression });
     if (error) throw new Error(error.message ?? `Falha no upload`);
 
     return {

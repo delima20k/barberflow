@@ -14,7 +14,7 @@ const AppError    = require('../utils/AppError');
 class BarbeariaMediaService extends BaseService {
 
   static #TIPOS = Object.freeze({
-    logo:  { campo: 'logo_path',  nome: 'logo.webp',  width: 256,  height: 256, fit: 'cover' },
+    logo:  { campo: 'logo_path',  nome: 'logo.webp',  width: 256,  height: 256, fit: 'contain', quality: 80, minQuality: 60, targetBytes: 10 * 1024 },
     cover: { campo: 'cover_path', nome: 'cover.webp', width: 1280, height: null, fit: 'inside' },
   });
 
@@ -110,7 +110,14 @@ class BarbeariaMediaService extends BaseService {
       const resize = cfg.height
         ? { width: cfg.width, height: cfg.height, fit: cfg.fit, position: 'centre' }
         : { width: cfg.width, withoutEnlargement: true, fit: cfg.fit };
-      return await img.resize(resize).webp({ quality: 82, effort: 4 }).toBuffer();
+      let quality = cfg.quality ?? 82;
+      const minQuality = cfg.minQuality ?? quality;
+      let buffer = await img.clone().resize(resize).webp({ quality, effort: 4 }).toBuffer();
+      while (cfg.targetBytes && buffer.length > cfg.targetBytes && quality > minQuality) {
+        quality = Math.max(minQuality, quality - 5);
+        buffer = await img.clone().resize(resize).webp({ quality, effort: 4 }).toBuffer();
+      }
+      return buffer;
     } catch {
       throw AppError.badRequest('Arquivo de imagem invalido.');
     }

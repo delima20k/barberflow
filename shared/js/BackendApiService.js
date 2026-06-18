@@ -282,9 +282,9 @@ class BackendApiService {
    * @param {string}      [opts.contentType='application/octet-stream'] — Content-Type
    * @returns {Promise<Response>}
    */
-  static async uploadBinario(path, buffer, { method = 'POST', contentType = 'application/octet-stream' } = {}) {
+  static async uploadBinario(path, buffer, { method = 'POST', contentType = 'application/octet-stream', skipCompression = false } = {}) {
     const jwt = BackendApiService.#jwt();
-    const upload = await BackendApiService.#prepareBinaryUpload(buffer, contentType);
+    const upload = await BackendApiService.#prepareBinaryUpload(buffer, contentType, { skipCompression });
     return fetch(`${BackendApiService.#BASE_URL}${path}`, {
       method,
       headers: {
@@ -295,8 +295,9 @@ class BackendApiService {
     });
   }
 
-  static async #prepareBinaryUpload(buffer, contentType) {
+  static async #prepareBinaryUpload(buffer, contentType, { skipCompression = false } = {}) {
     const mime = String(contentType ?? '').toLowerCase();
+    if (skipCompression) return { buffer, contentType: mime || contentType };
     const canCompress = mime.startsWith('image/')
       && typeof ImageCompressionService !== 'undefined'
       && typeof ImageCompressionService.compress === 'function';
