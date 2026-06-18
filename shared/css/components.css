@@ -8385,7 +8385,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   width: min(100%, 500px);
   aspect-ratio: 5 / 6;
   margin-top: 72px;
-  perspective: 1100px;
+  perspective: 1400px;
   overflow: visible;
   touch-action: pan-y;
   user-select: none;
@@ -8729,7 +8729,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 @media (max-width: 480px) {
-  .pp-prism-stage { width: 100%; perspective: 900px; }
+  .pp-prism-stage { width: 100%; perspective: 1400px; }
   .pp-prism-face-id-name { max-width: 100px; }
 }
 
