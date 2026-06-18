@@ -350,11 +350,17 @@ class MediaPrismViewer {
     const eParceiro = item.tipo_autor === 'parceiro';
     let avatarUrl = '', nome = '';
     if (eParceiro) {
-      avatarUrl = item.poster_avatar_path || '';
-      nome      = item.poster_name || '';
+      const rawPath = item.poster_avatar_path || '';
+      avatarUrl = rawPath && typeof ApiService !== 'undefined'
+        ? ApiService.getAvatarUrl(rawPath)
+        : rawPath;
+      nome = item.poster_name || '';
     } else if (this.#isStoryMode()) {
-      avatarUrl = item.shop_logo_path || '';
-      nome      = item.shop_name || '';
+      const rawPath = item.shop_logo_path || '';
+      avatarUrl = rawPath && typeof ApiService !== 'undefined'
+        ? ApiService.getLogoUrl(rawPath)
+        : rawPath;
+      nome = item.shop_name || '';
     } else {
       avatarUrl = item.professionalAvatarUrl || item.barberAvatarUrl || '';
       nome      = item.professionalName || item.barberName || '';
