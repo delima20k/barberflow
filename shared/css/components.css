@@ -8478,14 +8478,21 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   filter: brightness(1);
 }
 
-.pp-prism-media,
+.pp-prism-media {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+}
 .pp-prism-media > img,
 .pp-prism-media > video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
 }
+.pp-prism-media > img   { object-fit: cover; }
+.pp-prism-media > video { object-fit: contain; background: #0d0a08; }
 
 /* Overlay rotativo dentro de cada face — identidade (esquerda) + like (direita) */
 .pp-prism-face-overlay {
@@ -8668,6 +8675,24 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   12% { opacity: .95; }
   78% { opacity: .8; }
   100% { opacity: 0; transform: translate(-50%, -340px) scale(1.02); }
+}
+
+/* Story mode: video acima do input, sem margin-top extra no stage */
+.pp-prism-viewer[data-mode="story"] {
+  padding-top: 64px;
+}
+.pp-prism-viewer[data-mode="story"] .pp-prism-stage {
+  margin-top: 0;
+  max-height: calc(100vh - 180px);
+  flex: 0 0 auto;
+}
+.pp-prism-viewer[data-mode="story"] .pp-prism-public-actions {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  width: min(100%, 460px);
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
 }
 
 @media (max-width: 480px) {

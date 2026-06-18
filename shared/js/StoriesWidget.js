@@ -668,7 +668,8 @@ class StoriesWidget {
       : (story.poster_name ?? story.shop_name ?? this.#shopName ?? '');
     const identityLogo = isOwnerStory ? logoSrc : (authorAvatarSrc ?? logoSrc);
     const thumbSrc = story.thumbnail_url
-      || StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type);
+      || StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type)
+      || logoSrc;
 
     const card = document.createElement('div');
     card.className          = 'card-mini story-card';

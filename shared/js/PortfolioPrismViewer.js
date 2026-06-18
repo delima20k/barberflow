@@ -316,7 +316,7 @@ class MediaPrismViewer {
       const el = document.createElement(isVideo ? 'video' : 'img');
       if (isVideo) {
         el.muted = !this.#isStoryMode();
-        el.controls = this.#isStoryMode();
+        el.controls = false;
         el.playsInline = true;
         el.preload = 'metadata';
         el.loop = !this.#isStoryMode();
@@ -330,7 +330,7 @@ class MediaPrismViewer {
     const el = slot.firstElementChild;
     if (isVideo) {
       el.muted = !this.#isStoryMode();
-      el.controls = this.#isStoryMode();
+      el.controls = false;
       el.playsInline = true;
       el.preload = 'metadata';
       el.loop = !this.#isStoryMode();
