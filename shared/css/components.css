@@ -8306,6 +8306,31 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-close:hover,
 .pp-prism-close:focus-visible { background: rgba(255,255,255,.12); transform: scale(1.06); }
 
+/* Botão fechar dentro da face — move com o cubo; visível só em story mode */
+.pp-prism-face-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  transition: background .2s;
+}
+.pp-prism-face-close:hover,
+.pp-prism-face-close:focus-visible { background: rgba(255,255,255,.18); }
+.pp-prism-viewer[data-mode="story"] .pp-prism-face-close { display: inline-flex; }
+.pp-prism-viewer[data-mode="story"] > .pp-prism-close { display: none; }
+
 .pp-prism-meta {
   position: absolute;
   top: 14px;
@@ -8684,6 +8709,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-stage {
   margin-top: 0;
+  aspect-ratio: 25 / 36;
   max-height: calc(100vh - 160px);
   flex: 0 0 auto;
 }
