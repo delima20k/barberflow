@@ -8280,7 +8280,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 18px 0.3px;
+  padding: 18px 0.2px;
+  overflow: hidden;
   --pp-radius: 200px;
 }
 .pp-prism-viewer[hidden] { display: none; }
@@ -8356,7 +8357,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-stage {
   position: relative;
-  width: min(calc(100vw - 0.6px), 460px);
+  width: min(100%, 460px);
   aspect-ratio: 5 / 6;
   margin-top: 72px;
   perspective: 1100px;
@@ -8670,7 +8671,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 @media (max-width: 480px) {
-  .pp-prism-stage { width: calc(100vw - 0.6px); perspective: 900px; }
+  .pp-prism-stage { width: 100%; perspective: 900px; }
   .pp-prism-face-id-name { max-width: 100px; }
 }
 

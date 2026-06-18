@@ -49,6 +49,7 @@ class MediaPrismViewer {
   #publicInput     = null;
   #publicSendBtn   = null;
   #publicLike      = null;
+  #publicLogo      = null;
   #publicEmojis    = [];
   #reactionLayer   = null;
   #count           = null;
@@ -212,8 +213,18 @@ class MediaPrismViewer {
   #renderPublicActions(item) {
     if (!this.#publicActions) return;
     if (this.#isStoryMode()) {
-      this.#publicActions.hidden = true;
-      if (this.#publicInput) this.#publicInput.value = '';
+      this.#publicActions.hidden = false;
+      if (this.#publicLogo) {
+        const rawPath = item?.shop_logo_path || '';
+        const logoUrl = rawPath && typeof ApiService !== 'undefined'
+          ? ApiService.getLogoUrl(rawPath)
+          : rawPath;
+        this.#publicLogo.src = logoUrl || '/shared/img/icon-512-cliente.png';
+        this.#publicLogo.alt = item?.shop_name || 'BarberFlow';
+      }
+      if (this.#publicInput) { this.#publicInput.value = ''; this.#publicInput.disabled = false; }
+      if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
+      this.#publicEmojis.forEach(btn => { btn.disabled = false; });
       return;
     }
 
@@ -393,6 +404,20 @@ class MediaPrismViewer {
     document.dispatchEvent(new CustomEvent('barberflow:prism-story-like', {
       bubbles: false,
       detail: { storyId: item.id, mediaId: item.media_id, item },
+    }));
+  }
+
+  #handleStoryMessage(body) {
+    const texto = String(body ?? '').trim();
+    if (!texto) return;
+    if (this.#publicInput) this.#publicInput.value = '';
+    const item  = this.#items[this.#index];
+    const perfil = MediaPrismViewer.#perfilAtual();
+    const tipo   = MediaPrismViewer.#isEmojiText(texto) ? 'emoji' : 'message';
+    this.#emitInteraction({ texto, perfil, type: tipo });
+    document.dispatchEvent(new CustomEvent('barberflow:prism-story-message', {
+      bubbles: false,
+      detail: { texto, storyId: item?.id, shopOwnerId: item?.shop_owner_id, item },
     }));
   }
 
@@ -968,6 +993,7 @@ class MediaPrismViewer {
     this.#publicInput   = overlay.querySelector('.pp-prism-message-input');
     this.#publicSendBtn = overlay.querySelector('.pp-prism-message-send');
     this.#publicLike    = null;
+    this.#publicLogo    = overlay.querySelector('.pp-prism-public-logo');
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
     this.#count   = overlay.querySelector('.pp-prism-count');
@@ -1011,19 +1037,24 @@ class MediaPrismViewer {
       const emojiBtn = e.target.closest('.pp-prism-public-emoji');
       if (emojiBtn) {
         e.preventDefault();
-        this.#handlePublicMessage(emojiBtn.dataset.publicEmoji || MediaPrismViewer.#laughEmoji());
+        const texto = emojiBtn.dataset.publicEmoji || MediaPrismViewer.#laughEmoji();
+        if (this.#isStoryMode()) this.#handleStoryMessage(texto);
+        else this.#handlePublicMessage(texto);
       }
     });
 
     this.#publicInput?.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      this.#handlePublicMessage(this.#publicInput.value);
+      if (this.#isStoryMode()) this.#handleStoryMessage(this.#publicInput.value);
+      else this.#handlePublicMessage(this.#publicInput.value);
     });
 
     this.#publicSendBtn?.addEventListener('click', e => {
       e.preventDefault();
-      if (this.#publicInput) this.#handlePublicMessage(this.#publicInput.value);
+      if (!this.#publicInput) return;
+      if (this.#isStoryMode()) this.#handleStoryMessage(this.#publicInput.value);
+      else this.#handlePublicMessage(this.#publicInput.value);
     });
 
     // Listener externo: re-renderiza se um evento global atualizar a contagem desta imagem
