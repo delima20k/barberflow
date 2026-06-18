@@ -591,7 +591,16 @@ class StoryViewer {
 
   static #preencherInner(inner, dados) {
     if (!dados) return;
-    const video        = inner.querySelector('.sv-video');
+    let video          = inner.querySelector('.sv-video');
+    if (!video) {
+      video = document.createElement('video');
+      video.className = 'sv-video';
+      video.setAttribute('playsinline', '');
+      video.setAttribute('loop', '');
+      video.controls = true;
+      video.muted    = false;
+      inner.insertBefore(video, inner.firstChild);
+    }
     const badge        = inner.querySelector('.sv-badge');
     const nome         = inner.querySelector('.sv-nome');
     const addr         = inner.querySelector('.sv-addr');
