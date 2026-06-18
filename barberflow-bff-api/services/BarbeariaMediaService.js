@@ -16,7 +16,7 @@ class BarbeariaMediaService extends BaseService {
 
   static #TIPOS = Object.freeze({
     logo:  { campo: 'logo_path',  nome: 'logo.webp',  width: 256,  height: 256, fit: 'contain', quality: 80, minQuality: 60, targetBytes: 5 * 1024 },
-    cover: { campo: 'cover_path', nome: 'cover.webp', width: 1280, height: null, fit: 'inside' },
+    cover: { campo: 'cover_path', nome: 'cover.webp', width: 1280, height: null, fit: 'inside', quality: 82, minQuality: 60, targetBytes: 30 * 1024, maxBytes: 40 * 1024, minWidth: 384 },
   });
 
   static #SERVICO_CFG = Object.freeze({ width: 900, height: null, fit: 'inside' });
@@ -132,20 +132,33 @@ class BarbeariaMediaService extends BaseService {
   static async #processarImagem(arquivo, cfg) {
     try {
       const img = sharp(arquivo, { failOn: 'warning' }).rotate();
-      const resize = cfg.height
-        ? { width: cfg.width, height: cfg.height, fit: cfg.fit, position: 'centre' }
-        : { width: cfg.width, withoutEnlargement: true, fit: cfg.fit };
       let quality = cfg.quality ?? 82;
       const minQuality = cfg.minQuality ?? quality;
-      let buffer = await img.clone().resize(resize).webp({ quality, effort: 4 }).toBuffer();
+      let width = cfg.width;
+      let buffer = await BarbeariaMediaService.#renderizarWebp(img, cfg, width, quality);
+
       while (cfg.targetBytes && buffer.length > cfg.targetBytes && quality > minQuality) {
         quality = Math.max(minQuality, quality - 5);
-        buffer = await img.clone().resize(resize).webp({ quality, effort: 4 }).toBuffer();
+        buffer = await BarbeariaMediaService.#renderizarWebp(img, cfg, width, quality);
       }
+
+      while (cfg.maxBytes && buffer.length > cfg.maxBytes && cfg.minWidth && width > cfg.minWidth) {
+        width = Math.max(cfg.minWidth, Math.floor(width * 0.9));
+        buffer = await BarbeariaMediaService.#renderizarWebp(img, cfg, width, minQuality);
+      }
+
       return buffer;
     } catch {
       throw AppError.badRequest('Arquivo de imagem invalido.');
     }
+  }
+
+  static #renderizarWebp(img, cfg, width, quality) {
+    const resize = cfg.height
+      ? { width: cfg.width, height: cfg.height, fit: cfg.fit, position: 'centre' }
+      : { width, withoutEnlargement: true, fit: cfg.fit };
+
+    return img.clone().resize(resize).webp({ quality, effort: 4 }).toBuffer();
   }
 }
 
