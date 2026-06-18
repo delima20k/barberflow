@@ -5605,7 +5605,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: grid;
   place-items: center;
   padding: 24px;
-  perspective: 1400px;
+  perspective: 2400px;
   touch-action: pan-y;
 }
 
@@ -5618,7 +5618,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   height: min(78vh, 720px);
   display: grid;
   place-items: center;
-  perspective: 1400px;
+  perspective: 2400px;
 }
 
 .portfolio-viewer__cube {
@@ -8382,10 +8382,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-stage {
   position: relative;
-  width: min(100%, 500px);
+  width: min(86vw, 500px);
   aspect-ratio: 5 / 6;
   margin-top: 72px;
-  perspective: 1400px;
+  perspective: 2400px;
   overflow: visible;
   touch-action: pan-y;
   user-select: none;
@@ -8529,7 +8529,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 10px 40px;
   padding-bottom: max(14px, env(safe-area-inset-bottom));
   background: linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 100%);
   pointer-events: none;
@@ -8710,9 +8710,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-viewer[data-mode="story"] .pp-prism-stage {
   margin-top: 0;
   margin-bottom: 5px;
-  width: 100%;
-  max-width: 500px;
-  height: min(137vw, 685px, calc(100vh - 170px));
+  width: min(86vw, 460px);
+  height: min(118vw, 630px, calc(100vh - 170px));
   flex: 0 0 auto;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-media {
