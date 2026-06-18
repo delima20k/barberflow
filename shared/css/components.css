@@ -8480,8 +8480,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-media {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 15px;
+  bottom: 15px;
   left: 8px;
   right: 8px;
 }
@@ -8677,13 +8677,14 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   100% { opacity: 0; transform: translate(-50%, -340px) scale(1.02); }
 }
 
-/* Story mode: video acima do input, sem margin-top extra no stage */
+/* Story mode: video no topo, input fixo na parte de baixo */
 .pp-prism-viewer[data-mode="story"] {
   padding-top: 64px;
+  justify-content: flex-start;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-stage {
   margin-top: 0;
-  max-height: calc(100vh - 180px);
+  max-height: calc(100vh - 160px);
   flex: 0 0 auto;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-public-actions {
@@ -8692,6 +8693,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   bottom: auto;
   transform: none;
   width: min(100%, 460px);
+  margin-top: auto;
   padding-bottom: max(4px, env(safe-area-inset-bottom));
 }
 
