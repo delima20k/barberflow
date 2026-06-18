@@ -54,6 +54,12 @@ class MediaPrismViewer {
   #count           = null;
   #soundBtn        = null;
 
+  // Referências para overlay dentro de cada face 3D
+  #faceIdentityImgs  = [];
+  #faceIdentityNames = [];
+  #faceLikeBtns      = [];
+  #faceLikeCounts    = [];
+
   #items           = [];
   #index           = 0;
   #mode            = 'portfolio';
@@ -178,7 +184,6 @@ class MediaPrismViewer {
       this.#title.textContent = storyMode ? '' : (item.title || 'Trabalho do portfolio');
     }
     if (this.#count) this.#count.textContent = `${this.#index + 1}/${this.#items.length}`;
-    this.#renderMeta(item);
     this.#renderPublicActions(item);
 
     if (this.#actions) {
@@ -224,21 +229,6 @@ class MediaPrismViewer {
       return;
     }
 
-    const likesCount = Math.max(0, Number(item?.likesCount ?? item?.likes_count ?? 0));
-    if (this.#publicLike) {
-      const isLiked = Boolean(item?.liked);
-      this.#publicLike.classList.toggle('is-liked', isLiked);
-      this.#publicLike.disabled = false;
-      this.#publicLike.setAttribute('aria-pressed', isLiked ? 'true' : 'false');
-      const count = this.#publicLike.querySelector('[data-public-like-count]');
-      const icon  = this.#publicLike.querySelector('[data-public-like-icon]');
-      if (count) {
-        count.textContent = String(likesCount);
-        count.hidden = (likesCount <= 0);
-      }
-      if (icon) icon.hidden = (likesCount > 0);
-      this.#publicLike.disabled = isLiked;
-    }
     if (this.#publicInput) {
       if (imageAnterior !== imageId) this.#publicInput.value = '';
       this.#publicInput.disabled = false;
@@ -299,6 +289,7 @@ class MediaPrismViewer {
     if (!slot) return;
     if (!item) {
       this.#limparSlot(slot);
+      this.#renderOverlayNaFace(faceIndex, null);
       return;
     }
 
@@ -339,6 +330,64 @@ class MediaPrismViewer {
       if (url && el.src !== url) el.src = url;
       el.alt = MediaPrismViewer.#resolverTitulo(item);
     }
+    this.#renderOverlayNaFace(faceIndex, item);
+  }
+
+  #renderOverlayNaFace(faceIndex, item) {
+    const imgEl   = this.#faceIdentityImgs[faceIndex];
+    const nameEl  = this.#faceIdentityNames[faceIndex];
+    const likeBtn = this.#faceLikeBtns[faceIndex];
+    const countEl = this.#faceLikeCounts[faceIndex];
+    if (!imgEl || !nameEl) return;
+
+    if (!item) {
+      imgEl.removeAttribute('src'); imgEl.alt = '';
+      nameEl.textContent = '';
+      if (likeBtn) likeBtn.hidden = true;
+      return;
+    }
+
+    const eParceiro = item.tipo_autor === 'parceiro';
+    let avatarUrl = '', nome = '';
+    if (eParceiro) {
+      avatarUrl = item.poster_avatar_path || '';
+      nome      = item.poster_name || '';
+    } else if (this.#isStoryMode()) {
+      avatarUrl = item.shop_logo_path || '';
+      nome      = item.shop_name || '';
+    } else {
+      avatarUrl = item.professionalAvatarUrl || item.barberAvatarUrl || '';
+      nome      = item.professionalName || item.barberName || '';
+    }
+
+    if (avatarUrl) { imgEl.src = avatarUrl; imgEl.alt = nome; imgEl.hidden = false; }
+    else           { imgEl.removeAttribute('src'); imgEl.hidden = true; }
+    nameEl.textContent = nome;
+
+    if (!likeBtn) return;
+    const likesCount = Math.max(0, Number(item.likes_count ?? item.likesCount ?? 0));
+    const isLiked    = Boolean(item.user_liked ?? item.liked);
+    likeBtn.hidden   = false;
+    likeBtn.classList.toggle('is-liked', isLiked);
+    likeBtn.setAttribute('aria-pressed', String(isLiked));
+    if (countEl) {
+      countEl.textContent = likesCount > 0 ? String(likesCount) : '';
+      countEl.hidden = likesCount <= 0;
+    }
+  }
+
+  #handleStoryLike() {
+    const item = this.#items[this.#index];
+    if (!item) return;
+    const prevLiked = Boolean(item.user_liked);
+    const prevCount = Math.max(0, Number(item.likes_count ?? 0));
+    item.user_liked  = !prevLiked;
+    item.likes_count = prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
+    this.#renderFaces();
+    document.dispatchEvent(new CustomEvent('barberflow:prism-story-like', {
+      bubbles: false,
+      detail: { storyId: item.id, mediaId: item.media_id, item },
+    }));
   }
 
   static #detectarVideo(item) {
@@ -593,21 +642,21 @@ class MediaPrismViewer {
 
   async #handlePublicLike() {
     const item = this.#itemAtual();
-    if (!item?.portfolioPublicActions || !item?.id || !this.#publicLike) return;
+    if (!item?.portfolioPublicActions || !item?.id) return;
     if (typeof BffApiService === 'undefined') return;
 
     // Cada usuário só pode curtir UMA vez — se já curtiu, ignora o clique
     if (Boolean(item.liked)) return;
 
-    const likedAntes = false;
     const countAntes = Math.max(0, Number(item.likesCount ?? item.likes_count ?? 0));
     const countNovo  = countAntes + 1;
 
     item.liked = true;
     item.likesCount = countNovo;
-    this.#renderMeta(item);
-    this.#renderPublicActions(item);
-    this.#publicLike.disabled = true;
+    this.#renderFaces();
+
+    const faceBtn = this.#faceLikeBtns[MediaPrismViewer.#FACE_OFFSETS.indexOf(0)];
+    if (faceBtn) faceBtn.disabled = true;
 
     const perfil = MediaPrismViewer.#perfilAtual();
     try {
@@ -619,17 +668,15 @@ class MediaPrismViewer {
         item.likesCount = serverCount < countNovo ? countNovo : serverCount;
       }
       item.liked = true;
-      this.#renderMeta(item);
-      this.#renderPublicActions(item);
+      this.#renderFaces();
       MediaPrismViewer.#dispatchLike(item.id, item.likesCount, true);
       this.#emitInteraction({ texto: '👍', perfil, type: 'like' });
     } catch {
       item.liked      = false;
       item.likesCount = countAntes;
-      this.#renderMeta(item);
-      this.#renderPublicActions(item);
+      this.#renderFaces();
     } finally {
-      if (this.#publicLike) this.#publicLike.disabled = false;
+      if (faceBtn) faceBtn.disabled = false;
     }
   }
 
@@ -875,18 +922,11 @@ class MediaPrismViewer {
     overlay.setAttribute('aria-hidden', 'true');
 
     const facesHtml = Array.from({ length: MediaPrismViewer.#SIDES }, (_, i) =>
-      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div></figure>`
+      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div><div class="pp-prism-face-overlay"><div class="pp-prism-face-identity"><img class="pp-prism-face-id-img" alt="" loading="lazy"><span class="pp-prism-face-id-name"></span></div><button type="button" class="pp-prism-face-like-btn" hidden aria-label="Curtir" aria-pressed="false"><span class="pp-prism-face-like-icon" aria-hidden="true">❤️</span><span class="pp-prism-face-like-count"></span></button></div></figure>`
     ).join('');
 
     overlay.innerHTML = `
       <button type="button" class="pp-prism-close" aria-label="Fechar">×</button>
-      <div class="pp-prism-meta" hidden>
-        <img class="pp-prism-avatar" alt="" loading="lazy">
-        <span class="pp-prism-meta-text">
-          <strong class="pp-prism-name"></strong>
-          <span class="pp-prism-likes" data-portfolio-meta-count></span>
-        </span>
-      </div>
       <div class="pp-prism-stage" aria-live="polite">
         <div class="pp-prism-cube">${facesHtml}</div>
         <div class="pp-prism-reactions" aria-hidden="true"></div>
@@ -897,10 +937,6 @@ class MediaPrismViewer {
           <input class="pp-prism-message-input" type="text" maxlength="${MediaPrismViewer.#PUBLIC_MESSAGE_MAX_LENGTH}" aria-label="Mensagem">
           <button type="button" class="pp-prism-message-send" aria-label="Enviar mensagem"><span aria-hidden="true">➤</span></button>
         </div>
-        <button type="button" class="pp-prism-public-like" aria-label="Curtir portfolio" aria-pressed="false">
-          <span data-public-like-icon aria-hidden="true">👍</span>
-          <span data-public-like-count hidden>0</span>
-        </button>
         <button type="button" class="pp-prism-public-emoji" data-public-emoji="${MediaPrismViewer.#laughEmoji()}" aria-label="Enviar risada">${MediaPrismViewer.#laughEmoji()}</button>
         <button type="button" class="pp-prism-public-emoji" data-public-emoji="${MediaPrismViewer.#sadEmoji()}" aria-label="Enviar tristeza">${MediaPrismViewer.#sadEmoji()}</button>
       </div>
@@ -916,19 +952,25 @@ class MediaPrismViewer {
     this.#cube    = overlay.querySelector('.pp-prism-cube');
     this.#faces   = [...overlay.querySelectorAll('.pp-prism-face')];
     this.#medias  = this.#faces.map(f => f.querySelector('.pp-prism-media'));
-    this.#meta    = overlay.querySelector('.pp-prism-meta');
-    this.#avatar  = overlay.querySelector('.pp-prism-avatar');
-    this.#name    = overlay.querySelector('.pp-prism-name');
-    this.#likes   = overlay.querySelector('.pp-prism-likes');
+    this.#meta    = null;
+    this.#avatar  = null;
+    this.#name    = null;
+    this.#likes   = null;
     this.#title   = overlay.querySelector('.pp-prism-title');
     this.#actions = overlay.querySelector('.pp-prism-actions');
     this.#publicActions = overlay.querySelector('.pp-prism-public-actions');
     this.#publicInput   = overlay.querySelector('.pp-prism-message-input');
     this.#publicSendBtn = overlay.querySelector('.pp-prism-message-send');
-    this.#publicLike    = overlay.querySelector('.pp-prism-public-like');
+    this.#publicLike    = null;
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
     this.#count   = overlay.querySelector('.pp-prism-count');
+
+    // Referências para overlay dentro de cada face
+    this.#faceIdentityImgs  = this.#faces.map(f => f.querySelector('.pp-prism-face-id-img'));
+    this.#faceIdentityNames = this.#faces.map(f => f.querySelector('.pp-prism-face-id-name'));
+    this.#faceLikeBtns      = this.#faces.map(f => f.querySelector('.pp-prism-face-like-btn'));
+    this.#faceLikeCounts    = this.#faces.map(f => f.querySelector('.pp-prism-face-like-count'));
 
     overlay.addEventListener('click', e => {
       if (e.target === overlay || e.target.closest('.pp-prism-close')) this.close();
@@ -940,13 +982,26 @@ class MediaPrismViewer {
     this.#stage?.addEventListener('pointercancel', () => this.#onPointerCancel());
     this.#stage?.addEventListener('lostpointercapture', () => this.#onPointerCancel());
 
-    this.#publicActions?.addEventListener('click', e => {
-      const likeBtn = e.target.closest('.pp-prism-public-like');
-      if (likeBtn) {
-        e.preventDefault();
+    // Like dentro das faces 3D (gira com o cubo)
+    this.#cube?.addEventListener('click', e => {
+      const btn = e.target.closest('.pp-prism-face-like-btn');
+      if (!btn || btn.disabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.#isStoryMode()) {
+        this.#handleStoryLike();
+      } else {
         this.#handlePublicLike();
-        return;
       }
+    });
+
+    // Sinal de retorno do like de story (StoryViewer atualizou item por referência)
+    document.addEventListener('barberflow:prism-story-like-done', () => {
+      if (this.#overlay?.hidden || !this.#isStoryMode()) return;
+      this.#renderFaces();
+    });
+
+    this.#publicActions?.addEventListener('click', e => {
       const emojiBtn = e.target.closest('.pp-prism-public-emoji');
       if (emojiBtn) {
         e.preventDefault();
@@ -965,8 +1020,7 @@ class MediaPrismViewer {
       if (this.#publicInput) this.#handlePublicMessage(this.#publicInput.value);
     });
 
-    // Listener externo: re-renderiza o botão de curtida se um evento global
-    // atualizar a contagem desta imagem (ex: curtida feita no carrossel ou pro app)
+    // Listener externo: re-renderiza se um evento global atualizar a contagem desta imagem
     document.addEventListener('barberflow:portfolio-like', e => {
       if (this.#overlay?.hidden) return;
       const { imageId, likesCount, liked } = e.detail ?? {};
@@ -975,10 +1029,9 @@ class MediaPrismViewer {
       if (!item) return;
       item.liked      = Boolean(liked);
       item.likesCount = Math.max(0, Number(likesCount ?? 0));
-      // Só re-renderiza se for o item atual visível
       if (this.#items[this.#index]?.id === imageId) {
-        this.#renderMeta(item);
         this.#renderPublicActions(item);
+        this.#renderFaces();
       }
     });
 

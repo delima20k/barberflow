@@ -39,6 +39,12 @@ class PortfolioPrismViewer {
   #actions         = null;
   #count           = null;
 
+  // Referências para overlay dentro de cada face 3D
+  #faceIdentityImgs  = [];
+  #faceIdentityNames = [];
+  #faceLikeBtns      = [];
+  #faceLikeCounts    = [];
+
   #items           = [];
   #index           = 0;
 
@@ -235,6 +241,40 @@ class PortfolioPrismViewer {
     } else {
       if (el.src !== url && url) el.src = url;
       el.alt = item?.title || '';
+    }
+    this.#renderOverlayNaFace(faceIndex, item);
+  }
+
+  #renderOverlayNaFace(faceIndex, item) {
+    const imgEl   = this.#faceIdentityImgs[faceIndex];
+    const nameEl  = this.#faceIdentityNames[faceIndex];
+    const likeBtn = this.#faceLikeBtns[faceIndex];
+    const countEl = this.#faceLikeCounts[faceIndex];
+    if (!imgEl || !nameEl) return;
+
+    if (!item) {
+      imgEl.removeAttribute('src'); imgEl.alt = '';
+      nameEl.textContent = '';
+      if (likeBtn) likeBtn.hidden = true;
+      return;
+    }
+
+    const avatarUrl = item.professionalAvatarUrl || item.barberAvatarUrl || '';
+    const nome      = item.professionalName || item.barberName || item.title || '';
+
+    if (avatarUrl) { imgEl.src = avatarUrl; imgEl.alt = nome; imgEl.hidden = false; }
+    else           { imgEl.removeAttribute('src'); imgEl.hidden = true; }
+    nameEl.textContent = nome;
+
+    if (!likeBtn) return;
+    const likesCount = Math.max(0, Number(item.likesCount ?? item.likes_count ?? 0));
+    const isLiked    = Boolean(item.liked);
+    likeBtn.hidden   = false;
+    likeBtn.classList.toggle('is-liked', isLiked);
+    likeBtn.setAttribute('aria-pressed', String(isLiked));
+    if (countEl) {
+      countEl.textContent = likesCount > 0 ? String(likesCount) : '';
+      countEl.hidden = likesCount <= 0;
     }
   }
 
@@ -500,7 +540,7 @@ class PortfolioPrismViewer {
     overlay.setAttribute('aria-hidden', 'true');
 
     const facesHtml = Array.from({ length: PortfolioPrismViewer.#SIDES }, (_, i) =>
-      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div></figure>`
+      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div><div class="pp-prism-face-overlay"><div class="pp-prism-face-identity"><img class="pp-prism-face-id-img" alt="" loading="lazy"><span class="pp-prism-face-id-name"></span></div><button type="button" class="pp-prism-face-like-btn" hidden aria-label="Curtir" aria-pressed="false"><span class="pp-prism-face-like-icon" aria-hidden="true">❤️</span><span class="pp-prism-face-like-count"></span></button></div></figure>`
     ).join('');
 
     overlay.innerHTML = `
@@ -525,6 +565,12 @@ class PortfolioPrismViewer {
     this.#actions       = overlay.querySelector('.pp-prism-actions');
     this.#count         = overlay.querySelector('.pp-prism-count');
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
+
+    // Referências para overlay dentro de cada face
+    this.#faceIdentityImgs  = this.#faces.map(f => f.querySelector('.pp-prism-face-id-img'));
+    this.#faceIdentityNames = this.#faces.map(f => f.querySelector('.pp-prism-face-id-name'));
+    this.#faceLikeBtns      = this.#faces.map(f => f.querySelector('.pp-prism-face-like-btn'));
+    this.#faceLikeCounts    = this.#faces.map(f => f.querySelector('.pp-prism-face-like-count'));
 
     overlay.addEventListener('click', e => {
       if (e.target === overlay || e.target.closest('.pp-prism-close')) this.close();

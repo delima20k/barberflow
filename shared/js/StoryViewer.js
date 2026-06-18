@@ -1057,4 +1057,27 @@ class StoryViewer {
     item.append(av, body);
     return item;
   }
+
+  static #initPrismLikeListener() {
+    document.addEventListener('barberflow:prism-story-like', async (e) => {
+      const { mediaId, item } = e.detail ?? {};
+      if (!mediaId || typeof BffApiService === 'undefined') return;
+      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', null)) return;
+
+      const prevLiked = Boolean(item.user_liked);
+      const prevCount = Math.max(0, Number(item.likes_count ?? 0));
+
+      const { data, error } = await BffApiService.media.toggleStoryLike(mediaId);
+      if (error) {
+        item.user_liked  = prevLiked;
+        item.likes_count = prevCount;
+      } else {
+        item.user_liked  = Boolean(data?.user_liked ?? !prevLiked);
+        item.likes_count = Math.max(0, Number(data?.likes_count ?? item.likes_count));
+      }
+      document.dispatchEvent(new CustomEvent('barberflow:prism-story-like-done', { bubbles: false }));
+    });
+  }
+
+  static { StoryViewer.#initPrismLikeListener(); }
 }

@@ -611,6 +611,17 @@
   font-weight: 800;
 }
 
+/* Dig de fila — mesma fonte do boas-vindas, sem fundo/borda */
+#tela-barbearia #bp-fila-dig {
+  background: none;
+  border: none;
+  padding: 0 14px;
+  margin-top: 0;
+  margin-bottom: 4px;
+  font-size: .9rem;
+  text-align: left;
+}
+
 /* CTA de login/cadastro para visitantes */
 #tela-barbearia .bp-cta-login {
   padding: 3px 14px 6px;
@@ -1024,7 +1035,6 @@
   justify-content: center;
   border-radius: var(--r-full);
   transition: background var(--ease);
-  position: relative;
 }
 .nav-btn.ativo .nav-pill { background: var(--gold-muted); }
 
@@ -1040,18 +1050,6 @@
 .nav-btn:hover img {
   filter: brightness(0) saturate(100%) invert(74%) sepia(50%) saturate(480%) hue-rotate(4deg);
   opacity: 1;
-}
-
-.nav-btn--unread .nav-pill::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  right: 7px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 0 2px var(--surface, #2b1b12);
 }
 
 .nav-label {
@@ -3628,58 +3626,23 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   line-height: 1.5;
   word-break: break-word;
   max-width: 260px;
-  position: relative;
 }
-.chat-balao--eu {
-  background: #fff;
-  color: var(--text, #1a1a1a);
+.chat-bubble-eu .chat-balao {
+  background: var(--gold);
+  color: #1a0800;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
 }
-.chat-balao--eu::after {
-  content: "";
-  position: absolute;
-  bottom: 6px;
-  right: -9px;
-  width: 0;
-  height: 0;
-  border: 9px solid transparent;
-  border-left-color: #fff;
-  border-right-width: 0;
-}
-.chat-balao--outro {
-  background: #fff;
-  color: var(--text, #1a1a1a);
+.chat-bubble-outro .chat-balao {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  color: var(--text);
   border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
-}
-.chat-balao--outro::after {
-  content: "";
-  position: absolute;
-  bottom: 6px;
-  left: -9px;
-  width: 0;
-  height: 0;
-  border: 9px solid transparent;
-  border-right-color: #fff;
-  border-left-width: 0;
 }
 
 .chat-bubble-hora {
   font-size: 0.64rem;
   color: var(--text-dim);
   padding: 0 4px;
-}
-
-.chat-bubble-status {
-  font-size: 0.6rem;
-  color: var(--text-dim);
-  margin-left: 3px;
-  letter-spacing: -1px;
-  flex-shrink: 0;
-}
-.chat-bubble-status--lido {
-  color: #2196F3;
 }
 
 /* ── Rodapé do modal (input de envio) ───────────────────── */
@@ -3707,7 +3670,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   width: 0;                /* força o flex a calcular o tamanho real pelo container */
   background: var(--card2);
   border: 1.5px solid var(--gold-border);
-  border-radius: var(--r-md);
+  border-radius: var(--r-full);
   padding: 9px 12px;       /* padding menor para ganhar espaço horizontal */
   font-size: 0.88rem;
   color: var(--text);
@@ -8317,7 +8280,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 18px;
+  padding: 18px 0.3px;
   --pp-radius: 200px;
 }
 .pp-prism-viewer[hidden] { display: none; }
@@ -8393,8 +8356,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-stage {
   position: relative;
-  width: min(86vw, 460px);
-  aspect-ratio: 1 / 1;
+  width: min(calc(100vw - 0.6px), 460px);
+  aspect-ratio: 5 / 6;
   margin-top: 72px;
   perspective: 1100px;
   overflow: visible;
@@ -8523,6 +8486,68 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: block;
 }
 
+/* Overlay rotativo dentro de cada face — identidade (esquerda) + like (direita) */
+.pp-prism-face-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 100%);
+  pointer-events: none;
+}
+.pp-prism-face-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  pointer-events: none;
+}
+.pp-prism-face-id-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(255,255,255,.5);
+  flex: 0 0 auto;
+}
+.pp-prism-face-id-name {
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.pp-prism-face-like-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  color: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background .2s;
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
+.pp-prism-face-like-btn:hover { background: rgba(255,255,255,.15); }
+.pp-prism-face-like-btn.is-liked { color: #ff6b8a; border-color: #ff6b8a; }
+.pp-prism-face-like-btn[hidden] { display: none; }
+.pp-prism-face-like-icon { font-size: 1.1rem; line-height: 1; }
+.pp-prism-face-like-count { font-size: .7rem; font-weight: 700; line-height: 1; }
+
 .pp-prism-title {
   color: #f5efe6;
   font-size: .92rem;
@@ -8645,7 +8670,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 @media (max-width: 480px) {
-  .pp-prism-stage { width: 90vw; perspective: 900px; }
+  .pp-prism-stage { width: calc(100vw - 0.6px); perspective: 900px; }
+  .pp-prism-face-id-name { max-width: 100px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -8888,39 +8914,4 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-radius: 8px;
   margin: 0 12px 4px;
   display: none;
-}
-.barbeiro-atividade-status {
-  order: -1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 1px 3px;
-  margin: 0;
-  font-size: .72rem;
-  line-height: 1.2;
-  color: rgba(45, 31, 22, .72);
-  width: 100%;
-}
-
-.barbeiro-atividade-status__valor {
-  font-weight: 800;
-}
-
-.barbeiro-atividade-status__valor--ativo,
-.mb-status-txt--barbeiro-ativo {
-  color: #f97316;
-}
-
-.barbeiro-atividade-status__valor--inativo,
-.mb-status-txt--barbeiro-inativo {
-  color: #7c4a2d;
-}
-
-.mb-status-toggle--barbeiro-ativo {
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, .18);
-}
-
-.mb-status-toggle--barbeiro-inativo {
-  box-shadow: 0 0 0 2px rgba(124, 74, 45, .16);
 }
