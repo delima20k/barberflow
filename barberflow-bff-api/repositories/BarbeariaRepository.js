@@ -1078,7 +1078,7 @@ class BarbeariaRepository extends BaseRepository {
     const agora = new Date().toISOString();
     const { data, error } = await this._db
       .from('stories')
-      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, likes_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))')
       .eq('barbershop_id', barbershopId)
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
@@ -1098,7 +1098,7 @@ class BarbeariaRepository extends BaseRepository {
   async #listarStoriesAtivosSemMediaJoin(barbershopId, agora, viewerId) {
     const { data, error } = await this._db
       .from('stories')
-      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, likes_count, created_at, expires_at, media_id')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id')
       .eq('barbershop_id', barbershopId)
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
@@ -1218,7 +1218,7 @@ class BarbeariaRepository extends BaseRepository {
       .from('stories')
       .select(
         'id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, ' +
-        'views_count, likes_count, created_at, expires_at, media_id, ' +
+        'views_count, created_at, expires_at, media_id, ' +
         'media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))',
       )
       .gt('expires_at', agora)
@@ -1234,7 +1234,7 @@ class BarbeariaRepository extends BaseRepository {
 
     const { data: fallback, error: fallbackError } = await this._db
       .from('stories')
-      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, likes_count, created_at, expires_at, media_id')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id')
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
       .limit(limite);
