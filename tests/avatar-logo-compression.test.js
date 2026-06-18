@@ -68,7 +68,13 @@ describe('ImageCompressionService presets de avatar/logo', () => {
     assert.equal(sb.ImageCompressionService.PRESETS.FULL.maxWidth, 1600);
     assert.equal(sb.ImageCompressionService.PRESETS.FULL.quality, 0.82);
     assert.equal(sb.ImageCompressionService.PRESETS.AVATAR.fit, 'cover');
+    assert.equal(sb.ImageCompressionService.PRESETS.AVATAR.width, 160);
+    assert.equal(sb.ImageCompressionService.PRESETS.AVATAR.height, 160);
+    assert.equal(sb.ImageCompressionService.PRESETS.AVATAR.targetBytes, 12 * 1024);
     assert.equal(sb.ImageCompressionService.PRESETS.LOGO.fit, 'contain');
+    assert.equal(sb.ImageCompressionService.PRESETS.LOGO.width, 256);
+    assert.equal(sb.ImageCompressionService.PRESETS.LOGO.height, 256);
+    assert.equal(sb.ImageCompressionService.PRESETS.LOGO.targetBytes, 5 * 1024);
   });
 
   test('usa JPEG quando WebP nao e suportado pela plataforma', async () => {

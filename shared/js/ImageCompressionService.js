@@ -10,9 +10,9 @@ class ImageCompressionService {
       width: 160,
       height: 160,
       fit: 'cover',
-      quality: 0.75,
+      quality: 0.92,
       minQuality: 0.55,
-      targetBytes: 20 * 1024,
+      targetBytes: 12 * 1024,
       maxBytes: 30 * 1024,
     }),
     LOGO: Object.freeze({
@@ -22,7 +22,7 @@ class ImageCompressionService {
       fit: 'contain',
       quality: 0.80,
       minQuality: 0.60,
-      targetBytes: 10 * 1024,
+      targetBytes: 5 * 1024,
       maxBytes: 20 * 1024,
     }),
   });

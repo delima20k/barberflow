@@ -77,6 +77,15 @@ class BarbeariaRepository extends BaseRepository {
     logger.info(payload, '[BFF] diagnostico supabase barbearias');
   }
 
+  static #isStorageNotFound(error) {
+    return (
+      error?.status === 404 ||
+      error?.statusCode === 404 ||
+      String(error?.code ?? '') === '404' ||
+      String(error?.message ?? '').toLowerCase().includes('not found')
+    );
+  }
+
   /**
    * @param {import('@supabase/supabase-js').SupabaseClient} db
    */
@@ -712,6 +721,65 @@ class BarbeariaRepository extends BaseRepository {
       this._warn('uploadImagemBarbearia', error);
       this._throwDbError(error, 'uploadImagemBarbearia');
     }
+  }
+
+  /**
+   * Remove arquivo antigo do bucket publico de barbearias.
+   * @param {string} path
+   * @returns {Promise<void>}
+   */
+  async removerImagemBarbearia(path) {
+    if (!path) return;
+
+    const { error } = await this._db.storage
+      .from('barbershops')
+      .remove([path]);
+
+    if (!error || BarbeariaRepository.#isStorageNotFound(error)) return;
+
+    this._warn('removerImagemBarbearia', error);
+    this._throwDbError(error, 'removerImagemBarbearia');
+  }
+
+  /**
+   * Remove variantes antigas de logo/capa, mantendo somente o arquivo atual.
+   * @param {string} shopId
+   * @param {'logo.webp'|'cover.webp'} arquivoAtual
+   * @returns {Promise<void>}
+   */
+  async removerVariantesImagemBarbearia(shopId, arquivoAtual) {
+    this._uuid('shopId', shopId);
+    if (!['logo.webp', 'cover.webp'].includes(arquivoAtual)) {
+      throw new TypeError('arquivo atual invalido');
+    }
+
+    const { data, error } = await this._db.storage
+      .from('barbershops')
+      .list(shopId);
+
+    if (error) {
+      if (BarbeariaRepository.#isStorageNotFound(error)) return;
+      this._warn('removerVariantesImagemBarbearia.list', error);
+      this._throwDbError(error, 'removerVariantesImagemBarbearia.list');
+    }
+
+    const base = arquivoAtual.split('.')[0];
+    const remover = (data ?? [])
+      .map(item => item?.name)
+      .filter(name => new RegExp(`^${base}\\.(?:jpe?g|png|webp)$`, 'i').test(String(name ?? '')))
+      .filter(name => name !== arquivoAtual)
+      .map(name => `${shopId}/${name}`);
+
+    if (remover.length === 0) return;
+
+    const { error: removeError } = await this._db.storage
+      .from('barbershops')
+      .remove([...new Set(remover)]);
+
+    if (!removeError || BarbeariaRepository.#isStorageNotFound(removeError)) return;
+
+    this._warn('removerVariantesImagemBarbearia.remove', removeError);
+    this._throwDbError(removeError, 'removerVariantesImagemBarbearia.remove');
   }
 
   /**

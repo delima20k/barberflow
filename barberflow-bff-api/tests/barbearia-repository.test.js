@@ -31,9 +31,12 @@ const BarbeariaRepository = require('../repositories/BarbeariaRepository');
  *   rpcError?:  object,
  *   fromData?:  object[],
  *   fromError?: object,
+ *   storageList?: object[],
+ *   storageError?: object,
+ *   storageRemoved?: string[][],
  * }} opts
  */
-function criarMockDb({ rpcData, rpcError, fromData, fromError } = {}) {
+function criarMockDb({ rpcData, rpcError, fromData, fromError, storageList, storageError, storageRemoved } = {}) {
   const qb = () => {
     const q = {
       select: () => q,
@@ -55,6 +58,18 @@ function criarMockDb({ rpcData, rpcError, fromData, fromError } = {}) {
       data:  rpcData  ?? null,
       error: rpcError ?? null,
     }),
+    storage: {
+      from: () => ({
+        list: () => Promise.resolve({
+          data: storageList ?? [],
+          error: storageError ?? null,
+        }),
+        remove: (paths) => {
+          storageRemoved?.push(paths);
+          return Promise.resolve({ data: null, error: storageError ?? null });
+        },
+      }),
+    },
   };
 }
 
@@ -62,6 +77,7 @@ function criarMockDb({ rpcData, rpcError, fromData, fromError } = {}) {
 const LAT = -23.4516;
 const LNG = -46.7460;
 const RAIO = 5;
+const SHOP_ID = '00000000-0000-4000-8000-000000000001';
 
 // ── Suítes ───────────────────────────────────────────────────────
 
@@ -360,6 +376,7 @@ suite('BarbeariaRepository.updateEndereco()', () => {
           eq: (col, val) => { eqs.push([col, val]); return q; },
           select: () => q,
           single: () => Promise.resolve({ data: { id: 'shop-1', ...updates[0] }, error: null }),
+          maybeSingle: () => Promise.resolve({ data: { id: 'shop-1', ...updates[0] }, error: null }),
         };
         return q;
       },
@@ -375,9 +392,12 @@ suite('BarbeariaRepository.updateEndereco()', () => {
       latitude: -23.55,
       longitude: -46.63,
       owner_id: 'nao-deve-entrar',
-    });
+    }, SHOP_ID);
 
-    assert.deepStrictEqual(eqs, [['owner_id', '550e8400-e29b-41d4-a716-446655440000']]);
+    assert.deepStrictEqual(eqs, [
+      ['owner_id', '550e8400-e29b-41d4-a716-446655440000'],
+      ['id', SHOP_ID],
+    ]);
     assert.strictEqual(updates[0].address, 'Rua A, 123, Sala 2');
     assert.strictEqual(updates[0].latitude, -23.55);
     assert.strictEqual(updates[0].longitude, -46.63);
@@ -385,4 +405,42 @@ suite('BarbeariaRepository.updateEndereco()', () => {
     assert.strictEqual(result.id, 'shop-1');
   });
 
+});
+
+suite('BarbeariaRepository.removerVariantesImagemBarbearia()', () => {
+  test('remove apenas variantes antigas do logo e mantem o arquivo atual', async () => {
+    const removidos = [];
+    const db = criarMockDb({
+      storageRemoved: removidos,
+      storageList: [
+        { name: 'logo.jpeg' },
+        { name: 'logo.png' },
+        { name: 'logo.webp' },
+        { name: 'cover.jpeg' },
+        { name: 'servico.webp' },
+      ],
+    });
+    const repo = new BarbeariaRepository(db);
+
+    await repo.removerVariantesImagemBarbearia(SHOP_ID, 'logo.webp');
+
+    assert.deepEqual(removidos[0], [`${SHOP_ID}/logo.jpeg`, `${SHOP_ID}/logo.png`]);
+  });
+
+  test('remove apenas variantes antigas da capa e mantem o arquivo atual', async () => {
+    const removidos = [];
+    const db = criarMockDb({
+      storageRemoved: removidos,
+      storageList: [
+        { name: 'cover.jpeg' },
+        { name: 'cover.webp' },
+        { name: 'logo.jpeg' },
+      ],
+    });
+    const repo = new BarbeariaRepository(db);
+
+    await repo.removerVariantesImagemBarbearia(SHOP_ID, 'cover.webp');
+
+    assert.deepEqual(removidos[0], [`${SHOP_ID}/cover.jpeg`]);
+  });
 });

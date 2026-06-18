@@ -97,6 +97,7 @@ class ProfileRepository {
    * @returns {Promise<string>} URL pública
    */
   static async updateAvatar(userId, file) {
+    const avatarAtual = await ProfileRepository.#getAvatarPath(userId);
     const contentType = String(file.type || 'image/jpeg').toLowerCase();
     const ext  = file.name
       ? file.name.split('.').pop().toLowerCase().replace('jpg', 'jpeg')
@@ -125,12 +126,66 @@ class ProfileRepository {
     });
 
     await ProfileRepository.update(userId, { avatar_path: path });
+    await ProfileRepository.#removerAvatarAntigo(avatarAtual, path);
+    await ProfileRepository.#removerAvataresDuplicados(userId, path);
 
     const publicUrl = ApiService.getAvatarUrl(path);
     return publicUrl + '?t=' + Date.now();
   }
 
   // ═══════════════════════════════════════════════════════════
+  static async #getAvatarPath(userId) {
+    const { data, error } = await ApiService.from('profiles')
+      .select('id, avatar_path')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error && !ProfileRepository.#is404(error)) throw error;
+    return data?.avatar_path ?? null;
+  }
+
+  static async #removerAvatarAntigo(avatarAtual, avatarNovo) {
+    if (!avatarAtual || avatarAtual === avatarNovo) return;
+
+    await ProfileRepository.#removerAvatarPaths([avatarAtual]);
+  }
+
+  static async #removerAvataresDuplicados(userId, avatarAtual) {
+    const storage = SupabaseService.storageAvatars();
+    const { data, error } = await storage.list(userId);
+    if (error) {
+      if (ProfileRepository.#is404(error)) return;
+      console.warn('[ProfileRepository] falha ao listar avatares antigos:', {
+        userId,
+        status: error.status ?? error.statusCode ?? null,
+        code: error.code ?? null,
+      });
+      return;
+    }
+
+    const remover = (data ?? [])
+      .map(item => item?.name)
+      .filter(name => /^avatar\.(?:jpe?g|png|webp)$/i.test(String(name ?? '')))
+      .map(name => `${userId}/${name}`)
+      .filter(path => path !== avatarAtual);
+
+    await ProfileRepository.#removerAvatarPaths(remover);
+  }
+
+  static async #removerAvatarPaths(paths) {
+    const remover = [...new Set((paths ?? []).filter(Boolean))];
+    if (!remover.length) return;
+
+    const { error } = await SupabaseService.storageAvatars().remove(remover);
+    if (!error || ProfileRepository.#is404(error)) return;
+
+    console.warn('[ProfileRepository] falha ao remover avatar antigo:', {
+      paths: remover,
+      status: error.status ?? error.statusCode ?? null,
+      code: error.code ?? null,
+    });
+  }
+
   // FAVORITOS
   // ═══════════════════════════════════════════════════════════
 

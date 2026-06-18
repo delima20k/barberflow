@@ -4,6 +4,7 @@ const crypto      = require('node:crypto');
 const sharp       = require('sharp');
 const BaseService = require('./BaseService');
 const AppError    = require('../utils/AppError');
+const { logger }  = require('../middlewares/logger');
 
 /**
  * BarbeariaMediaService — upload e processamento de midias da barbearia.
@@ -14,7 +15,7 @@ const AppError    = require('../utils/AppError');
 class BarbeariaMediaService extends BaseService {
 
   static #TIPOS = Object.freeze({
-    logo:  { campo: 'logo_path',  nome: 'logo.webp',  width: 256,  height: 256, fit: 'contain', quality: 80, minQuality: 60, targetBytes: 10 * 1024 },
+    logo:  { campo: 'logo_path',  nome: 'logo.webp',  width: 256,  height: 256, fit: 'contain', quality: 80, minQuality: 60, targetBytes: 5 * 1024 },
     cover: { campo: 'cover_path', nome: 'cover.webp', width: 1280, height: null, fit: 'inside' },
   });
 
@@ -51,16 +52,40 @@ class BarbeariaMediaService extends BaseService {
 
     const buffer = await BarbeariaMediaService.#processarImagem(arquivo, cfg);
     const path = `${shop.id}/${cfg.nome}`;
+    const pathAntigo = shop[cfg.campo] ?? null;
     const updatedAt = new Date().toISOString();
 
     await this.#repo.uploadImagemBarbearia(path, buffer, 'image/webp');
     await this.#repo.updateImagem(shop.id, cfg.campo, path, updatedAt);
+    await this.#removerImagemAntiga(pathAntigo, path);
+    await this.#removerVariantesAntigas(shop.id, cfg.nome);
 
     return {
       path,
       publicUrl: this.#repo.getBarbershopPublicUrl(path),
       updated_at: updatedAt,
     };
+  }
+
+  async #removerImagemAntiga(pathAntigo, pathNovo) {
+    if (!pathAntigo || pathAntigo === pathNovo) return;
+    if (typeof this.#repo.removerImagemBarbearia !== 'function') return;
+
+    try {
+      await this.#repo.removerImagemBarbearia(pathAntigo);
+    } catch (error) {
+      logger.warn({ service: this._nomeSvc, op: 'removerImagemAntiga', err: error }, '[BFF] limpeza de imagem antiga falhou');
+    }
+  }
+
+  async #removerVariantesAntigas(shopId, arquivoAtual) {
+    if (typeof this.#repo.removerVariantesImagemBarbearia !== 'function') return;
+
+    try {
+      await this.#repo.removerVariantesImagemBarbearia(shopId, arquivoAtual);
+    } catch (error) {
+      logger.warn({ service: this._nomeSvc, op: 'removerVariantesAntigas', err: error }, '[BFF] limpeza de variantes antigas falhou');
+    }
   }
 
   /**

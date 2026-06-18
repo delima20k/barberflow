@@ -52,7 +52,11 @@ function criarAppointmentRepo({ data = null, error = null } = {}) {
 function criarProfileRepo({ data = null, error = null } = {}) {
   const result        = { data, error };
   const profBuilder   = criarQueryBuilder(result);
-  const storeMock     = { upload: fn().mockResolvedValue({ error: null }) };
+  const storeMock     = {
+    upload: fn().mockResolvedValue({ error: null }),
+    remove: fn().mockResolvedValue({ data: null, error: null }),
+    list: fn().mockResolvedValue({ data: [], error: null }),
+  };
   const apiMock       = {
     from:          fn().mockReturnValue(profBuilder),
     getAvatarUrl:  fn(() => 'https://cdn.example.com/avatar.jpg'),
@@ -65,7 +69,7 @@ function criarProfileRepo({ data = null, error = null } = {}) {
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/ProfileRepository.js');
 
-  return { ProfileRepository: sandbox.ProfileRepository, profBuilder, apiMock };
+  return { ProfileRepository: sandbox.ProfileRepository, profBuilder, apiMock, storeMock };
 }
 
 function criarQueueRepo({ data = null, error = null } = {}) {
@@ -298,8 +302,84 @@ describe('ProfileRepository.getById()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// QueueRepository
+// ProfileRepository.updateAvatar
 // ─────────────────────────────────────────────────────────────────────────────
+describe('ProfileRepository.updateAvatar()', () => {
+  test('remove avatar antigo quando path novo e diferente', async () => {
+    const antigo = 'legacy/avatar.jpeg';
+    const { ProfileRepository, storeMock, profBuilder } = criarProfileRepo({
+      data: { id: UUID_CLIENTE, avatar_path: antigo },
+    });
+
+    await ProfileRepository.updateAvatar(UUID_CLIENTE, {
+      name: 'avatar.webp',
+      type: 'image/webp',
+      size: 12 * 1024,
+    });
+
+    assert.equal(storeMock.upload.calls[0][0], `${UUID_CLIENTE}/avatar.webp`);
+    assert.equal(profBuilder.update.calls[0][0].avatar_path, `${UUID_CLIENTE}/avatar.webp`);
+    assert.equal(storeMock.remove.calls[0][0][0], antigo);
+  });
+
+  test('nao remove avatar quando path antigo e igual ao novo', async () => {
+    const path = `${UUID_CLIENTE}/avatar.webp`;
+    const { ProfileRepository, storeMock } = criarProfileRepo({
+      data: { id: UUID_CLIENTE, avatar_path: path },
+    });
+
+    await ProfileRepository.updateAvatar(UUID_CLIENTE, {
+      name: 'avatar.webp',
+      type: 'image/webp',
+      size: 12 * 1024,
+    });
+
+    assert.equal(storeMock.remove.calls.length, 0);
+  });
+
+  test('nao bloqueia upload quando delete do avatar antigo falha', async () => {
+    const antigo = 'legacy/avatar.jpeg';
+    const { ProfileRepository, storeMock, profBuilder } = criarProfileRepo({
+      data: { id: UUID_CLIENTE, avatar_path: antigo },
+    });
+    storeMock.remove.mockResolvedValue({ data: null, error: { status: 500, message: 'storage indisponivel' } });
+
+    await ProfileRepository.updateAvatar(UUID_CLIENTE, {
+      name: 'avatar.webp',
+      type: 'image/webp',
+      size: 12 * 1024,
+    });
+
+    assert.equal(profBuilder.update.calls.length > 0, true);
+    assert.equal(storeMock.remove.calls[0][0][0], antigo);
+  });
+
+  test('remove outros arquivos avatar do mesmo usuario e mantem apenas o atual', async () => {
+    const atual = `${UUID_CLIENTE}/avatar.webp`;
+    const { ProfileRepository, storeMock } = criarProfileRepo({
+      data: { id: UUID_CLIENTE, avatar_path: atual },
+    });
+    storeMock.list.mockResolvedValue({
+      data: [
+        { name: 'avatar.jpeg' },
+        { name: 'avatar.webp' },
+        { name: 'documento.pdf' },
+      ],
+      error: null,
+    });
+
+    await ProfileRepository.updateAvatar(UUID_CLIENTE, {
+      name: 'avatar.webp',
+      type: 'image/webp',
+      size: 12 * 1024,
+    });
+
+    assert.equal(storeMock.remove.calls.length, 1);
+    assert.equal(storeMock.remove.calls[0][0][0], `${UUID_CLIENTE}/avatar.jpeg`);
+  });
+});
+
+// QueueRepository
 describe('QueueRepository.updateStatus()', () => {
   test('atualiza status com UUID e status válidos', async () => {
     const { QueueRepository, queueBuilder } = criarQueueRepo({ data: { id: UUID_ENTRY, status: 'done', position: 1 } });
