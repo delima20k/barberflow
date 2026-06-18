@@ -8505,8 +8505,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-media {
   position: absolute;
-  top: 15px;
-  bottom: 15px;
+  top: 0;
+  bottom: 0;
   left: 8px;
   right: 8px;
 }
@@ -8715,7 +8715,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex: 0 0 auto;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-media {
-  top: 52px;
+  top: 0;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-public-actions {
   position: static;
