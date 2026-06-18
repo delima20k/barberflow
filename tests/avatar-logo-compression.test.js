@@ -85,12 +85,12 @@ describe('ImageCompressionService presets de avatar/logo', () => {
   });
 });
 
-describe('AvatarService fallback comprimido', () => {
-  test('envia compressedFile no fallback e nunca o arquivo original', async () => {
+describe('AvatarService upload comprimido', () => {
+  test('envia compressedFile direto ao Storage e nao chama rota BFF inexistente', async () => {
     const original = new TestFile([new Uint8Array(4096)], 'original.jpg', { type: 'image/jpeg' });
     const compressed = new TestFile([new Uint8Array(512)], 'avatar.webp', { type: 'image/webp' });
-    const fallbackCalls = [];
     const bffCalls = [];
+    const storageCalls = [];
     const sb = vm.createContext({
       Blob,
       File: TestFile,
@@ -113,12 +113,12 @@ describe('AvatarService fallback comprimido', () => {
       BackendApiService: {
         uploadBinario: fn(async (_path, _buffer, opts) => {
           bffCalls.push(opts);
-          return { ok: false, status: 404, json: async () => ({ error: 'not found' }) };
+          return { ok: true, status: 200, json: async () => ({ publicUrl: 'https://cdn/avatar.webp' }) };
         }),
       },
       ProfileRepository: {
         updateAvatar: fn(async (_userId, file) => {
-          fallbackCalls.push(file);
+          storageCalls.push(file);
           return 'https://cdn/avatar.webp';
         }),
         update: fn(async () => {}),
@@ -130,10 +130,10 @@ describe('AvatarService fallback comprimido', () => {
     sb.AvatarService.preview({ files: [original] });
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    assert.notEqual(fallbackCalls[0], original);
-    assert.equal(fallbackCalls[0].name, 'avatar.webp');
-    assert.equal(fallbackCalls[0].type, 'image/webp');
-    assert.equal(fallbackCalls[0].size, compressed.size);
-    assert.equal(bffCalls[0].skipCompression, true);
+    assert.equal(bffCalls.length, 0);
+    assert.notEqual(storageCalls[0], original);
+    assert.equal(storageCalls[0].name, 'avatar.webp');
+    assert.equal(storageCalls[0].type, 'image/webp');
+    assert.equal(storageCalls[0].size, compressed.size);
   });
 });

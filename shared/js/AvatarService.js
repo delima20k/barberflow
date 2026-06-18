@@ -5,8 +5,8 @@
  *
  * Responsabilidades:
  *  - preview instantâneo antes do upload (Blob URL local, zero latência)
- *  - upload via BFF /api/media/upload-image?contexto=avatars
- *    (pipeline server-side: crop 1:1 + resize 200×200 + WebP ≤20KB)
+ *  - upload direto no bucket avatars com arquivo já comprimido no cliente
+ *    (crop 1:1 + resize 160×160 + WebP/JPEG fallback)
  *  - cache local via SessionCache
  *
  * API pública:
@@ -67,41 +67,14 @@ const AvatarService = (() => {
   }
 
   /**
-   * Envia o arquivo como buffer binário para o BFF, que executa o pipeline
-   * server-side: crop 1:1 central → resize 200×200 → WebP ≤20KB.
-   * Retorna a publicUrl processada.
-   * @param {File} file
-   * @returns {Promise<string>} publicUrl
-   */
-  async function _enviarParaBFF(file) {
-    const buffer = await file.arrayBuffer();
-    _logDiagnostico('before-bff-upload', {
-      name: file.name || null,
-      bytes: file.size,
-      bufferBytes: buffer.byteLength,
-      contentType: file.type || 'image/jpeg',
-    });
-    const res    = await BackendApiService.uploadBinario('/api/media/upload-image?contexto=avatars', buffer, {
-      contentType: file.type || 'image/jpeg',
-      skipCompression: true,
-    });
-    if (!res.ok) {
-      const corpo = await res.json().catch(() => ({}));
-      throw new Error(corpo.error ?? `Upload falhou (${res.status})`);
-    }
-    const { publicUrl } = await res.json();
-    return publicUrl;
-  }
-
-  /**
-   * Fallback: upload direto ao bucket 'avatars' via Supabase Storage (sem BFF).
-   * Usado quando o BFF falha (bucket media-images ausente, CORS, timeout, etc.).
+   * Upload direto ao bucket 'avatars' via Supabase Storage.
+   * O arquivo recebido já foi comprimido pelo ImageCompressionService.
    * @param {File}   file
    * @param {string} userId
    * @returns {Promise<string>} publicUrl
    */
-  async function _uploadFallback(file, userId) {
-    _logDiagnostico('before-fallback-upload', {
+  async function _uploadStorage(file, userId) {
+    _logDiagnostico('before-storage-upload', {
       name: file.name || null,
       bytes: file.size,
       contentType: file.type || 'image/jpeg',
@@ -139,11 +112,10 @@ const AvatarService = (() => {
   }
 
   /**
-   * Faz o upload do avatar via BFF com pipeline de otimização server-side.
-   * Se o BFF falhar, executa fallback direto ao bucket 'avatars'.
+   * Faz o upload do avatar comprimido direto no bucket 'avatars'.
    * @param {File} file
    */
-  async function _uploadViaBFF(file) {
+  async function _uploadAvatar(file) {
     try {
       const user   = UserService.getUser?.() ?? UserService.getUserId?.();
       const userId = typeof user === 'string' ? user : user?.id;
@@ -161,19 +133,7 @@ const AvatarService = (() => {
         contentType: compressedFile.type || 'image/jpeg',
         originalWasReused: compressedFile === file,
       });
-      let publicUrl;
-      try {
-        publicUrl = await _enviarParaBFF(compressedFile);
-        // Persiste avatar_path no banco — sem isso o avatar some no próximo reload
-        await ProfileRepository.update(userId, { avatar_path: publicUrl });
-      } catch (bffErr) {
-        // BFF indisponível (bucket ausente, CORS, timeout) — fallback direto ao Storage
-        if (typeof LoggerService !== 'undefined') {
-          LoggerService.warn('[AvatarService] BFF falhou, usando fallback Storage:', bffErr.message);
-        }
-        publicUrl = await _uploadFallback(compressedFile, userId);
-        // ProfileRepository.updateAvatar já persiste o avatar_path internamente
-      }
+      const publicUrl = await _uploadStorage(compressedFile, userId);
 
       _aplicarSrc(publicUrl);
       _aplicarSrcDinamico(userId, publicUrl);
@@ -217,7 +177,7 @@ const AvatarService = (() => {
     // Preview imediato (Blob URL local — zero latência)
     _aplicarSrc(localUrl, { filter: 'none', opacity: '1' });
     // Upload em background — sem bloquear a UI
-    _uploadViaBFF(file).then(() => URL.revokeObjectURL(localUrl));
+    _uploadAvatar(file).then(() => URL.revokeObjectURL(localUrl));
   }
 
   /**
