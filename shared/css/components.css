@@ -8382,7 +8382,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-stage {
   position: relative;
-  width: min(100%, 460px);
+  width: min(100%, 500px);
   aspect-ratio: 5 / 6;
   margin-top: 72px;
   perspective: 1100px;
@@ -8711,8 +8711,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   margin-top: 0;
   margin-bottom: 5px;
   width: 100%;
-  max-width: 460px;
-  height: min(137vw, 630px, calc(100vh - 170px));
+  max-width: 500px;
+  height: min(137vw, 685px, calc(100vh - 170px));
   flex: 0 0 auto;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-media {
