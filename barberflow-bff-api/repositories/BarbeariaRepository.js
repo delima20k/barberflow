@@ -1085,10 +1085,26 @@ class BarbeariaRepository extends BaseRepository {
       .limit(10);
 
     if (error) {
-      this._warn('listarStoriesAtivos', error);
-      this._throwDbError(error, 'listarStoriesAtivos');
+      logger.error(
+        { code: error.code, message: error.message, details: error.details, hint: error.hint, correlationId: CorrelationContext.correlationId, op: 'listarStoriesAtivos' },
+        '[BarbeariaRepository] listarStoriesAtivos: query com join media_files falhou; tentando fallback sem join',
+      );
+      return this.#listarStoriesAtivosSemMediaJoin(barbershopId, agora, viewerId);
     }
 
+    return this.#enriquecerStories(data ?? [], viewerId);
+  }
+
+  async #listarStoriesAtivosSemMediaJoin(barbershopId, agora, viewerId) {
+    const { data, error } = await this._db
+      .from('stories')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, likes_count, created_at, expires_at, media_id')
+      .eq('barbershop_id', barbershopId)
+      .gt('expires_at', agora)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) this._throwDbError(error, 'listarStoriesAtivos:fallback');
     return this.#enriquecerStories(data ?? [], viewerId);
   }
 
@@ -1197,14 +1213,8 @@ class BarbeariaRepository extends BaseRepository {
    * @param {number} [maxShops=8] — número máximo de barbearias no feed
    * @returns {Promise<Array<{shop: object, stories: object[]}>>}
    */
-  async listarFeedStoriesAgrupados(maxShops = 8, viewerId = null) {
-    const agora = new Date().toISOString();
-
-    // Traz stories suficientes para cobrir maxShops barbearias
-    // (margem * 10 cobre o caso de 1 barbearia dominar os primeiros resultados)
-    const limite = maxShops * 10 + 10;
-
-    const { data: stories, error } = await this._db
+  async #queryFeedStories(limite, agora) {
+    const { data, error } = await this._db
       .from('stories')
       .select(
         'id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, ' +
@@ -1215,10 +1225,32 @@ class BarbeariaRepository extends BaseRepository {
       .order('created_at', { ascending: false })
       .limit(limite);
 
-    if (error) {
-      this._warn('listarFeedStoriesAgrupados', error);
-      this._throwDbError(error, 'listarFeedStoriesAgrupados');
-    }
+    if (!error) return data ?? [];
+
+    logger.error(
+      { code: error.code, message: error.message, details: error.details, hint: error.hint, correlationId: CorrelationContext.correlationId, op: 'listarFeedStoriesAgrupados' },
+      '[BarbeariaRepository] listarFeedStoriesAgrupados: query com join media_files falhou; tentando fallback sem join',
+    );
+
+    const { data: fallback, error: fallbackError } = await this._db
+      .from('stories')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, likes_count, created_at, expires_at, media_id')
+      .gt('expires_at', agora)
+      .order('created_at', { ascending: false })
+      .limit(limite);
+
+    if (fallbackError) this._throwDbError(fallbackError, 'listarFeedStoriesAgrupados:fallback');
+    return fallback ?? [];
+  }
+
+  async listarFeedStoriesAgrupados(maxShops = 8, viewerId = null) {
+    const agora = new Date().toISOString();
+
+    // Traz stories suficientes para cobrir maxShops barbearias
+    // (margem * 10 cobre o caso de 1 barbearia dominar os primeiros resultados)
+    const limite = maxShops * 10 + 10;
+
+    const stories = await this.#queryFeedStories(limite, agora);
 
     if (!stories?.length) return [];
 

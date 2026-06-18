@@ -6,6 +6,7 @@ const R2Client    = require('../../src/infra/R2Client');
 const { CACHE_TTL } = require('../config/cacheTtl');
 const { CacheKeyBuilder } = require('../infrastructure/cache/CacheKeyBuilder');
 const { CorrelationContext } = require('../observability/CorrelationContext');
+const { logger } = require('../middlewares/logger');
 
 /**
  * BarbeariaService — Regras de negócio para barbearias no BFF.
@@ -539,7 +540,11 @@ class BarbeariaService extends BaseService {
           return { ...story, media_url: story.media_files?.public_url || null, thumbnail_url: null };
         }
       }));
-    } catch {
+    } catch (r2Err) {
+      logger.error(
+        { err: r2Err, message: r2Err?.message, stack: r2Err?.stack, correlationId: CorrelationContext.correlationId },
+        '[BarbeariaService] #resolverUrlsStories: R2Client.getInstance() falhou; usando fallback Supabase Storage',
+      );
       return Promise.all(stories.map(async story => {
         const filePath = story.media_files?.path ?? null;
         if (!story.media_id || !filePath) return story;
