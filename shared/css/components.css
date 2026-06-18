@@ -8487,7 +8487,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-face {
   position: absolute;
-  inset: 0;
+  inset: 5px 5px 0 5px;
   margin: 0;
   border-radius: 18px;
   overflow: hidden;
@@ -8709,6 +8709,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-stage {
   margin-top: 0;
+  margin-bottom: 5px;
   width: 100%;
   max-width: 460px;
   height: min(137vw, 630px, calc(100vh - 170px));
