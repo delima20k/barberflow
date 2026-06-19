@@ -8517,7 +8517,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: block;
 }
 .pp-prism-media > img   { object-fit: cover; }
-.pp-prism-media > video { object-fit: contain; background: #0d0a08; }
+.pp-prism-media > video { object-fit: cover; }
 
 /* Overlay rotativo dentro de cada face — identidade (esquerda) + like (direita) */
 .pp-prism-face-overlay {
