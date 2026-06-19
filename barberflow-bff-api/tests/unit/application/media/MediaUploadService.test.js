@@ -79,6 +79,7 @@ describe('MediaUploadService', () => {
     const original = Buffer.alloc(2 * 1024 * 1024, 1);
     const compressed = Buffer.alloc(900 * 1024, 2);
     const calls = { put: null, confirmed: null, event: null };
+    let compressionOptions = null;
     const service = new MediaUploadService({
       storage: {
         putVariant: async (variant) => { calls.put = variant; },
@@ -91,7 +92,9 @@ describe('MediaUploadService', () => {
       outboxRepository: { save: async (payload) => { calls.event = payload; return 'outbox-story-1'; } },
       confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
       videoCompressionService: {
-        compress: async () => ({
+        compress: async (_bytes, options) => {
+          compressionOptions = options;
+          return {
           bytes: compressed,
           contentType: 'video/mp4',
           compressed: true,
@@ -99,7 +102,8 @@ describe('MediaUploadService', () => {
           originalBytes: original.length,
           outputBytes: compressed.length,
           error: null,
-        }),
+        };
+        },
       },
     });
 
@@ -110,6 +114,7 @@ describe('MediaUploadService', () => {
     });
 
     assert.equal(calls.put.bytes, compressed);
+    assert.deepEqual(compressionOptions, { force: true });
     assert.equal(calls.put.contentType, 'video/mp4');
     assert.match(calls.put.path, /^stories\/aaaaaaaa-0000-4000-8000-000000000001\/incoming\/.+\.mp4$/);
     assert.equal(calls.confirmed.sizeBytes, compressed.length);

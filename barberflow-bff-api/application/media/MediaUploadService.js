@@ -128,7 +128,7 @@ class MediaUploadService {
       sourcePath: path,
     });
 
-    const compression = await this.#videoCompressionService.compress(sourceBytes);
+    const compression = await this.#videoCompressionService.compress(sourceBytes, { force: true });
     if (compression.error) {
       throw AppError.unprocessable('Falha ao comprimir video de story.');
     }
