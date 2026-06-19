@@ -89,8 +89,8 @@ class FluxoDeFila {
     return new Promise(resolve => {
       const {
         id,
-        icone        = '💈',
-        iconeImagem  = false,
+        icone        = '/shared/img/Logo01.png',
+        iconeImagem  = true,
         iconesDuplos = null,
         titulo       = '',
         corpo        = '',
