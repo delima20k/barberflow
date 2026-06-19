@@ -69,6 +69,14 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     videoCompressionService,
   });
   const controller = new MediaController(service);
+  const compressedStoryService = deps.compressedStoryService ?? new MediaUploadService({
+    storage: r2Instance ?? unavailableStorage,
+    mediaRepository,
+    outboxRepository,
+    confirmationSigner: signer,
+    videoCompressionService,
+  });
+  const compressedStoryController = new MediaController(compressedStoryService);
   const router = Router();
   const barbeariaRepo   = deps.barbeariaRepository ?? new BarbeariaRepository(db);
   const supabaseClean   = deps.supabaseGatewayCleanup ?? new SupabaseMediaStorageGateway({ db });
@@ -105,13 +113,10 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     AuthMiddleware.verificar,
     express.raw({ type: 'video/mp4', limit: '64mb' }),
     (req, res, next) => {
-      if (!useR2 || !r2Instance) {
+      if (!r2Instance) {
         return r2UnavailableResponse(res);
       }
-      if (useR2 && !r2Instance) {
-        return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'ServiÃ§o de armazenamento de mÃ­dia indisponÃ­vel.' });
-      }
-      return controller.uploadCompressedStory.call(controller, req, res, next);
+      return compressedStoryController.uploadCompressedStory.call(compressedStoryController, req, res, next);
     },
   );
   router.get('/:mediaId/acesso', AuthMiddleware.verificar, (req, res, next) => {
