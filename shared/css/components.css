@@ -8715,6 +8715,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-viewer[data-mode="story"] .pp-prism-media {
   top: 0;
 }
+.pp-prism-viewer[data-mode="story"] .pp-prism-public-actions {
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 2rem);
+}
 
 @media (max-width: 480px) {
   .pp-prism-stage { width: min(86vw, 500px); perspective: 2400px; }
