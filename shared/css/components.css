@@ -8366,7 +8366,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: relative;
   width: min(86vw, 500px);
   height: min(85vh, calc(min(86vw, 500px) * 1.2 + 30vh - 50px));
-  margin-top: 24px;
+  margin-top: 1rem;
   perspective: 2400px;
   overflow: visible;
   touch-action: pan-y;
