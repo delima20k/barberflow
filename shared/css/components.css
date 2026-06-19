@@ -8571,10 +8571,25 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   overflow: hidden;
   white-space: nowrap;
 }
-.pp-prism-count {
-  color: rgba(245,239,230,.7);
-  font-size: .76rem;
-  letter-spacing: .04em;
+.pp-prism-progress {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.pp-prism-progress-dash {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
+  transition: background 0.3s;
+}
+.pp-prism-progress-dash.is-active {
+  background: rgba(255, 255, 255, 0.92);
 }
 .pp-prism-actions {
   display: flex;

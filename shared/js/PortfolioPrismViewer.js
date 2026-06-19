@@ -52,7 +52,7 @@ class MediaPrismViewer {
   #publicLogo      = null;
   #publicEmojis    = [];
   #reactionLayer   = null;
-  #count           = null;
+  #progress        = null;
   #soundBtn        = null;
 
   // Referências para overlay dentro de cada face 3D
@@ -185,7 +185,7 @@ class MediaPrismViewer {
       this.#title.hidden = storyMode;
       this.#title.textContent = storyMode ? '' : (item.title || 'Trabalho do portfolio');
     }
-    if (this.#count) this.#count.textContent = `${this.#index + 1}/${this.#items.length}`;
+    this.#renderProgress();
     this.#renderPublicActions(item);
 
     if (this.#actions) {
@@ -211,6 +211,20 @@ class MediaPrismViewer {
     if (storyMode) this.#limparInteracoes();
     else this.#replayInteractions(item);
   }
+  #renderProgress() {
+    if (!this.#progress) return;
+    const n = this.#items.length;
+    if (this.#progress.children.length !== n) {
+      this.#progress.innerHTML = Array.from({ length: n }, (_, i) =>
+        `<span class="pp-prism-progress-dash${i === this.#index ? ' is-active' : ''}"></span>`
+      ).join('');
+    } else {
+      [...this.#progress.children].forEach((el, i) => {
+        el.classList.toggle('is-active', i === this.#index);
+      });
+    }
+  }
+
   #renderPublicActions(item) {
     if (!this.#publicActions) return;
     if (this.#isStoryMode()) {
@@ -992,6 +1006,7 @@ class MediaPrismViewer {
     overlay.innerHTML = `
       <button type="button" class="pp-prism-close" aria-label="Fechar">×</button>
       <div class="pp-prism-stage" aria-live="polite">
+        <div class="pp-prism-progress" aria-hidden="true"></div>
         <div class="pp-prism-cube">${facesHtml}</div>
         <div class="pp-prism-reactions" aria-hidden="true"></div>
       </div>
@@ -1006,7 +1021,6 @@ class MediaPrismViewer {
       </div>
       <figcaption class="pp-prism-title"></figcaption>
       <div class="pp-prism-actions"></div>
-      <span class="pp-prism-count" aria-live="polite"></span>
     `;
 
     document.body.appendChild(overlay);
@@ -1029,7 +1043,7 @@ class MediaPrismViewer {
     this.#publicLogo    = overlay.querySelector('.pp-prism-public-logo');
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
-    this.#count   = overlay.querySelector('.pp-prism-count');
+    this.#progress = overlay.querySelector('.pp-prism-progress');
 
     // Referências para overlay dentro de cada face
     this.#faceIdentityImgs  = this.#faces.map(f => f.querySelector('.pp-prism-face-id-img'));
