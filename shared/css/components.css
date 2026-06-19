@@ -8505,10 +8505,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .pp-prism-media {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 8px;
-  right: 8px;
+  inset: 0;
 }
 .pp-prism-media > img,
 .pp-prism-media > video {
