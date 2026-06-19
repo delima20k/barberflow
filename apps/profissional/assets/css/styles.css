@@ -3978,7 +3978,8 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 18px;
+  padding: 18px 0.2px;
+  overflow: hidden;
   --pp-radius: 200px;
 }
 .pp-prism-viewer[hidden] { display: none; }
@@ -4002,6 +4003,31 @@
 }
 .pp-prism-close:hover,
 .pp-prism-close:focus-visible { background: rgba(255,255,255,.12); transform: scale(1.06); }
+
+/* Botão fechar dentro da face — move com o cubo; visível só em story mode */
+.pp-prism-face-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  transition: background .2s;
+}
+.pp-prism-face-close:hover,
+.pp-prism-face-close:focus-visible { background: rgba(255,255,255,.18); }
+.pp-prism-viewer[data-mode="story"] .pp-prism-face-close { display: inline-flex; }
+.pp-prism-viewer[data-mode="story"] > .pp-prism-close { display: none; }
 
 .pp-prism-meta {
   position: absolute;
@@ -4054,11 +4080,12 @@
 
 .pp-prism-stage {
   position: relative;
-  width: min(86vw, 460px);
-  aspect-ratio: 1 / 1;
-  perspective: 1100px;
+  width: min(86vw, 500px);
+  aspect-ratio: 5 / 6;
+  margin-top: 72px;
+  perspective: 2400px;
   overflow: visible;
-  touch-action: pan-y; /* deixa scroll vertical da página passar livre */
+  touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   cursor: grab;
@@ -4083,11 +4110,11 @@
 .pp-prism-float {
   position: absolute;
   left: 50%;
-  bottom: calc(18px + (var(--pp-prism-float-stack, 0) * 0.5rem));
+  bottom: calc(18px + (var(--pp-prism-float-stack, 0) * 10px));
   max-width: min(82%, 340px);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 0;
   background: transparent;
   border: 0;
@@ -4157,7 +4184,7 @@
 
 .pp-prism-face {
   position: absolute;
-  inset: 0;
+  inset: 5px 5px 0 5px;
   margin: 0;
   border-radius: 18px;
   overflow: hidden;
@@ -4173,14 +4200,81 @@
   filter: brightness(1);
 }
 
-.pp-prism-media,
+.pp-prism-media {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+}
 .pp-prism-media > img,
 .pp-prism-media > video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  width: 100%; height: 100%; display: block;
 }
+.pp-prism-media > img   { object-fit: cover; }
+.pp-prism-media > video { object-fit: contain; background: #0d0a08; }
+
+/* Overlay rotativo dentro de cada face — identidade (esquerda) + like (direita) */
+.pp-prism-face-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 40px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 100%);
+  pointer-events: none;
+}
+.pp-prism-face-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  pointer-events: none;
+}
+.pp-prism-face-id-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(255,255,255,.5);
+  flex: 0 0 auto;
+}
+.pp-prism-face-id-name {
+  color: #fff;
+  font-size: .82rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+.pp-prism-face-like-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  color: #fff;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background .2s;
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
+.pp-prism-face-like-btn:hover { background: rgba(255,255,255,.15); }
+.pp-prism-face-like-btn.is-liked { color: #ff6b8a; border-color: #ff6b8a; }
+.pp-prism-face-like-btn[hidden] { display: none; }
+.pp-prism-face-like-icon { font-size: 1.1rem; line-height: 1; }
+.pp-prism-face-like-count { font-size: .7rem; font-weight: 700; line-height: 1; }
 
 .pp-prism-title {
   color: #f5efe6;
@@ -4305,7 +4399,8 @@
 }
 
 @media (max-width: 480px) {
-  .pp-prism-stage { width: 90vw; perspective: 900px; }
+  .pp-prism-stage { width: min(86vw, 500px); perspective: 2400px; }
+  .pp-prism-face-id-name { max-width: 100px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
