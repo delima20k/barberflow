@@ -8710,8 +8710,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-viewer[data-mode="story"] .pp-prism-stage {
   margin-top: 0;
   margin-bottom: 5px;
-  width: min(86vw, 460px);
-  height: min(118vw, 630px, calc(100vh - 170px));
   flex: 0 0 auto;
 }
 .pp-prism-viewer[data-mode="story"] .pp-prism-media {
@@ -8727,7 +8725,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 @media (max-width: 480px) {
-  .pp-prism-stage { width: 100%; perspective: 1400px; }
+  .pp-prism-stage { width: min(86vw, 500px); perspective: 2400px; }
   .pp-prism-face-id-name { max-width: 100px; }
 }
 
