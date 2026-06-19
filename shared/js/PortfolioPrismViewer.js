@@ -159,6 +159,11 @@ class MediaPrismViewer {
     const dir = delta > 0 ? 1 : -1;
     this.#animando = true;
     this.#cube.classList.remove('pp-prism-cube--drag');
+
+    // Já dispara a reprodução do vídeo que está entrando: enquanto a face gira
+    // para a frente ela já chega tocando, sem piscar nem aguardar buffer.
+    this.#tocarVideoEntrando(dir);
+
     void this.#cube.offsetWidth; // força reflow: garante que a transição CSS está ativa antes do novo transform
     // Aplica nova rotação (gira -60° para próxima, +60° para anterior)
     const novaRotacao = this.#baseRotation - (dir * MediaPrismViewer.#ANGLE_PER_FACE);
@@ -168,15 +173,27 @@ class MediaPrismViewer {
     this.#finalizeTimer = setTimeout(() => {
       this.#index = (this.#index + dir + this.#items.length) % this.#items.length;
       this.#animando = false;
-      this.#renderAtual({ animar: false });
+      this.#renderAtual({ animar: false, dir });
     }, MediaPrismViewer.#DURATION_MS + 30);
+  }
+
+  // Toca o vídeo da face que está rotacionando para a frente (offset = dir),
+  // ainda durante a animação, para que chegue reproduzindo sem flicker.
+  #tocarVideoEntrando(dir) {
+    const faceEntrando = MediaPrismViewer.#FACE_OFFSETS.indexOf(dir > 0 ? 1 : -1);
+    const v = this.#medias[faceEntrando]?.querySelector('video');
+    if (!v) return;
+    // Pré-toca mutado durante a rotação (evita áudio duplicado com o vídeo que
+    // sai). O som é reativado quando a face pousa na frente (#ajustarFlagsVideo).
+    v.muted = true;
+    v.play?.().catch(() => {});
   }
 
   // ───────────────────────────────────────────────────────────
   // Render
   // ───────────────────────────────────────────────────────────
 
-  #renderAtual({ animar = false } = {}) {
+  #renderAtual({ animar = false, dir = 0 } = {}) {
     if (!this.#items.length) return;
 
     const item = this.#items[this.#index] ?? {};
@@ -207,7 +224,14 @@ class MediaPrismViewer {
       this.#cube.style.transition = prevTransition || '';
     }
 
-    this.#renderFaces();
+    // Navegação (dir≠0) com faces já populadas: reaproveita elementos para não
+    // recarregar o vídeo frontal (sem flicker). Caso contrário, render completo.
+    const podeGirar = dir !== 0
+      && this.#items.length > 1
+      && this.#medias.some(slot => slot?.firstElementChild);
+    if (podeGirar) this.#renderFacesGirando(dir);
+    else this.#renderFaces();
+
     if (storyMode) this.#limparInteracoes();
     else this.#replayInteractions(item);
   }
@@ -303,14 +327,69 @@ class MediaPrismViewer {
       const idx = ((this.#index + offset) % total + total) % total;
       const item = this.#items[idx] ?? null;
       const deveCarregar = !this.#isStoryMode() || Math.abs(offset) <= 1;
-      this.#renderMidiaNaFace(faceIndex, deveCarregar ? item : null, offset === 0);
+      this.#renderMidiaNaFace(faceIndex, deveCarregar ? item : null, offset === 0, Math.abs(offset) <= 1);
     });
 
     this.#pararTodosVideos(false);
     this.#playVideoFrontal();
   }
 
-  #renderMidiaNaFace(faceIndex, item, frontal) {
+  // Navegação sem flicker: em vez de recarregar o `src` da nova face frontal
+  // (poster → preto → play), reaproveita o elemento de vídeo/imagem que já
+  // estava carregado na face vizinha. Reposicionar um <video> no DOM via
+  // appendChild NÃO o recarrega — então a mídia continua tocando sem piscar.
+  // Apenas a face que "deu a volta" recebe conteúdo novo.
+  #renderFacesGirando(dir) {
+    const total = this.#items.length;
+    const offsets = MediaPrismViewer.#FACE_OFFSETS;
+
+    // Snapshot dos elementos internos atuais por slot.
+    const els = this.#medias.map(slot => slot?.firstElementChild ?? null);
+    // Para cada slot-alvo k (offset Ok), o elemento certo é o que hoje tem
+    // offset Ok+dir (mesmo conteúdo após o índice avançar `dir`).
+    const fonte = offsets.map(Ok => offsets.indexOf(Ok + dir));
+    const reaproveitados = new Set(fonte.filter(j => j >= 0));
+
+    // Desanexa todos sem destruir (mantém refs em `els`).
+    this.#medias.forEach(slot => { if (slot) while (slot.firstChild) slot.removeChild(slot.firstChild); });
+
+    // Libera o elemento descartado (a face que saiu de cena).
+    els.forEach((el, j) => {
+      if (el && !reaproveitados.has(j) && el.tagName === 'VIDEO') {
+        try { el.pause(); el.currentTime = 0; el.removeAttribute('src'); } catch (_) {}
+      }
+    });
+
+    offsets.forEach((Ok, k) => {
+      const idx  = ((this.#index + Ok) % total + total) % total;
+      const item = this.#items[idx] ?? null;
+      const j = fonte[k];
+      const frontal = Ok === 0;
+      if (j >= 0 && els[j]) {
+        // Reaproveita: nenhum reload, nenhuma piscada.
+        this.#medias[k].appendChild(els[j]);
+        this.#ajustarFlagsVideo(els[j], frontal);
+        this.#renderOverlayNaFace(k, item);
+      } else {
+        // Face que deu a volta — conteúdo novo.
+        const deveCarregar = !this.#isStoryMode() || Math.abs(Ok) <= 1;
+        this.#renderMidiaNaFace(k, deveCarregar ? item : null, frontal, Math.abs(Ok) <= 1);
+      }
+    });
+
+    this.#pararTodosVideos(false);
+    this.#playVideoFrontal();
+  }
+
+  #ajustarFlagsVideo(el, frontal) {
+    if (el?.tagName !== 'VIDEO') return;
+    el.muted = !this.#isStoryMode();
+    el.loop  = !this.#isStoryMode();
+    el.playsInline = true;
+    if (!frontal) { try { el.pause(); } catch (_) {} }
+  }
+
+  #renderMidiaNaFace(faceIndex, item, frontal, precarregar = false) {
     const slot = this.#medias[faceIndex];
     if (!slot) return;
     if (!item) {
@@ -322,6 +401,7 @@ class MediaPrismViewer {
     const url = MediaPrismViewer.#resolverMediaUrl(item);
     const poster = MediaPrismViewer.#resolverPosterUrl(item);
     const isVideo = MediaPrismViewer.#detectarVideo(item);
+    const preloadMode = precarregar ? 'auto' : 'metadata';
 
     const tagAtual = slot.firstElementChild?.tagName;
     const tagNova = isVideo ? 'VIDEO' : 'IMG';
@@ -333,7 +413,7 @@ class MediaPrismViewer {
         el.muted = !this.#isStoryMode();
         el.controls = false;
         el.playsInline = true;
-        el.preload = 'metadata';
+        el.preload = preloadMode;
         el.loop = !this.#isStoryMode();
       } else {
         el.alt = MediaPrismViewer.#resolverTitulo(item);
@@ -347,7 +427,7 @@ class MediaPrismViewer {
       el.muted = !this.#isStoryMode();
       el.controls = false;
       el.playsInline = true;
-      el.preload = 'metadata';
+      el.preload = preloadMode;
       el.loop = !this.#isStoryMode();
       if (poster) el.poster = poster;
       if (url && el.src !== url) el.src = url;
