@@ -77,6 +77,7 @@ class MediaPrismViewer {
 
   #animando        = false;
   #finalizeTimer   = null;
+  #deleteTimer     = null;
   #resizeObserver  = null;
   #floatTimers      = new Set();
   #floatSequence    = 0;
@@ -421,6 +422,37 @@ class MediaPrismViewer {
     }));
   }
 
+  async #handleDeleteStory() {
+    const item = this.#items[this.#index];
+    if (!item?.can_delete || !item?.media_id) return;
+
+    const confirmed = typeof FluxoDeFila !== 'undefined'
+      ? await FluxoDeFila.abrir({
+          id: 'prism-story-delete-confirm',
+          titulo: 'Excluir vídeo?',
+          corpo: 'Este story será removido da barbearia.',
+          acoes: [
+            { label: 'Excluir', valor: 'excluir', variante: 'perigo' },
+            { label: 'Cancelar', valor: 'cancelar', variante: 'secundario' },
+          ],
+          fecharBtn: true,
+          tocarSom: false,
+        }) === 'excluir'
+      : window.confirm('Excluir este vídeo?');
+
+    if (!confirmed) return;
+
+    if (typeof BffApiService === 'undefined') return;
+    const { error } = await BffApiService.media.deletarStory(item.media_id);
+    if (error) return;
+
+    this.close();
+    document.dispatchEvent(new CustomEvent('barberflow:story-deleted', {
+      bubbles: false,
+      detail: { mediaId: item.media_id, storyId: item.id },
+    }));
+  }
+
   static #detectarVideo(item) {
     if (!item) return false;
     if (typeof item.type === 'string' && item.type.startsWith('video')) return true;
@@ -500,6 +532,7 @@ class MediaPrismViewer {
     if (!this.#dragActive) {
       if (Math.abs(dx) < MediaPrismViewer.#DRAG_MIN_PX) return;
       if (Math.abs(dx) <= Math.abs(dy)) return; // gesto vertical: deixa scroll
+      if (this.#deleteTimer) { clearTimeout(this.#deleteTimer); this.#deleteTimer = null; }
       this.#dragActive = true;
       this.#cube.classList.add('pp-prism-cube--drag');
     }
@@ -1013,6 +1046,19 @@ class MediaPrismViewer {
     this.#stage?.addEventListener('pointerup',     e => this.#onPointerUp(e));
     this.#stage?.addEventListener('pointercancel', () => this.#onPointerCancel());
     this.#stage?.addEventListener('lostpointercapture', () => this.#onPointerCancel());
+
+    // Long-press no vídeo em reprodução para deletar (só story mode, só dono)
+    this.#cube?.addEventListener('pointerdown', e => {
+      if (!this.#isStoryMode()) return;
+      const item = this.#items[this.#index];
+      if (!item?.can_delete) return;
+      this.#deleteTimer = setTimeout(() => this.#handleDeleteStory(), 600);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(type => {
+      this.#cube?.addEventListener(type, () => {
+        if (this.#deleteTimer) { clearTimeout(this.#deleteTimer); this.#deleteTimer = null; }
+      });
+    });
 
     // Like dentro das faces 3D (gira com o cubo)
     this.#cube?.addEventListener('click', e => {

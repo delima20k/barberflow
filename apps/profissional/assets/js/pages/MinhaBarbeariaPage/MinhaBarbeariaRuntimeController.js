@@ -2021,14 +2021,23 @@ export class MinhaBarbeariaRuntimeController {
 
       stories.forEach((story, idx) => {
         // Thumbnail: converte storage path para URL; não usa media_url de vídeo como img
-        const thumbUrl = story.thumbnail_path
+        const thumbUrl = story.thumbnail_url || (story.thumbnail_path
           ? SupabaseService.getLogoUrl(story.thumbnail_path)
-          : (story.media_type !== 'video' ? story.media_url ?? null : null);
+          : (story.media_type !== 'video' ? story.media_url ?? null : null));
+        const isOwnerStory = story.tipo_autor !== 'parceiro';
+        const avatarUrl = story.poster_avatar_path
+          ? SupabaseService.getAvatarUrl(story.poster_avatar_path)
+          : null;
+        const identityName = isOwnerStory
+          ? (story.shop_name ?? shopName)
+          : (story.poster_name ?? story.shop_name ?? shopName);
+        const identityLogo = isOwnerStory ? badgeSrc : (avatarUrl ?? badgeSrc);
 
         const card = document.createElement('div');
         card.className        = 'card-mini story-card mb-story-slot';
         card.dataset.shopId   = shop.id;
         card.dataset.storyIdx = String(idx);
+        if (story.media_id) card.dataset.mediaId = String(story.media_id);
         card.setAttribute('data-sv-bound', '1'); // evita double-listener do StoriesLayout
 
         const wrap = document.createElement('div');
@@ -2061,7 +2070,7 @@ export class MinhaBarbeariaRuntimeController {
 
         const badge = document.createElement('img');
         badge.className = 'story-shop-badge';
-        badge.src       = badgeSrc;
+        badge.src       = identityLogo;
         badge.alt       = '';
         badge.onerror   = function() { this.style.display = 'none'; };
         wrap.appendChild(badge);
@@ -2071,7 +2080,7 @@ export class MinhaBarbeariaRuntimeController {
 
         const nameP = document.createElement('p');
         nameP.className   = 'story-card-name';
-        nameP.textContent = shopName;
+        nameP.textContent = identityName;
         info.appendChild(nameP);
 
         const addrP = document.createElement('p');
@@ -2084,13 +2093,87 @@ export class MinhaBarbeariaRuntimeController {
         card.appendChild(wrap);
         card.appendChild(info);
 
+        const likeBtn = document.createElement('button');
+        likeBtn.className = 'story-like-btn';
+        likeBtn.type = 'button';
+        likeBtn.classList.toggle('curtido', Boolean(story.user_liked));
+        const likeImg = document.createElement('img');
+        likeImg.src = '/shared/img/icones_curtir.png';
+        likeImg.alt = 'curtir';
+        const likeCount = document.createElement('span');
+        likeCount.className = 'story-like-count';
+        likeCount.textContent = String(story.likes_count ?? 0);
+        likeBtn.append(likeImg, likeCount);
+        likeBtn.addEventListener('click', async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!story.media_id || typeof BffApiService === 'undefined') return;
+          const likedBefore = Boolean(story.user_liked);
+          const countBefore = Math.max(0, Number(story.likes_count ?? 0));
+          const likedNext = !likedBefore;
+          const countNext = Math.max(0, countBefore + (likedNext ? 1 : -1));
+          story.user_liked = likedNext;
+          story.likes_count = countNext;
+          likeBtn.classList.toggle('curtido', likedNext);
+          likeCount.textContent = String(countNext);
+          likeBtn.disabled = true;
+          const { data, error } = await BffApiService.media.toggleStoryLike(story.media_id);
+          likeBtn.disabled = false;
+          const likedFinal = error ? likedBefore : Boolean(data?.user_liked ?? likedNext);
+          const countFinal = error ? countBefore : Math.max(0, Number(data?.likes_count ?? countNext));
+          story.user_liked = likedFinal;
+          story.likes_count = countFinal;
+          likeBtn.classList.toggle('curtido', likedFinal);
+          likeCount.textContent = String(countFinal);
+        });
+        card.appendChild(likeBtn);
+
         // Abre StoryViewer no índice correto ao clicar
         card.addEventListener('click', () => {
           if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(card);
         });
 
+        if (story.can_delete && story.media_id) {
+          let pressTimer = null;
+          card.addEventListener('pointerdown', (event) => {
+            if (event.target?.closest?.('.story-like-btn')) return;
+            pressTimer = setTimeout(async () => {
+              const confirmed = typeof FluxoDeFila !== 'undefined'
+                ? await FluxoDeFila.abrir({
+                    id: 'mb-story-delete-confirm',
+                    titulo: 'Excluir video?',
+                    corpo: 'Este story sera removido da barbearia e da midia.',
+                    acoes: [
+                      { label: 'Excluir', valor: 'excluir', variante: 'perigo' },
+                      { label: 'Cancelar', valor: 'cancelar', variante: 'secundario' },
+                    ],
+                    fecharBtn: true,
+                    tocarSom: false,
+                  }) === 'excluir'
+                : window.confirm('Excluir este video?');
+              if (!confirmed) return;
+              const { error } = await BffApiService.media.deletarStory(story.media_id);
+              if (!error) card.remove();
+            }, 500);
+          });
+          ['pointerup', 'pointerleave', 'pointercancel'].forEach(type =>
+            card.addEventListener(type, () => {
+              if (pressTimer) clearTimeout(pressTimer);
+              pressTimer = null;
+            })
+          );
+        }
+
         scroll.appendChild(card);
       });
+
+      // Remove card da lista quando o viewer 3D deleta o story
+      document.addEventListener('barberflow:story-deleted', e => {
+        const { mediaId } = e.detail ?? {};
+        if (!mediaId) return;
+        const cardToRemove = scroll.querySelector(`[data-media-id="${CSS.escape(String(mediaId))}"]`);
+        cardToRemove?.remove();
+      }, { once: false });
     }
   }
 
