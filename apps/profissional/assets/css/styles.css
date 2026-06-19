@@ -4081,7 +4081,7 @@
 .pp-prism-stage {
   position: relative;
   width: min(86vw, 500px);
-  height: calc(min(86vw, 500px) * 1.2 + 50px);
+  height: calc(min(86vw, 500px) * 1.2 + 150px);
   margin-top: 72px;
   perspective: 2400px;
   overflow: visible;
