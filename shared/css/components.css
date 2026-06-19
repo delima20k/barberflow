@@ -8712,6 +8712,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   margin-bottom: 5px;
   flex: 0 0 auto;
 }
+.pp-prism-viewer[data-mode="story"] .pp-prism-public-actions {
+  position: static;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  margin-top: 1rem;
+}
 .pp-prism-viewer[data-mode="story"] .pp-prism-media {
   top: 0;
 }
