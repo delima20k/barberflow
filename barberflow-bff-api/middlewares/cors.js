@@ -13,7 +13,7 @@ const config = require('../config');
  * Headers CORS só são setados se a origem for permitida.
  */
 class CorsMiddleware {
-  static #ALLOW_HEADERS = 'Content-Type,Authorization,apikey,x-client-info,X-BarberFlow-Diagnostics';
+  static #ALLOW_HEADERS = 'Content-Type,Authorization,apikey,x-client-info,X-BarberFlow-Diagnostics,X-Media-Metadata';
   static #EXPOSE_HEADERS = 'X-Chat-Diagnostics,X-Appointment-Diagnostics,Server-Timing,X-Request-Id,X-Correlation-Id';
 
   static #allowedOrigins = new Set([

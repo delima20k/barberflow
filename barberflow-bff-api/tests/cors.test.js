@@ -95,6 +95,10 @@ suite('CorsMiddleware — origens de produção (.shop)', () => {
         'X-BarberFlow-Diagnostics deve estar nos headers permitidos para diagnostico de producao',
       );
       assert.ok(
+        captured.headers['Access-Control-Allow-Headers']?.includes('X-Media-Metadata'),
+        'X-Media-Metadata deve estar nos headers permitidos para upload comprimido de stories',
+      );
+      assert.ok(
         captured.headers['Access-Control-Expose-Headers']?.includes('X-Chat-Diagnostics'),
         'X-Chat-Diagnostics deve estar exposto para leitura pelo browser',
       );
