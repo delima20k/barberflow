@@ -8471,7 +8471,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: absolute;
   inset: 5px 5px 0 5px;
   margin: 0;
-  border-radius: 18px;
+  border-radius: 0;
   overflow: hidden;
   backface-visibility: hidden;
   background: #0d0a08;
