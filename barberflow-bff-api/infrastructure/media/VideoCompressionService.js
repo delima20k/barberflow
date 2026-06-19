@@ -8,8 +8,8 @@ const path   = require('node:path');
 const { logger } = require('../../middlewares/logger');
 
 class VideoCompressionService {
-  static TARGET_BYTES = 900 * 1024;
-  static MAX_OUTPUT_BYTES = Math.floor(1.4 * 1024 * 1024);
+  static TARGET_BYTES = 1050 * 1024;
+  static MAX_OUTPUT_BYTES = Math.floor(1.2 * 1024 * 1024);
   static SKIP_BELOW_BYTES = VideoCompressionService.MAX_OUTPUT_BYTES;
   static DEFAULT_TIMEOUT_MS = 45_000;
 
@@ -110,12 +110,15 @@ class VideoCompressionService {
           .setFfmpegPath(ffmpegPath)
           .outputOptions([
             '-c:v libx264',
-            '-b:v 176k',
+            '-b:v 280k',
+            '-maxrate 300k',
+            '-bufsize 600k',
             '-c:a aac',
-            '-b:a 64k',
+            '-b:a 48k',
             '-vf scale=480:-2,fps=24',
+            '-pix_fmt yuv420p',
             '-movflags +faststart',
-            '-preset veryfast',
+            '-preset faster',
           ])
           .format('mp4')
           .on('end', resolve)
@@ -142,12 +145,15 @@ class VideoCompressionService {
       timeoutMs,
       targetBytes: VideoCompressionService.TARGET_BYTES,
       maxOutputBytes: VideoCompressionService.MAX_OUTPUT_BYTES,
-      videoBitrate: '176k',
-      audioBitrate: '64k',
+      videoBitrate: '280k',
+      audioBitrate: '48k',
+      maxrate: '300k',
+      bufsize: '600k',
       width: 480,
       fps: 24,
       codec: 'libx264',
       format: 'mp4',
+      preset: 'faster',
     });
   }
 
