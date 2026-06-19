@@ -8287,26 +8287,10 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-viewer[hidden] { display: none; }
 
 .pp-prism-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background .2s, transform .2s;
+  display: none;
 }
-.pp-prism-close:hover,
-.pp-prism-close:focus-visible { background: rgba(255,255,255,.12); transform: scale(1.06); }
 
-/* Botão fechar dentro da face — move com o cubo; visível só em story mode */
+/* Botão fechar dentro da face — visível em todos os modos */
 .pp-prism-face-close {
   position: absolute;
   top: 10px;
@@ -8320,7 +8304,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: #fff;
   font-size: 1.2rem;
   cursor: pointer;
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
@@ -8328,8 +8312,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .pp-prism-face-close:hover,
 .pp-prism-face-close:focus-visible { background: rgba(255,255,255,.18); }
-.pp-prism-viewer[data-mode="story"] .pp-prism-face-close { display: inline-flex; }
-.pp-prism-viewer[data-mode="story"] > .pp-prism-close { display: none; }
 
 .pp-prism-meta {
   position: absolute;
@@ -8383,8 +8365,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-stage {
   position: relative;
   width: min(86vw, 500px);
-  height: min(85vh, calc(min(86vw, 500px) * 1.2 + 30vh));
-  margin-top: 72px;
+  height: min(85vh, calc(min(86vw, 500px) * 1.2 + 30vh - 50px));
+  margin-top: 56px;
   perspective: 2400px;
   overflow: visible;
   touch-action: pan-y;
