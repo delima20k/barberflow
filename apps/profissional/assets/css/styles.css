@@ -3978,7 +3978,7 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 18px 0.2px;
+  padding: 0.5rem 0.2px 18px;
   overflow: hidden;
   --pp-radius: 200px;
 }
