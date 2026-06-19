@@ -8270,6 +8270,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
    PortfolioPrismViewer -- prisma 3D hexagonal de 6 faces
    Compartilhado entre app cliente e app profissional
 ============================================================ */
+[class*="pp-prism"] {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
 .pp-prism-viewer {
   position: fixed;
   inset: 0;

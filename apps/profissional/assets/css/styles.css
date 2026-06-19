@@ -3968,6 +3968,12 @@
    PortfolioPrismViewer — prisma 3D hexagonal de 6 faces
    Compartilhado via shared/css/components.css
 ============================================================ */
+[class*="pp-prism"] {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
 .pp-prism-viewer {
   position: fixed;
   inset: 0;
