@@ -8573,16 +8573,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 .pp-prism-progress {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
+  top: -14px;
+  left: 0;
+  right: 0;
   z-index: 10;
   display: flex;
+  justify-content: center;
   gap: 4px;
   pointer-events: none;
 }
 .pp-prism-progress-dash {
-  flex: 1;
+  flex: 0 0 1rem;
   height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.28);
