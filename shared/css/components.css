@@ -8702,22 +8702,6 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   100% { opacity: 0; transform: translate(-50%, -340px) scale(1.02); }
 }
 
-/* Story mode: video no topo, input fixo na parte de baixo */
-.pp-prism-viewer[data-mode="story"] {
-  padding-top: 15px;
-  justify-content: center;
-}
-.pp-prism-viewer[data-mode="story"] .pp-prism-stage {
-  margin-top: 0;
-  margin-bottom: 5px;
-  flex: 0 0 auto;
-}
-.pp-prism-viewer[data-mode="story"] .pp-prism-media {
-  top: 0;
-}
-.pp-prism-viewer[data-mode="story"] .pp-prism-public-actions {
-  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 2rem);
-}
 
 @media (max-width: 480px) {
   .pp-prism-stage { width: min(86vw, 500px); perspective: 2400px; }
