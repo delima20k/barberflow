@@ -57,6 +57,104 @@ describe('MediaUploadService', () => {
     assert.equal(event.eventName, 'process_media');
   });
 
+  it('uploadCompressedStory comprime, envia ao storage e agenda processamento', async () => {
+    const original = Buffer.alloc(2 * 1024 * 1024, 1);
+    const compressed = Buffer.alloc(900 * 1024, 2);
+    const calls = { put: null, confirmed: null, event: null };
+    const service = new MediaUploadService({
+      storage: {
+        putVariant: async (variant) => { calls.put = variant; },
+        publicUrl: (path) => `https://cdn.test/${path}`,
+      },
+      mediaRepository: {
+        reserve: async (media) => media,
+        confirmUploaded: async (media) => { calls.confirmed = media; return { id: media.mediaId, path: media.path }; },
+      },
+      outboxRepository: { save: async (payload) => { calls.event = payload; return 'outbox-story-1'; } },
+      confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
+      videoCompressionService: {
+        compress: async () => ({
+          bytes: compressed,
+          contentType: 'video/mp4',
+          compressed: true,
+          skipped: false,
+          originalBytes: original.length,
+          outputBytes: compressed.length,
+          error: null,
+        }),
+      },
+    });
+
+    const result = await service.uploadCompressedStory('aaaaaaaa-0000-4000-8000-000000000001', {
+      bytes: original,
+      contentType: 'video/mp4',
+      sizeBytes: original.length,
+    });
+
+    assert.equal(calls.put.bytes, compressed);
+    assert.equal(calls.put.contentType, 'video/mp4');
+    assert.match(calls.put.path, /^stories\/aaaaaaaa-0000-4000-8000-000000000001\/incoming\/.+\.mp4$/);
+    assert.equal(calls.confirmed.sizeBytes, compressed.length);
+    assert.equal(calls.confirmed.metadata.videoCompression.compressed, true);
+    assert.equal(calls.event.eventName, 'process_media');
+    assert.equal(result.status, 'queued');
+    assert.equal(result.compression.outputBytes, compressed.length);
+    assert.ok(result.publicUrl.includes(result.path));
+  });
+
+  it('uploadCompressedStory preserva original quando compressao falha', async () => {
+    const original = Buffer.alloc(2 * 1024 * 1024, 1);
+    let uploaded = null;
+    const service = new MediaUploadService({
+      storage: { putVariant: async (variant) => { uploaded = variant; } },
+      mediaRepository: {
+        reserve: async (media) => media,
+        confirmUploaded: async (media) => ({ id: media.mediaId, path: media.path }),
+      },
+      outboxRepository: { save: async () => 'outbox-story-2' },
+      confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
+      videoCompressionService: {
+        compress: async () => ({
+          bytes: original,
+          contentType: 'video/mp4',
+          compressed: false,
+          skipped: false,
+          originalBytes: original.length,
+          outputBytes: original.length,
+          error: 'compression_failed',
+        }),
+      },
+    });
+
+    const result = await service.uploadCompressedStory('aaaaaaaa-0000-4000-8000-000000000002', {
+      bytes: original,
+      contentType: 'video/mp4',
+      sizeBytes: original.length,
+    });
+
+    assert.equal(uploaded.bytes, original);
+    assert.equal(result.compression.error, 'compression_failed');
+  });
+
+  it('uploadCompressedStory rejeita conteudo que nao seja video/mp4', async () => {
+    const service = new MediaUploadService({
+      storage: { putVariant: async () => {} },
+      mediaRepository: { reserve: async (media) => media },
+      outboxRepository: { save: async () => 'outbox' },
+      confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
+      videoCompressionService: { compress: async () => ({}) },
+    });
+
+    await assert.rejects(
+      () => service.uploadCompressedStory('aaaaaaaa-0000-4000-8000-000000000003', {
+        bytes: Buffer.alloc(1024),
+        contentType: 'image/png',
+        sizeBytes: 1024,
+      }),
+      { status: 400 },
+    );
+  });
+
   it('salvarThumb faz upload da thumbnail e salva variante no repositorio', async () => {
     const OWNER_ID = 'aaaaaaaa-0000-4000-8000-000000000002';
     const MEDIA_ID = 'bbbbbbbb-0000-4000-8000-000000000001';

@@ -99,6 +99,33 @@ class SupabaseMediaRepository extends BaseRepository {
   // ── Cleanup R2 ──────────────────────────────────────────────
 
   /**
+   * Marca falha de processamento sem expor erro interno.
+   * @param {string} mediaId
+   * @param {string} reason
+   * @returns {Promise<void>}
+   */
+  async markProcessingFailed(mediaId, reason = 'video_processing_failed') {
+    const safeReason = String(reason || 'video_processing_failed').slice(0, 80);
+    const { data: current, error: readError } = await this._db.from('media_files')
+      .select('metadata')
+      .eq('id', mediaId)
+      .maybeSingle();
+    if (readError) this._throwDbError(readError, 'markProcessingFailed read');
+
+    const metadata = {
+      ...(current?.metadata ?? {}),
+      processingError: safeReason,
+      processingFailedAt: new Date().toISOString(),
+    };
+
+    const { error } = await this._db.from('media_files').update({
+      metadata,
+      status: 'blocked',
+    }).eq('id', mediaId);
+    if (error) this._throwDbError(error, 'markProcessingFailed');
+  }
+
+  /**
    * Retorna todas as variantes de um media_file com seus storage_paths.
    * @param {string} mediaId
    * @returns {Promise<{media_id: string, storage_path: string, name: string}[]>}

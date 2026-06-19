@@ -72,4 +72,21 @@ describe('MediaProcessingHandler', () => {
     const job = makeJob({ fileId: 'f1', ownerId: 'o1', tipo: 'logo' });
     await assert.rejects(() => handler.handle(job), /sharp falhou/);
   });
+
+  it('marca mediaId como falha sanitizada quando pipeline de video quebra', async () => {
+    let failure = null;
+    const imageProcessor = { process: async () => { throw new Error('ffmpeg stack privado'); } };
+    const mediaRepository = {
+      markProcessingFailed: async (mediaId, reason) => { failure = { mediaId, reason }; },
+    };
+    const handler = new MediaProcessingHandler({ imageProcessor, mediaRepository });
+    const job = makeJob({
+      mediaId: 'media-1',
+      ownerId: 'owner-1',
+      contentType: 'video/mp4',
+    });
+
+    await assert.rejects(() => handler.handle(job), /ffmpeg stack privado/);
+    assert.deepEqual(failure, { mediaId: 'media-1', reason: 'video_processing_failed' });
+  });
 });

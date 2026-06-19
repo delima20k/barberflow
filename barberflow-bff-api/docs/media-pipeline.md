@@ -21,7 +21,7 @@
 | `video_480p` | `v1` | porta de transcode de video |
 | `video_720p` | `v1` | porta de transcode de video |
 
-`media_variants` permite publicar novas versoes sem quebrar URLs antigas. O worker atual injeta `NoopVideoTranscoder`; variantes de video aparecem quando um adapter ffmpeg/servico gerenciado implementar essa porta.
+`media_variants` permite publicar novas versoes sem quebrar URLs antigas. O worker injeta `FfmpegVideoTranscoder` para stories em video e publica a variante `video_480p` de forma assincrona, sem bloquear a resposta HTTP. O transcode usa limite de concorrencia por processo (`STORY_VIDEO_TRANSCODE_CONCURRENCY`, padrao `1`) para proteger CPU e memoria do worker.
 
 ## Limites e anti-spam
 

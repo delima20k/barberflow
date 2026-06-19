@@ -51,7 +51,17 @@ class MediaProcessingHandler extends JobHandler {
     if (!mediaId && !tipo) throw new Error('MediaProcessingHandler: tipo ausente no payload');
 
     if (mediaId) {
-      await this.#imageProcessor.process(mediaId, ownerId);
+      try {
+        await this.#imageProcessor.process(mediaId, ownerId);
+      } catch (error) {
+        if (typeof this.#mediaRepository.markProcessingFailed === 'function') {
+          const reason = String(contentType ?? '').startsWith('video/')
+            ? 'video_processing_failed'
+            : 'media_processing_failed';
+          await this.#mediaRepository.markProcessingFailed(mediaId, reason).catch(() => {});
+        }
+        throw error;
+      }
       return;
     }
 

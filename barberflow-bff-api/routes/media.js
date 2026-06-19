@@ -1,6 +1,7 @@
 'use strict';
 
-const { Router }                   = require('express');
+const express                      = require('express');
+const { Router }                   = express;
 const AuthMiddleware               = require('../middlewares/auth');
 const SchedulerAdminMiddleware     = require('../middlewares/schedulerAdmin');
 const MediaController              = require('../controllers/MediaController');
@@ -9,6 +10,7 @@ const { SupabaseMediaRepository }  = require('../infrastructure/media/SupabaseMe
 const { SupabaseMediaStorageGateway } = require('../infrastructure/media/SupabaseMediaStorageGateway');
 const { R2StorageGateway }         = require('../infrastructure/media/R2StorageGateway');
 const { MediaConfirmationSigner } = require('../infrastructure/media/MediaConfirmationSigner');
+const { VideoCompressionService }  = require('../infrastructure/media/VideoCompressionService');
 const { MediaUploadService }       = require('../application/media/MediaUploadService');
 const { StoryMediaInteractionService } = require('../application/media/StoryMediaInteractionService');
 const { PurgeExpiredStoriesUseCase } = require('../application/stories/PurgeExpiredStoriesUseCase');
@@ -17,6 +19,19 @@ const BarbeariaRepository          = require('../repositories/BarbeariaRepositor
 
 const LOCK_KEY    = 'scheduler:media.stories-cleanup';
 const LOCK_TTL_MS = 120_000;
+
+function isStoryVideoRequest(body = {}) {
+  return String(body.context ?? body.contexto ?? '').toLowerCase() === 'stories'
+    && String(body.contentType ?? '').toLowerCase() === 'video/mp4';
+}
+
+function r2UnavailableResponse(res) {
+  return res.status(503).json({
+    ok: false,
+    code: 'R2_UNAVAILABLE',
+    error: 'Servico de armazenamento de midia indisponivel.',
+  });
+}
 
 const unavailableStorage = {
   createSignedUpload: async () => {
@@ -45,11 +60,13 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   const mediaRepository = deps.mediaRepository ?? new SupabaseMediaRepository(db);
   const outboxRepository = deps.outboxRepository ?? new OutboxRepository({ supabase: db });
   const signer = deps.confirmationSigner ?? new MediaConfirmationSigner();
+  const videoCompressionService = deps.videoCompressionService ?? new VideoCompressionService();
   const service = deps.service ?? new MediaUploadService({
     storage,
     mediaRepository,
     outboxRepository,
     confirmationSigner: signer,
+    videoCompressionService,
   });
   const controller = new MediaController(service);
   const router = Router();
@@ -70,6 +87,9 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   const storyInteractionController = new MediaController(storyInteractionService);
 
   router.post('/presigned', AuthMiddleware.verificar, (req, res, next) => {
+    if (isStoryVideoRequest(req.body) && (!useR2 || !r2Instance)) {
+      return r2UnavailableResponse(res);
+    }
     if (useR2 && !r2Instance) {
       return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });
     }
@@ -81,6 +101,19 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     }
     return controller.confirmar.call(controller, req, res, next);
   });
+  router.post('/stories/upload-compressed',
+    AuthMiddleware.verificar,
+    express.raw({ type: 'video/mp4', limit: '64mb' }),
+    (req, res, next) => {
+      if (!useR2 || !r2Instance) {
+        return r2UnavailableResponse(res);
+      }
+      if (useR2 && !r2Instance) {
+        return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'ServiÃ§o de armazenamento de mÃ­dia indisponÃ­vel.' });
+      }
+      return controller.uploadCompressedStory.call(controller, req, res, next);
+    },
+  );
   router.get('/:mediaId/acesso', AuthMiddleware.verificar, (req, res, next) => {
     if (useR2 && !r2Instance) {
       return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Serviço de armazenamento de mídia indisponível.' });

@@ -6,7 +6,7 @@
 // ARQUITETURA:
 //   PRIMÁRIO — P2P (presigned URL):
 //     O browser faz PUT direto ao R2 via URL gerada pelo BFF.
-//     O arquivo NUNCA passa pelo servidor Express.
+//     Videos de stories sao comprimidos depois, pelo worker assíncrono.
 //
 //   FALLBACK  — R2 CDN permanente:
 //     Após confirmação, o arquivo está disponível via URL pública.
@@ -122,6 +122,9 @@ class MediaP2P {
 
     const { dados } = await presResp.json();
     const { uploadUrl, path, publicUrl, token: hmac, expiresAt, mediaId } = dados ?? {};
+    if (!uploadUrl || !path || !mediaId || !hmac) {
+      throw new Error('[MediaP2P] Resposta invalida da BFF ao obter URL presigned.');
+    }
 
     // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
     const uploadResp = await fetch(uploadUrl, {

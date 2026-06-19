@@ -13,8 +13,9 @@ class MediaUploadService {
   #mediaRepository;
   #outboxRepository;
   #confirmationSigner;
+  #videoCompressionService;
 
-  constructor({ storage, mediaRepository, outboxRepository, confirmationSigner }) {
+  constructor({ storage, mediaRepository, outboxRepository, confirmationSigner, videoCompressionService = null }) {
     if (!storage) throw new TypeError('MediaUploadService: storage e obrigatorio');
     if (!mediaRepository) throw new TypeError('MediaUploadService: mediaRepository e obrigatorio');
     if (!outboxRepository) throw new TypeError('MediaUploadService: outboxRepository e obrigatorio');
@@ -23,6 +24,7 @@ class MediaUploadService {
     this.#mediaRepository = mediaRepository;
     this.#outboxRepository = outboxRepository;
     this.#confirmationSigner = confirmationSigner;
+    this.#videoCompressionService = videoCompressionService;
   }
 
   async createSignedUpload(ownerId, request) {
@@ -86,6 +88,96 @@ class MediaUploadService {
       },
     });
     return { id: media.id ?? request.mediaId, outboxId, status: 'queued' };
+  }
+
+  async uploadCompressedStory(ownerId, request) {
+    if (!this.#videoCompressionService) {
+      throw AppError.unavailable('Compressao de video indisponivel.');
+    }
+    if (!this.#storage || typeof this.#storage.putVariant !== 'function') {
+      throw AppError.unavailable('Servico de armazenamento de midia indisponivel.');
+    }
+    const sourceBytes = request?.bytes;
+    if (!Buffer.isBuffer(sourceBytes) || sourceBytes.length === 0) {
+      throw AppError.badRequest('Arquivo de video ausente.');
+    }
+
+    const policyRequest = {
+      context: 'stories',
+      contentType: String(request?.contentType ?? 'video/mp4').toLowerCase(),
+      sizeBytes: Number(request?.sizeBytes ?? sourceBytes.length),
+      privacy: request?.privacy,
+    };
+    const policy = MediaUploadService.#policy(policyRequest);
+    if (policyRequest.contentType !== 'video/mp4') {
+      throw AppError.badRequest('Apenas video/mp4 pode usar upload comprimido de story.');
+    }
+
+    const mediaId = request.mediaId ?? crypto.randomUUID();
+    const path = `stories/${ownerId}/incoming/${mediaId}.mp4`;
+    await this.#mediaRepository.reserve({
+      id: mediaId,
+      ownerId,
+      context: 'stories',
+      contentType: 'video/mp4',
+      sizeBytes: sourceBytes.length,
+      privacy: request?.privacy ?? policy.privacy,
+      sourcePath: path,
+    });
+
+    const compression = await this.#videoCompressionService.compress(sourceBytes);
+    await this.#storage.putVariant({
+      path,
+      bytes: compression.bytes,
+      contentType: compression.contentType,
+    });
+
+    const media = await this.#mediaRepository.confirmUploaded({
+      mediaId,
+      ownerId,
+      path,
+      context: 'stories',
+      sizeBytes: compression.outputBytes,
+      contentType: compression.contentType,
+      metadata: {
+        ...(request?.metadata ?? {}),
+        videoCompression: {
+          compressed: compression.compressed,
+          skipped: compression.skipped,
+          originalBytes: compression.originalBytes,
+          outputBytes: compression.outputBytes,
+          error: compression.error,
+        },
+      },
+    });
+
+    const outboxId = await this.#outboxRepository.save({
+      eventName: JOB_TYPES.PROCESS_MEDIA,
+      queue: QUEUES.MEDIA,
+      payload: {
+        mediaId: media.id ?? mediaId,
+        ownerId,
+        context: 'stories',
+        path: media.path ?? path,
+        contentType: compression.contentType,
+      },
+    });
+
+    return {
+      id: media.id ?? mediaId,
+      mediaId: media.id ?? mediaId,
+      path: media.path ?? path,
+      publicUrl: typeof this.#storage.publicUrl === 'function' ? this.#storage.publicUrl(media.path ?? path) : null,
+      outboxId,
+      status: 'queued',
+      compression: {
+        compressed: compression.compressed,
+        skipped: compression.skipped,
+        originalBytes: compression.originalBytes,
+        outputBytes: compression.outputBytes,
+        error: compression.error,
+      },
+    };
   }
 
   async createSignedAccess(ownerId, mediaId, variantName, expiresInSeconds = 300) {

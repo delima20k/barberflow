@@ -92,7 +92,7 @@ const { SupabaseMediaRepository }     = require('../infrastructure/media/Supabas
 const { SupabaseMediaStorageGateway } = require('../infrastructure/media/SupabaseMediaStorageGateway');
 const { R2StorageGateway }            = require('../infrastructure/media/R2StorageGateway');
 const { NoopVirusScanner }            = require('../infrastructure/media/NoopVirusScanner');
-const { NoopVideoTranscoder }         = require('../infrastructure/media/NoopVideoTranscoder');
+const { FfmpegVideoTranscoder }       = require('../infrastructure/media/FfmpegVideoTranscoder');
 const { SupabaseFeedRepository }      = require('../infrastructure/feed/SupabaseFeedRepository');
 const { FeedCache }                   = require('../infrastructure/feed/FeedCache');
 const { RedisCache }                  = require('../infrastructure/cache/RedisCache');
@@ -131,7 +131,7 @@ const mediaPipeline = new MediaPipeline([
   new MimeValidationStep(),
   new MetadataExtractStep({ duplicateFinder: mediaRepository }),
   new ThumbnailStep(),
-  new TranscodeStep({ transcoder: new NoopVideoTranscoder() }),
+  new TranscodeStep({ transcoder: new FfmpegVideoTranscoder() }),
   new VideoThumbnailStep(),
   new CDNPublishStep({ storage: mediaStorage, mediaRepository }),
 ]);

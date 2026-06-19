@@ -525,7 +525,7 @@ class BarbeariaService extends BaseService {
     try {
       const r2 = R2Client.getInstance();
       return Promise.all(stories.map(async story => {
-        const r2Path    = story.media_files?.path ?? null;
+        const r2Path    = story.video_storage_path ?? story.media_files?.path ?? null;
         const thumbPath = story.thumb_storage_path
           ?? story.media_files?.media_variants?.find(v => v.name === 'thumb')?.storage_path
           ?? null;

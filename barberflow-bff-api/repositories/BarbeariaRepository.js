@@ -811,6 +811,35 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
+   * Atualiza a imagem ativa da barbearia e limpa o outro campo de imagem.
+   * @param {string} shopId
+   * @param {'logo_path'|'cover_path'} campo
+   * @param {string} path
+   * @param {'logo_path'|'cover_path'} campoLimpar
+   * @param {string} updatedAt
+   * @returns {Promise<object>}
+   */
+  async updateImagemUnica(shopId, campo, path, campoLimpar, updatedAt) {
+    this._uuid('shopId', shopId);
+    if (!['logo_path', 'cover_path'].includes(campo) || !['logo_path', 'cover_path'].includes(campoLimpar) || campo === campoLimpar) {
+      throw new TypeError('campos de imagem invalidos');
+    }
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .update({ [campo]: path, [campoLimpar]: null, updated_at: updatedAt })
+      .eq('id', shopId)
+      .select(BarbeariaRepository.#SELECT_OWNER)
+      .single();
+
+    if (error) {
+      this._warn('updateImagemUnica', error);
+      this._throwDbError(error, 'updateImagemUnica');
+    }
+    return data;
+  }
+
+  /**
    * Monta URL publica do bucket barbershops.
    * @param {string} path
    * @returns {string}
@@ -1146,7 +1175,7 @@ class BarbeariaRepository extends BaseRepository {
     const agora = new Date().toISOString();
     const { data, error } = await this._db
       .from('stories')
-      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))')
+      .select('id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, views_count, created_at, expires_at, media_id, media_files!stories_media_id_fkey(path, public_url, status, media_variants(name, storage_path))')
       .eq('barbershop_id', barbershopId)
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })
@@ -1215,6 +1244,8 @@ class BarbeariaRepository extends BaseRepository {
         poster_name: poster?.full_name ?? null,
         poster_avatar_path: poster?.avatar_path ?? null,
         thumb_storage_path: story.media_files?.media_variants?.find(v => v.name === 'thumb')?.storage_path ?? null,
+        video_storage_path: story.media_files?.media_variants?.find(v => v.name === 'video_480p')?.storage_path ?? null,
+        processing_status: story.media_files?.status ?? null,
       };
     });
   }
@@ -1287,7 +1318,7 @@ class BarbeariaRepository extends BaseRepository {
       .select(
         'id, owner_id, barbershop_id, storage_path, thumbnail_path, media_type, ' +
         'views_count, created_at, expires_at, media_id, ' +
-        'media_files!stories_media_id_fkey(path, public_url, media_variants(name, storage_path))',
+        'media_files!stories_media_id_fkey(path, public_url, status, media_variants(name, storage_path))',
       )
       .gt('expires_at', agora)
       .order('created_at', { ascending: false })

@@ -94,6 +94,10 @@ class R2StorageGateway {
     await this.#r2.putBuffer(variant.path, variant.bytes, variant.contentType);
   }
 
+  publicUrl(path) {
+    return this.#r2.publicUrl(path);
+  }
+
   // ── Deleção (cleanup) ────────────────────────────────────────
 
   /**

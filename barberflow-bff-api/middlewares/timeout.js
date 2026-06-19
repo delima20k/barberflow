@@ -32,7 +32,7 @@ class TimeoutMiddleware {
    * @type {import('express').RequestHandler}
    */
   static handle(req, res, next) {
-    const timeoutMs = config.timeoutMs;
+    const timeoutMs = TimeoutMiddleware.#timeoutFor(req);
     const timer = setTimeout(() => {
       if (res.headersSent) return;
       logger.warn(
@@ -45,6 +45,15 @@ class TimeoutMiddleware {
     res.on('finish', () => clearTimeout(timer));
     res.on('close',  () => clearTimeout(timer));
     next();
+  }
+
+  static #timeoutFor(req) {
+    const originalUrl = String(req.originalUrl ?? req.url ?? '');
+    if (originalUrl.includes('/media/stories/upload-compressed')) {
+      const mediaTimeout = Number(process.env.STORY_VIDEO_UPLOAD_TIMEOUT_MS ?? 55_000);
+      return Math.min(Math.max(mediaTimeout, config.timeoutMs), 55_000);
+    }
+    return config.timeoutMs;
   }
 }
 

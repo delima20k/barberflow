@@ -40,6 +40,28 @@ class MediaController extends BaseController {
     });
   }
 
+  async uploadCompressedStory(req, res) {
+    await this.handle(res, async () => {
+      const result = await this.#service.uploadCompressedStory(req.user.id, {
+        bytes: req.body,
+        contentType: req.headers['content-type'],
+        sizeBytes: Buffer.isBuffer(req.body) ? req.body.length : 0,
+        metadata: MediaController.#metadataHeader(req.headers['x-media-metadata']),
+      });
+      this.created(res, result);
+    });
+  }
+
+  static #metadataHeader(headerValue) {
+    if (!headerValue || typeof headerValue !== 'string' || headerValue.length > 2048) return {};
+    try {
+      const parsed = JSON.parse(headerValue);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
   async acesso(req, res) {
     await this.handle(res, async () => {
       const access = await this.#service.createSignedAccess(
