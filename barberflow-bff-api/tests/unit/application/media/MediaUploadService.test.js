@@ -31,6 +31,24 @@ describe('MediaUploadService', () => {
     assert.equal(calls[0].sizeBytes, 1024);
   });
 
+  it('nao gera presigned para video de story para evitar salvar bruto no R2', async () => {
+    const service = new MediaUploadService({
+      storage: { createSignedUpload: async () => { throw new Error('nao deve chamar storage'); } },
+      mediaRepository: { reserve: async () => { throw new Error('nao deve reservar'); } },
+      outboxRepository: { save: async () => 'outbox-1' },
+      confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
+    });
+
+    await assert.rejects(
+      () => service.createSignedUpload('aaaaaaaa-0000-4000-8000-000000000001', {
+        context: 'stories',
+        contentType: 'video/mp4',
+        sizeBytes: 4 * 1024 * 1024,
+      }),
+      { status: 400 },
+    );
+  });
+
   it('confirma upload e agenda processamento na fila de midia', async () => {
     let event = null;
     const service = new MediaUploadService({
@@ -102,7 +120,7 @@ describe('MediaUploadService', () => {
     assert.ok(result.publicUrl.includes(result.path));
   });
 
-  it('uploadCompressedStory preserva original quando compressao falha', async () => {
+  it('uploadCompressedStory rejeita salvar original quando compressao falha', async () => {
     const original = Buffer.alloc(2 * 1024 * 1024, 1);
     let uploaded = null;
     const service = new MediaUploadService({
@@ -126,14 +144,15 @@ describe('MediaUploadService', () => {
       },
     });
 
-    const result = await service.uploadCompressedStory('aaaaaaaa-0000-4000-8000-000000000002', {
-      bytes: original,
-      contentType: 'video/mp4',
-      sizeBytes: original.length,
-    });
-
-    assert.equal(uploaded.bytes, original);
-    assert.equal(result.compression.error, 'compression_failed');
+    await assert.rejects(
+      () => service.uploadCompressedStory('aaaaaaaa-0000-4000-8000-000000000002', {
+        bytes: original,
+        contentType: 'video/mp4',
+        sizeBytes: original.length,
+      }),
+      { status: 422 },
+    );
+    assert.equal(uploaded, null);
   });
 
   it('uploadCompressedStory rejeita conteudo que nao seja video/mp4', async () => {

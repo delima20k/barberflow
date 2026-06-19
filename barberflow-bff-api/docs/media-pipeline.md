@@ -3,7 +3,7 @@
 ## Fluxo
 
 1. `POST /api/v1/media/presigned` reserva metadados e assina upload direto para object storage.
-2. O cliente envia bytes ao storage, nunca para a API.
+2. O cliente envia bytes ao storage, nunca para a API, exceto story `video/mp4`: nesse caso `POST /api/v1/media/stories/upload-compressed` comprime antes de salvar no R2.
 3. `POST /api/v1/media/confirmar` valida token de confirmacao e grava outbox `process_media`.
 4. O worker baixa a fonte e executa `VirusScanStep -> MimeValidationStep -> MetadataExtractStep -> ThumbnailStep -> TranscodeStep -> CDNPublishStep`.
 5. Conteudo privado usa `GET /api/v1/media/:mediaId/acesso?variant=original` para URL assinada curta.
@@ -21,7 +21,7 @@
 | `video_480p` | `v1` | porta de transcode de video |
 | `video_720p` | `v1` | porta de transcode de video |
 
-`media_variants` permite publicar novas versoes sem quebrar URLs antigas. O worker injeta `FfmpegVideoTranscoder` para stories em video e publica a variante `video_480p` de forma assincrona, sem bloquear a resposta HTTP. O transcode usa limite de concorrencia por processo (`STORY_VIDEO_TRANSCODE_CONCURRENCY`, padrao `1`) para proteger CPU e memoria do worker.
+`media_variants` permite publicar novas versoes sem quebrar URLs antigas. Videos novos de stories ja entram no R2 comprimidos pelo BFF. O worker injeta `FfmpegVideoTranscoder` para manter compatibilidade com fontes antigas e publicar a variante `video_480p` de forma assincrona quando necessario. O transcode usa limite de concorrencia por processo (`STORY_VIDEO_TRANSCODE_CONCURRENCY`, padrao `1`) para proteger CPU e memoria do worker.
 
 ## Limites e anti-spam
 

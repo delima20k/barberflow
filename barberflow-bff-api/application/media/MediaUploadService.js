@@ -29,6 +29,9 @@ class MediaUploadService {
 
   async createSignedUpload(ownerId, request) {
     const policy = MediaUploadService.#policy(request);
+    if (request.context === 'stories' && request.contentType === 'video/mp4') {
+      throw AppError.badRequest('Videos de story devem usar upload comprimido.');
+    }
     const mediaId = request.mediaId ?? crypto.randomUUID();
     const ext = MediaUploadService.#extension(request.contentType);
     const path = `${request.context}/${ownerId}/incoming/${mediaId}.${ext}`;
@@ -126,6 +129,9 @@ class MediaUploadService {
     });
 
     const compression = await this.#videoCompressionService.compress(sourceBytes);
+    if (compression.error) {
+      throw AppError.unprocessable('Falha ao comprimir video de story.');
+    }
     await this.#storage.putVariant({
       path,
       bytes: compression.bytes,

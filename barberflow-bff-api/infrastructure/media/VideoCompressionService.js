@@ -9,7 +9,8 @@ const { logger } = require('../../middlewares/logger');
 
 class VideoCompressionService {
   static TARGET_BYTES = 900 * 1024;
-  static SKIP_BELOW_BYTES = 950 * 1024;
+  static MAX_OUTPUT_BYTES = Math.floor(1.4 * 1024 * 1024);
+  static SKIP_BELOW_BYTES = VideoCompressionService.MAX_OUTPUT_BYTES;
   static DEFAULT_TIMEOUT_MS = 45_000;
 
   #runner;
@@ -50,6 +51,16 @@ class VideoCompressionService {
           compressed: false,
           skipped: true,
           error: 'compressed_not_smaller',
+        });
+      }
+
+      if (compressedBytes.length > VideoCompressionService.MAX_OUTPUT_BYTES) {
+        return VideoCompressionService.#result({
+          bytes: inputBuffer,
+          originalBytes,
+          compressed: false,
+          skipped: false,
+          error: 'compressed_too_large',
         });
       }
 
@@ -130,6 +141,7 @@ class VideoCompressionService {
     return Object.freeze({
       timeoutMs,
       targetBytes: VideoCompressionService.TARGET_BYTES,
+      maxOutputBytes: VideoCompressionService.MAX_OUTPUT_BYTES,
       videoBitrate: '176k',
       audioBitrate: '64k',
       width: 480,

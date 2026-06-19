@@ -32,28 +32,20 @@ function carregarMediaP2P(fetchImpl) {
 }
 
 describe('MediaP2P', () => {
-  it('usa presigned para story video e nao chama rota sincrona comprimida', async () => {
+  it('usa rota comprimida para story video antes de salvar no R2', async () => {
     const calls = [];
     const fetchImpl = async (url, options = {}) => {
       calls.push({ url, options });
-      if (url.endsWith('/api/v1/media/presigned')) {
+      if (url.endsWith('/api/v1/media/stories/upload-compressed')) {
         return {
           ok: true,
           json: async () => ({ dados: {
-            uploadUrl: 'https://r2.test/upload',
             path: 'stories/user/incoming/media.mp4',
             publicUrl: 'https://cdn.test/media.mp4',
-            token: 'confirm-token',
-            expiresAt: '2026-06-19T12:00:00.000Z',
             mediaId: 'media-1',
+            compression: { compressed: true, outputBytes: 900 * 1024 },
           } }),
         };
-      }
-      if (url === 'https://r2.test/upload') {
-        return { ok: true, json: async () => ({}) };
-      }
-      if (url.endsWith('/api/v1/media/confirmar')) {
-        return { ok: true, json: async () => ({ dados: { status: 'queued' } }) };
       }
       throw new Error(`URL inesperada: ${url}`);
     };
@@ -65,7 +57,43 @@ describe('MediaP2P', () => {
     const result = await media.fazerUpload('story-1', 'stories', { barbershopId: 'shop-1' });
 
     assert.equal(result.mediaId, 'media-1');
-    assert.equal(calls.some(call => call.url.includes('/stories/upload-compressed')), false);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, 'https://bff.test/api/v1/media/stories/upload-compressed');
+    assert.equal(calls[0].options.method, 'POST');
+    assert.equal(calls[0].options.headers.Authorization, 'Bearer jwt-test');
+    assert.equal(calls[0].options.headers['Content-Type'], 'video/mp4');
+    assert.equal(calls[0].options.body, file);
+  });
+
+  it('mantem presigned para imagem de story', async () => {
+    const calls = [];
+    const fetchImpl = async (url, options = {}) => {
+      calls.push({ url, options });
+      if (url.endsWith('/api/v1/media/presigned')) {
+        return {
+          ok: true,
+          json: async () => ({ dados: {
+            uploadUrl: 'https://r2.test/upload',
+            path: 'stories/user/incoming/media.webp',
+            publicUrl: 'https://cdn.test/media.webp',
+            token: 'confirm-token',
+            expiresAt: '2026-06-19T12:00:00.000Z',
+            mediaId: 'media-img-1',
+          } }),
+        };
+      }
+      if (url === 'https://r2.test/upload') return { ok: true, json: async () => ({}) };
+      if (url.endsWith('/api/v1/media/confirmar')) return { ok: true, json: async () => ({ dados: { status: 'queued' } }) };
+      throw new Error(`URL inesperada: ${url}`);
+    };
+    const { MediaP2P, FileMock } = carregarMediaP2P(fetchImpl);
+    const media = new MediaP2P();
+    const file = new FileMock(['image'], 'story.webp', { type: 'image/webp' });
+
+    await media.registrar(file, 'story-img');
+    const result = await media.fazerUpload('story-img', 'stories');
+
+    assert.equal(result.mediaId, 'media-img-1');
     assert.equal(calls[0].url, 'https://bff.test/api/v1/media/presigned');
     assert.equal(calls[1].url, 'https://r2.test/upload');
     assert.equal(calls[2].url, 'https://bff.test/api/v1/media/confirmar');
