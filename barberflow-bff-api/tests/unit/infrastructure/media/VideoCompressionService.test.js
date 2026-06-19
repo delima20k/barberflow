@@ -82,6 +82,30 @@ describe('VideoCompressionService', () => {
     assert.equal(called, false);
   });
 
+  it('aceita recompressao forcada maior que o original quando fica dentro de 1.2MB', async () => {
+    const original = Buffer.alloc(813 * 1024, 1);
+    const recompressed = Buffer.alloc(1120 * 1024, 2);
+    let called = false;
+    const service = new VideoCompressionService({
+      logger: silentLogger,
+      runner: {
+        run: async () => {
+          called = true;
+          return recompressed;
+        },
+      },
+    });
+
+    const result = await service.compress(original, { force: true });
+
+    assert.equal(called, true);
+    assert.equal(result.compressed, true);
+    assert.equal(result.skipped, false);
+    assert.equal(result.error, null);
+    assert.equal(result.outputBytes, recompressed.length);
+    assert.equal(result.bytes, recompressed);
+  });
+
   it('marca erro quando a compressao ainda fica acima de 1.2MB', async () => {
     const original = Buffer.alloc(4 * 1024 * 1024, 1);
     const oversized = Buffer.alloc(VideoCompressionService.MAX_OUTPUT_BYTES + 1, 2);

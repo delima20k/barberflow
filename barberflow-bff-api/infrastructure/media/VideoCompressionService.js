@@ -44,16 +44,6 @@ class VideoCompressionService {
         throw new Error('ffmpeg retornou buffer vazio.');
       }
 
-      if (compressedBytes.length >= originalBytes) {
-        return VideoCompressionService.#result({
-          bytes: inputBuffer,
-          originalBytes,
-          compressed: false,
-          skipped: true,
-          error: 'compressed_not_smaller',
-        });
-      }
-
       if (compressedBytes.length > VideoCompressionService.MAX_OUTPUT_BYTES) {
         return VideoCompressionService.#result({
           bytes: inputBuffer,
@@ -61,6 +51,16 @@ class VideoCompressionService {
           compressed: false,
           skipped: false,
           error: 'compressed_too_large',
+        });
+      }
+
+      if (compressedBytes.length >= originalBytes && options.force !== true) {
+        return VideoCompressionService.#result({
+          bytes: inputBuffer,
+          originalBytes,
+          compressed: false,
+          skipped: true,
+          error: 'compressed_not_smaller',
         });
       }
 
