@@ -29,11 +29,13 @@ describe('VideoCompressionService', () => {
     assert.equal(result.contentType, 'video/mp4');
     assert.equal(runnerOptions.videoBitrate, '280k');
     assert.equal(runnerOptions.audioBitrate, '48k');
+    assert.equal(runnerOptions.minrate, '280k');
     assert.equal(runnerOptions.maxrate, '300k');
     assert.equal(runnerOptions.bufsize, '600k');
+    assert.equal(runnerOptions.rateControl, 'cbr');
     assert.equal(runnerOptions.width, 480);
     assert.equal(runnerOptions.fps, 24);
-    assert.equal(runnerOptions.preset, 'faster');
+    assert.equal(runnerOptions.preset, 'fast');
     assert.equal(runnerOptions.targetBytes, 1050 * 1024);
     assert.equal(runnerOptions.maxOutputBytes, VideoCompressionService.MAX_OUTPUT_BYTES);
     assert.equal(VideoCompressionService.MAX_OUTPUT_BYTES, Math.floor(1.2 * 1024 * 1024));

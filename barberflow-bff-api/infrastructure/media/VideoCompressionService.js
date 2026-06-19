@@ -111,14 +111,16 @@ class VideoCompressionService {
           .outputOptions([
             '-c:v libx264',
             '-b:v 280k',
+            '-minrate 280k',
             '-maxrate 300k',
             '-bufsize 600k',
+            '-x264-params nal-hrd=cbr:force-cfr=1',
             '-c:a aac',
             '-b:a 48k',
             '-vf scale=480:-2,fps=24',
             '-pix_fmt yuv420p',
             '-movflags +faststart',
-            '-preset faster',
+            '-preset fast',
           ])
           .format('mp4')
           .on('end', resolve)
@@ -147,13 +149,15 @@ class VideoCompressionService {
       maxOutputBytes: VideoCompressionService.MAX_OUTPUT_BYTES,
       videoBitrate: '280k',
       audioBitrate: '48k',
+      minrate: '280k',
       maxrate: '300k',
       bufsize: '600k',
+      rateControl: 'cbr',
       width: 480,
       fps: 24,
       codec: 'libx264',
       format: 'mp4',
-      preset: 'faster',
+      preset: 'fast',
     });
   }
 
