@@ -8,8 +8,8 @@ const path   = require('node:path');
 const { logger } = require('../../middlewares/logger');
 
 class VideoCompressionService {
-  static TARGET_BYTES = 960 * 1024;
-  static MAX_OUTPUT_BYTES = 1024 * 1024;
+  static TARGET_BYTES = Math.floor(1.35 * 1024 * 1024);
+  static MAX_OUTPUT_BYTES = Math.floor(1.5 * 1024 * 1024);
   static SKIP_BELOW_BYTES = VideoCompressionService.MAX_OUTPUT_BYTES;
   static DEFAULT_TIMEOUT_MS = 45_000;
 
@@ -110,13 +110,13 @@ class VideoCompressionService {
           .setFfmpegPath(ffmpegPath)
           .outputOptions([
             '-c:v libx264',
-            '-b:v 220k',
-            '-minrate 220k',
-            '-maxrate 230k',
-            '-bufsize 460k',
+            '-b:v 330k',
+            '-minrate 330k',
+            '-maxrate 350k',
+            '-bufsize 700k',
             '-x264-params nal-hrd=cbr:force-cfr=1',
             '-c:a aac',
-            '-b:a 40k',
+            '-b:a 48k',
             '-vf scale=480:-2,fps=24',
             '-pix_fmt yuv420p',
             '-movflags +faststart',
@@ -147,11 +147,11 @@ class VideoCompressionService {
       timeoutMs,
       targetBytes: VideoCompressionService.TARGET_BYTES,
       maxOutputBytes: VideoCompressionService.MAX_OUTPUT_BYTES,
-      videoBitrate: '220k',
-      audioBitrate: '40k',
-      minrate: '220k',
-      maxrate: '230k',
-      bufsize: '460k',
+      videoBitrate: '330k',
+      audioBitrate: '48k',
+      minrate: '330k',
+      maxrate: '350k',
+      bufsize: '700k',
       rateControl: 'cbr',
       width: 480,
       fps: 24,
