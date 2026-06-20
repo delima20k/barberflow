@@ -192,6 +192,8 @@ class StoriesWidget {
   #shopName     = null;
   #shopLogoSrc  = null;
   #context      = 'home'; // 'home' | 'public-shop' | 'my-shop'
+  #leadAddCard  = false;  // injeta um card "+" no início do feed (opt-in)
+  #onAddStory   = null;   // callback do clique no card "+"
 
   /**
    * @param {HTMLElement} scrollEl
@@ -200,13 +202,17 @@ class StoriesWidget {
    * @param {string|null} [opts.shopName]
    * @param {string|null} [opts.shopLogoSrc]
    * @param {string}      [opts.context]  'home' | 'public-shop' | 'my-shop'
+   * @param {boolean}     [opts.leadAddCard] — adiciona card "+" como 1º do feed
+   * @param {Function}    [opts.onAddStory]  — handler do clique no card "+"
    */
-  constructor(scrollEl, { barbershopId = null, shopName = null, shopLogoSrc = null, context = 'home' } = {}) {
+  constructor(scrollEl, { barbershopId = null, shopName = null, shopLogoSrc = null, context = 'home', leadAddCard = false, onAddStory = null } = {}) {
     this.#scrollEl     = scrollEl;
     this.#barbershopId = barbershopId;
     this.#shopName     = shopName;
     this.#shopLogoSrc  = shopLogoSrc;
     this.#context      = context;
+    this.#leadAddCard  = Boolean(leadAddCard);
+    this.#onAddStory   = typeof onAddStory === 'function' ? onAddStory : null;
   }
 
   // ══════════════════════════════════════════════════════════
@@ -248,10 +254,10 @@ class StoriesWidget {
    * Modo feed: busca barbearias em destaque e carrega stories de cada uma.
    * @param {HTMLElement|null} telaInicio — elemento #tela-inicio
    */
-  static iniciarHome(telaInicio) {
+  static iniciarHome(telaInicio, opts = {}) {
     const scroll = telaInicio?.querySelector?.('.stories-scroll');
     if (!scroll) return;
-    new StoriesWidget(scroll, { context: 'feed' }).carregar().catch(() => {});
+    new StoriesWidget(scroll, { context: 'feed', ...opts }).carregar().catch(() => {});
   }
 
   // ══════════════════════════════════════════════════════════
@@ -268,15 +274,24 @@ class StoriesWidget {
    */
   async #carregarFeed() {
     const { data: feed, error } = await BffApiService.barbearias.feedStories();
-    if (error || !Array.isArray(feed) || !feed.length) {
+    const temFeed = !error && Array.isArray(feed) && feed.length > 0;
+
+    // Sem stories e sem card "+": esconde a seção (comportamento original).
+    if (!temFeed && !this.#leadAddCard) {
       this.#ocultarSecao();
       return;
     }
 
     this.#scrollEl.innerHTML = '';
 
+    // Card "+" (opt-in, só profissional) sempre como primeiro do feed.
+    if (this.#leadAddCard) {
+      this.#scrollEl.appendChild(this.#criarCardAdicionar());
+      this.#mostrarSecao();
+    }
+
     const ordemFeed = [];
-    for (const { shop, stories } of feed) {
+    for (const { shop, stories } of (temFeed ? feed : [])) {
       if (!Array.isArray(stories) || !stories.length) continue;
       const logoUrl = typeof ApiService !== 'undefined'
         ? ApiService.getLogoUrl(shop.logo_path)
@@ -499,6 +514,42 @@ class StoriesWidget {
     const section = this.#scrollEl.closest('.bp-stories-section');
     if (section) { section.hidden = true; return; }
     this.#scrollEl.hidden = true;
+  }
+
+  /** Garante a seção visível (usado quando há card "+" mesmo sem stories). */
+  #mostrarSecao() {
+    const section = this.#scrollEl.closest('.bp-stories-section');
+    if (section) section.hidden = false;
+    this.#scrollEl.hidden = false;
+  }
+
+  /**
+   * Card "+" do início do feed (opt-in via leadAddCard). Clicar dispara
+   * onAddStory — quem abre a modal de criação (StoryCreationModal).
+   * @returns {HTMLDivElement}
+   */
+  #criarCardAdicionar() {
+    const card = document.createElement('div');
+    card.className = 'card-mini story-card sc-add-card';
+    card.setAttribute('data-sv-bound', '1');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'story-video-wrap is-loaded';
+
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'sc-add-plus';
+    plus.setAttribute('aria-label', 'Criar story');
+    plus.textContent = '＋';
+
+    wrap.appendChild(plus);
+    card.appendChild(wrap);
+
+    card.addEventListener('click', () => {
+      if (typeof this.#onAddStory === 'function') this.#onAddStory();
+    });
+
+    return card;
   }
 
   // ══════════════════════════════════════════════════════════
