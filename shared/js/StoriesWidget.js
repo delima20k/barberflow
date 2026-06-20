@@ -10,6 +10,7 @@
 class StoriesStore {
 
   static #cache = new Map();
+  static #feedOrder = []; // ordem das barbearias na home (modo feed)
 
   static set(shopId, stories) {
     if (shopId && Array.isArray(stories)) StoriesStore.#cache.set(shopId, stories);
@@ -23,9 +24,20 @@ class StoriesStore {
     return StoriesStore.#cache.has(shopId);
   }
 
+  /** Define a ordem das barbearias exibidas na home (para navegação contínua). */
+  static setFeedOrder(shopIds) {
+    StoriesStore.#feedOrder = Array.isArray(shopIds) ? shopIds.filter(Boolean) : [];
+  }
+
+  /** Ordem das barbearias da home. */
+  static getFeedOrder() {
+    return [...StoriesStore.#feedOrder];
+  }
+
   /** Limpa o cache (ex.: ao fazer logout). */
   static clear() {
     StoriesStore.#cache.clear();
+    StoriesStore.#feedOrder = [];
   }
 }
 
@@ -263,19 +275,31 @@ class StoriesWidget {
 
     this.#scrollEl.innerHTML = '';
 
+    const ordemFeed = [];
     for (const { shop, stories } of feed) {
       if (!Array.isArray(stories) || !stories.length) continue;
       const logoUrl = typeof ApiService !== 'undefined'
         ? ApiService.getLogoUrl(shop.logo_path)
         : (shop.logo_path ?? '');
+      // Enriquece cada story com a identidade da barbearia para que, na
+      // navegação contínua entre barbearias, cada face mostre logo/nome certos.
+      stories.forEach(story => {
+        if (story.shop_logo_path == null) story.shop_logo_path = shop.logo_path ?? null;
+        if (story.shop_name == null)      story.shop_name      = shop.name ?? '';
+      });
       const card = this.#criarCardGrupo(stories, shop.id, shop.name ?? '', logoUrl, shop.owner_id ?? null);
       this.#scrollEl.appendChild(card);
+      ordemFeed.push(shop.id);
     }
 
     if (!this.#scrollEl.children.length) {
       this.#ocultarSecao();
       return;
     }
+
+    // Ordem das barbearias da home — StoryViewer usa para percorrer todos
+    // os vídeos de todas as barbearias a partir de qualquer card clicado.
+    StoriesStore.setFeedOrder(ordemFeed);
 
     // Recalibra carrossel com os novos cards dinâmicos (StoriesCarousel é idempotente)
     if (typeof StoriesCarousel !== 'undefined') {
@@ -504,6 +528,8 @@ class StoriesWidget {
     const card = document.createElement('div');
     card.className      = 'card-mini story-card';
     card.dataset.shopId = ownerId;
+    // Cards da home (feed): clicar percorre TODAS as barbearias continuamente.
+    if (this.#context === 'feed') card.dataset.feedGroup = '1';
 
     const wrap = document.createElement('div');
     wrap.className      = 'story-video-wrap';

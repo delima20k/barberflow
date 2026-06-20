@@ -189,9 +189,36 @@ class StoryViewer {
     if (!cardEl) return;
 
     const shopId  = cardEl.dataset.shopId;
-    const stories = (shopId && typeof StoriesStore !== 'undefined')
-      ? StoriesStore.get(shopId)
-      : [];
+    const ehFeedHome = cardEl.dataset.feedGroup === '1' && typeof StoriesStore !== 'undefined';
+
+    let stories;
+    let startIndex;
+
+    if (ehFeedHome) {
+      // Home: percorre TODOS os vídeos de TODAS as barbearias continuamente.
+      // Concatena os stories de cada barbearia na ordem do feed e começa no
+      // primeiro vídeo da barbearia clicada. Sem precisar clicar em outro card.
+      const ordem = StoriesStore.getFeedOrder();
+      const combinado = [];
+      let inicioBarbearia = 0;
+      for (const sid of ordem) {
+        const lista = StoriesStore.get(sid);
+        if (!lista.length) continue;
+        if (sid === shopId) inicioBarbearia = combinado.length;
+        combinado.push(...lista);
+      }
+      stories = combinado.length ? combinado : StoriesStore.get(shopId);
+      startIndex = combinado.length ? inicioBarbearia : 0;
+    } else {
+      stories = (shopId && typeof StoriesStore !== 'undefined')
+        ? StoriesStore.get(shopId)
+        : [];
+      // Suporte a data-storyIdx: cards individuais (barbearia pública / minha barbearia)
+      const rawIdx = parseInt(cardEl.dataset.storyIdx ?? '0', 10);
+      startIndex = Number.isFinite(rawIdx) && rawIdx >= 0 && rawIdx < stories.length
+        ? rawIdx
+        : 0;
+    }
 
     // Fallback: card legacy / demo sem stories no cache → MediaViewer
     if (!stories.length) {
@@ -202,12 +229,6 @@ class StoryViewer {
       }
       return;
     }
-
-    // Suporte a data-storyIdx: cards individuais (barbearia pública / minha barbearia)
-    const rawIdx     = parseInt(cardEl.dataset.storyIdx ?? '0', 10);
-    const startIndex = Number.isFinite(rawIdx) && rawIdx >= 0 && rawIdx < stories.length
-      ? rawIdx
-      : 0;
 
     // Estado centralizado — 1 card = 1 barbearia = N stories
     StoryViewer.#viewerState = {

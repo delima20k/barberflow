@@ -8586,14 +8586,14 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   z-index: 5;
   display: flex;
   justify-content: center;
-  gap: 4px;
-  padding: 0 10px;
+  gap: 2px;
+  padding: 0 8px;
   pointer-events: none;
 }
 .pp-prism-progress[hidden] { display: none; }
 .pp-prism-progress-dash {
   flex: 0 1 1rem;
-  min-width: 4px;
+  min-width: 2px;
   height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.28);
