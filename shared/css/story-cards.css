@@ -95,6 +95,15 @@
   display: block;
 }
 
+/* Leve realce para a capa do card parecer mais nítida.
+   (A compressão do vídeo limita o detalhe real; isto só aumenta contraste/cor.)
+   Cobre <img>/<video> de fundo dos dois apps, sem afetar o badge da barbearia. */
+.story-video-wrap > img:not(.story-shop-badge),
+.story-video-wrap > video {
+  filter: contrast(1.07) saturate(1.06);
+  image-rendering: auto;
+}
+
 /* Optional readability overlay */
 .story-video-wrap::after {
   content: '';
