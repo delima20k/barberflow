@@ -253,26 +253,20 @@
 }
 .sc-emoji-btn:hover { background: rgba(255, 255, 255, .1); }
 
-/* Card "+" de criar story (1º do feed da home — só profissional) */
+/* Card "+" de criar story (1º do feed da home — só profissional).
+   Mantém o visual padrão do .story-video-wrap (como os slots vazios):
+   gradiente default + um "+" centralizado. Clicar abre a modal. */
 .sc-add-card .story-video-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, rgba(212, 160, 23, .16) 0%, rgba(43, 27, 18, .08) 100%);
 }
 .sc-add-plus {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: 2px solid var(--gold, #d4a017);
-  background: rgba(255, 255, 255, .85);
+  border: 0;
+  background: transparent;
   color: var(--gold-dark, #8a6a12);
-  font-size: 1.7rem;
+  font-size: 2.4rem;
   line-height: 1;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(43, 27, 18, .18);
 }
 .sc-add-card:active { transform: scale(.985); }
