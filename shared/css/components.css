@@ -8634,8 +8634,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   position: relative;
   display: flex;
   align-items: center;
-  width: 160px;
-  max-width: 42vw;
+  width: 200px;
+  max-width: 54vw;
   flex-shrink: 0;
 }
 .pp-prism-message-input {
@@ -8671,8 +8671,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-message-send:disabled { opacity: .4; cursor: default; }
 .pp-prism-public-like,
 .pp-prism-public-emoji {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -8681,6 +8681,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: 2px;
+  font-size: 1.5rem;
   font-weight: 900;
   cursor: pointer;
 }
