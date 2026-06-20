@@ -4068,8 +4068,8 @@
 
 .pp-prism-stage {
   position: relative;
-  width: min(100vw, 500px);
-  height: min(85vh, calc(min(100vw, 500px) * 1.2 + 30vh - 50px));
+  width: min(86vw, 500px);
+  height: min(85vh, calc(min(86vw, 500px) * 1.2 + 30vh - 50px));
   margin-top: 0;
   perspective: 2400px;
   overflow: visible;
@@ -4404,7 +4404,7 @@
 }
 
 @media (max-width: 480px) {
-  .pp-prism-stage { width: 100vw; perspective: 2400px; }
+  .pp-prism-stage { width: min(86vw, 500px); perspective: 2400px; }
   .pp-prism-face-id-name { max-width: 100px; }
 }
 
