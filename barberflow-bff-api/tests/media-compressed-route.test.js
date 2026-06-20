@@ -1,13 +1,16 @@
 'use strict';
 
 const express = require('express');
+const fs = require('node:fs');
 const http = require('node:http');
+const path = require('node:path');
 const { suite, test, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 
 process.env.APP_ENV = 'test';
 
 const AuthMiddleware = require('../middlewares/auth');
+const { MediaPolicyCatalog } = require('../config/media');
 const criarMediaRoute = require('../routes/media');
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -159,5 +162,13 @@ suite('media route - uploadCompressedStory', () => {
     } finally {
       await closeServer(server);
     }
+  });
+
+  test('mantem limite tecnico de story video em 128MB sem regra de produto por tamanho', () => {
+    const policy = MediaPolicyCatalog.context('stories');
+    const routeSource = fs.readFileSync(path.resolve(__dirname, '../routes/media.js'), 'utf8');
+
+    assert.equal(policy.maxBytes, 128 * 1024 * 1024);
+    assert.match(routeSource, /express\.raw\(\{\s*type:\s*'video\/mp4',\s*limit:\s*'128mb'\s*\}\)/);
   });
 });

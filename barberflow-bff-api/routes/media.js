@@ -111,7 +111,7 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   });
   router.post('/stories/upload-compressed',
     AuthMiddleware.verificar,
-    express.raw({ type: 'video/mp4', limit: '64mb' }),
+    express.raw({ type: 'video/mp4', limit: '128mb' }),
     (req, res, next) => {
       if (!r2Instance) {
         return r2UnavailableResponse(res);

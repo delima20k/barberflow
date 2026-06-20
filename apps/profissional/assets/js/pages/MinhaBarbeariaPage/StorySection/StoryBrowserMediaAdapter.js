@@ -1,4 +1,6 @@
 export class StoryBrowserMediaAdapter {
+  static #MAX_DURATION_SECONDS = 35;
+
   #mediaP2P;
 
   constructor({ mediaP2P } = {}) {
@@ -14,6 +16,10 @@ export class StoryBrowserMediaAdapter {
     if (!barbershopId) throw new Error('StoryBrowserMediaAdapter requer barbershopId.');
 
     const mediaType = file.type?.startsWith('video') ? 'video' : 'image';
+    if (mediaType === 'video') {
+      await this.#validarDuracaoVideo(file);
+    }
+
     const blobUrl = await this.#mediaP2P.registrar(file, uid);
     if (!blobUrl) return null;
 
@@ -41,5 +47,47 @@ export class StoryBrowserMediaAdapter {
       mediaType,
       expiresAt,
     };
+  }
+
+  async #validarDuracaoVideo(file) {
+    const duration = await this.#lerDuracaoVideo(file);
+    if (duration <= StoryBrowserMediaAdapter.#MAX_DURATION_SECONDS) return;
+
+    const duracao = Math.ceil(duration);
+    throw new Error(`Este vídeo tem ${duracao}s. O limite máximo para Stories é de 35 segundos.`);
+  }
+
+  #lerDuracaoVideo(file) {
+    return new Promise((resolve, reject) => {
+      if (typeof document === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL) {
+        reject(new Error('Não foi possível ler a duração do vídeo.'));
+        return;
+      }
+
+      const video = document.createElement('video');
+      const objectUrl = URL.createObjectURL(file);
+      let finalizado = false;
+
+      const finalizar = (callback, value) => {
+        if (finalizado) return;
+        finalizado = true;
+        URL.revokeObjectURL?.(objectUrl);
+        video.removeAttribute?.('src');
+        video.load?.();
+        callback(value);
+      };
+
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        const duration = Number(video.duration);
+        if (!Number.isFinite(duration)) {
+          finalizar(reject, new Error('Não foi possível ler a duração do vídeo.'));
+          return;
+        }
+        finalizar(resolve, duration);
+      };
+      video.onerror = () => finalizar(reject, new Error('Não foi possível ler a duração do vídeo.'));
+      video.src = objectUrl;
+    });
   }
 }

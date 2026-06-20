@@ -3290,12 +3290,6 @@ export class MinhaBarbeariaRuntimeController {
       return;
     }
 
-    const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
-    if (file.size > MAX_BYTES) {
-      NotificationService?.mostrarToast('Limite', 'O arquivo deve ter no máximo 30 MB.', 'sistema');
-      return;
-    }
-
     const perfil = AuthService.getPerfil();
     const quota  = await MinhaBarbeariaRuntimeController.#fetchQuotaHoje(perfil.id, this.#barbershopId);
     if (quota >= (this.#isOwner ? 3 : 1)) {
@@ -3335,7 +3329,9 @@ export class MinhaBarbeariaRuntimeController {
 
     } catch (err) {
       LoggerService?.warn('[MinhaBarbeariaPage] onUploadMidia erro:', err.message);
-      NotificationService?.mostrarToast('Erro', 'Falha ao enviar mídia. Tente novamente.', 'sistema');
+      const mensagem = err?.message || 'Falha ao enviar mídia. Tente novamente.';
+      const titulo = mensagem.startsWith('Este vídeo tem ') ? 'Limite' : 'Erro';
+      NotificationService?.mostrarToast(titulo, mensagem, 'sistema');
       if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
     }
   }
