@@ -52,7 +52,6 @@ class MediaPrismViewer {
   #publicLogo      = null;
   #publicEmojis    = [];
   #reactionLayer   = null;
-  #progress        = null;
   #soundBtn        = null;
 
   // Referências para overlay dentro de cada face 3D
@@ -60,6 +59,7 @@ class MediaPrismViewer {
   #faceIdentityNames = [];
   #faceLikeBtns      = [];
   #faceLikeCounts    = [];
+  #faceProgress      = [];    // barra de progresso por face (move com o conteúdo)
 
   #items           = [];
   #index           = 0;
@@ -152,6 +152,10 @@ class MediaPrismViewer {
   #go(delta) {
     if (!this.#items.length || this.#animando) return;
     if (this.#items.length < 2) return; // 1 item: sem rotação
+    const dir = delta > 0 ? 1 : -1;
+    const alvo = this.#index + dir;
+    // Sem loop: não passa do último (direita) nem do primeiro (esquerda).
+    if (alvo < 0 || alvo >= this.#items.length) return;
     this.#animarPara(delta);
   }
 
@@ -171,7 +175,8 @@ class MediaPrismViewer {
 
     this.#limparTimer();
     this.#finalizeTimer = setTimeout(() => {
-      this.#index = (this.#index + dir + this.#items.length) % this.#items.length;
+      // Sem loop: índice fica preso entre 0 e o último.
+      this.#index = Math.min(Math.max(this.#index + dir, 0), this.#items.length - 1);
       this.#animando = false;
       this.#renderAtual({ animar: false, dir });
     }, MediaPrismViewer.#DURATION_MS + 30);
@@ -202,7 +207,6 @@ class MediaPrismViewer {
       this.#title.hidden = storyMode;
       this.#title.textContent = storyMode ? '' : (item.title || 'Trabalho do portfolio');
     }
-    this.#renderProgress();
     this.#renderPublicActions(item);
 
     if (this.#actions) {
@@ -235,17 +239,24 @@ class MediaPrismViewer {
     if (storyMode) this.#limparInteracoes();
     else this.#replayInteractions(item);
   }
-  #renderProgress() {
-    if (!this.#progress) return;
+  // Barra de progresso DENTRO de cada face — gira/arrasta junto com a mídia.
+  // `realIdx` = índice global do item daquela face; -1 (ou fora do range) oculta.
+  #renderProgressNaFace(faceIndex, realIdx) {
+    const bar = this.#faceProgress[faceIndex];
+    if (!bar) return;
     const n = this.#items.length;
-    if (this.#progress.children.length !== n) {
-      this.#progress.innerHTML = Array.from({ length: n }, (_, i) =>
-        `<span class="pp-prism-progress-dash${i === this.#index ? ' is-active' : ''}"></span>`
+    if (realIdx == null || realIdx < 0 || realIdx >= n || n < 1) {
+      bar.replaceChildren();
+      bar.hidden = true;
+      return;
+    }
+    bar.hidden = false;
+    if (bar.children.length !== n) {
+      bar.innerHTML = Array.from({ length: n }, (_, i) =>
+        `<span class="pp-prism-progress-dash${i === realIdx ? ' is-active' : ''}"></span>`
       ).join('');
     } else {
-      [...this.#progress.children].forEach((el, i) => {
-        el.classList.toggle('is-active', i === this.#index);
-      });
+      [...bar.children].forEach((el, i) => el.classList.toggle('is-active', i === realIdx));
     }
   }
 
@@ -324,10 +335,12 @@ class MediaPrismViewer {
   #renderFaces() {
     const total = this.#items.length;
     MediaPrismViewer.#FACE_OFFSETS.forEach((offset, faceIndex) => {
-      const idx = ((this.#index + offset) % total + total) % total;
-      const item = this.#items[idx] ?? null;
-      const deveCarregar = !this.#isStoryMode() || Math.abs(offset) <= 1;
-      this.#renderMidiaNaFace(faceIndex, deveCarregar ? item : null, offset === 0, Math.abs(offset) <= 1);
+      // Sem loop: offsets fora do range ficam vazios (nada para arrastar).
+      const realIdx = this.#index + offset;
+      const dentro = realIdx >= 0 && realIdx < total;
+      const item = dentro ? (this.#items[realIdx] ?? null) : null;
+      const deveCarregar = dentro && (!this.#isStoryMode() || Math.abs(offset) <= 1);
+      this.#renderMidiaNaFace(faceIndex, deveCarregar ? item : null, offset === 0, Math.abs(offset) <= 1, dentro ? realIdx : -1);
     });
 
     this.#pararTodosVideos(false);
@@ -348,32 +361,36 @@ class MediaPrismViewer {
     // Para cada slot-alvo k (offset Ok), o elemento certo é o que hoje tem
     // offset Ok+dir (mesmo conteúdo após o índice avançar `dir`).
     const fonte = offsets.map(Ok => offsets.indexOf(Ok + dir));
-    const reaproveitados = new Set(fonte.filter(j => j >= 0));
 
     // Desanexa todos sem destruir (mantém refs em `els`).
     this.#medias.forEach(slot => { if (slot) while (slot.firstChild) slot.removeChild(slot.firstChild); });
 
-    // Libera o elemento descartado (a face que saiu de cena).
-    els.forEach((el, j) => {
-      if (el && !reaproveitados.has(j) && el.tagName === 'VIDEO') {
-        try { el.pause(); el.currentTime = 0; el.removeAttribute('src'); } catch (_) {}
+    const usados = new Set();
+    offsets.forEach((Ok, k) => {
+      // Sem loop: faces fora do range ficam vazias.
+      const realIdx = this.#index + Ok;
+      const dentro = realIdx >= 0 && realIdx < total;
+      const item = dentro ? (this.#items[realIdx] ?? null) : null;
+      const j = fonte[k];
+      const frontal = Ok === 0;
+      if (dentro && j >= 0 && els[j]) {
+        // Reaproveita: nenhum reload, nenhuma piscada.
+        this.#medias[k].appendChild(els[j]);
+        usados.add(j);
+        this.#ajustarFlagsVideo(els[j], frontal);
+        this.#renderOverlayNaFace(k, item);
+        this.#renderProgressNaFace(k, realIdx);
+      } else {
+        // Face que deu a volta (ou fora do range) — conteúdo novo / vazio.
+        const deveCarregar = dentro && (!this.#isStoryMode() || Math.abs(Ok) <= 1);
+        this.#renderMidiaNaFace(k, deveCarregar ? item : null, frontal, Math.abs(Ok) <= 1, dentro ? realIdx : -1);
       }
     });
 
-    offsets.forEach((Ok, k) => {
-      const idx  = ((this.#index + Ok) % total + total) % total;
-      const item = this.#items[idx] ?? null;
-      const j = fonte[k];
-      const frontal = Ok === 0;
-      if (j >= 0 && els[j]) {
-        // Reaproveita: nenhum reload, nenhuma piscada.
-        this.#medias[k].appendChild(els[j]);
-        this.#ajustarFlagsVideo(els[j], frontal);
-        this.#renderOverlayNaFace(k, item);
-      } else {
-        // Face que deu a volta — conteúdo novo.
-        const deveCarregar = !this.#isStoryMode() || Math.abs(Ok) <= 1;
-        this.#renderMidiaNaFace(k, deveCarregar ? item : null, frontal, Math.abs(Ok) <= 1);
+    // Libera os elementos de vídeo que não foram reaproveitados.
+    els.forEach((el, j) => {
+      if (el && !usados.has(j) && el.tagName === 'VIDEO') {
+        try { el.pause(); el.currentTime = 0; el.removeAttribute('src'); } catch (_) {}
       }
     });
 
@@ -389,12 +406,13 @@ class MediaPrismViewer {
     if (!frontal) { try { el.pause(); } catch (_) {} }
   }
 
-  #renderMidiaNaFace(faceIndex, item, frontal, precarregar = false) {
+  #renderMidiaNaFace(faceIndex, item, frontal, precarregar = false, realIdx = -1) {
     const slot = this.#medias[faceIndex];
     if (!slot) return;
     if (!item) {
       this.#limparSlot(slot);
       this.#renderOverlayNaFace(faceIndex, null);
+      this.#renderProgressNaFace(faceIndex, realIdx);
       return;
     }
 
@@ -437,6 +455,7 @@ class MediaPrismViewer {
       el.alt = MediaPrismViewer.#resolverTitulo(item);
     }
     this.#renderOverlayNaFace(faceIndex, item);
+    this.#renderProgressNaFace(faceIndex, realIdx);
   }
 
   #renderOverlayNaFace(faceIndex, item) {
@@ -631,7 +650,12 @@ class MediaPrismViewer {
       this.#cube.classList.add('pp-prism-cube--drag');
     }
 
-    const angulo = (dx / Math.max(this.#faceWidth, 1)) * MediaPrismViewer.#ANGLE_PER_FACE;
+    let angulo = (dx / Math.max(this.#faceWidth, 1)) * MediaPrismViewer.#ANGLE_PER_FACE;
+    // Sem loop: ângulo negativo = próximo (direita); positivo = anterior (esquerda).
+    const noFim    = this.#index >= this.#items.length - 1;
+    const noInicio = this.#index <= 0;
+    if (noFim && angulo < 0)    angulo = 0; // último: não arrasta mais para a direita
+    if (noInicio && angulo > 0) angulo = 0; // primeiro: não arrasta mais para a esquerda
     this.#pendingAngle = angulo;
     this.#dragLast = { x: e.clientX, t: performance.now() };
 
@@ -670,6 +694,12 @@ class MediaPrismViewer {
     else if (dx >= threshold || velocity >= MediaPrismViewer.#VELOCITY_THRESHOLD) acao = 'prev';
 
     this.#cube.classList.remove('pp-prism-cube--drag');
+
+    // Sem loop: ignora navegação além das pontas (volta ao lugar).
+    const noFim    = this.#index >= this.#items.length - 1;
+    const noInicio = this.#index <= 0;
+    if (acao === 'next' && noFim)      acao = 'snap';
+    if (acao === 'prev' && noInicio)   acao = 'snap';
 
     if (acao === 'next')      this.#animarPara(1);
     else if (acao === 'prev') this.#animarPara(-1);
@@ -1080,13 +1110,12 @@ class MediaPrismViewer {
     overlay.setAttribute('aria-hidden', 'true');
 
     const facesHtml = Array.from({ length: MediaPrismViewer.#SIDES }, (_, i) =>
-      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div><button type="button" class="pp-prism-face-close pp-prism-close" aria-label="Fechar">×</button><div class="pp-prism-face-overlay"><div class="pp-prism-face-identity"><img class="pp-prism-face-id-img" alt="" loading="lazy"><span class="pp-prism-face-id-name"></span></div><button type="button" class="pp-prism-face-like-btn" hidden aria-label="Curtir" aria-pressed="false"><span class="pp-prism-face-like-icon" aria-hidden="true">❤️</span><span class="pp-prism-face-like-count"></span></button></div></figure>`
+      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div><div class="pp-prism-progress" aria-hidden="true"></div><button type="button" class="pp-prism-face-close pp-prism-close" aria-label="Fechar">×</button><div class="pp-prism-face-overlay"><div class="pp-prism-face-identity"><img class="pp-prism-face-id-img" alt="" loading="lazy"><span class="pp-prism-face-id-name"></span></div><button type="button" class="pp-prism-face-like-btn" hidden aria-label="Curtir" aria-pressed="false"><span class="pp-prism-face-like-icon" aria-hidden="true">❤️</span><span class="pp-prism-face-like-count"></span></button></div></figure>`
     ).join('');
 
     overlay.innerHTML = `
       <button type="button" class="pp-prism-close" aria-label="Fechar">×</button>
       <div class="pp-prism-stage" aria-live="polite">
-        <div class="pp-prism-progress" aria-hidden="true"></div>
         <div class="pp-prism-cube">${facesHtml}</div>
         <div class="pp-prism-reactions" aria-hidden="true"></div>
       </div>
@@ -1123,13 +1152,13 @@ class MediaPrismViewer {
     this.#publicLogo    = overlay.querySelector('.pp-prism-public-logo');
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
     this.#reactionLayer = overlay.querySelector('.pp-prism-reactions');
-    this.#progress = overlay.querySelector('.pp-prism-progress');
 
     // Referências para overlay dentro de cada face
     this.#faceIdentityImgs  = this.#faces.map(f => f.querySelector('.pp-prism-face-id-img'));
     this.#faceIdentityNames = this.#faces.map(f => f.querySelector('.pp-prism-face-id-name'));
     this.#faceLikeBtns      = this.#faces.map(f => f.querySelector('.pp-prism-face-like-btn'));
     this.#faceLikeCounts    = this.#faces.map(f => f.querySelector('.pp-prism-face-like-count'));
+    this.#faceProgress      = this.#faces.map(f => f.querySelector('.pp-prism-progress'));
 
     overlay.addEventListener('click', e => {
       if (e.target === overlay || e.target.closest('.pp-prism-close')) this.close();

@@ -4272,19 +4272,23 @@
   overflow: hidden;
   white-space: nowrap;
 }
+/* Barra de progresso dentro de cada face — gira/arrasta junto com a mídia */
 .pp-prism-progress {
   position: absolute;
-  top: -14px;
+  top: 8px;
   left: 0;
   right: 0;
-  z-index: 10;
+  z-index: 5;
   display: flex;
   justify-content: center;
   gap: 4px;
+  padding: 0 10px;
   pointer-events: none;
 }
+.pp-prism-progress[hidden] { display: none; }
 .pp-prism-progress-dash {
-  flex: 0 0 1rem;
+  flex: 0 1 1rem;
+  min-width: 4px;
   height: 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.28);
