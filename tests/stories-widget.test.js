@@ -398,7 +398,7 @@ test('StoriesWidget define MediaViewer singleton e open()', () => {
   assert.match(src, /is-loaded/);
 });
 
-test('StoriesWidget.carregar popula card de video com imagem estatica', async () => {
+test('StoriesWidget.carregar usa o primeiro frame do video como fundo quando nao ha thumbnail', async () => {
   const appendedCards = [];
   let capturedVideo = null;
   let capturedImage = null;
@@ -462,9 +462,13 @@ test('StoriesWidget.carregar popula card de video com imagem estatica', async ()
   const widget = new StoriesWidget(scrollEl, { barbershopId: 'bbb' });
   await widget.carregar();
 
-  assert.strictEqual(capturedVideo, null, 'card nao deve criar video');
-  assert.ok(capturedImage, 'card deve criar img estatica');
-  assert.doesNotMatch(capturedImage.src, /v\.mp4$/, 'img nao deve apontar para o video completo');
+  // Vídeo sem thumbnail: o fundo do card é o primeiro frame do próprio vídeo
+  // (preload="metadata" — não baixa o vídeo completo).
+  assert.ok(capturedVideo, 'card de video sem thumbnail deve usar o primeiro frame como capa');
+  assert.match(capturedVideo.src, /v\.mp4#t=/, 'video deve apontar para o frame inicial');
+  assert.strictEqual(capturedVideo._attrs.preload, 'metadata', 'video nao deve baixar completo');
+  assert.ok(capturedImage, 'card cria img (badge da barbearia)');
+  assert.doesNotMatch(capturedImage.src, /v\.mp4$/, 'badge nao deve apontar para o video');
 });
 test('StoriesWidget.carregar não lança quando scrollEl não tem addEventListener', async () => {
   const scrollEl = {

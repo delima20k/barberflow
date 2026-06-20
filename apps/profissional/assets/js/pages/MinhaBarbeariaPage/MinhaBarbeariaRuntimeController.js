@@ -2054,6 +2054,18 @@ export class MinhaBarbeariaRuntimeController {
           img.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
           if (img.complete) wrap.classList.add('is-loaded');
           wrap.appendChild(img);
+        } else if (story.media_type === 'video' && story.media_url) {
+          // Vídeo sem thumbnail: usa o primeiro frame do vídeo como capa
+          // (preload metadata — não baixa o vídeo completo).
+          const vid = document.createElement('video');
+          vid.muted = true;
+          vid.setAttribute('playsinline', '');
+          vid.setAttribute('preload', 'metadata');
+          vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          vid.addEventListener('loadeddata', () => wrap.classList.add('is-loaded'), { once: true });
+          vid.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
+          vid.src = `${story.media_url}#t=0.1`;
+          wrap.appendChild(vid);
         } else {
           // Sem thumbnail: remove shimmer imediatamente e mostra ícone
           wrap.classList.add('is-loaded');
@@ -2092,41 +2104,6 @@ export class MinhaBarbeariaRuntimeController {
 
         card.appendChild(wrap);
         card.appendChild(info);
-
-        const likeBtn = document.createElement('button');
-        likeBtn.className = 'story-like-btn';
-        likeBtn.type = 'button';
-        likeBtn.classList.toggle('curtido', Boolean(story.user_liked));
-        const likeImg = document.createElement('img');
-        likeImg.src = '/shared/img/icones_curtir.png';
-        likeImg.alt = 'curtir';
-        const likeCount = document.createElement('span');
-        likeCount.className = 'story-like-count';
-        likeCount.textContent = String(story.likes_count ?? 0);
-        likeBtn.append(likeImg, likeCount);
-        likeBtn.addEventListener('click', async (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          if (!story.media_id || typeof BffApiService === 'undefined') return;
-          const likedBefore = Boolean(story.user_liked);
-          const countBefore = Math.max(0, Number(story.likes_count ?? 0));
-          const likedNext = !likedBefore;
-          const countNext = Math.max(0, countBefore + (likedNext ? 1 : -1));
-          story.user_liked = likedNext;
-          story.likes_count = countNext;
-          likeBtn.classList.toggle('curtido', likedNext);
-          likeCount.textContent = String(countNext);
-          likeBtn.disabled = true;
-          const { data, error } = await BffApiService.media.toggleStoryLike(story.media_id);
-          likeBtn.disabled = false;
-          const likedFinal = error ? likedBefore : Boolean(data?.user_liked ?? likedNext);
-          const countFinal = error ? countBefore : Math.max(0, Number(data?.likes_count ?? countNext));
-          story.user_liked = likedFinal;
-          story.likes_count = countFinal;
-          likeBtn.classList.toggle('curtido', likedFinal);
-          likeCount.textContent = String(countFinal);
-        });
-        card.appendChild(likeBtn);
 
         // Abre StoryViewer no índice correto ao clicar
         card.addEventListener('click', () => {

@@ -535,34 +535,11 @@ class StoriesWidget {
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    // Thumbnail: prefere thumbnail_path (quando disponível), media_url para imagens,
-    // fallback para logo da barbearia (thumbnail_path é null nos stories de vídeo pois
-    // o upload não gera thumbnail — nunca usar avatar do barbeiro como preview principal)
-    const thumbFallback = logoUrl ?? this.#shopLogoSrc ?? '/shared/img/Logo01.png';
-    // thumbResolved: URL real (thumbnail_url do BFF ou thumbnail_path legacy). Null = nenhum thumb gerado.
-    const thumbResolved = first?.thumbnail_url
-      || StoriesWidget.#resolverThumbUrl(
-          first?.thumbnail_path,
-          first?.media_url,
-          first?.media_type,
-        )
-      || null;
-    // Thumbnail: exibe apenas quando há URL real — sem logo como cover.
-    // Quando não há thumb o gradiente CSS do .story-video-wrap serve de fundo.
-    if (thumbResolved) {
-      const thumb = document.createElement('img');
-      thumb.alt       = '';
-      thumb.className = 'story-video';
-      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      thumb.onerror = function() { this.style.display = 'none'; };
-      thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
-      thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-      if (thumb.complete) wrap.classList.add('is-loaded');
-      thumb.src = thumbResolved;
-      wrap.appendChild(thumb);
-    } else {
-      wrap.classList.add('is-loaded');
-    }
+    // Fundo do card = imagem do story (capa). Vídeo sem thumbnail usa o
+    // primeiro frame do próprio vídeo (ver #criarMediaFundo).
+    const media = StoriesWidget.#criarMediaFundo(first, () => wrap.classList.add('is-loaded'));
+    if (media) wrap.appendChild(media);
+    else wrap.classList.add('is-loaded');
 
     const badge = document.createElement('img');
     badge.className = 'story-shop-badge';
@@ -594,25 +571,7 @@ class StoriesWidget {
 
     wrap.appendChild(badge);
 
-    const likeBtn = document.createElement('button');
-    likeBtn.className        = 'story-like-btn';
-    likeBtn.type             = 'button';
-    likeBtn.dataset.action   = 'like';
-
-    const likeImg = document.createElement('img');
-    likeImg.src = '/shared/img/icones_curtir.png';
-    likeImg.alt = 'curtir';
-
-    const likeCount = document.createElement('span');
-    likeCount.className   = 'story-like-count';
-    likeCount.textContent = String(first?.likes_count ?? 0);
-    likeBtn.classList?.toggle?.('curtido', Boolean(first?.user_liked));
-
-    likeBtn.appendChild(likeImg);
-    likeBtn.appendChild(likeCount);
-
     card.appendChild(wrap);
-    card.appendChild(likeBtn);
 
     // Badge de contagem: somente se há mais de 1 story
     this.#atualizarContador(card, stories.length);
@@ -623,15 +582,48 @@ class StoriesWidget {
       if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(card);
     });
 
-    // Sincroniza likes do viewer com o card via CustomEvent (sem acoplamento)
-    card.addEventListener('story:like', (e) => {
-      const { count, curtido } = e.detail ?? {};
-      if (typeof count === 'number') likeCount.textContent = String(count);
-      if (typeof curtido === 'boolean') likeBtn.classList?.toggle?.('curtido', curtido);
-    });
-    this.#bindLikeButton(likeBtn, first, card);
-
     return card;
+  }
+
+  /**
+   * Cria o elemento de fundo do card = imagem do story (capa).
+   * Imagem → <img>. Vídeo sem thumbnail → <video> exibindo o primeiro frame
+   * (preload="metadata", sem baixar o vídeo completo).
+   * @param {object} story
+   * @param {Function} [onLoaded] — callback chamado quando a mídia carrega/falha
+   * @returns {HTMLElement|null}
+   */
+  static #criarMediaFundo(story, onLoaded) {
+    const cb = typeof onLoaded === 'function' ? onLoaded : () => {};
+    const thumb = story?.thumbnail_url
+      || StoriesWidget.#resolverThumbUrl(story?.thumbnail_path, story?.media_url, story?.media_type)
+      || '';
+    if (thumb) {
+      const img = document.createElement('img');
+      img.className   = 'story-video';
+      img.alt         = '';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      img.onerror = function() { this.style.display = 'none'; };
+      img.addEventListener('load',  cb, { once: true });
+      img.addEventListener('error', cb, { once: true });
+      if (img.complete) cb();
+      img.src = thumb;
+      return img;
+    }
+    if (story?.media_type === 'video' && story?.media_url) {
+      const vid = document.createElement('video');
+      vid.className = 'story-video';
+      vid.muted = true;
+      vid.setAttribute('playsinline', '');
+      vid.setAttribute('preload', 'metadata');
+      vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      vid.addEventListener('loadeddata', cb, { once: true });
+      vid.addEventListener('error', cb, { once: true });
+      // Fragmento #t exibe o primeiro frame do vídeo como capa do card.
+      vid.src = `${story.media_url}#t=0.1`;
+      return vid;
+    }
+    return null;
   }
 
   /**
@@ -693,9 +685,6 @@ class StoriesWidget {
       ? (story.shop_name ?? this.#shopName ?? '')
       : (story.poster_name ?? story.shop_name ?? this.#shopName ?? '');
     const identityLogo = isOwnerStory ? logoSrc : (authorAvatarSrc ?? logoSrc);
-    const thumbSrc = story.thumbnail_url
-      || StoriesWidget.#resolverThumbUrl(story.thumbnail_path, story.media_url, story.media_type)
-      || logoSrc;
 
     const card = document.createElement('div');
     card.className          = 'card-mini story-card';
@@ -707,21 +696,11 @@ class StoriesWidget {
     wrap.className      = 'story-video-wrap';
     wrap.dataset.action = 'story-open';
 
-    // Thumbnail: exibe apenas quando há URL real — sem logo como cover.
-    if (thumbSrc) {
-      const thumb = document.createElement('img');
-      thumb.className = 'story-video';
-      thumb.alt       = '';
-      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      thumb.onerror = function() { this.style.display = 'none'; };
-      thumb.addEventListener('load',  () => wrap.classList.add('is-loaded'), { once: true });
-      thumb.addEventListener('error', () => wrap.classList.add('is-loaded'), { once: true });
-      if (thumb.complete) wrap.classList.add('is-loaded');
-      thumb.src = thumbSrc;
-      wrap.appendChild(thumb);
-    } else {
-      wrap.classList.add('is-loaded');
-    }
+    // Fundo do card = imagem do story (capa). Vídeo sem thumbnail usa o
+    // primeiro frame do próprio vídeo (ver #criarMediaFundo).
+    const media = StoriesWidget.#criarMediaFundo(story, () => wrap.classList.add('is-loaded'));
+    if (media) wrap.appendChild(media);
+    else wrap.classList.add('is-loaded');
 
     const badge = document.createElement('img');
     badge.className = 'story-shop-badge';
@@ -750,39 +729,13 @@ class StoriesWidget {
       wrap.appendChild(barberOverlayInd);
     }
 
-    const likeBtn = document.createElement('button');
-    likeBtn.className      = 'story-like-btn';
-    likeBtn.type           = 'button';
-    likeBtn.dataset.action = 'like';
-
-    const likeImg = document.createElement('img');
-    likeImg.src = '/shared/img/icones_curtir.png';
-    likeImg.alt = 'curtir';
-
-    const likeCount = document.createElement('span');
-    likeCount.className   = 'story-like-count';
-    likeCount.textContent = String(story.likes_count ?? 0);
-    likeBtn.classList?.toggle?.('curtido', Boolean(story.user_liked));
-
-    likeBtn.appendChild(likeImg);
-    likeBtn.appendChild(likeCount);
-
     card.appendChild(wrap);
-    card.appendChild(likeBtn);
 
     // Click handler direto (card criado dinamicamente — StoriesLayout não o vê)
     card.setAttribute('data-sv-bound', '1');
     card.addEventListener('click', () => {
       if (typeof StoryViewer !== 'undefined') StoryViewer.abrir(card);
     });
-
-    // Sincroniza likes do viewer com o card via CustomEvent
-    card.addEventListener('story:like', (e) => {
-      const { count, curtido } = e.detail ?? {};
-      if (typeof count === 'number') likeCount.textContent = String(count);
-      if (typeof curtido === 'boolean') likeBtn.classList?.toggle?.('curtido', curtido);
-    });
-    this.#bindLikeButton(likeBtn, story, card);
 
     this.#bindLongPressDelete(card, story, shopId);
 
