@@ -37,12 +37,7 @@ class AppBootstrap {
     { label: 'NotificationService',  fn: () => NotificationService.init()                         },
     { label: 'NotifPermissao',       fn: () => NotificationService.solicitarPushPermissao()        },
     { label: 'PushSubscription',     fn: () => AppBootstrap.#iniciarPushSubscription()             },
-    { label: 'StoriesWidget.home',   fn: () => StoriesWidget.iniciarHome(document.getElementById('tela-inicio'), {
-        leadAddCard: true,
-        onAddStory: () => {
-          if (typeof StoryCreationModal !== 'undefined') StoryCreationModal.abrir({ onFinalizar: () => {} });
-        },
-      }) },
+    { label: 'StoriesWidget.home',   fn: () => StoriesWidget.iniciarHome(document.getElementById('tela-inicio')) },
   ];
 
   // Widgets que fazem queries Supabase — execução SEQUENCIAL para evitar lock contention

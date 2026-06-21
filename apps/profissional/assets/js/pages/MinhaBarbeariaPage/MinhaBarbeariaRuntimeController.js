@@ -282,6 +282,12 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.gpsBtn?.addEventListener('click',      () => this.#abrirSub('gps'));
     this.#refs.convidarBtn?.addEventListener('click', () => this.#abrirSub('convite'));
     this.#refs.addBtn?.addEventListener('click',  () => {
+      // Abre a modal de criação de story (não a pasta de arquivos direto).
+      if (typeof StoryCreationModal !== 'undefined') {
+        StoryCreationModal.abrir({ onFinalizar: () => {} });
+        return;
+      }
+      // Fallback (modal indisponível): fluxo antigo de upload direto.
       void this.#loadStorySection();
       this.#refs.coverInput?.click();
     });
