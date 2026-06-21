@@ -31,22 +31,28 @@ describe('MediaUploadService', () => {
     assert.equal(calls[0].sizeBytes, 1024);
   });
 
-  it('nao gera presigned para video de story para evitar salvar bruto no R2', async () => {
+  it('gera presigned para video de story (sobe direto ao R2, sem trafegar bruto pela funcao)', async () => {
+    const calls = [];
     const service = new MediaUploadService({
-      storage: { createSignedUpload: async () => { throw new Error('nao deve chamar storage'); } },
-      mediaRepository: { reserve: async () => { throw new Error('nao deve reservar'); } },
+      storage: {
+        createSignedUpload: async (request) => {
+          calls.push(request);
+          return { uploadUrl: 'https://storage.test/upload', token: 'storage-token', expiresAt: '2026-05-22T12:00:00.000Z' };
+        },
+      },
+      mediaRepository: { reserve: async (media) => media },
       outboxRepository: { save: async () => 'outbox-1' },
       confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
     });
 
-    await assert.rejects(
-      () => service.createSignedUpload('aaaaaaaa-0000-4000-8000-000000000001', {
-        context: 'stories',
-        contentType: 'video/mp4',
-        sizeBytes: 4 * 1024 * 1024,
-      }),
-      { status: 400 },
-    );
+    const result = await service.createSignedUpload('aaaaaaaa-0000-4000-8000-000000000001', {
+      context: 'stories',
+      contentType: 'video/mp4',
+      sizeBytes: 4 * 1024 * 1024,
+    });
+
+    assert.equal(result.uploadUrl, 'https://storage.test/upload');
+    assert.equal(calls[0].contentType, 'video/mp4');
   });
 
   it('confirma upload e agenda processamento na fila de midia', async () => {

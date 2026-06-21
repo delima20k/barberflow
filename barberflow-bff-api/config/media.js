@@ -8,7 +8,7 @@ class MediaPolicyCatalog {
     avatars:   Object.freeze({ privacy: 'public', maxBytes: 5 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] }),
     portfolio: Object.freeze({ privacy: 'public', maxBytes: 12 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] }),
     services:  Object.freeze({ privacy: 'public', maxBytes: 8 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] }),
-    stories:   Object.freeze({ privacy: 'private', maxBytes: 128 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'] }),
+    stories:   Object.freeze({ privacy: 'private', maxBytes: 128 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'] }),
   });
 
   static #VARIANTS = Object.freeze({

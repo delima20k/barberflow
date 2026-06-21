@@ -29,9 +29,9 @@ class MediaUploadService {
 
   async createSignedUpload(ownerId, request) {
     const policy = MediaUploadService.#policy(request);
-    if (request.context === 'stories' && request.contentType === 'video/mp4') {
-      throw AppError.badRequest('Videos de story devem usar upload comprimido.');
-    }
+    // Story video sobe DIRETO ao R2 via presigned (browser → R2), sem passar pela
+    // função BFF — a função no Vercel tem limite de corpo (~4.5MB) e estourava 413.
+    // A compressão é feita pelo worker assíncrono. (reverte bloqueio do commit 00844651)
     const mediaId = request.mediaId ?? crypto.randomUUID();
     const ext = MediaUploadService.#extension(request.contentType);
     const path = `${request.context}/${ownerId}/incoming/${mediaId}.${ext}`;
@@ -242,7 +242,7 @@ class MediaUploadService {
   }
 
   static #extension(contentType) {
-    return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4' })[contentType] ?? 'bin';
+    return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/webm': 'webm' })[contentType] ?? 'bin';
   }
 }
 
