@@ -127,6 +127,7 @@ class StoryEditorService {
 
   #media       = null;   // { file, tipo:'video'|'imagem', origem:'upload'|'camera' }
   #overlays    = [];     // OverlayBase[]
+  #musica      = null;   // { id, titulo, artista } | null — trilha escolhida
   #maxOverlays = 20;
 
   /**
@@ -211,19 +212,44 @@ class StoryEditorService {
     return [...this.#overlays];
   }
 
+  // ── Música (trilha do vídeo) ───────────────────────────────
+
+  /**
+   * Define a trilha escolhida. O mix real do áudio é responsabilidade do
+   * "motor" (prompt separado); aqui só guardamos a escolha no estado.
+   * @param {{ id:string, titulo:string, artista?:string }|null} musica
+   */
+  definirMusica(musica) {
+    if (!musica) { this.#musica = null; return null; }
+    this.#musica = {
+      id: String(musica.id ?? ''),
+      titulo: String(musica.titulo ?? ''),
+      artista: String(musica.artista ?? ''),
+    };
+    return this.#musica;
+  }
+
+  removerMusica() { this.#musica = null; }
+
+  get musica() {
+    return this.#musica ? { ...this.#musica } : null;
+  }
+
   // ── Estado / reset ─────────────────────────────────────────
 
-  /** Limpa mídia e overlays. */
+  /** Limpa mídia, overlays e música. */
   resetar() {
     this.#media = null;
     this.#overlays = [];
+    this.#musica = null;
   }
 
-  /** Snapshot imutável do estado (mídia + overlays serializados). */
+  /** Snapshot imutável do estado (mídia + overlays + música). */
   get estado() {
     return {
       media: this.media,
       overlays: this.#overlays.map(o => o.paraJSON()),
+      musica: this.musica,
     };
   }
 

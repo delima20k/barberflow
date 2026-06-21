@@ -282,9 +282,11 @@ export class MinhaBarbeariaRuntimeController {
     this.#refs.gpsBtn?.addEventListener('click',      () => this.#abrirSub('gps'));
     this.#refs.convidarBtn?.addEventListener('click', () => this.#abrirSub('convite'));
     this.#refs.addBtn?.addEventListener('click',  () => {
-      // Abre a modal de criação de story (não a pasta de arquivos direto).
+      // Abre a modal de criação; o story só é postado pelo "Finalizar".
       if (typeof StoryCreationModal !== 'undefined') {
-        StoryCreationModal.abrir({ onFinalizar: () => {} });
+        StoryCreationModal.abrir({
+          onFinalizar: (estado) => this.#postarStory(estado?.media?.file),
+        });
         return;
       }
       // Fallback (modal indisponível): fluxo antigo de upload direto.
@@ -3266,6 +3268,15 @@ export class MinhaBarbeariaRuntimeController {
   async #onUploadMidia(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
+    await this.#postarStory(file);
+  }
+
+  /**
+   * Posta um story de vídeo (fluxo existente: R2 + BFF publicarStory).
+   * Chamado pelo "Finalizar" da StoryCreationModal e pelo fallback de upload.
+   * @param {File} file
+   */
+  async #postarStory(file) {
     if (!file || !this.#barbershopId) return;
 
     if (!file.type?.startsWith('video/')) {

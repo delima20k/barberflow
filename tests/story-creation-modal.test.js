@@ -93,7 +93,7 @@ test('abrir() monta a estrutura básica da modal', () => {
   assert.ok(ov.querySelector('.sc-preview'), 'tem o quadro de preview');
   assert.ok(ov.querySelector('.sc-side-menu'), 'tem o menu lateral');
   assert.ok(ov.querySelector('.sc-text-bar'), 'tem a barra de texto abaixo do preview');
-  assert.equal(ov.querySelectorAll('.sc-tool').length, 3, 'menu lateral: upload, câmera, emoji');
+  assert.equal(ov.querySelectorAll('.sc-tool').length, 4, 'menu lateral: upload, câmera, música, emoji');
   assert.ok(ov.querySelector('.sc-bottom-actions'), 'tem a barra de ações inferior');
   assert.equal(ov.querySelectorAll('.sc-btn').length, 2, 'dois botões inferiores');
   assert.ok(ov.querySelector('.sc-btn--primario'), 'tem o botão Finalizar');
@@ -105,7 +105,7 @@ test('botão Emoji abre a sub-modal de emojis', () => {
   const ov = getOverlay(document);
 
   assert.equal(ov.querySelector('.sc-emoji-sheet'), null, 'sheet não existe antes');
-  ov.querySelectorAll('.sc-tool')[2]._fire('click'); // 3º = Emoji
+  ov.querySelectorAll('.sc-tool')[3]._fire('click'); // 4º = Emoji
   const sheet = ov.querySelector('.sc-emoji-sheet');
   assert.ok(sheet, 'sub-modal de emoji aberta');
   assert.equal(sheet.hidden, false);
@@ -135,12 +135,29 @@ test('escolher emoji cria um overlay de emoji', () => {
   sandbox.StoryCreationModal.abrir({ service });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-tool')[3]._fire('click');
   ov.querySelector('.sc-emoji-btn')._fire('click');
 
   assert.equal(service.estado.overlays.length, 1);
   assert.equal(service.estado.overlays[0].tipo, 'emoji');
   assert.ok(ov.querySelector('.sc-overlay-item.sc-overlay-emoji'));
+});
+
+test('botão Música abre a sub-modal e escolher guarda a trilha', () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  sandbox.StoryCreationModal.abrir({ service });
+  const ov = getOverlay(document);
+
+  assert.equal(ov.querySelector('.sc-music-sheet'), null);
+  ov.querySelectorAll('.sc-tool')[2]._fire('click'); // 3º = Música
+  const sheet = ov.querySelector('.sc-music-sheet');
+  assert.ok(sheet, 'sub-modal de música aberta');
+  assert.equal(sheet.querySelectorAll('.sc-music-item').length, sandbox.StoryCreationModal.MUSICAS.length);
+
+  sheet.querySelector('.sc-music-item')._fire('click');
+  assert.ok(service.estado.musica, 'trilha guardada no estado');
+  assert.equal(service.estado.musica.id, sandbox.StoryCreationModal.MUSICAS[0].id);
 });
 
 test('arrastar (1 ponteiro) move o overlay via serviço', () => {
@@ -177,6 +194,8 @@ test('Finalizar chama o callback onFinalizar com o estado', () => {
   assert.equal(onFinalizar.calls.length, 1);
   assert.ok(onFinalizar.calls[0][0], 'recebe o snapshot do estado');
   assert.ok('overlays' in onFinalizar.calls[0][0]);
+  assert.ok('musica' in onFinalizar.calls[0][0]);
+  assert.equal(getOverlay(document), null, 'modal fecha após finalizar');
 });
 
 test('fechar pelo × remove a modal do body', () => {

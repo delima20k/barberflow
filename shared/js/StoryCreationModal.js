@@ -79,6 +79,16 @@ class StoryCreationModal {
     '💥','😱','😮','😢','🥰','😘','💕','👀','💇','🪒',
   ];
 
+  // Catálogo placeholder — o catálogo real / mix de áudio vem no "motor".
+  static MUSICAS = [
+    { id: 'm1', titulo: 'Batida Urban',  artista: 'BarberFlow' },
+    { id: 'm2', titulo: 'Lo-fi Chill',   artista: 'BarberFlow' },
+    { id: 'm3', titulo: 'Trap Fade',     artista: 'BarberFlow' },
+    { id: 'm4', titulo: 'Samba Groove',  artista: 'BarberFlow' },
+    { id: 'm5', titulo: 'Funk do Corte', artista: 'BarberFlow' },
+    { id: 'm6', titulo: 'Reggae Roots',  artista: 'BarberFlow' },
+  ];
+
   #service;
   #onFinalizar;
   #overlayEl = null;
@@ -88,6 +98,7 @@ class StoryCreationModal {
   #input     = null;
   #sendBtn   = null;
   #emojiSheet = null;
+  #musicSheet = null;
   #onKeydown = null;
 
   constructor(service, { onFinalizar } = {}) {
@@ -123,6 +134,7 @@ class StoryCreationModal {
     const sideMenu = scEl('div', { class: 'sc-side-menu', children: [
       this.#tool('⬆️', 'Upload', () => this.#escolherMidia(new UploadMediaSource())),
       this.#tool('📷', 'Câmera', () => this.#escolherMidia(new CameraMediaSource())),
+      this.#tool('🎵', 'Música', () => this.#abrirMusicas()),
       this.#tool('😊', 'Emoji',  () => this.#abrirEmojis()),
     ] });
 
@@ -202,10 +214,12 @@ class StoryCreationModal {
     const url = (typeof URL !== 'undefined' && URL.createObjectURL) ? URL.createObjectURL(media.file) : '';
     let el;
     if (media.tipo === 'video') {
-      el = scEl('video', { attrs: { playsinline: '', preload: 'metadata', loop: '' } });
-      el.muted = true;
+      el = scEl('video', { attrs: { playsinline: '', preload: 'auto', loop: '' } });
+      // Com áudio: a seleção do arquivo é um gesto do usuário, então o play
+      // com som é permitido. Se o navegador bloquear, o catch ignora.
+      el.muted = false;
       el.src = url;
-      try { el.play?.(); } catch (_) { /* autoplay pode bloquear */ }
+      try { const p = el.play?.(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
     } else {
       el = scEl('img', { attrs: { alt: '' } });
       el.src = url;
@@ -254,6 +268,35 @@ class StoryCreationModal {
     const overlay = this.#service.adicionarEmoji(emoji, this.#posicaoInicial());
     this.#renderOverlay(overlay);
     if (this.#emojiSheet) this.#emojiSheet.hidden = true;
+  }
+
+  // ── Música ─────────────────────────────────────────────────
+
+  #abrirMusicas() {
+    if (this.#musicSheet) { this.#musicSheet.hidden = false; return; }
+    const sheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' } });
+    sheet.appendChild(scEl('div', { class: 'sc-music-title', text: 'Adicionar música' }));
+    StoryCreationModal.MUSICAS.forEach((m) => {
+      sheet.appendChild(scEl('button', {
+        class: 'sc-music-item', type: 'button', dataset: { musicId: m.id },
+        on: { click: () => this.#escolherMusica(m) },
+        children: [
+          scEl('span', { class: 'sc-music-nome', text: m.titulo }),
+          scEl('span', { class: 'sc-music-artista', text: m.artista }),
+        ],
+      }));
+    });
+    this.#musicSheet = sheet;
+    this.#overlayEl.appendChild(sheet);
+  }
+
+  #escolherMusica(m) {
+    this.#service.definirMusica(m);
+    if (this.#musicSheet) {
+      [...(this.#musicSheet.querySelectorAll?.('.sc-music-item') ?? [])].forEach(b =>
+        b.classList.toggle('is-sel', b.dataset.musicId === m.id));
+      this.#musicSheet.hidden = true;
+    }
   }
 
   // ── Render + gestos dos overlays ───────────────────────────
@@ -337,8 +380,10 @@ class StoryCreationModal {
 
   // ── Finalizar / fechar ─────────────────────────────────────
 
-  #finalizar() {
-    this.#onFinalizar(this.#service.estado);
+  async #finalizar() {
+    const r = this.#onFinalizar(this.#service.estado);
+    if (r && typeof r.then === 'function') { try { await r; } catch (_) { /* erro tratado pelo caller */ } }
+    this.fechar();
   }
 
   fechar() {

@@ -252,3 +252,49 @@
   cursor: pointer;
 }
 .sc-emoji-btn:hover { background: rgba(255, 255, 255, .1); }
+
+/* Sub-modal de músicas */
+.sc-music-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  max-height: 50%;
+  overflow-y: auto;
+  background: rgba(18, 14, 10, .98);
+  border-top: 1px solid var(--gold-border, rgba(212, 160, 23, .4));
+  border-radius: 16px 16px 0 0;
+  padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sc-music-sheet[hidden] { display: none; }
+.sc-music-title {
+  font-weight: 800;
+  font-size: .95rem;
+  margin-bottom: 4px;
+  color: var(--gold, #d4a017);
+}
+.sc-music-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.sc-music-item:hover { background: rgba(255, 255, 255, .12); }
+.sc-music-item.is-sel {
+  background: rgba(212, 160, 23, .22);
+  outline: 1px solid var(--gold, #d4a017);
+}
+.sc-music-nome    { font-weight: 700; font-size: .9rem; }
+.sc-music-artista { font-size: .72rem; color: rgba(255, 255, 255, .6); }

@@ -106,6 +106,24 @@ test('resetar limpa mídia e overlays; estado é snapshot serializável', () => 
   assert.equal(svc.estado.overlays.length, 0);
 });
 
+// ── Música ───────────────────────────────────────────────────
+
+test('definirMusica guarda a trilha; estado inclui musica; resetar limpa', () => {
+  const svc = new StoryEditorService();
+  assert.equal(svc.musica, null);
+
+  svc.definirMusica({ id: 'm1', titulo: 'Batida Urban', artista: 'BarberFlow' });
+  assert.deepEqual(svc.musica, { id: 'm1', titulo: 'Batida Urban', artista: 'BarberFlow' });
+  assert.deepEqual(svc.estado.musica, { id: 'm1', titulo: 'Batida Urban', artista: 'BarberFlow' });
+
+  svc.removerMusica();
+  assert.equal(svc.musica, null);
+
+  svc.definirMusica({ id: 'm2', titulo: 'Lo-fi' });
+  svc.resetar();
+  assert.equal(svc.estado.musica, null);
+});
+
 // ── Interface comum (Open/Closed) ────────────────────────────
 
 test('TextoOverlay e EmojiOverlay compartilham o contrato de OverlayBase', () => {
