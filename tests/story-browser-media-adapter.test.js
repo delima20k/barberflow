@@ -105,8 +105,8 @@ describe('StoryBrowserMediaAdapter', () => {
     assert.deepEqual(env.revoked, ['blob:story-video']);
   });
 
-  it('deve aceitar video de story com 35 segundos', async () => {
-    const env = criarAmbienteVideo({ duration: 35 });
+  it('deve aceitar video de story com 31 segundos (folga do encoder)', async () => {
+    const env = criarAmbienteVideo({ duration: 31 });
     const StoryBrowserMediaAdapter = carregarAdapter(env);
     const registrar = fn().mockResolvedValue('blob:story');
     const fazerUpload = fn().mockResolvedValue({ publicUrl: 'https://cdn.test/story.mp4' });
@@ -114,7 +114,7 @@ describe('StoryBrowserMediaAdapter', () => {
 
     await adapter.upload({
       file: { type: 'video/mp4', size: 128 * 1024 * 1024 },
-      uid: 'story-35',
+      uid: 'story-31',
       barbershopId: 'shop-1',
       expiresAt: '2026-05-24T00:00:00.000Z',
     });
@@ -123,7 +123,7 @@ describe('StoryBrowserMediaAdapter', () => {
     assert.equal(fazerUpload.calls.length, 1);
   });
 
-  it('deve bloquear video de story acima de 35 segundos sem registrar upload', async () => {
+  it('deve bloquear video de story acima de 30 segundos sem registrar upload', async () => {
     const env = criarAmbienteVideo({ duration: 36 });
     const StoryBrowserMediaAdapter = carregarAdapter(env);
     const registrar = fn();
@@ -137,7 +137,7 @@ describe('StoryBrowserMediaAdapter', () => {
         barbershopId: 'shop-1',
         expiresAt: '2026-05-24T00:00:00.000Z',
       }),
-      /Este vídeo tem 36s\. O limite máximo para Stories é de 35 segundos\./,
+      /Este vídeo tem 36s\. O limite máximo para Stories é de 30 segundos\./,
     );
 
     assert.equal(registrar.calls.length, 0);

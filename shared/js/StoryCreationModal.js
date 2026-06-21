@@ -63,7 +63,7 @@ class UploadMediaSource extends MediaSourceArquivo {
 // Câmera in-app: grava via getUserMedia + MediaRecorder e PARA SOZINHA aos 35s.
 // Sem suporte (ou sem permissão) → cai no input nativo com capture.
 class CameraMediaSource {
-  static MAX_SECONDS = 35;
+  static MAX_SECONDS = 30;
   obter() {
     const semSuporte = typeof navigator === 'undefined'
       || !navigator.mediaDevices
@@ -159,6 +159,122 @@ class CameraRecorder {
 
       (document.body || document.documentElement).appendChild(overlay);
     });
+  }
+}
+
+// Compressão de vídeo no NAVEGADOR (antes de subir): corta para no máximo
+// `maxSeconds` e mira em ~`targetBytes` reduzindo resolução + bitrate.
+// É a única forma confiável no Vercel (a função tem limite de corpo ~4.5MB).
+// Qualquer falha/sem suporte → devolve o arquivo original (não quebra o upload).
+class VideoCompressor {
+  static async comprimir(file, { maxSeconds = 30, targetBytes = 1.5 * 1024 * 1024, maxLado = 540 } = {}) {
+    const semSuporte = typeof document === 'undefined'
+      || typeof MediaRecorder === 'undefined'
+      || typeof HTMLCanvasElement === 'undefined'
+      || !HTMLCanvasElement.prototype.captureStream
+      || typeof URL === 'undefined' || !URL.createObjectURL;
+    if (semSuporte || !file || !String(file.type || '').startsWith('video')) return file;
+
+    let url = null;
+    let audioCtx = null;
+    let stream = null;
+    let video = null;
+    try {
+      url = URL.createObjectURL(file);
+      video = document.createElement('video');
+      video.src = url;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+
+      await new Promise((res, rej) => {
+        video.onloadedmetadata = () => res();
+        video.onerror = () => rej(new Error('metadata'));
+      });
+
+      const dur  = Number(video.duration) || 0;
+      const segs = Math.min(dur > 0 ? dur : maxSeconds, maxSeconds);
+
+      // Já curto e pequeno → não recomprime.
+      if (file.size <= targetBytes && dur > 0 && dur <= maxSeconds) {
+        URL.revokeObjectURL(url);
+        return file;
+      }
+
+      const vw = video.videoWidth || maxLado;
+      const vh = video.videoHeight || maxLado;
+      const escala = Math.min(1, maxLado / Math.max(vw, vh));
+      const cw = Math.max(2, Math.round((vw * escala) / 2) * 2);
+      const ch = Math.max(2, Math.round((vh * escala) / 2) * 2);
+      const canvas = document.createElement('canvas');
+      canvas.width = cw; canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+
+      stream = canvas.captureStream(30);
+
+      // Áudio capturado SEM tocar no alto-falante (Web Audio → destino de stream).
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          audioCtx = new AC();
+          const srcNode = audioCtx.createMediaElementSource(video);
+          const dest = audioCtx.createMediaStreamDestination();
+          srcNode.connect(dest);
+          const at = dest.stream.getAudioTracks()[0];
+          if (at) stream.addTrack(at);
+        }
+      } catch (_) { /* sem áudio se não der */ }
+
+      const audioBps = 64000;
+      const videoBps = Math.max(180000, Math.floor((targetBytes * 8 / Math.max(1, segs)) * 0.85) - audioBps);
+      const mime = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
+        .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch (_) { return false; } }) || '';
+
+      const chunks = [];
+      const rec = new MediaRecorder(stream, {
+        ...(mime ? { mimeType: mime } : {}),
+        videoBitsPerSecond: videoBps,
+        audioBitsPerSecond: audioBps,
+      });
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      const fim = new Promise((resolve) => { rec.onstop = resolve; });
+
+      let parou = false;
+      const desenhar = () => {
+        if (parou) return;
+        try { ctx.drawImage(video, 0, 0, cw, ch); } catch (_) {}
+        requestAnimationFrame(desenhar);
+      };
+      const parar = () => {
+        if (parou) return;
+        parou = true;
+        try { if (rec.state === 'recording') rec.stop(); } catch (_) {}
+      };
+
+      rec.start();
+      try { await audioCtx?.resume?.(); } catch (_) {}
+      await video.play();
+      desenhar();
+      video.onended = parar;
+      const timer = setTimeout(parar, segs * 1000 + 200);
+
+      await fim;
+      clearTimeout(timer);
+      try { video.pause(); } catch (_) {}
+      try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+      try { await audioCtx?.close?.(); } catch (_) {}
+      URL.revokeObjectURL(url);
+
+      const blob = new Blob(chunks, { type: mime || 'video/webm' });
+      if (!blob.size) return file; // não gerou nada → original
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      return new File([blob], `story-${Date.now()}.${ext}`, { type: blob.type });
+    } catch (_) {
+      try { if (url) URL.revokeObjectURL(url); } catch (_) {}
+      try { stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
+      try { await audioCtx?.close?.(); } catch (_) {}
+      return file; // qualquer erro → original (não quebra o upload)
+    }
   }
 }
 
@@ -293,12 +409,36 @@ class StoryCreationModal {
   async #escolherMidia(source) {
     const midia = await source.obter();
     if (!midia) return;
+
+    let file = midia.file;
+    // Vídeo: comprime no navegador ANTES de subir — corta para 30s e mira ~1.5MB.
+    if (midia.tipo === 'video') {
+      this.#mostrarProcessando(true);
+      try {
+        file = await VideoCompressor.comprimir(midia.file, { maxSeconds: 30, targetBytes: 1.5 * 1024 * 1024 });
+      } catch (_) {
+        file = midia.file; // falhou → original
+      } finally {
+        this.#mostrarProcessando(false);
+      }
+    }
+
     try {
-      this.#service.definirMedia(midia);
+      this.#service.definirMedia({ ...midia, file });
     } catch (_) {
       return; // tipo inválido — ignorado silenciosamente nesta etapa de UI
     }
     this.#renderMidia();
+  }
+
+  #mostrarProcessando(ativo) {
+    if (!this.#vazio) return;
+    if (ativo) {
+      this.#vazio.textContent = 'Comprimindo vídeo…';
+      this.#vazio.hidden = false;
+    } else {
+      this.#vazio.textContent = 'Escolha um vídeo ou foto para começar';
+    }
   }
 
   #renderMidia() {
@@ -497,5 +637,5 @@ class StoryCreationModal {
 
 // UMD — testes via require(); ignorado no browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { StoryCreationModal, UploadMediaSource, CameraMediaSource, CameraRecorder, MediaSourceArquivo };
+  module.exports = { StoryCreationModal, UploadMediaSource, CameraMediaSource, CameraRecorder, VideoCompressor, MediaSourceArquivo };
 }

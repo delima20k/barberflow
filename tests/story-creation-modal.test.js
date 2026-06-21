@@ -198,6 +198,13 @@ test('Finalizar chama o callback onFinalizar com o estado', () => {
   assert.equal(getOverlay(document), null, 'modal fecha após finalizar');
 });
 
+test('VideoCompressor.comprimir devolve o arquivo original quando nao ha suporte (fallback)', async () => {
+  const { sandbox } = criarSandbox();
+  const file = { type: 'video/mp4', size: 9999 };
+  const out = await sandbox.VideoCompressor.comprimir(file, { maxSeconds: 30, targetBytes: 1.5 * 1024 * 1024 });
+  assert.equal(out, file, 'sem MediaRecorder/canvas no sandbox → retorna o original (nao quebra)');
+});
+
 test('fechar pelo × remove a modal do body', () => {
   const { sandbox, document } = criarSandbox();
   const modal = sandbox.StoryCreationModal.abrir({ service: new sandbox.StoryEditorService() });

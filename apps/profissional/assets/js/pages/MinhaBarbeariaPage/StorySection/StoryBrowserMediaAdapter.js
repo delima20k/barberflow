@@ -1,5 +1,7 @@
 export class StoryBrowserMediaAdapter {
-  static #MAX_DURATION_SECONDS = 35;
+  // Upload de story sobe com no máximo 30s (a compressão no navegador corta para
+  // 30s; +1s de folga para variação de timing do encoder).
+  static #MAX_DURATION_SECONDS = 31;
 
   #mediaP2P;
 
@@ -54,7 +56,7 @@ export class StoryBrowserMediaAdapter {
     if (duration <= StoryBrowserMediaAdapter.#MAX_DURATION_SECONDS) return;
 
     const duracao = Math.ceil(duration);
-    throw new Error(`Este vídeo tem ${duracao}s. O limite máximo para Stories é de 35 segundos.`);
+    throw new Error(`Este vídeo tem ${duracao}s. O limite máximo para Stories é de 30 segundos.`);
   }
 
   #lerDuracaoVideo(file) {
