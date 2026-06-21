@@ -298,3 +298,71 @@
 }
 .sc-music-nome    { font-weight: 700; font-size: .9rem; }
 .sc-music-artista { font-size: .72rem; color: rgba(255, 255, 255, .6); }
+
+/* Câmera in-app (gravação com auto-stop aos 35s) */
+.sc-camera {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sc-camera-live {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sc-camera-timer {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  font-weight: 700;
+  font-size: .9rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+.sc-camera-rec {
+  position: absolute;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: #ff3b30;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.sc-camera-rec:active { transform: translateX(-50%) scale(.94); }
+/* Gravando: quadrado branco (indica "parar") */
+.sc-camera-rec.is-rec::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+.sc-camera-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(0, 0, 0, .5);
+  color: #fff;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}

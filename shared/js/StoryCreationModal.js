@@ -60,8 +60,106 @@ class UploadMediaSource extends MediaSourceArquivo {
   constructor() { super({ accept: 'video/*,image/*', origem: 'upload' }); }
 }
 
-class CameraMediaSource extends MediaSourceArquivo {
-  constructor() { super({ accept: 'video/*', capture: 'environment', origem: 'camera' }); }
+// Câmera in-app: grava via getUserMedia + MediaRecorder e PARA SOZINHA aos 35s.
+// Sem suporte (ou sem permissão) → cai no input nativo com capture.
+class CameraMediaSource {
+  static MAX_SECONDS = 35;
+  obter() {
+    const semSuporte = typeof navigator === 'undefined'
+      || !navigator.mediaDevices
+      || typeof navigator.mediaDevices.getUserMedia !== 'function'
+      || typeof MediaRecorder === 'undefined';
+    if (semSuporte) {
+      return new MediaSourceArquivo({ accept: 'video/*', capture: 'environment', origem: 'camera' }).obter();
+    }
+    return CameraRecorder.gravar(CameraMediaSource.MAX_SECONDS);
+  }
+}
+
+// Gravador de vídeo na própria modal, com limite de tempo (auto-stop).
+class CameraRecorder {
+  static async gravar(maxSeconds = 35) {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: true,
+      });
+    } catch (_) {
+      return null; // permissão negada / sem câmera
+    }
+
+    return new Promise((resolve) => {
+      const mime = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
+        .find(t => { try { return MediaRecorder.isTypeSupported?.(t); } catch (_) { return false; } }) || '';
+
+      let recorder = null;
+      let chunks = [];
+      let gravando = false;
+      let timerInt = null;
+      let autoStop = null;
+
+      const live = scEl('video', { class: 'sc-camera-live', attrs: { playsinline: '', autoplay: '' } });
+      live.muted = true;
+      try { live.srcObject = stream; } catch (_) {}
+      try { live.play?.(); } catch (_) {}
+
+      const timer  = scEl('div', { class: 'sc-camera-timer', text: `0s / ${maxSeconds}s` });
+      const recBtn = scEl('button', { class: 'sc-camera-rec', type: 'button', attrs: { 'aria-label': 'Gravar' } });
+      const close  = scEl('button', { class: 'sc-camera-close', type: 'button', text: '×', attrs: { 'aria-label': 'Fechar' } });
+      const overlay = scEl('div', { class: 'sc-camera', attrs: { role: 'dialog', 'aria-label': 'Gravar vídeo' },
+        children: [live, timer, recBtn, close] });
+
+      const limpar = () => {
+        try { clearInterval(timerInt); } catch (_) {}
+        try { clearTimeout(autoStop); } catch (_) {}
+        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        try { overlay.remove(); } catch (_) {}
+      };
+
+      const finalizar = (blob) => {
+        limpar();
+        if (!blob || !blob.size) { resolve(null); return; }
+        const ext  = mime.includes('mp4') ? 'mp4' : 'webm';
+        const tipo = mime || (ext === 'mp4' ? 'video/mp4' : 'video/webm');
+        const file = new File([blob], `camera-${Date.now()}.${ext}`, { type: tipo });
+        resolve({ file, tipo: 'video', origem: 'camera' });
+      };
+
+      const parar = () => {
+        try { clearInterval(timerInt); } catch (_) {}
+        try { clearTimeout(autoStop); } catch (_) {}
+        if (recorder && recorder.state === 'recording') recorder.stop(); // → onstop → finalizar
+      };
+
+      const iniciar = () => {
+        chunks = [];
+        try {
+          recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        } catch (_) {
+          recorder = new MediaRecorder(stream);
+        }
+        recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+        recorder.onstop = () => finalizar(new Blob(chunks, { type: mime || 'video/webm' }));
+        recorder.start();
+        gravando = true;
+        recBtn.classList.add('is-rec');
+        let s = 0;
+        timer.textContent = `0s / ${maxSeconds}s`;
+        timerInt = setInterval(() => {
+          s += 1;
+          timer.textContent = `${s}s / ${maxSeconds}s`;
+        }, 1000);
+        // Para sozinha ao atingir o limite (35s).
+        autoStop = setTimeout(() => parar(), maxSeconds * 1000);
+      };
+
+      recBtn.addEventListener('click', () => { gravando ? parar() : iniciar(); });
+      close.addEventListener('click', () => { limpar(); resolve(null); });
+
+      (document.body || document.documentElement).appendChild(overlay);
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -399,5 +497,5 @@ class StoryCreationModal {
 
 // UMD — testes via require(); ignorado no browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { StoryCreationModal, UploadMediaSource, CameraMediaSource, MediaSourceArquivo };
+  module.exports = { StoryCreationModal, UploadMediaSource, CameraMediaSource, CameraRecorder, MediaSourceArquivo };
 }
