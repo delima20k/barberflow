@@ -6,7 +6,7 @@
 // ARQUITETURA:
 //   PRIMÁRIO — P2P (presigned URL):
 //     O browser faz PUT direto ao R2 via URL gerada pelo BFF.
-//     Videos de stories usam rota BFF dedicada para comprimir antes do R2.
+//     Videos de stories sao comprimidos depois, pelo worker assíncrono.
 //
 //   FALLBACK  — R2 CDN permanente:
 //     Após confirmação, o arquivo está disponível via URL pública.
@@ -17,7 +17,6 @@
 // FLUXO COMPLETO:
 //   1. registrar(file, uid)             → Blob URL local (preview imediato, zero latência)
 //   2. fazerUpload(uid, contexto, meta) → P2P: browser → R2 via presigned URL
-//                                          stories video: browser → BFF → R2 comprimido
 //                                          confirma ao BFF → metadata salvo no Supabase
 //   3. cancelar(uid)                    → revoga Blob URL sem upload
 //
@@ -106,10 +105,6 @@ class MediaP2P {
     const { file } = pendente;
     const token    = await this.#obterToken();
 
-    if (this.#deveComprimirStoryVideo(contexto, file)) {
-      return this.#fazerUploadStoryVideoComprimido(uid, file, token, metadata);
-    }
-
     // ── Etapa 1: solicitar URL presigned ao BFF ──────────────────
     const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/presigned`, {
       method:  'POST',
@@ -159,45 +154,6 @@ class MediaP2P {
 
     this.#revogar(uid); // libera memória após conclusão bem-sucedida
     return { path, publicUrl, mediaId };
-  }
-
-  async #fazerUploadStoryVideoComprimido(uid, file, token, metadata = {}) {
-    const headers = {
-      'Content-Type':  'video/mp4',
-      'Authorization': `Bearer ${token}`,
-    };
-    if (metadata && Object.keys(metadata).length > 0) {
-      headers['X-Media-Metadata'] = JSON.stringify(metadata);
-    }
-
-    const resp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/stories/upload-compressed`, {
-      method: 'POST',
-      headers,
-      body: file,
-    });
-
-    if (!resp.ok) {
-      const { error, code } = await resp.json().catch(() => ({}));
-      throw new Error(`[MediaP2P] Falha no upload comprimido de story: ${code ?? error ?? resp.status}`);
-    }
-
-    const { dados } = await resp.json();
-    const mediaId = dados?.mediaId ?? dados?.id ?? null;
-    if (!dados?.path || !mediaId) {
-      throw new Error('[MediaP2P] Resposta invalida da BFF no upload comprimido de story.');
-    }
-
-    this.#revogar(uid);
-    return {
-      path: dados.path,
-      publicUrl: dados.publicUrl ?? null,
-      mediaId,
-    };
-  }
-
-  #deveComprimirStoryVideo(contexto, file) {
-    return String(contexto ?? '').toLowerCase() === 'stories'
-      && String(file?.type ?? '').toLowerCase() === 'video/mp4';
   }
 
   /**
