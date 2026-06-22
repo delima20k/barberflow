@@ -123,8 +123,8 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   const audioCatalogReader = deps.audioCatalogReader
     ?? new StoryAudioCatalogReader({ r2Gateway: r2Instance });
 
-  // GET /api/v1/media/stories/audio/catalog — lista de músicas p/ a modal de story.
-  router.get('/stories/audio/catalog', AuthMiddleware.verificar, async (req, res) => {
+  // GET /api/v1/media/stories/audio/catalog — catálogo público controlado de músicas p/ a modal de story.
+  router.get('/stories/audio/catalog', async (req, res) => {
     try {
       const hasPaging = req.query?.page || req.query?.pageSize || req.query?.genre || req.query?.q;
       const catalogo = hasPaging
