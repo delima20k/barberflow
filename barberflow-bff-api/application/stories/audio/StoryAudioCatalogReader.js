@@ -12,6 +12,8 @@ const { StoryAudioR2Pather } = require('./StoryAudioR2Pather');
 class StoryAudioCatalogReader {
   static VAZIO = Object.freeze({ generatedAt: null, count: 0, genres: ['Todos'], tracks: [] });
   static DEFAULT_TTL_MS = 5 * 60 * 1000;
+  static PAGE_SIZE = 20;
+  static MAX_PAGE_SIZE = 50;
 
   #r2;
   #ttlMs;
@@ -40,7 +42,37 @@ class StoryAudioCatalogReader {
     return value;
   }
 
+  async listarPagina({ page = 1, pageSize = StoryAudioCatalogReader.PAGE_SIZE, genre = 'Todos', q = '' } = {}) {
+    const catalogo = await this.ler();
+    const filtrados = StoryAudioCatalogReader.filtrar(catalogo.tracks, { genre, q });
+    const tamanho = StoryAudioCatalogReader.#pageSize(pageSize);
+    const pagina = StoryAudioCatalogReader.#page(page);
+    const inicio = (pagina - 1) * tamanho;
+    return {
+      generatedAt: catalogo.generatedAt ?? null,
+      count: filtrados.length,
+      genres: Array.isArray(catalogo.genres) && catalogo.genres.length ? catalogo.genres : ['Todos'],
+      tracks: filtrados.slice(inicio, inicio + tamanho),
+      page: pagina,
+      pageSize: tamanho,
+      totalPages: Math.max(1, Math.ceil(filtrados.length / tamanho)),
+      hasMore: inicio + tamanho < filtrados.length,
+    };
+  }
+
   invalidar() { this.#cache = null; }
+
+  static filtrar(tracks, { genre = 'Todos', q = '' } = {}) {
+    const arr = Array.isArray(tracks) ? tracks : [];
+    const genero = String(genre || 'Todos');
+    const termo = String(q || '').trim().toLowerCase();
+    return arr.filter((track) => {
+      if (genero !== 'Todos' && track.genre !== genero) return false;
+      if (!termo) return true;
+      const alvo = `${track.music_name ?? ''} ${track.artist ?? ''}`.toLowerCase();
+      return alvo.includes(termo);
+    });
+  }
 
   async #carregar() {
     if (!this.#r2?.downloadSource) return StoryAudioCatalogReader.VAZIO;
@@ -52,6 +84,17 @@ class StoryAudioCatalogReader {
     } catch (_) {
       return StoryAudioCatalogReader.VAZIO; // não existe ainda / R2 indisponível
     }
+  }
+
+  static #page(n) {
+    const value = Number(n);
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
+  }
+
+  static #pageSize(n) {
+    const value = Number(n);
+    if (!Number.isFinite(value) || value <= 0) return StoryAudioCatalogReader.PAGE_SIZE;
+    return Math.min(StoryAudioCatalogReader.MAX_PAGE_SIZE, Math.floor(value));
   }
 }
 

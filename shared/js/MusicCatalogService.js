@@ -13,6 +13,7 @@
 class MusicCatalogService {
   static PAGE_SIZE = 20;
   static CACHE_KEY = 'catalog';
+  static PAGE_CACHE_PREFIX = 'catalog:page';
 
   #api;
   #pageSize;
@@ -43,18 +44,58 @@ class MusicCatalogService {
     this.#carregando = (async () => {
       try {
         const { data } = await this.#api.musicas.catalogo();
-        this.#catalogo = MusicCatalogService.#normalizar(data);
+        this.#catalogo = MusicCatalogService.normalizar(data);
         this.#cache?.set(MusicCatalogService.CACHE_KEY, this.#catalogo);
       } catch (_) {
         // Offline parcial: usa o último catálogo (stale) se existir.
         const stale = this.#cache?.stale(MusicCatalogService.CACHE_KEY);
-        this.#catalogo = stale ?? MusicCatalogService.#vazio();
+        this.#catalogo = stale ?? MusicCatalogService.vazio();
       } finally {
         this.#carregando = null;
       }
       return this.#catalogo;
     })();
     return this.#carregando;
+  }
+
+  /** Busca uma pagina sob demanda na BFF, evitando enviar o catalogo inteiro para a UI. */
+  async buscarPagina({ genero = 'Todos', termo = '', pagina = 1, pageSize = this.#pageSize, force = false } = {}) {
+    const params = {
+      page:     MusicCatalogService.#pagina(pagina),
+      pageSize: MusicCatalogService.#normalizarPageSize(pageSize),
+      genre:    String(genero || 'Todos'),
+      q:        String(termo || ''),
+    };
+    const cacheKey = MusicCatalogService.#pageCacheKey(params);
+    if (!force) {
+      const cacheado = this.#cache?.get(cacheKey);
+      if (cacheado) return cacheado;
+    }
+
+    try {
+      const { data } = await this.#api.musicas.catalogo(params);
+      const page = MusicCatalogService.#normalizarPagina(data, params);
+      this.#cache?.set(cacheKey, page);
+      if (Array.isArray(page.genres) && page.genres.length) {
+        this.#catalogo = {
+          generatedAt: page.generatedAt,
+          count: page.count,
+          genres: page.genres,
+          tracks: this.#catalogo?.tracks ?? [],
+        };
+      }
+      return page;
+    } catch (_) {
+      const stale = this.#cache?.stale(cacheKey);
+      if (stale) return stale;
+
+      // Compatibilidade/offline parcial: se houver catalogo local/stale, filtra e pagina aqui.
+      const catalogo = this.#catalogo ?? this.#cache?.stale(MusicCatalogService.CACHE_KEY);
+      if (catalogo?.tracks) {
+        return MusicCatalogService.#paginaLocal(catalogo, params);
+      }
+      return MusicCatalogService.#paginaVazia(params);
+    }
   }
 
   get carregado() { return !!this.#catalogo; }
@@ -100,8 +141,68 @@ class MusicCatalogService {
     return Math.max(1, Math.ceil((Number(total) || 0) / tamanho));
   }
 
-  static #normalizar(data) {
-    if (!data || !Array.isArray(data.tracks)) return MusicCatalogService.#vazio();
+  static #normalizarPagina(data, params) {
+    if (!data || !Array.isArray(data.tracks)) return MusicCatalogService.#paginaVazia(params);
+    if (data.page || data.hasMore !== undefined || data.totalPages) {
+      return {
+        generatedAt: data.generatedAt ?? null,
+        count: Number(data.count) || data.tracks.length,
+        genres: Array.isArray(data.genres) && data.genres.length ? data.genres : ['Todos'],
+        tracks: data.tracks,
+        page: MusicCatalogService.#pagina(data.page ?? params.page),
+        pageSize: MusicCatalogService.#normalizarPageSize(data.pageSize ?? params.pageSize),
+        totalPages: MusicCatalogService.totalPaginas(Number(data.count) || data.tracks.length, data.pageSize ?? params.pageSize),
+        hasMore: data.hasMore === true,
+      };
+    }
+    return MusicCatalogService.#paginaLocal(MusicCatalogService.normalizar(data), params);
+  }
+
+  static #paginaLocal(catalogo, params) {
+    const filtrados = MusicCatalogService.filtrar(catalogo.tracks, { genero: params.genre, termo: params.q });
+    const tracks = MusicCatalogService.pagina(filtrados, params.page, params.pageSize);
+    const totalPages = MusicCatalogService.totalPaginas(filtrados.length, params.pageSize);
+    return {
+      generatedAt: catalogo.generatedAt ?? null,
+      count: filtrados.length,
+      genres: Array.isArray(catalogo.genres) && catalogo.genres.length ? catalogo.genres : ['Todos'],
+      tracks,
+      page: params.page,
+      pageSize: params.pageSize,
+      totalPages,
+      hasMore: params.page < totalPages,
+    };
+  }
+
+  static #paginaVazia(params) {
+    return {
+      generatedAt: null,
+      count: 0,
+      genres: ['Todos'],
+      tracks: [],
+      page: params.page,
+      pageSize: params.pageSize,
+      totalPages: 1,
+      hasMore: false,
+    };
+  }
+
+  static #pageCacheKey({ page, pageSize, genre, q }) {
+    return `${MusicCatalogService.PAGE_CACHE_PREFIX}:${page}:${pageSize}:${genre}:${q}`;
+  }
+
+  static #pagina(n) {
+    const value = Number(n);
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
+  }
+
+  static #normalizarPageSize(n) {
+    const value = Number(n);
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : MusicCatalogService.PAGE_SIZE;
+  }
+
+  static normalizar(data) {
+    if (!data || !Array.isArray(data.tracks)) return MusicCatalogService.vazio();
     return {
       generatedAt: data.generatedAt ?? null,
       count: Number(data.count) || data.tracks.length,
@@ -110,7 +211,7 @@ class MusicCatalogService {
     };
   }
 
-  static #vazio() {
+  static vazio() {
     return { generatedAt: null, count: 0, genres: ['Todos'], tracks: [] };
   }
 }

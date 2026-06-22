@@ -329,6 +329,7 @@ test('filtro por gênero na modal reduz a lista', async () => {
   assert.equal(ov.querySelectorAll('.sc-music-item').length, 4, 'Todos');
   const chipRock = [...ov.querySelectorAll('.sc-music-genre')].find(c => c.dataset.genero === 'Rock');
   chipRock._fire('click');
+  await tick();
   assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'só Rock (2 de 4)');
 });
 

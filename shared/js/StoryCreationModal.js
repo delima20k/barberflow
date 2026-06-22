@@ -577,7 +577,7 @@ class StoryCreationModal {
   #musicList = null;
   #musicGenres = null;
   #musicEmpty = null;
-  #musicState = { genero: 'Todos', termo: '', pagina: 1, filtrados: [] };
+  #musicState = { genero: 'Todos', termo: '', pagina: 1, filtrados: [], totalPaginas: 1, hasMore: false };
   #musicSearchTimer = null;
   #mixPanel  = null;
   #mixRefs   = null;
@@ -879,11 +879,8 @@ class StoryCreationModal {
   }
 
   async #carregarCatalogo() {
-    if (this.#catalogo) {
-      try { await this.#catalogo.carregar(); } catch (_) { /* degrada p/ vazio */ }
-    }
+    await this.#aplicarFiltroMusica();
     this.#renderGeneros();
-    this.#aplicarFiltroMusica();
   }
 
   #renderGeneros() {
@@ -913,15 +910,12 @@ class StoryCreationModal {
     this.#musicSearchTimer = setTimeout(() => this.#aplicarFiltroMusica(), 180);
   }
 
-  #aplicarFiltroMusica() {
-    this.#musicState.filtrados = this.#catalogo
-      ? this.#catalogo.filtrar({ genero: this.#musicState.genero, termo: this.#musicState.termo })
-      : [];
-    this.#renderPaginaMusica(true);
+  async #aplicarFiltroMusica() {
+    await this.#renderPaginaMusica(true);
   }
 
   /** Renderiza/!append a página atual; reset limpa a lista e volta à página 1. */
-  #renderPaginaMusica(reset = false) {
+  async #renderPaginaMusica(reset = false) {
     if (!this.#musicList) return;
     if (reset) {
       [...(this.#musicList.querySelectorAll?.('.sc-music-item, .sc-music-more') ?? [])].forEach(el => el.remove());
@@ -929,20 +923,41 @@ class StoryCreationModal {
     } else {
       [...(this.#musicList.querySelectorAll?.('.sc-music-more') ?? [])].forEach(el => el.remove());
     }
-    const { filtrados, pagina } = this.#musicState;
-    if (this.#musicEmpty) this.#musicEmpty.hidden = filtrados.length > 0;
+    const { pagina } = this.#musicState;
+    const page = await this.#buscarPaginaMusica(pagina);
+    if (reset) this.#musicState.filtrados = page;
+    else this.#musicState.filtrados = [...this.#musicState.filtrados, ...page];
+    if (this.#musicEmpty) this.#musicEmpty.hidden = this.#musicState.filtrados.length > 0;
 
-    const page = MusicCatalogService.pagina(filtrados, pagina, StoryCreationModal.MUSIC_PAGE);
     page.forEach(t => this.#musicList.appendChild(this.#itemMusica(t)));
 
-    const totalPg = MusicCatalogService.totalPaginas(filtrados.length, StoryCreationModal.MUSIC_PAGE);
-    if (pagina < totalPg) {
+    if (this.#musicState.hasMore || pagina < this.#musicState.totalPaginas) {
       this.#musicList.appendChild(scEl('button', {
         class: 'sc-music-more', type: 'button', text: 'Carregar mais',
         on: { click: () => { this.#musicState.pagina += 1; this.#renderPaginaMusica(false); } },
       }));
     }
     this.#previewCtrl?.atualizarEstado();
+  }
+
+  async #buscarPaginaMusica(pagina) {
+    if (!this.#catalogo) return [];
+    if (typeof this.#catalogo.buscarPagina === 'function') {
+      const result = await this.#catalogo.buscarPagina({
+        genero: this.#musicState.genero,
+        termo: this.#musicState.termo,
+        pagina,
+        pageSize: StoryCreationModal.MUSIC_PAGE,
+      });
+      this.#musicState.totalPaginas = result.totalPages ?? 1;
+      this.#musicState.hasMore = result.hasMore === true;
+      return Array.isArray(result.tracks) ? result.tracks : [];
+    }
+    try { await this.#catalogo.carregar(); } catch (_) { /* degrada p/ vazio */ }
+    const filtrados = this.#catalogo.filtrar({ genero: this.#musicState.genero, termo: this.#musicState.termo });
+    this.#musicState.totalPaginas = MusicCatalogService.totalPaginas(filtrados.length, StoryCreationModal.MUSIC_PAGE);
+    this.#musicState.hasMore = pagina < this.#musicState.totalPaginas;
+    return MusicCatalogService.pagina(filtrados, pagina, StoryCreationModal.MUSIC_PAGE);
   }
 
   #itemMusica(track) {

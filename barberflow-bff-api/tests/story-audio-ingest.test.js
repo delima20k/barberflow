@@ -96,3 +96,25 @@ test('MusicProcessingService.process rejeita buffer vazio', async () => {
   const svc = new MusicProcessingService({ runner: { run: async () => ({ bytes: Buffer.from('x') }) } });
   await assert.rejects(() => svc.process(Buffer.alloc(0)), /Buffer nao vazio/);
 });
+
+test('StoryAudioCatalogReader lista pagina filtrada sem devolver catalogo inteiro', async () => {
+  const tracks = Array.from({ length: 55 }, (_, i) => ({
+    music_id: `id-${i}`,
+    music_name: `Faixa ${i}`,
+    artist: i % 5 === 0 ? 'Aylex' : 'Outro',
+    duration: 30,
+    genre: i % 2 === 0 ? 'Rock' : 'Pop',
+    url: `https://cdn/${i}.m4a`,
+  }));
+  const catalogo = { generatedAt: 'x', count: tracks.length, genres: ['Todos', 'Pop', 'Rock'], tracks };
+  const r2 = { downloadSource: async () => Buffer.from(JSON.stringify(catalogo)) };
+  const reader = new StoryAudioCatalogReader({ r2Gateway: r2 });
+
+  const pagina = await reader.listarPagina({ page: 1, pageSize: 3, genre: 'Rock', q: 'aylex' });
+
+  assert.equal(pagina.page, 1);
+  assert.equal(pagina.pageSize, 3);
+  assert.ok(pagina.tracks.length <= 3);
+  assert.ok(pagina.count > pagina.tracks.length, 'count reflete total filtrado, nao so pagina');
+  assert.ok(pagina.tracks.every(t => t.genre === 'Rock' && `${t.music_name} ${t.artist}`.toLowerCase().includes('aylex')));
+});

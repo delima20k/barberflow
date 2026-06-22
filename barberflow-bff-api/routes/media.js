@@ -126,7 +126,15 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   // GET /api/v1/media/stories/audio/catalog — lista de músicas p/ a modal de story.
   router.get('/stories/audio/catalog', AuthMiddleware.verificar, async (req, res) => {
     try {
-      const catalogo = await audioCatalogReader.ler();
+      const hasPaging = req.query?.page || req.query?.pageSize || req.query?.genre || req.query?.q;
+      const catalogo = hasPaging
+        ? await audioCatalogReader.listarPagina({
+            page:     req.query.page,
+            pageSize: req.query.pageSize,
+            genre:    req.query.genre,
+            q:        req.query.q,
+          })
+        : await audioCatalogReader.ler();
       res.set('Cache-Control', 'private, max-age=300');
       return res.status(200).json({ ok: true, dados: catalogo });
     } catch (_) {
