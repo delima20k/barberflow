@@ -162,88 +162,293 @@ class CameraRecorder {
   }
 }
 
-// Compressão de vídeo no NAVEGADOR (antes de subir): corta para no máximo
-// `maxSeconds` e mira em ~`targetBytes` reduzindo resolução + bitrate.
-// É a única forma confiável no Vercel (a função tem limite de corpo ~4.5MB).
-// Qualquer falha/sem suporte → devolve o arquivo original (não quebra o upload).
-class VideoCompressor {
-  static async comprimir(file, { maxSeconds = 30, targetBytes = 1.5 * 1024 * 1024, maxLado = 540 } = {}) {
-    const semSuporte = typeof document === 'undefined'
-      || typeof MediaRecorder === 'undefined'
-      || typeof HTMLCanvasElement === 'undefined'
-      || !HTMLCanvasElement.prototype.captureStream
-      || typeof URL === 'undefined' || !URL.createObjectURL;
-    if (semSuporte || !file || !String(file.type || '').startsWith('video')) return file;
+// ─────────────────────────────────────────────────────────────
+// OverlayPainter — desenha os overlays (texto/emoji) num 2D context.
+// Puro o suficiente para testar o mapeamento de coordenadas/fonte
+// (preview px → canvas px) sem DOM. Reutilizado pelos caminhos de
+// vídeo E imagem (DRY).
+// ─────────────────────────────────────────────────────────────
+class OverlayPainter {
+  // rem das classes .sc-overlay-texto (1.4rem/800) e .sc-overlay-emoji (2.2rem)
+  static REM_TEXTO = 1.4;
+  static REM_EMOJI = 2.2;
 
-    let url = null;
-    let audioCtx = null;
-    let stream = null;
-    let video = null;
+  /**
+   * Converte um overlay do estado (px do preview) para canvas.
+   * @param {{tipo:string,conteudo:string,x:number,y:number,escala:number}} ov
+   * @param {number} escalaCanvas  fator canvas.w / preview.w
+   * @param {number} [rootFontPx=16]
+   * @returns {{x:number,y:number,fontPx:number,tipo:'texto'|'emoji',texto:string}}
+   */
+  static mapear(ov, escalaCanvas, rootFontPx = 16) {
+    const k   = Number(escalaCanvas) > 0 ? Number(escalaCanvas) : 1;
+    const esc = Number(ov?.escala)   > 0 ? Number(ov.escala)    : 1;
+    const tipo = ov?.tipo === 'emoji' ? 'emoji' : 'texto';
+    const rem  = tipo === 'emoji' ? OverlayPainter.REM_EMOJI : OverlayPainter.REM_TEXTO;
+    return {
+      x: (Number(ov?.x) || 0) * k,
+      y: (Number(ov?.y) || 0) * k,
+      fontPx: rem * rootFontPx * esc * k,
+      tipo,
+      texto: String(ov?.conteudo ?? ''),
+    };
+  }
+
+  /** Desenha todos os overlays no contexto 2D (texto branco c/ sombra; emoji grande). */
+  static desenhar(ctx, overlays, escalaCanvas, rootFontPx = 16) {
+    if (!ctx || !Array.isArray(overlays)) return;
+    for (const ov of overlays) {
+      const m = OverlayPainter.mapear(ov, escalaCanvas, rootFontPx);
+      if (!m.texto || !(m.fontPx > 0)) continue;
+      ctx.save();
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'left';
+      if (m.tipo === 'emoji') {
+        ctx.font = `${m.fontPx}px sans-serif`;
+        ctx.shadowColor = 'rgba(0,0,0,.5)';
+        ctx.shadowBlur = m.fontPx * 0.08;
+      } else {
+        ctx.font = `800 ${m.fontPx}px sans-serif`;
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = 'rgba(0,0,0,.9)';
+        ctx.shadowBlur = Math.max(2, m.fontPx * 0.12);
+        ctx.shadowOffsetY = Math.max(1, m.fontPx * 0.03);
+      }
+      try { ctx.fillText(m.texto, m.x, m.y); } catch (_) {}
+      ctx.restore();
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// StoryComposer — "queima" mídia + overlays num único arquivo no
+// NAVEGADOR (antes de subir), comprimido a no máximo `targetBytes`.
+//   • vídeo → canvas + MediaRecorder (corta em maxSeconds);
+//   • imagem → canvas + toBlob (loop de qualidade);
+//   • áudio condicional à música (ver modoAudio).
+// Qualquer falha / sem suporte → devolve o arquivo original (não
+// quebra o upload). Compressão única no Finalizar (sem encode duplo).
+// ─────────────────────────────────────────────────────────────
+class StoryComposer {
+  static MAX_LADO_VIDEO = 1080;            // teto do maior lado do vídeo (mantém o máx. de resolução)
+  static MAX_LADO_IMG   = 1080;            // teto inicial da imagem (cai em degraus p/ caber no alvo)
+  static ORCAMENTO_VIDEO = 1.55 * 1024 * 1024; // folga sob o alvo de 1.6MB
+  static ALVO_IMG = 10 * 1024;             // imagem: no máximo 10KB (qualidade máx. possível dentro disso)
+  static AUDIO_BPS = 64000;
+
+  /**
+   * Decide a faixa de áudio do story final.
+   *  - sem música            → 'original' (preserva o áudio do vídeo)
+   *  - música COM src        → 'musica'   (corta o original, mixa a música)
+   *  - música SEM src ainda  → 'silencio' (corta o original; mixa quando houver src)
+   * @returns {'original'|'musica'|'silencio'}
+   */
+  static modoAudio({ musica = null, musicaSrc = null } = {}) {
+    if (!musica) return 'original';
+    return musicaSrc ? 'musica' : 'silencio';
+  }
+
+  /**
+   * Plano de mix do áudio final a partir do mix do editor.
+   *  - usarOriginal/volVideo: faixa do vídeo (0..1); 0 se "remover áudio original".
+   *  - usarMusica/volMusica: música escolhida (só se houver src).
+   * Puro/testável.
+   * @returns {{ usarOriginal: boolean, volVideo: number, usarMusica: boolean, volMusica: number }}
+   */
+  static planoAudio({ musica = null, musicaSrc = null, audioMix = null } = {}) {
+    const mix = audioMix || {};
+    const manter = mix.manterOriginal === undefined ? true : !!mix.manterOriginal;
+    const clamp = (v, d) => { const n = Number(v); return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : d; };
+    const temMusica = !!musica && !!musicaSrc;
+    return {
+      usarOriginal: manter,
+      volVideo: manter ? clamp(mix.volumeVideo, 1) : 0,
+      usarMusica: temMusica,
+      volMusica: temMusica ? clamp(mix.volumeMusica, 0.7) : 0,
+    };
+  }
+
+  /**
+   * Dimensões pares do canvas a partir do aspecto (w/h) e do maior lado
+   * desejado. Guia o canvas pela RESOLUÇÃO da mídia (não pelos px do
+   * preview), preservando o aspecto exibido — assim mantemos o máximo de
+   * resolução possível.
+   * @param {number} aspect     largura/altura
+   * @param {number} ladoLongo  maior dimensão desejada (px)
+   * @returns {{w:number,h:number}}
+   */
+  static dimsCanvas(aspect, ladoLongo) {
+    const a = Number(aspect) > 0 ? Number(aspect) : (9 / 16);
+    const L = Number(ladoLongo) > 0 ? Number(ladoLongo) : StoryComposer.MAX_LADO_VIDEO;
+    let w, h;
+    if (a <= 1) { h = L; w = L * a; }   // retrato → maior lado é a altura
+    else        { w = L; h = L / a; }   // paisagem → maior lado é a largura
+    const par = (n) => Math.max(2, Math.round(n / 2) * 2);
+    return { w: par(w), h: par(h) };
+  }
+
+  static #suporta() {
+    return typeof document !== 'undefined'
+      && typeof MediaRecorder !== 'undefined'
+      && typeof HTMLCanvasElement !== 'undefined'
+      && !!HTMLCanvasElement.prototype.captureStream
+      && typeof URL !== 'undefined' && !!URL.createObjectURL;
+  }
+
+  static #mime() {
+    return ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
+      .find(t => { try { return MediaRecorder.isTypeSupported?.(t); } catch (_) { return false; } }) || '';
+  }
+
+  /**
+   * Compõe o arquivo final (mídia + overlays) comprimido a ≤ targetBytes.
+   * @param {object} opts
+   * @returns {Promise<File>}
+   */
+  static async compor(opts = {}) {
+    const { file } = opts;
+    if (!file) return file;
+    const tipo = opts.tipo
+      || (String(file.type || '').startsWith('video') ? 'video' : 'imagem');
+    if (!StoryComposer.#suporta()) return file; // fallback (ex.: sandbox de teste)
+    try {
+      return tipo === 'imagem'
+        ? await StoryComposer.#comporImagem(opts)
+        : await StoryComposer.#comporVideo(opts);
+    } catch (_) {
+      return file; // qualquer erro → original (não quebra o upload)
+    }
+  }
+
+  // ── Vídeo ───────────────────────────────────────────────────
+
+  static async #comporVideo(opts) {
+    const targetBytes = Number(opts.targetBytes) || (1.6 * 1024 * 1024);
+    const plano = StoryComposer.planoAudio({ musica: opts.musica, musicaSrc: opts.musicaSrc, audioMix: opts.audioMix });
+    const base = {
+      file:      opts.file,
+      overlays:  Array.isArray(opts.overlays) ? opts.overlays : [],
+      previewW:  Number(opts.previewW) || 0,
+      previewH:  Number(opts.previewH) || 0,
+      targetBytes,
+      maxSeconds: Number(opts.maxSeconds) || 30,
+      plano,
+      musicaSrc: opts.musicaSrc || null,
+    };
+
+    let blob = await StoryComposer.#gravarVideo({ ...base, fatorBitrate: 1 });
+    // Re-encode de segurança (uma vez) se estourar o alvo.
+    if (blob && blob.size > targetBytes) {
+      const menor = await StoryComposer.#gravarVideo({ ...base, fatorBitrate: 0.6 });
+      if (menor && menor.size) blob = menor;
+    }
+    if (!blob || !blob.size) return opts.file;
+    const ext = (blob.type || '').includes('mp4') ? 'mp4' : 'webm';
+    return new File([blob], `story-${Date.now()}.${ext}`, { type: blob.type || 'video/webm' });
+  }
+
+  static async #gravarVideo({ file, overlays, previewW, previewH, targetBytes, maxSeconds, plano, musicaSrc, fatorBitrate = 1 }) {
+    let url = null, audioCtx = null, stream = null, video = null, musicaEl = null, raf = null, timer = null;
+    const limpar = () => {
+      try { if (raf) cancelAnimationFrame(raf); } catch (_) {}
+      try { clearTimeout(timer); } catch (_) {}
+      try { stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
+      try { video?.pause(); } catch (_) {}
+      try { musicaEl?.pause(); } catch (_) {}
+      try { audioCtx?.close?.(); } catch (_) {}
+      try { if (url) URL.revokeObjectURL(url); } catch (_) {}
+    };
+
     try {
       url = URL.createObjectURL(file);
       video = document.createElement('video');
-      video.src = url;
-      video.muted = true;
-      video.playsInline = true;
-      video.preload = 'auto';
-
-      await new Promise((res, rej) => {
-        video.onloadedmetadata = () => res();
-        video.onerror = () => rej(new Error('metadata'));
-      });
+      video.src = url; video.muted = true; video.playsInline = true; video.preload = 'auto';
+      await new Promise((res, rej) => { video.onloadedmetadata = () => res(); video.onerror = () => rej(new Error('metadata')); });
 
       const dur  = Number(video.duration) || 0;
       const segs = Math.min(dur > 0 ? dur : maxSeconds, maxSeconds);
+      const vw = video.videoWidth  || previewW || 9;
+      const vh = video.videoHeight || previewH || 16;
 
-      // Já curto e pequeno → não recomprime.
-      if (file.size <= targetBytes && dur > 0 && dur <= maxSeconds) {
-        URL.revokeObjectURL(url);
-        return file;
-      }
+      // Canvas no aspecto do preview, mas na RESOLUÇÃO da mídia (até o teto) —
+      // preserva o máximo de resolução possível.
+      const aspect    = (previewW > 0 && previewH > 0) ? previewW / previewH : (vw / vh || 9 / 16);
+      const ladoLongo = Math.min(Math.max(vw, vh) || StoryComposer.MAX_LADO_VIDEO, StoryComposer.MAX_LADO_VIDEO);
+      const cv = StoryComposer.dimsCanvas(aspect, ladoLongo);
+      const escalaCanvas = previewW > 0 ? cv.w / previewW : 1;
 
-      const vw = video.videoWidth || maxLado;
-      const vh = video.videoHeight || maxLado;
-      const escala = Math.min(1, maxLado / Math.max(vw, vh));
-      const cw = Math.max(2, Math.round((vw * escala) / 2) * 2);
-      const ch = Math.max(2, Math.round((vh * escala) / 2) * 2);
       const canvas = document.createElement('canvas');
-      canvas.width = cw; canvas.height = ch;
+      canvas.width = cv.w; canvas.height = cv.h;
       const ctx = canvas.getContext('2d');
-
       stream = canvas.captureStream(30);
 
-      // Áudio capturado SEM tocar no alto-falante (Web Audio → destino de stream).
-      try {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) {
-          audioCtx = new AC();
-          const srcNode = audioCtx.createMediaElementSource(video);
-          const dest = audioCtx.createMediaStreamDestination();
-          srcNode.connect(dest);
-          const at = dest.stream.getAudioTracks()[0];
-          if (at) stream.addTrack(at);
-        }
-      } catch (_) { /* sem áudio se não der */ }
+      // ── Áudio: mix de vídeo (volVideo) + música (volMusica) por ganhos ──
+      const p = plano || { usarOriginal: true, volVideo: 1, usarMusica: false, volMusica: 0 };
+      const AC = (typeof window !== 'undefined') && (window.AudioContext || window.webkitAudioContext);
+      const precisaMix = (p.usarMusica && musicaSrc) || (p.usarOriginal && p.volVideo < 0.999);
+      let temAudio = false;
 
-      const audioBps = 64000;
-      const videoBps = Math.max(180000, Math.floor((targetBytes * 8 / Math.max(1, segs)) * 0.85) - audioBps);
-      const mime = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
-        .find(t => { try { return MediaRecorder.isTypeSupported(t); } catch (_) { return false; } }) || '';
+      if (p.usarOriginal && !precisaMix) {
+        // Caminho simples (volume cheio, sem música): faixa do vídeo via captureStream.
+        try { const vc = video.captureStream?.() || video.mozCaptureStream?.(); const at = vc?.getAudioTracks?.()[0]; if (at) { stream.addTrack(at); temAudio = true; } } catch (_) {}
+        if (!temAudio && AC) {
+          try {
+            audioCtx = new AC();
+            const d = audioCtx.createMediaStreamDestination();
+            const s = audioCtx.createMediaElementSource(video);
+            const g = audioCtx.createGain(); g.gain.value = p.volVideo;
+            s.connect(g); g.connect(d);
+            const t = d.stream.getAudioTracks()[0]; if (t) { stream.addTrack(t); temAudio = true; }
+          } catch (_) {}
+        }
+      } else if (precisaMix && AC) {
+        try {
+          audioCtx = new AC();
+          const d = audioCtx.createMediaStreamDestination();
+          if (p.usarOriginal) {
+            try {
+              video.muted = false; // roteado p/ WebAudio (sem alto-falante); feed confiável
+              const sv = audioCtx.createMediaElementSource(video);
+              const gv = audioCtx.createGain(); gv.gain.value = p.volVideo;
+              sv.connect(gv); gv.connect(d);
+            } catch (_) {}
+          }
+          if (p.usarMusica && musicaSrc) {
+            musicaEl = document.createElement('audio');
+            musicaEl.src = musicaSrc; musicaEl.crossOrigin = 'anonymous'; musicaEl.loop = true; musicaEl.preload = 'auto';
+            const sm = audioCtx.createMediaElementSource(musicaEl);
+            const gm = audioCtx.createGain(); gm.gain.value = p.volMusica;
+            sm.connect(gm); gm.connect(d);
+          }
+          const t = d.stream.getAudioTracks()[0]; if (t) { stream.addTrack(t); temAudio = true; }
+        } catch (_) { /* sem áudio se não der */ }
+      } // else: sem áudio (remover original e sem música)
+
+      const audioBps = temAudio ? StoryComposer.AUDIO_BPS : 0;
+      const orcamento = Math.min(targetBytes, StoryComposer.ORCAMENTO_VIDEO);
+      const videoBps = Math.max(120000, Math.floor((orcamento * 8 / Math.max(1, segs)) * 0.9 * fatorBitrate) - audioBps);
+      const mime = StoryComposer.#mime();
 
       const chunks = [];
       const rec = new MediaRecorder(stream, {
         ...(mime ? { mimeType: mime } : {}),
         videoBitsPerSecond: videoBps,
-        audioBitsPerSecond: audioBps,
+        ...(audioBps ? { audioBitsPerSecond: audioBps } : {}),
       });
       rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-      const fim = new Promise((resolve) => { rec.onstop = resolve; });
+      const parada = new Promise((resolve) => { rec.onstop = () => resolve(); });
 
+      // Vídeo desenhado em "contain" (letterbox preto, igual ao CSS) + overlays por cima.
+      const fit = Math.min(cv.w / vw, cv.h / vh);
+      const dw = vw * fit, dh = vh * fit, dx = (cv.w - dw) / 2, dy = (cv.h - dh) / 2;
       let parou = false;
       const desenhar = () => {
         if (parou) return;
-        try { ctx.drawImage(video, 0, 0, cw, ch); } catch (_) {}
-        requestAnimationFrame(desenhar);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, cv.w, cv.h);
+        try { ctx.drawImage(video, dx, dy, dw, dh); } catch (_) {}
+        OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
+        raf = requestAnimationFrame(desenhar);
       };
       const parar = () => {
         if (parou) return;
@@ -253,28 +458,78 @@ class VideoCompressor {
 
       rec.start();
       try { await audioCtx?.resume?.(); } catch (_) {}
+      try { await musicaEl?.play?.(); } catch (_) {}
       await video.play();
       desenhar();
       video.onended = parar;
-      const timer = setTimeout(parar, segs * 1000 + 200);
+      timer = setTimeout(parar, segs * 1000 + 200);
 
-      await fim;
-      clearTimeout(timer);
-      try { video.pause(); } catch (_) {}
-      try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
-      try { await audioCtx?.close?.(); } catch (_) {}
-      URL.revokeObjectURL(url);
+      await parada;
+      limpar();
+      return new Blob(chunks, { type: mime || 'video/webm' });
+    } catch (_) {
+      limpar();
+      return null;
+    }
+  }
 
-      const blob = new Blob(chunks, { type: mime || 'video/webm' });
-      if (!blob.size) return file; // não gerou nada → original
-      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-      return new File([blob], `story-${Date.now()}.${ext}`, { type: blob.type });
+  // ── Imagem ──────────────────────────────────────────────────
+
+  static async #comporImagem({ file, overlays = [], previewW = 0, previewH = 0, targetBytes = StoryComposer.ALVO_IMG } = {}) {
+    let url = null;
+    try {
+      url = URL.createObjectURL(file);
+      const img = document.createElement('img');
+      await new Promise((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('img')); img.src = url; });
+
+      const iw = img.naturalWidth  || previewW || 9;
+      const ih = img.naturalHeight || previewH || 16;
+      const aspect = (previewW > 0 && previewH > 0) ? previewW / previewH : (iw / ih || 9 / 16);
+      const tetoLado = Math.min(Math.max(iw, ih) || StoryComposer.MAX_LADO_IMG, StoryComposer.MAX_LADO_IMG);
+
+      // Busca a MAIOR resolução cuja melhor qualidade ainda cabe no alvo (≤targetBytes).
+      // Em cada degrau de resolução, percorre as qualidades de cima p/ baixo.
+      // Guarda o melhor candidato (≤alvo) e, como rede de segurança, o menor gerado.
+      let melhor = null;     // ≤ alvo, maior resolução possível
+      let fallback = null;   // menor blob gerado (se nada couber)
+      for (let lado = tetoLado; lado >= 80 && !melhor; lado = Math.round(lado * 0.7)) {
+        const cv = StoryComposer.dimsCanvas(aspect, lado);
+        const canvas = document.createElement('canvas');
+        canvas.width = cv.w; canvas.height = cv.h;
+        const ctx = canvas.getContext('2d');
+        const escalaCanvas = previewW > 0 ? cv.w / previewW : 1;
+
+        const fit = Math.min(cv.w / iw, cv.h / ih);
+        const dw = iw * fit, dh = ih * fit, dx = (cv.w - dw) / 2, dy = (cv.h - dh) / 2;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, cv.w, cv.h);
+        ctx.drawImage(img, dx, dy, dw, dh);
+        OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
+
+        for (const q of [0.82, 0.7, 0.58, 0.45, 0.34]) {
+          const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', q));
+          if (!blob) continue;
+          if (!fallback || blob.size < fallback.size) fallback = blob;
+          if (blob.size <= targetBytes) { melhor = blob; break; }
+        }
+      }
+      URL.revokeObjectURL(url); url = null;
+
+      const escolhido = melhor || fallback;
+      if (!escolhido || !escolhido.size) return file;
+      return new File([escolhido], `story-${Date.now()}.jpg`, { type: escolhido.type || 'image/jpeg' });
     } catch (_) {
       try { if (url) URL.revokeObjectURL(url); } catch (_) {}
-      try { stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
-      try { await audioCtx?.close?.(); } catch (_) {}
-      return file; // qualquer erro → original (não quebra o upload)
+      return file;
     }
+  }
+}
+
+// Compressão de vídeo (sem overlays) — mantida por compatibilidade.
+// Delega para StoryComposer (DRY). Sem suporte → devolve o original.
+class VideoCompressor {
+  static async comprimir(file, { maxSeconds = 30, targetBytes = 1.5 * 1024 * 1024 } = {}) {
+    return StoryComposer.compor({ file, tipo: 'video', overlays: [], targetBytes, maxSeconds });
   }
 }
 
@@ -293,15 +548,7 @@ class StoryCreationModal {
     '💥','😱','😮','😢','🥰','😘','💕','👀','💇','🪒',
   ];
 
-  // Catálogo placeholder — o catálogo real / mix de áudio vem no "motor".
-  static MUSICAS = [
-    { id: 'm1', titulo: 'Batida Urban',  artista: 'BarberFlow' },
-    { id: 'm2', titulo: 'Lo-fi Chill',   artista: 'BarberFlow' },
-    { id: 'm3', titulo: 'Trap Fade',     artista: 'BarberFlow' },
-    { id: 'm4', titulo: 'Samba Groove',  artista: 'BarberFlow' },
-    { id: 'm5', titulo: 'Funk do Corte', artista: 'BarberFlow' },
-    { id: 'm6', titulo: 'Reggae Roots',  artista: 'BarberFlow' },
-  ];
+  static MUSIC_PAGE = 20;
 
   #service;
   #onFinalizar;
@@ -314,10 +561,29 @@ class StoryCreationModal {
   #emojiSheet = null;
   #musicSheet = null;
   #onKeydown = null;
+  #processing = null;   // indicador "Processando…" sobre o preview
+  #finalBtn   = null;   // botão Finalizar (desabilitado durante o processo)
+  #musicaSel  = null;   // faixa escolhida completa (inclui url/src)
+  #videoEl    = null;   // <video> atual no preview (p/ volume ao vivo)
 
-  constructor(service, { onFinalizar } = {}) {
+  // Catálogo + player de música
+  #catalogo  = null;    // MusicCatalogService
+  #player    = null;    // AudioPreviewPlayer
+  #musicList = null;
+  #musicGenres = null;
+  #musicEmpty = null;
+  #musicState = { genero: 'Todos', termo: '', pagina: 1, filtrados: [] };
+  #musicSearchTimer = null;
+  #mixPanel  = null;
+  #mixRefs   = null;
+
+  constructor(service, { onFinalizar, catalogo, player } = {}) {
     this.#service     = service;
     this.#onFinalizar = typeof onFinalizar === 'function' ? onFinalizar : () => {};
+    this.#catalogo    = catalogo
+      ?? (typeof MusicCatalogService !== 'undefined' ? new MusicCatalogService() : null);
+    this.#player      = player
+      ?? (typeof AudioPreviewPlayer !== 'undefined' ? new AudioPreviewPlayer() : null);
   }
 
   /**
@@ -356,7 +622,9 @@ class StoryCreationModal {
     this.#vazio = scEl('div', { class: 'sc-preview-vazio', text: 'Escolha um vídeo ou foto para começar' });
     this.#caret = scEl('div', { class: 'sc-text-caret' });
     this.#caret.hidden = true;
-    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret] });
+    this.#processing = scEl('div', { class: 'sc-processing', text: 'Processando…' });
+    this.#processing.hidden = true;
+    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing] });
 
     const stage = scEl('div', { class: 'sc-stage', children: [sideMenu, this.#preview] });
 
@@ -380,6 +648,7 @@ class StoryCreationModal {
     // Ações inferiores
     const btnTexto = scEl('button', { class: 'sc-btn', type: 'button', text: 'Enviar texto', on: { click: () => this.#enviarTexto() } });
     const btnFinal = scEl('button', { class: 'sc-btn sc-btn--primario', type: 'button', text: 'Finalizar', on: { click: () => this.#finalizar() } });
+    this.#finalBtn = btnFinal;
     const bottom = scEl('div', { class: 'sc-bottom-actions', children: [btnTexto, btnFinal] });
 
     overlay.appendChild(close);
@@ -410,35 +679,20 @@ class StoryCreationModal {
     const midia = await source.obter();
     if (!midia) return;
 
-    let file = midia.file;
-    // Vídeo: comprime no navegador ANTES de subir — corta para 30s e mira ~1.5MB.
-    if (midia.tipo === 'video') {
-      this.#mostrarProcessando(true);
-      try {
-        file = await VideoCompressor.comprimir(midia.file, { maxSeconds: 30, targetBytes: 1.5 * 1024 * 1024 });
-      } catch (_) {
-        file = midia.file; // falhou → original
-      } finally {
-        this.#mostrarProcessando(false);
-      }
-    }
-
+    // A compressão/queima de overlays acontece UMA vez, no Finalizar
+    // (sem encode duplo). Aqui só guardamos a mídia original e mostramos.
     try {
-      this.#service.definirMedia({ ...midia, file });
+      this.#service.definirMedia(midia);
     } catch (_) {
       return; // tipo inválido — ignorado silenciosamente nesta etapa de UI
     }
     this.#renderMidia();
   }
 
-  #mostrarProcessando(ativo) {
-    if (!this.#vazio) return;
-    if (ativo) {
-      this.#vazio.textContent = 'Comprimindo vídeo…';
-      this.#vazio.hidden = false;
-    } else {
-      this.#vazio.textContent = 'Escolha um vídeo ou foto para começar';
-    }
+  #mostrarProcessando(ativo, texto = 'Processando…') {
+    if (!this.#processing) return;
+    if (ativo) this.#processing.textContent = texto;
+    this.#processing.hidden = !ativo;
   }
 
   #renderMidia() {
@@ -446,6 +700,7 @@ class StoryCreationModal {
     if (!this.#preview) return;
     // Remove mídia e overlays anteriores (troca de mídia reseta overlays)
     [...(this.#preview.querySelectorAll?.('video, img, .sc-overlay-item') ?? [])].forEach(el => el.remove());
+    this.#videoEl = null;
     if (this.#vazio) this.#vazio.hidden = true;
     if (!media) { if (this.#vazio) this.#vazio.hidden = false; return; }
 
@@ -457,6 +712,8 @@ class StoryCreationModal {
       // com som é permitido. Se o navegador bloquear, o catch ignora.
       el.muted = false;
       el.src = url;
+      this.#videoEl = el;
+      this.#aplicarVolumePreview(); // respeita o mix atual (se já houver)
       try { const p = el.play?.(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
     } else {
       el = scEl('img', { attrs: { alt: '' } });
@@ -465,6 +722,63 @@ class StoryCreationModal {
     // Insere a mídia como primeiro filho (atrás dos overlays/caret)
     if (this.#preview.firstChild) this.#preview.insertBefore(el, this.#preview.firstChild);
     else this.#preview.appendChild(el);
+  }
+
+  // ── Mix de áudio (preview + estado) ────────────────────────
+
+  #mostrarMix(show) {
+    if (!this.#mixPanel) this.#construirMix();
+    if (this.#mixPanel) this.#mixPanel.hidden = !show;
+  }
+
+  #construirMix() {
+    const mix = this.#service.audioMix;
+    const manter = scEl('input', { type: 'checkbox', class: 'sc-mix-keep', on: { change: () => this.#atualizarMix() } });
+    manter.checked = mix.manterOriginal;
+    const volV = scEl('input', { type: 'range', class: 'sc-mix-range sc-mix-video', attrs: { min: '0', max: '100', 'aria-label': 'Volume do vídeo' }, on: { input: () => this.#atualizarMix() } });
+    volV.value = String(Math.round(mix.volumeVideo * 100));
+    const volM = scEl('input', { type: 'range', class: 'sc-mix-range sc-mix-music', attrs: { min: '0', max: '100', 'aria-label': 'Volume da música' }, on: { input: () => this.#atualizarMix() } });
+    volM.value = String(Math.round(mix.volumeMusica * 100));
+    this.#mixRefs = { manter, volV, volM };
+
+    const linhaKeep = scEl('label', { class: 'sc-mix-row sc-mix-row--keep', children: [
+      manter, scEl('span', { text: 'Manter som original do vídeo' }),
+    ] });
+    const linhaV = scEl('div', { class: 'sc-mix-row', children: [
+      scEl('span', { class: 'sc-mix-label', text: 'Volume vídeo' }), volV,
+    ] });
+    const linhaM = scEl('div', { class: 'sc-mix-row', children: [
+      scEl('span', { class: 'sc-mix-label', text: 'Volume música' }), volM,
+    ] });
+
+    this.#mixPanel = scEl('div', { class: 'sc-mix', children: [
+      scEl('div', { class: 'sc-mix-title', text: 'Áudio' }), linhaKeep, linhaV, linhaM,
+    ] });
+    this.#mixPanel.hidden = true;
+    // Insere acima das ações inferiores.
+    const bottom = this.#overlayEl?.querySelector?.('.sc-bottom-actions');
+    if (bottom && this.#overlayEl?.insertBefore) this.#overlayEl.insertBefore(this.#mixPanel, bottom);
+    else this.#overlayEl?.appendChild(this.#mixPanel);
+    this.#atualizarMix();
+  }
+
+  #atualizarMix() {
+    if (!this.#mixRefs) return;
+    const manterOriginal = !!this.#mixRefs.manter.checked;
+    const volumeVideo  = (Number(this.#mixRefs.volV.value) || 0) / 100;
+    const volumeMusica = (Number(this.#mixRefs.volM.value) || 0) / 100;
+    this.#service.definirMixAudio({ manterOriginal, volumeVideo, volumeMusica });
+    this.#mixRefs.volV.disabled = !manterOriginal;
+    this.#aplicarVolumePreview();
+  }
+
+  /** Prévia instantânea: ajusta volumes do vídeo e da música ao vivo (sem reprocessar). */
+  #aplicarVolumePreview() {
+    const mix = this.#service.audioMix;
+    if (this.#videoEl) {
+      try { this.#videoEl.muted = !mix.manterOriginal; this.#videoEl.volume = mix.manterOriginal ? mix.volumeVideo : 0; } catch (_) {}
+    }
+    if (this.#player) this.#player.volume = mix.volumeMusica;
   }
 
   // ── Texto ──────────────────────────────────────────────────
@@ -512,29 +826,144 @@ class StoryCreationModal {
 
   #abrirMusicas() {
     if (this.#musicSheet) { this.#musicSheet.hidden = false; return; }
-    const sheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' } });
-    sheet.appendChild(scEl('div', { class: 'sc-music-title', text: 'Adicionar música' }));
-    StoryCreationModal.MUSICAS.forEach((m) => {
-      sheet.appendChild(scEl('button', {
-        class: 'sc-music-item', type: 'button', dataset: { musicId: m.id },
-        on: { click: () => this.#escolherMusica(m) },
-        children: [
-          scEl('span', { class: 'sc-music-nome', text: m.titulo }),
-          scEl('span', { class: 'sc-music-artista', text: m.artista }),
-        ],
-      }));
-    });
-    this.#musicSheet = sheet;
-    this.#overlayEl.appendChild(sheet);
+    this.#construirMusicSheet();
+    this.#overlayEl.appendChild(this.#musicSheet);
+    void this.#carregarCatalogo();
   }
 
-  #escolherMusica(m) {
-    this.#service.definirMusica(m);
+  /** Monta o esqueleto do sheet: título, busca, gêneros e lista. */
+  #construirMusicSheet() {
+    const title  = scEl('div', { class: 'sc-music-title', text: 'Adicionar música' });
+    const search = scEl('input', {
+      class: 'sc-music-search', type: 'search',
+      placeholder: 'Pesquisar música…', attrs: { 'aria-label': 'Pesquisar música' },
+      on: { input: (e) => this.#onBuscaMusica(e.target?.value ?? '') },
+    });
+    this.#musicGenres = scEl('div', { class: 'sc-music-genres', attrs: { role: 'tablist' } });
+    this.#musicEmpty  = scEl('div', { class: 'sc-music-empty', text: 'Nenhuma música disponível.' });
+    this.#musicEmpty.hidden = true;
+    this.#musicList   = scEl('div', { class: 'sc-music-list' });
+
+    this.#musicSheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' }, children: [
+      title, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
+    ] });
+  }
+
+  async #carregarCatalogo() {
+    if (this.#catalogo) {
+      try { await this.#catalogo.carregar(); } catch (_) { /* degrada p/ vazio */ }
+    }
+    this.#renderGeneros();
+    this.#aplicarFiltroMusica();
+  }
+
+  #renderGeneros() {
+    if (!this.#musicGenres) return;
+    [...(this.#musicGenres.querySelectorAll?.('.sc-music-genre') ?? [])].forEach(el => el.remove());
+    const generos = this.#catalogo ? this.#catalogo.generos() : ['Todos'];
+    generos.forEach((g) => {
+      const chip = scEl('button', {
+        class: 'sc-music-genre' + (g === this.#musicState.genero ? ' is-sel' : ''),
+        type: 'button', text: g, dataset: { genero: g },
+        on: { click: () => this.#selecionarGenero(g) },
+      });
+      this.#musicGenres.appendChild(chip);
+    });
+  }
+
+  #selecionarGenero(g) {
+    this.#musicState.genero = g;
+    [...(this.#musicGenres?.querySelectorAll?.('.sc-music-genre') ?? [])].forEach(b =>
+      b.classList.toggle('is-sel', b.dataset.genero === g));
+    this.#aplicarFiltroMusica();
+  }
+
+  #onBuscaMusica(valor) {
+    this.#musicState.termo = String(valor ?? '');
+    clearTimeout(this.#musicSearchTimer);
+    this.#musicSearchTimer = setTimeout(() => this.#aplicarFiltroMusica(), 180);
+  }
+
+  #aplicarFiltroMusica() {
+    this.#musicState.filtrados = this.#catalogo
+      ? this.#catalogo.filtrar({ genero: this.#musicState.genero, termo: this.#musicState.termo })
+      : [];
+    this.#renderPaginaMusica(true);
+  }
+
+  /** Renderiza/!append a página atual; reset limpa a lista e volta à página 1. */
+  #renderPaginaMusica(reset = false) {
+    if (!this.#musicList) return;
+    if (reset) {
+      [...(this.#musicList.querySelectorAll?.('.sc-music-item, .sc-music-more') ?? [])].forEach(el => el.remove());
+      this.#musicState.pagina = 1;
+    } else {
+      [...(this.#musicList.querySelectorAll?.('.sc-music-more') ?? [])].forEach(el => el.remove());
+    }
+    const { filtrados, pagina } = this.#musicState;
+    if (this.#musicEmpty) this.#musicEmpty.hidden = filtrados.length > 0;
+
+    const page = MusicCatalogService.pagina(filtrados, pagina, StoryCreationModal.MUSIC_PAGE);
+    page.forEach(t => this.#musicList.appendChild(this.#itemMusica(t)));
+
+    const totalPg = MusicCatalogService.totalPaginas(filtrados.length, StoryCreationModal.MUSIC_PAGE);
+    if (pagina < totalPg) {
+      this.#musicList.appendChild(scEl('button', {
+        class: 'sc-music-more', type: 'button', text: 'Carregar mais',
+        on: { click: () => { this.#musicState.pagina += 1; this.#renderPaginaMusica(false); } },
+      }));
+    }
+    this.#syncPlayIcons();
+  }
+
+  #itemMusica(track) {
+    const play = scEl('button', {
+      class: 'sc-music-play', type: 'button', text: '▶',
+      dataset: { url: track.url || '' }, attrs: { 'aria-label': 'Tocar prévia' },
+      on: { click: () => { this.#player?.alternar(track.url); this.#syncPlayIcons(); } },
+    });
+    const usar = scEl('button', {
+      class: 'sc-music-usar', type: 'button', text: 'Usar',
+      on: { click: () => this.#escolherMusica(track) },
+    });
+    return scEl('div', { class: 'sc-music-item', dataset: { musicId: track.music_id }, children: [
+      play,
+      scEl('div', { class: 'sc-music-info', children: [
+        scEl('span', { class: 'sc-music-nome', text: track.music_name || track.artist || 'Faixa' }),
+        scEl('span', { class: 'sc-music-dur',  text: StoryCreationModal.#fmtDuracao(track.duration) }),
+      ] }),
+      usar,
+    ] });
+  }
+
+  #syncPlayIcons() {
+    if (!this.#musicList) return;
+    const cur = this.#player?.url;
+    const tocando = this.#player?.tocando;
+    [...(this.#musicList.querySelectorAll?.('.sc-music-play') ?? [])].forEach((b) => {
+      const on = !!tocando && b.dataset.url === cur;
+      b.textContent = on ? '⏸' : '▶';
+      b.classList.toggle('is-playing', on);
+    });
+  }
+
+  static #fmtDuracao(seg) {
+    const s = Math.max(0, Math.round(Number(seg) || 0));
+    const m = Math.floor(s / 60);
+    return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  #escolherMusica(track) {
+    // StoryEditorService usa {id,titulo,artista}; guardamos a faixa completa (url) p/ o composer.
+    this.#service.definirMusica({ id: track.music_id, titulo: track.music_name, artista: track.artist });
+    this.#musicaSel = { ...track, src: track.url || track.src || null };
+    this.#player?.parar();
     if (this.#musicSheet) {
       [...(this.#musicSheet.querySelectorAll?.('.sc-music-item') ?? [])].forEach(b =>
-        b.classList.toggle('is-sel', b.dataset.musicId === m.id));
+        b.classList.toggle('is-sel', b.dataset.musicId === track.music_id));
       this.#musicSheet.hidden = true;
     }
+    this.#mostrarMix(true);
   }
 
   // ── Render + gestos dos overlays ───────────────────────────
@@ -619,7 +1048,38 @@ class StoryCreationModal {
   // ── Finalizar / fechar ─────────────────────────────────────
 
   async #finalizar() {
-    const r = this.#onFinalizar(this.#service.estado);
+    const estado = this.#service.estado;
+    let estadoFinal = estado;
+
+    // Queima a mídia + overlays num único arquivo comprimido ANTES de subir.
+    // Vídeo → ≤1.6MB (máx. resolução); imagem → ≤10KB (máx. qualidade possível).
+    if (estado.media && estado.media.file) {
+      const ehImagem = estado.media.tipo === 'imagem';
+      this.#mostrarProcessando(true, ehImagem ? 'Processando imagem…' : 'Processando vídeo…');
+      if (this.#finalBtn) this.#finalBtn.disabled = true;
+      try {
+        const file = await StoryComposer.compor({
+          file: estado.media.file,
+          tipo: estado.media.tipo,
+          overlays: estado.overlays,
+          previewW: this.#preview?.clientWidth || 0,
+          previewH: this.#preview?.clientHeight || 0,
+          targetBytes: ehImagem ? StoryComposer.ALVO_IMG : (1.6 * 1024 * 1024),
+          maxSeconds: 30,
+          musica: estado.musica,
+          musicaSrc: this.#musicaSel?.src || this.#musicaSel?.url || null,
+          audioMix: estado.audioMix,
+        });
+        estadoFinal = { ...estado, media: { ...estado.media, file } };
+      } catch (_) {
+        estadoFinal = estado; // qualquer erro → arquivo atual (não quebra)
+      } finally {
+        this.#mostrarProcessando(false);
+        if (this.#finalBtn) this.#finalBtn.disabled = false;
+      }
+    }
+
+    const r = this.#onFinalizar(estadoFinal);
     if (r && typeof r.then === 'function') { try { await r; } catch (_) { /* erro tratado pelo caller */ } }
     this.fechar();
   }
@@ -629,6 +1089,8 @@ class StoryCreationModal {
       document.removeEventListener('keydown', this.#onKeydown);
       this.#onKeydown = null;
     }
+    try { clearTimeout(this.#musicSearchTimer); } catch (_) {}
+    try { this.#player?.destruir(); } catch (_) {} // libera o <audio> da prévia
     try { this.#overlayEl?.remove(); } catch (_) { /* mock */ }
     this.#overlayEl = null;
     if (StoryCreationModal.#instancia === this) StoryCreationModal.#instancia = null;
@@ -637,5 +1099,5 @@ class StoryCreationModal {
 
 // UMD — testes via require(); ignorado no browser
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { StoryCreationModal, UploadMediaSource, CameraMediaSource, CameraRecorder, VideoCompressor, MediaSourceArquivo };
+  module.exports = { StoryCreationModal, UploadMediaSource, CameraMediaSource, CameraRecorder, VideoCompressor, MediaSourceArquivo, OverlayPainter, StoryComposer };
 }

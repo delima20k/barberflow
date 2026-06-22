@@ -128,7 +128,18 @@ class StoryEditorService {
   #media       = null;   // { file, tipo:'video'|'imagem', origem:'upload'|'camera' }
   #overlays    = [];     // OverlayBase[]
   #musica      = null;   // { id, titulo, artista } | null — trilha escolhida
+  #audioMix    = StoryEditorService.#mixPadrao(); // mix de áudio do story final
   #maxOverlays = 20;
+
+  static #mixPadrao() {
+    return { manterOriginal: true, volumeVideo: 1, volumeMusica: 0.7 };
+  }
+
+  static #clampVol(v, fallback) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(1, Math.max(0, n));
+  }
 
   /**
    * @param {object} [opts]
@@ -235,21 +246,45 @@ class StoryEditorService {
     return this.#musica ? { ...this.#musica } : null;
   }
 
+  // ── Mix de áudio (preview/queima final) ────────────────────
+
+  /**
+   * Define o mix de áudio do story final.
+   *  - manterOriginal=false → remove o áudio original do vídeo.
+   *  - volumeVideo / volumeMusica em 0..1.
+   * @param {{ manterOriginal?: boolean, volumeVideo?: number, volumeMusica?: number }} parcial
+   */
+  definirMixAudio(parcial = {}) {
+    const atual = this.#audioMix;
+    this.#audioMix = {
+      manterOriginal: parcial.manterOriginal === undefined ? atual.manterOriginal : !!parcial.manterOriginal,
+      volumeVideo: StoryEditorService.#clampVol(parcial.volumeVideo, atual.volumeVideo),
+      volumeMusica: StoryEditorService.#clampVol(parcial.volumeMusica, atual.volumeMusica),
+    };
+    return { ...this.#audioMix };
+  }
+
+  get audioMix() {
+    return { ...this.#audioMix };
+  }
+
   // ── Estado / reset ─────────────────────────────────────────
 
-  /** Limpa mídia, overlays e música. */
+  /** Limpa mídia, overlays, música e mix. */
   resetar() {
     this.#media = null;
     this.#overlays = [];
     this.#musica = null;
+    this.#audioMix = StoryEditorService.#mixPadrao();
   }
 
-  /** Snapshot imutável do estado (mídia + overlays + música). */
+  /** Snapshot imutável do estado (mídia + overlays + música + mix). */
   get estado() {
     return {
       media: this.media,
       overlays: this.#overlays.map(o => o.paraJSON()),
       musica: this.musica,
+      audioMix: this.audioMix,
     };
   }
 

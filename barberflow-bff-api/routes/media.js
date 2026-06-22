@@ -15,10 +15,13 @@ const { MediaUploadService }       = require('../application/media/MediaUploadSe
 const { StoryMediaInteractionService } = require('../application/media/StoryMediaInteractionService');
 const { PurgeExpiredStoriesUseCase } = require('../application/stories/PurgeExpiredStoriesUseCase');
 const { DeleteStoryUseCase }       = require('../application/stories/DeleteStoryUseCase');
+const { StoryAudioCatalogReader }  = require('../application/stories/audio/StoryAudioCatalogReader');
 const BarbeariaRepository          = require('../repositories/BarbeariaRepository');
 
 const LOCK_KEY    = 'scheduler:media.stories-cleanup';
 const LOCK_TTL_MS = 120_000;
+const MAX_CLEANUP_BATCH_SIZE = 50;
+const R2_CLEANUP_SCAN_ENV = 'R2_CLEANUP_SCAN_ENABLED';
 
 function isStoryVideoRequest(body = {}) {
   return String(body.context ?? body.contexto ?? '').toLowerCase() === 'stories'
@@ -30,6 +33,28 @@ function r2UnavailableResponse(res) {
     ok: false,
     code: 'R2_UNAVAILABLE',
     error: 'Servico de armazenamento de midia indisponivel.',
+  });
+}
+
+function normalizarBatchSize(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return undefined;
+  return Math.min(Math.floor(parsed), MAX_CLEANUP_BATCH_SIZE);
+}
+
+function isR2ScanRequested(value) {
+  return value === true || String(value).toLowerCase() === 'true';
+}
+
+function isR2ScanEnabled() {
+  return process.env[R2_CLEANUP_SCAN_ENV] === 'true';
+}
+
+function r2ScanDisabledResponse(res) {
+  return res.status(403).json({
+    ok: false,
+    code: 'R2_SCAN_DISABLED',
+    error: 'Scan R2 desabilitado. Configure R2_CLEANUP_SCAN_ENABLED=true para autorizar.',
   });
 }
 
@@ -93,6 +118,21 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     deleteStoryUseCase,
   });
   const storyInteractionController = new MediaController(storyInteractionService);
+
+  // Catálogo de áudios de story (stories/audio/catalog.json no R2), com cache.
+  const audioCatalogReader = deps.audioCatalogReader
+    ?? new StoryAudioCatalogReader({ r2Gateway: r2Instance });
+
+  // GET /api/v1/media/stories/audio/catalog — lista de músicas p/ a modal de story.
+  router.get('/stories/audio/catalog', AuthMiddleware.verificar, async (req, res) => {
+    try {
+      const catalogo = await audioCatalogReader.ler();
+      res.set('Cache-Control', 'private, max-age=300');
+      return res.status(200).json({ ok: true, dados: catalogo });
+    } catch (_) {
+      return res.status(200).json({ ok: true, dados: StoryAudioCatalogReader.VAZIO });
+    }
+  });
 
   router.post('/presigned', AuthMiddleware.verificar, (req, res, next) => {
     if (isStoryVideoRequest(req.body) && (!useR2 || !r2Instance)) {
@@ -162,7 +202,7 @@ module.exports = function criarMediaRoute(db, deps = {}) {
       mediaRepository,
       r2Gateway:              r2Clean,
       supabaseStorageGateway: supabaseClean,
-      batchSize: batchSize ? Number(batchSize) : undefined,
+      batchSize: normalizarBatchSize(batchSize),
     });
   }
 
@@ -171,9 +211,12 @@ module.exports = function criarMediaRoute(db, deps = {}) {
   router.get('/stories/cleanup',
     AuthMiddleware.verificar, SchedulerAdminMiddleware.verificar,
     async (req, res) => {
+      if (!r2Clean) return r2UnavailableResponse(res);
+      const includeR2Scan = isR2ScanRequested(req.query.includeR2Scan);
+      if (includeR2Scan && !isR2ScanEnabled()) return r2ScanDisabledResponse(res);
       try {
         const relatorio = await buildPurgeUseCase(req.query.batchSize)
-          .execute({ dryRun: true, includeR2Scan: req.query.includeR2Scan === 'true' });
+          .execute({ dryRun: true, includeR2Scan });
         return res.status(200).json({ ok: true, data: relatorio });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });
@@ -188,13 +231,15 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     async (req, res) => {
       if (!lock) return res.status(503).json({ ok: false, error: 'Lock Redis nao configurado.' });
       if (!r2Clean) return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'R2 nao configurado.' });
+      const includeR2Scan = isR2ScanRequested(req.body?.includeR2Scan);
+      if (includeR2Scan && !isR2ScanEnabled()) return r2ScanDisabledResponse(res);
       const lockHandle = await lock.acquire({ key: LOCK_KEY, ttlMs: LOCK_TTL_MS, owner: 'http-admin' });
       if (!lockHandle.acquired) {
         return res.status(409).json({ ok: false, error: 'Cleanup ja em execucao. Aguarde.' });
       }
       try {
         const relatorio = await buildPurgeUseCase(req.body?.batchSize)
-          .execute({ dryRun: false, includeR2Scan: Boolean(req.body?.includeR2Scan ?? false) });
+          .execute({ dryRun: false, includeR2Scan });
         return res.status(200).json({ ok: true, data: relatorio });
       } catch (err) {
         return res.status(500).json({ ok: false, error: err.message });

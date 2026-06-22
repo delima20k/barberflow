@@ -76,8 +76,25 @@ function criarSandbox() {
   };
   const sandbox = vm.createContext({ document, window: {}, console });
   carregar(sandbox, 'shared/js/StoryEditorService.js');
+  carregar(sandbox, 'shared/js/MusicCatalogService.js');
+  carregar(sandbox, 'shared/js/AudioPreviewPlayer.js');
   carregar(sandbox, 'shared/js/StoryCreationModal.js');
   return { sandbox, document };
+}
+
+const tick = () => new Promise((r) => setTimeout(r, 5));
+
+function catalogoFixture(qtd = 3) {
+  const generos = ['Pop', 'Rock'];
+  const tracks = Array.from({ length: qtd }, (_, i) => ({
+    music_id: `id-${i}`, music_name: `Faixa ${i}`, artist: 'Artista',
+    duration: 35, genre: generos[i % generos.length], url: `https://r2/${i}.m4a`, ext: 'm4a',
+  }));
+  return { generatedAt: 'x', count: tracks.length, genres: ['Todos', ...generos], tracks };
+}
+
+function stubApi(catalogo) {
+  return { musicas: { catalogo: async () => ({ data: catalogo, error: null }) } };
 }
 
 const getOverlay = (document) => document.body.querySelector('.sc-overlay');
@@ -143,21 +160,45 @@ test('escolher emoji cria um overlay de emoji', () => {
   assert.ok(ov.querySelector('.sc-overlay-item.sc-overlay-emoji'));
 });
 
-test('botão Música abre a sub-modal e escolher guarda a trilha', () => {
+test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guarda a trilha', async () => {
   const { sandbox, document } = criarSandbox();
   const service = new sandbox.StoryEditorService();
-  sandbox.StoryCreationModal.abrir({ service });
+  service.definirMedia({ file: { type: 'video/mp4', size: 10 }, tipo: 'video', origem: 'upload' });
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(3)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
   const ov = getOverlay(document);
 
   assert.equal(ov.querySelector('.sc-music-sheet'), null);
   ov.querySelectorAll('.sc-tool')[2]._fire('click'); // 3º = Música
-  const sheet = ov.querySelector('.sc-music-sheet');
-  assert.ok(sheet, 'sub-modal de música aberta');
-  assert.equal(sheet.querySelectorAll('.sc-music-item').length, sandbox.StoryCreationModal.MUSICAS.length);
+  await tick();
 
-  sheet.querySelector('.sc-music-item')._fire('click');
+  const sheet = ov.querySelector('.sc-music-sheet');
+  assert.ok(sheet, 'modal de música aberta');
+  assert.ok(ov.querySelector('.sc-music-search'), 'tem busca');
+  assert.ok(ov.querySelectorAll('.sc-music-genre').length >= 3, 'tem chips de gênero (Todos + gêneros)');
+  const items = ov.querySelectorAll('.sc-music-item');
+  assert.equal(items.length, 3, 'lista renderizada a partir do catálogo');
+
+  ov.querySelector('.sc-music-usar')._fire('click');
   assert.ok(service.estado.musica, 'trilha guardada no estado');
-  assert.equal(service.estado.musica.id, sandbox.StoryCreationModal.MUSICAS[0].id);
+  assert.equal(service.estado.musica.id, 'id-0');
+  assert.ok(ov.querySelector('.sc-mix'), 'painel de mix aparece após Usar');
+  assert.equal(ov.querySelector('.sc-mix').hidden, false);
+});
+
+test('filtro por gênero na modal reduz a lista', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(4)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 4, 'Todos');
+  const chipRock = [...ov.querySelectorAll('.sc-music-genre')].find(c => c.dataset.genero === 'Rock');
+  chipRock._fire('click');
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'só Rock (2 de 4)');
 });
 
 test('arrastar (1 ponteiro) move o overlay via serviço', () => {
@@ -203,6 +244,71 @@ test('VideoCompressor.comprimir devolve o arquivo original quando nao ha suporte
   const file = { type: 'video/mp4', size: 9999 };
   const out = await sandbox.VideoCompressor.comprimir(file, { maxSeconds: 30, targetBytes: 1.5 * 1024 * 1024 });
   assert.equal(out, file, 'sem MediaRecorder/canvas no sandbox → retorna o original (nao quebra)');
+});
+
+test('OverlayPainter.mapear converte px do preview e fonte (escala overlay x canvas)', () => {
+  const { sandbox } = criarSandbox();
+  const m = sandbox.OverlayPainter.mapear({ tipo: 'texto', conteudo: 'Oi', x: 10, y: 20, escala: 2 }, 2, 16);
+  assert.equal(m.x, 20);
+  assert.equal(m.y, 40);
+  assert.equal(m.fontPx, 1.4 * 16 * 2 * 2); // rem texto * root * escala overlay * escala canvas
+  assert.equal(m.tipo, 'texto');
+  assert.equal(m.texto, 'Oi');
+
+  const e = sandbox.OverlayPainter.mapear({ tipo: 'emoji', conteudo: '🔥', x: 0, y: 0, escala: 1 }, 1, 16);
+  assert.equal(e.fontPx, 2.2 * 16); // rem emoji
+  assert.equal(e.tipo, 'emoji');
+});
+
+test('StoryComposer.dimsCanvas preserva aspecto, limita maior lado e gera dimensoes pares', () => {
+  const { sandbox } = criarSandbox();
+  const retrato = sandbox.StoryComposer.dimsCanvas(9 / 16, 1080);
+  assert.equal(retrato.h, 1080, 'retrato: maior lado = altura');
+  assert.ok(retrato.w < retrato.h, 'retrato: largura < altura');
+  assert.equal(retrato.w % 2, 0, 'largura par');
+  assert.equal(retrato.h % 2, 0, 'altura par');
+
+  const paisagem = sandbox.StoryComposer.dimsCanvas(16 / 9, 1080);
+  assert.equal(paisagem.w, 1080, 'paisagem: maior lado = largura');
+  assert.ok(paisagem.h < paisagem.w);
+});
+
+test('StoryComposer.modoAudio decide a faixa conforme a musica', () => {
+  const { sandbox } = criarSandbox();
+  const SC = sandbox.StoryComposer;
+  assert.equal(SC.modoAudio({}), 'original', 'sem musica → original');
+  assert.equal(SC.modoAudio({ musica: null }), 'original');
+  assert.equal(SC.modoAudio({ musica: { id: 'm1' }, musicaSrc: null }), 'silencio', 'musica sem src → silencio');
+  assert.equal(SC.modoAudio({ musica: { id: 'm1' }, musicaSrc: 'x.mp3' }), 'musica', 'musica com src → mixa');
+});
+
+test('StoryComposer.compor devolve o arquivo original quando nao ha suporte (video e imagem)', async () => {
+  const { sandbox } = criarSandbox();
+  const video = { type: 'video/mp4', size: 9999 };
+  const img   = { type: 'image/jpeg', size: 9999 };
+  assert.equal(await sandbox.StoryComposer.compor({ file: video, tipo: 'video' }), video);
+  assert.equal(await sandbox.StoryComposer.compor({ file: img, tipo: 'imagem' }), img);
+});
+
+test('Finalizar queima/comprime e entrega o arquivo em media.file (com overlays no estado)', async () => {
+  const { sandbox, document } = criarSandbox();
+  const onFinalizar = fn();
+  const service = new sandbox.StoryEditorService();
+  service.definirMedia({ file: { type: 'video/mp4', size: 1234 }, tipo: 'video', origem: 'upload' });
+  service.adicionarTexto('Promoção', { x: 10, y: 10, escala: 1 });
+
+  sandbox.StoryCreationModal.abrir({ service, onFinalizar });
+  const ov = getOverlay(document);
+
+  ov.querySelector('.sc-btn--primario')._fire('click');
+  await new Promise((r) => setTimeout(r, 0)); // espera o compor (assíncrono) resolver
+
+  assert.equal(onFinalizar.calls.length, 1);
+  const estado = onFinalizar.calls[0][0];
+  assert.ok(estado.media && estado.media.file, 'entrega media.file pronto para upload');
+  assert.equal(estado.media.file.type, 'video/mp4', 'sandbox sem suporte → arquivo original (fallback)');
+  assert.equal(estado.overlays.length, 1, 'overlays presentes no estado');
+  assert.equal(getOverlay(document), null, 'modal fecha após finalizar');
 });
 
 test('fechar pelo × remove a modal do body', () => {

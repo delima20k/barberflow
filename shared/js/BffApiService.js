@@ -287,6 +287,13 @@ class BffApiService {
     // FIM ALTERAÇÃO
   };
 
+  // ── Namespace: músicas (catálogo de áudios de story) ──────────
+
+  static musicas = {
+    /** Catálogo de áudios de story (JSON no R2 servido pela BFF, com cache). */
+    catalogo: () => BffApiService.get('/api/v1/media/stories/audio/catalog'),
+  };
+
   // ── Namespace: financeiro ────────────────────────────────────
 
   static media = {
