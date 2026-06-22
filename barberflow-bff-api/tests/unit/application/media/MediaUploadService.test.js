@@ -89,7 +89,6 @@ describe('MediaUploadService', () => {
         storagePath: 'stories/owner-1/incoming/media-1.png',
         contentType: 'image/png',
         sizeBytes: 1024,
-        metadata: { variantStatus: 'processing' },
       },
     });
   });

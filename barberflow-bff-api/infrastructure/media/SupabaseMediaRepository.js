@@ -65,8 +65,8 @@ class SupabaseMediaRepository extends BaseRepository {
       size_bytes:   variant.sizeBytes ?? null,
       width:        variant.width ?? null,
       height:       variant.height ?? null,
-      metadata:     variant.metadata ?? {},
     };
+    if (variant.metadata !== undefined) row.metadata = variant.metadata ?? {};
     const { error } = await this._db.from('media_variants')
       .upsert([row], { onConflict: 'media_id,name,version' });
     if (error) this._throwDbError(error, 'salvarVariante');

@@ -247,7 +247,6 @@ class MediaUploadService {
       storagePath: path,
       contentType,
       sizeBytes,
-      metadata: { variantStatus: 'processing' },
     });
   }
 
