@@ -39,6 +39,7 @@
 
 /* Palco: menu lateral + preview */
 .sc-stage {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -257,11 +258,44 @@
   border-top: 1px solid var(--gold-border, rgba(212, 160, 23, .4));
   border-radius: 16px 16px 0 0;
   padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sc-emoji-sheet[hidden] { display: none; }
+.sc-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+}
+.sc-sheet-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sc-sheet-close:hover { background: rgba(255, 255, 255, .14); }
+.sc-emoji-title {
+  font-weight: 800;
+  font-size: .95rem;
+  color: var(--gold, #d4a017);
+}
+.sc-emoji-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 6px;
 }
-.sc-emoji-sheet[hidden] { display: none; }
 .sc-emoji-btn {
   height: 44px;
   border: 0;
@@ -293,7 +327,6 @@
 .sc-music-title {
   font-weight: 800;
   font-size: .95rem;
-  margin-bottom: 4px;
   color: var(--gold, #d4a017);
 }
 .sc-music-item {

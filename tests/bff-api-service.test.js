@@ -290,6 +290,27 @@ describe('BffApiService.barbearias portfolio', () => {
   });
 });
 
+describe('BffApiService.musicas', () => {
+  test('catalogo publico nao envia Authorization mesmo com sessao local invalida', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ dados: { tracks: [], genres: ['Todos'] } }),
+      };
+    });
+    const sb = criarSandbox({}, fetchMock, { access_token: 'tok-sessao-quebrada' });
+
+    const { error } = await sb.BffApiService.musicas.catalogo({ page: 1, pageSize: 20 });
+
+    assert.equal(error, null);
+    assert.ok(chamadas[0].url.includes('/api/v1/media/stories/audio/catalog?'));
+    assert.equal(chamadas[0].opts.headers?.Authorization, undefined);
+  });
+});
+
 describe('BffApiService.profissionais portfolio', () => {
 
   test('curtirPortfolioImagem chama endpoint BFF canonico', async () => {

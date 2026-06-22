@@ -153,13 +153,20 @@ test('botão Emoji abre a sub-modal de emojis', () => {
   const { sandbox, document } = criarSandbox();
   sandbox.StoryCreationModal.abrir({ service: new sandbox.StoryEditorService() });
   const ov = getOverlay(document);
+  const stage = ov.querySelector('.sc-stage');
 
   assert.equal(ov.querySelector('.sc-emoji-sheet'), null, 'sheet não existe antes');
   ov.querySelectorAll('.sc-tool')[3]._fire('click'); // 4º = Emoji
   const sheet = ov.querySelector('.sc-emoji-sheet');
   assert.ok(sheet, 'sub-modal de emoji aberta');
+  assert.equal(sheet.parentNode, stage, 'sheet interno fica dentro do palco sc-stage');
+  assert.ok(sheet.querySelector('.sc-emoji-close'), 'tem botao proprio de fechar');
   assert.equal(sheet.hidden, false);
   assert.equal(sheet.querySelectorAll('.sc-emoji-btn').length, sandbox.StoryCreationModal.EMOJIS.length);
+
+  sheet.querySelector('.sc-emoji-close')._fire('click');
+  assert.equal(sheet.hidden, true, 'botao fecha apenas a sheet de emoji');
+  assert.ok(getOverlay(document), 'modal principal continua aberta');
 });
 
 test('enviar texto cria um overlay de texto no preview e no serviço', () => {
@@ -208,6 +215,8 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   const sheet = ov.querySelector('.sc-music-sheet');
   assert.equal(ov.querySelector('.sc-music-title').textContent, 'Selecionar Música');
   assert.ok(sheet, 'modal de música aberta');
+  assert.equal(sheet.parentNode, ov.querySelector('.sc-stage'), 'sheet interno fica dentro do palco sc-stage');
+  assert.ok(sheet.querySelector('.sc-music-close'), 'tem botao proprio de fechar');
   assert.ok(ov.querySelector('.sc-music-search'), 'tem busca');
   assert.ok(ov.querySelectorAll('.sc-music-genre').length >= 3, 'tem chips de gênero (Todos + gêneros)');
   const items = ov.querySelectorAll('.sc-music-item');
@@ -221,6 +230,27 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   assert.ok(ov.querySelector('.sc-mix'), 'painel de mix aparece após Usar');
   assert.equal(ov.querySelector('.sc-mix').hidden, false);
   assert.equal(ov.querySelector('.sc-mix-title').textContent, 'Audio do Video');
+});
+
+test('botao fechar da musica esconde so a sheet interna e permite reabrir', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(2)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+
+  const sheet = ov.querySelector('.sc-music-sheet');
+  sheet.querySelector('.sc-music-close')._fire('click');
+
+  assert.equal(sheet.hidden, true, 'botao fecha apenas a sheet de musica');
+  assert.ok(getOverlay(document), 'modal principal continua aberta');
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  assert.equal(sheet.hidden, false, 'botao Musica reabre a mesma sheet');
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'lista continua renderizada');
 });
 
 test('sheet de musica mostra generos e lista mesmo com catalogo sob demanda lento', async () => {

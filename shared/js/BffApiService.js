@@ -55,6 +55,30 @@ class BffApiService {
   }
 
   /**
+   * Executa GET público na BFF sem Authorization.
+   * Use somente para endpoints explicitamente públicos, para evitar que
+   * uma sessão local expirada invalide recursos abertos como catálogos.
+   * @param {string}                        path
+   * @param {Record<string, string|number>} [params]
+   * @returns {Promise<{ data: any, total: number|null, error: Error|null }>}
+   */
+  static async getPublic(path, params = {}) {
+    const url = BffApiService.#buildUrl(path, params);
+    try {
+      const res  = await BffApiService.#fetchComTimeout(url, { headers: {} });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(json?.error ?? `HTTP ${res.status}`);
+        err.status = res.status;
+        return { data: null, total: null, error: err };
+      }
+      return { data: json?.dados ?? json, total: json?.meta?.total ?? null, error: null };
+    } catch (err) {
+      return { data: null, total: null, error: BffApiService.#parseErroRede(err) };
+    }
+  }
+
+  /**
    * Executa PATCH autenticado na BFF com timeout e retorno estruturado.
    * @param {string} path   — ex: '/api/v1/clientes/localizacao'
    * @param {object} body   — payload JSON
@@ -291,7 +315,7 @@ class BffApiService {
 
   static musicas = {
     /** Catálogo de áudios de story (JSON no R2 servido pela BFF, com cache). */
-    catalogo: (params = {}) => BffApiService.get('/api/v1/media/stories/audio/catalog', params),
+    catalogo: (params = {}) => BffApiService.getPublic('/api/v1/media/stories/audio/catalog', params),
   };
 
   // ── Namespace: financeiro ────────────────────────────────────

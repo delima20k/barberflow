@@ -704,6 +704,23 @@ class StoryCreationModal {
     ] });
   }
 
+  #stageEl() {
+    return this.#overlayEl?.querySelector?.('.sc-stage') ?? this.#overlayEl;
+  }
+
+  #sheetHeader({ title, titleClass, closeClass, onClose }) {
+    return scEl('div', { class: 'sc-sheet-head', children: [
+      scEl('div', { class: titleClass, text: title }),
+      scEl('button', {
+        class: `sc-sheet-close ${closeClass}`,
+        type: 'button',
+        text: '×',
+        attrs: { 'aria-label': 'Fechar' },
+        on: { click: onClose },
+      }),
+    ] });
+  }
+
   // ── Mídia ──────────────────────────────────────────────────
 
   async #escolherMidia(source) {
@@ -907,15 +924,28 @@ class StoryCreationModal {
 
   #abrirEmojis() {
     if (this.#emojiSheet) { this.#emojiSheet.hidden = false; return; }
-    const sheet = scEl('div', { class: 'sc-emoji-sheet', attrs: { role: 'menu' } });
+    const grid = scEl('div', { class: 'sc-emoji-grid' });
     StoryCreationModal.EMOJIS.forEach((emoji) => {
-      sheet.appendChild(scEl('button', {
+      grid.appendChild(scEl('button', {
         class: 'sc-emoji-btn', type: 'button', text: emoji,
         dataset: { emoji }, on: { click: () => this.#escolherEmoji(emoji) },
       }));
     });
+    const sheet = scEl('div', { class: 'sc-emoji-sheet', attrs: { role: 'menu' }, children: [
+      this.#sheetHeader({
+        title: 'Emoji',
+        titleClass: 'sc-emoji-title',
+        closeClass: 'sc-emoji-close',
+        onClose: () => this.#fecharEmojiSheet(),
+      }),
+      grid,
+    ] });
     this.#emojiSheet = sheet;
-    this.#overlayEl.appendChild(sheet);
+    this.#stageEl()?.appendChild(sheet);
+  }
+
+  #fecharEmojiSheet() {
+    if (this.#emojiSheet) this.#emojiSheet.hidden = true;
   }
 
   #escolherEmoji(emoji) {
@@ -929,14 +959,19 @@ class StoryCreationModal {
   #abrirMusicas() {
     if (this.#musicSheet) { this.#musicSheet.hidden = false; return; }
     this.#construirMusicSheet();
-    this.#overlayEl.appendChild(this.#musicSheet);
+    this.#stageEl()?.appendChild(this.#musicSheet);
     this.#renderGeneros();
     void this.#carregarCatalogo();
   }
 
   /** Monta o esqueleto do sheet: título, busca, gêneros e lista. */
   #construirMusicSheet() {
-    const title  = scEl('div', { class: 'sc-music-title', text: 'Selecionar Música' });
+    const header = this.#sheetHeader({
+      title: 'Selecionar Música',
+      titleClass: 'sc-music-title',
+      closeClass: 'sc-music-close',
+      onClose: () => this.#fecharMusicSheet(),
+    });
     const search = scEl('input', {
       class: 'sc-music-search', type: 'search',
       placeholder: 'Pesquisar música…', attrs: { 'aria-label': 'Pesquisar música' },
@@ -948,11 +983,15 @@ class StoryCreationModal {
     this.#musicList   = scEl('div', { class: 'sc-music-list' });
 
     this.#musicSheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' }, children: [
-      title, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
+      header, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
     ] });
     this.#onMusicScroll = () => this.#verificarScrollMusicas();
     this.#musicSheet.addEventListener?.('scroll', this.#onMusicScroll);
     this.#previewCtrl?.setLista(this.#musicList);
+  }
+
+  #fecharMusicSheet() {
+    if (this.#musicSheet) this.#musicSheet.hidden = true;
   }
 
   async #carregarCatalogo() {
