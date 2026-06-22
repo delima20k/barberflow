@@ -566,9 +566,14 @@ class StoryCreationModal {
   #musicaSel  = null;   // faixa escolhida completa (inclui url/src)
   #videoEl    = null;   // <video> atual no preview (p/ volume ao vivo)
 
-  // Catálogo + player de música
+  // Catálogo + subsistema de música (POO)
   #catalogo  = null;    // MusicCatalogService
-  #player    = null;    // AudioPreviewPlayer
+  #playback  = null;    // MusicPlaybackState
+  #repo      = null;    // MusicRepository (persiste só a referência)
+  #stateMgr  = null;    // MusicStateManager (Preview→Confirmar→Persistir)
+  #playerSvc = null;    // MusicPlayerService (reusa AudioPreviewPlayer)
+  #selection = null;    // MusicSelectionController
+  #previewCtrl = null;  // MusicPreviewController
   #musicList = null;
   #musicGenres = null;
   #musicEmpty = null;
@@ -577,13 +582,32 @@ class StoryCreationModal {
   #mixPanel  = null;
   #mixRefs   = null;
 
-  constructor(service, { onFinalizar, catalogo, player } = {}) {
+  constructor(service, { onFinalizar, catalogo, AudioCtor } = {}) {
     this.#service     = service;
     this.#onFinalizar = typeof onFinalizar === 'function' ? onFinalizar : () => {};
     this.#catalogo    = catalogo
       ?? (typeof MusicCatalogService !== 'undefined' ? new MusicCatalogService() : null);
-    this.#player      = player
-      ?? (typeof AudioPreviewPlayer !== 'undefined' ? new AudioPreviewPlayer() : null);
+
+    // Subsistema de música (POO): estado + repo + manager + player + seleção.
+    this.#playback = (typeof MusicPlaybackState !== 'undefined') ? new MusicPlaybackState() : null;
+    this.#repo = (typeof MusicRepository !== 'undefined') ? new MusicRepository({ service: this.#service }) : null;
+    this.#stateMgr = (typeof MusicStateManager !== 'undefined') ? new MusicStateManager({ state: this.#playback, repository: this.#repo }) : null;
+    this.#previewCtrl = (typeof MusicPreviewController !== 'undefined') ? new MusicPreviewController({ state: this.#playback }) : null;
+    this.#playerSvc = (typeof MusicPlayerService !== 'undefined')
+      ? new MusicPlayerService({
+          AudioCtor,
+          onProgress: (p) => this.#previewCtrl?.atualizarProgresso(p),
+          onState:    ()  => this.#previewCtrl?.atualizarEstado(),
+        })
+      : null;
+    this.#previewCtrl?.setPlayer(this.#playerSvc);
+    this.#selection = (typeof MusicSelectionController !== 'undefined')
+      ? new MusicSelectionController({
+          stateManager: this.#stateMgr, player: this.#playerSvc,
+          onAplicar:  (t) => this.#aoAplicarMusica(t),
+          onCancelar: ()  => this.#aoCancelarMusica(),
+        })
+      : null;
   }
 
   /**
@@ -751,8 +775,12 @@ class StoryCreationModal {
       scEl('span', { class: 'sc-mix-label', text: 'Volume música' }), volM,
     ] });
 
+    const remover = scEl('button', {
+      class: 'sc-mix-remover', type: 'button', text: 'Remover música',
+      on: { click: () => this.#selection?.cancelar() },
+    });
     this.#mixPanel = scEl('div', { class: 'sc-mix', children: [
-      scEl('div', { class: 'sc-mix-title', text: 'Áudio' }), linhaKeep, linhaV, linhaM,
+      scEl('div', { class: 'sc-mix-title', text: 'Áudio' }), linhaKeep, linhaV, linhaM, remover,
     ] });
     this.#mixPanel.hidden = true;
     // Insere acima das ações inferiores.
@@ -778,7 +806,7 @@ class StoryCreationModal {
     if (this.#videoEl) {
       try { this.#videoEl.muted = !mix.manterOriginal; this.#videoEl.volume = mix.manterOriginal ? mix.volumeVideo : 0; } catch (_) {}
     }
-    if (this.#player) this.#player.volume = mix.volumeMusica;
+    if (this.#playerSvc) this.#playerSvc.volume = mix.volumeMusica;
   }
 
   // ── Texto ──────────────────────────────────────────────────
@@ -847,6 +875,7 @@ class StoryCreationModal {
     this.#musicSheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' }, children: [
       title, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
     ] });
+    this.#previewCtrl?.setLista(this.#musicList);
   }
 
   async #carregarCatalogo() {
@@ -913,57 +942,55 @@ class StoryCreationModal {
         on: { click: () => { this.#musicState.pagina += 1; this.#renderPaginaMusica(false); } },
       }));
     }
-    this.#syncPlayIcons();
+    this.#previewCtrl?.atualizarEstado();
   }
 
   #itemMusica(track) {
+    const totalSeg = Math.min(MusicPlaybackState?.MAX_PREVIEW ?? 30, Number(track.duration) || 30);
     const play = scEl('button', {
       class: 'sc-music-play', type: 'button', text: '▶',
-      dataset: { url: track.url || '' }, attrs: { 'aria-label': 'Tocar prévia' },
-      on: { click: () => { this.#player?.alternar(track.url); this.#syncPlayIcons(); } },
+      dataset: { musicId: track.music_id, url: track.url || '' }, attrs: { 'aria-label': 'Tocar prévia' },
+      on: { click: () => this.#previewCtrl?.togglePlay(track) },
     });
     const usar = scEl('button', {
       class: 'sc-music-usar', type: 'button', text: 'Usar',
-      on: { click: () => this.#escolherMusica(track) },
+      on: { click: () => this.#onUsarMusica(track) },
     });
     return scEl('div', { class: 'sc-music-item', dataset: { musicId: track.music_id }, children: [
       play,
       scEl('div', { class: 'sc-music-info', children: [
         scEl('span', { class: 'sc-music-nome', text: track.music_name || track.artist || 'Faixa' }),
-        scEl('span', { class: 'sc-music-dur',  text: StoryCreationModal.#fmtDuracao(track.duration) }),
+        scEl('span', { class: 'sc-music-time', text: `00:00 / ${MusicPreviewController.fmtTempo(totalSeg)}` }),
       ] }),
       usar,
     ] });
   }
 
-  #syncPlayIcons() {
-    if (!this.#musicList) return;
-    const cur = this.#player?.url;
-    const tocando = this.#player?.tocando;
-    [...(this.#musicList.querySelectorAll?.('.sc-music-play') ?? [])].forEach((b) => {
-      const on = !!tocando && b.dataset.url === cur;
-      b.textContent = on ? '⏸' : '▶';
-      b.classList.toggle('is-playing', on);
-    });
-  }
-
-  static #fmtDuracao(seg) {
-    const s = Math.max(0, Math.round(Number(seg) || 0));
-    const m = Math.floor(s / 60);
-    return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-  }
-
-  #escolherMusica(track) {
-    // StoryEditorService usa {id,titulo,artista}; guardamos a faixa completa (url) p/ o composer.
-    this.#service.definirMusica({ id: track.music_id, titulo: track.music_name, artista: track.artist });
+  #onUsarMusica(track) {
+    // Delega ao controller (seleciona + aplica preview + persiste a trilha).
+    this.#selection?.usar(track);
     this.#musicaSel = { ...track, src: track.url || track.src || null };
-    this.#player?.parar();
     if (this.#musicSheet) {
       [...(this.#musicSheet.querySelectorAll?.('.sc-music-item') ?? [])].forEach(b =>
         b.classList.toggle('is-sel', b.dataset.musicId === track.music_id));
       this.#musicSheet.hidden = true;
     }
+    this.#previewCtrl?.atualizarEstado();
+  }
+
+  /** Hook do MusicSelectionController: revela o mix e ajusta volumes do preview. */
+  #aoAplicarMusica() {
     this.#mostrarMix(true);
+    this.#aplicarVolumePreview();
+  }
+
+  /** Hook do MusicSelectionController: cancelar/remover música. */
+  #aoCancelarMusica() {
+    this.#musicaSel = null;
+    if (this.#mixPanel) this.#mixPanel.hidden = true;
+    [...(this.#musicSheet?.querySelectorAll?.('.sc-music-item.is-sel') ?? [])].forEach(b => b.classList.remove('is-sel'));
+    this.#aplicarVolumePreview();
+    this.#previewCtrl?.atualizarEstado();
   }
 
   // ── Render + gestos dos overlays ───────────────────────────
@@ -1090,7 +1117,7 @@ class StoryCreationModal {
       this.#onKeydown = null;
     }
     try { clearTimeout(this.#musicSearchTimer); } catch (_) {}
-    try { this.#player?.destruir(); } catch (_) {} // libera o <audio> da prévia
+    try { this.#playerSvc?.destruir(); } catch (_) {} // libera o <audio> da prévia (mantém a seleção no service)
     try { this.#overlayEl?.remove(); } catch (_) { /* mock */ }
     this.#overlayEl = null;
     if (StoryCreationModal.#instancia === this) StoryCreationModal.#instancia = null;

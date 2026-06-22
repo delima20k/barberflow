@@ -112,14 +112,14 @@ test('definirMusica guarda a trilha; estado inclui musica; resetar limpa', () =>
   const svc = new StoryEditorService();
   assert.equal(svc.musica, null);
 
-  svc.definirMusica({ id: 'm1', titulo: 'Batida Urban', artista: 'BarberFlow' });
-  assert.deepEqual(svc.musica, { id: 'm1', titulo: 'Batida Urban', artista: 'BarberFlow' });
-  assert.deepEqual(svc.estado.musica, { id: 'm1', titulo: 'Batida Urban', artista: 'BarberFlow' });
+  svc.definirMusica({ music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' });
+  assert.deepEqual(svc.musica, { music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' });
+  assert.deepEqual(svc.estado.musica, { music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' });
 
   svc.removerMusica();
   assert.equal(svc.musica, null);
 
-  svc.definirMusica({ id: 'm2', titulo: 'Lo-fi' });
+  svc.definirMusica({ music_id: 'm2', music_name: 'Lo-fi', music_duration: 20, genre: 'LoFi' });
   svc.resetar();
   assert.equal(svc.estado.musica, null);
 });

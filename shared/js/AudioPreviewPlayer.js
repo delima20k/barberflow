@@ -15,21 +15,29 @@ class AudioPreviewPlayer {
   #urlAtual = null;
   #tocando = false;
   #volume = 1;
+  #preload;
   #onChange;
+  #onTime;
 
   /**
    * @param {object} [opts]
    * @param {Function} [opts.AudioCtor] — construtor de Audio (default global Audio)
+   * @param {string} [opts.preload='none'] — preload leve (só baixa a faixa tocada)
    * @param {(estado:{url:string|null,tocando:boolean})=>void} [opts.onChange]
+   * @param {(t:{currentTime:number,duration:number})=>void} [opts.onTime]
    */
-  constructor({ AudioCtor = (typeof Audio !== 'undefined' ? Audio : null), onChange = () => {} } = {}) {
+  constructor({ AudioCtor = (typeof Audio !== 'undefined' ? Audio : null), preload = 'none', onChange = () => {}, onTime = () => {} } = {}) {
     this.#AudioCtor = AudioCtor;
+    this.#preload = preload;
     this.#onChange = typeof onChange === 'function' ? onChange : () => {};
+    this.#onTime = typeof onTime === 'function' ? onTime : () => {};
   }
 
-  get url()      { return this.#urlAtual; }
-  get tocando()  { return this.#tocando; }
-  get volume()   { return this.#volume; }
+  get url()         { return this.#urlAtual; }
+  get tocando()     { return this.#tocando; }
+  get volume()      { return this.#volume; }
+  get currentTime() { return this.#audio ? (Number(this.#audio.currentTime) || 0) : 0; }
+  get duration()    { const d = this.#audio ? Number(this.#audio.duration) : 0; return Number.isFinite(d) ? d : 0; }
 
   set volume(v) {
     const vol = Math.min(1, Math.max(0, Number(v)));
@@ -48,7 +56,10 @@ class AudioPreviewPlayer {
     if (!url || !this.#AudioCtor) return false;
     if (!this.#audio) {
       this.#audio = new this.#AudioCtor();
+      try { this.#audio.preload = this.#preload; } catch (_) {}
       this.#audio.addEventListener?.('ended', () => this.#setEstado(this.#urlAtual, false));
+      this.#audio.addEventListener?.('timeupdate', () => this.#emitTime());
+      this.#audio.addEventListener?.('loadedmetadata', () => this.#emitTime());
     }
     if (this.#urlAtual !== url) {
       try { this.#audio.pause?.(); } catch (_) {}
@@ -60,6 +71,9 @@ class AudioPreviewPlayer {
     this.#setEstado(url, true);
     return true;
   }
+
+  /** Pausa sem perder a posição (alias semântico de parar). */
+  pausar() { this.parar(); }
 
   parar() {
     if (this.#audio) {
@@ -77,6 +91,10 @@ class AudioPreviewPlayer {
     this.#audio = null;
     this.#urlAtual = null;
     this.#setEstado(null, false);
+  }
+
+  #emitTime() {
+    try { this.#onTime({ currentTime: this.currentTime, duration: this.duration }); } catch (_) {}
   }
 
   #setEstado(url, tocando) {

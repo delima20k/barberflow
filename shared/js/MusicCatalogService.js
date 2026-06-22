@@ -12,28 +12,43 @@
 
 class MusicCatalogService {
   static PAGE_SIZE = 20;
+  static CACHE_KEY = 'catalog';
 
   #api;
   #pageSize;
-  #catalogo = null;     // catálogo carregado { genres, tracks, ... }
+  #cache;
+  #catalogo = null;     // catálogo em uso (válido ou stale)
   #carregando = null;   // Promise em voo (evita fetch duplicado)
 
-  constructor({ api = (typeof BffApiService !== 'undefined' ? BffApiService : null), pageSize = MusicCatalogService.PAGE_SIZE } = {}) {
+  constructor({ api = (typeof BffApiService !== 'undefined' ? BffApiService : null), pageSize = MusicCatalogService.PAGE_SIZE, cache = null } = {}) {
     this.#api = api;
     this.#pageSize = Number(pageSize) > 0 ? Number(pageSize) : MusicCatalogService.PAGE_SIZE;
+    this.#cache = cache
+      ?? ((typeof MusicCacheService !== 'undefined') ? new MusicCacheService() : null);
   }
 
-  /** Carrega (e cacheia) o catálogo. Reentrante: chamadas simultâneas compartilham a Promise. */
+  /**
+   * Carrega o catálogo (lazy). Usa cache (TTL 30min); em falha de rede
+   * devolve o último valor mesmo expirado (offline parcial).
+   * Reentrante: chamadas simultâneas compartilham a Promise.
+   */
   async carregar(force = false) {
-    if (this.#catalogo && !force) return this.#catalogo;
-    if (this.#carregando && !force) return this.#carregando;
+    if (!force) {
+      const cacheado = this.#cache?.get(MusicCatalogService.CACHE_KEY);
+      if (cacheado) { this.#catalogo = cacheado; return cacheado; }
+      if (this.#catalogo) return this.#catalogo;
+      if (this.#carregando) return this.#carregando;
+    }
 
     this.#carregando = (async () => {
       try {
         const { data } = await this.#api.musicas.catalogo();
         this.#catalogo = MusicCatalogService.#normalizar(data);
+        this.#cache?.set(MusicCatalogService.CACHE_KEY, this.#catalogo);
       } catch (_) {
-        this.#catalogo = MusicCatalogService.#vazio();
+        // Offline parcial: usa o último catálogo (stale) se existir.
+        const stale = this.#cache?.stale(MusicCatalogService.CACHE_KEY);
+        this.#catalogo = stale ?? MusicCatalogService.#vazio();
       } finally {
         this.#carregando = null;
       }

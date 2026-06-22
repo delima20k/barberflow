@@ -226,16 +226,18 @@ class StoryEditorService {
   // ── Música (trilha do vídeo) ───────────────────────────────
 
   /**
-   * Define a trilha escolhida. O mix real do áudio é responsabilidade do
-   * "motor" (prompt separado); aqui só guardamos a escolha no estado.
-   * @param {{ id:string, titulo:string, artista?:string }|null} musica
+   * Define a trilha escolhida. Guarda APENAS a referência (4 campos) —
+   * nunca áudio/URL. A validação/sanitização fica no MusicRepository.
+   * Aceita a forma de referência ou a forma antiga {id,titulo} (compat).
+   * @param {{ music_id, music_name, music_duration, genre }|null} musica
    */
   definirMusica(musica) {
     if (!musica) { this.#musica = null; return null; }
     this.#musica = {
-      id: String(musica.id ?? ''),
-      titulo: String(musica.titulo ?? ''),
-      artista: String(musica.artista ?? ''),
+      music_id: String(musica.music_id ?? musica.id ?? ''),
+      music_name: String(musica.music_name ?? musica.titulo ?? ''),
+      music_duration: Number(musica.music_duration ?? musica.duration) || 0,
+      genre: String(musica.genre ?? ''),
     };
     return this.#musica;
   }

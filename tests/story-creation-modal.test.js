@@ -76,8 +76,15 @@ function criarSandbox() {
   };
   const sandbox = vm.createContext({ document, window: {}, console });
   carregar(sandbox, 'shared/js/StoryEditorService.js');
+  carregar(sandbox, 'shared/js/MusicCacheService.js');
   carregar(sandbox, 'shared/js/MusicCatalogService.js');
   carregar(sandbox, 'shared/js/AudioPreviewPlayer.js');
+  carregar(sandbox, 'shared/js/MusicPlaybackState.js');
+  carregar(sandbox, 'shared/js/MusicRepository.js');
+  carregar(sandbox, 'shared/js/MusicStateManager.js');
+  carregar(sandbox, 'shared/js/MusicPlayerService.js');
+  carregar(sandbox, 'shared/js/MusicSelectionController.js');
+  carregar(sandbox, 'shared/js/MusicPreviewController.js');
   carregar(sandbox, 'shared/js/StoryCreationModal.js');
   return { sandbox, document };
 }
@@ -95,6 +102,29 @@ function catalogoFixture(qtd = 3) {
 
 function stubApi(catalogo) {
   return { musicas: { catalogo: async () => ({ data: catalogo, error: null }) } };
+}
+
+function FakeAudioFactory() {
+  const instances = [];
+  class FakeAudio {
+    constructor() {
+      this.src = '';
+      this.volume = 1;
+      this.preload = '';
+      this.currentTime = 0;
+      this.duration = 30;
+      this.paused = true;
+      this.listeners = {};
+      this.playCount = 0;
+      instances.push(this);
+    }
+    addEventListener(ev, handler) { (this.listeners[ev] ??= []).push(handler); }
+    play() { this.paused = false; this.playCount += 1; return Promise.resolve(); }
+    pause() { this.paused = true; }
+    emit(ev) { for (const h of this.listeners[ev] ?? []) h(); }
+  }
+  FakeAudio.instances = instances;
+  return FakeAudio;
 }
 
 const getOverlay = (document) => document.body.querySelector('.sc-overlay');
@@ -181,9 +211,110 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
 
   ov.querySelector('.sc-music-usar')._fire('click');
   assert.ok(service.estado.musica, 'trilha guardada no estado');
-  assert.equal(service.estado.musica.id, 'id-0');
+  assert.equal(service.estado.musica.music_id, 'id-0', 'só a referência (music_id)');
+  assert.equal(service.estado.musica.url, undefined, 'NÃO persiste url/áudio');
   assert.ok(ov.querySelector('.sc-mix'), 'painel de mix aparece após Usar');
   assert.equal(ov.querySelector('.sc-mix').hidden, false);
+});
+
+test('play da lista toca somente uma musica, atualiza pause/tempo e nao cria audios extras', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(3)) });
+  const FakeAudio = FakeAudioFactory();
+  sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+
+  const plays = ov.querySelectorAll('.sc-music-play');
+  assert.equal(ov.querySelector('.sc-music-time').textContent, '00:00 / 00:30');
+
+  plays[0]._fire('click');
+  assert.equal(FakeAudio.instances.length, 1, 'um unico Audio criado');
+  assert.equal(FakeAudio.instances[0].src, 'https://r2/0.m4a');
+  assert.equal(plays[0].classList.contains('is-playing'), true);
+
+  FakeAudio.instances[0].currentTime = 7;
+  FakeAudio.instances[0].duration = 35;
+  FakeAudio.instances[0].emit('timeupdate');
+  assert.equal(ov.querySelector('.sc-music-time').textContent, '00:07 / 00:30');
+
+  plays[1]._fire('click');
+  assert.equal(FakeAudio.instances.length, 1, 'trocar faixa reutiliza o mesmo Audio');
+  assert.equal(FakeAudio.instances[0].src, 'https://r2/1.m4a');
+  assert.equal(plays[0].classList.contains('is-playing'), false);
+  assert.equal(plays[1].classList.contains('is-playing'), true);
+});
+
+for (const tipo of ['imagem', 'video']) {
+  test(`Usar aplica musica no preview de ${tipo} e tocar inicia audio`, async () => {
+    const { sandbox, document } = criarSandbox();
+    const service = new sandbox.StoryEditorService();
+    service.definirMedia({ file: { type: tipo === 'imagem' ? 'image/jpeg' : 'video/mp4', size: 10 }, tipo, origem: 'upload' });
+    const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(1)) });
+    const FakeAudio = FakeAudioFactory();
+    sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
+    const ov = getOverlay(document);
+
+    ov.querySelectorAll('.sc-tool')[2]._fire('click');
+    await tick();
+    ov.querySelector('.sc-music-usar')._fire('click');
+
+    assert.equal(service.estado.musica.music_id, 'id-0');
+    assert.equal(service.estado.musica.music_name, 'Faixa 0');
+    assert.equal(service.estado.musica.genre, 'Pop');
+    assert.equal(service.estado.musica.url, undefined);
+    assert.equal(ov.querySelector('.sc-mix').hidden, false);
+    assert.equal(FakeAudio.instances.length, 1);
+    assert.equal(FakeAudio.instances[0].src, 'https://r2/0.m4a');
+    assert.equal(FakeAudio.instances[0].playCount, 1);
+  });
+}
+
+test('fechar mantem selecao e cancelar remove musica selecionada', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(1)) });
+  const FakeAudio = FakeAudioFactory();
+  sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
+  let ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+  ov.querySelector('.sc-close')._fire('click');
+
+  assert.equal(service.estado.musica.music_id, 'id-0', 'fechar modal preserva a selecao no service');
+
+  sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
+  ov = getOverlay(document);
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+  ov.querySelector('.sc-mix-remover')._fire('click');
+
+  assert.equal(service.estado.musica, null, 'cancelar/remove limpa a selecao');
+  assert.equal(ov.querySelector('.sc-mix').hidden, true);
+});
+
+test('abrir e fechar a modal 100 vezes nao deixa overlays presos', () => {
+  const { sandbox, document } = criarSandbox();
+  const started = Date.now();
+  const heapBefore = process.memoryUsage().heapUsed;
+
+  for (let i = 0; i < 100; i += 1) {
+    sandbox.StoryCreationModal.abrir({ service: new sandbox.StoryEditorService() });
+    assert.ok(getOverlay(document));
+    getOverlay(document).querySelector('.sc-close')._fire('click');
+    assert.equal(getOverlay(document), null);
+  }
+
+  const elapsedMs = Date.now() - started;
+  const heapDeltaMb = (process.memoryUsage().heapUsed - heapBefore) / 1024 / 1024;
+  assert.ok(elapsedMs < 2000, `render/close 100x demorou ${elapsedMs}ms`);
+  assert.ok(heapDeltaMb < 20, `crescimento de heap alto: ${heapDeltaMb.toFixed(2)}MB`);
 });
 
 test('filtro por gênero na modal reduz a lista', async () => {
@@ -199,6 +330,34 @@ test('filtro por gênero na modal reduz a lista', async () => {
   const chipRock = [...ov.querySelectorAll('.sc-music-genre')].find(c => c.dataset.genero === 'Rock');
   chipRock._fire('click');
   assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'só Rock (2 de 4)');
+});
+
+test('Cancelar (Remover música) limpa a seleção e esconde o mix', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(2)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+  assert.ok(service.estado.musica, 'tem trilha');
+
+  ov.querySelector('.sc-mix-remover')._fire('click');
+  assert.equal(service.estado.musica, null, 'trilha removida');
+  assert.equal(ov.querySelector('.sc-mix').hidden, true, 'mix escondido');
+});
+
+test('abrir/fechar 100x não vaza overlay no body (lifecycle limpo)', () => {
+  const { sandbox, document } = criarSandbox();
+  for (let i = 0; i < 100; i++) {
+    const modal = sandbox.StoryCreationModal.abrir({ service: new sandbox.StoryEditorService() });
+    assert.ok(getOverlay(document), 'abriu');
+    modal.fechar();
+    assert.equal(getOverlay(document), null, 'fechou sem deixar overlay');
+  }
+  // após 100 ciclos, o body não acumulou overlays
+  assert.equal(document.body.querySelectorAll('.sc-overlay').length, 0, 'sem leak de overlays no body');
 });
 
 test('arrastar (1 ponteiro) move o overlay via serviço', () => {

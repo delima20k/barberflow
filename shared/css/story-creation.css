@@ -397,6 +397,8 @@
 .sc-music-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .sc-music-info .sc-music-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-music-dur { font-size: .72rem; color: rgba(255, 255, 255, .6); }
+.sc-music-time { font-size: .72rem; color: rgba(255, 255, 255, .6); font-variant-numeric: tabular-nums; }
+.sc-music-play.is-playing { background: var(--gold, #d4a017); color: #1a1208; }
 .sc-music-usar {
   flex: 0 0 auto;
   border: 0;
