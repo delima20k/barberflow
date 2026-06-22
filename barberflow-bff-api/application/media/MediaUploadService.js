@@ -79,6 +79,13 @@ class MediaUploadService {
       contentType: object.contentType,
       metadata: request.metadata ?? {},
     });
+    await this.#salvarOriginalImediato({
+      mediaId: media.id ?? request.mediaId,
+      context: request.context,
+      path: media.path ?? request.path,
+      contentType: object.contentType,
+      sizeBytes: object.sizeBytes,
+    });
     const outboxId = await this.#outboxRepository.save({
       eventName: JOB_TYPES.PROCESS_MEDIA,
       queue: QUEUES.MEDIA,
@@ -156,6 +163,13 @@ class MediaUploadService {
         },
       },
     });
+    await this.#salvarOriginalImediato({
+      mediaId: media.id ?? mediaId,
+      context: 'stories',
+      path: media.path ?? path,
+      contentType: compression.contentType,
+      sizeBytes: compression.outputBytes,
+    });
 
     const outboxId = await this.#outboxRepository.save({
       eventName: JOB_TYPES.PROCESS_MEDIA,
@@ -223,6 +237,18 @@ class MediaUploadService {
       sizeBytes: buffer.length,
     });
     return { path };
+  }
+
+  async #salvarOriginalImediato({ mediaId, context, path, contentType, sizeBytes }) {
+    if (context !== 'stories') return;
+    await this.#mediaRepository.salvarVariante(mediaId, {
+      name: 'original',
+      version: 1,
+      storagePath: path,
+      contentType,
+      sizeBytes,
+      metadata: { variantStatus: 'processing' },
+    });
   }
 
   static #policy(request) {

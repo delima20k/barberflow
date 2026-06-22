@@ -113,6 +113,7 @@ suite('media route - uploadCompressedStory', () => {
     const original = Buffer.alloc(512, 1);
     const compressed = Buffer.alloc(128, 2);
     let r2Upload = null;
+    let originalVariant = null;
     let fallbackUploadCalled = false;
 
     const app = express();
@@ -127,6 +128,7 @@ suite('media route - uploadCompressedStory', () => {
       mediaRepository: {
         reserve: async media => media,
         confirmUploaded: async media => ({ id: media.mediaId, path: media.path }),
+        salvarVariante: async (mediaId, variant) => { originalVariant = { mediaId, variant }; },
       },
       outboxRepository: { save: async () => 'outbox-1' },
       confirmationSigner: { sign: () => 'token', verify: () => true },
@@ -158,6 +160,8 @@ suite('media route - uploadCompressedStory', () => {
       assert.ok(r2Upload, 'deve fazer upload no R2 dedicado');
       assert.equal(r2Upload.bytes, compressed);
       assert.match(r2Upload.path, /^stories\/550e8400-e29b-41d4-a716-446655440000\/incoming\/.+\.mp4$/);
+      assert.equal(originalVariant.variant.name, 'original');
+      assert.equal(originalVariant.variant.storagePath, r2Upload.path);
       assert.equal(response.body.dados.publicUrl, `https://r2.test/${r2Upload.path}`);
     } finally {
       await closeServer(server);

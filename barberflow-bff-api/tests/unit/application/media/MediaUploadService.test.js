@@ -55,8 +55,9 @@ describe('MediaUploadService', () => {
     assert.equal(calls[0].contentType, 'video/mp4');
   });
 
-  it('confirma upload e agenda processamento na fila de midia', async () => {
+  it('confirma upload de story e cria variante original imediata para acesso antes do worker', async () => {
     let event = null;
+    let originalVariant = null;
     const service = new MediaUploadService({
       storage: {
         createSignedUpload: async () => ({}),
@@ -64,7 +65,8 @@ describe('MediaUploadService', () => {
       },
       mediaRepository: {
         reserve: async (media) => media,
-        confirmUploaded: async () => ({ id: 'media-1', path: 'incoming/media-1.png' }),
+        confirmUploaded: async () => ({ id: 'media-1', path: 'stories/owner-1/incoming/media-1.png' }),
+        salvarVariante: async (mediaId, variant) => { originalVariant = { mediaId, variant }; },
       },
       outboxRepository: { save: async (payload) => { event = payload; return 'outbox-1'; } },
       confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
@@ -72,19 +74,68 @@ describe('MediaUploadService', () => {
 
     const result = await service.confirmUpload('aaaaaaaa-0000-4000-8000-000000000001', {
       mediaId: 'media-1',
-      path: 'incoming/media-1.png',
-      context: 'portfolio',
+      path: 'stories/owner-1/incoming/media-1.png',
+      context: 'stories',
       confirmationToken: 'confirm-token',
     });
 
     assert.equal(result.status, 'queued');
     assert.equal(event.eventName, 'process_media');
+    assert.deepEqual(originalVariant, {
+      mediaId: 'media-1',
+      variant: {
+        name: 'original',
+        version: 1,
+        storagePath: 'stories/owner-1/incoming/media-1.png',
+        contentType: 'image/png',
+        sizeBytes: 1024,
+        metadata: { variantStatus: 'processing' },
+      },
+    });
+  });
+
+  it('permite acesso imediato ao original apos confirmar story sem expor storagePath', async () => {
+    const variants = new Map();
+    const OWNER_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
+    const MEDIA_ID = 'media-immediate-1';
+    const service = new MediaUploadService({
+      storage: {
+        assertObjectExists: async () => ({ sizeBytes: 2048, contentType: 'image/png' }),
+        createSignedAccess: async ({ path, expiresInSeconds }) => ({
+          signedUrl: `https://signed.test/${encodeURIComponent(path)}?exp=${expiresInSeconds}`,
+        }),
+      },
+      mediaRepository: {
+        reserve: async (media) => media,
+        confirmUploaded: async (media) => ({ id: media.mediaId, path: media.path }),
+        salvarVariante: async (mediaId, variant) => { variants.set(`${mediaId}:${variant.name}`, variant); },
+        getOwnedVariant: async (ownerId, mediaId, name) => {
+          assert.equal(ownerId, OWNER_ID);
+          const variant = variants.get(`${mediaId}:${name}`);
+          return variant ? { path: variant.storagePath, privacy: 'private', version: variant.version } : null;
+        },
+      },
+      outboxRepository: { save: async () => 'outbox-1' },
+      confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
+    });
+
+    await service.confirmUpload(OWNER_ID, {
+      mediaId: MEDIA_ID,
+      path: 'stories/owner-1/incoming/media-immediate-1.png',
+      context: 'stories',
+      confirmationToken: 'confirm-token',
+    });
+
+    const access = await service.createSignedAccess(OWNER_ID, MEDIA_ID, 'original', 120);
+
+    assert.match(access.signedUrl, /^https:\/\/signed\.test\//);
+    assert.equal(Object.prototype.hasOwnProperty.call(access, 'path'), false);
   });
 
   it('uploadCompressedStory comprime, envia ao storage e agenda processamento', async () => {
     const original = Buffer.alloc(2 * 1024 * 1024, 1);
     const compressed = Buffer.alloc(900 * 1024, 2);
-    const calls = { put: null, confirmed: null, event: null };
+    const calls = { put: null, confirmed: null, event: null, originalVariant: null };
     let compressionOptions = null;
     const service = new MediaUploadService({
       storage: {
@@ -94,6 +145,7 @@ describe('MediaUploadService', () => {
       mediaRepository: {
         reserve: async (media) => media,
         confirmUploaded: async (media) => { calls.confirmed = media; return { id: media.mediaId, path: media.path }; },
+        salvarVariante: async (mediaId, variant) => { calls.originalVariant = { mediaId, variant }; },
       },
       outboxRepository: { save: async (payload) => { calls.event = payload; return 'outbox-story-1'; } },
       confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
@@ -126,6 +178,11 @@ describe('MediaUploadService', () => {
     assert.equal(calls.confirmed.sizeBytes, compressed.length);
     assert.equal(calls.confirmed.metadata.videoCompression.compressed, true);
     assert.equal(calls.event.eventName, 'process_media');
+    assert.equal(calls.originalVariant.mediaId, result.mediaId);
+    assert.equal(calls.originalVariant.variant.name, 'original');
+    assert.equal(calls.originalVariant.variant.storagePath, result.path);
+    assert.equal(calls.originalVariant.variant.contentType, 'video/mp4');
+    assert.equal(calls.originalVariant.variant.sizeBytes, compressed.length);
     assert.equal(result.status, 'queued');
     assert.equal(result.compression.outputBytes, compressed.length);
     assert.ok(result.publicUrl.includes(result.path));
