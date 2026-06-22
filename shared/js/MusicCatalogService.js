@@ -14,6 +14,7 @@ class MusicCatalogService {
   static PAGE_SIZE = 20;
   static CACHE_KEY = 'catalog';
   static PAGE_CACHE_PREFIX = 'catalog:page';
+  static PUBLIC_CATALOG_PATH = '/api/v1/media/stories/audio/catalog';
 
   #api;
   #pageSize;
@@ -43,7 +44,7 @@ class MusicCatalogService {
 
     this.#carregando = (async () => {
       try {
-        const { data } = await this.#api.musicas.catalogo();
+        const data = await this.#catalogoRemoto();
         this.#catalogo = MusicCatalogService.normalizar(data);
         this.#cache?.set(MusicCatalogService.CACHE_KEY, this.#catalogo);
       } catch (_) {
@@ -73,7 +74,7 @@ class MusicCatalogService {
     }
 
     try {
-      const { data } = await this.#api.musicas.catalogo(params);
+      const data = await this.#catalogoRemoto(params);
       const page = MusicCatalogService.#normalizarPagina(data, params);
       this.#cache?.set(cacheKey, page);
       if (Array.isArray(page.genres) && page.genres.length) {
@@ -96,6 +97,14 @@ class MusicCatalogService {
       }
       return MusicCatalogService.#paginaVazia(params);
     }
+  }
+
+  async #catalogoRemoto(params = {}) {
+    if (this.#api?.musicas && typeof this.#api.musicas.catalogo === 'function') {
+      const resposta = await this.#api.musicas.catalogo(params);
+      if (resposta && !resposta.error && resposta.data != null) return resposta.data;
+    }
+    return MusicCatalogService.#buscarCatalogoPublico(params);
   }
 
   get carregado() { return !!this.#catalogo; }
@@ -189,6 +198,40 @@ class MusicCatalogService {
 
   static #pageCacheKey({ page, pageSize, genre, q }) {
     return `${MusicCatalogService.PAGE_CACHE_PREFIX}:${page}:${pageSize}:${genre}:${q}`;
+  }
+
+  static async #buscarCatalogoPublico(params) {
+    if (typeof fetch !== 'function') throw new Error('fetch indisponivel');
+    const url = MusicCatalogService.#publicUrl(params);
+    const res = await fetch(url, { headers: {} });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(json?.error ?? `HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    return json?.dados ?? json;
+  }
+
+  static #publicUrl(params) {
+    const base = MusicCatalogService.#baseUrl();
+    const qs = Object.entries(params || {})
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .join('&');
+    return `${base}${MusicCatalogService.PUBLIC_CATALOG_PATH}${qs ? `?${qs}` : ''}`;
+  }
+
+  static #baseUrl() {
+    if (typeof BffApiService !== 'undefined' && BffApiService.baseUrl) {
+      return BffApiService.baseUrl;
+    }
+    const hostname = (typeof window !== 'undefined' && window.location)
+      ? window.location.hostname
+      : '';
+    return (hostname === 'localhost' || hostname === '127.0.0.1')
+      ? 'http://localhost:3002'
+      : 'https://bff.berberflow.shop';
   }
 
   static #pagina(n) {

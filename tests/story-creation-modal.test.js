@@ -602,6 +602,22 @@ test('StoryComposer.compor devolve o arquivo original quando nao ha suporte (vid
   assert.equal(await sandbox.StoryComposer.compor({ file: img, tipo: 'imagem' }), img);
 });
 
+test('StoryComposer.compor nao reencoda video sem overlay visual', async () => {
+  const { sandbox } = criarSandbox();
+  const video = { type: 'video/mp4', size: 9999 };
+  sandbox.MediaRecorder = function MediaRecorder() {};
+  sandbox.HTMLCanvasElement = function HTMLCanvasElement() {};
+  sandbox.HTMLCanvasElement.prototype.captureStream = () => ({ getTracks: () => [] });
+  sandbox.URL = {
+    createObjectURL() { throw new Error('nao deve criar blob url para video sem overlay'); },
+    revokeObjectURL() {},
+  };
+
+  const out = await sandbox.StoryComposer.compor({ file: video, tipo: 'video', overlays: [] });
+
+  assert.equal(out, video, 'sem texto/emoji, finalizacao usa o arquivo original rapidamente');
+});
+
 test('Finalizar queima/comprime e entrega o arquivo em media.file (com overlays no estado)', async () => {
   const { sandbox, document } = criarSandbox();
   const onFinalizar = fn();

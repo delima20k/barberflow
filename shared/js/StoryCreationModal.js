@@ -311,6 +311,7 @@ class StoryComposer {
     const tipo = opts.tipo
       || (String(file.type || '').startsWith('video') ? 'video' : 'imagem');
     if (!StoryComposer.#suporta()) return file; // fallback (ex.: sandbox de teste)
+    if (tipo !== 'imagem' && !StoryComposer.#temOverlayVisual(opts.overlays)) return file;
     try {
       return tipo === 'imagem'
         ? await StoryComposer.#comporImagem(opts)
@@ -321,6 +322,13 @@ class StoryComposer {
   }
 
   // ── Vídeo ───────────────────────────────────────────────────
+
+  static #temOverlayVisual(overlays) {
+    return Array.isArray(overlays) && overlays.some((ov) => {
+      const tipo = String(ov?.tipo ?? '');
+      return (tipo === 'texto' || tipo === 'emoji') && String(ov?.conteudo ?? '').trim();
+    });
+  }
 
   static async #comporVideo(opts) {
     const targetBytes = Number(opts.targetBytes) || (1.6 * 1024 * 1024);

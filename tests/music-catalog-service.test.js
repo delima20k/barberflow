@@ -142,6 +142,47 @@ test('buscarPagina() envia filtros para a BFF e cacheia a pagina sob demanda', a
   assert.equal(b, a);
 });
 
+test('buscarPagina() tenta catalogo publico sem Authorization quando api retorna erro', async () => {
+  const cat = {
+    generatedAt: 'x',
+    count: 20,
+    genres: ['Todos', 'Pop'],
+    tracks: fakeTracks(20),
+    page: 1,
+    pageSize: 20,
+    totalPages: 1,
+    hasMore: false,
+  };
+  const api = {
+    musicas: {
+      catalogo: async () => {
+        const err = new Error('Unauthorized');
+        err.status = 401;
+        return { data: null, total: null, error: err };
+      },
+    },
+  };
+  const originalFetch = global.fetch;
+  const chamadas = [];
+  global.fetch = async (url, options = {}) => {
+    chamadas.push({ url: String(url), headers: options.headers });
+    return { ok: true, status: 200, json: async () => ({ dados: cat }) };
+  };
+
+  try {
+    const svc = new MusicCatalogService({ api, cache: new MusicCacheService() });
+    const pagina = await svc.buscarPagina({ genero: 'Pop', termo: 'faixa', pagina: 1, pageSize: 20 });
+
+    assert.equal(chamadas.length, 1, 'fallback publico chamado uma vez');
+    assert.equal(chamadas[0].headers.Authorization, undefined, 'nao envia Authorization');
+    assert.ok(chamadas[0].url.includes('/api/v1/media/stories/audio/catalog'));
+    assert.ok(chamadas[0].url.includes('genre=Pop'));
+    assert.equal(pagina.tracks.length, 20);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test('buscarPagina() faz fallback local quando a BFF antiga retorna catalogo completo', async () => {
   const cat = { generatedAt: 'x', count: 100, genres: ['Todos', 'Pop', 'Rock'], tracks: fakeTracks(100) };
   const api = { musicas: { catalogo: async () => ({ data: cat }) } };
