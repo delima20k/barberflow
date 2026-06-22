@@ -39,6 +39,13 @@ class AudioPreviewPlayer {
   get currentTime() { return this.#audio ? (Number(this.#audio.currentTime) || 0) : 0; }
   get duration()    { const d = this.#audio ? Number(this.#audio.duration) : 0; return Number.isFinite(d) ? d : 0; }
 
+  set currentTime(v) {
+    if (!this.#audio) return;
+    const tempo = Number(v);
+    if (!Number.isFinite(tempo) || tempo < 0) return;
+    try { this.#audio.currentTime = tempo; } catch (_) {}
+  }
+
   set volume(v) {
     const vol = Math.min(1, Math.max(0, Number(v)));
     this.#volume = Number.isFinite(vol) ? vol : 1;

@@ -577,10 +577,16 @@ class StoryCreationModal {
   #musicList = null;
   #musicGenres = null;
   #musicEmpty = null;
+  #musicSentinel = null;
+  #musicObserver = null;
+  #onMusicScroll = null;
+  #musicLoadingMore = false;
   #musicState = { genero: 'Todos', termo: '', pagina: 1, filtrados: [], totalPaginas: 1, hasMore: false };
   #musicSearchTimer = null;
   #mixPanel  = null;
   #mixRefs   = null;
+  #mixPlayBtn = null;
+  #mixTimeEl = null;
 
   constructor(service, { onFinalizar, catalogo, AudioCtor } = {}) {
     this.#service     = service;
@@ -688,6 +694,7 @@ class StoryCreationModal {
 
     (document.body || document.documentElement).appendChild(overlay);
     this.#overlayEl = overlay;
+    if (this.#service?.media) this.#renderMidia();
   }
 
   #tool(icone, label, onClick) {
@@ -737,6 +744,9 @@ class StoryCreationModal {
       el.muted = false;
       el.src = url;
       this.#videoEl = el;
+      el.addEventListener?.('timeupdate', () => this.#atualizarTempoMix());
+      el.addEventListener?.('play', () => this.#atualizarTempoMix());
+      el.addEventListener?.('pause', () => this.#atualizarTempoMix());
       this.#aplicarVolumePreview(); // respeita o mix atual (se já houver)
       try { const p = el.play?.(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
     } else {
@@ -751,8 +761,13 @@ class StoryCreationModal {
   // ── Mix de áudio (preview + estado) ────────────────────────
 
   #mostrarMix(show) {
+    show = !!show && this.#ehVideoAtual();
     if (!this.#mixPanel) this.#construirMix();
     if (this.#mixPanel) this.#mixPanel.hidden = !show;
+    if (show) {
+      this.#sincronizarPreviewAudio();
+      this.#atualizarTempoMix();
+    }
   }
 
   #construirMix() {
@@ -765,22 +780,33 @@ class StoryCreationModal {
     volM.value = String(Math.round(mix.volumeMusica * 100));
     this.#mixRefs = { manter, volV, volM };
 
+    this.#mixPlayBtn = scEl('button', {
+      class: 'sc-mix-play', type: 'button', text: '▶',
+      attrs: { 'aria-label': 'Tocar preview' },
+      on: { click: () => this.#alternarPreviewAudio() },
+    });
+    this.#mixTimeEl = scEl('span', { class: 'sc-mix-time', text: '00:00 / 00:30' });
+    const linhaPlayer = scEl('div', { class: 'sc-mix-row sc-mix-row--player', children: [
+      this.#mixPlayBtn, this.#mixTimeEl,
+    ] });
+
     const linhaKeep = scEl('label', { class: 'sc-mix-row sc-mix-row--keep', children: [
-      manter, scEl('span', { text: 'Manter som original do vídeo' }),
+      manter, scEl('span', { text: 'Manter som original' }),
     ] });
     const linhaV = scEl('div', { class: 'sc-mix-row', children: [
-      scEl('span', { class: 'sc-mix-label', text: 'Volume vídeo' }), volV,
+      scEl('span', { class: 'sc-mix-label', text: 'Video' }), volV,
     ] });
     const linhaM = scEl('div', { class: 'sc-mix-row', children: [
-      scEl('span', { class: 'sc-mix-label', text: 'Volume música' }), volM,
+      scEl('span', { class: 'sc-mix-label', text: 'Musica' }), volM,
     ] });
 
     const remover = scEl('button', {
       class: 'sc-mix-remover', type: 'button', text: 'Remover música',
       on: { click: () => this.#selection?.cancelar() },
     });
+    const tituloMix = scEl('div', { class: 'sc-mix-title', text: 'Audio do Video' });
     this.#mixPanel = scEl('div', { class: 'sc-mix', children: [
-      scEl('div', { class: 'sc-mix-title', text: 'Áudio' }), linhaKeep, linhaV, linhaM, remover,
+      tituloMix, linhaPlayer, linhaKeep, linhaV, linhaM, remover,
     ] });
     this.#mixPanel.hidden = true;
     // Insere acima das ações inferiores.
@@ -810,6 +836,54 @@ class StoryCreationModal {
   }
 
   // ── Texto ──────────────────────────────────────────────────
+
+  #ehVideoAtual() {
+    return this.#service?.media?.tipo === 'video';
+  }
+
+  #alternarPreviewAudio() {
+    if (!this.#videoEl) return;
+    if (this.#videoEl.paused) this.#reproduzirPreviewAudio();
+    else this.#pausarPreviewAudio();
+    this.#atualizarTempoMix();
+  }
+
+  #reproduzirPreviewAudio() {
+    if (!this.#videoEl) return;
+    this.#aplicarVolumePreview();
+    try { const p = this.#videoEl.play?.(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+    if (this.#musicaSel) {
+      this.#playerSvc?.tocar(this.#musicaSel);
+      this.#playerSvc?.sincronizarTempo?.(this.#videoEl.currentTime || 0);
+    }
+  }
+
+  #pausarPreviewAudio() {
+    try { this.#videoEl?.pause?.(); } catch (_) {}
+    try { this.#playerSvc?.pausar(); } catch (_) {}
+  }
+
+  #sincronizarPreviewAudio() {
+    if (!this.#videoEl || !this.#musicaSel || !this.#playerSvc?.tocando) return;
+    const videoTime = Number(this.#videoEl.currentTime) || 0;
+    const audioTime = Number(this.#playerSvc.currentTime) || 0;
+    if (Math.abs(videoTime - audioTime) > 0.5) this.#playerSvc.sincronizarTempo?.(videoTime);
+  }
+
+  #atualizarTempoMix() {
+    const atual = Number(this.#videoEl?.currentTime) || 0;
+    const duracao = Number(this.#videoEl?.duration) || 30;
+    const fmt = (typeof MusicPreviewController !== 'undefined' && MusicPreviewController.fmtTempo)
+      ? MusicPreviewController.fmtTempo
+      : ((s) => `00:${String(Math.max(0, Math.round(Number(s) || 0))).padStart(2, '0')}`);
+    if (this.#mixTimeEl) this.#mixTimeEl.textContent = `${fmt(atual)} / ${fmt(Math.min(30, duracao))}`;
+    if (this.#mixPlayBtn) {
+      const tocando = !!this.#videoEl && !this.#videoEl.paused;
+      this.#mixPlayBtn.textContent = tocando ? '⏸' : '▶';
+      this.#mixPlayBtn.setAttribute('aria-label', tocando ? 'Pausar preview' : 'Tocar preview');
+    }
+    this.#sincronizarPreviewAudio();
+  }
 
   #mostrarCaret(visivel) {
     if (this.#caret) this.#caret.hidden = !visivel;
@@ -862,7 +936,7 @@ class StoryCreationModal {
 
   /** Monta o esqueleto do sheet: título, busca, gêneros e lista. */
   #construirMusicSheet() {
-    const title  = scEl('div', { class: 'sc-music-title', text: 'Adicionar música' });
+    const title  = scEl('div', { class: 'sc-music-title', text: 'Selecionar Música' });
     const search = scEl('input', {
       class: 'sc-music-search', type: 'search',
       placeholder: 'Pesquisar música…', attrs: { 'aria-label': 'Pesquisar música' },
@@ -876,6 +950,8 @@ class StoryCreationModal {
     this.#musicSheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' }, children: [
       title, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
     ] });
+    this.#onMusicScroll = () => this.#verificarScrollMusicas();
+    this.#musicSheet.addEventListener?.('scroll', this.#onMusicScroll);
     this.#previewCtrl?.setLista(this.#musicList);
   }
 
@@ -919,10 +995,11 @@ class StoryCreationModal {
   async #renderPaginaMusica(reset = false) {
     if (!this.#musicList) return;
     if (reset) {
-      [...(this.#musicList.querySelectorAll?.('.sc-music-item, .sc-music-more') ?? [])].forEach(el => el.remove());
+      this.#limparSentinelMusica();
+      [...(this.#musicList.querySelectorAll?.('.sc-music-item') ?? [])].forEach(el => el.remove());
       this.#musicState.pagina = 1;
     } else {
-      [...(this.#musicList.querySelectorAll?.('.sc-music-more') ?? [])].forEach(el => el.remove());
+      this.#limparSentinelMusica();
     }
     const { pagina } = this.#musicState;
     const page = await this.#buscarPaginaMusica(pagina).catch(() => []);
@@ -932,13 +1009,50 @@ class StoryCreationModal {
 
     page.forEach(t => this.#musicList.appendChild(this.#itemMusica(t)));
 
-    if (this.#musicState.hasMore || pagina < this.#musicState.totalPaginas) {
-      this.#musicList.appendChild(scEl('button', {
-        class: 'sc-music-more', type: 'button', text: 'Carregar mais',
-        on: { click: () => { this.#musicState.pagina += 1; this.#renderPaginaMusica(false); } },
-      }));
-    }
+    this.#renderSentinelMusica();
     this.#previewCtrl?.atualizarEstado();
+  }
+
+  #renderSentinelMusica() {
+    if (!this.#musicList) return;
+    if (!(this.#musicState.hasMore || this.#musicState.pagina < this.#musicState.totalPaginas)) return;
+    this.#musicSentinel = scEl('div', { class: 'sc-music-sentinel', attrs: { 'aria-hidden': 'true' } });
+    this.#musicList.appendChild(this.#musicSentinel);
+    const IO = typeof IntersectionObserver !== 'undefined'
+      ? IntersectionObserver
+      : (typeof window !== 'undefined' ? window.IntersectionObserver : null);
+    if (!IO) return;
+    this.#musicObserver?.disconnect?.();
+    this.#musicObserver = new IO((entries) => {
+      if (entries.some(entry => entry?.isIntersecting)) this.#carregarMaisMusicas();
+    }, { root: this.#musicSheet, rootMargin: '80px 0px' });
+    this.#musicObserver.observe?.(this.#musicSentinel);
+  }
+
+  #limparSentinelMusica() {
+    this.#musicObserver?.disconnect?.();
+    this.#musicObserver = null;
+    this.#musicSentinel?.remove?.();
+    this.#musicSentinel = null;
+  }
+
+  #verificarScrollMusicas() {
+    if (!this.#musicSheet || this.#musicLoadingMore) return;
+    const limite = Number(this.#musicSheet.scrollHeight || 0) - 48;
+    const posicao = Number(this.#musicSheet.scrollTop || 0) + Number(this.#musicSheet.clientHeight || 0);
+    if (posicao >= limite) this.#carregarMaisMusicas();
+  }
+
+  async #carregarMaisMusicas() {
+    if (this.#musicLoadingMore) return;
+    if (!(this.#musicState.hasMore || this.#musicState.pagina < this.#musicState.totalPaginas)) return;
+    this.#musicLoadingMore = true;
+    try {
+      this.#musicState.pagina += 1;
+      await this.#renderPaginaMusica(false);
+    } finally {
+      this.#musicLoadingMore = false;
+    }
   }
 
   async #buscarPaginaMusica(pagina) {
@@ -963,6 +1077,8 @@ class StoryCreationModal {
 
   #itemMusica(track) {
     const totalSeg = Math.min(MusicPlaybackState?.MAX_PREVIEW ?? 30, Number(track.duration) || 30);
+    const selecionada = this.#service?.musica;
+    const classe = 'sc-music-item' + (selecionada?.music_id === track.music_id ? ' is-sel' : '');
     const play = scEl('button', {
       class: 'sc-music-play', type: 'button', text: '▶',
       dataset: { musicId: track.music_id, url: track.url || '' }, attrs: { 'aria-label': 'Tocar prévia' },
@@ -972,7 +1088,7 @@ class StoryCreationModal {
       class: 'sc-music-usar', type: 'button', text: 'Usar',
       on: { click: () => this.#onUsarMusica(track) },
     });
-    return scEl('div', { class: 'sc-music-item', dataset: { musicId: track.music_id }, children: [
+    return scEl('div', { class: classe, dataset: { musicId: track.music_id }, children: [
       play,
       scEl('div', { class: 'sc-music-info', children: [
         scEl('span', { class: 'sc-music-nome', text: track.music_name || track.artist || 'Faixa' }),
@@ -1133,6 +1249,10 @@ class StoryCreationModal {
       this.#onKeydown = null;
     }
     try { clearTimeout(this.#musicSearchTimer); } catch (_) {}
+    try { this.#musicSheet?.removeEventListener?.('scroll', this.#onMusicScroll); } catch (_) {}
+    this.#onMusicScroll = null;
+    this.#limparSentinelMusica();
+    this.#pausarPreviewAudio();
     try { this.#playerSvc?.destruir(); } catch (_) {} // libera o <audio> da prévia (mantém a seleção no service)
     try { this.#overlayEl?.remove(); } catch (_) { /* mock */ }
     this.#overlayEl = null;

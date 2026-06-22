@@ -55,3 +55,12 @@ test('StoryEditorService.audioMix: defaults e clamp', () => {
   svc.resetar();
   assert.deepEqual(svc.audioMix, { manterOriginal: true, volumeVideo: 1, volumeMusica: 0.7 });
 });
+
+test('StoryEditorService.estado expoe aliases locais do preview de audio', () => {
+  const svc = new StoryEditorService();
+  svc.definirMixAudio({ keepOriginalAudio: false, videoVolume: 0.8, musicVolume: 0.4 });
+
+  assert.equal(svc.estado.keepOriginalAudio, false);
+  assert.equal(svc.estado.videoVolume, 0.8);
+  assert.equal(svc.estado.musicVolume, 0.4);
+});

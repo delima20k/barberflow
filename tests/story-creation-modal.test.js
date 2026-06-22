@@ -39,6 +39,7 @@ function makeEl(tag) {
     className: '', textContent: '', value: '', src: '',
     type: '', accept: '', placeholder: '',
     muted: false, hidden: false, disabled: false, files: null,
+    volume: 1, currentTime: 0, duration: 30, paused: true,
     _children: [], parentNode: null, dataset: {}, style: {}, attributes: {},
     get firstChild() { return el._children[0] ?? null; },
     classList: {
@@ -57,7 +58,9 @@ function makeEl(tag) {
     removeEventListener(ev, h) { if (listeners[ev]) listeners[ev] = listeners[ev].filter(f => f !== h); },
     _fire(ev, data = {}) { [...(listeners[ev] ?? [])].forEach(h => h({ target: el, preventDefault() {}, stopPropagation() {}, ...data })); },
     setPointerCapture() {}, releasePointerCapture() {},
-    focus() { el._fire('focus'); }, blur() { el._fire('blur'); }, click() { el._fire('click'); }, play() {},
+    focus() { el._fire('focus'); }, blur() { el._fire('blur'); }, click() { el._fire('click'); },
+    play() { el.paused = false; return Promise.resolve(); },
+    pause() { el.paused = true; },
     querySelector(s)    { return query(el, s)[0] ?? null; },
     querySelectorAll(s) { return query(el, s); },
   };
@@ -203,10 +206,12 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   await tick();
 
   const sheet = ov.querySelector('.sc-music-sheet');
+  assert.equal(ov.querySelector('.sc-music-title').textContent, 'Selecionar Música');
   assert.ok(sheet, 'modal de música aberta');
   assert.ok(ov.querySelector('.sc-music-search'), 'tem busca');
   assert.ok(ov.querySelectorAll('.sc-music-genre').length >= 3, 'tem chips de gênero (Todos + gêneros)');
   const items = ov.querySelectorAll('.sc-music-item');
+  assert.equal(ov.querySelector('.sc-music-more'), null, 'sem botao manual de carregar mais');
   assert.equal(items.length, 3, 'lista renderizada a partir do catálogo');
 
   ov.querySelector('.sc-music-usar')._fire('click');
@@ -215,6 +220,7 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   assert.equal(service.estado.musica.url, undefined, 'NÃO persiste url/áudio');
   assert.ok(ov.querySelector('.sc-mix'), 'painel de mix aparece após Usar');
   assert.equal(ov.querySelector('.sc-mix').hidden, false);
+  assert.equal(ov.querySelector('.sc-mix-title').textContent, 'Audio do Video');
 });
 
 test('sheet de musica mostra generos e lista mesmo com catalogo sob demanda lento', async () => {
@@ -244,6 +250,31 @@ test('sheet de musica mostra generos e lista mesmo com catalogo sob demanda lent
   await tick();
 
   assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'musicas entram quando a pagina chega');
+});
+
+test('sheet de musica renderiza 20 itens e carrega a proxima pagina ao rolar', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(45)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+
+  const sheet = ov.querySelector('.sc-music-sheet');
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 20, 'primeira pagina limita 20 itens');
+  assert.ok(ov.querySelector('.sc-music-sentinel'), 'tem sentinel de scroll infinito');
+  assert.equal(ov.querySelector('.sc-music-more'), null, 'nao usa botao carregar mais');
+
+  sheet.scrollTop = 600;
+  sheet.clientHeight = 400;
+  sheet.scrollHeight = 980;
+  sheet._fire('scroll');
+  await tick();
+  await tick();
+
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 40, 'scroll anexa a segunda pagina');
 });
 
 test('play da lista toca somente uma musica, atualiza pause/tempo e nao cria audios extras', async () => {
@@ -295,12 +326,69 @@ for (const tipo of ['imagem', 'video']) {
     assert.equal(service.estado.musica.music_name, 'Faixa 0');
     assert.equal(service.estado.musica.genre, 'Pop');
     assert.equal(service.estado.musica.url, undefined);
-    assert.equal(ov.querySelector('.sc-mix').hidden, false);
+    assert.equal(ov.querySelector('.sc-mix')?.hidden ?? true, tipo === 'imagem');
     assert.equal(FakeAudio.instances.length, 1);
     assert.equal(FakeAudio.instances[0].src, 'https://r2/0.m4a');
     assert.equal(FakeAudio.instances[0].playCount, 1);
   });
 }
+
+test('painel Audio do Video ajusta volumes locais e sincroniza play/pause', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  service.definirMedia({ file: { type: 'video/mp4', size: 10 }, tipo: 'video', origem: 'upload' });
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(1)) });
+  const FakeAudio = FakeAudioFactory();
+  sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+
+  const video = ov.querySelector('.sc-preview').querySelector('video');
+  const keep = ov.querySelector('.sc-mix-keep');
+  const volVideo = ov.querySelector('.sc-mix-video');
+  const volMusic = ov.querySelector('.sc-mix-music');
+  const play = ov.querySelector('.sc-mix-play');
+  const time = ov.querySelector('.sc-mix-time');
+
+  volVideo.value = '80';
+  volVideo._fire('input');
+  volMusic.value = '40';
+  volMusic._fire('input');
+
+  assert.equal(service.estado.keepOriginalAudio, true);
+  assert.equal(service.estado.videoVolume, 0.8);
+  assert.equal(service.estado.musicVolume, 0.4);
+  assert.equal(video.volume, 0.8);
+  assert.equal(FakeAudio.instances[0].volume, 0.4);
+  assert.equal(time.textContent, '00:00 / 00:30');
+
+  keep.checked = false;
+  keep._fire('change');
+  assert.equal(service.estado.keepOriginalAudio, false);
+  assert.equal(video.muted, true);
+  assert.equal(video.volume, 0);
+  assert.equal(volVideo.disabled, true);
+
+  video.currentTime = 8;
+  video.duration = 30;
+  if (!video.paused) play._fire('click');
+  assert.equal(video.paused, true);
+  play._fire('click');
+  assert.equal(video.paused, false);
+  assert.equal(FakeAudio.instances[0].currentTime, 8);
+  assert.equal(play.getAttribute('aria-label'), 'Pausar preview');
+
+  video._fire('timeupdate');
+  assert.equal(time.textContent, '00:08 / 00:30');
+
+  play._fire('click');
+  assert.equal(video.paused, true);
+  assert.equal(FakeAudio.instances[0].paused, true);
+  assert.equal(play.getAttribute('aria-label'), 'Tocar preview');
+});
 
 test('fechar mantem selecao e cancelar remove musica selecionada', async () => {
   const { sandbox, document } = criarSandbox();
@@ -321,10 +409,15 @@ test('fechar mantem selecao e cancelar remove musica selecionada', async () => {
   ov = getOverlay(document);
   ov.querySelectorAll('.sc-tool')[2]._fire('click');
   await tick();
+  assert.equal(ov.querySelector('.sc-music-item.is-sel')?.dataset.musicId, 'id-0', 'reabrir restaura selecao visual');
   ov.querySelector('.sc-music-usar')._fire('click');
   ov.querySelector('.sc-mix-remover')._fire('click');
 
   assert.equal(service.estado.musica, null, 'cancelar/remove limpa a selecao');
+  assert.equal(service.estado.selectedMusic, null, 'snapshot seguro limpo');
+  assert.equal(service.estado.previewMusic, null, 'preview seguro limpo');
+  assert.equal(service.estado.previewDuration, 0, 'duracao de preview limpa');
+  assert.equal(service.estado.musicGenre, null, 'genero limpo');
   assert.equal(ov.querySelector('.sc-mix').hidden, true);
 });
 

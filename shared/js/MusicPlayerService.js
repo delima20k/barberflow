@@ -44,6 +44,7 @@ class MusicPlayerService {
   get tocando()     { return !!this.#player?.tocando; }
   get currentId()   { return this.#currentTrack?.music_id ?? null; }
   get currentTrack(){ return this.#currentTrack ? { ...this.#currentTrack } : null; }
+  get currentTime() { return Number(this.#player?.currentTime) || 0; }
 
   set volume(v) { if (this.#player) this.#player.volume = v; }
   get volume()  { return this.#player ? this.#player.volume : 1; }
@@ -63,6 +64,13 @@ class MusicPlayerService {
   }
 
   pausar() { this.#player?.parar(); }
+
+  sincronizarTempo(segundos) {
+    if (!this.#player) return;
+    const tempo = Number(segundos);
+    if (!Number.isFinite(tempo) || tempo < 0) return;
+    this.#player.currentTime = tempo;
+  }
 
   destruir() { this.#player?.destruir(); this.#currentTrack = null; }
 

@@ -67,3 +67,14 @@ test('MusicPlayerService limita o preview a 30s e pausa ao atingir o limite', ()
   assert.equal(progress.at(-1).currentTime, 30);
   assert.equal(progress.at(-1).duration, 30);
 });
+
+test('MusicPlayerService permite sincronizar o tempo do audio com o video', () => {
+  const FakeAudio = FakeAudioFactory();
+  const service = new MusicPlayerService({ AudioCtor: FakeAudio });
+
+  service.tocar(track(1));
+  service.sincronizarTempo(12.4);
+
+  assert.equal(FakeAudio.instances[0].currentTime, 12.4);
+  assert.equal(service.currentTime, 12.4);
+});

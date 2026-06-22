@@ -112,16 +112,58 @@ test('definirMusica guarda a trilha; estado inclui musica; resetar limpa', () =>
   const svc = new StoryEditorService();
   assert.equal(svc.musica, null);
 
-  svc.definirMusica({ music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' });
-  assert.deepEqual(svc.musica, { music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' });
-  assert.deepEqual(svc.estado.musica, { music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' });
+  const ref = { music_id: 'm1', music_name: 'Batida Urban', music_duration: 35, genre: 'Funk' };
+  svc.definirMusica({ ...ref, url: 'https://cdn.example.test/x.m4a' });
+  assert.deepEqual(svc.musica, ref);
+  assert.deepEqual(svc.estado.musica, ref);
+  assert.deepEqual(svc.estado.selectedMusic, ref);
+  assert.deepEqual(svc.estado.previewMusic, ref);
+  assert.equal(svc.estado.previewDuration, 30);
+  assert.equal(svc.estado.musicGenre, 'Funk');
+  assert.equal(svc.estado.selectedMusic.url, undefined);
 
   svc.removerMusica();
   assert.equal(svc.musica, null);
+  assert.equal(svc.estado.selectedMusic, null);
+  assert.equal(svc.estado.previewMusic, null);
+  assert.equal(svc.estado.previewDuration, 0);
+  assert.equal(svc.estado.musicGenre, null);
 
   svc.definirMusica({ music_id: 'm2', music_name: 'Lo-fi', music_duration: 20, genre: 'LoFi' });
   svc.resetar();
   assert.equal(svc.estado.musica, null);
+  assert.equal(svc.estado.selectedMusic, null);
+  assert.equal(svc.estado.previewMusic, null);
+  assert.equal(svc.estado.previewDuration, 0);
+  assert.equal(svc.estado.musicGenre, null);
+});
+
+test('definirMusica substitui a anterior em 100 trocas sem campos inseguros', () => {
+  const svc = new StoryEditorService();
+  const heapBefore = process.memoryUsage().heapUsed;
+
+  for (let i = 0; i < 100; i += 1) {
+    svc.definirMusica({
+      music_id: `musica-${i}`,
+      music_name: `Faixa ${i}`,
+      music_duration: 45,
+      genre: i % 2 === 0 ? 'Pop' : 'Rock',
+      url: `https://cdn.example.test/${i}.m4a`,
+      blob: 'blob-nao-persiste',
+    });
+  }
+
+  assert.deepEqual(svc.estado.selectedMusic, {
+    music_id: 'musica-99',
+    music_name: 'Faixa 99',
+    music_duration: 45,
+    genre: 'Rock',
+  });
+  assert.equal(svc.estado.previewDuration, 30);
+  assert.equal(svc.estado.selectedMusic.url, undefined);
+  assert.equal(svc.estado.selectedMusic.blob, undefined);
+  const heapDeltaMb = (process.memoryUsage().heapUsed - heapBefore) / 1024 / 1024;
+  assert.ok(heapDeltaMb < 20, `crescimento de heap alto: ${heapDeltaMb.toFixed(2)}MB`);
 });
 
 // ── Interface comum (Open/Closed) ────────────────────────────

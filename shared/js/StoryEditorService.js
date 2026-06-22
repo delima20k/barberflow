@@ -128,11 +128,16 @@ class StoryEditorService {
   #media       = null;   // { file, tipo:'video'|'imagem', origem:'upload'|'camera' }
   #overlays    = [];     // OverlayBase[]
   #musica      = null;   // { id, titulo, artista } | null — trilha escolhida
+  #musicaEstado = StoryEditorService.#estadoMusicaPadrao();
   #audioMix    = StoryEditorService.#mixPadrao(); // mix de áudio do story final
   #maxOverlays = 20;
 
   static #mixPadrao() {
     return { manterOriginal: true, volumeVideo: 1, volumeMusica: 0.7 };
+  }
+
+  static #estadoMusicaPadrao() {
+    return { selectedMusic: null, previewMusic: null, previewDuration: 0, musicGenre: null };
   }
 
   static #clampVol(v, fallback) {
@@ -232,20 +237,28 @@ class StoryEditorService {
    * @param {{ music_id, music_name, music_duration, genre }|null} musica
    */
   definirMusica(musica) {
-    if (!musica) { this.#musica = null; return null; }
+    if (!musica) { this.removerMusica(); return null; }
     this.#musica = {
       music_id: String(musica.music_id ?? musica.id ?? ''),
       music_name: String(musica.music_name ?? musica.titulo ?? ''),
       music_duration: Number(musica.music_duration ?? musica.duration) || 0,
       genre: String(musica.genre ?? ''),
     };
+    this.#musicaEstado = StoryEditorService.#snapshotMusica(this.#musica);
     return this.#musica;
   }
 
-  removerMusica() { this.#musica = null; }
+  removerMusica() {
+    this.#musica = null;
+    this.#musicaEstado = StoryEditorService.#estadoMusicaPadrao();
+  }
 
   get musica() {
     return this.#musica ? { ...this.#musica } : null;
+  }
+
+  get musicaEstado() {
+    return StoryEditorService.#cloneEstadoMusica(this.#musicaEstado);
   }
 
   // ── Mix de áudio (preview/queima final) ────────────────────
@@ -258,10 +271,15 @@ class StoryEditorService {
    */
   definirMixAudio(parcial = {}) {
     const atual = this.#audioMix;
+    const manterOriginal = parcial.manterOriginal !== undefined
+      ? parcial.manterOriginal
+      : parcial.keepOriginalAudio;
+    const volumeVideo = parcial.volumeVideo !== undefined ? parcial.volumeVideo : parcial.videoVolume;
+    const volumeMusica = parcial.volumeMusica !== undefined ? parcial.volumeMusica : parcial.musicVolume;
     this.#audioMix = {
-      manterOriginal: parcial.manterOriginal === undefined ? atual.manterOriginal : !!parcial.manterOriginal,
-      volumeVideo: StoryEditorService.#clampVol(parcial.volumeVideo, atual.volumeVideo),
-      volumeMusica: StoryEditorService.#clampVol(parcial.volumeMusica, atual.volumeMusica),
+      manterOriginal: manterOriginal === undefined ? atual.manterOriginal : !!manterOriginal,
+      volumeVideo: StoryEditorService.#clampVol(volumeVideo, atual.volumeVideo),
+      volumeMusica: StoryEditorService.#clampVol(volumeMusica, atual.volumeMusica),
     };
     return { ...this.#audioMix };
   }
@@ -276,7 +294,7 @@ class StoryEditorService {
   resetar() {
     this.#media = null;
     this.#overlays = [];
-    this.#musica = null;
+    this.removerMusica();
     this.#audioMix = StoryEditorService.#mixPadrao();
   }
 
@@ -286,7 +304,38 @@ class StoryEditorService {
       media: this.media,
       overlays: this.#overlays.map(o => o.paraJSON()),
       musica: this.musica,
+      ...this.musicaEstado,
       audioMix: this.audioMix,
+      keepOriginalAudio: this.#audioMix.manterOriginal,
+      videoVolume: this.#audioMix.volumeVideo,
+      musicVolume: this.#audioMix.volumeMusica,
+    };
+  }
+
+  static #snapshotMusica(ref) {
+    const segura = ref ? {
+      music_id: String(ref.music_id ?? ''),
+      music_name: String(ref.music_name ?? ''),
+      music_duration: Number(ref.music_duration) || 0,
+      genre: String(ref.genre ?? ''),
+    } : null;
+    const previewDuration = segura
+      ? Math.min(30, Math.max(0, Number(segura.music_duration) || 0))
+      : 0;
+    return {
+      selectedMusic: segura ? { ...segura } : null,
+      previewMusic: segura ? { ...segura } : null,
+      previewDuration,
+      musicGenre: segura?.genre ?? null,
+    };
+  }
+
+  static #cloneEstadoMusica(estado) {
+    return {
+      selectedMusic: estado.selectedMusic ? { ...estado.selectedMusic } : null,
+      previewMusic: estado.previewMusic ? { ...estado.previewMusic } : null,
+      previewDuration: estado.previewDuration,
+      musicGenre: estado.musicGenre ?? null,
     };
   }
 
