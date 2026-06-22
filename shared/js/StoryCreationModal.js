@@ -856,6 +856,7 @@ class StoryCreationModal {
     if (this.#musicSheet) { this.#musicSheet.hidden = false; return; }
     this.#construirMusicSheet();
     this.#overlayEl.appendChild(this.#musicSheet);
+    this.#renderGeneros();
     void this.#carregarCatalogo();
   }
 
@@ -924,7 +925,7 @@ class StoryCreationModal {
       [...(this.#musicList.querySelectorAll?.('.sc-music-more') ?? [])].forEach(el => el.remove());
     }
     const { pagina } = this.#musicState;
-    const page = await this.#buscarPaginaMusica(pagina);
+    const page = await this.#buscarPaginaMusica(pagina).catch(() => []);
     if (reset) this.#musicState.filtrados = page;
     else this.#musicState.filtrados = [...this.#musicState.filtrados, ...page];
     if (this.#musicEmpty) this.#musicEmpty.hidden = this.#musicState.filtrados.length > 0;

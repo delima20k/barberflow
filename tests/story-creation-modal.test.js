@@ -217,6 +217,35 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   assert.equal(ov.querySelector('.sc-mix').hidden, false);
 });
 
+test('sheet de musica mostra generos e lista mesmo com catalogo sob demanda lento', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  let resolverPagina;
+  const catalogo = {
+    generos: () => ['Todos', 'Pop', 'Rock'],
+    buscarPagina: () => new Promise((resolve) => {
+      resolverPagina = resolve;
+    }),
+  };
+
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+
+  const sheet = ov.querySelector('.sc-music-sheet');
+  assert.ok(sheet, 'sheet existe imediatamente');
+  assert.ok(ov.querySelector('.sc-music-search'), 'input de busca existe');
+  assert.equal(ov.querySelectorAll('.sc-music-genre').length, 3, 'generos aparecem antes da resposta');
+  assert.ok(ov.querySelector('.sc-music-list'), 'container principal da lista existe');
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 0, 'lista aguarda pagina');
+
+  resolverPagina({ tracks: catalogoFixture(2).tracks, totalPages: 1, hasMore: false });
+  await tick();
+
+  assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'musicas entram quando a pagina chega');
+});
+
 test('play da lista toca somente uma musica, atualiza pause/tempo e nao cria audios extras', async () => {
   const { sandbox, document } = criarSandbox();
   const service = new sandbox.StoryEditorService();
