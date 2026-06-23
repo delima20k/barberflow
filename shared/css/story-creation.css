@@ -306,19 +306,16 @@
 }
 .sc-emoji-btn:hover { background: rgba(255, 255, 255, .1); }
 
-/* Sub-modal de músicas */
+/* Sub-modal de músicas — cobre tela toda, acima de text-bar e bottom-actions */
 .sc-music-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
-  max-height: 50%;
-  overflow-y: auto;
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  overflow: hidden;
   background: rgba(18, 14, 10, .98);
-  border-top: 1px solid var(--gold-border, rgba(212, 160, 23, .4));
-  border-radius: 16px 16px 0 0;
-  padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  border-top: none;
+  border-radius: 0;
+  padding: 14px 14px 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -366,6 +363,16 @@
 }
 .sc-music-search::placeholder { color: rgba(255, 255, 255, .5); }
 
+/* Controle de volume da música (dentro do sheet) */
+.sc-music-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0 6px;
+}
+.sc-music-vol-icon { font-size: 1rem; flex: 0 0 auto; color: rgba(255, 255, 255, .7); }
+.sc-music-vol-range { flex: 1 1 auto; accent-color: var(--gold, #d4a017); cursor: pointer; }
+
 /* Chips de gênero (rolagem horizontal) */
 .sc-music-genres {
   display: flex;
@@ -393,12 +400,16 @@
   color: #1a1208;
 }
 
-/* Lista de músicas */
+/* Lista de músicas — cresce e rola dentro do sheet fullscreen */
 .sc-music-list {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
   align-items: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 .sc-music-empty { color: rgba(255, 255, 255, .55); font-size: .85rem; padding: 14px 4px; text-align: center; }
 

@@ -860,6 +860,15 @@ class StoryCreationModal {
     if (this.#playerSvc) this.#playerSvc.volume = mix.volumeMusica;
   }
 
+  #abaixarVolumeVideo() {
+    if (!this.#videoEl) return;
+    try { this.#videoEl.volume = Math.min(this.#videoEl.volume, 0.2); } catch (_) {}
+  }
+
+  #restaurarVolumeVideo() {
+    this.#aplicarVolumePreview();
+  }
+
   // ── Texto ──────────────────────────────────────────────────
 
   #ehVideoAtual() {
@@ -965,14 +974,15 @@ class StoryCreationModal {
   // ── Música ─────────────────────────────────────────────────
 
   #abrirMusicas() {
-    if (this.#musicSheet) { this.#musicSheet.hidden = false; return; }
+    if (this.#musicSheet) { this.#musicSheet.hidden = false; this.#abaixarVolumeVideo(); return; }
     this.#construirMusicSheet();
     this.#stageEl()?.appendChild(this.#musicSheet);
+    this.#abaixarVolumeVideo();
     this.#renderGeneros();
     void this.#carregarCatalogo();
   }
 
-  /** Monta o esqueleto do sheet: título, busca, gêneros e lista. */
+  /** Monta o esqueleto do sheet: título, volume, busca, gêneros e lista. */
   #construirMusicSheet() {
     const header = this.#sheetHeader({
       title: 'Selecionar Música',
@@ -980,6 +990,15 @@ class StoryCreationModal {
       closeClass: 'sc-music-close',
       onClose: () => this.#fecharMusicSheet(),
     });
+    const volRow = scEl('div', { class: 'sc-music-vol-row', children: [
+      scEl('span', { class: 'sc-music-vol-icon', text: '🔊' }),
+      scEl('input', {
+        type: 'range',
+        class: 'sc-music-vol-range',
+        attrs: { min: '0', max: '100', value: '70', 'aria-label': 'Volume da música' },
+        on: { input: (e) => { if (this.#playerSvc) this.#playerSvc.volume = Number(e.target.value) / 100; } },
+      }),
+    ] });
     const search = scEl('input', {
       class: 'sc-music-search', type: 'search',
       placeholder: 'Pesquisar música…', attrs: { 'aria-label': 'Pesquisar música' },
@@ -991,15 +1010,16 @@ class StoryCreationModal {
     this.#musicList   = scEl('div', { class: 'sc-music-list' });
 
     this.#musicSheet = scEl('div', { class: 'sc-music-sheet', attrs: { role: 'menu' }, children: [
-      header, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
+      header, volRow, search, this.#musicGenres, this.#musicEmpty, this.#musicList,
     ] });
     this.#onMusicScroll = () => this.#verificarScrollMusicas();
-    this.#musicSheet.addEventListener?.('scroll', this.#onMusicScroll);
+    this.#musicList.addEventListener?.('scroll', this.#onMusicScroll);
     this.#previewCtrl?.setLista(this.#musicList);
   }
 
   #fecharMusicSheet() {
     if (this.#musicSheet) this.#musicSheet.hidden = true;
+    this.#restaurarVolumeVideo();
   }
 
   async #carregarCatalogo() {
@@ -1296,7 +1316,7 @@ class StoryCreationModal {
       this.#onKeydown = null;
     }
     try { clearTimeout(this.#musicSearchTimer); } catch (_) {}
-    try { this.#musicSheet?.removeEventListener?.('scroll', this.#onMusicScroll); } catch (_) {}
+    try { this.#musicList?.removeEventListener?.('scroll', this.#onMusicScroll); } catch (_) {}
     this.#onMusicScroll = null;
     this.#limparSentinelMusica();
     this.#pausarPreviewAudio();
