@@ -587,6 +587,21 @@ class StoryCreationModal {
     '💥','😱','😮','😢','🥰','😘','💕','👀','💇','🪒',
   ];
 
+  static CORES = [
+    '#ffffff', '#000000', '#d4a017', '#ff3b30', '#007aff',
+    '#34c759', '#ff2d55', '#ff9500', '#af52de',
+  ];
+
+  static FONTES = [
+    { nome: 'Padrão',      familia: 'sans-serif' },
+    { nome: 'Baby Azalea', familia: '"Baby Azalea"' },
+    { nome: 'Bartonis',    familia: '"Bartonis One Demo"' },
+    { nome: 'Broughton',   familia: '"Broughton"' },
+    { nome: 'Hadrey',      familia: '"Hadrey"' },
+    { nome: 'Qiduwy',      familia: '"QiduwyPesonaluse"' },
+    { nome: 'Sounding',    familia: '"SoundingScript Free"' },
+  ];
+
   static FRASES = [
     'Reserve agora!', 'Novidade!', 'Promoção especial', 'Corte do dia',
     'Barba feita!', 'Visual novo', 'Agende já!', 'Transformação total',
@@ -638,6 +653,10 @@ class StoryCreationModal {
   #mixRefs   = null;
   #mixPlayBtn = null;
   #mixTimeEl = null;
+
+  #corTexto   = '#ffffff';
+  #fonteTexto = 'sans-serif';
+  #fontBtnEls = [];
 
   #frasesSheet    = null;
   #stageVolumes   = null;
@@ -738,6 +757,7 @@ class StoryCreationModal {
     this.#sendBtn = scEl('button', { class: 'sc-text-send', type: 'button', text: '➤', attrs: { 'aria-label': 'Adicionar texto' }, on: { click: () => this.#enviarTexto() } });
     this.#sendBtn.disabled = true;
     const textBar = scEl('div', { class: 'sc-text-bar', children: [
+      this.#construirTextExtras(),
       scEl('div', { class: 'sc-text-wrap', children: [this.#input, this.#sendBtn] }),
     ] });
 
@@ -783,6 +803,59 @@ class StoryCreationModal {
 
   #stageEl() {
     return this.#overlayEl?.querySelector?.('.sc-stage') ?? this.#overlayEl;
+  }
+
+  // ── Cor e fonte do texto ───────────────────────────────────
+
+  #construirTextExtras() {
+    const fontBtn = this.#criarFontBtn();
+    return scEl('div', { class: 'sc-text-extras', children: [
+      this.#construirCores(),
+      fontBtn,
+    ] });
+  }
+
+  #construirCores() {
+    return scEl('div', { class: 'sc-tcor-row', children:
+      StoryCreationModal.CORES.map(cor => {
+        const btn = scEl('button', {
+          class: 'sc-tcor-btn' + (cor === this.#corTexto ? ' is-sel' : ''),
+          type: 'button', dataset: { cor }, attrs: { 'aria-label': cor },
+          on: { click: () => { this.#corTexto = cor; this.#sincronizarCores(); } },
+        });
+        btn.style.background = cor;
+        return btn;
+      })
+    });
+  }
+
+  #criarFontBtn() {
+    const fonte = StoryCreationModal.FONTES.find(f => f.familia === this.#fonteTexto) ?? StoryCreationModal.FONTES[0];
+    const btn = scEl('button', {
+      class: 'sc-tfont-btn', type: 'button',
+      text: 'Aa', attrs: { 'aria-label': 'Mudar fonte', title: fonte.nome },
+      on: { click: () => this.#ciclaisFonte() },
+    });
+    btn.style.fontFamily = fonte.familia;
+    this.#fontBtnEls.push(btn);
+    return btn;
+  }
+
+  #sincronizarCores() {
+    this.#overlayEl?.querySelectorAll?.('.sc-tcor-btn').forEach(btn => {
+      btn.classList.toggle('is-sel', btn.dataset.cor === this.#corTexto);
+    });
+  }
+
+  #ciclaisFonte() {
+    const fontes = StoryCreationModal.FONTES;
+    const idx = fontes.findIndex(f => f.familia === this.#fonteTexto);
+    this.#fonteTexto = fontes[(idx + 1) % fontes.length].familia;
+    this.#fontBtnEls.forEach(btn => {
+      const f = StoryCreationModal.FONTES.find(f => f.familia === this.#fonteTexto) ?? StoryCreationModal.FONTES[0];
+      btn.style.fontFamily = this.#fonteTexto;
+      btn.title = f.nome;
+    });
   }
 
   #sheetHeader({ title, titleClass, closeClass, onClose }) {
@@ -1143,10 +1216,16 @@ class StoryCreationModal {
         closeClass: 'sc-frase-close',
         onClose: () => this.#fecharFrasesSheet(),
       }),
+      // Linha de cores também dentro do painel de frases
+      scEl('div', { class: 'sc-text-extras', children: [
+        this.#construirCores(),
+        this.#criarFontBtn(),
+      ] }),
       grid,
     ] });
     this.#frasesSheet = sheet;
-    this.#stageEl()?.appendChild(sheet);
+    // Appended to overlay para cobrir sc-text-bar e sc-bottom-actions
+    this.#overlayEl?.appendChild(sheet);
   }
 
   #fecharFrasesSheet() {
@@ -1430,6 +1509,10 @@ class StoryCreationModal {
     if (!overlay || !this.#preview) return;
     const el = overlay.render(document);
     if (!el) return;
+    if (overlay.tipo === 'texto') {
+      el.style.color = this.#corTexto;
+      el.style.fontFamily = this.#fonteTexto;
+    }
     this.#preview.appendChild(el);
     this.#ativarGestos(el, overlay);
   }
