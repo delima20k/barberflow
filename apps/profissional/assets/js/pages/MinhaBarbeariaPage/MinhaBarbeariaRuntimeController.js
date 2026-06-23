@@ -2098,11 +2098,6 @@ export class MinhaBarbeariaRuntimeController {
         const info = document.createElement('div');
         info.className = 'story-card-info';
 
-        const nameP = document.createElement('p');
-        nameP.className   = 'story-card-name';
-        nameP.textContent = identityName;
-        info.appendChild(nameP);
-
         const addrP = document.createElement('p');
         addrP.className   = 'story-card-addr';
         addrP.textContent = story.created_at

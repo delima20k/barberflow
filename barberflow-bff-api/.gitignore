@@ -1,2 +1,6 @@
 .vercel
 .env*.local
+.env
+
+# pasta de ingestão de áudio (arquivos grandes, não vai para o git)
+audio/
