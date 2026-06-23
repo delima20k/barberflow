@@ -461,9 +461,13 @@ class StoryViewer {
     btnFechar.addEventListener('click', () => StoryViewer.fechar());
 
     svInfo.append(nome, addr);
-    svTop.append(badge, svInfo, btnFechar);
 
-    // Overlay do barbeiro por vídeo (abaixo do topo, à esquerda)
+    // Primeira linha do topo: badge + info + fechar
+    const svTopRow = document.createElement('div');
+    svTopRow.className = 'sv-top-row';
+    svTopRow.append(badge, svInfo, btnFechar);
+
+    // Segunda linha do topo: avatar + nome do barbeiro (visível apenas em stories de parceiro)
     const svBarberOverlay = document.createElement('div');
     svBarberOverlay.className = 'sv-barber-overlay';
     const svBarberAvatar = document.createElement('img');
@@ -474,6 +478,8 @@ class StoryViewer {
     svBarberName.className = 'sv-barber-name';
     svBarberOverlay.append(svBarberAvatar, svBarberName);
 
+    svTop.append(svTopRow, svBarberOverlay);
+
     const svBottom = document.createElement('div');
     svBottom.className = 'sv-bottom';
 
@@ -481,14 +487,14 @@ class StoryViewer {
     likeBtn.className = 'sv-like-btn';
     likeBtn.setAttribute('aria-label', 'Curtir story');
 
-    const likeImg = document.createElement('img');
-    likeImg.src = '/shared/img/icones_curtir.png';
-    likeImg.alt = 'curtir';
+    const likeIcon = document.createElement('span');
+    likeIcon.className = 'sv-like-icon';
+    likeIcon.textContent = '💎';
 
     const likeCount = document.createElement('span');
     likeCount.textContent = '0';
 
-    likeBtn.append(likeImg, likeCount);
+    likeBtn.append(likeIcon, likeCount);
     likeBtn.addEventListener('click', () => StoryViewer.toggleLike());
 
     // ── Botão comentar ──
@@ -535,7 +541,7 @@ class StoryViewer {
     comentInputWrap.append(comentInput, comentEnviar);
 
     comentPanel.append(comentHeader, comentLista, comentInputWrap);
-    inner.append(video, svTop, svBarberOverlay, svBottom, comentPanel);
+    inner.append(video, svTop, svBottom, comentPanel);
     return inner;
   }
 
@@ -559,7 +565,7 @@ class StoryViewer {
     StoryViewer.#els.addr      = inner.querySelector('.sv-addr');
     StoryViewer.#els.likeBtn   = inner.querySelector('.sv-like-btn');
     StoryViewer.#els.likeCount = inner.querySelector('.sv-like-btn span');
-    StoryViewer.#els.likeImg   = inner.querySelector('.sv-like-btn img');
+    StoryViewer.#els.likeImg   = inner.querySelector('.sv-like-btn .sv-like-icon');
     StoryViewer.#els.btnFechar   = inner.querySelector('.sv-fechar');
     StoryViewer.#els.btnComentar = inner.querySelector('.sv-comentar-btn');
   }

@@ -484,12 +484,12 @@ body.media-viewer-open { overflow: hidden; }
   text-overflow: ellipsis;
 }
 
-/* ── Overlay do barbeiro no viewer fullscreen ───────────────────── */
+/* ── Overlay do barbeiro no viewer fullscreen (2ª linha dentro de .sv-top) ── */
 .sv-barber-overlay {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 2px 0;
   pointer-events: none;
 }
 
