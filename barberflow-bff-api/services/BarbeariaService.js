@@ -475,10 +475,8 @@ class BarbeariaService extends BaseService {
     this._uuid('barbershopId', barbershopId);
 
     const storagePath = this._texto('storage_path', dados.storage_path ?? dados.path ?? '', 500, true);
-    const mediaType = this._texto('media_type', dados.media_type ?? dados.mediaType ?? '', 20, true).toLowerCase();
-    if (mediaType !== 'video') {
-      throw AppError.badRequest('Apenas videos podem ser publicados nos stories da barbearia por este endpoint.');
-    }
+    const mediaTypeRaw = this._texto('media_type', dados.media_type ?? dados.mediaType ?? '', 20, true);
+    const mediaType = BarbeariaService.#normalizarStoryMediaType(mediaTypeRaw);
 
     const mediaId = dados.media_id ?? dados.mediaId ?? null;
     if (mediaId !== null) {
@@ -494,7 +492,7 @@ class BarbeariaService extends BaseService {
 
     const quotaAtiva = await this.#repo.contarStoriesAtivos(userId, barbershopId);
     const limite = isOwner ? 3 : 1;
-    if (quotaAtiva >= limite) throw AppError.conflict('Limite de stories ativos atingido. Aguarde o vídeo expirar (24h).');
+    if (quotaAtiva >= limite) throw AppError.conflict('Limite de stories ativos atingido. Aguarde o story expirar (24h).');
 
     const expiresAt = dados.expires_at
       ? new Date(dados.expires_at)
@@ -666,6 +664,13 @@ class BarbeariaService extends BaseService {
     const n = Number(valor);
     if (!isFinite(n) || Number.isNaN(n) || n < 0) return null;
     return n;
+  }
+
+  static #normalizarStoryMediaType(valor) {
+    const tipo = String(valor ?? '').trim().toLowerCase();
+    if (tipo === 'video') return 'video';
+    if (tipo === 'image' || tipo === 'imagem') return 'image';
+    throw AppError.badRequest('Stories aceitam apenas imagem ou video.');
   }
 
   static #montarMensagemInteresse({ barbershopName, planName, monthlyPrice }) {

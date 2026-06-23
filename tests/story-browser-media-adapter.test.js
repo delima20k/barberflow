@@ -190,6 +190,17 @@ describe('StoryBrowserMediaAdapter', () => {
     assert.equal(runtime.includes("this.#mediaP2P.fazerUpload(uid, 'stories'"), false);
   });
 
+  it('nao deve bloquear imagem no publicador de stories do runtime', () => {
+    const runtime = fs.readFileSync(
+      path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js'),
+      'utf8',
+    );
+
+    assert.match(runtime, /startsWith\('video\/'\)\s*&&\s*!file\.type\?\.startsWith\('image\/'\)/);
+    assert.equal(runtime.includes('Video obrigatorio'), false);
+    assert.equal(runtime.includes('Envie um video para os stories da barbearia.'), false);
+  });
+
   it('nao deve manter bloqueio de stories por tamanho em MB no runtime', () => {
     const runtime = fs.readFileSync(
       path.join(ROOT, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js'),

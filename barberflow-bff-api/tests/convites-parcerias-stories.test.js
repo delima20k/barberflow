@@ -81,6 +81,32 @@ suite('BarbeariaService - stories de parceiro', () => {
     assert.strictEqual(payloadSalvo.media_id, null);
   });
 
+  test('salva story de imagem quando profissional tem vinculo ativo e quota disponivel', async () => {
+    let payloadSalvo = null;
+    const service = new BarbeariaService({
+      getAtivaPorOwner: async () => null,
+      profissionalTemVinculoAtivo: async (barbershopId, profissionalId) => {
+        assert.strictEqual(barbershopId, SHOP_ID);
+        assert.strictEqual(profissionalId, USER_ID);
+        return true;
+      },
+      contarStoriesAtivos: async () => 0,
+      salvarStory: async (payload) => {
+        payloadSalvo = payload;
+        return { id: INVITE_ID, ...payload };
+      },
+    });
+
+    const result = await service.salvarStoryProfissional(USER_ID, SHOP_ID, {
+      storage_path: 'stories/pro/imagem.webp',
+      media_type: 'image',
+      expires_at: '2026-05-27T00:00:00.000Z',
+    });
+
+    assert.strictEqual(result.storage_path, 'stories/pro/imagem.webp');
+    assert.strictEqual(payloadSalvo.media_type, 'image');
+  });
+
   test('salva story com media_id quando fornecido e pertence ao usuario', async () => {
     let payloadSalvo = null;
     const service = new BarbeariaService({

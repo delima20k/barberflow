@@ -2614,7 +2614,7 @@ export class MinhaBarbeariaRuntimeController {
         <div class="mb-prod-li--painel">
           <div class="mb-cfg-prod-img-wrap">
             <img class="mb-cfg-prod-img-preview" src="${MinhaBarbeariaRuntimeController.#escapeAttr(imgSrc)}" alt="">
-            <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+            <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">+</label>
             <input type="file" id="${uid}" accept="image/*" style="display:none">
           </div>
           <div class="mb-cfg-prod-fields">
@@ -3055,7 +3055,7 @@ export class MinhaBarbeariaRuntimeController {
       <div class="mb-prod-li--painel">
         <div class="mb-cfg-prod-img-wrap">
           <img class="mb-cfg-prod-img-preview" src="${esc(imgSrc)}" alt="">
-          <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+          <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">+</label>
           <input type="file" id="${uid}" accept="image/*" style="display:none">
         </div>
         <div class="mb-cfg-prod-fields">
@@ -3099,7 +3099,7 @@ export class MinhaBarbeariaRuntimeController {
         <div class="mb-prod-li--painel">
           <div class="mb-cfg-prod-img-wrap">
             <img class="mb-cfg-prod-img-preview" src="${esc(imgSrc)}" alt="">
-            <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">＋</label>
+            <label class="mb-cfg-prod-img-btn" for="${uid}" aria-label="Trocar imagem">+</label>
             <input type="file" id="${uid}" accept="image/*" style="display:none">
           </div>
           <div class="mb-cfg-prod-fields">
@@ -3275,8 +3275,8 @@ export class MinhaBarbeariaRuntimeController {
   async #postarStory(file) {
     if (!file || !this.#barbershopId) return;
 
-    if (!file.type?.startsWith('video/')) {
-      NotificationService?.mostrarToast('Video obrigatorio', 'Envie um video para os stories da barbearia.', 'sistema');
+    if (!file.type?.startsWith('video/') && !file.type?.startsWith('image/')) {
+      NotificationService?.mostrarToast('Formato invalido', 'Envie uma imagem ou um video para os stories da barbearia.', 'sistema');
       return;
     }
 
@@ -3301,7 +3301,7 @@ export class MinhaBarbeariaRuntimeController {
         preValidated: true, // arquivo já passou pelo StoryComposer (truncado a ≤30s)
       });
       if (!uploadResult) {
-        if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
+        if (addBtn) { addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; }
         return;
       }
 
@@ -3323,7 +3323,7 @@ export class MinhaBarbeariaRuntimeController {
       const mensagem = err?.message || 'Falha ao enviar mídia. Tente novamente.';
       const titulo = mensagem.startsWith('Este vídeo tem ') ? 'Limite' : 'Erro';
       NotificationService?.mostrarToast(titulo, mensagem, 'sistema');
-      if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }
+      if (addBtn) { addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; }
     }
   }
 
