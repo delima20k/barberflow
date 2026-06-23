@@ -697,19 +697,15 @@
   cursor: pointer;
 }
 
-/* Ferramentas sobrepostas no topo do preview (Música, Emoji, Frases) */
+/* Ferramentas acima do preview (Música, Emoji, Frases) */
 .sc-preview-top-tools {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  right: 0;
-  z-index: 6;
+  flex: 0 0 auto;
+  width: 100%;
   display: flex;
   justify-content: center;
   gap: 10px;
-  pointer-events: none;
+  padding: 6px 0 4px;
 }
-.sc-preview-top-tools > * { pointer-events: auto; }
 .sc-preview-ptool {
   width: 38px;
   height: 38px;

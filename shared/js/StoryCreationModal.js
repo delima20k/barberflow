@@ -712,7 +712,7 @@ class StoryCreationModal {
       this.#ptool('💬', 'Frases', () => this.#abrirFrases()),
     ] });
 
-    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing, topTools] });
+    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing] });
 
     // Área inferior: volumes (absoluto, flutua sobre botões) + botões de mídia
     this.#stageVolumes = this.#construirVolumes();
@@ -722,7 +722,7 @@ class StoryCreationModal {
     ] });
     const stageLower = scEl('div', { class: 'sc-stage-lower', children: [this.#stageVolumes, mediaBtns] });
 
-    const stage = scEl('div', { class: 'sc-stage', children: [this.#preview, stageLower] });
+    const stage = scEl('div', { class: 'sc-stage', children: [topTools, this.#preview, stageLower] });
 
     // Barra de texto (abaixo do preview)
     this.#input = scEl('input', {
