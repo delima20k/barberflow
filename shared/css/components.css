@@ -8513,19 +8513,18 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-media > img   { object-fit: cover; }
 .pp-prism-media > video { object-fit: cover; }
 
-/* Overlay rotativo dentro de cada face — identidade (esquerda) + like (direita) */
+/* Overlay dentro de cada face — identidade (esquerda) + like (direita) no TOPO */
 .pp-prism-face-overlay {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
   z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 40px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom));
-  background: linear-gradient(to top, rgba(0,0,0,.65) 0%, transparent 100%);
+  padding: 14px 40px 32px;
+  background: linear-gradient(to bottom, rgba(0,0,0,.65) 0%, transparent 100%);
   pointer-events: none;
 }
 .pp-prism-face-identity {
@@ -8570,7 +8569,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   pointer-events: auto;
 }
 .pp-prism-face-like-btn:hover { background: rgba(255,255,255,.15); }
-.pp-prism-face-like-btn.is-liked { color: #ff6b8a; border-color: #ff6b8a; }
+.pp-prism-face-like-btn.is-liked { color: rgba(212,175,55,.95); border-color: rgba(212,175,55,.95); }
 .pp-prism-face-like-btn[hidden] { display: none; }
 .pp-prism-face-like-icon { font-size: 1.1rem; line-height: 1; }
 .pp-prism-face-like-count { font-size: .7rem; font-weight: 700; line-height: 1; }

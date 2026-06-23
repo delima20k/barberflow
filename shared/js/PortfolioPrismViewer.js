@@ -1110,7 +1110,7 @@ class MediaPrismViewer {
     overlay.setAttribute('aria-hidden', 'true');
 
     const facesHtml = Array.from({ length: MediaPrismViewer.#SIDES }, (_, i) =>
-      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div><div class="pp-prism-progress" aria-hidden="true"></div><button type="button" class="pp-prism-face-close pp-prism-close" aria-label="Fechar">×</button><div class="pp-prism-face-overlay"><div class="pp-prism-face-identity"><img class="pp-prism-face-id-img" alt="" loading="lazy"><span class="pp-prism-face-id-name"></span></div><button type="button" class="pp-prism-face-like-btn" hidden aria-label="Curtir" aria-pressed="false"><span class="pp-prism-face-like-icon" aria-hidden="true">❤️</span><span class="pp-prism-face-like-count"></span></button></div></figure>`
+      `<figure class="pp-prism-face" data-face="${i}"><div class="pp-prism-media"></div><div class="pp-prism-progress" aria-hidden="true"></div><button type="button" class="pp-prism-face-close pp-prism-close" aria-label="Fechar">×</button><div class="pp-prism-face-overlay"><div class="pp-prism-face-identity"><img class="pp-prism-face-id-img" alt="" loading="lazy"><span class="pp-prism-face-id-name"></span></div><button type="button" class="pp-prism-face-like-btn" hidden aria-label="Curtir" aria-pressed="false"><span class="pp-prism-face-like-icon" aria-hidden="true">💎</span><span class="pp-prism-face-like-count"></span></button></div></figure>`
     ).join('');
 
     overlay.innerHTML = `
