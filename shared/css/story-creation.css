@@ -383,15 +383,17 @@
   gap: 6px;
   overflow-x: auto;
   padding: 8px 0;
+  flex-shrink: 0;
   -webkit-overflow-scrolling: touch;
 }
 .sc-music-genre {
   flex: 0 0 auto;
   border: none;
+  border-bottom: 1.5px solid rgba(255, 255, 255, .25);
   background: transparent;
   color: rgba(255, 255, 255, .7);
   border-radius: 0;
-  padding: 4px 8px;
+  padding: 0 6px 2px;
   font-size: .78rem;
   font-weight: 700;
   cursor: pointer;
@@ -399,15 +401,16 @@
 }
 .sc-music-genre.is-sel {
   color: var(--gold, #d4a017);
+  border-bottom-color: var(--gold, #d4a017);
 }
 
-/* Lista de músicas — cresce e rola dentro do sheet fullscreen */
+/* Lista de músicas — posição fixa no flex; só o conteúdo interno rola */
 .sc-music-list {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
   align-items: start;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
