@@ -110,6 +110,7 @@
   height: 100%;
   object-fit: contain;
   background: #000;
+  z-index: 1; /* abaixo dos overlays (z-index:5) e do caret (z-index:4) */
 }
 .sc-preview-vazio {
   position: absolute;

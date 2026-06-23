@@ -1573,6 +1573,7 @@ class StoryCreationModal {
     let drag = null;
     let pinch = null;
     let longPressTimer = null;
+    let longPressFired = false;
     let downPos = null;
     const LONG_MS = 500;
     const MOVE_PX = 6;
@@ -1590,9 +1591,11 @@ class StoryCreationModal {
         drag = { x: e.clientX, y: e.clientY, baseX: overlay.posicao.x, baseY: overlay.posicao.y };
         pinch = null;
         downPos = { x: e.clientX, y: e.clientY };
+        longPressFired = false;
         longPressTimer = setTimeout(() => {
           longPressTimer = null;
           downPos = null;
+          longPressFired = true;
           this.#ativarSelecao(el, overlay);
         }, LONG_MS);
         this.#activeOverlayGesture = { pts, onDown };
@@ -1625,7 +1628,16 @@ class StoryCreationModal {
     };
 
     const onUp = (e) => {
+      // Tap rápido (timer ainda ativo + sem movimento + sem long press):
+      // toggle do frame de seleção — abre se fechado, fecha se já aberto.
+      const wasTap = longPressTimer !== null && !longPressFired;
       clearTimeout(longPressTimer); longPressTimer = null; downPos = null;
+
+      if (wasTap) {
+        if (this.#selectedOverlayEl === el) this.#desativarSelecao();
+        else this.#ativarSelecao(el, overlay);
+      }
+
       pts.delete(e.pointerId);
       if (pts.size < 2) pinch = null;
       if (pts.size === 1) {
