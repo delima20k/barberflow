@@ -1393,6 +1393,12 @@ class StoryCreationModal {
     }
     this.#previewCtrl?.atualizarEstado();
     this.#atualizarVolumes();
+    // Baixa automaticamente o volume do vídeo original ao adicionar música
+    if (this.#videoEl && this.#volVideoSlider) {
+      try { this.#videoEl.volume = 0.2; } catch (_) {}
+      this.#volVideoSlider.value = '20';
+      this.#volVideoSlider.style.setProperty('--vol-pct', '20%');
+    }
   }
 
   /** Hook do MusicSelectionController: revela o mix e ajusta volumes do preview. */
