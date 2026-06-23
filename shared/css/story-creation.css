@@ -210,6 +210,30 @@
 }
 .sc-live-text[hidden] { display: none; }
 
+.sc-music-copyright-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-preview-overlay, 60);
+  pointer-events: none;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, .54);
+  color: rgba(255, 255, 255, .92);
+  font-size: .66rem;
+  line-height: 1.25;
+  text-align: center;
+  white-space: pre-line;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .85);
+}
+
 /* Barra de texto ABAIXO do preview (extras + input + enviar dentro) */
 .sc-text-bar {
   flex: 0 0 auto;
@@ -945,3 +969,54 @@
   transition: background .15s;
 }
 .sc-frase-btn:hover { background: rgba(255, 255, 255, .14); }
+
+/* ── Seleção de overlay (long press) ─────────────────────────── */
+
+.sc-ov-sel {
+  position: absolute;
+  inset: -12px;
+  border: 2px dashed rgba(255, 255, 255, .88);
+  border-radius: 8px;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+.sc-ov-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, .45);
+  border-radius: 4px;
+  pointer-events: all;
+  touch-action: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .5);
+}
+.sc-ov-corner--tl { top: -11px;    left: -11px;   cursor: nwse-resize; }
+.sc-ov-corner--tr { top: -11px;    right: -11px;  cursor: nesw-resize; }
+.sc-ov-corner--bl { bottom: -11px; left: -11px;   cursor: nesw-resize; }
+.sc-ov-corner--br { bottom: -11px; right: -11px;  cursor: nwse-resize; }
+
+.sc-ov-del {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ff3b30;
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  touch-action: none;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .55);
+}

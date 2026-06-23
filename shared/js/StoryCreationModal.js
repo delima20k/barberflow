@@ -640,6 +640,7 @@ class StoryCreationModal {
   #playerSvc = null;    // MusicPlayerService (reusa AudioPreviewPlayer)
   #selection = null;    // MusicSelectionController
   #previewCtrl = null;  // MusicPreviewController
+  #previewMusicCtrl = null; // PreviewMusicController (creditos visuais)
   #musicList = null;
   #musicGenres = null;
   #musicEmpty = null;
@@ -657,6 +658,7 @@ class StoryCreationModal {
   #nomeBarbearia = '';
   #liveTextEl = null;
   #activeOverlayGesture = null;
+  #selectedOverlayEl = null;
 
   #corTexto   = '#ffffff';
   #fonteTexto = 'sans-serif';
@@ -695,6 +697,9 @@ class StoryCreationModal {
           onAplicar:  (t) => this.#aoAplicarMusica(t),
           onCancelar: ()  => this.#aoCancelarMusica(),
         })
+      : null;
+    this.#previewMusicCtrl = (typeof PreviewMusicController !== 'undefined')
+      ? new PreviewMusicController()
       : null;
   }
 
@@ -739,8 +744,13 @@ class StoryCreationModal {
     this.#liveTextEl = scEl('div', { class: 'sc-live-text' });
     this.#liveTextEl.hidden = true;
     this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing, this.#liveTextEl] });
-    // Rota o segundo dedo (fora do overlay) para o gesto do overlay ativo, permitindo pinça
+    // Rota o segundo dedo (fora do overlay) para o gesto do overlay ativo, permitindo pinça.
+    // Também desfaz a seleção ao tocar no fundo (vídeo/imagem ou preview vazio).
     this.#preview.addEventListener('pointerdown', (e) => {
+      const tgt = e.target;
+      if (tgt === this.#preview || tgt === this.#videoEl || tgt?.tagName === 'IMG') {
+        this.#desativarSelecao();
+      }
       const ag = this.#activeOverlayGesture;
       if (!ag || !ag.pts.size || ag.pts.has(e.pointerId)) return;
       ag.onDown(e);
@@ -755,6 +765,7 @@ class StoryCreationModal {
     const stageLower = scEl('div', { class: 'sc-stage-lower', children: [this.#stageVolumes, mediaBtns] });
 
     const stage = scEl('div', { class: 'sc-stage', children: [topTools, this.#preview, stageLower] });
+    this.#previewMusicCtrl?.reattach(stage);
 
     // Barra de texto (abaixo do preview)
     this.#input = scEl('input', {
@@ -952,6 +963,7 @@ class StoryCreationModal {
   #renderMidia() {
     const media = this.#service.media;
     if (!this.#preview) return;
+    this.#previewMusicCtrl?.reattach(this.#stageEl());
     // Remove mídia e overlays anteriores (troca de mídia reseta overlays)
     this.#limparPreviewMedia();
     this.#mediaStatus = 'vazio';
@@ -1493,8 +1505,11 @@ class StoryCreationModal {
 
   #onUsarMusica(track) {
     // Delega ao controller (seleciona + aplica preview + persiste a trilha).
-    this.#selection?.usar(track);
+    const ref = this.#selection?.usar(track);
+    if (!ref) return;
     this.#musicaSel = { ...track, src: track.url || track.src || null };
+    this.#previewMusicCtrl?.reattach(this.#stageEl());
+    this.#previewMusicCtrl?.selectMusic(track);
     if (this.#musicSheet) {
       [...(this.#musicSheet.querySelectorAll?.('.sc-music-item') ?? [])].forEach(b =>
         b.classList.toggle('is-sel', b.dataset.musicId === track.music_id));
@@ -1520,6 +1535,7 @@ class StoryCreationModal {
   /** Hook do MusicSelectionController: cancelar/remover música. */
   #aoCancelarMusica() {
     this.#musicaSel = null;
+    this.#previewMusicCtrl?.clear();
     if (this.#mixPanel) this.#mixPanel.hidden = true;
     [...(this.#musicSheet?.querySelectorAll?.('.sc-music-item.is-sel') ?? [])].forEach(b => b.classList.remove('is-sel'));
     this.#aplicarVolumePreview();
@@ -1547,25 +1563,38 @@ class StoryCreationModal {
     this.#ativarGestos(el, overlay);
   }
 
-  /** Arrastar (1 dedo) + pinça (2 dedos), Pointer Events nativos. */
+  /**
+   * Arrastar (1 dedo) + pinça (2 dedos) + long press (500 ms) para seleção.
+   * Long press sem movimento significativo (< 6 px) → abre o frame de seleção
+   * com alças de redimensionamento nas diagonais e botão X para apagar.
+   */
   #ativarGestos(el, overlay) {
-    const pts = new Map(); // pointerId -> { x, y }
-    let drag = null;       // { x, y, baseX, baseY }
-    let pinch = null;      // { dist, baseEscala }
+    const pts = new Map();
+    let drag = null;
+    let pinch = null;
+    let longPressTimer = null;
+    let downPos = null;
+    const LONG_MS = 500;
+    const MOVE_PX = 6;
     const svc = this.#service;
 
     const onDown = (e) => {
       el.setPointerCapture?.(e.pointerId);
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pts.size >= 2) {
+        clearTimeout(longPressTimer); longPressTimer = null; downPos = null;
         const [a, b] = [...pts.values()];
         pinch = { dist: Math.hypot(b.x - a.x, b.y - a.y) || 1, baseEscala: overlay.escala };
         drag = null;
       } else {
         drag = { x: e.clientX, y: e.clientY, baseX: overlay.posicao.x, baseY: overlay.posicao.y };
         pinch = null;
-        // Registrar este gesto como ativo para que o segundo dedo (em qualquer lugar
-        // do preview) seja roteado aqui e permita pinça em elementos pequenos como emojis.
+        downPos = { x: e.clientX, y: e.clientY };
+        longPressTimer = setTimeout(() => {
+          longPressTimer = null;
+          downPos = null;
+          this.#ativarSelecao(el, overlay);
+        }, LONG_MS);
         this.#activeOverlayGesture = { pts, onDown };
       }
       e.preventDefault();
@@ -1575,6 +1604,12 @@ class StoryCreationModal {
     const onMove = (e) => {
       if (!pts.has(e.pointerId)) return;
       pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (longPressTimer && downPos) {
+        const p = pts.get(e.pointerId);
+        if (Math.hypot(p.x - downPos.x, p.y - downPos.y) > MOVE_PX) {
+          clearTimeout(longPressTimer); longPressTimer = null; downPos = null;
+        }
+      }
       if (pts.size >= 2 && pinch) {
         const [a, b] = [...pts.values()];
         const d = Math.hypot(b.x - a.x, b.y - a.y);
@@ -1590,6 +1625,7 @@ class StoryCreationModal {
     };
 
     const onUp = (e) => {
+      clearTimeout(longPressTimer); longPressTimer = null; downPos = null;
       pts.delete(e.pointerId);
       if (pts.size < 2) pinch = null;
       if (pts.size === 1) {
@@ -1606,6 +1642,80 @@ class StoryCreationModal {
     el.addEventListener('pointerup', onUp);
     el.addEventListener('pointercancel', onUp);
     el.addEventListener('lostpointercapture', onUp);
+  }
+
+  /** Ativa o frame de seleção (borda + alças + X) no overlay informado. */
+  #ativarSelecao(el, overlay) {
+    this.#desativarSelecao();
+    this.#selectedOverlayEl = el;
+
+    const del = scEl('button', {
+      class: 'sc-ov-del', type: 'button', text: '×',
+      attrs: { 'aria-label': 'Apagar' },
+    });
+    del.addEventListener('pointerdown', (e) => e.stopPropagation());
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.#removerOverlay(el, overlay);
+    });
+
+    const corners = ['tl', 'tr', 'bl', 'br'].map(pos => {
+      const c = scEl('div', { class: `sc-ov-corner sc-ov-corner--${pos}` });
+      this.#ativarGestoCantoRedimensionar(c, overlay, el, pos);
+      return c;
+    });
+
+    el.appendChild(scEl('div', { class: 'sc-ov-sel', children: [...corners, del] }));
+  }
+
+  /** Remove o frame de seleção do overlay atualmente selecionado. */
+  #desativarSelecao() {
+    if (!this.#selectedOverlayEl) return;
+    this.#selectedOverlayEl.querySelector('.sc-ov-sel')?.remove();
+    this.#selectedOverlayEl = null;
+  }
+
+  /** Remove o overlay do serviço e do DOM. */
+  #removerOverlay(el, overlay) {
+    this.#service.removerOverlay(overlay.id);
+    if (this.#selectedOverlayEl === el) this.#selectedOverlayEl = null;
+    el.remove();
+  }
+
+  /**
+   * Gesto de redimensionamento por arrastar uma alça de canto.
+   * Dragging para fora do centro → aumenta; para dentro → diminui.
+   * A projeção do delta sobre o vetor diagonal do canto determina a mudança de escala.
+   */
+  #ativarGestoCantoRedimensionar(cornerEl, overlay, overlayEl, pos) {
+    // Vetores diagonais normalizados: tl=(-1,-1)/√2, tr=(1,-1)/√2, bl=(-1,1)/√2, br=(1,1)/√2
+    const DIRS = { tl: [-1, -1], tr: [1, -1], bl: [-1, 1], br: [1, 1] };
+    const [dx, dy] = DIRS[pos];
+    const S = Math.SQRT2;
+    const ndx = dx / S, ndy = dy / S;
+    const svc = this.#service;
+    let capturing = false, startX = 0, startY = 0, baseEscala = 1;
+
+    cornerEl.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      cornerEl.setPointerCapture?.(e.pointerId);
+      capturing = true;
+      startX = e.clientX; startY = e.clientY;
+      baseEscala = overlay.escala;
+    });
+
+    cornerEl.addEventListener('pointermove', (e) => {
+      if (!capturing) return;
+      const proj = (e.clientX - startX) * ndx + (e.clientY - startY) * ndy;
+      svc.redimensionarOverlay(overlay.id, baseEscala + proj * 0.018);
+      overlay.aplicarTransform(overlayEl);
+    });
+
+    const onUp = () => { capturing = false; };
+    cornerEl.addEventListener('pointerup', onUp);
+    cornerEl.addEventListener('pointercancel', onUp);
+    cornerEl.addEventListener('lostpointercapture', onUp);
   }
 
   #clamp(v, eixo) {
@@ -1674,6 +1784,7 @@ class StoryCreationModal {
     this.#limparSentinelMusica();
     this.#pausarPreviewAudio();
     try { this.#playerSvc?.destruir(); } catch (_) {} // libera o <audio> da prévia (mantém a seleção no service)
+    try { this.#previewMusicCtrl?.destroy(); } catch (_) {}
     this.#limparPreviewMedia();
     try { this.#overlayEl?.remove(); } catch (_) { /* mock */ }
     this.#overlayEl = null;
