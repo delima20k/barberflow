@@ -252,7 +252,7 @@ test('clicar + renderiza creditos de musica no palco sem duplicar overlay', asyn
 
   const creditos = ov.querySelector('.sc-music-copyright-overlay');
   assert.ok(creditos, 'creditos aparecem ao usar musica');
-  assert.equal(creditos.parentNode.className, 'sc-stage', 'overlay fica no container persistente da modal');
+  assert.equal(creditos.parentNode.className, 'sc-preview', 'overlay fica sobre a midia, no rodape do preview');
   assert.match(creditos.textContent, /Faixa 0/);
   assert.match(creditos.textContent, /Autor\/Artista:\nArtista/);
 
@@ -286,6 +286,7 @@ test('trocar midia mantem creditos e cancelar musica remove overlay', async () =
   await tick();
 
   assert.equal(ov.querySelector('.sc-music-copyright-overlay'), node, 'trocar midia preserva o mesmo overlay');
+  assert.equal(node.parentNode.className, 'sc-preview', 'trocar midia mantem creditos sobre a midia');
 
   ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
@@ -679,6 +680,25 @@ test('StoryComposer.compor nao reencoda video sem overlay visual', async () => {
   const out = await sandbox.StoryComposer.compor({ file: video, tipo: 'video', overlays: [] });
 
   assert.equal(out, video, 'sem texto/emoji, finalizacao usa o arquivo original rapidamente');
+});
+
+test('StoryComposer.deveComporVideo reencoda quando ha musica mesmo sem overlay visual', () => {
+  const { sandbox } = criarSandbox();
+  const SC = sandbox.StoryComposer;
+
+  assert.equal(SC.deveComporVideo({ overlays: [] }), false);
+  assert.equal(SC.deveComporVideo({
+    overlays: [],
+    musica: { music_id: 'm1' },
+    musicaSrc: 'https://r2/audio.m4a',
+    audioMix: { manterOriginal: true, volumeVideo: 0.8, volumeMusica: 0.7 },
+  }), true, 'musica escolhida precisa entrar no arquivo final');
+  assert.equal(SC.deveComporVideo({
+    overlays: [],
+    musica: null,
+    musicaSrc: null,
+    audioMix: { manterOriginal: false },
+  }), true, 'remover audio original tambem exige recomposicao');
 });
 
 test('Finalizar queima/comprime e entrega o arquivo em media.file (com overlays no estado)', async () => {

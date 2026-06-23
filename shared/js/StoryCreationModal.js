@@ -312,7 +312,7 @@ class StoryComposer {
     const tipo = opts.tipo
       || (String(file.type || '').startsWith('video') ? 'video' : 'imagem');
     if (!StoryComposer.#suporta()) return file; // fallback (ex.: sandbox de teste)
-    if (tipo !== 'imagem' && !StoryComposer.#temOverlayVisual(opts.overlays)) return file;
+    if (tipo !== 'imagem' && !StoryComposer.deveComporVideo(opts)) return file;
     try {
       return tipo === 'imagem'
         ? await StoryComposer.#comporImagem(opts)
@@ -329,6 +329,16 @@ class StoryComposer {
       const tipo = String(ov?.tipo ?? '');
       return (tipo === 'texto' || tipo === 'emoji') && String(ov?.conteudo ?? '').trim();
     });
+  }
+
+  static deveComporVideo(opts = {}) {
+    if (StoryComposer.#temOverlayVisual(opts.overlays)) return true;
+    const plano = StoryComposer.planoAudio({
+      musica: opts.musica,
+      musicaSrc: opts.musicaSrc,
+      audioMix: opts.audioMix,
+    });
+    return !!plano.usarMusica || !plano.usarOriginal || plano.volVideo < 0.999;
   }
 
   static async #comporVideo(opts) {
@@ -765,7 +775,7 @@ class StoryCreationModal {
     const stageLower = scEl('div', { class: 'sc-stage-lower', children: [this.#stageVolumes, mediaBtns] });
 
     const stage = scEl('div', { class: 'sc-stage', children: [topTools, this.#preview, stageLower] });
-    this.#previewMusicCtrl?.reattach(stage);
+    this.#previewMusicCtrl?.reattach(this.#preview);
 
     // Barra de texto (abaixo do preview)
     this.#input = scEl('input', {
@@ -827,6 +837,10 @@ class StoryCreationModal {
 
   #stageEl() {
     return this.#overlayEl?.querySelector?.('.sc-stage') ?? this.#overlayEl;
+  }
+
+  #previewEl() {
+    return this.#preview ?? this.#overlayEl?.querySelector?.('.sc-preview') ?? this.#stageEl();
   }
 
   // ── Cor e fonte do texto ───────────────────────────────────
@@ -963,7 +977,7 @@ class StoryCreationModal {
   #renderMidia() {
     const media = this.#service.media;
     if (!this.#preview) return;
-    this.#previewMusicCtrl?.reattach(this.#stageEl());
+    this.#previewMusicCtrl?.reattach(this.#previewEl());
     // Remove mídia e overlays anteriores (troca de mídia reseta overlays)
     this.#limparPreviewMedia();
     this.#mediaStatus = 'vazio';
@@ -1508,7 +1522,7 @@ class StoryCreationModal {
     const ref = this.#selection?.usar(track);
     if (!ref) return;
     this.#musicaSel = { ...track, src: track.url || track.src || null };
-    this.#previewMusicCtrl?.reattach(this.#stageEl());
+    this.#previewMusicCtrl?.reattach(this.#previewEl());
     this.#previewMusicCtrl?.selectMusic(track);
     if (this.#musicSheet) {
       [...(this.#musicSheet.querySelectorAll?.('.sc-music-item') ?? [])].forEach(b =>
