@@ -1175,15 +1175,15 @@ class StoryCreationModal {
       spectrum.appendChild(bar);
     }
     return scEl('div', { class: classe, dataset: { musicId: track.music_id }, children: [
-      scEl('div', { class: 'sc-music-item-row', children: [
-        play,
-        scEl('div', { class: 'sc-music-info', children: [
-          scEl('span', { class: 'sc-music-time', text: `00:00 / ${MusicPreviewController.fmtTempo(totalSeg)}` }),
+      play,
+      scEl('div', { class: 'sc-music-info', children: [
+        scEl('div', { class: 'sc-music-info-top', children: [
           scEl('span', { class: 'sc-music-nome', text: track.music_name || track.artist || 'Faixa' }),
+          scEl('span', { class: 'sc-music-time', text: `00:00 / ${MusicPreviewController.fmtTempo(totalSeg)}` }),
         ] }),
-        usar,
+        spectrum,
       ] }),
-      spectrum,
+      usar,
     ] });
   }
 
