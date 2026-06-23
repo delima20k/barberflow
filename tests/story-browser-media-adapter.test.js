@@ -13,7 +13,7 @@ function carregarAdapter(globals = {}) {
   return sandbox.StoryBrowserMediaAdapter;
 }
 
-function criarAmbienteVideo({ duration }) {
+function criarAmbienteVideo({ duration, autoMetadata = true, timers = {} }) {
   const revoked = [];
   let videoEl = null;
   const URL = {
@@ -31,12 +31,14 @@ function criarAmbienteVideo({ duration }) {
         load: fn(),
         onloadedmetadata: null,
         onerror: null,
+        onstalled: null,
+        onabort: null,
       };
-      Promise.resolve().then(() => videoEl.onloadedmetadata?.());
+      if (autoMetadata) Promise.resolve().then(() => videoEl.onloadedmetadata?.());
       return videoEl;
     },
   };
-  return { URL, document, revoked };
+  return { URL, document, revoked, ...timers };
 }
 
 describe('StoryBrowserMediaAdapter', () => {
@@ -138,6 +140,38 @@ describe('StoryBrowserMediaAdapter', () => {
         expiresAt: '2026-05-24T00:00:00.000Z',
       }),
       /Este vídeo tem 36s\. O limite máximo para Stories é de 30 segundos\./,
+    );
+
+    assert.equal(registrar.calls.length, 0);
+    assert.equal(fazerUpload.calls.length, 0);
+    assert.deepEqual(env.revoked, ['blob:story-video']);
+  });
+
+  it('deve falhar sem travar quando metadata do video nao responde', async () => {
+    const env = criarAmbienteVideo({
+      duration: NaN,
+      autoMetadata: false,
+      timers: {
+        setTimeout: (callback) => {
+          callback();
+          return 1;
+        },
+        clearTimeout: fn(),
+      },
+    });
+    const StoryBrowserMediaAdapter = carregarAdapter(env);
+    const registrar = fn();
+    const fazerUpload = fn();
+    const adapter = new StoryBrowserMediaAdapter({ mediaP2P: { registrar, fazerUpload } });
+
+    await assert.rejects(
+      () => adapter.upload({
+        file: { type: 'video/mp4', size: 1024 },
+        uid: 'story-timeout',
+        barbershopId: 'shop-1',
+        expiresAt: '2026-05-24T00:00:00.000Z',
+      }),
+      /Tempo esgotado ao ler a duracao do video/,
     );
 
     assert.equal(registrar.calls.length, 0);

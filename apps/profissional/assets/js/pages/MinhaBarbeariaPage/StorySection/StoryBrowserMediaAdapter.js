@@ -2,6 +2,7 @@ export class StoryBrowserMediaAdapter {
   // Upload de story sobe com no máximo 30s (a compressão no navegador corta para
   // 30s; +1s de folga para variação de timing do encoder).
   static #MAX_DURATION_SECONDS = 31;
+  static #METADATA_TIMEOUT_MS = 8000;
 
   #mediaP2P;
 
@@ -69,10 +70,12 @@ export class StoryBrowserMediaAdapter {
       const video = document.createElement('video');
       const objectUrl = URL.createObjectURL(file);
       let finalizado = false;
+      let timer = null;
 
       const finalizar = (callback, value) => {
         if (finalizado) return;
         finalizado = true;
+        if (timer && typeof clearTimeout === 'function') clearTimeout(timer);
         URL.revokeObjectURL?.(objectUrl);
         video.removeAttribute?.('src');
         video.load?.();
@@ -89,7 +92,15 @@ export class StoryBrowserMediaAdapter {
         finalizar(resolve, duration);
       };
       video.onerror = () => finalizar(reject, new Error('Não foi possível ler a duração do vídeo.'));
+      video.onstalled = () => finalizar(reject, new Error('O navegador travou ao ler este video. Tente outro MP4 curto.'));
+      video.onabort = () => finalizar(reject, new Error('Nao foi possivel ler a duracao do video.'));
+      if (typeof setTimeout === 'function') {
+        timer = setTimeout(() => {
+          finalizar(reject, new Error('Tempo esgotado ao ler a duracao do video. Tente outro MP4 curto.'));
+        }, StoryBrowserMediaAdapter.#METADATA_TIMEOUT_MS);
+      }
       video.src = objectUrl;
+      video.load?.();
     });
   }
 }
