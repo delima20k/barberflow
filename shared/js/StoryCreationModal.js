@@ -1160,16 +1160,30 @@ class StoryCreationModal {
       on: { click: () => this.#previewCtrl?.togglePlay(track) },
     });
     const usar = scEl('button', {
-      class: 'sc-music-usar', type: 'button', text: 'Usar',
+      class: 'sc-music-usar', type: 'button', text: '+',
+      attrs: { 'aria-label': 'Usar música' },
       on: { click: () => this.#onUsarMusica(track) },
     });
+    // Espectro: barras com altura e cadência aleatórias via CSS custom props
+    const spectrum = scEl('div', { class: 'sc-music-spectrum' });
+    for (let i = 0; i < 18; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'sc-music-bar';
+      bar.style.setProperty('--bar-h', (4 + Math.floor(Math.random() * 14)) + 'px');
+      bar.style.setProperty('--bar-d', (0.3 + Math.random() * 0.5).toFixed(2) + 's');
+      bar.style.animationDelay = (Math.random() * 0.3).toFixed(2) + 's';
+      spectrum.appendChild(bar);
+    }
     return scEl('div', { class: classe, dataset: { musicId: track.music_id }, children: [
-      play,
-      scEl('div', { class: 'sc-music-info', children: [
-        scEl('span', { class: 'sc-music-nome', text: track.music_name || track.artist || 'Faixa' }),
-        scEl('span', { class: 'sc-music-time', text: `00:00 / ${MusicPreviewController.fmtTempo(totalSeg)}` }),
+      scEl('div', { class: 'sc-music-item-row', children: [
+        play,
+        scEl('div', { class: 'sc-music-info', children: [
+          scEl('span', { class: 'sc-music-time', text: `00:00 / ${MusicPreviewController.fmtTempo(totalSeg)}` }),
+          scEl('span', { class: 'sc-music-nome', text: track.music_name || track.artist || 'Faixa' }),
+        ] }),
+        usar,
       ] }),
-      usar,
+      spectrum,
     ] });
   }
 
