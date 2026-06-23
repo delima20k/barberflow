@@ -373,7 +373,8 @@ class StoryComposer {
       try { clearTimeout(timer); } catch (_) {}
       try { stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
       try { video?.pause(); } catch (_) {}
-      try { musicaEl?.pause(); } catch (_) {}
+      try { musicaEl?.stop?.(); } catch (_) {} // BufferSource usa stop()
+      try { musicaEl?.pause?.(); } catch (_) {} // <audio> usa pause() (fallback)
       try { audioCtx?.close?.(); } catch (_) {}
       try { if (url) URL.revokeObjectURL(url); } catch (_) {}
     };
@@ -433,11 +434,19 @@ class StoryComposer {
             } catch (_) {}
           }
           if (p.usarMusica && musicaSrc) {
-            musicaEl = document.createElement('audio');
-            musicaEl.src = musicaSrc; musicaEl.crossOrigin = 'anonymous'; musicaEl.loop = true; musicaEl.preload = 'auto';
-            const sm = audioCtx.createMediaElementSource(musicaEl);
-            const gm = audioCtx.createGain(); gm.gain.value = p.volMusica;
-            sm.connect(gm); gm.connect(d);
+            // fetch + decodeAudioData evita o bug de crossOrigin-após-src e não
+            // depende de timing do carregamento do <audio> para createMediaElementSource.
+            try {
+              const resp = await fetch(musicaSrc, { mode: 'cors', credentials: 'omit' });
+              if (resp.ok) {
+                const audioBuffer = await audioCtx.decodeAudioData(await resp.arrayBuffer());
+                const bufSrc = audioCtx.createBufferSource();
+                bufSrc.buffer = audioBuffer; bufSrc.loop = true;
+                const gm = audioCtx.createGain(); gm.gain.value = p.volMusica;
+                bufSrc.connect(gm); gm.connect(d);
+                musicaEl = bufSrc; // limpar() chama .stop()
+              }
+            } catch (_) { /* música indisponível (CORS/rede) — continua sem ela */ }
           }
           const t = d.stream.getAudioTracks()[0]; if (t) { stream.addTrack(t); temAudio = true; }
         } catch (_) { /* sem áudio se não der */ }
@@ -477,7 +486,7 @@ class StoryComposer {
 
       rec.start();
       try { await audioCtx?.resume?.(); } catch (_) {}
-      try { await musicaEl?.play?.(); } catch (_) {}
+      try { musicaEl?.start?.(audioCtx?.currentTime || 0); } catch (_) {} // BufferSource.start()
       await video.play();
       desenhar();
       video.onended = parar;
