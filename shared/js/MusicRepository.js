@@ -37,29 +37,37 @@ class MusicRepository {
     // Aceita tanto a faixa do catálogo quanto uma ref já no formato.
     const music_id = String(entrada.music_id ?? entrada.id ?? '').trim();
     const music_name = String(entrada.music_name ?? entrada.name ?? '').trim();
-    const genre = String(entrada.genre ?? '').trim();
+    const genre_raw = String(entrada.genre ?? '').trim();
     const music_duration = Number(entrada.music_duration ?? entrada.duration);
 
-    // Segurança: nenhum campo pode parecer URL/áudio remoto/script/upload.
-    for (const v of [music_id, music_name, genre]) {
+    // Segurança: nenhum campo pode parecer URL/áudio remoto/script/upload. SEMPRE throw.
+    for (const v of [music_id, music_name, genre_raw]) {
       if (MusicRepository.PERIGO_RE.test(v)) {
         throw new Error('Referência de música inválida: conteúdo não permitido (URL/áudio/script).');
       }
     }
-    if (!MusicRepository.ID_RE.test(music_id)) {
-      throw new Error('music_id inválido.');
-    }
-    if (!MusicRepository.GENEROS.includes(genre)) {
-      throw new Error(`genre inválido: "${genre}".`);
-    }
-    if (!Number.isFinite(music_duration) || music_duration <= 0 || music_duration > MusicRepository.MAX_DURATION) {
-      throw new Error('music_duration inválida.');
-    }
+
+    // ID: normaliza para lowercase + hífens em vez de rejeitar — catálogos externos podem
+    // usar formatos variados (UUID, slug, inteiro). Rejeita somente se o resultado for vazio.
+    const idNorm = music_id.toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-')
+      .slice(0, 80);
+    if (!idNorm) throw new Error('music_id inválido: vazio.');
+
+    // Gênero: se o catálogo retornar um gênero fora da lista canônica, usa 'Todos' como
+    // fallback para não bloquear a seleção da música na UI.
+    const genre = MusicRepository.GENEROS.includes(genre_raw) ? genre_raw : 'Todos';
+
+    // Duração: fallback de 30 s quando ausente/inválida (não bloqueia).
+    const duration = Number.isFinite(music_duration) && music_duration > 0 && music_duration <= MusicRepository.MAX_DURATION
+      ? Math.round(music_duration) : 30;
 
     return {
-      music_id,
+      music_id: idNorm,
       music_name: MusicRepository.#sanitizarNome(music_name),
-      music_duration: Math.round(music_duration),
+      music_duration: duration,
       genre,
     };
   }
