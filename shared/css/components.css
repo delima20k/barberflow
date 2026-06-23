@@ -8513,26 +8513,22 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .pp-prism-media > img   { object-fit: cover; }
 .pp-prism-media > video { object-fit: cover; }
 
-/* Overlay cobre toda a face — identity no topo, like no rodapé */
+/* Overlay transparente cobre toda a face — filhos são posicionados absolutamente */
 .pp-prism-face-overlay {
   position: absolute;
   inset: 0;
   z-index: 3;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
   pointer-events: none;
 }
-/* Identidade (avatar + nome) — topo com gradiente escuro */
+/* Identidade: 1rem do topo e 1rem da esquerda do pai (.pp-prism-face) */
 .pp-prism-face-identity {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  flex: 0 0 auto;
-  padding: 14px 40px 32px;
-  background: linear-gradient(to bottom, rgba(0,0,0,.65) 0%, transparent 100%);
+  max-width: calc(100% - 2rem);
   pointer-events: none;
 }
 .pp-prism-face-id-img {
@@ -8542,38 +8538,37 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   object-fit: cover;
   border: 1.5px solid rgba(255,255,255,.5);
   flex: 0 0 auto;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,.7));
 }
 .pp-prism-face-id-name {
   color: #fff;
   font-size: .82rem;
   font-weight: 700;
-  text-shadow: 0 1px 4px rgba(0,0,0,.8);
+  text-shadow: 0 1px 4px rgba(0,0,0,.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 140px;
 }
-/* Curtir — rodapé direito, sem borda nem fundo */
+/* Curtir — rodapé direito, sem nenhuma borda nem fundo */
 .pp-prism-face-like-btn {
-  align-self: flex-end;
+  all: unset;
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  right: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  background: transparent;
-  border: none;
-  border-radius: 0;
   color: #fff;
-  padding: 8px 40px max(14px, env(safe-area-inset-bottom));
   cursor: pointer;
-  transition: opacity .2s;
-  flex: 0 0 auto;
   pointer-events: auto;
   text-shadow: 0 1px 6px rgba(0,0,0,.9);
+  transition: opacity .2s;
 }
 .pp-prism-face-like-btn:hover { opacity: .75; }
 .pp-prism-face-like-btn.is-liked { color: rgba(212,175,55,.95); }
-.pp-prism-face-like-btn[hidden] { display: none; }
+.pp-prism-face-like-btn[hidden] { display: none !important; }
 .pp-prism-face-like-icon { font-size: 1.1rem; line-height: 1; }
 .pp-prism-face-like-count { font-size: .7rem; font-weight: 700; line-height: 1; }
 
