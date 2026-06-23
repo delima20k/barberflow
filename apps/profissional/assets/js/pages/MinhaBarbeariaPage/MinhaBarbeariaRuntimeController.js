@@ -285,6 +285,7 @@ export class MinhaBarbeariaRuntimeController {
       // Abre a modal de criação; o story só é postado pelo "Finalizar".
       if (typeof StoryCreationModal !== 'undefined') {
         StoryCreationModal.abrir({
+          nomeBarbearia: this.#shopData?.name ?? this.#shopData?.trade_name ?? '',
           onFinalizar: (estado) => this.#postarStory(estado?.media?.file),
         });
         return;
@@ -3297,6 +3298,7 @@ export class MinhaBarbeariaRuntimeController {
         uid,
         barbershopId: this.#barbershopId,
         expiresAt,
+        preValidated: true, // arquivo já passou pelo StoryComposer (truncado a ≤30s)
       });
       if (!uploadResult) {
         if (addBtn) { addBtn.textContent = '＋'; addBtn.style.pointerEvents = ''; }

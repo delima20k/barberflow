@@ -170,7 +170,6 @@
   transform-origin: center;
   cursor: grab;
   touch-action: none;
-  white-space: nowrap;
 }
 .sc-overlay-item:active { cursor: grabbing; }
 .sc-overlay-texto {
@@ -180,11 +179,36 @@
   font-size: 1.4rem;
   text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
   padding: 2px 6px;
+  /* Quebra linha ao chegar a 5px da borda do preview */
+  max-width: calc(100% - 10px);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .sc-overlay-emoji {
   font-size: 2.2rem;
   line-height: 1;
+  white-space: nowrap;
 }
+/* Pré-visualização do texto conforme o usuário digita */
+.sc-live-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.4rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
+  padding: 2px 6px;
+  text-align: center;
+  pointer-events: none;
+  max-width: calc(100% - 10px);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sc-live-text[hidden] { display: none; }
 
 /* Barra de texto ABAIXO do preview (extras + input + enviar dentro) */
 .sc-text-bar {

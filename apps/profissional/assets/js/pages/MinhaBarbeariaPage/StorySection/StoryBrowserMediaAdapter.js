@@ -13,13 +13,15 @@ export class StoryBrowserMediaAdapter {
     this.#mediaP2P = mediaP2P;
   }
 
-  async upload({ file, uid, barbershopId, expiresAt }) {
+  async upload({ file, uid, barbershopId, expiresAt, preValidated = false }) {
     if (!file) throw new Error('StoryBrowserMediaAdapter requer arquivo.');
     if (!uid) throw new Error('StoryBrowserMediaAdapter requer uid.');
     if (!barbershopId) throw new Error('StoryBrowserMediaAdapter requer barbershopId.');
 
     const mediaType = file.type?.startsWith('video') ? 'video' : 'image';
-    if (mediaType === 'video') {
+    // preValidated: pula a releitura dos metadados quando o arquivo já passou pelo
+    // StoryComposer (que trunca para ≤30s) — evita ~2s desnecessários de carregamento.
+    if (mediaType === 'video' && !preValidated) {
       await this.#validarDuracaoVideo(file);
     }
 

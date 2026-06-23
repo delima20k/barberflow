@@ -654,6 +654,10 @@ class StoryCreationModal {
   #mixPlayBtn = null;
   #mixTimeEl = null;
 
+  #nomeBarbearia = '';
+  #liveTextEl = null;
+  #activeOverlayGesture = null;
+
   #corTexto   = '#ffffff';
   #fonteTexto = 'sans-serif';
   #fontBtnEls = [];
@@ -665,9 +669,10 @@ class StoryCreationModal {
   #volVideoSlider = null;
   #volMusicSlider = null;
 
-  constructor(service, { onFinalizar, catalogo, AudioCtor } = {}) {
-    this.#service     = service;
-    this.#onFinalizar = typeof onFinalizar === 'function' ? onFinalizar : () => {};
+  constructor(service, { onFinalizar, catalogo, AudioCtor, nomeBarbearia } = {}) {
+    this.#service         = service;
+    this.#onFinalizar     = typeof onFinalizar === 'function' ? onFinalizar : () => {};
+    this.#nomeBarbearia   = String(nomeBarbearia ?? '');
     this.#catalogo    = catalogo
       ?? (typeof MusicCatalogService !== 'undefined' ? new MusicCatalogService() : null);
 
@@ -731,7 +736,15 @@ class StoryCreationModal {
       this.#ptool('💬', 'Frases', () => this.#abrirFrases()),
     ] });
 
-    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing] });
+    this.#liveTextEl = scEl('div', { class: 'sc-live-text' });
+    this.#liveTextEl.hidden = true;
+    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing, this.#liveTextEl] });
+    // Rota o segundo dedo (fora do overlay) para o gesto do overlay ativo, permitindo pinça
+    this.#preview.addEventListener('pointerdown', (e) => {
+      const ag = this.#activeOverlayGesture;
+      if (!ag || !ag.pts.size || ag.pts.has(e.pointerId)) return;
+      ag.onDown(e);
+    }, { passive: false });
 
     // Área inferior: volumes (absoluto, flutua sobre botões) + botões de mídia
     this.#stageVolumes = this.#construirVolumes();
@@ -751,7 +764,7 @@ class StoryCreationModal {
         focus: () => this.#mostrarCaret(true),
         blur:  () => this.#mostrarCaret(false),
         keydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.#enviarTexto(); } },
-        input: () => this.#atualizarSend(),
+        input: () => { this.#atualizarSend(); this.#atualizarLiveText(); },
       },
     });
     this.#sendBtn = scEl('button', { class: 'sc-text-send', type: 'button', text: '➤', attrs: { 'aria-label': 'Adicionar texto' }, on: { click: () => this.#enviarTexto() } });
@@ -841,10 +854,21 @@ class StoryCreationModal {
     return btn;
   }
 
+  #atualizarLiveText() {
+    if (!this.#liveTextEl) return;
+    const val = String(this.#input?.value ?? '');
+    if (!val) { this.#liveTextEl.hidden = true; return; }
+    this.#liveTextEl.textContent = val;
+    this.#liveTextEl.style.color = this.#corTexto;
+    this.#liveTextEl.style.fontFamily = this.#fonteTexto;
+    this.#liveTextEl.hidden = false;
+  }
+
   #sincronizarCores() {
     this.#overlayEl?.querySelectorAll?.('.sc-tcor-btn').forEach(btn => {
       btn.classList.toggle('is-sel', btn.dataset.cor === this.#corTexto);
     });
+    this.#atualizarLiveText();
   }
 
   #ciclaisFonte() {
@@ -856,6 +880,7 @@ class StoryCreationModal {
       btn.style.fontFamily = this.#fonteTexto;
       btn.title = f.nome;
     });
+    this.#atualizarLiveText();
   }
 
   #sheetHeader({ title, titleClass, closeClass, onClose }) {
@@ -1170,6 +1195,7 @@ class StoryCreationModal {
     if (this.#input) this.#input.value = '';
     this.#atualizarSend();
     this.#mostrarCaret(false);
+    if (this.#liveTextEl) this.#liveTextEl.hidden = true;
   }
 
   // ── Emoji ──────────────────────────────────────────────────
@@ -1203,7 +1229,11 @@ class StoryCreationModal {
   #abrirFrases() {
     if (this.#frasesSheet) { this.#frasesSheet.hidden = false; return; }
     const grid = scEl('div', { class: 'sc-frase-grid' });
-    StoryCreationModal.FRASES.forEach((frase) => {
+    // Nome da barbearia como primeira opção (se disponível)
+    const frases = this.#nomeBarbearia
+      ? [this.#nomeBarbearia, ...StoryCreationModal.FRASES]
+      : StoryCreationModal.FRASES;
+    frases.forEach((frase) => {
       grid.appendChild(scEl('button', {
         class: 'sc-frase-btn', type: 'button', text: frase,
         on: { click: () => this.#escolherFrase(frase) },
@@ -1534,6 +1564,9 @@ class StoryCreationModal {
       } else {
         drag = { x: e.clientX, y: e.clientY, baseX: overlay.posicao.x, baseY: overlay.posicao.y };
         pinch = null;
+        // Registrar este gesto como ativo para que o segundo dedo (em qualquer lugar
+        // do preview) seja roteado aqui e permita pinça em elementos pequenos como emojis.
+        this.#activeOverlayGesture = { pts, onDown };
       }
       e.preventDefault();
       e.stopPropagation();
@@ -1564,6 +1597,7 @@ class StoryCreationModal {
         drag = { x: p.x, y: p.y, baseX: overlay.posicao.x, baseY: overlay.posicao.y };
       } else if (pts.size === 0) {
         drag = null;
+        if (this.#activeOverlayGesture?.onDown === onDown) this.#activeOverlayGesture = null;
       }
     };
 
