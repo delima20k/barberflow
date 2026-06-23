@@ -88,11 +88,15 @@ function criarSandbox() {
   carregar(sandbox, 'shared/js/MusicPlayerService.js');
   carregar(sandbox, 'shared/js/MusicSelectionController.js');
   carregar(sandbox, 'shared/js/MusicPreviewController.js');
+  carregar(sandbox, 'shared/js/MusicCreditsService.js');
+  carregar(sandbox, 'shared/js/MusicCopyrightOverlay.js');
+  carregar(sandbox, 'shared/js/PreviewMusicController.js');
   carregar(sandbox, 'shared/js/StoryCreationModal.js');
   return { sandbox, document };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 5));
+const waitCredits = () => new Promise((r) => setTimeout(r, 70));
 
 function catalogoFixture(qtd = 3) {
   const generos = ['Pop', 'Rock'];
@@ -232,6 +236,63 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   assert.ok(ov.querySelector('.sc-mix'), 'painel de mix aparece após Usar');
   assert.equal(ov.querySelector('.sc-mix').hidden, false);
   assert.equal(ov.querySelector('.sc-mix-title').textContent, 'Audio do Video');
+});
+
+test('clicar + renderiza creditos de musica no palco sem duplicar overlay', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(2)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+  await waitCredits();
+
+  const creditos = ov.querySelector('.sc-music-copyright-overlay');
+  assert.ok(creditos, 'creditos aparecem ao usar musica');
+  assert.equal(creditos.parentNode.className, 'sc-stage', 'overlay fica no container persistente da modal');
+  assert.match(creditos.textContent, /Faixa 0/);
+  assert.match(creditos.textContent, /Autor\/Artista:\nArtista/);
+
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
+  await tick();
+  ov.querySelectorAll('.sc-music-usar')[1]._fire('click');
+  await waitCredits();
+
+  assert.equal(ov.querySelectorAll('.sc-music-copyright-overlay').length, 1, 'nao duplica overlay');
+  assert.match(ov.querySelector('.sc-music-copyright-overlay').textContent, /Faixa 1/);
+});
+
+test('trocar midia mantem creditos e cancelar musica remove overlay', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(1)) });
+  sandbox.URL = { createObjectURL: () => 'blob:image', revokeObjectURL: () => {} };
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+  await waitCredits();
+  const node = ov.querySelector('.sc-music-copyright-overlay');
+
+  ov.querySelectorAll('.sc-media-btn')[0]._fire('click');
+  const input = [...document.body.querySelectorAll('input')].find(el => el.type === 'file');
+  input.files = [{ type: 'image/jpeg', size: 1024 }];
+  input._fire('change');
+  await tick();
+
+  assert.equal(ov.querySelector('.sc-music-copyright-overlay'), node, 'trocar midia preserva o mesmo overlay');
+
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
+  await tick();
+  ov.querySelector('.sc-music-usar')._fire('click');
+  ov.querySelector('.sc-mix-remover')._fire('click');
+
+  assert.equal(ov.querySelector('.sc-music-copyright-overlay'), null, 'cancelar/remove limpa creditos');
 });
 
 test('botao fechar da musica esconde so a sheet interna e permite reabrir', async () => {

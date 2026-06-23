@@ -1,5 +1,13 @@
 # CLASS_REGISTRY
 
+## Registro recente - creditos de musica no preview
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `MusicCreditsService` | [shared/js/MusicCreditsService.js](shared/js/MusicCreditsService.js) | interfaces | Gera e cacheia texto seguro de creditos autorais da musica usando apenas artist/title ja presentes no catalogo, sem API ou persistencia. |
+| `MusicCopyrightOverlay` | [shared/js/MusicCopyrightOverlay.js](shared/js/MusicCopyrightOverlay.js) | interfaces | Componente visual reutilizavel dos creditos de musica no preview de story; cria um unico no DOM, atualiza `textContent`, reanexa e destroi. |
+| `PreviewMusicController` | [shared/js/PreviewMusicController.js](shared/js/PreviewMusicController.js) | interfaces | Orquestra creditos visuais no preview: extrai metadados do track, gera texto, aplica debounce/last-selection-wins e renderiza via `MusicCopyrightOverlay`. |
+
 Catálogo de todas as classes do projeto BarberFlow.  
 Atualizar sempre que uma classe for criada, renomeada ou removida.
 
