@@ -375,7 +375,59 @@
   padding: 2px 0 6px;
 }
 .sc-music-vol-icon { font-size: 1rem; flex: 0 0 auto; color: rgba(255, 255, 255, .7); }
-.sc-music-vol-range { flex: 1 1 auto; accent-color: var(--gold, #d4a017); cursor: pointer; }
+.sc-music-vol-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 auto;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  --vol-pct: 70%;
+}
+/* Chrome/Safari — traço com gradiente controlado por --vol-pct */
+.sc-music-vol-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #d4a017 var(--vol-pct, 70%),
+    rgba(111, 69, 41, .5) var(--vol-pct, 70%)
+  );
+}
+.sc-music-vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a017;
+  margin-top: -5.5px;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+/* Firefox — track marrom + progress dourado nativos */
+.sc-music-vol-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(111, 69, 41, .5);
+  border: none;
+}
+.sc-music-vol-range::-moz-range-progress {
+  height: 3px;
+  border-radius: 2px;
+  background: #d4a017;
+}
+.sc-music-vol-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a017;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
 
 /* Chips de gênero (rolagem horizontal) */
 .sc-music-genres {

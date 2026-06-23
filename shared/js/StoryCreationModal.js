@@ -990,14 +990,22 @@ class StoryCreationModal {
       closeClass: 'sc-music-close',
       onClose: () => this.#fecharMusicSheet(),
     });
+    const _setVolPct = (el) => el.style.setProperty('--vol-pct', Number(el.value) + '%');
+    const volSlider = scEl('input', {
+      type: 'range',
+      class: 'sc-music-vol-range',
+      attrs: { min: '0', max: '100', value: '70', 'aria-label': 'Volume da música' },
+      on: {
+        input: (e) => {
+          if (this.#playerSvc) this.#playerSvc.volume = Number(e.target.value) / 100;
+          _setVolPct(e.target);
+        },
+      },
+    });
+    _setVolPct(volSlider);
     const volRow = scEl('div', { class: 'sc-music-vol-row', children: [
       scEl('span', { class: 'sc-music-vol-icon', text: '🔊' }),
-      scEl('input', {
-        type: 'range',
-        class: 'sc-music-vol-range',
-        attrs: { min: '0', max: '100', value: '70', 'aria-label': 'Volume da música' },
-        on: { input: (e) => { if (this.#playerSvc) this.#playerSvc.volume = Number(e.target.value) / 100; } },
-      }),
+      volSlider,
     ] });
     const search = scEl('input', {
       class: 'sc-music-search', type: 'search',
