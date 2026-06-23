@@ -40,7 +40,7 @@ function makeEl(tag) {
     type: '', accept: '', placeholder: '',
     muted: false, hidden: false, disabled: false, files: null,
     volume: 1, currentTime: 0, duration: 30, paused: true,
-    _children: [], parentNode: null, dataset: {}, style: {}, attributes: {},
+    _children: [], parentNode: null, dataset: {}, style: { setProperty(k, v) { this[k] = v; } }, attributes: {},
     get firstChild() { return el._children[0] ?? null; },
     classList: {
       _set: () => new Set(el.className.split(/\s+/).filter(Boolean)),
@@ -77,7 +77,7 @@ function criarSandbox() {
     removeEventListener: (ev, h) => { if (docListeners[ev]) docListeners[ev] = docListeners[ev].filter(f => f !== h); },
     _fire: (ev, data = {}) => [...(docListeners[ev] ?? [])].forEach(h => h(data)),
   };
-  const sandbox = vm.createContext({ document, window: {}, console });
+  const sandbox = vm.createContext({ document, window: {}, console, setTimeout, clearTimeout });
   carregar(sandbox, 'shared/js/StoryEditorService.js');
   carregar(sandbox, 'shared/js/MusicCacheService.js');
   carregar(sandbox, 'shared/js/MusicCatalogService.js');
@@ -141,9 +141,11 @@ test('abrir() monta a estrutura básica da modal', () => {
   const ov = getOverlay(document);
   assert.ok(ov, '.sc-overlay deve ser anexado ao body');
   assert.ok(ov.querySelector('.sc-preview'), 'tem o quadro de preview');
-  assert.ok(ov.querySelector('.sc-side-menu'), 'tem o menu lateral');
+  assert.ok(ov.querySelector('.sc-preview-top-tools'), 'tem ferramentas do preview');
+  assert.ok(ov.querySelector('.sc-media-btns'), 'tem botoes de midia');
   assert.ok(ov.querySelector('.sc-text-bar'), 'tem a barra de texto abaixo do preview');
-  assert.equal(ov.querySelectorAll('.sc-tool').length, 4, 'menu lateral: upload, câmera, música, emoji');
+  assert.equal(ov.querySelectorAll('.sc-preview-ptool').length, 3, 'ferramentas: musica, emoji, frases');
+  assert.equal(ov.querySelectorAll('.sc-media-btn').length, 2, 'midia: upload e camera');
   assert.ok(ov.querySelector('.sc-bottom-actions'), 'tem a barra de ações inferior');
   assert.equal(ov.querySelectorAll('.sc-btn').length, 2, 'dois botões inferiores');
   assert.ok(ov.querySelector('.sc-btn--primario'), 'tem o botão Finalizar');
@@ -156,7 +158,7 @@ test('botão Emoji abre a sub-modal de emojis', () => {
   const stage = ov.querySelector('.sc-stage');
 
   assert.equal(ov.querySelector('.sc-emoji-sheet'), null, 'sheet não existe antes');
-  ov.querySelectorAll('.sc-tool')[3]._fire('click'); // 4º = Emoji
+  ov.querySelectorAll('.sc-preview-ptool')[1]._fire('click'); // Emoji
   const sheet = ov.querySelector('.sc-emoji-sheet');
   assert.ok(sheet, 'sub-modal de emoji aberta');
   assert.equal(sheet.parentNode, stage, 'sheet interno fica dentro do palco sc-stage');
@@ -192,7 +194,7 @@ test('escolher emoji cria um overlay de emoji', () => {
   sandbox.StoryCreationModal.abrir({ service });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[3]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[1]._fire('click');
   ov.querySelector('.sc-emoji-btn')._fire('click');
 
   assert.equal(service.estado.overlays.length, 1);
@@ -209,7 +211,7 @@ test('botão Música abre a modal com gêneros + lista (catálogo) e "Usar" guar
   const ov = getOverlay(document);
 
   assert.equal(ov.querySelector('.sc-music-sheet'), null);
-  ov.querySelectorAll('.sc-tool')[2]._fire('click'); // 3º = Música
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click'); // Musica
   await tick();
 
   const sheet = ov.querySelector('.sc-music-sheet');
@@ -239,7 +241,7 @@ test('botao fechar da musica esconde so a sheet interna e permite reabrir', asyn
   sandbox.StoryCreationModal.abrir({ service, catalogo });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
 
   const sheet = ov.querySelector('.sc-music-sheet');
@@ -248,7 +250,7 @@ test('botao fechar da musica esconde so a sheet interna e permite reabrir', asyn
   assert.equal(sheet.hidden, true, 'botao fecha apenas a sheet de musica');
   assert.ok(getOverlay(document), 'modal principal continua aberta');
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   assert.equal(sheet.hidden, false, 'botao Musica reabre a mesma sheet');
   assert.equal(ov.querySelectorAll('.sc-music-item').length, 2, 'lista continua renderizada');
 });
@@ -267,7 +269,7 @@ test('sheet de musica mostra generos e lista mesmo com catalogo sob demanda lent
   sandbox.StoryCreationModal.abrir({ service, catalogo });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
 
   const sheet = ov.querySelector('.sc-music-sheet');
   assert.ok(sheet, 'sheet existe imediatamente');
@@ -289,7 +291,7 @@ test('sheet de musica renderiza 20 itens e carrega a proxima pagina ao rolar', a
   sandbox.StoryCreationModal.abrir({ service, catalogo });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
 
   const sheet = ov.querySelector('.sc-music-sheet');
@@ -300,7 +302,7 @@ test('sheet de musica renderiza 20 itens e carrega a proxima pagina ao rolar', a
   sheet.scrollTop = 600;
   sheet.clientHeight = 400;
   sheet.scrollHeight = 980;
-  sheet._fire('scroll');
+  ov.querySelector('.sc-music-list')._fire('scroll');
   await tick();
   await tick();
 
@@ -315,7 +317,7 @@ test('play da lista toca somente uma musica, atualiza pause/tempo e nao cria aud
   sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
 
   const plays = ov.querySelectorAll('.sc-music-play');
@@ -348,7 +350,7 @@ for (const tipo of ['imagem', 'video']) {
     sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
     const ov = getOverlay(document);
 
-    ov.querySelectorAll('.sc-tool')[2]._fire('click');
+    ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
     await tick();
     ov.querySelector('.sc-music-usar')._fire('click');
 
@@ -372,7 +374,7 @@ test('painel Audio do Video ajusta volumes locais e sincroniza play/pause', asyn
   sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
   const ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
   ov.querySelector('.sc-music-usar')._fire('click');
 
@@ -428,7 +430,7 @@ test('fechar mantem selecao e cancelar remove musica selecionada', async () => {
   sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
   let ov = getOverlay(document);
 
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
   ov.querySelector('.sc-music-usar')._fire('click');
   ov.querySelector('.sc-close')._fire('click');
@@ -437,7 +439,7 @@ test('fechar mantem selecao e cancelar remove musica selecionada', async () => {
 
   sandbox.StoryCreationModal.abrir({ service, catalogo, AudioCtor: FakeAudio });
   ov = getOverlay(document);
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
   assert.equal(ov.querySelector('.sc-music-item.is-sel')?.dataset.musicId, 'id-0', 'reabrir restaura selecao visual');
   ov.querySelector('.sc-music-usar')._fire('click');
@@ -475,7 +477,7 @@ test('filtro por gênero na modal reduz a lista', async () => {
   const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(4)) });
   sandbox.StoryCreationModal.abrir({ service, catalogo });
   const ov = getOverlay(document);
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
 
   assert.equal(ov.querySelectorAll('.sc-music-item').length, 4, 'Todos');
@@ -491,7 +493,7 @@ test('Cancelar (Remover música) limpa a seleção e esconde o mix', async () =>
   const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(2)) });
   sandbox.StoryCreationModal.abrir({ service, catalogo });
   const ov = getOverlay(document);
-  ov.querySelectorAll('.sc-tool')[2]._fire('click');
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
   await tick();
   ov.querySelector('.sc-music-usar')._fire('click');
   assert.ok(service.estado.musica, 'tem trilha');

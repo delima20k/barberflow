@@ -1498,8 +1498,13 @@ class StoryCreationModal {
     let estadoFinal = estado;
 
     if (estado.media?.tipo === 'video' && this.#mediaStatus !== 'pronto') {
-      this.#marcarVideoErro(this.#videoEl, 'Aguarde o video carregar ou escolha outro arquivo MP4 curto.');
-      return;
+      const duracaoOk = Number.isFinite(this.#videoEl?.duration) && this.#videoEl.duration > 0;
+      const prontoOk = this.#videoEl?.readyState == null || this.#videoEl.readyState >= 1;
+      if (duracaoOk && prontoOk) this.#marcarVideoPronto(this.#videoEl);
+      else {
+        this.#marcarVideoErro(this.#videoEl, 'Aguarde o video carregar ou escolha outro arquivo MP4 curto.');
+        return;
+      }
     }
 
     // Queima a mídia + overlays num único arquivo comprimido ANTES de subir.
