@@ -235,6 +235,7 @@ class StoryComposer {
   static ORCAMENTO_VIDEO = 1.55 * 1024 * 1024; // folga sob o alvo de 1.6MB
   static ALVO_IMG = 10 * 1024;             // imagem: no máximo 10KB (qualidade máx. possível dentro disso)
   static AUDIO_BPS = 64000;
+  static VIDEO_METADATA_TIMEOUT_MS = 8000;
 
   /**
    * Decide a faixa de áudio do story final.
@@ -371,7 +372,7 @@ class StoryComposer {
       url = URL.createObjectURL(file);
       video = document.createElement('video');
       video.src = url; video.muted = true; video.playsInline = true; video.preload = 'auto';
-      await new Promise((res, rej) => { video.onloadedmetadata = () => res(); video.onerror = () => rej(new Error('metadata')); });
+      await StoryComposer.#aguardarVideoMetadata(video);
 
       const dur  = Number(video.duration) || 0;
       const segs = Math.min(dur > 0 ? dur : maxSeconds, maxSeconds);
@@ -483,6 +484,36 @@ class StoryComposer {
 
   // ── Imagem ──────────────────────────────────────────────────
 
+  static #aguardarVideoMetadata(video) {
+    if (!video) return Promise.reject(new Error('metadata'));
+    if (Number.isFinite(video.duration) && video.readyState >= 1) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      let done = false;
+      let timer = null;
+      const limpar = () => {
+        try { clearTimeout(timer); } catch (_) {}
+        try { video.removeEventListener?.('loadedmetadata', ok); } catch (_) {}
+        try { video.removeEventListener?.('error', fail); } catch (_) {}
+        try { video.removeEventListener?.('stalled', fail); } catch (_) {}
+        try { video.removeEventListener?.('abort', fail); } catch (_) {}
+      };
+      const finish = (fn, value) => {
+        if (done) return;
+        done = true;
+        limpar();
+        fn(value);
+      };
+      const ok = () => finish(resolve);
+      const fail = () => finish(reject, new Error('metadata'));
+      timer = setTimeout(() => finish(reject, new Error('metadata-timeout')), StoryComposer.VIDEO_METADATA_TIMEOUT_MS);
+      video.addEventListener?.('loadedmetadata', ok, { once: true });
+      video.addEventListener?.('error', fail, { once: true });
+      video.addEventListener?.('stalled', fail, { once: true });
+      video.addEventListener?.('abort', fail, { once: true });
+      try { video.load?.(); } catch (_) {}
+    });
+  }
+
   static async #comporImagem({ file, overlays = [], previewW = 0, previewH = 0, targetBytes = StoryComposer.ALVO_IMG } = {}) {
     let url = null;
     try {
@@ -556,6 +587,15 @@ class StoryCreationModal {
     '💥','😱','😮','😢','🥰','😘','💕','👀','💇','🪒',
   ];
 
+  static FRASES = [
+    'Reserve agora!', 'Novidade!', 'Promoção especial', 'Corte do dia',
+    'Barba feita!', 'Visual novo', 'Agende já!', 'Transformação total',
+    'Estilo único', 'Profissional top', 'Sem fila!', 'Horário disponível',
+    'Venha nos visitar', 'Desconto especial', 'Novo look!',
+    'Barba modelada', 'Degradê perfeito', 'Social clássico',
+    'Promoção do dia', 'Cliente VIP', 'Melhor barbearia', 'Corte premium',
+  ];
+
   static MUSIC_PAGE = 20;
 
   #service;
@@ -573,6 +613,9 @@ class StoryCreationModal {
   #finalBtn   = null;   // botão Finalizar (desabilitado durante o processo)
   #musicaSel  = null;   // faixa escolhida completa (inclui url/src)
   #videoEl    = null;   // <video> atual no preview (p/ volume ao vivo)
+  #mediaObjectUrl = null;
+  #mediaLoadTimer = null;
+  #mediaStatus = 'vazio';
 
   // Catálogo + subsistema de música (POO)
   #catalogo  = null;    // MusicCatalogService
@@ -595,6 +638,13 @@ class StoryCreationModal {
   #mixRefs   = null;
   #mixPlayBtn = null;
   #mixTimeEl = null;
+
+  #frasesSheet    = null;
+  #stageVolumes   = null;
+  #volVideoRow    = null;
+  #volMusicRow    = null;
+  #volVideoSlider = null;
+  #volMusicSlider = null;
 
   constructor(service, { onFinalizar, catalogo, AudioCtor } = {}) {
     this.#service     = service;
@@ -648,23 +698,31 @@ class StoryCreationModal {
 
     const close = scEl('button', { class: 'sc-close', type: 'button', text: '×', attrs: { 'aria-label': 'Fechar' }, on: { click: () => this.fechar() } });
 
-    // Menu lateral
-    const sideMenu = scEl('div', { class: 'sc-side-menu', children: [
-      this.#tool('⬆️', 'Upload', () => this.#escolherMidia(new UploadMediaSource())),
-      this.#tool('📷', 'Câmera', () => this.#escolherMidia(new CameraMediaSource())),
-      this.#tool('🎵', 'Música', () => this.#abrirMusicas()),
-      this.#tool('😊', 'Emoji',  () => this.#abrirEmojis()),
-    ] });
-
     // Preview
     this.#vazio = scEl('div', { class: 'sc-preview-vazio', text: 'Escolha um vídeo ou foto para começar' });
     this.#caret = scEl('div', { class: 'sc-text-caret' });
     this.#caret.hidden = true;
     this.#processing = scEl('div', { class: 'sc-processing', text: 'Processando…' });
     this.#processing.hidden = true;
-    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing] });
 
-    const stage = scEl('div', { class: 'sc-stage', children: [sideMenu, this.#preview] });
+    // Ferramentas sobrepostas no topo do preview (Música, Emoji, Frases)
+    const topTools = scEl('div', { class: 'sc-preview-top-tools', children: [
+      this.#ptool('🎵', 'Música', () => this.#abrirMusicas()),
+      this.#ptool('😊', 'Emoji',  () => this.#abrirEmojis()),
+      this.#ptool('💬', 'Frases', () => this.#abrirFrases()),
+    ] });
+
+    this.#preview = scEl('div', { class: 'sc-preview', children: [this.#vazio, this.#caret, this.#processing, topTools] });
+
+    // Área inferior: volumes (absoluto, flutua sobre botões) + botões de mídia
+    this.#stageVolumes = this.#construirVolumes();
+    const mediaBtns = scEl('div', { class: 'sc-media-btns', children: [
+      this.#mbtn('⬆️', 'Upload', () => this.#escolherMidia(new UploadMediaSource())),
+      this.#mbtn('📷', 'Câmera', () => this.#escolherMidia(new CameraMediaSource())),
+    ] });
+    const stageLower = scEl('div', { class: 'sc-stage-lower', children: [this.#stageVolumes, mediaBtns] });
+
+    const stage = scEl('div', { class: 'sc-stage', children: [this.#preview, stageLower] });
 
     // Barra de texto (abaixo do preview)
     this.#input = scEl('input', {
@@ -712,6 +770,17 @@ class StoryCreationModal {
     ] });
   }
 
+  #ptool(icone, label, onClick) {
+    return scEl('button', { class: 'sc-preview-ptool', type: 'button', text: icone, attrs: { 'aria-label': label }, on: { click: onClick } });
+  }
+
+  #mbtn(icone, label, onClick) {
+    return scEl('button', { class: 'sc-media-btn', type: 'button', attrs: { 'aria-label': label }, on: { click: onClick }, children: [
+      scEl('span', { text: icone }),
+      scEl('span', { class: 'sc-media-btn-label', text: label }),
+    ] });
+  }
+
   #stageEl() {
     return this.#overlayEl?.querySelector?.('.sc-stage') ?? this.#overlayEl;
   }
@@ -751,36 +820,88 @@ class StoryCreationModal {
     this.#processing.hidden = !ativo;
   }
 
+  #limparPreviewMedia({ revogarUrl = true } = {}) {
+    try { clearTimeout(this.#mediaLoadTimer); } catch (_) {}
+    this.#mediaLoadTimer = null;
+    if (revogarUrl && this.#mediaObjectUrl) {
+      try { URL.revokeObjectURL(this.#mediaObjectUrl); } catch (_) {}
+    }
+    this.#mediaObjectUrl = null;
+    [...(this.#preview?.querySelectorAll?.('video, img, .sc-overlay-item') ?? [])].forEach(el => el.remove());
+    this.#videoEl = null;
+  }
+
+  #marcarVideoPronto(videoEl) {
+    if (videoEl !== this.#videoEl) return;
+    try { clearTimeout(this.#mediaLoadTimer); } catch (_) {}
+    this.#mediaLoadTimer = null;
+    this.#mediaStatus = 'pronto';
+    if (this.#finalBtn) this.#finalBtn.disabled = false;
+    this.#mostrarProcessando(false);
+    this.#atualizarTempoMix();
+  }
+
+  #marcarVideoErro(videoEl, mensagem = 'Nao foi possivel carregar este video. Tente outro arquivo MP4 curto.') {
+    if (videoEl !== this.#videoEl) return;
+    try { clearTimeout(this.#mediaLoadTimer); } catch (_) {}
+    this.#mediaLoadTimer = null;
+    this.#mediaStatus = 'erro';
+    if (this.#finalBtn) this.#finalBtn.disabled = true;
+    try { videoEl?.pause?.(); } catch (_) {}
+    this.#mostrarProcessando(true, mensagem);
+  }
+
   #renderMidia() {
     const media = this.#service.media;
     if (!this.#preview) return;
     // Remove mídia e overlays anteriores (troca de mídia reseta overlays)
-    [...(this.#preview.querySelectorAll?.('video, img, .sc-overlay-item') ?? [])].forEach(el => el.remove());
-    this.#videoEl = null;
+    this.#limparPreviewMedia();
+    this.#mediaStatus = 'vazio';
+    this.#mostrarProcessando(false);
     if (this.#vazio) this.#vazio.hidden = true;
-    if (!media) { if (this.#vazio) this.#vazio.hidden = false; return; }
+    if (!media) { if (this.#vazio) this.#vazio.hidden = false; this.#atualizarVolumes(); return; }
 
     const url = (typeof URL !== 'undefined' && URL.createObjectURL) ? URL.createObjectURL(media.file) : '';
+    this.#mediaObjectUrl = url || null;
     let el;
     if (media.tipo === 'video') {
       el = scEl('video', { attrs: { playsinline: '', preload: 'auto', loop: '' } });
+      this.#mediaStatus = 'carregando';
+      if (this.#finalBtn) this.#finalBtn.disabled = true;
+      this.#mostrarProcessando(true, 'Carregando video...');
       // Com áudio: a seleção do arquivo é um gesto do usuário, então o play
       // com som é permitido. Se o navegador bloquear, o catch ignora.
       el.muted = false;
       el.src = url;
       this.#videoEl = el;
+      el.addEventListener?.('loadedmetadata', () => this.#marcarVideoPronto(el), { once: true });
+      el.addEventListener?.('canplay', () => this.#marcarVideoPronto(el), { once: true });
+      el.addEventListener?.('error', () => this.#marcarVideoErro(el), { once: true });
+      el.addEventListener?.('stalled', () => this.#marcarVideoErro(el, 'O navegador travou ao ler este video. Tente outro MP4 curto.'), { once: true });
+      el.addEventListener?.('abort', () => this.#marcarVideoErro(el), { once: true });
       el.addEventListener?.('timeupdate', () => this.#atualizarTempoMix());
       el.addEventListener?.('play', () => this.#atualizarTempoMix());
       el.addEventListener?.('pause', () => this.#atualizarTempoMix());
+      this.#mediaLoadTimer = setTimeout(() => {
+        this.#marcarVideoErro(el, 'Tempo esgotado ao carregar o video. Tente outro arquivo MP4 curto.');
+      }, StoryComposer.VIDEO_METADATA_TIMEOUT_MS);
       this.#aplicarVolumePreview(); // respeita o mix atual (se já houver)
       try { const p = el.play?.(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+      try { el.load?.(); } catch (_) {}
     } else {
       el = scEl('img', { attrs: { alt: '' } });
       el.src = url;
+      this.#mediaStatus = 'pronto';
+      if (this.#finalBtn) this.#finalBtn.disabled = false;
     }
     // Insere a mídia como primeiro filho (atrás dos overlays/caret)
     if (this.#preview.firstChild) this.#preview.insertBefore(el, this.#preview.firstChild);
     else this.#preview.appendChild(el);
+    if (media.tipo === 'video') {
+      try { el.load?.(); } catch (_) {}
+      try { const p = el.play?.(); if (p && p.catch) p.catch(() => {}); } catch (_) {}
+    }
+    this.#atualizarVolumes();
   }
 
   // ── Mix de áudio (preview + estado) ────────────────────────
@@ -867,6 +988,47 @@ class StoryCreationModal {
 
   #restaurarVolumeVideo() {
     this.#aplicarVolumePreview();
+  }
+
+  #construirVolumes() {
+    const _setVol = (el) => el.style.setProperty('--vol-pct', el.value + '%');
+
+    this.#volVideoSlider = scEl('input', {
+      type: 'range', class: 'sc-vol-range',
+      attrs: { min: '0', max: '100', value: '100', 'aria-label': 'Volume do vídeo' },
+      on: { input: (e) => { if (this.#videoEl) try { this.#videoEl.volume = e.target.value / 100; } catch (_) {} _setVol(e.target); } },
+    });
+    _setVol(this.#volVideoSlider);
+
+    this.#volMusicSlider = scEl('input', {
+      type: 'range', class: 'sc-vol-range',
+      attrs: { min: '0', max: '100', value: '70', 'aria-label': 'Volume da música' },
+      on: { input: (e) => { if (this.#playerSvc) this.#playerSvc.volume = e.target.value / 100; _setVol(e.target); } },
+    });
+    _setVol(this.#volMusicSlider);
+
+    this.#volVideoRow = scEl('div', { class: 'sc-vol-row', children: [
+      scEl('span', { class: 'sc-vol-icon', text: '🎬' }),
+      scEl('span', { class: 'sc-vol-label', text: 'Vídeo' }),
+      this.#volVideoSlider,
+    ] });
+    this.#volMusicRow = scEl('div', { class: 'sc-vol-row', children: [
+      scEl('span', { class: 'sc-vol-icon', text: '🎵' }),
+      scEl('span', { class: 'sc-vol-label', text: 'Música' }),
+      this.#volMusicSlider,
+    ] });
+
+    const vol = scEl('div', { class: 'sc-stage-volumes', children: [this.#volVideoRow, this.#volMusicRow] });
+    vol.hidden = true;
+    return vol;
+  }
+
+  #atualizarVolumes() {
+    if (!this.#stageVolumes) return;
+    const temVideo  = !!this.#videoEl;
+    const temMusica = !!this.#musicaSel;
+    this.#stageVolumes.hidden = !temVideo;
+    if (this.#volMusicRow) this.#volMusicRow.hidden = !temMusica;
   }
 
   // ── Texto ──────────────────────────────────────────────────
@@ -963,6 +1125,39 @@ class StoryCreationModal {
 
   #fecharEmojiSheet() {
     if (this.#emojiSheet) this.#emojiSheet.hidden = true;
+  }
+
+  #abrirFrases() {
+    if (this.#frasesSheet) { this.#frasesSheet.hidden = false; return; }
+    const grid = scEl('div', { class: 'sc-frase-grid' });
+    StoryCreationModal.FRASES.forEach((frase) => {
+      grid.appendChild(scEl('button', {
+        class: 'sc-frase-btn', type: 'button', text: frase,
+        on: { click: () => this.#escolherFrase(frase) },
+      }));
+    });
+    const sheet = scEl('div', { class: 'sc-frase-sheet', children: [
+      this.#sheetHeader({
+        title: 'Frases',
+        titleClass: 'sc-frase-title',
+        closeClass: 'sc-frase-close',
+        onClose: () => this.#fecharFrasesSheet(),
+      }),
+      grid,
+    ] });
+    this.#frasesSheet = sheet;
+    this.#stageEl()?.appendChild(sheet);
+  }
+
+  #fecharFrasesSheet() {
+    if (this.#frasesSheet) this.#frasesSheet.hidden = true;
+  }
+
+  #escolherFrase(frase) {
+    if (!frase || !this.#service) return;
+    const overlay = this.#service.adicionarTexto(frase, this.#posicaoInicial());
+    this.#renderOverlay(overlay);
+    this.#fecharFrasesSheet();
   }
 
   #escolherEmoji(emoji) {
@@ -1197,12 +1392,14 @@ class StoryCreationModal {
       this.#musicSheet.hidden = true;
     }
     this.#previewCtrl?.atualizarEstado();
+    this.#atualizarVolumes();
   }
 
   /** Hook do MusicSelectionController: revela o mix e ajusta volumes do preview. */
   #aoAplicarMusica() {
     this.#mostrarMix(true);
     this.#aplicarVolumePreview();
+    this.#atualizarVolumes();
   }
 
   /** Hook do MusicSelectionController: cancelar/remover música. */
@@ -1211,6 +1408,7 @@ class StoryCreationModal {
     if (this.#mixPanel) this.#mixPanel.hidden = true;
     [...(this.#musicSheet?.querySelectorAll?.('.sc-music-item.is-sel') ?? [])].forEach(b => b.classList.remove('is-sel'));
     this.#aplicarVolumePreview();
+    this.#atualizarVolumes();
     this.#previewCtrl?.atualizarEstado();
   }
 
@@ -1299,6 +1497,11 @@ class StoryCreationModal {
     const estado = this.#service.estado;
     let estadoFinal = estado;
 
+    if (estado.media?.tipo === 'video' && this.#mediaStatus !== 'pronto') {
+      this.#marcarVideoErro(this.#videoEl, 'Aguarde o video carregar ou escolha outro arquivo MP4 curto.');
+      return;
+    }
+
     // Queima a mídia + overlays num único arquivo comprimido ANTES de subir.
     // Vídeo → ≤1.6MB (máx. resolução); imagem → ≤10KB (máx. qualidade possível).
     if (estado.media && estado.media.file) {
@@ -1343,6 +1546,7 @@ class StoryCreationModal {
     this.#limparSentinelMusica();
     this.#pausarPreviewAudio();
     try { this.#playerSvc?.destruir(); } catch (_) {} // libera o <audio> da prévia (mantém a seleção no service)
+    this.#limparPreviewMedia();
     try { this.#overlayEl?.remove(); } catch (_) { /* mock */ }
     this.#overlayEl = null;
     if (StoryCreationModal.#instancia === this) StoryCreationModal.#instancia = null;

@@ -37,15 +37,16 @@
 }
 .sc-close:hover { background: rgba(255, 255, 255, .14); }
 
-/* Palco: menu lateral + preview */
+/* Palco: coluna — preview (flex:1) + área inferior (botões + volumes) */
 .sc-stage {
   position: relative;
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 14px 10px 6px;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 10px 10px 0;
   min-height: 0;
 }
 
@@ -79,10 +80,11 @@
   margin-top: 2px;
 }
 
-/* Quadro de preview — 70% da altura da modal, fundo preto, borda laranja */
+/* Quadro de preview — cresce para ocupar o espaço disponível acima da área inferior */
 .sc-preview {
   position: relative;
-  height: 70%;
+  flex: 1 1 auto;
+  min-height: 0;
   aspect-ratio: 9 / 16;
   max-width: 78vw;
   background: #000;
@@ -694,3 +696,175 @@
   line-height: 1;
   cursor: pointer;
 }
+
+/* Ferramentas sobrepostas no topo do preview (Música, Emoji, Frases) */
+.sc-preview-top-tools {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.sc-preview-top-tools > * { pointer-events: auto; }
+.sc-preview-ptool {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(0, 0, 0, .55);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: background .15s;
+}
+.sc-preview-ptool:hover { background: rgba(255, 255, 255, .15); }
+
+/* Área inferior do palco (volumes + botões de mídia) */
+.sc-stage-lower {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Volumes de preview: flutuam (posição absoluta) sobre os botões de mídia */
+.sc-stage-volumes {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px 10px;
+  background: rgba(8, 6, 4, .9);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-radius: 12px 12px 0 0;
+}
+.sc-stage-volumes[hidden] { display: none; }
+.sc-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sc-vol-row[hidden] { display: none; }
+.sc-vol-icon { font-size: .9rem; flex: 0 0 auto; }
+.sc-vol-label { font-size: .72rem; color: rgba(255, 255, 255, .6); flex: 0 0 38px; }
+.sc-vol-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 auto;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  --vol-pct: 100%;
+}
+.sc-vol-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #d4a017 var(--vol-pct, 100%),
+    rgba(111, 69, 41, .5) var(--vol-pct, 100%)
+  );
+}
+.sc-vol-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a017;
+  margin-top: -5.5px;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+.sc-vol-range::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(111, 69, 41, .5); border: none; }
+.sc-vol-range::-moz-range-progress { height: 3px; border-radius: 2px; background: #d4a017; }
+.sc-vol-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #d4a017; cursor: pointer; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+
+/* Botões de mídia (Upload, Câmera) abaixo do preview */
+.sc-media-btns {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px 14px calc(8px + env(safe-area-inset-bottom));
+}
+.sc-media-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(255, 255, 255, .07);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
+  transition: background .15s;
+}
+.sc-media-btn:hover { background: rgba(255, 255, 255, .16); }
+.sc-media-btn-label {
+  font-size: .5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Painel de frases curtas */
+.sc-frase-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  max-height: 46%;
+  overflow-y: auto;
+  background: rgba(18, 14, 10, .98);
+  border-top: 1px solid var(--gold-border, rgba(212, 160, 23, .4));
+  border-radius: 16px 16px 0 0;
+  padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sc-frase-sheet[hidden] { display: none; }
+.sc-frase-title {
+  font-weight: 800;
+  font-size: .95rem;
+  color: var(--gold, #d4a017);
+}
+.sc-frase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.sc-frase-btn {
+  border: 1px solid rgba(255, 255, 255, .15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+  font-size: .82rem;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: background .15s;
+}
+.sc-frase-btn:hover { background: rgba(255, 255, 255, .14); }
