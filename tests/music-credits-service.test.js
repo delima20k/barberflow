@@ -8,9 +8,10 @@ test('MusicCreditsService gera creditos com title/music_name e artist', () => {
   const svc = new MusicCreditsService();
   const text = svc.generate({ music_id: 'id-1', music_name: 'Andromeda', artist: 'Aetheric' });
 
-  assert.match(text, /Musica utilizada neste conteudo:/);
+  assert.match(text, /Música utilizada neste conteúdo:/);
   assert.match(text, /"Andromeda"/);
   assert.match(text, /Autor\/Artista:\nAetheric/);
+  assert.match(text, /Este conteúdo utiliza áudio licenciado ou atribuído ao autor original/);
 });
 
 test('MusicCreditsService nao gera creditos sem artist ou titulo', () => {

@@ -52,7 +52,7 @@ class MusicCreditsService {
     if (!safeTitle || !safeArtist) return null;
 
     return [
-      '\uD83C\uDFB5 Musica utilizada neste conteudo:',
+      '\uD83C\uDFB5 M\u00FAsica utilizada neste conte\u00FAdo:',
       '',
       `"${safeTitle}"`,
       '',
@@ -61,7 +61,7 @@ class MusicCreditsService {
       '',
       '\u00A9 Todos os direitos reservados ao respectivo criador.',
       '',
-      'Este conteudo utiliza audio licenciado ou atribuido ao autor original conforme disponibilidade da plataforma.',
+      'Este conte\u00FAdo utiliza \u00E1udio licenciado ou atribu\u00EDdo ao autor original conforme disponibilidade da plataforma.',
     ].join('\n').slice(0, MusicCreditsService.MAX_TEXT);
   }
 

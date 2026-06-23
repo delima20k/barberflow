@@ -1,13 +1,5 @@
 # CLASS_REGISTRY
 
-## Registro recente - creditos de musica no preview
-
-| Classe | Arquivo | Camada | Descricao |
-|---|---|---|---|
-| `MusicCreditsService` | [shared/js/MusicCreditsService.js](shared/js/MusicCreditsService.js) | interfaces | Gera e cacheia texto seguro de creditos autorais da musica usando apenas artist/title ja presentes no catalogo, sem API ou persistencia. |
-| `MusicCopyrightOverlay` | [shared/js/MusicCopyrightOverlay.js](shared/js/MusicCopyrightOverlay.js) | interfaces | Componente visual reutilizavel dos creditos de musica no preview de story; cria um unico no DOM, atualiza `textContent`, reanexa e destroi. |
-| `PreviewMusicController` | [shared/js/PreviewMusicController.js](shared/js/PreviewMusicController.js) | interfaces | Orquestra creditos visuais no preview: extrai metadados do track, gera texto, aplica debounce/last-selection-wins e renderiza via `MusicCopyrightOverlay`. |
-
 Catálogo de todas as classes do projeto BarberFlow.  
 Atualizar sempre que uma classe for criada, renomeada ou removida.
 
@@ -173,6 +165,8 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `StoryAudioIngestor` | [barberflow-bff-api/scripts/ingest-story-audio.js](barberflow-bff-api/scripts/ingest-story-audio.js) | scripts | Ingestão offline: lê pasta de MP3, processa (35s/AAC/loudnorm), classifica gênero, sobe ao R2 e gera o catálogo. `--dry-run` (padrão, não sobe) / `--upload`. DI de processor/r2. |
 | `MusicCacheService` | [shared/js/MusicCacheService.js](shared/js/MusicCacheService.js) | interfaces | Cache em memoria para catalogo de musicas no cliente: `set/get/stale/valido/invalidar`, TTL padrao 30min e fallback stale para falhas temporarias de rede. |
 | `MusicCatalogService` | [shared/js/MusicCatalogService.js](shared/js/MusicCatalogService.js) | interfaces | Catalogo de audios no cliente: `carregar()` (lazy + cache via `MusicCacheService` e BffApiService), `filtrar({genero,termo})`, `pagina(lista,n,20)`, `totalPaginas()`. Filtro/paginacao puros (fatias, sem copiar). |
+| `MusicCopyrightOverlay` | [shared/js/MusicCopyrightOverlay.js](shared/js/MusicCopyrightOverlay.js) | interfaces | Componente visual reutilizavel dos creditos de musica no preview de story; cria um unico no DOM, atualiza `textContent`, reanexa e destroi. |
+| `MusicCreditsService` | [shared/js/MusicCreditsService.js](shared/js/MusicCreditsService.js) | interfaces | Gera e cacheia texto seguro de creditos autorais da musica usando apenas artist/title ja presentes no catalogo, sem API ou persistencia. |
 | `AudioPreviewPlayer` | [shared/js/AudioPreviewPlayer.js](shared/js/AudioPreviewPlayer.js) | interfaces | Prévia de música com UM ÚNICO `Audio` reutilizado: `alternar/tocar/parar/pausar/destruir`, `volume`, `currentTime`/`duration`, callbacks `onChange`/`onTime`, `preload` leve. Evita memória crescente. `AudioCtor` injetável p/ teste. |
 | `MusicPlaybackState` | [shared/js/MusicPlaybackState.js](shared/js/MusicPlaybackState.js) | interfaces | Estado puro de seleção/preview de música: `selectedMusic`, `previewMusic`, `previewDuration` (cap 30s), progresso. `selecionar`/`aplicarPreview`/`limpar`/`setProgresso`/`toJSON`. Getters devolvem cópias. |
 | `MusicPlayerService` | [shared/js/MusicPlayerService.js](shared/js/MusicPlayerService.js) | interfaces | Política de playback de prévia REUSANDO `AudioPreviewPlayer`: `tocar/alternar/pausar/destruir`, uma faixa por vez, preload leve, cap de 30s, emite `onProgress({id,currentTime,duration,playing})`/`onState`. |
@@ -180,6 +174,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `MusicStateManager` | [shared/js/MusicStateManager.js](shared/js/MusicStateManager.js) | interfaces | Coordena selecao, preview e cancelamento entre `MusicPlaybackState` e `MusicRepository`: `selecionarPreview`, `confirmarSelecao`, `cancelarSelecao`, `snapshot`. |
 | `MusicSelectionController` | [shared/js/MusicSelectionController.js](shared/js/MusicSelectionController.js) | interfaces | `usar(track)`: seleciona + aplica preview + persiste referencia segura pelo `MusicStateManager` + toca sobre o preview; `cancelar()`: para + limpa estado/repo. Hooks `onAplicar`/`onCancelar`. |
 | `MusicPreviewController` | [shared/js/MusicPreviewController.js](shared/js/MusicPreviewController.js) | interfaces | Orquestra a UI do sheet: `togglePlay(track)`, `setLista(el)`, atualiza ícone `▶/⏸` + rótulo de tempo `mm:ss / mm:ss` do item em reprodução via `atualizarProgresso/atualizarEstado`. `fmtTempo`. |
+| `PreviewMusicController` | [shared/js/PreviewMusicController.js](shared/js/PreviewMusicController.js) | interfaces | Orquestra creditos visuais no preview: extrai metadados do track, gera texto, aplica debounce/last-selection-wins e renderiza via `MusicCopyrightOverlay`. |
 | `VideoThumbnailCapture` | [shared/js/VideoThumbnailCapture.js](shared/js/VideoThumbnailCapture.js) | interfaces | Extrai 1º frame de vídeo via Canvas API antes do upload; `static capturar(file, timeMs?) → Blob\|null`; `static paraBase64(blob) → string\|null`. Revoga ObjectURL ao terminar. Reutilizável em ambos os apps. |
 | `StoryMediaInteractionService` | [barberflow-bff-api/application/media/StoryMediaInteractionService.js](barberflow-bff-api/application/media/StoryMediaInteractionService.js) | application | Toggle de curtida e alias de exclusão por `media_id` para stories, reaproveitando `likes` e `DeleteStoryUseCase`. |
 | `SupabaseService` | [shared/js/SupabaseService.js](shared/js/SupabaseService.js) | infra | Wrapper do Supabase SDK. Restrito a Auth, Realtime e Storage (CRUD migrado para ApiService) |
