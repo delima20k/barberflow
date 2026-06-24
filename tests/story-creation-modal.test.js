@@ -738,6 +738,34 @@ test('OverlayPainter.desenhar texto ampliado (escala>1) não vaza dos lados do v
   }
 });
 
+test('OverlayPainter.desenharCreditos queima os direitos no rodapé (fundo + texto, máx 2 linhas)', () => {
+  const { sandbox } = criarSandbox();
+  const calls = [];
+  let paths = 0;
+  const ctx = {
+    canvas: { width: 360, height: 640 },
+    save() {}, restore() {},
+    measureText(t) { return { width: String(t).length * 10 }; },
+    fillText(t, x, y) { calls.push({ t, x, y }); },
+    beginPath() { paths++; }, moveTo() {}, arcTo() {}, closePath() {}, fill() {},
+    set font(_v) {}, get font() { return ''; },
+    set fillStyle(_v) {}, set textBaseline(_v) {}, set textAlign(_v) {},
+    set shadowColor(_v) {}, set shadowBlur(_v) {},
+  };
+
+  const texto = '🎵 Música utilizada neste conteúdo: ' + Array(40).fill('direitos').join(' ');
+  sandbox.OverlayPainter.desenharCreditos(ctx, texto, 1, 16);
+
+  assert.ok(calls.length >= 1 && calls.length <= 2, 'créditos em no máximo 2 linhas');
+  assert.ok(paths >= 1, 'desenhou o fundo arredondado');
+  for (const c of calls) assert.ok(c.y > 320, 'créditos ficam no rodapé do conteúdo');
+
+  // Sem texto → não desenha nada.
+  const antes = calls.length;
+  sandbox.OverlayPainter.desenharCreditos(ctx, '', 1, 16);
+  assert.equal(calls.length, antes, 'sem créditos não desenha');
+});
+
 test('StoryComposer.dimsCanvas preserva aspecto, limita maior lado e gera dimensoes pares', () => {
   const { sandbox } = criarSandbox();
   const retrato = sandbox.StoryComposer.dimsCanvas(9 / 16, 1080);

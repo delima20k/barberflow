@@ -229,6 +229,66 @@ class OverlayPainter {
     }
   }
 
+  // Créditos/direitos autorais da música — queimados no RODAPÉ do conteúdo,
+  // espelhando o preview (.sc-music-copyright-overlay): fundo escuro arredondado,
+  // centralizado, fonte ~0.66rem, no máximo 2 linhas.
+  static desenharCreditos(ctx, texto, escalaCanvas, rootFontPx = 16) {
+    if (!ctx || !ctx.canvas) return;
+    const txt = String(texto ?? '').replace(/\s+/g, ' ').trim();
+    if (!txt) return;
+    const k = Number(escalaCanvas) > 0 ? Number(escalaCanvas) : 1;
+    const canvasW = Number(ctx.canvas.width) || 0;
+    const canvasH = Number(ctx.canvas.height) || 0;
+    if (!canvasW || !canvasH) return;
+
+    const fontPx = 0.66 * rootFontPx * k;
+    const padX = 8 * k, padY = 6 * k, bottom = 12 * k, radius = 8 * k;
+    const lineH = fontPx * 1.25;
+    const maxBoxW = canvasW * 0.9;
+    const maxTextW = Math.max(1, maxBoxW - 2 * padX);
+
+    ctx.save();
+    ctx.font = `${fontPx}px sans-serif`;
+    ctx.textBaseline = 'top';
+
+    let linhas = OverlayPainter.#quebrarLinhas(ctx, txt, maxTextW);
+    if (linhas.length > 2) {
+      let l2 = linhas[1];
+      while (l2 && ctx.measureText(l2 + '…').width > maxTextW) l2 = l2.slice(0, -1);
+      linhas = [linhas[0], (l2 || '') + '…'];
+    }
+
+    let maxLineW = 0;
+    for (const ln of linhas) maxLineW = Math.max(maxLineW, ctx.measureText(ln).width);
+    const boxW = Math.min(maxBoxW, maxLineW + 2 * padX);
+    const boxH = linhas.length * lineH + 2 * padY;
+    const boxX = (canvasW - boxW) / 2;
+    const boxY = canvasH - bottom - boxH;
+
+    ctx.fillStyle = 'rgba(0,0,0,.54)';
+    OverlayPainter.#roundRect(ctx, boxX, boxY, boxW, boxH, radius);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowBlur = Math.max(1, fontPx * 0.06);
+    let y = boxY + padY;
+    for (const ln of linhas) { try { ctx.fillText(ln, canvasW / 2, y); } catch (_) {} y += lineH; }
+    ctx.restore();
+  }
+
+  static #roundRect(ctx, x, y, w, h, r) {
+    const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
   // Texto: quebra em múltiplas linhas (word-break) e SEMPRE cabe no quadro do
   // vídeo. O preview recorta o excesso (overflow:hidden); a composição não, então
   // limitamos a quebra à largura do quadro e reduzimos a fonte se uma palavra não
@@ -347,7 +407,7 @@ class StoryComposer {
   static MAX_LADO_VIDEO = 1080;            // teto do maior lado do vídeo (mantém o máx. de resolução)
   static MAX_LADO_IMG   = 1080;            // teto inicial da imagem (cai em degraus p/ caber no alvo)
   static ORCAMENTO_VIDEO = 1.55 * 1024 * 1024; // folga sob o alvo de 1.6MB
-  static ALVO_IMG = 10 * 1024;             // imagem: no máximo 10KB (qualidade máx. possível dentro disso)
+  static ALVO_IMG = 500 * 1024;            // imagem: no máximo 500KB (melhor qualidade dentro disso)
   static AUDIO_BPS = 64000;
   static VIDEO_METADATA_TIMEOUT_MS = 8000;
 
@@ -503,6 +563,7 @@ class StoryComposer {
       maxSeconds: Number(opts.maxSeconds) || 30,
       plano,
       musicaSrc: opts.musicaSrc || null,
+      creditos: opts.creditos || null,
     };
 
     let blob = await StoryComposer.#gravarVideo({ ...base, fatorBitrate: 1 });
@@ -518,7 +579,7 @@ class StoryComposer {
     return new File([blob], `story-${Date.now()}.${ext}`, { type: blob.type || 'video/webm' });
   }
 
-  static async #gravarVideo({ file, overlays, previewW, previewH, targetBytes, maxSeconds, plano, musicaSrc, fatorBitrate = 1 }) {
+  static async #gravarVideo({ file, overlays, previewW, previewH, targetBytes, maxSeconds, plano, musicaSrc, creditos = null, fatorBitrate = 1 }) {
     let url = null, audioCtx = null, stream = null, video = null, musicaEl = null, raf = null, timer = null;
     const limpar = () => {
       try { if (raf) cancelAnimationFrame(raf); } catch (_) {}
@@ -640,6 +701,7 @@ class StoryComposer {
         ctx.fillRect(0, 0, cv.w, cv.h);
         try { ctx.drawImage(video, dx, dy, dw, dh); } catch (_) {}
         OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
+        if (creditos) OverlayPainter.desenharCreditos(ctx, creditos, escalaCanvas);
         raf = requestAnimationFrame(desenhar);
       };
       const parar = () => {
@@ -693,17 +755,19 @@ class StoryComposer {
       overlays:   Array.isArray(opts.overlays) ? opts.overlays : [],
       previewW:   Number(opts.previewW) || 0,
       previewH:   Number(opts.previewH) || 0,
-      targetBytes: 1.6 * 1024 * 1024,
+      // Imagem ≤500KB; a faixa de música entra como áudio por cima (≈ 500KB + KB da música).
+      targetBytes: StoryComposer.ALVO_IMG,
       maxSeconds: Number(opts.maxSeconds) || 30,
       musicaSrc:  opts.musicaSrc || null,
       volMusica:  plano.volMusica > 0 ? plano.volMusica : 0.7,
+      creditos:   opts.creditos || null,
     });
     if (!blob || !blob.size) return null;
     const ext = (blob.type || '').includes('mp4') ? 'mp4' : 'webm';
     return new File([blob], `story-${Date.now()}.${ext}`, { type: blob.type || 'video/webm' });
   }
 
-  static async #gravarImagemMusica({ file, overlays, previewW, previewH, targetBytes, maxSeconds, musicaSrc, volMusica }) {
+  static async #gravarImagemMusica({ file, overlays, previewW, previewH, targetBytes, maxSeconds, musicaSrc, volMusica, creditos = null }) {
     let url = null, audioCtx = null, stream = null, musicaEl = null, raf = null, timer = null;
     const limpar = () => {
       try { if (raf) cancelAnimationFrame(raf); } catch (_) {}
@@ -778,6 +842,7 @@ class StoryComposer {
         ctx.fillRect(0, 0, cv.w, cv.h);
         try { ctx.drawImage(img, dx, dy, dw, dh); } catch (_) {}
         OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
+        if (creditos) OverlayPainter.desenharCreditos(ctx, creditos, escalaCanvas);
         raf = requestAnimationFrame(desenhar);
       };
       const parar = () => {
@@ -842,7 +907,7 @@ class StoryComposer {
     });
   }
 
-  static async #comporImagem({ file, overlays = [], previewW = 0, previewH = 0, targetBytes = StoryComposer.ALVO_IMG } = {}) {
+  static async #comporImagem({ file, overlays = [], previewW = 0, previewH = 0, targetBytes = StoryComposer.ALVO_IMG, creditos = null } = {}) {
     let url = null;
     try {
       url = URL.createObjectURL(file);
@@ -872,6 +937,7 @@ class StoryComposer {
         ctx.fillRect(0, 0, cv.w, cv.h);
         ctx.drawImage(img, dx, dy, dw, dh);
         OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
+        if (creditos) OverlayPainter.desenharCreditos(ctx, creditos, escalaCanvas);
 
         for (const q of [0.82, 0.7, 0.58, 0.45, 0.34]) {
           const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', q));
@@ -2083,6 +2149,24 @@ class StoryCreationModal {
 
   // ── Finalizar / fechar ─────────────────────────────────────
 
+  // Texto de créditos/direitos autorais da música (mesma fonte do preview:
+  // MusicCreditsService) para queimar no rodapé do conteúdo. Sem música → null.
+  #gerarCreditosMusica(musica, musicaSrc) {
+    if (!musica || !musicaSrc) return null;
+    try {
+      const Svc = (typeof MusicCreditsService !== 'undefined')
+        ? MusicCreditsService
+        : (typeof require === 'function' ? require('./MusicCreditsService').MusicCreditsService : null);
+      if (!Svc) return null;
+      return new Svc().generate({
+        id:         musica.id ?? musica.music_id ?? null,
+        artist:     musica.artist ?? '',
+        title:      musica.title ?? musica.music_name ?? '',
+        music_name: musica.music_name ?? musica.title ?? '',
+      });
+    } catch (_) { return null; }
+  }
+
   async #finalizar() {
     const estado = this.#service.estado;
     let estadoFinal = estado;
@@ -2104,6 +2188,7 @@ class StoryCreationModal {
       this.#mostrarProcessando(true, ehImagem ? 'Processando imagem…' : 'Processando vídeo…');
       if (this.#finalBtn) this.#finalBtn.disabled = true;
       try {
+        const musicaSrc = this.#musicaSel?.src || this.#musicaSel?.url || null;
         const file = await StoryComposer.compor({
           file: estado.media.file,
           tipo: estado.media.tipo,
@@ -2113,8 +2198,10 @@ class StoryCreationModal {
           targetBytes: ehImagem ? StoryComposer.ALVO_IMG : (1.6 * 1024 * 1024),
           maxSeconds: 30,
           musica: estado.musica,
-          musicaSrc: this.#musicaSel?.src || this.#musicaSel?.url || null,
+          musicaSrc,
           audioMix: estado.audioMix,
+          // Créditos de direitos autorais da música — queimados no rodapé do conteúdo.
+          creditos: this.#gerarCreditosMusica(estado.musica, musicaSrc),
         });
         estadoFinal = { ...estado, media: { ...estado.media, file } };
       } catch (_) {
