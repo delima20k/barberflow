@@ -386,8 +386,7 @@ class StoryComposer {
       try { clearTimeout(timer); } catch (_) {}
       try { stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
       try { video?.pause(); } catch (_) {}
-      try { musicaEl?.stop?.(); } catch (_) {} // BufferSource usa stop()
-      try { musicaEl?.pause?.(); } catch (_) {} // <audio> usa pause() (fallback)
+      try { musicaEl?.stop?.(); } catch (_) {}
       try { audioCtx?.close?.(); } catch (_) {}
       try { if (url) URL.revokeObjectURL(url); } catch (_) {}
     };
