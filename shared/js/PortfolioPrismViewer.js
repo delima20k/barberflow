@@ -697,6 +697,11 @@ class MediaPrismViewer {
     const noInicio = this.#index <= 0;
     if (noFim && angulo < 0)    angulo = 0; // último: não arrasta mais para a direita
     if (noInicio && angulo > 0) angulo = 0; // primeiro: não arrasta mais para a esquerda
+    // Fronteira entre barbearias: no arraste que CRUZA p/ outra barbearia
+    // (primeiro/último vídeo da barbearia) o 3D não acontece — a troca é só com
+    // a animação de entrada (no soltar). Na outra direção, o 3D segue normal.
+    if (angulo < 0 && this.#index + 1 < this.#items.length && this.#cruzaBarbearia(this.#index + 1)) angulo = 0;
+    if (angulo > 0 && this.#index - 1 >= 0 && this.#cruzaBarbearia(this.#index - 1)) angulo = 0;
     this.#pendingAngle = angulo;
     this.#dragLast = { x: e.clientX, t: performance.now() };
 
