@@ -772,26 +772,27 @@ test('OverlayPainter.desenhar texto ampliado (escala>1) não vaza dos lados do v
   }
 });
 
-test('OverlayPainter.desenharCreditos queima os direitos no rodapé (fundo + texto, máx 2 linhas)', () => {
+test('OverlayPainter.desenharCreditos queima os direitos no rodapé (pequeno, fundo transparente, máx 2 linhas)', () => {
   const { sandbox } = criarSandbox();
   const calls = [];
-  let paths = 0;
+  let bgFills = 0;
   const ctx = {
     canvas: { width: 360, height: 640 },
     save() {}, restore() {},
     measureText(t) { return { width: String(t).length * 10 }; },
     fillText(t, x, y) { calls.push({ t, x, y }); },
-    beginPath() { paths++; }, moveTo() {}, arcTo() {}, closePath() {}, fill() {},
+    // fundo transparente: nenhum retângulo deve ser desenhado
+    beginPath() { bgFills++; }, moveTo() {}, arcTo() {}, closePath() {}, fill() { bgFills++; },
     set font(_v) {}, get font() { return ''; },
     set fillStyle(_v) {}, set textBaseline(_v) {}, set textAlign(_v) {},
-    set shadowColor(_v) {}, set shadowBlur(_v) {},
+    set shadowColor(_v) {}, set shadowBlur(_v) {}, set shadowOffsetY(_v) {},
   };
 
   const texto = '🎵 Música utilizada neste conteúdo: ' + Array(40).fill('direitos').join(' ');
   sandbox.OverlayPainter.desenharCreditos(ctx, texto, 1, 16);
 
   assert.ok(calls.length >= 1 && calls.length <= 2, 'créditos em no máximo 2 linhas');
-  assert.ok(paths >= 1, 'desenhou o fundo arredondado');
+  assert.equal(bgFills, 0, 'fundo transparente: não desenha caixa');
   for (const c of calls) assert.ok(c.y > 320, 'créditos ficam no rodapé do conteúdo');
 
   // Sem texto → não desenha nada.

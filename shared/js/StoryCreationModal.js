@@ -229,9 +229,9 @@ class OverlayPainter {
     }
   }
 
-  // Créditos/direitos autorais da música — queimados no RODAPÉ do conteúdo,
-  // espelhando o preview (.sc-music-copyright-overlay): fundo escuro arredondado,
-  // centralizado, fonte ~0.66rem, no máximo 2 linhas.
+  // Créditos/direitos autorais da música — queimados no RODAPÉ do conteúdo.
+  // Texto pequeno, fundo TRANSPARENTE (só sombra forte garante legibilidade),
+  // centralizado, no máximo 2 linhas.
   static desenharCreditos(ctx, texto, escalaCanvas, rootFontPx = 16) {
     if (!ctx || !ctx.canvas) return;
     const txt = String(texto ?? '').replace(/\s+/g, ' ').trim();
@@ -241,15 +241,15 @@ class OverlayPainter {
     const canvasH = Number(ctx.canvas.height) || 0;
     if (!canvasW || !canvasH) return;
 
-    const fontPx = 0.66 * rootFontPx * k;
-    const padX = 8 * k, padY = 6 * k, bottom = 12 * k, radius = 8 * k;
+    const fontPx = 0.5 * rootFontPx * k; // menor que antes (era 0.66rem)
+    const padX = 8 * k, bottom = 10 * k;
     const lineH = fontPx * 1.25;
-    const maxBoxW = canvasW * 0.9;
-    const maxTextW = Math.max(1, maxBoxW - 2 * padX);
+    const maxTextW = Math.max(1, canvasW * 0.9 - 2 * padX);
 
     ctx.save();
     ctx.font = `${fontPx}px sans-serif`;
     ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
 
     let linhas = OverlayPainter.#quebrarLinhas(ctx, txt, maxTextW);
     if (linhas.length > 2) {
@@ -258,35 +258,16 @@ class OverlayPainter {
       linhas = [linhas[0], (l2 || '') + '…'];
     }
 
-    let maxLineW = 0;
-    for (const ln of linhas) maxLineW = Math.max(maxLineW, ctx.measureText(ln).width);
-    const boxW = Math.min(maxBoxW, maxLineW + 2 * padX);
-    const boxH = linhas.length * lineH + 2 * padY;
-    const boxX = (canvasW - boxW) / 2;
-    const boxY = canvasH - bottom - boxH;
+    const blocoH = linhas.length * lineH;
+    let y = canvasH - bottom - blocoH; // base do conteúdo
 
-    ctx.fillStyle = 'rgba(0,0,0,.54)';
-    OverlayPainter.#roundRect(ctx, boxX, boxY, boxW, boxH, radius);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,.92)';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,.6)';
-    ctx.shadowBlur = Math.max(1, fontPx * 0.06);
-    let y = boxY + padY;
+    // Fundo transparente — sombra forte mantém o texto legível sobre qualquer mídia.
+    ctx.fillStyle = 'rgba(255,255,255,.95)';
+    ctx.shadowColor = 'rgba(0,0,0,.9)';
+    ctx.shadowBlur = Math.max(2, fontPx * 0.5);
+    ctx.shadowOffsetY = Math.max(1, fontPx * 0.06);
     for (const ln of linhas) { try { ctx.fillText(ln, canvasW / 2, y); } catch (_) {} y += lineH; }
     ctx.restore();
-  }
-
-  static #roundRect(ctx, x, y, w, h, r) {
-    const rr = Math.max(0, Math.min(r, w / 2, h / 2));
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
-    ctx.closePath();
   }
 
   // Texto: quebra em múltiplas linhas (word-break) e SEMPRE cabe no quadro do
