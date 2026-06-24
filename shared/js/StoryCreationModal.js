@@ -305,10 +305,7 @@ class StoryComposer {
       if (!p.hostname.includes('r2.dev')) return url; // já é BFF ou outro — usa direto
       const key = p.pathname.replace(/^\/+/, '');
       if (!key.startsWith('stories/audio/')) return url;
-      const bffBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-        ? 'http://localhost:3002'
-        : 'https://bff.berberflow.shop';
-      return `${bffBase}/api/v1/media/stories/audio/source?key=${encodeURIComponent(key)}`;
+      return `${BffApiService.baseUrl}/api/v1/media/stories/audio/source?key=${encodeURIComponent(key)}`;
     } catch (_) { return url; }
   }
 
