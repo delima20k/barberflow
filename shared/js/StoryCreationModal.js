@@ -2201,7 +2201,9 @@ class StoryCreationModal {
           musicaSrc,
           audioMix: estado.audioMix,
           // Créditos de direitos autorais da música — queimados no rodapé do conteúdo.
-          creditos: this.#gerarCreditosMusica(estado.musica, musicaSrc),
+          // Usa a faixa CRUA (#musicaSel, com artist/title) — estado.musica é
+          // normalizado e não carrega esses campos.
+          creditos: this.#gerarCreditosMusica(this.#musicaSel || estado.musica, musicaSrc),
         });
         estadoFinal = { ...estado, media: { ...estado.media, file } };
       } catch (_) {

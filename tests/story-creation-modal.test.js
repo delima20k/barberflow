@@ -322,6 +322,40 @@ test('trocar midia mantem creditos e cancelar musica remove overlay', async () =
   assert.equal(ov.querySelector('.sc-music-copyright-overlay'), null, 'cancelar/remove limpa creditos');
 });
 
+test('Finalizar passa os créditos de direitos autorais (faixa com artista) para o compor', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  service.definirMedia({ file: { type: 'image/jpeg', size: 1234 }, tipo: 'imagem', origem: 'upload' });
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(2)) });
+
+  // Captura os opts passados ao compor (sem realmente compor).
+  let capturado = null;
+  const origCompor = sandbox.StoryComposer.compor;
+  sandbox.StoryComposer.compor = async (opts) => { capturado = opts; return opts.file; };
+
+  try {
+    sandbox.StoryCreationModal.abrir({ service, catalogo, onFinalizar: () => {} });
+    const ov = getOverlay(document);
+
+    // Seleciona a música (faixa crua tem artist/url).
+    ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click');
+    await tick();
+    ov.querySelector('.sc-music-usar')._fire('click');
+    await waitCredits();
+
+    // Finaliza.
+    ov.querySelector('.sc-btn--primario')._fire('click');
+    await new Promise((r) => setTimeout(r, 0));
+
+    assert.ok(capturado, 'compor foi chamado no finalizar');
+    assert.equal(typeof capturado.creditos, 'string', 'créditos gerados a partir da faixa');
+    assert.match(capturado.creditos, /Faixa 0/, 'crédito contém o título da faixa');
+    assert.match(capturado.creditos, /Artista/, 'crédito contém o artista');
+  } finally {
+    sandbox.StoryComposer.compor = origCompor;
+  }
+});
+
 test('botao fechar da musica esconde so a sheet interna e permite reabrir', async () => {
   const { sandbox, document } = criarSandbox();
   const service = new sandbox.StoryEditorService();
