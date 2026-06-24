@@ -449,12 +449,14 @@ class StoryComposer {
         try {
           audioCtx = new AC();
           const d = audioCtx.createMediaStreamDestination();
+          let temFonteConectada = false; // só adiciona track ao stream se pelo menos uma fonte conetou
           if (p.usarOriginal) {
             try {
               video.muted = false; // roteado p/ WebAudio (sem alto-falante); feed confiável
               const sv = audioCtx.createMediaElementSource(video);
               const gv = audioCtx.createGain(); gv.gain.value = p.volVideo;
               sv.connect(gv); gv.connect(d);
+              temFonteConectada = true;
             } catch (_) {}
           }
           if (p.usarMusica && musicaSrc) {
@@ -467,10 +469,15 @@ class StoryComposer {
                 const gm = audioCtx.createGain(); gm.gain.value = p.volMusica;
                 bufSrc.connect(gm); gm.connect(d);
                 musicaEl = bufSrc; // limpar() chama .stop()
+                temFonteConectada = true;
               }
             } catch (_) { /* música indisponível (CORS/rede) — continua sem ela */ }
           }
-          const t = d.stream.getAudioTracks()[0]; if (t) { stream.addTrack(t); temAudio = true; }
+          // MediaStreamAudioDestinationNode sempre tem uma track mesmo sem fontes conectadas;
+          // só inclui no stream quando pelo menos uma fonte real foi conectada.
+          if (temFonteConectada) {
+            const t = d.stream.getAudioTracks()[0]; if (t) { stream.addTrack(t); temAudio = true; }
+          }
         } catch (_) { /* sem áudio se não der */ }
       } // else: sem áudio (remover original e sem música)
 
