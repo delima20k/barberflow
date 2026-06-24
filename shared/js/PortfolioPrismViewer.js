@@ -74,6 +74,7 @@ class MediaPrismViewer {
   #dragActive      = false;
   #dragRAF         = 0;
   #pendingAngle    = 0;
+  #slideDrag       = null;    // { dir, entrySign, layer } — slide ao vivo na troca de barbearia
 
   #animando        = false;
   #finalizeTimer   = null;
@@ -136,6 +137,7 @@ class MediaPrismViewer {
     this.#dragLast = null;
     this.#dragActive = false;
     this.#animando = false;
+    this.#limparSlideDrag();
 
     if (this.#onKeydown) {
       document.removeEventListener('keydown', this.#onKeydown);
@@ -689,7 +691,18 @@ class MediaPrismViewer {
       if (this.#deleteTimer) { clearTimeout(this.#deleteTimer); this.#deleteTimer = null; }
       this.#dragActive = true;
       this.#cube.classList.add('pp-prism-cube--drag');
+      // Decide o modo no início do gesto: slide (cruza barbearia) ou 3D.
+      const dirIni = dx < 0 ? 1 : -1; // dx<0 → próximo(+1); dx>0 → anterior(-1)
+      const alvoIni = this.#index + dirIni;
+      if (alvoIni >= 0 && alvoIni < this.#items.length && this.#cruzaBarbearia(alvoIni)) {
+        this.#iniciarSlideDrag(dirIni);
+      }
     }
+
+    this.#dragLast = { x: e.clientX, t: performance.now() };
+
+    // Slide ao vivo na fronteira: o conteúdo da próxima barbearia segue o dedo.
+    if (this.#slideDrag) { this.#atualizarSlideDrag(dx); return; }
 
     let angulo = (dx / Math.max(this.#faceWidth, 1)) * MediaPrismViewer.#ANGLE_PER_FACE;
     // Sem loop: ângulo negativo = próximo (direita); positivo = anterior (esquerda).
@@ -697,13 +710,10 @@ class MediaPrismViewer {
     const noInicio = this.#index <= 0;
     if (noFim && angulo < 0)    angulo = 0; // último: não arrasta mais para a direita
     if (noInicio && angulo > 0) angulo = 0; // primeiro: não arrasta mais para a esquerda
-    // Fronteira entre barbearias: no arraste que CRUZA p/ outra barbearia
-    // (primeiro/último vídeo da barbearia) o 3D não acontece — a troca é só com
-    // a animação de entrada (no soltar). Na outra direção, o 3D segue normal.
+    // Direção que cruzaria barbearia (sem slide iniciado, ex.: reverteu) também não faz 3D.
     if (angulo < 0 && this.#index + 1 < this.#items.length && this.#cruzaBarbearia(this.#index + 1)) angulo = 0;
     if (angulo > 0 && this.#index - 1 >= 0 && this.#cruzaBarbearia(this.#index - 1)) angulo = 0;
     this.#pendingAngle = angulo;
-    this.#dragLast = { x: e.clientX, t: performance.now() };
 
     if (!this.#dragRAF) {
       this.#dragRAF = requestAnimationFrame(() => {
@@ -712,6 +722,92 @@ class MediaPrismViewer {
         this.#cube.style.transform = `rotateY(${this.#baseRotation + this.#pendingAngle}deg)`;
       });
     }
+  }
+
+  // Cria a camada da próxima/anterior barbearia (mídia) sobre o palco, p/ o slide
+  // ao vivo. entrySign: próximo entra pela direita (+1); anterior pela esquerda (-1).
+  #iniciarSlideDrag(dir) {
+    const alvo = this.#index + dir;
+    const item = this.#items[alvo];
+    if (!item || !this.#stage) return;
+    const entrySign = dir > 0 ? 1 : -1;
+    const fw = Math.max(this.#faceWidth, 1);
+    const layer = this.#criarSlideLayer(item);
+    layer.style.transition = 'none';
+    layer.style.transform = `translateX(${entrySign * fw}px)`;
+    this.#cube.style.transition = 'none';
+    this.#slideDrag = { dir, entrySign, layer };
+  }
+
+  #atualizarSlideDrag(dx) {
+    if (!this.#slideDrag) return;
+    const fw = Math.max(this.#faceWidth, 1);
+    const { entrySign, layer } = this.#slideDrag;
+    // Limita: próximo arrasta p/ esquerda (dx≤0); anterior p/ direita (dx≥0).
+    const d = entrySign > 0 ? Math.min(0, Math.max(-fw, dx)) : Math.max(0, Math.min(fw, dx));
+    this.#cube.style.transform = `translateX(${d}px) rotateY(0deg)`;
+    layer.style.transform = `translateX(${entrySign * fw + d}px)`;
+  }
+
+  #finalizarSlideDrag(dx, velocity) {
+    const { dir, entrySign, layer } = this.#slideDrag;
+    this.#slideDrag = null;
+    const fw = Math.max(this.#faceWidth, 1);
+    const threshold = fw * MediaPrismViewer.#THRESHOLD_DIST_RATIO;
+    const passou = (dir > 0 && (dx <= -threshold || velocity <= -MediaPrismViewer.#VELOCITY_THRESHOLD))
+                || (dir < 0 && (dx >=  threshold || velocity >=  MediaPrismViewer.#VELOCITY_THRESHOLD));
+    this.#animando = true;
+    this.#cube.classList.remove('pp-prism-cube--drag');
+    const dur = MediaPrismViewer.#DURATION_MS;
+    this.#cube.style.transition = `transform ${dur}ms ${MediaPrismViewer.#EASING}`;
+    layer.style.transition = `transform ${dur}ms ${MediaPrismViewer.#EASING}`;
+    if (passou) {
+      this.#cube.style.transform = `translateX(${-entrySign * fw}px) rotateY(0deg)`;
+      layer.style.transform = 'translateX(0px)';
+    } else {
+      this.#cube.style.transform = 'translateX(0px) rotateY(0deg)';
+      layer.style.transform = `translateX(${entrySign * fw}px)`;
+    }
+    this.#limparTimer();
+    this.#finalizeTimer = setTimeout(() => {
+      if (passou) {
+        this.#index = Math.min(Math.max(this.#index + dir, 0), this.#items.length - 1);
+        this.#renderAtual({ animar: false });
+      }
+      this.#cube.style.transition = '';
+      this.#cube.style.transform = 'rotateY(0deg)';
+      try { layer.remove(); } catch (_) {}
+      this.#animando = false;
+    }, dur + 30);
+  }
+
+  #limparSlideDrag() {
+    if (!this.#slideDrag) return;
+    try { this.#slideDrag.layer.remove(); } catch (_) {}
+    this.#slideDrag = null;
+    if (this.#cube) { this.#cube.style.transition = ''; this.#cube.style.transform = 'rotateY(0deg)'; }
+  }
+
+  #criarSlideLayer(item) {
+    const layer = this.#stage.ownerDocument.createElement('div');
+    layer.className = 'pp-prism-slide-layer';
+    layer.style.cssText = 'position:absolute;inset:0;z-index:6;overflow:hidden;background:#0d0a08;will-change:transform;';
+    const url     = MediaPrismViewer.#resolverMediaUrl(item);
+    const poster  = MediaPrismViewer.#resolverPosterUrl(item);
+    const isVideo = MediaPrismViewer.#detectarVideo(item);
+    const el = this.#stage.ownerDocument.createElement(isVideo ? 'video' : 'img');
+    el.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+    if (isVideo) {
+      el.muted = true; el.playsInline = true; el.loop = true; el.preload = 'auto';
+      if (poster) el.poster = poster;
+      if (url) el.src = url;
+      el.play?.().catch(() => {});
+    } else if (url) {
+      el.src = url;
+    }
+    layer.appendChild(el);
+    this.#stage.appendChild(layer);
+    return layer;
   }
 
   #onPointerUp(e) {
@@ -723,6 +819,7 @@ class MediaPrismViewer {
 
     if (!this.#dragActive) {
       // não chegou a virar arrasto — nada a fazer
+      if (this.#slideDrag) this.#limparSlideDrag();
       return;
     }
     this.#dragActive = false;
@@ -732,6 +829,9 @@ class MediaPrismViewer {
     // Velocidade média da última amostra
     const dxRecente = (e.clientX - (this.#dragLast?.x ?? inicio.x));
     const velocity = dxRecente / dt;
+
+    // Slide ao vivo: completa (se passou do limiar) ou volta, acompanhando o dedo.
+    if (this.#slideDrag) { this.#finalizarSlideDrag(dx, velocity); return; }
 
     const threshold = this.#faceWidth * MediaPrismViewer.#THRESHOLD_DIST_RATIO;
 
@@ -755,6 +855,12 @@ class MediaPrismViewer {
   #onPointerCancel() {
     if (this.#dragRAF) { cancelAnimationFrame(this.#dragRAF); this.#dragRAF = 0; }
     this.#dragStart = null;
+    if (this.#slideDrag) {
+      this.#dragActive = false;
+      this.#cube.classList.remove('pp-prism-cube--drag');
+      this.#finalizarSlideDrag(0, 0); // dx=0 → volta ao lugar
+      return;
+    }
     if (this.#dragActive) {
       this.#dragActive = false;
       this.#cube.classList.remove('pp-prism-cube--drag');
