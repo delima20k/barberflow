@@ -396,6 +396,17 @@ class StoryComposer {
     };
 
     try {
+      const p = plano || { usarOriginal: true, volVideo: 1, usarMusica: false, volMusica: 0 };
+      const AC = (typeof window !== 'undefined') && (window.AudioContext || window.webkitAudioContext);
+      const precisaMix = (p.usarMusica && musicaSrc) || (p.usarOriginal && p.volVideo < 0.999);
+      // Dispara o download do áudio imediatamente, em paralelo com setup do vídeo/canvas.
+      // Quando o áudio for necessário mais abaixo, provavelmente já estará pronto.
+      const promessaArrayBuffer = (precisaMix && p.usarMusica && musicaSrc && AC)
+        ? fetch(StoryComposer.#toAudioProxyUrl(musicaSrc), { mode: 'cors', credentials: 'omit' })
+            .then(r => r.ok ? r.arrayBuffer() : null)
+            .catch(() => null)
+        : null;
+
       url = URL.createObjectURL(file);
       video = document.createElement('video');
       video.src = url; video.muted = true; video.playsInline = true; video.preload = 'auto';
@@ -419,9 +430,6 @@ class StoryComposer {
       stream = canvas.captureStream(30);
 
       // ── Áudio: mix de vídeo (volVideo) + música (volMusica) por ganhos ──
-      const p = plano || { usarOriginal: true, volVideo: 1, usarMusica: false, volMusica: 0 };
-      const AC = (typeof window !== 'undefined') && (window.AudioContext || window.webkitAudioContext);
-      const precisaMix = (p.usarMusica && musicaSrc) || (p.usarOriginal && p.volVideo < 0.999);
       let temAudio = false;
 
       if (p.usarOriginal && !precisaMix) {
@@ -450,12 +458,10 @@ class StoryComposer {
             } catch (_) {}
           }
           if (p.usarMusica && musicaSrc) {
-            // fetch + decodeAudioData via proxy BFF (CORS correto).
-            // #toAudioProxyUrl converte URL R2 direta → BFF proxy caso o catálogo não tenha proxificado.
             try {
-              const resp = await fetch(StoryComposer.#toAudioProxyUrl(musicaSrc), { mode: 'cors', credentials: 'omit' });
-              if (resp.ok) {
-                const audioBuffer = await audioCtx.decodeAudioData(await resp.arrayBuffer());
+              const arrayBuf = await promessaArrayBuffer;
+              if (arrayBuf) {
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
                 const bufSrc = audioCtx.createBufferSource();
                 bufSrc.buffer = audioBuffer; bufSrc.loop = true;
                 const gm = audioCtx.createGain(); gm.gain.value = p.volMusica;
