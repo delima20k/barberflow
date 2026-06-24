@@ -63,13 +63,17 @@ module.exports = function criarInternalCronRoute(db) {
     }
 
     try {
+      // Scan de órfãos R2 (FASE E) — limpa objetos sem linha em media_files
+      // (uploads presigned nunca confirmados). Ligado por padrão; defina
+      // STORY_CLEANUP_INCLUDE_R2_SCAN=false para desligar em emergência.
+      const includeR2Scan = process.env.STORY_CLEANUP_INCLUDE_R2_SCAN !== 'false';
       const relatorio = await new PurgeExpiredStoriesUseCase({
         storyRepository:        new BarbeariaRepository(db),
         mediaRepository:        new SupabaseMediaRepository(db),
         r2Gateway:              r2,
         supabaseStorageGateway: new SupabaseMediaStorageGateway({ db }),
         batchSize:              Number(process.env.STORY_CLEANUP_BATCH_SIZE ?? 50),
-      }).execute({ dryRun: false, includeR2Scan: false });
+      }).execute({ dryRun: false, includeR2Scan });
 
       return res.status(200).json({ ok: true, ...relatorio });
     } catch (err) {
