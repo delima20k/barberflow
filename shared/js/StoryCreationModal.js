@@ -229,16 +229,36 @@ class OverlayPainter {
     }
   }
 
-  // Texto: quebra em múltiplas linhas igual ao preview (max-width: calc(100%-10px),
-  // padding 6px, word-break) e respeita transform-origin:center ao escalar.
+  // Texto: quebra em múltiplas linhas (word-break) e SEMPRE cabe no quadro do
+  // vídeo. O preview recorta o excesso (overflow:hidden); a composição não, então
+  // limitamos a quebra à largura do quadro e reduzimos a fonte se uma palavra não
+  // couber — assim o texto aparece inteiro no vídeo em produção.
   static #desenharTexto(ctx, m, canvasW) {
-    const padX = OverlayPainter.PAD_X * m.esc * m.k;
-    const padY = OverlayPainter.PAD_Y * m.esc * m.k;
-    const lineHeight = m.fontPx * OverlayPainter.LINE_HEIGHT;
-    // Largura de conteúdo (canvas px) = (100% - 10px - 2*6px) escalada por esc.
-    // 100% = previewW = canvasW/k → (canvasW - (MARGIN+2*PAD_X)*k) * esc.
     const reservado = (OverlayPainter.MARGIN + 2 * OverlayPainter.PAD_X) * m.k;
-    const contentMax = Math.max(1, (canvasW - reservado) * m.esc);
+    // Largura útil do QUADRO (limite físico do vídeo) — teto absoluto da quebra.
+    const frameMax = Math.max(1, canvasW - reservado);
+    // Até esc=1 respeita o preview; acima disso, mantém dentro do quadro.
+    const contentMax = Math.min(frameMax, Math.max(1, (canvasW - reservado) * m.esc));
+
+    // Reduz a fonte se a maior palavra não couber no quadro (texto muito grande).
+    let fontPx = m.fontPx;
+    ctx.font = `800 ${fontPx}px sans-serif`;
+    let maiorPalavra = 0;
+    for (const p of String(m.texto).split(/\s+/)) {
+      const w = ctx.measureText(p).width;
+      if (w > maiorPalavra) maiorPalavra = w;
+    }
+    if (maiorPalavra > frameMax) {
+      fontPx = Math.max(1, fontPx * (frameMax / maiorPalavra));
+      ctx.font = `800 ${fontPx}px sans-serif`;
+    }
+
+    // Escala efetiva (após eventual redução) p/ padding/offset coerentes.
+    const escEf = m.esc * (fontPx / m.fontPx);
+    const padX = OverlayPainter.PAD_X * escEf * m.k;
+    const padY = OverlayPainter.PAD_Y * escEf * m.k;
+    const lineHeight = fontPx * OverlayPainter.LINE_HEIGHT;
+
     const linhas = OverlayPainter.#quebrarLinhas(ctx, m.texto, contentMax);
     if (!linhas.length) return;
 
@@ -247,11 +267,14 @@ class OverlayPainter {
     const boxW = maxLineW + 2 * padX;
     const boxH = linhas.length * lineHeight + 2 * padY;
 
-    // transform-origin: center → desloca o topo-esquerdo quando esc ≠ 1.
-    const offX = boxW * (1 - m.esc) / (2 * m.esc);
-    const offY = boxH * (1 - m.esc) / (2 * m.esc);
-    const left = m.x + offX + padX;
+    // transform-origin: center → desloca o topo-esquerdo quando escEf ≠ 1.
+    const offX = boxW * (1 - escEf) / (2 * escEf);
+    const offY = boxH * (1 - escEf) / (2 * escEf);
+    let left = m.x + offX + padX;
     let y = m.y + offY + padY;
+    // Garante que o bloco não comece fora do quadro à esquerda nem vaze à direita.
+    if (left < 0) left = padX;
+    if (left + maxLineW > canvasW) left = Math.max(padX, canvasW - maxLineW - padX);
     for (const ln of linhas) {
       if (ln) { try { ctx.fillText(ln, left, y); } catch (_) {} }
       y += lineHeight;

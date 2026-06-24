@@ -711,6 +711,33 @@ test('OverlayPainter.desenhar respeita quebras explícitas (\\n) do preview', ()
   assert.ok(calls[1].y > calls[0].y, 'segunda linha abaixo da primeira');
 });
 
+test('OverlayPainter.desenhar texto ampliado (escala>1) não vaza dos lados do vídeo', () => {
+  const { sandbox } = criarSandbox();
+  const calls = [];
+  const ctx = {
+    canvas: { width: 360, height: 640 },
+    save() {}, restore() {},
+    measureText(t) { return { width: String(t).length * 10 }; },
+    fillText(t, x, y) { calls.push({ t, x, y }); },
+    set font(_v) {}, get font() { return ''; },
+    set fillStyle(_v) {}, set textBaseline(_v) {}, set textAlign(_v) {},
+    set shadowColor(_v) {}, set shadowBlur(_v) {}, set shadowOffsetY(_v) {},
+  };
+
+  // Texto largo posicionado à direita do centro e ampliado (escala 3).
+  const textoLargo = Array(40).fill('aa').join(' ');
+  sandbox.OverlayPainter.desenhar(ctx, [{ tipo: 'texto', conteudo: textoLargo, x: 150, y: 50, escala: 3 }], 1, 16);
+
+  assert.ok(calls.length > 1, 'texto ampliado deve quebrar para caber');
+  const frameMax = 360 - (10 + 2 * 6); // 338
+  for (const c of calls) {
+    const w = String(c.t).length * 10;
+    assert.ok(w <= frameMax + 1e-6, 'cada linha cabe na largura útil do quadro');
+    assert.ok(c.x >= -1e-6, 'não vaza à esquerda');
+    assert.ok(c.x + w <= 360 + 1e-6, 'não vaza à direita');
+  }
+});
+
 test('StoryComposer.dimsCanvas preserva aspecto, limita maior lado e gera dimensoes pares', () => {
   const { sandbox } = criarSandbox();
   const retrato = sandbox.StoryComposer.dimsCanvas(9 / 16, 1080);
