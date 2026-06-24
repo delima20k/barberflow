@@ -3315,6 +3315,10 @@ export class MinhaBarbeariaRuntimeController {
       if (dbErr) throw dbErr;
 
       NotificationService?.mostrarToast('Publicado', 'Seu story foi publicado por 24h!', 'sistema');
+      // Reseta o botão ANTES de recarregar — no sucesso o ⏳/pointerEvents:none
+      // ficava preso até dar refresh na página (#renderStoryCards não reseta o
+      // textContent). Agora volta ao normal em tempo real, sem reload.
+      if (addBtn) { addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; }
       this.#carregou = false;
       this.#carregar();
 
