@@ -351,7 +351,13 @@ class StoryComposer {
       musicaSrc: opts.musicaSrc,
       audioMix: opts.audioMix,
     });
-    return !!plano.usarMusica || !plano.usarOriginal || plano.volVideo < 0.999;
+    if (plano.usarMusica || !plano.usarOriginal || plano.volVideo < 0.999) return true;
+    // Sem edição: ainda comprime se o vídeo cru estourar o alvo. Evita subir o
+    // original (dezenas de MB do celular) — o backend não recomprime no
+    // serverless (worker BullMQ não roda na função Vercel).
+    const alvo = Number(opts.targetBytes) || (1.6 * 1024 * 1024);
+    const tamanho = Number(opts.file?.size) || 0;
+    return tamanho > alvo;
   }
 
   static async #comporVideo(opts) {
@@ -369,8 +375,10 @@ class StoryComposer {
     };
 
     let blob = await StoryComposer.#gravarVideo({ ...base, fatorBitrate: 1 });
-    // Re-encode de segurança (uma vez) se estourar o alvo.
-    if (blob && blob.size > targetBytes) {
+    // Re-encode de segurança (uma vez) só se estourar o alvo com folga.
+    // O bitrate do MediaRecorder é só uma dica e estoura um pouco em vídeo com
+    // movimento; regravar em tempo real por uma folga pequena dobraria o tempo à toa.
+    if (blob && blob.size > targetBytes * 1.3) {
       const menor = await StoryComposer.#gravarVideo({ ...base, fatorBitrate: 0.6 });
       if (menor && menor.size) blob = menor;
     }

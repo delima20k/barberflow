@@ -701,6 +701,29 @@ test('StoryComposer.deveComporVideo reencoda quando ha musica mesmo sem overlay 
   }), true, 'remover audio original tambem exige recomposicao');
 });
 
+test('StoryComposer.deveComporVideo comprime video cru grande (acima do alvo) mesmo sem edicao', () => {
+  const { sandbox } = criarSandbox();
+  const SC = sandbox.StoryComposer;
+  const alvo = 1.6 * 1024 * 1024;
+
+  // Vídeo cru do celular bem acima do alvo → deve comprimir.
+  assert.equal(SC.deveComporVideo({
+    overlays: [],
+    file: { type: 'video/mp4', size: 25 * 1024 * 1024 },
+    targetBytes: alvo,
+  }), true, 'video cru grande precisa ser comprimido antes de subir');
+
+  // Vídeo cru já pequeno (abaixo do alvo) → não vale o reencode em tempo real.
+  assert.equal(SC.deveComporVideo({
+    overlays: [],
+    file: { type: 'video/mp4', size: 800 * 1024 },
+    targetBytes: alvo,
+  }), false, 'video pequeno nao precisa recomprimir');
+
+  // Sem info de tamanho → mantém comportamento antigo (nao recomprime).
+  assert.equal(SC.deveComporVideo({ overlays: [] }), false, 'sem file/size nao recomprime');
+});
+
 test('Finalizar queima/comprime e entrega o arquivo em media.file (com overlays no estado)', async () => {
   const { sandbox, document } = criarSandbox();
   const onFinalizar = fn();
