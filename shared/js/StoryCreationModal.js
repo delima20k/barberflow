@@ -296,6 +296,22 @@ class StoryComposer {
       && typeof URL !== 'undefined' && !!URL.createObjectURL;
   }
 
+  // Converte URL direta do R2 para o proxy BFF (que serve com CORS correto).
+  // Garante que mesmo se o catálogo retornar URL R2, a composição usa BFF.
+  static #toAudioProxyUrl(url) {
+    if (!url) return url;
+    try {
+      const p = new URL(url);
+      if (!p.hostname.includes('r2.dev')) return url; // já é BFF ou outro — usa direto
+      const key = p.pathname.replace(/^\/+/, '');
+      if (!key.startsWith('stories/audio/')) return url;
+      const bffBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? 'http://localhost:3002'
+        : 'https://bff.berberflow.shop';
+      return `${bffBase}/api/v1/media/stories/audio/source?key=${encodeURIComponent(key)}`;
+    } catch (_) { return url; }
+  }
+
   static #mime() {
     return ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
       .find(t => { try { return MediaRecorder.isTypeSupported?.(t); } catch (_) { return false; } }) || '';
@@ -434,10 +450,10 @@ class StoryComposer {
             } catch (_) {}
           }
           if (p.usarMusica && musicaSrc) {
-            // fetch + decodeAudioData evita o bug de crossOrigin-após-src e não
-            // depende de timing do carregamento do <audio> para createMediaElementSource.
+            // fetch + decodeAudioData via proxy BFF (CORS correto).
+            // #toAudioProxyUrl converte URL R2 direta → BFF proxy caso o catálogo não tenha proxificado.
             try {
-              const resp = await fetch(musicaSrc, { mode: 'cors', credentials: 'omit' });
+              const resp = await fetch(StoryComposer.#toAudioProxyUrl(musicaSrc), { mode: 'cors', credentials: 'omit' });
               if (resp.ok) {
                 const audioBuffer = await audioCtx.decodeAudioData(await resp.arrayBuffer());
                 const bufSrc = audioCtx.createBufferSource();
