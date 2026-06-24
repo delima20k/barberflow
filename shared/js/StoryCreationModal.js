@@ -508,7 +508,21 @@ class StoryComposer {
 
       rec.start();
       try { await audioCtx?.resume?.(); } catch (_) {}
-      try { musicaEl?.start?.(audioCtx?.currentTime || 0); } catch (_) {} // BufferSource.start()
+      // Alguns browsers (iOS Safari strict-autoplay) resolvem resume() antes de
+      // transicionar para 'running'. Só dispara BufferSource se o contexto confirmou.
+      if (musicaEl && audioCtx) {
+        if (audioCtx.state === 'running') {
+          try { musicaEl.start(audioCtx.currentTime || 0); } catch (_) {}
+        } else {
+          const iniciarAoRetomar = () => {
+            if (audioCtx.state === 'running') {
+              try { musicaEl.start(audioCtx.currentTime || 0); } catch (_) {}
+              audioCtx.removeEventListener('statechange', iniciarAoRetomar);
+            }
+          };
+          audioCtx.addEventListener('statechange', iniciarAoRetomar);
+        }
+      }
       await video.play();
       desenhar();
       video.onended = parar;
