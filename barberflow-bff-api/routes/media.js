@@ -185,7 +185,8 @@ module.exports = function criarMediaRoute(db, deps = {}) {
         : await audioCatalogReader.ler();
       res.set('Cache-Control', 'private, max-age=300');
       return res.status(200).json({ ok: true, dados: proxificarAudioCatalogo(catalogo, req) });
-    } catch (_) {
+    } catch (err) {
+      console.error('[audio-catalog] erro ao ler catalogo:', err?.message || err);
       return res.status(200).json({ ok: true, dados: StoryAudioCatalogReader.VAZIO });
     }
   });
