@@ -302,7 +302,7 @@ class StoryComposer {
     if (!url) return url;
     try {
       const p = new URL(url);
-      if (!p.hostname.includes('r2.dev')) return url; // já é BFF ou outro — usa direto
+      if (!/\.r2\.dev$/.test(p.hostname)) return url; // já é BFF ou outro — usa direto
       const key = p.pathname.replace(/^\/+/, '');
       if (!key.startsWith('stories/audio/')) return url;
       return `${BffApiService.baseUrl}/api/v1/media/stories/audio/source?key=${encodeURIComponent(key)}`;
