@@ -46,6 +46,54 @@ function isR2ScanRequested(value) {
   return value === true || String(value).toLowerCase() === 'true';
 }
 
+function audioSourceUrl(req, key) {
+  const safeKey = normalizarAudioKey(key);
+  if (!safeKey) return null;
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  if (!host) return null;
+  return `${proto}://${host}/api/v1/media/stories/audio/source?key=${encodeURIComponent(safeKey)}`;
+}
+
+function normalizarAudioKey(value) {
+  const key = String(value ?? '').trim().replace(/^\/+/, '');
+  if (!key.startsWith('stories/audio/')) return null;
+  if (!/^[a-z0-9._~/-]+$/i.test(key)) return null;
+  if (key.includes('..') || key.includes('//')) return null;
+  if (!/\.(m4a|mp3|wav|aac)$/i.test(key)) return null;
+  return key;
+}
+
+function audioKeyFromTrack(track = {}) {
+  const direct = normalizarAudioKey(track.key);
+  if (direct) return direct;
+  try {
+    const parsed = new URL(String(track.url ?? ''));
+    return normalizarAudioKey(decodeURIComponent(parsed.pathname));
+  } catch (_) {
+    return null;
+  }
+}
+
+function proxificarAudioCatalogo(catalogo, req) {
+  if (!catalogo || !Array.isArray(catalogo.tracks)) return catalogo;
+  return {
+    ...catalogo,
+    tracks: catalogo.tracks.map((track) => {
+      const key = audioKeyFromTrack(track);
+      const url = audioSourceUrl(req, key);
+      return url ? { ...track, key, url } : track;
+    }),
+  };
+}
+
+function audioContentType(key) {
+  if (/\.mp3$/i.test(key)) return 'audio/mpeg';
+  if (/\.wav$/i.test(key)) return 'audio/wav';
+  if (/\.aac$/i.test(key)) return 'audio/aac';
+  return 'audio/mp4';
+}
+
 function isR2ScanEnabled() {
   return process.env[R2_CLEANUP_SCAN_ENV] === 'true';
 }
@@ -136,9 +184,33 @@ module.exports = function criarMediaRoute(db, deps = {}) {
           })
         : await audioCatalogReader.ler();
       res.set('Cache-Control', 'private, max-age=300');
-      return res.status(200).json({ ok: true, dados: catalogo });
+      return res.status(200).json({ ok: true, dados: proxificarAudioCatalogo(catalogo, req) });
     } catch (_) {
       return res.status(200).json({ ok: true, dados: StoryAudioCatalogReader.VAZIO });
+    }
+  });
+
+  // GET /api/v1/media/stories/audio/source?key=stories/audio/... — proxy publico controlado.
+  router.get('/stories/audio/source', async (req, res) => {
+    const key = normalizarAudioKey(req.query?.key);
+    if (!key) return res.status(400).json({ ok: false, error: 'audio key invalida.' });
+    if (!r2Instance?.downloadSource) {
+      return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Audio indisponivel.' });
+    }
+    try {
+      const bytes = await r2Instance.downloadSource(key);
+      const origin = req.get('origin');
+      res.set({
+        'Access-Control-Allow-Origin': origin || '*',
+        'Vary': 'Origin',
+        'Cache-Control': 'public, max-age=86400, immutable',
+        'Content-Type': audioContentType(key),
+        'Content-Length': String(Buffer.byteLength(bytes)),
+        'X-Content-Type-Options': 'nosniff',
+      });
+      return res.status(200).send(bytes);
+    } catch (_) {
+      return res.status(404).json({ ok: false, error: 'Audio nao encontrado.' });
     }
   });
 

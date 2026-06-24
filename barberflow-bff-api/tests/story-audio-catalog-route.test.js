@@ -32,7 +32,7 @@ function createDbStub() {
   return { from: () => chain, rpc: () => chain };
 }
 
-function request(server, path, { headers = {} } = {}) {
+function request(server, path, { headers = {}, json = true } = {}) {
   return new Promise((resolve, reject) => {
     const req = http.request({
       hostname: '127.0.0.1',
@@ -44,7 +44,11 @@ function request(server, path, { headers = {} } = {}) {
       let raw = '';
       res.on('data', chunk => { raw += chunk; });
       res.on('end', () => {
-        resolve({ status: res.statusCode, body: JSON.parse(raw) });
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          body: json ? JSON.parse(raw) : raw,
+        });
       });
     });
     req.on('error', reject);
@@ -72,7 +76,14 @@ test('catalogo de musicas de story nao exige Authorization e devolve pagina cont
         count: 2,
         genres: ['Todos', 'Pop'],
         tracks: [
-          { music_id: 'id-1', music_name: 'Faixa 1', duration: 30, genre: 'Pop', url: 'https://cdn/1.m4a' },
+          {
+            music_id: 'id-1',
+            music_name: 'Faixa 1',
+            duration: 30,
+            genre: 'Pop',
+            key: 'stories/audio/pop/faixa-1.m4a',
+            url: 'https://pub-9736.r2.dev/stories/audio/pop/faixa-1.m4a',
+          },
         ],
         page: 1,
         pageSize: 20,
@@ -96,7 +107,43 @@ test('catalogo de musicas de story nao exige Authorization e devolve pagina cont
     assert.equal(body.ok, true);
     assert.equal(body.dados.tracks.length, 1);
     assert.equal(body.dados.tracks[0].music_id, 'id-1');
+    assert.equal(body.dados.tracks[0].key, 'stories/audio/pop/faixa-1.m4a');
+    assert.match(body.dados.tracks[0].url, /\/api\/v1\/media\/stories\/audio\/source\?key=stories%2Faudio%2Fpop%2Ffaixa-1\.m4a$/);
+    assert.equal(body.dados.tracks[0].url.includes('r2.dev'), false);
     assert.deepEqual(chamadas[0], { page: '1', pageSize: '20', genre: 'Todos', q: 'yu' });
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test('source de audio de story serve pelo BFF com CORS e bloqueia key fora do prefixo', async () => {
+  const downloads = [];
+  const storage = {
+    createSignedUpload: async () => ({}),
+    createSignedAccess: async () => ({}),
+    downloadSource: async (key) => {
+      downloads.push(key);
+      return Buffer.from('audio-bytes');
+    },
+  };
+  const app = express();
+  app.use('/api/v1/media', criarMediaRoute(createDbStub(), { r2Instance: storage, storage }));
+  const server = await startServer(app);
+
+  try {
+    const ok = await request(server, '/api/v1/media/stories/audio/source?key=stories%2Faudio%2Fpop%2Ffaixa-1.m4a', {
+      headers: { Origin: 'https://pro.berberflow.shop' },
+      json: false,
+    });
+
+    assert.equal(ok.status, 200);
+    assert.equal(ok.body, 'audio-bytes');
+    assert.equal(ok.headers['access-control-allow-origin'], 'https://pro.berberflow.shop');
+    assert.equal(ok.headers['content-type'], 'audio/mp4');
+    assert.deepEqual(downloads, ['stories/audio/pop/faixa-1.m4a']);
+
+    const invalid = await request(server, '/api/v1/media/stories/audio/source?key=stories%2Fvideo.mp4');
+    assert.equal(invalid.status, 400);
   } finally {
     await closeServer(server);
   }
