@@ -1373,7 +1373,14 @@ class StoryCreationModal {
 
   // ── Emoji ──────────────────────────────────────────────────
 
+  // Dentro da .sc-stage só pode haver um modal aberto: ao abrir um, fecha o outro.
+  #fecharOutrosSheetsStage(exceto) {
+    if (exceto !== 'emoji'  && this.#emojiSheet && !this.#emojiSheet.hidden) this.#fecharEmojiSheet();
+    if (exceto !== 'musica' && this.#musicSheet && !this.#musicSheet.hidden) this.#fecharMusicSheet();
+  }
+
   #abrirEmojis() {
+    this.#fecharOutrosSheetsStage('emoji');
     if (this.#emojiSheet) { this.#emojiSheet.hidden = false; return; }
     const grid = scEl('div', { class: 'sc-emoji-grid' });
     StoryCreationModal.EMOJIS.forEach((emoji) => {
@@ -1451,6 +1458,7 @@ class StoryCreationModal {
   // ── Música ─────────────────────────────────────────────────
 
   #abrirMusicas() {
+    this.#fecharOutrosSheetsStage('musica');
     if (this.#musicSheet) { this.#musicSheet.hidden = false; this.#abaixarVolumeVideo(); return; }
     this.#construirMusicSheet();
     this.#stageEl()?.appendChild(this.#musicSheet);

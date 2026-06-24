@@ -175,6 +175,32 @@ test('botão Emoji abre a sub-modal de emojis', () => {
   assert.ok(getOverlay(document), 'modal principal continua aberta');
 });
 
+test('sc-stage: abrir um modal fecha o outro automaticamente (emoji ↔ música)', async () => {
+  const { sandbox, document } = criarSandbox();
+  const service = new sandbox.StoryEditorService();
+  service.definirMedia({ file: { type: 'video/mp4', size: 10 }, tipo: 'video', origem: 'upload' });
+  const catalogo = new sandbox.MusicCatalogService({ api: stubApi(catalogoFixture(3)) });
+  sandbox.StoryCreationModal.abrir({ service, catalogo });
+  const ov = getOverlay(document);
+
+  // Abre emoji
+  ov.querySelectorAll('.sc-preview-ptool')[1]._fire('click'); // Emoji
+  const emoji = ov.querySelector('.sc-emoji-sheet');
+  assert.equal(emoji.hidden, false, 'emoji aberto');
+
+  // Abre música → o emoji aberto deve fechar sozinho
+  ov.querySelectorAll('.sc-preview-ptool')[0]._fire('click'); // Musica
+  await tick();
+  const music = ov.querySelector('.sc-music-sheet');
+  assert.equal(music.hidden, false, 'música aberta');
+  assert.equal(emoji.hidden, true, 'emoji fechou automaticamente ao abrir música');
+
+  // Reabre emoji → a música aberta deve fechar sozinha
+  ov.querySelectorAll('.sc-preview-ptool')[1]._fire('click'); // Emoji
+  assert.equal(emoji.hidden, false, 'emoji reaberto');
+  assert.equal(music.hidden, true, 'música fechou automaticamente ao reabrir emoji');
+});
+
 test('enviar texto cria um overlay de texto no preview e no serviço', () => {
   const { sandbox, document } = criarSandbox();
   const service = new sandbox.StoryEditorService();
