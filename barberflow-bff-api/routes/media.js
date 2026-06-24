@@ -190,6 +190,8 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     }
   });
 
+  const MAX_AUDIO_PROXY_BYTES = 15 * 1024 * 1024; // 15 MB — protege a heap do serverless
+
   // GET /api/v1/media/stories/audio/source?key=stories/audio/... — proxy publico controlado.
   router.get('/stories/audio/source', async (req, res) => {
     const key = normalizarAudioKey(req.query?.key);
@@ -197,21 +199,31 @@ module.exports = function criarMediaRoute(db, deps = {}) {
     if (!r2Instance?.downloadSource) {
       return res.status(503).json({ ok: false, code: 'R2_UNAVAILABLE', error: 'Audio indisponivel.' });
     }
+    let bytes;
     try {
-      const bytes = await r2Instance.downloadSource(key);
-      const origin = req.get('origin');
-      res.set({
-        'Access-Control-Allow-Origin': origin || '*',
-        'Vary': 'Origin',
-        'Cache-Control': 'public, max-age=86400, immutable',
-        'Content-Type': audioContentType(key),
-        'Content-Length': String(Buffer.byteLength(bytes)),
-        'X-Content-Type-Options': 'nosniff',
-      });
-      return res.status(200).send(bytes);
-    } catch (_) {
-      return res.status(404).json({ ok: false, error: 'Audio nao encontrado.' });
+      bytes = await r2Instance.downloadSource(key);
+    } catch (err) {
+      const msg = err?.name || err?.message || 'desconhecido';
+      if (/NotFound|NoSuchKey/i.test(msg)) {
+        return res.status(404).json({ ok: false, error: 'Audio nao encontrado.' });
+      }
+      console.error('[audio-proxy] erro ao baixar do R2:', key, msg);
+      return res.status(502).json({ ok: false, error: 'Falha ao obter audio do armazenamento.' });
     }
+    if (bytes.length > MAX_AUDIO_PROXY_BYTES) {
+      console.error('[audio-proxy] arquivo excede limite de proxy:', key, bytes.length);
+      return res.status(413).json({ ok: false, error: 'Audio muito grande para proxy.' });
+    }
+    const origin = req.get('origin');
+    res.set({
+      'Access-Control-Allow-Origin': origin || '*',
+      'Vary': 'Origin',
+      'Cache-Control': 'public, max-age=86400, immutable',
+      'Content-Type': audioContentType(key),
+      'Content-Length': String(bytes.length),
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return res.status(200).send(bytes);
   });
 
   router.post('/presigned', AuthMiddleware.verificar, (req, res, next) => {
