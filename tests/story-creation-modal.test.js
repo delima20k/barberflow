@@ -636,6 +636,55 @@ test('OverlayPainter.mapear converte px do preview e fonte (escala overlay x can
   assert.equal(e.tipo, 'emoji');
 });
 
+test('OverlayPainter.desenhar quebra texto largo em várias linhas dentro do canvas (não vaza à direita)', () => {
+  const { sandbox } = criarSandbox();
+  const calls = [];
+  const ctx = {
+    canvas: { width: 360, height: 640 },
+    save() {}, restore() {},
+    measureText(t) { return { width: String(t).length * 10 }; }, // 10px por caractere
+    fillText(t, x, y) { calls.push({ t, x, y }); },
+    set font(_v) {}, get font() { return ''; },
+    set fillStyle(_v) {}, set textBaseline(_v) {}, set textAlign(_v) {},
+    set shadowColor(_v) {}, set shadowBlur(_v) {}, set shadowOffsetY(_v) {},
+  };
+
+  const textoLargo = Array(20).fill('palavra').join(' '); // muito maior que a largura
+  sandbox.OverlayPainter.desenhar(ctx, [{ tipo: 'texto', conteudo: textoLargo, x: 0, y: 0, escala: 1 }], 1, 16);
+
+  assert.ok(calls.length > 1, 'texto largo deve quebrar em múltiplas linhas');
+
+  // contentMax = canvasW - (MARGIN + 2*PAD_X)*k = 360 - 22 = 338
+  const contentMax = 360 - (10 + 2 * 6);
+  for (const c of calls) {
+    const larguraLinha = String(c.t).length * 10;
+    assert.ok(larguraLinha <= contentMax + 1e-6, `linha não pode exceder a largura útil: "${c.t}"`);
+    // x da linha começa no padding (6px) e o fim cabe dentro do canvas
+    assert.ok(c.x + larguraLinha <= 360 + 1e-6, 'linha deve caber dentro do canvas (não vaza à direita)');
+  }
+});
+
+test('OverlayPainter.desenhar respeita quebras explícitas (\\n) do preview', () => {
+  const { sandbox } = criarSandbox();
+  const calls = [];
+  const ctx = {
+    canvas: { width: 1000, height: 1778 }, // largo o suficiente p/ não quebrar por largura
+    save() {}, restore() {},
+    measureText(t) { return { width: String(t).length * 10 }; },
+    fillText(t, x, y) { calls.push({ t, x, y }); },
+    set font(_v) {}, get font() { return ''; },
+    set fillStyle(_v) {}, set textBaseline(_v) {}, set textAlign(_v) {},
+    set shadowColor(_v) {}, set shadowBlur(_v) {}, set shadowOffsetY(_v) {},
+  };
+
+  sandbox.OverlayPainter.desenhar(ctx, [{ tipo: 'texto', conteudo: 'linha1\nlinha2', x: 0, y: 0, escala: 1 }], 1, 16);
+
+  assert.equal(calls.length, 2, 'duas linhas explícitas');
+  assert.equal(calls[0].t, 'linha1');
+  assert.equal(calls[1].t, 'linha2');
+  assert.ok(calls[1].y > calls[0].y, 'segunda linha abaixo da primeira');
+});
+
 test('StoryComposer.dimsCanvas preserva aspecto, limita maior lado e gera dimensoes pares', () => {
   const { sandbox } = criarSandbox();
   const retrato = sandbox.StoryComposer.dimsCanvas(9 / 16, 1080);

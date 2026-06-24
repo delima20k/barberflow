@@ -172,13 +172,19 @@ class OverlayPainter {
   // rem das classes .sc-overlay-texto (1.4rem/800) e .sc-overlay-emoji (2.2rem)
   static REM_TEXTO = 1.4;
   static REM_EMOJI = 2.2;
+  // Espelham o CSS de .sc-overlay-texto (px no preview, box-sizing: border-box):
+  //   padding: 2px 6px; max-width: calc(100% - 10px); line-height ~1.2
+  static PAD_X = 6;
+  static PAD_Y = 2;
+  static MARGIN = 10;
+  static LINE_HEIGHT = 1.2;
 
   /**
    * Converte um overlay do estado (px do preview) para canvas.
    * @param {{tipo:string,conteudo:string,x:number,y:number,escala:number}} ov
    * @param {number} escalaCanvas  fator canvas.w / preview.w
    * @param {number} [rootFontPx=16]
-   * @returns {{x:number,y:number,fontPx:number,tipo:'texto'|'emoji',texto:string}}
+   * @returns {{x:number,y:number,fontPx:number,esc:number,k:number,tipo:'texto'|'emoji',texto:string}}
    */
   static mapear(ov, escalaCanvas, rootFontPx = 16) {
     const k   = Number(escalaCanvas) > 0 ? Number(escalaCanvas) : 1;
@@ -189,6 +195,8 @@ class OverlayPainter {
       x: (Number(ov?.x) || 0) * k,
       y: (Number(ov?.y) || 0) * k,
       fontPx: rem * rootFontPx * esc * k,
+      esc,
+      k,
       tipo,
       texto: String(ov?.conteudo ?? ''),
     };
@@ -197,6 +205,7 @@ class OverlayPainter {
   /** Desenha todos os overlays no contexto 2D (texto branco c/ sombra; emoji grande). */
   static desenhar(ctx, overlays, escalaCanvas, rootFontPx = 16) {
     if (!ctx || !Array.isArray(overlays)) return;
+    const canvasW = Number(ctx.canvas?.width) || 0;
     for (const ov of overlays) {
       const m = OverlayPainter.mapear(ov, escalaCanvas, rootFontPx);
       if (!m.texto || !(m.fontPx > 0)) continue;
@@ -207,16 +216,98 @@ class OverlayPainter {
         ctx.font = `${m.fontPx}px sans-serif`;
         ctx.shadowColor = 'rgba(0,0,0,.5)';
         ctx.shadowBlur = m.fontPx * 0.08;
+        OverlayPainter.#desenharEmoji(ctx, m);
       } else {
         ctx.font = `800 ${m.fontPx}px sans-serif`;
         ctx.fillStyle = '#fff';
         ctx.shadowColor = 'rgba(0,0,0,.9)';
         ctx.shadowBlur = Math.max(2, m.fontPx * 0.12);
         ctx.shadowOffsetY = Math.max(1, m.fontPx * 0.03);
+        OverlayPainter.#desenharTexto(ctx, m, canvasW);
       }
-      try { ctx.fillText(m.texto, m.x, m.y); } catch (_) {}
       ctx.restore();
     }
+  }
+
+  // Texto: quebra em múltiplas linhas igual ao preview (max-width: calc(100%-10px),
+  // padding 6px, word-break) e respeita transform-origin:center ao escalar.
+  static #desenharTexto(ctx, m, canvasW) {
+    const padX = OverlayPainter.PAD_X * m.esc * m.k;
+    const padY = OverlayPainter.PAD_Y * m.esc * m.k;
+    const lineHeight = m.fontPx * OverlayPainter.LINE_HEIGHT;
+    // Largura de conteúdo (canvas px) = (100% - 10px - 2*6px) escalada por esc.
+    // 100% = previewW = canvasW/k → (canvasW - (MARGIN+2*PAD_X)*k) * esc.
+    const reservado = (OverlayPainter.MARGIN + 2 * OverlayPainter.PAD_X) * m.k;
+    const contentMax = Math.max(1, (canvasW - reservado) * m.esc);
+    const linhas = OverlayPainter.#quebrarLinhas(ctx, m.texto, contentMax);
+    if (!linhas.length) return;
+
+    let maxLineW = 0;
+    for (const ln of linhas) maxLineW = Math.max(maxLineW, ctx.measureText(ln).width);
+    const boxW = maxLineW + 2 * padX;
+    const boxH = linhas.length * lineHeight + 2 * padY;
+
+    // transform-origin: center → desloca o topo-esquerdo quando esc ≠ 1.
+    const offX = boxW * (1 - m.esc) / (2 * m.esc);
+    const offY = boxH * (1 - m.esc) / (2 * m.esc);
+    const left = m.x + offX + padX;
+    let y = m.y + offY + padY;
+    for (const ln of linhas) {
+      if (ln) { try { ctx.fillText(ln, left, y); } catch (_) {} }
+      y += lineHeight;
+    }
+  }
+
+  // Emoji: linha única (white-space: nowrap, sem padding), origem no centro.
+  static #desenharEmoji(ctx, m) {
+    const boxW = ctx.measureText(m.texto).width;
+    const boxH = m.fontPx; // line-height: 1
+    const offX = boxW * (1 - m.esc) / (2 * m.esc);
+    const offY = boxH * (1 - m.esc) / (2 * m.esc);
+    try { ctx.fillText(m.texto, m.x + offX, m.y + offY); } catch (_) {}
+  }
+
+  // Quebra preservando \n (white-space: pre-wrap) e quebrando palavras longas
+  // (word-break: break-word) — igual ao preview.
+  static #quebrarLinhas(ctx, texto, maxWidth) {
+    const linhas = [];
+    for (const paragrafo of String(texto).split('\n')) {
+      if (paragrafo === '') { linhas.push(''); continue; }
+      let linha = '';
+      for (const palavra of paragrafo.split(' ')) {
+        const tentativa = linha ? `${linha} ${palavra}` : palavra;
+        if (ctx.measureText(tentativa).width <= maxWidth) {
+          linha = tentativa;
+          continue;
+        }
+        if (linha) { linhas.push(linha); linha = ''; }
+        if (ctx.measureText(palavra).width > maxWidth) {
+          const pedacos = OverlayPainter.#quebrarPalavra(ctx, palavra, maxWidth);
+          for (let i = 0; i < pedacos.length - 1; i++) linhas.push(pedacos[i]);
+          linha = pedacos[pedacos.length - 1] ?? '';
+        } else {
+          linha = palavra;
+        }
+      }
+      linhas.push(linha);
+    }
+    return linhas;
+  }
+
+  static #quebrarPalavra(ctx, palavra, maxWidth) {
+    const out = [];
+    let atual = '';
+    for (const ch of palavra) {
+      const tentativa = atual + ch;
+      if (atual && ctx.measureText(tentativa).width > maxWidth) {
+        out.push(atual);
+        atual = ch;
+      } else {
+        atual = tentativa;
+      }
+    }
+    if (atual) out.push(atual);
+    return out;
   }
 }
 
