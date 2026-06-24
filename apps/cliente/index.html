@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -7,25 +7,25 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="description" content="BarberFlow â€” App do Cliente">
+  <meta name="description" content="BarberFlow — App do Cliente">
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website">
   <meta property="og:url"         content="https://app.berberflow.shop">
   <meta property="og:site_name"   content="BarberFlow">
-  <meta property="og:title"       content="BarberFlow â€” App Cliente">
-  <meta property="og:description" content="Encontre barbearias prÃ³ximas e agende seu horÃ¡rio com o BarberFlow.">
+  <meta property="og:title"       content="BarberFlow — App Cliente">
+  <meta property="og:description" content="Encontre barbearias próximas e agende seu horário com o BarberFlow.">
   <meta property="og:image"       content="https://app.berberflow.shop/shared/img/icon-512-cliente.png">
-  <meta property="og:image:alt"   content="BarberFlow â€” App Cliente">
+  <meta property="og:image:alt"   content="BarberFlow — App Cliente">
   <meta property="og:locale"      content="pt_BR">
 
   <!-- Twitter / X Card -->
   <meta name="twitter:card"        content="summary">
-  <meta name="twitter:title"       content="BarberFlow â€” App Cliente">
-  <meta name="twitter:description" content="Encontre barbearias prÃ³ximas e agende seu horÃ¡rio com o BarberFlow.">
+  <meta name="twitter:title"       content="BarberFlow — App Cliente">
+  <meta name="twitter:description" content="Encontre barbearias próximas e agende seu horário com o BarberFlow.">
   <meta name="twitter:image"       content="https://app.berberflow.shop/shared/img/icon-512-cliente.png">
 
-  <title>BarberFlow â€” Cliente</title>
+  <title>BarberFlow — Cliente</title>
   <link rel="manifest" href="manifest.json">
    <link rel="icon" type="image/png" href="/shared/img/icon-192-cliente.png">
    <link rel="apple-touch-icon" href="/shared/img/icon-192-cliente.png">
@@ -51,7 +51,7 @@
 
   <!-- Boot lock: oculta TODAS as telas instantaneamente antes de qualquer CSS externo carregar.
        Impede FOUC (flash de telas) independente de Service Worker ou cache.
-       Removido pelo Router assim que o estado correto Ã© aplicado. -->
+       Removido pelo Router assim que o estado correto é aplicado. -->
   <style id="boot-lock">
     .tela { display: none !important; }
     #tela-inicio { display: flex !important; }
@@ -60,66 +60,66 @@
 </head>
 <body>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     Overlay de Termos Informativos â€” Lei LGPD e Direitos Autorais
-     Acessado via rodapÃ© do menu lateral (TermsPage.js).
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════════════════════════════════════════════════
+     Overlay de Termos Informativos — Lei LGPD e Direitos Autorais
+     Acessado via rodapé do menu lateral (TermsPage.js).
+══════════════════════════════════════════════════════════════ -->
 <div id="termos-info-overlay" hidden role="dialog" aria-modal="true"
      aria-labelledby="termos-info-titulo">
   <div class="termos-info-card">
     <div class="termos-info-header">
       <h1 id="termos-info-titulo">Lei LGPD e Direitos Autorais Musicais</h1>
-      <button id="termos-info-fechar" class="termos-info-fechar" type="button" aria-label="Fechar">âœ•</button>
+      <button id="termos-info-fechar" class="termos-info-fechar" type="button" aria-label="Fechar">✕</button>
     </div>
     <div class="termos-info-corpo">
 
-      <!-- 1. LGPD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- 1. LGPD ─────────────────────────────────────────── -->
       <div class="termos-info-secao">
-        <h2 class="termos-info-secao-titulo">ðŸ”’ Lei Geral de ProteÃ§Ã£o de Dados <span class="termos-info-badge">Lei 13.709/2018</span></h2>
-        <p>O BarberFlow trata seus dados pessoais em conformidade com a Lei Geral de ProteÃ§Ã£o de Dados (LGPD). O tratamento ocorre com base no seu consentimento explÃ­cito (Art. 7, inciso I) para as finalidades descritas abaixo.</p>
+        <h2 class="termos-info-secao-titulo">🔒 Lei Geral de Proteção de Dados <span class="termos-info-badge">Lei 13.709/2018</span></h2>
+        <p>O BarberFlow trata seus dados pessoais em conformidade com a Lei Geral de Proteção de Dados (LGPD). O tratamento ocorre com base no seu consentimento explícito (Art. 7, inciso I) para as finalidades descritas abaixo.</p>
         <p><strong>Dados coletados e suas finalidades:</strong></p>
         <ul>
-          <li><strong>Nome, e-mail e telefone</strong> â€” identificaÃ§Ã£o e comunicaÃ§Ã£o</li>
-          <li><strong>LocalizaÃ§Ã£o (GPS)</strong> â€” exibiÃ§Ã£o de barbearias prÃ³ximas</li>
-          <li><strong>HistÃ³rico de agendamentos</strong> â€” facilitar futuras reservas</li>
-          <li><strong>Foto de perfil</strong> â€” personalizaÃ§Ã£o da conta</li>
+          <li><strong>Nome, e-mail e telefone</strong> — identificação e comunicação</li>
+          <li><strong>Localização (GPS)</strong> — exibição de barbearias próximas</li>
+          <li><strong>Histórico de agendamentos</strong> — facilitar futuras reservas</li>
+          <li><strong>Foto de perfil</strong> — personalização da conta</li>
         </ul>
-        <p>Nenhum dado Ã© vendido ou compartilhado com terceiros sem seu consentimento. Todos os registros sÃ£o protegidos por controle de acesso no banco de dados (RLS â€” Row Level Security), garantindo que apenas vocÃª acessa seus prÃ³prios dados.</p>
+        <p>Nenhum dado é vendido ou compartilhado com terceiros sem seu consentimento. Todos os registros são protegidos por controle de acesso no banco de dados (RLS — Row Level Security), garantindo que apenas você acessa seus próprios dados.</p>
       </div>
 
-      <!-- 2. DIREITOS DO TITULAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- 2. DIREITOS DO TITULAR ──────────────────────────── -->
       <div class="termos-info-secao">
-        <h2 class="termos-info-secao-titulo">âš–ï¸ Seus Direitos <span class="termos-info-badge">Art. 18 LGPD</span></h2>
+        <h2 class="termos-info-secao-titulo">⚖️ Seus Direitos <span class="termos-info-badge">Art. 18 LGPD</span></h2>
         <ul>
-          <li><strong>Portabilidade:</strong> exporte seus dados em formato estruturado nas configuraÃ§Ãµes do perfil.</li>
-          <li><strong>ExclusÃ£o:</strong> solicite a exclusÃ£o completa de sua conta e dados pessoais nas configuraÃ§Ãµes do perfil. A remoÃ§Ã£o efetiva Ã© processada em atÃ© 30 dias.</li>
-          <li><strong>RevogaÃ§Ã£o de consentimento:</strong> vocÃª pode cancelar um pedido de exclusÃ£o enquanto ele ainda estiver pendente.</li>
-          <li><strong>TransparÃªncia:</strong> todos os acessos aos seus dados sÃ£o registrados em log de auditoria (Art. 37, LGPD).</li>
+          <li><strong>Portabilidade:</strong> exporte seus dados em formato estruturado nas configurações do perfil.</li>
+          <li><strong>Exclusão:</strong> solicite a exclusão completa de sua conta e dados pessoais nas configurações do perfil. A remoção efetiva é processada em até 30 dias.</li>
+          <li><strong>Revogação de consentimento:</strong> você pode cancelar um pedido de exclusão enquanto ele ainda estiver pendente.</li>
+          <li><strong>Transparência:</strong> todos os acessos aos seus dados são registrados em log de auditoria (Art. 37, LGPD).</li>
         </ul>
       </div>
 
-      <!-- 3. SEGURANÃ‡A â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- 3. SEGURANÇA ─────────────────────────────────────── -->
       <div class="termos-info-secao">
-        <h2 class="termos-info-secao-titulo">ðŸ›¡ï¸ SeguranÃ§a dos Dados <span class="termos-info-badge">Art. 46 LGPD</span></h2>
-        <p>Os dados sÃ£o armazenados em infraestrutura segura com as seguintes proteÃ§Ãµes:</p>
+        <h2 class="termos-info-secao-titulo">🛡️ Segurança dos Dados <span class="termos-info-badge">Art. 46 LGPD</span></h2>
+        <p>Os dados são armazenados em infraestrutura segura com as seguintes proteções:</p>
         <ul>
-          <li>Controle de acesso por linha (RLS) â€” apenas o titular lÃª e altera seus registros</li>
-          <li>AutenticaÃ§Ã£o JWT com expiraÃ§Ã£o de sessÃ£o</li>
-          <li>OperaÃ§Ãµes administrativas restritas ao backend com chave de serviÃ§o privada</li>
-          <li>Log de auditoria para todas as exportaÃ§Ãµes e modificaÃ§Ãµes de dados pessoais</li>
+          <li>Controle de acesso por linha (RLS) — apenas o titular lê e altera seus registros</li>
+          <li>Autenticação JWT com expiração de sessão</li>
+          <li>Operações administrativas restritas ao backend com chave de serviço privada</li>
+          <li>Log de auditoria para todas as exportações e modificações de dados pessoais</li>
         </ul>
       </div>
 
-      <!-- 4. DIREITOS AUTORAIS DE CONTEÃšDO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- 4. DIREITOS AUTORAIS DE CONTEÚDO ───────────────── -->
       <div class="termos-info-secao">
-        <h2 class="termos-info-secao-titulo">Â©ï¸ Direitos Autorais de ConteÃºdo</h2>
-        <p>Ao utilizar o BarberFlow, vocÃª declara que fotos, vÃ­deos, textos e demais conteÃºdos enviados sÃ£o de sua autoria ou possuem autorizaÃ§Ã£o legal de uso. VocÃª Ã© inteiramente responsÃ¡vel por qualquer violaÃ§Ã£o de direitos autorais causada por conteÃºdo publicado em sua conta.</p>
+        <h2 class="termos-info-secao-titulo">©️ Direitos Autorais de Conteúdo</h2>
+        <p>Ao utilizar o BarberFlow, você declara que fotos, vídeos, textos e demais conteúdos enviados são de sua autoria ou possuem autorização legal de uso. Você é inteiramente responsável por qualquer violação de direitos autorais causada por conteúdo publicado em sua conta.</p>
       </div>
 
-      <!-- 5. DIREITOS AUTORAIS MUSICAIS (PLACEHOLDER) â”€â”€â”€â”€â”€â”€ -->
+      <!-- 5. DIREITOS AUTORAIS MUSICAIS (PLACEHOLDER) ────── -->
       <div class="termos-info-secao">
-        <h2 class="termos-info-secao-titulo">ðŸŽµ Direitos Autorais Musicais em Stories</h2>
-        <div class="termos-info-placeholder">Em breve â€” Esta seÃ§Ã£o conterÃ¡ os termos de uso de mÃºsicas disponÃ­veis na plataforma para criaÃ§Ã£o de stories por usuÃ¡rios profissionais. Atualmente, somente mÃºsicas de domÃ­nio pÃºblico ou com licenÃ§a livre sÃ£o permitidas.</div>
+        <h2 class="termos-info-secao-titulo">🎵 Direitos Autorais Musicais em Stories</h2>
+        <div class="termos-info-placeholder">Em breve — Esta seção conterá os termos de uso de músicas disponíveis na plataforma para criação de stories por usuários profissionais. Atualmente, somente músicas de domínio público ou com licença livre são permitidas.</div>
       </div>
 
     </div><!-- .termos-info-corpo -->
@@ -144,7 +144,7 @@
   </header>
 
   <!-- ============================================================
-       TELA â€” LOGIN
+       TELA — LOGIN
   ============================================================ -->
   <main id="tela-login" class="tela">
     <div class="login-bg">
@@ -164,7 +164,7 @@
           </div>
           <div class="form-field">
             <label>Senha</label>
-            <input id="login-senha" type="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password">
+            <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password">
           </div>
           <p id="login-erro" class="form-erro"></p>
           <button type="submit" class="btn btn-gold btn-full">Entrar</button>
@@ -182,7 +182,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” CADASTRO
+       TELA — CADASTRO
   ============================================================ -->
   <main id="tela-cadastro" class="tela">
     <div class="login-bg">
@@ -190,7 +190,7 @@
         <button class="btn-voltar" data-voltar>Voltar</button>
         <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
              onerror="this.style.display='none'">
-        <span class="login-tagline">Crie sua conta grÃ¡tis</span>
+        <span class="login-tagline">Crie sua conta grátis</span>
       </div>
 
       <div class="auth-card">
@@ -219,7 +219,7 @@
           <p id="cad-erro" class="form-erro"></p>
           <button type="submit" class="btn btn-gold btn-full">Criar minha conta</button>
           <p class="login-link">
-            JÃ¡ tenho conta &rarr;
+            Já tenho conta &rarr;
             <a href="#" data-push="login">Fazer login</a>
           </p>
         </form>
@@ -228,7 +228,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” ESQUECEU A SENHA
+       TELA — ESQUECEU A SENHA
   ============================================================ -->
   <main id="tela-esqueceu-senha" class="tela">
     <div class="login-bg">
@@ -250,7 +250,7 @@
             <input id="rec-email" type="email" placeholder="seu@email.com" autocomplete="email">
           </div>
           <p id="rec-erro" class="form-erro"></p>
-          <button type="submit" class="btn btn-gold btn-full">Enviar link de recuperaÃ§Ã£o</button>
+          <button type="submit" class="btn btn-gold btn-full">Enviar link de recuperação</button>
           <p class="login-link">
             Lembrei a senha &rarr;
             <a href="#" data-push="login">Fazer login</a>
@@ -261,7 +261,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” INÃCIO
+       TELA — INÍCIO
   ============================================================ -->
   <main id="tela-inicio" class="tela">
     <div class="content">
@@ -275,21 +275,21 @@
 
       <!-- Banner push notifications -->
       <div id="notif-push-banner" hidden>
-        <div class="notif-push-icone">ðŸ””</div>
+        <div class="notif-push-icone">🔔</div>
         <div class="notif-push-texto">
-          <p class="notif-push-titulo">Quer receber novidades? ðŸŽ¯</p>
-          <p class="notif-push-sub">Barbearias prÃ³ximas, promoÃ§Ãµes e lembretes de agendamento.</p>
+          <p class="notif-push-titulo">Quer receber novidades? 🎯</p>
+          <p class="notif-push-sub">Barbearias próximas, promoções e lembretes de agendamento.</p>
         </div>
         <div class="notif-push-acoes">
           <button class="notif-push-ativar" onclick="NotificationService.confirmarPush()">Ativar</button>
-          <button class="notif-push-dispensar" onclick="NotificationService.dispensarPush()">Agora nÃ£o</button>
+          <button class="notif-push-dispensar" onclick="NotificationService.dispensarPush()">Agora não</button>
         </div>
       </div>
 
       <!-- Mapa GPS Premium -->
       <div id="section-mapa">
 
-        <!-- BotÃ£o controle (MapHandleButton) -->
+        <!-- Botão controle (MapHandleButton) -->
         <button class="mph-wrapper" id="map-handle-btn"
                 type="button"
                 aria-expanded="false"
@@ -303,7 +303,7 @@
             <span class="mph-gps-label">GPS</span>
           </div>
 
-          <!-- TraÃ§o animado -->
+          <!-- Traço animado -->
           <div class="mph-bar-track">
             <div class="mph-bar" style="width:48px"></div>
           </div>
@@ -313,14 +313,14 @@
         <!-- Frame amadeirado (MapBorderFrame) -->
         <div class="mpf-frame" id="map-border-frame" aria-hidden="true" data-state="closed">
 
-          <!-- Painel expansÃ­vel (MapPanel) -->
+          <!-- Painel expansível (MapPanel) -->
           <div class="mpp-panel" id="map-panel" style="height:0;overflow:hidden">
             <!-- MapWidget: mapa Leaflet com FAB flutuante de GPS -->
             <div class="map-card">
               <div id="mapa-container" class="mapa-container"></div>
             </div>
             <!-- NearbyBarbershopsWidget -->
-            <p id="nearby-contador" class="nearby-contador">Buscando barbeariasâ€¦</p>
+            <p id="nearby-contador" class="nearby-contador">Buscando barbearias…</p>
           </div>
 
           <!-- Handle de arraste -->
@@ -373,7 +373,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” DESTAQUES (ranking geral por pontuaÃ§Ã£o)
+       TELA — DESTAQUES (ranking geral por pontuação)
   ============================================================ -->
   <main id="tela-destaques" class="tela">
     <div class="tela-topo">
@@ -390,7 +390,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” BARBEARIAS POPULARES E PRÃ“XIMAS
+       TELA — BARBEARIAS POPULARES E PRÓXIMAS
   ============================================================ -->
   <main id="tela-barbearias" class="tela">
     <div class="tela-topo">
@@ -408,7 +408,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” BARBEIROS POPULARES
+       TELA — BARBEIROS POPULARES
   ============================================================ -->
   <main id="tela-barbeiros" class="tela">
     <div class="tela-topo">
@@ -421,7 +421,7 @@
         </h1>
         <h2 class="tela-hero-subtitulo">Barbeiros Populares</h2>
         <p id="barbeiros-dig" class="search-dig" aria-live="polite"></p>
-        <p class="barbeiros-intro">No BarberFlow, cada barbeiro Ã© um artista do estilo. Profissionais verificados, avaliados pela comunidade e prontos para transformar o seu visual. Encontre aquele que combina com a sua essÃªncia e agende com 1 toque.</p>
+        <p class="barbeiros-intro">No BarberFlow, cada barbeiro é um artista do estilo. Profissionais verificados, avaliados pela comunidade e prontos para transformar o seu visual. Encontre aquele que combina com a sua essência e agende com 1 toque.</p>
       </div>
       <div id="barbeiros-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
       <p id="barbeiros-vazio" hidden style="text-align:center;padding:20px;color:var(--text-muted)">Nenhum barbeiro encontrado.</p>
@@ -429,24 +429,24 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” PESQUISA
+       TELA — PESQUISA
   ============================================================ -->
   <main id="tela-pesquisa" class="tela">
 
-    <!-- CabeÃ§alho da pesquisa -->
+    <!-- Cabeçalho da pesquisa -->
     <div class="search-header">
       <button class="btn-voltar" data-voltar>Voltar</button>
       <input
         id="pesquisa-input"
         type="search"
         class="search-bar-input"
-        placeholder="Nome, bairro, rua ou CEPâ€¦"
+        placeholder="Nome, bairro, rua ou CEP…"
         autocomplete="off"
         enterkeyhint="search"
       >
     </div>
 
-    <!-- Resultados dinÃ¢micos -->
+    <!-- Resultados dinâmicos -->
     <div class="content search-content">
       <div id="pesquisa-resultados"></div>
     </div>
@@ -454,7 +454,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” MENSAGENS
+       TELA — MENSAGENS
   ============================================================ -->
   <main id="tela-mensagens" class="tela">
     <div class="content">
@@ -471,7 +471,7 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” BARBEARIAS FAVORITAS
+       TELA — BARBEARIAS FAVORITAS
   ============================================================ -->
   <main id="tela-favoritas" class="tela">
     <div class="tela-topo">
@@ -484,13 +484,13 @@
         <p id="favoritas-dig" class="search-dig" aria-live="polite"></p>
       </div>
 
-      <!-- â”€â”€ Barbearias â”€â”€ -->
+      <!-- ── Barbearias ── -->
       <p class="fav-secao-titulo">Barbearias</p>
       <div id="favoritas-barbearias" class="fav-carrossel">
-        <!-- cards 350Ã—220 gerados por FavoritesPage.js -->
+        <!-- cards 350×220 gerados por FavoritesPage.js -->
       </div>
 
-      <!-- â”€â”€ Barbeiros â”€â”€ -->
+      <!-- ── Barbeiros ── -->
       <p class="fav-secao-titulo fav-secao-titulo--mt">Barbeiros</p>
       <div id="favoritas-barbeiros" class="fav-barbeiros-lista">
         <!-- barber-rows gerados por FavoritesPage.js -->
@@ -499,14 +499,14 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” PERFIL
+       TELA — PERFIL
   ============================================================ -->
   <main id="tela-perfil" class="tela">
     <button class="btn-voltar" data-voltar>Voltar</button>
     <div class="profile-hero">
       <div class="profile-avatar">
         <img id="perfil-avatar-img" src="/shared/img/icones-perfil.png" alt="avatar"
-             onerror="this.outerHTML='ðŸ˜Ž'">
+             onerror="this.outerHTML='😎'">
       </div>
       <p class="profile-name" id="perfil-nome">Lucas Oliveira</p>
       <p class="profile-sub" id="perfil-sub">Cliente desde Janeiro 2025</p>
@@ -517,23 +517,23 @@
         </button>
       </div>
     </div>
-    <!-- Dados pessoais editÃ¡veis -->
+    <!-- Dados pessoais editáveis -->
     <ul class="perfil-lista" id="perfil-lista">
-      <!-- EndereÃ§o -->
+      <!-- Endereço -->
       <li class="perfil-item">
         <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11L12 3l9 8V21H15V14H9v7H3V11z"/></svg></span>
         <div class="perfil-item-info">
-          <span class="perfil-item-label">EndereÃ§o</span>
-          <span class="pi-val" id="pi-address">â€”</span>
+          <span class="perfil-item-label">Endereço</span>
+          <span class="pi-val" id="pi-address">—</span>
         </div>
-        <button class="btn-pi-lapis" data-perfil-campo="address" aria-label="Editar endereÃ§o"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="btn-pi-lapis" data-perfil-campo="address" aria-label="Editar endereço"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </li>
       <!-- Data de Nascimento -->
       <li class="perfil-item">
         <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 C10.3 3.5 10 5.5 12 6.5 C14 5.5 13.7 3.5 12 2Z" fill="currentColor" stroke="none"/><rect x="10.5" y="6.5" width="3" height="3" rx=".5"/><rect x="4" y="9" width="16" height="5" rx="1"/><rect x="2" y="14" width="20" height="7" rx="1"/><circle cx="7" cy="17" r=".8" fill="currentColor" stroke="none"/><circle cx="12" cy="17" r=".8" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></span>
         <div class="perfil-item-info">
           <span class="perfil-item-label">Data de Nascimento</span>
-          <span class="pi-val" id="pi-birth_date">â€”</span>
+          <span class="pi-val" id="pi-birth_date">—</span>
         </div>
         <button class="btn-pi-lapis" data-perfil-campo="birth_date" aria-label="Editar data de nascimento"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </li>
@@ -542,7 +542,7 @@
         <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="22" viewBox="0 0 28 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="9" r="5"/><line x1="6" y1="14" x2="6" y2="21"/><line x1="3" y1="18" x2="9" y2="18"/><circle cx="20" cy="12" r="5"/><line x1="23.5" y1="8.5" x2="27" y2="5"/><polyline points="23.5,5 27,5 27,8.5"/></svg></span>
         <div class="perfil-item-info">
           <span class="perfil-item-label">Sexo</span>
-          <span class="pi-val" id="pi-gender">â€”</span>
+          <span class="pi-val" id="pi-gender">—</span>
         </div>
         <button class="btn-pi-lapis" data-perfil-campo="gender" aria-label="Editar sexo"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </li>
@@ -551,7 +551,7 @@
         <span class="pi-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C12 22 4 15 4 9A8 8 0 0 1 20 9C20 15 12 22 12 22Z"/><rect x="8" y="6.5" width="8" height="5.5" rx=".4" stroke-width="1.3"/><polyline points="8,6.5 12,10 16,6.5" stroke-width="1.3"/></svg></span>
         <div class="perfil-item-info">
           <span class="perfil-item-label">CEP</span>
-          <span class="pi-val" id="pi-zip_code">â€”</span>
+          <span class="pi-val" id="pi-zip_code">—</span>
         </div>
         <button class="btn-pi-lapis" data-perfil-campo="zip_code" aria-label="Editar CEP"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       </li>
@@ -559,33 +559,33 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” SAIR
+       TELA — SAIR
   ============================================================ -->
   <main id="tela-sair" class="tela">
     <div class="sair-wrap">
       <button class="btn-voltar" data-voltar>Voltar</button>
 
-      <!-- Ãcone central â€” clique confirma o logout -->
-      <button class="sair-icone-btn" data-action="confirmar-saida" aria-label="Confirmar saÃ­da">
+      <!-- Ícone central — clique confirma o logout -->
+      <button class="sair-icone-btn" data-action="confirmar-saida" aria-label="Confirmar saída">
         <img src="/shared/img/sair.svg" alt="Sair" onerror="this.outerHTML='&#x1F6AA;'">
       </button>
 
       <p class="sair-texto-titulo">Sair da conta?</p>
       <p class="sair-texto-sub">
-        Toque no Ã­cone acima para confirmar.<br>
-        VocÃª precisarÃ¡ fazer login novamente.
+        Toque no ícone acima para confirmar.<br>
+        Você precisará fazer login novamente.
       </p>
       <p class="sair-hint">ou toque em Voltar para cancelar</p>
     </div>
   </main>
 
   <!-- ============================================================
-       FOOTER NAV â€” SEM LOGIN (3 opÃ§Ãµes)
+       FOOTER NAV — SEM LOGIN (3 opções)
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav-offline">
     <button class="nav-btn" data-tela="inicio" data-nav="inicio">
-      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="InÃ­cio"></div>
-      <span class="nav-label">InÃ­cio</span>
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
+      <span class="nav-label">Início</span>
     </button>
     <button class="nav-btn" data-tela="pesquisa" data-nav="pesquisa">
       <div class="nav-pill"><img src="/shared/img/pesquisa.svg" alt="Pesquisa"></div>
@@ -602,8 +602,8 @@
   ============================================================ -->
   <nav class="footer-nav" id="footer-nav">
     <button class="nav-btn" data-tela="inicio" data-nav="inicio">
-      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="InÃ­cio"></div>
-      <span class="nav-label">InÃ­cio</span>
+      <div class="nav-pill"><img src="/shared/img/inicio.svg" alt="Início"></div>
+      <span class="nav-label">Início</span>
     </button>
 
     <button class="nav-btn" data-tela="pesquisa" data-nav="pesquisa">
@@ -634,7 +634,7 @@
   </nav>
 
   <!-- ============================================================
-       DICA â€” indica o botÃ£o gota quando footer estÃ¡ oculto
+       DICA — indica o botão gota quando footer está oculto
   ============================================================ -->
   <div id="footer-dica" role="status" aria-live="polite" aria-hidden="true">
     <div class="dica-gota-wrap" aria-hidden="true">
@@ -647,14 +647,14 @@
   </div>
 
   <!-- ============================================================
-       BOTÃƒO FLUTUANTE â€” Reabrir footer (pingo d'Ã¡gua)
-       Aparece quando o footer Ã© oculto pelo scroll
+       BOTÃO FLUTUANTE — Reabrir footer (pingo d'água)
+       Aparece quando o footer é oculto pelo scroll
   ============================================================ -->
   <button id="btn-abrir-footer"
           onclick="FooterScrollManager.abrirPorBotao()"
-          aria-label="Abrir menu de navegaÃ§Ã£o">
+          aria-label="Abrir menu de navegação">
     <svg viewBox="0 0 48 62" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <!-- Corpo do pingo d'Ã¡gua -->
+      <!-- Corpo do pingo d'água -->
       <path d="M24 3 C24 3 4 28 4 40 C4 52 13.2 59 24 59 C34.8 59 44 52 44 40 C44 28 24 3 24 3Z"
             fill="rgba(212,160,23,0.30)"
             stroke="rgba(212,175,55,0.45)"
@@ -672,7 +672,7 @@
     </svg>
   </button>
 
-  <!-- â”€â”€ Tela Chat (conversa individual) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!-- ── Tela Chat (conversa individual) ────────────────── -->
   <main id="tela-chat" class="tela">
     <div class="tela-topo">
       <button class="btn-voltar" onclick="MessagesWidget.fecharModal()" aria-label="Voltar">
@@ -696,7 +696,7 @@
           id="chat-input"
           type="text"
           class="chat-input"
-          placeholder="Digite uma mensagemâ€¦"
+          placeholder="Digite uma mensagem…"
           autocomplete="off"
           onkeydown="if(event.key==='Enter')MessagesWidget.enviar()"
         >
@@ -708,13 +708,13 @@
   </main>
 
   <!-- ============================================================
-       TELA â€” BARBEARIA (perfil pÃºblico)
+       TELA — BARBEARIA (perfil público)
        DEVE ficar dentro de #app para que o Router e o CSS de .tela
-       funcionem corretamente (posiÃ§Ã£o, animaÃ§Ãµes, z-index).
+       funcionem corretamente (posição, animações, z-index).
   ============================================================ -->
   <main id="tela-barbearia" class="tela">
 
-    <!-- Capa hero â€” sempre visÃ­vel; botÃ£o voltar sobreposto -->
+    <!-- Capa hero — sempre visível; botão voltar sobreposto -->
     <div class="bp-capa-wrap">
       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
       <img id="bp-capa" src="/shared/img/Logo01.png" alt="Capa">
@@ -722,7 +722,7 @@
       <button id="bp-fav-btn" type="button" class="card-fav-btn"
               data-action="barbershop-favorite"
               aria-label="Favoritar barbearia" aria-pressed="false">
-        <span class="cfb-ico">â˜†</span>
+        <span class="cfb-ico">☆</span>
       </button>
       <div class="bp-capa-identidade">
         <img id="bp-logo" src="/shared/img/Logo01.png" alt="Logo">
@@ -795,13 +795,13 @@
       <div class="bp-stories-header">
         <h2 class="bp-stories-titulo">Stories</h2>
       </div>
-      <!-- saudaÃ§Ã£o + nome da barbearia (populado por BarbeariaPage.js) -->
+      <!-- saudação + nome da barbearia (populado por BarbeariaPage.js) -->
       <p id="bp-boas-vindas" class="search-dig bp-boas-vindas" aria-live="polite"></p>
       <!-- CTA de login/cadastro para visitantes (oculto para logados) -->
       <p id="bp-cta-login" class="bp-cta-login" hidden></p>
     </section>
 
-    <!-- Barbeiros â€” carrossel dinÃ¢mico; populado por BarbeariaPage.js -->
+    <!-- Barbeiros — carrossel dinâmico; populado por BarbeariaPage.js -->
     <section class="bp-barbeiros-secao">
       <div class="bp-section-header">
         <h2 class="bp-section-titulo">Barbeiros</h2>
@@ -809,7 +809,7 @@
       <div id="bp-barbeiros-scroll" class="bp-barbeiros-scroll"></div>
     </section>
 
-    <!-- Skeleton (capa jÃ¡ estÃ¡ acima, sÃ³ exibe linhas de info) -->
+    <!-- Skeleton (capa já está acima, só exibe linhas de info) -->
     <div id="bp-skeleton">
       <div style="padding:52px 20px 0">
         <div class="bp-skeleton-linha" style="width:55%"></div>
@@ -818,34 +818,34 @@
       </div>
     </div>
 
-    <!-- ConteÃºdo real -->
+    <!-- Conteúdo real -->
     <div id="bp-conteudo" hidden>
 
-      <!-- ServiÃ§os -->
+      <!-- Serviços -->
       <div class="bp-secao">
-        <p class="bp-secao-titulo">ServiÃ§os</p>
+        <p class="bp-secao-titulo">Serviços</p>
         <div id="bp-servicos-lista"></div>
       </div>
       <!-- Banner de mensalidade (preenchido por BarbeariaPage.js) -->
       <div id="bp-mensal-banner" class="bp-mensal-banner" hidden></div>
 
-      <!-- PortfÃ³lio -->
+      <!-- Portfólio -->
       <div class="bp-secao">
-        <p class="bp-secao-titulo">PortfÃ³lio</p>
+        <p class="bp-secao-titulo">Portfólio</p>
         <div id="bp-portfolio-grid" class="bp-portfolio-grid" hidden></div>
       </div>
 
-      <!-- PortfÃ³lio da Barbearia â€” carrossel 3D (populado por PortfolioBarbeirosSection.js) -->
+      <!-- Portfólio da Barbearia — carrossel 3D (populado por PortfolioBarbeirosSection.js) -->
       <div class="bp-secao" id="bp-portfolio-barbeiros-wrap" hidden>
-        <p class="bp-secao-titulo">PortfÃ³lio da Barbearia</p>
+        <p class="bp-secao-titulo">Portfólio da Barbearia</p>
         <div id="bp-portfolio-barbeiros" class="pbp-wrap"></div>
       </div>
     </div>
 
-    <!-- Info da barbearia â€” ao final do scroll, acima do footer -->
+    <!-- Info da barbearia — ao final do scroll, acima do footer -->
     <div id="bp-info-fixa" class="mb-info-card bp-info-card" hidden>
       <div class="mb-info-header bp-info-header">
-        <span class="mb-info-icon" aria-hidden="true">ðŸ“</span>
+        <span class="mb-info-icon" aria-hidden="true">📍</span>
         <p class="mb-info-nome" id="bp-info-nome"></p>
       </div>
       <p id="bp-endereco" class="mb-info-linha bp-endereco"></p>
@@ -857,7 +857,7 @@
           <button id="bp-likes" type="button" class="top-card__likes"
                   data-action="barbershop-like"
                   aria-label="Curtir barbearia" aria-pressed="false">
-            <span class="tcl-ico">ðŸ‘</span>
+            <span class="tcl-ico">👍</span>
             <span class="dc-count">0</span>
           </button>
         </div>
@@ -868,24 +868,24 @@
   </main>
 
   <!-- ============================================================
-       TELA BARBEIRO â€” Perfil pÃºblico de um barbeiro / profissional
+       TELA BARBEIRO — Perfil público de um barbeiro / profissional
   ============================================================ -->
   <main id="tela-barbeiro" class="tela">
 
-    <!-- Topbar com botÃ£o voltar sempre visÃ­vel -->
+    <!-- Topbar com botão voltar sempre visível -->
     <div class="beiro-topbar">
       <button class="btn-voltar" data-voltar aria-label="Voltar">Voltar</button>
       <div class="beiro-topbar-actions">
         <button id="beiro-like-btn" type="button" class="top-card__likes"
                 data-action="professional-like"
                 aria-label="Curtir barbeiro" aria-pressed="false">
-          <span class="tcl-ico">ðŸ‘</span>
+          <span class="tcl-ico">👍</span>
           <span class="dc-count">0</span>
         </button>
         <button id="beiro-fav-btn" type="button" class="card-fav-btn"
                 data-action="professional-favorite"
                 aria-label="Favoritar barbeiro" aria-pressed="false">
-          <span class="cfb-ico">â˜†</span>
+          <span class="cfb-ico">☆</span>
         </button>
       </div>
     </div>
@@ -899,7 +899,7 @@
       </div>
     </div>
 
-    <!-- ConteÃºdo real -->
+    <!-- Conteúdo real -->
     <div id="beiro-conteudo" hidden>
       <div class="beiro-hero">
         <h1 class="beiro-page-title">Barbeiro</h1>
@@ -935,13 +935,13 @@
     <div class="menu-avatar-wrap">
       <div class="menu-avatar" id="menu-avatar" title="Trocar foto" onclick="App.abrirUploadAvatar()">
         <img id="menu-avatar-img" src="/shared/img/icones-perfil.png" alt="Avatar">
-        <div class="menu-avatar-upload">ðŸ“·</div>
+        <div class="menu-avatar-upload">📷</div>
         <input type="file" accept="image/*" id="menu-avatar-input"
                style="display:none" onchange="App.previewAvatar(this)">
       </div>
       <div>
         <p class="menu-username" id="menu-username">Visitante Cliente
-          <small id="menu-user-sub">FaÃ§a login para continuar</small>
+          <small id="menu-user-sub">Faça login para continuar</small>
         </p>
       </div>
     </div>
@@ -957,7 +957,7 @@
     </li>
     <li class="menu-nav-item" data-menu-nav="inicio">
       <img src="/shared/img/inicio.svg" alt="">
-      <span>InÃ­cio</span>
+      <span>Início</span>
     </li>
   </ul>
   <footer class="menu-footer">
@@ -967,28 +967,28 @@
   </footer>
 </nav>
 
-<!-- Base do BFF â€” define window.BFF_URL antes de MediaP2P/P2P/WebRTC (scripts defer leem no load) -->
+<!-- Base do BFF — define window.BFF_URL antes de MediaP2P/P2P/WebRTC (scripts defer leem no load) -->
 <script>window.BFF_URL = 'https://bff.berberflow.shop';</script>
 <!-- Supabase SDK (CDN) -->
 <script src="/shared/js/supabase.min.js" defer></script>
-<!-- Logger centralizado â€” deve preceder todos os outros scripts -->
+<!-- Logger centralizado — deve preceder todos os outros scripts -->
 <script src="/shared/js/LoggerService.js" defer></script>
-<!-- API REST â€” camada de dados sem SDK (CRUD via fetch/PostgREST) -->
+<!-- API REST — camada de dados sem SDK (CRUD via fetch/PostgREST) -->
 <script src="/shared/js/ApiService.js" defer></script>
-<!-- ServiÃ§o Supabase compartilhado -->
+<!-- Serviço Supabase compartilhado -->
 <script src="/shared/js/SupabaseService.js" defer></script>
-<!-- Cache de sessÃ£o e avatar (localStorage) -->
+<!-- Cache de sessão e avatar (localStorage) -->
 <script src="/shared/js/SessionCache.js" defer></script>
-<!-- ConfiguraÃ§Ã£o centralizada de navegaÃ§Ã£o (menu + rodapÃ©) -->
+<!-- Configuração centralizada de navegação (menu + rodapé) -->
 <script src="/shared/js/NavConfig.js" defer></script>
-<!-- ValidaÃ§Ã£o e sanitizaÃ§Ã£o centralizada de inputs -->
+<!-- Validação e sanitização centralizada de inputs -->
 <script src="/shared/js/InputValidator.js" defer></script>
-<!-- ServiÃ§o de autenticaÃ§Ã£o -->
+<!-- Serviço de autenticação -->
 <script src="/shared/js/AuthService.js" defer></script>
   <script src="/shared/js/AuthUI.js" defer></script>
-<!-- Tela de saÃ­da com animaÃ§Ãµes (POO) -->
+<!-- Tela de saída com animações (POO) -->
 <script src="/shared/js/LogoutScreen.js" defer></script>
-<!-- ServiÃ§os SRP (ordem obrigatÃ³ria: antes do Router) -->
+<!-- Serviços SRP (ordem obrigatória: antes do Router) -->
 <script src="/shared/js/AnimationService.js" defer></script>
 <script src="/shared/js/MenuService.js" defer></script>
 <script src="/shared/js/UserService.js" defer></script>
@@ -998,12 +998,12 @@
 <script src="/shared/js/SplashService.js" defer></script>
 <!-- Estado global reativo -->
 <script src="/shared/js/AppState.js" defer></script>
-<!-- Modo visitante: bloqueia visualmente botÃµes de aÃ§Ã£o para usuÃ¡rios nÃ£o logados -->
+<!-- Modo visitante: bloqueia visualmente botões de ação para usuários não logados -->
 <script src="/shared/js/GuestMode.js" defer></script>
-<!-- Controle de acesso baseado em autenticaÃ§Ã£o -->
+<!-- Controle de acesso baseado em autenticação -->
 <script src="/shared/js/AuthGuard.js" defer></script>
 <script src="/shared/js/PermissionService.js" defer></script>
-<!-- ServiÃ§o de apresentaÃ§Ã£o DOM do Router (deve preceder Router.js) -->
+<!-- Serviço de apresentação DOM do Router (deve preceder Router.js) -->
 <script src="/shared/js/NavigationViewService.js" defer></script>
 <!-- Shared Router base class -->
 <script src="/shared/js/Router.js" defer></script>
@@ -1015,12 +1015,12 @@
 <script src="/shared/js/StoryViewer.js?v=20260623c" defer></script>
 <!-- Layout de stories 3x3 -->
 <script src="/shared/js/StoriesLayout.js" defer></script>
-<!-- GeolocalizaÃ§Ã£o GPS -->
+<!-- Geolocalização GPS -->
 <script src="/shared/js/GeoService.js" defer></script>
-<!-- RepositÃ³rios de dados (acesso Supabase) â€” ANTES dos widgets que os usam -->
+<!-- Repositórios de dados (acesso Supabase) — ANTES dos widgets que os usam -->
 <script src="/shared/js/BarbershopRepository.js" defer></script>
 <script src="/shared/js/ProfileRepository.js" defer></script>
-<!-- ServiÃ§os de negÃ³cio -->
+<!-- Serviços de negócio -->
 <script src="/shared/js/BarbershopService.js" defer></script>
 <script src="/shared/js/ProfessionalService.js" defer></script>
 <script src="/shared/js/StatusFechamentoModal.js" defer></script>
@@ -1047,7 +1047,7 @@
 <!-- Leaflet JS (mapa interativo) -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-<!-- Widget de barbearias prÃ³ximas -->
+<!-- Widget de barbearias próximas -->
 <script src="/shared/js/BffApiService.js" defer></script>
 <script src="/shared/js/BarbeiroAtividadeStatus.js" defer></script>
 <script src="/shared/js/BffAuthClient.js" defer></script>
@@ -1056,14 +1056,14 @@
 <script src="/shared/js/NearbyBarbershopsWidget.js" defer></script>
 <script src="/shared/js/LojaMarker.js" defer></script>
 <script src="/shared/js/MapWidget.js" defer></script>
-<!-- Widget de pesquisa dinÃ¢mica -->
+<!-- Widget de pesquisa dinâmica -->
 <script src="/shared/js/SearchWidget.js" defer></script>
 <!-- Fontes personalizadas para nomes de barbearias -->
 <script src="/shared/js/FonteSalao.js" defer></script>
 <script src="/shared/js/CapaBarbearia.js" defer></script>
-<!-- MÃ³dulo de mapa premium -->
+<!-- Módulo de mapa premium -->
 <script src="/shared/js/MapPanelModule.js" defer></script>
-<!-- MÃ³dulo de bÃºssola e orientaÃ§Ã£o -->
+<!-- Módulo de bússola e orientação -->
 <script src="/shared/js/MapOrientationModule.js" defer></script>
 <script src="/shared/js/MessageService.js" defer></script>
 <script src="/shared/js/MessageCryptoService.js" defer></script>
@@ -1127,13 +1127,13 @@
 <!-- Splash de abertura do app cliente -->
 <script src="assets/js/ClienteStartupSplash.js" defer></script>
 <script src="assets/js/AppBootstrap.js" defer></script>
-<!-- ConfirmaÃ§Ã£o de presenÃ§a na cadeira (fila ao vivo) -->
+<!-- Confirmação de presença na cadeira (fila ao vivo) -->
 <script src="/shared/js/QueueConfirmService.js" defer></script>
 <!-- App Cliente logic -->
 <script src="assets/js/app.js" defer></script>
-<!-- Todas as funÃ§Ãµes de UI estÃ£o em Router (POO) via App.* -->
+<!-- Todas as funções de UI estão em Router (POO) via App.* -->
 
-<!-- â”€â”€ Modal: Cliente â€” confirmaÃ§Ã£o de presenÃ§a na cadeira â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- ── Modal: Cliente — confirmação de presença na cadeira ─────────── -->
 <div id="modal-cadeira-cliente"
      class="qcs-modal-overlay"
      role="dialog"
@@ -1142,20 +1142,20 @@
      aria-hidden="true"
      hidden>
   <div class="qcs-modal-card">
-    <div class="qcs-modal-icone">ðŸ’ˆ</div>
+    <div class="qcs-modal-icone">💈</div>
     <h2 class="qcs-modal-titulo" id="qcs-cliente-titulo">Sua vez chegou!</h2>
     <p class="qcs-modal-sub">
-      <strong data-qcs-barbeiro>Seu barbeiro</strong> chamou vocÃª.
-      VocÃª jÃ¡ estÃ¡ sentado na cadeira?
+      <strong data-qcs-barbeiro>Seu barbeiro</strong> chamou você.
+      Você já está sentado na cadeira?
     </p>
     <div class="qcs-modal-acoes">
       <button class="qcs-btn-sim"
               onclick="QueueConfirmService.clienteConfirmouPresenca()">
-        âœ… Sim, jÃ¡ estou sentado
+        ✅ Sim, já estou sentado
       </button>
       <button class="qcs-btn-nao"
               onclick="QueueConfirmService.clienteNaoSentado()">
-        âŒ NÃ£o, ainda nÃ£o estou
+        ❌ Não, ainda não estou
       </button>
     </div>
   </div>

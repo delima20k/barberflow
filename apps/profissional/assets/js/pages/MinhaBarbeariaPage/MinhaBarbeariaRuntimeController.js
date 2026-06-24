@@ -3215,7 +3215,7 @@ export class MinhaBarbeariaRuntimeController {
     try {
       const salvos = await this.#salvarServicosTipados(li);
       if (!salvos) {
-        NotificationService?.mostrarToast('AtenÃ§Ã£o', 'Informe o preÃ§o do serviÃ§o antes de salvar.', 'sistema');
+        NotificationService?.mostrarToast('Atenção', 'Informe o preço do serviço antes de salvar.', 'sistema');
         this.#setEstadoBotaoServico(btn, false);
         li.querySelector('.mb-cfg-prod-preco')?.focus();
         return;

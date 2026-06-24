@@ -59,3 +59,16 @@ Percorrer **todos os 8 pontos** nos arquivos modificados:
 
 > **REGRA FINAL:** Sempre perguntar — *"Existe uma forma mais barata, mais inteligente, mais segura e mais escalável de fazer isso?"*
 > Se existir: **FAZER MELHOR.**
+
+---
+
+## 5. CORRECAO GLOBAL DE UTF-8 / MOJIBAKE
+
+Quando textos da aplicacao aparecerem como mojibake (ex.: `PortfÃ³lio` no lugar de `Portfólio`):
+
+1. Nao corrigir textos manualmente tela por tela.
+2. Usar rotina unica versionada para detectar, normalizar e validar arquivos textuais.
+3. A rotina deve ter modos `--dry-run`, `--write` e `--check`.
+4. Validar UTF-8 sem BOM e exatamente um `<meta charset="UTF-8">` em cada HTML.
+5. Excluir vendor, arquivos gerados, binarios, midias e outputs de teste.
+6. Rodar teste unitario da normalizacao e varredura final antes de entregar.

@@ -1,4 +1,4 @@
-﻿// =============================================================
+// =============================================================
 // StorySwipeTransition — Cubo 3D real entre stories (POO)
 // Perspective injetada pelo CSS .sv-stage (1200px) — não inline.
 // Cards giram em torno do eixo Y como faces de um cubo.

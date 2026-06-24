@@ -287,6 +287,10 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `BundleBudgetChecker` | [scripts/check-bundle-size.js](scripts/check-bundle-size.js) | infra | Verifica chunks JS gerados pelo Vite contra limites configuráveis e reporta gzip/brotli. |
+| `HtmlCharsetValidator` | [scripts/fix-utf8-mojibake.js](scripts/fix-utf8-mojibake.js) | infra | Valida presenca unica e posicao correta de `<meta charset="UTF-8">` em HTML estatico. |
+| `Utf8MojibakeNormalizer` | [scripts/fix-utf8-mojibake.js](scripts/fix-utf8-mojibake.js) | infra | Normaliza mojibake UTF-8 recuperavel por algoritmo Windows-1252/Latin-1, sem substituicoes manuais por tela. |
+| `Utf8NormalizationCli` | [scripts/fix-utf8-mojibake.js](scripts/fix-utf8-mojibake.js) | infra | CLI com modos `--dry-run`, `--write` e `--check` para auditoria e correcao global de encoding. |
+| `Utf8SourceScanner` | [scripts/fix-utf8-mojibake.js](scripts/fix-utf8-mojibake.js) | infra | Varre fontes textuais do frontend, aplica normalizacao UTF-8 sem BOM e consolida pendencias de encoding. |
 | `ViteConfigFactory` | [vite.config.mjs](vite.config.mjs) | infra | Monta configuração Vite reversível com aliases, chunks manuais, sourcemaps, manifest e compressão. |
 
 ## src/repositories/ (Node.js — backend)

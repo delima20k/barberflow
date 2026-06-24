@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 // =============================================================
 // ProfissionalStartupSplash.js - Splash de abertura do App Profissional

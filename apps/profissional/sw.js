@@ -1,21 +1,21 @@
-﻿'use strict';
+'use strict';
 
 // =============================================================
-// SWProfissional Ã¢â‚¬â€ Service Worker do App Profissional (POO)
+// SWProfissional — Service Worker do App Profissional (POO)
 //
 // Cache multi-tier:
-//   CACHE_STATIC Ã¢â‚¬â€ JS, CSS, fontes  (cache-first + stale-while-revalidate)
-//   CACHE_IMAGES Ã¢â‚¬â€ imagens          (cache-first + stale-while-revalidate)
-//   CACHE_SHELL  Ã¢â‚¬â€ HTML/navegaÃƒÂ§ÃƒÂ£o   (network-first + cache offline)
+//   CACHE_STATIC — JS, CSS, fontes  (cache-first + stale-while-revalidate)
+//   CACHE_IMAGES — imagens          (cache-first + stale-while-revalidate)
+//   CACHE_SHELL  — HTML/navegação   (network-first + cache offline)
 //
 // Background Sync:
-//   bf-sync-queue   Ã¢â€ â€™ replaya requests pendentes da OfflineSyncQueue
-//   bf-sync-cleanup Ã¢â€ â€™ purga imagens > 7 dias do CACHE_IMAGES
+//   bf-sync-queue   → replaya requests pendentes da OfflineSyncQueue
+//   bf-sync-cleanup → purga imagens > 7 dias do CACHE_IMAGES
 //
 // Periodic Background Sync:
-//   bf-periodic-cache-refresh Ã¢â€ â€™ atualiza silenciosamente CACHE_STATIC
+//   bf-periodic-cache-refresh → atualiza silenciosamente CACHE_STATIC
 // =============================================================
-// VersÃƒÂ£o do Service Worker Ã¢â‚¬â€ bumpar a cada deploy para invalidar caches antigos.
+// Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
 const SW_PRO_VERSION = '20260623h';
 
@@ -30,8 +30,8 @@ class SWProfissional {
     `bf-pro-shell-${SW_PRO_VERSION}`,
   ]);
 
-  // Assets JS/CSS Ã¢â‚¬â€ prÃƒÂ©-cacheados em CACHE_STATIC
-  // HTML nunca entra na lista Ã¢â‚¬â€ sempre servido da rede
+  // Assets JS/CSS — pré-cacheados em CACHE_STATIC
+  // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS_STATIC = [
     '/assets/css/styles.css',
     '/assets/js/app.js',
@@ -89,7 +89,7 @@ class SWProfissional {
     '/manifest.json',
   ];
 
-  // Imagens Ã¢â‚¬â€ prÃƒÂ©-cacheadas em CACHE_IMAGES
+  // Imagens — pré-cacheadas em CACHE_IMAGES
   static #ASSETS_IMAGES = [
     '/shared/img/Logo01.png',
     '/shared/img/icone-do-App.png',
@@ -108,7 +108,7 @@ class SWProfissional {
     '/shared/img/icon-512-cliente.png',
   ];
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Instala: prÃƒÂ©-cacheia static em CACHE_STATIC e imagens em CACHE_IMAGES Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Instala: pré-cacheia static em CACHE_STATIC e imagens em CACHE_IMAGES ──
   static install(e) {
     e.waitUntil((async () => {
       const [cs, ci] = await Promise.all([
@@ -123,7 +123,7 @@ class SWProfissional {
     })());
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Ativa: remove TODOS os caches nÃƒÂ£o reconhecidos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Ativa: remove TODOS os caches não reconhecidos ────────────────────────
   static activate(e) {
     e.waitUntil(
       caches.keys()
@@ -133,17 +133,17 @@ class SWProfissional {
             .map(k  => caches.delete(k)),
         ))
         // .catch evita "Could not establish connection" quando o Chrome
-        // tenta reclamar clientes que jÃƒÂ¡ fecharam/navegaram
+        // tenta reclamar clientes que já fecharam/navegaram
         .then(() => self.clients.claim().catch(() => {})),
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Roteamento de fetch: shell / imagens / estÃƒÂ¡tico Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Roteamento de fetch: shell / imagens / estático ────────────────────────
   static fetch(e) {
     const url = new URL(e.request.url);
     if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-    // NavegaÃƒÂ§ÃƒÂµes HTML Ã¢â‚¬â€ NUNCA cachear, sempre rede (garante boot-lock mais recente)
+    // Navegações HTML — NUNCA cachear, sempre rede (garante boot-lock mais recente)
     if (e.request.mode === 'navigate') {
       e.respondWith(SWProfissional.#estrategiaShell(e.request));
       return;
@@ -157,7 +157,7 @@ class SWProfissional {
     e.respondWith(SWProfissional.#estrategiaEstatico(e.request));
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ EstratÃƒÂ©gia SHELL: network-first + cache + offline fallback Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Estratégia SHELL: network-first + cache + offline fallback ────────────
   static async #estrategiaShell(request) {
     try {
       const response = await fetch(request);
@@ -173,12 +173,12 @@ class SWProfissional {
     }
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ EstratÃƒÂ©gia IMAGENS: cache-first + stale-while-revalidate Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Estratégia IMAGENS: cache-first + stale-while-revalidate ─────────────
   static async #estrategiaImagens(request) {
     const cached       = await caches.match(request);
     const fetchAndSave = fetch(request).then(res => {
       if (res && res.status === 200 && res.type !== 'opaque') {
-        const clone = res.clone(); // clonar ANTES de qualquer operaÃƒÂ§ÃƒÂ£o async
+        const clone = res.clone(); // clonar ANTES de qualquer operação async
         caches.open(SWProfissional.#CACHE_IMAGES).then(c => c.put(request, clone));
       }
       return res;
@@ -189,12 +189,12 @@ class SWProfissional {
       || new Response('', { status: 504, statusText: 'Gateway Timeout' });
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ EstratÃƒÂ©gia ESTÃƒÂTICO: cache-first + stale-while-revalidate Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Estratégia ESTÁTICO: cache-first + stale-while-revalidate ────────────
   static async #estrategiaEstatico(request) {
     const cached       = await caches.match(request);
     const fetchAndSave = fetch(request).then(res => {
       if (res && res.status === 200 && res.type !== 'opaque') {
-        const clone = res.clone(); // clonar ANTES de qualquer operaÃƒÂ§ÃƒÂ£o async
+        const clone = res.clone(); // clonar ANTES de qualquer operação async
         caches.open(SWProfissional.#CACHE_STATIC).then(c => c.put(request, clone));
       }
       return res;
@@ -205,52 +205,52 @@ class SWProfissional {
       || new Response('', { status: 504, statusText: 'Gateway Timeout' });
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Background Sync: replaya fila offline + limpa imagens antigas Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Background Sync: replaya fila offline + limpa imagens antigas ────────
   static sync(e) {
     if (e.tag === 'bf-sync-queue')   { e.waitUntil(SWProfissional.#processarSyncQueue());  return; }
     if (e.tag === 'bf-sync-cleanup') { e.waitUntil(SWProfissional.#limparCacheImagens()); return; }
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Periodic Background Sync: atualiza assets silenciosamente Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Periodic Background Sync: atualiza assets silenciosamente ─────────────
   static periodicsync(e) {
     if (e.tag === 'bf-periodic-cache-refresh') {
       e.waitUntil(SWProfissional.#refreshAssets());
     }
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Web Push: acorda o SW, vibra o dispositivo e exibe a notificaÃƒÂ§ÃƒÂ£o Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Web Push: acorda o SW, vibra o dispositivo e exibe a notificação ─────
   // Payload esperado (JSON cifrado pela Edge Function send-push):
   //   { title, body, icon, badge, tag, vibrate, data: { url, barbershopId, entradaId } }
   static push(e) {
     console.log('[SW-Pro] push recebido, tem payload:', !!e.data);
     e.waitUntil((async () => {
       let payload = {};
-      try { payload = e.data?.json() ?? {}; } catch { /* payload vazio ÃƒÂ© ok */ }
+      try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
-      const title = payload.title ?? 'Nova atualizaÃƒÂ§ÃƒÂ£o Ã¢Å“â€šÃ¯Â¸Â';
+      const title = payload.title ?? 'Nova atualização ✂️';
       const opts  = {
         body:               payload.body   ?? 'Toque para ver.',
         icon:               payload.icon   ?? '/shared/img/icon-192-pro.png',
         badge:              payload.badge  ?? '/shared/img/icon-192-pro.png',
         tag:                payload.tag    ?? 'bf-pro-push',
         requireInteraction: payload.requireInteraction ?? false,
-        // VibraÃƒÂ§ÃƒÂ£o curta para notificaÃƒÂ§ÃƒÂµes do profissional
+        // Vibração curta para notificações do profissional
         vibrate:            payload.vibrate ?? [200, 100, 200],
         silent:             false,
         data:               payload.data  ?? {},
       };
 
-      // Adiciona botÃƒÂµes de aÃƒÂ§ÃƒÂ£o para notificaÃƒÂ§ÃƒÂµes de chegada do cliente (Android)
+      // Adiciona botões de ação para notificações de chegada do cliente (Android)
       const pushType = opts.data?.pushType;
       if (pushType === 'client_not_seated') {
         opts.actions            = [
           { action: 'aguardar', title: '\u2705 Aguardar' },
-          { action: 'remover',  title: '\u274c Chamar prÃƒÂ³ximo' },
+          { action: 'remover',  title: '\u274c Chamar próximo' },
         ];
         opts.requireInteraction = true;
       } else if (pushType === 'client_at_shop') {
         opts.actions            = [
-          { action: 'chegou',   title: '\u2705 EstÃƒÂ¡ aqui' },
+          { action: 'chegou',   title: '\u2705 Está aqui' },
           { action: 'aguardar', title: '\u23f3 Aguardar' },
         ];
         opts.requireInteraction = true;
@@ -273,12 +273,12 @@ class SWProfissional {
     })());
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Clique na notificaÃƒÂ§ÃƒÂ£o: botÃƒÂ£o de aÃƒÂ§ÃƒÂ£o (Android) ou toque no corpo (iOS + Android) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Clique na notificação: botão de ação (Android) ou toque no corpo (iOS + Android) ───
   static notificationclick(e) {
     e.notification.close();
 
     const data = e.notification.data ?? {};
-    const acao = e.action; // string vazia = toque no corpo; 'aguardar'|'remover'|'chegou' = botÃƒÂ£o
+    const acao = e.action; // string vazia = toque no corpo; 'aguardar'|'remover'|'chegou' = botão
 
     e.waitUntil(
       self.clients
@@ -287,7 +287,7 @@ class SWProfissional {
           const existing = clientList.find(c => c.url.includes(self.location.origin));
 
           if (acao) {
-            // BotÃƒÂ£o de aÃƒÂ§ÃƒÂ£o clicado (Android) Ã¢â‚¬â€ execuÃƒÂ§ÃƒÂ£o silenciosa no app
+            // Botão de ação clicado (Android) — execução silenciosa no app
             if (existing) {
               existing.postMessage({
                 type:         'PUSH_ACTION',
@@ -314,7 +314,7 @@ class SWProfissional {
             return self.clients.openWindow(`/profissional/?${params}`);
           }
 
-          // Toque no corpo da notificaÃƒÂ§ÃƒÂ£o (iOS Safari + Android) Ã¢â‚¬â€ abre a modal existente
+          // Toque no corpo da notificação (iOS Safari + Android) — abre a modal existente
           if (existing) {
             existing.postMessage({
               type:         'PUSH_SHOW_MODAL',
@@ -341,7 +341,7 @@ class SWProfissional {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Sync: processa fila de requests offline Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Sync: processa fila de requests offline ───────────────────────────────
   static async #processarSyncQueue() {
     let db;
     try   { db = await SWProfissional.#abrirSyncDB(); }
@@ -358,11 +358,11 @@ class SWProfissional {
         if (res.ok || (res.status >= 400 && res.status < 500)) {
           await SWProfissional.#concluirEntry(db, entry.id);
         }
-      } catch { /* falha de rede Ã¢â‚¬â€ mantÃƒÂ©m na fila */ }
+      } catch { /* falha de rede — mantém na fila */ }
     }));
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Periodic: re-fetch silencioso de todos os assets estÃƒÂ¡ticos Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Periodic: re-fetch silencioso de todos os assets estáticos ───────────
   static async #refreshAssets() {
     const cache = await caches.open(SWProfissional.#CACHE_STATIC);
     await Promise.allSettled(
@@ -374,7 +374,7 @@ class SWProfissional {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Cleanup: purga imagens > 7 dias Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Cleanup: purga imagens > 7 dias ──────────────────────────────────
   static async #limparCacheImagens() {
     const cache     = await caches.open(SWProfissional.#CACHE_IMAGES);
     const requests  = await cache.keys();
@@ -388,7 +388,7 @@ class SWProfissional {
     );
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers IDB (inline Ã¢â‚¬â€ SW nÃƒÂ£o tem acesso ÃƒÂ  classe OfflineSyncQueue) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Helpers IDB (inline — SW não tem acesso à classe OfflineSyncQueue) ────
   static #abrirSyncDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open('barberflow-sync', 1);
@@ -425,7 +425,7 @@ class SWProfissional {
     });
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ Registra todos os listeners Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // ── Registra todos os listeners ───────────────────────────────────────────
   static init() {
     self.addEventListener('install',           e => SWProfissional.install(e));
     self.addEventListener('activate',          e => SWProfissional.activate(e));
@@ -441,5 +441,5 @@ class SWProfissional {
   }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Ponto de entrada Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── Ponto de entrada ─────────────────────────────────────── */
 SWProfissional.init();
