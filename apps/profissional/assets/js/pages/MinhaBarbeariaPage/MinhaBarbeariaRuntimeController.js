@@ -2084,11 +2084,6 @@ export class MinhaBarbeariaRuntimeController {
           wrap.appendChild(placeholder);
         }
 
-        const playBtn = document.createElement('div');
-        playBtn.className   = 'story-play-btn';
-        playBtn.textContent = '▶';
-        wrap.appendChild(playBtn);
-
         const badge = document.createElement('img');
         badge.className = 'story-shop-badge';
         badge.src       = identityLogo;

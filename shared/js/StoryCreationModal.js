@@ -439,14 +439,31 @@ class StoryComposer {
     const tipo = opts.tipo
       || (String(file.type || '').startsWith('video') ? 'video' : 'imagem');
     if (!StoryComposer.#suporta()) return file; // fallback (ex.: sandbox de teste)
-    if (tipo !== 'imagem' && !StoryComposer.deveComporVideo(opts)) return file;
-    try {
-      return tipo === 'imagem'
-        ? await StoryComposer.#comporImagem(opts)
-        : await StoryComposer.#comporVideo(opts);
-    } catch (_) {
-      return file; // qualquer erro → original (não quebra o upload)
+
+    if (tipo === 'imagem') {
+      // Imagem COM música → compõe um vídeo curto (imagem estática + música) para
+      // a música TOCAR ao visualizar o story (imagem pura não carrega faixa de áudio).
+      if (StoryComposer.deveComporImagemComMusica(opts)) {
+        try {
+          const video = await StoryComposer.#comporImagemComMusica(opts);
+          if (video) return video;
+        } catch (_) { /* falhou → cai no caminho de imagem normal */ }
+      }
+      try { return await StoryComposer.#comporImagem(opts); } catch (_) { return file; }
     }
+
+    if (!StoryComposer.deveComporVideo(opts)) return file;
+    try { return await StoryComposer.#comporVideo(opts); } catch (_) { return file; }
+  }
+
+  /** true quando é imagem com música escolhida → deve virar vídeo p/ a música tocar. */
+  static deveComporImagemComMusica(opts = {}) {
+    const plano = StoryComposer.planoAudio({
+      musica: opts.musica,
+      musicaSrc: opts.musicaSrc,
+      audioMix: opts.audioMix,
+    });
+    return !!(plano.usarMusica && opts.musicaSrc);
   }
 
   // ── Vídeo ───────────────────────────────────────────────────
@@ -663,6 +680,137 @@ class StoryComposer {
   }
 
   // ── Imagem ──────────────────────────────────────────────────
+
+  /**
+   * Imagem + música → vídeo curto (imagem estática como quadro + a música como
+   * faixa de áudio). Sobe como vídeo, então a música toca ao visualizar o story.
+   * Falha/sem suporte → retorna null (o caminho de imagem normal assume).
+   */
+  static async #comporImagemComMusica(opts) {
+    const plano = StoryComposer.planoAudio({ musica: opts.musica, musicaSrc: opts.musicaSrc, audioMix: opts.audioMix });
+    const blob = await StoryComposer.#gravarImagemMusica({
+      file:       opts.file,
+      overlays:   Array.isArray(opts.overlays) ? opts.overlays : [],
+      previewW:   Number(opts.previewW) || 0,
+      previewH:   Number(opts.previewH) || 0,
+      targetBytes: 1.6 * 1024 * 1024,
+      maxSeconds: Number(opts.maxSeconds) || 30,
+      musicaSrc:  opts.musicaSrc || null,
+      volMusica:  plano.volMusica > 0 ? plano.volMusica : 0.7,
+    });
+    if (!blob || !blob.size) return null;
+    const ext = (blob.type || '').includes('mp4') ? 'mp4' : 'webm';
+    return new File([blob], `story-${Date.now()}.${ext}`, { type: blob.type || 'video/webm' });
+  }
+
+  static async #gravarImagemMusica({ file, overlays, previewW, previewH, targetBytes, maxSeconds, musicaSrc, volMusica }) {
+    let url = null, audioCtx = null, stream = null, musicaEl = null, raf = null, timer = null;
+    const limpar = () => {
+      try { if (raf) cancelAnimationFrame(raf); } catch (_) {}
+      try { clearTimeout(timer); } catch (_) {}
+      try { stream?.getTracks().forEach(t => t.stop()); } catch (_) {}
+      try { musicaEl?.stop?.(); } catch (_) {}
+      try { audioCtx?.close?.(); } catch (_) {}
+      try { if (url) URL.revokeObjectURL(url); } catch (_) {}
+    };
+
+    try {
+      const AC = (typeof window !== 'undefined') && (window.AudioContext || window.webkitAudioContext);
+      if (!AC || !musicaSrc) return null; // sem WebAudio/música → deixa a imagem normal
+      // Baixa o áudio em paralelo com o carregamento da imagem.
+      const promessaArrayBuffer = fetch(StoryComposer.#toAudioProxyUrl(musicaSrc), { mode: 'cors', credentials: 'omit' })
+        .then(r => r.ok ? r.arrayBuffer() : null)
+        .catch(() => null);
+
+      url = URL.createObjectURL(file);
+      const img = document.createElement('img');
+      await new Promise((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error('img')); img.src = url; });
+
+      const iw = img.naturalWidth  || previewW || 9;
+      const ih = img.naturalHeight || previewH || 16;
+      const aspect    = (previewW > 0 && previewH > 0) ? previewW / previewH : (iw / ih || 9 / 16);
+      const ladoLongo = Math.min(Math.max(iw, ih) || StoryComposer.MAX_LADO_VIDEO, StoryComposer.MAX_LADO_VIDEO);
+      const cv = StoryComposer.dimsCanvas(aspect, ladoLongo);
+      const escalaCanvas = previewW > 0 ? cv.w / previewW : 1;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = cv.w; canvas.height = cv.h;
+      const ctx = canvas.getContext('2d');
+      stream = canvas.captureStream(30);
+
+      // Música → faixa de áudio do stream.
+      const arrayBuf = await promessaArrayBuffer;
+      if (!arrayBuf) return null;
+      audioCtx = new AC();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuf);
+      const segs = Math.min(audioBuffer.duration || maxSeconds, maxSeconds);
+      const d = audioCtx.createMediaStreamDestination();
+      const bufSrc = audioCtx.createBufferSource();
+      bufSrc.buffer = audioBuffer; bufSrc.loop = true;
+      const gm = audioCtx.createGain(); gm.gain.value = volMusica;
+      bufSrc.connect(gm); gm.connect(d);
+      musicaEl = bufSrc;
+      let temAudio = false;
+      const at = d.stream.getAudioTracks()[0];
+      if (at) { stream.addTrack(at); temAudio = true; }
+
+      const audioBps = temAudio ? StoryComposer.AUDIO_BPS : 0;
+      const orcamento = Math.min(targetBytes, StoryComposer.ORCAMENTO_VIDEO);
+      const videoBps = Math.max(120000, Math.floor((orcamento * 8 / Math.max(1, segs)) * 0.9) - audioBps);
+      const mime = StoryComposer.#mime();
+
+      const chunks = [];
+      const rec = new MediaRecorder(stream, {
+        ...(mime ? { mimeType: mime } : {}),
+        videoBitsPerSecond: videoBps,
+        ...(audioBps ? { audioBitsPerSecond: audioBps } : {}),
+      });
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      const parada = new Promise((resolve) => { rec.onstop = () => resolve(); });
+
+      // Imagem desenhada em "contain" (letterbox preto) + overlays por cima.
+      const fit = Math.min(cv.w / iw, cv.h / ih);
+      const dw = iw * fit, dh = ih * fit, dx = (cv.w - dw) / 2, dy = (cv.h - dh) / 2;
+      let parou = false;
+      const desenhar = () => {
+        if (parou) return;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, cv.w, cv.h);
+        try { ctx.drawImage(img, dx, dy, dw, dh); } catch (_) {}
+        OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
+        raf = requestAnimationFrame(desenhar);
+      };
+      const parar = () => {
+        if (parou) return;
+        parou = true;
+        try { if (rec.state === 'recording') rec.stop(); } catch (_) {}
+      };
+
+      rec.start();
+      try { await audioCtx?.resume?.(); } catch (_) {}
+      // iOS Safari pode resolver resume() antes de 'running' — só dispara quando confirmar.
+      if (audioCtx.state === 'running') {
+        try { musicaEl.start(audioCtx.currentTime || 0); } catch (_) {}
+      } else {
+        const iniciarAoRetomar = () => {
+          if (audioCtx.state === 'running') {
+            try { musicaEl.start(audioCtx.currentTime || 0); } catch (_) {}
+            audioCtx.removeEventListener('statechange', iniciarAoRetomar);
+          }
+        };
+        audioCtx.addEventListener('statechange', iniciarAoRetomar);
+      }
+      desenhar();
+      timer = setTimeout(parar, segs * 1000 + 200);
+
+      await parada;
+      limpar();
+      return new Blob(chunks, { type: mime || 'video/webm' });
+    } catch (_) {
+      limpar();
+      return null;
+    }
+  }
 
   static #aguardarVideoMetadata(video) {
     if (!video) return Promise.reject(new Error('metadata'));

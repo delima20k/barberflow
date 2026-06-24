@@ -302,9 +302,10 @@ class Router {
   toggleLike(btn)        { this._services.story?.toggleLike(btn); }
   toggleStoryVideo(videoWrap) {
     const video   = videoWrap.querySelector('.story-video');
-    const playBtn = videoWrap.querySelector('.story-play-btn');
-    if (video.paused) { video.play();  playBtn.classList.add('playing'); }
-    else              { video.pause(); playBtn.classList.remove('playing'); }
+    if (!video) return;
+    const playBtn = videoWrap.querySelector('.story-play-btn'); // pode não existir (ícone removido)
+    if (video.paused) { video.play();  playBtn?.classList.add('playing'); }
+    else              { video.pause(); playBtn?.classList.remove('playing'); }
   }
 
   /* ─────────────────────────────────────────────────────────────

@@ -826,6 +826,24 @@ test('StoryComposer.deveComporVideo comprime video cru grande (acima do alvo) me
   assert.equal(SC.deveComporVideo({ overlays: [] }), false, 'sem file/size nao recomprime');
 });
 
+test('StoryComposer.deveComporImagemComMusica: imagem com música deve virar vídeo p/ tocar no viewer', () => {
+  const { sandbox } = criarSandbox();
+  const SC = sandbox.StoryComposer;
+
+  // Imagem com música escolhida (com src) → compõe vídeo (música toca ao visualizar).
+  assert.equal(SC.deveComporImagemComMusica({
+    musica: { music_id: 'm1' },
+    musicaSrc: 'https://r2/audio.m4a',
+    audioMix: { manterOriginal: true, volumeMusica: 0.7 },
+  }), true, 'imagem com música → vídeo');
+
+  // Sem música → mantém imagem normal.
+  assert.equal(SC.deveComporImagemComMusica({ musica: null, musicaSrc: null }), false);
+
+  // Música escolhida mas SEM src ainda → não há áudio para tocar.
+  assert.equal(SC.deveComporImagemComMusica({ musica: { music_id: 'm1' }, musicaSrc: null }), false);
+});
+
 test('Finalizar queima/comprime e entrega o arquivo em media.file (com overlays no estado)', async () => {
   const { sandbox, document } = criarSandbox();
   const onFinalizar = fn();
