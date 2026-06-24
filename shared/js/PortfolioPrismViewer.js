@@ -156,7 +156,48 @@ class MediaPrismViewer {
     const alvo = this.#index + dir;
     // Sem loop: não passa do último (direita) nem do primeiro (esquerda).
     if (alvo < 0 || alvo >= this.#items.length) return;
-    this.#animarPara(delta);
+    // Fronteira entre barbearias (feed): a nova barbearia ENTRA deslizando na
+    // direção do arraste, em vez do 3D. Dentro da mesma barbearia → 3D normal.
+    if (this.#cruzaBarbearia(alvo)) this.#animarParaSlide(dir);
+    else this.#animarPara(delta);
+  }
+
+  // Chave que identifica a barbearia de um item (feed multi-barbearia).
+  static #shopKey(item) {
+    return item?.__shopFeedId ?? item?.barbershop_id ?? item?.shop_owner_id ?? item?.owner_id ?? null;
+  }
+
+  // true quando a transição cruza para OUTRA barbearia (somente no modo story).
+  #cruzaBarbearia(alvo) {
+    if (!this.#isStoryMode()) return false;
+    const atualKey = MediaPrismViewer.#shopKey(this.#items[this.#index]);
+    const alvoKey  = MediaPrismViewer.#shopKey(this.#items[alvo]);
+    if (atualKey == null || alvoKey == null) return false;
+    return atualKey !== alvoKey;
+  }
+
+  // Transição de fronteira: o conteúdo da nova barbearia entra deslizando na
+  // direção do arraste (sem 3D). dir +1 (arraste ←) entra pela direita;
+  // dir -1 (arraste →) entra pela esquerda. Depois volta ao 3D normal.
+  #animarParaSlide(dir) {
+    this.#animando = true;
+    this.#cube.classList.remove('pp-prism-cube--drag');
+    // Avança o índice e renderiza a nova barbearia já na face frontal (vídeo toca).
+    this.#index = Math.min(Math.max(this.#index + dir, 0), this.#items.length - 1);
+    this.#renderAtual({ animar: false });
+    // Mantém rotateY(0) (só a face frontal visível) e desliza só em X.
+    const fromPct = dir > 0 ? 100 : -100;
+    this.#cube.style.transition = 'none';
+    this.#cube.style.transform = `translateX(${fromPct}%) rotateY(0deg)`;
+    void this.#cube.offsetWidth; // reflow: pinta o novo conteúdo já fora da tela
+    this.#cube.style.transition = `transform ${MediaPrismViewer.#DURATION_MS}ms ${MediaPrismViewer.#EASING}`;
+    this.#cube.style.transform = 'translateX(0%) rotateY(0deg)';
+    this.#limparTimer();
+    this.#finalizeTimer = setTimeout(() => {
+      this.#animando = false;
+      this.#cube.style.transition = ''; // volta à transição padrão (3D) do CSS
+      this.#cube.style.transform = 'rotateY(0deg)';
+    }, MediaPrismViewer.#DURATION_MS + 30);
   }
 
   #animarPara(delta) {
@@ -701,8 +742,8 @@ class MediaPrismViewer {
     if (acao === 'next' && noFim)      acao = 'snap';
     if (acao === 'prev' && noInicio)   acao = 'snap';
 
-    if (acao === 'next')      this.#animarPara(1);
-    else if (acao === 'prev') this.#animarPara(-1);
+    if (acao === 'next')      this.#go(1);
+    else if (acao === 'prev') this.#go(-1);
     else this.#snapBack();
   }
 

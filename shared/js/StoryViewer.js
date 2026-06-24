@@ -205,7 +205,12 @@ class StoryViewer {
         const lista = StoriesStore.get(sid);
         if (!lista.length) continue;
         if (sid === shopId) inicioBarbearia = combinado.length;
-        combinado.push(...lista);
+        // Marca a barbearia em cada story para o viewer detectar a fronteira
+        // (troca de barbearia) e aplicar a animação de slide nesse momento.
+        for (const st of lista) {
+          if (st && st.__shopFeedId == null) st.__shopFeedId = sid;
+          combinado.push(st);
+        }
       }
       stories = combinado.length ? combinado : StoriesStore.get(shopId);
       startIndex = combinado.length ? inicioBarbearia : 0;
