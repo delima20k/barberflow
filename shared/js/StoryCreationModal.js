@@ -1364,8 +1364,10 @@ class StoryCreationModal {
     manter.checked = mix.manterOriginal;
     const volV = scEl('input', { type: 'range', class: 'sc-mix-range sc-mix-video', attrs: { min: '0', max: '100', 'aria-label': 'Volume do vídeo' }, on: { input: () => this.#atualizarMix() } });
     volV.value = String(Math.round(mix.volumeVideo * 100));
+    volV.style.setProperty('--vol-pct', volV.value + '%');
     const volM = scEl('input', { type: 'range', class: 'sc-mix-range sc-mix-music', attrs: { min: '0', max: '100', 'aria-label': 'Volume da música' }, on: { input: () => this.#atualizarMix() } });
     volM.value = String(Math.round(mix.volumeMusica * 100));
+    volM.style.setProperty('--vol-pct', volM.value + '%');
     this.#mixRefs = { manter, volV, volM };
 
     this.#mixPlayBtn = scEl('button', {
@@ -1409,6 +1411,9 @@ class StoryCreationModal {
     const manterOriginal = !!this.#mixRefs.manter.checked;
     const volumeVideo  = (Number(this.#mixRefs.volV.value) || 0) / 100;
     const volumeMusica = (Number(this.#mixRefs.volM.value) || 0) / 100;
+    // Preenchimento dourado do traço acompanha o valor (igual aos outros sliders).
+    this.#mixRefs.volV.style.setProperty('--vol-pct', this.#mixRefs.volV.value + '%');
+    this.#mixRefs.volM.style.setProperty('--vol-pct', this.#mixRefs.volM.value + '%');
     this.#service.definirMixAudio({ manterOriginal, volumeVideo, volumeMusica });
     this.#mixRefs.volV.disabled = !manterOriginal;
     this.#aplicarVolumePreview();

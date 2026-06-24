@@ -732,8 +732,42 @@
 }
 .sc-mix-row--keep { cursor: pointer; font-size: .85rem; }
 .sc-mix-label { flex: 0 0 96px; font-size: .8rem; color: rgba(255, 255, 255, .8); }
-.sc-mix-range { flex: 1 1 auto; accent-color: var(--gold, #d4a017); }
+/* Igual aos demais sliders de volume: traço marrom + ponto dourado */
+.sc-mix-range {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 auto;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  --vol-pct: 100%;
+}
 .sc-mix-range:disabled { opacity: .4; }
+.sc-mix-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #d4a017 var(--vol-pct, 100%),
+    rgba(111, 69, 41, .5) var(--vol-pct, 100%)
+  );
+}
+.sc-mix-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #d4a017;
+  margin-top: -5.5px;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+}
+.sc-mix-range::-moz-range-track { height: 3px; border-radius: 2px; background: rgba(111, 69, 41, .5); border: none; }
+.sc-mix-range::-moz-range-progress { height: 3px; border-radius: 2px; background: #d4a017; }
+.sc-mix-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #d4a017; cursor: pointer; border: none; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
 
 /* Câmera in-app (gravação com auto-stop aos 35s) */
 .sc-camera {
