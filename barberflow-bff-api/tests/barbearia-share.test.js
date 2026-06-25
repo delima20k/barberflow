@@ -107,8 +107,7 @@ suite('BarbeariaShareController', () => {
     assert.match(res.body, /BarberFlow/);
   });
 
-  test('?card= do mesmo Supabase substitui a imagem padrão', async () => {
-    const CARD_URL = 'https://proj.supabase.co/storage/v1/object/public/barbershops/abc/og-card.png';
+  test('?og=1 usa og-card.png do Supabase em vez da capa do perfil', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'Barbearia X', city: 'SP', state: 'SP',
@@ -117,13 +116,13 @@ suite('BarbeariaShareController', () => {
     };
     const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
     const res  = criarRes();
-    await ctrl.handle(criarReq(SHOP_ID, { card: CARD_URL }), res);
+    await ctrl.handle(criarReq(SHOP_ID, { og: '1' }), res);
 
-    assert.match(res.body, new RegExp(CARD_URL.replace(/\//g, '\\/')));
+    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.png`));
     assert.doesNotMatch(res.body, /capa\.png/);
   });
 
-  test('?card= de domínio externo é ignorado, usa fallback', async () => {
+  test('sem ?og=1 usa a capa/logo do perfil', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'Y', city: null, state: null,
@@ -132,10 +131,10 @@ suite('BarbeariaShareController', () => {
     };
     const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
     const res  = criarRes();
-    await ctrl.handle(criarReq(SHOP_ID, { card: 'https://evil.com/hack.png' }), res);
+    await ctrl.handle(criarReq(SHOP_ID, {}), res);
 
     assert.match(res.body, /capa\.png/);
-    assert.doesNotMatch(res.body, /evil\.com/);
+    assert.doesNotMatch(res.body, /og-card\.png/);
   });
 
   test('construtor valida dependências', () => {

@@ -79,10 +79,10 @@ class BarbeariaSharePanel {
 
   // ── URLs ───────────────────────────────────────────────────
 
-  /** URL do BFF — inclui ?card= quando o canvas foi enviado para o Supabase. */
+  /** URL do BFF — inclui ?og=1 quando o canvas foi enviado ao Supabase. */
   #ogUrl() {
     const base = `${this.#bffBase}/b/${this.#barbershopId}`;
-    if (this.#cardUrl) return `${base}?card=${encodeURIComponent(this.#cardUrl)}`;
+    if (this.#cardUrl) return `${base}?og=1`;
     return base;
   }
 
@@ -161,7 +161,7 @@ class BarbeariaSharePanel {
     } catch (_) { /* preview opcional */ }
   }
 
-  /** Faz upload do card PNG para Supabase Storage e armazena a URL pública. */
+  /** Faz upload do card PNG para Supabase Storage e ativa a flag ?og=1. */
   async #uploadOgCard(file) {
     this.#cardUrl = null;
     if (!this.#barbershopId) return;
@@ -174,9 +174,7 @@ class BarbeariaSharePanel {
         upsert: true,
         cacheControl: '60',
       });
-      if (error) return;
-      const { data } = storage.getPublicUrl(path);
-      this.#cardUrl = data?.publicUrl ?? null;
+      if (!error) this.#cardUrl = 'ready'; // sinaliza que o upload concluiu
     } catch (_) {}
   }
 

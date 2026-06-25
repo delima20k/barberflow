@@ -64,15 +64,14 @@ class BarbeariaShareController {
       return res.status(200).send(html);
     }
 
-    // ?card= permite ao frontend passar a URL do canvas já enviado ao Supabase
-    // para que o WhatsApp use a arte gerada como og:image (em vez da capa do perfil).
-    const cardParam = typeof req.query?.card === 'string' ? req.query.card.trim() : null;
-    const customCard = this.#validarCardUrl(cardParam);
+    // ?og=1 → o canvas foi enviado ao Supabase; usa a arte gerada como og:image.
+    const useOgCard = req.query?.og === '1';
+    const image = useOgCard ? this.#ogCardUrl(shop.id) : this.#imagemUrl(shop);
 
     const html = this.#builder.build({
       title: shop.name || this.#siteName,
       description: this.#descricao(shop),
-      image: customCard || this.#imagemUrl(shop),
+      image,
       canonicalUrl,
       redirectUrl: `${homeUrl}/?barbearia=${encodeURIComponent(shop.id)}`,
       siteName: this.#siteName,
@@ -91,19 +90,10 @@ class BarbeariaShareController {
       : 'Veja a barbearia no BarberFlow.';
   }
 
-  /**
-   * Valida que a URL do card veio do nosso Supabase (evita SSRF / open-redirect na og:image).
-   * Aceita apenas URLs do bucket barbershops no domínio configurado.
-   */
-  #validarCardUrl(url) {
-    if (!url || !this.#supabaseUrl) return null;
-    try {
-      const parsed = new URL(String(url));
-      const base   = new URL(this.#supabaseUrl);
-      if (parsed.hostname !== base.hostname) return null;
-      if (!parsed.pathname.startsWith('/storage/v1/object/public/barbershops/')) return null;
-      return parsed.href;
-    } catch (_) { return null; }
+  /** URL do canvas gerado pelo barbeiro (Supabase Storage, bucket barbershops). */
+  #ogCardUrl(shopId) {
+    if (!shopId || !this.#supabaseUrl) return null;
+    return `${this.#supabaseUrl}/storage/v1/object/public/barbershops/${encodeURIComponent(shopId)}/og-card.png`;
   }
 
   /** Monta a URL pública absoluta da capa/logo (Supabase Storage). */
