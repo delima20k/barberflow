@@ -1055,6 +1055,7 @@ class StoryCreationModal {
   #liveTextEl = null;
   #activeOverlayGesture = null;
   #selectedOverlayEl = null;
+  #editandoOverlay = null; // { overlay, el } quando em modo edição de texto
 
   #corTexto   = '#ffffff';
   #fonteTexto = 'sans-serif';
@@ -1421,6 +1422,7 @@ class StoryCreationModal {
     if (!this.#mixPanel) this.#construirMix();
     if (this.#mixPanel) this.#mixPanel.hidden = !show;
     if (show) {
+      this.#fecharOutrosSheetsStage('mix');
       this.#sincronizarPreviewAudio();
       this.#atualizarTempoMix();
     }
@@ -1607,8 +1609,20 @@ class StoryCreationModal {
   #enviarTexto() {
     const valor = String(this.#input?.value ?? '').trim();
     if (!valor) return;
-    const overlay = this.#service.adicionarTexto(valor, this.#posicaoInicial());
-    this.#renderOverlay(overlay);
+
+    if (this.#editandoOverlay) {
+      // Modo edição: atualiza o overlay existente no modelo e no DOM
+      const { overlay, el } = this.#editandoOverlay;
+      this.#editandoOverlay = null;
+      overlay.conteudo = valor;
+      el.textContent = valor; // substitui o texto; .sc-ov-sel já foi removido por #desativarSelecao
+      el.style.color = this.#corTexto;
+      el.style.fontFamily = this.#fonteTexto;
+    } else {
+      const overlay = this.#service.adicionarTexto(valor, this.#posicaoInicial());
+      this.#renderOverlay(overlay);
+    }
+
     if (this.#input) this.#input.value = '';
     this.#atualizarSend();
     this.#mostrarCaret(false);
@@ -1617,10 +1631,12 @@ class StoryCreationModal {
 
   // ── Emoji ──────────────────────────────────────────────────
 
-  // Dentro da .sc-stage só pode haver um modal aberto: ao abrir um, fecha o outro.
+  // Dentro da .sc-overlay só pode haver um painel aberto: ao abrir um, fecha todos os outros.
   #fecharOutrosSheetsStage(exceto) {
-    if (exceto !== 'emoji'  && this.#emojiSheet && !this.#emojiSheet.hidden) this.#fecharEmojiSheet();
-    if (exceto !== 'musica' && this.#musicSheet && !this.#musicSheet.hidden) this.#fecharMusicSheet();
+    if (exceto !== 'emoji'  && this.#emojiSheet  && !this.#emojiSheet.hidden)  this.#fecharEmojiSheet();
+    if (exceto !== 'musica' && this.#musicSheet  && !this.#musicSheet.hidden)  this.#fecharMusicSheet();
+    if (exceto !== 'frases' && this.#frasesSheet && !this.#frasesSheet.hidden) this.#fecharFrasesSheet();
+    if (exceto !== 'mix'    && this.#mixPanel    && !this.#mixPanel.hidden)    this.#mixPanel.hidden = true;
   }
 
   #abrirEmojis() {
@@ -1651,6 +1667,7 @@ class StoryCreationModal {
   }
 
   #abrirFrases() {
+    this.#fecharOutrosSheetsStage('frases');
     if (this.#frasesSheet) { this.#frasesSheet.hidden = false; return; }
     const grid = scEl('div', { class: 'sc-frase-grid' });
     // Nome da barbearia como primeira opção (se disponível)
@@ -2047,8 +2064,13 @@ class StoryCreationModal {
       clearTimeout(longPressTimer); longPressTimer = null; downPos = null;
 
       if (wasTap) {
-        if (this.#selectedOverlayEl === el) this.#desativarSelecao();
-        else this.#ativarSelecao(el, overlay);
+        if (this.#selectedOverlayEl === el) {
+          // 2º toque: texto → modo edição; emoji → fecha seleção
+          if (overlay.tipo === 'texto') this.#entrarEdicaoTexto(overlay, el);
+          else this.#desativarSelecao();
+        } else {
+          this.#ativarSelecao(el, overlay);
+        }
       }
 
       pts.delete(e.pointerId);
@@ -2069,28 +2091,50 @@ class StoryCreationModal {
     el.addEventListener('lostpointercapture', onUp);
   }
 
-  /** Ativa o frame de seleção (borda + alças + X) no overlay informado. */
+  /** Ativa o frame de seleção no overlay informado.
+   *  - Texto: barra [A-][×][A+] acima do elemento.
+   *  - Emoji: alças de canto + botão apagar (comportamento original). */
   #ativarSelecao(el, overlay) {
     this.#desativarSelecao();
     this.#selectedOverlayEl = el;
+    const svc = this.#service;
 
-    const del = scEl('button', {
-      class: 'sc-ov-del', type: 'button', text: '×',
-      attrs: { 'aria-label': 'Apagar' },
-    });
-    del.addEventListener('pointerdown', (e) => e.stopPropagation());
-    del.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.#removerOverlay(el, overlay);
-    });
+    if (overlay.tipo === 'texto') {
+      const btnMenos = scEl('button', { class: 'sc-ov-size', type: 'button', text: 'A-', attrs: { 'aria-label': 'Diminuir texto' } });
+      btnMenos.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btnMenos.addEventListener('click', (e) => {
+        e.stopPropagation();
+        svc.redimensionarOverlay(overlay.id, overlay.escala - 0.2);
+        overlay.aplicarTransform(el);
+      });
 
-    const corners = ['tl', 'tr', 'bl', 'br'].map(pos => {
-      const c = scEl('div', { class: `sc-ov-corner sc-ov-corner--${pos}` });
-      this.#ativarGestoCantoRedimensionar(c, overlay, el, pos);
-      return c;
-    });
+      const del = scEl('button', { class: 'sc-ov-del sc-ov-del--bar', type: 'button', text: '×', attrs: { 'aria-label': 'Apagar texto' } });
+      del.addEventListener('pointerdown', (e) => e.stopPropagation());
+      del.addEventListener('click', (e) => { e.stopPropagation(); this.#removerOverlay(el, overlay); });
 
-    el.appendChild(scEl('div', { class: 'sc-ov-sel', children: [...corners, del] }));
+      const btnMais = scEl('button', { class: 'sc-ov-size', type: 'button', text: 'A+', attrs: { 'aria-label': 'Aumentar texto' } });
+      btnMais.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btnMais.addEventListener('click', (e) => {
+        e.stopPropagation();
+        svc.redimensionarOverlay(overlay.id, overlay.escala + 0.2);
+        overlay.aplicarTransform(el);
+      });
+
+      const barra = scEl('div', { class: 'sc-ov-barra-texto', children: [btnMenos, del, btnMais] });
+      el.appendChild(scEl('div', { class: 'sc-ov-sel', children: [barra] }));
+    } else {
+      const del = scEl('button', { class: 'sc-ov-del', type: 'button', text: '×', attrs: { 'aria-label': 'Apagar' } });
+      del.addEventListener('pointerdown', (e) => e.stopPropagation());
+      del.addEventListener('click', (e) => { e.stopPropagation(); this.#removerOverlay(el, overlay); });
+
+      const corners = ['tl', 'tr', 'bl', 'br'].map(pos => {
+        const c = scEl('div', { class: `sc-ov-corner sc-ov-corner--${pos}` });
+        this.#ativarGestoCantoRedimensionar(c, overlay, el, pos);
+        return c;
+      });
+
+      el.appendChild(scEl('div', { class: 'sc-ov-sel', children: [...corners, del] }));
+    }
   }
 
   /** Remove o frame de seleção do overlay atualmente selecionado. */
@@ -2098,12 +2142,36 @@ class StoryCreationModal {
     if (!this.#selectedOverlayEl) return;
     this.#selectedOverlayEl.querySelector('.sc-ov-sel')?.remove();
     this.#selectedOverlayEl = null;
+    this.#editandoOverlay = null;
+  }
+
+  /** Abre o input de texto preenchido com o conteúdo do overlay para reedição. */
+  #entrarEdicaoTexto(overlay, el) {
+    this.#desativarSelecao(); // remove seleção e limpa #editandoOverlay
+    this.#editandoOverlay = { overlay, el };
+    if (!this.#input) return;
+    // Pré-preenche o campo com o texto atual
+    this.#input.value = overlay.conteudo;
+    // Sincroniza cor e fonte da instância com os do elemento DOM
+    const cor = el.style.color;
+    if (cor) { this.#corTexto = cor; this.#sincronizarCores(); }
+    const fonte = el.style.fontFamily;
+    if (fonte) {
+      this.#fonteTexto = fonte;
+      this.#fontBtnEls.forEach(btn => { btn.style.fontFamily = fonte; });
+    }
+    this.#atualizarSend();
+    this.#atualizarLiveText();
+    this.#mostrarCaret(true);
+    this.#input.focus();
+    this.#input.select();
   }
 
   /** Remove o overlay do serviço e do DOM. */
   #removerOverlay(el, overlay) {
     this.#service.removerOverlay(overlay.id);
     if (this.#selectedOverlayEl === el) this.#selectedOverlayEl = null;
+    if (this.#editandoOverlay?.el === el) this.#editandoOverlay = null;
     el.remove();
   }
 

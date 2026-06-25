@@ -1029,7 +1029,7 @@
 .sc-ov-corner--bl { bottom: -7px;  left: -7px;    cursor: nesw-resize; }
 .sc-ov-corner--br { bottom: -7px;  right: -7px;   cursor: nwse-resize; }
 
-/* Botão apagar — pequeno, canto superior direito */
+/* Botão apagar — pequeno, canto superior direito (emoji/default) */
 .sc-ov-del {
   position: absolute;
   top: -9px;
@@ -1051,4 +1051,54 @@
   cursor: pointer;
   z-index: 2;
   box-shadow: 0 1px 5px rgba(0, 0, 0, .5);
+}
+
+/* Barra de ações do texto selecionado: [A-][×][A+] */
+.sc-ov-barra-texto {
+  position: absolute;
+  top: -44px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, .65);
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  padding: 5px 10px;
+  pointer-events: all;
+  touch-action: none;
+  z-index: 3;
+  white-space: nowrap;
+}
+
+/* Botões A- e A+ dentro da barra */
+.sc-ov-size {
+  min-width: 32px;
+  height: 28px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .15);
+  border: 1.5px solid rgba(255, 255, 255, .45);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0 6px;
+  pointer-events: all;
+  touch-action: none;
+}
+.sc-ov-size:active { background: rgba(255, 255, 255, .28); }
+
+/* Versão inline do botão apagar dentro da barra de texto */
+.sc-ov-del--bar {
+  position: static;
+  top: auto;
+  right: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 13px;
 }
