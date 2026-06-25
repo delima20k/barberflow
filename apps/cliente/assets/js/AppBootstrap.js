@@ -155,23 +155,45 @@ class AppBootstrap {
     AppBootstrap.#processarBarbeariaDeepLink();
   }
 
+  // Chave sessionStorage que sobrevive ao location.reload() do controllerchange do SW.
+  static #DL_KEY = 'bf_dl_barbearia';
+
   /**
-   * Lê ?barbearia=<id> da URL e abre a página pública da barbearia.
-   * Reusa o evento 'barberflow:abrir-barbearia' já ouvido por BarbeariaPage.
-   * Limpa o parâmetro da URL após disparar (evita reabrir em refresh).
+   * Lê ?barbearia=<id> da URL (ou sessionStorage, para sobreviver ao reload do SW)
+   * e abre a página pública da barbearia.
+   *
+   * Race condition resolvida: o SW chama skipWaiting()+clients.claim() → dispara
+   * controllerchange → location.reload() APÓS history.replaceState já ter removido
+   * ?barbearia= da URL. Salvamos o ID em sessionStorage antes de limpar a URL;
+   * no reload o ID é lido de lá e a chave é removida.
    * @private
    */
   static #processarBarbeariaDeepLink() {
-    const params       = new URLSearchParams(location.search);
-    const barbershopId = params.get('barbearia');
+    const params  = new URLSearchParams(location.search);
+    const fromUrl = params.get('barbearia');
+
+    // Após reload do SW o param não está mais na URL — busca no sessionStorage.
+    const fromStorage = !fromUrl
+      ? (sessionStorage.getItem(AppBootstrap.#DL_KEY) ?? null)
+      : null;
+
+    const barbershopId = fromUrl ?? fromStorage;
     if (!barbershopId) return;
 
-    // Remove o parâmetro mantendo o restante da URL (sem recarregar).
-    try {
-      params.delete('barbearia');
-      const qs = params.toString();
-      history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
-    } catch (_) { /* ambiente sem history API — segue mesmo assim */ }
+    if (fromUrl) {
+      // Persiste antes de limpar a URL — garante sobrevivência ao reload do SW.
+      try { sessionStorage.setItem(AppBootstrap.#DL_KEY, barbershopId); } catch (_) {}
+
+      // Remove o parâmetro mantendo o restante da URL (sem recarregar).
+      try {
+        params.delete('barbearia');
+        const qs = params.toString();
+        history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+      } catch (_) {}
+    } else {
+      // Lido do sessionStorage (reload do SW): remove a chave para não persistir.
+      try { sessionStorage.removeItem(AppBootstrap.#DL_KEY); } catch (_) {}
+    }
 
     document.dispatchEvent(
       new CustomEvent('barberflow:abrir-barbearia', { detail: { barbershopId } }),

@@ -123,7 +123,11 @@ class BarbeariaPage {
     const router = (typeof App !== 'undefined' && App)
                 || (typeof Pro !== 'undefined' && Pro)
                 || null;
-    NavigationManager.navigate(() => { if (router) router.nav('barbearia'); });
+    NavigationManager.navigate(() => {
+      if (router) router.nav('barbearia');
+      // Limpa o ID salvo pelo deep-link de compartilhamento (sobreviveu ao reload do SW).
+      try { sessionStorage.removeItem('bf_dl_barbearia'); } catch (_) {}
+    });
   }
 
   // ══════════════════════════════════════════════════════════
@@ -892,7 +896,11 @@ class BarbeariaPage {
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
   async #onCadeiraClick(professionalId) {
-    if (!ClienteController.podeInteragir()) return;
+    if (!ClienteController.podeInteragir()) {
+      const router = (typeof App !== 'undefined' && App) || null;
+      if (router) router.push('cadastro');
+      return;
+    }
 
     // Guard: bloqueia entrada na fila quando barbearia está fechada ou em pausa
     if (!BarbershopAvailabilityService.canClientJoinQueue(this.#shopData)) {
@@ -984,7 +992,11 @@ class BarbeariaPage {
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
   async #onProducaoClick(professionalId) {
-    if (!ClienteController.podeInteragir()) return;
+    if (!ClienteController.podeInteragir()) {
+      const router = (typeof App !== 'undefined' && App) || null;
+      if (router) router.push('cadastro');
+      return;
+    }
 
     // Guard: bloqueia clique quando barbearia está fechada ou em pausa
     if (!BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
@@ -1139,9 +1151,9 @@ class BarbeariaPage {
         const router = (typeof App !== 'undefined' && App) || null;
         this.#refs.ctaLogin.hidden = false;
         this.#refs.ctaLogin.textContent =
-          '✂️ Faça login ou cadastre-se — agende seu corte, favorite barbearias e aproveite o BarberFlow!';
+          '✂️ Cadastre-se agora — agende seu corte, favorite barbearias e aproveite o BarberFlow!';
         // Listener único por abertura de tela
-        this.#refs.ctaLogin.onclick = () => { if (router) router.nav('login'); };
+        this.#refs.ctaLogin.onclick = () => { if (router) router.push('cadastro'); };
       }
     }
 
