@@ -204,6 +204,14 @@ class BarbeariaController extends BaseController {
    * PATCH /api/v1/barbearias/minha/servicos/imagem
    * Processa imagem de servico/produto da barbearia do usuario autenticado.
    */
+  /** PATCH /api/v1/barbearias/minha/og-card — salva card de convite no Storage. */
+  async salvarOgCard(req, res) {
+    await this.handle(res, async () => {
+      const result = await this.#mediaService.salvarOgCard(req.user.id, req.body);
+      this.success(res, result);
+    });
+  }
+
   async salvarImagemServico(req, res) {
     await this.handle(res, async () => {
       const atualizado = await this.#mediaService.salvarImagemServico(

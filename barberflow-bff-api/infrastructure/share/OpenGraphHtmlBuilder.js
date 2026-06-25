@@ -42,6 +42,7 @@ class OpenGraphHtmlBuilder {
   <title>${t}</title>
   <meta name="description" content="${OpenGraphHtmlBuilder.#escAttr(description || '')}">
   <link rel="canonical" href="${url}">
+  <meta property="fb:app_id" content="">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="${site}">
   <meta property="og:title" content="${OpenGraphHtmlBuilder.#escAttr(title || siteName)}">

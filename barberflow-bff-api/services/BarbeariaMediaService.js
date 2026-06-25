@@ -53,12 +53,21 @@ class BarbeariaMediaService extends BaseService {
     const buffer = await BarbeariaMediaService.#processarImagem(arquivo, cfg);
     const path = `${shop.id}/${cfg.nome}`;
     const pathAntigo = shop[cfg.campo] ?? null;
+    const tipoOposto = tipo === 'logo' ? 'cover' : 'logo';
+    const cfgOposto = BarbeariaMediaService.#TIPOS[tipoOposto];
+    const pathOposto = shop[cfgOposto.campo] ?? null;
     const updatedAt = new Date().toISOString();
 
     await this.#repo.uploadImagemBarbearia(path, buffer, 'image/webp');
-    await this.#repo.updateImagem(shop.id, cfg.campo, path, updatedAt);
+    if (typeof this.#repo.updateImagemUnica === 'function') {
+      await this.#repo.updateImagemUnica(shop.id, cfg.campo, path, cfgOposto.campo, updatedAt);
+    } else {
+      await this.#repo.updateImagem(shop.id, cfg.campo, path, updatedAt);
+    }
     await this.#removerImagemAntiga(pathAntigo, path);
+    await this.#removerImagemAntiga(pathOposto, path);
     await this.#removerVariantesAntigas(shop.id, cfg.nome);
+    await this.#removerVariantesAntigas(shop.id, cfgOposto.nome);
 
     return {
       path,
@@ -115,6 +124,29 @@ class BarbeariaMediaService extends BaseService {
       publicUrl: this.#repo.getBarbershopPublicUrl(path),
       updated_at: updatedAt,
     };
+  }
+
+  /**
+   * Salva o card de convite (PNG 1080×1080 gerado no canvas) no Supabase Storage.
+   * Não faz conversão nem atualiza o DB — só persiste o arquivo.
+   * @param {string} userId
+   * @param {Buffer} arquivo
+   * @returns {Promise<{path:string, publicUrl:string}>}
+   */
+  async salvarOgCard(userId, arquivo) {
+    this._uuid('userId', userId);
+    if (!Buffer.isBuffer(arquivo) || arquivo.length === 0) throw AppError.badRequest('Arquivo inválido.');
+    if (arquivo.length > BarbeariaMediaService.#MAX_BYTES) throw AppError.badRequest('Arquivo excede 5 MB.');
+    // Verifica magic bytes PNG: 89 50 4E 47
+    if (arquivo[0] !== 0x89 || arquivo[1] !== 0x50) throw AppError.badRequest('Somente PNG é aceito.');
+
+    const shop = await this.#repo.getPorOwner(userId);
+    if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
+
+    const path = `${shop.id}/og-card.png`;
+    await this.#repo.uploadImagemBarbearia(path, arquivo, 'image/png');
+
+    return { path, publicUrl: this.#repo.getBarbershopPublicUrl(path) };
   }
 
   static #validarEntrada(arquivo, mime) {

@@ -35,10 +35,14 @@ class BarbeariaSharePanel {
   #uploadPromise = null; // Promise do upload em andamento
 
   constructor(rootEl) {
-    this.#root    = rootEl || null;
-    this.#bffBase = (typeof window !== 'undefined' ? window.BFF_URL : '')
-                    || 'https://bff.berberflow.shop';
-    this.#bffBase = this.#bffBase.replace(/\/$/, '');
+    this.#root = rootEl || null;
+    // Em produção, usa sempre bff.berberflow.shop.
+    // Localhost: lê window.BFF_URL para apontar para a BFF local.
+    const host = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocal = host === 'localhost' || host === '127.0.0.1';
+    this.#bffBase = isLocal
+      ? ((typeof window !== 'undefined' && window.BFF_URL) || 'http://localhost:3000')
+      : 'https://bff.berberflow.shop';
   }
 
   /** Liga os listeners dos botões (chamar uma vez em bind). */
@@ -161,20 +165,15 @@ class BarbeariaSharePanel {
     } catch (_) { /* preview opcional */ }
   }
 
-  /** Faz upload do card PNG para Supabase Storage e ativa a flag ?og=1. */
+  /** Envia o card PNG para o BFF (que tem service-role e grava no Storage). */
   async #uploadOgCard(file) {
     this.#cardUrl = null;
     if (!this.#barbershopId) return;
-    if (typeof SupabaseService === 'undefined') return;
+    if (typeof BffApiService === 'undefined') return;
     try {
-      const path    = `${this.#barbershopId}/og-card.png`;
-      const storage = SupabaseService.storageBarbershops();
-      const { error } = await storage.upload(path, file, {
-        contentType: 'image/png',
-        upsert: true,
-        cacheControl: '60',
-      });
-      if (!error) this.#cardUrl = 'ready'; // sinaliza que o upload concluiu
+      const buffer = await file.arrayBuffer();
+      const { error } = await BffApiService.barbearias.salvarOgCard(buffer);
+      if (!error) this.#cardUrl = 'ready';
     } catch (_) {}
   }
 
