@@ -198,7 +198,9 @@ class OverlayPainter {
       esc,
       k,
       tipo,
-      texto: String(ov?.conteudo ?? ''),
+      texto:       String(ov?.conteudo ?? ''),
+      cor:         String(ov?.cor         || '#ffffff'),
+      fontFamilia: String(ov?.fontFamilia || 'sans-serif'),
     };
   }
 
@@ -218,8 +220,8 @@ class OverlayPainter {
         ctx.shadowBlur = m.fontPx * 0.08;
         OverlayPainter.#desenharEmoji(ctx, m);
       } else {
-        ctx.font = `800 ${m.fontPx}px sans-serif`;
-        ctx.fillStyle = '#fff';
+        ctx.font = `800 ${m.fontPx}px ${m.fontFamilia}`;
+        ctx.fillStyle = m.cor;
         ctx.shadowColor = 'rgba(0,0,0,.9)';
         ctx.shadowBlur = Math.max(2, m.fontPx * 0.12);
         ctx.shadowOffsetY = Math.max(1, m.fontPx * 0.03);
@@ -259,11 +261,29 @@ class OverlayPainter {
     }
 
     const blocoH = linhas.length * lineH;
-    let y = canvasH - bottom - blocoH; // base do conteúdo
+    let y = canvasH - bottom - blocoH;
 
-    // Fundo transparente — sombra forte mantém o texto legível sobre qualquer mídia.
-    ctx.fillStyle = 'rgba(255,255,255,.95)';
-    ctx.shadowColor = 'rgba(0,0,0,.9)';
+    // Amostra a luminância média dos pixels onde o texto será desenhado.
+    // Branco sobre fundo escuro; preto sobre fundo claro.
+    let corFill   = 'rgba(255,255,255,.95)';
+    let corSombra = 'rgba(0,0,0,.9)';
+    try {
+      const amostY = Math.max(0, Math.round(y - 2 * k));
+      const amostH = Math.max(1, Math.round(blocoH + 4 * k));
+      const px = ctx.getImageData(0, amostY, canvasW, amostH).data;
+      let soma = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        soma += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      }
+      const brilho = soma / (px.length / 4); // 0 = preto, 255 = branco
+      if (brilho >= 100) { // fundo claro → texto preto
+        corFill   = 'rgba(0,0,0,.85)';
+        corSombra = 'rgba(255,255,255,.8)';
+      }
+    } catch (_) { /* canvas tainted / sem suporte — mantém branco */ }
+
+    ctx.fillStyle   = corFill;
+    ctx.shadowColor = corSombra;
     ctx.shadowBlur = Math.max(2, fontPx * 0.5);
     ctx.shadowOffsetY = Math.max(1, fontPx * 0.06);
     for (const ln of linhas) { try { ctx.fillText(ln, canvasW / 2, y); } catch (_) {} y += lineH; }
@@ -283,7 +303,7 @@ class OverlayPainter {
 
     // Reduz a fonte se a maior palavra não couber no quadro (texto muito grande).
     let fontPx = m.fontPx;
-    ctx.font = `800 ${fontPx}px sans-serif`;
+    ctx.font = `800 ${fontPx}px ${m.fontFamilia}`;
     let maiorPalavra = 0;
     for (const p of String(m.texto).split(/\s+/)) {
       const w = ctx.measureText(p).width;
@@ -291,7 +311,7 @@ class OverlayPainter {
     }
     if (maiorPalavra > frameMax) {
       fontPx = Math.max(1, fontPx * (frameMax / maiorPalavra));
-      ctx.font = `800 ${fontPx}px sans-serif`;
+      ctx.font = `800 ${fontPx}px ${m.fontFamilia}`;
     }
 
     // Escala efetiva (após eventual redução) p/ padding/offset coerentes.
@@ -1614,9 +1634,11 @@ class StoryCreationModal {
       // Modo edição: atualiza o overlay existente no modelo e no DOM
       const { overlay, el } = this.#editandoOverlay;
       this.#editandoOverlay = null;
-      overlay.conteudo = valor;
-      el.textContent = valor; // substitui o texto; .sc-ov-sel já foi removido por #desativarSelecao
-      el.style.color = this.#corTexto;
+      overlay.conteudo    = valor;
+      overlay.cor         = this.#corTexto;
+      overlay.fontFamilia = this.#fonteTexto;
+      el.textContent      = valor; // .sc-ov-sel já foi removido por #desativarSelecao
+      el.style.color      = this.#corTexto;
       el.style.fontFamily = this.#fonteTexto;
     } else {
       const overlay = this.#service.adicionarTexto(valor, this.#posicaoInicial());
@@ -1986,7 +2008,10 @@ class StoryCreationModal {
     const el = overlay.render(document);
     if (!el) return;
     if (overlay.tipo === 'texto') {
-      el.style.color = this.#corTexto;
+      // Persiste cor/fonte no modelo para a composição no canvas (OverlayPainter)
+      overlay.cor         = this.#corTexto;
+      overlay.fontFamilia = this.#fonteTexto;
+      el.style.color      = this.#corTexto;
       el.style.fontFamily = this.#fonteTexto;
     }
     this.#preview.appendChild(el);
