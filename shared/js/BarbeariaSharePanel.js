@@ -27,10 +27,12 @@ class BarbeariaSharePanel {
   #previewEl   = null;
   #statusTimer = null;
 
-  #barbershopId = null;
-  #nome         = '';
-  #coverUrl     = null;
-  #bffBase      = '';   // base do BFF para a URL de OG (ex.: https://bff.berberflow.shop)
+  #barbershopId  = null;
+  #nome          = '';
+  #coverUrl      = null;
+  #bffBase       = '';   // base do BFF para a URL de OG (ex.: https://bff.berberflow.shop)
+  #cardUrl       = null; // URL pública do card após upload para Supabase Storage
+  #uploadPromise = null; // Promise do upload em andamento
 
   constructor(rootEl) {
     this.#root    = rootEl || null;
@@ -57,9 +59,11 @@ class BarbeariaSharePanel {
    * @param {{ barbershopId?: string, nome?: string, coverUrl?: string }} dados
    */
   atualizar({ barbershopId, nome, coverUrl } = {}) {
-    this.#barbershopId = barbershopId || null;
-    this.#nome         = String(nome || '');
-    this.#coverUrl     = coverUrl || null;
+    this.#barbershopId  = barbershopId || null;
+    this.#nome          = String(nome || '');
+    this.#coverUrl      = coverUrl || null;
+    this.#cardUrl       = null;
+    this.#uploadPromise = null;
 
     const ok = !!this.#barbershopId;
     if (this.#root) this.#root.hidden = !ok;
@@ -75,9 +79,11 @@ class BarbeariaSharePanel {
 
   // ── URLs ───────────────────────────────────────────────────
 
-  /** URL do BFF — usada para compartilhar (WhatsApp lê OG dela e cria o card). */
+  /** URL do BFF — inclui ?card= quando o canvas foi enviado para o Supabase. */
   #ogUrl() {
-    return `${this.#bffBase}/b/${this.#barbershopId}`;
+    const base = `${this.#bffBase}/b/${this.#barbershopId}`;
+    if (this.#cardUrl) return `${base}?card=${encodeURIComponent(this.#cardUrl)}`;
+    return base;
   }
 
   /** URL do app cliente — usada no botão "Copiar". */
@@ -90,9 +96,12 @@ class BarbeariaSharePanel {
   async #compartilhar() {
     if (!this.#barbershopId) return;
 
-    // O WhatsApp torna o card CLICÁVEL somente via URL com Open Graph.
-    // O BFF (/b/:id) serve as meta tags OG com a foto da barbearia;
-    // o WhatsApp lê e exibe o card clicável — ao tocar, abre o app.
+    // Aguarda até 3 s para o upload do canvas terminar (caso o usuário
+    // toque em "Compartilhar" logo após a tela abrir).
+    if (this.#uploadPromise && !this.#cardUrl) {
+      await Promise.race([this.#uploadPromise, new Promise(r => setTimeout(r, 3000))]);
+    }
+
     const url = this.#ogUrl();
 
     if (typeof navigator !== 'undefined' && navigator.share) {
@@ -147,7 +156,28 @@ class BarbeariaSharePanel {
       if (old?.startsWith('blob:')) URL.revokeObjectURL(old);
       this.#previewEl.src = URL.createObjectURL(file);
       this.#previewEl.hidden = false;
+      // Sobe o canvas para o Supabase; o BFF usará essa imagem como og:image.
+      this.#uploadPromise = this.#uploadOgCard(file);
     } catch (_) { /* preview opcional */ }
+  }
+
+  /** Faz upload do card PNG para Supabase Storage e armazena a URL pública. */
+  async #uploadOgCard(file) {
+    this.#cardUrl = null;
+    if (!this.#barbershopId) return;
+    if (typeof SupabaseService === 'undefined') return;
+    try {
+      const path    = `${this.#barbershopId}/og-card.png`;
+      const storage = SupabaseService.storageBarbershops();
+      const { error } = await storage.upload(path, file, {
+        contentType: 'image/png',
+        upsert: true,
+        cacheControl: '60',
+      });
+      if (error) return;
+      const { data } = storage.getPublicUrl(path);
+      this.#cardUrl = data?.publicUrl ?? null;
+    } catch (_) {}
   }
 
   async #gerarCardBlob() {

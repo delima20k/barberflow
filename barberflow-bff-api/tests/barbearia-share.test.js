@@ -20,8 +20,8 @@ function criarRes() {
   };
 }
 
-function criarReq(id) {
-  return { params: { id }, protocol: 'https', get: () => 'bff.berberflow.shop' };
+function criarReq(id, query = {}) {
+  return { params: { id }, protocol: 'https', get: () => 'bff.berberflow.shop', query };
 }
 
 suite('OpenGraphHtmlBuilder', () => {
@@ -105,6 +105,37 @@ suite('BarbeariaShareController', () => {
 
     assert.equal(res.statusCode, 200);
     assert.match(res.body, /BarberFlow/);
+  });
+
+  test('?card= do mesmo Supabase substitui a imagem padrão', async () => {
+    const CARD_URL = 'https://proj.supabase.co/storage/v1/object/public/barbershops/abc/og-card.png';
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'Barbearia X', city: 'SP', state: 'SP',
+        cover_path: 'capa.png', logo_path: null,
+      }),
+    };
+    const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
+    const res  = criarRes();
+    await ctrl.handle(criarReq(SHOP_ID, { card: CARD_URL }), res);
+
+    assert.match(res.body, new RegExp(CARD_URL.replace(/\//g, '\\/')));
+    assert.doesNotMatch(res.body, /capa\.png/);
+  });
+
+  test('?card= de domínio externo é ignorado, usa fallback', async () => {
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'Y', city: null, state: null,
+        cover_path: 'capa.png', logo_path: null,
+      }),
+    };
+    const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
+    const res  = criarRes();
+    await ctrl.handle(criarReq(SHOP_ID, { card: 'https://evil.com/hack.png' }), res);
+
+    assert.match(res.body, /capa\.png/);
+    assert.doesNotMatch(res.body, /evil\.com/);
   });
 
   test('construtor valida dependências', () => {
