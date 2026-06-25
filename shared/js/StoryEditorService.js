@@ -69,12 +69,14 @@ class OverlayBase {
   /** Snapshot serializável (sem métodos). */
   paraJSON() {
     return {
-      id: this.id,
-      tipo: this.tipo,
-      conteudo: this.conteudo,
-      x: this.posicao.x,
-      y: this.posicao.y,
-      escala: this.escala,
+      id:          this.id,
+      tipo:        this.tipo,
+      conteudo:    this.conteudo,
+      x:           this.posicao.x,
+      y:           this.posicao.y,
+      escala:      this.escala,
+      cor:         this.cor         ?? null,
+      fontFamilia: this.fontFamilia ?? null,
     };
   }
 

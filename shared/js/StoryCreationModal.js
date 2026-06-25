@@ -243,7 +243,7 @@ class OverlayPainter {
     const canvasH = Number(ctx.canvas.height) || 0;
     if (!canvasW || !canvasH) return;
 
-    const fontPx = 0.5 * rootFontPx * k; // menor que antes (era 0.66rem)
+    const fontPx = 0.36 * rootFontPx * k;
     const padX = 8 * k, bottom = 10 * k;
     const lineH = fontPx * 1.25;
     const maxTextW = Math.max(1, canvasW * 0.9 - 2 * padX);
