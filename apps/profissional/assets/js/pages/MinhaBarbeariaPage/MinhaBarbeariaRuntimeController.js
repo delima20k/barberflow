@@ -571,7 +571,11 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
-      this.#sharePanel?.atualizar({ barbershopId: shop.id, nome: shop.name ?? '' });
+      const _coverPath = shop.cover_path || shop.logo_path;
+      const _coverUrl  = _coverPath
+        ? (typeof SupabaseService !== 'undefined' ? SupabaseService.getLogoUrl(_coverPath) : null)
+        : null;
+      this.#sharePanel?.atualizar({ barbershopId: shop.id, nome: shop.name ?? '', coverUrl: _coverUrl });
       this.#iniciarRealtimeFila(shop.id);
       this.#iniciarRealtimeAtividade(shop.id);
       this.#processarPushPendente();

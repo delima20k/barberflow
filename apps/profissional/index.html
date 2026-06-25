@@ -829,20 +829,22 @@
         </div>
       </section>
 
-      <!-- ── Divulgar barbearia (link via WhatsApp) ───────────── -->
+      <!-- ── Divulgar barbearia (card-convite via WhatsApp) ─── -->
       <section class="mb-share-section" id="mb-share-section" hidden>
         <div class="mb-equipe-header">
           <p class="sec-title">Divulgue sua barbearia</p>
         </div>
         <div class="mb-share-card">
-          <p class="mb-share-desc">Envie o link da sua página para os clientes pelo WhatsApp. Ao tocar no card, o cliente abre direto a sua barbearia.</p>
+          <img class="mb-share-preview" data-mb-share-preview
+               alt="Card de convite da barbearia" hidden>
+          <p class="mb-share-desc">Compartilhe um card de convite com seus clientes. Ao tocar no card no WhatsApp, o cliente entra direto na sua fila.</p>
           <div class="mb-share-link-row">
             <input class="mb-share-link" data-mb-share-link type="text" readonly aria-label="Link da barbearia">
             <button class="mb-share-copy" data-mb-share-copy type="button">Copiar</button>
           </div>
           <button class="mb-share-whats" data-mb-share-whats type="button">
             <span class="mb-share-whats-ico" aria-hidden="true">💬</span>
-            <span>Enviar via WhatsApp</span>
+            <span>Enviar convite via WhatsApp</span>
           </button>
           <p class="mb-share-status" data-mb-share-status aria-live="polite"></p>
         </div>
@@ -2292,7 +2294,7 @@
 <script src="/shared/js/PerfilEditor.js" defer></script>
 <script src="/shared/js/FooterScrollManager.js" defer></script>
 <script src="/shared/js/HeaderScrollBehavior.js" defer></script>
-<script src="/shared/js/BarbeariaSharePanel.js?v=20260625a" defer></script>
+<script src="/shared/js/BarbeariaSharePanel.js?v=20260625b" defer></script>
 <script src="assets/js/pages/DestaquesPage.js" defer></script>
 <script src="assets/js/pages/BarbeirosPage.js" defer></script>
 <script src="assets/js/pages/BarbeariasPage.js" defer></script>

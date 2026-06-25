@@ -5318,6 +5318,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   background: var(--card, rgba(255,255,255,.03));
 }
 
+.mb-share-preview {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  background: rgba(0,0,0,.3);
+}
+.mb-share-preview[hidden] { display: none; }
+
 .mb-share-desc {
   margin: 0;
   font-size: .8rem;
