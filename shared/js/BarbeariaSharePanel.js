@@ -83,9 +83,13 @@ class BarbeariaSharePanel {
 
   // ── URLs ───────────────────────────────────────────────────
 
-  /** URL do BFF — inclui ?og=1 quando o canvas foi enviado ao Supabase. */
+  /**
+   * URL de compartilhamento: app.berberflow.shop/b/{id}
+   * O Vercel proxy redireciona /b/:id → BFF, que serve as meta OG.
+   * Quando o canvas foi salvo, ?og=1 instrui o BFF a usar a arte gerada.
+   */
   #ogUrl() {
-    const base = `${this.#bffBase}/b/${this.#barbershopId}`;
+    const base = `${BarbeariaSharePanel.APP_URL}/b/${this.#barbershopId}`;
     if (this.#cardUrl) return `${base}?og=1`;
     return base;
   }
@@ -100,12 +104,9 @@ class BarbeariaSharePanel {
   async #compartilhar() {
     if (!this.#barbershopId) return;
 
-    // Aguarda até 3 s para o upload do canvas terminar (caso o usuário
-    // toque em "Compartilhar" logo após a tela abrir).
-    if (this.#uploadPromise && !this.#cardUrl) {
-      await Promise.race([this.#uploadPromise, new Promise(r => setTimeout(r, 3000))]);
-    }
-
+    // NÃO aguarda o upload — qualquer await antes de navigator.share /
+    // window.open perde o contexto de gesto do usuário e bloqueia a ação.
+    // O upload já está rodando em background desde que a tela abriu.
     const url = this.#ogUrl();
 
     if (typeof navigator !== 'undefined' && navigator.share) {
