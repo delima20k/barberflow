@@ -387,8 +387,9 @@ class OverlayPainter {
 class StoryComposer {
   static MAX_LADO_VIDEO = 1080;            // teto do maior lado do vídeo (mantém o máx. de resolução)
   static MAX_LADO_IMG   = 1080;            // teto inicial da imagem (cai em degraus p/ caber no alvo)
-  static ORCAMENTO_VIDEO = 1.55 * 1024 * 1024; // folga sob o alvo de 1.6MB
-  static ALVO_IMG = 500 * 1024;            // imagem: no máximo 500KB (melhor qualidade dentro disso)
+  static ORCAMENTO_VIDEO = 1.9 * 1024 * 1024;  // folga sob o alvo de 2MB
+  static ALVO_VIDEO = 2 * 1024 * 1024;     // vídeo: no máximo 2MB
+  static ALVO_IMG = 2 * 1024 * 1024;       // imagem: no máximo 2MB (melhor qualidade dentro disso)
   static AUDIO_BPS = 64000;
   static VIDEO_METADATA_TIMEOUT_MS = 8000;
 
@@ -449,6 +450,20 @@ class StoryComposer {
       && typeof HTMLCanvasElement !== 'undefined'
       && !!HTMLCanvasElement.prototype.captureStream
       && typeof URL !== 'undefined' && !!URL.createObjectURL;
+  }
+
+  // Suporte a WebP no canvas (cacheado). Fallback p/ JPEG quando indisponível.
+  static #webpSuportado = null;
+  static #suportaWebP() {
+    if (StoryComposer.#webpSuportado !== null) return StoryComposer.#webpSuportado;
+    try {
+      const c = document.createElement('canvas');
+      c.width = 1; c.height = 1;
+      StoryComposer.#webpSuportado = c.toDataURL('image/webp').startsWith('data:image/webp');
+    } catch (_) {
+      StoryComposer.#webpSuportado = false;
+    }
+    return StoryComposer.#webpSuportado;
   }
 
   // Converte URL direta do R2 para o proxy BFF (que serve com CORS correto).
@@ -527,13 +542,13 @@ class StoryComposer {
     // Sem edição: ainda comprime se o vídeo cru estourar o alvo. Evita subir o
     // original (dezenas de MB do celular) — o backend não recomprime no
     // serverless (worker BullMQ não roda na função Vercel).
-    const alvo = Number(opts.targetBytes) || (1.6 * 1024 * 1024);
+    const alvo = Number(opts.targetBytes) || StoryComposer.ALVO_VIDEO;
     const tamanho = Number(opts.file?.size) || 0;
     return tamanho > alvo;
   }
 
   static async #comporVideo(opts) {
-    const targetBytes = Number(opts.targetBytes) || (1.6 * 1024 * 1024);
+    const targetBytes = Number(opts.targetBytes) || StoryComposer.ALVO_VIDEO;
     const plano = StoryComposer.planoAudio({ musica: opts.musica, musicaSrc: opts.musicaSrc, audioMix: opts.audioMix });
     const base = {
       file:      opts.file,
@@ -903,6 +918,12 @@ class StoryComposer {
       // Busca a MAIOR resolução cuja melhor qualidade ainda cabe no alvo (≤targetBytes).
       // Em cada degrau de resolução, percorre as qualidades de cima p/ baixo.
       // Guarda o melhor candidato (≤alvo) e, como rede de segurança, o menor gerado.
+      // WebP quando suportado (melhor qualidade por KB); fallback JPEG.
+      const usaWebp = StoryComposer.#suportaWebP();
+      const mime = usaWebp ? 'image/webp' : 'image/jpeg';
+      const ext  = usaWebp ? 'webp' : 'jpg';
+      const qualidades = usaWebp ? [0.92, 0.85, 0.75, 0.6] : [0.82, 0.7, 0.58, 0.45, 0.34];
+
       let melhor = null;     // ≤ alvo, maior resolução possível
       let fallback = null;   // menor blob gerado (se nada couber)
       for (let lado = tetoLado; lado >= 80 && !melhor; lado = Math.round(lado * 0.7)) {
@@ -920,8 +941,8 @@ class StoryComposer {
         OverlayPainter.desenhar(ctx, overlays, escalaCanvas);
         if (creditos) OverlayPainter.desenharCreditos(ctx, creditos, escalaCanvas);
 
-        for (const q of [0.82, 0.7, 0.58, 0.45, 0.34]) {
-          const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', q));
+        for (const q of qualidades) {
+          const blob = await new Promise((res) => canvas.toBlob(res, mime, q));
           if (!blob) continue;
           if (!fallback || blob.size < fallback.size) fallback = blob;
           if (blob.size <= targetBytes) { melhor = blob; break; }
@@ -931,7 +952,7 @@ class StoryComposer {
 
       const escolhido = melhor || fallback;
       if (!escolhido || !escolhido.size) return file;
-      return new File([escolhido], `story-${Date.now()}.jpg`, { type: escolhido.type || 'image/jpeg' });
+      return new File([escolhido], `story-${Date.now()}.${ext}`, { type: escolhido.type || mime });
     } catch (_) {
       try { if (url) URL.revokeObjectURL(url); } catch (_) {}
       return file;
@@ -942,7 +963,7 @@ class StoryComposer {
 // Compressão de vídeo (sem overlays) — mantida por compatibilidade.
 // Delega para StoryComposer (DRY). Sem suporte → devolve o original.
 class VideoCompressor {
-  static async comprimir(file, { maxSeconds = 30, targetBytes = 1.5 * 1024 * 1024 } = {}) {
+  static async comprimir(file, { maxSeconds = 30, targetBytes = StoryComposer.ALVO_VIDEO } = {}) {
     return StoryComposer.compor({ file, tipo: 'video', overlays: [], targetBytes, maxSeconds });
   }
 }
@@ -2176,7 +2197,7 @@ class StoryCreationModal {
           overlays: estado.overlays,
           previewW: this.#preview?.clientWidth || 0,
           previewH: this.#preview?.clientHeight || 0,
-          targetBytes: ehImagem ? StoryComposer.ALVO_IMG : (1.6 * 1024 * 1024),
+          targetBytes: ehImagem ? StoryComposer.ALVO_IMG : StoryComposer.ALVO_VIDEO,
           maxSeconds: 30,
           musica: estado.musica,
           musicaSrc,
