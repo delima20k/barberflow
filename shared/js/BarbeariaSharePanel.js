@@ -3,33 +3,40 @@
 /**
  * BarbeariaSharePanel — card "Divulgue sua barbearia" na página minha-barbearia.
  *
- * Gera uma imagem-convite via Canvas (capa/logo da barbearia + logo BarberFlow +
- * texto de convite para a fila) e compartilha como arquivo de imagem + link
- * direto do app cliente via Web Share API (fallback: abre WhatsApp com o link).
+ * Preview: canvas 1080×1080 exibido na página em tamanho reduzido (CSS).
  *
- * O link compartilhado aponta para o app cliente diretamente:
- *   https://app.berberflow.shop/?barbearia=<id>
+ * Compartilhamento: envia APENAS a URL do BFF (/b/:id) via Web Share API —
+ * o WhatsApp lê as meta tags Open Graph dessa URL e monta automaticamente
+ * um card clicável com a foto, nome e botão que abre a barbearia no app
+ * cliente. Nenhum texto extra é enviado junto.
+ *
+ * Fallback: abre wa.me com a URL do BFF (mesmo resultado — OG card).
+ * Botão "Copiar" copia a URL do app cliente (link direto, sem redirect).
  *
  * Camada: interfaces (UI). Sem regra de negócio.
  */
 class BarbeariaSharePanel {
-  /** URL base do app cliente (destino do link compartilhado). */
+  /** URL base do app cliente — usada apenas no botão "Copiar". */
   static APP_URL = 'https://app.berberflow.shop';
 
   #root;
-  #linkInput  = null;
-  #shareBtn   = null;
-  #copyBtn    = null;
-  #statusEl   = null;
-  #previewEl  = null;
+  #linkInput   = null;
+  #shareBtn    = null;
+  #copyBtn     = null;
+  #statusEl    = null;
+  #previewEl   = null;
   #statusTimer = null;
 
   #barbershopId = null;
   #nome         = '';
-  #coverUrl     = null;   // URL pública da capa/logo da barbearia
+  #coverUrl     = null;
+  #bffBase      = '';   // base do BFF para a URL de OG (ex.: https://bff.berberflow.shop)
 
   constructor(rootEl) {
-    this.#root = rootEl || null;
+    this.#root    = rootEl || null;
+    this.#bffBase = (typeof window !== 'undefined' ? window.BFF_URL : '')
+                    || 'https://bff.berberflow.shop';
+    this.#bffBase = this.#bffBase.replace(/\/$/, '');
   }
 
   /** Liga os listeners dos botões (chamar uma vez em bind). */
@@ -46,64 +53,67 @@ class BarbeariaSharePanel {
   }
 
   /**
-   * Atualiza o card com os dados da barbearia carregada.
+   * Atualiza com os dados da barbearia carregada.
    * @param {{ barbershopId?: string, nome?: string, coverUrl?: string }} dados
    */
   atualizar({ barbershopId, nome, coverUrl } = {}) {
     this.#barbershopId = barbershopId || null;
-    this.#nome = String(nome || '');
-    this.#coverUrl = coverUrl || null;
+    this.#nome         = String(nome || '');
+    this.#coverUrl     = coverUrl || null;
 
     const ok = !!this.#barbershopId;
     if (this.#root) this.#root.hidden = !ok;
     if (!ok) return this;
 
-    if (this.#linkInput) this.#linkInput.value = this.#shareUrl();
+    // Input de cópia mostra a URL do app cliente (link direto)
+    if (this.#linkInput) this.#linkInput.value = this.#appUrl();
 
-    // Gera preview assíncrono do card (não bloqueia)
+    // Gera preview visual do card no canvas (async, não bloqueia)
     if (this.#previewEl) void this.#atualizarPreview();
     return this;
   }
 
-  // ── Internos ───────────────────────────────────────────────
+  // ── URLs ───────────────────────────────────────────────────
 
-  #shareUrl() {
+  /** URL do BFF — usada para compartilhar (WhatsApp lê OG dela e cria o card). */
+  #ogUrl() {
+    return `${this.#bffBase}/b/${this.#barbershopId}`;
+  }
+
+  /** URL do app cliente — usada no botão "Copiar". */
+  #appUrl() {
     return `${BarbeariaSharePanel.APP_URL}/?barbearia=${this.#barbershopId}`;
   }
 
+  // ── Ações ──────────────────────────────────────────────────
+
   async #compartilhar() {
     if (!this.#barbershopId) return;
-    const url  = this.#shareUrl();
-    const nome = this.#nome || 'Barbearia';
-    const msg  = `${nome} · BarberFlow\nVocê está convidado! Entre na fila agora 💈`;
 
-    // Tenta gerar o card-imagem
-    let cardFile = null;
-    try {
-      cardFile = await this.#gerarCardBlob();
-    } catch (_) { /* sem imagem — compartilha só texto+link */ }
+    // Envia SOMENTE a URL do BFF — o WhatsApp lê as tags OG e monta
+    // sozinho o card clicável com a imagem e o nome da barbearia.
+    // Nenhum texto enviado junto (evita duplicação texto + card).
+    const url = this.#ogUrl();
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        const shareData = { title: nome, text: msg, url };
-        if (cardFile && navigator.canShare?.({ files: [cardFile] })) {
-          shareData.files = [cardFile];
-        }
-        await navigator.share(shareData);
+        await navigator.share({ url });
         return;
       } catch (e) {
-        if (e?.name === 'AbortError') return;
-        // outro erro → fallback WhatsApp
+        if (e?.name === 'AbortError') return; // usuário cancelou — sem fallback
+        // outro erro → abre wa.me
       }
     }
 
-    const wa = `https://wa.me/?text=${encodeURIComponent(`${msg}\n${url}`)}`;
-    if (typeof window !== 'undefined') window.open(wa, '_blank', 'noopener');
+    // Fallback: abre WhatsApp com a URL (WhatsApp ainda cria o OG card)
+    if (typeof window !== 'undefined') {
+      window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank', 'noopener');
+    }
   }
 
   async #copiar() {
     if (!this.#barbershopId) return;
-    const url = this.#shareUrl();
+    const url = this.#appUrl();
     try {
       await navigator.clipboard.writeText(url);
       this.#feedback('Link copiado!');
@@ -128,9 +138,8 @@ class BarbeariaSharePanel {
     }, 2500);
   }
 
-  // ── Canvas card ────────────────────────────────────────────
+  // ── Canvas preview ─────────────────────────────────────────
 
-  /** Atualiza o <img> de preview com o card gerado. */
   async #atualizarPreview() {
     try {
       const file = await this.#gerarCardBlob();
@@ -139,37 +148,30 @@ class BarbeariaSharePanel {
       if (old?.startsWith('blob:')) URL.revokeObjectURL(old);
       this.#previewEl.src = URL.createObjectURL(file);
       this.#previewEl.hidden = false;
-    } catch (_) { /* preview opcional — falha silenciosa */ }
+    } catch (_) { /* preview opcional */ }
   }
 
-  /**
-   * Gera o card como File PNG pronto para Web Share API.
-   * @returns {Promise<File>}
-   */
   async #gerarCardBlob() {
     const W = 1080, H = 1080;
     const canvas = typeof document !== 'undefined'
-      ? document.createElement('canvas')
-      : null;
+      ? document.createElement('canvas') : null;
     if (!canvas) throw new Error('Canvas não disponível');
-    canvas.width = W;
+    canvas.width  = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // ── 1. Fundo: capa da barbearia (cover-crop) ────────────
+    // 1. Fundo: capa da barbearia (cover-crop)
     let fundoOk = false;
     if (this.#coverUrl) {
       try {
         const img = await BarbeariaSharePanel.#carregarImg(this.#coverUrl);
         const sc  = Math.max(W / img.width, H / img.height);
-        const dw  = img.width  * sc;
-        const dh  = img.height * sc;
-        ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+        ctx.drawImage(img, (W - img.width * sc) / 2, (H - img.height * sc) / 2,
+                      img.width * sc, img.height * sc);
         fundoOk = true;
-      } catch (_) { /* fallback abaixo */ }
+      } catch (_) { /* fallback */ }
     }
     if (!fundoOk) {
-      // Gradiente escuro elegante
       const g = ctx.createLinearGradient(0, 0, W, H);
       g.addColorStop(0, '#0d0d0d');
       g.addColorStop(1, '#1a1205');
@@ -177,86 +179,67 @@ class BarbeariaSharePanel {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // ── 2. Overlay escuro (legibilidade do texto) ───────────
+    // 2. Overlays de escurecimento
     ctx.fillStyle = 'rgba(0,0,0,0.52)';
     ctx.fillRect(0, 0, W, H);
+    const topG = ctx.createLinearGradient(0, 0, 0, H * 0.35);
+    topG.addColorStop(0, 'rgba(0,0,0,0.6)');
+    topG.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = topG; ctx.fillRect(0, 0, W, H * 0.35);
+    const botG = ctx.createLinearGradient(0, H * 0.5, 0, H);
+    botG.addColorStop(0, 'rgba(0,0,0,0)');
+    botG.addColorStop(1, 'rgba(0,0,0,0.78)');
+    ctx.fillStyle = botG; ctx.fillRect(0, 0, W, H);
 
-    // Gradiente superior (para logo)
-    const topGrad = ctx.createLinearGradient(0, 0, 0, H * 0.35);
-    topGrad.addColorStop(0, 'rgba(0,0,0,0.6)');
-    topGrad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = topGrad;
-    ctx.fillRect(0, 0, W, H * 0.35);
-
-    // Gradiente inferior (para textos)
-    const botGrad = ctx.createLinearGradient(0, H * 0.5, 0, H);
-    botGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    botGrad.addColorStop(1, 'rgba(0,0,0,0.78)');
-    ctx.fillStyle = botGrad;
-    ctx.fillRect(0, 0, W, H);
-
-    // ── 3. Logo BarberFlow (topo) ───────────────────────────
+    // 3. Logo BarberFlow (topo)
     try {
       const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/Logo01.png');
-      const lh   = 90;
-      const lw   = logo.width * (lh / logo.height);
+      const lh = 90, lw = logo.width * (lh / logo.height);
       ctx.drawImage(logo, (W - lw) / 2, 60, lw, lh);
     } catch (_) {
-      // Fallback textual
       ctx.fillStyle = '#D4A017';
       ctx.font = 'bold 52px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('💈 BarberFlow', W / 2, 110);
     }
 
-    // ── 4. Nome da barbearia ────────────────────────────────
-    ctx.textAlign  = 'center';
+    // 4. Nome da barbearia
+    ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.7)';
     ctx.shadowBlur  = 16;
-
-    const nome = this.#nome || 'Barbearia';
     ctx.fillStyle = '#FFFFFF';
-    ctx.font      = `bold ${nome.length > 18 ? 62 : 76}px sans-serif`;
+    const nome = this.#nome || 'Barbearia';
+    ctx.font = `bold ${nome.length > 18 ? 62 : 76}px sans-serif`;
     BarbeariaSharePanel.#desenharTextoQuebrado(ctx, nome, W / 2, H * 0.61, W - 100, 86);
 
-    // ── 5. Faixa dourada "Você está convidado!" ─────────────
+    // 5. Faixa dourada
     const faixaY = H * 0.73;
-    const faixaH = 78;
     ctx.shadowBlur = 0;
-    const faixaGrad = ctx.createLinearGradient(0, faixaY, W, faixaY);
-    faixaGrad.addColorStop(0, 'rgba(212,160,23,0)');
-    faixaGrad.addColorStop(0.15, 'rgba(212,160,23,0.22)');
-    faixaGrad.addColorStop(0.85, 'rgba(212,160,23,0.22)');
-    faixaGrad.addColorStop(1, 'rgba(212,160,23,0)');
-    ctx.fillStyle = faixaGrad;
-    ctx.fillRect(0, faixaY - 6, W, faixaH);
-
+    const faixaG = ctx.createLinearGradient(0, faixaY, W, faixaY);
+    faixaG.addColorStop(0, 'rgba(212,160,23,0)');
+    faixaG.addColorStop(0.15, 'rgba(212,160,23,0.22)');
+    faixaG.addColorStop(0.85, 'rgba(212,160,23,0.22)');
+    faixaG.addColorStop(1, 'rgba(212,160,23,0)');
+    ctx.fillStyle = faixaG; ctx.fillRect(0, faixaY - 6, W, 78);
     ctx.fillStyle = '#FFD966';
-    ctx.font      = 'bold 44px sans-serif';
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur  = 10;
-    ctx.fillText('Você está convidado! 💈', W / 2, faixaY + faixaH * 0.55);
+    ctx.font = 'bold 44px sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
+    ctx.fillText('Você está convidado! 💈', W / 2, faixaY + 42);
 
-    // ── 6. Subtexto ─────────────────────────────────────────
+    // 6. Subtexto
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.font      = '36px sans-serif';
-    ctx.shadowBlur = 8;
+    ctx.font = '36px sans-serif'; ctx.shadowBlur = 8;
     ctx.fillText('Entre na fila pelo BarberFlow', W / 2, H * 0.87);
 
-    // ── 7. Rodapé: URL do app ───────────────────────────────
+    // 7. Rodapé URL
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font      = '26px sans-serif';
-    ctx.shadowBlur = 0;
+    ctx.font = '26px sans-serif'; ctx.shadowBlur = 0;
     ctx.fillText('app.berberflow.shop', W / 2, H - 46);
-
-    // Linha separadora no rodapé
     ctx.strokeStyle = 'rgba(212,160,23,0.4)';
-    ctx.lineWidth   = 1;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(120, H - 70);
-    ctx.lineTo(W - 120, H - 70);
+    ctx.moveTo(120, H - 70); ctx.lineTo(W - 120, H - 70);
     ctx.stroke();
-
     ctx.shadowColor = 'transparent';
 
     return new Promise((resolve, reject) => {
@@ -267,31 +250,24 @@ class BarbeariaSharePanel {
     });
   }
 
-  /** Carrega uma imagem com CORS anônimo. */
   static #carregarImg(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload  = () => resolve(img);
-      img.onerror = () => reject(new Error(`img não carregou: ${src}`));
+      img.onerror = () => reject(new Error(`img: ${src}`));
       img.src = src;
     });
   }
 
-  /** Desenha texto com quebra de linha automática. */
-  static #desenharTextoQuebrado(ctx, texto, x, y, maxW, lineH) {
+  static #desenharTextoQuebrado(ctx, texto, x, y, maxW, lh) {
     const palavras = texto.split(' ');
-    let linha = '';
-    let cy = y;
+    let linha = '', cy = y;
     for (const p of palavras) {
       const teste = linha ? `${linha} ${p}` : p;
       if (ctx.measureText(teste).width > maxW && linha) {
-        ctx.fillText(linha, x, cy);
-        linha = p;
-        cy += lineH;
-      } else {
-        linha = teste;
-      }
+        ctx.fillText(linha, x, cy); linha = p; cy += lh;
+      } else { linha = teste; }
     }
     if (linha) ctx.fillText(linha, x, cy);
   }

@@ -5320,7 +5320,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .mb-share-preview {
   display: block;
-  width: 100%;
+  /* 50% da largura do container = ~50% da altura original (1:1) */
+  width: 50%;
+  margin: 0 auto;
   border-radius: 12px;
   object-fit: cover;
   aspect-ratio: 1 / 1;

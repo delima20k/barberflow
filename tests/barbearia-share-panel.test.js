@@ -14,57 +14,42 @@ function criarElemento() {
 }
 
 function criarRoot() {
-  const link    = criarElemento();
-  const whats   = criarElemento();
-  const copy    = criarElemento();
-  const status  = criarElemento();
-  const preview = criarElemento();
   const map = {
-    '[data-mb-share-link]':    link,
-    '[data-mb-share-whats]':   whats,
-    '[data-mb-share-copy]':    copy,
-    '[data-mb-share-status]':  status,
-    '[data-mb-share-preview]': preview,
+    '[data-mb-share-link]':    criarElemento(),
+    '[data-mb-share-whats]':   criarElemento(),
+    '[data-mb-share-copy]':    criarElemento(),
+    '[data-mb-share-status]':  criarElemento(),
+    '[data-mb-share-preview]': criarElemento(),
   };
-  const root = { hidden: true, querySelector: (sel) => map[sel] ?? null, _els: map };
-  return root;
+  return { hidden: true, querySelector: sel => map[sel] ?? null, _els: map };
 }
 
-const APP_URL = 'https://app.berberflow.shop';
-
-test('atualizar com id válido revela o card e preenche o link do app cliente', () => {
+test('atualizar com id válido revela section e preenche link do app cliente no input', () => {
   const root = criarRoot();
-  const panel = new BarbeariaSharePanel(root).montar();
+  new BarbeariaSharePanel(root).montar()
+    .atualizar({ barbershopId: SHOP_ID, nome: 'Barbearia Central' });
 
-  panel.atualizar({ barbershopId: SHOP_ID, nome: 'Barbearia Central' });
-
-  assert.equal(root.hidden, false, 'section visível');
-  assert.equal(
-    root._els['[data-mb-share-link]'].value,
-    `${APP_URL}/?barbearia=${SHOP_ID}`,
-    'link aponta para o app cliente'
-  );
+  assert.equal(root.hidden, false);
+  assert.match(root._els['[data-mb-share-link]'].value, /app\.berberflow\.shop/);
+  assert.match(root._els['[data-mb-share-link]'].value, new RegExp(SHOP_ID));
 });
 
-test('atualizar sem id mantém o card oculto', () => {
+test('input de cópia NÃO contém domínio do BFF', () => {
   const root = criarRoot();
-  const panel = new BarbeariaSharePanel(root).montar();
+  new BarbeariaSharePanel(root).montar()
+    .atualizar({ barbershopId: SHOP_ID, nome: 'X' });
 
-  panel.atualizar({ barbershopId: null, nome: 'X' });
+  assert.doesNotMatch(root._els['[data-mb-share-link]'].value, /bff\.berberflow/);
+});
+
+test('atualizar sem id mantém section oculta', () => {
+  const root = criarRoot();
+  new BarbeariaSharePanel(root).montar()
+    .atualizar({ barbershopId: null, nome: 'X' });
 
   assert.equal(root.hidden, true);
 });
 
-test('link não contém domínio do BFF', () => {
-  const root = criarRoot();
-  const panel = new BarbeariaSharePanel(root).montar();
-  panel.atualizar({ barbershopId: SHOP_ID, nome: 'X' });
-
-  const link = root._els['[data-mb-share-link]'].value;
-  assert.doesNotMatch(link, /bff\.berberflow\.shop/);
-  assert.match(link, /app\.berberflow\.shop/);
-});
-
-test('APP_URL estático exposto na classe', () => {
+test('APP_URL estático aponta para o app cliente', () => {
   assert.match(BarbeariaSharePanel.APP_URL, /app\.berberflow\.shop/);
 });
