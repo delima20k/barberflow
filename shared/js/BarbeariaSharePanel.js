@@ -191,29 +191,43 @@ class BarbeariaSharePanel {
     botG.addColorStop(1, 'rgba(0,0,0,0.78)');
     ctx.fillStyle = botG; ctx.fillRect(0, 0, W, H);
 
-    // 3. Logo BarberFlow (topo)
+    // 3. Logo BarberFlow (topo) + mensagem de chamada abaixo
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.75)';
+    ctx.shadowBlur  = 14;
+    let logoBottomY = 150; // fallback se logo falhar
     try {
       const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/Logo01.png');
-      const lh = 90, lw = logo.width * (lh / logo.height);
-      ctx.drawImage(logo, (W - lw) / 2, 60, lw, lh);
+      const lh = 82, lw = logo.width * (lh / logo.height);
+      const logoY = 52;
+      ctx.drawImage(logo, (W - lw) / 2, logoY, lw, lh);
+      logoBottomY = logoY + lh;
     } catch (_) {
       ctx.fillStyle = '#D4A017';
-      ctx.font = 'bold 52px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('💈 BarberFlow', W / 2, 110);
+      ctx.font = 'bold 48px sans-serif';
+      ctx.fillText('💈 BarberFlow', W / 2, 108);
+      logoBottomY = 120;
     }
 
+    // Mensagem abaixo do logo
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = 'italic 32px sans-serif';
+    BarbeariaSharePanel.#desenharTextoQuebrado(
+      ctx,
+      'Seu barbeiro não te responde? Clique no card e seja o próximo na fila',
+      W / 2, logoBottomY + 46, W - 140, 42,
+    );
+
     // 4. Nome da barbearia
-    ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.7)';
     ctx.shadowBlur  = 16;
     ctx.fillStyle = '#FFFFFF';
     const nome = this.#nome || 'Barbearia';
-    ctx.font = `bold ${nome.length > 18 ? 62 : 76}px sans-serif`;
-    BarbeariaSharePanel.#desenharTextoQuebrado(ctx, nome, W / 2, H * 0.61, W - 100, 86);
+    ctx.font = `bold ${nome.length > 18 ? 60 : 72}px sans-serif`;
+    BarbeariaSharePanel.#desenharTextoQuebrado(ctx, nome, W / 2, H * 0.59, W - 100, 82);
 
     // 5. Faixa dourada
-    const faixaY = H * 0.73;
+    const faixaY = H * 0.72;
     ctx.shadowBlur = 0;
     const faixaG = ctx.createLinearGradient(0, faixaY, W, faixaY);
     faixaG.addColorStop(0, 'rgba(212,160,23,0)');
@@ -222,14 +236,14 @@ class BarbeariaSharePanel {
     faixaG.addColorStop(1, 'rgba(212,160,23,0)');
     ctx.fillStyle = faixaG; ctx.fillRect(0, faixaY - 6, W, 78);
     ctx.fillStyle = '#FFD966';
-    ctx.font = 'bold 44px sans-serif';
+    ctx.font = 'bold 42px sans-serif';
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
-    ctx.fillText('Você está convidado! 💈', W / 2, faixaY + 42);
+    ctx.fillText('Você está convidado! 💈', W / 2, faixaY + 40);
 
     // 6. Subtexto
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.font = '36px sans-serif'; ctx.shadowBlur = 8;
-    ctx.fillText('Entre na fila pelo BarberFlow', W / 2, H * 0.87);
+    ctx.font = '34px sans-serif'; ctx.shadowBlur = 8;
+    ctx.fillText('Entre na fila pelo BarberFlow', W / 2, H * 0.855);
 
     // 7. Rodapé URL
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
