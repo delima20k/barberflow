@@ -20,7 +20,7 @@ const path   = require('node:path');
  * Camada: infra
  */
 class StoryMediaCompressor {
-  static DEFAULT_TARGET_BYTES = 2 * 1024 * 1024; // 2 MB
+  static DEFAULT_TARGET_BYTES = 2.5 * 1024 * 1024; // 2.5 MB
   static DEFAULT_MAX_LADO     = 1080;
   static VIDEO_TIMEOUT_MS     = 180_000;
 
@@ -87,10 +87,10 @@ class StoryMediaCompressor {
     const originalBytes = inputBuffer.length;
     // Qualidade primeiro (CRF baixo); se estourar, sobe CRF e reduz resolução.
     const tentativas = [
+      { crf: 22, lado: maxLado },
       { crf: 26, lado: maxLado },
-      { crf: 30, lado: maxLado },
+      { crf: 28, lado: maxLado },
       { crf: 30, lado: Math.min(720, maxLado) },
-      { crf: 34, lado: Math.min(720, maxLado) },
       { crf: 34, lado: Math.min(480, maxLado) },
     ];
     let menor = null;

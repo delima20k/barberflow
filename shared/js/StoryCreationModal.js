@@ -407,9 +407,9 @@ class OverlayPainter {
 class StoryComposer {
   static MAX_LADO_VIDEO = 1080;            // teto do maior lado do vídeo (mantém o máx. de resolução)
   static MAX_LADO_IMG   = 1080;            // teto inicial da imagem (cai em degraus p/ caber no alvo)
-  static ORCAMENTO_VIDEO = 1.9 * 1024 * 1024;  // folga sob o alvo de 2MB
-  static ALVO_VIDEO = 2 * 1024 * 1024;     // vídeo: no máximo 2MB
-  static ALVO_IMG = 2 * 1024 * 1024;       // imagem: no máximo 2MB (melhor qualidade dentro disso)
+  static ORCAMENTO_VIDEO = 2.4 * 1024 * 1024;  // folga sob o alvo de 2.5MB
+  static ALVO_VIDEO = 2.5 * 1024 * 1024;   // vídeo: no máximo 2.5MB
+  static ALVO_IMG = 2 * 1024 * 1024;       // imagem: no máximo 2MB
   static AUDIO_BPS = 64000;
   static VIDEO_METADATA_TIMEOUT_MS = 8000;
 
