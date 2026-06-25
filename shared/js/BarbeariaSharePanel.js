@@ -90,22 +90,26 @@ class BarbeariaSharePanel {
   async #compartilhar() {
     if (!this.#barbershopId) return;
 
-    // Envia SOMENTE a URL do BFF — o WhatsApp lê as tags OG e monta
-    // sozinho o card clicável com a imagem e o nome da barbearia.
-    // Nenhum texto enviado junto (evita duplicação texto + card).
-    const url = this.#ogUrl();
+    const url = this.#appUrl(); // link direto do app cliente → abre a barbearia
+    let cardFile = null;
+    try { cardFile = await this.#gerarCardBlob(); } catch (_) {}
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ url });
+        const payload = { url };
+        // Envia o card como imagem se o browser suportar compartilhamento de arquivos
+        if (cardFile && navigator.canShare?.({ files: [cardFile] })) {
+          payload.files = [cardFile];
+        }
+        await navigator.share(payload);
         return;
       } catch (e) {
-        if (e?.name === 'AbortError') return; // usuário cancelou — sem fallback
-        // outro erro → abre wa.me
+        if (e?.name === 'AbortError') return; // usuário cancelou
+        // outro erro → fallback
       }
     }
 
-    // Fallback: abre WhatsApp com a URL (WhatsApp ainda cria o OG card)
+    // Fallback: abre WhatsApp com o link do app
     if (typeof window !== 'undefined') {
       window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank', 'noopener');
     }
@@ -191,61 +195,57 @@ class BarbeariaSharePanel {
     botG.addColorStop(1, 'rgba(0,0,0,0.78)');
     ctx.fillStyle = botG; ctx.fillRect(0, 0, W, H);
 
-    // 3. Logo BarberFlow (topo) + mensagem de chamada abaixo
+    // 3. Logo BarberFlow com fundo redondo (cor do app)
     ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,0.75)';
-    ctx.shadowBlur  = 14;
-    let logoBottomY = 150; // fallback se logo falhar
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur  = 0;
     try {
       const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/Logo01.png');
-      const lh = 82, lw = logo.width * (lh / logo.height);
-      const logoY = 52;
-      ctx.drawImage(logo, (W - lw) / 2, logoY, lw, lh);
-      logoBottomY = logoY + lh;
+      const lh = 72, lw = logo.width * (lh / logo.height);
+      const padH = 22, padW = 36;
+      const rx = (W - lw) / 2 - padW, ry = 48;
+      const rw = lw + padW * 2, rh = lh + padH * 2;
+      const raio = rh / 2;
+      // Fundo redondo na cor do app (#0d0a07)
+      ctx.fillStyle = '#0d0a07';
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, rw, rh, raio);
+      ctx.fill();
+      ctx.drawImage(logo, (W - lw) / 2, ry + padH, lw, lh);
     } catch (_) {
+      ctx.fillStyle = '#0d0a07';
+      const rx = W / 2 - 160, ry = 48, rw = 320, rh = 70;
+      ctx.beginPath();
+      ctx.roundRect(rx, ry, rw, rh, rh / 2);
+      ctx.fill();
       ctx.fillStyle = '#D4A017';
-      ctx.font = 'bold 48px sans-serif';
-      ctx.fillText('💈 BarberFlow', W / 2, 108);
-      logoBottomY = 120;
+      ctx.font = 'bold 44px sans-serif';
+      ctx.fillText('💈 BarberFlow', W / 2, ry + 47);
     }
-
-    // Mensagem abaixo do logo
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.font = 'italic 32px sans-serif';
-    BarbeariaSharePanel.#desenharTextoQuebrado(
-      ctx,
-      'Seu barbeiro não te responde? Clique no card e seja o próximo na fila',
-      W / 2, logoBottomY + 46, W - 140, 42,
-    );
 
     // 4. Nome da barbearia
     ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    ctx.shadowBlur  = 16;
+    ctx.shadowBlur  = 18;
     ctx.fillStyle = '#FFFFFF';
     const nome = this.#nome || 'Barbearia';
-    ctx.font = `bold ${nome.length > 18 ? 60 : 72}px sans-serif`;
-    BarbeariaSharePanel.#desenharTextoQuebrado(ctx, nome, W / 2, H * 0.59, W - 100, 82);
+    ctx.font = `bold ${nome.length > 18 ? 62 : 78}px sans-serif`;
+    BarbeariaSharePanel.#desenharTextoQuebrado(ctx, nome, W / 2, H * 0.46, W - 100, 90);
 
     // 5. Faixa dourada
-    const faixaY = H * 0.72;
+    const faixaY = H * 0.64;
     ctx.shadowBlur = 0;
     const faixaG = ctx.createLinearGradient(0, faixaY, W, faixaY);
     faixaG.addColorStop(0, 'rgba(212,160,23,0)');
-    faixaG.addColorStop(0.15, 'rgba(212,160,23,0.22)');
-    faixaG.addColorStop(0.85, 'rgba(212,160,23,0.22)');
+    faixaG.addColorStop(0.12, 'rgba(212,160,23,0.25)');
+    faixaG.addColorStop(0.88, 'rgba(212,160,23,0.25)');
     faixaG.addColorStop(1, 'rgba(212,160,23,0)');
-    ctx.fillStyle = faixaG; ctx.fillRect(0, faixaY - 6, W, 78);
+    ctx.fillStyle = faixaG; ctx.fillRect(0, faixaY - 6, W, 82);
     ctx.fillStyle = '#FFD966';
-    ctx.font = 'bold 42px sans-serif';
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
-    ctx.fillText('Você está convidado! 💈', W / 2, faixaY + 40);
+    ctx.font = 'bold 46px sans-serif';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 12;
+    ctx.fillText('Você está convidado! 💈', W / 2, faixaY + 46);
 
-    // 6. Subtexto
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.font = '34px sans-serif'; ctx.shadowBlur = 8;
-    ctx.fillText('Entre na fila pelo BarberFlow', W / 2, H * 0.855);
-
-    // 7. Rodapé URL
+    // 6. Rodapé URL
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '26px sans-serif'; ctx.shadowBlur = 0;
     ctx.fillText('app.berberflow.shop', W / 2, H - 46);
