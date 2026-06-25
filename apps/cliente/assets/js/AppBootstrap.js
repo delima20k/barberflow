@@ -149,6 +149,33 @@ class AppBootstrap {
 
     // Lida com deep-link via URL params (app fechado → openWindow com ?push_barbershop=X)
     AppBootstrap.#processarPushDeepLink();
+
+    // Deep-link de compartilhamento (?barbearia=<id>) — link enviado via WhatsApp
+    // pelo card da página minha-barbearia (rota /b/:id do BFF redireciona p/ cá).
+    AppBootstrap.#processarBarbeariaDeepLink();
+  }
+
+  /**
+   * Lê ?barbearia=<id> da URL e abre a página pública da barbearia.
+   * Reusa o evento 'barberflow:abrir-barbearia' já ouvido por BarbeariaPage.
+   * Limpa o parâmetro da URL após disparar (evita reabrir em refresh).
+   * @private
+   */
+  static #processarBarbeariaDeepLink() {
+    const params       = new URLSearchParams(location.search);
+    const barbershopId = params.get('barbearia');
+    if (!barbershopId) return;
+
+    // Remove o parâmetro mantendo o restante da URL (sem recarregar).
+    try {
+      params.delete('barbearia');
+      const qs = params.toString();
+      history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+    } catch (_) { /* ambiente sem history API — segue mesmo assim */ }
+
+    document.dispatchEvent(
+      new CustomEvent('barberflow:abrir-barbearia', { detail: { barbershopId } }),
+    );
   }
 
   /**

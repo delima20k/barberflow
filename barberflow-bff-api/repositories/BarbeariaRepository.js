@@ -411,6 +411,28 @@ class BarbeariaRepository extends BaseRepository {
     return data ?? null;
   }
 
+  /**
+   * Dados públicos mínimos para o card de compartilhamento (Open Graph).
+   * Usado pela rota pública /b/:id — sem auth. Apenas barbearias ativas.
+   * @param {string} id
+   * @returns {Promise<{id,name,city,state,logo_path,cover_path}|null>}
+   */
+  async getPublicShareData(id) {
+    this._uuid('id', id);
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select('id, name, city, state, logo_path, cover_path')
+      .eq('id', id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('getPublicShareData', error);
+      this._throwDbError(error, 'getPublicShareData');
+    }
+    return data ?? null;
+  }
+
   async encontrarConversaDireta(clientId, ownerId) {
     this._uuid('clientId', clientId);
     this._uuid('ownerId', ownerId);

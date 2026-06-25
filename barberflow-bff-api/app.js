@@ -63,6 +63,7 @@ const p2pRoute              = require('./routes/p2p');
 const adminConfigRoute      = require('./routes/adminConfig');
 const adminRoute            = require('./routes/admin');
 const internalCronRoute     = require('./routes/internalCron');
+const shareRoute            = require('./routes/share');
 const SupabaseClient         = require('./utils/SupabaseClient');
 const { R2ConfigService }    = require('./application/admin/R2ConfigService');
 
@@ -190,6 +191,11 @@ function criarApp(db = null) {
 
   // ── P2P ICE config ────────────────────────────────────────────
   app.use('/api/p2p', p2pRoute());
+
+  // ── Compartilhamento público (Open Graph) — /b/:id ───────────
+  // Fora de /api: sem auth, sem rate-limit de JSON. Serve HTML com meta
+  // tags p/ preview rico (WhatsApp) e redireciona para a SPA da barbearia.
+  app.use('/b', shareRoute(_db));
 
   // ── 11. Auth — /api/auth/* ───────────────────────────────────
   app.use('/api/auth', RateLimiterMiddleware.auth);

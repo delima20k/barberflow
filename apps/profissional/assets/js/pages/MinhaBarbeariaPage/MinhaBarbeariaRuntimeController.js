@@ -78,6 +78,7 @@ export class MinhaBarbeariaRuntimeController {
   #refs                 = {};
   #storyViewer          = null;  // PortfolioPrismViewer para stories em tela cheia
   #storiesData          = [];    // stories ativos — alimentado em #renderStoryCards
+  #sharePanel           = null;  // card "Divulgue sua barbearia" (link via WhatsApp)
 
   constructor(dependencies = {}) {
     this.#mediaP2P = dependencies.mediaP2P ?? new MediaP2P();
@@ -98,6 +99,12 @@ export class MinhaBarbeariaRuntimeController {
     this.#cacheRefs();
     this.#bindEventos();
     this.#initSections();
+
+    // Card "Divulgue sua barbearia" — link público via WhatsApp
+    if (typeof BarbeariaSharePanel !== 'undefined') {
+      const shareEl = document.getElementById('mb-share-section');
+      if (shareEl) this.#sharePanel = new BarbeariaSharePanel(shareEl).montar();
+    }
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
 
     // Animação "dig" no sub-painel de GPS
@@ -564,6 +571,7 @@ export class MinhaBarbeariaRuntimeController {
       this.#renderServicos(servicos);
       this.#preencherConfigPanel(shop, servicos);
       this.#renderInfoCard(shop);
+      this.#sharePanel?.atualizar({ barbershopId: shop.id, nome: shop.name ?? '' });
       this.#iniciarRealtimeFila(shop.id);
       this.#iniciarRealtimeAtividade(shop.id);
       this.#processarPushPendente();

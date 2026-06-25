@@ -5301,6 +5301,90 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   margin: 18px 0 20px;
 }
 
+/* ── Card "Divulgue sua barbearia" (link via WhatsApp) ────── */
+.mb-share-section {
+  width: 100%;
+  margin: 18px 0 20px;
+}
+.mb-share-section[hidden] { display: none; }
+
+.mb-share-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--gold-border, rgba(212,160,23,.42));
+  border-radius: 14px;
+  background: var(--card, rgba(255,255,255,.03));
+}
+
+.mb-share-desc {
+  margin: 0;
+  font-size: .8rem;
+  line-height: 1.35;
+  color: var(--text-muted, #b9a88f);
+}
+
+.mb-share-link-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.mb-share-link {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--gold-border, rgba(212,160,23,.3));
+  border-radius: 9px;
+  background: rgba(0,0,0,.18);
+  color: var(--text, #f3e8dc);
+  font-size: .76rem;
+  text-overflow: ellipsis;
+}
+
+.mb-share-copy {
+  flex-shrink: 0;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(212,160,23,.42);
+  border-radius: 9px;
+  background: rgba(212,160,23,.10);
+  color: var(--gold, #D4A017);
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mb-share-copy:active { transform: scale(.97); }
+
+.mb-share-whats {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  border: none;
+  border-radius: 11px;
+  background: #25D366;
+  color: #073d27;
+  font-size: .9rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(37,211,102,.28);
+}
+.mb-share-whats:active { transform: scale(.985); }
+.mb-share-whats-ico { font-size: 1.05rem; line-height: 1; }
+
+.mb-share-status {
+  margin: 0;
+  min-height: 1em;
+  font-size: .74rem;
+  font-weight: 700;
+  color: var(--gold, #D4A017);
+  text-align: center;
+}
+
 .mb-portfolio-upload {
   display: inline-flex;
   align-items: center;
