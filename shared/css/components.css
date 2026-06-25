@@ -1228,7 +1228,7 @@
 .story-video-wrap {
   position: relative;
   width: 100%;
-  height: 160px;  /* 200px ≓20% = 160px */
+  height: 176px;
   background: var(--card2);
   overflow: hidden;
   flex-shrink: 0;
@@ -1362,7 +1362,7 @@
 
 .stories-scroll .story-card .story-video-wrap {
   height: auto;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 3 / 4.4;
 }
 
 .stories-scroll .story-card .story-shop-badge {
@@ -1495,7 +1495,7 @@
 /* Vídeo proporcional ao card menor */
 .stories-scroll .story-card .story-video-wrap {
   height: auto;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 3 / 4.4;
 }
 
 /* Badge da loja — escala para o card menor */
