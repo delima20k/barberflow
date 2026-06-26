@@ -1515,7 +1515,7 @@ class BarbeariaRepository extends BaseRepository {
 
   async buscarStoryAtivoPorMediaId(mediaId) {
     const { data, error } = await this._db.from('stories')
-      .select('id, media_id, likes_count')
+      .select('id, media_id, owner_id, likes_count')
       .eq('media_id', mediaId)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
@@ -1524,6 +1524,89 @@ class BarbeariaRepository extends BaseRepository {
       this._throwDbError(error, 'buscarStoryAtivoPorMediaId');
     }
     return data ?? null;
+  }
+
+  async salvarMensagemStory({ storyId, mediaId, recipientId, senderId, body, clientMessageId = null }) {
+    this._uuid('storyId', storyId);
+    this._uuid('mediaId', mediaId);
+    this._uuid('recipientId', recipientId);
+    this._uuid('senderId', senderId);
+
+    const payload = {
+      story_id:     storyId,
+      media_id:     mediaId,
+      recipient_id: recipientId,
+      sender_id:    senderId,
+      body,
+    };
+    if (clientMessageId) payload.client_message_id = clientMessageId;
+
+    const { data, error } = await this._db
+      .from('story_messages')
+      .insert(payload)
+      .select('id, body, created_at')
+      .single();
+    if (error) {
+      this._warn('salvarMensagemStory', error);
+      this._throwDbError(error, 'salvarMensagemStory');
+    }
+    return data;
+  }
+
+  async listarMensagensStory(storyId, recipientId, limit = 50) {
+    this._uuid('storyId', storyId);
+    this._uuid('recipientId', recipientId);
+
+    const [msgsResult, likeResult] = await Promise.all([
+      this._db
+        .from('story_messages')
+        .select('id, sender_id, body, created_at')
+        .eq('story_id', storyId)
+        .eq('recipient_id', recipientId)
+        .order('created_at', { ascending: false })
+        .limit(Math.min(Math.max(Number(limit) || 50, 1), 50)),
+      this._db
+        .from('likes')
+        .select('id', { head: true, count: 'exact' })
+        .eq('content_id', storyId)
+        .eq('content_type', 'story'),
+    ]);
+
+    if (msgsResult.error) {
+      this._warn('listarMensagensStory', msgsResult.error);
+      this._throwDbError(msgsResult.error, 'listarMensagensStory');
+    }
+    if (likeResult.error) this._warn('listarMensagensStory:likes', likeResult.error);
+
+    const msgs = msgsResult.data ?? [];
+    if (!msgs.length) {
+      return { messages: [], likesCount: Math.max(0, Number(likeResult.count ?? 0)) };
+    }
+
+    const senderIds = [...new Set(msgs.map(m => m.sender_id).filter(Boolean))];
+    const { data: perfis, error: perfisError } = senderIds.length
+      ? await this._db.from('profiles').select('id, full_name, avatar_path').in('id', senderIds)
+      : { data: [], error: null };
+    if (perfisError) this._warn('listarMensagensStory:profiles', perfisError);
+
+    const perfilMap = new Map((perfis ?? []).map(p => [p.id, p]));
+    return {
+      likesCount: Math.max(0, Number(likeResult.count ?? 0)),
+      messages: msgs.map(msg => {
+        const perfil = perfilMap.get(msg.sender_id) ?? {};
+        return {
+          id: msg.id,
+          body: msg.body ?? '',
+          createdAt: msg.created_at,
+          sender: {
+            id: msg.sender_id,
+            nome: perfil.full_name ?? 'Usuario',
+            avatarPath: perfil.avatar_path ?? null,
+            avatarUrl: null,
+          },
+        };
+      }),
+    };
   }
 
   async buscarLikeStory(userId, storyId) {

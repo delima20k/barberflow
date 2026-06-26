@@ -93,6 +93,17 @@ class RateLimiterMiddleware {
     skip:            () => process.env.APP_ENV === 'test',
     handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
   });
+
+  static storyMensagem = rateLimit({
+    windowMs:        5 * 60 * 1000,
+    max:             10,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    store:           _criarRedisStore(),
+    keyGenerator:    (req) => `story:${req.user?.id ?? ipKeyGenerator(req.ip)}`,
+    skip:            () => process.env.APP_ENV === 'test',
+    handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
+  });
 }
 
 module.exports = RateLimiterMiddleware;

@@ -357,6 +357,44 @@ describe('BffApiService.profissionais portfolio', () => {
   });
 });
 
+describe('BffApiService.media stories', () => {
+  test('listarStoryMessages chama endpoint canonico com limit', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { messages: [] } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.media.listarStoryMessages('media-1', { limit: 50 });
+
+    assert.ok(chamadas[0].url.includes('/api/v1/media/media-1/messages?'));
+    assert.ok(chamadas[0].url.includes('limit=50'));
+    assert.strictEqual(chamadas[0].opts.method, undefined);
+  });
+
+  test('enviarStoryMessage envia payload pelo BFF', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 201, json: async () => ({ dados: { message: { body: 'Top' } } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.media.enviarStoryMessage('media-1', {
+      body: 'Top',
+      clientMessageId: 'client-1',
+    });
+
+    assert.ok(chamadas[0].url.endsWith('/api/v1/media/media-1/messages'));
+    assert.strictEqual(chamadas[0].opts.method, 'POST');
+    assert.deepStrictEqual(JSON.parse(chamadas[0].opts.body), {
+      body: 'Top',
+      clientMessageId: 'client-1',
+    });
+  });
+});
+
 describe('BffApiService.chat', () => {
   test('listarMensagens chama endpoint canonico de mensagens da conversa', async () => {
     const chamadas = [];

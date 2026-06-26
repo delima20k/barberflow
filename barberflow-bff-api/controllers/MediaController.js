@@ -84,6 +84,36 @@ class MediaController extends BaseController {
     });
   }
 
+  async listarStoryMessages(req, res) {
+    await this.handle(res, async () => {
+      if (typeof this.#service.listMessages !== 'function') {
+        throw this._erro('Funcionalidade nao disponivel.', 503);
+      }
+      res.setHeader('Cache-Control', 'private, no-store');
+      const result = await this.#service.listMessages(
+        req.user.id,
+        String(req.params.mediaId ?? '').trim(),
+        req.query ?? {},
+      );
+      this.success(res, result);
+    });
+  }
+
+  async enviarStoryMessage(req, res) {
+    await this.handle(res, async () => {
+      if (typeof this.#service.sendMessage !== 'function') {
+        throw this._erro('Funcionalidade nao disponivel.', 503);
+      }
+      res.setHeader('Cache-Control', 'private, no-store');
+      const result = await this.#service.sendMessage(
+        req.user.id,
+        String(req.params.mediaId ?? '').trim(),
+        req.body ?? {},
+      );
+      this.created(res, result);
+    });
+  }
+
   async salvarThumb(req, res) {
     await this.handle(res, async () => {
       if (typeof this.#service.salvarThumb !== 'function') {

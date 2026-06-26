@@ -529,8 +529,8 @@ class StoryViewer {
     const comentInput = document.createElement('input');
     comentInput.type = 'text';
     comentInput.className = 'sv-comment-input';
-    comentInput.setAttribute('placeholder', 'Escreva um comentário...');
-    comentInput.setAttribute('maxlength', '500');
+    comentInput.setAttribute('placeholder', 'Envie uma mensagem...');
+    comentInput.setAttribute('maxlength', '240');
     const comentEnviar = document.createElement('button');
     comentEnviar.className = 'sv-comment-enviar';
     comentEnviar.textContent = 'Enviar';
@@ -976,25 +976,28 @@ class StoryViewer {
 
     lista.innerHTML = '';
 
-    const storyId = StoryViewer.#viewerState.storyId;
-    if (!storyId || typeof MessageService === 'undefined') {
+    const story = StoryViewer.#viewerState.stories[StoryViewer.#viewerState.currentIndex] ?? {};
+    if (!story.media_id || typeof BffApiService === 'undefined' || !BffApiService.media?.listarStoryMessages) {
       const vazio = document.createElement('p');
       vazio.className   = 'sv-comment-vazio';
-      vazio.textContent = 'Nenhum comentário ainda. Seja o primeiro!';
+      vazio.textContent = 'Nenhuma mensagem recebida ainda.';
       lista.appendChild(vazio);
       return;
     }
 
-    const { ok, data } = await MessageService.buscarComentariosStory(storyId);
-    if (!ok || !data.length) {
+    const { data, error } = await BffApiService.media.listarStoryMessages(story.media_id, { limit: 50 });
+    const messages = data?.messages ?? [];
+    if (error || !messages.length) {
       const vazio = document.createElement('p');
       vazio.className   = 'sv-comment-vazio';
-      vazio.textContent = 'Nenhum comentário ainda. Seja o primeiro!';
+      vazio.textContent = error?.status === 403
+        ? 'Mensagens privadas ficam visiveis para o dono do story.'
+        : 'Nenhuma mensagem recebida ainda.';
       lista.appendChild(vazio);
       return;
     }
 
-    data.forEach(c => lista.appendChild(StoryViewer.#criarItemComentario(c)));
+    messages.forEach(c => lista.appendChild(StoryViewer.#criarItemComentario(c)));
     lista.scrollTop = lista.scrollHeight;
   }
 
@@ -1017,8 +1020,7 @@ class StoryViewer {
     input.value    = '';
     input.disabled = true;
 
-    const storyId = StoryViewer.#viewerState.storyId;
-    const ownerId = StoryViewer.#viewerState.stories[StoryViewer.#viewerState.currentIndex]?.owner_id ?? null;
+    const story = StoryViewer.#viewerState.stories[StoryViewer.#viewerState.currentIndex] ?? {};
 
     // Renderiza otimisticamente
     const lista = inner.querySelector('.sv-comment-lista');
@@ -1034,10 +1036,13 @@ class StoryViewer {
       lista.appendChild(item);
       lista.scrollTop = lista.scrollHeight;
 
-      // Persiste no banco
-      if (storyId && ownerId && typeof MessageService !== 'undefined') {
-        const { ok } = await MessageService.enviarComentarioStory(storyId, ownerId, texto);
-        if (ok) {
+      // Persiste no BFF; o frontend nao grava story_messages direto no Supabase.
+      if (story.media_id && typeof BffApiService !== 'undefined' && BffApiService.media?.enviarStoryMessage) {
+        const { error } = await BffApiService.media.enviarStoryMessage(story.media_id, {
+          body: texto,
+          clientMessageId: StoryViewer.#clientMessageId(),
+        });
+        if (!error) {
           item.classList.remove('sv-comment-item--enviando');
         } else {
           item.style.opacity = '0.5';
@@ -1063,14 +1068,21 @@ class StoryViewer {
     const av = document.createElement('div');
     av.className = 'sv-comment-avatar';
 
-    if (c.profiles?.avatar_url) {
+    const sender = c.sender ?? {};
+    const nomeSeguro = sender.nome ?? c.profiles?.full_name ?? 'Usuario';
+    const avatarUrl = sender.avatarUrl
+      ?? (sender.avatarPath && typeof ApiService !== 'undefined' ? ApiService.getAvatarUrl(sender.avatarPath) : null)
+      ?? c.profiles?.avatar_url
+      ?? null;
+
+    if (avatarUrl) {
       const img = document.createElement('img');
-      img.src     = c.profiles.avatar_url;
-      img.alt     = c.profiles.full_name ?? '';
-      img.onerror = () => { img.remove(); av.textContent = (c.profiles.full_name ?? '?')[0]; };
+      img.src     = avatarUrl;
+      img.alt     = nomeSeguro;
+      img.onerror = () => { img.remove(); av.textContent = (nomeSeguro ?? '?')[0]; };
       av.appendChild(img);
     } else {
-      av.textContent = (c.profiles?.full_name ?? 'U')[0].toUpperCase();
+      av.textContent = (nomeSeguro ?? 'U')[0].toUpperCase();
     }
 
     const body = document.createElement('div');
@@ -1078,21 +1090,28 @@ class StoryViewer {
 
     const nome = document.createElement('span');
     nome.className   = 'sv-comment-nome';
-    nome.textContent = c.profiles?.full_name ?? 'Usuário';
+    nome.textContent = nomeSeguro;
 
     const texto = document.createElement('p');
     texto.className   = 'sv-comment-texto';
-    texto.textContent = c.content;
+    texto.textContent = c.body ?? c.content ?? '';
 
     const hora = document.createElement('span');
     hora.className   = 'sv-comment-hora';
-    hora.textContent = new Date(c.created_at).toLocaleTimeString('pt-BR', {
+    hora.textContent = new Date(c.createdAt ?? c.created_at ?? Date.now()).toLocaleTimeString('pt-BR', {
       hour: '2-digit', minute: '2-digit',
     });
 
     body.append(nome, texto, hora);
     item.append(av, body);
     return item;
+  }
+
+  static #clientMessageId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return `story-msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
   static #initPrismLikeListener() {

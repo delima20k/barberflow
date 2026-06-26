@@ -327,6 +327,12 @@ class BffApiService {
     toggleStoryLike: (mediaId) =>
       BffApiService.post(`/api/v1/media/${encodeURIComponent(mediaId)}/like`, {}),
 
+    listarStoryMessages: (mediaId, params = {}) =>
+      BffApiService.get(`/api/v1/media/${encodeURIComponent(mediaId)}/messages`, params),
+
+    enviarStoryMessage: (mediaId, payload = {}) =>
+      BffApiService.post(`/api/v1/media/${encodeURIComponent(mediaId)}/messages`, payload ?? {}),
+
     deletarStory: (mediaId) =>
       BffApiService.delete(`/api/v1/media/${encodeURIComponent(mediaId)}`),
 

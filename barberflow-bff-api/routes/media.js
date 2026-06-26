@@ -4,6 +4,7 @@ const express                      = require('express');
 const { Router }                   = express;
 const AuthMiddleware               = require('../middlewares/auth');
 const SchedulerAdminMiddleware     = require('../middlewares/schedulerAdmin');
+const RateLimiterMiddleware        = require('../middlewares/rateLimiter');
 const MediaController              = require('../controllers/MediaController');
 const { OutboxRepository }         = require('../infrastructure/outbox/OutboxRepository');
 const { SupabaseMediaRepository }  = require('../infrastructure/media/SupabaseMediaRepository');
@@ -268,6 +269,16 @@ module.exports = function criarMediaRoute(db, deps = {}) {
 
   router.post('/:mediaId/like', AuthMiddleware.verificar, (req, res, next) =>
     storyInteractionController.toggleLike.call(storyInteractionController, req, res, next)
+  );
+
+  router.get('/:mediaId/messages', AuthMiddleware.verificar, (req, res, next) =>
+    storyInteractionController.listarStoryMessages.call(storyInteractionController, req, res, next)
+  );
+
+  router.post('/:mediaId/messages',
+    AuthMiddleware.verificar,
+    RateLimiterMiddleware.storyMensagem,
+    (req, res, next) => storyInteractionController.enviarStoryMessage.call(storyInteractionController, req, res, next),
   );
 
   router.delete('/:mediaId', AuthMiddleware.verificar, (req, res, next) => {
