@@ -239,9 +239,11 @@ class BarbeariaSharePanel {
     ctx.arc(logoCx, logoCy, logoR, 0, Math.PI * 2);
     ctx.fill();
     try {
-      const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/icon-512.png');
-      const ls = 120; // logo centralizado, deixando o creme aparecer ao redor
-      ctx.drawImage(logo, logoCx - ls / 2, logoCy - ls / 2, ls, ls);
+      const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/icon-192-pro.png');
+      // Remove o fundo escuro quadrado do ícone → só a marca sobre o creme.
+      const semFundo = BarbeariaSharePanel.#removerFundoDoIcone(logo);
+      const ls = 140;
+      ctx.drawImage(semFundo, logoCx - ls / 2, logoCy - ls / 2, ls, ls);
     } catch (_) {
       ctx.fillStyle = '#3b1f08';
       ctx.font = 'bold 78px sans-serif';
@@ -310,6 +312,29 @@ class BarbeariaSharePanel {
         resolve(new File([blob], 'convite-barbearia.png', { type: 'image/png' }));
       }, 'image/png');
     });
+  }
+
+  /**
+   * Remove o fundo de um ícone (ex.: icon-192-pro tem um quadrado escuro):
+   * amostra a cor do canto superior-esquerdo (= fundo) e torna transparentes
+   * os pixels parecidos com ela. Retorna um <canvas> com a marca recortada.
+   * O ícone é same-origin, então getImageData não tainta o canvas.
+   */
+  static #removerFundoDoIcone(img) {
+    const c   = document.createElement('canvas');
+    c.width   = img.width  || 192;
+    c.height  = img.height || 192;
+    const cx  = c.getContext('2d');
+    cx.drawImage(img, 0, 0, c.width, c.height);
+    const data = cx.getImageData(0, 0, c.width, c.height);
+    const p = data.data;
+    const br = p[0], bg = p[1], bb = p[2]; // cor do canto = fundo
+    for (let i = 0; i < p.length; i += 4) {
+      const dist = Math.abs(p[i] - br) + Math.abs(p[i + 1] - bg) + Math.abs(p[i + 2] - bb);
+      if (dist < 80) p[i + 3] = 0; // pixel parecido com o fundo → transparente
+    }
+    cx.putImageData(data, 0, 0);
+    return c;
   }
 
   static #carregarImg(src) {
