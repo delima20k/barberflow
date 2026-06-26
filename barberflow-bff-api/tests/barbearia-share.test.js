@@ -14,14 +14,22 @@ function criarRes() {
     statusCode: 200,
     headers: {},
     body: '',
+    redirectedTo: null,
     set(k, v) { this.headers[String(k).toLowerCase()] = v; return this; },
     status(c) { this.statusCode = c; return this; },
     send(b) { this.body = b; return this; },
+    redirect(code, url) { this.statusCode = code; this.redirectedTo = url; this.headers['location'] = url; return this; },
   };
 }
 
-function criarReq(id, query = {}) {
-  return { params: { id }, protocol: 'https', get: () => 'bff.berberflow.shop', query };
+// UA padrão = scraper (recebe HTML com OG). Passe um UA de navegador p/ testar humano.
+function criarReq(id, query = {}, ua = 'facebookexternalhit/1.1') {
+  return {
+    params: { id },
+    protocol: 'https',
+    query,
+    get: (h) => (String(h).toLowerCase() === 'user-agent' ? ua : 'bff.berberflow.shop'),
+  };
 }
 
 suite('OpenGraphHtmlBuilder', () => {
@@ -92,6 +100,23 @@ suite('BarbeariaShareController', () => {
     // og:image servido pelo próprio domínio (proxy ?img=1), não expõe o Supabase
     assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
     assert.doesNotMatch(res.body, /supabase\.co/);
+  });
+
+  test('humano (UA de navegador) → 302 direto p/ a SPA, sem página intermediária', async () => {
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'Barbearia Central', city: 'SP', state: 'SP',
+        cover_path: 'capa.png', logo_path: null,
+      }),
+    };
+    const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
+    const res = criarRes();
+    const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Safari/604.1';
+    await ctrl.handle(criarReq(SHOP_ID, {}, ua), res);
+
+    assert.equal(res.statusCode, 302);
+    assert.equal(res.redirectedTo, `https://app.berberflow.shop/?barbearia=${SHOP_ID}`);
+    assert.equal(res.body, ''); // não serve HTML "Redirecionando…"
   });
 
   test('barbearia inexistente → 200 genérico, redirect para a home', async () => {

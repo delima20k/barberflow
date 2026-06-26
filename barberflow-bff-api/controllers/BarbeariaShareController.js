@@ -65,6 +65,13 @@ class BarbeariaShareController {
       shop = null; // UUID inválido ou erro de leitura → cai no fallback genérico
     }
 
+    // Humano → 302 direto para a SPA, SEM a página intermediária "Redirecionando…".
+    // Só o scraper de preview (WhatsApp/Facebook/etc.) recebe o HTML com OG tags.
+    if (!BarbeariaShareController.#isScraper(req.get('user-agent'))) {
+      const humanDest = shop ? `${homeUrl}/?barbearia=${encodeURIComponent(shop.id)}` : homeUrl;
+      return res.redirect(302, humanDest);
+    }
+
     if (!shop) {
       // Não encontrada/ inválida → preview genérico + manda para a home do app.
       const html = this.#builder.build({
@@ -151,6 +158,17 @@ class BarbeariaShareController {
       }
     }
     return { url: this.#imagemUrl(shop) };
+  }
+
+  /**
+   * Detecta scraper de preview (WhatsApp/Facebook/Twitter/etc.) pelo User-Agent.
+   * Só eles recebem o HTML com OG tags; humanos são redirecionados (302) direto.
+   * Sem UA → trata como scraper (serve OG por segurança; navegador real sempre
+   * envia UA e não casa com o regex, então humano cai no redirect).
+   */
+  static #isScraper(ua) {
+    if (!ua) return true;
+    return /facebookexternalhit|facebot|whatsapp|twitterbot|telegrambot|linkedinbot|slackbot|discordbot|pinterest|googlebot|bingbot|applebot|embedly|redditbot|vkshare|skypeuripreview|preview|bot\b|crawler|spider/i.test(ua);
   }
 
   /** HEAD no Storage público; true se o objeto existe. Tolerante a falha/timeout. */
