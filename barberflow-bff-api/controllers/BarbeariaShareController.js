@@ -71,6 +71,7 @@ class BarbeariaShareController {
       });
       res.set('Content-Type', 'text/html; charset=utf-8');
       res.set('Cache-Control', 'public, max-age=60');
+      BarbeariaShareController.#cspRedirect(res);
       return res.status(200).send(html);
     }
 
@@ -92,9 +93,22 @@ class BarbeariaShareController {
 
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('Cache-Control', 'public, max-age=300');
+    BarbeariaShareController.#cspRedirect(res);
     logger?.info?.('[share] barbearia servida', { id: shop.id });
     return res.status(200).send(html);
   };
+
+  /**
+   * CSP só desta página de share: o helmet global usa `script-src 'self'`, que
+   * BLOQUEIA o <script>location.replace</script> inline — fazendo o humano ficar
+   * preso na página "Abrir …" em vez de ir direto. Aqui liberamos inline script
+   * (página mínima, conteúdo escapado) para o redirect funcionar. Scrapers não
+   * executam JS e só leem as OG tags.
+   */
+  static #cspRedirect(res) {
+    res.set('Content-Security-Policy',
+      "default-src 'self'; script-src 'unsafe-inline' 'self'; img-src https: data:; style-src 'unsafe-inline'");
+  }
 
   #descricao(shop) {
     const local = [shop.city, shop.state].filter(Boolean).join(' - ');
