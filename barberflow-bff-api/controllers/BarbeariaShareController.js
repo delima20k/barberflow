@@ -1,6 +1,5 @@
 'use strict';
 
-const sharp = require('sharp');
 const { logger } = require('../middlewares/logger');
 
 /**
@@ -48,11 +47,6 @@ class BarbeariaShareController {
     const id = String(req.params.id ?? '');
     const homeUrl = this.#appBaseUrl || '/';
 
-    // /b/:id?img=1 → serve os BYTES da imagem do card pelo PRÓPRIO domínio
-    // (app.berberflow.shop via proxy), em vez de apontar o og:image para o
-    // Supabase. WhatsApp/Facebook renderizam de forma muito mais confiável
-    // quando a imagem está no mesmo domínio da página.
-    if (req.query?.img === '1') return this.#serveImage(id, res);
     // og:url é a URL pública canônica (domínio do app cliente), NÃO o host do
     // request — atrás do proxy Vercel req.get('host') seria bff.berberflow.shop.
     // Mantém og:url == URL compartilhada == rota que o app resolve. Preserva ?og=1.
@@ -64,13 +58,6 @@ class BarbeariaShareController {
       shop = await this.#repo.getPublicShareData(id);
     } catch (_) {
       shop = null; // UUID inválido ou erro de leitura → cai no fallback genérico
-    }
-
-    // Humano → 302 direto para a SPA, SEM a página intermediária "Redirecionando…".
-    // Só o scraper de preview (WhatsApp/Facebook/etc.) recebe o HTML com OG tags.
-    if (!BarbeariaShareController.#isScraper(req.get('user-agent'))) {
-      const humanDest = shop ? `${homeUrl}/?barbearia=${encodeURIComponent(shop.id)}` : homeUrl;
-      return res.redirect(302, humanDest);
     }
 
     if (!shop) {
@@ -88,16 +75,15 @@ class BarbeariaShareController {
     }
 
     const image = await this.#resolverImagem(shop);
-    // og:image servido pelo próprio domínio (proxy dos bytes em ?img=1).
-    const imageUrl = image.url ? `${homeUrl}/b/${encodeURIComponent(shop.id)}?img=1` : '';
 
     const html = this.#builder.build({
       title: shop.name || this.#siteName,
       description: this.#descricao(shop),
-      image: imageUrl,
-      // O card é servido como banner paisagem 1200×630 (WhatsApp mostra grande).
-      imageWidth: image.isCard ? 1200 : undefined,
-      imageHeight: image.isCard ? 630 : undefined,
+      // URL direta do arquivo .jpg no Storage — o WhatsApp renderiza de forma
+      // confiável (URL com extensão de imagem). O card é 1080×1080.
+      image: image.url,
+      imageWidth: image.isCard ? 1080 : undefined,
+      imageHeight: image.isCard ? 1080 : undefined,
       imageType: image.isCard ? 'image/jpeg' : undefined,
       canonicalUrl,
       redirectUrl: `${homeUrl}/?barbearia=${encodeURIComponent(shop.id)}`,
@@ -109,52 +95,6 @@ class BarbeariaShareController {
     logger?.info?.('[share] barbearia servida', { id: shop.id });
     return res.status(200).send(html);
   };
-
-  /**
-   * GET /b/:id?img=1 — busca os bytes da imagem do card (Supabase) e os devolve
-   * pelo PRÓPRIO domínio. Para o card, compõe um banner PAISAGEM 1200×630 (o
-   * card quadrado centralizado sobre fundo escuro) — formato que o WhatsApp
-   * mostra GRANDE. Servir na mesma origem da página é mais confiável p/ o scraper.
-   */
-  async #serveImage(id, res) {
-    let shop = null;
-    try { shop = await this.#repo.getPublicShareData(id); } catch { shop = null; }
-    const src = shop ? (await this.#resolverImagem(shop)) : { url: '', isCard: false };
-    if (!src.url) return res.status(404).end();
-
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
-      const upstream = await fetch(src.url, { signal: ctrl.signal });
-      clearTimeout(t);
-      if (!upstream.ok) return res.status(404).end();
-      const srcBuf = Buffer.from(await upstream.arrayBuffer());
-
-      let out = srcBuf;
-      let contentType = upstream.headers.get('content-type') || 'image/jpeg';
-      if (src.isCard) {
-        // Card quadrado → banner 1200×630 com o card centralizado sobre fundo escuro.
-        const card = await sharp(srcBuf, { failOn: 'none' })
-          .resize(630, 630, { fit: 'inside' })
-          .flatten({ background: '#0d0d0d' })
-          .toBuffer();
-        out = await sharp({
-          create: { width: 1200, height: 630, channels: 3, background: { r: 13, g: 13, b: 13 } },
-        })
-          .composite([{ input: card, gravity: 'center' }])
-          .jpeg({ quality: 82, mozjpeg: true })
-          .toBuffer();
-        contentType = 'image/jpeg';
-      }
-
-      res.set('Content-Type', contentType);
-      res.set('Content-Length', String(out.length));
-      res.set('Cache-Control', 'public, max-age=300');
-      return res.status(200).send(out);
-    } catch {
-      return res.status(404).end();
-    }
-  }
 
   #descricao(shop) {
     const local = [shop.city, shop.state].filter(Boolean).join(' - ');
@@ -171,24 +111,13 @@ class BarbeariaShareController {
    * Senão, cai na capa/logo do perfil.
    */
   async #resolverImagem(shop) {
-    // Card gerado (og-card.*): já é o banner 1200×630 pronto para o WhatsApp.
+    // Card gerado (og-card.*) tem prioridade — é a arte de convite, não a capa crua.
     for (const ext of ['jpg', 'png']) {
       const url = this.#ogCardUrl(shop.id, ext);
       if (url && await this.#objectExists(url)) return { url, isCard: true };
     }
     // Sem card: cai na capa/logo do perfil (sem dimensões conhecidas).
     return { url: this.#imagemUrl(shop), isCard: false };
-  }
-
-  /**
-   * Detecta scraper de preview (WhatsApp/Facebook/Twitter/etc.) pelo User-Agent.
-   * Só eles recebem o HTML com OG tags; humanos são redirecionados (302) direto.
-   * Sem UA → trata como scraper (serve OG por segurança; navegador real sempre
-   * envia UA e não casa com o regex, então humano cai no redirect).
-   */
-  static #isScraper(ua) {
-    if (!ua) return true;
-    return /facebookexternalhit|facebot|whatsapp|twitterbot|telegrambot|linkedinbot|slackbot|discordbot|pinterest|googlebot|bingbot|applebot|embedly|redditbot|vkshare|skypeuripreview|preview|bot\b|crawler|spider/i.test(ua);
   }
 
   /** HEAD no Storage público; true se o objeto existe. Tolerante a falha/timeout. */

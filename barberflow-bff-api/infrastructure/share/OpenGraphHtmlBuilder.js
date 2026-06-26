@@ -58,11 +58,10 @@ class OpenGraphHtmlBuilder {
   <meta name="twitter:card" content="${twitterCard}">
   <meta name="twitter:title" content="${OpenGraphHtmlBuilder.#escAttr(title || siteName)}">
   <meta name="twitter:description" content="${OpenGraphHtmlBuilder.#escAttr(description || '')}">
+  <script>location.replace(${dstJs});</script>
 </head>
 <body>
-  <p>Redirecionando para ${t}…</p>
-  <p><a href="${dst}">Clique aqui se não for redirecionado automaticamente.</a></p>
-  <script>location.replace(${dstJs});</script>
+  <p><a href="${dst}">Abrir ${t}</a></p>
 </body>
 </html>`;
   }

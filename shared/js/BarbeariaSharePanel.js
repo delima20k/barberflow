@@ -33,6 +33,7 @@ class BarbeariaSharePanel {
   #bffBase       = '';   // base do BFF para a URL de OG (ex.: https://bff.berberflow.shop)
   #cardUrl       = null; // URL pública do card após upload para Supabase Storage
   #uploadPromise = null; // Promise do upload em andamento
+  #cardFile      = null; // Arquivo (File) do card gerado — enviado direto no WhatsApp
 
   constructor(rootEl) {
     this.#root = rootEl || null;
@@ -68,6 +69,7 @@ class BarbeariaSharePanel {
     this.#coverUrl      = coverUrl || null;
     this.#cardUrl       = null;
     this.#uploadPromise = null;
+    this.#cardFile      = null;
 
     const ok = !!this.#barbershopId;
     if (this.#root) this.#root.hidden = !ok;
@@ -107,11 +109,28 @@ class BarbeariaSharePanel {
   async #compartilhar() {
     if (!this.#barbershopId) return;
 
-    // NÃO aguarda o upload — qualquer await antes de navigator.share /
-    // window.open perde o contexto de gesto do usuário e bloqueia a ação.
-    // O upload já está rodando em background desde que a tela abriu.
-    const url = this.#ogUrl();
+    // NÃO aguarda nada assíncrono antes de navigator.share — qualquer await perde
+    // o contexto de gesto do usuário (iOS bloqueia). O card (#cardFile) já foi
+    // gerado quando a tela abriu, então usamos ele direto.
+    const url  = this.#ogUrl();
+    const file = this.#cardFile;
 
+    // PREFERÊNCIA: enviar a IMAGEM do card + o link como legenda. A imagem do card
+    // vai GARANTIDA no WhatsApp (é um anexo de foto, não depende do preview OG),
+    // e o link na legenda abre a página da barbearia.
+    if (file && typeof navigator !== 'undefined'
+        && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text: url });
+        return;
+      } catch (e) {
+        if (e?.name === 'AbortError') return;
+        // Outro erro → cai no fallback de URL abaixo.
+      }
+    }
+
+    // Fallback (desktop / sem suporte a compartilhar arquivo): só a URL — o
+    // WhatsApp tenta montar o preview OG (card vem das meta tags da BFF).
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ url });
@@ -120,8 +139,6 @@ class BarbeariaSharePanel {
         if (e?.name === 'AbortError') return;
       }
     }
-
-    // Fallback: wa.me com a URL do BFF
     if (typeof window !== 'undefined') {
       window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank', 'noopener');
     }
@@ -159,12 +176,14 @@ class BarbeariaSharePanel {
   async #atualizarPreview() {
     try {
       const file = await this.#gerarCardBlob();
+      // Guarda o arquivo para enviar DIRETO no WhatsApp (imagem garantida).
+      this.#cardFile = file;
       if (!this.#previewEl) return;
       const old = this.#previewEl.src;
       if (old?.startsWith('blob:')) URL.revokeObjectURL(old);
       this.#previewEl.src = URL.createObjectURL(file);
       this.#previewEl.hidden = false;
-      // Sobe o canvas para o Supabase; o BFF usará essa imagem como og:image.
+      // Sobe o canvas para o Supabase; o BFF usa essa imagem como og:image (fallback).
       this.#uploadPromise = this.#uploadOgCard(file);
     } catch (_) { /* preview opcional */ }
   }
