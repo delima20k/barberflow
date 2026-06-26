@@ -152,12 +152,15 @@ class BarbeariaMediaService extends BaseService {
     const shop = await this.#repo.getPorOwner(userId);
     if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
 
+    // Guarda o card como JPEG quadrado comprimido (~70KB). A composição em
+    // PAISAGEM 1200×630 (banner que o WhatsApp mostra grande) é feita na hora de
+    // servir (rota /b/:id?img=1), então qualquer card já existente é aproveitado.
     let jpg;
     try {
       jpg = await sharp(arquivo, { failOn: 'none' })
         .resize(1080, 1080, { fit: 'cover' })
         .flatten({ background: '#0d0d0d' })          // card é opaco; remove alpha p/ JPEG
-        .jpeg({ quality: 80, mozjpeg: true })
+        .jpeg({ quality: 82, mozjpeg: true })
         .toBuffer();
     } catch {
       throw AppError.badRequest('Arquivo de imagem inválido.');

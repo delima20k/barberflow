@@ -76,6 +76,8 @@ describe('BarbeariaMediaService', () => {
     assert.equal(result.path, 'shop-1/og-card.jpg');
     assert.equal(uploads[0].contentType, 'image/jpeg');
     assert.equal(meta.format, 'jpeg'); // WhatsApp não renderiza WebP e ignora PNG grande
+    assert.equal(meta.width, 1080);    // card guardado quadrado; banner 1200×630 é feito ao servir
+    assert.equal(meta.height, 1080);
     assert.equal(result.publicUrl, 'https://cdn.test/shop-1/og-card.jpg');
   });
 
@@ -94,6 +96,8 @@ describe('BarbeariaMediaService', () => {
     assert.equal(result.path, 'shop-1/og-card.jpg');
     assert.equal(uploads[0].contentType, 'image/jpeg');
     assert.equal(meta.format, 'jpeg');
+    assert.equal(meta.width, 1080);
+    assert.equal(meta.height, 1080);
   });
 
   it('og-card: rejeita formato fora de PNG/JPEG/WebP', async () => {

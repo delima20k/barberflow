@@ -151,11 +151,11 @@ suite('BarbeariaShareController', () => {
     const res  = criarRes();
     await ctrl.handle(criarReq(SHOP_ID, { og: '1' }), res);
 
-    // og:image = proxy no próprio domínio; dimensões/tipo do card ajudam o WhatsApp
+    // og:image = proxy no próprio domínio; banner paisagem 1200×630 (WhatsApp grande)
     assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
     assert.doesNotMatch(res.body, /supabase\.co/);
-    assert.match(res.body, /<meta property="og:image:width" content="1080">/);
-    assert.match(res.body, /<meta property="og:image:height" content="1080">/);
+    assert.match(res.body, /<meta property="og:image:width" content="1200">/);
+    assert.match(res.body, /<meta property="og:image:height" content="630">/);
     assert.match(res.body, /<meta property="og:image:type" content="image\/jpeg">/);
     // og:url preserva ?og=1 e usa o domínio público do app
     assert.match(res.body, new RegExp(`og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?og=1"`));
@@ -203,22 +203,25 @@ suite('BarbeariaShareController', () => {
     await ctrl.handle(criarReq(SHOP_ID, {}), res);
 
     assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
-    assert.match(res.body, /og:image:width" content="1080"/);
+    assert.match(res.body, /og:image:width" content="1200"/);
   });
 
-  test('?img=1 serve os BYTES da imagem pelo próprio domínio', async () => {
+  test('?img=1 compõe e serve o banner 1200×630 pelo próprio domínio', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'X', city: null, state: null,
         cover_path: 'capa.png', logo_path: null,
       }),
     };
-    const fakeBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    const sharp = require('sharp');
+    const cardQuadrado = await sharp({
+      create: { width: 200, height: 200, channels: 3, background: { r: 10, g: 20, b: 30 } },
+    }).jpeg().toBuffer();
     const origFetch = global.fetch;
     global.fetch = async () => ({
       ok: true,
       headers: { get: () => 'image/jpeg' },
-      arrayBuffer: async () => fakeBytes,
+      arrayBuffer: async () => cardQuadrado,
     });
     try {
       const ctrl = new BarbeariaShareController({ ...baseDeps, repo, objectExists: async () => true });
@@ -227,7 +230,9 @@ suite('BarbeariaShareController', () => {
 
       assert.equal(res.statusCode, 200);
       assert.equal(res.headers['content-type'], 'image/jpeg');
-      assert.ok(Buffer.isBuffer(res.body) && res.body.equals(fakeBytes));
+      const meta = await sharp(res.body).metadata();
+      assert.equal(meta.width, 1200);  // banner paisagem → WhatsApp mostra grande
+      assert.equal(meta.height, 630);
     } finally {
       global.fetch = origFetch;
     }
@@ -240,11 +245,15 @@ suite('BarbeariaShareController', () => {
         cover_path: 'capa.png', logo_path: null,
       }),
     };
+    const sharp = require('sharp');
+    const cardPng = await sharp({
+      create: { width: 100, height: 100, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    }).png().toBuffer();
     let fetched = '';
     const origFetch = global.fetch;
     global.fetch = async (u) => {
       fetched = String(u);
-      return { ok: true, headers: { get: () => 'image/png' }, arrayBuffer: async () => Buffer.from([0x89, 0x50]) };
+      return { ok: true, headers: { get: () => 'image/png' }, arrayBuffer: async () => cardPng };
     };
     try {
       const ctrl = new BarbeariaShareController({

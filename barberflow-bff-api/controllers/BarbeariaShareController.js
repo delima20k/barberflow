@@ -1,5 +1,6 @@
 'use strict';
 
+const sharp = require('sharp');
 const { logger } = require('../middlewares/logger');
 
 /**
@@ -94,9 +95,10 @@ class BarbeariaShareController {
       title: shop.name || this.#siteName,
       description: this.#descricao(shop),
       image: imageUrl,
-      imageWidth: image.width,
-      imageHeight: image.height,
-      imageType: image.type,
+      // O card é servido como banner paisagem 1200×630 (WhatsApp mostra grande).
+      imageWidth: image.isCard ? 1200 : undefined,
+      imageHeight: image.isCard ? 630 : undefined,
+      imageType: image.isCard ? 'image/jpeg' : undefined,
       canonicalUrl,
       redirectUrl: `${homeUrl}/?barbearia=${encodeURIComponent(shop.id)}`,
       siteName: this.#siteName,
@@ -110,13 +112,14 @@ class BarbeariaShareController {
 
   /**
    * GET /b/:id?img=1 — busca os bytes da imagem do card (Supabase) e os devolve
-   * pelo próprio domínio, com Content-Type de imagem. Espelha o padrão de servir
-   * a og:image na mesma origem da página (mais confiável p/ o scraper).
+   * pelo PRÓPRIO domínio. Para o card, compõe um banner PAISAGEM 1200×630 (o
+   * card quadrado centralizado sobre fundo escuro) — formato que o WhatsApp
+   * mostra GRANDE. Servir na mesma origem da página é mais confiável p/ o scraper.
    */
   async #serveImage(id, res) {
     let shop = null;
     try { shop = await this.#repo.getPublicShareData(id); } catch { shop = null; }
-    const src = shop ? (await this.#resolverImagem(shop)) : { url: '' };
+    const src = shop ? (await this.#resolverImagem(shop)) : { url: '', isCard: false };
     if (!src.url) return res.status(404).end();
 
     try {
@@ -125,11 +128,29 @@ class BarbeariaShareController {
       const upstream = await fetch(src.url, { signal: ctrl.signal });
       clearTimeout(t);
       if (!upstream.ok) return res.status(404).end();
-      const buf = Buffer.from(await upstream.arrayBuffer());
-      res.set('Content-Type', upstream.headers.get('content-type') || src.type || 'image/jpeg');
-      res.set('Content-Length', String(buf.length));
+      const srcBuf = Buffer.from(await upstream.arrayBuffer());
+
+      let out = srcBuf;
+      let contentType = upstream.headers.get('content-type') || 'image/jpeg';
+      if (src.isCard) {
+        // Card quadrado → banner 1200×630 com o card centralizado sobre fundo escuro.
+        const card = await sharp(srcBuf, { failOn: 'none' })
+          .resize(630, 630, { fit: 'inside' })
+          .flatten({ background: '#0d0d0d' })
+          .toBuffer();
+        out = await sharp({
+          create: { width: 1200, height: 630, channels: 3, background: { r: 13, g: 13, b: 13 } },
+        })
+          .composite([{ input: card, gravity: 'center' }])
+          .jpeg({ quality: 82, mozjpeg: true })
+          .toBuffer();
+        contentType = 'image/jpeg';
+      }
+
+      res.set('Content-Type', contentType);
+      res.set('Content-Length', String(out.length));
       res.set('Cache-Control', 'public, max-age=300');
-      return res.status(200).send(buf);
+      return res.status(200).send(out);
     } catch {
       return res.status(404).end();
     }
@@ -150,14 +171,13 @@ class BarbeariaShareController {
    * Senão, cai na capa/logo do perfil.
    */
   async #resolverImagem(shop) {
-    // O card é gerado 1080×1080 — dimensões conhecidas ajudam o WhatsApp a renderizar.
+    // Card gerado (og-card.*): já é o banner 1200×630 pronto para o WhatsApp.
     for (const ext of ['jpg', 'png']) {
       const url = this.#ogCardUrl(shop.id, ext);
-      if (url && await this.#objectExists(url)) {
-        return { url, width: 1080, height: 1080, type: ext === 'jpg' ? 'image/jpeg' : 'image/png' };
-      }
+      if (url && await this.#objectExists(url)) return { url, isCard: true };
     }
-    return { url: this.#imagemUrl(shop) };
+    // Sem card: cai na capa/logo do perfil (sem dimensões conhecidas).
+    return { url: this.#imagemUrl(shop), isCard: false };
   }
 
   /**
