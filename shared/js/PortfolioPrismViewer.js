@@ -48,6 +48,8 @@ class MediaPrismViewer {
   #publicActions   = null;
   #publicInput     = null;
   #publicSendBtn   = null;
+  #storyOwnerActions = null;
+  #storyMessagesBtn = null;
   #publicLike      = null;
   #publicLogo      = null;
   #publicEmojis    = [];
@@ -264,6 +266,8 @@ class MediaPrismViewer {
     if (!this.#publicActions) return;
     if (this.#isStoryMode()) {
       this.#publicActions.hidden = false;
+      const ownerId = item?.owner_id ?? item?.shop_owner_id ?? item?.author_id ?? null;
+      const isOwner = Boolean(ownerId && ownerId === MediaPrismViewer.#perfilAtual()?.id);
       if (this.#publicLogo) {
         const rawPath = item?.shop_logo_path || '';
         const logoUrl = rawPath && typeof ApiService !== 'undefined'
@@ -272,9 +276,14 @@ class MediaPrismViewer {
         this.#publicLogo.src = logoUrl || '/shared/img/icon-512-cliente.png';
         this.#publicLogo.alt = item?.shop_name || 'BarberFlow';
       }
-      if (this.#publicInput) { this.#publicInput.value = ''; this.#publicInput.disabled = false; }
-      if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
-      this.#publicEmojis.forEach(btn => { btn.disabled = false; });
+      if (this.#publicInput) { this.#publicInput.value = ''; this.#publicInput.closest('.pp-prism-message-wrap').hidden = isOwner; this.#publicInput.disabled = isOwner; }
+      if (this.#publicSendBtn) this.#publicSendBtn.disabled = isOwner;
+      this.#publicEmojis.forEach(btn => { btn.hidden = isOwner; btn.disabled = isOwner; });
+      if (this.#storyOwnerActions) {
+        this.#storyOwnerActions.hidden = !isOwner;
+        const likes = this.#storyOwnerActions.querySelector('.pp-prism-story-likes');
+        if (likes) likes.textContent = String(Math.max(0, Number(item?.likes_count ?? 0)));
+      }
       return;
     }
 
@@ -533,6 +542,25 @@ class MediaPrismViewer {
       bubbles: false,
       detail: { texto, storyId: item?.id, shopOwnerId: item?.shop_owner_id, item },
     }));
+  }
+
+  async #abrirMensagensStory() {
+    const item = this.#items[this.#index];
+    if (!item?.media_id || typeof BffApiService === 'undefined') return;
+    const dialog = document.createElement('div');
+    dialog.className = 'pf-msg-modal';
+    const box = document.createElement('div'); box.className = 'pf-msg-modal__box';
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'pf-msg-modal__close'; close.textContent = 'X';
+    const title = document.createElement('strong'); title.className = 'pf-msg-modal__title'; title.textContent = 'Mensagens do Story';
+    const list = document.createElement('div'); list.className = 'pf-msg-modal__list'; list.textContent = 'Carregando...';
+    close.addEventListener('click', () => dialog.remove()); dialog.addEventListener('click', e => { if (e.target === dialog) dialog.remove(); });
+    box.append(title, close, list); dialog.appendChild(box); document.body.appendChild(dialog);
+    const { data, error } = await BffApiService.media.listarStoryMessages(item.media_id, { limit: 50 });
+    list.replaceChildren();
+    if (error) { list.textContent = 'Nao foi possivel carregar as mensagens.'; return; }
+    const messages = data?.messages ?? [];
+    if (!messages.length) { list.textContent = 'Nenhuma mensagem recebida ainda.'; return; }
+    messages.forEach(message => { const row = document.createElement('p'); row.textContent = `${message.sender?.nome ?? 'Usuario'}: ${message.body ?? ''}`; list.appendChild(row); });
   }
 
   async #handleDeleteStory() {
@@ -1127,6 +1155,7 @@ class MediaPrismViewer {
         </div>
         <button type="button" class="pp-prism-public-emoji" data-public-emoji="${MediaPrismViewer.#laughEmoji()}" aria-label="Enviar risada">${MediaPrismViewer.#laughEmoji()}</button>
         <button type="button" class="pp-prism-public-emoji" data-public-emoji="${MediaPrismViewer.#sadEmoji()}" aria-label="Enviar tristeza">${MediaPrismViewer.#sadEmoji()}</button>
+        <div class="pp-prism-story-owner-actions" hidden><span class="pp-prism-story-likes">0</span><button type="button" class="pp-prism-story-messages" aria-label="Ver mensagens do Story">Mensagens</button></div>
       </div>
       <figcaption class="pp-prism-title"></figcaption>
       <div class="pp-prism-actions"></div>
@@ -1148,6 +1177,8 @@ class MediaPrismViewer {
     this.#publicActions = overlay.querySelector('.pp-prism-public-actions');
     this.#publicInput   = overlay.querySelector('.pp-prism-message-input');
     this.#publicSendBtn = overlay.querySelector('.pp-prism-message-send');
+    this.#storyOwnerActions = overlay.querySelector('.pp-prism-story-owner-actions');
+    this.#storyMessagesBtn = overlay.querySelector('.pp-prism-story-messages');
     this.#publicLike    = null;
     this.#publicLogo    = overlay.querySelector('.pp-prism-public-logo');
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
@@ -1225,6 +1256,7 @@ class MediaPrismViewer {
       if (this.#isStoryMode()) this.#handleStoryMessage(this.#publicInput.value);
       else this.#handlePublicMessage(this.#publicInput.value);
     });
+    this.#storyMessagesBtn?.addEventListener('click', () => this.#abrirMensagensStory());
 
     // Listener externo: re-renderiza se um evento global atualizar a contagem desta imagem
     document.addEventListener('barberflow:portfolio-like', e => {
