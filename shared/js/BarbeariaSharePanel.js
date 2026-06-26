@@ -227,28 +227,43 @@ class BarbeariaSharePanel {
     botG.addColorStop(1, 'rgba(0,0,0,0.78)');
     ctx.fillStyle = botG; ctx.fillRect(0, 0, W, H);
 
-    // 3. Pill creme "BarberFlow" (sem logo) + chamada abaixo
+    // 3. Logo do app (círculo de fundo creme) + nome "BarberFlow" em amarelo
     ctx.textAlign = 'center';
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur  = 0;
-    const pillRy = 52, pillRh = 68;
+
+    const logoCx = W / 2, logoCy = 138, logoR = 86;
+    // Fundo creme do logo (círculo)
     ctx.fillStyle = '#F5EDD4';
     ctx.beginPath();
-    ctx.roundRect(W / 2 - 180, pillRy, 360, pillRh, pillRh / 2);
+    ctx.arc(logoCx, logoCy, logoR, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#3b1f08';
-    ctx.font = 'bold 38px sans-serif';
-    ctx.fillText('💈 BarberFlow', W / 2, pillRy + 45);
+    try {
+      const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/icon-512.png');
+      const ls = 120; // logo centralizado, deixando o creme aparecer ao redor
+      ctx.drawImage(logo, logoCx - ls / 2, logoCy - ls / 2, ls, ls);
+    } catch (_) {
+      ctx.fillStyle = '#3b1f08';
+      ctx.font = 'bold 78px sans-serif';
+      ctx.fillText('💈', logoCx, logoCy + 26);
+    }
 
-    // Chamada de ação abaixo da pill
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur  = 14;
-    ctx.fillStyle = 'rgba(255,255,255,0.93)';
-    ctx.font = 'italic 31px sans-serif';
+    // Nome do app em AMARELO, abaixo do logo
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur  = 10;
+    ctx.fillStyle = '#FFD43B';
+    ctx.font = 'bold 48px sans-serif';
+    ctx.fillText('BarberFlow', logoCx, logoCy + logoR + 56);
+
+    // Chamada de ação (texto maior)
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur  = 16;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold italic 44px sans-serif';
     BarbeariaSharePanel.#desenharTextoQuebrado(
       ctx,
-      'Seu barbeiro não te responde? Clique no card e seja o próximo na fila',
-      W / 2, pillRy + pillRh + 52, W - 120, 40,
+      'Seu barbeiro não te responde? Clique no card e seja o próximo da fila',
+      W / 2, logoCy + logoR + 120, W - 90, 54,
     );
 
     // 4. Nome da barbearia
