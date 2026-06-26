@@ -18,6 +18,7 @@ class BarbeariaShareController {
   #appBaseUrl;
   #supabaseUrl;
   #siteName;
+  #objectExists;
 
   /**
    * @param {object} deps
@@ -27,21 +28,29 @@ class BarbeariaShareController {
    * @param {string} deps.supabaseUrl  — base do Supabase (para montar URL pública da logo)
    * @param {string} [deps.siteName]
    */
-  constructor({ repo, builder, appBaseUrl, supabaseUrl, siteName = 'BarberFlow' }) {
+  constructor({ repo, builder, appBaseUrl, supabaseUrl, siteName = 'BarberFlow', objectExists }) {
     if (!repo?.getPublicShareData) throw new Error('BarbeariaShareController requer repo com getPublicShareData.');
     if (!builder?.build) throw new Error('BarbeariaShareController requer builder com build().');
-    this.#repo        = repo;
-    this.#builder     = builder;
-    this.#appBaseUrl  = String(appBaseUrl || '').replace(/\/$/, '');
-    this.#supabaseUrl = String(supabaseUrl || '').replace(/\/$/, '');
-    this.#siteName    = siteName;
+    this.#repo         = repo;
+    this.#builder      = builder;
+    this.#appBaseUrl   = String(appBaseUrl || '').replace(/\/$/, '');
+    this.#supabaseUrl  = String(supabaseUrl || '').replace(/\/$/, '');
+    this.#siteName     = siteName;
+    // Verificador de existência do og-card (injetável p/ teste). Default: HEAD.
+    this.#objectExists = typeof objectExists === 'function'
+      ? objectExists
+      : BarbeariaShareController.#headExists;
   }
 
   /** Express handler — GET /b/:id */
   handle = async (req, res) => {
     const id = String(req.params.id ?? '');
-    const canonicalUrl = `${req.protocol}://${req.get('host')}/b/${encodeURIComponent(id)}`;
     const homeUrl = this.#appBaseUrl || '/';
+    // og:url é a URL pública canônica (domínio do app cliente), NÃO o host do
+    // request — atrás do proxy Vercel req.get('host') seria bff.berberflow.shop.
+    // Mantém og:url == URL compartilhada == rota que o app resolve. Preserva ?og=1.
+    const ogSuffix = req.query?.og === '1' ? '?og=1' : '';
+    const canonicalUrl = `${homeUrl}/b/${encodeURIComponent(id)}${ogSuffix}`;
 
     let shop = null;
     try {
@@ -64,14 +73,15 @@ class BarbeariaShareController {
       return res.status(200).send(html);
     }
 
-    // ?og=1 → o canvas foi enviado ao Supabase; usa a arte gerada como og:image.
-    const useOgCard = req.query?.og === '1';
-    const image = useOgCard ? this.#ogCardUrl(shop.id) : this.#imagemUrl(shop);
+    const image = await this.#resolverImagem(shop);
 
     const html = this.#builder.build({
       title: shop.name || this.#siteName,
       description: this.#descricao(shop),
-      image,
+      image: image.url,
+      imageWidth: image.width,
+      imageHeight: image.height,
+      imageType: image.type,
       canonicalUrl,
       redirectUrl: `${homeUrl}/?barbearia=${encodeURIComponent(shop.id)}`,
       siteName: this.#siteName,
@@ -90,10 +100,41 @@ class BarbeariaShareController {
       : 'Veja a barbearia no BarberFlow.';
   }
 
-  /** URL do canvas gerado pelo barbeiro (Supabase Storage, bucket barbershops). */
-  #ogCardUrl(shopId) {
+  /**
+   * og:image — prefere o card gerado (JPEG; o WhatsApp não renderiza WebP da
+   * capa do perfil e ignora previews grandes). Usa o que existir no Storage:
+   * og-card.jpg (novo, comprimido) e, por compat, og-card.png (legado). Baseado
+   * na existência real do arquivo — independe do timing/flags do cliente.
+   * Senão, cai na capa/logo do perfil.
+   */
+  async #resolverImagem(shop) {
+    // O card é gerado 1080×1080 — dimensões conhecidas ajudam o WhatsApp a renderizar.
+    for (const ext of ['jpg', 'png']) {
+      const url = this.#ogCardUrl(shop.id, ext);
+      if (url && await this.#objectExists(url)) {
+        return { url, width: 1080, height: 1080, type: ext === 'jpg' ? 'image/jpeg' : 'image/png' };
+      }
+    }
+    return { url: this.#imagemUrl(shop) };
+  }
+
+  /** HEAD no Storage público; true se o objeto existe. Tolerante a falha/timeout. */
+  static async #headExists(url) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 1500);
+      const res = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
+      clearTimeout(t);
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /** URL do card gerado pelo barbeiro (Supabase Storage, bucket barbershops). */
+  #ogCardUrl(shopId, ext = 'jpg') {
     if (!shopId || !this.#supabaseUrl) return null;
-    return `${this.#supabaseUrl}/storage/v1/object/public/barbershops/${encodeURIComponent(shopId)}/og-card.png`;
+    return `${this.#supabaseUrl}/storage/v1/object/public/barbershops/${encodeURIComponent(shopId)}/og-card.${ext}`;
   }
 
   /** Monta a URL pública absoluta da capa/logo (Supabase Storage). */

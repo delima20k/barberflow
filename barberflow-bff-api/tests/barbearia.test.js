@@ -35,6 +35,13 @@ const _qb = () => {
 const mockDb = {
   from: _qb,
   rpc:  () => Promise.resolve({ data: [], error: null }),
+  storage: {
+    from: () => ({
+      upload: () => Promise.resolve({ data: { path: 'shop-1/og-card.png' }, error: null }),
+      remove: () => Promise.resolve({ data: null, error: null }),
+      getPublicUrl: (storagePath) => ({ data: { publicUrl: `https://storage.test/${storagePath}` } }),
+    }),
+  },
 };
 SupabaseClient.getInstance = () => mockDb;
 
@@ -361,6 +368,72 @@ suite('BarbeariaController - PATCH /api/v1/barbearias/minha/imagem', () => {
 
     assert.strictEqual(status, 400);
     assert.strictEqual(body.ok, false);
+  });
+});
+
+suite('BarbeariaController - PATCH /api/v1/barbearias/minha/og-card', () => {
+  test('salva card autenticado e retorna URL publica (reencodado p/ JPEG)', async () => {
+    const sharp = require('sharp');
+    const png = await sharp({
+      create: { width: 16, height: 16, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    }).png().toBuffer();
+    const { status, body } = await patchBinario(
+      '/api/v1/barbearias/minha/og-card',
+      png,
+    );
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+    assert.strictEqual(body.dados.path, 'shop-1/og-card.jpg');
+    assert.match(body.dados.publicUrl, /shop-1\/og-card\.jpg$/);
+  });
+
+  test('sem auth retorna 401, confirmando rota registrada antes do handler', async () => {
+    const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const { status, body } = await patchBinario(
+      '/api/v1/barbearias/minha/og-card',
+      pngHeader,
+      { token: null },
+    );
+
+    assert.strictEqual(status, 401);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('arquivo vazio retorna 400', async () => {
+    const { status, body } = await patchBinario(
+      '/api/v1/barbearias/minha/og-card',
+      Buffer.alloc(0),
+    );
+
+    assert.strictEqual(status, 400);
+    assert.strictEqual(body.ok, false);
+  });
+
+  test('usuario sem barbearia retorna 404 de dominio', async () => {
+    const fromOriginal = mockDb.from;
+    mockDb.from = () => {
+      const q = {
+        select: () => q,
+        eq: () => q,
+        maybeSingle: () => Promise.resolve({ data: null, error: null }),
+      };
+      return q;
+    };
+
+    try {
+      const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+      const { status, body } = await patchBinario(
+        '/api/v1/barbearias/minha/og-card',
+        pngHeader,
+      );
+
+      assert.strictEqual(status, 404);
+      assert.strictEqual(body.ok, false);
+      assert.match(body.error, /Barbearia n/i);
+    } finally {
+      mockDb.from = fromOriginal;
+    }
   });
 });
 

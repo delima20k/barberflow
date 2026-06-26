@@ -57,6 +57,58 @@ describe('BarbeariaMediaService', () => {
     assert.equal(result.publicUrl, `https://cdn.test/${result.path}`);
   });
 
+  it('og-card: converte WebP do cliente em JPEG comprimido (og-card.jpg)', async () => {
+    const uploads = [];
+    const service = new BarbeariaMediaService({
+      getPorOwner: async () => ({ id: 'shop-1' }),
+      uploadImagemBarbearia: async (path, buffer, contentType) => uploads.push({ path, buffer, contentType }),
+      getBarbershopPublicUrl: (path) => `https://cdn.test/${path}`,
+    });
+
+    // O cliente comprime o canvas para WebP antes de subir (ImageCompressionService).
+    const webp = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    }).webp().toBuffer();
+
+    const result = await service.salvarOgCard(OWNER_ID, webp);
+    const meta = await sharp(uploads[0].buffer).metadata();
+
+    assert.equal(result.path, 'shop-1/og-card.jpg');
+    assert.equal(uploads[0].contentType, 'image/jpeg');
+    assert.equal(meta.format, 'jpeg'); // WhatsApp não renderiza WebP e ignora PNG grande
+    assert.equal(result.publicUrl, 'https://cdn.test/shop-1/og-card.jpg');
+  });
+
+  it('og-card: reencoda PNG grande do cliente em JPEG (dentro do limite do WhatsApp)', async () => {
+    const uploads = [];
+    const service = new BarbeariaMediaService({
+      getPorOwner: async () => ({ id: 'shop-1' }),
+      uploadImagemBarbearia: async (path, buffer, contentType) => uploads.push({ path, buffer, contentType }),
+      getBarbershopPublicUrl: (path) => `https://cdn.test/${path}`,
+    });
+
+    const png = await pngBuffer();
+    const result = await service.salvarOgCard(OWNER_ID, png);
+    const meta = await sharp(uploads[0].buffer).metadata();
+
+    assert.equal(result.path, 'shop-1/og-card.jpg');
+    assert.equal(uploads[0].contentType, 'image/jpeg');
+    assert.equal(meta.format, 'jpeg');
+  });
+
+  it('og-card: rejeita formato fora de PNG/JPEG/WebP', async () => {
+    const service = new BarbeariaMediaService({
+      getPorOwner: async () => ({ id: 'shop-1' }),
+      uploadImagemBarbearia: async () => {},
+      getBarbershopPublicUrl: (path) => path,
+    });
+
+    await assert.rejects(
+      () => service.salvarOgCard(OWNER_ID, Buffer.from([0x00, 0x01, 0x02, 0x03, 0x04, 0x05])),
+      /Formato inv/,
+    );
+  });
+
   it('bloqueia SVG e tipos fora da allowlist em imagem de servico', async () => {
     const service = new BarbeariaMediaService({
       getPorOwner: async () => ({ id: 'shop-1' }),
@@ -70,13 +122,15 @@ describe('BarbeariaMediaService', () => {
     );
   });
 
-  it('processa logo em WebP 256x256 usando contain sem alterar cover', async () => {
+  it('processa logo em WebP 256x256 usando contain e limpa capa ativa', async () => {
     const uploads = [];
     const updates = [];
+    const removidos = [];
     const service = new BarbeariaMediaService({
-      getPorOwner: async () => ({ id: 'shop-1' }),
+      getPorOwner: async () => ({ id: 'shop-1', cover_path: 'shop-1/cover.webp' }),
       uploadImagemBarbearia: async (path, buffer, contentType) => uploads.push({ path, buffer, contentType }),
-      updateImagem: async (shopId, campo, path) => updates.push({ shopId, campo, path }),
+      updateImagemUnica: async (shopId, campo, path, campoLimpar) => updates.push({ shopId, campo, path, campoLimpar }),
+      removerImagemBarbearia: async (path) => removidos.push(path),
       getBarbershopPublicUrl: (path) => `https://cdn.test/${path}`,
     });
 
@@ -88,7 +142,8 @@ describe('BarbeariaMediaService', () => {
     assert.equal(meta.format, 'webp');
     assert.equal(meta.width, 256);
     assert.equal(meta.height, 256);
-    assert.deepEqual(updates[0], { shopId: 'shop-1', campo: 'logo_path', path: 'shop-1/logo.webp' });
+    assert.deepEqual(updates[0], { shopId: 'shop-1', campo: 'logo_path', path: 'shop-1/logo.webp', campoLimpar: 'cover_path' });
+    assert.ok(removidos.includes('shop-1/cover.webp'));
   });
 
   it('processa capa em WebP sem cortar e respeita teto desejado de 40KB', async () => {
@@ -97,7 +152,7 @@ describe('BarbeariaMediaService', () => {
     const service = new BarbeariaMediaService({
       getPorOwner: async () => ({ id: 'shop-1' }),
       uploadImagemBarbearia: async (path, buffer, contentType) => uploads.push({ path, buffer, contentType }),
-      updateImagem: async (shopId, campo, path) => updates.push({ shopId, campo, path }),
+      updateImagemUnica: async (shopId, campo, path, campoLimpar) => updates.push({ shopId, campo, path, campoLimpar }),
       getBarbershopPublicUrl: (path) => `https://cdn.test/${path}`,
     });
 
@@ -110,7 +165,30 @@ describe('BarbeariaMediaService', () => {
     assert.equal(meta.width / meta.height, 1.6);
     assert.ok(meta.width <= 1280);
     assert.ok(uploads[0].buffer.length <= 40 * 1024);
-    assert.deepEqual(updates[0], { shopId: 'shop-1', campo: 'cover_path', path: 'shop-1/cover.webp' });
+    assert.deepEqual(updates[0], { shopId: 'shop-1', campo: 'cover_path', path: 'shop-1/cover.webp', campoLimpar: 'logo_path' });
+  });
+
+  it('processa capa e limpa logo ativo para manter uma imagem da barbearia', async () => {
+    const updates = [];
+    const removidos = [];
+    const variantes = [];
+    const service = new BarbeariaMediaService({
+      getPorOwner: async () => ({ id: 'shop-1', logo_path: 'shop-1/logo.png' }),
+      uploadImagemBarbearia: async () => {},
+      updateImagemUnica: async (shopId, campo, path, campoLimpar) => updates.push({ shopId, campo, path, campoLimpar }),
+      removerImagemBarbearia: async (path) => removidos.push(path),
+      removerVariantesImagemBarbearia: async (shopId, arquivoAtual) => variantes.push({ shopId, arquivoAtual }),
+      getBarbershopPublicUrl: (path) => `https://cdn.test/${path}`,
+    });
+
+    await service.salvarImagem(OWNER_ID, 'cover', await pngBuffer(), 'image/png');
+
+    assert.deepEqual(updates[0], { shopId: 'shop-1', campo: 'cover_path', path: 'shop-1/cover.webp', campoLimpar: 'logo_path' });
+    assert.ok(removidos.includes('shop-1/logo.png'));
+    assert.deepEqual(variantes, [
+      { shopId: 'shop-1', arquivoAtual: 'cover.webp' },
+      { shopId: 'shop-1', arquivoAtual: 'logo.webp' },
+    ]);
   });
 
   it('remove logo antigo quando path salvo muda apos update confirmado', async () => {
@@ -193,7 +271,10 @@ describe('BarbeariaMediaService', () => {
 
     await service.salvarImagem(OWNER_ID, 'logo', await pngBuffer(), 'image/png');
 
-    assert.deepEqual(calls, [['remove-variants', 'shop-1', 'logo.webp']]);
+    assert.deepEqual(calls, [
+      ['remove-variants', 'shop-1', 'logo.webp'],
+      ['remove-variants', 'shop-1', 'cover.webp'],
+    ]);
   });
 
   it('remove variantes antigas de capa e mantem apenas a capa atual', async () => {
@@ -209,6 +290,9 @@ describe('BarbeariaMediaService', () => {
 
     await service.salvarImagem(OWNER_ID, 'cover', await pngBuffer(), 'image/png');
 
-    assert.deepEqual(calls, [['remove-variants', 'shop-1', 'cover.webp']]);
+    assert.deepEqual(calls, [
+      ['remove-variants', 'shop-1', 'cover.webp'],
+      ['remove-variants', 'shop-1', 'logo.webp'],
+    ]);
   });
 });

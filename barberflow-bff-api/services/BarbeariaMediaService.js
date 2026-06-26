@@ -137,14 +137,34 @@ class BarbeariaMediaService extends BaseService {
     this._uuid('userId', userId);
     if (!Buffer.isBuffer(arquivo) || arquivo.length === 0) throw AppError.badRequest('Arquivo inválido.');
     if (arquivo.length > BarbeariaMediaService.#MAX_BYTES) throw AppError.badRequest('Arquivo excede 5 MB.');
-    // Verifica magic bytes PNG: 89 50 4E 47
-    if (arquivo[0] !== 0x89 || arquivo[1] !== 0x50) throw AppError.badRequest('Somente PNG é aceito.');
+
+    // Aceita PNG/JPEG/WebP (o cliente comprime o canvas para WebP no upload via
+    // ImageCompressionService). O og:image precisa ser JPEG/PNG — o WhatsApp NÃO
+    // renderiza WebP e ignora previews grandes (~>600 KB, que era o caso do PNG
+    // do canvas). Por isso reencodamos SEMPRE para JPEG comprimido (~100-150 KB).
+    const isPng  = arquivo[0] === 0x89 && arquivo[1] === 0x50;             // ‰P
+    const isJpeg = arquivo[0] === 0xFF && arquivo[1] === 0xD8;             // FF D8
+    const isWebp = arquivo.length > 11
+      && arquivo[0] === 0x52 && arquivo[1] === 0x49                        // RI (RIFF)
+      && arquivo[8] === 0x57 && arquivo[9] === 0x45;                       // WE (WEBP)
+    if (!isPng && !isJpeg && !isWebp) throw AppError.badRequest('Formato inválido (PNG, JPEG ou WebP).');
 
     const shop = await this.#repo.getPorOwner(userId);
     if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
 
-    const path = `${shop.id}/og-card.png`;
-    await this.#repo.uploadImagemBarbearia(path, arquivo, 'image/png');
+    let jpg;
+    try {
+      jpg = await sharp(arquivo, { failOn: 'none' })
+        .resize(1080, 1080, { fit: 'cover' })
+        .flatten({ background: '#0d0d0d' })          // card é opaco; remove alpha p/ JPEG
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer();
+    } catch {
+      throw AppError.badRequest('Arquivo de imagem inválido.');
+    }
+
+    const path = `${shop.id}/og-card.jpg`;
+    await this.#repo.uploadImagemBarbearia(path, jpg, 'image/jpeg');
 
     return { path, publicUrl: this.#repo.getBarbershopPublicUrl(path) };
   }

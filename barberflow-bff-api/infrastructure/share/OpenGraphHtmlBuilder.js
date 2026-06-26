@@ -21,16 +21,24 @@ class OpenGraphHtmlBuilder {
    * @param {string} [dados.siteName]   — og:site_name
    * @returns {string} HTML completo
    */
-  build({ title, description, image, canonicalUrl, redirectUrl, siteName = 'BarberFlow' }) {
+  build({ title, description, image, imageWidth, imageHeight, imageType, canonicalUrl, redirectUrl, siteName = 'BarberFlow' }) {
     const t   = OpenGraphHtmlBuilder.#escHtml(title || siteName);
     const d   = OpenGraphHtmlBuilder.#escHtml(description || '');
     const url = OpenGraphHtmlBuilder.#escAttr(canonicalUrl || '');
     const dst = OpenGraphHtmlBuilder.#escAttr(redirectUrl || '');
     const dstJs = OpenGraphHtmlBuilder.#escJsString(redirectUrl || '');
     const site = OpenGraphHtmlBuilder.#escHtml(siteName);
+    const img = image ? OpenGraphHtmlBuilder.#escAttr(image) : '';
+    // og:image:width/height/type ajudam (e às vezes são exigidos) o WhatsApp a
+    // renderizar a imagem do preview. secure_url reforça o carregamento HTTPS.
     const imgTag = image
-      ? `\n  <meta property="og:image" content="${OpenGraphHtmlBuilder.#escAttr(image)}">` +
-        `\n  <meta name="twitter:image" content="${OpenGraphHtmlBuilder.#escAttr(image)}">`
+      ? `\n  <meta property="og:image" content="${img}">` +
+        `\n  <meta property="og:image:secure_url" content="${img}">` +
+        (imageType   ? `\n  <meta property="og:image:type" content="${OpenGraphHtmlBuilder.#escAttr(imageType)}">` : '') +
+        (imageWidth  ? `\n  <meta property="og:image:width" content="${OpenGraphHtmlBuilder.#escAttr(String(imageWidth))}">` : '') +
+        (imageHeight ? `\n  <meta property="og:image:height" content="${OpenGraphHtmlBuilder.#escAttr(String(imageHeight))}">` : '') +
+        `\n  <meta property="og:image:alt" content="${t}">` +
+        `\n  <meta name="twitter:image" content="${img}">`
       : '';
     const twitterCard = image ? 'summary_large_image' : 'summary';
 
@@ -42,7 +50,6 @@ class OpenGraphHtmlBuilder {
   <title>${t}</title>
   <meta name="description" content="${OpenGraphHtmlBuilder.#escAttr(description || '')}">
   <link rel="canonical" href="${url}">
-  <meta property="fb:app_id" content="">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="${site}">
   <meta property="og:title" content="${OpenGraphHtmlBuilder.#escAttr(title || siteName)}">
@@ -51,7 +58,6 @@ class OpenGraphHtmlBuilder {
   <meta name="twitter:card" content="${twitterCard}">
   <meta name="twitter:title" content="${OpenGraphHtmlBuilder.#escAttr(title || siteName)}">
   <meta name="twitter:description" content="${OpenGraphHtmlBuilder.#escAttr(description || '')}">
-  <meta http-equiv="refresh" content="0; url=${dst}">
 </head>
 <body>
   <p>Redirecionando para ${t}…</p>

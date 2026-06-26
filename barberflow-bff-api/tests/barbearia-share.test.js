@@ -36,7 +36,10 @@ suite('OpenGraphHtmlBuilder', () => {
     assert.match(html, /<meta property="og:title" content="Barbearia Central">/);
     assert.match(html, /<meta property="og:image" content="https:\/\/cdn\.exemplo\/logo\.png">/);
     assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
-    assert.match(html, /http-equiv="refresh" content="0; url=https:\/\/app\.berberflow\.shop\/\?barbearia=abc"/);
+    // NÃO pode ter meta-refresh: o scraper (FB/WhatsApp) o segue e acaba lendo
+    // as OG tags genéricas do SPA cliente, sobrescrevendo as da barbearia.
+    assert.doesNotMatch(html, /http-equiv="refresh"/);
+    // Humano é redirecionado só por JS (scraper não executa JS).
     assert.match(html, /location\.replace\("https:\/\/app\.berberflow\.shop\/\?barbearia=abc"\)/);
   });
 
@@ -65,6 +68,7 @@ suite('BarbeariaShareController', () => {
     builder,
     appBaseUrl: 'https://app.berberflow.shop',
     supabaseUrl: 'https://proj.supabase.co',
+    objectExists: async () => false, // por padrão, sem og-card no Storage
   };
 
   test('barbearia encontrada → 200, HTML com nome e redirect com ?barbearia=', async () => {
@@ -82,6 +86,9 @@ suite('BarbeariaShareController', () => {
     assert.match(res.headers['content-type'], /text\/html/);
     assert.match(res.body, /Barbearia Central/);
     assert.match(res.body, new RegExp(`barbearia=${SHOP_ID}`));
+    // og:url = domínio público do app (NÃO o host do request, que é bff via proxy)
+    assert.match(res.body, new RegExp(`<meta property="og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}">`));
+    assert.doesNotMatch(res.body, /og:url" content="https:\/\/bff\.berberflow\.shop/);
     // usa cover_path (preferência) na URL pública do Supabase
     assert.match(res.body, /proj\.supabase\.co\/storage\/v1\/object\/public\/barbershops\/capa\.png/);
   });
@@ -107,22 +114,28 @@ suite('BarbeariaShareController', () => {
     assert.match(res.body, /BarberFlow/);
   });
 
-  test('?og=1 usa og-card.png do Supabase em vez da capa do perfil', async () => {
+  test('com og-card no Storage usa o card (jpg) em vez da capa do perfil', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'Barbearia X', city: 'SP', state: 'SP',
         cover_path: 'capa.png', logo_path: null,
       }),
     };
-    const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
+    const ctrl = new BarbeariaShareController({ ...baseDeps, repo, objectExists: async () => true });
     const res  = criarRes();
     await ctrl.handle(criarReq(SHOP_ID, { og: '1' }), res);
 
-    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.png`));
+    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.jpg`));
     assert.doesNotMatch(res.body, /capa\.png/);
+    // dimensões/tipo do card ajudam o WhatsApp a renderizar a imagem
+    assert.match(res.body, /<meta property="og:image:width" content="1080">/);
+    assert.match(res.body, /<meta property="og:image:height" content="1080">/);
+    assert.match(res.body, /<meta property="og:image:type" content="image\/jpeg">/);
+    // og:url preserva ?og=1 e usa o domínio público do app
+    assert.match(res.body, new RegExp(`og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?og=1"`));
   });
 
-  test('sem ?og=1 usa a capa/logo do perfil', async () => {
+  test('sem og-card no Storage usa a capa/logo do perfil', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'Y', city: null, state: null,
@@ -134,7 +147,39 @@ suite('BarbeariaShareController', () => {
     await ctrl.handle(criarReq(SHOP_ID, {}), res);
 
     assert.match(res.body, /capa\.png/);
-    assert.doesNotMatch(res.body, /og-card\.png/);
+    assert.doesNotMatch(res.body, /og-card\./);
+  });
+
+  test('com og-card no Storage usa o card mesmo sem ?og=1 (independe do timing)', async () => {
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'Z', city: null, state: null,
+        cover_path: 'capa.png', logo_path: null,
+      }),
+    };
+    const ctrl = new BarbeariaShareController({ ...baseDeps, repo, objectExists: async () => true });
+    const res  = criarRes();
+    await ctrl.handle(criarReq(SHOP_ID, {}), res);
+
+    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.jpg`));
+    assert.doesNotMatch(res.body, /capa\.png/);
+  });
+
+  test('cai no og-card.png legado quando não há jpg (compat)', async () => {
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'W', city: null, state: null,
+        cover_path: 'capa.png', logo_path: null,
+      }),
+    };
+    const ctrl = new BarbeariaShareController({
+      ...baseDeps, repo, objectExists: async (u) => u.endsWith('og-card.png'),
+    });
+    const res  = criarRes();
+    await ctrl.handle(criarReq(SHOP_ID, {}), res);
+
+    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.png`));
+    assert.doesNotMatch(res.body, /og-card\.jpg/);
   });
 
   test('construtor valida dependências', () => {
