@@ -5393,17 +5393,17 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 66px;
-  height: 66px;
+  width: 48px;
+  height: 48px;
   border: none;
   border-radius: 50%;
   background: #25D366;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(37,211,102,.42);
+  box-shadow: 0 6px 16px rgba(37,211,102,.4);
 }
 .mb-share-whats:active { transform: scale(.94); }
-.mb-share-whats-ico { width: 36px; height: 36px; display: block; }
+.mb-share-whats-ico { width: 26px; height: 26px; display: block; }
 
 .mb-share-status {
   margin: 0;
