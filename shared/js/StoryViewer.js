@@ -585,6 +585,7 @@ class StoryViewer {
     return {
       storyId:          story.id          ?? null,
       ownerId:          story.owner_id    ?? null,
+      isOwner:          Boolean(story.owner_id && StoryViewer.#usuarioAtualId() === story.owner_id),
       videoSrc:         story.media_url   ?? '',
       poster:           story.thumbnail_url ?? story.thumbnail_path ?? '',
       badgeSrc:         StoryViewer.#identityBadge(story, cardEl),
@@ -600,6 +601,12 @@ class StoryViewer {
   static #identityName(story, cardEl) {
     if (story.tipo_autor === 'parceiro') return story.poster_name ?? story.shop_name ?? '';
     return story.shop_name ?? cardEl?.querySelector('.story-card-name')?.textContent ?? '';
+  }
+
+  static #usuarioAtualId() {
+    return typeof AuthService !== 'undefined'
+      ? (AuthService.getPerfil?.()?.id ?? null)
+      : null;
   }
 
   static #identityBadge(story, cardEl) {
@@ -633,6 +640,9 @@ class StoryViewer {
     const addr         = inner.querySelector('.sv-addr');
     const likeBtn      = inner.querySelector('.sv-like-btn');
     const likeCount    = inner.querySelector('.sv-like-btn span');
+    const mensagensBtn = inner.querySelector('.sv-comentar-btn');
+    const mensagensTitulo = inner.querySelector('.sv-comment-header span');
+    const mensagensInput = inner.querySelector('.sv-comment-input-wrap');
     const barberAvatar = inner.querySelector('.sv-barber-avatar');
     const barberName   = inner.querySelector('.sv-barber-name');
 
@@ -647,6 +657,14 @@ class StoryViewer {
     addr.textContent      = dados.addr;
     likeCount.textContent = dados.likeCount;
     likeBtn.classList.toggle('curtido', dados.curtido);
+
+    if (mensagensBtn) {
+      mensagensBtn.setAttribute('aria-label', dados.isOwner ? 'Ver mensagens do story' : 'Enviar mensagem sobre story');
+      const label = mensagensBtn.querySelector('span');
+      if (label) label.textContent = dados.isOwner ? 'Mensagens' : 'Comentar';
+    }
+    if (mensagensTitulo) mensagensTitulo.textContent = dados.isOwner ? 'Mensagens recebidas' : 'Enviar mensagem';
+    if (mensagensInput) mensagensInput.hidden = dados.isOwner;
 
     // Avatar do barbeiro por vídeo (source: story.poster_avatar_path)
     const barberOverlay = inner.querySelector('.sv-barber-overlay');
@@ -949,8 +967,10 @@ class StoryViewer {
     // Carrega comentários existentes do story ativo
     StoryViewer.#carregarComentarios(inner);
 
-    // Foca no input
-    setTimeout(() => inner.querySelector('.sv-comment-input')?.focus(), 320);
+    // O autor so consulta as mensagens privadas; visitantes podem enviar uma nova.
+    if (!StoryViewer.#storyAtualEhDoUsuario()) {
+      setTimeout(() => inner.querySelector('.sv-comment-input')?.focus(), 320);
+    }
   }
 
   /** Fecha o painel de comentários e retoma o vídeo. */
@@ -1021,6 +1041,7 @@ class StoryViewer {
     input.disabled = true;
 
     const story = StoryViewer.#viewerState.stories[StoryViewer.#viewerState.currentIndex] ?? {};
+    if (StoryViewer.#storyAtualEhDoUsuario()) return;
 
     // Renderiza otimisticamente
     const lista = inner.querySelector('.sv-comment-lista');
@@ -1053,6 +1074,12 @@ class StoryViewer {
 
     input.disabled = false;
     input.focus();
+  }
+
+  static #storyAtualEhDoUsuario() {
+    const story = StoryViewer.#viewerState.stories[StoryViewer.#viewerState.currentIndex] ?? {};
+    const userId = StoryViewer.#usuarioAtualId();
+    return Boolean(userId && story.owner_id && userId === story.owner_id);
   }
 
   /**

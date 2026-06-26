@@ -19,4 +19,14 @@ describe('StoryViewer interacoes', () => {
     assert.doesNotMatch(source, /MessageService\.enviarComentarioStory/);
     assert.doesNotMatch(source, /SupabaseService\.storyComments/);
   });
+
+  test('mostra mensagens recebidas ao autor do story sem permitir autoenvio', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'shared/js/StoryViewer.js'), 'utf8');
+
+    assert.match(source, /#usuarioAtualId\(\)/);
+    assert.match(source, /isOwner:\s+Boolean\(story\.owner_id && StoryViewer\.#usuarioAtualId\(\) === story\.owner_id\)/);
+    assert.match(source, /Ver mensagens do story/);
+    assert.match(source, /mensagensInput\.hidden = dados\.isOwner/);
+    assert.match(source, /if \(StoryViewer\.#storyAtualEhDoUsuario\(\)\) return;/);
+  });
 });
