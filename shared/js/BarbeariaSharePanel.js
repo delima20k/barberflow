@@ -109,28 +109,14 @@ class BarbeariaSharePanel {
   async #compartilhar() {
     if (!this.#barbershopId) return;
 
+    // Compartilha a URL → o WhatsApp monta o CARD DE PREVIEW CLICÁVEL (imagem +
+    // nome) a partir das meta tags Open Graph que a BFF serve em /b/:id. Ao clicar
+    // no card, abre a página pública da barbearia. O `?v=` força raspagem fresca.
+    //
     // NÃO aguarda nada assíncrono antes de navigator.share — qualquer await perde
-    // o contexto de gesto do usuário (iOS bloqueia). O card (#cardFile) já foi
-    // gerado quando a tela abriu, então usamos ele direto.
-    const url  = this.#ogUrl();
-    const file = this.#cardFile;
+    // o contexto de gesto do usuário (iOS bloqueia a ação).
+    const url = this.#ogUrl();
 
-    // PREFERÊNCIA: enviar a IMAGEM do card + o link como legenda. A imagem do card
-    // vai GARANTIDA no WhatsApp (é um anexo de foto, não depende do preview OG),
-    // e o link na legenda abre a página da barbearia.
-    if (file && typeof navigator !== 'undefined'
-        && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], text: url });
-        return;
-      } catch (e) {
-        if (e?.name === 'AbortError') return;
-        // Outro erro → cai no fallback de URL abaixo.
-      }
-    }
-
-    // Fallback (desktop / sem suporte a compartilhar arquivo): só a URL — o
-    // WhatsApp tenta montar o preview OG (card vem das meta tags da BFF).
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ url });
@@ -139,6 +125,7 @@ class BarbeariaSharePanel {
         if (e?.name === 'AbortError') return;
       }
     }
+    // Fallback (desktop / sem Web Share): abre o WhatsApp com a URL no texto.
     if (typeof window !== 'undefined') {
       window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank', 'noopener');
     }
