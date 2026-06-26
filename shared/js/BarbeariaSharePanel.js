@@ -84,14 +84,17 @@ class BarbeariaSharePanel {
   // ── URLs ───────────────────────────────────────────────────
 
   /**
-   * URL de compartilhamento: app.berberflow.shop/b/{id}
-   * O Vercel proxy redireciona /b/:id → BFF, que serve as meta OG.
-   * Quando o canvas foi salvo, ?og=1 instrui o BFF a usar a arte gerada.
+   * URL de compartilhamento: app.berberflow.shop/b/{id}?v={token}
+   * O Vercel proxy redireciona /b/:id → BFF, que serve as meta OG (card).
+   *
+   * O `?v=` é um cache-buster ÚNICO por compartilhamento: o WhatsApp trata cada
+   * link como novo e raspa as OG tags na hora, evitando mostrar um preview velho
+   * que ficou em cache. O servidor ignora o parâmetro e resolve o card pela
+   * existência do arquivo og-card no Storage.
    */
   #ogUrl() {
-    const base = `${BarbeariaSharePanel.APP_URL}/b/${this.#barbershopId}`;
-    if (this.#cardUrl) return `${base}?og=1`;
-    return base;
+    const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    return `${BarbeariaSharePanel.APP_URL}/b/${this.#barbershopId}?v=${token}`;
   }
 
   /** URL do app cliente — usada no botão "Copiar". */
