@@ -232,7 +232,7 @@ class BarbeariaSharePanel {
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur  = 0;
 
-    const logoCx = W / 2, logoCy = 138, logoR = 86;
+    const logoCx = W / 2, logoCy = 142, logoR = 94;
     // Fundo creme do logo (círculo)
     ctx.fillStyle = '#F5EDD4';
     ctx.beginPath();
@@ -242,7 +242,7 @@ class BarbeariaSharePanel {
       const logo = await BarbeariaSharePanel.#carregarImg('/shared/img/icon-192-pro.png');
       // Remove o fundo escuro quadrado do ícone → só a marca sobre o creme.
       const semFundo = BarbeariaSharePanel.#removerFundoDoIcone(logo);
-      const ls = 140;
+      const ls = 184; // ícone grande dentro do círculo (transparência deixa o creme aparecer)
       ctx.drawImage(semFundo, logoCx - ls / 2, logoCy - ls / 2, ls, ls);
     } catch (_) {
       ctx.fillStyle = '#3b1f08';
