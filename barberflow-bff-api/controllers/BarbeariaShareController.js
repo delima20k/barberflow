@@ -46,6 +46,12 @@ class BarbeariaShareController {
   handle = async (req, res) => {
     const id = String(req.params.id ?? '');
     const homeUrl = this.#appBaseUrl || '/';
+
+    // /b/:id?img=1 → serve os BYTES da imagem do card pelo PRÓPRIO domínio
+    // (app.berberflow.shop via proxy), em vez de apontar o og:image para o
+    // Supabase. WhatsApp/Facebook renderizam de forma muito mais confiável
+    // quando a imagem está no mesmo domínio da página.
+    if (req.query?.img === '1') return this.#serveImage(id, res);
     // og:url é a URL pública canônica (domínio do app cliente), NÃO o host do
     // request — atrás do proxy Vercel req.get('host') seria bff.berberflow.shop.
     // Mantém og:url == URL compartilhada == rota que o app resolve. Preserva ?og=1.
@@ -74,11 +80,13 @@ class BarbeariaShareController {
     }
 
     const image = await this.#resolverImagem(shop);
+    // og:image servido pelo próprio domínio (proxy dos bytes em ?img=1).
+    const imageUrl = image.url ? `${homeUrl}/b/${encodeURIComponent(shop.id)}?img=1` : '';
 
     const html = this.#builder.build({
       title: shop.name || this.#siteName,
       description: this.#descricao(shop),
-      image: image.url,
+      image: imageUrl,
       imageWidth: image.width,
       imageHeight: image.height,
       imageType: image.type,
@@ -92,6 +100,33 @@ class BarbeariaShareController {
     logger?.info?.('[share] barbearia servida', { id: shop.id });
     return res.status(200).send(html);
   };
+
+  /**
+   * GET /b/:id?img=1 — busca os bytes da imagem do card (Supabase) e os devolve
+   * pelo próprio domínio, com Content-Type de imagem. Espelha o padrão de servir
+   * a og:image na mesma origem da página (mais confiável p/ o scraper).
+   */
+  async #serveImage(id, res) {
+    let shop = null;
+    try { shop = await this.#repo.getPublicShareData(id); } catch { shop = null; }
+    const src = shop ? (await this.#resolverImagem(shop)) : { url: '' };
+    if (!src.url) return res.status(404).end();
+
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      const upstream = await fetch(src.url, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!upstream.ok) return res.status(404).end();
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      res.set('Content-Type', upstream.headers.get('content-type') || src.type || 'image/jpeg');
+      res.set('Content-Length', String(buf.length));
+      res.set('Cache-Control', 'public, max-age=300');
+      return res.status(200).send(buf);
+    } catch {
+      return res.status(404).end();
+    }
+  }
 
   #descricao(shop) {
     const local = [shop.city, shop.state].filter(Boolean).join(' - ');

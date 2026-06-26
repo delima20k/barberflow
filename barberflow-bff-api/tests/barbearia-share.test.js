@@ -89,8 +89,9 @@ suite('BarbeariaShareController', () => {
     // og:url = domínio público do app (NÃO o host do request, que é bff via proxy)
     assert.match(res.body, new RegExp(`<meta property="og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}">`));
     assert.doesNotMatch(res.body, /og:url" content="https:\/\/bff\.berberflow\.shop/);
-    // usa cover_path (preferência) na URL pública do Supabase
-    assert.match(res.body, /proj\.supabase\.co\/storage\/v1\/object\/public\/barbershops\/capa\.png/);
+    // og:image servido pelo próprio domínio (proxy ?img=1), não expõe o Supabase
+    assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
+    assert.doesNotMatch(res.body, /supabase\.co/);
   });
 
   test('barbearia inexistente → 200 genérico, redirect para a home', async () => {
@@ -125,9 +126,9 @@ suite('BarbeariaShareController', () => {
     const res  = criarRes();
     await ctrl.handle(criarReq(SHOP_ID, { og: '1' }), res);
 
-    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.jpg`));
-    assert.doesNotMatch(res.body, /capa\.png/);
-    // dimensões/tipo do card ajudam o WhatsApp a renderizar a imagem
+    // og:image = proxy no próprio domínio; dimensões/tipo do card ajudam o WhatsApp
+    assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
+    assert.doesNotMatch(res.body, /supabase\.co/);
     assert.match(res.body, /<meta property="og:image:width" content="1080">/);
     assert.match(res.body, /<meta property="og:image:height" content="1080">/);
     assert.match(res.body, /<meta property="og:image:type" content="image\/jpeg">/);
@@ -135,7 +136,7 @@ suite('BarbeariaShareController', () => {
     assert.match(res.body, new RegExp(`og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?og=1"`));
   });
 
-  test('sem og-card no Storage usa a capa/logo do perfil', async () => {
+  test('sem card no Storage mas com capa: og:image proxy, sem dimensões', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'Y', city: null, state: null,
@@ -146,11 +147,26 @@ suite('BarbeariaShareController', () => {
     const res  = criarRes();
     await ctrl.handle(criarReq(SHOP_ID, {}), res);
 
-    assert.match(res.body, /capa\.png/);
-    assert.doesNotMatch(res.body, /og-card\./);
+    assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
+    assert.doesNotMatch(res.body, /og:image:width/); // capa não tem dimensões conhecidas
   });
 
-  test('com og-card no Storage usa o card mesmo sem ?og=1 (independe do timing)', async () => {
+  test('sem card e sem capa: omite og:image', async () => {
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'Sem Imagem', city: null, state: null,
+        cover_path: null, logo_path: null,
+      }),
+    };
+    const ctrl = new BarbeariaShareController({ ...baseDeps, repo });
+    const res  = criarRes();
+    await ctrl.handle(criarReq(SHOP_ID, {}), res);
+
+    assert.doesNotMatch(res.body, /og:image/);
+    assert.match(res.body, /twitter:card" content="summary"/);
+  });
+
+  test('com og-card no Storage: og:image proxy mesmo sem ?og=1 (independe do timing)', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'Z', city: null, state: null,
@@ -161,25 +177,61 @@ suite('BarbeariaShareController', () => {
     const res  = criarRes();
     await ctrl.handle(criarReq(SHOP_ID, {}), res);
 
-    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.jpg`));
-    assert.doesNotMatch(res.body, /capa\.png/);
+    assert.match(res.body, new RegExp(`<meta property="og:image" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?img=1">`));
+    assert.match(res.body, /og:image:width" content="1080"/);
   });
 
-  test('cai no og-card.png legado quando não há jpg (compat)', async () => {
+  test('?img=1 serve os BYTES da imagem pelo próprio domínio', async () => {
+    const repo = {
+      getPublicShareData: async () => ({
+        id: SHOP_ID, name: 'X', city: null, state: null,
+        cover_path: 'capa.png', logo_path: null,
+      }),
+    };
+    const fakeBytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    const origFetch = global.fetch;
+    global.fetch = async () => ({
+      ok: true,
+      headers: { get: () => 'image/jpeg' },
+      arrayBuffer: async () => fakeBytes,
+    });
+    try {
+      const ctrl = new BarbeariaShareController({ ...baseDeps, repo, objectExists: async () => true });
+      const res  = criarRes();
+      await ctrl.handle(criarReq(SHOP_ID, { img: '1' }), res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.headers['content-type'], 'image/jpeg');
+      assert.ok(Buffer.isBuffer(res.body) && res.body.equals(fakeBytes));
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+
+  test('cai no og-card.png legado quando não há jpg (compat, via ?img=1)', async () => {
     const repo = {
       getPublicShareData: async () => ({
         id: SHOP_ID, name: 'W', city: null, state: null,
         cover_path: 'capa.png', logo_path: null,
       }),
     };
-    const ctrl = new BarbeariaShareController({
-      ...baseDeps, repo, objectExists: async (u) => u.endsWith('og-card.png'),
-    });
-    const res  = criarRes();
-    await ctrl.handle(criarReq(SHOP_ID, {}), res);
-
-    assert.match(res.body, new RegExp(`${SHOP_ID}/og-card\\.png`));
-    assert.doesNotMatch(res.body, /og-card\.jpg/);
+    let fetched = '';
+    const origFetch = global.fetch;
+    global.fetch = async (u) => {
+      fetched = String(u);
+      return { ok: true, headers: { get: () => 'image/png' }, arrayBuffer: async () => Buffer.from([0x89, 0x50]) };
+    };
+    try {
+      const ctrl = new BarbeariaShareController({
+        ...baseDeps, repo, objectExists: async (u) => u.endsWith('og-card.png'),
+      });
+      const res = criarRes();
+      await ctrl.handle(criarReq(SHOP_ID, { img: '1' }), res);
+      assert.equal(res.statusCode, 200);
+      assert.match(fetched, /og-card\.png$/); // buscou o png legado, não o jpg
+    } finally {
+      global.fetch = origFetch;
+    }
   });
 
   test('construtor valida dependências', () => {
