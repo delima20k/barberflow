@@ -8417,6 +8417,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   --pp-radius: 200px;
 }
 .pp-prism-viewer[hidden] { display: none; }
+.pp-prism-viewer[data-mode="story"] { padding-bottom: 74px; }
 
 .pp-prism-close {
   display: none;

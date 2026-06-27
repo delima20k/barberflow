@@ -120,9 +120,22 @@ class AuthService {
    * @param {function(string)} navFn
    * @param {function|null}    onMensagem — callback(msg, tipo) para feedback de formulário
    */
-  static async cadastro({ nome, email, telefone, senha, senha2, role = 'client', pro_type = null, barbearia = null }, navFn, onMensagem = null) {
+  static async cadastro({
+    nome,
+    email,
+    telefone,
+    senha,
+    senha2,
+    role = 'client',
+    pro_type = null,
+    barbearia = null,
+    cpf = null,
+    cnpj = null,
+  }, navFn, onMensagem = null) {
     nome  = nome?.trim();
     email = email?.trim();
+    const doc = AuthService.#normalizarDocumentoProfissional({ cpf, cnpj, role });
+    if (!doc.ok) { AuthService.#notificarMensagem(onMensagem, doc.msg); return; }
 
     const vCadastro = InputValidator.todos([
       InputValidator.nome(nome),
@@ -139,7 +152,16 @@ class AuthService {
       const signUpData = await SupabaseService.signUp(
         email,
         senha,
-        { full_name: nome, role, phone: telefone || null, pro_type: pro_type || null, barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null }
+        {
+          full_name: nome,
+          role,
+          phone: telefone || null,
+          pro_type: pro_type || null,
+          barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null,
+          cpf: doc.tipo === 'cpf' ? doc.valor : null,
+          cnpj: doc.tipo === 'cnpj' ? doc.valor : null,
+          cpf_cnpj: doc.valor || null,
+        }
       );
 
       const user    = signUpData?.user    ?? null;
@@ -199,6 +221,24 @@ class AuthService {
    * @param {function(string)} navFn
    * @param {function|null}    onMensagem — callback(msg, tipo) para feedback de formulário
    */
+  static #normalizarDocumentoProfissional({ cpf = null, cnpj = null, role = 'client' } = {}) {
+    if (role !== 'professional') return { ok: true, msg: '', valor: null, tipo: null };
+
+    const cpfDigits = String(cpf ?? '').replace(/\D/g, '');
+    const cnpjDigits = String(cnpj ?? '').replace(/\D/g, '');
+    if (cpfDigits) {
+      const valid = InputValidator.cpf(cpfDigits, true);
+      if (!valid.ok) return valid;
+      return { ok: true, msg: '', valor: cpfDigits, tipo: 'cpf' };
+    }
+    if (cnpjDigits) {
+      const valid = InputValidator.cnpj(cnpjDigits, true);
+      if (!valid.ok) return valid;
+      return { ok: true, msg: '', valor: cnpjDigits, tipo: 'cnpj' };
+    }
+    return { ok: false, msg: 'Informe CPF ou CNPJ para criar a conta profissional.' };
+  }
+
   static async recuperarSenha(email, navFn, onMensagem = null) {
     email = email?.trim();
     if (!email) {

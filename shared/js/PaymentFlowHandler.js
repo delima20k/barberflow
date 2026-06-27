@@ -166,7 +166,8 @@ class PaymentFlowHandler {
     try {
       PaymentFlowHandler.#browserPaymentInFlight = true;
       PaymentFlowHandler.#mostrarToast('Gerando cobranca segura...');
-      const cpfCnpj = await PaymentFlowHandler.#solicitarDocumentoCobranca();
+      const cpfCnpj = PaymentFlowHandler.#documentoDaSessao(session)
+        || await PaymentFlowHandler.#solicitarDocumentoCobranca();
       const { data, error } = await BffApiService.pagamentosProfissional.criarCobranca({
         proType: tipo,
         planType: plano,
@@ -200,6 +201,16 @@ class PaymentFlowHandler {
       if (valido.ok) return digits;
       PaymentFlowHandler.#mostrarToast(valido.msg);
     }
+  }
+
+  static #documentoDaSessao(session) {
+    const meta = session?.user?.user_metadata || {};
+    const candidates = [meta.cpf_cnpj, meta.cpfCnpj, meta.cpf, meta.cnpj];
+    for (const item of candidates) {
+      const digits = String(item ?? '').replace(/\D/g, '');
+      if (PaymentFlowHandler.#validarDocumento(digits).ok) return digits;
+    }
+    return null;
   }
 
   static #validarDocumento(digits) {
