@@ -1,6 +1,7 @@
 'use strict';
 
 const AppError = require('../../utils/AppError');
+const { logger } = require('../../middlewares/logger');
 
 class AsaasClient {
   #apiKey;
@@ -64,9 +65,14 @@ class AsaasClient {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const err = new AppError('Nao foi possivel processar a cobranca no Asaas.', res.status >= 500 ? 502 : 400);
+        const asaasMessage = this.#mensagemErro(json, res.status);
+        logger.warn(
+          { status: res.status, message: asaasMessage, path, method },
+          '[AsaasClient] request rejeitada pelo Asaas',
+        );
+        const err = this.#erroHttp(res.status, asaasMessage);
         err.asaasStatus = res.status;
-        err.asaasMessage = this.#mensagemErro(json, res.status);
+        err.asaasMessage = asaasMessage;
         throw err;
       }
       return json;
@@ -91,6 +97,24 @@ class AsaasClient {
   #mensagemErro(json, status) {
     const first = Array.isArray(json?.errors) ? json.errors[0] : null;
     return first?.description || json?.error || `Asaas retornou HTTP ${status}.`;
+  }
+
+  #erroHttp(status, asaasMessage) {
+    if (status === 401 || status === 403) {
+      return AppError.unavailable('Asaas recusou a credencial da BFF. Verifique ASAAS_API_KEY e ambiente.');
+    }
+    if (status >= 500) {
+      return new AppError('Asaas indisponivel no momento.', 502);
+    }
+    return AppError.badRequest(`Asaas rejeitou a cobranca: ${this.#mensagemPublica(asaasMessage)}`);
+  }
+
+  #mensagemPublica(message) {
+    const text = String(message || 'dados invalidos.')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 180);
+    return text || 'dados invalidos.';
   }
 }
 

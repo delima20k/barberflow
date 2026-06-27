@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
 const ProfessionalPaymentService = require('../services/ProfessionalPaymentService');
+const AsaasClient = require('../infrastructure/payments/AsaasClient');
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -127,6 +128,40 @@ class FakeAsaas {
     };
   }
 }
+
+test('AsaasClient mapeia credencial recusada como configuracao indisponivel', async () => {
+  const client = new AsaasClient({
+    apiKey: 'fake',
+    baseUrl: 'https://asaas.test',
+    fetchImpl: async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ errors: [{ description: 'Access token invalido' }] }),
+    }),
+  });
+
+  await assert.rejects(
+    () => client.criarCobranca({}),
+    err => err.status === 503 && /credencial/.test(err.message),
+  );
+});
+
+test('AsaasClient preserva motivo seguro de payload rejeitado', async () => {
+  const client = new AsaasClient({
+    apiKey: 'fake',
+    baseUrl: 'https://asaas.test',
+    fetchImpl: async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ errors: [{ description: 'O campo customer e obrigatorio.' }] }),
+    }),
+  });
+
+  await assert.rejects(
+    () => client.criarCobranca({}),
+    err => err.status === 400 && /customer/.test(err.message),
+  );
+});
 
 test('cria cobranca Asaas para profissional autenticado', async () => {
   const repo = new FakeRepo();
