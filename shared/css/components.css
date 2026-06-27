@@ -3078,29 +3078,21 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   transform: scale(1.25);
 }
 
-/* Botão comentar (ao lado do curtir) */
+/* Botão mensagem (ícone 💬 só — igual ao portfólio) */
 .sv-comentar-btn {
   all: unset;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   padding: 7px 14px;
   border-radius: var(--r-full);
   background: rgba(0,0,0,.55);
   border: 1px solid rgba(255,255,255,.18);
   margin-left: 8px;
   -webkit-tap-highlight-color: transparent;
-}
-.sv-comentar-btn img {
-  width: 20px; height: 20px;
-  object-fit: contain;
-  filter: invert(1);
-}
-.sv-comentar-btn span {
-  font-size: .82rem;
-  font-weight: 700;
-  color: #fff;
+  font-size: 1.3rem;
+  line-height: 1;
 }
 
 /* ── Painel de comentários (slide-up sobre o inner) ─────── */
