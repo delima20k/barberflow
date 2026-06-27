@@ -18,6 +18,15 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data ?? null;
   }
 
+  async getAuthUserMetadata(userId) {
+    this._uuid('userId', userId);
+    if (typeof this._db.auth?.admin?.getUserById !== 'function') return {};
+
+    const { data, error } = await this._db.auth.admin.getUserById(userId);
+    if (error) this._throwDbError(error, 'getAuthUserMetadata');
+    return data?.user?.user_metadata ?? {};
+  }
+
   async getCustomerByUser(userId) {
     this._uuid('userId', userId);
     const { data, error } = await this._db

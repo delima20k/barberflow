@@ -9,9 +9,15 @@ const AsaasClient = require('../infrastructure/payments/AsaasClient');
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 
 class FakeRepo {
-  constructor({ profileRole = 'professional', existingCustomer = null, profilePhone = '11999999999' } = {}) {
+  constructor({
+    profileRole = 'professional',
+    existingCustomer = null,
+    profilePhone = '11999999999',
+    authMetadata = {},
+  } = {}) {
     this.profileRole = profileRole;
     this.profilePhone = profilePhone;
+    this.authMetadata = authMetadata;
     this.customer = existingCustomer;
     this.createdPayments = [];
     this.events = [];
@@ -33,6 +39,10 @@ class FakeRepo {
 
   async getCustomerByUser() {
     return this.customer;
+  }
+
+  async getAuthUserMetadata() {
+    return this.authMetadata;
   }
 
   async salvarCustomer(payload) {
@@ -170,7 +180,7 @@ test('AsaasClient preserva motivo seguro de payload rejeitado', async () => {
 });
 
 test('cria cobranca Asaas para profissional autenticado', async () => {
-  const repo = new FakeRepo();
+  const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
   const asaas = new FakeAsaas();
   const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
 
@@ -208,6 +218,20 @@ test('envia CPF/CNPJ ao criar cliente Asaas', async () => {
   assert.equal(asaas.updatedCustomers.length, 0);
 });
 
+test('usa CPF/CNPJ do cadastro do usuario quando payload nao envia customer', async () => {
+  const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'PIX' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(asaas.customers[0].cpfCnpj, '52998224725');
+});
+
 test('atualiza cliente Asaas existente com CPF/CNPJ antes da cobranca', async () => {
   const repo = new FakeRepo({
     existingCustomer: {
@@ -240,7 +264,10 @@ test('atualiza cliente Asaas existente com CPF/CNPJ antes da cobranca', async ()
 });
 
 test('normaliza dados opcionais antes de enviar ao Asaas', async () => {
-  const repo = new FakeRepo({ profilePhone: '+55 (11) 99999-9999' });
+  const repo = new FakeRepo({
+    profilePhone: '+55 (11) 99999-9999',
+    authMetadata: { cpf_cnpj: '529.982.247-25' },
+  });
   const asaas = new FakeAsaas();
   const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
 
@@ -256,8 +283,25 @@ test('normaliza dados opcionais antes de enviar ao Asaas', async () => {
   );
 
   assert.equal(asaas.customers[0].mobilePhone, '11999999999');
-  assert.equal('cpfCnpj' in asaas.customers[0], false);
+  assert.equal(asaas.customers[0].cpfCnpj, '52998224725');
   assert.equal('remoteIp' in asaas.payments[0], false);
+});
+
+test('bloqueia cobranca sem CPF/CNPJ antes de chamar Asaas', async () => {
+  const repo = new FakeRepo();
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await assert.rejects(
+    () => service.criarCobranca(
+      { id: USER_ID, email: 'teste@barberflow.test' },
+      { proType: 'barbeiro', planType: 'mensal', billingType: 'PIX' },
+      { ip: '127.0.0.1' },
+    ),
+    err => err.status === 400 && /CPF ou CNPJ/.test(err.message),
+  );
+  assert.equal(asaas.customers.length, 0);
+  assert.equal(asaas.payments.length, 0);
 });
 
 test('bloqueia plano invalido antes de chamar Asaas', async () => {

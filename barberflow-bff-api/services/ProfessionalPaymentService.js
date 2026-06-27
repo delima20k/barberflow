@@ -43,7 +43,13 @@ class ProfessionalPaymentService extends BaseService {
     const profile = await this.#repo.getProfile(userId);
     this.#assertProfessional(profile);
 
-    const dadosCliente = this.#montarDadosCliente({ profile, user, body });
+    const authMetadata = typeof this.#repo.getAuthUserMetadata === 'function'
+      ? await this.#repo.getAuthUserMetadata(userId)
+      : {};
+    const dadosCliente = this.#montarDadosCliente({ profile, user, body, authMetadata });
+    if (!dadosCliente.cpfCnpj) {
+      throw AppError.badRequest('CPF ou CNPJ do cadastro profissional e obrigatorio para gerar cobranca.');
+    }
     let customer = await this.#repo.getCustomerByUser(userId);
     if (!customer) {
       const asaasCustomer = await this.#asaas.criarCliente(dadosCliente);
@@ -168,10 +174,23 @@ class ProfessionalPaymentService extends BaseService {
     }
   }
 
-  #montarDadosCliente({ profile, user, body }) {
+  #montarDadosCliente({ profile, user, body, authMetadata = {} }) {
     const customer = body.customer ?? {};
     const name = this._texto('customer.name', customer.name ?? profile.full_name, 120, true);
-    const cpfCnpj = this.#normalizarCpfCnpj(customer.cpfCnpj ?? customer.cpf_cnpj ?? body.cpfCnpj ?? body.cpf_cnpj);
+    const cpfCnpj = this.#normalizarCpfCnpjDeCandidatos([
+      customer.cpfCnpj,
+      customer.cpf_cnpj,
+      body.cpfCnpj,
+      body.cpf_cnpj,
+      user?.user_metadata?.cpf_cnpj,
+      user?.user_metadata?.cpfCnpj,
+      user?.user_metadata?.cpf,
+      user?.user_metadata?.cnpj,
+      authMetadata.cpf_cnpj,
+      authMetadata.cpfCnpj,
+      authMetadata.cpf,
+      authMetadata.cnpj,
+    ]);
     const mobilePhone = this.#normalizarMobilePhone(customer.mobilePhone ?? customer.mobile_phone ?? profile.phone);
     const email = this._texto('customer.email', customer.email ?? user?.email ?? '', 160, false);
 
@@ -247,6 +266,14 @@ class ProfessionalPaymentService extends BaseService {
   #normalizarCpfCnpj(value) {
     const digits = this.#somenteDigitos(value);
     return [11, 14].includes(digits.length) ? digits : null;
+  }
+
+  #normalizarCpfCnpjDeCandidatos(candidates) {
+    for (const candidate of candidates) {
+      const normalized = this.#normalizarCpfCnpj(candidate);
+      if (normalized) return normalized;
+    }
+    return null;
   }
 
   #normalizarMobilePhone(value) {
