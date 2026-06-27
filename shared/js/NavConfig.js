@@ -66,6 +66,7 @@ class NavConfig {
       { tela: 'mensagens',       icone: 'mensagen.svg', label: 'Mensagens'           },
       { tela: 'minha-barbearia', icone: 'meu-b.svg',    label: 'Minha Barbearia'     },
       { tela: 'financas',        icone: 'finaca.svg',   label: 'Finanças'            },
+      { acao: 'planos-pro',      icone: 'cadastro.svg', label: 'Planos Pro'          },
       { tela: 'perfil',          icone: 'perfil.svg',   label: 'Meu Perfil'          },
       { acao: 'sair',            icone: 'sair.svg',     label: 'Sair'                },
     ];
@@ -79,6 +80,7 @@ class NavConfig {
       { tela: 'mensagens',    icone: 'mensagen.svg', label: 'Mensagens'           },
       { tela: 'parcerias',    icone: 'meu-b.svg',    label: 'Parcerias'           },
       { tela: 'financas',     icone: 'finaca.svg',   label: 'Finanças'            },
+      { acao: 'planos-pro',   icone: 'cadastro.svg', label: 'Planos Pro'          },
       { tela: 'perfil',       icone: 'perfil.svg',   label: 'Meu Perfil'          },
       { acao: 'sair',         icone: 'sair.svg',     label: 'Sair'                },
     ];
@@ -140,6 +142,8 @@ class NavConfig {
         ? `${p}.navDoMenu('sair')`
         : item.acao === 'cadastro-pro'
         ? `${p}.irParaCadastroGuardado()`
+        : item.acao === 'planos-pro'
+        ? `${p}.irParaPlanosPro()`
         : `${p}.nav('${item.tela}')`;
       // data-tela permite ao Router marcar o item ativo com .ativo
       const dataTela = item.tela ? `data-tela="${item.tela}"` : '';
