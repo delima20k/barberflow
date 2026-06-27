@@ -60,15 +60,18 @@ class ProfessionalPaymentService extends BaseService {
     const description = this._texto('description', body.description ?? plano.description, 240, false)
       || plano.description;
 
-    const asaasPayment = await this.#asaas.criarCobranca({
+    const remoteIp = this.#normalizarRemoteIp(meta.ip);
+    const payloadCobranca = {
       customer: customer.asaas_customer_id,
       billingType,
       value: plano.value,
       dueDate,
       description,
       externalReference: `${userId}:${proType}:${planType}:${Date.now()}`,
-      remoteIp: meta.ip || undefined,
-    });
+    };
+    if (remoteIp) payloadCobranca.remoteIp = remoteIp;
+
+    const asaasPayment = await this.#asaas.criarCobranca(payloadCobranca);
 
     let pix = null;
     if (billingType === 'PIX' && asaasPayment?.id) {
@@ -159,8 +162,8 @@ class ProfessionalPaymentService extends BaseService {
   #montarDadosCliente({ profile, user, body }) {
     const customer = body.customer ?? {};
     const name = this._texto('customer.name', customer.name ?? profile.full_name, 120, true);
-    const cpfCnpj = this.#somenteDigitos(customer.cpfCnpj ?? customer.cpf_cnpj ?? body.cpfCnpj ?? body.cpf_cnpj);
-    const mobilePhone = this.#somenteDigitos(customer.mobilePhone ?? customer.mobile_phone ?? profile.phone);
+    const cpfCnpj = this.#normalizarCpfCnpj(customer.cpfCnpj ?? customer.cpf_cnpj ?? body.cpfCnpj ?? body.cpf_cnpj);
+    const mobilePhone = this.#normalizarMobilePhone(customer.mobilePhone ?? customer.mobile_phone ?? profile.phone);
     const email = this._texto('customer.email', customer.email ?? user?.email ?? '', 160, false);
 
     const payload = { name };
@@ -230,6 +233,28 @@ class ProfessionalPaymentService extends BaseService {
 
   #somenteDigitos(value) {
     return String(value ?? '').replace(/\D/g, '');
+  }
+
+  #normalizarCpfCnpj(value) {
+    const digits = this.#somenteDigitos(value);
+    return [11, 14].includes(digits.length) ? digits : null;
+  }
+
+  #normalizarMobilePhone(value) {
+    let digits = this.#somenteDigitos(value);
+    if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
+      digits = digits.slice(2);
+    }
+    return [10, 11].includes(digits.length) ? digits : null;
+  }
+
+  #normalizarRemoteIp(value) {
+    const text = String(value ?? '').trim().replace(/^::ffff:/, '');
+    if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(text)) return null;
+    const octets = text.split('.').map(Number);
+    return octets.every(octet => Number.isInteger(octet) && octet >= 0 && octet <= 255)
+      ? text
+      : null;
   }
 
   #toPaymentDto(row) {

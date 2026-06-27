@@ -8,8 +8,9 @@ const ProfessionalPaymentService = require('../services/ProfessionalPaymentServi
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 
 class FakeRepo {
-  constructor({ profileRole = 'professional', existingCustomer = null } = {}) {
+  constructor({ profileRole = 'professional', existingCustomer = null, profilePhone = '11999999999' } = {}) {
     this.profileRole = profileRole;
+    this.profilePhone = profilePhone;
     this.customer = existingCustomer;
     this.createdPayments = [];
     this.events = [];
@@ -22,7 +23,7 @@ class FakeRepo {
     return {
       id: USER_ID,
       full_name: 'Profissional Teste',
-      phone: '11999999999',
+      phone: this.profilePhone,
       role: this.profileRole,
       pro_type: 'barbeiro',
       is_active: true,
@@ -144,6 +145,27 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
+});
+
+test('normaliza dados opcionais antes de enviar ao Asaas', async () => {
+  const repo = new FakeRepo({ profilePhone: '+55 (11) 99999-9999' });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    {
+      proType: 'barbeiro',
+      planType: 'mensal',
+      billingType: 'PIX',
+      customer: { cpfCnpj: '123' },
+    },
+    { ip: '::1' },
+  );
+
+  assert.equal(asaas.customers[0].mobilePhone, '11999999999');
+  assert.equal('cpfCnpj' in asaas.customers[0], false);
+  assert.equal('remoteIp' in asaas.payments[0], false);
 });
 
 test('bloqueia plano invalido antes de chamar Asaas', async () => {
