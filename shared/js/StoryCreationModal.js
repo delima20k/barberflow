@@ -76,40 +76,127 @@ class CameraMediaSource {
   }
 }
 
-// Gravador de vídeo na própria modal, com limite de tempo (auto-stop).
+// Gravador de vídeo na própria modal, com troca de câmera, zoom pinch,
+// seletor de qualidade (HD/720p/480p) e seletor de duração (15s/30s).
 class CameraRecorder {
-  static async gravar(maxSeconds = 35) {
+  static QUALIDADES = {
+    alta:  { width: { ideal: 1920 }, height: { ideal: 1080 } },
+    media: { width: { ideal: 1280 }, height: { ideal: 720  } },
+    baixa: { width: { ideal: 640  }, height: { ideal: 480  } },
+  };
+
+  static #streamPara(facingMode, qualKey) {
+    const q = CameraRecorder.QUALIDADES[qualKey] || CameraRecorder.QUALIDADES.media;
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode, ...q }, audio: true });
+  }
+
+  static async gravar(maxSeconds = 30) {
+    let facingMode = 'environment';
+    let qualKey    = 'media';
+    let duracao    = maxSeconds;
+    let zoomLevel  = 1;
+
     let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: true,
-      });
-    } catch (_) {
-      return null; // permissão negada / sem câmera
-    }
+    try { stream = await CameraRecorder.#streamPara(facingMode, qualKey); }
+    catch (_) { return null; }
 
     return new Promise((resolve) => {
       const mime = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
         .find(t => { try { return MediaRecorder.isTypeSupported?.(t); } catch (_) { return false; } }) || '';
 
-      let recorder = null;
-      let chunks = [];
-      let gravando = false;
-      let timerInt = null;
-      let autoStop = null;
+      let recorder = null, chunks = [], gravando = false, timerInt = null, autoStop = null;
 
       const live = scEl('video', { class: 'sc-camera-live', attrs: { playsinline: '', autoplay: '' } });
       live.muted = true;
       try { live.srcObject = stream; } catch (_) {}
       try { live.play?.(); } catch (_) {}
 
-      const timer  = scEl('div', { class: 'sc-camera-timer', text: `0s / ${maxSeconds}s` });
-      const recBtn = scEl('button', { class: 'sc-camera-rec', type: 'button', attrs: { 'aria-label': 'Gravar' } });
+      const timer  = scEl('div',    { class: 'sc-camera-timer', text: `0s / ${duracao}s` });
+      const recBtn = scEl('button', { class: 'sc-camera-rec',   type: 'button', attrs: { 'aria-label': 'Gravar' } });
       const close  = scEl('button', { class: 'sc-camera-close', type: 'button', text: '×', attrs: { 'aria-label': 'Fechar' } });
-      const overlay = scEl('div', { class: 'sc-camera', attrs: { role: 'dialog', 'aria-label': 'Gravar vídeo' },
-        children: [live, timer, recBtn, close] });
 
+      // Botão trocar câmera (frente ↔ traseira)
+      const flipBtn = scEl('button', { class: 'sc-camera-flip', type: 'button', attrs: { 'aria-label': 'Trocar câmera' } });
+      flipBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>';
+
+      // Painel de qualidade
+      const qualKeys   = ['alta', 'media', 'baixa'];
+      const qualLabels = { alta: 'HD', media: '720p', baixa: '480p' };
+      const qualBtns   = qualKeys.map(k => {
+        const b = scEl('button', { class: 'sc-camera-opt-btn' + (k === qualKey ? ' is-active' : ''), type: 'button', text: qualLabels[k] });
+        b.addEventListener('click', async () => {
+          if (gravando) return;
+          qualKey = k;
+          qualBtns.forEach(x => x.classList.remove('is-active'));
+          b.classList.add('is-active');
+          await trocarStream();
+        });
+        return b;
+      });
+      const qualPanel = scEl('div', { class: 'sc-camera-opts', children: qualBtns });
+
+      // Painel de duração
+      const durs    = [15, 30];
+      const durBtns = durs.map(d => {
+        const b = scEl('button', { class: 'sc-camera-opt-btn' + (d === duracao ? ' is-active' : ''), type: 'button', text: `${d}s` });
+        b.addEventListener('click', () => {
+          if (gravando) return;
+          duracao = d;
+          durBtns.forEach(x => x.classList.remove('is-active'));
+          b.classList.add('is-active');
+          timer.textContent = `0s / ${duracao}s`;
+        });
+        return b;
+      });
+      const durPanel = scEl('div', { class: 'sc-camera-opts sc-camera-dur', children: durBtns });
+
+      const overlay = scEl('div', { class: 'sc-camera', attrs: { role: 'dialog', 'aria-label': 'Gravar vídeo' },
+        children: [live, timer, qualPanel, durPanel, flipBtn, recBtn, close] });
+
+      // Troca câmera / qualidade
+      const trocarStream = async () => {
+        let newStream;
+        try { newStream = await CameraRecorder.#streamPara(facingMode, qualKey); }
+        catch (_) { return; }
+        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        stream = newStream;
+        try { live.srcObject = stream; live.play?.(); } catch (_) {}
+        zoomLevel = 1;
+        live.style.transform = '';
+      };
+
+      flipBtn.addEventListener('click', async () => {
+        if (gravando) return;
+        facingMode = facingMode === 'environment' ? 'user' : 'environment';
+        await trocarStream();
+      });
+
+      // Zoom por pinch (toque de 2 dedos)
+      let pinchDist0 = null, zoom0 = 1;
+      overlay.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          pinchDist0 = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          zoom0 = zoomLevel;
+          e.preventDefault();
+        }
+      }, { passive: false });
+      overlay.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && pinchDist0) {
+          const dist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          zoomLevel = Math.min(5, Math.max(1, zoom0 * (dist / pinchDist0)));
+          live.style.transform = zoomLevel > 1 ? `scale(${zoomLevel.toFixed(2)})` : '';
+          e.preventDefault();
+        }
+      }, { passive: false });
+      overlay.addEventListener('touchend', () => { pinchDist0 = null; });
+
+      // Gravação
       const limpar = () => {
         try { clearInterval(timerInt); } catch (_) {}
         try { clearTimeout(autoStop); } catch (_) {}
@@ -129,29 +216,25 @@ class CameraRecorder {
       const parar = () => {
         try { clearInterval(timerInt); } catch (_) {}
         try { clearTimeout(autoStop); } catch (_) {}
-        if (recorder && recorder.state === 'recording') recorder.stop(); // → onstop → finalizar
+        if (recorder && recorder.state === 'recording') recorder.stop();
       };
 
       const iniciar = () => {
         chunks = [];
-        try {
-          recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-        } catch (_) {
-          recorder = new MediaRecorder(stream);
-        }
+        try { recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+        catch (_) { recorder = new MediaRecorder(stream); }
         recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         recorder.onstop = () => finalizar(new Blob(chunks, { type: mime || 'video/webm' }));
         recorder.start();
         gravando = true;
         recBtn.classList.add('is-rec');
+        qualPanel.hidden = true;
+        durPanel.hidden  = true;
+        flipBtn.hidden   = true;
         let s = 0;
-        timer.textContent = `0s / ${maxSeconds}s`;
-        timerInt = setInterval(() => {
-          s += 1;
-          timer.textContent = `${s}s / ${maxSeconds}s`;
-        }, 1000);
-        // Para sozinha ao atingir o limite (35s).
-        autoStop = setTimeout(() => parar(), maxSeconds * 1000);
+        timer.textContent = `0s / ${duracao}s`;
+        timerInt = setInterval(() => { s += 1; timer.textContent = `${s}s / ${duracao}s`; }, 1000);
+        autoStop = setTimeout(() => parar(), duracao * 1000);
       };
 
       recBtn.addEventListener('click', () => { gravando ? parar() : iniciar(); });
