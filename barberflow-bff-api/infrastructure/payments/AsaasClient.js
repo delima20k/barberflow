@@ -33,6 +33,13 @@ class AsaasClient {
     });
   }
 
+  async atualizarCliente(customerId, payload) {
+    return this.#request(`/v3/customers/${encodeURIComponent(customerId)}`, {
+      method: 'PUT',
+      body: payload,
+    });
+  }
+
   async criarCobranca(payload) {
     return this.#request('/v3/payments', {
       method: 'POST',

@@ -166,10 +166,12 @@ class PaymentFlowHandler {
     try {
       PaymentFlowHandler.#browserPaymentInFlight = true;
       PaymentFlowHandler.#mostrarToast('Gerando cobranca segura...');
+      const cpfCnpj = await PaymentFlowHandler.#solicitarDocumentoCobranca();
       const { data, error } = await BffApiService.pagamentosProfissional.criarCobranca({
         proType: tipo,
         planType: plano,
         billingType: 'PIX',
+        customer: { cpfCnpj },
       });
       if (error) throw error;
 
@@ -183,6 +185,37 @@ class PaymentFlowHandler {
     } finally {
       PaymentFlowHandler.#browserPaymentInFlight = false;
     }
+  }
+
+  static async #solicitarDocumentoCobranca() {
+    const atual = '';
+    for (;;) {
+      const informado = window.prompt(
+        'Para gerar a cobranca Pix, informe o CPF ou CNPJ do cliente pagador.',
+        atual,
+      );
+      if (informado === null) throw new Error('CPF ou CNPJ obrigatorio para gerar a cobranca.');
+      const digits = String(informado).replace(/\D/g, '');
+      const valido = PaymentFlowHandler.#validarDocumento(digits);
+      if (valido.ok) return digits;
+      PaymentFlowHandler.#mostrarToast(valido.msg);
+    }
+  }
+
+  static #validarDocumento(digits) {
+    if (digits.length === 11) {
+      if (typeof InputValidator !== 'undefined' && typeof InputValidator.cpf === 'function') {
+        return InputValidator.cpf(digits, true);
+      }
+      return { ok: true, msg: '' };
+    }
+    if (digits.length === 14) {
+      if (typeof InputValidator !== 'undefined' && typeof InputValidator.cnpj === 'function') {
+        return InputValidator.cnpj(digits, true);
+      }
+      return { ok: true, msg: '' };
+    }
+    return { ok: false, msg: 'Informe um CPF com 11 digitos ou CNPJ com 14 digitos.' };
   }
 
   static #isTWA() {

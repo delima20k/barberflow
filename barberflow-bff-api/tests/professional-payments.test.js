@@ -103,12 +103,18 @@ class FakeRepo {
 class FakeAsaas {
   constructor() {
     this.customers = [];
+    this.updatedCustomers = [];
     this.payments = [];
   }
 
   async criarCliente(payload) {
     this.customers.push(payload);
     return { id: 'cus_123' };
+  }
+
+  async atualizarCliente(customerId, payload) {
+    this.updatedCustomers.push({ customerId, payload });
+    return { id: customerId, ...payload };
   }
 
   async criarCobranca(payload) {
@@ -180,6 +186,57 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
+});
+
+test('envia CPF/CNPJ ao criar cliente Asaas', async () => {
+  const repo = new FakeRepo();
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    {
+      proType: 'barbeiro',
+      planType: 'mensal',
+      billingType: 'PIX',
+      customer: { cpfCnpj: '529.982.247-25' },
+    },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(asaas.customers[0].cpfCnpj, '52998224725');
+  assert.equal(asaas.updatedCustomers.length, 0);
+});
+
+test('atualiza cliente Asaas existente com CPF/CNPJ antes da cobranca', async () => {
+  const repo = new FakeRepo({
+    existingCustomer: {
+      id: '22222222-2222-4222-8222-222222222222',
+      user_id: USER_ID,
+      asaas_customer_id: 'cus_existente',
+      name: 'Profissional Teste',
+      email: 'teste@barberflow.test',
+      mobile_phone: '11999999999',
+    },
+  });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    {
+      proType: 'barbeiro',
+      planType: 'mensal',
+      billingType: 'PIX',
+      customer: { cpfCnpj: '11.444.777/0001-61' },
+    },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(asaas.customers.length, 0);
+  assert.equal(asaas.updatedCustomers[0].customerId, 'cus_existente');
+  assert.equal(asaas.updatedCustomers[0].payload.cpfCnpj, '11444777000161');
+  assert.equal(asaas.payments[0].customer, 'cus_existente');
 });
 
 test('normaliza dados opcionais antes de enviar ao Asaas', async () => {

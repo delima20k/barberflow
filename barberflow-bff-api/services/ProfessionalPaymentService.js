@@ -43,9 +43,9 @@ class ProfessionalPaymentService extends BaseService {
     const profile = await this.#repo.getProfile(userId);
     this.#assertProfessional(profile);
 
+    const dadosCliente = this.#montarDadosCliente({ profile, user, body });
     let customer = await this.#repo.getCustomerByUser(userId);
     if (!customer) {
-      const dadosCliente = this.#montarDadosCliente({ profile, user, body });
       const asaasCustomer = await this.#asaas.criarCliente(dadosCliente);
       customer = await this.#repo.salvarCustomer({
         userId,
@@ -53,6 +53,15 @@ class ProfessionalPaymentService extends BaseService {
         name: dadosCliente.name,
         email: dadosCliente.email ?? null,
         mobilePhone: dadosCliente.mobilePhone ?? null,
+      });
+    } else if (dadosCliente.cpfCnpj && typeof this.#asaas.atualizarCliente === 'function') {
+      await this.#asaas.atualizarCliente(customer.asaas_customer_id, {
+        cpfCnpj: dadosCliente.cpfCnpj,
+        name: customer.name || dadosCliente.name,
+        ...(customer.email || dadosCliente.email ? { email: customer.email || dadosCliente.email } : {}),
+        ...(customer.mobile_phone || dadosCliente.mobilePhone
+          ? { mobilePhone: customer.mobile_phone || dadosCliente.mobilePhone }
+          : {}),
       });
     }
 
