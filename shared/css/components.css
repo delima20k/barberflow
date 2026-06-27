@@ -3,6 +3,18 @@
    Depende de tokens.css. Inclua APÓS tokens.css.
 ============================================================ */
 
+/* ── Proteções de app (dissuasão de download de mídia + zoom) ──
+   Bloqueia "salvar imagem"/arrastar em mídias e o zoom de duplo-toque.
+   Pinch-zoom é bloqueado em JS (AppGuards.js) + viewport. Não é segurança
+   real — só dissuasão (print/DevTools ainda passam). */
+img, video, .bf-protegido {
+  -webkit-touch-callout: none;   /* iOS: sem menu "Salvar imagem" no toque longo */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+html { touch-action: manipulation; } /* mata o zoom de duplo-toque, mantém scroll */
+
 /* ── Header Global Fixo — definição principal em shared/css/components.css (~linha 1059) ── */
 
 /* Botão hamburger */
