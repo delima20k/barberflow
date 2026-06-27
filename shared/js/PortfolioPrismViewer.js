@@ -270,12 +270,30 @@ class MediaPrismViewer {
       // Mesma lógica do portfólio: dono → div oculta; visitante → input + emojis
       const ownerId = item?.owner_id ?? item?.shop_owner_id ?? item?.author_id ?? null;
       const isOwner = Boolean(ownerId && ownerId === MediaPrismViewer.#perfilAtual()?.id);
-      this.#publicActions.hidden = isOwner;
+
       if (isOwner) {
+        // Dono: mostra só 👍 + 💬, posicionados mais acima e maiores
+        this.#publicActions.hidden = false;
+        this.#publicActions.classList.add('is-owner-actions');
+        if (this.#publicLogo) this.#publicLogo.hidden = true;
+        const wrap = this.#publicInput?.closest('.pp-prism-message-wrap');
+        if (wrap) wrap.hidden = true;
+        this.#publicEmojis.forEach(btn => { btn.hidden = true; });
         if (this.#publicInput) this.#publicInput.value = '';
+        if (this.#storyOwnerActions) {
+          this.#storyOwnerActions.hidden = false;
+          const count = Math.max(0, Number(item?.likes_count ?? item?.likesCount ?? 0));
+          const countEl = this.#storyOwnerActions.querySelector('.portfolio-action__count');
+          if (countEl) countEl.textContent = String(count);
+          const isLiked = Boolean(item?.user_liked ?? item?.liked);
+          if (this.#storyOwnerLikeBtn) this.#storyOwnerLikeBtn.classList.toggle('is-liked', isLiked);
+        }
         return;
       }
-      // Visitante: logo + input + emojis visíveis; owner-actions oculto
+
+      // Visitante: remove classe owner, logo + input + emojis visíveis; owner-actions oculto
+      this.#publicActions.hidden = false;
+      this.#publicActions.classList.remove('is-owner-actions');
       if (this.#publicLogo) {
         const rawPath = item?.shop_logo_path || '';
         const logoUrl = rawPath && typeof ApiService !== 'undefined'
@@ -529,6 +547,11 @@ class MediaPrismViewer {
     item.user_liked  = !prevLiked;
     item.likes_count = prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
     this.#renderFaces();
+    if (this.#storyOwnerActions && !this.#storyOwnerActions.hidden) {
+      const countEl = this.#storyOwnerActions.querySelector('.portfolio-action__count');
+      if (countEl) countEl.textContent = String(item.likes_count);
+      if (this.#storyOwnerLikeBtn) this.#storyOwnerLikeBtn.classList.toggle('is-liked', item.user_liked);
+    }
     document.dispatchEvent(new CustomEvent('barberflow:prism-story-like', {
       bubbles: false,
       detail: { storyId: item.id, mediaId: item.media_id, item },

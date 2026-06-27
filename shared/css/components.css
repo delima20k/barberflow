@@ -8813,6 +8813,26 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: #ff6b8a;
 }
 
+/* Dono do story: só 👍 + 💬, mais acima e maiores */
+.pp-prism-public-actions.is-owner-actions {
+  bottom: 120px;
+  gap: 14px;
+}
+.pp-prism-public-actions .pp-prism-story-owner-actions {
+  position: static;
+  display: flex;
+  gap: 12px;
+}
+.pp-prism-public-actions.is-owner-actions .portfolio-action {
+  min-width: 64px;
+  height: 58px;
+  font-size: 1.4rem;
+  padding: 0 16px;
+  gap: 6px;
+}
+.pp-prism-public-actions.is-owner-actions .portfolio-action__icon { font-size: 1.5rem; }
+.pp-prism-public-actions.is-owner-actions .portfolio-action__count { font-size: 1rem; font-weight: 700; }
+
 @keyframes pp-prism-float-up {
   0% { opacity: 0; transform: translate(-50%, 12px) scale(.94); }
   15% { opacity: 1; }
