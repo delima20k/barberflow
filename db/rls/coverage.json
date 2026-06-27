@@ -107,6 +107,21 @@
       "sensitiveColumns": ["user_id", "plan", "price", "payment_token"],
       "tests": ["supabase/tests/rls_crud_suite.sql"]
     },
+    "public.asaas_customers": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "asaas_customer_id", "email", "mobile_phone"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/professional-payments.test.js"]
+    },
+    "public.asaas_payments": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["user_id", "barbershop_id", "asaas_customer_id", "asaas_payment_id", "value", "pix_payload"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/professional-payments.test.js"]
+    },
+    "public.asaas_webhook_events": {
+      "operations": ["select", "insert", "update", "delete"],
+      "sensitiveColumns": ["event_id", "asaas_payment_id", "payload"],
+      "tests": ["supabase/tests/rls_crud_suite.sql", "barberflow-bff-api/tests/professional-payments.test.js"]
+    },
     "public.push_subscriptions": {
       "operations": ["select", "insert", "update", "delete"],
       "sensitiveColumns": ["user_id", "endpoint", "device_id"],

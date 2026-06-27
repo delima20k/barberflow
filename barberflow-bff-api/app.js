@@ -53,6 +53,7 @@ const agendamentosRoute     = require('./routes/agendamentos');
 const notificacoesRoute     = require('./routes/notificacoes');
 const mensalistasRoute      = require('./routes/mensalistas');
 const financeiroRoute       = require('./routes/financeiro');
+const professionalPaymentsRoute = require('./routes/professionalPayments');
 const geoRoute              = require('./routes/geo');
 const mediaRoute            = require('./routes/media');
 const feedRoute             = require('./routes/feed');
@@ -151,6 +152,7 @@ function criarApp(db = null) {
   v1Router.use('/notificacoes',  notificacoesRoute);
   v1Router.use('/mensalistas',   mensalistasRoute(_db));
   v1Router.use('/financeiro',     financeiroRoute(_db));
+  v1Router.use('/profissional/pagamentos', professionalPaymentsRoute(_db));
   v1Router.use('/geo',           geoRoute);
   v1Router.use('/media',         AbuseMiddleware.forHttp(), mediaRoute(_db));
   v1Router.use('/feed',          AbuseMiddleware.forHttp(), feedRoute(_db));

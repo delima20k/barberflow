@@ -17,6 +17,7 @@
 // =============================================================
 
 class PaymentFlowHandler {
+  static #browserPaymentInFlight = false;
 
   // Product IDs registrados no Google Play Console
   // Formato: barberflow_<tipo>_<plano>
@@ -44,7 +45,7 @@ class PaymentFlowHandler {
    * @param {Function} onSucesso — chamado após pagamento confirmado
    * @param {Function} [onErro]  — chamado em falha (opcional)
    */
-  static async iniciarFluxo(plano, onSucesso, onErro) {
+  static async iniciarFluxo(plano, onSucesso, onErro, opts = {}) {
     if (plano === 'trial') {
       // Teste grátis: sem cobrança, segue direto
       onSucesso();
@@ -52,9 +53,9 @@ class PaymentFlowHandler {
     }
 
     if (PaymentFlowHandler.#isTWA()) {
-      await PaymentFlowHandler.#fluxoTWA(plano, onSucesso, onErro);
+      await PaymentFlowHandler.#fluxoTWA(plano, onSucesso, onErro, opts);
     } else {
-      await PaymentFlowHandler.#fluxoBrowser(plano, onSucesso);
+      await PaymentFlowHandler.#fluxoBrowserAsaas(plano, onSucesso, onErro, opts);
     }
   }
 
@@ -84,10 +85,10 @@ class PaymentFlowHandler {
   // PRIVADO — Fluxo TWA (Google Play Billing)
   // ═══════════════════════════════════════════════════════════
 
-  static async #fluxoTWA(plano, onSucesso, onErro) {
+  static async #fluxoTWA(plano, onSucesso, onErro, opts = {}) {
     try {
       // Resolve tipo (barbeiro ou barbearia) via MonetizationGuard
-      const tipo = (typeof MonetizationGuard !== 'undefined' && MonetizationGuard.tipoUsuario) || 'barbeiro';
+      const tipo = opts.tipo || (typeof MonetizationGuard !== 'undefined' && MonetizationGuard.tipoUsuario) || 'barbeiro';
       const productId = PaymentFlowHandler.#PRODUCTS[tipo]?.[plano];
       if (!productId) throw new Error(`Produto não encontrado: ${tipo}/${plano}`);
 
@@ -146,6 +147,44 @@ class PaymentFlowHandler {
   // ═══════════════════════════════════════════════════════════
 
   /** Detecta se está rodando dentro de um TWA (Trusted Web Activity). */
+  static async #fluxoBrowserAsaas(plano, onSucesso, onErro, opts = {}) {
+    const tipo = opts.tipo || 'barbeiro';
+    if (PaymentFlowHandler.#browserPaymentInFlight) {
+      PaymentFlowHandler.#mostrarToast('Pagamento ja esta sendo gerado...');
+      return;
+    }
+
+    const session = await PaymentFlowHandler.#getSession();
+
+    if (!session?.access_token) {
+      PaymentFlowHandler.#mostrarToast('Crie sua conta profissional para concluir o pagamento.');
+      await new Promise(r => setTimeout(r, 1200));
+      onSucesso();
+      return;
+    }
+
+    try {
+      PaymentFlowHandler.#browserPaymentInFlight = true;
+      PaymentFlowHandler.#mostrarToast('Gerando cobranca segura...');
+      const { data, error } = await BffApiService.pagamentosProfissional.criarCobranca({
+        proType: tipo,
+        planType: plano,
+        billingType: 'PIX',
+      });
+      if (error) throw error;
+
+      const invoiceUrl = data?.invoiceUrl;
+      if (!invoiceUrl) throw new Error('Cobranca criada sem link de pagamento.');
+
+      window.location.assign(invoiceUrl);
+    } catch (err) {
+      PaymentFlowHandler.#mostrarToast(err?.message || 'Nao foi possivel iniciar o pagamento.');
+      if (typeof onErro === 'function') onErro(err?.message || 'Pagamento indisponivel.');
+    } finally {
+      PaymentFlowHandler.#browserPaymentInFlight = false;
+    }
+  }
+
   static #isTWA() {
     return (
       typeof window.getDigitalGoodsService === 'function' ||
@@ -164,5 +203,16 @@ class PaymentFlowHandler {
     toast.textContent = mensagem;
     toast.classList.add('pay-toast--visivel');
     setTimeout(() => toast.classList.remove('pay-toast--visivel'), 3500);
+  }
+
+  static async #getSession() {
+    try {
+      if (typeof SupabaseService !== 'undefined' && typeof SupabaseService.getSession === 'function') {
+        return await SupabaseService.getSession();
+      }
+    } catch (_) {
+      return null;
+    }
+    return null;
   }
 }

@@ -68,7 +68,7 @@ class PlanosController {
   #bindPlanosPro() {
     document.querySelectorAll('[data-tipo][data-plano]').forEach(btn => {
       btn.addEventListener('click', () =>
-        this.#selecionarPlanoPro(btn.dataset.tipo, btn.dataset.plano)
+        this.#selecionarPlanoPro(btn.dataset.tipo, btn.dataset.plano, btn)
       );
     });
   }
@@ -128,19 +128,25 @@ class PlanosController {
   }
 
   /** Delega fluxo Pro ao PlanosService. */
-  #selecionarPlanoPro(tipo, plano) {
-    PlanosService.iniciarFluxo(
-      tipo, plano,
-      () => {
-        sessionStorage.setItem('bf_termo_destino', 'cadastro');
-        this.#pushFn('termos-legais');
-      },
-      (msg) => {
-        LoggerService.warn('[PlanosController]', msg);
-        sessionStorage.setItem('bf_termo_destino', 'cadastro');
-        this.#pushFn('termos-legais');
-      },
-    );
+  async #selecionarPlanoPro(tipo, plano, botao = null) {
+    if (botao?.disabled) return;
+    if (botao) botao.disabled = true;
+    try {
+      await PlanosService.iniciarFluxo(
+        tipo, plano,
+        () => {
+          sessionStorage.setItem('bf_termo_destino', 'cadastro');
+          this.#pushFn('termos-legais');
+        },
+        (msg) => {
+          LoggerService.warn('[PlanosController]', msg);
+          sessionStorage.setItem('bf_termo_destino', 'cadastro');
+          this.#pushFn('termos-legais');
+        },
+      );
+    } finally {
+      if (botao) botao.disabled = false;
+    }
   }
 
   #mostrarToastEmBreve() {

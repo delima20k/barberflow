@@ -444,6 +444,24 @@ class BffApiService {
 
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──
 
+  static pagamentosProfissional = {
+    criarCobranca: ({
+      proType = 'barbeiro',
+      planType,
+      billingType = 'PIX',
+      customer = null,
+    } = {}) =>
+      BffApiService.post('/api/v1/profissional/pagamentos/cobrancas', {
+        proType,
+        planType,
+        billingType,
+        ...(customer ? { customer } : {}),
+      }),
+
+    buscarCobranca: (paymentId) =>
+      BffApiService.get(`/api/v1/profissional/pagamentos/cobrancas/${encodeURIComponent(paymentId)}`),
+  };
+
   /** @returns {string} URL base da BFF */
   static get baseUrl() { return BffApiService.#BASE_URL; }
 

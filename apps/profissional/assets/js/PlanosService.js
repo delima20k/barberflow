@@ -43,6 +43,6 @@ class PlanosService {
    */
   static iniciarFluxo(tipo, plano, onSucesso, onErro) {
     MonetizationGuard.setPlan(tipo, plano);
-    PaymentFlowHandler.iniciarFluxo(plano, onSucesso, onErro);
+    PaymentFlowHandler.iniciarFluxo(plano, onSucesso, onErro, { tipo });
   }
 }
