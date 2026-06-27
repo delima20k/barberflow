@@ -111,6 +111,11 @@ class BarberFlowProfissional extends Router {
    */
   irParaCadastroGuardado() { this.push('planos-pro'); }
 
+  irParaPlanosPro() {
+    this.fecharMenu?.();
+    this.push('planos-pro');
+  }
+
   /**
    * Retorna o subtipo do profissional logado.
    * Prioridade: perfil do banco → sessionStorage (pré-cadastro).

@@ -131,22 +131,35 @@ class PlanosController {
   async #selecionarPlanoPro(tipo, plano, botao = null) {
     if (botao?.disabled) return;
     if (botao) botao.disabled = true;
+    const usuarioLogado = this.#isUsuarioLogado();
     try {
       await PlanosService.iniciarFluxo(
         tipo, plano,
         () => {
-          sessionStorage.setItem('bf_termo_destino', 'cadastro');
-          this.#pushFn('termos-legais');
+          if (usuarioLogado) {
+            this.#pushFn('inicio');
+            return;
+          }
+          this.#abrirTermosCadastro();
         },
         (msg) => {
           LoggerService.warn('[PlanosController]', msg);
-          sessionStorage.setItem('bf_termo_destino', 'cadastro');
-          this.#pushFn('termos-legais');
+          if (!usuarioLogado) this.#abrirTermosCadastro();
         },
       );
     } finally {
       if (botao) botao.disabled = false;
     }
+  }
+
+  #isUsuarioLogado() {
+    const perfil = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
+    return Boolean(perfil?.id);
+  }
+
+  #abrirTermosCadastro() {
+    sessionStorage.setItem('bf_termo_destino', 'cadastro');
+    this.#pushFn('termos-legais');
   }
 
   #mostrarToastEmBreve() {
