@@ -489,7 +489,7 @@ class StoryViewer {
 
     const likeIcon = document.createElement('span');
     likeIcon.className = 'sv-like-icon';
-    likeIcon.textContent = '💎';
+    likeIcon.textContent = '👍';
 
     const likeCount = document.createElement('span');
     likeCount.textContent = '0';
@@ -497,11 +497,11 @@ class StoryViewer {
     likeBtn.append(likeIcon, likeCount);
     likeBtn.addEventListener('click', () => StoryViewer.toggleLike());
 
-    // ── Botão comentar ──
+    // ── Botão mensagem (só ícone, igual ao portfólio) ──
     const comentarBtn = document.createElement('button');
     comentarBtn.className = 'sv-comentar-btn';
-    comentarBtn.setAttribute('aria-label', 'Comentar story');
-    comentarBtn.innerHTML = '<img src="/shared/img/mensagen.svg" alt="comentar" onerror="this.outerHTML=\'\u{1F4AC}\'"> <span>Comentar</span>';
+    comentarBtn.setAttribute('aria-label', 'Mensagem');
+    comentarBtn.innerHTML = '<span aria-hidden="true">💬</span>';
     comentarBtn.addEventListener('click', () => StoryViewer.#abrirPainelComentario());
 
     svBottom.append(likeBtn, comentarBtn);
@@ -660,8 +660,6 @@ class StoryViewer {
 
     if (mensagensBtn) {
       mensagensBtn.setAttribute('aria-label', dados.isOwner ? 'Ver mensagens do story' : 'Enviar mensagem sobre story');
-      const label = mensagensBtn.querySelector('span');
-      if (label) label.textContent = dados.isOwner ? 'Mensagens' : 'Comentar';
     }
     if (mensagensTitulo) mensagensTitulo.textContent = dados.isOwner ? 'Mensagens recebidas' : 'Enviar mensagem';
     if (mensagensInput) mensagensInput.hidden = dados.isOwner;
