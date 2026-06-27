@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260627b';
+const SW_PRO_VERSION = '20260627c';
 
 class SWProfissional {
 
@@ -33,8 +33,8 @@ class SWProfissional {
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS_STATIC = [
-    '/assets/css/styles.css',
-    '/assets/js/app.js',
+    '/assets/css/styles.css?v=20260627c',
+    '/assets/js/app.js?v=20260627c',
     '/shared/css/tokens.css',
     '/shared/css/components.css',
     '/shared/css/notifications.css',
@@ -46,11 +46,11 @@ class SWProfissional {
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
     '/shared/js/NavigationViewService.js',
-    '/shared/js/Router.js',
+    '/shared/js/Router.js?v=20260627c',
     '/shared/js/BarberPole.js',
     '/shared/js/SplashService.js',
     '/shared/js/ProLandingGate.js',
-    '/shared/js/PaymentFlowHandler.js?v=20260627b',
+    '/shared/js/PaymentFlowHandler.js?v=20260627c',
     '/shared/js/CadeiraService.js',
     '/shared/js/ClienteSeletorModal.js',
     '/shared/js/CorteModal.js',
@@ -62,7 +62,7 @@ class SWProfissional {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
-    '/shared/js/BffApiService.js',
+    '/shared/js/BffApiService.js?v=20260627c',
     '/shared/js/BarbeiroAtividadeStatus.js',
     '/shared/js/MensalidadeInterestService.js',
     '/shared/js/ImageDeletionService.js',

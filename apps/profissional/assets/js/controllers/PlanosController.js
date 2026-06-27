@@ -1,44 +1,39 @@
 'use strict';
 
 // =============================================================
-// PlanosController.js — Seleção de tipo de usuário e planos
-//
-// Encapsula selecionarTipoUsuario(), selecionarPlano(),
-// selecionarPlanoPro() e alternarTipoPlano() que antes estavam
-// acumulados em BarberFlowProfissional.
-//
-// Binding programático via data-attributes — sem onclick no HTML:
-//   [data-tipo-usuario]     → selecionarTipoUsuario
-//   [data-plano-old]        → selecionarPlano (fluxo legado)
-//   [data-tipo][data-plano] → selecionarPlanoPro (fluxo Pro)
-//   #ppp-btn-barbeiro/barbearia → alternarTipoPlano (por ID)
+// PlanosController.js - Selecao de tipo, plano e confirmacao final
 // =============================================================
 
 class PlanosController {
 
-  #pushFn;  // (tela: string) => void — Pro.push()
+  #pushFn;
 
-  /**
-   * @param {function(string): void} pushFn — ex: (t) => Pro.push(t)
-   */
   constructor(pushFn) {
     this.#pushFn = pushFn;
   }
 
-  /**
-   * Registra todos os listeners de seleção de planos.
-   * Chame uma vez no constructor do App.
-   */
   bind() {
     this.#bindToggleTipo();
     this.#bindTipoUsuario();
     this.#bindPlanosOld();
     this.#bindPlanosPro();
+    this.#bindConfirmacaoPlano();
   }
 
-  // ── Privados ──────────────────────────────────────────────
+  prepararConfirmacao() {
+    const tipo = MonetizationGuard.tipoUsuario || 'barbeiro';
+    const plano = MonetizationGuard.planoSelecionado || 'trial';
+    const tipoTxt = tipo === 'barbearia' ? 'barbearia' : 'barbeiro';
+    const planoTxt = this.#planoLabel(plano);
 
-  /** Toggle barbeiro/barbearia na tela planos-pro */
+    const resumo = document.getElementById('pcp-resumo');
+    if (resumo) resumo.textContent = `Voce escolheu o plano ${planoTxt} para ${tipoTxt}.`;
+
+    document.querySelectorAll('[data-confirmar-plano]').forEach(btn => {
+      btn.classList.toggle('pcp-option--ativo', btn.dataset.confirmarPlano === plano);
+    });
+  }
+
   #bindToggleTipo() {
     ['barbeiro', 'barbearia'].forEach(tipo => {
       document.getElementById(`ppp-btn-${tipo}`)
@@ -46,7 +41,6 @@ class PlanosController {
     });
   }
 
-  /** Botões de seleção de tipo de usuário (fluxo legado) */
   #bindTipoUsuario() {
     document.querySelectorAll('[data-tipo-usuario]').forEach(btn => {
       btn.addEventListener('click', () =>
@@ -55,16 +49,14 @@ class PlanosController {
     });
   }
 
-  /** Botões de plano do fluxo legado (tela-planos-barbeiro) */
   #bindPlanosOld() {
     document.querySelectorAll('[data-plano-old]').forEach(btn => {
       btn.addEventListener('click', () =>
-        this.#selecionarPlano(btn.dataset.planoOld)
+        this.#selecionarPlanoLegado(btn.dataset.planoOld)
       );
     });
   }
 
-  /** Botões de plano Pro (tela-planos-pro) */
   #bindPlanosPro() {
     document.querySelectorAll('[data-tipo][data-plano]').forEach(btn => {
       btn.addEventListener('click', () =>
@@ -73,7 +65,21 @@ class PlanosController {
     });
   }
 
-  // ── DOM puro ──────────────────────────────────────────────
+  #bindConfirmacaoPlano() {
+    document.querySelectorAll('[data-confirmar-plano]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tipo = MonetizationGuard.tipoUsuario || 'barbeiro';
+        PlanosService.selecionarPlano(tipo, btn.dataset.confirmarPlano);
+        this.prepararConfirmacao();
+      });
+    });
+
+    document.getElementById('pcp-btn-mudar')
+      ?.addEventListener('click', () => this.#pushFn('planos-pro'));
+
+    document.getElementById('pcp-btn-continuar')
+      ?.addEventListener('click', () => this.#confirmarPlanoFinal());
+  }
 
   #alternarTipoPlano(tipo) {
     const eBarbeiro = tipo === 'barbeiro';
@@ -81,30 +87,20 @@ class PlanosController {
       ?.classList.toggle('ppp-toggle-btn--ativo', eBarbeiro);
     document.getElementById('ppp-btn-barbearia')
       ?.classList.toggle('ppp-toggle-btn--ativo', !eBarbeiro);
+
     const elB = document.getElementById('ppp-cards-barbeiro');
     const elS = document.getElementById('ppp-cards-barbearia');
     if (elB) elB.style.display = eBarbeiro ? '' : 'none';
     if (elS) elS.style.display = eBarbeiro ? 'none' : '';
+
     const sub = document.getElementById('ppp-subtitulo');
     if (sub) sub.textContent = eBarbeiro
       ? 'Plano Profissional para Barbeiros'
       : 'Plano Profissional para Barbearias';
 
-    // Persiste imediatamente para que getProType() retorne o valor correto no cadastro
     sessionStorage.setItem('bf_tipo', tipo);
-
-    // Se o usuário já está logado e escolheu 'barbearia', atualiza o nav do footer
-    // sem reload — caso seja barbeiro que ainda não criou barbearia mas quer navegar
-    if (!eBarbeiro && typeof AuthService !== 'undefined') {
-      const perfil = AuthService.getPerfil?.();
-      if (perfil && perfil.pro_type !== 'barbearia') {
-        AuthService.patchPerfil({ pro_type: 'barbearia' });
-        AuthService._atualizarUI?.(AuthService.getPerfil(), null);
-      }
-    }
   }
 
-  /** Delega a regra de tipo ao PlanosService e reage ao resultado. */
   #selecionarTipoUsuario(tipo) {
     const { podeAvancar } = PlanosService.selecionarTipo(tipo);
     if (!podeAvancar) {
@@ -114,42 +110,46 @@ class PlanosController {
     this.#pushFn('planos-barbeiro');
   }
 
-  /** Delega fluxo de plano legado ao PlanosService. */
-  #selecionarPlano(plano) {
+  #selecionarPlanoLegado(plano) {
     const tipo = sessionStorage.getItem('bf_tipo') || 'barbeiro';
-    PlanosService.iniciarFluxo(
-      tipo, plano,
-      () => this.#pushFn('cadastro'),
-      (msg) => {
-        LoggerService.warn('[PlanosController] Pagamento falhou:', msg);
-        this.#pushFn('cadastro');
-      },
-    );
+    PlanosService.selecionarPlano(tipo, plano);
+    this.#abrirTermosCadastro();
   }
 
-  /** Delega fluxo Pro ao PlanosService. */
   async #selecionarPlanoPro(tipo, plano, botao = null) {
     if (botao?.disabled) return;
     if (botao) botao.disabled = true;
     const usuarioLogado = this.#isUsuarioLogado();
     try {
-      await PlanosService.iniciarFluxo(
-        tipo, plano,
-        () => {
-          if (usuarioLogado) {
-            this.#pushFn('inicio');
-            return;
-          }
-          this.#abrirTermosCadastro();
-        },
-        (msg) => {
-          LoggerService.warn('[PlanosController]', msg);
-          if (!usuarioLogado) this.#abrirTermosCadastro();
-        },
-      );
+      PlanosService.selecionarPlano(tipo, plano);
+      this.#pushFn(usuarioLogado ? 'confirmar-plano-pro' : 'termos-legais');
     } finally {
       if (botao) botao.disabled = false;
     }
+  }
+
+  async #confirmarPlanoFinal() {
+    const btn = document.getElementById('pcp-btn-continuar');
+    const erro = document.getElementById('pcp-erro');
+    if (btn?.disabled) return;
+    if (btn) btn.disabled = true;
+    if (erro) {
+      erro.textContent = '';
+      erro.style.display = 'none';
+    }
+
+    await PlanosService.confirmarPlano(
+      () => this.#pushFn('inicio'),
+      (msg) => {
+        LoggerService.warn('[PlanosController] Confirmacao de plano falhou:', msg);
+        if (erro) {
+          erro.textContent = msg || 'Nao foi possivel confirmar o plano.';
+          erro.style.display = 'block';
+        }
+      },
+    );
+
+    if (btn) btn.disabled = false;
   }
 
   #isUsuarioLogado() {
@@ -162,16 +162,21 @@ class PlanosController {
     this.#pushFn('termos-legais');
   }
 
+  #planoLabel(plano) {
+    if (plano === 'mensal') return 'mensal';
+    if (plano === 'trimestral') return 'trimestral';
+    return 'teste gratis';
+  }
+
   #mostrarToastEmBreve() {
     if (typeof NotificationService !== 'undefined') {
       NotificationService.mostrarToast(
         'Em breve!',
-        '🚀 Planos para barbearia chegando em breve!',
+        'Planos para barbearia chegando em breve!',
         NotificationService.TIPOS.ENGAJAMENTO
       );
       return;
     }
-    // Fallback sem NotificationService
     let t = document.getElementById('toast-em-breve');
     if (!t) {
       t = document.createElement('div');
@@ -179,7 +184,7 @@ class PlanosController {
       t.className = 'pay-toast';
       document.body.appendChild(t);
     }
-    t.textContent = '🚀 Planos para barbearia chegando em breve!';
+    t.textContent = 'Planos para barbearia chegando em breve!';
     t.classList.add('pay-toast--visivel');
     setTimeout(() => t.classList.remove('pay-toast--visivel'), 3000);
   }

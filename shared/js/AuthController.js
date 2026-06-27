@@ -81,8 +81,12 @@ class AuthController {
         dados.pro_type  = this.#getProType();
       }
       await AuthService.cadastro(dados, (tela) => {
-        if (this.#role === 'professional' && typeof MonetizationGuard !== 'undefined') {
-          MonetizationGuard.limpar();
+        if (this.#role === 'professional'
+            && typeof MonetizationGuard !== 'undefined'
+            && MonetizationGuard.confirmacaoPendente
+            && tela === 'inicio') {
+          this.#navFn('confirmar-plano-pro');
+          return;
         }
         this.#navFn(tela);
       }, (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo));
@@ -103,4 +107,3 @@ class AuthController {
     });
   }
 }
-

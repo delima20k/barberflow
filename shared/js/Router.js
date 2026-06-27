@@ -44,7 +44,7 @@ class Router {
     // Perfil público de barbearia e de barbeiro — acessíveis sem login
     'barbearia', 'barbeiro',
     // Fluxo de cadastro profissional (visitante ainda não tem conta)
-    'planos-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'termos-legais',
+    'planos-pro', 'confirmar-plano-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'termos-legais',
   ]);
 
   // Set alocado uma vez — referenciado no fallback de _bindDataAttributes

@@ -8813,15 +8813,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: #ff6b8a;
 }
 
+/* Garante que [hidden] funcione dentro do painel (CSS não sobrescreve) */
+.pp-prism-public-actions [hidden] { display: none !important; }
+
 /* Dono do story: só 👍 + 💬, mais acima e maiores */
 .pp-prism-public-actions.is-owner-actions {
   bottom: 120px;
   gap: 14px;
 }
 .pp-prism-public-actions .pp-prism-story-owner-actions {
-  position: static;
-  display: flex;
-  gap: 12px;
+  position: static; /* anula position:absolute do .portfolio-actions */
 }
 .pp-prism-public-actions.is-owner-actions .portfolio-action {
   min-width: 64px;

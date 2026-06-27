@@ -55,7 +55,7 @@ class BarberFlowProfissional extends Router {
 
   constructor() {
     super('inicio');
-    this.#auth     = new AuthController((t) => this.nav(t), 'professional', () => this.getProType());
+    this.#auth     = new AuthController((t) => this.push(t), 'professional', () => this.getProType());
     this.#cadastro = new CadastroController();
     this.#planos   = new PlanosController((t) => this.push(t));
     this.#termos   = new TermosController((t) => this.push(t));
@@ -102,6 +102,7 @@ class BarberFlowProfissional extends Router {
    */
   push(tela) {
     if (tela === 'cadastro') this.#cadastro.ajustarFormularioPorTipo();
+    if (tela === 'confirmar-plano-pro') this.#planos.prepararConfirmacao();
     super.push(tela);
   }
 

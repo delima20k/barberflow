@@ -24,6 +24,13 @@ class ProfessionalPaymentController extends BaseController {
     });
   }
 
+  async ativarTrial(req, res) {
+    await this.handle(res, async () => {
+      const dados = await this.#service.ativarTrial(req.user);
+      this.created(res, dados);
+    });
+  }
+
   async webhookAsaas(req, res) {
     await this.handle(res, async () => {
       const dados = await this.#service.receberWebhook(req.headers, req.body);

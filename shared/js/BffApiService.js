@@ -460,6 +460,9 @@ class BffApiService {
 
     buscarCobranca: (paymentId) =>
       BffApiService.get(`/api/v1/profissional/pagamentos/cobrancas/${encodeURIComponent(paymentId)}`),
+
+    ativarTrial: () =>
+      BffApiService.post('/api/v1/profissional/pagamentos/trial', {}),
   };
 
   /** @returns {string} URL base da BFF */

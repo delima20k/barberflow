@@ -124,6 +124,17 @@ class ProfessionalPaymentService extends BaseService {
     return this.#toPaymentDto(payment);
   }
 
+  async ativarTrial(user) {
+    const userId = user?.id;
+    this._uuid('userId', userId);
+
+    const profile = await this.#repo.getProfile(userId);
+    this.#assertProfessional(profile);
+
+    const subscription = await this.#repo.ativarTrial(userId);
+    return this.#toSubscriptionDto(subscription);
+  }
+
   async receberWebhook(headers = {}, body = {}) {
     this.#validarWebhookToken(headers);
     const eventId = this._texto('eventId', body.id, 120, true);
@@ -311,6 +322,18 @@ class ProfessionalPaymentService extends BaseService {
       } : null,
       paidAt: row.paid_at,
       createdAt: row.created_at,
+    };
+  }
+
+  #toSubscriptionDto(row) {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      planType: row.plan_type,
+      status: row.status,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      price: Number(row.price ?? 0),
     };
   }
 }

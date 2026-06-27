@@ -99,6 +99,38 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data ?? null;
   }
 
+  async ativarTrial(userId) {
+    this._uuid('userId', userId);
+
+    const { error: expireError } = await this._db
+      .from('subscriptions')
+      .update({ status: 'expired' })
+      .eq('user_id', userId)
+      .in('status', ['trial', 'active']);
+    if (expireError) this._throwDbError(expireError, 'ativarTrial.expirarAtivas');
+
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt);
+    endsAt.setDate(endsAt.getDate() + 14);
+
+    const { data, error } = await this._db
+      .from('subscriptions')
+      .insert({
+        user_id: userId,
+        plan_type: 'trial',
+        status: 'trial',
+        purchase_token: null,
+        platform: 'web',
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        price: 0,
+      })
+      .select('id, user_id, plan_type, status, starts_at, ends_at, price')
+      .single();
+    if (error) this._throwDbError(error, 'ativarTrial');
+    return data;
+  }
+
   async atualizarPagamentoPorAsaasId(asaasPaymentId, payload) {
     const { data, error } = await this._db
       .from('asaas_payments')

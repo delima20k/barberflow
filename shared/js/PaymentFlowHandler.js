@@ -158,8 +158,7 @@ class PaymentFlowHandler {
 
     if (!session?.access_token) {
       PaymentFlowHandler.#mostrarToast('Crie sua conta profissional para concluir o pagamento.');
-      await new Promise(r => setTimeout(r, 1200));
-      onSucesso();
+      if (typeof onErro === 'function') onErro('Sessao obrigatoria para gerar a cobranca.');
       return;
     }
 

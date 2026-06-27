@@ -18,6 +18,7 @@ module.exports = function criarProfessionalPaymentsRoute(db) {
   router.post('/asaas/webhook', controller.webhookAsaas.bind(controller));
 
   router.use(AuthMiddleware.verificar);
+  router.post('/trial', controller.ativarTrial.bind(controller));
   router.post('/cobrancas', controller.criarCobranca.bind(controller));
   router.get('/cobrancas/:payment_id', controller.buscarCobranca.bind(controller));
 

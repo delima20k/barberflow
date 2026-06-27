@@ -95,6 +95,20 @@ class FakeRepo {
     return this.subscription?.purchase_token === purchaseToken ? this.subscription : null;
   }
 
+  async ativarTrial(userId) {
+    this.expiredSubscriptions += 1;
+    this.subscription = {
+      id: '55555555-5555-4555-8555-555555555555',
+      user_id: userId,
+      plan_type: 'trial',
+      status: 'trial',
+      starts_at: '2026-06-26T12:00:00.000Z',
+      ends_at: '2026-07-10T12:00:00.000Z',
+      price: 0,
+    };
+    return this.subscription;
+  }
+
   async ativarAssinaturaPorPagamento(payment) {
     const existing = await this.getSubscriptionByPurchaseToken(payment.asaas_payment_id);
     if (existing) return existing;
@@ -322,6 +336,28 @@ test('bloqueia cobranca para usuario que nao e profissional', async () => {
 
   await assert.rejects(
     () => service.criarCobranca({ id: USER_ID }, { planType: 'mensal' }),
+    err => err.status === 403,
+  );
+});
+
+test('ativa trial para profissional autenticado', async () => {
+  const repo = new FakeRepo();
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.ativarTrial({ id: USER_ID, email: 'teste@barberflow.test' });
+
+  assert.equal(result.planType, 'trial');
+  assert.equal(result.status, 'trial');
+  assert.equal(result.price, 0);
+  assert.equal(repo.expiredSubscriptions, 1);
+});
+
+test('bloqueia trial para usuario que nao e profissional', async () => {
+  const repo = new FakeRepo({ profileRole: 'client' });
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  await assert.rejects(
+    () => service.ativarTrial({ id: USER_ID }),
     err => err.status === 403,
   );
 });
