@@ -506,7 +506,42 @@ class StoryViewer {
 
     svBottom.append(likeBtn, comentarBtn);
 
-    inner.append(video, svTop, svBottom);
+    // ── Painel de comentários (slide-up) — visível só para clientes (não-dono) ──
+    const comentPanel = document.createElement('div');
+    comentPanel.className = 'sv-comment-panel';
+    comentPanel.setAttribute('aria-hidden', 'true');
+
+    const comentHeader = document.createElement('div');
+    comentHeader.className = 'sv-comment-header';
+    const comentTitulo = document.createElement('span');
+    comentTitulo.textContent = 'Enviar mensagem';
+    const comentFechar = document.createElement('button');
+    comentFechar.className = 'sv-comment-fechar';
+    comentFechar.textContent = '✕';
+    comentFechar.addEventListener('click', () => StoryViewer.#fecharPainelComentario(inner));
+    comentHeader.append(comentTitulo, comentFechar);
+
+    const comentLista = document.createElement('div');
+    comentLista.className = 'sv-comment-lista';
+
+    const comentInputWrap = document.createElement('div');
+    comentInputWrap.className = 'sv-comment-input-wrap';
+    const comentInput = document.createElement('input');
+    comentInput.type = 'text';
+    comentInput.className = 'sv-comment-input';
+    comentInput.setAttribute('placeholder', 'Envie uma mensagem...');
+    comentInput.setAttribute('maxlength', '240');
+    const comentEnviar = document.createElement('button');
+    comentEnviar.className = 'sv-comment-enviar';
+    comentEnviar.textContent = 'Enviar';
+    comentEnviar.addEventListener('click', () => StoryViewer.#enviarComentario(inner));
+    comentInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') StoryViewer.#enviarComentario(inner);
+    });
+    comentInputWrap.append(comentInput, comentEnviar);
+
+    comentPanel.append(comentHeader, comentLista, comentInputWrap);
+    inner.append(video, svTop, svBottom, comentPanel);
     return inner;
   }
 
@@ -606,6 +641,7 @@ class StoryViewer {
     const likeBtn      = inner.querySelector('.sv-like-btn');
     const likeCount    = inner.querySelector('.sv-like-btn span');
     const mensagensBtn = inner.querySelector('.sv-comentar-btn');
+    const comentPanel  = inner.querySelector('.sv-comment-panel');
     const barberAvatar = inner.querySelector('.sv-barber-avatar');
     const barberName   = inner.querySelector('.sv-barber-name');
 
@@ -621,9 +657,9 @@ class StoryViewer {
     likeCount.textContent = dados.likeCount;
     likeBtn.classList.toggle('curtido', dados.curtido);
 
-    if (mensagensBtn) {
-      mensagensBtn.setAttribute('aria-label', dados.isOwner ? 'Ver mensagens do story' : 'Enviar mensagem sobre story');
-    }
+    // Fecha o painel ao trocar de story; dono não abre painel (só vê 👍 + 💬 ícone)
+    if (comentPanel) comentPanel.hidden = true;
+    if (mensagensBtn) mensagensBtn.dataset.isOwner = dados.isOwner ? '1' : '0';
 
     // Avatar do barbeiro por vídeo (source: story.poster_avatar_path)
     const barberOverlay = inner.querySelector('.sv-barber-overlay');
@@ -913,6 +949,10 @@ class StoryViewer {
   static #abrirPainelComentario() {
     const inner = StoryViewer.#ativo;
     if (!inner) return;
+
+    // Dono do story: não abre painel (só 👍 + 💬 ícone visíveis)
+    const btn = inner.querySelector('.sv-comentar-btn');
+    if (btn?.dataset?.isOwner === '1') return;
 
     const panel = inner.querySelector('.sv-comment-panel');
     if (!panel) return;
