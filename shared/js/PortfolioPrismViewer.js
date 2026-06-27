@@ -50,6 +50,7 @@ class MediaPrismViewer {
   #publicSendBtn   = null;
   #storyOwnerActions = null;
   #storyMessagesBtn = null;
+  #storyOwnerLikeBtn = null;
   #publicLike      = null;
   #publicLogo      = null;
   #publicEmojis    = [];
@@ -264,29 +265,33 @@ class MediaPrismViewer {
 
   #renderPublicActions(item) {
     if (!this.#publicActions) return;
+
     if (this.#isStoryMode()) {
-      this.#publicActions.hidden = false;
+      // Mesma lógica do portfólio: dono → div oculta; visitante → input + emojis
       const ownerId = item?.owner_id ?? item?.shop_owner_id ?? item?.author_id ?? null;
       const isOwner = Boolean(ownerId && ownerId === MediaPrismViewer.#perfilAtual()?.id);
+      this.#publicActions.hidden = isOwner;
+      if (isOwner) {
+        if (this.#publicInput) this.#publicInput.value = '';
+        return;
+      }
+      // Visitante: logo + input + emojis visíveis; owner-actions oculto
       if (this.#publicLogo) {
         const rawPath = item?.shop_logo_path || '';
         const logoUrl = rawPath && typeof ApiService !== 'undefined'
-          ? ApiService.getLogoUrl(rawPath)
-          : rawPath;
+          ? ApiService.getLogoUrl(rawPath) : rawPath;
         this.#publicLogo.src = logoUrl || '/shared/img/icon-512-cliente.png';
         this.#publicLogo.alt = item?.shop_name || 'BarberFlow';
+        this.#publicLogo.hidden = false;
       }
-      if (this.#publicInput) { this.#publicInput.value = ''; this.#publicInput.closest('.pp-prism-message-wrap').hidden = isOwner; this.#publicInput.disabled = isOwner; }
-      if (this.#publicSendBtn) this.#publicSendBtn.disabled = isOwner;
-      this.#publicEmojis.forEach(btn => { btn.hidden = isOwner; btn.disabled = isOwner; });
-      if (this.#storyOwnerActions) {
-        this.#storyOwnerActions.hidden = !isOwner;
-        const likes = this.#storyOwnerActions.querySelector('.pp-prism-story-likes');
-        if (likes) likes.textContent = String(Math.max(0, Number(item?.likes_count ?? 0)));
-      }
+      if (this.#publicInput) { this.#publicInput.value = ''; this.#publicInput.closest('.pp-prism-message-wrap').hidden = false; this.#publicInput.disabled = false; }
+      if (this.#publicSendBtn) this.#publicSendBtn.disabled = false;
+      this.#publicEmojis.forEach(btn => { btn.hidden = false; btn.disabled = false; });
+      if (this.#storyOwnerActions) this.#storyOwnerActions.hidden = true;
       return;
     }
 
+    // Modo portfólio (inalterado)
     const visivel = Boolean(item?.portfolioPublicActions);
     const imageId = item?.id ?? '';
     const imageAnterior = this.#publicActions.dataset.portfolioImageId ?? '';
@@ -1155,7 +1160,10 @@ class MediaPrismViewer {
         </div>
         <button type="button" class="pp-prism-public-emoji" data-public-emoji="${MediaPrismViewer.#laughEmoji()}" aria-label="Enviar risada">${MediaPrismViewer.#laughEmoji()}</button>
         <button type="button" class="pp-prism-public-emoji" data-public-emoji="${MediaPrismViewer.#sadEmoji()}" aria-label="Enviar tristeza">${MediaPrismViewer.#sadEmoji()}</button>
-        <div class="pp-prism-story-owner-actions" hidden><span class="pp-prism-story-likes">0</span><button type="button" class="pp-prism-story-messages" aria-label="Ver mensagens do Story">Mensagens</button></div>
+        <div class="portfolio-actions pp-prism-story-owner-actions" hidden>
+          <button type="button" class="portfolio-action portfolio-action--like pp-prism-story-owner-like" aria-label="Curtir Story"><span class="portfolio-action__icon" aria-hidden="true">👍</span><span class="portfolio-action__count">0</span></button>
+          <button type="button" class="portfolio-action portfolio-action--message pp-prism-story-messages" aria-label="Ver mensagens do Story"><span class="portfolio-action__icon" aria-hidden="true">💬</span></button>
+        </div>
       </div>
       <figcaption class="pp-prism-title"></figcaption>
       <div class="pp-prism-actions"></div>
@@ -1179,6 +1187,7 @@ class MediaPrismViewer {
     this.#publicSendBtn = overlay.querySelector('.pp-prism-message-send');
     this.#storyOwnerActions = overlay.querySelector('.pp-prism-story-owner-actions');
     this.#storyMessagesBtn = overlay.querySelector('.pp-prism-story-messages');
+    this.#storyOwnerLikeBtn = overlay.querySelector('.pp-prism-story-owner-like');
     this.#publicLike    = null;
     this.#publicLogo    = overlay.querySelector('.pp-prism-public-logo');
     this.#publicEmojis = [...overlay.querySelectorAll('.pp-prism-public-emoji')];
@@ -1257,6 +1266,7 @@ class MediaPrismViewer {
       else this.#handlePublicMessage(this.#publicInput.value);
     });
     this.#storyMessagesBtn?.addEventListener('click', () => this.#abrirMensagensStory());
+    this.#storyOwnerLikeBtn?.addEventListener('click', () => this.#handleStoryLike());
 
     // Listener externo: re-renderiza se um evento global atualizar a contagem desta imagem
     document.addEventListener('barberflow:portfolio-like', e => {
