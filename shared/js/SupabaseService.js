@@ -474,22 +474,21 @@ class SupabaseService {
    * @returns {Promise<object|null>}
    */
   static async getProfile(userId) {
-    // maybeSingle(): 0 linhas → { data: null, error: null } (sem 406 no console).
-    // .single() forçava Accept object-mode e gerava 406 garantido em perfil ausente.
-    const { data, error } = await SupabaseService.profiles()
-      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code')
-      .eq('id', userId)
-      .maybeSingle();
+    // Perfil próprio com campos privados (address, birth_date, gender, zip_code)
+    // é servido pela BFF — a leitura direta da tabela profiles foi revogada para
+    // anon/authenticated (migration 20260628000001). RLS filtra linha, não coluna.
+    const { data, error } = await BffApiService.auth.me();
 
     if (error) SupabaseService.#erro('getProfile', error);
 
-    if (!data) {
-      // Perfil órfão (0 linhas — usuário deletado ou incompleto).
+    const perfil = data?.perfil ?? null;
+    if (!perfil) {
+      // Perfil órfão (usuário deletado ou incompleto).
       // Limpa sessão local silenciosamente em vez de lançar erro.
       try { await SupabaseService.#getClient().auth.signOut(); } catch { /* sem-op */ }
       return null;
     }
-    return data;
+    return perfil;
   }
 
   /**
@@ -499,13 +498,14 @@ class SupabaseService {
    * @returns {Promise<object>}
    */
   static async updateProfile(userId, dados) {
-    const { data, error } = await SupabaseService.profiles()
+    // Sem .select() de retorno: o SELECT direto em profiles foi revogado para
+    // anon/authenticated (migration 20260628000001). A UPDATE permanece válida
+    // (privilégio próprio via RLS profiles_update_own); retornamos os campos enviados.
+    const { error } = await SupabaseService.profiles()
       .update(dados)
-      .eq('id', userId)
-      .select()
-      .single();
+      .eq('id', userId);
     if (error) SupabaseService.#erro('updateProfile', error);
-    return data;
+    return { id: userId, ...dados };
   }
 
   // ═══════════════════════════════════════════════════════════

@@ -6,7 +6,9 @@ const http   = require('node:http');
 const jwt    = require('jsonwebtoken');
 
 // ── Configura env antes de importar o app ────────────────────────
-process.env.APP_ENV                   = 'development';
+// 'test' desativa o rate limiter de /api/auth (skip em APP_ENV==='test') e o
+// patchProcessEnv do R2ConfigService no startup — sem isso os testes batem 429.
+process.env.APP_ENV                   = 'test';
 process.env.SUPABASE_URL              = 'https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 process.env.SUPABASE_ANON_KEY         = 'test-anon-key';

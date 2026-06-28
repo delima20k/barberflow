@@ -11,10 +11,6 @@
 
 class ClienteRepository {
 
-  // Campos retornados nas leituras de perfil
-  static #SELECT_PERFIL =
-    'id,full_name,phone,avatar_path,address,zip_code,birth_date,gender,is_active,created_at';
-
   // Allowlist de campos que o cliente pode atualizar
   static #CAMPOS_EDITAVEIS = [
     'full_name', 'phone', 'address', 'zip_code', 'birth_date', 'gender',
@@ -34,14 +30,18 @@ class ClienteRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ClienteRepository] userId: ${rId.msg}`);
 
-    const { data, error } = await ApiService.from('profiles')
-      .select(ClienteRepository.#SELECT_PERFIL)
-      .eq('id', userId)
-      .eq('role', 'client')
-      .single();
-
+    // Perfil próprio (com campos privados) é servido pela BFF — a leitura direta
+    // da tabela profiles foi revogada para anon/authenticated (20260628000001).
+    const { data, error } = await BffApiService.auth.me();
     if (error) throw error;
-    return data;
+
+    const perfil = data?.perfil ?? null;
+    if (!perfil) {
+      const err = new Error('Perfil não encontrado.');
+      err.code  = 'PERFIL_ORFAO';
+      throw err;
+    }
+    return perfil;
   }
 
   // ═══════════════════════════════════════════════════════════

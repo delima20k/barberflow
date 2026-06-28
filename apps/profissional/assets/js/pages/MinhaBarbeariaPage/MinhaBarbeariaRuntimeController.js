@@ -719,11 +719,12 @@ export class MinhaBarbeariaRuntimeController {
     if (perfilEmbutido?.full_name || perfilEmbutido?.avatar_path) return perfilEmbutido;
 
     try {
+      // Leitura de perfil de terceiro via view pública (sem PII).
+      // SELECT direto em profiles foi revogado (migration 20260628000001).
       const { data, error } = await SupabaseService.client
-        .from('profiles')
+        .from('profiles_public')
         .select('id, full_name, avatar_path, updated_at')
         .eq('id', ownerId)
-        .eq('is_active', true)
         .maybeSingle();
 
       if (error) return null;
@@ -747,15 +748,27 @@ export class MinhaBarbeariaRuntimeController {
 
   static async #fetchBarbeiros(barbershopId) {
     try {
-      const { data, error } = await SupabaseService.client
+      // 1) IDs dos barbeiros vinculados (não embute profiles: SELECT direto na
+      //    tabela foi revogado — migration 20260628000001).
+      const { data: links, error } = await SupabaseService.client
         .from('professional_shop_links')
-        .select('professional:professionals!professional_id(id, profile:profiles!id(full_name, avatar_path, updated_at))')
+        .select('professional_id')
         .eq('barbershop_id', barbershopId)
         .eq('is_active', true)
         .limit(20);
 
       if (error) return [];
-      return (data ?? []).map(link => link.professional).filter(Boolean);
+      const ids = [...new Set((links ?? []).map(l => l.professional_id).filter(Boolean))];
+      if (!ids.length) return [];
+
+      // 2) Dados públicos dos perfis via view (sem PII).
+      const { data: perfis, error: perfErr } = await SupabaseService.client
+        .from('profiles_public')
+        .select('id, full_name, avatar_path, updated_at')
+        .in('id', ids);
+
+      if (perfErr) return [];
+      return (perfis ?? []).map(p => ({ id: p.id, profile: p }));
     } catch (_) { return []; }
   }
 

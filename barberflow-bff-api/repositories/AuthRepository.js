@@ -138,7 +138,7 @@ class AuthRepository extends BaseRepository {
 
     const { data, error } = await this._db
       .from('profiles')
-      .select('id, full_name, phone, avatar_path, role, pro_type, updated_at')
+      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code, is_active, created_at, updated_at')
       .eq('id', userId)
       .single();
 

@@ -383,6 +383,16 @@ class BffApiService {
       BffApiService.get(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}/mensagens`),
   };
 
+  static auth = {
+    /**
+     * Perfil próprio completo (inclui campos privados: address, birth_date,
+     * gender, zip_code) servido pela BFF com service_role. O AuthMiddleware
+     * garante que só o dono (JWT.sub == profile.id) recebe os dados.
+     * @returns {Promise<{data: {user: object, perfil: object}|null, error: any}>}
+     */
+    me: () => BffApiService.get('/api/v1/auth/me'),
+  };
+
   static chat = {
     listarMensagens: (conversationId, params = {}) =>
       BffApiService.get(`/api/v1/chat/conversations/${encodeURIComponent(conversationId)}/messages`, params),

@@ -102,7 +102,7 @@ class ConversationListService {
   static async #buscarPerfis(ids) {
     try {
       const { data, error } = await SupabaseService.client
-        .from('profiles')
+        .from('profiles_public')
         .select('id, full_name, avatar_path, role')
         .in('id', ids);
       if (error) throw error;

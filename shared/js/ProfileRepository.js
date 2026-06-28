@@ -31,7 +31,10 @@ class ProfileRepository {
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Busca perfil completo por ID de usuário.
+   * Busca o perfil completo do PRÓPRIO usuário logado.
+   * A leitura direta da tabela profiles foi revogada para anon/authenticated
+   * (migration 20260628000001) — campos privados são servidos pela BFF.
+   * Só retorna o perfil do dono da sessão; `userId` deve ser o usuário logado.
    * @param {string} userId
    * @returns {Promise<object>}
    */
@@ -39,13 +42,12 @@ class ProfileRepository {
     const rId = InputValidator.uuid(userId);
     if (!rId.ok) throw new TypeError(`[ProfileRepository] userId: ${rId.msg}`);
 
-    const { data, error } = await ApiService.from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
+    const { data, error } = await BffApiService.auth.me();
     if (error) throw error;
-    return data;
+
+    const perfil = data?.perfil ?? null;
+    if (!perfil) throw new Error('Perfil não encontrado.');
+    return perfil;
   }
 
   /**
@@ -135,7 +137,9 @@ class ProfileRepository {
 
   // ═══════════════════════════════════════════════════════════
   static async #getAvatarPath(userId) {
-    const { data, error } = await ApiService.from('profiles')
+    // View pública (SELECT direto em profiles revogado — 20260628000001).
+    // O usuário logado está sempre is_active=true, então aparece na view.
+    const { data, error } = await ApiService.from('profiles_public')
       .select('id, avatar_path')
       .eq('id', userId)
       .maybeSingle();

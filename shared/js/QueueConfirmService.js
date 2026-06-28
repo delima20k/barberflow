@@ -169,7 +169,7 @@ class QueueConfirmService {
     try {
       if (entry.professional_id) {
         const { data } = await SupabaseService.client
-          .from('profiles')
+          .from('profiles_public')
           .select('full_name')
           .eq('id', entry.professional_id)
           .single();

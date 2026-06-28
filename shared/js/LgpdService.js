@@ -55,18 +55,30 @@ class LgpdService {
     if (!userId) return { ok: false, error: 'userId obrigatório.' };
 
     try {
-      const [{ data: perfil, error: errPerfil }, { data: consentimento }] = await Promise.all([
-        SupabaseService.profiles()
-          .select('id, full_name, phone, address, birth_date, gender, zip_code, role, created_at')
-          .eq('id', userId)
-          .single(),
+      // Perfil próprio (com PII) servido pela BFF — SELECT direto em profiles foi
+      // revogado para anon/authenticated (migration 20260628000001).
+      const [meRes, { data: consentimento }] = await Promise.all([
+        BffApiService.auth.me(),
         SupabaseService.legalConsents()
           .select('plan_type, aceitou_termos, data_aceite, version')
           .eq('user_id', userId)
           .maybeSingle(),
       ]);
 
-      if (errPerfil) throw errPerfil;
+      if (meRes.error) throw meRes.error;
+
+      const p = meRes.data?.perfil ?? null;
+      const perfil = p ? {
+        id:         p.id,
+        full_name:  p.full_name  ?? null,
+        phone:      p.phone      ?? null,
+        address:    p.address    ?? null,
+        birth_date: p.birth_date ?? null,
+        gender:     p.gender     ?? null,
+        zip_code:   p.zip_code   ?? null,
+        role:       p.role       ?? null,
+        created_at: p.created_at ?? null,
+      } : null;
 
       // Registra a exportação no log de auditoria — fire-and-forget
       LgpdService.registrarAcesso(userId, 'profiles', 'export');

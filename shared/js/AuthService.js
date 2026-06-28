@@ -442,44 +442,46 @@ class AuthService {
   // ═══════════════════════════════════════════════════════════
 
   static async _carregarPerfil(userId) {
-    // Busca todos os campos do próprio usuário — RLS "profiles_select_own" permite
-    // (auth.uid() = id). Campos sensíveis só ficam visíveis para o próprio dono.
-    const { data, error } = await SupabaseService.profiles()
-      .select('id, full_name, phone, avatar_path, role, pro_type, address, birth_date, gender, zip_code, updated_at')
-      .eq('id', userId)
-      .single();
+    // Perfil próprio (com campos privados: address, birth_date, gender, zip_code)
+    // é servido pela BFF com service_role. A leitura direta da tabela profiles
+    // foi revogada para anon/authenticated (migration 20260628000001) — RLS filtra
+    // linha, não coluna, então proteger PII exige fechar o SELECT direto.
+    const { data, error } = await BffApiService.auth.me();
 
-    // 406 / PGRST116 = nenhuma linha — perfil não existe (conta deletada / sessão órfã)
     if (error) {
-      const code   = error?.code   ?? '';
-      const status = error?.status ?? error?.statusCode ?? 0;
-      if (code === 'PGRST116' || status === 406 || code === '406') {
-        const err  = new Error('Conta não encontrada no BarberFlow.');
-        err.code   = 'PERFIL_ORFAO';
-        throw err;
-      }
-      // Outros erros (sem rede, etc.) → retornar null silenciosamente
+      // Sem rede / BFF indisponível → retorna null silenciosamente (mantém UX).
       return null;
     }
+
+    const perfil = data?.perfil ?? null;
+
+    // perfil ausente = conta deletada / sessão órfã (BFF responde 200 com perfil null)
+    if (!perfil) {
+      const err = new Error('Conta não encontrada no BarberFlow.');
+      err.code  = 'PERFIL_ORFAO';
+      throw err;
+    }
+
+    // email vem do JWT (data.user.email), não da tabela.
+    if (data?.user?.email && !perfil.email) perfil.email = data.user.email;
 
     // Busca created_at do auth.users via getSession() (lê localStorage, sem rede).
     // Usar getUser() aqui causaria 403 durante TOKEN_REFRESHED race condition porque
     // o token antigo ainda pode estar em trânsito quando _carregarPerfil é chamado.
-    if (data) {
-      const session = await SupabaseService.getSession().catch(() => null);
-      data._created_at = session?.user?.created_at || null;
-      // Mescla extras locais como FALLBACK offline — Supabase é a fonte da verdade
-      const extras = SessionCache.getExtras(userId);
-      if (extras) {
-        data.address    = data.address    ?? extras.address;
-        data.birth_date = data.birth_date ?? extras.birth_date;
-        data.gender     = data.gender     ?? extras.gender;
-        data.zip_code   = data.zip_code   ?? extras.zip_code;
-        data.since_year = data.since_year ?? extras.since_year;
-      }
+    const session = await SupabaseService.getSession().catch(() => null);
+    perfil._created_at = perfil.created_at || session?.user?.created_at || null;
+
+    // Mescla extras locais como FALLBACK offline — BFF é a fonte da verdade
+    const extras = SessionCache.getExtras(userId);
+    if (extras) {
+      perfil.address    = perfil.address    ?? extras.address;
+      perfil.birth_date = perfil.birth_date ?? extras.birth_date;
+      perfil.gender     = perfil.gender     ?? extras.gender;
+      perfil.zip_code   = perfil.zip_code   ?? extras.zip_code;
+      perfil.since_year = perfil.since_year ?? extras.since_year;
     }
 
-    return data || null;
+    return perfil;
   }
 
   /**

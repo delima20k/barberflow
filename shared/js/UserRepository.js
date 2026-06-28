@@ -154,8 +154,8 @@ class UserRepository {
     }
 
     // Último recurso: query direta (pode ser restrita por RLS)
-    const { data, error } = await ApiService.from('profiles')
-      .select('id,full_name,email,avatar_path,updated_at')
+    const { data, error } = await ApiService.from('profiles_public')
+      .select('id,full_name,avatar_path,updated_at')
       .ilike('full_name', `%${term}%`)
       .order('full_name', { ascending: true })
       .range(offset, offset + limit - 1);
@@ -187,8 +187,8 @@ class UserRepository {
 
     if (!ids.size) return { data: [], error: null };
 
-    const { data, error } = await ApiService.from('profiles')
-      .select('id,full_name,email,avatar_path,updated_at')
+    const { data, error } = await ApiService.from('profiles_public')
+      .select('id,full_name,avatar_path,updated_at')
       .in('id', [...ids])
       .order('full_name');
 
@@ -227,8 +227,8 @@ class UserRepository {
 
     if (!ids.size) return { data: [], error: null };
 
-    const { data, error } = await ApiService.from('profiles')
-      .select('id,full_name,email,avatar_path,updated_at')
+    const { data, error } = await ApiService.from('profiles_public')
+      .select('id,full_name,avatar_path,updated_at')
       .in('id', [...ids])
       .order('full_name');
 
