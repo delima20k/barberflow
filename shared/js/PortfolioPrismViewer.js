@@ -539,23 +539,38 @@ class MediaPrismViewer {
     }
   }
 
-  #handleStoryLike() {
+  async #handleStoryLike() {
     const item = this.#items[this.#index];
-    if (!item) return;
+    if (!item?.media_id || typeof BffApiService === 'undefined') return;
+    if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('like', null)) return;
+
     const prevLiked = Boolean(item.user_liked);
     const prevCount = Math.max(0, Number(item.likes_count ?? 0));
+
+    // Optimistic update
     item.user_liked  = !prevLiked;
     item.likes_count = prevLiked ? Math.max(0, prevCount - 1) : prevCount + 1;
     this.#renderFaces();
-    if (this.#storyOwnerActions && !this.#storyOwnerActions.hidden) {
-      const countEl = this.#storyOwnerActions.querySelector('.portfolio-action__count');
-      if (countEl) countEl.textContent = String(item.likes_count);
-      if (this.#storyOwnerLikeBtn) this.#storyOwnerLikeBtn.classList.toggle('is-liked', item.user_liked);
+    this.#syncStoryOwnerLikeUI(item);
+
+    try {
+      const { data, error } = await BffApiService.media.toggleStoryLike(item.media_id);
+      if (error) throw error;
+      item.user_liked  = Boolean(data?.user_liked ?? !prevLiked);
+      item.likes_count = Math.max(0, Number(data?.likes_count ?? item.likes_count));
+    } catch {
+      item.user_liked  = prevLiked;
+      item.likes_count = prevCount;
     }
-    document.dispatchEvent(new CustomEvent('barberflow:prism-story-like', {
-      bubbles: false,
-      detail: { storyId: item.id, mediaId: item.media_id, item },
-    }));
+    this.#renderFaces();
+    this.#syncStoryOwnerLikeUI(item);
+  }
+
+  #syncStoryOwnerLikeUI(item) {
+    if (!this.#storyOwnerActions || this.#storyOwnerActions.hidden) return;
+    const countEl = this.#storyOwnerActions.querySelector('.portfolio-action__count');
+    if (countEl) countEl.textContent = String(item.likes_count);
+    if (this.#storyOwnerLikeBtn) this.#storyOwnerLikeBtn.classList.toggle('is-liked', item.user_liked);
   }
 
   async #handleStoryMessage(body) {
