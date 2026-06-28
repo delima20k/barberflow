@@ -40,7 +40,30 @@ class ProfessionalPaymentRepository extends BaseRepository {
       .eq('user_id', userId)
       .maybeSingle();
     if (error) this._throwDbError(error, 'getCustomerByUser');
-    return data ?? null;
+    if (data) return data;
+
+    const { data: paymentCustomer, error: paymentError } = await this._db
+      .from('asaas_payments')
+      .select('user_id, asaas_customer_id, created_at, updated_at')
+      .eq('user_id', userId)
+      .not('asaas_customer_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (paymentError) this._throwDbError(paymentError, 'getCustomerByUser.paymentFallback');
+    if (!paymentCustomer?.asaas_customer_id) return null;
+
+    return {
+      id: null,
+      user_id: paymentCustomer.user_id,
+      asaas_customer_id: paymentCustomer.asaas_customer_id,
+      name: null,
+      email: null,
+      mobile_phone: null,
+      created_at: paymentCustomer.created_at ?? null,
+      updated_at: paymentCustomer.updated_at ?? null,
+      recovered_from_payment: true,
+    };
   }
 
   async salvarCustomer({ userId, asaasCustomerId, name, email = null, mobilePhone = null }) {

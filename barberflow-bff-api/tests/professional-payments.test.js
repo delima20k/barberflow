@@ -369,6 +369,33 @@ test('renovacao usa cliente Asaas existente mesmo se metadata do documento falha
   assert.equal(asaas.payments[0].customer, 'cus_existente');
 });
 
+test('renovacao usa cliente Asaas recuperado de pagamento anterior sem CPF/CNPJ', async () => {
+  const repo = new FakeRepo({
+    existingCustomer: {
+      id: null,
+      user_id: USER_ID,
+      asaas_customer_id: 'cus_pagamento_antigo',
+      name: null,
+      email: null,
+      mobile_phone: null,
+      recovered_from_payment: true,
+    },
+  });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbearia', planType: 'mensal', billingType: 'UNDEFINED' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(result.asaasPaymentId, 'pay_123');
+  assert.equal(asaas.customers.length, 0);
+  assert.equal(asaas.updatedCustomers.length, 0);
+  assert.equal(asaas.payments[0].customer, 'cus_pagamento_antigo');
+});
+
 test('normaliza dados opcionais antes de enviar ao Asaas', async () => {
   const repo = new FakeRepo({
     profilePhone: '+55 (11) 99999-9999',
