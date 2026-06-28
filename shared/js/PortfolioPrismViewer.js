@@ -558,18 +558,38 @@ class MediaPrismViewer {
     }));
   }
 
-  #handleStoryMessage(body) {
+  async #handleStoryMessage(body) {
     const texto = String(body ?? '').trim();
     if (!texto) return;
-    if (this.#publicInput) this.#publicInput.value = '';
-    const item  = this.#items[this.#index];
+    const item = this.#items[this.#index];
+    if (!item?.media_id || typeof BffApiService === 'undefined') return;
+    if (Array.from(texto).length > MediaPrismViewer.#PUBLIC_MESSAGE_MAX_LENGTH) {
+      this.#emitInteraction({ texto: '✗ Máximo 20 caracteres', perfil: null });
+      return;
+    }
     const perfil = MediaPrismViewer.#perfilAtual();
     const tipo   = MediaPrismViewer.#isEmojiText(texto) ? 'emoji' : 'message';
-    this.#emitInteraction({ texto, perfil, type: tipo });
-    document.dispatchEvent(new CustomEvent('barberflow:prism-story-message', {
-      bubbles: false,
-      detail: { texto, storyId: item?.id, shopOwnerId: item?.shop_owner_id, item },
-    }));
+    if (this.#publicInput)   this.#publicInput.disabled   = true;
+    if (this.#publicSendBtn) this.#publicSendBtn.disabled  = true;
+    this.#publicEmojis.forEach(btn => { btn.disabled = true; });
+    try {
+      const { error } = await BffApiService.media.enviarStoryMessage(item.media_id, {
+        body: texto,
+        clientMessageId: MediaPrismViewer.#clientMessageId(),
+      });
+      if (error) throw error;
+      if (this.#publicInput) this.#publicInput.value = '';
+      this.#emitInteraction({ texto, perfil, type: tipo });
+    } catch (err) {
+      let textoErro = '✗ Falha ao enviar';
+      if (err?.status === 429) textoErro = '✗ Limite atingido';
+      else if (String(err?.message ?? '').includes('nao permitida')) textoErro = '✗ Conteúdo bloqueado';
+      this.#emitInteraction({ texto: textoErro, perfil: null });
+    } finally {
+      if (this.#publicInput)   this.#publicInput.disabled   = false;
+      if (this.#publicSendBtn) this.#publicSendBtn.disabled  = false;
+      this.#publicEmojis.forEach(btn => { btn.disabled = false; });
+    }
   }
 
   async #abrirMensagensStory() {
