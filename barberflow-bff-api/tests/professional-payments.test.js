@@ -206,7 +206,7 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
 
   assert.equal(result.asaasPaymentId, 'pay_123');
   assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_123');
-  assert.equal(result.value, 24.90);
+  assert.equal(result.value, 1.00);
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
@@ -373,7 +373,7 @@ test('consulta cobranca somente do profissional autenticado', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 24.90,
+    value: 1.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -433,7 +433,7 @@ test('webhook pago atualiza pagamento e ativa assinatura', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 24.90,
+    value: 1.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -471,7 +471,7 @@ test('webhook duplicado nao ativa assinatura duas vezes', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 24.90,
+    value: 1.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -509,7 +509,7 @@ test('webhook com novo evento para pagamento ja ativado reutiliza assinatura exi
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'RECEIVED',
-    value: 24.90,
+    value: 1.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,

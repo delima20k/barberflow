@@ -7,11 +7,11 @@ const AppError = require('../utils/AppError');
 
 const PLANOS = {
   barbeiro: {
-    mensal: { value: 24.90, months: 1, description: 'BarberFlow Pro Barbeiro - Plano Mensal' },
+    mensal: { value: 1.00, months: 1, description: 'BarberFlow Pro Barbeiro - Plano Mensal' },
     trimestral: { value: 59.90, months: 3, description: 'BarberFlow Pro Barbeiro - Plano Trimestral' },
   },
   barbearia: {
-    mensal: { value: 54.90, months: 1, description: 'BarberFlow Pro Barbearia - Plano Mensal' },
+    mensal: { value: 1.00, months: 1, description: 'BarberFlow Pro Barbearia - Plano Mensal' },
     trimestral: { value: 139.90, months: 3, description: 'BarberFlow Pro Barbearia - Plano Trimestral' },
   },
 };
