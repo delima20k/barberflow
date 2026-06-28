@@ -39,6 +39,7 @@ class PlanosController {
     const toggle = document.querySelector('.ppp-toggle');
     if (toggle) toggle.style.display = tipoTravado ? 'none' : '';
     this.#ajustarCtasPlanosLogado(Boolean(tipoTravado));
+    this.#ajustarTrialPlanosLogado(Boolean(tipoTravado));
 
     if (tipoTravado) {
       this.#alternarTipoPlano(tipoTravado, { persistir: false });
@@ -122,6 +123,13 @@ class PlanosController {
     document.querySelectorAll('#tela-planos-pro .ppp-btn[data-tipo][data-plano]').forEach(btn => {
       if (!btn.dataset.textoOriginal) btn.dataset.textoOriginal = btn.textContent.trim();
       btn.textContent = usuarioLogado ? 'Renovar plano' : btn.dataset.textoOriginal;
+    });
+  }
+
+  #ajustarTrialPlanosLogado(usuarioLogado) {
+    document.querySelectorAll('#tela-planos-pro .ppp-btn[data-plano="trial"]').forEach(btn => {
+      const card = btn.closest('.ppp-card');
+      if (card) card.style.display = usuarioLogado ? 'none' : '';
     });
   }
 
