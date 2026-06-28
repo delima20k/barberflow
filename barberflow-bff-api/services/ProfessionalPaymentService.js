@@ -7,11 +7,11 @@ const AppError = require('../utils/AppError');
 
 const PLANOS = {
   barbeiro: {
-    mensal: { value: 1.00, months: 1, description: 'BarberFlow Pro Barbeiro - Plano Mensal' },
+    mensal: { value: 5.00, months: 1, description: 'BarberFlow Pro Barbeiro - Plano Mensal' },
     trimestral: { value: 59.90, months: 3, description: 'BarberFlow Pro Barbeiro - Plano Trimestral' },
   },
   barbearia: {
-    mensal: { value: 1.00, months: 1, description: 'BarberFlow Pro Barbearia - Plano Mensal' },
+    mensal: { value: 5.00, months: 1, description: 'BarberFlow Pro Barbearia - Plano Mensal' },
     trimestral: { value: 139.90, months: 3, description: 'BarberFlow Pro Barbearia - Plano Trimestral' },
   },
 };
@@ -136,7 +136,16 @@ class ProfessionalPaymentService extends BaseService {
     const profile = await this.#repo.getProfile(userId);
     this.#assertProfessional(profile);
 
-    const subscription = await this.#repo.getCurrentSubscription(userId);
+    let subscription = null;
+    try {
+      subscription = await this.#repo.getCurrentSubscription(userId);
+    } catch (_) {
+      return {
+        accessAllowed: false,
+        reason: 'subscription_status_unavailable',
+        subscription: null,
+      };
+    }
     const nowMs = Date.now();
     const endsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
     const status = subscription?.status ?? 'none';

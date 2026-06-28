@@ -213,7 +213,7 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
 
   assert.equal(result.asaasPaymentId, 'pay_123');
   assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_123');
-  assert.equal(result.value, 1.00);
+  assert.equal(result.value, 5.00);
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
@@ -405,7 +405,7 @@ test('status de assinatura permite acesso quando plano esta ativo e vigente', as
     status: 'active',
     starts_at: '2026-06-26T12:00:00.000Z',
     ends_at: new Date(Date.now() + 86400000).toISOString(),
-    price: 1.00,
+    price: 5.00,
     purchase_token: 'pay_123',
   };
   const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
@@ -426,7 +426,7 @@ test('status de assinatura bloqueia quando plano esta expirado', async () => {
     status: 'active',
     starts_at: '2026-06-26T12:00:00.000Z',
     ends_at: new Date(Date.now() - 86400000).toISOString(),
-    price: 1.00,
+    price: 5.00,
     purchase_token: 'pay_123',
   };
   const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
@@ -457,7 +457,7 @@ test('consulta cobranca somente do profissional autenticado', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 1.00,
+    value: 5.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -517,7 +517,7 @@ test('webhook pago atualiza pagamento e ativa assinatura', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 1.00,
+    value: 5.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -555,7 +555,7 @@ test('webhook duplicado nao ativa assinatura duas vezes', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 1.00,
+    value: 5.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -593,7 +593,7 @@ test('webhook com novo evento para pagamento ja ativado reutiliza assinatura exi
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'RECEIVED',
-    value: 1.00,
+    value: 5.00,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
