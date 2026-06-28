@@ -18,6 +18,7 @@
 
 class PaymentFlowHandler {
   static #browserPaymentInFlight = false;
+  static #PENDING_ASAAS_KEY = 'bf_pagamento_asaas_pendente';
 
   // Product IDs registrados no Google Play Console
   // Formato: barberflow_<tipo>_<plano>
@@ -78,6 +79,46 @@ class PaymentFlowHandler {
     } catch (err) {
       console.warn('[PaymentFlowHandler] validarESalvar:', err);
       return { ok: false, endsAt: null };
+    }
+  }
+
+  static async verificarPagamentoPendente(onLiberado, onPendente, onErro) {
+    const pending = PaymentFlowHandler.#getPagamentoPendente();
+    if (!pending?.paymentId) return false;
+
+    const session = await PaymentFlowHandler.#getSession();
+    if (!session?.access_token) return false;
+
+    PaymentFlowHandler.#limparParametroRetorno();
+    PaymentFlowHandler.#mostrarToast('Confirmando pagamento...');
+
+    try {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const { error } = await BffApiService.pagamentosProfissional.buscarCobranca(pending.paymentId);
+        if (error) throw error;
+
+        if (typeof MonetizationGuard !== 'undefined') {
+          MonetizationGuard.limparCacheAssinatura();
+          const status = await MonetizationGuard.assinaturaPermiteAcesso({ force: true });
+          if (status?.accessAllowed) {
+            sessionStorage.removeItem(PaymentFlowHandler.#PENDING_ASAAS_KEY);
+            MonetizationGuard.limpar();
+            PaymentFlowHandler.#mostrarToast('Pagamento confirmado. Acesso liberado.');
+            if (typeof onLiberado === 'function') onLiberado(status);
+            return true;
+          }
+        }
+
+        await PaymentFlowHandler.#delay(attempt < 3 ? 1500 : 3500);
+      }
+
+      PaymentFlowHandler.#mostrarToast('Pagamento em processamento. Aguarde alguns instantes e tente novamente.');
+      if (typeof onPendente === 'function') onPendente(pending);
+      return false;
+    } catch (err) {
+      PaymentFlowHandler.#mostrarToast(err?.message || 'Nao foi possivel confirmar o pagamento agora.');
+      if (typeof onErro === 'function') onErro(err);
+      return false;
     }
   }
 
@@ -177,6 +218,7 @@ class PaymentFlowHandler {
       const invoiceUrl = data?.invoiceUrl;
       if (!invoiceUrl) throw new Error('Cobranca criada sem link de pagamento.');
 
+      PaymentFlowHandler.#salvarPagamentoPendente(data);
       window.location.assign(invoiceUrl);
     } catch (err) {
       PaymentFlowHandler.#mostrarToast(err?.message || 'Nao foi possivel iniciar o pagamento.');
@@ -256,5 +298,44 @@ class PaymentFlowHandler {
       return null;
     }
     return null;
+  }
+
+  static #salvarPagamentoPendente(payment) {
+    if (!payment?.id) return;
+    sessionStorage.setItem(PaymentFlowHandler.#PENDING_ASAAS_KEY, JSON.stringify({
+      paymentId: payment.id,
+      asaasPaymentId: payment.asaasPaymentId ?? null,
+      createdAt: Date.now(),
+    }));
+  }
+
+  static #getPagamentoPendente() {
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem(PaymentFlowHandler.#PENDING_ASAAS_KEY) || 'null');
+      if (!parsed?.paymentId) return null;
+      if (Date.now() - Number(parsed.createdAt || 0) > 24 * 60 * 60 * 1000) {
+        sessionStorage.removeItem(PaymentFlowHandler.#PENDING_ASAAS_KEY);
+        return null;
+      }
+      return parsed;
+    } catch (_) {
+      sessionStorage.removeItem(PaymentFlowHandler.#PENDING_ASAAS_KEY);
+      return null;
+    }
+  }
+
+  static #limparParametroRetorno() {
+    try {
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has('bf_pagamento')) return;
+      url.searchParams.delete('bf_pagamento');
+      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    } catch (_) {
+      /* noop */
+    }
+  }
+
+  static #delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

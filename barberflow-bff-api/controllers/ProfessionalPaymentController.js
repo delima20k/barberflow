@@ -12,7 +12,11 @@ class ProfessionalPaymentController extends BaseController {
 
   async criarCobranca(req, res) {
     await this.handle(res, async () => {
-      const dados = await this.#service.criarCobranca(req.user, req.body, { ip: req.ip });
+      const dados = await this.#service.criarCobranca(req.user, req.body, {
+        ip: req.ip,
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+      });
       this.created(res, dados);
     });
   }

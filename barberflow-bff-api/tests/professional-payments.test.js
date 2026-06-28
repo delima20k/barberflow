@@ -158,6 +158,16 @@ class FakeAsaas {
     };
   }
 
+  async buscarCobranca(paymentId) {
+    return {
+      id: paymentId,
+      status: 'RECEIVED',
+      invoiceUrl: 'https://sandbox.asaas.com/i/pay_123',
+      bankSlipUrl: null,
+      paymentDate: '2026-06-26',
+    };
+  }
+
   async buscarPixQrCode() {
     return {
       payload: '000201010212',
@@ -217,6 +227,37 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
+});
+
+test('cria cobranca com callback seguro para voltar ao app profissional', async () => {
+  const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
+    { ip: '127.0.0.1', origin: 'https://pro.berberflow.shop' },
+  );
+
+  assert.deepEqual(asaas.payments[0].callback, {
+    successUrl: 'https://pro.berberflow.shop/?bf_pagamento=retorno',
+    autoRedirect: true,
+  });
+});
+
+test('nao cria callback de pagamento para origem nao permitida', async () => {
+  const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
+    { ip: '127.0.0.1', origin: 'https://pro.berberflow.shop.evil.com' },
+  );
+
+  assert.equal('callback' in asaas.payments[0], false);
 });
 
 test('envia CPF/CNPJ ao criar cliente Asaas', async () => {
@@ -477,6 +518,34 @@ test('consulta cobranca somente do profissional autenticado', async () => {
     ),
     err => err.status === 404,
   );
+});
+
+test('consulta cobranca sincroniza pagamento recebido e ativa assinatura', async () => {
+  const repo = new FakeRepo();
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+  repo.payment = {
+    id: '33333333-3333-4333-8333-333333333333',
+    user_id: USER_ID,
+    asaas_payment_id: 'pay_123',
+    plan_type: 'mensal',
+    pro_type: 'barbeiro',
+    billing_type: 'UNDEFINED',
+    status: 'PENDING',
+    value: 5.00,
+    due_date: '2026-06-26',
+    invoice_url: 'https://sandbox.asaas.com/i/pay_123',
+    bank_slip_url: null,
+    pix_payload: null,
+    pix_expiration_date: null,
+    paid_at: null,
+    created_at: '2026-06-26T12:00:00.000Z',
+  };
+
+  const own = await service.buscarCobranca({ id: USER_ID }, repo.payment.id);
+
+  assert.equal(own.status, 'RECEIVED');
+  assert.equal(repo.subscription.status, 'active');
+  assert.equal(repo.subscription.purchase_token, 'pay_123');
 });
 
 test('webhook Asaas exige token configurado', async () => {

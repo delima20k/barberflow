@@ -17,6 +17,12 @@ const PLANOS = {
 };
 
 const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH']);
+const PROFESSIONAL_PAYMENT_RETURN_PATH = '/?bf_pagamento=retorno';
+const PROFESSIONAL_RETURN_ORIGINS = new Set([
+  'https://pro.berberflow.shop',
+  'https://barberflow-profissional.vercel.app',
+  'https://barberflow-pro-one.vercel.app',
+]);
 
 class ProfessionalPaymentService extends BaseService {
   #repo;
@@ -90,6 +96,13 @@ class ProfessionalPaymentService extends BaseService {
       externalReference: `${userId}:${proType}:${planType}:${Date.now()}`,
     };
     if (remoteIp) payloadCobranca.remoteIp = remoteIp;
+    const successUrl = this.#montarSuccessUrl(meta);
+    if (successUrl) {
+      payloadCobranca.callback = {
+        successUrl,
+        autoRedirect: true,
+      };
+    }
 
     const asaasPayment = await this.#asaas.criarCobranca(payloadCobranca);
 
@@ -126,7 +139,8 @@ class ProfessionalPaymentService extends BaseService {
     this._uuid('paymentId', paymentId);
     const payment = await this.#repo.getPaymentForUser(userId, paymentId);
     if (!payment) throw AppError.notFound('Cobranca nao encontrada.');
-    return this.#toPaymentDto(payment);
+    const synced = await this.#sincronizarPagamentoComAsaas(payment);
+    return this.#toPaymentDto(synced ?? payment);
   }
 
   async buscarStatusAssinatura(user) {
@@ -340,6 +354,63 @@ class ProfessionalPaymentService extends BaseService {
     return octets.every(octet => Number.isInteger(octet) && octet >= 0 && octet <= 255)
       ? text
       : null;
+  }
+
+  #montarSuccessUrl(meta = {}) {
+    const explicit = this.#normalizarProfessionalOrigin(process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN);
+    if (explicit) return `${explicit}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+
+    const origin = this.#normalizarProfessionalOrigin(meta.origin);
+    if (origin) return `${origin}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+
+    try {
+      const refererOrigin = new URL(String(meta.referer ?? '')).origin;
+      const referer = this.#normalizarProfessionalOrigin(refererOrigin);
+      if (referer) return `${referer}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+    } catch (_) {
+      return null;
+    }
+    return null;
+  }
+
+  #normalizarProfessionalOrigin(value) {
+    const raw = String(value ?? '').trim().replace(/\/+$/, '');
+    if (!raw) return null;
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== 'https:') return null;
+      const origin = url.origin;
+      if (PROFESSIONAL_RETURN_ORIGINS.has(origin)) return origin;
+      if (url.hostname.endsWith('.vercel.app') && /^barb[e]rflow[-.]/i.test(url.hostname)) {
+        return origin;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async #sincronizarPagamentoComAsaas(payment) {
+    if (!payment?.asaas_payment_id || STATUS_PAGO.has(payment.status)) return payment;
+    if (typeof this.#asaas.buscarCobranca !== 'function') return payment;
+
+    const asaasPayment = await this.#asaas.buscarCobranca(payment.asaas_payment_id).catch(() => null);
+    if (!asaasPayment?.id) return payment;
+
+    const synced = await this.#repo.atualizarPagamentoPorAsaasId(asaasPayment.id, {
+      status: asaasPayment.status ?? payment.status,
+      invoice_url: asaasPayment.invoiceUrl ?? payment.invoice_url,
+      bank_slip_url: asaasPayment.bankSlipUrl ?? payment.bank_slip_url,
+      paid_at: STATUS_PAGO.has(asaasPayment.status)
+        ? (asaasPayment.paymentDate ?? asaasPayment.clientPaymentDate ?? new Date().toISOString())
+        : payment.paid_at,
+      raw_payload: this.#safeRawPayload(asaasPayment),
+    });
+
+    if (synced && STATUS_PAGO.has(synced.status)) {
+      await this.#repo.ativarAssinaturaPorPagamento(synced);
+    }
+    return synced ?? payment;
   }
 
   #toPaymentDto(row) {

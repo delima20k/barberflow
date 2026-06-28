@@ -47,6 +47,12 @@ class AsaasClient {
     });
   }
 
+  async buscarCobranca(paymentId) {
+    return this.#request(`/v3/payments/${encodeURIComponent(paymentId)}`, {
+      method: 'GET',
+    });
+  }
+
   async buscarPixQrCode(paymentId) {
     return this.#request(`/v3/payments/${encodeURIComponent(paymentId)}/pixQrCode`, {
       method: 'GET',

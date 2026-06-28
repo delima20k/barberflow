@@ -96,6 +96,14 @@ class BarberFlowProfissional extends Router {
     this.#financasPage.bind();
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
+    setTimeout(() => {
+      PaymentFlowHandler.verificarPagamentoPendente?.(
+        () => {
+          this.#prepararTela('inicio');
+          super.nav('inicio');
+        },
+      );
+    }, 1200);
 
     // QueueConfirmService desativado: notificações ao barbeiro chegam via
     // Realtime (tabela notifications) → NotificationService → MinhaBarbeariaPage.
