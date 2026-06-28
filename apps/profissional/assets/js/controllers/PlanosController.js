@@ -38,6 +38,7 @@ class PlanosController {
     const tipoTravado = ['barbeiro', 'barbearia'].includes(tipoLogado) ? tipoLogado : null;
     const toggle = document.querySelector('.ppp-toggle');
     if (toggle) toggle.style.display = tipoTravado ? 'none' : '';
+    this.#ajustarCtasPlanosLogado(Boolean(tipoTravado));
 
     if (tipoTravado) {
       this.#alternarTipoPlano(tipoTravado, { persistir: false });
@@ -115,6 +116,13 @@ class PlanosController {
       : 'Plano Profissional para Barbearias';
 
     if (persistir) sessionStorage.setItem('bf_tipo', tipo);
+  }
+
+  #ajustarCtasPlanosLogado(usuarioLogado) {
+    document.querySelectorAll('#tela-planos-pro .ppp-btn[data-tipo][data-plano]').forEach(btn => {
+      if (!btn.dataset.textoOriginal) btn.dataset.textoOriginal = btn.textContent.trim();
+      btn.textContent = usuarioLogado ? 'Renovar plano' : btn.dataset.textoOriginal;
+    });
   }
 
   #selecionarTipoUsuario(tipo) {
