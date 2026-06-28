@@ -59,6 +59,7 @@ function criarQueryBuilder(result = { data: null, error: null }) {
 function criarLgpdService({
   deletionResult       = { data: null, error: null },
   profileResult        = { data: null, error: null },
+  bffMeResult          = null,
   consentResult        = { data: null, error: null },
   accessLogResult      = { data: null, error: null },
   sessionStoragePreload = {},
@@ -75,6 +76,15 @@ function criarLgpdService({
     dataAccessLog:    fn(() => accessLogBuilder),
   };
 
+  // BffApiService.auth.me() — substitui leitura direta de profiles (migration 20260628000001)
+  const bffMock = {
+    auth: {
+      me: fn().mockResolvedValue(
+        bffMeResult ?? { data: null, error: { message: 'BFF not configured in test' } },
+      ),
+    },
+  };
+
   const loggerMock = { warn: fn(), error: fn(), info: fn() };
 
   // sessionStorage stub com prÃ©-carga â€” simula o cache entre chamadas
@@ -88,6 +98,7 @@ function criarLgpdService({
   const sandbox = vm.createContext({
     console,
     SupabaseService:  supabaseMock,
+    BffApiService:    bffMock,
     LoggerService:    loggerMock,
     sessionStorage:   sessionStorageMock,
   });
@@ -97,6 +108,7 @@ function criarLgpdService({
   return {
     LgpdService:     sandbox.LgpdService,
     supabaseMock,
+    bffMock,
     loggerMock,
     sessionStorage:  sessionStorageMock,
     deletionBuilder,
@@ -119,25 +131,25 @@ describe('LgpdService â€” exportarDados()', () => {
     assert.match(String(result.error), /userId/);
   });
 
-  test('Supabase ok â†’ retorna perfil + consentimento + exportadoEm', async () => {
-    const perfilData  = { id: USER_ID, full_name: 'JoÃ£o', phone: '11999' };
+  test('BFF ok: retorna perfil + consentimento + exportadoEm', async () => {
+    const perfilBff   = { id: USER_ID, full_name: 'JoÃ£o', phone: '11999' };
     const consentData = { plan_type: 'client', aceitou_termos: true, version: 1 };
     const { LgpdService } = criarLgpdService({
-      profileResult: { data: perfilData,  error: null },
+      bffMeResult:   { data: { perfil: perfilBff, user: { email: 'joao@test.com' } }, error: null },
       consentResult: { data: consentData, error: null },
     });
 
     const result = await LgpdService.exportarDados(USER_ID);
 
     assert.strictEqual(result.ok, true);
-    assert.deepStrictEqual(result.dados.perfil, perfilData);
+    assertContains(result.dados.perfil, { id: USER_ID, full_name: 'JoÃ£o', phone: '11999' });
     assert.deepStrictEqual(result.dados.consentimento, consentData);
     assert.strictEqual(typeof result.dados.exportadoEm, 'string');
   });
 
   test('Consentimento inexistente â†’ ok:true, consentimento:null', async () => {
     const { LgpdService } = criarLgpdService({
-      profileResult: { data: { id: USER_ID }, error: null },
+      bffMeResult:   { data: { perfil: { id: USER_ID }, user: { email: 'x@test.com' } }, error: null },
       consentResult: { data: null, error: null },
     });
 
@@ -147,9 +159,9 @@ describe('LgpdService â€” exportarDados()', () => {
     assert.strictEqual(result.dados.consentimento, null);
   });
 
-  test('Erro no Supabase â†’ { ok: false, error }', async () => {
+  test('Erro na BFF: { ok: false, error }', async () => {
     const { LgpdService } = criarLgpdService({
-      profileResult: { data: null, error: { message: 'connection refused' } },
+      bffMeResult: { data: null, error: { message: 'connection refused' } },
     });
 
     const result = await LgpdService.exportarDados(USER_ID);
@@ -160,7 +172,7 @@ describe('LgpdService â€” exportarDados()', () => {
 
   test('Chama registrarAcesso com recurso "profiles" e acao "export"', async () => {
     const { LgpdService, accessLogBuilder } = criarLgpdService({
-      profileResult: { data: { id: USER_ID }, error: null },
+      bffMeResult:   { data: { perfil: { id: USER_ID }, user: { email: 'x@test.com' } }, error: null },
       consentResult: { data: null, error: null },
     });
 
