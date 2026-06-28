@@ -240,6 +240,9 @@ class MediaPrismViewer {
     else this.#renderFaces();
 
     this.#replayInteractions(item);
+    if (storyMode && item?.media_id && !item._interactionsCarregadas) {
+      this.#carregarInteracoesStory(item);
+    }
   }
   // Barra de progresso DENTRO de cada face — gira/arrasta junto com a mídia.
   // `realIdx` = índice global do item daquela face; -1 (ou fora do range) oculta.
@@ -1048,6 +1051,30 @@ class MediaPrismViewer {
    * Cria e anima um float com avatar + nome + texto sobre a imagem.
    * @param {{ texto: string, perfil: object|null }} opts
    */
+  async #carregarInteracoesStory(item) {
+    item._interactionsCarregadas = true;
+    if (typeof BffApiService === 'undefined') return;
+    const { data, error } = await BffApiService.media.listarStoryMessages(item.media_id, { limit: 50 });
+    if (error || !data) return;
+
+    const novas = [];
+    const likes = Math.max(0, Number(data.likesCount ?? 0));
+    for (let i = 0; i < Math.min(likes, 10); i++) novas.push({ type: 'like', body: '👍' });
+    (data.messages ?? []).forEach(msg => {
+      if (!msg.body) return;
+      const tipo = MediaPrismViewer.#isEmojiText(msg.body) ? 'emoji' : 'message';
+      novas.push({ type: tipo, body: msg.body, sender: { id: msg.sender?.id ?? null, nome: msg.sender?.nome ?? '', avatarUrl: msg.sender?.avatarUrl ?? null } });
+    });
+    if (!novas.length) return;
+
+    if (!Array.isArray(item.interactions)) item.interactions = [];
+    item.interactions.push(...novas);
+
+    if (!this.#overlay?.hidden && this.#items[this.#index] === item) {
+      this.#replayInteractions(item);
+    }
+  }
+
   #replayInteractions(item) {
     this.#limparInteracoes();
     const interactions = MediaPrismViewer.#normalizarInteracoes(item);
