@@ -43,14 +43,19 @@ class ProfessionalPaymentService extends BaseService {
     const profile = await this.#repo.getProfile(userId);
     this.#assertProfessional(profile);
 
-    const authMetadata = typeof this.#repo.getAuthUserMetadata === 'function'
-      ? await this.#repo.getAuthUserMetadata(userId)
-      : {};
-    const dadosCliente = this.#montarDadosCliente({ profile, user, body, authMetadata });
-    if (!dadosCliente.cpfCnpj) {
-      throw AppError.badRequest('CPF ou CNPJ do cadastro profissional e obrigatorio para gerar cobranca.');
+    let authMetadata = {};
+    if (typeof this.#repo.getAuthUserMetadata === 'function') {
+      try {
+        authMetadata = await this.#repo.getAuthUserMetadata(userId);
+      } catch (_) {
+        authMetadata = {};
+      }
     }
     let customer = await this.#repo.getCustomerByUser(userId);
+    const dadosCliente = this.#montarDadosCliente({ profile, user, body, authMetadata });
+    if (!dadosCliente.cpfCnpj && !customer) {
+      throw AppError.badRequest('CPF ou CNPJ do cadastro profissional e obrigatorio para gerar cobranca.');
+    }
     if (!customer) {
       const asaasCustomer = await this.#asaas.criarCliente(dadosCliente);
       customer = await this.#repo.salvarCustomer({

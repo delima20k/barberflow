@@ -14,10 +14,12 @@ class FakeRepo {
     existingCustomer = null,
     profilePhone = '11999999999',
     authMetadata = {},
+    authMetadataError = null,
   } = {}) {
     this.profileRole = profileRole;
     this.profilePhone = profilePhone;
     this.authMetadata = authMetadata;
+    this.authMetadataError = authMetadataError;
     this.customer = existingCustomer;
     this.createdPayments = [];
     this.events = [];
@@ -42,6 +44,7 @@ class FakeRepo {
   }
 
   async getAuthUserMetadata() {
+    if (this.authMetadataError) throw this.authMetadataError;
     return this.authMetadata;
   }
 
@@ -278,6 +281,33 @@ test('atualiza cliente Asaas existente com CPF/CNPJ antes da cobranca', async ()
   assert.equal(asaas.customers.length, 0);
   assert.equal(asaas.updatedCustomers[0].customerId, 'cus_existente');
   assert.equal(asaas.updatedCustomers[0].payload.cpfCnpj, '11444777000161');
+  assert.equal(asaas.payments[0].customer, 'cus_existente');
+});
+
+test('renovacao usa cliente Asaas existente mesmo se metadata do documento falhar', async () => {
+  const repo = new FakeRepo({
+    authMetadataError: new Error('auth metadata indisponivel'),
+    existingCustomer: {
+      id: '22222222-2222-4222-8222-222222222222',
+      user_id: USER_ID,
+      asaas_customer_id: 'cus_existente',
+      name: 'Profissional Teste',
+      email: 'teste@barberflow.test',
+      mobile_phone: '11999999999',
+    },
+  });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'PIX' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(result.asaasPaymentId, 'pay_123');
+  assert.equal(asaas.customers.length, 0);
+  assert.equal(asaas.updatedCustomers.length, 0);
   assert.equal(asaas.payments[0].customer, 'cus_existente');
 });
 
