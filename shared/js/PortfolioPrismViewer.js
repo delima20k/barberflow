@@ -239,8 +239,7 @@ class MediaPrismViewer {
     if (podeGirar) this.#renderFacesGirando(dir);
     else this.#renderFaces();
 
-    if (storyMode) this.#limparInteracoes();
-    else this.#replayInteractions(item);
+    this.#replayInteractions(item);
   }
   // Barra de progresso DENTRO de cada face — gira/arrasta junto com a mídia.
   // `realIdx` = índice global do item daquela face; -1 (ou fora do range) oculta.
@@ -595,6 +594,12 @@ class MediaPrismViewer {
       if (error) throw error;
       if (this.#publicInput) this.#publicInput.value = '';
       this.#emitInteraction({ texto, perfil, type: tipo });
+      if (!Array.isArray(item.interactions)) item.interactions = [];
+      const avatarUrl = perfil?.avatar_path
+        ? ((typeof ApiService !== 'undefined' && ApiService.getAvatarUrl)
+            ? ApiService.getAvatarUrl(perfil.avatar_path) : null)
+        : null;
+      item.interactions.push({ type: tipo, body: texto, sender: { id: perfil?.id ?? null, nome: perfil?.full_name ?? '', avatarUrl } });
     } catch (err) {
       let textoErro = '✗ Falha ao enviar';
       if (err?.status === 429) textoErro = '✗ Limite atingido';
