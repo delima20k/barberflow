@@ -165,13 +165,12 @@ class PaymentFlowHandler {
     try {
       PaymentFlowHandler.#browserPaymentInFlight = true;
       PaymentFlowHandler.#mostrarToast('Gerando cobranca segura...');
-      const cpfCnpj = PaymentFlowHandler.#documentoDaSessao(session)
-        || await PaymentFlowHandler.#solicitarDocumentoCobranca();
+      const cpfCnpj = PaymentFlowHandler.#documentoDaSessao(session);
       const { data, error } = await BffApiService.pagamentosProfissional.criarCobranca({
         proType: tipo,
         planType: plano,
         billingType: 'PIX',
-        customer: { cpfCnpj },
+        ...(cpfCnpj ? { customer: { cpfCnpj } } : {}),
       });
       if (error) throw error;
 
