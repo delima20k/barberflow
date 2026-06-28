@@ -362,12 +362,12 @@ class ProfessionalPaymentService extends BaseService {
   }
 
   #montarSuccessUrl(meta = {}) {
-    const explicit = this.#normalizarProfessionalOrigin(process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN);
-    if (explicit) return `${explicit}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
-
     if (process.env.NODE_ENV === 'production') {
       return `${PROFESSIONAL_CANONICAL_ORIGIN}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
     }
+
+    const explicit = this.#normalizarProfessionalOrigin(process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN);
+    if (explicit) return `${explicit}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
 
     const origin = this.#normalizarProfessionalOrigin(meta.origin);
     if (origin) return `${origin}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;

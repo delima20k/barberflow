@@ -8,6 +8,7 @@ const AsaasClient = require('../infrastructure/payments/AsaasClient');
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+const ORIGINAL_ASAAS_PAYMENT_SUCCESS_ORIGIN = process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN;
 
 class FakeRepo {
   constructor({
@@ -252,6 +253,7 @@ test('cria cobranca com callback seguro para voltar ao app profissional', async 
 
 test('em producao usa dominio canonico no callback mesmo com origem Vercel', async () => {
   process.env.NODE_ENV = 'production';
+  process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN = 'https://barberflow-profissional-abc.vercel.app';
   try {
     const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
     const asaas = new FakeAsaas();
@@ -269,6 +271,7 @@ test('em producao usa dominio canonico no callback mesmo com origem Vercel', asy
     });
   } finally {
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+    process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN = ORIGINAL_ASAAS_PAYMENT_SUCCESS_ORIGIN;
   }
 });
 
