@@ -654,9 +654,7 @@ class MediaPrismViewer {
     if (!v) return;
     const tentativa = v.play?.();
     if (!tentativa?.catch) return;
-    tentativa.catch(() => {
-      if (this.#isStoryMode()) this.#mostrarBotaoSom(v);
-    });
+    tentativa.catch(() => {});
   }
   // ───────────────────────────────────────────────────────────
   // Medição e raio (responsivo)
