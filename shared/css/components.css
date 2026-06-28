@@ -8818,7 +8818,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 /* Dono do story: só 👍 + 💬, mais acima e maiores */
 .pp-prism-public-actions.is-owner-actions {
-  bottom: 120px;
+  bottom: 60px;
   gap: 14px;
 }
 .pp-prism-public-actions .pp-prism-story-owner-actions {
@@ -8830,6 +8830,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   font-size: 1.4rem;
   padding: 0 16px;
   gap: 6px;
+  background: transparent;
+  border-color: transparent;
+  backdrop-filter: none;
 }
 .pp-prism-public-actions.is-owner-actions .portfolio-action__icon { font-size: 1.5rem; }
 .pp-prism-public-actions.is-owner-actions .portfolio-action__count { font-size: 1rem; font-weight: 700; }
