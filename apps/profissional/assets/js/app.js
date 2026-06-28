@@ -33,6 +33,14 @@ class BarberFlowProfissional extends Router {
   ]);
 
   static #TELAS_OFFLINE = new Set(['inicio', 'pesquisa', 'barbearias', 'barbeiros', 'barbearia', 'barbeiro']);
+  static #TELAS_ASSINATURA = new Set([
+    'agenda',
+    'mensagens',
+    'minha-barbearia',
+    'parcerias',
+    'financas',
+    'criar',
+  ]);
 
   get telasComNav()  { return BarberFlowProfissional.#TELAS_COM_NAV;  }
   get telasOffline() { return BarberFlowProfissional.#TELAS_OFFLINE; }
@@ -52,6 +60,7 @@ class BarberFlowProfissional extends Router {
   #barbeiroPage;
   #parceriasPage;
   #financasPage;
+  #assinaturaGatePendente = false;
 
   constructor() {
     super('inicio');
@@ -101,10 +110,21 @@ class BarberFlowProfissional extends Router {
    * @override
    */
   push(tela) {
-    if (tela === 'planos-pro') this.#planos.prepararTelaPlanos(AuthService.getPerfil()?.pro_type ?? null);
-    if (tela === 'cadastro') this.#cadastro.ajustarFormularioPorTipo();
-    if (tela === 'confirmar-plano-pro') this.#planos.prepararConfirmacao();
+    if (this.#deveVerificarAssinatura(tela)) {
+      this.#navegarComAssinatura(tela, 'push');
+      return;
+    }
+    this.#prepararTela(tela);
     super.push(tela);
+  }
+
+  nav(tela) {
+    if (this.#deveVerificarAssinatura(tela)) {
+      this.#navegarComAssinatura(tela, 'nav');
+      return;
+    }
+    this.#prepararTela(tela);
+    super.nav(tela);
   }
 
   /**
@@ -127,6 +147,36 @@ class BarberFlowProfissional extends Router {
     return AuthService.getPerfil()?.pro_type
         || MonetizationGuard.tipoUsuario
         || null;
+  }
+
+  #prepararTela(tela) {
+    if (tela === 'planos-pro') this.#planos.prepararTelaPlanos(AuthService.getPerfil()?.pro_type ?? null);
+    if (tela === 'cadastro') this.#cadastro.ajustarFormularioPorTipo();
+    if (tela === 'confirmar-plano-pro') this.#planos.prepararConfirmacao();
+  }
+
+  #deveVerificarAssinatura(tela) {
+    const logado = typeof AppState !== 'undefined' && AppState.get('isLogado') === true;
+    return logado && BarberFlowProfissional.#TELAS_ASSINATURA.has(tela);
+  }
+
+  async #navegarComAssinatura(tela, modo) {
+    if (this.#assinaturaGatePendente) return;
+    this.#assinaturaGatePendente = true;
+    try {
+      const status = await MonetizationGuard.assinaturaPermiteAcesso();
+      if (!status.accessAllowed) {
+        this.#prepararTela('planos-pro');
+        super.push('planos-pro');
+        return;
+      }
+
+      this.#prepararTela(tela);
+      if (modo === 'nav') super.nav(tela);
+      else super.push(tela);
+    } finally {
+      this.#assinaturaGatePendente = false;
+    }
   }
 }
 

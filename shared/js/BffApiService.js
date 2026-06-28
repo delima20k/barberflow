@@ -445,6 +445,9 @@ class BffApiService {
   // ── Getter público (usado por GeoService para montar URL da fila offline) ──
 
   static pagamentosProfissional = {
+    statusAssinatura: () =>
+      BffApiService.get('/api/v1/profissional/pagamentos/assinatura/status'),
+
     criarCobranca: ({
       proType = 'barbeiro',
       planType,

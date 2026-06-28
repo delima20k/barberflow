@@ -95,6 +95,10 @@ class FakeRepo {
     return this.subscription?.purchase_token === purchaseToken ? this.subscription : null;
   }
 
+  async getCurrentSubscription() {
+    return this.subscription;
+  }
+
   async ativarTrial(userId) {
     this.expiredSubscriptions += 1;
     this.subscription = {
@@ -360,6 +364,56 @@ test('bloqueia trial para usuario que nao e profissional', async () => {
     () => service.ativarTrial({ id: USER_ID }),
     err => err.status === 403,
   );
+});
+
+test('status de assinatura permite acesso quando plano esta ativo e vigente', async () => {
+  const repo = new FakeRepo();
+  repo.subscription = {
+    id: '55555555-5555-4555-8555-555555555555',
+    user_id: USER_ID,
+    plan_type: 'mensal',
+    status: 'active',
+    starts_at: '2026-06-26T12:00:00.000Z',
+    ends_at: new Date(Date.now() + 86400000).toISOString(),
+    price: 1.00,
+    purchase_token: 'pay_123',
+  };
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  const status = await service.buscarStatusAssinatura({ id: USER_ID });
+
+  assert.equal(status.accessAllowed, true);
+  assert.equal(status.reason, 'active_subscription');
+  assert.equal(status.subscription.planType, 'mensal');
+});
+
+test('status de assinatura bloqueia quando plano esta expirado', async () => {
+  const repo = new FakeRepo();
+  repo.subscription = {
+    id: '55555555-5555-4555-8555-555555555555',
+    user_id: USER_ID,
+    plan_type: 'mensal',
+    status: 'active',
+    starts_at: '2026-06-26T12:00:00.000Z',
+    ends_at: new Date(Date.now() - 86400000).toISOString(),
+    price: 1.00,
+    purchase_token: 'pay_123',
+  };
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  const status = await service.buscarStatusAssinatura({ id: USER_ID });
+
+  assert.equal(status.accessAllowed, false);
+  assert.equal(status.reason, 'expired_subscription');
+});
+
+test('status de assinatura bloqueia quando nao existe assinatura', async () => {
+  const service = new ProfessionalPaymentService(new FakeRepo(), new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  const status = await service.buscarStatusAssinatura({ id: USER_ID });
+
+  assert.equal(status.accessAllowed, false);
+  assert.equal(status.reason, 'missing_subscription');
 });
 
 test('consulta cobranca somente do profissional autenticado', async () => {

@@ -18,6 +18,8 @@ class MonetizationGuard {
   static #TIPO_KEY  = 'bf_tipo';
   static #PLANO_KEY = 'bf_plano';
   static #CONFIRM_KEY = 'bf_plano_confirmacao_pendente';
+  static #STATUS_TTL_MS = 60000;
+  static #statusCache = null;
 
   /** @returns {string|null} */
   static get tipoUsuario()      { return sessionStorage.getItem(MonetizationGuard.#TIPO_KEY);  }
@@ -62,6 +64,40 @@ class MonetizationGuard {
     }
   }
 
+  static async assinaturaPermiteAcesso({ force = false } = {}) {
+    const agora = Date.now();
+    if (!force
+      && MonetizationGuard.#statusCache
+      && agora - MonetizationGuard.#statusCache.checkedAt < MonetizationGuard.#STATUS_TTL_MS) {
+      return MonetizationGuard.#statusCache.status;
+    }
+
+    const fallback = {
+      accessAllowed: false,
+      reason: 'subscription_status_unavailable',
+      subscription: null,
+    };
+
+    if (typeof BffApiService === 'undefined'
+      || !BffApiService.pagamentosProfissional?.statusAssinatura) {
+      MonetizationGuard.#statusCache = { checkedAt: agora, status: fallback };
+      return fallback;
+    }
+
+    const { data, error } = await BffApiService.pagamentosProfissional.statusAssinatura();
+    const status = error ? fallback : {
+      accessAllowed: data?.accessAllowed === true,
+      reason: data?.reason ?? 'subscription_status_unavailable',
+      subscription: data?.subscription ?? null,
+    };
+    MonetizationGuard.#statusCache = { checkedAt: agora, status };
+    return status;
+  }
+
+  static limparCacheAssinatura() {
+    MonetizationGuard.#statusCache = null;
+  }
+
   /**
    * Limpa seleção — chamado após cadastro concluído ou logout.
    */
@@ -69,5 +105,6 @@ class MonetizationGuard {
     sessionStorage.removeItem(MonetizationGuard.#TIPO_KEY);
     sessionStorage.removeItem(MonetizationGuard.#PLANO_KEY);
     sessionStorage.removeItem(MonetizationGuard.#CONFIRM_KEY);
+    MonetizationGuard.limparCacheAssinatura();
   }
 }

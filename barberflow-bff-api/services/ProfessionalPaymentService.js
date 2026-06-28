@@ -124,6 +124,30 @@ class ProfessionalPaymentService extends BaseService {
     return this.#toPaymentDto(payment);
   }
 
+  async buscarStatusAssinatura(user) {
+    const userId = user?.id;
+    this._uuid('userId', userId);
+
+    const profile = await this.#repo.getProfile(userId);
+    this.#assertProfessional(profile);
+
+    const subscription = await this.#repo.getCurrentSubscription(userId);
+    const nowMs = Date.now();
+    const endsAtMs = subscription?.ends_at ? Date.parse(subscription.ends_at) : NaN;
+    const status = subscription?.status ?? 'none';
+    const activeStatus = ['trial', 'active'].includes(status);
+    const notExpired = Number.isFinite(endsAtMs) && endsAtMs > nowMs;
+    const accessAllowed = Boolean(subscription && activeStatus && notExpired);
+
+    return {
+      accessAllowed,
+      reason: accessAllowed
+        ? 'active_subscription'
+        : this.#subscriptionBlockReason(subscription, { activeStatus, notExpired }),
+      subscription: subscription ? this.#toSubscriptionDto(subscription) : null,
+    };
+  }
+
   async ativarTrial(user) {
     const userId = user?.id;
     this._uuid('userId', userId);
@@ -335,6 +359,13 @@ class ProfessionalPaymentService extends BaseService {
       endsAt: row.ends_at,
       price: Number(row.price ?? 0),
     };
+  }
+
+  #subscriptionBlockReason(subscription, { activeStatus, notExpired }) {
+    if (!subscription) return 'missing_subscription';
+    if (!activeStatus) return 'inactive_subscription';
+    if (!notExpired) return 'expired_subscription';
+    return 'subscription_unavailable';
   }
 }
 

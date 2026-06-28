@@ -33,6 +33,7 @@ class PlanosService {
 
       await PaymentFlowHandler.iniciarFluxo(plano, () => {
         MonetizationGuard.limparConfirmacaoPendente();
+        MonetizationGuard.limparCacheAssinatura();
         onSucesso?.();
       }, onErro, { tipo });
     } catch (err) {

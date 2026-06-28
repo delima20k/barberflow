@@ -99,6 +99,20 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data ?? null;
   }
 
+  async getCurrentSubscription(userId) {
+    this._uuid('userId', userId);
+    const { data, error } = await this._db
+      .from('subscriptions')
+      .select('id, user_id, plan_type, status, starts_at, ends_at, price, purchase_token')
+      .eq('user_id', userId)
+      .in('status', ['trial', 'active'])
+      .order('ends_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) this._throwDbError(error, 'getCurrentSubscription');
+    return data ?? null;
+  }
+
   async ativarTrial(userId) {
     this._uuid('userId', userId);
 
