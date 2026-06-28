@@ -169,7 +169,7 @@ class PaymentFlowHandler {
       const { data, error } = await BffApiService.pagamentosProfissional.criarCobranca({
         proType: tipo,
         planType: plano,
-        billingType: 'PIX',
+        billingType: 'UNDEFINED',
         ...(cpfCnpj ? { customer: { cpfCnpj } } : {}),
       });
       if (error) throw error;
