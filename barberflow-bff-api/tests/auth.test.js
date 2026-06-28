@@ -253,6 +253,15 @@ suite('AuthController — GET /api/auth/me', () => {
     assert.strictEqual(body.ok, true);
   });
 
+  test('retorna 200 no alias /api/v1/auth/me com token valido', async () => {
+    const { status, body } = await get(
+      '/api/v1/auth/me',
+      { Authorization: `Bearer ${TOKEN_VALIDO}` },
+    );
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+  });
+
   test('retorna user.id e perfil.full_name', async () => {
     const { body } = await get(
       '/api/auth/me',

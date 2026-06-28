@@ -153,6 +153,7 @@ function criarApp(db = null) {
   v1Router.use('/mensalistas',   mensalistasRoute(_db));
   v1Router.use('/financeiro',     financeiroRoute(_db));
   v1Router.use('/profissional/pagamentos', professionalPaymentsRoute(_db));
+  v1Router.use('/auth', RateLimiterMiddleware.auth, AbuseMiddleware.forHttp(), authRoute);
   v1Router.use('/geo',           geoRoute);
   v1Router.use('/media',         AbuseMiddleware.forHttp(), mediaRoute(_db));
   v1Router.use('/feed',          AbuseMiddleware.forHttp(), feedRoute(_db));
