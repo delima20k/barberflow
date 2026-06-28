@@ -1701,41 +1701,6 @@
        TELA: ACEITE LEGAL PROFISSIONAL (obrigatória)
        Exibida após pagamento, antes do cadastro/home
   ═══════════════════════════════════════════════════════ -->
-  <!-- ============================================================
-       TELA - CONFIRMACAO DO PLANO PRO
-  ============================================================ -->
-  <main id="tela-confirmar-plano-pro" class="tela">
-    <section class="pcp-wrap" aria-labelledby="pcp-titulo">
-      <div class="pcp-header">
-        <p class="pcp-kicker">Confirmacao do plano</p>
-        <h1 id="pcp-titulo" class="pcp-title">Deseja continuar?</h1>
-        <p id="pcp-resumo" class="pcp-sub">Voce escolheu um plano profissional.</p>
-      </div>
-
-      <div class="pcp-options" role="group" aria-label="Escolha final do plano">
-        <button type="button" class="pcp-option" data-confirmar-plano="trial">
-          <span>Teste gratis</span>
-          <strong>14 dias</strong>
-        </button>
-        <button type="button" class="pcp-option" data-confirmar-plano="mensal">
-          <span>Mensal</span>
-          <strong>1 mes</strong>
-        </button>
-        <button type="button" class="pcp-option" data-confirmar-plano="trimestral">
-          <span>Trimestral</span>
-          <strong>3 meses</strong>
-        </button>
-      </div>
-
-      <p id="pcp-erro" class="pcp-erro" style="display:none"></p>
-
-      <div class="pcp-actions">
-        <button type="button" class="ppp-btn" id="pcp-btn-continuar">Continuar</button>
-        <button type="button" class="ppp-btn ppp-btn--outline" id="pcp-btn-mudar">Mudar plano</button>
-      </div>
-    </section>
-  </main>
-
   <main id="tela-termos-legais" class="tela">
 
     <!-- Header fixo dentro da tela -->
@@ -2343,14 +2308,14 @@
 <script src="assets/js/AppBootstrap.js" defer></script>
 <!-- Controllers do app profissional — devem preceder app.js -->
 <script src="/shared/js/AuthController.js?v=20260627c" defer></script>
-<script src="assets/js/controllers/PlanosController.js?v=20260628a" defer></script>
+<script src="assets/js/controllers/PlanosController.js?v=20260628d" defer></script>
 <script src="assets/js/controllers/CadastroController.js" defer></script>
 <script src="assets/js/controllers/TermosController.js" defer></script>
 <!-- Confirmação de ausência de cliente na cadeira -->
 <script src="/shared/js/QueueConfirmService.js" defer></script>
 
 <!-- App Profissional logic -->
-<script type="module" src="assets/js/app.js?v=20260628b" defer></script>
+<script type="module" src="assets/js/app.js?v=20260628d" defer></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
 
 <!-- Modal de Chat — MessagesWidget -->

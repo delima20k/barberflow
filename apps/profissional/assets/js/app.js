@@ -152,7 +152,6 @@ class BarberFlowProfissional extends Router {
   #prepararTela(tela) {
     if (tela === 'planos-pro') this.#planos.prepararTelaPlanos(AuthService.getPerfil()?.pro_type ?? null);
     if (tela === 'cadastro') this.#cadastro.ajustarFormularioPorTipo();
-    if (tela === 'confirmar-plano-pro') this.#planos.prepararConfirmacao();
   }
 
   #deveVerificarAssinatura(tela) {

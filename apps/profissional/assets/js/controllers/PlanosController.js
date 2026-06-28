@@ -1,7 +1,7 @@
 'use strict';
 
 // =============================================================
-// PlanosController.js - Selecao de tipo, plano e confirmacao final
+// PlanosController.js - Selecao de tipo e plano profissional
 // =============================================================
 
 class PlanosController {
@@ -17,21 +17,6 @@ class PlanosController {
     this.#bindTipoUsuario();
     this.#bindPlanosOld();
     this.#bindPlanosPro();
-    this.#bindConfirmacaoPlano();
-  }
-
-  prepararConfirmacao() {
-    const tipo = MonetizationGuard.tipoUsuario || 'barbeiro';
-    const plano = MonetizationGuard.planoSelecionado || 'trial';
-    const tipoTxt = tipo === 'barbearia' ? 'barbearia' : 'barbeiro';
-    const planoTxt = this.#planoLabel(plano);
-
-    const resumo = document.getElementById('pcp-resumo');
-    if (resumo) resumo.textContent = `Voce escolheu o plano ${planoTxt} para ${tipoTxt}.`;
-
-    document.querySelectorAll('[data-confirmar-plano]').forEach(btn => {
-      btn.classList.toggle('pcp-option--ativo', btn.dataset.confirmarPlano === plano);
-    });
   }
 
   prepararTelaPlanos(tipoLogado = null) {
@@ -81,22 +66,6 @@ class PlanosController {
         this.#selecionarPlanoPro(btn.dataset.tipo, btn.dataset.plano, btn)
       );
     });
-  }
-
-  #bindConfirmacaoPlano() {
-    document.querySelectorAll('[data-confirmar-plano]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tipo = MonetizationGuard.tipoUsuario || 'barbeiro';
-        PlanosService.selecionarPlano(tipo, btn.dataset.confirmarPlano);
-        this.prepararConfirmacao();
-      });
-    });
-
-    document.getElementById('pcp-btn-mudar')
-      ?.addEventListener('click', () => this.#pushFn('planos-pro'));
-
-    document.getElementById('pcp-btn-continuar')
-      ?.addEventListener('click', () => this.#confirmarPlanoFinal());
   }
 
   #alternarTipoPlano(tipo, { persistir = true } = {}) {
@@ -154,34 +123,18 @@ class PlanosController {
     const usuarioLogado = this.#isUsuarioLogado();
     try {
       PlanosService.selecionarPlano(tipo, plano);
-      this.#pushFn(usuarioLogado ? 'confirmar-plano-pro' : 'termos-legais');
+      if (!usuarioLogado) {
+        this.#pushFn('termos-legais');
+        return;
+      }
+
+      await PlanosService.confirmarPlano(
+        () => this.#pushFn('inicio'),
+        (msg) => this.#mostrarErroPagamento(msg),
+      );
     } finally {
       if (botao) botao.disabled = false;
     }
-  }
-
-  async #confirmarPlanoFinal() {
-    const btn = document.getElementById('pcp-btn-continuar');
-    const erro = document.getElementById('pcp-erro');
-    if (btn?.disabled) return;
-    if (btn) btn.disabled = true;
-    if (erro) {
-      erro.textContent = '';
-      erro.style.display = 'none';
-    }
-
-    await PlanosService.confirmarPlano(
-      () => this.#pushFn('inicio'),
-      (msg) => {
-        LoggerService.warn('[PlanosController] Confirmacao de plano falhou:', msg);
-        if (erro) {
-          erro.textContent = msg || 'Nao foi possivel confirmar o plano.';
-          erro.style.display = 'block';
-        }
-      },
-    );
-
-    if (btn) btn.disabled = false;
   }
 
   #isUsuarioLogado() {
@@ -192,12 +145,6 @@ class PlanosController {
   #abrirTermosCadastro() {
     sessionStorage.setItem('bf_termo_destino', 'cadastro');
     this.#pushFn('termos-legais');
-  }
-
-  #planoLabel(plano) {
-    if (plano === 'mensal') return 'mensal';
-    if (plano === 'trimestral') return 'trimestral';
-    return 'teste gratis';
   }
 
   #mostrarToastEmBreve() {
@@ -219,5 +166,21 @@ class PlanosController {
     t.textContent = 'Planos para barbearia chegando em breve!';
     t.classList.add('pay-toast--visivel');
     setTimeout(() => t.classList.remove('pay-toast--visivel'), 3000);
+  }
+
+  #mostrarErroPagamento(msg) {
+    const texto = msg || 'Nao foi possivel iniciar a renovacao.';
+    if (typeof LoggerService !== 'undefined') {
+      LoggerService.warn?.('[PlanosController] Renovacao de plano falhou:', texto);
+    }
+    if (typeof NotificationService !== 'undefined') {
+      NotificationService.mostrarToast(
+        'Pagamento indisponivel',
+        texto,
+        NotificationService.TIPOS?.ALERTA || NotificationService.TIPOS?.ERRO || NotificationService.TIPOS?.ENGAJAMENTO
+      );
+      return;
+    }
+    window.alert(texto);
   }
 }
