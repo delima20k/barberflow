@@ -7,6 +7,7 @@ const ProfessionalPaymentService = require('../services/ProfessionalPaymentServi
 const AsaasClient = require('../infrastructure/payments/AsaasClient');
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
+const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 
 class FakeRepo {
   constructor({
@@ -247,6 +248,28 @@ test('cria cobranca com callback seguro para voltar ao app profissional', async 
     successUrl: 'https://pro.berberflow.shop/?bf_pagamento=retorno',
     autoRedirect: true,
   });
+});
+
+test('em producao usa dominio canonico no callback mesmo com origem Vercel', async () => {
+  process.env.NODE_ENV = 'production';
+  try {
+    const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+    const asaas = new FakeAsaas();
+    const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+    await service.criarCobranca(
+      { id: USER_ID, email: 'teste@barberflow.test' },
+      { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
+      { ip: '127.0.0.1', origin: 'https://barberflow-profissional-abc.vercel.app' },
+    );
+
+    assert.deepEqual(asaas.payments[0].callback, {
+      successUrl: 'https://pro.berberflow.shop/?bf_pagamento=retorno',
+      autoRedirect: true,
+    });
+  } finally {
+    process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+  }
 });
 
 test('nao cria callback de pagamento para origem nao permitida', async () => {

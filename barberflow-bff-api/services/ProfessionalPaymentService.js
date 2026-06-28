@@ -17,9 +17,10 @@ const PLANOS = {
 };
 
 const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH']);
+const PROFESSIONAL_CANONICAL_ORIGIN = 'https://pro.berberflow.shop';
 const PROFESSIONAL_PAYMENT_RETURN_PATH = '/?bf_pagamento=retorno';
 const PROFESSIONAL_RETURN_ORIGINS = new Set([
-  'https://pro.berberflow.shop',
+  PROFESSIONAL_CANONICAL_ORIGIN,
   'https://barberflow-profissional.vercel.app',
   'https://barberflow-pro-one.vercel.app',
 ]);
@@ -363,6 +364,10 @@ class ProfessionalPaymentService extends BaseService {
   #montarSuccessUrl(meta = {}) {
     const explicit = this.#normalizarProfessionalOrigin(process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN);
     if (explicit) return `${explicit}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+
+    if (process.env.NODE_ENV === 'production') {
+      return `${PROFESSIONAL_CANONICAL_ORIGIN}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+    }
 
     const origin = this.#normalizarProfessionalOrigin(meta.origin);
     if (origin) return `${origin}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
