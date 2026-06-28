@@ -1,6 +1,7 @@
 'use strict';
 
-const BaseRepository = require('./BaseRepository');
+const BaseRepository  = require('./BaseRepository');
+const DocumentCipher  = require('../infrastructure/crypto/DocumentCipher');
 
 class ProfessionalPaymentRepository extends BaseRepository {
   constructor(db) {
@@ -11,11 +12,15 @@ class ProfessionalPaymentRepository extends BaseRepository {
     this._uuid('userId', userId);
     const { data, error } = await this._db
       .from('profiles')
-      .select('id, full_name, phone, role, pro_type, is_active')
+      .select('id, full_name, phone, role, pro_type, is_active, cpf_cnpj_enc')
       .eq('id', userId)
       .maybeSingle();
     if (error) this._throwDbError(error, 'getProfile');
-    return data ?? null;
+    if (!data) return null;
+
+    const { cpf_cnpj_enc, ...rest } = data;
+    rest.cpf_cnpj = DocumentCipher.tryDecrypt(cpf_cnpj_enc);
+    return rest;
   }
 
   async getAuthUserMetadata(userId) {

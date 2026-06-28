@@ -243,8 +243,17 @@ class PaymentFlowHandler {
     }
   }
 
-  static #documentoDaSessao(session) {
-    const meta = session?.user?.user_metadata || {};
+  static #documentoDaSessao(_session) {
+    // CPF/CNPJ não está mais no JWT (user_metadata foi limpo por P1 security).
+    // Lê do perfil em cache (AuthService.#perfil.cpf_cnpj, decifrado pela BFF).
+    // Fallback para user_metadata mantido enquanto o backfill não cobrir todos os usuários.
+    const perfilDoc = typeof AuthService !== 'undefined'
+      ? String(AuthService.getPerfil()?.cpf_cnpj ?? '').replace(/\D/g, '')
+      : '';
+    if (PaymentFlowHandler.#validarDocumento(perfilDoc).ok) return perfilDoc;
+
+    // Fallback: user_metadata (usuários anteriores ao backfill)
+    const meta = _session?.user?.user_metadata || {};
     const candidates = [meta.cpf_cnpj, meta.cpfCnpj, meta.cpf, meta.cnpj];
     for (const item of candidates) {
       const digits = String(item ?? '').replace(/\D/g, '');

@@ -29,7 +29,8 @@ router.post('/login',   (req, res) => ctrl().login(req, res));
 router.post('/refresh', (req, res) => ctrl().refresh(req, res));
 
 // ── Rotas autenticadas (JWT obrigatório) ──────────────────────────
-router.post('/logout', AuthMiddleware.verificar, (req, res) => ctrl().logout(req, res));
-router.get('/me',      AuthMiddleware.verificar, (req, res) => ctrl().me(req, res));
+router.post('/logout',    AuthMiddleware.verificar, (req, res) => ctrl().logout(req, res));
+router.get('/me',         AuthMiddleware.verificar, (req, res) => ctrl().me(req, res));
+router.post('/documento', AuthMiddleware.verificar, (req, res) => ctrl().salvarDocumento(req, res));
 
 module.exports = router;

@@ -257,5 +257,67 @@ module.exports = function criarAdminRoute(db) {
     }
   });
 
+  // ── POST /backfill-documentos ─────────────────────────────────
+  // Migra CPF/CNPJ de raw_user_meta_data → profiles.cpf_cnpj_enc (AES-256-GCM).
+  // Idempotente: pula usuários que já têm cpf_cnpj_enc preenchido.
+  // Execute uma única vez após o deploy desta versão e após rodar a migration SQL.
+  router.post('/backfill-documentos', async (_req, res, next) => {
+    const DocumentCipher = require('../infrastructure/crypto/DocumentCipher');
+    try {
+      const db = _db;
+
+      // 1. Lista todos os usuários (max 1000 por página)
+      let page = 1;
+      let processados = 0;
+      let pulados = 0;
+      let erros = 0;
+
+      while (true) {
+        const { data: { users } = {}, error } = await db.auth.admin.listUsers({
+          page,
+          perPage: 100,
+        });
+
+        if (error) throw error;
+        if (!users || users.length === 0) break;
+
+        for (const u of users) {
+          const meta = u.user_metadata ?? {};
+          const docPlain = meta.cpf_cnpj ?? meta.cpf ?? meta.cnpj ?? null;
+          if (!docPlain) { pulados++; continue; }
+
+          const digits = String(docPlain).replace(/\D/g, '');
+          if (![11, 14].includes(digits.length)) { pulados++; continue; }
+
+          // Verifica se já foi migrado
+          const { data: existing } = await db
+            .from('profiles')
+            .select('cpf_cnpj_enc')
+            .eq('id', u.id)
+            .maybeSingle();
+
+          if (existing?.cpf_cnpj_enc) { pulados++; continue; }
+
+          try {
+            await db
+              .from('profiles')
+              .update({ cpf_cnpj_enc: DocumentCipher.encrypt(digits) })
+              .eq('id', u.id);
+            processados++;
+          } catch (_) {
+            erros++;
+          }
+        }
+
+        if (users.length < 100) break;
+        page++;
+      }
+
+      res.json({ ok: true, dados: { processados, pulados, erros } });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   return router;
 };

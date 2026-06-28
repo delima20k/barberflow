@@ -149,6 +149,8 @@ class AuthService {
 
     try {
       // SupabaseService.signUp retorna data ({user, session}) diretamente — sem wrapper
+      // SEGURANÇA P1: CPF/CNPJ não vai mais para user_metadata (JWT/localStorage).
+      // O documento é enviado à BFF logo após o signup, cifrado AES-256-GCM.
       const signUpData = await SupabaseService.signUp(
         email,
         senha,
@@ -158,14 +160,20 @@ class AuthService {
           phone: telefone || null,
           pro_type: pro_type || null,
           barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null,
-          cpf: doc.tipo === 'cpf' ? doc.valor : null,
-          cnpj: doc.tipo === 'cnpj' ? doc.valor : null,
-          cpf_cnpj: doc.valor || null,
         }
       );
 
       const user    = signUpData?.user    ?? null;
       const session = signUpData?.session ?? null;
+
+      // Salva o documento cifrado na BFF — fire-and-forget.
+      // Usa o JWT da sessão recém-criada via SupabaseService.getSession().
+      // Falha não bloqueia o cadastro; o documento pode ser reinserido
+      // pelo profissional via edição de perfil.
+      if (user && doc.valor && session) {
+        BffApiService.auth.salvarDocumento(doc.valor)
+          .catch(e => LoggerService.warn('[AuthService] Documento não salvo na BFF:', e?.message));
+      }
 
       // Garante criação do perfil (fallback caso o trigger não exista)
       if (user) {

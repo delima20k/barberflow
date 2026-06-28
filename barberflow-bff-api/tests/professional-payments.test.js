@@ -13,11 +13,13 @@ class FakeRepo {
     profileRole = 'professional',
     existingCustomer = null,
     profilePhone = '11999999999',
+    profileCpfCnpj = null,
     authMetadata = {},
     authMetadataError = null,
   } = {}) {
     this.profileRole = profileRole;
     this.profilePhone = profilePhone;
+    this.profileCpfCnpj = profileCpfCnpj;
     this.authMetadata = authMetadata;
     this.authMetadataError = authMetadataError;
     this.customer = existingCustomer;
@@ -36,6 +38,7 @@ class FakeRepo {
       role: this.profileRole,
       pro_type: 'barbeiro',
       is_active: true,
+      cpf_cnpj: this.profileCpfCnpj,
     };
   }
 
@@ -288,6 +291,20 @@ test('usa CPF/CNPJ do cadastro do usuario quando payload nao envia customer', as
   await service.criarCobranca(
     { id: USER_ID, email: 'teste@barberflow.test' },
     { proType: 'barbeiro', planType: 'mensal', billingType: 'PIX' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(asaas.customers[0].cpfCnpj, '52998224725');
+});
+
+test('usa CPF/CNPJ cifrado do perfil quando JWT nao possui documento', async () => {
+  const repo = new FakeRepo({ profileCpfCnpj: '52998224725' });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
     { ip: '127.0.0.1' },
   );
 

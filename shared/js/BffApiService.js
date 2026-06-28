@@ -386,11 +386,19 @@ class BffApiService {
   static auth = {
     /**
      * Perfil próprio completo (inclui campos privados: address, birth_date,
-     * gender, zip_code) servido pela BFF com service_role. O AuthMiddleware
+     * gender, zip_code, cpf_cnpj) servido pela BFF com service_role. O AuthMiddleware
      * garante que só o dono (JWT.sub == profile.id) recebe os dados.
      * @returns {Promise<{data: {user: object, perfil: object}|null, error: any}>}
      */
     me: () => BffApiService.get('/api/v1/auth/me'),
+
+    /**
+     * Persiste o CPF ou CNPJ cifrado (AES-256-GCM) logo após o cadastro.
+     * Falha silenciosa — não bloqueia o fluxo de cadastro.
+     * @param {string} cpfCnpj — somente dígitos (11 ou 14)
+     * @returns {Promise<{data: object|null, error: any}>}
+     */
+    salvarDocumento: (cpfCnpj) => BffApiService.post('/api/v1/auth/documento', { cpfCnpj }),
   };
 
   static chat = {

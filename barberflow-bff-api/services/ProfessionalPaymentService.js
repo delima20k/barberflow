@@ -241,10 +241,14 @@ class ProfessionalPaymentService extends BaseService {
     const customer = body.customer ?? {};
     const name = this._texto('customer.name', customer.name ?? profile.full_name, 120, true);
     const cpfCnpj = this.#normalizarCpfCnpjDeCandidatos([
+      // 1. Coluna cifrada (fonte canônica — imutável pelo usuário)
+      profile.cpf_cnpj,
+      // 2. Enviado pelo front no body (pré-preenchimento no formulário de pagamento)
       customer.cpfCnpj,
       customer.cpf_cnpj,
       body.cpfCnpj,
       body.cpf_cnpj,
+      // 3. user_metadata — fallback para usuários anteriores ao backfill
       user?.user_metadata?.cpf_cnpj,
       user?.user_metadata?.cpfCnpj,
       user?.user_metadata?.cpf,

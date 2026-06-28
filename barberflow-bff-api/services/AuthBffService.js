@@ -104,6 +104,21 @@ class AuthBffService extends BaseService {
     return { user, perfil };
   }
 
+  // ── Documento ────────────────────────────────────────────────────
+
+  /**
+   * Persiste o documento de identificação (CPF/CNPJ) cifrado.
+   * Chamado imediatamente após o cadastro do profissional.
+   *
+   * @param {{ id: string }} user — req.user (JWT já validado)
+   * @param {string} cpfCnpj     — somente dígitos (11 ou 14)
+   */
+  async salvarDocumento(user, cpfCnpj) {
+    this._uuid('userId', user.id);
+    await this.#repo.salvarDocumento(user.id, cpfCnpj);
+    console.info('[AUTH] documento salvo', { userId: user.id });
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /** Mascara email para logs (sem expor dados sensíveis). */

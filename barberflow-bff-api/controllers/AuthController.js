@@ -85,6 +85,21 @@ class AuthController extends BaseController {
       this.success(res, dados);
     });
   }
+
+  // ── POST /api/auth/documento ─────────────────────────────────────
+
+  /**
+   * Persiste o CPF ou CNPJ cifrado do profissional logo após o cadastro.
+   * Requer Authorization: Bearer <token> (via AuthMiddleware).
+   * Body: { cpfCnpj: string } — somente dígitos
+   */
+  async salvarDocumento(req, res) {
+    await this.handle(res, async () => {
+      const cpfCnpj = String(req.body?.cpfCnpj ?? '').replace(/\D/g, '');
+      await this.#service.salvarDocumento(req.user, cpfCnpj);
+      this.success(res, { mensagem: 'Documento salvo com sucesso.' });
+    });
+  }
 }
 
 module.exports = AuthController;
