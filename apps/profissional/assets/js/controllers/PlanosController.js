@@ -34,6 +34,22 @@ class PlanosController {
     });
   }
 
+  prepararTelaPlanos(tipoLogado = null) {
+    const tipoTravado = ['barbeiro', 'barbearia'].includes(tipoLogado) ? tipoLogado : null;
+    const toggle = document.querySelector('.ppp-toggle');
+    if (toggle) toggle.style.display = tipoTravado ? 'none' : '';
+
+    if (tipoTravado) {
+      this.#alternarTipoPlano(tipoTravado, { persistir: false });
+      return;
+    }
+
+    const tipoAtual = ['barbeiro', 'barbearia'].includes(MonetizationGuard.tipoUsuario)
+      ? MonetizationGuard.tipoUsuario
+      : 'barbeiro';
+    this.#alternarTipoPlano(tipoAtual, { persistir: true });
+  }
+
   #bindToggleTipo() {
     ['barbeiro', 'barbearia'].forEach(tipo => {
       document.getElementById(`ppp-btn-${tipo}`)
@@ -81,7 +97,7 @@ class PlanosController {
       ?.addEventListener('click', () => this.#confirmarPlanoFinal());
   }
 
-  #alternarTipoPlano(tipo) {
+  #alternarTipoPlano(tipo, { persistir = true } = {}) {
     const eBarbeiro = tipo === 'barbeiro';
     document.getElementById('ppp-btn-barbeiro')
       ?.classList.toggle('ppp-toggle-btn--ativo', eBarbeiro);
@@ -98,7 +114,7 @@ class PlanosController {
       ? 'Plano Profissional para Barbeiros'
       : 'Plano Profissional para Barbearias';
 
-    sessionStorage.setItem('bf_tipo', tipo);
+    if (persistir) sessionStorage.setItem('bf_tipo', tipo);
   }
 
   #selecionarTipoUsuario(tipo) {
