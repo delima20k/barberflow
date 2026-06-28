@@ -8819,6 +8819,11 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 /* Dono do story: só 👍 + 💬, mais acima e maiores */
 .pp-prism-public-actions.is-owner-actions {
   bottom: 60px;
+  left: auto;
+  right: 1rem;
+  transform: none;
+  width: auto;
+  justify-content: flex-end;
   gap: 14px;
 }
 .pp-prism-public-actions .pp-prism-story-owner-actions {
