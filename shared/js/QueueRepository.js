@@ -12,11 +12,7 @@
 class QueueRepository {
 
   static #SELECT_LIST =
-    `id, position, status, check_in_at, served_at, guest_name, client_confirmed,
-     client:profiles!client_id(id, full_name, avatar_path, updated_at),
-     professional:professionals!professional_id(id,
-       profile:profiles!id(full_name)),
-     chair:chairs!chair_id(id, label, status)`;
+    'id, position, status, check_in_at, served_at, guest_name, client_confirmed, client_id, professional_id, chair_id';
 
   // Canal Realtime ativo (um por barbershop_id)
   static #canais = new Map(); // shopId → channel
@@ -39,7 +35,7 @@ class QueueRepository {
       .order('position', { ascending: true });
 
     if (error) throw error;
-    return data ?? [];
+    return QueueRepository.#hidratarFila(data ?? []);
   }
 
   /**
@@ -49,13 +45,94 @@ class QueueRepository {
    */
   static async getCadeiras(barbershopId) {
     const { data, error } = await ApiService.from('chairs')
-      .select('id, label, status, professional:professionals!professional_id(profile:profiles!id(full_name))')
+      .select('id, label, status, professional_id')
       .eq('barbershop_id', barbershopId)
       .neq('status', 'inativa')
       .order('label', { ascending: true });
 
     if (error) throw error;
-    return data ?? [];
+    return QueueRepository.#hidratarCadeiras(data ?? []);
+  }
+
+  static async #hidratarFila(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+
+    const clientIds = QueueRepository.#idsUnicos(rows.map(row => row.client_id));
+    const professionalIds = QueueRepository.#idsUnicos(rows.map(row => row.professional_id));
+    const chairIds = QueueRepository.#idsUnicos(rows.map(row => row.chair_id));
+
+    const [clientes, profissionais, cadeiras] = await Promise.all([
+      QueueRepository.#buscarPerfisPublicos(clientIds),
+      QueueRepository.#buscarPerfisPublicos(professionalIds),
+      QueueRepository.#buscarCadeirasPorIds(chairIds),
+    ]);
+
+    return rows.map(row => ({
+      ...row,
+      client: row.client_id ? (clientes.get(row.client_id) ?? null) : null,
+      professional: row.professional_id
+        ? {
+            id: row.professional_id,
+            profile: {
+              full_name: profissionais.get(row.professional_id)?.full_name ?? null,
+            },
+          }
+        : null,
+      chair: row.chair_id ? (cadeiras.get(row.chair_id) ?? null) : null,
+    }));
+  }
+
+  static async #hidratarCadeiras(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+
+    const professionalIds = QueueRepository.#idsUnicos(rows.map(row => row.professional_id));
+    const profissionais = await QueueRepository.#buscarPerfisPublicos(professionalIds);
+
+    return rows.map(row => ({
+      ...row,
+      professional: row.professional_id
+        ? {
+            id: row.professional_id,
+            profile: {
+              full_name: profissionais.get(row.professional_id)?.full_name ?? null,
+            },
+          }
+        : null,
+    }));
+  }
+
+  static async #buscarPerfisPublicos(ids) {
+    const map = new Map();
+    if (!ids.length) return map;
+
+    const { data, error } = await ApiService.from('profiles_public')
+      .select('id, full_name, avatar_path, updated_at')
+      .in('id', ids);
+    if (error) throw error;
+
+    for (const perfil of (data ?? [])) {
+      if (perfil?.id) map.set(perfil.id, perfil);
+    }
+    return map;
+  }
+
+  static async #buscarCadeirasPorIds(ids) {
+    const map = new Map();
+    if (!ids.length) return map;
+
+    const { data, error } = await ApiService.from('chairs')
+      .select('id, label, status')
+      .in('id', ids);
+    if (error) throw error;
+
+    for (const cadeira of (data ?? [])) {
+      if (cadeira?.id) map.set(cadeira.id, cadeira);
+    }
+    return map;
+  }
+
+  static #idsUnicos(values) {
+    return [...new Set(values.filter(Boolean))];
   }
 
   // ═══════════════════════════════════════════════════════════

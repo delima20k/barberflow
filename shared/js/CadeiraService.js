@@ -30,7 +30,7 @@ class CadeiraService {
     if (!r.ok) throw new TypeError(`[CadeiraService] barbershopId: ${r.msg}`);
 
     const { data, error } = await ApiService.from('queue_entries')
-      .select('client:profiles!client_id(id, full_name, avatar_path)')
+      .select('client_id')
       .eq('barbershop_id', barbershopId)
       .eq('status', 'done')
       .order('done_at', { ascending: false })
@@ -38,13 +38,28 @@ class CadeiraService {
 
     if (error) throw error;
 
-    // Deduplica por id de cliente
+    // Deduplica por id de cliente mantendo a ordem dos atendimentos mais recentes.
     const vistos = new Set();
-    const lista  = [];
+    const ids = [];
     for (const entry of (data ?? [])) {
-      const c = entry.client;
-      if (!c?.id || vistos.has(c.id)) continue;
-      vistos.add(c.id);
+      const id = entry.client_id;
+      if (!id || vistos.has(id)) continue;
+      vistos.add(id);
+      ids.push(id);
+    }
+
+    if (ids.length === 0) return [];
+
+    const { data: perfis, error: perfisError } = await ApiService.from('profiles_public')
+      .select('id, full_name, avatar_path')
+      .in('id', ids);
+    if (perfisError) throw perfisError;
+
+    const porId = new Map((perfis ?? []).map(p => [p.id, p]));
+    const lista = [];
+    for (const id of ids) {
+      const c = porId.get(id);
+      if (!c) continue;
       lista.push({ id: c.id, full_name: c.full_name ?? 'Cliente', avatar_path: c.avatar_path ?? null });
     }
     return lista;

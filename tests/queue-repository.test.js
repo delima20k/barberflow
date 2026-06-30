@@ -8,6 +8,8 @@
 const { describe, test } = require('node:test');
 const assert          = require('node:assert/strict');
 const vm              = require('node:vm');
+const fs              = require('node:fs');
+const path            = require('node:path');
 const { fn, carregar } = require('./_helpers.js');
 
 const UUID_BARBER = 'b0000000-0000-4000-8000-000000000001';
@@ -138,5 +140,14 @@ describe('QueueRepository.updateStatus()', () => {
     const patch = patchesChamados[0];
     assert.ok(patch, 'update() deveria ter sido chamado com um patch');
     assert.ok('done_at' in patch, 'patch deveria conter done_at para done');
+  });
+});
+
+describe('QueueRepository leituras publicas', () => {
+  test('nao faz join direto em profiles nas leituras publicas da fila', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../shared/js/QueueRepository.js'), 'utf8');
+    assert.equal(src.includes('client:profiles'), false);
+    assert.equal(src.includes('profile:profiles'), false);
+    assert.ok(src.includes('profiles_public'));
   });
 });
