@@ -40,13 +40,25 @@ const SupabaseClient = require('../utils/SupabaseClient');
     if (tabela === 'profiles') {
       const q = { select: () => q, eq: () => q };
       q.single = () => Promise.resolve({ data: PERFIL_MOCK, error: null });
+      q.maybeSingle = () => Promise.resolve({ data: PERFIL_MOCK, error: null });
       return q;
     }
     const q = { select: () => q, eq: () => q };
     q.single = () => Promise.resolve({ data: null, error: { code: 'PGRST116' } });
+    q.maybeSingle = () => Promise.resolve({ data: null, error: null });
     return q;
   };
-  SupabaseClient.getInstance = () => ({ from: criarQB });
+  SupabaseClient.getInstance = () => ({
+    from: criarQB,
+    auth: {
+      admin: {
+        generateLink: async ({ type }) => ({
+          data: { properties: { action_link: `https://app.barberflow.live/auth/${type}` } },
+          error: null,
+        }),
+      },
+    },
+  });
 }
 
 // ── Stub global.fetch (Supabase Auth REST API) ───────────────────
@@ -179,6 +191,25 @@ suite('AuthController — POST /api/auth/login', () => {
       email: 'test@barberflow.app', password: 'senha-errada',
     });
     assert.strictEqual(status, 401);
+  });
+
+});
+
+suite('AuthController - POST /api/auth/forgot-password', () => {
+
+  test('retorna 400 com email invalido', async () => {
+    const { status } = await post('/api/auth/forgot-password', { email: 'invalido' });
+    assert.strictEqual(status, 400);
+  });
+
+  test('aceita solicitacao sem expor existencia do usuario', async () => {
+    const { status, body } = await post('/api/auth/forgot-password', {
+      email: 'test@barberflow.app',
+      redirectTo: 'https://app.barberflow.live/',
+    });
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.ok, true);
+    assert.strictEqual(body.dados?.accepted, true);
   });
 
 });

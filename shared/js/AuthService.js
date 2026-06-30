@@ -203,6 +203,10 @@ class AuthService {
       }
 
       if (!session) {
+        if (typeof BffApiService !== 'undefined' && BffApiService.auth?.enviarConfirmacaoCadastro) {
+          BffApiService.auth.enviarConfirmacaoCadastro(email, nome, window.location.href)
+            .catch(e => LoggerService.warn('[AuthService] Email de confirmacao BFF nao enviado:', e?.message));
+        }
         // Supabase exige confirmação de e-mail
         AuthService.#notificarMensagem(onMensagem, '✅ Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
       } else {
@@ -257,7 +261,15 @@ class AuthService {
     AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
 
     try {
-      await SupabaseService.resetPassword(email);
+      if (typeof BffApiService !== 'undefined' && BffApiService.auth?.solicitarRecuperacaoSenha) {
+        const { error } = await BffApiService.auth.solicitarRecuperacaoSenha(email, window.location.href);
+        if (error) {
+          LoggerService.warn('[AuthService] BFF forgot-password indisponivel, usando fallback Supabase:', error.message);
+          await SupabaseService.resetPassword(email);
+        }
+      } else {
+        await SupabaseService.resetPassword(email);
+      }
 
       AuthService.#notificarMensagem(onMensagem, '✅ Link enviado! Verifique sua caixa de entrada.', 'success');
       setTimeout(() => navFn('login'), 3000);

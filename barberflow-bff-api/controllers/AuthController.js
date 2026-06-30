@@ -100,6 +100,50 @@ class AuthController extends BaseController {
       this.success(res, { mensagem: 'Documento salvo com sucesso.' });
     });
   }
+
+  // ── POST /api/auth/signup-confirmation ──────────────────────────
+
+  /**
+   * Dispara email de confirmacao de cadastro via provider transacional.
+   * Publico, mas sem expor se a conta existe ou nao.
+   */
+  async enviarConfirmacaoCadastro(req, res) {
+    await this.handle(res, async () => {
+      const email      = (req.body?.email ?? '').trim();
+      const userName   = (req.body?.userName ?? '').trim();
+      const redirectTo = (req.body?.redirectTo ?? '').trim();
+      const dados = await this.#service.enviarConfirmacaoCadastro({ email, userName, redirectTo });
+      this.success(res, dados);
+    });
+  }
+
+  // ── POST /api/auth/forgot-password ──────────────────────────────
+
+  /**
+   * Gera link e envia recuperacao de senha via provider transacional.
+   * Sempre retorna resposta generica para evitar enumeracao de usuarios.
+   */
+  async solicitarRecuperacaoSenha(req, res) {
+    await this.handle(res, async () => {
+      const email      = (req.body?.email ?? '').trim();
+      const redirectTo = (req.body?.redirectTo ?? '').trim();
+      const dados = await this.#service.solicitarRecuperacaoSenha({ email, redirectTo });
+      this.success(res, dados);
+    });
+  }
+
+  // ── POST /api/auth/password-changed-notification ────────────────
+
+  /**
+   * Envia alerta de seguranca apos troca de senha.
+   * Requer Authorization porque confirma que o usuario esta autenticado.
+   */
+  async notificarSenhaAlterada(req, res) {
+    await this.handle(res, async () => {
+      const dados = await this.#service.notificarSenhaAlterada(req.user);
+      this.success(res, dados);
+    });
+  }
 }
 
 module.exports = AuthController;

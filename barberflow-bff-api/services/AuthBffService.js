@@ -18,10 +18,17 @@ class AuthBffService extends BaseService {
   /** @type {import('../repositories/AuthRepository')} */
   #repo;
 
-  /** @param {import('../repositories/AuthRepository')} repo */
-  constructor(repo) {
+  /** @type {import('../domain/notifications/ports/IEmailService').IEmailService|null} */
+  #emailService;
+
+  /**
+   * @param {import('../repositories/AuthRepository')} repo
+   * @param {import('../domain/notifications/ports/IEmailService').IEmailService|null} emailService
+   */
+  constructor(repo, emailService = null) {
     super('AuthBffService');
     this.#repo = repo;
+    this.#emailService = emailService;
   }
 
   // ── Login ────────────────────────────────────────────────────────
@@ -119,6 +126,80 @@ class AuthBffService extends BaseService {
     console.info('[AUTH] documento salvo', { userId: user.id });
   }
 
+  // ── Emails transacionais ─────────────────────────────────────────
+
+  /**
+   * Dispara email de confirmacao de cadastro sem bloquear o fluxo.
+   * @param {{ email: string, userName?: string|null, redirectTo?: string|null }} payload
+   * @returns {Promise<{ accepted: true }>}
+   */
+  async enviarConfirmacaoCadastro({ email, userName = null, redirectTo = null } = {}) {
+    const normalizedEmail = String(email ?? '').trim().toLowerCase();
+    this._email('email', normalizedEmail);
+
+    try {
+      const link = await this.#repo.generateSignupConfirmationLink(normalizedEmail, AuthBffService.#safeRedirect(redirectTo));
+      await this.#emailService?.sendSignupConfirmation(normalizedEmail, userName, link);
+    } catch (err) {
+      console.warn('[AUTH] confirmacao de cadastro nao enviada', {
+        email: AuthBffService.#mascarar(normalizedEmail),
+        erro: err?.message,
+      });
+    }
+
+    return { accepted: true };
+  }
+
+  /**
+   * Gera link e envia email de recuperacao. Resposta sempre generica para
+   * nao permitir enumeracao de usuarios por email.
+   * @param {{ email: string, redirectTo?: string|null }} payload
+   * @returns {Promise<{ accepted: true }>}
+   */
+  async solicitarRecuperacaoSenha({ email, redirectTo = null } = {}) {
+    const normalizedEmail = String(email ?? '').trim().toLowerCase();
+    this._email('email', normalizedEmail);
+
+    try {
+      const [perfil, link] = await Promise.all([
+        this.#repo.getPerfilByEmail(normalizedEmail).catch(() => null),
+        this.#repo.generatePasswordResetLink(normalizedEmail, AuthBffService.#safeRedirect(redirectTo)),
+      ]);
+      const userName = perfil?.full_name ?? normalizedEmail.split('@')[0] ?? 'tudo bem';
+      await this.#emailService?.sendPasswordReset(normalizedEmail, userName, link, 60);
+    } catch (err) {
+      console.warn('[AUTH] recuperacao de senha nao enviada', {
+        email: AuthBffService.#mascarar(normalizedEmail),
+        erro: err?.message,
+      });
+    }
+
+    return { accepted: true };
+  }
+
+  /**
+   * Envia alerta de senha alterada. Falha nao deve quebrar o fluxo de auth.
+   * @param {{ id: string, email: string }} user
+   * @returns {Promise<{ sent: boolean, skipped?: boolean }>}
+   */
+  async notificarSenhaAlterada(user) {
+    this._uuid('userId', user.id);
+    const email = String(user.email ?? '').trim().toLowerCase();
+    this._email('email', email);
+
+    try {
+      const perfil = await this.#repo.getPerfil(user.id);
+      const result = await this.#emailService?.sendPasswordChangedNotification(
+        email,
+        perfil?.full_name ?? email.split('@')[0],
+      );
+      return { sent: result?.ok === true, skipped: result?.skipped === true };
+    } catch (err) {
+      console.warn('[AUTH] alerta de senha alterada nao enviado', { userId: user.id, erro: err?.message });
+      return { sent: false, skipped: true };
+    }
+  }
+
   // ── Privados ─────────────────────────────────────────────────────
 
   /** Mascara email para logs (sem expor dados sensíveis). */
@@ -126,6 +207,20 @@ class AuthBffService extends BaseService {
     const [local, domain] = (email ?? '').split('@');
     if (!domain) return '***';
     return `${local?.[0] ?? '*'}***@${domain}`;
+  }
+
+  static #safeRedirect(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') {
+        return null;
+      }
+      return url.toString();
+    } catch {
+      return null;
+    }
   }
 }
 

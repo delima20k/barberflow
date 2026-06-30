@@ -127,6 +127,49 @@ class AuthRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Gera link de recuperacao de senha via Supabase Admin.
+   * O email e enviado pelo IEmailService; a Supabase nao dispara template aqui.
+   * @param {string} email
+   * @param {string|null} redirectTo
+   * @returns {Promise<string>}
+   */
+  async generatePasswordResetLink(email, redirectTo = null) {
+    return this.#generateAuthLink({
+      type: 'recovery',
+      email,
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+  }
+
+  /**
+   * Gera link de acesso/confirmacao para cadastro ja criado.
+   * Usamos magiclink para nao receber senha no BFF nem expor segredo.
+   * @param {string} email
+   * @param {string|null} redirectTo
+   * @returns {Promise<string>}
+   */
+  async generateSignupConfirmationLink(email, redirectTo = null) {
+    return this.#generateAuthLink({
+      type: 'magiclink',
+      email,
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+  }
+
+  async #generateAuthLink(payload) {
+    if (typeof this._db?.auth?.admin?.generateLink !== 'function') {
+      throw AppError.unavailable('Geracao de link de auth indisponivel no Supabase Admin.');
+    }
+
+    const { data, error } = await this._db.auth.admin.generateLink(payload);
+    if (error) this._throwDbError(error, 'generateAuthLink');
+
+    const link = data?.properties?.action_link ?? data?.action_link ?? null;
+    if (!link) throw AppError.unavailable('Supabase nao retornou link de autenticacao.');
+    return link;
+  }
+
   // ── Queries de perfil ────────────────────────────────────────────
 
   /**
@@ -155,6 +198,23 @@ class AuthRepository extends BaseRepository {
     const { cpf_cnpj_enc, ...rest } = data;
     rest.cpf_cnpj = DocumentCipher.tryDecrypt(cpf_cnpj_enc);
     return rest;
+  }
+
+  /**
+   * Busca perfil publico minimo por email para personalizar email.
+   * @param {string} email
+   * @returns {Promise<{ id: string, full_name: string|null, email: string|null }|null>}
+   */
+  async getPerfilByEmail(email) {
+    const normalized = String(email ?? '').trim().toLowerCase();
+    const { data, error } = await this._db
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('email', normalized)
+      .maybeSingle();
+
+    if (error) this._throwDbError(error, 'getPerfilByEmail');
+    return data ?? null;
   }
 
   /**

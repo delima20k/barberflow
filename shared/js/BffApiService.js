@@ -399,6 +399,15 @@ class BffApiService {
      * @returns {Promise<{data: object|null, error: any}>}
      */
     salvarDocumento: (cpfCnpj) => BffApiService.post('/api/v1/auth/documento', { cpfCnpj }),
+
+    solicitarRecuperacaoSenha: (email, redirectTo = window.location.href) =>
+      BffApiService.post('/api/v1/auth/forgot-password', { email, redirectTo }),
+
+    enviarConfirmacaoCadastro: (email, userName, redirectTo = window.location.href) =>
+      BffApiService.post('/api/v1/auth/signup-confirmation', { email, userName, redirectTo }),
+
+    notificarSenhaAlterada: () =>
+      BffApiService.post('/api/v1/auth/password-changed-notification', {}),
   };
 
   static chat = {
