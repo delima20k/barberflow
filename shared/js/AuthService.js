@@ -111,6 +111,32 @@ class AuthService {
     }
   }
 
+  static async loginSocial(provider, onMensagem = null) {
+    const normalizedProvider = String(provider || '').trim().toLowerCase();
+    if (!['google', 'facebook'].includes(normalizedProvider)) {
+      AuthService.#notificarMensagem(onMensagem, 'Opção de cadastro social inválida.');
+      return;
+    }
+    const isClienteApp = location.hostname.startsWith('app.')
+      || location.pathname.includes('/cliente')
+      || document.querySelector('meta[name="description"][content*="Cliente"]');
+    if (AuthService.#isPro || !isClienteApp) {
+      AuthService.#notificarMensagem(onMensagem, 'Cadastro com Google ou Facebook está disponível apenas no app cliente.');
+      return;
+    }
+
+    AuthService.#notificarMensagem(onMensagem, '');
+
+    try {
+      await SupabaseService.signInWithOAuth(
+        normalizedProvider,
+        window.location.origin + window.location.pathname,
+      );
+    } catch (e) {
+      AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // CADASTRO
   // ═══════════════════════════════════════════════════════════

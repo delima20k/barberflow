@@ -283,6 +283,28 @@ class SupabaseService {
     return data;
   }
 
+  /** Login/cadastro social via OAuth. */
+  static async signInWithOAuth(provider, redirectTo = null) {
+    const normalizedProvider = String(provider || '').trim().toLowerCase();
+    if (!['google', 'facebook'].includes(normalizedProvider)) {
+      throw new Error('Provider de login social inválido.');
+    }
+
+    const options = {
+      redirectTo: redirectTo || (window.location.origin + window.location.pathname),
+    };
+    if (normalizedProvider === 'google') {
+      options.queryParams = { prompt: 'select_account' };
+    }
+
+    const { data, error } = await SupabaseService.#getClient().auth.signInWithOAuth({
+      provider: normalizedProvider,
+      options,
+    });
+    if (error) SupabaseService.#erro('signInWithOAuth', error);
+    return data;
+  }
+
   /** Cadastro com email + senha */
   static async signUp(email, password, meta = {}) {
     const { data, error } = await SupabaseService.#getClient().auth.signUp({

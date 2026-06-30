@@ -36,6 +36,7 @@ class AuthController {
     this.#bindLogin();
     this.#bindCadastro();
     this.#bindRecuperacao();
+    this.#bindSocialAuth();
   }
 
   // ── Privados ──────────────────────────────────────────────
@@ -104,6 +105,24 @@ class AuthController {
         this.#navFn,
         (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
+    });
+  }
+
+  #bindSocialAuth() {
+    document.querySelectorAll('[data-auth-provider]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const provider = btn.dataset.authProvider;
+        const form = btn.closest('form');
+        const erroEl = form?.querySelector('.form-erro');
+        const botoes = Array.from(form?.querySelectorAll('button') || []);
+
+        AuthUI.setLoading(true, botoes);
+        await AuthService.loginSocial(
+          provider,
+          (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo),
+        );
+        AuthUI.setLoading(false, botoes);
+      });
     });
   }
 }

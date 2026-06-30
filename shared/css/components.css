@@ -2669,6 +2669,73 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .login-link   { font-size: var(--fs-caption); color: var(--text-dim); text-align: center; line-height: 1.6; }
 .login-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
 
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.auth-social-separator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  text-align: center;
+}
+.auth-social-separator::before,
+.auth-social-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-soft);
+}
+.auth-social-btn {
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color var(--ease), transform var(--ease), background var(--ease);
+}
+.auth-social-btn:hover {
+  border-color: rgba(212, 175, 55, .55);
+  background: rgba(255,255,255,.04);
+  transform: translateY(-1px);
+}
+.auth-social-btn:disabled {
+  opacity: .65;
+  cursor: progress;
+  transform: none;
+}
+.auth-social-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: .9rem;
+  line-height: 1;
+  background: #fff;
+}
+.auth-social-btn--google .auth-social-icon { color: #1a73e8; }
+.auth-social-btn--facebook .auth-social-icon {
+  background: #1877f2;
+  color: #fff;
+  font-size: 1.05rem;
+}
+
 /* Mensagens de erro/sucesso nos formulários de auth */
 .form-erro {
   display: none;

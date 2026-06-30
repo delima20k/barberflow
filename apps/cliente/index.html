@@ -33,7 +33,7 @@
 
   <!-- Shared CSS -->
   <link rel="stylesheet" href="/shared/css/tokens.css">
-  <link rel="stylesheet" href="/shared/css/components.css?v=20260627g">
+  <link rel="stylesheet" href="/shared/css/components.css?v=20260630a">
   <link rel="stylesheet" href="/shared/css/story-cards.css?v=20260623c">
   <link rel="stylesheet" href="/shared/css/map-card.css">
   <link rel="stylesheet" href="/shared/css/barber-card.css">
@@ -169,6 +169,17 @@
           </div>
           <p id="login-erro" class="form-erro"></p>
           <button type="submit" class="btn btn-gold btn-full">Entrar</button>
+          <div class="auth-social" aria-label="Entrar com redes sociais">
+            <div class="auth-social-separator"><span>ou</span></div>
+            <button type="button" class="auth-social-btn auth-social-btn--google" data-auth-provider="google">
+              <span class="auth-social-icon">G</span>
+              <span>Entrar com Google</span>
+            </button>
+            <button type="button" class="auth-social-btn auth-social-btn--facebook" data-auth-provider="facebook">
+              <span class="auth-social-icon">f</span>
+              <span>Entrar com Facebook</span>
+            </button>
+          </div>
           <button type="button" class="btn btn-outline btn-full" data-push="cadastro">Criar conta gratuita</button>
           <p class="login-link" style="text-align:center;">
             <a href="#" data-push="esqueceu-senha">Esqueceu a senha?</a>
@@ -219,6 +230,17 @@
           </div>
           <p id="cad-erro" class="form-erro"></p>
           <button type="submit" class="btn btn-gold btn-full">Criar minha conta</button>
+          <div class="auth-social" aria-label="Cadastrar com redes sociais">
+            <div class="auth-social-separator"><span>ou cadastre com</span></div>
+            <button type="button" class="auth-social-btn auth-social-btn--google" data-auth-provider="google">
+              <span class="auth-social-icon">G</span>
+              <span>Cadastrar com Google</span>
+            </button>
+            <button type="button" class="auth-social-btn auth-social-btn--facebook" data-auth-provider="facebook">
+              <span class="auth-social-icon">f</span>
+              <span>Cadastrar com Facebook</span>
+            </button>
+          </div>
           <p class="login-link">
             Já tenho conta &rarr;
             <a href="#" data-push="login">Fazer login</a>
