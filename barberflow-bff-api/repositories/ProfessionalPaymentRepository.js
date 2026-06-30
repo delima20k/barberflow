@@ -120,7 +120,7 @@ class ProfessionalPaymentRepository extends BaseRepository {
   async getSubscriptionByPurchaseToken(purchaseToken) {
     const { data, error } = await this._db
       .from('subscriptions')
-      .select('id, user_id, plan_type, status, starts_at, ends_at, price, purchase_token')
+      .select('id, user_id, plan_type, status, starts_at, ends_at, purchase_token')
       .eq('purchase_token', purchaseToken)
       .maybeSingle();
     if (error) this._throwDbError(error, 'getSubscriptionByPurchaseToken');
@@ -131,7 +131,7 @@ class ProfessionalPaymentRepository extends BaseRepository {
     this._uuid('userId', userId);
     const { data, error } = await this._db
       .from('subscriptions')
-      .select('id, user_id, plan_type, status, starts_at, ends_at, price, purchase_token')
+      .select('id, user_id, plan_type, status, starts_at, ends_at, purchase_token')
       .eq('user_id', userId)
       .in('status', ['trial', 'active'])
       .order('ends_at', { ascending: false })
@@ -165,9 +165,8 @@ class ProfessionalPaymentRepository extends BaseRepository {
         platform: 'web',
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),
-        price: 0,
       })
-      .select('id, user_id, plan_type, status, starts_at, ends_at, price')
+      .select('id, user_id, plan_type, status, starts_at, ends_at')
       .single();
     if (error) this._throwDbError(error, 'ativarTrial');
     return data;
@@ -230,9 +229,8 @@ class ProfessionalPaymentRepository extends BaseRepository {
         platform: 'web',
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),
-        price: payment.value,
       })
-      .select('id, user_id, plan_type, status, starts_at, ends_at, price')
+      .select('id, user_id, plan_type, status, starts_at, ends_at')
       .single();
     if (error?.code === '23505') {
       return this.getSubscriptionByPurchaseToken(payment.asaas_payment_id);
