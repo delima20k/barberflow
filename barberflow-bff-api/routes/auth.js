@@ -6,6 +6,7 @@ const SupabaseClient  = require('../utils/SupabaseClient');
 const AuthRepository  = require('../repositories/AuthRepository');
 const AuthBffService  = require('../services/AuthBffService');
 const AuthController  = require('../controllers/AuthController');
+const RateLimiterMiddleware = require('../middlewares/rateLimiter');
 const { ResendEmailService } = require('../infrastructure/email/ResendEmailService');
 
 // ── Inicialização lazy ────────────────────────────────────────────
@@ -29,13 +30,13 @@ const router = Router();
 // ── Rotas públicas (sem JWT) ──────────────────────────────────────
 router.post('/login',   (req, res) => ctrl().login(req, res));
 router.post('/refresh', (req, res) => ctrl().refresh(req, res));
-router.post('/signup-confirmation', (req, res) => ctrl().enviarConfirmacaoCadastro(req, res));
-router.post('/forgot-password',     (req, res) => ctrl().solicitarRecuperacaoSenha(req, res));
+router.post('/signup-confirmation', RateLimiterMiddleware.authEmailIp, RateLimiterMiddleware.authEmailConta, RateLimiterMiddleware.authEmailDbFallback, (req, res) => ctrl().enviarConfirmacaoCadastro(req, res));
+router.post('/forgot-password',     RateLimiterMiddleware.authEmailIp, RateLimiterMiddleware.authEmailConta, RateLimiterMiddleware.authEmailDbFallback, (req, res) => ctrl().solicitarRecuperacaoSenha(req, res));
 
 // ── Rotas autenticadas (JWT obrigatório) ──────────────────────────
 router.post('/logout',    AuthMiddleware.verificar, (req, res) => ctrl().logout(req, res));
 router.get('/me',         AuthMiddleware.verificar, (req, res) => ctrl().me(req, res));
 router.post('/documento', AuthMiddleware.verificar, (req, res) => ctrl().salvarDocumento(req, res));
-router.post('/password-changed-notification', AuthMiddleware.verificar, (req, res) => ctrl().notificarSenhaAlterada(req, res));
+router.post('/password-changed-notification', AuthMiddleware.verificar, RateLimiterMiddleware.authEmailIp, (req, res) => ctrl().notificarSenhaAlterada(req, res));
 
 module.exports = router;

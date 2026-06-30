@@ -264,17 +264,26 @@ class AuthService {
       if (typeof BffApiService !== 'undefined' && BffApiService.auth?.solicitarRecuperacaoSenha) {
         const { error } = await BffApiService.auth.solicitarRecuperacaoSenha(email, window.location.href);
         if (error) {
-          LoggerService.warn('[AuthService] BFF forgot-password indisponivel, usando fallback Supabase:', error.message);
-          await SupabaseService.resetPassword(email);
+          LoggerService.warn('[AuthService] BFF forgot-password indisponivel; fallback automatico desativado:', error.message);
         }
       } else {
-        await SupabaseService.resetPassword(email);
+        LoggerService.warn('[AuthService] BFF forgot-password indisponivel; fallback automatico desativado.');
       }
 
-      AuthService.#notificarMensagem(onMensagem, '✅ Link enviado! Verifique sua caixa de entrada.', 'success');
+      AuthService.#notificarMensagem(
+        onMensagem,
+        'Se o email estiver cadastrado, voce recebera instrucoes em instantes. Se nao receber, tente novamente mais tarde.',
+        'success',
+      );
       setTimeout(() => navFn('login'), 3000);
     } catch (e) {
-      AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
+      LoggerService.warn('[AuthService] Falha ao solicitar recuperacao; resposta neutra mantida:', e?.message || e);
+      AuthService.#notificarMensagem(
+        onMensagem,
+        'Se o email estiver cadastrado, voce recebera instrucoes em instantes. Se nao receber, tente novamente mais tarde.',
+        'success',
+      );
+      setTimeout(() => navFn('login'), 3000);
     }
   }
 

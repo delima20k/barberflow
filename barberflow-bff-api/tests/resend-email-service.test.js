@@ -14,6 +14,10 @@ function makeLogger() {
   };
 }
 
+function flattenLogs(logger) {
+  return JSON.stringify(logger.entries);
+}
+
 test('ResendEmailService pula envio sem RESEND_API_KEY e nao quebra fluxo', async () => {
   let called = false;
   const logger = makeLogger();
@@ -61,15 +65,19 @@ test('ResendEmailService envia payload correto para Resend', async () => {
   assert.doesNotMatch(request.body.html, /<User>/);
 });
 
-test('ResendEmailService registra falha do provider sem lancar excecao', async () => {
+test('ResendEmailService registra 4xx do provider sem retry e sem dados sensiveis', async () => {
   const logger = makeLogger();
+  let calls = 0;
   const svc = new ResendEmailService({
-    apiKey: 're_test',
-    fetchImpl: async () => ({
+    apiKey: 're_secret_test_key',
+    fetchImpl: async () => {
+      calls += 1;
+      return {
       ok: false,
       status: 400,
       json: async () => ({ message: 'Invalid from' }),
-    }),
+      };
+    },
     logger,
   });
 
@@ -77,5 +85,60 @@ test('ResendEmailService registra falha do provider sem lancar excecao', async (
 
   assert.strictEqual(result.ok, false);
   assert.match(result.error, /Invalid from/);
+  assert.strictEqual(calls, 1);
   assert.equal(logger.entries.at(-1)[0], 'error');
+  const logs = flattenLogs(logger);
+  assert.doesNotMatch(logs, /re_secret_test_key/);
+  assert.doesNotMatch(logs, /user@example\.com/);
+  assert.match(logs, /u\*\*\*@example\.com/);
+});
+
+test('ResendEmailService faz retry em 5xx e retorna falha controlada', async () => {
+  const logger = makeLogger();
+  let calls = 0;
+  const svc = new ResendEmailService({
+    apiKey: 're_secret_test_key',
+    fetchImpl: async () => {
+      calls += 1;
+      return {
+        ok: false,
+        status: 503,
+        json: async () => ({ message: 'Service unavailable' }),
+      };
+    },
+    logger,
+  });
+
+  const result = await svc.sendPasswordReset('user@example.com', 'User', 'https://app.barberflow.live/reset', 60);
+
+  assert.strictEqual(result.ok, false);
+  assert.match(result.error, /Service unavailable/);
+  assert.strictEqual(calls, 3);
+  const logs = flattenLogs(logger);
+  assert.doesNotMatch(logs, /re_secret_test_key/);
+  assert.doesNotMatch(logs, /user@example\.com/);
+});
+
+test('ResendEmailService trata timeout sem lancar excecao nem vazar segredo', async () => {
+  const logger = makeLogger();
+  let calls = 0;
+  const svc = new ResendEmailService({
+    apiKey: 're_secret_test_key',
+    fetchImpl: async () => {
+      calls += 1;
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    },
+    logger,
+  });
+
+  const result = await svc.sendSignupConfirmation('user@example.com', 'User', 'https://app.barberflow.live/confirm');
+
+  assert.strictEqual(result.ok, false);
+  assert.match(result.error, /aborted/i);
+  assert.strictEqual(calls, 3);
+  const logs = flattenLogs(logger);
+  assert.doesNotMatch(logs, /re_secret_test_key/);
+  assert.doesNotMatch(logs, /user@example\.com/);
 });
