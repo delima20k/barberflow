@@ -34,7 +34,7 @@ class CorsMiddleware {
     if (!origin) return false;
     if (CorsMiddleware.#allowedOrigins.has(origin)) return true;
     // Previews de PR via Vercel — restrito a subdomínios do próprio projeto.
-    // Regex garante que só hostnames com prefixo barberflow/berberflow são aceitos —
+    // Regex garante que só hostnames com prefixo barberflow são aceitos —
     // evita que qualquer app de terceiro em *.vercel.app faça requisições cross-origin.
     if (!CorsMiddleware.#isProducao) {
       try {

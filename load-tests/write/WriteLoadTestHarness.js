@@ -5,7 +5,7 @@ const path = require('node:path');
 const { performance } = require('node:perf_hooks');
 
 class WriteLoadTestConfig {
-  static DEFAULT_BASE_URL = 'https://bff.berberflow.shop';
+  static DEFAULT_BASE_URL = 'https://bff.barberflow.live';
   static REQUIRED_ENV = Object.freeze([
     'LOADTEST_CLIENT_TOKEN',
     'LOADTEST_PROFESSIONAL_TOKEN',

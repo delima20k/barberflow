@@ -28,7 +28,7 @@ function criarReq(id, query = {}, ua = 'facebookexternalhit/1.1') {
     params: { id },
     protocol: 'https',
     query,
-    get: (h) => (String(h).toLowerCase() === 'user-agent' ? ua : 'bff.berberflow.shop'),
+    get: (h) => (String(h).toLowerCase() === 'user-agent' ? ua : 'bff.barberflow.live'),
   };
 }
 
@@ -38,8 +38,8 @@ suite('OpenGraphHtmlBuilder', () => {
       title: 'Barbearia Central',
       description: 'São Paulo - SP · Veja no BarberFlow.',
       image: 'https://cdn.exemplo/logo.png',
-      canonicalUrl: 'https://bff.berberflow.shop/b/abc',
-      redirectUrl: 'https://app.berberflow.shop/?barbearia=abc',
+      canonicalUrl: 'https://bff.barberflow.live/b/abc',
+      redirectUrl: 'https://app.barberflow.live/?barbearia=abc',
     });
     assert.match(html, /<meta property="og:title" content="Barbearia Central">/);
     assert.match(html, /<meta property="og:image" content="https:\/\/cdn\.exemplo\/logo\.png">/);
@@ -48,7 +48,7 @@ suite('OpenGraphHtmlBuilder', () => {
     // as OG tags genéricas do SPA cliente, sobrescrevendo as da barbearia.
     assert.doesNotMatch(html, /http-equiv="refresh"/);
     // Humano é redirecionado só por JS (scraper não executa JS).
-    assert.match(html, /location\.replace\("https:\/\/app\.berberflow\.shop\/\?barbearia=abc"\)/);
+    assert.match(html, /location\.replace\("https:\/\/app\.barberflow\.live\/\?barbearia=abc"\)/);
   });
 
   test('sem imagem usa twitter:card summary e omite og:image', () => {
@@ -74,7 +74,7 @@ suite('BarbeariaShareController', () => {
   const builder = new OpenGraphHtmlBuilder();
   const baseDeps = {
     builder,
-    appBaseUrl: 'https://app.berberflow.shop',
+    appBaseUrl: 'https://app.barberflow.live',
     supabaseUrl: 'https://proj.supabase.co',
     objectExists: async () => false, // por padrão, sem og-card no Storage
   };
@@ -95,8 +95,8 @@ suite('BarbeariaShareController', () => {
     assert.match(res.body, /Barbearia Central/);
     assert.match(res.body, new RegExp(`barbearia=${SHOP_ID}`));
     // og:url = domínio público do app (NÃO o host do request, que é bff via proxy)
-    assert.match(res.body, new RegExp(`<meta property="og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}">`));
-    assert.doesNotMatch(res.body, /og:url" content="https:\/\/bff\.berberflow\.shop/);
+    assert.match(res.body, new RegExp(`<meta property="og:url" content="https://app\\.barberflow\\.live/b/${SHOP_ID}">`));
+    assert.doesNotMatch(res.body, /og:url" content="https:\/\/bff\.barberflow\.live/);
     // og:image = URL direta do .jpg no Supabase (extensão de imagem → WhatsApp renderiza)
     assert.match(res.body, /proj\.supabase\.co\/storage\/v1\/object\/public\/barbershops\/capa\.png/);
     // redirect de humano é via script no <head> (instantâneo, sem tela "Redirecionando")
@@ -111,7 +111,7 @@ suite('BarbeariaShareController', () => {
 
     assert.equal(res.statusCode, 200);
     assert.doesNotMatch(res.body, new RegExp(`barbearia=${SHOP_ID}`));
-    assert.match(res.body, /location\.replace\("https:\/\/app\.berberflow\.shop"\)/);
+    assert.match(res.body, /location\.replace\("https:\/\/app\.barberflow\.live"\)/);
   });
 
   test('id inválido (repo lança) → fallback genérico sem quebrar', async () => {
@@ -141,7 +141,7 @@ suite('BarbeariaShareController', () => {
     assert.match(res.body, /<meta property="og:image:width" content="1080">/);
     assert.match(res.body, /<meta property="og:image:type" content="image\/jpeg">/);
     // og:url preserva ?og=1 e usa o domínio público do app
-    assert.match(res.body, new RegExp(`og:url" content="https://app\\.berberflow\\.shop/b/${SHOP_ID}\\?og=1"`));
+    assert.match(res.body, new RegExp(`og:url" content="https://app\\.barberflow\\.live/b/${SHOP_ID}\\?og=1"`));
   });
 
   test('sem card no Storage usa a capa do perfil (sem dimensões)', async () => {

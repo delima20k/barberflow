@@ -24,7 +24,7 @@ class BarbeariaShareController {
    * @param {object} deps
    * @param {{ getPublicShareData(id:string):Promise<object|null> }} deps.repo
    * @param {{ build(o:object):string }} deps.builder
-   * @param {string} deps.appBaseUrl   — base da SPA cliente (ex.: https://app.berberflow.shop)
+   * @param {string} deps.appBaseUrl   — base da SPA cliente (ex.: https://app.barberflow.live)
    * @param {string} deps.supabaseUrl  — base do Supabase (para montar URL pública da logo)
    * @param {string} [deps.siteName]
    */
@@ -48,7 +48,7 @@ class BarbeariaShareController {
     const homeUrl = this.#appBaseUrl || '/';
 
     // og:url é a URL pública canônica (domínio do app cliente), NÃO o host do
-    // request — atrás do proxy Vercel req.get('host') seria bff.berberflow.shop.
+    // request — atrás do proxy Vercel req.get('host') seria bff.barberflow.live.
     // Mantém og:url == URL compartilhada == rota que o app resolve. Preserva ?og=1.
     const ogSuffix = req.query?.og === '1' ? '?og=1' : '';
     const canonicalUrl = `${homeUrl}/b/${encodeURIComponent(id)}${ogSuffix}`;

@@ -25,7 +25,7 @@ describe('LoadTestConfig', () => {
       env: {},
     });
 
-    assert.equal(config.baseUrl, 'https://bff.berberflow.shop');
+    assert.equal(config.baseUrl, 'https://bff.barberflow.live');
   });
 
   it('deve bloquear VUs fora da carga autorizada', () => {
@@ -64,7 +64,7 @@ describe('LoadTestMetrics', () => {
     metrics.skip('auth_me', 'LOADTEST_ACCESS_TOKEN ausente');
 
     const summary = metrics.summary({
-      config: { baseUrl: 'https://bff.berberflow.shop', scenario: 'all', stage: 'prod-smoke', vus: 1, durationSeconds: 1, prefix: 'loadtest_20260608_prod_smoke' },
+      config: { baseUrl: 'https://bff.barberflow.live', scenario: 'all', stage: 'prod-smoke', vus: 1, durationSeconds: 1, prefix: 'loadtest_20260608_prod_smoke' },
     });
 
     assert.equal(summary.totalErrors, 0);
@@ -76,7 +76,7 @@ describe('LoadTestMetrics', () => {
     metrics.record({ name: 'metrics_final', method: 'GET', path: '/metrics', status: 403, durationMs: 12, ignored: true });
 
     const summary = metrics.summary({
-      config: { baseUrl: 'https://bff.berberflow.shop', scenario: 'all', stage: 'prod-smoke', vus: 1, durationSeconds: 1, prefix: 'loadtest_20260608_prod_smoke' },
+      config: { baseUrl: 'https://bff.barberflow.live', scenario: 'all', stage: 'prod-smoke', vus: 1, durationSeconds: 1, prefix: 'loadtest_20260608_prod_smoke' },
     });
 
     assert.equal(summary.totalErrors, 0);

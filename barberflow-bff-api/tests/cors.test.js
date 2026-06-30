@@ -34,8 +34,8 @@ const criarApp        = require('../app');
 suite('CorsMiddleware — origens de produção (.shop)', () => {
 
   const ORIGENS_PRODUCAO = [
-    'https://app.berberflow.shop',
-    'https://pro.berberflow.shop',
+    'https://app.barberflow.live',
+    'https://pro.barberflow.live',
   ];
 
   for (const origin of ORIGENS_PRODUCAO) {
@@ -127,7 +127,7 @@ suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
 
   test('OPTIONS retorna Cache-Control: private, no-store', () => {
     const { req, res, next, captured } = criarMocks({
-      headers: { origin: 'https://app.berberflow.shop' },
+      headers: { origin: 'https://app.barberflow.live' },
       method:  'OPTIONS',
     });
 
@@ -145,7 +145,7 @@ suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
 
   test('GET de origem permitida recebe Cache-Control: private, no-store', () => {
     const { req, res, next, captured } = criarMocks({
-      headers: { origin: 'https://app.berberflow.shop' },
+      headers: { origin: 'https://app.barberflow.live' },
       method:  'GET',
     });
 
@@ -166,7 +166,7 @@ suite('CorsMiddleware — Cache-Control anti-CDN-cache', () => {
       getHeader: (name) => headers.get(name.toLowerCase()),
     };
 
-    res.setHeader('Access-Control-Allow-Origin', 'https://app.berberflow.shop');
+    res.setHeader('Access-Control-Allow-Origin', 'https://app.barberflow.live');
     controller.cachePublico(res, 30, 60);
 
     assert.strictEqual(
@@ -234,8 +234,8 @@ suite('CorsMiddleware — origens bloqueadas', () => {
   const BLOQUEADAS = [
     'https://atacante.com',
     'https://evil-barberflow.shop',
-    'https://app.berberflow.shop.evil.com',
-    'https://notberberflow.shop',
+    'https://app.barberflow.live.evil.com',
+    'https://notbarberflow.live',
   ];
 
   for (const origin of BLOQUEADAS) {
@@ -315,10 +315,10 @@ suite('CorsMiddleware — integração (servidor real, config produção)', () =
     });
   }
 
-  test('OPTIONS /api/health de app.berberflow.shop → 200 com ACAO', async () => {
+  test('OPTIONS /api/health de app.barberflow.live → 200 com ACAO', async () => {
     const { status, headers } = await request('OPTIONS', '/api/v1/health', {
       headers: {
-        'origin':                          'https://app.berberflow.shop',
+        'origin':                          'https://app.barberflow.live',
         'access-control-request-method':   'GET',
         'access-control-request-headers':  'Content-Type',
       },
@@ -327,16 +327,16 @@ suite('CorsMiddleware — integração (servidor real, config produção)', () =
     assert.strictEqual(status, 200);
     assert.strictEqual(
       headers['access-control-allow-origin'],
-      'https://app.berberflow.shop',
+      'https://app.barberflow.live',
     );
     assert.ok(headers['access-control-allow-methods']?.includes('PATCH'));
     assert.ok(headers['access-control-allow-headers']?.includes('Authorization'));
   });
 
-  test('OPTIONS /api/health de pro.berberflow.shop → 200 com ACAO', async () => {
+  test('OPTIONS /api/health de pro.barberflow.live → 200 com ACAO', async () => {
     const { status, headers } = await request('OPTIONS', '/api/v1/health', {
       headers: {
-        'origin':                          'https://pro.berberflow.shop',
+        'origin':                          'https://pro.barberflow.live',
         'access-control-request-method':   'PATCH',
         'access-control-request-headers':  'Authorization',
       },
@@ -345,20 +345,20 @@ suite('CorsMiddleware — integração (servidor real, config produção)', () =
     assert.strictEqual(status, 200);
     assert.strictEqual(
       headers['access-control-allow-origin'],
-      'https://pro.berberflow.shop',
+      'https://pro.barberflow.live',
     );
     assert.ok(headers['access-control-allow-headers']?.includes('Authorization'));
     assert.strictEqual(headers['access-control-max-age'], '86400');
   });
 
-  test('GET /api/health de app.berberflow.shop → ACAO header presente', async () => {
+  test('GET /api/health de app.barberflow.live → ACAO header presente', async () => {
     const { headers } = await request('GET', '/api/v1/health', {
-      headers: { 'origin': 'https://app.berberflow.shop' },
+      headers: { 'origin': 'https://app.barberflow.live' },
     });
 
     assert.strictEqual(
       headers['access-control-allow-origin'],
-      'https://app.berberflow.shop',
+      'https://app.barberflow.live',
     );
     assert.strictEqual(headers['access-control-allow-credentials'], 'true');
     assert.ok(headers['access-control-expose-headers']?.includes('X-Chat-Diagnostics'));
@@ -438,11 +438,11 @@ suite('CorsMiddleware — rotas públicas cacheáveis com CORS', () => {
     });
   }
 
-  test('GET /barbearias de app.berberflow.shop reflete origin e bloqueia cache compartilhado', async () => {
-    const { status, headers } = await request('https://app.berberflow.shop');
+  test('GET /barbearias de app.barberflow.live reflete origin e bloqueia cache compartilhado', async () => {
+    const { status, headers } = await request('https://app.barberflow.live');
 
     assert.strictEqual(status, 200);
-    assert.strictEqual(headers['access-control-allow-origin'], 'https://app.berberflow.shop');
+    assert.strictEqual(headers['access-control-allow-origin'], 'https://app.barberflow.live');
     assert.ok(
       headers['cache-control']?.startsWith('private'),
       'rota publica com CORS nao deve sair como public cache',
@@ -451,11 +451,11 @@ suite('CorsMiddleware — rotas públicas cacheáveis com CORS', () => {
     assert.strictEqual(headers['surrogate-control'], 'no-store');
   });
 
-  test('GET /barbearias de pro.berberflow.shop reflete origin sem reutilizar app', async () => {
-    const { status, headers } = await request('https://pro.berberflow.shop');
+  test('GET /barbearias de pro.barberflow.live reflete origin sem reutilizar app', async () => {
+    const { status, headers } = await request('https://pro.barberflow.live');
 
     assert.strictEqual(status, 200);
-    assert.strictEqual(headers['access-control-allow-origin'], 'https://pro.berberflow.shop');
+    assert.strictEqual(headers['access-control-allow-origin'], 'https://pro.barberflow.live');
     assert.ok(headers['cache-control']?.startsWith('private'));
   });
 });

@@ -40,7 +40,7 @@ describe('Utf8MojibakeNormalizer', () => {
 
   it('deve preservar URLs e codigo sem mojibake', () => {
     const normalizer = new Utf8MojibakeNormalizer();
-    const texto = 'const url = "https://pro.berberflow.shop/portfolio?tab=home";';
+    const texto = 'const url = "https://pro.barberflow.live/portfolio?tab=home";';
 
     assert.equal(normalizer.normalizeText(texto), texto);
   });

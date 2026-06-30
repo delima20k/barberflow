@@ -17,7 +17,7 @@ const PLANOS = {
 };
 
 const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH']);
-const PROFESSIONAL_CANONICAL_ORIGIN = 'https://pro.berberflow.shop';
+const PROFESSIONAL_CANONICAL_ORIGIN = 'https://pro.barberflow.live';
 const PROFESSIONAL_PAYMENT_RETURN_PATH = '/?bf_pagamento=retorno';
 const PROFESSIONAL_RETURN_ORIGINS = new Set([
   PROFESSIONAL_CANONICAL_ORIGIN,
@@ -362,23 +362,32 @@ class ProfessionalPaymentService extends BaseService {
   }
 
   #montarSuccessUrl(meta = {}) {
-    if (process.env.NODE_ENV === 'production') {
-      return `${PROFESSIONAL_CANONICAL_ORIGIN}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+    // Env var explícita tem prioridade absoluta (produção e dev).
+    // Configure ASAAS_SUCCESS_URL no Vercel após registrar o domínio na Asaas
+    // (Minha Conta → Informações → Site). Sem a var, nenhuma callback é enviada
+    // e a Asaas não valida domínio — pagamento funciona normalmente.
+    const envUrl = String(process.env.ASAAS_SUCCESS_URL ?? '').trim();
+    if (envUrl) {
+      try {
+        const parsed = new URL(envUrl);
+        if (parsed.protocol === 'https:') return envUrl;
+      } catch (_) { /* URL inválida, ignora */ }
     }
 
-    const explicit = this.#normalizarProfessionalOrigin(process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN);
-    if (explicit) return `${explicit}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+    if (process.env.NODE_ENV !== 'production') {
+      const explicit = this.#normalizarProfessionalOrigin(process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN);
+      if (explicit) return `${explicit}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
 
-    const origin = this.#normalizarProfessionalOrigin(meta.origin);
-    if (origin) return `${origin}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+      const origin = this.#normalizarProfessionalOrigin(meta.origin);
+      if (origin) return `${origin}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
 
-    try {
-      const refererOrigin = new URL(String(meta.referer ?? '')).origin;
-      const referer = this.#normalizarProfessionalOrigin(refererOrigin);
-      if (referer) return `${referer}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
-    } catch (_) {
-      return null;
+      try {
+        const refererOrigin = new URL(String(meta.referer ?? '')).origin;
+        const referer = this.#normalizarProfessionalOrigin(refererOrigin);
+        if (referer) return `${referer}${PROFESSIONAL_PAYMENT_RETURN_PATH}`;
+      } catch (_) { /* ignora */ }
     }
+
     return null;
   }
 

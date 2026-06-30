@@ -5,7 +5,7 @@
 // BackendApiService (shared/js/).
 //
 // Verifica que a URL base da API aponta para o domínio oficial
-// correto (pro.berberflow.shop) e não para projetos de terceiros.
+// correto (pro.barberflow.live) e não para projetos de terceiros.
 // =============================================================
 
 const { describe, test } = require('node:test');
@@ -22,10 +22,10 @@ const SRC = fs.readFileSync(
 
 describe('BackendApiService — BASE_URL de produção', () => {
 
-  test('usa pro.berberflow.shop como URL base de produção', () => {
+  test('usa pro.barberflow.live como URL base de produção', () => {
     assert.ok(
-      SRC.includes('pro.berberflow.shop'),
-      'BackendApiService deve apontar para pro.berberflow.shop',
+      SRC.includes('pro.barberflow.live'),
+      'BackendApiService deve apontar para pro.barberflow.live',
     );
   });
 
@@ -62,29 +62,29 @@ describe('BackendApiService upload otimizado', () => {
 
 describe('BackendApiService — consistência cross-file', () => {
 
-  test('src/app.js ALLOWED_ORIGINS inclui domínios oficiais berberflow.shop', () => {
+  test('src/app.js ALLOWED_ORIGINS inclui domínios oficiais barberflow.live', () => {
     const appSrc = fs.readFileSync(
       path.resolve(__dirname, '../src/app.js'),
       'utf8',
     );
     assert.ok(
-      appSrc.includes('app.berberflow.shop'),
-      'src/app.js ALLOWED_ORIGINS deve incluir app.berberflow.shop',
+      appSrc.includes('app.barberflow.live'),
+      'src/app.js ALLOWED_ORIGINS deve incluir app.barberflow.live',
     );
     assert.ok(
-      appSrc.includes('pro.berberflow.shop'),
-      'src/app.js ALLOWED_ORIGINS deve incluir pro.berberflow.shop',
+      appSrc.includes('pro.barberflow.live'),
+      'src/app.js ALLOWED_ORIGINS deve incluir pro.barberflow.live',
     );
   });
 
-  test('vercel.json possui bff.berberflow.shop no CSP connect-src', () => {
+  test('vercel.json possui bff.barberflow.live no CSP connect-src', () => {
     const vercelJson = fs.readFileSync(
       path.resolve(__dirname, '../vercel.json'),
       'utf8',
     );
     assert.ok(
-      vercelJson.includes('bff.berberflow.shop'),
-      'vercel.json deve ter bff.berberflow.shop no connect-src do CSP',
+      vercelJson.includes('bff.barberflow.live'),
+      'vercel.json deve ter bff.barberflow.live no connect-src do CSP',
     );
   });
 });

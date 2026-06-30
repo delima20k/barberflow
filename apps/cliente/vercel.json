@@ -68,7 +68,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/b/:id",          "destination": "https://bff.berberflow.shop/b/:id" },
+    { "source": "/b/:id",          "destination": "https://bff.barberflow.live/b/:id" },
     { "source": "/cliente/",       "destination": "/index.html" },
     { "source": "/cliente/:path*", "destination": "/:path*"     },
     { "source": "/",               "destination": "/index.html" }

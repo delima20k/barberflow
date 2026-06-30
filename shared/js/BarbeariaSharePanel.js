@@ -17,7 +17,7 @@
  */
 class BarbeariaSharePanel {
   /** URL base do app cliente — usada apenas no botão "Copiar". */
-  static APP_URL = 'https://app.berberflow.shop';
+  static APP_URL = 'https://app.barberflow.live';
 
   #root;
   #linkInput   = null;
@@ -30,20 +30,20 @@ class BarbeariaSharePanel {
   #barbershopId  = null;
   #nome          = '';
   #coverUrl      = null;
-  #bffBase       = '';   // base do BFF para a URL de OG (ex.: https://bff.berberflow.shop)
+  #bffBase       = '';   // base do BFF para a URL de OG (ex.: https://bff.barberflow.live)
   #cardUrl       = null; // URL pública do card após upload para Supabase Storage
   #uploadPromise = null; // Promise do upload em andamento
   #cardFile      = null; // Arquivo (File) do card gerado — enviado direto no WhatsApp
 
   constructor(rootEl) {
     this.#root = rootEl || null;
-    // Em produção, usa sempre bff.berberflow.shop.
+    // Em produção, usa sempre bff.barberflow.live.
     // Localhost: lê window.BFF_URL para apontar para a BFF local.
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
     const isLocal = host === 'localhost' || host === '127.0.0.1';
     this.#bffBase = isLocal
       ? ((typeof window !== 'undefined' && window.BFF_URL) || 'http://localhost:3000')
-      : 'https://bff.berberflow.shop';
+      : 'https://bff.barberflow.live';
   }
 
   /** Liga os listeners dos botões (chamar uma vez em bind). */
@@ -86,7 +86,7 @@ class BarbeariaSharePanel {
   // ── URLs ───────────────────────────────────────────────────
 
   /**
-   * URL de compartilhamento: app.berberflow.shop/b/{id}?v={token}
+   * URL de compartilhamento: app.barberflow.live/b/{id}?v={token}
    * O Vercel proxy redireciona /b/:id → BFF, que serve as meta OG (card).
    *
    * O `?v=` é um cache-buster ÚNICO por compartilhamento: o WhatsApp trata cada
@@ -298,7 +298,7 @@ class BarbeariaSharePanel {
     // 7. Rodapé URL
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '26px sans-serif'; ctx.shadowBlur = 0;
-    ctx.fillText('app.berberflow.shop', W / 2, H - 46);
+    ctx.fillText('app.barberflow.live', W / 2, H - 46);
     ctx.strokeStyle = 'rgba(212,160,23,0.4)';
     ctx.lineWidth = 1;
     ctx.beginPath();

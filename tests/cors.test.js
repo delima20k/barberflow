@@ -24,9 +24,9 @@ const ALLOWED_ORIGINS = new Set([
   'https://barberflow-pro-one.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
-  // Domínios oficiais berberflow.shop
-  'https://app.berberflow.shop',
-  'https://pro.berberflow.shop',
+  // Domínios oficiais barberflow.live
+  'https://app.barberflow.live',
+  'https://pro.barberflow.live',
   'http://localhost:3000',
   'http://localhost:3001',
 ]);
@@ -76,8 +76,8 @@ describe('CORS — origens do frontend de produção', () => {
     'https://barberflow.vercel.app',               // API / monorepo
     'https://barberflow.app',                      // domínio antigo
     'https://www.barberflow.app',                  // www antigo
-    'https://app.berberflow.shop',                 // app cliente (domínio oficial)
-    'https://pro.berberflow.shop',                 // app profissional (domínio oficial)
+    'https://app.barberflow.live',                 // app cliente (domínio oficial)
+    'https://pro.barberflow.live',                 // app profissional (domínio oficial)
   ];
 
   for (const origin of ORIGENS_FRONTEND) {
@@ -189,15 +189,15 @@ describe('CORS — consistência com src/app.js', () => {
     );
   });
 
-  test('src/app.js contém domínios oficiais berberflow.shop', () => {
+  test('src/app.js contém domínios oficiais barberflow.live', () => {
     const src = fs.readFileSync(APP_PATH, 'utf8');
     assert.ok(
-      src.includes('app.berberflow.shop'),
-      'app.berberflow.shop deve estar em ALLOWED_ORIGINS em src/app.js',
+      src.includes('app.barberflow.live'),
+      'app.barberflow.live deve estar em ALLOWED_ORIGINS em src/app.js',
     );
     assert.ok(
-      src.includes('pro.berberflow.shop'),
-      'pro.berberflow.shop deve estar em ALLOWED_ORIGINS em src/app.js',
+      src.includes('pro.barberflow.live'),
+      'pro.barberflow.live deve estar em ALLOWED_ORIGINS em src/app.js',
     );
   });
 

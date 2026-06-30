@@ -9,11 +9,11 @@
 ## 1. Erro real capturado
 
 ```
-MediaP2P.js:109  POST https://pro.berberflow.shop/api/v1/media/presigned  404 (Not Found)
+MediaP2P.js:109  POST https://pro.barberflow.live/api/v1/media/presigned  404 (Not Found)
 ```
 
-A requisição de upload vai para o domínio do **próprio app** (`pro.berberflow.shop`)
-em vez do BFF (`bff.berberflow.shop`) — por isso o 404. O upload é feito por
+A requisição de upload vai para o domínio do **próprio app** (`pro.barberflow.live`)
+em vez do BFF (`bff.barberflow.live`) — por isso o 404. O upload é feito por
 profissionais na página "Minha Barbearia" (botão redondo no 1º card de vídeo).
 Contexto de mídia = `stories` (mp4, ≤ 64 MB).
 
@@ -46,7 +46,7 @@ Cadeia comprovada:
   id `prj_vWT0B1YPx7zo19Qa1Wg59fk0kcgQ`): possui apenas `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`. **Não há `VITE_BFF_BASE_URL`.**
 - O painel admin funciona porque `AdminTabConfiguracoes.js` tem **fallback hardcoded
-  próprio** (`hostname === 'localhost' ? local : 'https://bff.berberflow.shop'`),
+  próprio** (`hostname === 'localhost' ? local : 'https://bff.barberflow.live'`),
   contornando `window.BFF_URL`. Por isso o login admin funcionou e o upload não.
 
 **Onde a falha ocorre:** frontend (app pro) — a requisição nem chega ao BFF.
@@ -109,17 +109,17 @@ await import('@profissional/app.js');
 ```
 *Alternativa sem env var* (mais simples, segue padrão já existente no repo): dar ao
 `MediaP2P` o mesmo fallback hardcoded do `AdminTabConfiguracoes`
-(`hostname === 'localhost' ? local : 'https://bff.berberflow.shop'`).
+(`hostname === 'localhost' ? local : 'https://bff.barberflow.live'`).
 Recomendação: via env var (configurável por ambiente).
 
 **(c) Env var na Vercel (projeto FRONT, não o BFF):** em `barberflow-profissional`,
-`VITE_BFF_BASE_URL = https://bff.berberflow.shop` (Production). Vite injeta `VITE_*`
+`VITE_BFF_BASE_URL = https://bff.barberflow.live` (Production). Vite injeta `VITE_*`
 em build → exige redeploy.
 
 **(d) Redeploy SÓ do front pro** (`barberflow-profissional`). **Não** redeployar o BFF.
 
 **(e) Verificação fim-a-fim:** F12 → Network:
-`POST bff.berberflow.shop/api/v1/media/presigned` 200 → `PUT uploadUrl` 200 →
+`POST bff.barberflow.live/api/v1/media/presigned` 200 → `PUT uploadUrl` 200 →
 `POST .../media/confirmar` 200; vídeo aparece na barbearia correta; limites
 dono = 3 / parceiro = 1 respeitados; `barbershopId` = barbearia parceira.
 
@@ -150,7 +150,7 @@ inline no `index.html`, antes dos scripts clássicos. Autorizado pelo usuário.
 **(efetivo) `apps/profissional/index.html`** — antes de `<!-- Supabase SDK (CDN) -->`:
 ```html
 <!-- Base do BFF — define window.BFF_URL antes de MediaP2P/P2P/WebRTC (scripts defer leem no load) -->
-<script>window.BFF_URL = 'https://bff.berberflow.shop';</script>
+<script>window.BFF_URL = 'https://bff.barberflow.live';</script>
 ```
 **(efetivo, preventivo) `apps/cliente/index.html`** — mesmo bloco, mesma posição.
 
@@ -162,22 +162,22 @@ window.BFF_URL = env.VITE_BFF_BASE_URL;
 (Mantido a pedido do usuário; só passa a valer se/quando o build Vite for adotado.)
 
 ### Env vars configuradas (Vercel — projetos FRONT, não o BFF)
-- `barberflow-profissional`: `VITE_BFF_BASE_URL = https://bff.berberflow.shop` (Production, Development).
+- `barberflow-profissional`: `VITE_BFF_BASE_URL = https://bff.barberflow.live` (Production, Development).
 - `barberflow-cliente`: idem (Production, Development).
 - Preview: não setado — a CLI v50 instalada não grava env de Preview sem branch; ambiente
   de Preview não afeta os domínios de produção. Adicionar pelo dashboard se necessário.
 
 ### Deploys (somente front; BFF intocado)
 - Pro: `barberflow-profissional-8oz2utnth` (`dpl_AwAZrBy5jNqgiEmFDHAvCY9CBvEg`),
-  target production → aliased `pro.berberflow.shop`.
-- Cliente: `barberflow-cliente-2ukhdv6ta` → aliased `app.berberflow.shop`.
+  target production → aliased `pro.barberflow.live`.
+- Cliente: `barberflow-cliente-2ukhdv6ta` → aliased `app.barberflow.live`.
 - BFF `barberflow-q5c4`: **não redeployado** (último deploy ~52 min antes); `GET /api/v1/health` = 200.
 
 ### Validação (passos a–h)
 Verificado server-side por mim:
-- ✅ HTML servido em `pro.berberflow.shop` e `app.berberflow.shop` agora contém
-  `window.BFF_URL = 'https://bff.berberflow.shop'`.
-- ✅ `POST https://bff.berberflow.shop/api/v1/media/presigned` (sem token) → **401**
+- ✅ HTML servido em `pro.barberflow.live` e `app.barberflow.live` agora contém
+  `window.BFF_URL = 'https://bff.barberflow.live'`.
+- ✅ `POST https://bff.barberflow.live/api/v1/media/presigned` (sem token) → **401**
   "Token de autenticação ausente." (não mais 404) → endpoint existe no domínio correto.
 - ✅ BFF saudável e intocado.
 
@@ -378,7 +378,7 @@ a mensagem (4xx) → **400** com esse corpo.
 
 Buckets criados → presigned subiu de 400 para **200**. Novo erro:
 ```
-PUT https://pro.berberflow.shop/undefined  → 404 Not Found
+PUT https://pro.barberflow.live/undefined  → 404 Not Found
 ```
 
 ### Causa raiz: descasamento de contrato (envelope `dados`)

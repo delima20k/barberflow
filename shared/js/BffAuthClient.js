@@ -20,7 +20,7 @@ class BffAuthClient {
     const { hostname } = window.location;
     return (hostname === 'localhost' || hostname === '127.0.0.1')
       ? 'http://localhost:3002'
-      : 'https://bff.berberflow.shop';
+      : 'https://bff.barberflow.live';
   })();
 
   static #TIMEOUT_MS  = 8_000;

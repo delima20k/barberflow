@@ -118,7 +118,7 @@ Mover a geocodificação para o **BFF** (`BarbeariaService.salvarEndereco()`): q
 
 **Supabase (anon key, 2026-06-12):** 3 linhas; Periz Barber com `"latitude":null,"longitude":null`.
 
-**BFF (`https://bff.berberflow.shop/api/v1/barbearias/todas?limit=60`, HTTP 200):**
+**BFF (`https://bff.barberflow.live/api/v1/barbearias/todas?limit=60`, HTTP 200):**
 ```json
 {"ok":true,"dados":[
   {"name":"Black Sanpa","latitude":-23.4489525,"longitude":-46.7312735, ...},

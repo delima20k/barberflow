@@ -505,7 +505,7 @@ class P2PMessageConnectionService {
     if (typeof window !== 'undefined' && window.BFF_URL) {
       return String(window.BFF_URL).replace(/\/$/, '');
     }
-    // Usa a mesma URL base da BFF (bff.berberflow.shop em produção)
+    // Usa a mesma URL base da BFF (bff.barberflow.live em produção)
     // em vez da origem do app, que não expõe /api/p2p.
     if (typeof BffApiService !== 'undefined' && BffApiService.baseUrl) {
       return String(BffApiService.baseUrl).replace(/\/$/, '');

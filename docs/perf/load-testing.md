@@ -9,7 +9,7 @@ O runner usa Node.js nativo como equivalente ao k6 quando o binario k6 nao esta 
 O alvo padrao e a BFF de producao:
 
 ```txt
-https://bff.berberflow.shop
+https://bff.barberflow.live
 ```
 
 Nao e necessario subir BFF local. Para trocar o alvo, use `LOADTEST_BASE_URL` ou `--base-url`.

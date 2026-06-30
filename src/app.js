@@ -88,9 +88,9 @@ const ALLOWED_ORIGINS = new Set([
   'https://barberflow-pro-one.vercel.app',
   'https://www.barberflow.app',
   'https://barberflow.app',
-  // Domínios oficiais berberflow.shop
-  'https://app.berberflow.shop',
-  'https://pro.berberflow.shop',
+  // Domínios oficiais barberflow.live
+  'https://app.barberflow.live',
+  'https://pro.barberflow.live',
   // Painel administrativo
   'https://barberflow-adimin.vercel.app',
   'http://localhost:3000',
@@ -100,7 +100,7 @@ const ALLOWED_ORIGINS = new Set([
 function origemPermitida(origin) {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  // Previews de PR via Vercel — restrito a subdomínios do próprio projeto (barberflow/berberflow).
+  // Previews de PR via Vercel — restrito a subdomínios do próprio projeto barberflow.
   try {
     const { hostname } = new URL(origin);
     return hostname.endsWith('.vercel.app') && /^barb[e]rflow[-.]/i.test(hostname);

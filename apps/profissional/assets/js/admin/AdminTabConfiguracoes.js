@@ -23,7 +23,7 @@ class AdminTabConfiguracoes {
   static #SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impmdmppc3FuemFweHhhZ2tieGN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTAzODUsImV4cCI6MjA5MTA2NjM4NX0.HnPEnl_H-2hap53Q9y1NtR5ffBWddNQJkAB7Grw0-9A';
   static #BFF_URL       = window.location.hostname === 'localhost'
     ? 'http://localhost:3002'
-    : 'https://bff.berberflow.shop';
+    : 'https://bff.barberflow.live';
 
   /** @type {AdminToast} */
   #toast;

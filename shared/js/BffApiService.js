@@ -5,7 +5,7 @@
 //
 // Responsabilidades:
 //   - Centralizar todas as chamadas HTTP ao BFF (porta 3002 dev /
-//     https://bff.berberflow.shop prod)
+//     https://bff.barberflow.live prod)
 //   - Retornar { data, total, error } para padronizar tratamento
 //   - Endpoints públicos: sem token | Endpoints autenticados: Bearer JWT
 //   - Timeout de 8s via AbortController
@@ -20,7 +20,7 @@ class BffApiService {
     const { hostname } = window.location;
     return (hostname === 'localhost' || hostname === '127.0.0.1')
       ? 'http://localhost:3002'
-      : 'https://bff.berberflow.shop';
+      : 'https://bff.barberflow.live';
   })();
 
   static #TIMEOUT_MS   = 8000;

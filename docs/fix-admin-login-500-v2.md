@@ -1,7 +1,7 @@
 # Fix — 500 em POST /api/v1/admin/login (v2, definitivo)
 
 **Data:** 2026-06-13
-**Status:** RESOLVIDO e validado em produção (`bff.berberflow.shop`).
+**Status:** RESOLVIDO e validado em produção (`bff.barberflow.live`).
 
 ---
 
@@ -18,7 +18,7 @@ produção. Evidências concretas:
 
 | # | Fato comprovado | Método |
 |---|---|---|
-| 1 | A BFF viva é o projeto **`barberflow-q5c4`** (root dir `barberflow-bff-api`), que serve `bff.berberflow.shop`. O projeto `barberflow-bff-api` é stale (0 env vars, sem domínio). | `vercel inspect bff.berberflow.shop` |
+| 1 | A BFF viva é o projeto **`barberflow-q5c4`** (root dir `barberflow-bff-api`), que serve `bff.barberflow.live`. O projeto `barberflow-bff-api` é stale (0 env vars, sem domínio). | `vercel inspect bff.barberflow.live` |
 | 2 | Commit `83480418` ESTÁ no ar. | `POST {email,sem senha}` → 400 com a mensagem nova exata |
 | 3 | As 3 vars `ADMIN_*` apareciam configuradas no `barberflow-q5c4` (Production). | `vercel env ls production` |
 | 4 | O app sobe e `SUPABASE_*` chegam ao runtime. | `GET /api/v1/health` → 200 |
@@ -60,7 +60,7 @@ Valores gerados localmente, jamais commitados/logados em texto puro:
   (valor via stdin — hash e secret nunca expostos em terminal/arquivo).
 - Redeploy: `vercel redeploy …jyofitu2k…` → novo deployment
   **`barberflow-q5c4-fto9jikxq`**, concluído **2026-06-13 17:27:31Z** (~44 s), aliado
-  a `berberflow.shop` / `bff.berberflow.shop`.
+  a `barberflow.live` / `bff.barberflow.live`.
 
 ## 5. Resultado dos 5 testes de validação (produção)
 

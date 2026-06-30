@@ -231,7 +231,7 @@ class MusicCatalogService {
       : '';
     return (hostname === 'localhost' || hostname === '127.0.0.1')
       ? 'http://localhost:3002'
-      : 'https://bff.berberflow.shop';
+      : 'https://bff.barberflow.live';
   }
 
   static #pagina(n) {

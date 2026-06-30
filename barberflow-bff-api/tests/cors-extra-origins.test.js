@@ -18,7 +18,7 @@ process.env.SUPABASE_URL              = 'https://test.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 process.env.SUPABASE_ANON_KEY         = 'test-anon-key';
 process.env.SUPABASE_JWT_SECRET       = 'test-supabase-jwt-secret-for-testing-only-32chars';
-process.env.CORS_EXTRA_ORIGINS        = 'https://nova-origem.berberflow.shop,  https://outra-nova.berberflow.shop  ';
+process.env.CORS_EXTRA_ORIGINS        = 'https://nova-origem.barberflow.live,  https://outra-nova.barberflow.live  ';
 
 const { suite, test } = require('node:test');
 const assert          = require('node:assert/strict');
@@ -31,7 +31,7 @@ const CorsMiddleware  = require('../middlewares/cors');
 suite('CorsMiddleware — CORS_EXTRA_ORIGINS env var', () => {
 
   test('origem adicionada via CORS_EXTRA_ORIGINS recebe Access-Control-Allow-Origin', () => {
-    const origin = 'https://nova-origem.berberflow.shop';
+    const origin = 'https://nova-origem.barberflow.live';
     const { req, res, next, captured } = criarMocks({ headers: { origin }, method: 'GET' });
 
     CorsMiddleware.handle(req, res, next);
@@ -46,7 +46,7 @@ suite('CorsMiddleware — CORS_EXTRA_ORIGINS env var', () => {
   });
 
   test('segunda origem (com espaços no CSV) também é aceita', () => {
-    const origin = 'https://outra-nova.berberflow.shop';
+    const origin = 'https://outra-nova.barberflow.live';
     const { req, res, next, captured } = criarMocks({ headers: { origin }, method: 'GET' });
 
     CorsMiddleware.handle(req, res, next);
@@ -59,7 +59,7 @@ suite('CorsMiddleware — CORS_EXTRA_ORIGINS env var', () => {
   });
 
   test('origens base de produção continuam aceitas com CORS_EXTRA_ORIGINS setado', () => {
-    for (const origin of ['https://app.berberflow.shop', 'https://pro.berberflow.shop']) {
+    for (const origin of ['https://app.barberflow.live', 'https://pro.barberflow.live']) {
       const { req, res, captured } = criarMocks({ headers: { origin }, method: 'GET' });
 
       CorsMiddleware.handle(req, res, () => {});
@@ -85,7 +85,7 @@ suite('CorsMiddleware — CORS_EXTRA_ORIGINS env var', () => {
   });
 
   test('OPTIONS de origem via CORS_EXTRA_ORIGINS retorna 200 com preflight completo', () => {
-    const origin = 'https://nova-origem.berberflow.shop';
+    const origin = 'https://nova-origem.barberflow.live';
     const { req, res, next, captured } = criarMocks({ headers: { origin }, method: 'OPTIONS' });
 
     CorsMiddleware.handle(req, res, next);

@@ -790,7 +790,7 @@ class ExpandedFixtureRunCli {
     const runner = new ExpandedFixtureWriteRunner({
       admin,
       fixture,
-      baseUrl: process.env.LOADTEST_BASE_URL || 'https://bff.berberflow.shop',
+      baseUrl: process.env.LOADTEST_BASE_URL || 'https://bff.barberflow.live',
     });
     const vus = Number.parseInt(process.env.LOADTEST_VUS || '28', 10);
     ExpandedFixtureWriteRunner.assertAllowedVus(vus);

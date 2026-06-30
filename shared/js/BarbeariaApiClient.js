@@ -14,7 +14,7 @@
 // Por que Supabase direto como primário:
 //   Os endpoints públicos de barbearias (/api/v1/barbearias) não requerem
 //   autenticação. CDNs podem cachear a resposta sem variar por Origin,
-//   resultando em header CORS errado para pro.berberflow.shop. Usar
+//   resultando em header CORS errado para pro.barberflow.live. Usar
 //   BarbershopRepository elimina essa dependência de CDN para dados públicos.
 // =============================================================
 

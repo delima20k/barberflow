@@ -132,13 +132,13 @@ test('source de audio de story serve pelo BFF com CORS e bloqueia key fora do pr
 
   try {
     const ok = await request(server, '/api/v1/media/stories/audio/source?key=stories%2Faudio%2Fpop%2Ffaixa-1.m4a', {
-      headers: { Origin: 'https://pro.berberflow.shop' },
+      headers: { Origin: 'https://pro.barberflow.live' },
       json: false,
     });
 
     assert.equal(ok.status, 200);
     assert.equal(ok.body, 'audio-bytes');
-    assert.equal(ok.headers['access-control-allow-origin'], 'https://pro.berberflow.shop');
+    assert.equal(ok.headers['access-control-allow-origin'], 'https://pro.barberflow.live');
     assert.equal(ok.headers['content-type'], 'audio/mp4');
     assert.deepEqual(downloads, ['stories/audio/pop/faixa-1.m4a']);
 

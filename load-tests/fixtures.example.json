@@ -1,5 +1,5 @@
 {
-  "LOADTEST_BASE_URL": "https://bff.berberflow.shop",
+  "LOADTEST_BASE_URL": "https://bff.barberflow.live",
   "LOADTEST_ENABLE_WRITES": "true",
   "LOADTEST_ENABLE_PUSH": "false",
   "LOADTEST_RUN_ID": "loadtest_write_20260611_120000",

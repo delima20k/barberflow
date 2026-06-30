@@ -328,7 +328,7 @@ class GeoService {
       const token   = GeoService.#lerToken();
       const baseUrl = typeof BffApiService !== 'undefined'
         ? BffApiService.baseUrl
-        : 'https://bff.berberflow.shop';
+        : 'https://bff.barberflow.live';
       await OfflineSyncQueue.enqueue({
         tag:     'bf-sync-queue',
         url:     `${baseUrl}/api/v1/clientes/localizacao`,

@@ -377,7 +377,7 @@ Cobertura ≥80% na BFF. Logs estruturados. Cache Redis nos hot paths.
 
 | # | Questão | Bloqueia | Opções |
 |---|---------|---------|--------|
-| **Q1** | O `src/` está em produção hoje? Qual URL ele serve? | Fase 6 | A) Apenas dev-local → pode ser arquivado mais cedo; B) Em produção (`pro.berberflow.shop`) → strangler pattern completo necessário |
+| **Q1** | O `src/` está em produção hoje? Qual URL ele serve? | Fase 6 | A) Apenas dev-local → pode ser arquivado mais cedo; B) Em produção (`pro.barberflow.live`) → strangler pattern completo necessário |
 | **Q2** | WebRTC TURN server: é auto-hospedado ou SaaS (Twilio, Agora)? | Fase 6 | A) Auto-hospedado → `TurnConfig` precisa mover para BFF; B) SaaS → credenciais efêmeras via BFF |
 | **Q3** | `FinanceiroRepository` acessa qual tabela exatamente — `transactions` ou `financial_records`? | Fase 5 | Precisa confirmar nome da tabela para criar o Repository correto |
 | **Q4** | Chat (`direct_messages`) é apenas P2P ou tem persistência no banco? | Fase 4 | A) Só P2P → sem repository necessário; B) Persiste no banco → precisa do Repository e BFF |

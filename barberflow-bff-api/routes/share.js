@@ -15,7 +15,7 @@ module.exports = function criarShareRoute(db) {
   const ctrl    = new BarbeariaShareController({
     repo,
     builder,
-    appBaseUrl:  process.env.APP_CLIENTE_URL || 'https://app.berberflow.shop',
+    appBaseUrl:  process.env.APP_CLIENTE_URL || 'https://app.barberflow.live',
     supabaseUrl: process.env.SUPABASE_URL || '',
   });
 

@@ -10,7 +10,7 @@
  *   node barberflow-bff-api/scripts/send-audio-to-bff.js \
  *        --token=ADMIN_INGEST_TOKEN \
  *        [--dir=C:\Users\delim\Desktop\audio_storyBarberFlow] \
- *        [--bff=https://bff.berberflow.shop]
+ *        [--bff=https://bff.barberflow.live]
  */
 
 const fs   = require('node:fs');
@@ -20,7 +20,7 @@ const path = require('node:path');
 const { MusicProcessingService } = require('../infrastructure/media/MusicProcessingService');
 
 const DEFAULT_DIR = 'C:\\Users\\delim\\Desktop\\audio_storyBarberFlow';
-const DEFAULT_BFF = 'https://bff.berberflow.shop';
+const DEFAULT_BFF = 'https://bff.barberflow.live';
 
 function parseArgs(argv) {
   const args = { dir: DEFAULT_DIR, bff: DEFAULT_BFF, token: '' };

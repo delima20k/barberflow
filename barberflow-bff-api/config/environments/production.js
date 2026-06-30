@@ -14,9 +14,9 @@ module.exports = {
       // Domínio principal antigo
       'https://barberflow.app',
       'https://www.barberflow.app',
-      // Domínios oficiais berberflow.shop
-      'https://app.berberflow.shop',
-      'https://pro.berberflow.shop',
+      // Domínios oficiais barberflow.live
+      'https://app.barberflow.live',
+      'https://pro.barberflow.live',
       // Painel administrativo
       'https://barberflow-adimin.vercel.app',
     ],

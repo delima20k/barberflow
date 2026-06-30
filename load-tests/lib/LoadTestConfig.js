@@ -1,7 +1,7 @@
 'use strict';
 
 class LoadTestConfig {
-  static DEFAULT_PROD_BASE_URL = 'https://bff.berberflow.shop';
+  static DEFAULT_PROD_BASE_URL = 'https://bff.barberflow.live';
   static #ALLOWED_VUS = new Set([1, 7, 14, 28, 56]);
   static #MAX_VUS = 56;
 

@@ -65,7 +65,10 @@ DROP POLICY IF EXISTS "profiles_select_active_for_queue" ON public.profiles;
 
 -- ── 3. profiles_public sem `phone` (recorte de colunas públicas)
 -- SECURITY DEFINER (padrão) — projeta apenas colunas não-sensíveis.
-CREATE OR REPLACE VIEW public.profiles_public AS
+-- DROP + CREATE (não CREATE OR REPLACE): estamos REMOVENDO a coluna `phone`
+-- e o Postgres recusa remoção de coluna em CREATE OR REPLACE VIEW (42P16).
+DROP VIEW IF EXISTS public.profiles_public;
+CREATE VIEW public.profiles_public AS
   SELECT
     p.id,
     p.full_name,

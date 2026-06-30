@@ -208,7 +208,7 @@ describe('WriteLoadTestHarness', () => {
 describe('ExpandedFixtureWriteRunner', () => {
   it('deve distribuir 28 VUs em round-robin justo entre 7 barbearias', () => {
     const fixture = buildExpandedFixture();
-    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.berberflow.shop' });
+    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.barberflow.live' });
 
     const assignments = runner.assignments().slice(0, 28);
     const counts = assignments.reduce((acc, assignment) => {
@@ -224,7 +224,7 @@ describe('ExpandedFixtureWriteRunner', () => {
 
   it('deve bloquear execucao expandida com 100 VUs', async () => {
     const fixture = buildExpandedFixture();
-    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.berberflow.shop' });
+    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.barberflow.live' });
 
     await assert.rejects(
       () => runner.run({ vus: 100, durationSeconds: 1, pacingMs: 1, maxWritesPerUser: 1 }),
@@ -234,7 +234,7 @@ describe('ExpandedFixtureWriteRunner', () => {
 
   it('deve continuar chat quando agendamento tiver conflito esperado', async () => {
     const fixture = buildExpandedFixture();
-    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.berberflow.shop' });
+    const runner = new ExpandedFixtureWriteRunner({ admin: null, fixture, baseUrl: 'https://bff.barberflow.live' });
     const assignment = runner.assignments()[0];
     runner.tokens.set(assignment.client.id, 'client.jwt');
     runner.tokens.set(assignment.professional.id, 'professional.jwt');

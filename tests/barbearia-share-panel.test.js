@@ -30,7 +30,7 @@ test('atualizar com id válido revela section e preenche link do app cliente no 
     .atualizar({ barbershopId: SHOP_ID, nome: 'Barbearia Central' });
 
   assert.equal(root.hidden, false);
-  assert.match(root._els['[data-mb-share-link]'].value, /app\.berberflow\.shop/);
+  assert.match(root._els['[data-mb-share-link]'].value, /app\.barberflow\.live/);
   assert.match(root._els['[data-mb-share-link]'].value, new RegExp(SHOP_ID));
 });
 
@@ -39,7 +39,7 @@ test('input de cópia NÃO contém domínio do BFF', () => {
   new BarbeariaSharePanel(root).montar()
     .atualizar({ barbershopId: SHOP_ID, nome: 'X' });
 
-  assert.doesNotMatch(root._els['[data-mb-share-link]'].value, /bff\.berberflow/);
+  assert.doesNotMatch(root._els['[data-mb-share-link]'].value, /bff\.barberflow/);
 });
 
 test('atualizar sem id mantém section oculta', () => {
@@ -51,5 +51,5 @@ test('atualizar sem id mantém section oculta', () => {
 });
 
 test('APP_URL estático aponta para o app cliente', () => {
-  assert.match(BarbeariaSharePanel.APP_URL, /app\.berberflow\.shop/);
+  assert.match(BarbeariaSharePanel.APP_URL, /app\.barberflow\.live/);
 });

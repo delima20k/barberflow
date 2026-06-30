@@ -242,18 +242,19 @@ test('cria cobranca com callback seguro para voltar ao app profissional', async 
   await service.criarCobranca(
     { id: USER_ID, email: 'teste@barberflow.test' },
     { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
-    { ip: '127.0.0.1', origin: 'https://pro.berberflow.shop' },
+    { ip: '127.0.0.1', origin: 'https://pro.barberflow.live' },
   );
 
   assert.deepEqual(asaas.payments[0].callback, {
-    successUrl: 'https://pro.berberflow.shop/?bf_pagamento=retorno',
+    successUrl: 'https://pro.barberflow.live/?bf_pagamento=retorno',
     autoRedirect: true,
   });
 });
 
-test('em producao usa dominio canonico no callback mesmo com origem Vercel', async () => {
+test('em producao sem ASAAS_SUCCESS_URL nao envia callback (evita rejeicao Asaas por dominio)', async () => {
   process.env.NODE_ENV = 'production';
-  process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN = 'https://barberflow-profissional-abc.vercel.app';
+  const origSuccessUrl = process.env.ASAAS_SUCCESS_URL;
+  delete process.env.ASAAS_SUCCESS_URL;
   try {
     const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
     const asaas = new FakeAsaas();
@@ -262,16 +263,40 @@ test('em producao usa dominio canonico no callback mesmo com origem Vercel', asy
     await service.criarCobranca(
       { id: USER_ID, email: 'teste@barberflow.test' },
       { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
-      { ip: '127.0.0.1', origin: 'https://barberflow-profissional-abc.vercel.app' },
+      { ip: '127.0.0.1', origin: 'https://pro.barberflow.live' },
+    );
+
+    assert.equal('callback' in asaas.payments[0], false);
+  } finally {
+    process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+    if (origSuccessUrl !== undefined) process.env.ASAAS_SUCCESS_URL = origSuccessUrl;
+    else delete process.env.ASAAS_SUCCESS_URL;
+  }
+});
+
+test('em producao com ASAAS_SUCCESS_URL envia callback canonico', async () => {
+  process.env.NODE_ENV = 'production';
+  const origSuccessUrl = process.env.ASAAS_SUCCESS_URL;
+  process.env.ASAAS_SUCCESS_URL = 'https://pro.barberflow.live/?bf_pagamento=retorno';
+  try {
+    const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+    const asaas = new FakeAsaas();
+    const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+    await service.criarCobranca(
+      { id: USER_ID, email: 'teste@barberflow.test' },
+      { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
+      { ip: '127.0.0.1', origin: 'https://pro.barberflow.live' },
     );
 
     assert.deepEqual(asaas.payments[0].callback, {
-      successUrl: 'https://pro.berberflow.shop/?bf_pagamento=retorno',
+      successUrl: 'https://pro.barberflow.live/?bf_pagamento=retorno',
       autoRedirect: true,
     });
   } finally {
     process.env.NODE_ENV = ORIGINAL_NODE_ENV;
-    process.env.ASAAS_PAYMENT_SUCCESS_ORIGIN = ORIGINAL_ASAAS_PAYMENT_SUCCESS_ORIGIN;
+    if (origSuccessUrl !== undefined) process.env.ASAAS_SUCCESS_URL = origSuccessUrl;
+    else delete process.env.ASAAS_SUCCESS_URL;
   }
 });
 
@@ -283,7 +308,7 @@ test('nao cria callback de pagamento para origem nao permitida', async () => {
   await service.criarCobranca(
     { id: USER_ID, email: 'teste@barberflow.test' },
     { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
-    { ip: '127.0.0.1', origin: 'https://pro.berberflow.shop.evil.com' },
+    { ip: '127.0.0.1', origin: 'https://pro.barberflow.live.evil.com' },
   );
 
   assert.equal('callback' in asaas.payments[0], false);
