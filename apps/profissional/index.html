@@ -306,6 +306,22 @@
             <a href="#" onclick="Pro.push('login'); return false;">Fazer login</a>
           </p>
         </form>
+
+        <form id="nova-senha-form" class="login-form" hidden>
+          <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
+            Crie uma nova senha para acessar sua conta BarberFlow Profissional.
+          </p>
+          <div class="form-field">
+            <label>Nova senha</label>
+            <input id="nova-senha" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password">
+          </div>
+          <div class="form-field">
+            <label>Confirmar nova senha</label>
+            <input id="nova-senha2" type="password" placeholder="Repita a nova senha" autocomplete="new-password">
+          </div>
+          <p id="nova-senha-erro" class="form-erro"></p>
+          <button type="submit" class="btn btn-gold btn-full">Salvar nova senha</button>
+        </form>
       </div>
     </div>
   </main>
@@ -2125,7 +2141,7 @@
 <!-- API REST — camada de dados sem SDK (CRUD via fetch/PostgREST) -->
 <script src="/shared/js/ApiService.js" defer></script>
 <!-- Serviço Supabase compartilhado -->
-<script src="/shared/js/SupabaseService.js" defer></script>
+<script src="/shared/js/SupabaseService.js?v=20260701a" defer></script>
 <!-- Cache de sessão e avatar (localStorage) -->
 <script src="/shared/js/SessionCache.js" defer></script>
 <!-- Configuração centralizada de navegação (menu + rodapé) -->
@@ -2133,7 +2149,7 @@
 <!-- Validação e sanitização centralizada de inputs -->
 <script src="/shared/js/InputValidator.js" defer></script>
 <!-- Serviço de autenticação -->
-<script src="/shared/js/AuthService.js" defer></script>
+<script src="/shared/js/AuthService.js?v=20260701a" defer></script>
   <script src="/shared/js/AuthUI.js" defer></script>
 <!-- Tela de saída com animações (POO) -->
 <script src="/shared/js/LogoutScreen.js" defer></script>
@@ -2307,7 +2323,7 @@
 <script src="assets/js/ProfissionalStartupSplash.js" defer></script>
 <script src="assets/js/AppBootstrap.js" defer></script>
 <!-- Controllers do app profissional — devem preceder app.js -->
-<script src="/shared/js/AuthController.js?v=20260627c" defer></script>
+<script src="/shared/js/AuthController.js?v=20260701a" defer></script>
 <script src="assets/js/controllers/PlanosController.js?v=20260628d" defer></script>
 <script src="assets/js/controllers/CadastroController.js" defer></script>
 <script src="assets/js/controllers/TermosController.js" defer></script>

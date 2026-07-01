@@ -95,9 +95,9 @@ class EmailTemplateBuilder {
       .logo-glow { display:inline-block; padding:8px; border-radius:20px; background:radial-gradient(ellipse at 50% 50%, rgba(255,251,230,1) 0%, rgba(245,217,122,.82) 28%, rgba(212,175,55,.42) 52%, rgba(212,175,55,.16) 70%, rgba(17,24,39,0) 86%); box-shadow:0 0 18px rgba(255,251,230,.40), 0 0 34px rgba(212,175,55,.24); }
       .logo { display:block; width:110px; height:110px; object-fit:contain; border-radius:18px; }
       .brand { color:${b.gold}; font-size:26px; font-weight:700; letter-spacing:0; margin-top:8px; }
-      .content { padding:28px; font-size:16px; line-height:1.55; }
+      .content { padding:28px; font-size:16px; line-height:1.55; color:#e5e7eb; }
       h1 { margin:0 0 14px; font-size:24px; line-height:1.2; color:#ffffff; }
-      p { margin:0 0 16px; }
+      p { margin:0 0 16px; color:#e5e7eb; }
       .muted { color:${b.muted}; font-size:14px; }
       .action { margin:24px 0; }
       .action a { display:inline-block; padding:14px 20px; border-radius:10px; background:${b.gold}; color:#111827; text-decoration:none; font-weight:700; }

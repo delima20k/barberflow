@@ -359,6 +359,14 @@ class SupabaseService {
     if (error) SupabaseService.#erro('resetPassword', error);
   }
 
+  /** Atualiza a senha da sessão atual (usado no fluxo recovery). */
+  static async updatePassword(password) {
+    const { data, error } = await SupabaseService.#getClient().auth.updateUser({ password });
+    if (error) SupabaseService.#erro('updatePassword', error);
+    SupabaseService.#invalidarAuthCache();
+    return data;
+  }
+
   /**
    * Escuta mudanças de sessão.
    * @param {(event: string, session: object|null) => void} callback

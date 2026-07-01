@@ -310,6 +310,44 @@ class AuthService {
     }
   }
 
+  static isPasswordRecoveryUrl() {
+    const params = new URLSearchParams(window.location.search || '');
+    const hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
+    return params.get('type') === 'recovery'
+      || hash.get('type') === 'recovery'
+      || (hash.has('access_token') && hash.has('refresh_token'));
+  }
+
+  static limparRecoveryUrl() {
+    if (!AuthService.isPasswordRecoveryUrl()) return;
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
+  static async redefinirSenha(novaSenha, confirmarSenha, navFn, onMensagem = null) {
+    const senha = String(novaSenha ?? '');
+    const senha2 = String(confirmarSenha ?? '');
+
+    if (senha.length < 6) {
+      AuthService.#notificarMensagem(onMensagem, 'A nova senha precisa ter no minimo 6 caracteres.');
+      return;
+    }
+    if (senha !== senha2) {
+      AuthService.#notificarMensagem(onMensagem, 'As senhas nao conferem.');
+      return;
+    }
+
+    try {
+      await SupabaseService.updatePassword(senha);
+      AuthService.limparRecoveryUrl();
+      await SupabaseService.signOut().catch(() => {});
+      AuthService.#notificarMensagem(onMensagem, 'Senha alterada com sucesso. Entre novamente com sua nova senha.', 'success');
+      setTimeout(() => navFn('login'), 1600);
+    } catch (e) {
+      AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // LOGOUT
   // ═══════════════════════════════════════════════════════════

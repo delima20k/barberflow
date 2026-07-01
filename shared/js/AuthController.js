@@ -36,7 +36,9 @@ class AuthController {
     this.#bindLogin();
     this.#bindCadastro();
     this.#bindRecuperacao();
+    this.#bindNovaSenha();
     this.#bindSocialAuth();
+    this.#abrirRecoverySeNecessario();
   }
 
   // ── Privados ──────────────────────────────────────────────
@@ -106,6 +108,37 @@ class AuthController {
         (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo)
       );
     });
+  }
+
+  #bindNovaSenha() {
+    const form = document.getElementById('nova-senha-form');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const senhaEl = document.getElementById('nova-senha');
+      const senha2El = document.getElementById('nova-senha2');
+      const erroEl = document.getElementById('nova-senha-erro');
+
+      AuthUI.setLoading(true, [senhaEl, senha2El]);
+      await AuthService.redefinirSenha(
+        senhaEl?.value,
+        senha2El?.value,
+        this.#navFn,
+        (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo),
+      );
+      AuthUI.setLoading(false, [senhaEl, senha2El]);
+    });
+  }
+
+  #abrirRecoverySeNecessario() {
+    if (!AuthService.isPasswordRecoveryUrl()) return;
+    const recForm = document.getElementById('rec-form');
+    const novaSenhaForm = document.getElementById('nova-senha-form');
+    const title = document.querySelector('#tela-esqueceu-senha .auth-title');
+    if (recForm) recForm.hidden = true;
+    if (novaSenhaForm) novaSenhaForm.hidden = false;
+    if (title) title.textContent = 'Criar nova senha';
+    setTimeout(() => this.#navFn('esqueceu-senha'), 0);
   }
 
   #bindSocialAuth() {
