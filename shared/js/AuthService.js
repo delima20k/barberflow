@@ -10,6 +10,7 @@ class AuthService {
 
   // Perfil em memória (evita re-fetch desnecessário)
   static #perfil = null;
+  static #cadastroEmAndamento = false;
 
   // Detecta se estamos no app profissional (calculado uma vez, sem TDZ)
   static #isPro = window.location.pathname.includes('profissional');
@@ -170,8 +171,13 @@ class AuthService {
       InputValidator.senhasConferem(senha, senha2),
     ]);
     if (!vCadastro.ok) { AuthService.#notificarMensagem(onMensagem, vCadastro.msg); return; }
+    if (AuthService.#cadastroEmAndamento) {
+      AuthService.#notificarMensagem(onMensagem, 'Cadastro em andamento. Aguarde alguns segundos.');
+      return;
+    }
 
     AuthService.#notificarMensagem(onMensagem, ''); // limpa mensagem anterior
+    AuthService.#cadastroEmAndamento = true;
 
     try {
       // SupabaseService.signUp retorna data ({user, session}) diretamente — sem wrapper
@@ -244,6 +250,8 @@ class AuthService {
       }
     } catch (e) {
       AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
+    } finally {
+      AuthService.#cadastroEmAndamento = false;
     }
   }
 
@@ -709,7 +717,12 @@ class AuthService {
     if (msg.includes('user already registered'))     return 'Este e-mail já está cadastrado.';
     if (msg.includes('password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
     if (msg.includes('unable to validate email'))    return 'E-mail inválido.';
-    if (msg.includes('email rate limit'))            return 'Muitas tentativas. Aguarde alguns minutos.';
+    if (msg.includes('email rate limit') || msg.includes('too many') || msg.includes('429')) {
+      return 'Muitas tentativas de cadastro. Aguarde alguns minutos antes de tentar novamente.';
+    }
+    if (msg.includes('gateway timeout') || msg.includes('504')) {
+      return 'O cadastro demorou para responder. Aguarde alguns instantes e tente novamente.';
+    }
     if (msg.includes('network'))                     return 'Sem conexão. Verifique sua internet.';
     return e?.message || 'Ocorreu um erro. Tente novamente.';
   }

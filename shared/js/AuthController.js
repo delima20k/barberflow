@@ -83,16 +83,22 @@ class AuthController {
         dados.cnpj      = document.getElementById('cad-cnpj')?.value || null;
         dados.pro_type  = this.#getProType();
       }
-      await AuthService.cadastro(dados, (tela) => {
-        if (this.#role === 'professional'
-            && typeof MonetizationGuard !== 'undefined'
-            && MonetizationGuard.confirmacaoPendente
-            && tela === 'inicio') {
-          this.#navFn('confirmar-plano-pro');
-          return;
-        }
-        this.#navFn(tela);
-      }, (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo));
+      const controles = [...form.querySelectorAll('input, button, select, textarea')];
+      AuthUI.setLoading(true, controles);
+      try {
+        await AuthService.cadastro(dados, (tela) => {
+          if (this.#role === 'professional'
+              && typeof MonetizationGuard !== 'undefined'
+              && MonetizationGuard.confirmacaoPendente
+              && tela === 'inicio') {
+            this.#navFn('confirmar-plano-pro');
+            return;
+          }
+          this.#navFn(tela);
+        }, (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo));
+      } finally {
+        AuthUI.setLoading(false, controles);
+      }
     });
   }
 
