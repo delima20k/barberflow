@@ -305,10 +305,19 @@ class SupabaseService {
     return data;
   }
 
+  static #authRedirectTo() {
+    return window.location.origin + window.location.pathname;
+  }
+
   /** Cadastro com email + senha */
   static async signUp(email, password, meta = {}) {
     const { data, error } = await SupabaseService.#getClient().auth.signUp({
-      email, password, options: { data: meta }
+      email,
+      password,
+      options: {
+        data: meta,
+        emailRedirectTo: SupabaseService.#authRedirectTo(),
+      },
     });
     if (error) SupabaseService.#erro('signUp', error);
     return data;

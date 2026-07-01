@@ -229,11 +229,8 @@ class AuthService {
       }
 
       if (!session) {
-        if (typeof BffApiService !== 'undefined' && BffApiService.auth?.enviarConfirmacaoCadastro) {
-          BffApiService.auth.enviarConfirmacaoCadastro(email, nome, window.location.href)
-            .catch(e => LoggerService.warn('[AuthService] Email de confirmacao BFF nao enviado:', e?.message));
-        }
-        // Supabase exige confirmação de e-mail
+        // Supabase envia o e-mail quando o projeto exige confirmacao de cadastro.
+        // Nao chamamos a BFF/Resend aqui para evitar dois tokens diferentes.
         AuthService.#notificarMensagem(onMensagem, '✅ Cadastro realizado! Verifique seu e-mail para confirmar.', 'success');
       } else {
         // ── Registra aceite legal pendente (aceito na tela de termos pré-cadastro) ──
