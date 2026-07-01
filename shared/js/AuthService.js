@@ -336,6 +336,30 @@ class AuthService {
     }
 
     try {
+      const session = await SupabaseService.getSession().catch((err) => {
+        const raw = `${err?.message ?? ''} ${err?.original?.message ?? ''}`.toLowerCase();
+        if (raw.includes('issued in the future') || raw.includes('clock')) {
+          return { clockSkew: true };
+        }
+        return null;
+      });
+
+      if (session?.clockSkew) {
+        AuthService.#notificarMensagem(
+          onMensagem,
+          'Nao foi possivel validar o link porque o relogio do aparelho esta fora de sincronia. Ative data e hora automaticas e solicite um novo link.',
+        );
+        return;
+      }
+
+      if (!session?.access_token) {
+        AuthService.#notificarMensagem(
+          onMensagem,
+          'Link de recuperacao invalido ou expirado. Solicite um novo link e confira se a data e hora do aparelho estao automaticas.',
+        );
+        return;
+      }
+
       await SupabaseService.updatePassword(senha);
       AuthService.limparRecoveryUrl();
       await SupabaseService.signOut().catch(() => {});
@@ -670,7 +694,13 @@ class AuthService {
   }
 
   static _traduzirErro(e) {
-    const msg = (e?.message || '').toLowerCase();
+    const msg = `${e?.message || ''} ${e?.original?.message || ''}`.toLowerCase();
+    if (msg.includes('issued in the future') || msg.includes('clock')) {
+      return 'Nao foi possivel validar o link porque o relogio do aparelho esta fora de sincronia. Ative data e hora automaticas e solicite um novo link.';
+    }
+    if (msg.includes('unprocessable') || msg.includes('422')) {
+      return 'Link de recuperacao invalido ou expirado. Solicite um novo link.';
+    }
     if (msg.includes('invalid login credentials'))  return 'E-mail ou senha incorretos.';
     if (msg.includes('email not confirmed'))         return 'Confirme seu e-mail antes de entrar.';
     if (msg.includes('user already registered'))     return 'Este e-mail já está cadastrado.';
