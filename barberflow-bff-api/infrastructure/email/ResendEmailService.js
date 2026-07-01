@@ -27,18 +27,20 @@ class ResendEmailService extends IEmailService {
   }
 
   async sendSignupConfirmation(userEmail, userName, confirmationLink) {
+    const appLabel = EmailTemplateBuilder.appLabelFromUrl(confirmationLink);
     return this.#send({
       to: userEmail,
-      subject: 'Confirme seu cadastro no BarberFlow',
+      subject: `Confirme seu cadastro no ${appLabel}`,
       html: EmailTemplateBuilder.signupConfirmation({ userName, confirmationLink }),
       tag: 'signup_confirmation',
     });
   }
 
   async sendPasswordReset(userEmail, userName, resetLink, expiresInMinutes = 60) {
+    const appLabel = EmailTemplateBuilder.appLabelFromUrl(resetLink);
     return this.#send({
       to: userEmail,
-      subject: 'Recupere sua senha no BarberFlow',
+      subject: `Recupere sua senha no ${appLabel}`,
       html: EmailTemplateBuilder.passwordReset({ userName, resetLink, expiresInMinutes }),
       tag: 'password_reset',
     });

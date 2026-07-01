@@ -13,12 +13,13 @@ class EmailTemplateBuilder {
   };
 
   static signupConfirmation({ userName, confirmationLink }) {
+    const appLabel = EmailTemplateBuilder.appLabelFromUrl(confirmationLink);
     return EmailTemplateBuilder.#layout({
       title: 'Confirme seu cadastro',
-      preview: 'Confirme seu email para ativar sua conta BarberFlow.',
+      preview: `Confirme seu email para ativar sua conta ${appLabel}.`,
       body: `
         <p>Oi, ${EmailTemplateBuilder.#escape(userName || 'tudo bem')}.</p>
-        <p>Recebemos seu cadastro no BarberFlow. Confirme seu email para concluir a ativacao da conta.</p>
+        <p>Recebemos seu cadastro no ${EmailTemplateBuilder.#escape(appLabel)}. Confirme seu email para concluir a ativacao da conta.</p>
         ${EmailTemplateBuilder.#button('Confirmar cadastro', confirmationLink)}
         <p class="muted">Se voce nao criou essa conta, ignore este email.</p>
       `,
@@ -27,12 +28,13 @@ class EmailTemplateBuilder {
 
   static passwordReset({ userName, resetLink, expiresInMinutes }) {
     const minutes = Number.isFinite(Number(expiresInMinutes)) ? Number(expiresInMinutes) : 60;
+    const appLabel = EmailTemplateBuilder.appLabelFromUrl(resetLink);
     return EmailTemplateBuilder.#layout({
       title: 'Recupere sua senha',
-      preview: 'Crie uma nova senha segura para acessar sua conta BarberFlow.',
+      preview: `Crie uma nova senha segura para acessar sua conta ${appLabel}.`,
       body: `
         <p>Oi, ${EmailTemplateBuilder.#escape(userName || 'tudo bem')}.</p>
-        <p>Recebemos uma solicitacao para redefinir a senha da sua conta BarberFlow.</p>
+        <p>Recebemos uma solicitacao para redefinir a senha da sua conta ${EmailTemplateBuilder.#escape(appLabel)}.</p>
         <p>Para criar uma nova senha, clique no botao abaixo. Este link expira em ${minutes} minutos.</p>
         ${EmailTemplateBuilder.#button('Criar nova senha', resetLink)}
         <p class="muted">Se voce nao pediu essa alteracao, ignore este email. Sua senha atual continuara protegida.</p>
@@ -50,6 +52,21 @@ class EmailTemplateBuilder {
         <p class="muted">Se essa alteracao nao foi feita por voce, entre em contato com o suporte imediatamente.</p>
       `,
     });
+  }
+
+  static appLabelFromUrl(value) {
+    try {
+      const hostname = new URL(String(value || '')).hostname.toLowerCase();
+      if (hostname === 'app.barberflow.live' || hostname.includes('cliente')) {
+        return 'BarberFlow Cliente';
+      }
+      if (hostname === 'pro.barberflow.live' || hostname.includes('profissional')) {
+        return 'BarberFlow Profissional';
+      }
+    } catch {
+      // Mantem fallback generico para templates e testes sem URL real.
+    }
+    return 'BarberFlow';
   }
 
   static #button(label, href) {
