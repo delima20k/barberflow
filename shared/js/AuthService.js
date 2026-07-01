@@ -313,9 +313,7 @@ class AuthService {
   static isPasswordRecoveryUrl() {
     const params = new URLSearchParams(window.location.search || '');
     const hash = new URLSearchParams(String(window.location.hash || '').replace(/^#/, ''));
-    return params.get('type') === 'recovery'
-      || hash.get('type') === 'recovery'
-      || (hash.has('access_token') && hash.has('refresh_token'));
+    return params.get('type') === 'recovery' || hash.get('type') === 'recovery';
   }
 
   static limparRecoveryUrl() {
