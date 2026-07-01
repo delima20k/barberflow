@@ -38,7 +38,7 @@ class ResendEmailService extends IEmailService {
   async sendPasswordReset(userEmail, userName, resetLink, expiresInMinutes = 60) {
     return this.#send({
       to: userEmail,
-      subject: 'Recuperacao de senha BarberFlow',
+      subject: 'Recupere sua senha no BarberFlow',
       html: EmailTemplateBuilder.passwordReset({ userName, resetLink, expiresInMinutes }),
       tag: 'password_reset',
     });

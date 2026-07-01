@@ -4,10 +4,12 @@ class EmailTemplateBuilder {
   static #brand = {
     name: 'BarberFlow',
     gold: '#d4af37',
-    ink: '#1f2328',
-    muted: '#687076',
-    bg: '#f6f3ea',
-    card: '#ffffff',
+    ink: '#f9fafb',
+    muted: '#9ca3af',
+    bg: '#111827',
+    card: '#1f2937',
+    line: '#374151',
+    logo: 'https://app.barberflow.live/shared/img/Logo01.png',
   };
 
   static signupConfirmation({ userName, confirmationLink }) {
@@ -26,13 +28,14 @@ class EmailTemplateBuilder {
   static passwordReset({ userName, resetLink, expiresInMinutes }) {
     const minutes = Number.isFinite(Number(expiresInMinutes)) ? Number(expiresInMinutes) : 60;
     return EmailTemplateBuilder.#layout({
-      title: 'Recuperar senha',
-      preview: 'Use o link para criar uma nova senha no BarberFlow.',
+      title: 'Recupere sua senha',
+      preview: 'Crie uma nova senha segura para acessar sua conta BarberFlow.',
       body: `
         <p>Oi, ${EmailTemplateBuilder.#escape(userName || 'tudo bem')}.</p>
-        <p>Recebemos um pedido para redefinir sua senha. O link abaixo expira em ${minutes} minutos.</p>
+        <p>Recebemos uma solicitacao para redefinir a senha da sua conta BarberFlow.</p>
+        <p>Para criar uma nova senha, clique no botao abaixo. Este link expira em ${minutes} minutos.</p>
         ${EmailTemplateBuilder.#button('Criar nova senha', resetLink)}
-        <p class="muted">Se voce nao pediu essa alteracao, ignore este email.</p>
+        <p class="muted">Se voce nao pediu essa alteracao, ignore este email. Sua senha atual continuara protegida.</p>
       `,
     });
   }
@@ -69,18 +72,20 @@ class EmailTemplateBuilder {
     <title>${EmailTemplateBuilder.#escape(title)}</title>
     <style>
       body { margin:0; padding:0; background:${b.bg}; color:${b.ink}; font-family:Arial,Helvetica,sans-serif; }
-      .wrap { width:100%; padding:24px 12px; box-sizing:border-box; }
-      .card { max-width:560px; margin:0 auto; background:${b.card}; border:1px solid #e7dfc7; border-radius:12px; overflow:hidden; }
-      .head { padding:24px 28px; background:${b.ink}; color:#fff; }
-      .brand { color:${b.gold}; font-size:20px; font-weight:700; letter-spacing:0; }
+      .wrap { width:100%; padding:28px 12px; box-sizing:border-box; background:${b.bg}; }
+      .card { max-width:560px; margin:0 auto; background:${b.card}; border:1px solid ${b.line}; border-radius:16px; overflow:hidden; box-shadow:0 18px 44px rgba(0,0,0,.24); }
+      .head { padding:28px 28px 18px; text-align:center; background:${b.bg}; color:#fff; }
+      .logo-glow { display:inline-block; padding:8px; border-radius:20px; background:radial-gradient(ellipse at 50% 50%, rgba(255,251,230,1) 0%, rgba(245,217,122,.82) 28%, rgba(212,175,55,.42) 52%, rgba(212,175,55,.16) 70%, rgba(17,24,39,0) 86%); box-shadow:0 0 18px rgba(255,251,230,.40), 0 0 34px rgba(212,175,55,.24); }
+      .logo { display:block; width:110px; height:110px; object-fit:contain; border-radius:18px; }
+      .brand { color:${b.gold}; font-size:26px; font-weight:700; letter-spacing:0; margin-top:8px; }
       .content { padding:28px; font-size:16px; line-height:1.55; }
-      h1 { margin:0 0 14px; font-size:24px; line-height:1.2; }
+      h1 { margin:0 0 14px; font-size:24px; line-height:1.2; color:#ffffff; }
       p { margin:0 0 16px; }
       .muted { color:${b.muted}; font-size:14px; }
       .action { margin:24px 0; }
-      .action a { display:inline-block; padding:13px 18px; border-radius:8px; background:${b.gold}; color:${b.ink}; text-decoration:none; font-weight:700; }
+      .action a { display:inline-block; padding:14px 20px; border-radius:10px; background:${b.gold}; color:#111827; text-decoration:none; font-weight:700; }
       .link-fallback { color:${b.muted}; font-size:12px; overflow-wrap:anywhere; }
-      .footer { padding:18px 28px; color:${b.muted}; font-size:12px; border-top:1px solid #efe7cf; }
+      .footer { padding:18px 28px; color:${b.muted}; font-size:12px; border-top:1px solid ${b.line}; }
       .preview { display:none; max-height:0; overflow:hidden; opacity:0; }
     </style>
   </head>
@@ -88,7 +93,10 @@ class EmailTemplateBuilder {
     <span class="preview">${EmailTemplateBuilder.#escape(preview)}</span>
     <div class="wrap">
       <div class="card">
-        <div class="head"><div class="brand">${b.name}</div></div>
+        <div class="head">
+          <div class="logo-glow"><img class="logo" src="${b.logo}" alt="${b.name}" width="110" height="110"></div>
+          <div class="brand">${b.name}</div>
+        </div>
         <div class="content">
           <h1>${EmailTemplateBuilder.#escape(title)}</h1>
           ${body}
