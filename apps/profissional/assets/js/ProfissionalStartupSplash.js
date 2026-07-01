@@ -4,14 +4,13 @@
 // ProfissionalStartupSplash.js - Splash de abertura do App Profissional
 //
 // Reutiliza as classes de transicao do cliente: .cs-ativo / .cs-saindo
-// Dependencias: BarberPole (shared/js/BarberPole.js)
 // =============================================================
 
 class ProfissionalStartupSplash {
 
   static #SESSION_KEY = 'bf_pro_splash_shown';
-  static #DURATION_MS = 2500;
-  static #FADE_MS     = 450;
+  static #DURATION_MS = 1300;
+  static #FADE_MS     = 300;
 
   // Publico
 
@@ -33,21 +32,15 @@ class ProfissionalStartupSplash {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => overlay.classList.add('cs-ativo'));
     });
-    const poloContainer = overlay.querySelector('#ps-polo');
-    let pole = null;
-    if (typeof BarberPole !== 'undefined' && poloContainer) {
-      pole = new BarberPole(poloContainer);
-    }
     setTimeout(
-      () => ProfissionalStartupSplash.#fechar(overlay, pole),
+      () => ProfissionalStartupSplash.#fechar(overlay),
       ProfissionalStartupSplash.#DURATION_MS
     );
   }
 
-  static #fechar(overlay, pole) {
+  static #fechar(overlay) {
     overlay.classList.add('cs-saindo');
     setTimeout(() => {
-      pole?.destruir();
       overlay.remove();
     }, ProfissionalStartupSplash.#FADE_MS);
   }
@@ -66,9 +59,6 @@ class ProfissionalStartupSplash {
           alt="BarberFlow Pro"
           onerror="this.style.display='none'"
         >
-        <p class="ps-nome">BarberFlow Pro</p>
-        <div class="ps-polo-wrap"><div id="ps-polo"></div></div>
-        <p class="ps-boas-vindas">Bem-vindo ao BarberFlow Profissional</p>
       </div>
     `;
     return overlay;
