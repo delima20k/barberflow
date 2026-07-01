@@ -701,8 +701,11 @@ class AuthService {
     if (msg.includes('unprocessable') || msg.includes('422')) {
       return 'Link de recuperacao invalido ou expirado. Solicite um novo link.';
     }
-    if (msg.includes('invalid login credentials'))  return 'E-mail ou senha incorretos.';
     if (msg.includes('email not confirmed'))         return 'Confirme seu e-mail antes de entrar.';
+    if (msg.includes('invalid login credentials'))  return 'E-mail ou senha incorretos.';
+    if (msg.includes('unauthorized') || msg.includes('http 401')) {
+      return 'E-mail ou senha incorretos. Se acabou de se cadastrar, confirme seu e-mail antes de entrar.';
+    }
     if (msg.includes('user already registered'))     return 'Este e-mail já está cadastrado.';
     if (msg.includes('password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
     if (msg.includes('unable to validate email'))    return 'E-mail inválido.';
