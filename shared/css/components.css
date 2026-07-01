@@ -2648,6 +2648,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 }
 
 .login-form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.login-form[hidden] { display: none !important; }
 
 .form-field         { display: flex; flex-direction: column; gap: 6px; }
 .form-field label   { font-size: var(--fs-caption); font-weight: var(--fw-section-title); color: var(--text-muted); letter-spacing: .2px; }
