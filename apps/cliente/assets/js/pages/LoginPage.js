@@ -26,9 +26,37 @@ class LoginPage {
    */
   bind() {
     this.#bindForm();
+    this.#bindSocialAuth();
   }
 
   // ── Privado ──────────────────────────────────────────────
+
+  /**
+   * Liga os botões de login/cadastro social (Google/Facebook).
+   * Cobre os botões [data-auth-provider] das telas de login E cadastro em uma
+   * única passada. Guard global evita bind duplicado (login + register + forgot
+   * chamam bind()). Espelha AuthController.#bindSocialAuth (usado no app pro).
+   */
+  #bindSocialAuth() {
+    if (window.__clienteSocialAuthBound) return;
+    window.__clienteSocialAuthBound = true;
+
+    document.querySelectorAll('[data-auth-provider]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const provider = btn.dataset.authProvider;
+        const form   = btn.closest('form');
+        const erroEl = form?.querySelector('.form-erro');
+        const botoes = Array.from(form?.querySelectorAll('button') || []);
+
+        AuthUI.setLoading(true, botoes);
+        await AuthService.loginSocial(
+          provider,
+          (msg, tipo = 'error') => AuthUI.mostrarErroForm(erroEl, msg, tipo),
+        );
+        AuthUI.setLoading(false, botoes);
+      });
+    });
+  }
 
   #bindForm() {
     const form = document.getElementById('login-form');

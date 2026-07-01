@@ -2691,6 +2691,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   height: 1px;
   background: var(--border-soft);
 }
+/* Botões sociais no padrão do sistema (.btn-flow), variante contorno gold —
+   mesma linguagem visual dos botões flow, mas secundários ao submit dourado. */
 .auth-social-btn {
   width: 100%;
   min-height: 44px;
@@ -2698,19 +2700,23 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 11px 14px;
-  border: 1.5px solid var(--border-soft);
-  border-radius: var(--r-md);
-  background: var(--card);
-  color: var(--text);
+  padding: 10px 14px;
+  border: 2px solid var(--gold, #c9872a);
+  border-radius: var(--r-sm, 8px);
+  background: transparent;
+  color: var(--gold, #c9872a);
   font: inherit;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: .4px;
   cursor: pointer;
-  transition: border-color var(--ease), transform var(--ease), background var(--ease);
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s, color .15s, border-color .15s, transform var(--ease);
 }
+.auth-social-btn:active,
 .auth-social-btn:hover {
-  border-color: rgba(212, 175, 55, .55);
-  background: rgba(255,255,255,.04);
+  background: var(--gold, #c9872a);
+  border-color: var(--gold, #c9872a);
+  color: #1a0800;
   transform: translateY(-1px);
 }
 .auth-social-btn:disabled {
