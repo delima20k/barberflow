@@ -44,7 +44,7 @@ class Router {
     // Perfil público de barbearia e de barbeiro — acessíveis sem login
     'barbearia', 'barbeiro',
     // Fluxo de cadastro profissional (visitante ainda não tem conta)
-    'planos-pro', 'confirmar-plano-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'termos-legais',
+    'planos-pro', 'confirmar-plano-pro', 'planos-barbeiro', 'tipo-usuario', 'esqueceu-senha', 'redefinir-senha', 'termos-legais',
   ]);
 
   // Set alocado uma vez — referenciado no fallback de _bindDataAttributes
@@ -61,7 +61,7 @@ class Router {
   // efêmeras e telas de detalhe que dependem de uma entidade selecionada
   // (restaurá-las sem contexto mostraria uma tela vazia/quebrada).
   static #TELAS_NAO_PERSISTIR = new Set([
-    'login', 'cadastro', 'esqueceu-senha', 'termos-legais', 'sair',
+    'login', 'cadastro', 'esqueceu-senha', 'redefinir-senha', 'termos-legais', 'sair',
     'tipo-usuario', 'planos-pro', 'planos-barbeiro', 'confirmar-plano-pro',
     'criar', 'barbearia', 'barbeiro',
   ]);

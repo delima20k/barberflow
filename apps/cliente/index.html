@@ -280,13 +280,31 @@
           </p>
         </form>
 
-        <form id="nova-senha-form" class="login-form" hidden>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       TELA — REDEFINIR SENHA
+  ============================================================ -->
+  <main id="tela-redefinir-senha" class="tela">
+    <div class="login-bg">
+      <div class="login-logo">
+        <button class="btn-voltar" data-voltar>Voltar</button>
+        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
+             onerror="this.style.display='none'">
+        <span class="login-tagline">Nova senha</span>
+      </div>
+
+      <div class="auth-card">
+        <h2 class="auth-title">Criar nova senha</h2>
+        <form id="nova-senha-form" class="login-form">
           <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6;margin-bottom:4px;">
             Crie uma nova senha para acessar sua conta BarberFlow Cliente.
           </p>
           <div class="form-field">
             <label>Nova senha</label>
-            <input id="nova-senha" type="password" placeholder="Mínimo de 6 caracteres" autocomplete="new-password">
+            <input id="nova-senha" type="password" placeholder="Minimo de 6 caracteres" autocomplete="new-password">
           </div>
           <div class="form-field">
             <label>Confirmar nova senha</label>
@@ -300,7 +318,7 @@
   </main>
 
   <!-- ============================================================
-       TELA — INÍCIO
+       TELA — INICIO
   ============================================================ -->
   <main id="tela-inicio" class="tela">
     <div class="content">
@@ -1042,7 +1060,7 @@
 <!-- Serviço de apresentação DOM do Router (deve preceder Router.js) -->
 <script src="/shared/js/NavigationViewService.js" defer></script>
 <!-- Shared Router base class -->
-<script src="/shared/js/Router.js" defer></script>
+<script src="/shared/js/Router.js?v=20260701b" defer></script>
 <!-- Componente BarberPole -->
 <script src="/shared/js/BarberPole.js" defer></script>
 <!-- Efeito glow nas logos -->
@@ -1125,7 +1143,7 @@
 <!-- Pages por tela (UI + bind) -->
 <script src="assets/js/pages/LoginPage.js" defer></script>
 <script src="assets/js/pages/RegisterPage.js" defer></script>
-<script src="assets/js/pages/ForgotPasswordPage.js?v=20260701a" defer></script>
+<script src="assets/js/pages/ForgotPasswordPage.js?v=20260701b" defer></script>
 <script src="assets/js/pages/HomePage.js" defer></script>
 <script src="assets/js/pages/SearchPage.js" defer></script>
 <script src="/shared/js/Cliente.js" defer></script>

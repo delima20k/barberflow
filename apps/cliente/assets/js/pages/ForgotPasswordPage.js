@@ -70,12 +70,6 @@ class ForgotPasswordPage {
 
   #abrirRecoverySeNecessario() {
     if (!AuthService.isPasswordRecoveryUrl()) return;
-    const recForm = document.getElementById('rec-form');
-    const novaSenhaForm = document.getElementById('nova-senha-form');
-    const title = document.querySelector('#tela-esqueceu-senha .auth-title');
-    if (recForm) recForm.hidden = true;
-    if (novaSenhaForm) novaSenhaForm.hidden = false;
-    if (title) title.textContent = 'Criar nova senha';
-    setTimeout(() => this.#navFn('esqueceu-senha'), 0);
+    setTimeout(() => this.#navFn('redefinir-senha'), 0);
   }
 }
