@@ -87,11 +87,19 @@ class AuthController {
       AuthUI.setLoading(true, controles);
       try {
         await AuthService.cadastro(dados, (tela) => {
+          // Profissional que escolheu um plano no fluxo de cadastro: ativa o
+          // plano (trial → POST /trial; pago → checkout Asaas) em vez de
+          // navegar para a tela inexistente 'confirmar-plano-pro'. Reaproveita
+          // PlanosService.confirmarPlano — o mesmo caminho do usuário já logado.
           if (this.#role === 'professional'
+              && tela === 'inicio'
               && typeof MonetizationGuard !== 'undefined'
               && MonetizationGuard.confirmacaoPendente
-              && tela === 'inicio') {
-            this.#navFn('confirmar-plano-pro');
+              && typeof PlanosService !== 'undefined') {
+            PlanosService.confirmarPlano(
+              () => this.#navFn('inicio'),
+              (msg) => AuthUI.mostrarErroForm(erroEl, msg, 'error'),
+            );
             return;
           }
           this.#navFn(tela);
