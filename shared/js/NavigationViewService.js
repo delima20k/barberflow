@@ -115,6 +115,27 @@ class NavigationViewService {
     });
   }
 
+  /**
+   * Igual a resetarParaHome (cancela animações e limpa CSS transitório de
+   * todas as telas), mas REAFIRMA a tela atual como ativa em vez de forçar a
+   * home. Usado no retorno do bfcache para preservar a posição do usuário.
+   * @param {string} telaAtual — tela a manter ativa (sem prefixo "tela-")
+   */
+  normalizarPreservando(telaAtual) {
+    this.#telaEls.forEach(telaEl => {
+      telaEl.getAnimations().forEach(anim => anim.cancel());
+      telaEl.classList.remove('ativa', 'entrando-lento', 'saindo', 'saindo-direita');
+      telaEl.style.display       = '';
+      telaEl.style.pointerEvents = '';
+      telaEl.style.transform     = '';
+    });
+    // Home é visível por CSS; demais telas precisam da classe .ativa.
+    if (telaAtual && telaAtual !== 'inicio') {
+      const el = this.telaEl(telaAtual);
+      if (el) el.classList.add('ativa');
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // SINCRONIZAÇÃO DE UI (footer + nav buttons)
   // ═══════════════════════════════════════════════════════════

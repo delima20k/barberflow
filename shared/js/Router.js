@@ -51,6 +51,21 @@ class Router {
   static #ACOES_FALLBACK = new Set(['agendar', 'mensagem', 'pagar', 'pagamento', 'like', 'barbershop-favorite', 'avatar-upload']);
   static #BOTOES_VOLTAR_BINDADOS = new WeakSet();
 
+  // ─── Retomada de sessão (PWA em 2º plano → volta de onde parou) ───
+  // Persiste a última aba principal em localStorage e a restaura no boot,
+  // desde que o retorno seja recente (janela de resumo). Cobre o cold-start
+  // quando o SO mata o app em segundo plano (bfcache é tratado no pageshow).
+  static #CHAVE_ULTIMA_TELA = 'bf_ultima_tela';
+  static #JANELA_RESUMO_MS  = 30 * 60 * 1000; // 30 min
+  // Telas que NÃO devem ser persistidas/restauradas: fluxo de auth, telas
+  // efêmeras e telas de detalhe que dependem de uma entidade selecionada
+  // (restaurá-las sem contexto mostraria uma tela vazia/quebrada).
+  static #TELAS_NAO_PERSISTIR = new Set([
+    'login', 'cadastro', 'esqueceu-senha', 'termos-legais', 'sair',
+    'tipo-usuario', 'planos-pro', 'planos-barbeiro', 'confirmar-plano-pro',
+    'criar', 'barbearia', 'barbeiro',
+  ]);
+
   /** Telas que exibem o footer completo (logado). @returns {Set<string>} */
   get telasComNav() { return new Set([]); }
 
@@ -104,14 +119,83 @@ class Router {
     // Libera o CSS normal após todo o setup estar completo
     this._view.removerBootLock();
 
-    // Restaura estado correto quando a página volta do bfcache
+    // Página retornou do bfcache (app estava em 2º plano, memória preservada).
+    // Normaliza animações/CSS presos, mas PRESERVA a tela em que o usuário
+    // estava — antes forçávamos 'inicio', descartando a posição dele.
     window.addEventListener('pageshow', (e) => {
       if (!e.persisted) return;
-      this._view.resetarParaHome();
-      this._telaAtual    = 'inicio';
-      this._historico    = [];
       this._navegandoApp = false;
-      this._atualizarUI('inicio');
+      if (typeof this._view.normalizarPreservando === 'function') {
+        this._view.normalizarPreservando(this._telaAtual);
+      } else {
+        // Fallback defensivo: se a view não expõe o método novo, mantém o
+        // comportamento antigo (reset para home) em vez de quebrar.
+        this._view.resetarParaHome();
+        this._telaAtual = 'inicio';
+        this._historico = [];
+      }
+      this._atualizarUI(this._telaAtual);
+    });
+
+    // Cold-start: se o SO matou o app em 2º plano, restaura a última aba.
+    this._agendarRestauracaoTela();
+  }
+
+  /**
+   * Persiste a última aba principal para permitir retomar de onde o usuário
+   * parou. Telas de fluxo/detalhe (ver #TELAS_NAO_PERSISTIR) limpam o registro.
+   * @param {string} tela
+   * @protected
+   */
+  _persistirTela(tela) {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      if (!tela || Router.#TELAS_NAO_PERSISTIR.has(tela) || tela === 'inicio') {
+        localStorage.removeItem(Router.#CHAVE_ULTIMA_TELA);
+        return;
+      }
+      localStorage.setItem(
+        Router.#CHAVE_ULTIMA_TELA,
+        JSON.stringify({ tela, ts: Date.now() }),
+      );
+    } catch (_) { /* storage indisponível/cheio — silencioso */ }
+  }
+
+  /**
+   * Lê a última aba persistida e, se o retorno for recente, restaura-a após o
+   * boot. Telas públicas restauram assim que o app monta; telas privadas
+   * aguardam a sessão ser confirmada (AppState.onAuth) para não cair no login.
+   * @protected
+   */
+  _agendarRestauracaoTela() {
+    if (typeof localStorage === 'undefined') return;
+
+    let salvo = null;
+    try { salvo = JSON.parse(localStorage.getItem(Router.#CHAVE_ULTIMA_TELA) || 'null'); }
+    catch (_) { salvo = null; }
+    if (!salvo || typeof salvo.tela !== 'string') return;
+
+    const { tela, ts } = salvo;
+    if (tela === 'inicio' || Router.#TELAS_NAO_PERSISTIR.has(tela)) return;
+    if (typeof ts !== 'number' || (Date.now() - ts) > Router.#JANELA_RESUMO_MS) return;
+
+    const restaurar = () => {
+      if (this._telaAtual === tela) return;
+      if (!this._view.telaEl(tela)) return; // tela não existe neste app → ignora
+      this.nav(tela);
+    };
+
+    // Tela pública → restaura assim que a subclasse terminar de montar.
+    if (Router.TELAS_PUBLICAS.has(tela)) {
+      setTimeout(restaurar, 0);
+      return;
+    }
+
+    // Tela privada → exige login. Se já logado, restaura; senão aguarda o auth.
+    if (typeof AppState === 'undefined') return;
+    if (AppState.get('isLogado') === true) { setTimeout(restaurar, 0); return; }
+    const off = AppState.onAuth((logado) => {
+      if (logado === true) { if (typeof off === 'function') off(); setTimeout(restaurar, 0); }
     });
   }
 
@@ -189,6 +273,7 @@ class Router {
       this._historico = [];          // limpa histórico — volta pra home
       this._telaAtual = 'inicio';
       this._atualizarUI('inicio');
+      this._persistirTela('inicio');
       this._animar(atual, null, 'saindo');  // sai pela esquerda, home já está embaixo
       return;
     }
@@ -206,6 +291,7 @@ class Router {
     this._historico.push(telaAnterior);
     this._telaAtual = tela;
     this._atualizarUI(tela);
+    this._persistirTela(tela);
 
     // Home é base fixa — nunca anima saída
     // Aba já aberta → carrossel: atual sai DIREITA (lento), nova entra ESQUERDA (lento)
@@ -231,6 +317,7 @@ class Router {
     this._historico = [];
     this._telaAtual = 'inicio';
     this._atualizarUI('inicio');
+    this._persistirTela('inicio');
 
     this._animar(
       telaAtual !== 'inicio' ? atual : null,
@@ -263,6 +350,7 @@ class Router {
     this._historico.push(telaAnterior);
     this._telaAtual = tela;
     this._atualizarUI(tela);
+    this._persistirTela(tela);
 
     // Fluxo de auth (login ↔ cadastro ↔ esqueceu-senha):
     // atual sai pela DIREITA, nova entra pela ESQUERDA — padrão carrossel
