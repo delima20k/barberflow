@@ -151,3 +151,8 @@
 @keyframes csCaret {
   50% { border-color: transparent; }
 }
+.cs-tagline.cs-tagline-concluida {
+  animation: none;
+  clip-path: inset(0 0 0 0);
+  border-right-color: transparent;
+}

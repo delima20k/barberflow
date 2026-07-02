@@ -2796,6 +2796,11 @@
 @keyframes psCaret {
   50% { border-color: transparent; }
 }
+.ps-tagline.ps-tagline-concluida {
+  animation: none;
+  clip-path: inset(0 0 0 0);
+  border-right-color: transparent;
+}
 
 /* ================================================================
    FINANCAS — Dashboard financeiro

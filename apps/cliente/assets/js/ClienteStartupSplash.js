@@ -55,6 +55,7 @@ class ClienteStartupSplash {
       requestAnimationFrame(() => overlay.classList.add('cs-ativo'));
     });
 
+    ClienteStartupSplash.#concluirTagline(overlay);
     setTimeout(() => ClienteStartupSplash.#fechar(overlay), ClienteStartupSplash.#DURATION_MS);
   }
 
@@ -64,6 +65,26 @@ class ClienteStartupSplash {
     setTimeout(() => {
       overlay.remove();
     }, ClienteStartupSplash.#FADE_MS);
+  }
+
+  static #concluirTagline(overlay) {
+    const tagline = overlay.querySelector('.cs-tagline');
+    if (!tagline) return;
+
+    let concluida = false;
+    const concluir = () => {
+      if (concluida) return;
+      concluida = true;
+      tagline.classList.add('cs-tagline-concluida');
+    };
+
+    tagline.addEventListener('animationend', (event) => {
+      if (event.animationName === 'csTyping' || event.animationName === 'splashTypingCliente') {
+        concluir();
+      }
+    });
+
+    setTimeout(concluir, 2900);
   }
 
   static #montarOverlay() {

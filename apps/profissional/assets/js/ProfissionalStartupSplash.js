@@ -33,6 +33,7 @@ class ProfissionalStartupSplash {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => overlay.classList.add('cs-ativo'));
     });
+    ProfissionalStartupSplash.#concluirTagline(overlay);
     setTimeout(
       () => ProfissionalStartupSplash.#fechar(overlay),
       ProfissionalStartupSplash.#DURATION_MS
@@ -44,6 +45,26 @@ class ProfissionalStartupSplash {
     setTimeout(() => {
       overlay.remove();
     }, ProfissionalStartupSplash.#FADE_MS);
+  }
+
+  static #concluirTagline(overlay) {
+    const tagline = overlay.querySelector('.ps-tagline');
+    if (!tagline) return;
+
+    let concluida = false;
+    const concluir = () => {
+      if (concluida) return;
+      concluida = true;
+      tagline.classList.add('ps-tagline-concluida');
+    };
+
+    tagline.addEventListener('animationend', (event) => {
+      if (event.animationName === 'psTyping' || event.animationName === 'splashTypingPro') {
+        concluir();
+      }
+    });
+
+    setTimeout(concluir, 2600);
   }
 
   static #montarOverlay() {
