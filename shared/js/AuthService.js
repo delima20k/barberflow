@@ -467,7 +467,8 @@ class AuthService {
             AuthService.#perfil = perfil;
             AuthService._atualizarUI(perfil, session.user);
           })
-          .catch(() => {
+          .catch(err => {
+            if (err?.code === 'PERFIL_INDISPONIVEL') return;
             AuthService.#perfil = null;
             AuthService._limparUI();
           });
@@ -510,6 +511,9 @@ class AuthService {
         try {
           AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
         } catch (perfilErr) {
+          if (perfilErr?.code === 'PERFIL_INDISPONIVEL') {
+            return;
+          }
           if (perfilErr?.code === 'PERFIL_ORFAO') {
             // Sessão órfã — deslogar silenciosamente e avisar o usuário
             try { await SupabaseService.signOut(); } catch { /* sem-op */ }
@@ -575,8 +579,10 @@ class AuthService {
     const { data, error } = await BffApiService.auth.me();
 
     if (error) {
-      // Sem rede / BFF indisponível → retorna null silenciosamente (mantém UX).
-      return null;
+      // Sem rede / BFF indisponivel nao pode virar logout silencioso.
+      const err = new Error('Perfil temporariamente indisponivel.');
+      err.code = 'PERFIL_INDISPONIVEL';
+      throw err;
     }
 
     const perfil = data?.perfil ?? null;

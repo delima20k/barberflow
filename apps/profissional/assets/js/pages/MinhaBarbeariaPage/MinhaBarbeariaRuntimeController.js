@@ -284,9 +284,11 @@ export class MinhaBarbeariaRuntimeController {
   // ── Eventos ─────────────────────────────────────────────────
 
   #bindEventos() {
-    this.#telaEl?.addEventListener('click', e => {
+    document.addEventListener('click', e => {
       if (!this.#subTelaAtiva) return;
-      if (!e.target.closest('.btn-voltar[data-action="voltar"]')) return;
+      const voltarBtn = e.target.closest('.btn-voltar');
+      if (!voltarBtn) return;
+      if (!this.#subTelaAtiva.contains(voltarBtn) && !voltarBtn.matches('[data-action="voltar"], [data-voltar]')) return;
       e.preventDefault();
       e.stopPropagation();
       this.#fecharSub();

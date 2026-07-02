@@ -62,6 +62,28 @@ const PERFIL_CLIENTE   = { id: 'u-cliente-01',  full_name: 'João Silva',   role
 const USER_PRO         = { id: 'u-pro-01',      email: 'maria@barberflow.com' };
 const PERFIL_PRO       = { id: 'u-pro-01',      full_name: 'Maria Barbeira', role: 'professional' };
 
+const SRC_AUTH_SERVICE = require('node:fs').readFileSync(
+  require('node:path').join(__dirname, '..', 'shared/js/AuthService.js'),
+  'utf8',
+);
+
+describe('AuthService - resiliencia de sessao', () => {
+  test('falha em /auth/me deve gerar PERFIL_INDISPONIVEL, nao perfil null', () => {
+    assert.match(SRC_AUTH_SERVICE, /err\.code = 'PERFIL_INDISPONIVEL'/);
+    const bloco = SRC_AUTH_SERVICE.slice(
+      SRC_AUTH_SERVICE.indexOf('static async _carregarPerfil'),
+      SRC_AUTH_SERVICE.indexOf('const perfil = data?.perfil ?? null'),
+    );
+    assert.doesNotMatch(bloco, /return null;/);
+    assert.match(bloco, /throw err;/);
+  });
+
+  test('PERFIL_INDISPONIVEL nao deve limpar UI nem fazer logout no boot/listener', () => {
+    assert.match(SRC_AUTH_SERVICE, /if \(err\?\.code === 'PERFIL_INDISPONIVEL'\) return;/);
+    assert.match(SRC_AUTH_SERVICE, /if \(perfilErr\?\.code === 'PERFIL_INDISPONIVEL'\) \{\s*return;\s*\}/);
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BLOCO 1 — AppState: Estado inicial
 // ─────────────────────────────────────────────────────────────────────────────

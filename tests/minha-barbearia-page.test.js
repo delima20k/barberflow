@@ -81,8 +81,9 @@ function criarDom() {
     'app-header',
     'mb-config-panel',
     'mb-gps-panel',
+    'mb-convite-panel',
     'mb-nome', 'mb-cover-img', 'mb-cover-input', 'mb-quota-txt',
-    'mb-add-btn', 'mb-gps-btn', 'mb-mais-btn',
+    'mb-add-btn', 'mb-gps-btn', 'mb-mais-btn', 'mb-equipe-convidar-btn',
     'mb-story-slot-2', 'mb-story-slot-3',
     'mb-kpi-rating', 'mb-kpi-clientes', 'mb-kpi-portfolio', 'mb-kpi-likes',
     'mb-portfolio-grid', 'mb-servicos-lista',
@@ -90,7 +91,7 @@ function criarDom() {
     'mb-cfg-logo-input', 'mb-cfg-logo-img', 'mb-cfg-nome',
     'mb-cfg-produtos-lista', 'mb-cfg-add-produto',
     'mb-config-salvar', 'mb-config-msg',
-    'mb-gps-fechar',
+    'mb-gps-fechar', 'mb-convite-fechar',
     'gps-cep', 'gps-btn-buscar', 'gps-logradouro', 'gps-bairro',
     'gps-cidade', 'gps-numero', 'gps-complemento',
     'gps-btn-gps', 'gps-coords-txt', 'gps-msg', 'gps-btn-salvar',
@@ -108,8 +109,11 @@ function criarDom() {
     gpsPanelEl:elMap.get('mb-gps-panel'),
     maisBtn:   elMap.get('mb-mais-btn'),
     gpsBtn:    elMap.get('mb-gps-btn'),
+    conviteBtn: elMap.get('mb-equipe-convidar-btn'),
     cfgFechar: elMap.get('mb-config-fechar'),
     gpsFechar: elMap.get('mb-gps-fechar'),
+    convitePanelEl: elMap.get('mb-convite-panel'),
+    conviteFechar: elMap.get('mb-convite-fechar'),
     gpsBtnSalvar: elMap.get('gps-btn-salvar'),
     gpsLogradouro: elMap.get('gps-logradouro'),
     gpsNumero: elMap.get('gps-numero'),
@@ -241,7 +245,8 @@ describe('MinhaBarbeariaPage - estabilidade de realtime/equipe', () => {
   });
 
   test('voltar da Minha Barbearia fecha subpainel antes de acionar router global', () => {
-    assert.match(SRC_MB_PAGE, /#subTelaAtiva[\s\S]+closest\('\.btn-voltar\[data-action="voltar"\]'\)/);
+    assert.match(SRC_MB_PAGE, /document\.addEventListener\('click'[\s\S]+#subTelaAtiva[\s\S]+closest\('\.btn-voltar'\)/);
+    assert.match(SRC_MB_PAGE, /#subTelaAtiva\.contains\(voltarBtn\)/);
     assert.match(SRC_MB_PAGE, /e\.preventDefault\(\);[\s\S]+e\.stopPropagation\(\);[\s\S]+this\.#fecharSub\(\)/);
   });
 });
@@ -384,6 +389,25 @@ describe('MinhaBarbeariaPage — alternância entre painéis', () => {
 // =============================================================================
 // describe 4 — Helpers estáticos
 // =============================================================================
+
+describe('MinhaBarbeariaPage - sub-paineis (convite)', () => {
+  test('clicar convidar barbeiro abre o painel de convite', () => {
+    const { dom } = criarPagina();
+    dom.conviteBtn._click();
+
+    assert.ok(dom.convitePanelEl.classList.contains('mb-sub-ativa'));
+    assert.strictEqual(dom.convitePanelEl._attrs['aria-hidden'], 'false');
+  });
+
+  test('clicar mb-convite-fechar fecha o painel de convite', () => {
+    const { dom } = criarPagina();
+    dom.conviteBtn._click();
+    dom.conviteFechar._click();
+
+    assert.ok(!dom.convitePanelEl.classList.contains('mb-sub-ativa'));
+    assert.strictEqual(dom.convitePanelEl._attrs['aria-hidden'], 'true');
+  });
+});
 
 describe('MinhaBarbeariaPage — #formatarNumero (via KPIs)', () => {
   // Método privado estático, acessado indiretamente via #renderKpis.
