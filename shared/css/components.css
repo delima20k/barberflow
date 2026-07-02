@@ -6275,6 +6275,31 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-color: transparent !important;
 }
 
+/* Aviso de teste grátis (trial) — contagem regressiva no topo da barbearia */
+.mb-trial-aviso {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 8px auto 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(201, 135, 42, .14);
+  border: 1px solid var(--gold, #c9872a);
+  color: var(--gold, #c9872a);
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-align: center;
+  line-height: 1.3;
+}
+.mb-trial-aviso[hidden] { display: none; }
+
+/* Último dia / expirando — urgência em vermelho */
+.mb-trial-aviso.mb-trial-aviso--urgente {
+  background: rgba(214, 69, 69, .16);
+  border-color: #d64545;
+  color: #ff6b6b;
+}
+
 /* Linha logo + h2 */
 .mb-hero-nome-row {
   display: flex;

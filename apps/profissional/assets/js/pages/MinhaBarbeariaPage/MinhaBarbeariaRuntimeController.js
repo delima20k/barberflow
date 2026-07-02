@@ -266,6 +266,7 @@ export class MinhaBarbeariaRuntimeController {
       statusTxt:    q('mb-status-txt'),
       statusToggle: q('mb-status-toggle'),
       topoStatus:   q('mb-topo-status'),
+      trialAviso:   q('mb-trial-aviso'),
       // Hero header
       heroHeader:   q('mb-hero-header'),
       heroLogo:     q('mb-hero-logo'),
@@ -566,6 +567,7 @@ export class MinhaBarbeariaRuntimeController {
 
       this.#renderCabecalho(shop);
       this.#renderStatusAberto(shop.is_open, shop.close_reason ?? null);
+      void this.#renderTrialAviso();
       this.#renderStoryCards(stories, shop, quotaHoje, perfil.id);
       this.#renderEquipe(barbeiros, shop.owner_id, this.#perfilDono, filaEntradas);
       this.#renderServicos(servicos);
@@ -1931,6 +1933,62 @@ export class MinhaBarbeariaRuntimeController {
       topo.className   = `mb-topo-status ${classe}`;
       topo.hidden      = false;
     }
+  }
+
+  // ── Aviso de teste grátis (trial) ───────────────────────────
+  //
+  // Dias restantes = teto de (ends_at - agora) / 24h. Ex.: recém-criado
+  // (7 dias) mostra "7"; após 24h "6"; e assim por diante até o último dia.
+  // Quando o trial expira o gate de assinatura bloqueia a tela antes de
+  // chegar aqui — então o aviso só aparece com trial ativo.
+  static calcularDiasTrial(endsAt, agoraMs = Date.now()) {
+    const fim = Date.parse(endsAt);
+    if (!Number.isFinite(fim)) return null;
+    const DIA = 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.ceil((fim - agoraMs) / DIA));
+  }
+
+  async #renderTrialAviso() {
+    const el = this.#refs.trialAviso;
+    if (!el) return;
+
+    // Só o dono vê (contexto de parceiro não). Precisa do MonetizationGuard.
+    if (!this.#isOwner || this.#contextoParceiro
+        || typeof MonetizationGuard === 'undefined') {
+      el.hidden = true;
+      return;
+    }
+
+    let sub = null;
+    try {
+      const status = await MonetizationGuard.assinaturaPermiteAcesso();
+      sub = status?.subscription ?? null;
+    } catch (_) { sub = null; }
+
+    // Aviso só faz sentido no teste grátis (plano pago não mostra contagem).
+    if (!sub || sub.status !== 'trial' || !sub.endsAt) {
+      el.hidden = true;
+      return;
+    }
+
+    const dias = MinhaBarbeariaRuntimeController.calcularDiasTrial(sub.endsAt);
+    if (dias === null) { el.hidden = true; return; }
+
+    let texto;
+    let urgente = false;
+    if (dias >= 2) {
+      texto = `Você tem ${dias} dias de teste grátis`;
+    } else if (dias === 1) {
+      texto = 'Último dia de teste grátis — assine o plano para não bloquear a barbearia';
+      urgente = true;
+    } else {
+      texto = 'Seu teste grátis terminou — assine o plano para reabrir a barbearia';
+      urgente = true;
+    }
+
+    el.textContent = texto;
+    el.className   = `mb-trial-aviso${urgente ? ' mb-trial-aviso--urgente' : ''}`;
+    el.hidden      = false;
   }
 
   async #toggleStatusAberto() {

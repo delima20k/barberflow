@@ -176,7 +176,7 @@ function criarPagina({ comTelaEl = true } = {}) {
   const page = new sandbox.MinhaBarbeariaPage();
   page.bind();
 
-  return { page, dom, documentMock, mutationObservers };
+  return { page, dom, documentMock, mutationObservers, sandbox };
 }
 
 // =============================================================================
@@ -886,6 +886,52 @@ describe('BarberFlowProfissional - pagina Parcerias', () => {
       /this\.#parceriasPage\.bind\(\);/,
       'app deve chamar bind() para ativar upload de Minhas Fotos',
     );
+  });
+});
+
+// =============================================================================
+// describe — Aviso de teste grátis (trial): cálculo de dias restantes
+// =============================================================================
+
+describe('MinhaBarbeariaPage - contagem de dias do trial', () => {
+  const { sandbox } = criarPagina();
+  const MB  = sandbox.MinhaBarbeariaRuntimeController;
+  const DIA = 24 * 60 * 60 * 1000;
+  const now = Date.parse('2026-07-02T12:00:00.000Z');
+  const emDias = (d) => new Date(now + d * DIA).toISOString();
+
+  test('recém-criado (7 dias) mostra 7', () => {
+    assert.equal(MB.calcularDiasTrial(emDias(7), now), 7);
+  });
+
+  test('arredonda para cima (6,5 dias restantes -> 7)', () => {
+    assert.equal(MB.calcularDiasTrial(emDias(6.5), now), 7);
+  });
+
+  test('após 24h de um trial de 7 dias mostra 6', () => {
+    assert.equal(MB.calcularDiasTrial(emDias(7), now + DIA), 6);
+  });
+
+  test('último dia (menos de 24h) mostra 1', () => {
+    assert.equal(MB.calcularDiasTrial(emDias(0.5), now), 1);
+  });
+
+  test('expirado (data no passado) mostra 0, nunca negativo', () => {
+    assert.equal(MB.calcularDiasTrial(emDias(-1), now), 0);
+  });
+
+  test('data inválida retorna null', () => {
+    assert.equal(MB.calcularDiasTrial('lixo', now), null);
+    assert.equal(MB.calcularDiasTrial(null, now), null);
+  });
+
+  test('html expõe o banner de aviso acima do status', () => {
+    assert.match(SRC_INDEX, /id="mb-trial-aviso"/);
+  });
+
+  test('controller renderiza o aviso no carregamento', () => {
+    assert.match(SRC_MB_PAGE, /this\.#renderTrialAviso\(\)/);
+    assert.match(SRC_MB_PAGE, /sub\.status !== 'trial'/);
   });
 });
 
