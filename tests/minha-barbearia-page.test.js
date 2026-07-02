@@ -225,6 +225,27 @@ describe('MinhaBarbeariaPage — bind()', () => {
   });
 });
 
+describe('MinhaBarbeariaPage - estabilidade de realtime/equipe', () => {
+  test('realtime e polling devem agrupar re-render da equipe', () => {
+    assert.match(SRC_MB_PAGE, /#agendarReRenderEquipe\(delayMs = 160\)/);
+    assert.match(SRC_MB_PAGE, /postgres_changes[\s\S]+#agendarReRenderEquipe\(\)/);
+    assert.match(SRC_MB_PAGE, /setInterval\([\s\S]+#agendarReRenderEquipe\(300\)/);
+  });
+
+  test('re-render frequente deve apenas ler fila, sem sincronizar/promover clientes', () => {
+    const reRenderIdx = SRC_MB_PAGE.indexOf('async #reRenderEquipe()');
+    assert.notEqual(reRenderIdx, -1, 'deve existir #reRenderEquipe');
+    const reRenderBody = SRC_MB_PAGE.slice(reRenderIdx, SRC_MB_PAGE.indexOf('// ── Convites', reRenderIdx));
+    assert.match(reRenderBody, /CadeiraService\.getFilaAtiva\(this\.#barbershopId\)/);
+    assert.doesNotMatch(reRenderBody, /CadeiraService\.sincronizarFilas\(this\.#barbershopId\)/);
+  });
+
+  test('voltar da Minha Barbearia fecha subpainel antes de acionar router global', () => {
+    assert.match(SRC_MB_PAGE, /#subTelaAtiva[\s\S]+closest\('\.btn-voltar\[data-action="voltar"\]'\)/);
+    assert.match(SRC_MB_PAGE, /e\.preventDefault\(\);[\s\S]+e\.stopPropagation\(\);[\s\S]+this\.#fecharSub\(\)/);
+  });
+});
+
 // =============================================================================
 // describe 2 — Sub-painéis: animação (entrada e saída pela esquerda)
 // =============================================================================

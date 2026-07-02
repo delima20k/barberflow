@@ -64,6 +64,7 @@ export class MinhaBarbeariaRuntimeController {
   #canalFila            = null;   // canal Supabase Realtime de queue_entries
   #canalAtividade       = null;   // canal Supabase Realtime de professional_barbershop_presence
   #pollingTimer         = null;   // fallback polling quando Realtime indisponível
+  #reRenderEquipeTimer = null;   // agrupa eventos frequentes de realtime/polling
   #renderizandoEquipe   = false;  // guard: evita re-renders simultâneos de cadeiras
   #reRenderPendente     = false;  // sinaliza update chegado durante render em curso
   #pushPendente         = [];
@@ -283,6 +284,14 @@ export class MinhaBarbeariaRuntimeController {
   // ── Eventos ─────────────────────────────────────────────────
 
   #bindEventos() {
+    this.#telaEl?.addEventListener('click', e => {
+      if (!this.#subTelaAtiva) return;
+      if (!e.target.closest('.btn-voltar[data-action="voltar"]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.#fecharSub();
+    }, true);
+
     this.#refs.maisBtn?.addEventListener('click',     () => {
       void this.#loadPortfolioSection();
       this.#abrirSub('config');
@@ -647,7 +656,7 @@ export class MinhaBarbeariaRuntimeController {
     if (row.professional_id === this.#profissionalId) {
       this.#barbeiroParceiroAtivo = row.is_available === true;
     }
-    this.#reRenderEquipe();
+    this.#agendarReRenderEquipe();
   }
 
   // ── Fetchers ────────────────────────────────────────────────
@@ -884,7 +893,7 @@ export class MinhaBarbeariaRuntimeController {
             table:  'queue_entries',
             filter: `barbershop_id=eq.${barbershopId}`,
           },
-          () => this.#reRenderEquipe(),
+          () => this.#agendarReRenderEquipe(),
         )
         .subscribe((status, err) => {
           if (status === 'SUBSCRIBED') {
@@ -906,7 +915,7 @@ export class MinhaBarbeariaRuntimeController {
   #iniciarPollingFallback() {
     if (this.#pollingTimer) return;
     this.#pollingTimer = setInterval(
-      () => this.#barbershopId && this.#reRenderEquipe(),
+      () => this.#barbershopId && this.#agendarReRenderEquipe(300),
       15_000,
     );
   }
@@ -923,6 +932,10 @@ export class MinhaBarbeariaRuntimeController {
       clearInterval(this.#pollingTimer);
       this.#pollingTimer = null;
     }
+    if (this.#reRenderEquipeTimer) {
+      clearTimeout(this.#reRenderEquipeTimer);
+      this.#reRenderEquipeTimer = null;
+    }
   }
 
   /**
@@ -934,7 +947,7 @@ export class MinhaBarbeariaRuntimeController {
     try {
       this.#canalAtividade = BarbeiroAtividadeStatus.assinar(
         barbershopId,
-        () => this.#reRenderEquipe(),
+        () => this.#agendarReRenderEquipe(),
       );
     } catch (e) {
       LoggerService.warn('[MinhaBarbeariaPage] Realtime atividade indisponível:', e?.message);
@@ -952,6 +965,15 @@ export class MinhaBarbeariaRuntimeController {
   /**
    * Re-fetcha fila e barbeiros e atualiza a seção de equipe.
    */
+  #agendarReRenderEquipe(delayMs = 160) {
+    if (!this.#barbershopId) return;
+    if (this.#reRenderEquipeTimer) clearTimeout(this.#reRenderEquipeTimer);
+    this.#reRenderEquipeTimer = setTimeout(() => {
+      this.#reRenderEquipeTimer = null;
+      void this.#reRenderEquipe();
+    }, delayMs);
+  }
+
   async #reRenderEquipe() {
     if (!this.#barbershopId) return;
     // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
@@ -971,7 +993,7 @@ export class MinhaBarbeariaRuntimeController {
       const perfil = AuthService.getPerfil();
       const [barbeiros, filaEntradas, statusBarbeiros] = await Promise.all([
         MinhaBarbeariaRuntimeController.#fetchBarbeiros(this.#barbershopId),
-        CadeiraService.sincronizarFilas(this.#barbershopId),
+        CadeiraService.getFilaAtiva(this.#barbershopId),
         MinhaBarbeariaRuntimeController.#fetchStatusBarbeiros(this.#barbershopId),
       ]);
       this.#atividadeStatus = MinhaBarbeariaRuntimeController.#mapaStatusBarbeiros(statusBarbeiros);
@@ -986,7 +1008,7 @@ export class MinhaBarbeariaRuntimeController {
     } finally {
       this.#renderizandoEquipe = false;
       // Se um update chegou enquanto renderizávamos, executa mais um ciclo agora
-      if (this.#reRenderPendente) this.#reRenderEquipe();
+      if (this.#reRenderPendente) this.#agendarReRenderEquipe();
     }
   }
 
