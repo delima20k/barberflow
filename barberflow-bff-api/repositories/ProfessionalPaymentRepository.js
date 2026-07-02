@@ -141,6 +141,21 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data ?? null;
   }
 
+  // Força fechar a(s) barbearia(s) do dono quando ele está sem assinatura ativa.
+  // Só escreve se houver alguma aberta (evita writes desnecessários). Assim a
+  // barbearia pública aparece "fechada" ao cliente ao expirar o teste/plano.
+  async fecharBarbeariasSeAbertas(ownerId) {
+    this._uuid('ownerId', ownerId);
+    const { data, error } = await this._db
+      .from('barbershops')
+      .update({ is_open: false })
+      .eq('owner_id', ownerId)
+      .eq('is_open', true)
+      .select('id');
+    if (error) this._throwDbError(error, 'fecharBarbeariasSeAbertas');
+    return data ?? [];
+  }
+
   async ativarTrial(userId) {
     this._uuid('userId', userId);
 

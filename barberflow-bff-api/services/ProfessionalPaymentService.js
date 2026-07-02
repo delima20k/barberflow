@@ -168,6 +168,16 @@ class ProfessionalPaymentService extends BaseService {
     const notExpired = Number.isFinite(endsAtMs) && endsAtMs > nowMs;
     const accessAllowed = Boolean(subscription && activeStatus && notExpired);
 
+    // Sem assinatura ativa: força fechar a barbearia do dono (is_open=false).
+    // Barbearia fechada já faz o cliente ver "fechada" e impede sentar na fila
+    // (trigger trg_check_barbershop_open + guard do cliente). Best-effort: não
+    // quebra o status se o update falhar.
+    if (!accessAllowed) {
+      try {
+        await this.#repo.fecharBarbeariasSeAbertas(userId);
+      } catch (_) { /* noop — não bloqueia a resposta de status */ }
+    }
+
     return {
       accessAllowed,
       reason: accessAllowed
