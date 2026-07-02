@@ -190,6 +190,11 @@ class PlanosController {
     if (botao) botao.disabled = true;
     const usuarioLogado = this.#isUsuarioLogado();
     try {
+      if (!usuarioLogado && plano === 'trial') {
+        const deveContinuar = await this.#abrirVoucherTrialModal();
+        if (!deveContinuar) return;
+      }
+
       PlanosService.selecionarPlano(tipo, plano);
       if (!usuarioLogado) {
         this.#pushFn('termos-legais');
@@ -203,6 +208,91 @@ class PlanosController {
     } finally {
       if (botao) botao.disabled = false;
     }
+  }
+
+  #abrirVoucherTrialModal() {
+    const modal = document.getElementById('ppp-voucher-modal');
+    if (!modal) return Promise.resolve(true);
+
+    const input = modal.querySelector('#ppp-voucher-input');
+    const feedback = modal.querySelector('#ppp-voucher-feedback');
+    const btnOk = modal.querySelector('[data-ppp-voucher-ok]');
+    const btnContinuar = modal.querySelector('[data-ppp-voucher-continue]');
+    const btnFechar = modal.querySelector('[data-ppp-voucher-close]');
+
+    if (!input || !feedback || !btnOk || !btnContinuar || !btnFechar) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise(resolve => {
+      let voucherValidado = false;
+
+      const limparEstado = () => {
+        voucherValidado = false;
+        input.value = '';
+        feedback.textContent = '';
+        feedback.className = 'ppp-voucher-feedback';
+        btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
+      };
+
+      const fechar = (resultado) => {
+        modal.hidden = true;
+        modal.removeEventListener('click', onBackdrop);
+        btnFechar.removeEventListener('click', onFechar);
+        btnOk.removeEventListener('click', onValidar);
+        btnContinuar.removeEventListener('click', onContinuar);
+        input.removeEventListener('input', onInput);
+        input.removeEventListener('keydown', onKeydown);
+        document.removeEventListener('keydown', onEscape);
+        resolve(resultado);
+      };
+
+      const onInput = () => {
+        input.value = input.value.replace(/\D/g, '').slice(0, 6);
+        voucherValidado = false;
+        feedback.textContent = '';
+        feedback.className = 'ppp-voucher-feedback';
+        btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
+      };
+
+      const onValidar = () => {
+        const valor = input.value.trim();
+        if (!/^\d{6}$/.test(valor)) {
+          feedback.textContent = 'Digite um voucher valido com 6 digitos.';
+          feedback.className = 'ppp-voucher-feedback ppp-voucher-feedback--erro';
+          btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
+          return;
+        }
+
+        voucherValidado = true;
+        feedback.textContent = 'Voucher validado. Seu teste foi alterado para 30 dias.';
+        feedback.className = 'ppp-voucher-feedback ppp-voucher-feedback--ok';
+        btnContinuar.textContent = 'Continuar com 30 dias de teste gratis';
+      };
+
+      const onContinuar = () => fechar(true);
+      const onFechar = () => fechar(false);
+      const onBackdrop = (event) => {
+        if (event.target === modal) fechar(false);
+      };
+      const onEscape = (event) => {
+        if (event.key === 'Escape') fechar(false);
+      };
+      const onKeydown = (event) => {
+        if (event.key === 'Enter') onValidar();
+      };
+
+      limparEstado();
+      modal.hidden = false;
+      modal.addEventListener('click', onBackdrop);
+      btnFechar.addEventListener('click', onFechar);
+      btnOk.addEventListener('click', onValidar);
+      btnContinuar.addEventListener('click', onContinuar);
+      input.addEventListener('input', onInput);
+      input.addEventListener('keydown', onKeydown);
+      document.addEventListener('keydown', onEscape);
+      requestAnimationFrame(() => input.focus());
+    });
   }
 
   #isUsuarioLogado() {
