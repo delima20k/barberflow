@@ -90,11 +90,17 @@ const AnimationService = (() => {
           { duration: dur, easing: EASE, fill: 'both' }
         );
 
-        a.onfinish = () => {
-          a.cancel();
+        // Esconde a tela ao terminar. `oncancel` cobre o caso da animação ser
+        // interrompida (ex.: outra navegação disparada logo em seguida): sem
+        // isso, a tela que sai poderia ficar em display:flex por baixo da atual,
+        // com duas telas pintando ao mesmo tempo — o que causa o "piscar" na
+        // parte de baixo (fotos/portfólio). Idempotente.
+        const encerrarSaida = () => {
           saindo.style.display       = 'none';
           saindo.style.pointerEvents = '';
         };
+        a.onfinish = () => { a.cancel(); encerrarSaida(); };
+        a.oncancel = encerrarSaida;
       }
     }
 

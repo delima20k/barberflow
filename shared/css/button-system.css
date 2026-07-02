@@ -34,11 +34,19 @@
 .btn:active,
 .btn--primary:active,
 .btn--secondary:active,
-.btn-voltar:active,
 .map-toggle-btn:active,
 .story-like-btn:active,
 .barber-action:active {
   transform: scale(.98);
+}
+
+/* Botão "Voltar": o efeito de pressionar (scale) só em ponteiros com hover real
+   (desktop/mouse). No toque o estado :active pode ficar preso quando a navegação
+   dispara a animação de saída da tela — deixando o botão visivelmente menor.
+   Fora do hover, mantemos transform:none para o botão sempre voltar ao tamanho. */
+.btn-voltar { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-voltar:active { transform: scale(.98); }
 }
 
 /* Primary */
