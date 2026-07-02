@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="/shared/css/button-system.css">
 
   <!-- App-specific CSS -->
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260627c">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260702e">
 
   <!-- Mapa premium -->
   <link rel="stylesheet" href="/shared/css/map-panel.css">
@@ -94,25 +94,20 @@
       overflow: hidden;
       white-space: normal;
       line-height: 1.3;
-      border-right: 2px solid rgba(93, 62, 25, 0.72);
       font-family: Arial, Helvetica, sans-serif;
       font-size: clamp(0.78rem, 3.1vw, 1rem);
       font-weight: 700;
       color: #5d3e19;
       text-align: center;
-      animation: splashTypingPro 2.3s steps(42, end) both, splashCaretPro .72s step-end infinite;
+      animation: splashTypingPro 2.3s steps(42, end) both;
     }
     @keyframes splashTypingPro {
       from { clip-path: inset(0 100% 0 0); }
       to { clip-path: inset(0 0 0 0); }
     }
-    @keyframes splashCaretPro {
-      50% { border-color: transparent; }
-    }
     #profissional-startup-splash .ps-tagline.ps-tagline-concluida {
       animation: none;
       clip-path: inset(0 0 0 0);
-      border-right-color: transparent;
     }
   </style>
 </head>
@@ -2419,7 +2414,7 @@
 <script src="assets/js/AppBootstrap.js" defer></script>
 <!-- Controllers do app profissional — devem preceder app.js -->
 <script src="/shared/js/AuthController.js?v=20260702c" defer></script>
-<script src="assets/js/controllers/PlanosController.js?v=20260628d" defer></script>
+<script src="assets/js/controllers/PlanosController.js?v=20260702e" defer></script>
 <script src="assets/js/controllers/CadastroController.js" defer></script>
 <script src="assets/js/controllers/TermosController.js" defer></script>
 <!-- Confirmação de ausência de cliente na cadeira -->

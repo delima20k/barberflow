@@ -25,6 +25,9 @@ class PlanosController {
     if (toggle) toggle.style.display = tipoTravado ? 'none' : '';
     this.#ajustarCtasPlanosLogado(Boolean(tipoTravado));
     this.#ajustarTrialPlanosLogado(Boolean(tipoTravado));
+    // Marca o card do plano PAGO ativo com "Plano aplicado" + dias de expiração.
+    // Async (lê o status da assinatura na BFF) — não bloqueia o preparo da tela.
+    void this.#marcarPlanoAtivo(tipoTravado);
 
     if (tipoTravado) {
       this.#alternarTipoPlano(tipoTravado, { persistir: false });
@@ -100,6 +103,71 @@ class PlanosController {
       const card = btn.closest('.ppp-card');
       if (card) card.style.display = usuarioLogado ? 'none' : '';
     });
+  }
+
+  // Dias até o plano expirar = teto de (ends_at - agora) / 24h. Nunca negativo.
+  static calcularDiasExpiracao(endsAt, agoraMs = Date.now()) {
+    const fim = Date.parse(endsAt);
+    if (!Number.isFinite(fim)) return null;
+    const DIA = 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.ceil((fim - agoraMs) / DIA));
+  }
+
+  /**
+   * Marca o card do plano PAGO ativo (mensal/trimestral) com o selo
+   * "Plano aplicado" e mostra os dias até expirar logo abaixo do card.
+   * Só para plano pago (status='active'); trial não recebe selo.
+   * Idempotente: limpa marcações anteriores antes de reaplicar.
+   * @param {string|null} proTypeHint — 'barbeiro' | 'barbearia'
+   */
+  async #marcarPlanoAtivo(proTypeHint = null) {
+    const tela = document.getElementById('tela-planos-pro');
+    if (!tela) return;
+
+    // Limpa marcações de um preparo anterior
+    tela.querySelectorAll('.ppp-card--ativo')
+      .forEach(c => c.classList.remove('ppp-card--ativo'));
+    tela.querySelectorAll('.ppp-plano-aplicado, .ppp-plano-expira')
+      .forEach(el => el.remove());
+
+    if (typeof MonetizationGuard === 'undefined') return;
+
+    let sub = null;
+    try {
+      const status = await MonetizationGuard.assinaturaPermiteAcesso();
+      sub = status?.subscription ?? null;
+    } catch (_) { return; }
+
+    // Só plano PAGO ativo — teste grátis (trial) não recebe selo
+    if (!sub || sub.status !== 'active'
+        || !['mensal', 'trimestral'].includes(sub.planType)) return;
+
+    const proType = ['barbeiro', 'barbearia'].includes(proTypeHint)
+      ? proTypeHint
+      : (typeof AuthService !== 'undefined' ? AuthService.getPerfil()?.pro_type : null);
+    if (!proType) return;
+
+    const btn  = tela.querySelector(
+      `.ppp-btn[data-tipo="${proType}"][data-plano="${sub.planType}"]`);
+    const card = btn?.closest('.ppp-card');
+    if (!card) return;
+
+    card.classList.add('ppp-card--ativo');
+
+    const selo = document.createElement('div');
+    selo.className   = 'ppp-plano-aplicado';
+    selo.textContent = '✓ Plano aplicado';
+    card.prepend(selo);
+
+    const dias = PlanosController.calcularDiasExpiracao(sub.endsAt);
+    if (dias !== null) {
+      const exp = document.createElement('p');
+      exp.className   = 'ppp-plano-expira';
+      exp.textContent = dias > 0
+        ? `Seu plano expira em ${dias} ${dias === 1 ? 'dia' : 'dias'}`
+        : 'Seu plano expira hoje';
+      card.after(exp);
+    }
   }
 
   #selecionarTipoUsuario(tipo) {
