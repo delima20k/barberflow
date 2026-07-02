@@ -56,8 +56,8 @@ class ProfissionalStartupSplash {
       <div class="ps-conteudo">
         <img
           class="ps-logo"
-          src="/shared/img/icon-512-pro.png"
-          alt="BarberFlow Pro"
+          src="/shared/img/LogoNomeBarberFlow.png"
+          alt="BarberFlow"
           onerror="this.style.display='none'"
         >
       </div>
