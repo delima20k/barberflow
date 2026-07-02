@@ -17,8 +17,8 @@
 class ClienteStartupSplash {
 
   static #SESSION_KEY = 'bf_splash_shown';
-  static #DURATION_MS = 2500;
-  static #FADE_MS     = 450;
+  static #DURATION_MS = 1300;
+  static #FADE_MS     = 300;
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO
@@ -29,9 +29,10 @@ class ClienteStartupSplash {
    * Não exibe se já foi mostrado nesta sessão (navegação interna).
    */
   static init() {
-    if (sessionStorage.getItem(ClienteStartupSplash.#SESSION_KEY)) return;
+    const overlayInicial = document.getElementById('cliente-startup-splash');
+    if (sessionStorage.getItem(ClienteStartupSplash.#SESSION_KEY) && !overlayInicial) return;
     sessionStorage.setItem(ClienteStartupSplash.#SESSION_KEY, '1');
-    ClienteStartupSplash.#exibir();
+    ClienteStartupSplash.#exibir(overlayInicial);
   }
 
   /**
@@ -45,30 +46,22 @@ class ClienteStartupSplash {
   // PRIVADO
   // ═══════════════════════════════════════════════════════════
 
-  static #exibir() {
-    const overlay = ClienteStartupSplash.#montarOverlay();
-    document.body.appendChild(overlay);
+  static #exibir(overlayInicial = null) {
+    const overlay = overlayInicial || ClienteStartupSplash.#montarOverlay();
+    if (!overlayInicial) document.body.appendChild(overlay);
 
     // Força reflow antes de animar entrada
     requestAnimationFrame(() => {
       requestAnimationFrame(() => overlay.classList.add('cs-ativo'));
     });
 
-    const poloContainer = overlay.querySelector('#cs-polo');
-    let pole = null;
-
-    if (typeof BarberPole !== 'undefined' && poloContainer) {
-      pole = new BarberPole(poloContainer);
-    }
-
-    setTimeout(() => ClienteStartupSplash.#fechar(overlay, pole), ClienteStartupSplash.#DURATION_MS);
+    setTimeout(() => ClienteStartupSplash.#fechar(overlay), ClienteStartupSplash.#DURATION_MS);
   }
 
-  static #fechar(overlay, pole) {
+  static #fechar(overlay) {
     overlay.classList.add('cs-saindo');
 
     setTimeout(() => {
-      pole?.destruir();
       overlay.remove();
     }, ClienteStartupSplash.#FADE_MS);
   }
@@ -83,14 +76,18 @@ class ClienteStartupSplash {
     overlay.innerHTML = `
       <div class="cs-conteudo">
         <img
-          class="cs-logo"
-          src="/shared/img/icon-512-cliente.png"
-          alt="BarberFlow Cliente"
+          class="cs-logo-icon"
+          src="/shared/img/Logo01.png"
+          alt=""
+          aria-hidden="true"
           onerror="this.style.display='none'"
         >
-        <p class="cs-nome">BarberFlow</p>
-        <div class="cs-polo-wrap"><div id="cs-polo"></div></div>
-        <p class="cs-boas-vindas">Bem-vindo ao BarberFlow Cliente</p>
+        <img
+          class="cs-logo-name"
+          src="/shared/img/LogoNomeBarberFlow.png"
+          alt="BarberFlow"
+          onerror="this.style.display='none'"
+        >
       </div>
     `;
 
