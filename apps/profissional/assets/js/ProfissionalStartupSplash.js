@@ -15,9 +15,10 @@ class ProfissionalStartupSplash {
   // Publico
 
   static init() {
-    if (sessionStorage.getItem(ProfissionalStartupSplash.#SESSION_KEY)) return;
+    const overlayInicial = document.getElementById('profissional-startup-splash');
+    if (sessionStorage.getItem(ProfissionalStartupSplash.#SESSION_KEY) && !overlayInicial) return;
     sessionStorage.setItem(ProfissionalStartupSplash.#SESSION_KEY, '1');
-    ProfissionalStartupSplash.#exibir();
+    ProfissionalStartupSplash.#exibir(overlayInicial);
   }
 
   static limparSessao() {
@@ -26,9 +27,9 @@ class ProfissionalStartupSplash {
 
   // Privado
 
-  static #exibir() {
-    const overlay = ProfissionalStartupSplash.#montarOverlay();
-    document.body.appendChild(overlay);
+  static #exibir(overlayInicial = null) {
+    const overlay = overlayInicial || ProfissionalStartupSplash.#montarOverlay();
+    if (!overlayInicial) document.body.appendChild(overlay);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => overlay.classList.add('cs-ativo'));
     });

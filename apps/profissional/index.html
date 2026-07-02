@@ -57,9 +57,35 @@
   <style id="boot-lock">
     .tela { display: none !important; }
     #tela-inicio { display: flex !important; }
+    #profissional-startup-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5e9dc;
+      opacity: 1;
+      pointer-events: none;
+    }
+    #profissional-startup-splash .ps-logo {
+      width: 150px;
+      height: 150px;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
+<div id="profissional-startup-splash" class="ps-overlay cs-ativo" role="status" aria-label="Carregando BarberFlow Pro">
+  <div class="ps-conteudo">
+    <img
+      class="ps-logo"
+      src="/shared/img/icon-512-pro.png"
+      alt="BarberFlow Pro"
+      onerror="this.style.display='none'"
+    >
+  </div>
+</div>
 <div id="app">
 
   <!-- ============================================================
@@ -2339,7 +2365,7 @@
 <script src="assets/js/pages/GpsPage.js" defer></script>
 <script src="assets/js/pages/QueueWidget.js" defer></script>
 <script src="/shared/js/PWAInstallBanner.js" defer></script>
-<script src="assets/js/ProfissionalStartupSplash.js" defer></script>
+<script src="assets/js/ProfissionalStartupSplash.js?v=20260702a" defer></script>
 <script src="assets/js/AppBootstrap.js" defer></script>
 <!-- Controllers do app profissional — devem preceder app.js -->
 <script src="/shared/js/AuthController.js?v=20260701b" defer></script>
