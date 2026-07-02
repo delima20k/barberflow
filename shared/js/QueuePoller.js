@@ -39,6 +39,10 @@ class QueuePoller {
   /** @type {number|null} Posição anterior do cliente na fila */
   static #posicaoAnterior = null;
 
+  /** @type {string|null} Status anterior do cliente — evita re-notificar
+   *  "é a sua vez" a cada poll enquanto o cliente segue in_service. */
+  static #statusAnterior = null;
+
   /** @type {boolean} Se o poller está ativo */
   static #ativo = false;
 
@@ -97,6 +101,7 @@ class QueuePoller {
     QueuePoller.#onUpdate        = onUpdate ?? null;
     QueuePoller.#ultimaMudanca   = null;
     QueuePoller.#posicaoAnterior = null;
+    QueuePoller.#statusAnterior  = null;
     QueuePoller.#ativo           = true;
 
     QueuePoller.#poll();
@@ -123,6 +128,7 @@ class QueuePoller {
     QueuePoller.#onUpdate        = null;
     QueuePoller.#ultimaMudanca   = null;
     QueuePoller.#posicaoAnterior = null;
+    QueuePoller.#statusAnterior  = null;
     QueuePoller.#ativo           = false;
   }
 
@@ -225,11 +231,15 @@ class QueuePoller {
       && posicaoAtual < posAnterior;
 
     const ehSuaVez = minha.status === 'in_service';
+    // Só dispara "é a sua vez" na TRANSIÇÃO para in_service. Sem isso, o poll
+    // (a cada 20s) re-dispararia toast + notificação nativa sem parar enquanto
+    // o cliente continua sentado na cadeira de produção durante o corte.
+    const virouSuaVez = ehSuaVez && QueuePoller.#statusAnterior !== 'in_service';
 
-    if (avancou || ehSuaVez) {
+    if (avancou || virouSuaVez) {
       if (typeof NotificationService !== 'undefined') {
         const tipo = NotificationService.TIPOS?.SISTEMA ?? 'sistema';
-        if (ehSuaVez) {
+        if (virouSuaVez) {
           // Delega confirmação de presença ao CadeiraConfirmacaoService (se disponível).
           // Ele exibe o modal interativo e gerencia o grace period de 5 min.
           // O toast abaixo serve apenas como fallback visual caso o modal não abra.
@@ -262,6 +272,7 @@ class QueuePoller {
       }
     }
 
+    QueuePoller.#statusAnterior  = minha.status;
     QueuePoller.#posicaoAnterior = posicaoAtual;
   }
 
