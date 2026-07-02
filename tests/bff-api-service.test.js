@@ -412,6 +412,23 @@ describe('BffApiService.chat', () => {
   });
 });
 
+describe('BffApiService.professionalVouchers', () => {
+  test('validar chama endpoint publico de voucher profissional', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { valid: true } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.professionalVouchers.validar('ABC123');
+
+    assert.ok(chamadas[0].url.endsWith('/api/v1/professional-vouchers/validate'));
+    assert.strictEqual(chamadas[0].opts.method, 'POST');
+    assert.deepStrictEqual(JSON.parse(chamadas[0].opts.body), { code: 'ABC123' });
+  });
+});
+
 describe('BffApiService.profissionais mensagem barbearia', () => {
   test('iniciarMensagemBarbearia envia payload opcional para mensagem de portfolio', async () => {
     const chamadas = [];

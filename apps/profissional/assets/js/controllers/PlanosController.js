@@ -191,8 +191,10 @@ class PlanosController {
     const usuarioLogado = this.#isUsuarioLogado();
     try {
       if (!usuarioLogado && plano === 'trial') {
-        const deveContinuar = await this.#abrirVoucherTrialModal();
-        if (!deveContinuar) return;
+        const voucher = await this.#abrirVoucherTrialModal();
+        if (!voucher.continuar) return;
+        if (voucher.code) PlanosService.definirVoucherTrial(voucher.code);
+        else PlanosService.limparVoucherTrial();
       }
 
       PlanosService.selecionarPlano(tipo, plano);
@@ -212,7 +214,7 @@ class PlanosController {
 
   #abrirVoucherTrialModal() {
     const modal = document.getElementById('ppp-voucher-modal');
-    if (!modal) return Promise.resolve(true);
+    if (!modal) return Promise.resolve({ continuar: true, code: null });
 
     const input = modal.querySelector('#ppp-voucher-input');
     const feedback = modal.querySelector('#ppp-voucher-feedback');
@@ -221,15 +223,18 @@ class PlanosController {
     const btnFechar = modal.querySelector('[data-ppp-voucher-close]');
 
     if (!input || !feedback || !btnOk || !btnContinuar || !btnFechar) {
-      return Promise.resolve(true);
+      return Promise.resolve({ continuar: true, code: null });
     }
 
     return new Promise(resolve => {
-      let voucherValidado = false;
+      let voucherCode = null;
+      let validando = false;
 
       const limparEstado = () => {
-        voucherValidado = false;
+        voucherCode = null;
+        validando = false;
         input.value = '';
+        btnOk.disabled = false;
         feedback.textContent = '';
         feedback.className = 'ppp-voucher-feedback';
         btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
@@ -248,45 +253,69 @@ class PlanosController {
       };
 
       const onInput = () => {
-        input.value = input.value.replace(/\D/g, '').slice(0, 6);
-        voucherValidado = false;
+        input.value = input.value.replace(/\s+/g, '').toUpperCase().slice(0, 6);
+        voucherCode = null;
         feedback.textContent = '';
         feedback.className = 'ppp-voucher-feedback';
         btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
       };
 
-      const onValidar = () => {
-        const valor = input.value.trim();
-        if (!/^\d{6}$/.test(valor)) {
-          feedback.textContent = 'Digite um voucher valido com 6 digitos.';
+      const onValidar = async () => {
+        if (validando) return;
+        const valor = input.value.replace(/\s+/g, '').toUpperCase();
+        if (!/^[A-Z0-9]{6}$/.test(valor)) {
+          voucherCode = null;
+          feedback.textContent = 'Esse voucher nao e valido.';
           feedback.className = 'ppp-voucher-feedback ppp-voucher-feedback--erro';
           btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
           return;
         }
 
-        voucherValidado = true;
-        feedback.textContent = 'Voucher validado. Seu teste foi alterado para 30 dias.';
-        feedback.className = 'ppp-voucher-feedback ppp-voucher-feedback--ok';
-        btnContinuar.textContent = 'Continuar com 30 dias de teste gratis';
+        validando = true;
+        btnOk.disabled = true;
+        feedback.textContent = 'Validando voucher...';
+        feedback.className = 'ppp-voucher-feedback';
+
+        try {
+          const { data, error } = await BffApiService.professionalVouchers.validar(valor);
+          if (error || data?.valid !== true) {
+            voucherCode = null;
+            feedback.textContent = data?.message || error?.message || 'Esse voucher nao e valido.';
+            feedback.className = 'ppp-voucher-feedback ppp-voucher-feedback--erro';
+            btnContinuar.textContent = 'Continuar com 7 dias de teste gratis';
+            return;
+          }
+
+          voucherCode = data.code || valor;
+          feedback.textContent = 'Voucher validado. Seu teste foi alterado para 30 dias.';
+          feedback.className = 'ppp-voucher-feedback ppp-voucher-feedback--ok';
+          btnContinuar.textContent = `Continuar com ${data.trialDays || 30} dias de teste gratis`;
+        } finally {
+          validando = false;
+          btnOk.disabled = false;
+        }
       };
 
-      const onContinuar = () => fechar(true);
-      const onFechar = () => fechar(false);
+      const onContinuar = () => fechar({ continuar: true, code: voucherCode });
+      const onFechar = () => fechar({ continuar: false, code: null });
       const onBackdrop = (event) => {
-        if (event.target === modal) fechar(false);
+        if (event.target === modal) fechar({ continuar: false, code: null });
       };
       const onEscape = (event) => {
-        if (event.key === 'Escape') fechar(false);
+        if (event.key === 'Escape') fechar({ continuar: false, code: null });
       };
       const onKeydown = (event) => {
-        if (event.key === 'Enter') onValidar();
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          void onValidar();
+        }
       };
 
       limparEstado();
       modal.hidden = false;
       modal.addEventListener('click', onBackdrop);
       btnFechar.addEventListener('click', onFechar);
-      btnOk.addEventListener('click', onValidar);
+      btnOk.addEventListener('click', () => void onValidar());
       btnContinuar.addEventListener('click', onContinuar);
       input.addEventListener('input', onInput);
       input.addEventListener('keydown', onKeydown);

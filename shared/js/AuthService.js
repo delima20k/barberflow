@@ -159,6 +159,7 @@ class AuthService {
     cpf = null,
     cnpj = null,
     plan_intent = null,
+    trial_voucher_code = null,
   }, navFn, onMensagem = null) {
     nome  = nome?.trim();
     email = email?.trim();
@@ -195,6 +196,7 @@ class AuthService {
           barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null,
           // Lido pelo trigger handle_new_user_trial para criar o trial server-side
           plan_intent: plan_intent || null,
+          trial_voucher_code: AuthService.#normalizarVoucherTrial(trial_voucher_code),
         }
       );
 
@@ -286,6 +288,11 @@ class AuthService {
       return { ok: true, msg: '', valor: cnpjDigits, tipo: 'cnpj' };
     }
     return { ok: false, msg: 'Informe CPF ou CNPJ para criar a conta profissional.' };
+  }
+
+  static #normalizarVoucherTrial(code) {
+    const normalized = String(code ?? '').replace(/\s+/g, '').toUpperCase();
+    return /^[A-Z0-9]{6}$/.test(normalized) ? normalized : null;
   }
 
   static async recuperarSenha(email, navFn, onMensagem = null) {

@@ -394,6 +394,14 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 
 | `MensalistaController` | [barberflow-bff-api/controllers/MensalistaController.js](barberflow-bff-api/controllers/MensalistaController.js) | interfaces | `extends BaseController`. Handlers: `POST /mensalistas` (adicionar), `GET /mensalistas` (listar), `GET /mensalistas/verificar` (verificar), `DELETE /mensalistas/:id` (remover), `GET /mensalistas/clientes-disponiveis` (busca textual — exige `q`), `GET /mensalistas/favoritos-elegiveis` (lista automática de favoritos não-mensalistas). Todos autenticados via `AuthMiddleware`. |
 
+### Voucher Trial
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `ProfessionalVoucherController` | [barberflow-bff-api/controllers/ProfessionalVoucherController.js](barberflow-bff-api/controllers/ProfessionalVoucherController.js) | interfaces | `extends BaseController`. Endpoint publico `POST /api/v1/professional-vouchers/validate` para validar voucher de trial profissional antes do cadastro, sem consumir o codigo. |
+| `ProfessionalVoucherRepository` | [barberflow-bff-api/repositories/ProfessionalVoucherRepository.js](barberflow-bff-api/repositories/ProfessionalVoucherRepository.js) | infra | `extends BaseRepository`. Leitura controlada da tabela `professional_trial_vouchers` por codigo normalizado para validacao pre-cadastro; nao consome voucher. |
+| `ProfessionalVoucherService` | [barberflow-bff-api/services/ProfessionalVoucherService.js](barberflow-bff-api/services/ProfessionalVoucherService.js) | application | `extends BaseService`. Valida voucher de trial profissional por formato, existencia, expiracao, status ativo e uso previo; retorna motivo seguro e nunca consome o voucher. |
+
 ### Repositories
 
 | Classe | Arquivo | Camada | Descrição |
@@ -801,6 +809,14 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `RlsPolicyReport` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Gera report de cobertura de RLS, falhas por tabela sem RLS e warnings de operações/colunas sensíveis sem teste. |
 | `RlsReportCli` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | CLI do report de RLS usado por CI e por `npm run db:rls`. |
 | `RlsSqlNormalizer` | [scripts/rls-policy-report.js](scripts/rls-policy-report.js) | infra | Normaliza SQL e identificadores para parsing determinístico de migrations. |
+## Voucher Generation Scripts
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `ProfessionalVoucherGeneratorConfig` | [scripts/generate-professional-vouchers.js](scripts/generate-professional-vouchers.js) | infra | Configuracao do gerador CLI de vouchers profissionais; valida ambiente Supabase, quantidade, dias de trial e expiracao. |
+| `ProfessionalVoucherCodeGenerator` | [scripts/generate-professional-vouchers.js](scripts/generate-professional-vouchers.js) | infra | Gera codigos de voucher de 6 caracteres alfanumericos seguros com `crypto.randomInt`. |
+| `ProfessionalVoucherCli` | [scripts/generate-professional-vouchers.js](scripts/generate-professional-vouchers.js) | infra | CLI que cria vouchers em `professional_trial_vouchers` usando `SUPABASE_SERVICE_ROLE_KEY`, com retry para colisao de codigo. |
+
 ## DB Validate Pipeline
 
 | Classe | Arquivo | Camada | Descricao |

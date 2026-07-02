@@ -18,6 +18,14 @@ class PlanosService {
     MonetizationGuard.marcarConfirmacaoPendente();
   }
 
+  static definirVoucherTrial(code) {
+    MonetizationGuard.setTrialVoucher(code);
+  }
+
+  static limparVoucherTrial() {
+    MonetizationGuard.limparTrialVoucher();
+  }
+
   static async confirmarPlano(onSucesso, onErro) {
     const tipo = MonetizationGuard.tipoUsuario || 'barbeiro';
     const plano = MonetizationGuard.planoSelecionado || 'trial';

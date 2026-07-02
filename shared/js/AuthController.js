@@ -90,20 +90,26 @@ class AuthController {
           && MonetizationGuard.confirmacaoPendente)
           ? MonetizationGuard.planoSelecionado
           : null;
+        dados.trial_voucher_code = dados.plan_intent === 'trial'
+          ? MonetizationGuard.trialVoucherCode
+          : null;
       }
       const controles = [...form.querySelectorAll('input, button, select, textarea')];
       AuthUI.setLoading(true, controles);
       try {
         await AuthService.cadastro(dados, (tela) => {
-          // Profissional que escolheu um plano no fluxo de cadastro: ativa o
-          // plano (trial → POST /trial; pago → checkout Asaas) em vez de
-          // navegar para a tela inexistente 'confirmar-plano-pro'. Reaproveita
-          // PlanosService.confirmarPlano — o mesmo caminho do usuário já logado.
+          // Profissional que escolheu um plano no fluxo de cadastro: trial ja
+          // nasce no trigger server-side; pago segue para checkout Asaas.
           if (this.#role === 'professional'
               && tela === 'inicio'
               && typeof MonetizationGuard !== 'undefined'
               && MonetizationGuard.confirmacaoPendente
               && typeof PlanosService !== 'undefined') {
+            if (MonetizationGuard.planoSelecionado === 'trial') {
+              MonetizationGuard.limpar();
+              this.#navFn('inicio');
+              return;
+            }
             PlanosService.confirmarPlano(
               () => this.#navFn('inicio'),
               (msg) => AuthUI.mostrarErroForm(erroEl, msg, 'error'),

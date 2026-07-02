@@ -18,6 +18,7 @@ class MonetizationGuard {
   static #TIPO_KEY  = 'bf_tipo';
   static #PLANO_KEY = 'bf_plano';
   static #CONFIRM_KEY = 'bf_plano_confirmacao_pendente';
+  static #TRIAL_VOUCHER_KEY = 'bf_trial_voucher_code';
   static #STATUS_TTL_MS = 60000;
   static #statusCache = null;
 
@@ -26,6 +27,9 @@ class MonetizationGuard {
 
   /** @returns {string|null} */
   static get planoSelecionado() { return sessionStorage.getItem(MonetizationGuard.#PLANO_KEY); }
+
+  /** @returns {string|null} */
+  static get trialVoucherCode() { return sessionStorage.getItem(MonetizationGuard.#TRIAL_VOUCHER_KEY); }
 
   static get confirmacaoPendente() {
     return sessionStorage.getItem(MonetizationGuard.#CONFIRM_KEY) === '1';
@@ -41,6 +45,20 @@ class MonetizationGuard {
     if (!['trial', 'mensal', 'trimestral'].includes(plano)) return;
     sessionStorage.setItem(MonetizationGuard.#TIPO_KEY,  tipo);
     sessionStorage.setItem(MonetizationGuard.#PLANO_KEY, plano);
+    if (plano !== 'trial') MonetizationGuard.limparTrialVoucher();
+  }
+
+  static setTrialVoucher(code) {
+    const normalized = String(code ?? '').replace(/\s+/g, '').toUpperCase();
+    if (/^[A-Z0-9]{6}$/.test(normalized)) {
+      sessionStorage.setItem(MonetizationGuard.#TRIAL_VOUCHER_KEY, normalized);
+      return;
+    }
+    MonetizationGuard.limparTrialVoucher();
+  }
+
+  static limparTrialVoucher() {
+    sessionStorage.removeItem(MonetizationGuard.#TRIAL_VOUCHER_KEY);
   }
 
   static marcarConfirmacaoPendente() {
@@ -105,6 +123,7 @@ class MonetizationGuard {
     sessionStorage.removeItem(MonetizationGuard.#TIPO_KEY);
     sessionStorage.removeItem(MonetizationGuard.#PLANO_KEY);
     sessionStorage.removeItem(MonetizationGuard.#CONFIRM_KEY);
+    sessionStorage.removeItem(MonetizationGuard.#TRIAL_VOUCHER_KEY);
     MonetizationGuard.limparCacheAssinatura();
   }
 }

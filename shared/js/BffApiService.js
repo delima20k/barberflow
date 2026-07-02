@@ -495,6 +495,11 @@ class BffApiService {
       BffApiService.post('/api/v1/profissional/pagamentos/trial', {}),
   };
 
+  static professionalVouchers = {
+    validar: (code) =>
+      BffApiService.post('/api/v1/professional-vouchers/validate', { code }),
+  };
+
   /** @returns {string} URL base da BFF */
   static get baseUrl() { return BffApiService.#BASE_URL; }
 
