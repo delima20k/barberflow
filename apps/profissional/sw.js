@@ -34,7 +34,7 @@ class SWProfissional {
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS_STATIC = [
     '/assets/css/styles.css?v=20260627c',
-    '/assets/js/app.js?v=20260628d',
+    '/assets/js/app.js?v=20260702b',
     '/shared/css/tokens.css',
     '/shared/css/components.css',
     '/shared/css/notifications.css',

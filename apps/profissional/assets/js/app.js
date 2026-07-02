@@ -61,6 +61,7 @@ class BarberFlowProfissional extends Router {
   #parceriasPage;
   #financasPage;
   #assinaturaGatePendente = false;
+  #trialAutoTentado = false;
 
   constructor() {
     super('inicio');
@@ -171,7 +172,25 @@ class BarberFlowProfissional extends Router {
     if (this.#assinaturaGatePendente) return;
     this.#assinaturaGatePendente = true;
     try {
-      const status = await MonetizationGuard.assinaturaPermiteAcesso();
+      let status = await MonetizationGuard.assinaturaPermiteAcesso();
+
+      // Rede de segurança: profissional que escolheu "Começar teste grátis" no
+      // cadastro mas cuja ativação não ocorreu (timing do token, erro
+      // transitório no POST /trial). Em vez de jogar para planos, ativa o trial
+      // agora — ao tentar abrir a primeira tela paga — e reavalia o acesso.
+      // Só dispara uma vez por sessão e só para intenção de trial (o fluxo pago
+      // continua indo ao checkout normalmente). confirmarPlano chama limpar() no
+      // sucesso, então a flag não re-dispara.
+      if (!status.accessAllowed
+          && !this.#trialAutoTentado
+          && typeof PlanosService !== 'undefined'
+          && MonetizationGuard.confirmacaoPendente
+          && MonetizationGuard.planoSelecionado === 'trial') {
+        this.#trialAutoTentado = true;
+        await new Promise((resolve) => PlanosService.confirmarPlano(resolve, () => resolve()));
+        status = await MonetizationGuard.assinaturaPermiteAcesso({ force: true });
+      }
+
       if (!status.accessAllowed) {
         this.#prepararTela('planos-pro');
         super.push('planos-pro');
