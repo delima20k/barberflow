@@ -147,7 +147,7 @@ class QueueWidget {
   // Método estático chamado pelo onclick do HTML gerado
   static async _chamar(entradaId) {
     try {
-      await QueueRepository.updateStatus(entradaId, 'in_service');
+      await QueueRepository.updateStatus(entradaId, 'in_service', { clientConfirmed: 'yes' });
     } catch (err) {
       LoggerService.error('[QueueWidget] erro ao chamar cliente:', err);
     }

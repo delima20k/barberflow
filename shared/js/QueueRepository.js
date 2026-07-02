@@ -145,21 +145,30 @@ class QueueRepository {
    * @param {string} status — 'waiting' | 'in_service' | 'done' | 'cancelled'
    * @returns {Promise<object>}
    */
-  static async updateStatus(id, status) {
+  static async updateStatus(id, status, options = {}) {
     const rId = InputValidator.uuid(id);
     if (!rId.ok) throw new TypeError(`[QueueRepository] id: ${rId.msg}`);
 
     const validos = ['waiting', 'in_service', 'done', 'cancelled'];
     if (!validos.includes(status)) throw new Error(`Status inválido: ${status}`);
 
+    const clientConfirmed = options?.clientConfirmed;
+    if (clientConfirmed !== undefined) {
+      const confirmacoesValidas = ['yes', 'no_waiting', 'absent', 'arriving'];
+      if (!confirmacoesValidas.includes(clientConfirmed)) {
+        throw new Error(`[QueueRepository] client_confirmed inválido: ${clientConfirmed}`);
+      }
+    }
+
     const patch = { status };
     if (status === 'in_service') patch.served_at = new Date().toISOString();
     if (status === 'done')       patch.done_at   = new Date().toISOString();
+    if (clientConfirmed !== undefined) patch.client_confirmed = clientConfirmed;
 
     const { data, error } = await ApiService.from('queue_entries')
       .update(patch)
       .eq('id', id)
-      .select('id, status, position')
+      .select('id, status, position, client_confirmed')
       .single();
 
     if (error) throw error;

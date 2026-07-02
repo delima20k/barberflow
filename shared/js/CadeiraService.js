@@ -102,6 +102,7 @@ class CadeiraService {
    * @param {string[]}      opts.serviceIds      IDs dos serviços escolhidos
    * @param {'producao'|'fila'} opts.tipo
    * @param {boolean}      [opts.notificarCliente=true] envia push ao cliente ao mover para in_service
+   * @param {boolean}      [opts.confirmarPresenca=false] marca presença quando o profissional coloca em produção
    * @returns {Promise<object>}  entrada criada
    */
   static async sentar({
@@ -112,6 +113,7 @@ class CadeiraService {
     serviceIds,
     tipo,
     notificarCliente = true,
+    confirmarPresenca = false,
   }) {
     const rShop  = InputValidator.uuid(barbershopId);
     const rProf  = InputValidator.uuid(professionalId);
@@ -172,7 +174,11 @@ class CadeiraService {
 
     // Produção direta → in_service imediatamente
     if (tipo === 'producao') {
-      await QueueRepository.updateStatus(entrada.id, 'in_service');
+      await QueueRepository.updateStatus(
+        entrada.id,
+        'in_service',
+        confirmarPresenca ? { clientConfirmed: 'yes' } : undefined,
+      );
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
       }
@@ -180,7 +186,11 @@ class CadeiraService {
 
     // Fila de espera com produção vazia → auto-avança para in_service
     if (tipo === 'fila' && producaoVazia) {
-      await QueueRepository.updateStatus(entrada.id, 'in_service');
+      await QueueRepository.updateStatus(
+        entrada.id,
+        'in_service',
+        confirmarPresenca ? { clientConfirmed: 'yes' } : undefined,
+      );
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
       }
