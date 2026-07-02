@@ -246,6 +246,44 @@ class CadeiraService {
   }
 
   /**
+   * Libera a cadeira sem contar como corte realizado.
+   * Usado quando o profissional colocou o cliente em producao por engano.
+   *
+   * @param {string}      entradaId
+   * @param {string}      barbershopId
+   * @param {string|null} [professionalId]  filtra fila pelo barbeiro
+   * @returns {Promise<{proximoClienteId:string|null, proximoNome:string|null}>}
+   */
+  static async liberarSemCorte(entradaId, barbershopId, professionalId = null) {
+    const rId   = InputValidator.uuid(entradaId);
+    const rShop = InputValidator.uuid(barbershopId);
+    if (!rId.ok)   throw new TypeError(`[CadeiraService] entradaId: ${rId.msg}`);
+    if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
+
+    await QueueRepository.updateStatus(entradaId, 'cancelled');
+
+    const filaAtiva = await CadeiraService.getFilaAtiva(barbershopId);
+    const filtrada  = professionalId
+      ? filaAtiva.filter(e => e.professional?.id === professionalId)
+      : filaAtiva;
+    const proximo   = CadeiraService.#proximoNaFila(filtrada);
+
+    if (proximo) {
+      await QueueRepository.updateStatus(proximo.id, 'in_service');
+      CadeiraService.#notificarClienteInService(
+        proximo.client?.id ?? null,
+        barbershopId,
+        proximo.id,
+      );
+    }
+
+    return {
+      proximoClienteId: proximo?.client?.id       ?? null,
+      proximoNome:      proximo?.client?.full_name ?? null,
+    };
+  }
+
+  /**
    * Sincroniza a fila ao carregar a página (ou após re-render):
    * para cada profissional com produção vazia mas entradas `waiting`,
    * promove automaticamente a de menor position para `in_service`.

@@ -1,48 +1,38 @@
 'use strict';
 
 // =============================================================
-// FinalizarCorteModal.js — Modal de confirmação de finalização.
+// FinalizarCorteModal.js - Modal de finalizacao da cadeira.
 //
-// Responsabilidade ÚNICA: confirmar que o barbeiro deseja finalizar
-// o atendimento, coletar o método de pagamento e exibir quem é
-// o próximo na fila.
-//
-// Uso:
-//   const { confirmado, paymentMethod } =
-//     await FinalizarCorteModal.abrir({ clienteNome, proximoNome });
-//   // confirmado: true | false
-  //   // paymentMethod: 'pix' | 'dinheiro' | 'credito' | 'debito' | null
-//
-// Dependências: nenhuma
+// Coleta metodo de pagamento ou libera a cadeira sem registrar corte.
 // =============================================================
 
 class FinalizarCorteModal {
 
   static #METODOS = Object.freeze([
-    { valor: 'pix',      icone: '⚡', label: 'PIX'     },
-    { valor: 'dinheiro', icone: '💵', label: 'Dinheiro' },
-    { valor: 'credito',  icone: '💳', label: 'Crédito'  },
-    { valor: 'debito',   icone: '🏧', label: 'Débito'   },
+    { valor: 'pix',       icone: '&#9889;',   label: 'PIX' },
+    { valor: 'dinheiro',  icone: '&#128181;', label: 'Dinheiro' },
+    { valor: 'credito',   icone: '&#128179;', label: 'Cr&eacute;dito' },
+    { valor: 'debito',    icone: '&#127974;', label: 'D&eacute;bito' },
+    { valor: 'sem_corte', icone: '&#8634;',   label: 'N&atilde;o cortou', especial: true },
   ]);
 
-  // ──────────────────────────────────────────────────────────
-  // Exibe a modal de finalização de corte.
-  // @param {object} opts
-  // @param {string}      opts.clienteNome  nome do cliente sendo atendido
-  // @param {string|null} opts.proximoNome  nome do próximo (null se fila vazia)
-  // @returns {Promise<{confirmado: boolean, paymentMethod: string|null}>}
-  // ──────────────────────────────────────────────────────────
+  /**
+   * @param {object} opts
+   * @param {string} opts.clienteNome
+   * @param {string|null} opts.proximoNome
+   * @returns {Promise<{confirmado:boolean, paymentMethod:string|null, semCorte:boolean}>}
+   */
   static abrir({ clienteNome, proximoNome }) {
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.className = 'fcm-overlay';
 
       const proximoHtml = proximoNome
-        ? `<p class="fcm-proximo">Próximo: <strong>${FinalizarCorteModal.#escapar(proximoNome)}</strong></p>`
-        : `<p class="fcm-proximo fcm-proximo--vazia">Fila vazia após este atendimento.</p>`;
+        ? `<p class="fcm-proximo">Pr&oacute;ximo: <strong>${FinalizarCorteModal.#escapar(proximoNome)}</strong></p>`
+        : '<p class="fcm-proximo fcm-proximo--vazia">Fila vazia ap&oacute;s este atendimento.</p>';
 
       const metodosHtml = FinalizarCorteModal.#METODOS.map(m =>
-        `<button class="fcm-metodo" data-metodo="${m.valor}" type="button" aria-pressed="false">
+        `<button class="fcm-metodo${m.especial ? ' fcm-metodo--sem-corte' : ''}" data-metodo="${m.valor}" type="button" aria-pressed="false">
           <span class="fcm-metodo-icone">${m.icone}</span>
           <span class="fcm-metodo-label">${m.label}</span>
         </button>`,
@@ -55,18 +45,17 @@ class FinalizarCorteModal {
             Cliente: <strong>${FinalizarCorteModal.#escapar(clienteNome)}</strong>
           </p>
           ${proximoHtml}
-          <p class="fcm-pagamento-label">Como o cliente pagou?</p>
+          <p class="fcm-pagamento-label">Como deseja finalizar?</p>
           <div class="fcm-metodos">${metodosHtml}</div>
           <div class="fcm-acoes">
-            <button class="fcm-btn fcm-btn--confirmar" disabled>✅ Finalizar</button>
+            <button class="fcm-btn fcm-btn--confirmar" disabled>Finalizar</button>
             <button class="fcm-btn fcm-btn--cancelar">Cancelar</button>
           </div>
         </div>`;
 
       let metodoSelecionado = null;
-      const btnConfirmar    = overlay.querySelector('.fcm-btn--confirmar');
+      const btnConfirmar = overlay.querySelector('.fcm-btn--confirmar');
 
-      // Seleção de método de pagamento
       overlay.querySelectorAll('.fcm-metodo').forEach(btn => {
         btn.addEventListener('click', () => {
           overlay.querySelectorAll('.fcm-metodo').forEach(b => {
@@ -77,6 +66,9 @@ class FinalizarCorteModal {
           btn.setAttribute('aria-pressed', 'true');
           metodoSelecionado = btn.dataset.metodo;
           btnConfirmar.disabled = false;
+          btnConfirmar.textContent = metodoSelecionado === 'sem_corte'
+            ? 'Liberar sem corte'
+            : 'Finalizar';
         });
       });
 
@@ -84,7 +76,13 @@ class FinalizarCorteModal {
         document.removeEventListener('keydown', onKey);
         overlay.classList.add('fcm-overlay--saindo');
         setTimeout(() => overlay.remove(), 220);
-        resolve({ confirmado, paymentMethod: confirmado ? metodoSelecionado : null });
+
+        const semCorte = confirmado && metodoSelecionado === 'sem_corte';
+        resolve({
+          confirmado,
+          paymentMethod: confirmado && !semCorte ? metodoSelecionado : null,
+          semCorte,
+        });
       };
 
       const onKey = e => { if (e.key === 'Escape') fechar(false); };
@@ -102,13 +100,6 @@ class FinalizarCorteModal {
     });
   }
 
-  // ── Privados ────────────────────────────────────────────────
-
-  /**
-   * Escapa texto para inserção segura em innerHTML.
-   * @param {string} str
-   * @returns {string}
-   */
   static #escapar(str) {
     return String(str ?? '')
       .replace(/&/g, '&amp;')

@@ -4737,5 +4737,13 @@
   border-color: var(--gold, #D4AF37);
   font-weight: 700;
 }
+.fcm-metodo--sem-corte {
+  grid-column: 1 / -1;
+}
+.fcm-metodo--sem-corte.fcm-metodo--ativo {
+  background: rgba(224, 82, 82, .12);
+  color: var(--danger, #E05252);
+  border-color: rgba(224, 82, 82, .55);
+}
 .fcm-metodo-icone { font-size: 1.3rem; }
 .fcm-metodo-label { font-size: .77rem; font-weight: 600; }

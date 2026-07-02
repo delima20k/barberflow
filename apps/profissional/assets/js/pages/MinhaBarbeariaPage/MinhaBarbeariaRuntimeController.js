@@ -1344,6 +1344,20 @@ export class MinhaBarbeariaRuntimeController {
     if (!resultado.confirmado) return;
 
     try {
+      if (resultado.semCorte) {
+        const { proximoNome: nomeChamadoSemCorte } = await CadeiraService.liberarSemCorte(
+          entrada.id, this.#barbershopId, profId,
+        );
+        if (entrada.client?.id) this.#mensalistasAtivos.delete(entrada.client.id);
+
+        const msgSemCorte = nomeChamadoSemCorte
+          ? `Cadeira liberada. Em atendimento: ${nomeChamadoSemCorte}`
+          : 'Cadeira liberada. Fila vazia agora.';
+        NotificationService.mostrarToast('Sem corte registrado', msgSemCorte, NotificationService.TIPOS.SISTEMA);
+        await this.#reRenderEquipe();
+        return;
+      }
+
       const { proximoNome: nomeChamado } = await CadeiraService.finalizar(
         entrada.id, this.#barbershopId, profId,
       );
