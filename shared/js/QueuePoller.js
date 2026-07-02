@@ -94,6 +94,20 @@ class QueuePoller {
   static iniciar(barbershopId, clientId, onUpdate) {
     if (!barbershopId || !clientId) return;
 
+    const mesmaFilaAtiva = QueuePoller.#ativo
+      && QueuePoller.#barbershopId === barbershopId
+      && QueuePoller.#clientId === clientId;
+
+    if (mesmaFilaAtiva) {
+      QueuePoller.#onUpdate = onUpdate ?? QueuePoller.#onUpdate;
+      if (QueuePoller.#timer === null) {
+        QueuePoller.#timer = setInterval(() => QueuePoller.#poll(), QueuePoller.#INTERVALO_MS);
+      }
+      document.removeEventListener('visibilitychange', QueuePoller.#onVisibilidade);
+      document.addEventListener('visibilitychange', QueuePoller.#onVisibilidade);
+      return;
+    }
+
     QueuePoller.parar();
 
     QueuePoller.#barbershopId    = barbershopId;
