@@ -45,6 +45,8 @@ const App = new NomeApp();
 
 > **Regra de ouro do `voltar()`:** sempre vai para o **home**, NUNCA para a aba anterior. Histórico é limpo ao voltar. NUNCA mudar a direção.
 
+> **Regra WAAPI (AnimationService):** `oncancel` de uma animação dispara de forma **assíncrona** após `cancel()`. Qualquer handler de fim de saída que esconda a tela (`display:none`) DEVE checar antes se outra animação já assumiu o elemento (`el.getAnimations().some(a => a !== atual)`) — senão apaga a tela que está re-entrando (voltar → reabrir rápido). A animação de ENTRADA deve sempre limpar `pointer-events` residual da saída interrompida. Testes: `tests/animation-service.test.js`.
+
 > **Regra de ouro do carrossel:** a aba só sai pela direita quando outra entra ao mesmo tempo (`nav()`/`push()`). Toggle e `voltar()` são operações isoladas.
 
 ---

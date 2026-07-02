@@ -172,12 +172,26 @@ class ParceriasPage {
 
     const avatarWrap = document.createElement('div');
     avatarWrap.className = 'avatar gold';
-    if (b.logo_path) {
+    // logo_path é a imagem preferida; cover_path serve de fallback (mesma regra de CapaBarbearia.criarFavCard)
+    const imagemPath = b.logo_path || b.cover_path;
+    if (imagemPath) {
       const img = document.createElement('img');
-      img.src     = SupabaseService.getLogoUrl(b.logo_path) || '';
+      img.src     = SupabaseService.getLogoUrl(imagemPath) || '';
       img.alt     = b.name || 'Barbearia';
       img.loading = 'lazy';
-      img.onerror = () => { avatarWrap.textContent = '💈'; };
+      let retentou = false;
+      img.onerror = () => {
+        // Rede móvel pode falhar no 1º load (TWA) — retenta 1x com cache-bust
+        // antes de degradar para o emoji.
+        if (!retentou) {
+          retentou = true;
+          setTimeout(() => {
+            img.src = `${SupabaseService.getLogoUrl(imagemPath)}?r=${Date.now()}`;
+          }, 1200);
+          return;
+        }
+        avatarWrap.textContent = '💈';
+      };
       avatarWrap.appendChild(img);
     } else {
       avatarWrap.textContent = '💈';

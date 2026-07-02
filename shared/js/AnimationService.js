@@ -95,7 +95,11 @@ const AnimationService = (() => {
         // isso, a tela que sai poderia ficar em display:flex por baixo da atual,
         // com duas telas pintando ao mesmo tempo — o que causa o "piscar" na
         // parte de baixo (fotos/portfólio). Idempotente.
+        // Guarda: `oncancel` dispara ASSÍNCRONO no browser — se a mesma tela
+        // já voltou a entrar (nova animação assumiu o elemento), esconder aqui
+        // apagaria a tela que está entrando.
         const encerrarSaida = () => {
+          if (saindo.getAnimations().some(anim => anim !== a)) return;
           saindo.style.display       = 'none';
           saindo.style.pointerEvents = '';
         };
@@ -111,6 +115,9 @@ const AnimationService = (() => {
       entrando.getAnimations().forEach(a => a.cancel());
       entrando.classList.remove('saindo', 'saindo-direita', 'ativa', 'entrando-lento');
       entrando.style.display = 'flex';
+      // Uma saída interrompida desta mesma tela pode ter deixado
+      // pointer-events:none — a tela que entra precisa voltar a ser clicável.
+      entrando.style.pointerEvents = '';
 
       if (dur < 16) {
         entrando.style.display = '';
