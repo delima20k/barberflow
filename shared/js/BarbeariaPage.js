@@ -375,7 +375,7 @@ class BarbeariaPage {
    * @param {string|null}   opts.clienteLogadoId         id do cliente autenticado (ou null)
    * @returns {HTMLDivElement}
    */
-  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, clienteLogadoId = null }) {
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, onMinhaFilaLongPress = null, clienteLogadoId = null }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
@@ -410,12 +410,16 @@ class BarbeariaPage {
     const filaWrap = document.createElement('div');
     filaWrap.className = 'cdr-fila-wrap';
     naFila.forEach((e, i) => {
+      const ehMinhaFila = e.client?.id === clienteLogadoId || e.client_id === clienteLogadoId;
       filaWrap.appendChild(Cadeira.criar({
         tipo:          'fila',
         entrada:       e,
         posicao:       i + 1,
         podeInteragir: false,
         onClick:       null,
+        onLongPress:   ehMinhaFila && onMinhaFilaLongPress
+          ? () => onMinhaFilaLongPress(e)
+          : null,
       }));
     });
     // Cadeira vazia sempre ao final — permite entrar na fila de espera
@@ -581,6 +585,9 @@ class BarbeariaPage {
           : null,
         onProducaoArrivingClick:  clientePodeInteragir
           ? (entrada) => this.#onProducaoArrivingClick(entrada)
+          : null,
+        onMinhaFilaLongPress:     clientePodeInteragir
+          ? (entrada) => this.#onMinhaCadeiraEsperaLongPress(entrada)
           : null,
       }));
     }
@@ -955,6 +962,55 @@ class BarbeariaPage {
       NotificationService.mostrarToast(
         'Erro',
         err?.message ?? 'Não foi possível entrar na fila.',
+        NotificationService.TIPOS.SISTEMA,
+      );
+    }
+  }
+
+  async #onMinhaCadeiraEsperaLongPress(entrada) {
+    const perfil = AuthService.getPerfil?.();
+    const entradaClienteId = entrada?.client?.id ?? entrada?.client_id ?? null;
+    if (!perfil?.id || !entrada?.id || entradaClienteId !== perfil.id || entrada.status !== 'waiting') return;
+
+    let confirmar = true;
+    if (typeof FluxoDeFila !== 'undefined') {
+      const clienteNome = perfil.full_name ?? entrada?.client?.full_name ?? 'cliente';
+      const resposta = await FluxoDeFila.abrir({
+        id: 'sair-fila-espera',
+        icone: '↩',
+        titulo: 'Sair da fila?',
+        corpo: FluxoDeFila.escapar(
+          `${clienteNome}, deseja sair desta cadeira de espera? Voce perdera sua posicao na fila.`,
+        ),
+        acoes: [
+          { label: 'Sair da fila', valor: 'sair', variante: 'primario' },
+          { label: 'Continuar aguardando', valor: 'cancelar', variante: 'secundario' },
+        ],
+        fecharBtn: true,
+      });
+      confirmar = resposta === 'sair';
+    } else {
+      confirmar = window.confirm('Deseja sair desta cadeira de espera? Voce perdera sua posicao na fila.');
+    }
+
+    if (!confirmar) return;
+
+    try {
+      await QueueRepository.updateStatus(entrada.id, 'cancelled');
+      QueuePoller.parar?.();
+      QueuePositionPresenter.parar?.();
+      QueueStateUpdater.parar?.();
+      NotificationService.mostrarToast(
+        'Voce saiu da fila',
+        'Sua cadeira de espera foi liberada.',
+        NotificationService.TIPOS.SISTEMA,
+      );
+      if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
+    } catch (err) {
+      LoggerService.error('[BarbeariaPage] erro ao sair da fila:', err);
+      NotificationService.mostrarToast(
+        'Erro',
+        err?.message ?? 'Nao foi possivel sair da fila agora.',
         NotificationService.TIPOS.SISTEMA,
       );
     }

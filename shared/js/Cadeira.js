@@ -40,7 +40,7 @@ class Cadeira {
    * @param {Function|null}                   [opts.onArrivingClick]  callback: cliente clica na própria cadeira em estado 'arriving'
    * @returns {HTMLDivElement}
    */
-  static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null, confirmacao = null, onArrivingClick = null }) {
+  static criar({ tipo, entrada = null, posicao = 1, podeInteragir = false, onClick = null, confirmacao = null, onArrivingClick = null, onLongPress = null }) {
     const ocupada           = !!entrada;
     const estado            = Cadeira.#ESTADOS[`${tipo}_${ocupada ? 'ocupada' : 'livre'}`] ?? 'livre';
     const isProducaoOcupada = tipo === 'producao' && ocupada;
@@ -73,6 +73,10 @@ class Cadeira {
     // ehMinhaEntrada=true (app cliente), nunca no app profissional.
     if (isProducaoOcupada && (confirmacao === 'arriving' || confirmacao === null) && onArrivingClick) {
       Cadeira.#tornarInterativa(el, onArrivingClick, 'Confirmar chegada na barbearia');
+    }
+
+    if (ocupada && typeof onLongPress === 'function') {
+      Cadeira.#ativarToqueLongo(el, onLongPress, 'Segure para sair da fila');
     }
 
     el.appendChild(Cadeira.#criarIconWrap(tipo, entrada, confirmacao));
@@ -108,6 +112,61 @@ class Cadeira {
     el.setAttribute('aria-label', ariaLabel);
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); callback(); }
+    });
+  }
+
+  static #ativarToqueLongo(el, callback, ariaLabel) {
+    const LONG_PRESS_MS = 700;
+    let timer = null;
+    let startX = 0;
+    let startY = 0;
+    let acionado = false;
+
+    const cancelar = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      el.classList.remove('cdr-cadeira--pressionando');
+    };
+
+    el.classList.add('cdr-cadeira--long-press');
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', ariaLabel);
+    el.title = ariaLabel;
+
+    el.addEventListener('pointerdown', event => {
+      if (event.button != null && event.button !== 0) return;
+      acionado = false;
+      startX = event.clientX;
+      startY = event.clientY;
+      el.classList.add('cdr-cadeira--pressionando');
+      timer = setTimeout(() => {
+        timer = null;
+        acionado = true;
+        el.classList.remove('cdr-cadeira--pressionando');
+        callback();
+      }, LONG_PRESS_MS);
+    });
+
+    el.addEventListener('pointermove', event => {
+      if (!timer) return;
+      if (Math.abs(event.clientX - startX) > 10 || Math.abs(event.clientY - startY) > 10) {
+        cancelar();
+      }
+    });
+    el.addEventListener('pointerup', cancelar);
+    el.addEventListener('pointerleave', cancelar);
+    el.addEventListener('pointercancel', cancelar);
+    el.addEventListener('click', event => {
+      if (!acionado) return;
+      event.preventDefault();
+      event.stopPropagation();
+      acionado = false;
+    });
+    el.addEventListener('keydown', event => {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+      event.preventDefault();
+      callback();
     });
   }
 
