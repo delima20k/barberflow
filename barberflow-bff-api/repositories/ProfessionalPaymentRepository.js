@@ -153,7 +153,7 @@ class ProfessionalPaymentRepository extends BaseRepository {
 
     const startsAt = new Date();
     const endsAt = new Date(startsAt);
-    endsAt.setDate(endsAt.getDate() + 14);
+    endsAt.setDate(endsAt.getDate() + 7);
 
     const { data, error } = await this._db
       .from('subscriptions')

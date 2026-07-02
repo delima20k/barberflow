@@ -69,8 +69,8 @@
       pointer-events: none;
     }
     #profissional-startup-splash .ps-logo {
-      width: 150px;
-      height: 150px;
+      width: min(72vw, 280px);
+      height: auto;
       object-fit: contain;
     }
   </style>
@@ -80,8 +80,8 @@
   <div class="ps-conteudo">
     <img
       class="ps-logo"
-      src="/shared/img/icon-512-pro.png"
-      alt="BarberFlow Pro"
+      src="/shared/img/LogoNomeBarberFlow.png"
+      alt="BarberFlow"
       onerror="this.style.display='none'"
     >
   </div>
@@ -1522,7 +1522,7 @@
             <span class="plano-nome-en">Free Trial</span>
           </div>
           <div class="plano-preco">R$ 0</div>
-          <div class="plano-periodo">por 14 dias · free for 14 days</div>
+          <div class="plano-periodo">por 7 dias · free for 7 days</div>
           <ul class="plano-beneficios">
             <li><span class="plano-check">✓</span><span>Gestão financeira profissional<span class="plano-bi">Professional financial management</span></span></li>
             <li><span class="plano-check">✓</span><span>Parcerias com barbearias<span class="plano-bi">Partnerships with barbershops</span></span></li>
@@ -1611,7 +1611,7 @@
         <div class="ppp-card-row">
           <div>
             <p class="ppp-card-titulo">Teste Grátis</p>
-            <p class="ppp-card-dur">14 dias sem cobrança</p>
+            <p class="ppp-card-dur">7 dias sem cobrança</p>
           </div>
           <p class="ppp-preco-gratis">GRÁTIS</p>
         </div>
@@ -1689,7 +1689,7 @@
         <div class="ppp-card-row">
           <div>
             <p class="ppp-card-titulo">Teste Grátis</p>
-            <p class="ppp-card-dur">14 dias sem cobrança</p>
+            <p class="ppp-card-dur">7 dias sem cobrança</p>
           </div>
           <p class="ppp-preco-gratis">GRÁTIS</p>
         </div>
@@ -2194,7 +2194,7 @@
 <!-- Validação e sanitização centralizada de inputs -->
 <script src="/shared/js/InputValidator.js" defer></script>
 <!-- Serviço de autenticação -->
-<script src="/shared/js/AuthService.js?v=20260701a" defer></script>
+<script src="/shared/js/AuthService.js?v=20260702a" defer></script>
   <script src="/shared/js/AuthUI.js" defer></script>
 <!-- Tela de saída com animações (POO) -->
 <script src="/shared/js/LogoutScreen.js" defer></script>
@@ -2368,7 +2368,7 @@
 <script src="assets/js/ProfissionalStartupSplash.js?v=20260702a" defer></script>
 <script src="assets/js/AppBootstrap.js" defer></script>
 <!-- Controllers do app profissional — devem preceder app.js -->
-<script src="/shared/js/AuthController.js?v=20260701b" defer></script>
+<script src="/shared/js/AuthController.js?v=20260702a" defer></script>
 <script src="assets/js/controllers/PlanosController.js?v=20260628d" defer></script>
 <script src="assets/js/controllers/CadastroController.js" defer></script>
 <script src="assets/js/controllers/TermosController.js" defer></script>
