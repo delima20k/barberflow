@@ -82,6 +82,14 @@ class AuthController {
         dados.cpf       = document.getElementById('cad-cpf')?.value  || null;
         dados.cnpj      = document.getElementById('cad-cnpj')?.value || null;
         dados.pro_type  = this.#getProType();
+        // Intenção de plano escolhida na tela de planos. Vai no metadata do
+        // signup para o trigger server-side criar o trial (7 dias) quando for
+        // 'trial' — funciona mesmo com email confirmation (sem sessão). Planos
+        // pagos não geram trial: só assinam após o pagamento (webhook Asaas).
+        dados.plan_intent = (typeof MonetizationGuard !== 'undefined'
+          && MonetizationGuard.confirmacaoPendente)
+          ? MonetizationGuard.planoSelecionado
+          : null;
       }
       const controles = [...form.querySelectorAll('input, button, select, textarea')];
       AuthUI.setLoading(true, controles);

@@ -158,6 +158,7 @@ class AuthService {
     barbearia = null,
     cpf = null,
     cnpj = null,
+    plan_intent = null,
   }, navFn, onMensagem = null) {
     nome  = nome?.trim();
     email = email?.trim();
@@ -192,6 +193,8 @@ class AuthService {
           phone: telefone || null,
           pro_type: pro_type || null,
           barbearia_name: (pro_type === 'barbearia' ? barbearia?.trim() : null) || null,
+          // Lido pelo trigger handle_new_user_trial para criar o trial server-side
+          plan_intent: plan_intent || null,
         }
       );
 
@@ -207,8 +210,11 @@ class AuthService {
           .catch(e => LoggerService.warn('[AuthService] Documento não salvo na BFF:', e?.message));
       }
 
-      // Garante criação do perfil (fallback caso o trigger não exista)
-      if (user) {
+      // Garante criação do perfil (fallback caso o trigger não exista).
+      // Só roda COM sessão: sem sessão (email confirmation ligado) estes INSERT
+      // dariam 401/RLS — e os triggers server-side (handle_new_user e
+      // handle_profile_barbearia, SECURITY DEFINER) já criam profile e barbearia.
+      if (user && session) {
         // SEGURANÇA: role e pro_type são definidos pelo trigger handle_new_user
         // (SECURITY DEFINER no servidor) via raw_user_meta_data.
         // Nunca enviamos role/pro_type no upsert de fallback — o trigger
