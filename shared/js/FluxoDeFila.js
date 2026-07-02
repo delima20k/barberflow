@@ -135,10 +135,13 @@ class FluxoDeFila {
       const iconeEl = document.createElement('div');
       iconeEl.setAttribute('aria-hidden', 'true');
 
+      // Só renderiza <img> quando `icone` é de fato uma URL/caminho de imagem.
+      // Se for um emoji (ex.: '🏠', '💈'), renderiza como TEXTO — senão o
+      // navegador tentava carregar <img src="🏠"> e batia GET /🏠 → 404 em loop.
       if (iconesDuplos) {
         iconeEl.className = 'fdf-icone-duplo';
         iconeEl.innerHTML = FluxoDeFila.#buildIconesDuplos(iconesDuplos);
-      } else if (iconeImagem) {
+      } else if (iconeImagem && FluxoDeFila.#ehImagem(icone)) {
         iconeEl.className = 'fdf-icone';
         const img = document.createElement('img');
         img.className = 'fdf-icone-img';
@@ -212,6 +215,18 @@ class FluxoDeFila {
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  }
+
+  /**
+   * `icone` é uma URL/caminho de imagem? (senão é emoji/texto e não deve virar
+   * <img>). Cobre http(s), data:, blob:, caminho absoluto e extensões de imagem.
+   * @param {*} v
+   * @returns {boolean}
+   */
+  static #ehImagem(v) {
+    return typeof v === 'string'
+      && (/^(https?:\/\/|data:|blob:|\/)/.test(v)
+          || /\.(png|jpe?g|svg|webp|gif|avif)(\?|$)/i.test(v));
   }
 
   static #escaparAttr(str) {
