@@ -17,7 +17,7 @@
 class ClienteStartupSplash {
 
   static #SESSION_KEY = 'bf_splash_shown';
-  static #DURATION_MS = 1300;
+  static #DURATION_MS = 3400;
   static #FADE_MS     = 300;
 
   // ═══════════════════════════════════════════════════════════
@@ -88,6 +88,7 @@ class ClienteStartupSplash {
           alt="BarberFlow"
           onerror="this.style.display='none'"
         >
+        <p class="cs-tagline">BarberFlow — Seu próximo corte, ao alcance de um toque.</p>
       </div>
     `;
 

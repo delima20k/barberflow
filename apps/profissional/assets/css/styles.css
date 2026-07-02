@@ -2774,6 +2774,28 @@
   width: min(72vw, 280px); height: auto; object-fit: contain; background: transparent;
   filter: drop-shadow(0 12px 28px rgba(93, 62, 25, 0.18));
 }
+.ps-tagline {
+  max-width: min(82vw, 460px);
+  width: min(82vw, 460px);
+  margin: 2px 0 0;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.3;
+  border-right: 2px solid rgba(93, 62, 25, 0.72);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(0.78rem, 3.1vw, 1rem);
+  font-weight: 700;
+  color: #5d3e19;
+  text-align: center;
+  animation: psTyping 2.3s steps(42, end) both, psCaret .72s step-end infinite;
+}
+@keyframes psTyping {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes psCaret {
+  50% { border-color: transparent; }
+}
 
 /* ================================================================
    FINANCAS — Dashboard financeiro

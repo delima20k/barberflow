@@ -9,7 +9,7 @@
 class ProfissionalStartupSplash {
 
   static #SESSION_KEY = 'bf_pro_splash_shown';
-  static #DURATION_MS = 1300;
+  static #DURATION_MS = 3300;
   static #FADE_MS     = 300;
 
   // Publico
@@ -67,6 +67,7 @@ class ProfissionalStartupSplash {
           alt="BarberFlow"
           onerror="this.style.display='none'"
         >
+        <p class="ps-tagline">BarberFlow Profissional — Seu talento, nossa paixão.</p>
       </div>
     `;
     return overlay;
