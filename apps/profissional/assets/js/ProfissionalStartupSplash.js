@@ -55,7 +55,14 @@ class ProfissionalStartupSplash {
     overlay.innerHTML = `
       <div class="ps-conteudo">
         <img
-          class="ps-logo"
+          class="ps-logo-icon"
+          src="/shared/img/Logo01.png"
+          alt=""
+          aria-hidden="true"
+          onerror="this.style.display='none'"
+        >
+        <img
+          class="ps-logo-name"
           src="/shared/img/LogoNomeBarberFlow.png"
           alt="BarberFlow"
           onerror="this.style.display='none'"

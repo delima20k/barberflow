@@ -2764,10 +2764,14 @@
 .ps-overlay.cs-saindo { opacity: 0; }
 .ps-conteudo {
   position: relative; z-index: 1;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
-.ps-logo {
-  width: min(72vw, 280px); height: auto; object-fit: contain;
+.ps-logo-icon {
+  width: 116px; height: 116px; object-fit: contain; background: transparent;
+  filter: drop-shadow(0 12px 28px rgba(93, 62, 25, 0.18));
+}
+.ps-logo-name {
+  width: min(72vw, 280px); height: auto; object-fit: contain; background: transparent;
   filter: drop-shadow(0 12px 28px rgba(93, 62, 25, 0.18));
 }
 
