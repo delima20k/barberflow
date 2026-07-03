@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260703e';
+const SW_CLI_VERSION = '20260703f';
 
 class SWCliente {
 
@@ -231,9 +231,9 @@ class SWCliente {
         tag:                payload.tag     ?? 'bf-inservice',
         requireInteraction: payload.requireInteraction ?? true,
         // Padrão de vibração: 300ms vibra, 100ms pausa, 300ms vibra, 100ms pausa, 500ms vibra
-        // O Android toca o som de notificação do sistema automaticamente
+        // Som desativado: mantem notificacao visual e vibracao quando suportado
         vibrate:            payload.vibrate ?? [300, 100, 300, 100, 500],
-        silent:             false,
+        silent:             true,
         data:               payload.data   ?? {},
       };
 

@@ -10,8 +10,8 @@
 //     para o barbeiro (type: queue_client_absent).
 //
 //   - PROFISSIONAL: ouve evento DOM 'barberflow:notificacao-nova'.
-//     Quando chega notif do tipo 'queue_client_absent', toca som
-//     e exibe modal perguntando se quer pular a vez ou aguardar.
+//     Quando chega notif do tipo 'queue_client_absent', exibe modal
+//     perguntando se quer pular a vez ou aguardar.
 //
 // Dependências: SupabaseService.js, NotificationService.js (already loaded)
 // =============================================================
@@ -24,6 +24,7 @@ class QueueConfirmService {
   static #canalFila    = null;   // Realtime channel (cliente)
   static #entryAtiva   = null;   // queue_entry atual do cliente
   static #audioCtx     = null;   // Web Audio API context
+  static #SOM_HABILITADO = false;
 
   // ── IDs dos modais ───────────────────────────────────────────
   static #ID_MODAL_CLIENTE   = 'modal-cadeira-cliente';
@@ -307,14 +308,15 @@ class QueueConfirmService {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // PRIVADO — Som (Web Audio API)
+  // PRIVADO — Alerta sonoro legado (desativado por padrão)
   // ═══════════════════════════════════════════════════════════
 
   /**
-   * Toca um beep duplo de alerta usando Web Audio API.
+   * Mantido por compatibilidade, mas silencioso por padrão.
    * Fallback: tenta reproduzir /shared/audio/alerta.mp3 primeiro.
    */
   static #tocarSom() {
+    if (!QueueConfirmService.#SOM_HABILITADO) return;
     // Tenta arquivo MP3 primeiro (se existir)
     try {
       const audio = new Audio('/shared/audio/alerta.mp3');
@@ -333,6 +335,7 @@ class QueueConfirmService {
    * Gera dois beeps curtos via Web Audio API (sem arquivo externo).
    */
   static #beepSintetico() {
+    if (!QueueConfirmService.#SOM_HABILITADO) return;
     try {
       if (!QueueConfirmService.#audioCtx) {
         QueueConfirmService.#audioCtx = new (window.AudioContext || window.webkitAudioContext)();

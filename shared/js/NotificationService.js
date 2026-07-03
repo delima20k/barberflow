@@ -254,11 +254,6 @@ class NotificationService {
     const cor       = NotificationService.#CORES[tipo]  ?? 'var(--gold)';
     const persistente = acaoLabel !== null && acaoLabel !== undefined;
 
-    // Toca chime apenas para notificações de fila/agendamento (cadeiras)
-    if (tipo === NotificationService.TIPOS.AGENDAMENTO && typeof QueuePoller !== 'undefined') {
-      try { QueuePoller.tocarSom(); } catch (_) {}
-    }
-
     const toast = document.createElement('div');
     toast.className = 'notif-toast';
     if (persistente) toast.classList.add('notif-toast--persistente');

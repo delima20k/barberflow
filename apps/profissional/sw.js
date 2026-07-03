@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260703e';
+const SW_PRO_VERSION = '20260703f';
 
 class SWProfissional {
 
@@ -236,7 +236,7 @@ class SWProfissional {
         requireInteraction: payload.requireInteraction ?? false,
         // Vibração curta para notificações do profissional
         vibrate:            payload.vibrate ?? [200, 100, 200],
-        silent:             false,
+        silent:             true,
         data:               payload.data  ?? {},
       };
 

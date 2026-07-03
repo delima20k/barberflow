@@ -1,11 +1,11 @@
 'use strict';
 
 // =============================================================
-// QueuePoller.js — Polling periódico da fila + alertas sonoros.
+// QueuePoller.js — Polling periódico da fila + alertas visuais.
 //
 // Responsabilidade única: verificar a posição do cliente na fila
-// a cada 20 segundos e emitir som (Web Audio API) quando a fila
-// avança ou quando é a sua vez.
+// a cada 20 segundos e emitir alertas visuais quando a fila avança
+// ou quando é a sua vez.
 //
 // Dependências (carregadas antes via <script>):
 //   - BackendApiService (GET /api/fila/:id/estado)
@@ -15,7 +15,7 @@
 // Uso:
 //   QueuePoller.iniciar(barbershopId, clientId, onUpdate);
 //   QueuePoller.parar();
-//   QueuePoller.tocarSom(); // chamado externamente por NotificationService
+//   QueuePoller.tocarSom(); // compatibilidade: silencioso por padrão
 // =============================================================
 
 class QueuePoller {
@@ -49,6 +49,9 @@ class QueuePoller {
   /** Intervalo de polling em ms */
   static #INTERVALO_MS = 20_000;
 
+  /** Som de fila desativado por padrão: alertas continuam visuais/nativos com vibração. */
+  static #SOM_HABILITADO = false;
+
   /**
    * Elemento <audio> reutilizável para o chime MP3.
    * Desbloqueado no primeiro gesto do usuário para garantir playback
@@ -63,6 +66,7 @@ class QueuePoller {
   // e pausar imediatamente — depois o play() sem gesto funciona.
   static {
     const desbloquear = () => {
+      if (!QueuePoller.#SOM_HABILITADO) return;
       if (QueuePoller.#audioEl) return;
       try {
         const el = new Audio('/shared/sounds/chime.mp3');
@@ -74,7 +78,7 @@ class QueuePoller {
         QueuePoller.#audioEl = el;
       } catch { /* sem suporte — silencioso */ }
     };
-    if (typeof document !== 'undefined') {
+    if (QueuePoller.#SOM_HABILITADO && typeof document !== 'undefined') {
       document.addEventListener('touchstart', desbloquear, { once: true, passive: true });
       document.addEventListener('click',      desbloquear, { once: true });
     }
@@ -152,6 +156,7 @@ class QueuePoller {
    * uma notification do tipo 'queue_update' via Realtime.
    */
   static tocarSom() {
+    if (!QueuePoller.#SOM_HABILITADO) return;
     QueuePoller.#tocarSom();
   }
 
@@ -297,6 +302,7 @@ class QueuePoller {
    * Silencioso em caso de bloqueio — navegador decide se permite.
    */
   static #tocarSom() {
+    if (!QueuePoller.#SOM_HABILITADO) return;
     try {
       if (!QueuePoller.#audioEl) {
         QueuePoller.#audioEl = new Audio('/shared/sounds/chime.mp3');
