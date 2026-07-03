@@ -2870,6 +2870,10 @@ export class MinhaBarbeariaRuntimeController {
     } catch (err) {
       LoggerService.error('[MinhaBarbeariaPage] salvarProdutoUnico:', err);
       NotificationService?.mostrarToast('Erro', 'Não foi possível salvar o item.', 'sistema');
+      // Upload de imagem pode ter falhado antes de cancelar(uid) ser alcançado
+      // (linha acima do upsert) — revoga aqui para não vazar o Blob pendente.
+      // cancelar() é no-op seguro se já não houver nada pendente para o uid.
+      this.#mediaP2P.cancelar(row.dataset.mediaUid);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Salvar item'; }
     }
@@ -3368,10 +3372,18 @@ export class MinhaBarbeariaRuntimeController {
     if (uid && this.#mediaP2P.temPendente(uid)) {
       const file = this.#mediaP2P.getFile(uid);
       const buffer = await file.arrayBuffer();
-      const { data, error } = await BffApiService.barbearias.salvarImagemServico(buffer, file.type || 'image/jpeg');
-      if (error) throw error;
-      imagePath = data.publicUrl;
-      this.#mediaP2P.cancelar(uid);
+      try {
+        const { data, error } = await BffApiService.barbearias.salvarImagemServico(buffer, file.type || 'image/jpeg');
+        if (error) throw error;
+        imagePath = data.publicUrl;
+        this.#mediaP2P.cancelar(uid);
+      } catch (err) {
+        // #salvarServicosTipados itera várias linhas por chamada — se o upload
+        // desta linha falhar, revoga o Blob pendente aqui (o erro propaga
+        // normalmente para o catch do chamador tratar o restante do fluxo).
+        this.#mediaP2P.cancelar(uid);
+        throw err;
+      }
     }
     return imagePath;
   }

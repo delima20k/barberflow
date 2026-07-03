@@ -497,6 +497,27 @@ describe('MinhaBarbeariaPage - produtos no sub-painel de configuracoes', () => {
     );
   });
 
+  test('salvar item com falha no upload deve revogar o Blob URL pendente do MediaP2P', () => {
+    const idxMetodo = SRC_MB_PAGE.indexOf('async #salvarProdutoUnico(row)');
+    const bloco = SRC_MB_PAGE.slice(idxMetodo, SRC_MB_PAGE.indexOf('#adicionarItemNaView(produto)', idxMetodo));
+    const catchBloco = bloco.slice(bloco.indexOf('} catch (err) {'));
+    assert.match(
+      catchBloco,
+      /this\.#mediaP2P\.cancelar\(row\.dataset\.mediaUid\)/,
+      'catch de #salvarProdutoUnico deve revogar o Blob pendente para nao vazar memoria em upload que falha',
+    );
+  });
+
+  test('#resolverImagemServicoLinha deve revogar o Blob URL pendente quando o upload falha', () => {
+    const idxMetodo = SRC_MB_PAGE.indexOf('async #resolverImagemServicoLinha(el)');
+    const bloco = SRC_MB_PAGE.slice(idxMetodo, SRC_MB_PAGE.indexOf('return imagePath;', idxMetodo));
+    assert.match(
+      bloco,
+      /catch \(err\) \{[\s\S]*this\.#mediaP2P\.cancelar\(uid\);[\s\S]*throw err;/,
+      'falha no upload da imagem de servico deve revogar o Blob antes de propagar o erro',
+    );
+  });
+
   test('servicos por tipo devem ter botao de salvar individual e atualizar cache da modal', () => {
     const idxTiposServico = SRC_MB_PAGE.indexOf('static #TIPOS_SERVICO');
     const tiposServico = SRC_MB_PAGE.slice(

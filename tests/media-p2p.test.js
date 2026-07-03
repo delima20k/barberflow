@@ -15,11 +15,12 @@ function carregarMediaP2P(fetchImpl) {
     }
   }
 
+  const revoked = [];
   const sandbox = vm.createContext({
     File: FileMock,
     URL: {
       createObjectURL: () => 'blob:story',
-      revokeObjectURL: () => {},
+      revokeObjectURL: (url) => revoked.push(url),
     },
     window: { BFF_URL: 'https://bff.test', confirm: () => true },
     fetch: fetchImpl,
@@ -28,7 +29,7 @@ function carregarMediaP2P(fetchImpl) {
     },
   });
   carregar(sandbox, 'shared/js/MediaP2P.js');
-  return { MediaP2P: sandbox.MediaP2P, FileMock };
+  return { MediaP2P: sandbox.MediaP2P, FileMock, revoked };
 }
 
 describe('MediaP2P', () => {
@@ -117,5 +118,61 @@ describe('MediaP2P', () => {
       () => media.fazerUpload('story-2', 'stories'),
       /Resposta invalida da BFF/,
     );
+  });
+
+  it('revoga o Blob URL pendente quando fazerUpload falha (qualquer etapa) — sem vazar memoria', async () => {
+    const fetchImpl = async (url) => {
+      if (url.endsWith('/api/v1/media/presigned')) {
+        return { ok: false, status: 500, json: async () => ({ error: 'boom' }) };
+      }
+      throw new Error(`URL inesperada: ${url}`);
+    };
+    const { MediaP2P, FileMock, revoked } = carregarMediaP2P(fetchImpl);
+    const media = new MediaP2P();
+    const file = new FileMock(['img'], 'servico.webp', { type: 'image/webp' });
+
+    await media.registrar(file, 'falha-1');
+    assert.equal(media.temPendente('falha-1'), true, 'deve haver pendente antes do upload falhar');
+
+    await assert.rejects(
+      () => media.fazerUpload('falha-1', 'services'),
+      /Falha ao obter URL presigned/,
+    );
+
+    assert.deepEqual(revoked, ['blob:story'], 'Blob URL deve ser revogado mesmo com o upload falhando');
+    assert.equal(media.temPendente('falha-1'), false, 'pendente deve ser removido do mapa apos a falha');
+  });
+
+  it('revoga o Blob URL quando o PUT ao R2 falha (etapa 2)', async () => {
+    const fetchImpl = async (url) => {
+      if (url.endsWith('/api/v1/media/presigned')) {
+        return {
+          ok: true,
+          json: async () => ({ dados: {
+            uploadUrl: 'https://r2.test/upload',
+            path: 'services/user/incoming/img.webp',
+            publicUrl: 'https://cdn.test/img.webp',
+            token: 'confirm-token',
+            expiresAt: '2026-06-21T12:00:00.000Z',
+            mediaId: 'media-2',
+          } }),
+        };
+      }
+      if (url === 'https://r2.test/upload') return { ok: false, status: 503 };
+      throw new Error(`URL inesperada: ${url}`);
+    };
+    const { MediaP2P, FileMock, revoked } = carregarMediaP2P(fetchImpl);
+    const media = new MediaP2P();
+    const file = new FileMock(['img'], 'servico.webp', { type: 'image/webp' });
+
+    await media.registrar(file, 'falha-2');
+
+    await assert.rejects(
+      () => media.fazerUpload('falha-2', 'services'),
+      /Falha no upload ao R2/,
+    );
+
+    assert.deepEqual(revoked, ['blob:story']);
+    assert.equal(media.temPendente('falha-2'), false);
   });
 });

@@ -103,57 +103,67 @@ class MediaP2P {
     }
 
     const { file } = pendente;
-    const token    = await this.#obterToken();
 
-    // ── Etapa 1: solicitar URL presigned ao BFF ──────────────────
-    const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/presigned`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ context: contexto, contentType: file.type, sizeBytes: file.size }),
-    });
+    // Todo o fluxo de rede fica dentro do try: qualquer falha (presigned,
+    // PUT ao R2 ou confirmação) revoga o Blob URL pendente antes de propagar
+    // o erro — sem isso, um upload que falha vaza o Blob até cancelar(uid)
+    // ou cancelarTodos() serem chamados por fora (nem sempre acontece).
+    try {
+      const token = await this.#obterToken();
 
-    if (!presResp.ok) {
-      const { error } = await presResp.json().catch(() => ({}));
-      throw new Error(`[MediaP2P] Falha ao obter URL presigned: ${error ?? presResp.status}`);
+      // ── Etapa 1: solicitar URL presigned ao BFF ──────────────────
+      const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/presigned`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ context: contexto, contentType: file.type, sizeBytes: file.size }),
+      });
+
+      if (!presResp.ok) {
+        const { error } = await presResp.json().catch(() => ({}));
+        throw new Error(`[MediaP2P] Falha ao obter URL presigned: ${error ?? presResp.status}`);
+      }
+
+      const { dados } = await presResp.json();
+      const { uploadUrl, path, publicUrl, token: hmac, expiresAt, mediaId } = dados ?? {};
+      if (!uploadUrl || !path || !mediaId || !hmac) {
+        throw new Error('[MediaP2P] Resposta invalida da BFF ao obter URL presigned.');
+      }
+
+      // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
+      const uploadResp = await fetch(uploadUrl, {
+        method:  'PUT',
+        headers: { 'Content-Type': file.type },
+        body:    file,
+      });
+
+      if (!uploadResp.ok) {
+        throw new Error(`[MediaP2P] Falha no upload ao R2: HTTP ${uploadResp.status}`);
+      }
+
+      // ── Etapa 3: confirmar ao BFF → salva metadata no Supabase ───
+      const confResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/confirmar`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ mediaId, path, context: contexto, confirmationToken: hmac, expiresAt, metadata }),
+      });
+
+      if (!confResp.ok) {
+        const { error } = await confResp.json().catch(() => ({}));
+        throw new Error(`[MediaP2P] Falha na confirmação: ${error ?? confResp.status}`);
+      }
+
+      this.#revogar(uid); // libera memória após conclusão bem-sucedida
+      return { path, publicUrl, mediaId };
+    } catch (err) {
+      this.#revogar(uid); // libera memória mesmo quando o upload falha
+      throw err;
     }
-
-    const { dados } = await presResp.json();
-    const { uploadUrl, path, publicUrl, token: hmac, expiresAt, mediaId } = dados ?? {};
-    if (!uploadUrl || !path || !mediaId || !hmac) {
-      throw new Error('[MediaP2P] Resposta invalida da BFF ao obter URL presigned.');
-    }
-
-    // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
-    const uploadResp = await fetch(uploadUrl, {
-      method:  'PUT',
-      headers: { 'Content-Type': file.type },
-      body:    file,
-    });
-
-    if (!uploadResp.ok) {
-      throw new Error(`[MediaP2P] Falha no upload ao R2: HTTP ${uploadResp.status}`);
-    }
-
-    // ── Etapa 3: confirmar ao BFF → salva metadata no Supabase ───
-    const confResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/confirmar`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ mediaId, path, context: contexto, confirmationToken: hmac, expiresAt, metadata }),
-    });
-
-    if (!confResp.ok) {
-      const { error } = await confResp.json().catch(() => ({}));
-      throw new Error(`[MediaP2P] Falha na confirmação: ${error ?? confResp.status}`);
-    }
-
-    this.#revogar(uid); // libera memória após conclusão bem-sucedida
-    return { path, publicUrl, mediaId };
   }
 
   /**
