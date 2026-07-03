@@ -41,6 +41,11 @@ class ClienteRepository {
       err.code  = 'PERFIL_ORFAO';
       throw err;
     }
+    if (String(perfil.id ?? '') !== userId) {
+      const err = new Error('Perfil solicitado nao pertence a sessao atual.');
+      err.code  = 'PERFIL_ACESSO_NEGADO';
+      throw err;
+    }
     return perfil;
   }
 

@@ -64,12 +64,22 @@ function criarProfileRepo({ data = null, error = null } = {}) {
   const supabaseMock  = {
     storageAvatars: fn(() => storeMock),
   };
+  // getById lê o perfil próprio via BFF (migration 20260628000001) —
+  // o stub devolve o mesmo `data` do builder como `perfil`.
+  const bffMock = {
+    auth: { me: fn().mockResolvedValue({ data: { perfil: data }, error }) },
+  };
 
-  const sandbox = vm.createContext({ console, ApiService: apiMock, SupabaseService: supabaseMock });
+  const sandbox = vm.createContext({
+    console,
+    ApiService:      apiMock,
+    SupabaseService: supabaseMock,
+    BffApiService:   bffMock,
+  });
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/ProfileRepository.js');
 
-  return { ProfileRepository: sandbox.ProfileRepository, profBuilder, apiMock, storeMock };
+  return { ProfileRepository: sandbox.ProfileRepository, profBuilder, apiMock, storeMock, bffMock };
 }
 
 function criarQueueRepo({ data = null, error = null } = {}) {
@@ -297,6 +307,17 @@ describe('ProfileRepository.getById()', () => {
     await assert.rejects(
       ProfileRepository.getById("'; DROP TABLE profiles; --"),
       /Identificador inválido/
+    );
+  });
+
+  test('bloqueia retorno quando /auth/me nao corresponde ao userId solicitado', async () => {
+    const { ProfileRepository } = criarProfileRepo({
+      data: { id: 'b2c3d4e5-f6a7-4901-bcde-f01234567899' },
+    });
+
+    await assert.rejects(
+      ProfileRepository.getById(UUID_CLIENTE),
+      (err) => { assert.equal(err.code, 'PERFIL_ACESSO_NEGADO'); return true; },
     );
   });
 });

@@ -18,11 +18,13 @@ const UUID_CLIENTE = 'b0000000-0000-4000-8000-000000000001';
 /**
  * Cria sandbox com fetch e localStorage mockados.
  * Carrega em ordem: InputValidator → ApiService → Cliente → ClienteRepository → ClienteService.
- * ProfileRepository e AppointmentRepository são injetados como stubs
- * para isolar o domínio cliente dos outros repositórios.
+ * ProfileRepository, AppointmentRepository e BffApiService são injetados como
+ * stubs para isolar o domínio cliente dos outros repositórios e da BFF.
+ * (getById lê o perfil próprio via BffApiService.auth.me — leitura direta de
+ * profiles foi revogada pela migration 20260628000001.)
  * @param {Function} fetchMock
  * @param {string|null} jwtToken
- * @param {object} [repoStubs] — stubs de ProfileRepository / AppointmentRepository
+ * @param {object} [repoStubs] — stubs de ProfileRepository / AppointmentRepository / BffApiService
  */
 function criarSandbox(fetchMock, jwtToken = null, repoStubs = {}) {
   const lsMock = {
@@ -39,6 +41,9 @@ function criarSandbox(fetchMock, jwtToken = null, repoStubs = {}) {
   const AppointmentRepositoryStub = repoStubs.AppointmentRepository ?? {
     getByCliente: async () => [],
   };
+  const BffApiServiceStub = repoStubs.BffApiService ?? {
+    auth: { me: async () => ({ data: { perfil: null }, error: null }) },
+  };
 
   const sandbox = vm.createContext({
     console,
@@ -49,6 +54,7 @@ function criarSandbox(fetchMock, jwtToken = null, repoStubs = {}) {
     TypeError,
     ProfileRepository:     ProfileRepositoryStub,
     AppointmentRepository: AppointmentRepositoryStub,
+    BffApiService:         BffApiServiceStub,
   });
 
   carregar(sandbox, 'shared/js/InputValidator.js');
@@ -133,17 +139,47 @@ describe('Cliente — model', () => {
 
 describe('ClienteRepository — getById()', () => {
 
-  test('gera GET com eq role=client e eq id', async () => {
-    let url;
-    const row = { id: UUID_CLIENTE, full_name: 'João', role: 'client', is_active: true };
-    const sb  = criarSandbox(async (u) => { url = u; return resOk(row)(); }, 'tok.en.jwt');
+  test('busca o perfil próprio via BffApiService.auth.me (sem PostgREST direto)', async () => {
+    // Contrato pós-migration 20260628000001: leitura direta de profiles revogada.
+    const perfil = { id: UUID_CLIENTE, full_name: 'João', role: 'client', is_active: true };
+    let meCalls = 0;
+    let fetchCalls = 0;
+    const sb = criarSandbox(
+      async () => { fetchCalls++; return resOk(perfil)(); },
+      'tok.en.jwt',
+      { BffApiService: { auth: { me: async () => { meCalls++; return { data: { perfil }, error: null }; } } } },
+    );
 
-    await sb.ClienteRepository.getById(UUID_CLIENTE);
+    const row = await sb.ClienteRepository.getById(UUID_CLIENTE);
 
-    const decoded = decodeURIComponent(url);
-    assert.ok(url.includes('/rest/v1/profiles'),         'URL aponta para profiles');
-    assert.ok(decoded.includes(`id=eq.${UUID_CLIENTE}`), 'filtro por id');
-    assert.ok(decoded.includes('role=eq.client'),        'filtro role=client');
+    assert.equal(meCalls, 1,   'perfil próprio deve vir de BffApiService.auth.me');
+    assert.equal(fetchCalls, 0, 'não deve haver GET direto em profiles via PostgREST');
+    assert.equal(row.id, UUID_CLIENTE);
+  });
+
+  test('lança PERFIL_ORFAO quando a BFF não retorna perfil', async () => {
+    const sb = criarSandbox(resOk({}), 'tok.en.jwt', {
+      BffApiService: { auth: { me: async () => ({ data: { perfil: null }, error: null }) } },
+    });
+
+    await assert.rejects(
+      () => sb.ClienteRepository.getById(UUID_CLIENTE),
+      (err) => { assert.equal(err.code, 'PERFIL_ORFAO'); return true; },
+    );
+  });
+
+  test('bloqueia leitura quando /auth/me retorna outro usuario', async () => {
+    const outroId = 'b0000000-0000-4000-8000-000000000099';
+    const sb = criarSandbox(resOk({}), 'tok.en.jwt', {
+      BffApiService: {
+        auth: { me: async () => ({ data: { perfil: { id: outroId, role: 'client' } }, error: null }) },
+      },
+    });
+
+    await assert.rejects(
+      () => sb.ClienteRepository.getById(UUID_CLIENTE),
+      (err) => { assert.equal(err.code, 'PERFIL_ACESSO_NEGADO'); return true; },
+    );
   });
 
   test('rejeita UUID inválido antes de chamar fetch', async () => {
@@ -222,9 +258,18 @@ describe('ClienteRepository — update()', () => {
 
 describe('ClienteService', () => {
 
+  /** Sandbox com stub de BFF que conta chamadas a auth.me (fonte do perfil). */
+  function sandboxComPerfil(perfil) {
+    const contador = { me: 0 };
+    const sb = criarSandbox(resOk([]), 'tok.en.jwt', {
+      BffApiService: { auth: { me: async () => { contador.me++; return { data: { perfil }, error: null }; } } },
+    });
+    return { sb, contador };
+  }
+
   test('carregarPerfil() retorna instância de Cliente', async () => {
-    const row = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
-    const sb  = criarSandbox(resOk(row), 'tok.en.jwt');
+    const perfil = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
+    const { sb } = sandboxComPerfil(perfil);
 
     const cliente = await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
 
@@ -233,42 +278,39 @@ describe('ClienteService', () => {
     assert.equal(cliente.nome, 'Maria');
   });
 
-  test('carregarPerfil() usa cache na segunda chamada (fetch só 1×)', async () => {
-    const row = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
-    let contagem = 0;
-    const sb = criarSandbox(async () => { contagem++; return resOk(row)(); }, 'tok.en.jwt');
+  test('carregarPerfil() usa cache na segunda chamada (BFF só 1×)', async () => {
+    const perfil = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
+    const { sb, contador } = sandboxComPerfil(perfil);
 
     await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
     await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
 
-    assert.equal(contagem, 1, 'fetch deve ser chamado apenas 1 vez');
+    assert.equal(contador.me, 1, 'BffApiService.auth.me deve ser chamado apenas 1 vez');
   });
 
   test('atualizarPerfil() invalida cache após atualizar', async () => {
-    const row = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
-    let contagem = 0;
-    const sb = criarSandbox(async () => { contagem++; return resOk(row)(); }, 'tok.en.jwt');
+    const perfil = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
+    const { sb, contador } = sandboxComPerfil(perfil);
 
     // 1ª carga — guarda em cache
     await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
-    // atualizar — invalida cache
+    // atualizar — invalida cache (PATCH segue via PostgREST/fetch)
     await sb.ClienteService.atualizarPerfil(UUID_CLIENTE, { full_name: 'Maria Nova' });
-    // 2ª carga — deve buscar novamente
+    // 2ª carga — deve buscar novamente na BFF
     await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
 
-    assert.ok(contagem >= 2, `fetch deve ser chamado ao menos 2 vezes (foram ${contagem})`);
+    assert.ok(contador.me >= 2, `auth.me deve ser chamado ao menos 2 vezes (foram ${contador.me})`);
   });
 
   test('limparCache() força novo fetch na próxima chamada', async () => {
-    const row = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
-    let contagem = 0;
-    const sb = criarSandbox(async () => { contagem++; return resOk(row)(); }, 'tok.en.jwt');
+    const perfil = { id: UUID_CLIENTE, full_name: 'Maria', is_active: true, role: 'client' };
+    const { sb, contador } = sandboxComPerfil(perfil);
 
     await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
     sb.ClienteService.limparCache();
     await sb.ClienteService.carregarPerfil(UUID_CLIENTE);
 
-    assert.equal(contagem, 2, 'fetch deve ser chamado 2 vezes após limparCache()');
+    assert.equal(contador.me, 2, 'auth.me deve ser chamado 2 vezes após limparCache()');
   });
 
 });

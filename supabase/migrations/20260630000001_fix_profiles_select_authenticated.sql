@@ -1,0 +1,24 @@
+-- ==============================================================
+-- Migration: 20260630000001_fix_profiles_select_authenticated.sql
+-- Descrição: Corrige regressão do P0 (20260628000001) que revogou
+--            SELECT em profiles para authenticated, quebrando:
+--              - PATCH /profiles (PostgREST precisa de SELECT para
+--                retornar a linha após UPDATE)
+--              - Upsert de perfil no cadastro
+--              - Upload de avatar (lê profile antes de salvar)
+--
+-- Correção: Re-grant SELECT para authenticated, mantendo a policy
+--           profiles_select_own (auth.uid() = id) que garante que
+--           cada usuário só lê o PRÓPRIO perfil. Outros usuários
+--           continuam inacessíveis diretamente — somente via
+--           profiles_public (view que expõe apenas colunas públicas).
+--
+-- Segurança mantida:
+--   - anon: sem SELECT direto em profiles ✓
+--   - authenticated: SELECT apenas no próprio perfil (RLS) ✓
+--   - Dados sensíveis de terceiros: inacessíveis via PostgREST ✓
+--   - cpf_cnpj_enc: nunca exposta (SELECT retorna somente a própria
+--     linha, e a BFF descriptografa server-side) ✓
+-- ==============================================================
+
+GRANT SELECT ON public.profiles TO authenticated;
