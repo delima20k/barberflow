@@ -212,7 +212,7 @@ function pendingPayment(overrides = {}) {
     pro_type: 'barbeiro',
     billing_type: 'UNDEFINED',
     status: 'PENDING',
-    value: 5.00,
+    value: 24.90,
     due_date: '2099-01-01',
     description: 'BarberFlow Pro Barbeiro - Plano Mensal',
     invoice_url: 'https://sandbox.asaas.com/i/pay_pendente',
@@ -274,10 +274,35 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
   assert.equal(result.asaasPaymentId, 'pay_123');
   assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_123');
   assert.equal(result.reused, false);
-  assert.equal(result.value, 5.00);
+  assert.equal(result.value, 24.90);
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
+});
+
+test('usa valores reais dos planos pagos ao criar cobranca Asaas', async () => {
+  const casos = [
+    { proType: 'barbeiro', planType: 'mensal', value: 24.90 },
+    { proType: 'barbeiro', planType: 'trimestral', value: 59.90 },
+    { proType: 'barbearia', planType: 'mensal', value: 54.90 },
+    { proType: 'barbearia', planType: 'trimestral', value: 139.90 },
+  ];
+
+  for (const caso of casos) {
+    const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+    const asaas = new FakeAsaas();
+    const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+    const result = await service.criarCobranca(
+      { id: USER_ID, email: 'teste@barberflow.test' },
+      { proType: caso.proType, planType: caso.planType, billingType: 'PIX' },
+      { ip: '127.0.0.1' },
+    );
+
+    assert.equal(result.value, caso.value);
+    assert.equal(repo.createdPayments[0].value, caso.value);
+    assert.equal(asaas.payments[0].value, caso.value);
+  }
 });
 
 test('reaproveita cobranca pendente valida sem criar nova no Asaas', async () => {
@@ -566,6 +591,7 @@ test('renovacao usa cliente Asaas existente mesmo se metadata do documento falha
   );
 
   assert.equal(result.asaasPaymentId, 'pay_123');
+  assert.equal(result.value, 24.90);
   assert.equal(asaas.customers.length, 0);
   assert.equal(asaas.updatedCustomers.length, 0);
   assert.equal(asaas.payments[0].customer, 'cus_existente');
@@ -593,6 +619,7 @@ test('renovacao usa cliente Asaas recuperado de pagamento anterior sem CPF/CNPJ'
   );
 
   assert.equal(result.asaasPaymentId, 'pay_123');
+  assert.equal(result.value, 54.90);
   assert.equal(asaas.customers.length, 0);
   assert.equal(asaas.updatedCustomers.length, 0);
   assert.equal(asaas.payments[0].customer, 'cus_pagamento_antigo');
@@ -692,7 +719,7 @@ test('status de assinatura permite acesso quando plano esta ativo e vigente', as
     status: 'active',
     starts_at: '2026-06-26T12:00:00.000Z',
     ends_at: new Date(Date.now() + 86400000).toISOString(),
-    price: 5.00,
+    price: 24.90,
     purchase_token: 'pay_123',
   };
   const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
@@ -713,7 +740,7 @@ test('status de assinatura bloqueia quando plano esta expirado', async () => {
     status: 'active',
     starts_at: '2026-06-26T12:00:00.000Z',
     ends_at: new Date(Date.now() - 86400000).toISOString(),
-    price: 5.00,
+    price: 24.90,
     purchase_token: 'pay_123',
   };
   const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
@@ -744,7 +771,7 @@ test('consulta cobranca somente do profissional autenticado', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 5.00,
+    value: 24.90,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -777,7 +804,7 @@ test('consulta cobranca sincroniza pagamento recebido e ativa assinatura', async
     pro_type: 'barbeiro',
     billing_type: 'UNDEFINED',
     status: 'PENDING',
-    value: 5.00,
+    value: 24.90,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -832,7 +859,7 @@ test('webhook pago atualiza pagamento e ativa assinatura', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 5.00,
+    value: 24.90,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -870,7 +897,7 @@ test('webhook duplicado nao ativa assinatura duas vezes', async () => {
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'PENDING',
-    value: 5.00,
+    value: 24.90,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
@@ -908,7 +935,7 @@ test('webhook com novo evento para pagamento ja ativado reutiliza assinatura exi
     pro_type: 'barbeiro',
     billing_type: 'PIX',
     status: 'RECEIVED',
-    value: 5.00,
+    value: 24.90,
     due_date: '2026-06-26',
     invoice_url: 'https://sandbox.asaas.com/i/pay_123',
     bank_slip_url: null,
