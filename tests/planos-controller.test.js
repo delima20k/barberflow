@@ -43,6 +43,14 @@ describe('PlanosController - dias de expiração do plano pago', () => {
     assert.equal(PC.calcularDiasExpiracao('lixo', now), null);
     assert.equal(PC.calcularDiasExpiracao(null, now), null);
   });
+
+  test('pre-cadastro mostra apenas trial e mantem planos pagos para usuario logado', () => {
+    assert.match(SRC_PLANOS, /#ajustarCardsPagosPreCadastro\(Boolean\(tipoTravado\)\)/);
+    assert.match(SRC_PLANOS, /data-plano="mensal"/);
+    assert.match(SRC_PLANOS, /data-plano="trimestral"/);
+    assert.match(SRC_PLANOS, /card\.hidden = !usuarioLogado/);
+    assert.match(SRC_PLANOS, /card\.style\.display = usuarioLogado \? '' : 'none'/);
+  });
 });
 
 describe('PlanosController - selo de plano aplicado (código-fonte)', () => {

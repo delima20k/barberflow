@@ -25,6 +25,7 @@ class PlanosController {
     if (toggle) toggle.style.display = tipoTravado ? 'none' : '';
     this.#ajustarCtasPlanosLogado(Boolean(tipoTravado));
     this.#ajustarTrialPlanosLogado(Boolean(tipoTravado));
+    this.#ajustarCardsPagosPreCadastro(Boolean(tipoTravado));
     // Marca o card do plano PAGO ativo com "Plano aplicado" + dias de expiração.
     // Async (lê o status da assinatura na BFF) — não bloqueia o preparo da tela.
     void this.#marcarPlanoAtivo(tipoTravado);
@@ -102,6 +103,15 @@ class PlanosController {
     document.querySelectorAll('#tela-planos-pro .ppp-btn[data-plano="trial"]').forEach(btn => {
       const card = btn.closest('.ppp-card');
       if (card) card.style.display = usuarioLogado ? 'none' : '';
+    });
+  }
+
+  #ajustarCardsPagosPreCadastro(usuarioLogado) {
+    document.querySelectorAll('#tela-planos-pro .ppp-btn[data-plano="mensal"], #tela-planos-pro .ppp-btn[data-plano="trimestral"]').forEach(btn => {
+      const card = btn.closest('.ppp-card');
+      if (!card) return;
+      card.hidden = !usuarioLogado;
+      card.style.display = usuarioLogado ? '' : 'none';
     });
   }
 
