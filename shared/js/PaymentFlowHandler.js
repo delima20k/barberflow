@@ -159,6 +159,11 @@ class PaymentFlowHandler {
       onSucesso();
     } catch (err) {
       console.warn('[PaymentFlowHandler] TWA billing:', err);
+      if (PaymentFlowHandler.#isTwaBillingUnsupported(err)) {
+        console.warn('[PaymentFlowHandler] TWA billing indisponivel, usando checkout web Asaas');
+        await PaymentFlowHandler.#fluxoBrowserAsaas(plano, onSucesso, onErro, opts);
+        return;
+      }
       // Erro recoverable: segue para cadastro sem bloquear
       if (typeof onErro === 'function') {
         onErro(err.message);
@@ -236,6 +241,21 @@ class PaymentFlowHandler {
       typeof window.getDigitalGoodsService === 'function' ||
       document.referrer.includes('android-app://')
     );
+  }
+
+  static #isTwaBillingUnsupported(err) {
+    const name = String(err?.name ?? '').toLowerCase();
+    const message = String(err?.message ?? err ?? '').toLowerCase();
+    return name === 'operationerror'
+      || message.includes('unsupported context')
+      || message.includes('not supported')
+      || message.includes('not available')
+      || message.includes('nao suport')
+      || message.includes('não suport')
+      || message.includes('indisponivel')
+      || message.includes('indisponível')
+      || message.includes('getdigitalgoodsservice')
+      || message.includes('paymentrequest');
   }
 
   static #mostrarToast(mensagem) {
