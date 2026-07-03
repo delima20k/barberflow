@@ -148,10 +148,25 @@ function criarDomMock() {
     removeEventListener: (ev, h) => {
       if (listeners[ev]) listeners[ev] = listeners[ev].filter(x => x !== h);
     },
+    // querySelectorAll no nível do documento — necessário para o safety-net
+    // (FluxoDeFila.#fecharOverlaysRemanescentes busca '.fdf-overlay' no document).
+    querySelectorAll: sel => {
+      const result = [];
+      for (const el of appended) {
+        if (matchesSel(el, sel)) result.push(el);
+        result.push(...(el.querySelectorAll?.(sel) ?? []));
+      }
+      return result;
+    },
     _listeners: listeners,
     _fireDoc: (ev, data) => [...(listeners[ev] ?? [])].forEach(h => h(data ?? {})),
   };
   return doc;
+}
+
+/** Conta listeners de um evento registrados no document mock. */
+function contarListenersDoc(doc, ev) {
+  return (doc._listeners[ev] ?? []).length;
 }
 
 // ─── Factory de sandbox ───────────────────────────────────────────────────────
@@ -171,6 +186,7 @@ function criarSandbox() {
   });
 
   carregar(sandbox, 'shared/js/FluxoDeFila.js');
+  carregar(sandbox, 'shared/js/QueueModalPayloadBuilder.js');
 
   return { sandbox, doc, tocarSomSpy };
 }
@@ -377,5 +393,94 @@ describe('FluxoDeFila — instância', () => {
     botoes[0]._fire('click', {});
 
     assert.equal(await p, 'ok');
+  });
+});
+
+// ─── Rede de segurança (safety-net) — fecha overlays órfãos na troca de tela ──
+
+describe('FluxoDeFila — safety-net em barberflow:tela-entrando', () => {
+
+  test('registra o listener global uma única vez (idempotência) mesmo abrindo 2 modais', () => {
+    const { sandbox, doc } = criarSandbox();
+    sandbox.FluxoDeFila.abrir({ id: 'a', titulo: 'A', corpo: 'C', acoes: [] });
+    sandbox.FluxoDeFila.abrir({ id: 'b', titulo: 'B', corpo: 'C', acoes: [] });
+    assert.equal(
+      contarListenersDoc(doc, 'barberflow:tela-entrando'), 1,
+      'o safety-net deve registrar exatamente 1 listener global',
+    );
+  });
+
+  test('troca de tela força o fecho de overlay órfão: resolve null e remove o keydown', async () => {
+    const { sandbox, doc } = criarSandbox();
+    // Modal aberto e NUNCA fechado pelo usuário (Promise ficaria pendente).
+    const p = sandbox.FluxoDeFila.abrir({ id: 'orfao', titulo: 'T', corpo: 'C', acoes: [], fecharBtn: true });
+    assert.equal(contarListenersDoc(doc, 'keydown'), 1, 'modal aberto registra 1 keydown');
+
+    // Simula navegação de tela (evento disparado pelo AnimationService).
+    doc._fireDoc('barberflow:tela-entrando', {});
+
+    assert.equal(await p, null, 'overlay órfão deve resolver a Promise com null');
+    assert.equal(
+      contarListenersDoc(doc, 'keydown'), 0,
+      'o keydown do overlay órfão deve ser removido do document',
+    );
+  });
+
+  test('não refecha overlay que já está saindo (evita trabalho redundante)', () => {
+    const { sandbox, doc } = criarSandbox();
+    sandbox.FluxoDeFila.abrir({ id: 'saindo', titulo: 'T', corpo: 'C', acoes: [], fecharBtn: true });
+    const overlay = doc.body._appended[0];
+    overlay.classList.add('fdf-overlay--saindo');
+
+    let resolveuDeNovo = false;
+    overlay._fdfResolve = () => { resolveuDeNovo = true; };
+    doc._fireDoc('barberflow:tela-entrando', {});
+
+    assert.equal(resolveuDeNovo, false, 'overlay já em saída não deve ser fechado de novo');
+  });
+});
+
+// ─── Integração com QueueModalPayloadBuilder: dedup por id evita acúmulo ──────
+
+describe('FluxoDeFila — dedup dos payloads de fila (sem acúmulo de listener)', () => {
+
+  test('montarPayloadPresencaFisica agora traz id estável', () => {
+    const { sandbox } = criarSandbox();
+    const config = sandbox.QueueModalPayloadBuilder.montarPayloadPresencaFisica({
+      nomeBarbearia: 'Studio X', clienteNome: 'João',
+    });
+    assert.equal(config.id, 'modal-presenca-fisica');
+  });
+
+  test('reabrir o modal de presença sem fechar o anterior NÃO acumula overlay/keydown', () => {
+    const { sandbox, doc } = criarSandbox();
+    const config = sandbox.QueueModalPayloadBuilder.montarPayloadPresencaFisica({
+      nomeBarbearia: 'Studio X', clienteNome: 'João',
+    });
+
+    // 1ª abertura — cliente entra na fila e NÃO responde (Promise pendente).
+    sandbox.FluxoDeFila.abrir(config);
+    const overlay1 = doc.body._appended[0];
+    // Faz o remove() do mock realmente tirar o overlay da lista (como no browser).
+    overlay1.remove = () => {
+      const i = doc.body._appended.indexOf(overlay1);
+      if (i >= 0) doc.body._appended.splice(i, 1);
+    };
+    assert.equal(contarListenersDoc(doc, 'keydown'), 1, '1ª abertura: 1 keydown');
+
+    // 2ª abertura (mesmo id) — o dedup deve remover o overlay órfão anterior.
+    sandbox.FluxoDeFila.abrir(config);
+
+    assert.equal(doc.body._appended.length, 1, 'deve haver apenas 1 overlay no body');
+    assert.equal(
+      contarListenersDoc(doc, 'keydown'), 1,
+      'keydown não deve acumular — o do overlay anterior foi removido pelo dedup',
+    );
+  });
+
+  test('montarPayloadProximoNaFila e montarPayloadToast também trazem id', () => {
+    const { sandbox } = criarSandbox();
+    assert.equal(sandbox.QueueModalPayloadBuilder.montarPayloadProximoNaFila().id, 'modal-proximo-fila');
+    assert.equal(sandbox.QueueModalPayloadBuilder.montarPayloadToast(1).id, 'modal-toast-fila');
   });
 });

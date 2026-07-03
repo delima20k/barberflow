@@ -36,6 +36,9 @@ class FluxoDeFila {
   // ── Estado da instância ─────────────────────────────────────
   #config;
 
+  // ── Rede de segurança global (registrada uma única vez) ─────
+  static #safetyNetRegistrado = false;
+
   /**
    * @param {object}       config
    * @param {string}       [config.id]             — id do overlay (evita duplicatas)
@@ -85,7 +88,45 @@ class FluxoDeFila {
   // PRIVADO
   // ═══════════════════════════════════════════════════════════
 
+  /**
+   * Rede de segurança independente do `id`: registra UMA única vez (guard de
+   * idempotência) um listener global que força o fecho de qualquer overlay de
+   * FluxoDeFila remanescente ao trocar de tela. Cobre overlays que escaparam do
+   * dedup por qualquer motivo não previsto (app minimizado, conexão perdida,
+   * navegação que não passou pelo botão de fechar) — sem isso, o listener de
+   * keydown e o overlay ficariam presos em document.body afetando toda a SPA.
+   *
+   * Usa o evento 'barberflow:tela-entrando' já disparado pelo AnimationService
+   * em toda navegação (nav/push/voltar). Nenhum modal do projeto precisa
+   * sobreviver a uma troca de tela — todos são confirmações/avisos transitórios.
+   */
+  static #garantirSafetyNet() {
+    if (FluxoDeFila.#safetyNetRegistrado) return;
+    if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+    FluxoDeFila.#safetyNetRegistrado = true;
+    document.addEventListener('barberflow:tela-entrando', () => {
+      FluxoDeFila.#fecharOverlaysRemanescentes();
+    });
+  }
+
+  /**
+   * Fecha todo overlay de FluxoDeFila ainda no DOM que não esteja já saindo.
+   * Prefere `_fdfResolve(null)` (resolve a Promise pendente + remove o listener
+   * de keydown + anima a saída); cai para `remove()` se a referência sumiu.
+   */
+  static #fecharOverlaysRemanescentes() {
+    if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
+    document.querySelectorAll('.fdf-overlay').forEach(overlay => {
+      if (overlay.classList?.contains?.('fdf-overlay--saindo')) return; // já fechando
+      if (typeof overlay._fdfResolve === 'function') overlay._fdfResolve(null);
+      else overlay.remove?.();
+    });
+  }
+
   static #criar(config) {
+    // Garante a rede de segurança na 1ª abertura (idempotente nas demais).
+    FluxoDeFila.#garantirSafetyNet();
+
     return new Promise(resolve => {
       const {
         id,

@@ -112,6 +112,10 @@ class QueueModalPayloadBuilder {
     const shopPart = QueueModalPayloadBuilder.#shopPart(nomeBarbearia);
 
     return {
+      // id estável (mesmo tipo de modal → mesmo id): garante o dedup do
+      // FluxoDeFila, que remove o overlay anterior e o listener de keydown
+      // antes de abrir um novo. Sem id, overlays escapados vazariam no document.
+      id:        'modal-proximo-fila',
       icone:     '✂️',
       titulo:    'É a sua vez!',
       corpo:     `Você é o próximo${shopPart}. Dirija-se à cadeira de atendimento.`,
@@ -137,6 +141,9 @@ class QueueModalPayloadBuilder {
       : `Você está na posição <strong>${posicao}</strong>${shopPart}.`;
 
     return {
+      // id estável — ver montarPayloadProximoNaFila. Mesmo sendo config de
+      // toast/inline, se roteado por FluxoDeFila o dedup evita acúmulo.
+      id:     'modal-toast-fila',
       icone:  '💈',
       titulo: posicao === 1 ? 'É a sua vez!' : 'Fila avançou',
       corpo,
@@ -158,6 +165,11 @@ class QueueModalPayloadBuilder {
     const nome     = FluxoDeFila.escapar(clienteNome ?? 'você');
 
     return {
+      // id estável: este é o modal disparado por FilaPresencaService toda vez
+      // que o cliente entra na fila — o de maior risco de escapar (o cliente
+      // pode minimizar o app sem responder). Com id, uma reabertura remove o
+      // overlay órfão anterior e seu listener de keydown antes de criar o novo.
+      id:     'modal-presenca-fisica',
       icone:  '🏠',
       titulo: 'Você já está na barbearia?',
       corpo:  `${nome}, confirme sua presença para que o barbeiro saiba que você chegou${shopPart}.`,
