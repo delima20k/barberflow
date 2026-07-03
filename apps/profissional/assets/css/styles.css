@@ -4851,3 +4851,71 @@
 }
 .fcm-metodo-icone { font-size: 1.3rem; }
 .fcm-metodo-label { font-size: .77rem; font-weight: 600; }
+
+/* Professional document guard */
+.pdoc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(17, 24, 39, .72);
+  backdrop-filter: blur(10px);
+}
+
+.pdoc-modal-open { overflow: hidden; }
+
+.pdoc-modal__card {
+  width: min(100%, 390px);
+  border: 1px solid rgba(212, 175, 55, .24);
+  border-radius: 8px;
+  padding: 22px;
+  background: #111827;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .38);
+}
+
+.pdoc-modal__title {
+  margin: 0 0 10px;
+  color: #f9fafb;
+  font: 800 1.28rem/1.2 Arial, Helvetica, sans-serif;
+}
+
+.pdoc-modal__text {
+  margin: 0 0 18px;
+  color: #d1d5db;
+  font-size: .94rem;
+  line-height: 1.45;
+}
+
+.pdoc-modal__label {
+  display: grid;
+  gap: 8px;
+  color: #f9fafb;
+  font-weight: 700;
+}
+
+.pdoc-modal__input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(212, 175, 55, .36);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #0b1120;
+  color: #ffffff;
+  font: 700 1rem/1 Arial, Helvetica, sans-serif;
+}
+
+.pdoc-modal__input:focus {
+  outline: 2px solid rgba(212, 175, 55, .42);
+  outline-offset: 2px;
+}
+
+.pdoc-modal__erro {
+  min-height: 20px;
+  margin: 10px 0 14px;
+  color: #fca5a5;
+  font-size: .88rem;
+}
+
+.pdoc-modal__btn { margin-top: 2px; }

@@ -31,6 +31,10 @@ class PlanosService {
     const plano = MonetizationGuard.planoSelecionado || 'trial';
 
     try {
+      if (typeof ProfessionalDocumentGuard !== 'undefined') {
+        await ProfessionalDocumentGuard.ensure();
+      }
+
       if (plano === 'trial') {
         const { error } = await BffApiService.pagamentosProfissional.ativarTrial();
         if (error) throw error;

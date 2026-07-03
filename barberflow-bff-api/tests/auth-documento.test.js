@@ -13,6 +13,8 @@ process.env.SUPABASE_ANON_KEY         = 'test-anon-key';
 process.env.SUPABASE_JWT_SECRET       = 'test-jwt-secret-at-least-32-chars!!';
 
 const TEST_USER_ID = 'b2c3d4e5-f6a7-4901-bcde-f12345678901';
+const DocumentCipher = require('../infrastructure/crypto/DocumentCipher');
+let profileCpfCnpjEnc = null;
 
 // ── Stub SupabaseClient ───────────────────────────────────────────
 const SupabaseClient = require('../utils/SupabaseClient');
@@ -24,7 +26,7 @@ const SupabaseClient = require('../utils/SupabaseClient');
       q.select = () => q;
       q.eq     = () => q;
       q.single = () => Promise.resolve({
-        data: { id: TEST_USER_ID, full_name: 'Test', role: 'professional', cpf_cnpj_enc: null },
+        data: { id: TEST_USER_ID, full_name: 'Test', role: 'professional', cpf_cnpj_enc: profileCpfCnpjEnc },
         error: null,
       });
       // update → eq (para salvarDocumento)
@@ -92,6 +94,7 @@ function req(method, path, body, headers = {}) {
 }
 
 const post = (path, body, hdrs) => req('POST', path, body, hdrs);
+const get = (path, hdrs) => req('GET', path, null, hdrs);
 
 suite('POST /api/v1/auth/documento', () => {
 
@@ -163,6 +166,37 @@ suite('POST /api/v1/auth/documento', () => {
       { Authorization: `Bearer ${TOKEN}` },
     );
     assert.strictEqual(status, 200);
+  });
+
+});
+
+suite('GET /api/v1/auth/me documento seguro', () => {
+
+  test('retorna apenas hasDocument=false quando perfil nao tem documento', async () => {
+    profileCpfCnpjEnc = null;
+    const { status, body } = await get(
+      '/api/v1/auth/me',
+      { Authorization: `Bearer ${TOKEN}` },
+    );
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.dados.perfil.hasDocument, false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(body.dados.perfil, 'cpf_cnpj'), false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(body.dados.perfil, 'cpf_cnpj_enc'), false);
+  });
+
+  test('retorna apenas hasDocument=true quando documento cifrado existe', async () => {
+    profileCpfCnpjEnc = DocumentCipher.encrypt('12345678901');
+    const { status, body } = await get(
+      '/api/v1/auth/me',
+      { Authorization: `Bearer ${TOKEN}` },
+    );
+    profileCpfCnpjEnc = null;
+
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.dados.perfil.hasDocument, true);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(body.dados.perfil, 'cpf_cnpj'), false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(body.dados.perfil, 'cpf_cnpj_enc'), false);
   });
 
 });

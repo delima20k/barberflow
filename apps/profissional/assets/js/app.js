@@ -197,6 +197,10 @@ class BarberFlowProfissional extends Router {
         return;
       }
 
+      if (typeof ProfessionalDocumentGuard !== 'undefined') {
+        await ProfessionalDocumentGuard.ensure();
+      }
+
       this.#prepararTela(tela);
       if (modo === 'nav') super.nav(tela);
       else super.push(tela);

@@ -194,9 +194,9 @@ class AuthRepository extends BaseRepository {
 
     if (!data) return null;
 
-    // Decifra o documento server-side; nunca expõe cpf_cnpj_enc ao caller
+    // Nunca expoe CPF/CNPJ ao caller; o front so precisa saber se existe.
     const { cpf_cnpj_enc, ...rest } = data;
-    rest.cpf_cnpj = DocumentCipher.tryDecrypt(cpf_cnpj_enc);
+    rest.hasDocument = Boolean(cpf_cnpj_enc && DocumentCipher.tryDecrypt(cpf_cnpj_enc));
     return rest;
   }
 

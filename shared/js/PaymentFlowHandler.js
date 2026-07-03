@@ -205,13 +205,14 @@ class PaymentFlowHandler {
 
     try {
       PaymentFlowHandler.#browserPaymentInFlight = true;
+      if (typeof ProfessionalDocumentGuard !== 'undefined') {
+        await ProfessionalDocumentGuard.ensure();
+      }
       PaymentFlowHandler.#mostrarToast('Gerando cobranca segura...');
-      const cpfCnpj = PaymentFlowHandler.#documentoDaSessao(session);
       const { data, error } = await BffApiService.pagamentosProfissional.criarCobranca({
         proType: tipo,
         planType: plano,
         billingType: 'UNDEFINED',
-        ...(cpfCnpj ? { customer: { cpfCnpj } } : {}),
       });
       if (error) throw error;
 
@@ -226,56 +227,6 @@ class PaymentFlowHandler {
     } finally {
       PaymentFlowHandler.#browserPaymentInFlight = false;
     }
-  }
-
-  static async #solicitarDocumentoCobranca() {
-    const atual = '';
-    for (;;) {
-      const informado = window.prompt(
-        'Para gerar a cobranca Pix, informe o CPF ou CNPJ do cliente pagador.',
-        atual,
-      );
-      if (informado === null) throw new Error('CPF ou CNPJ obrigatorio para gerar a cobranca.');
-      const digits = String(informado).replace(/\D/g, '');
-      const valido = PaymentFlowHandler.#validarDocumento(digits);
-      if (valido.ok) return digits;
-      PaymentFlowHandler.#mostrarToast(valido.msg);
-    }
-  }
-
-  static #documentoDaSessao(_session) {
-    // CPF/CNPJ não está mais no JWT (user_metadata foi limpo por P1 security).
-    // Lê do perfil em cache (AuthService.#perfil.cpf_cnpj, decifrado pela BFF).
-    // Fallback para user_metadata mantido enquanto o backfill não cobrir todos os usuários.
-    const perfilDoc = typeof AuthService !== 'undefined'
-      ? String(AuthService.getPerfil()?.cpf_cnpj ?? '').replace(/\D/g, '')
-      : '';
-    if (PaymentFlowHandler.#validarDocumento(perfilDoc).ok) return perfilDoc;
-
-    // Fallback: user_metadata (usuários anteriores ao backfill)
-    const meta = _session?.user?.user_metadata || {};
-    const candidates = [meta.cpf_cnpj, meta.cpfCnpj, meta.cpf, meta.cnpj];
-    for (const item of candidates) {
-      const digits = String(item ?? '').replace(/\D/g, '');
-      if (PaymentFlowHandler.#validarDocumento(digits).ok) return digits;
-    }
-    return null;
-  }
-
-  static #validarDocumento(digits) {
-    if (digits.length === 11) {
-      if (typeof InputValidator !== 'undefined' && typeof InputValidator.cpf === 'function') {
-        return InputValidator.cpf(digits, true);
-      }
-      return { ok: true, msg: '' };
-    }
-    if (digits.length === 14) {
-      if (typeof InputValidator !== 'undefined' && typeof InputValidator.cnpj === 'function') {
-        return InputValidator.cnpj(digits, true);
-      }
-      return { ok: true, msg: '' };
-    }
-    return { ok: false, msg: 'Informe um CPF com 11 digitos ou CNPJ com 14 digitos.' };
   }
 
   static #isTWA() {

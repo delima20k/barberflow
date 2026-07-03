@@ -106,6 +106,9 @@ class AuthService {
           }
         }
       }
+      if (AuthService.#isPro && typeof ProfessionalDocumentGuard !== 'undefined') {
+        await ProfessionalDocumentGuard.ensure();
+      }
       navFn('inicio');
     } catch (e) {
       AuthService.#notificarMensagem(onMensagem, AuthService._traduzirErro(e));
@@ -434,9 +437,20 @@ class AuthService {
   static patchPerfil(campos) {
     if (!AuthService.#perfil) return;
     Object.assign(AuthService.#perfil, campos);
-    // Salva no SessionCache para persistir no próximo reload (Camada 2)
+    // Salva no SessionCache para persistir no proximo reload (Camada 2)
     const user = typeof AppState !== 'undefined' ? AppState.get('user') : null;
     if (user) SessionCache.salvar(AuthService.#perfil, user);
+  }
+
+  static async recarregarPerfil() {
+    const session = await SupabaseService.getSession().catch(() => null);
+    if (!session?.user?.id) return null;
+    const perfil = await AuthService._carregarPerfil(session.user.id);
+    if (!await AuthService._verificarRoleApp(perfil)) return null;
+    AuthService.#perfil = perfil;
+    SessionCache.salvar(perfil, session.user);
+    AuthService._atualizarUI(perfil, session.user);
+    return perfil;
   }
 
   /**
