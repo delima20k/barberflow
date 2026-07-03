@@ -16,12 +16,14 @@ class FakeRepo {
     existingCustomer = null,
     profilePhone = '11999999999',
     profileCpfCnpj = null,
+    profileCpfCnpjEncPresent = false,
     authMetadata = {},
     authMetadataError = null,
   } = {}) {
     this.profileRole = profileRole;
     this.profilePhone = profilePhone;
     this.profileCpfCnpj = profileCpfCnpj;
+    this.profileCpfCnpjEncPresent = profileCpfCnpjEncPresent;
     this.authMetadata = authMetadata;
     this.authMetadataError = authMetadataError;
     this.customer = existingCustomer;
@@ -41,6 +43,7 @@ class FakeRepo {
       pro_type: 'barbeiro',
       is_active: true,
       cpf_cnpj: this.profileCpfCnpj,
+      cpf_cnpj_enc_present: this.profileCpfCnpjEncPresent,
     };
   }
 
@@ -360,6 +363,23 @@ test('usa CPF/CNPJ cifrado do perfil quando JWT nao possui documento', async () 
   );
 
   assert.equal(asaas.customers[0].cpfCnpj, '52998224725');
+});
+
+test('diferencia documento cifrado ilegivel de documento ausente', async () => {
+  const repo = new FakeRepo({ profileCpfCnpjEncPresent: true });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  await assert.rejects(
+    () => service.criarCobranca(
+      { id: USER_ID, email: 'teste@barberflow.test' },
+      { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED' },
+      { ip: '127.0.0.1' },
+    ),
+    err => err.status === 503 && /Documento profissional cadastrado/.test(err.message),
+  );
+  assert.equal(asaas.customers.length, 0);
+  assert.equal(asaas.payments.length, 0);
 });
 
 test('atualiza cliente Asaas existente com CPF/CNPJ antes da cobranca', async () => {

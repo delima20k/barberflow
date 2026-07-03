@@ -60,6 +60,11 @@ class ProfessionalPaymentService extends BaseService {
     }
     let customer = await this.#repo.getCustomerByUser(userId);
     const dadosCliente = this.#montarDadosCliente({ profile, user, body, authMetadata });
+    if (!dadosCliente.cpfCnpj && !customer && profile.cpf_cnpj_enc_present) {
+      throw AppError.unavailable(
+        'Documento profissional cadastrado, mas indisponivel para leitura segura.',
+      );
+    }
     if (!dadosCliente.cpfCnpj && !customer) {
       throw AppError.badRequest('CPF ou CNPJ do cadastro profissional e obrigatorio para gerar cobranca.');
     }

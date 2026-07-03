@@ -20,6 +20,7 @@ class ProfessionalPaymentRepository extends BaseRepository {
 
     const { cpf_cnpj_enc, ...rest } = data;
     rest.cpf_cnpj = DocumentCipher.tryDecrypt(cpf_cnpj_enc);
+    rest.cpf_cnpj_enc_present = Boolean(cpf_cnpj_enc);
     return rest;
   }
 

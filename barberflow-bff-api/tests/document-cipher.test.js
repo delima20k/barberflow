@@ -69,7 +69,7 @@ suite('DocumentCipher', () => {
     test('retorna null para ciphertext adulterado (não lança)', () => {
       const enc = DocumentCipher.encrypt('12345678901');
       const parsed = JSON.parse(enc);
-      parsed.v = parsed.v.slice(0, -1) + (parsed.v.slice(-1) === 'A' ? 'B' : 'A');
+      parsed.v = (parsed.v[0] === 'A' ? 'B' : 'A') + parsed.v.slice(1);
       assert.strictEqual(DocumentCipher.tryDecrypt(JSON.stringify(parsed)), null);
     });
 
