@@ -152,6 +152,10 @@ class ChegadaProducaoService {
   static #buildConfig(nomeBarbearia) {
     const nome = nomeBarbearia ? ` na ${FluxoDeFila.escapar(nomeBarbearia)}` : '';
     return {
+      // id estável: garante o dedup do FluxoDeFila (remove overlay órfão +
+      // keydown antes de reabrir). Sem id, uma reabertura sem fechar o
+      // anterior vazaria listener no document. Ver FluxoDeFila.#criar.
+      id:     'modal-chegada-producao',
       icone:  '🏠',
       titulo: 'Onde você está?',
       corpo:  `Confirme sua chegada${nome} para avisar o barbeiro.`,
