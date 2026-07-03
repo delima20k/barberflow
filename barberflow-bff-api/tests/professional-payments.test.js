@@ -19,6 +19,7 @@ class FakeRepo {
     profileCpfCnpjEncPresent = false,
     authMetadata = {},
     authMetadataError = null,
+    pendingPayment = null,
   } = {}) {
     this.profileRole = profileRole;
     this.profilePhone = profilePhone;
@@ -26,6 +27,8 @@ class FakeRepo {
     this.profileCpfCnpjEncPresent = profileCpfCnpjEncPresent;
     this.authMetadata = authMetadata;
     this.authMetadataError = authMetadataError;
+    this.pendingPayment = pendingPayment;
+    this.pendingPaymentLookup = null;
     this.customer = existingCustomer;
     this.createdPayments = [];
     this.events = [];
@@ -78,6 +81,20 @@ class FakeRepo {
     this.payment = row;
     this.createdPayments.push(row);
     return row;
+  }
+
+  async getReusablePendingPayment({ userId, planType, proType, statuses, dueDateMin }) {
+    this.pendingPaymentLookup = { userId, planType, proType, statuses, dueDateMin };
+    const payment = this.pendingPayment ?? this.payment;
+    if (!payment) return null;
+    if (payment.user_id !== userId) return null;
+    if (payment.plan_type !== planType) return null;
+    if (payment.pro_type !== proType) return null;
+    if (!statuses.includes(payment.status)) return null;
+    if (payment.paid_at) return null;
+    if (!payment.invoice_url) return null;
+    if (payment.due_date && payment.due_date < dueDateMin) return null;
+    return payment;
   }
 
   async getPaymentByAsaasId(id) {
@@ -184,6 +201,31 @@ class FakeAsaas {
   }
 }
 
+function pendingPayment(overrides = {}) {
+  return {
+    id: '66666666-6666-4666-8666-666666666666',
+    user_id: USER_ID,
+    barbershop_id: null,
+    asaas_customer_id: 'cus_pendente',
+    asaas_payment_id: 'pay_pendente',
+    plan_type: 'mensal',
+    pro_type: 'barbeiro',
+    billing_type: 'UNDEFINED',
+    status: 'PENDING',
+    value: 5.00,
+    due_date: '2099-01-01',
+    description: 'BarberFlow Pro Barbeiro - Plano Mensal',
+    invoice_url: 'https://sandbox.asaas.com/i/pay_pendente',
+    bank_slip_url: null,
+    pix_payload: null,
+    pix_expiration_date: null,
+    paid_at: null,
+    created_at: '2026-07-03T12:00:00.000Z',
+    updated_at: '2026-07-03T12:00:00.000Z',
+    ...overrides,
+  };
+}
+
 test('AsaasClient mapeia credencial recusada como configuracao indisponivel', async () => {
   const client = new AsaasClient({
     apiKey: 'fake',
@@ -231,10 +273,99 @@ test('cria cobranca Asaas para profissional autenticado', async () => {
 
   assert.equal(result.asaasPaymentId, 'pay_123');
   assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_123');
+  assert.equal(result.reused, false);
   assert.equal(result.value, 5.00);
   assert.equal(repo.createdPayments[0].billing_type, 'PIX');
   assert.equal(repo.createdPayments[0].barbershop_id, null);
   assert.equal(asaas.customers[0].name, 'Profissional Teste');
+});
+
+test('reaproveita cobranca pendente valida sem criar nova no Asaas', async () => {
+  const repo = new FakeRepo({
+    authMetadata: { cpf_cnpj: '529.982.247-25' },
+    pendingPayment: pendingPayment(),
+  });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED', dueDate: '2099-01-01' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(result.asaasPaymentId, 'pay_pendente');
+  assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_pendente');
+  assert.equal(result.reused, true);
+  assert.equal(asaas.payments.length, 0);
+  assert.equal(repo.createdPayments.length, 0);
+});
+
+test('segunda tentativa em outro dispositivo recebe mesma invoiceUrl pendente', async () => {
+  const repo = new FakeRepo({ authMetadata: { cpf_cnpj: '529.982.247-25' } });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  const first = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED', dueDate: '2099-01-01' },
+    { ip: '127.0.0.1' },
+  );
+  const second = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED', dueDate: '2099-01-01' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(asaas.payments.length, 1);
+  assert.equal(second.id, first.id);
+  assert.equal(second.invoiceUrl, first.invoiceUrl);
+  assert.equal(second.reused, true);
+});
+
+test('ignora pendencia sem invoiceUrl e cria nova cobranca valida', async () => {
+  const repo = new FakeRepo({
+    authMetadata: { cpf_cnpj: '529.982.247-25' },
+    pendingPayment: pendingPayment({ invoice_url: null }),
+  });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED', dueDate: '2099-01-01' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(result.asaasPaymentId, 'pay_123');
+  assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_123');
+  assert.equal(result.reused, false);
+  assert.equal(asaas.payments.length, 1);
+});
+
+test('nao reaproveita cobranca paga cancelada ou vencida', async () => {
+  for (const invalidPayment of [
+    pendingPayment({ status: 'RECEIVED', paid_at: '2026-07-03T12:00:00.000Z' }),
+    pendingPayment({ status: 'CANCELLED' }),
+    pendingPayment({ due_date: '2026-01-01' }),
+  ]) {
+    const repo = new FakeRepo({
+      authMetadata: { cpf_cnpj: '529.982.247-25' },
+      pendingPayment: invalidPayment,
+    });
+    const asaas = new FakeAsaas();
+    const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+    const result = await service.criarCobranca(
+      { id: USER_ID, email: 'teste@barberflow.test' },
+      { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED', dueDate: '2099-01-01' },
+      { ip: '127.0.0.1' },
+    );
+
+    assert.equal(result.asaasPaymentId, 'pay_123');
+    assert.equal(result.reused, false);
+    assert.equal(asaas.payments.length, 1);
+  }
 });
 
 test('cria cobranca com callback seguro para voltar ao app profissional', async () => {

@@ -217,7 +217,9 @@ class PaymentFlowHandler {
       if (error) throw error;
 
       const invoiceUrl = data?.invoiceUrl;
-      if (!invoiceUrl) throw new Error('Cobranca criada sem link de pagamento.');
+      if (!invoiceUrl) {
+        throw new Error('Cobranca criada sem link de pagamento. Tente novamente ou fale com suporte.');
+      }
 
       PaymentFlowHandler.#salvarPagamentoPendente(data);
       window.location.assign(invoiceUrl);

@@ -17,6 +17,14 @@ const PLANOS = {
 };
 
 const STATUS_PAGO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH']);
+const STATUS_COBRANCA_REAPROVEITAVEL = [
+  'PENDING',
+  'CREATED',
+  'IN_PROGRESS',
+  'PROCESSING',
+  'WAITING_PAYMENT',
+  'OVERDUE',
+];
 const PROFESSIONAL_CANONICAL_ORIGIN = 'https://pro.barberflow.live';
 const PROFESSIONAL_PAYMENT_RETURN_PATH = '/?bf_pagamento=retorno';
 const PROFESSIONAL_RETURN_ORIGINS = new Set([
@@ -49,6 +57,15 @@ class ProfessionalPaymentService extends BaseService {
 
     const profile = await this.#repo.getProfile(userId);
     this.#assertProfessional(profile);
+
+    const dueDate = this.#normalizarDueDate(body.dueDate ?? body.due_date);
+    const reusablePayment = await this.#buscarCobrancaPendenteReutilizavel({
+      userId,
+      planType,
+      proType,
+      dueDate,
+    });
+    if (reusablePayment) return this.#toPaymentDto(reusablePayment, { reused: true });
 
     let authMetadata = {};
     if (typeof this.#repo.getAuthUserMetadata === 'function') {
@@ -88,7 +105,6 @@ class ProfessionalPaymentService extends BaseService {
       });
     }
 
-    const dueDate = this.#normalizarDueDate(body.dueDate ?? body.due_date);
     const description = this._texto('description', body.description ?? plano.description, 240, false)
       || plano.description;
 
@@ -136,7 +152,7 @@ class ProfessionalPaymentService extends BaseService {
       raw_payload: this.#safeRawPayload(asaasPayment),
     });
 
-    return this.#toPaymentDto(payment);
+    return this.#toPaymentDto(payment, { reused: false });
   }
 
   async buscarCobranca(user, paymentId) {
@@ -446,7 +462,18 @@ class ProfessionalPaymentService extends BaseService {
     return synced ?? payment;
   }
 
-  #toPaymentDto(row) {
+  async #buscarCobrancaPendenteReutilizavel({ userId, planType, proType, dueDate }) {
+    if (typeof this.#repo.getReusablePendingPayment !== 'function') return null;
+    return this.#repo.getReusablePendingPayment({
+      userId,
+      planType,
+      proType,
+      statuses: STATUS_COBRANCA_REAPROVEITAVEL,
+      dueDateMin: dueDate,
+    });
+  }
+
+  #toPaymentDto(row, { reused = false } = {}) {
     return {
       id: row.id,
       asaasPaymentId: row.asaas_payment_id,
@@ -464,6 +491,7 @@ class ProfessionalPaymentService extends BaseService {
       } : null,
       paidAt: row.paid_at,
       createdAt: row.created_at,
+      reused,
     };
   }
 

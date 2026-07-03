@@ -95,6 +95,46 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data;
   }
 
+  async getReusablePendingPayment({ userId, planType, proType, statuses, dueDateMin }) {
+    this._uuid('userId', userId);
+    const { data, error } = await this._db
+      .from('asaas_payments')
+      .select([
+        'id',
+        'user_id',
+        'barbershop_id',
+        'asaas_customer_id',
+        'asaas_payment_id',
+        'plan_type',
+        'pro_type',
+        'billing_type',
+        'status',
+        'value',
+        'due_date',
+        'description',
+        'invoice_url',
+        'bank_slip_url',
+        'pix_payload',
+        'pix_expiration_date',
+        'paid_at',
+        'created_at',
+        'updated_at',
+      ].join(', '))
+      .eq('user_id', userId)
+      .eq('plan_type', planType)
+      .eq('pro_type', proType)
+      .in('status', statuses)
+      .is('paid_at', null)
+      .not('invoice_url', 'is', null)
+      .neq('invoice_url', '')
+      .gte('due_date', dueDateMin)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) this._throwDbError(error, 'getReusablePendingPayment');
+    return data ?? null;
+  }
+
   async getPaymentForUser(userId, id) {
     this._uuid('userId', userId);
     this._uuid('id', id);
