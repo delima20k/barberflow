@@ -50,13 +50,27 @@ class FakeElement {
       const face = cube.appendChild(new FakeElement('figure', 'pp-prism-face'));
       face.dataset.face = String(i);
       face.appendChild(new FakeElement('div', 'pp-prism-media'));
+      // Identidade por face (avatar + nome + like) e barra de progresso
+      face.appendChild(new FakeElement('img', 'pp-prism-face-id-img'));
+      face.appendChild(new FakeElement('span', 'pp-prism-face-id-name'));
+      const faceLike = face.appendChild(new FakeElement('button', 'pp-prism-face-like-btn'));
+      faceLike.appendChild(new FakeElement('span', 'pp-prism-face-like-count'));
+      face.appendChild(new FakeElement('div', 'pp-prism-progress'));
     }
     stage.appendChild(new FakeElement('div', 'pp-prism-reactions'));
     const publicActions = this.appendChild(new FakeElement('div', 'pp-prism-public-actions'));
-    publicActions.appendChild(new FakeElement('input', 'pp-prism-message-input'));
-    publicActions.appendChild(new FakeElement('button', 'pp-prism-message-send'));
+    publicActions.appendChild(new FakeElement('img', 'pp-prism-public-logo'));
+    const messageWrap = publicActions.appendChild(new FakeElement('div', 'pp-prism-message-wrap'));
+    messageWrap.appendChild(new FakeElement('input', 'pp-prism-message-input'));
+    messageWrap.appendChild(new FakeElement('button', 'pp-prism-message-send'));
     publicActions.appendChild(new FakeElement('button', 'pp-prism-public-like'));
     publicActions.appendChild(new FakeElement('button', 'pp-prism-public-emoji'));
+    // Ações do dono do story (ver mensagens + curtir)
+    const ownerActions = this.appendChild(new FakeElement('div', 'pp-prism-story-owner-actions'));
+    ownerActions.appendChild(new FakeElement('button', 'portfolio-action pp-prism-story-messages'));
+    const ownerLike = ownerActions.appendChild(new FakeElement('button', 'portfolio-action pp-prism-story-owner-like'));
+    ownerLike.appendChild(new FakeElement('span', 'portfolio-action__icon'));
+    ownerLike.appendChild(new FakeElement('span', 'portfolio-action__count'));
     this.appendChild(new FakeElement('figcaption', 'pp-prism-title'));
     this.appendChild(new FakeElement('div', 'pp-prism-actions'));
     this.appendChild(new FakeElement('span', 'pp-prism-count'));

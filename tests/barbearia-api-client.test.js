@@ -158,23 +158,26 @@ describe('BarbeariaApiClient — indicador de disponibilidade do BFF', () => {
     );
   });
 
+  // Fatia o corpo completo de getNearby (até o método seguinte) — janela fixa
+  // de N chars quebrava sempre que o método crescia (ex: bloco Supabase primário).
+  function blocoGetNearby() {
+    const inicio = SRC.indexOf('static async getNearby');
+    assert.ok(inicio > 0, 'getNearby deve existir');
+    const fim = SRC.indexOf('static async getDestaque', inicio);
+    return SRC.slice(inicio, fim > inicio ? fim : undefined);
+  }
+
   test('getNearby reseta #bffFalhou para false ao obter sucesso', () => {
-    const idxGetNearby = SRC.indexOf('static async getNearby');
-    assert.ok(idxGetNearby > 0, 'getNearby deve existir');
-    const bloco = SRC.slice(idxGetNearby, idxGetNearby + 800);
     assert.ok(
-      bloco.includes('#bffFalhou = false'),
-      'getNearby deve resetar #bffFalhou para false ao receber resposta de sucesso do BFF',
+      blocoGetNearby().includes('#bffFalhou = false'),
+      'getNearby deve resetar #bffFalhou para false ao receber resposta de sucesso',
     );
   });
 
   test('getNearby marca #bffFalhou como true ao falhar', () => {
-    const idxGetNearby = SRC.indexOf('static async getNearby');
-    assert.ok(idxGetNearby > 0, 'getNearby deve existir');
-    const bloco = SRC.slice(idxGetNearby, idxGetNearby + 800);
     assert.ok(
-      bloco.includes('#bffFalhou = true'),
-      'getNearby deve marcar #bffFalhou como true quando o BFF retorna erro',
+      blocoGetNearby().includes('#bffFalhou = true'),
+      'getNearby deve marcar #bffFalhou como true quando todas as fontes falham',
     );
   });
 

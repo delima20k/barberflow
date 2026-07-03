@@ -99,6 +99,8 @@ test('resetar limpa mídia e overlays; estado é snapshot serializável', () => 
   assert.equal(est.overlays.length, 1);
   assert.deepEqual(est.overlays[0], {
     id: est.overlays[0].id, tipo: 'emoji', conteudo: '😀', x: 5, y: 6, escala: 1.5,
+    // Campos de estilo de texto (null em overlays de emoji)
+    cor: null, fontFamilia: null,
   });
 
   svc.resetar();

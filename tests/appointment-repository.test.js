@@ -31,16 +31,37 @@ function criarQueryBuilder(result) {
   return chain;
 }
 
-function criarRepo({ data = [], error = null } = {}) {
+function criarRepo({ data = [], error = null, DateImpl = null } = {}) {
   const result  = { data, error };
   const builder = criarQueryBuilder(result);
   const api     = { from: fn().mockReturnValue(builder) };
 
-  const sb = vm.createContext({ console, ApiService: api });
+  const sb = vm.createContext({
+    console,
+    ApiService: api,
+    // Relógio injetável: permite fixar o instante de `new Date()` no repo
+    ...(DateImpl ? { Date: DateImpl } : {}),
+  });
   carregar(sb, 'shared/js/InputValidator.js');
   carregar(sb, 'shared/js/AppointmentRepository.js');
 
   return { AR: sb.AppointmentRepository, builder, api };
+}
+
+/**
+ * Date falso congelado em um instante fixo — `new Date()` sem argumentos
+ * retorna sempre o mesmo momento; com argumentos, comporta-se normalmente.
+ * @param {string} iso — instante fixo
+ */
+function criarDateFixo(iso) {
+  const instante = new Date(iso).getTime();
+  return class DateFixo extends Date {
+    constructor(...args) {
+      if (args.length === 0) super(instante);
+      else super(...args);
+    }
+    static now() { return instante; }
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -86,27 +107,37 @@ describe('AppointmentRepository.getByProfessional()', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('AppointmentRepository.getHoje() e getAmanha()', () => {
 
+  // Instante fixo às 22h30 locais — DENTRO da janela (21h–00h em UTC-3) em
+  // que o teste antigo quebrava: o dia UTC já virou, mas o dia local não.
+  // Determinístico: independe da hora em que a suíte roda.
+  const DateFixo = () => criarDateFixo('2026-07-02T22:30:00-03:00');
+
   test('getHoje() passa range de datas com intervalo de 1 dia', async () => {
-    const { AR, builder } = criarRepo({ data: [] });
+    const DF = DateFixo();
+    const { AR, builder } = criarRepo({ data: [], DateImpl: DF });
     await AR.getHoje(UUID_PRO);
 
-    // Deve ter chamado .gte e .lte com strings ISO de hoje
-    const hoje = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // Expectativa calculada com o MESMO relógio fixo: meia-noite local → ISO.
+    const inicioLocal = new DF();
+    inicioLocal.setHours(0, 0, 0, 0);
+    const prefixoHoje = inicioLocal.toISOString().slice(0, 10); // YYYY-MM-DD
     const gteCalls = builder.gte.calls;
-    assert.ok(gteCalls.some(([col, val]) => col === 'scheduled_at' && val.startsWith(hoje)),
-      'getHoje deveria usar a data de hoje em .gte()');
+    assert.ok(gteCalls.some(([col, val]) => col === 'scheduled_at' && val.startsWith(prefixoHoje)),
+      'getHoje deveria usar a meia-noite local de hoje em .gte()');
   });
 
   test('getAmanha() passa range de datas com início no dia seguinte', async () => {
-    const { AR, builder } = criarRepo({ data: [] });
+    const DF = DateFixo();
+    const { AR, builder } = criarRepo({ data: [], DateImpl: DF });
     await AR.getAmanha(UUID_PRO);
 
-    const amanha = new Date();
-    amanha.setDate(amanha.getDate() + 1);
-    const prefixo = amanha.toISOString().slice(0, 10);
+    const inicioLocal = new DF();
+    inicioLocal.setDate(inicioLocal.getDate() + 1);
+    inicioLocal.setHours(0, 0, 0, 0);
+    const prefixoAmanha = inicioLocal.toISOString().slice(0, 10);
 
     const gteCalls = builder.gte.calls;
-    assert.ok(gteCalls.some(([col, val]) => col === 'scheduled_at' && val.startsWith(prefixo)),
-      'getAmanha deveria usar a data de amanhã em .gte()');
+    assert.ok(gteCalls.some(([col, val]) => col === 'scheduled_at' && val.startsWith(prefixoAmanha)),
+      'getAmanha deveria usar a meia-noite local de amanhã em .gte()');
   });
 });

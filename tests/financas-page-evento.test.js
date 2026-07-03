@@ -176,12 +176,14 @@ describe('FinancasPage — contrato BFF', () => {
     assert.equal(data.barbeiros[0].valorBarbeiro.toFixed(2), '55.00');
   });
 
-  test('renderiza valor total a pagar recebido da BFF', () => {
+  test('renderiza valor pendente atual recebido da BFF', () => {
     const src = fs.readFileSync(
       path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
       'utf8',
     );
-    assert.match(src, /Valor total a pagar/);
+    // Copy atual do modelo de saldo por ciclo: "Valor pendente atual"
+    // (saldoPendenteAtual com fallback para pendingPayoutAmount).
+    assert.match(src, /Valor pendente atual/);
     assert.match(src, /barbeiro\.pendingPayoutAmount/);
   });
 
@@ -197,15 +199,15 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /barbeiro\.papel !== 'owner'/);
   });
 
-  test('modal de pagamento mostra periodo, valor e cortes finalizados recebidos', () => {
+  test('modal de pagamento mostra periodo, valor pendente e cortes do ciclo aberto', () => {
     const src = fs.readFileSync(
       path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
       'utf8',
     );
     assert.match(src, /#abrirModalPagamento/);
-    assert.match(src, /Cortes finalizados\/recebidos no periodo/);
+    assert.match(src, /Cortes pendentes no ciclo aberto/);
     assert.match(src, /#periodoLabel/);
-    assert.match(src, /this\.#moeda\(barbeiro\.pendingPayoutAmount\)/);
+    assert.match(src, /this\.#moeda\(barbeiro\.saldoPendenteAtual \?\? barbeiro\.pendingPayoutAmount\)/);
   });
 
   test('frontend confirma payout somente pela BFF e bloqueia duplo clique', () => {

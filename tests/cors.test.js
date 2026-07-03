@@ -201,14 +201,26 @@ describe('CORS — consistência com src/app.js', () => {
     );
   });
 
-  test('vercel.json NÃO contém headers CORS estáticos — Express é a única autoridade', () => {
-    const vercelJson = fs.readFileSync(
+  test('vercel.json só injeta CORS estático no escopo /api/admin/* (exceção de 8553b394)', () => {
+    // Contrato vigente: Express é a autoridade de CORS, com UMA exceção
+    // deliberada — o painel admin (fix 8553b394) recebe headers estáticos
+    // escopados a /api/admin/*. Qualquer ACAO estático fora desse escopo
+    // é regressão.
+    const vercelJson = JSON.parse(fs.readFileSync(
       path.resolve(__dirname, '../vercel.json'),
       'utf8',
+    ));
+
+    const blocosComAcao = (vercelJson.headers ?? []).filter(bloco =>
+      (bloco.headers ?? []).some(h => h.key === 'Access-Control-Allow-Origin'),
     );
-    assert.ok(
-      !vercelJson.includes('"Access-Control-Allow-Origin"'),
-      'vercel.json não deve injetar Access-Control-Allow-Origin estático — CORS delegado ao Express',
-    );
+
+    for (const bloco of blocosComAcao) {
+      assert.match(
+        bloco.source,
+        /^\/api\/admin\//,
+        `ACAO estático só é permitido em /api/admin/* — encontrado em "${bloco.source}" (CORS geral é delegado ao Express)`,
+      );
+    }
   });
 });

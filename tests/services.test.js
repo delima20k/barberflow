@@ -41,7 +41,20 @@ function criarSandbox(overrides = {}) {
 
 describe('PlanosService — selecionarTipo()', () => {
 
-  test('barbearia → podeAvancar: false (sem persistir sessionStorage)', () => {
+  test('tipo inválido → podeAvancar: false (sem persistir sessionStorage)', () => {
+    const sb = criarSandbox({
+      PaymentFlowHandler: { iniciarFluxo: fn() },
+    });
+    carregar(sb, 'apps/profissional/assets/js/PlanosService.js');
+
+    const resultado = sb.PlanosService.selecionarTipo('gerente');
+
+    assert.equal(resultado.podeAvancar, false);
+    // Não deve ter escrito bf_tipo
+    assert.equal(sb.sessionStorage.getItem('bf_tipo'), null);
+  });
+
+  test('barbearia → podeAvancar: true + persiste bf_tipo (fluxo de dono habilitado)', () => {
     const sb = criarSandbox({
       PaymentFlowHandler: { iniciarFluxo: fn() },
     });
@@ -49,9 +62,8 @@ describe('PlanosService — selecionarTipo()', () => {
 
     const resultado = sb.PlanosService.selecionarTipo('barbearia');
 
-    assert.equal(resultado.podeAvancar, false);
-    // Não deve ter escrito bf_tipo
-    assert.equal(sb.sessionStorage.getItem('bf_tipo'), null);
+    assert.equal(resultado.podeAvancar, true);
+    assert.equal(sb.sessionStorage.getItem('bf_tipo'), 'barbearia');
   });
 
   test('barbeiro → podeAvancar: true + persiste bf_tipo em sessionStorage', () => {
@@ -69,40 +81,62 @@ describe('PlanosService — selecionarTipo()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Contrato atual: iniciarFluxo(tipo, plano, ...) foi substituído por
+// selecionarPlano(tipo, plano) + confirmarPlano(onSucesso, onErro).
+// Trial ativa via BFF; planos pagos delegam ao PaymentFlowHandler.
 
-describe('PlanosService — iniciarFluxo()', () => {
+describe('PlanosService — selecionarPlano() + confirmarPlano()', () => {
 
-  test('persiste tipo e plano via MonetizationGuard antes de invocar PaymentFlowHandler', () => {
-    const spyFluxo = fn();
+  test('selecionarPlano persiste tipo e plano via MonetizationGuard', () => {
     const sb = criarSandbox({
-      PaymentFlowHandler: { iniciarFluxo: spyFluxo },
+      PaymentFlowHandler: { iniciarFluxo: fn() },
     });
     carregar(sb, 'apps/profissional/assets/js/PlanosService.js');
 
-    const onSucesso = fn();
-    const onErro    = fn();
-    sb.PlanosService.iniciarFluxo('barbeiro', 'mensal', onSucesso, onErro);
+    sb.PlanosService.selecionarPlano('barbeiro', 'mensal');
 
-    assert.equal(sb.MonetizationGuard.tipoUsuario,     'barbeiro');
+    assert.equal(sb.MonetizationGuard.tipoUsuario,      'barbeiro');
     assert.equal(sb.MonetizationGuard.planoSelecionado, 'mensal');
+    assert.equal(sb.MonetizationGuard.confirmacaoPendente, true);
   });
 
-  test('PaymentFlowHandler.iniciarFluxo é chamado com plano, onSucesso e onErro', () => {
+  test('confirmarPlano de plano pago delega ao PaymentFlowHandler.iniciarFluxo', async () => {
     const spyFluxo = fn();
     const sb = criarSandbox({
       PaymentFlowHandler: { iniciarFluxo: spyFluxo },
     });
     carregar(sb, 'apps/profissional/assets/js/PlanosService.js');
 
+    sb.PlanosService.selecionarPlano('barbeiro', 'trimestral');
     const onSucesso = fn();
     const onErro    = fn();
-    sb.PlanosService.iniciarFluxo('barbeiro', 'trimestral', onSucesso, onErro);
+    await sb.PlanosService.confirmarPlano(onSucesso, onErro);
 
     assert.equal(spyFluxo.calls.length, 1);
-    const [plano, cbSucesso, cbErro] = spyFluxo.calls[0];
+    const [plano, cbSucesso, cbErro, opts] = spyFluxo.calls[0];
     assert.equal(plano, 'trimestral');
     assert.equal(typeof cbSucesso, 'function');
     assert.equal(typeof cbErro,    'function');
+    assert.equal(opts?.tipo, 'barbeiro');
+  });
+
+  test('confirmarPlano de trial ativa via BFF, limpa o guard e chama onSucesso', async () => {
+    const spyTrial = fn().mockResolvedValue({ error: null });
+    const sb = criarSandbox({
+      PaymentFlowHandler: { iniciarFluxo: fn() },
+      BffApiService: { pagamentosProfissional: { ativarTrial: spyTrial } },
+    });
+    carregar(sb, 'apps/profissional/assets/js/PlanosService.js');
+
+    sb.PlanosService.selecionarPlano('barbeiro', 'trial');
+    const onSucesso = fn();
+    const onErro    = fn();
+    await sb.PlanosService.confirmarPlano(onSucesso, onErro);
+
+    assert.equal(spyTrial.calls.length,  1, 'trial deve ativar pela BFF');
+    assert.equal(onSucesso.calls.length, 1);
+    assert.equal(onErro.calls.length,    0);
+    assert.equal(sb.MonetizationGuard.planoSelecionado, null, 'guard deve ser limpo');
   });
 
 });

@@ -190,17 +190,26 @@ describe('CacheService — modo disk', () => {
     }
   });
 
-  it('cache expirado em disco → get retorna null e arquivos sao removidos', async () => {
-    const tmpDir = makeTmpDir();
+  it('cache expirado em disco → get retorna null e arquivos sao removidos', () => {
+    const tmpDir  = makeTmpDir();
+    const realNow = Date.now;
     try {
+      // Relógio falso (determinístico): congela Date.now no set/get inicial
+      // e avança além do TTL para o segundo get. Sem sleep — o teste antigo
+      // expirava entre set() e o 1º get() com a suíte inteira em paralelo.
+      let agora = realNow();
+      Date.now = () => agora;
+
       const cache = new CacheService({ mode: 'disk', ttl: 80, dir: tmpDir });
       cache.set('expira-disk', buf('bye'));
       assert.notEqual(cache.get('expira-disk'), null, 'deve existir antes de expirar');
-      await sleep(120);
+
+      agora += 200; // avança o relógio além do TTL de 80ms
       assert.equal(cache.get('expira-disk'), null, 'deve ser null apos TTL');
       const arquivos = fs.readdirSync(tmpDir);
       assert.equal(arquivos.length, 0, 'arquivos expirados devem ser removidos do disco');
     } finally {
+      Date.now = realNow;
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });

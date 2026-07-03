@@ -15,7 +15,8 @@ describe('PortfolioImageActions', () => {
     assert.match(source, /curtirPortfolioImagem/);
     assert.match(source, /descurtirPortfolioImagem/);
     assert.match(source, /listarMensagens/);
-    assert.match(source, /portfolio-messages-panel/);
+    // Painel de mensagens renomeado para modal próprio (.pf-msg-modal)
+    assert.match(source, /pf-msg-modal/);
     assert.match(source, /\\uD83D\\uDC4D/);
     assert.doesNotMatch(source, /from\(['"]likes['"]\)/);
     assert.doesNotMatch(source, /SupabaseService\.getUser/);

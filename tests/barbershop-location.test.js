@@ -223,7 +223,7 @@ describe('BarbershopService.salvarEnderecoGps', () => {
     });
   });
 
-  test('bloqueia salvamento sem endereco ou GPS', async () => {
+  test('bloqueia salvamento sem endereco', async () => {
     const { BarbershopService, repoMock, bffMock } = criarServico();
 
     await assert.rejects(
@@ -231,13 +231,24 @@ describe('BarbershopService.salvarEnderecoGps', () => {
       /endereco|obrigatorio/i
     );
 
-    await assert.rejects(
-      () => BarbershopService.salvarEnderecoGps(UUID_OWNER, { address: 'Rua Teste' }),
-      /coordena|invalid/i
-    );
-
     assert.equal(repoMock.updateLocation.calls.length, 0);
     assert.equal(bffMock.patch.calls.length, 0);
+  });
+
+  test('sem GPS envia payload SEM lat/lng — BFF geocodifica server-side', async () => {
+    // Contrato atual: coordenadas são OPCIONAIS. Sem GPS (e sem CEP para
+    // geocodificar no cliente), o service envia o endereço mesmo assim e o
+    // BFF resolve as coordenadas server-side.
+    const { BarbershopService, bffMock } = criarServico();
+
+    await BarbershopService.salvarEnderecoGps(UUID_OWNER, { address: 'Rua Teste' });
+
+    assert.equal(bffMock.patch.calls.length, 1, 'deve enviar ao BFF mesmo sem coords');
+    const [rota, payload] = bffMock.patch.calls[0];
+    assert.equal(rota, '/api/v1/barbearias/minha/endereco');
+    assert.equal(payload.address, 'Rua Teste');
+    assert.ok(!('lat' in payload) && !('lng' in payload),
+      'payload sem GPS não deve conter lat/lng — geocodificação é do BFF');
   });
 });
 

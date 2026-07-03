@@ -23,9 +23,12 @@ describe('PortfolioPrismViewer', () => {
 
   test('modo story usa prisma com audio explicito e lazy de faces vizinhas', () => {
     assert.match(js, /item\.mode === 'story'/);
-    assert.match(js, /el\.controls\s*=\s*this\.#isStoryMode\(\)/);
+    // Controls nativos nunca aparecem — áudio é ativado pelo botão explícito.
+    assert.match(js, /el\.controls\s*=\s*false/);
     assert.match(js, /el\.muted\s*=\s*!this\.#isStoryMode\(\)/);
-    assert.match(js, /el\.preload\s*=\s*'metadata'/);
+    // Preload adaptativo: 'auto' só para faces vizinhas (precarregar).
+    assert.match(js, /const preloadMode = precarregar \? 'auto' : 'metadata'/);
+    assert.match(js, /el\.preload\s*=\s*preloadMode/);
     assert.match(js, /btn\.textContent\s*=\s*'🔊 Tocar com som'/);
     assert.match(js, /Math\.abs\(offset\)\s*<=\s*1/);
     assert.match(js, /this\.#limparSlot\(slot\)/);
@@ -41,31 +44,20 @@ describe('PortfolioPrismViewer', () => {
     assert.doesNotMatch(storyViewerJs, /normalizarStories|normalizarMidia|media_url:\s*story/);
   });
 
-  test('exibe avatar, nome e curtidas no topo esquerdo em tela cheia', () => {
-    assert.match(js, /pp-prism-meta/);
-    assert.match(js, /pp-prism-avatar/);
-    assert.match(js, /pp-prism-name/);
-    assert.match(js, /pp-prism-likes/);
-    assert.match(js, /#renderMeta/);
+  test('exibe identidade (avatar, nome e curtidas) por face em tela cheia', () => {
+    // O bloco fixo .pp-prism-meta do topo esquerdo foi substituído por
+    // identidade POR FACE do prisma (acompanha a rotação do cubo).
+    assert.match(js, /pp-prism-face-id-img/);
+    assert.match(js, /pp-prism-face-id-name/);
+    assert.match(js, /pp-prism-face-like-btn/);
+    assert.match(js, /pp-prism-face-like-count/);
     assert.match(js, /professionalName/);
     assert.match(js, /professionalAvatarUrl/);
     assert.match(js, /likesCount/);
-    assert.match(css, /\.pp-prism-meta\s*\{[\s\S]*top:\s*14px/);
-    assert.match(css, /\.pp-prism-meta\s*\{[\s\S]*left:\s*14px/);
-    const metaCss = css.slice(css.indexOf('.pp-prism-meta {'), css.indexOf('.pp-prism-meta[hidden]'));
-    assert.doesNotMatch(metaCss, /background:\s*rgba/);
-    assert.doesNotMatch(metaCss, /border:\s*1px/);
-    assert.match(metaCss, /box-shadow:\s*none/);
-    assert.match(css, /\.pp-prism-avatar\s*\{[\s\S]*width:\s*48px/);
-    const avatarCss = css.slice(css.indexOf('.pp-prism-avatar {'), css.indexOf('.pp-prism-meta-text'));
-    assert.doesNotMatch(avatarCss, /border:\s*1px/);
-    assert.match(css, /\.pp-prism-meta-text\s*\{[\s\S]*display:\s*inline-flex/);
-
-    const proMetaCss = proCss.slice(proCss.indexOf('.pp-prism-meta {'), proCss.indexOf('.pp-prism-meta[hidden]'));
-    const proAvatarCss = proCss.slice(proCss.indexOf('.pp-prism-avatar {'), proCss.indexOf('.pp-prism-meta-text'));
-    assert.doesNotMatch(proMetaCss, /background:\s*rgba/);
-    assert.doesNotMatch(proMetaCss, /border:\s*1px/);
-    assert.doesNotMatch(proAvatarCss, /border:\s*1px/);
+    // #renderMeta permanece null-safe (refs legadas zeradas no bind)
+    assert.match(js, /#renderMeta\(item\)\s*\{\s*if \(!this\.#meta\) return;/);
+    assert.match(css, /\.pp-prism-face-id/);
+    assert.match(proCss, /\.pp-prism-face-id/);
   });
 
   test('renderiza barra publica e animacao de interacoes somente quando item permite', () => {
@@ -92,17 +84,22 @@ describe('PortfolioPrismViewer', () => {
     assert.match(js, /static #sadEmoji\(\)/);
     assert.match(js, /data-public-emoji="\$\{MediaPrismViewer\.#laughEmoji\(\)\}"/);
     assert.match(js, /data-public-emoji="\$\{MediaPrismViewer\.#sadEmoji\(\)\}"/);
-    assert.match(js, /#handlePublicMessage\(emojiBtn\.dataset\.publicEmoji/);
-    assert.ok(js.includes('data-public-like-icon aria-hidden="true">👍</span>'));
-    assert.match(js, /count\.hidden\s*=\s*\(?likesCount\s*<=\s*0\)?/);
-    assert.match(js, /icon\.hidden\s*=\s*\(?likesCount\s*>\s*0\)?/);
+    // Emoji do público: em modo story vai para #handleStoryMessage; em
+    // portfólio para #handlePublicMessage — ambos a partir de dataset.publicEmoji.
+    assert.match(js, /const texto = emojiBtn\.dataset\.publicEmoji/);
+    assert.match(js, /this\.#handlePublicMessage\(texto\)/);
+    assert.match(js, /this\.#handleStoryMessage\(texto\)/);
+    // Like migrou para botão POR FACE do prisma (👍 + contador por face).
+    assert.ok(js.includes('aria-hidden="true">👍</span>'));
+    assert.match(js, /#faceLikeBtns\[faceIndex\]/);
+    assert.match(js, /#faceLikeCounts\[faceIndex\]/);
     assert.match(js, /BffApiService\.profissionais\.curtirPortfolioImagem/);
     assert.match(js, /BffApiService\.profissionais\.iniciarMensagemBarbearia/);
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*width:\s*min\(92vw,\s*460px\)/);
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*position:\s*absolute/);
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*bottom:\s*max\(18px,\s*env\(safe-area-inset-bottom\)\)/);
     assert.match(css, /\.pp-prism-public-actions\s*\{[\s\S]*z-index:\s*5/);
-    assert.match(css, /\.pp-prism-message-wrap\s*\{[\s\S]*width:\s*160px/);
+    assert.match(css, /\.pp-prism-message-wrap\s*\{[\s\S]*width:\s*200px/);
     const publicButtonCss = css.slice(css.indexOf('.pp-prism-public-like,'), css.indexOf('.pp-prism-public-like.is-liked'));
     const proPublicButtonCss = proCss.slice(proCss.indexOf('.pp-prism-public-like,'), proCss.indexOf('.pp-prism-public-like.is-liked'));
     assert.match(publicButtonCss, /border:\s*0/);
@@ -117,7 +114,7 @@ describe('PortfolioPrismViewer', () => {
     assert.match(css, /@keyframes\s+pp-prism-like-rise/);
     assert.match(proCss, /\.pp-prism-float--emoji/);
     assert.match(proCss, /\.pp-prism-float--like/);
-    assert.match(proCss, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* 0\.5rem\)\)/);
+    assert.match(proCss, /bottom:\s*calc\(18px \+ \(var\(--pp-prism-float-stack,\s*0\) \* (?:0\.5rem|10px)\)\)/);
   });
 
   test('portfolio publico legado da barbearia tambem habilita a barra publica', () => {

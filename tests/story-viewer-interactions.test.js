@@ -22,11 +22,18 @@ describe('StoryViewer interacoes', () => {
 
   test('mostra mensagens recebidas ao autor do story sem permitir autoenvio', () => {
     const source = fs.readFileSync(path.join(ROOT, 'shared/js/StoryViewer.js'), 'utf8');
+    const prism  = fs.readFileSync(path.join(ROOT, 'shared/js/PortfolioPrismViewer.js'), 'utf8');
 
     assert.match(source, /#usuarioAtualId\(\)/);
     assert.match(source, /isOwner:\s+Boolean\(story\.owner_id && StoryViewer\.#usuarioAtualId\(\) === story\.owner_id\)/);
-    assert.match(source, /Ver mensagens do story/);
-    assert.match(source, /mensagensInput\.hidden = dados\.isOwner/);
+    // Autoenvio bloqueado: dono do story não envia mensagem para si mesmo
     assert.match(source, /if \(StoryViewer\.#storyAtualEhDoUsuario\(\)\) return;/);
+
+    // A UI do dono migrou para o MediaPrismViewer: botão "Ver mensagens do
+    // story" + input público escondido quando isOwner.
+    assert.match(prism, /Ver mensagens do Story/i);
+    assert.match(prism, /pp-prism-story-messages/);
+    assert.match(prism, /if \(wrap\) wrap\.hidden = true;/);
+    assert.match(prism, /this\.#publicEmojis\.forEach\(btn => \{ btn\.hidden = true; \}\);/);
   });
 });
