@@ -15,6 +15,72 @@ img, video, .bf-protegido {
 }
 html { touch-action: manipulation; } /* mata o zoom de duplo-toque, mantém scroll */
 
+/* ── Sem seleção de texto ao duplo clique/duplo toque ──────────────────
+   Menu, cards, ícones de ação e botões de modal não devem "grifar" texto
+   — mesmo padrão já aplicado a botões (button-system.css) e cards
+   (barber-card.css). Não altera cursor, :active/:hover nem eventos de
+   clique/onclick. Chat (ChatModal/UniversalChatPage/ChatSearchWidget) e
+   os composers de mensagem pública (portfolio/story) ficam de fora de
+   propósito — nenhum seletor abaixo pertence a essas áreas — assim como
+   inputs, textarea, select e [contenteditable], que nunca são alvo aqui. */
+.menu-item,
+.menu-nav-item,
+.menu-avatar,
+.menu-avatar-upload,
+.menu-footer-link,
+.sec-ver-mais,
+.card-mini,
+.port-item,
+.portfolio-card__media,
+.portfolio-viewer__close,
+.mb-cfg-lapis-btn,
+.mb-cfg-prod-img-btn,
+.mb-cfg-prod-remove,
+.mb-config-upload-btn,
+.mb-gps-btn,
+.mb-item-confirm-nao,
+.mb-item-confirm-sim,
+.mb-item-trash-btn,
+.mb-mais-btn,
+.mb-portfolio-card,
+.mb-portfolio-delete-overlay__op,
+.mb-portfolio-status button,
+.mb-portfolio-upload,
+.mb-prod-card-edit-btn,
+.mb-prod-card-view,
+.mb-share-copy,
+.mb-share-whats,
+.gps-btn-buscar,
+.gps-btn-gps,
+.gps-btn-salvar,
+.cam-btn,
+.cam-fechar,
+.ccm-btn,
+.crtm-btn,
+.crtm-checkbox,
+.crtm-fechar,
+.crtm-item,
+.crtm-label,
+.inpustyle-btn,
+.mslm-btn--fechar,
+.mslm-btn-adicionar,
+.mslm-btn-remover,
+.mslm-fechar,
+.pwa-banner__btn,
+.pwa-banner__fechar,
+.sfm-btn,
+.sv-fechar,
+.sv-like-btn,
+.termos-info-fechar,
+.tag,
+.cdr-row,
+.cdr-cadeira--long-press,
+.btn-perfil-criar,
+.btn-perfil-editar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ── Header Global Fixo — definição principal em shared/css/components.css (~linha 1059) ── */
 
 /* Botão hamburger */

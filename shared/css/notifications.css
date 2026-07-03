@@ -5,6 +5,28 @@
    As animações de abas permanecem 100% em tokens.css + Router.js
 ============================================================ */
 
+/* ── Sem seleção de texto ao duplo clique/duplo toque ──────────────────
+   Botões, itens de lista e toasts de notificação não devem "grifar"
+   texto — mesmo padrão de button-system.css. Não altera cursor,
+   :active/:hover nem eventos de clique. */
+.notif-bell-btn,
+.notif-item,
+.notif-cat-btn,
+.notif-marcar-todas,
+.notif-toast-fechar,
+.notif-toast-acao,
+.notif-push-ativar,
+.notif-push-dispensar,
+.bf-auth-popup-btn,
+.bf-auth-popup-btn-fechar,
+.qcs-btn-sim,
+.qcs-btn-pular,
+.qcs-btn-nao,
+.qcs-btn-aguardar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ── Botão sino no header ─────────────────────────────────── */
 .notif-bell-btn {
   position: relative;

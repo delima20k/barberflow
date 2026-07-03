@@ -29,6 +29,24 @@
   border: 1px solid transparent;
   cursor: pointer;
   transition: transform var(--ease), box-shadow var(--ease), background-color var(--ease), color var(--ease), border-color var(--ease), opacity var(--ease);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── Sem seleção de texto em controles de navegação/ação ──────────────
+   Duplo clique/duplo toque não deve "grifar" o texto de botões e ícones
+   de ação — mesmo padrão já usado em componentes de card (ver
+   barber-card.css). Não altera cursor, :active/:hover nem eventos de
+   clique. Chat, inputs, textarea, select e [contenteditable] ficam
+   sempre de fora — nenhum seletor abaixo pertence a essas áreas. */
+.btn-voltar,
+.nav-btn,
+.header-menu-btn,
+.header-avatar-btn,
+.mapa-gps-fab,
+.map-toggle-btn {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .btn:active,

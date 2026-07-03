@@ -36,6 +36,22 @@
   transform: scale(.985);
 }
 
+/* ── Sem seleção de texto ao duplo clique/duplo toque ──────────────────
+   Cards e botões de ação (favoritar, curtir) não devem "grifar" texto —
+   mesmo padrão de button-system.css. Não altera cursor nem :active/:hover. */
+.barber-card,
+.barber-row,
+.top-card,
+.destaque-card,
+.fav-card,
+.fav-card__btn,
+.card-fav-btn,
+.card-like-btn,
+.top-card__likes {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ============================================================
    AÇÕES DO CANTO SUPERIOR DIREITO — stars + botão favorito
    (+ botão like em cards de barbeiro). Reutilizado por todos

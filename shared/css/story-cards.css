@@ -367,6 +367,17 @@ body.media-viewer-open { overflow: hidden; }
 }
 .story-retry-btn:hover { background: rgba(43, 27, 18, .5); }
 
+/* ── Sem seleção de texto ao duplo clique/duplo toque ──────────────────
+   Precisa vir DEPOIS de .story-like-btn/.story-retry-btn (que usam
+   `all: unset`) para não ser sobrescrita pelo reset. Não altera cursor
+   nem eventos de clique. */
+.story-video-wrap,
+.story-like-btn,
+.story-retry-btn {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* ── Badge de contagem de stories no card (Ajuste 6 — mostra somente se > 1) ─ */
 .story-count-badge {
   position: absolute;

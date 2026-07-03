@@ -276,6 +276,14 @@
 }
 .mapa-shop-marker:active { transform: scale(.96); }
 
+/* Sem seleção de texto ao duplo clique/duplo toque no marcador do mapa
+   (label do nome fica dentro — herda via inheritance, sem regra própria). */
+.mapa-shop-marker,
+.loja-marker {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Label de nome premium acima do marcador da barbearia — em fluxo flex */
 .mapa-shop-marker__store-name {
   padding: 5px 12px;
