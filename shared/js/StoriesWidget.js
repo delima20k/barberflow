@@ -617,14 +617,59 @@ class StoriesWidget {
       vid.muted = true;
       vid.setAttribute('playsinline', '');
       vid.setAttribute('preload', 'metadata');
+      // crossOrigin permite capturar o 1º frame num <canvas> sem "tainting".
+      // Se o R2 não devolver CORS, o canvas falha e caímos no fallback play/pause.
+      vid.crossOrigin = 'anonymous';
       vid.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-      vid.addEventListener('loadeddata', cb, { once: true });
       vid.addEventListener('error', cb, { once: true });
-      // Fragmento #t exibe o primeiro frame do vídeo como capa do card.
+      // TWA/iOS não pintam o 1º frame de um <video> parado (preload=metadata),
+      // deixando o card preto. Ao ter o frame disponível, tenta trocar por um
+      // <img> capturado via canvas (renderiza sempre); se o canvas estiver
+      // "tainted" (R2 sem CORS), força a pintura no próprio vídeo com play/pause.
+      vid.addEventListener('loadeddata', () => {
+        StoriesWidget.#pintarCapaVideo(vid);
+        cb();
+      }, { once: true });
+      // Fragmento #t posiciona no primeiro frame do vídeo.
       vid.src = `${story.media_url}#t=0.1`;
       return vid;
     }
     return null;
+  }
+
+  /**
+   * Garante a capa (primeiro frame) de um card de vídeo sem depender de
+   * miniatura no servidor:
+   *   1) Tenta capturar o frame num <canvas> e trocar o <video> por um <img>
+   *      (imagem estática — renderiza em qualquer WebView).
+   *   2) Se o canvas estiver "tainted" (vídeo cross-origin sem CORS no R2),
+   *      força o WebView a decodificar/pintar o frame com um play() mudo
+   *      seguido de pause() — sem canvas, sem CORS.
+   * @param {HTMLVideoElement} vid — vídeo já com loadeddata disparado
+   */
+  static #pintarCapaVideo(vid) {
+    try {
+      const canvas  = document.createElement('canvas');
+      canvas.width  = vid.videoWidth  || 200;
+      canvas.height = vid.videoHeight || 356;
+      canvas.getContext('2d').drawImage(vid, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // lança se tainted
+      const img = document.createElement('img');
+      img.className   = 'story-video';
+      img.alt         = '';
+      img.style.cssText = vid.style.cssText;
+      img.src         = dataUrl;
+      vid.replaceWith(img);
+      return;
+    } catch (_) { /* canvas tainted (R2 sem CORS) → fallback abaixo */ }
+
+    // Fallback sem CORS: play() mudo pinta o frame; pausa logo em seguida.
+    try {
+      const parar = () => { try { vid.pause(); } catch (_) {} };
+      const p = vid.play?.();
+      if (p && typeof p.then === 'function') p.then(parar).catch(() => {});
+      else parar();
+    } catch (_) { /* autoplay bloqueado — mantém o #t=0.1 */ }
   }
 
   /**
@@ -685,11 +730,6 @@ class StoriesWidget {
     const identityName = isOwnerStory
       ? (story.shop_name ?? this.#shopName ?? '')
       : (story.poster_name ?? story.shop_name ?? this.#shopName ?? '');
-    // Badge = SEMPRE a logo da barbearia (dono e parceiro), igual ao card do
-    // dono e ao feed da Home. Para parceiro, o avatar do barbeiro aparece uma
-    // única vez no overlay (story-barber-avatar + story-barber-name) abaixo —
-    // antes o badge repetia o avatar do parceiro, gerando dois avatares iguais.
-    const identityLogo = logoSrc;
 
     const card = document.createElement('div');
     card.className          = 'card-mini story-card';
@@ -707,22 +747,24 @@ class StoriesWidget {
     if (media) wrap.appendChild(media);
     else wrap.classList.add('is-loaded');
 
-    const badge = document.createElement('img');
-    badge.className = 'story-shop-badge';
-    badge.src       = identityLogo;
-    badge.alt       = '';
-    badge.onerror   = function() { this.style.display = 'none'; };
-    wrap.appendChild(badge);
-
-    // Overlay do barbeiro que postou este story individual (apenas parceiros)
-    const barberAvatarSrcInd = authorAvatarSrc;
-    if (!isOwnerStory && (barberAvatarSrcInd || story.poster_name)) {
+    // Identidade — UM único avatar por card:
+    //   • Barbearia (dono) postou → badge com a LOGO da barbearia.
+    //   • Barbeiro parceiro postou → overlay com o AVATAR do barbeiro + nome.
+    // Nunca os dois ao mesmo tempo (antes o parceiro tinha badge-logo + avatar).
+    if (isOwnerStory) {
+      const badge = document.createElement('img');
+      badge.className = 'story-shop-badge';
+      badge.src       = logoSrc;
+      badge.alt       = '';
+      badge.onerror   = function() { this.style.display = 'none'; };
+      wrap.appendChild(badge);
+    } else if (authorAvatarSrc || story.poster_name) {
       const barberOverlayInd = document.createElement('div');
       barberOverlayInd.className = 'story-barber-overlay';
-      if (barberAvatarSrcInd) {
+      if (authorAvatarSrc) {
         const barberAvatarImgInd = document.createElement('img');
         barberAvatarImgInd.className = 'story-barber-avatar';
-        barberAvatarImgInd.src = barberAvatarSrcInd;
+        barberAvatarImgInd.src = authorAvatarSrc;
         barberAvatarImgInd.alt = '';
         barberAvatarImgInd.onerror = function() { this.style.display = 'none'; };
         barberOverlayInd.appendChild(barberAvatarImgInd);

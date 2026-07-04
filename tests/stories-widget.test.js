@@ -610,7 +610,7 @@ function buildStoriesComColeta({ listarStories }) {
   return { StoriesWidget, scrollEl, allEls };
 }
 
-test('StoriesWidget public-shop: story de PARCEIRO tem exatamente 1 avatar de barbeiro e badge = LOGO', async () => {
+test('StoriesWidget public-shop: story de PARCEIRO tem só o avatar do barbeiro (sem badge-logo) e mantém a thumbnail', async () => {
   const partnerStory = {
     id: 'sp1', owner_id: 'owner-1', media_url: 'https://cdn/p.mp4', media_type: 'video',
     tipo_autor: 'parceiro',
@@ -627,23 +627,25 @@ test('StoriesWidget public-shop: story de PARCEIRO tem exatamente 1 avatar de ba
   const widget = new StoriesWidget(scrollEl, { barbershopId: 'shop-public', shopName: 'Studio X', context: 'public-shop' });
   await widget.carregar();
 
-  // Regra: parceiro mostra 1 avatar de barbeiro (no overlay, com nome ao lado).
+  // UM único avatar: o do barbeiro (overlay com nome ao lado). Sem badge-logo.
   const barberAvatars = allEls.filter(e => (e.className ?? '').includes('story-barber-avatar'));
-  assert.strictEqual(barberAvatars.length, 1, 'story de parceiro deve ter EXATAMENTE 1 avatar de barbeiro (não 2)');
-  assert.match(barberAvatars[0].src, /^avatar:/, 'o avatar do overlay deve ser o avatar do barbeiro');
+  assert.strictEqual(barberAvatars.length, 1, 'story de parceiro deve ter EXATAMENTE 1 avatar de barbeiro');
+  assert.match(barberAvatars[0].src, /^avatar:/, 'o avatar deve ser o do barbeiro');
 
-  // Badge volta a ser a LOGO da barbearia (mesmo padrão do card do dono/Home).
   const badge = allEls.find(e => (e.className ?? '').includes('story-shop-badge'));
-  assert.ok(badge, 'deve existir o badge story-shop-badge');
-  assert.match(badge.src, /^logo:/, 'badge deve mostrar a LOGO da barbearia');
-  assert.doesNotMatch(badge.src, /^avatar:/, 'badge NÃO deve repetir o avatar do barbeiro');
+  assert.strictEqual(badge, undefined, 'parceiro NÃO deve ter o badge da logo (evita 2 avatares)');
 
-  // O nome do barbeiro segue presente no overlay.
   const nome = allEls.find(e => (e.className ?? '').includes('story-barber-name'));
   assert.ok(nome && nome.textContent === 'João Parceiro', 'overlay deve manter o nome do barbeiro ao lado do avatar');
+
+  // A thumbnail/fundo do card (.story-video) NÃO pode sumir com a mudança.
+  // Token exato: 'story-video-wrap' não deve contar como o fundo.
+  const thumb = allEls.find(e => (e.className ?? '').split(' ').includes('story-video'));
+  assert.ok(thumb, 'o fundo do card (thumbnail) deve continuar presente');
+  assert.strictEqual(thumb._tag, 'video', 'story de vídeo sem thumbnail usa <video> como fundo');
 });
 
-test('StoriesWidget public-shop: story do DONO mostra logo e NENHUM avatar de barbeiro (inalterado)', async () => {
+test('StoriesWidget public-shop: story do DONO mostra só a logo (badge) e mantém a thumbnail', async () => {
   const ownerStory = {
     id: 'so1', owner_id: 'owner-1', media_url: 'https://cdn/o.mp4', media_type: 'video',
     // sem tipo_autor: 'parceiro' → isOwnerStory = true
@@ -662,6 +664,115 @@ test('StoriesWidget public-shop: story do DONO mostra logo e NENHUM avatar de ba
   assert.strictEqual(barberAvatars.length, 0, 'story do dono não deve ter avatar de barbeiro');
 
   const badge = allEls.find(e => (e.className ?? '').includes('story-shop-badge'));
-  assert.ok(badge, 'deve existir o badge story-shop-badge');
+  assert.ok(badge, 'dono deve ter o badge da logo');
   assert.match(badge.src, /^logo:/, 'badge do dono deve mostrar a LOGO da barbearia');
+
+  // A thumbnail/fundo do card (.story-video) NÃO pode sumir com a mudança.
+  // Token exato: 'story-video-wrap' não deve contar como o fundo.
+  const thumb = allEls.find(e => (e.className ?? '').split(' ').includes('story-video'));
+  assert.ok(thumb, 'o fundo do card (thumbnail) deve continuar presente');
+});
+
+// ── Capa de vídeo (1º frame) sem depender de miniatura no servidor ───────────
+
+/**
+ * Document mock em que o <video> permite disparar 'loadeddata' e o <canvas>
+ * tem toDataURL controlável (simula captura OK ou "tainting" por falta de CORS).
+ */
+function buildDocComVideoCapturavel({ toDataURL, onPlay = () => {}, onPause = () => {} }) {
+  const created = [];
+  let replaced = null;
+  const document = {
+    createElement(tag) {
+      if (tag === 'canvas') {
+        return {
+          _tag: 'canvas', width: 0, height: 0,
+          getContext: () => ({ drawImage() {} }),
+          toDataURL,
+        };
+      }
+      const listeners = {};
+      const el = {
+        _tag: tag, _children: [], _attrs: {}, className: '', src: '', alt: '',
+        muted: false, preload: '', textContent: '', innerHTML: '', hidden: false,
+        onerror: null, dataset: {}, style: { cssText: '' },
+        crossOrigin: '', videoWidth: 200, videoHeight: 356,
+        setAttribute(k, v) { this._attrs[k] = v; },
+        appendChild(child) { this._children.push(child); },
+        addEventListener(ev, h) { (listeners[ev] = listeners[ev] || []).push(h); },
+        removeEventListener() {},
+        _fire(ev) { (listeners[ev] || []).forEach(h => h()); },
+        replaceWith(node) { replaced = node; },
+        play() { onPlay(); return Promise.resolve(); },
+        pause() { onPause(); },
+        querySelector() { return null; }, closest() { return null; }, querySelectorAll() { return []; },
+        get classList() {
+          const self = this;
+          const s = new Set((self.className || '').split(' ').filter(Boolean));
+          return { add(...c){c.forEach(x=>s.add(x)); self.className=[...s].join(' ');}, remove(){}, toggle(){}, contains(c){return s.has(c);} };
+        },
+      };
+      created.push(el);
+      return el;
+    },
+  };
+  return { document, created, getReplaced: () => replaced };
+}
+
+function scrollElColetor(appendedCards = []) {
+  return {
+    get children() { return appendedCards; },
+    innerHTML: '', hidden: false, querySelectorAll: () => [],
+    closest: () => ({ hidden: false }), appendChild(c) { appendedCards.push(c); },
+  };
+}
+
+test('StoriesWidget: card de vídeo captura o 1º frame num canvas e troca <video> por <img>', async () => {
+  const { document, created, getReplaced } = buildDocComVideoCapturavel({
+    toDataURL: () => 'data:image/jpeg;base64,QUJD',
+  });
+
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: { barbearias: { listarStories: async () => ({ data: [{ id: 'v1', owner_id: 'o', media_url: 'https://cdn/v.mp4', media_type: 'video' }], error: null }) } },
+    document,
+  });
+
+  const widget = new StoriesWidget(scrollElColetor(), { barbershopId: 'shop', context: 'public-shop' });
+  await widget.carregar();
+
+  const video = created.find(e => e._tag === 'video');
+  assert.ok(video, 'deve criar o <video> de fundo');
+  assert.equal(video.crossOrigin, 'anonymous', 'video deve ter crossOrigin para permitir captura');
+
+  video._fire('loadeddata'); // simula o frame disponível
+
+  const capa = getReplaced();
+  assert.ok(capa, 'o <video> deve ser trocado pela capa capturada');
+  assert.equal(capa._tag, 'img', 'a capa deve ser um <img> estático');
+  assert.match(capa.src, /^data:image\/jpeg/, 'a capa deve ser o frame capturado (dataURL)');
+});
+
+test('StoriesWidget: canvas "tainted" (R2 sem CORS) → fallback play/pause, sem trocar por img', async () => {
+  let played = false, paused = false;
+  const { document, created, getReplaced } = buildDocComVideoCapturavel({
+    toDataURL: () => { throw new Error('tainted'); },
+    onPlay:  () => { played = true; },
+    onPause: () => { paused = true; },
+  });
+
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: { barbearias: { listarStories: async () => ({ data: [{ id: 'v2', owner_id: 'o', media_url: 'https://cdn/v.mp4', media_type: 'video' }], error: null }) } },
+    document,
+  });
+
+  const widget = new StoriesWidget(scrollElColetor(), { barbershopId: 'shop', context: 'public-shop' });
+  await widget.carregar();
+
+  const video = created.find(e => e._tag === 'video');
+  video._fire('loadeddata');
+
+  assert.equal(getReplaced(), null, 'não deve trocar por <img> quando o canvas falha');
+  assert.equal(played, true, 'deve tentar play() para forçar a pintura do frame');
+  await Promise.resolve(); // pause ocorre após a Promise do play resolver
+  assert.equal(paused, true, 'deve pausar logo após pintar o frame');
 });
