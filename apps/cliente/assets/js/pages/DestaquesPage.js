@@ -106,7 +106,7 @@ class DestaquesPage {
       img.alt = b.name;
       img.loading = 'lazy';
       img.onerror = () => { avatar.textContent = '💈'; };
-      img.src = SupabaseService.getLogoUrl(b.logo_path) || '';
+      img.src = SupabaseService.getLogoUrl(b.logo_path, b.updated_at) || '';
       avatar.appendChild(img);
     } else {
       avatar.textContent = '💈';
@@ -159,7 +159,7 @@ class DestaquesPage {
     card.appendChild(info);
     card.appendChild(actions);
 
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path);
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path, b.updated_at);
     return card;
   }
 

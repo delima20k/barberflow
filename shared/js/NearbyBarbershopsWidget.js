@@ -222,9 +222,7 @@ class NearbyBarbershopsWidget {
           img.alt = b.name;
           img.loading = 'lazy';
           img.onerror = () => { avatarWrap.textContent = '💈'; };
-          img.src = b.logo_path.startsWith('http')
-            ? b.logo_path
-            : (SupabaseService.getLogoUrl(b.logo_path) || '');
+          img.src = SupabaseService.getLogoUrl(b.logo_path, b.updated_at) || '';
           avatarWrap.appendChild(img);
         } else {
           avatarWrap.textContent = '💈';
@@ -283,7 +281,7 @@ class NearbyBarbershopsWidget {
         addr.className = 'dc-addr';
         addr.textContent = b.address || b.city || '';
 
-        if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path);
+        if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(card, b.cover_path, b.updated_at);
         item.appendChild(card);
         item.appendChild(addr);
         el.appendChild(item);
@@ -656,9 +654,7 @@ class NearbyBarbershopsWidget {
     avatarWrap.className = 'avatar gold';
     if (b.logo_path) {
       const img   = document.createElement('img');
-      img.src     = b.logo_path.startsWith('http')
-        ? b.logo_path
-        : (SupabaseService.getLogoUrl(b.logo_path) || '');
+      img.src     = SupabaseService.getLogoUrl(b.logo_path, b.updated_at) || '';
       img.alt     = b.name;
       img.loading = 'lazy';
       img.onerror = () => { avatarWrap.textContent = '💈'; };
@@ -698,7 +694,7 @@ class NearbyBarbershopsWidget {
     row.appendChild(avatarWrap);
     row.appendChild(info);
 
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path, b.updated_at);
 
     // Canto superior direito: badge + favorito com confetes
     if (b?.id) {
@@ -718,4 +714,3 @@ class NearbyBarbershopsWidget {
     return row;
   }
 }
-

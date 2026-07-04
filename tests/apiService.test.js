@@ -300,6 +300,15 @@ describe('ApiService — URL helpers de Storage', () => {
     assert.ok(url.includes('shopId/logo.png'));
   });
 
+  test('getLogoUrl() aplica cache-bust por updated_at para logo/capa de barbearia', () => {
+    const sb = criarSandbox(async () => resOk([])());
+    const updatedAt = '2026-07-04T12:34:56.000Z';
+    const url = sb.ApiService.getLogoUrl('shopId/cover.webp', updatedAt);
+    assert.ok(url.includes('/storage/v1/object/public/barbershops/'));
+    assert.ok(url.includes('shopId/cover.webp'));
+    assert.ok(url.endsWith(`?t=${new Date(updatedAt).getTime()}`));
+  });
+
   test('getPortfolioThumbUrl() gera URL pública do bucket portfolio', () => {
     const sb = criarSandbox(async () => resOk([])());
     const url = sb.ApiService.getPortfolioThumbUrl('x/thumb.jpg');

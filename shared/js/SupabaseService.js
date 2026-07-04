@@ -470,8 +470,8 @@ class SupabaseService {
    * @param {string} path — logo_path da tabela barbershops
    * @returns {string}
    */
-  static getLogoUrl(path) {
-    return ApiService.getLogoUrl(path);
+  static getLogoUrl(path, updatedAt = null) {
+    return ApiService.getLogoUrl(path, updatedAt);
   }
 
   /**

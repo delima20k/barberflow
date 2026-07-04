@@ -617,7 +617,7 @@ class StoryViewer {
     }
     if (story.shop_logo_path) {
       return typeof ApiService !== 'undefined'
-        ? ApiService.getLogoUrl(story.shop_logo_path)
+        ? ApiService.getLogoUrl(story.shop_logo_path, story.shop_updated_at)
         : story.shop_logo_path;
     }
     return cardEl?.querySelector('.story-shop-badge')?.src ?? '';

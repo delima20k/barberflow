@@ -96,7 +96,7 @@ class BarbeariasPage {
       img.alt     = b.name || 'Barbearia';
       img.loading = 'lazy';
       img.onerror = () => { avatarWrap.textContent = '💈'; };
-      img.src = SupabaseService.getLogoUrl(b.logo_path) || '';
+      img.src = SupabaseService.getLogoUrl(b.logo_path, b.updated_at) || '';
       avatarWrap.appendChild(img);
     } else {
       avatarWrap.textContent = '💈';
@@ -149,7 +149,7 @@ class BarbeariasPage {
       row.appendChild(actions);
     }
 
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path, b.updated_at);
     return row;
   }
 

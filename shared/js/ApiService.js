@@ -293,8 +293,14 @@ class ApiService {
    * @param {string} path — logo_path / cover_path da tabela barbershops
    * @returns {string}
    */
-  static getLogoUrl(path) {
-    return path ? `${ApiService.#URL}/storage/v1/object/public/barbershops/${path}` : '';
+  static getLogoUrl(path, updatedAt = null) {
+    if (!path) return '';
+    const base = path.startsWith('http')
+      ? path
+      : `${ApiService.#URL}/storage/v1/object/public/barbershops/${path}`;
+    const cleanBase = base.split('?')[0];
+    const ts = updatedAt ? new Date(updatedAt).getTime() : null;
+    return ts ? `${cleanBase}?t=${ts}` : cleanBase;
   }
 
   /**

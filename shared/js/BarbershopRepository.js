@@ -26,7 +26,7 @@ class BarbershopRepository {
 
   // Campos base usados na maioria das consultas
   static #SELECT_BASIC =
-    'id, name, address, city, latitude, longitude, logo_path, cover_path, is_open, close_reason, rating_avg, rating_count, rating_score, likes_count, dislikes_count, font_key';
+    'id, name, address, city, latitude, longitude, logo_path, cover_path, is_open, close_reason, rating_avg, rating_count, rating_score, likes_count, dislikes_count, font_key, updated_at';
 
   // ═══════════════════════════════════════════════════════════
   // BARBEARIAS
@@ -89,7 +89,7 @@ class BarbershopRepository {
    */
   static async getFeatured(limit = 6) {
     const { data, error } = await ApiService.from('barbershops')
-      .select('id, name, address, city, logo_path, cover_path, is_open, close_reason, rating_avg, rating_score, likes_count, dislikes_count, font_key')
+      .select('id, name, address, city, logo_path, cover_path, is_open, close_reason, rating_avg, rating_score, likes_count, dislikes_count, font_key, updated_at')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
       .order('likes_count',  { ascending: false })
@@ -108,7 +108,7 @@ class BarbershopRepository {
    */
   static async getTopRated(limit = 50) {
     const { data, error } = await ApiService.from('barbershops')
-      .select('id, name, address, city, logo_path, cover_path, is_open, close_reason, rating_avg, rating_score, likes_count, dislikes_count, font_key')
+      .select('id, name, address, city, logo_path, cover_path, is_open, close_reason, rating_avg, rating_score, likes_count, dislikes_count, font_key, updated_at')
       .eq('is_active', true)
       .order('rating_score', { ascending: false })
       .order('rating_avg',   { ascending: false })
@@ -232,7 +232,7 @@ class BarbershopRepository {
   static async search(query, limit = 20) {
     const q = InputValidator.escaparFiltroPostgREST(query);
     const { data, error } = await ApiService.from('barbershops')
-      .select('id, name, address, city, zip_code, logo_path, cover_path, is_open, rating_avg, font_key')
+      .select('id, name, address, city, zip_code, logo_path, cover_path, is_open, rating_avg, font_key, updated_at')
       .eq('is_active', true)
       .or(`name.ilike.%${q}%,address.ilike.%${q}%,city.ilike.%${q}%,zip_code.ilike.%${q}%`)
       .limit(limit);
@@ -360,7 +360,7 @@ class BarbershopRepository {
   static async #buscarWorkplaceProprio(professionalId) {
     try {
       const { data, error } = await ApiService.from('barbershops')
-        .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active')
+        .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active, updated_at')
         .eq('owner_id', professionalId)
         .eq('is_active', true)
         .limit(1)
@@ -391,7 +391,7 @@ class BarbershopRepository {
   static async #buscarWorkplacePorId(barbershopId) {
     try {
       const { data, error } = await ApiService.from('barbershops')
-        .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active')
+        .select('id, owner_id, name, address, city, state, logo_path, cover_path, is_active, updated_at')
         .eq('id', barbershopId)
         .eq('is_active', true)
         .maybeSingle();
@@ -412,6 +412,7 @@ class BarbershopRepository {
       ownerId: shop.owner_id ?? null,
       logoPath: shop.logo_path ?? null,
       coverPath: shop.cover_path ?? null,
+      updatedAt: shop.updated_at ?? null,
       isOwnerWorkplace: Boolean(isOwnerWorkplace),
       professionalId,
     };

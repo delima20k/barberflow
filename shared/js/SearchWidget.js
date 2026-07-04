@@ -180,7 +180,7 @@ class SearchWidget {
     try {
       const [shopRes, profRes] = await Promise.all([
         ApiService.from('barbershops')
-          .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg, likes_count, dislikes_count, rating_score, close_reason, cover_path, font_key')
+          .select('id, name, address, city, zip_code, logo_path, is_open, rating_avg, likes_count, dislikes_count, rating_score, close_reason, cover_path, font_key, updated_at')
           .eq('is_active', true)
           .or(
             `name.ilike.%${t}%,` +
@@ -355,9 +355,7 @@ class SearchWidget {
     avatarWrap.className = 'avatar gold';
     if (b.logo_path) {
       const img   = document.createElement('img');
-      img.src     = b.logo_path.startsWith('http')
-        ? b.logo_path
-        : (SupabaseService.getLogoUrl(b.logo_path) || '');
+      img.src     = SupabaseService.getLogoUrl(b.logo_path, b.updated_at) || '';
       img.alt     = b.name;
       img.loading = 'lazy';
       img.onerror = () => { avatarWrap.textContent = '💈'; };
@@ -386,7 +384,7 @@ class SearchWidget {
     row.appendChild(avatarWrap);
     row.appendChild(info);
 
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path, b.updated_at);
 
     if (b.id) {
       const actions = document.createElement('div');

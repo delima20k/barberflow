@@ -29,9 +29,9 @@ class CapaBarbearia {
   // @param {HTMLElement} el
   // @param {string|null} coverPath — caminho no Supabase Storage
   // ─────────────────────────────────────────────────────────
-  static aplicarCapa(el, coverPath) {
+  static aplicarCapa(el, coverPath, updatedAt = null) {
     if (!el || !coverPath) return;
-    const url = SupabaseService.getLogoUrl(coverPath);
+    const url = SupabaseService.getLogoUrl(coverPath, updatedAt);
     if (!url) return;
     el.style.backgroundImage = `url('${url}')`;
     el.classList.add(CapaBarbearia.#CLASSE_CAPA);
@@ -44,9 +44,9 @@ class CapaBarbearia {
   // @param {HTMLElement} el
   // @param {string|null} logoPath
   // ─────────────────────────────────────────────────────────
-  static aplicarLogo(el, logoPath) {
+  static aplicarLogo(el, logoPath, updatedAt = null) {
     if (!el || !logoPath) return;
-    const url = SupabaseService.getLogoUrl(logoPath);
+    const url = SupabaseService.getLogoUrl(logoPath, updatedAt);
     if (!url) return;
     el.style.backgroundImage    = `url('${url}')`;
     el.classList.add(CapaBarbearia.#CLASSE_LOGO);
@@ -86,9 +86,9 @@ class CapaBarbearia {
       </div>`;
 
     if (b.cover_path) {
-      CapaBarbearia.aplicarCapa(card, b.cover_path);
+      CapaBarbearia.aplicarCapa(card, b.cover_path, b.updated_at);
     } else if (b.logo_path) {
-      CapaBarbearia.aplicarLogo(card, b.logo_path);
+      CapaBarbearia.aplicarLogo(card, b.logo_path, b.updated_at);
     }
 
     return card;

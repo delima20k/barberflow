@@ -18,6 +18,8 @@ const path            = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC  = fs.readFileSync(path.join(ROOT, 'shared/js/BarbeariaApiClient.js'), 'utf8');
+const REPO_SRC = fs.readFileSync(path.join(ROOT, 'shared/js/BarbershopRepository.js'), 'utf8');
+const BFF_REPO_SRC = fs.readFileSync(path.join(ROOT, 'barberflow-bff-api/repositories/BarbeariaRepository.js'), 'utf8');
 
 // ─── describe 1: presença dos campos de throttle ──────────────────────────────
 
@@ -194,4 +196,32 @@ describe('BarbeariaApiClient — indicador de disponibilidade do BFF', () => {
     );
   });
 
+});
+
+describe('BarbeariaApiClient — imagens publicas atualizaveis', () => {
+  function constantePrivada(src, nome) {
+    const inicio = src.indexOf(`static #${nome}`);
+    assert.ok(inicio > 0, `${nome} deve existir`);
+    const fim = src.indexOf(';', inicio);
+    assert.ok(fim > inicio, `${nome} deve terminar com ;`);
+    return src.slice(inicio, fim);
+  }
+
+  function metodo(src, assinatura, proximaAssinatura = null) {
+    const inicio = src.indexOf(assinatura);
+    assert.ok(inicio > 0, `${assinatura} deve existir`);
+    const fim = proximaAssinatura ? src.indexOf(proximaAssinatura, inicio) : -1;
+    return src.slice(inicio, fim > inicio ? fim : undefined);
+  }
+
+  test('BarbershopRepository inclui updated_at nas listas publicas do front', () => {
+    assert.match(constantePrivada(REPO_SRC, 'SELECT_BASIC'), /updated_at/, 'SELECT_BASIC deve incluir updated_at');
+    assert.match(metodo(REPO_SRC, 'static async getFeatured', 'static async getTopRated'), /\.select\('[^']*updated_at/, 'getFeatured deve selecionar updated_at');
+    assert.match(metodo(REPO_SRC, 'static async getTopRated', 'static async updateLocation'), /\.select\('[^']*updated_at/, 'getTopRated deve selecionar updated_at');
+  });
+
+  test('BarbeariaRepository da BFF inclui updated_at nas listas publicas', () => {
+    assert.match(constantePrivada(BFF_REPO_SRC, 'SELECT'), /updated_at/, '#SELECT deve incluir updated_at');
+    assert.match(constantePrivada(BFF_REPO_SRC, 'SELECT_SAFE'), /updated_at/, '#SELECT_SAFE deve incluir updated_at');
+  });
 });

@@ -236,7 +236,7 @@ class ParceriasPage {
       e.stopPropagation();
       ParceriasPage.#entrarComoParceiro(b.id);
     });
-    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path);
+    if (typeof CapaBarbearia !== 'undefined') CapaBarbearia.aplicarCapa(row, b.cover_path, b.updated_at);
     return row;
   }
 
@@ -320,7 +320,7 @@ class ParceriasPage {
     }
 
     const logoHtml = shop.logo_path
-      ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" loading="lazy" onerror="this.outerHTML='💈'">`
+      ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path, shop.updated_at)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" loading="lazy" onerror="this.outerHTML='💈'">`
       : '💈';
 
     card.innerHTML = `
@@ -378,7 +378,7 @@ class ParceriasPage {
       const valorNum = inv.commission_pct != null ? Number(inv.commission_pct) : null;
 
       const logoHtml = shop.logo_path
-        ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" loading="lazy" onerror="this.outerHTML='💈'">`
+        ? `<img src="${SupabaseService.getLogoUrl(shop.logo_path, shop.updated_at)}" alt="${InputValidator.sanitizar(shop.name ?? '')}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;" loading="lazy" onerror="this.outerHTML='💈'">`
         : '💈';
 
       const isPendente = status === 'pendente';

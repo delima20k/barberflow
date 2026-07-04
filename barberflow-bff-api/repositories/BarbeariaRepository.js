@@ -22,20 +22,20 @@ class BarbeariaRepository extends BaseRepository {
     'id, name, address, city, state, zip_code, neighborhood, latitude, longitude, ' +
     'logo_path, cover_path, is_open, close_reason, ' +
     'rating_avg, rating_count, rating_score, ' +
-    'likes_count, dislikes_count, font_key';
+    'likes_count, dislikes_count, font_key, updated_at';
 
   /** Campos do schema inicial — usados em fallback quando colunas opcionais não existem. */
   static #SELECT_SAFE =
     'id, name, address, city, state, zip_code, neighborhood, latitude, longitude, ' +
-    'logo_path, cover_path, is_open, rating_avg, rating_count';
+    'logo_path, cover_path, is_open, rating_avg, rating_count, updated_at';
 
   /** Campos seguros para retorno apos atualizar endereco. */
   static #SELECT_ENDERECO =
     'id, owner_id, name, address, city, state, zip_code, neighborhood, ' +
-    'latitude, longitude, logo_path, cover_path, is_open';
+    'latitude, longitude, logo_path, cover_path, is_open, updated_at';
 
   /** Campos minimos para operacoes autenticadas da barbearia do owner. */
-  static #SELECT_OWNER = 'id, owner_id, name, logo_path, cover_path, is_active';
+  static #SELECT_OWNER = 'id, owner_id, name, logo_path, cover_path, is_active, updated_at';
 
   /** Ordem de relevância aplicada em todas as listagens. */
   static #ORDER_PADRAO = Object.freeze(['rating_score', 'rating_avg', 'likes_count']);
@@ -1221,7 +1221,7 @@ class BarbeariaRepository extends BaseRepository {
     const storyIds = stories.map(s => s.id).filter(Boolean);
 
     const { data: shops, error: shopsError } = shopIds.length
-      ? await this._db.from('barbershops').select('id, name, logo_path, owner_id').in('id', shopIds)
+      ? await this._db.from('barbershops').select('id, name, logo_path, owner_id, updated_at').in('id', shopIds)
       : { data: [], error: null };
     if (shopsError) this._warn('enriquecerStories:shops', shopsError);
 
@@ -1246,6 +1246,7 @@ class BarbeariaRepository extends BaseRepository {
         tipo_autor: tipoAutor,
         shop_name: shop?.name ?? null,
         shop_logo_path: shop?.logo_path ?? null,
+        shop_updated_at: shop?.updated_at ?? null,
         shop_owner_id: shop?.owner_id ?? null,
         poster_name: poster?.full_name ?? null,
         poster_avatar_path: poster?.avatar_path ?? null,
@@ -1377,7 +1378,7 @@ class BarbeariaRepository extends BaseRepository {
     // com barbearia auto-criada mas desativada que postaram stories com barbershop_id errado)
     const { data: shops, error: shopsError } = await this._db
       .from('barbershops')
-      .select('id, name, logo_path, owner_id')
+      .select('id, name, logo_path, owner_id, updated_at')
       .eq('is_active', true)
       .in('id', barbershopIds);
 

@@ -496,7 +496,7 @@ class BarbeariaPage {
     }
 
     const logoSrc = shop.logo_path
-      ? (typeof SupabaseService !== 'undefined' ? SupabaseService.getLogoUrl(shop.logo_path) : null)
+      ? (typeof SupabaseService !== 'undefined' ? SupabaseService.getLogoUrl(shop.logo_path, shop.updated_at) : null)
       : null;
 
     new StoriesWidget(scroll, {
@@ -837,7 +837,7 @@ class BarbeariaPage {
     const perfil      = typeof AuthService !== 'undefined' ? AuthService.getPerfil?.() : null;
     const nome        = perfil?.full_name ?? entrada.client?.full_name ?? entrada.guest_name ?? '';
     const shopLogoUrl = (typeof ApiService !== 'undefined' && shop?.logo_path)
-      ? ApiService.getLogoUrl(shop.logo_path)
+      ? ApiService.getLogoUrl(shop.logo_path, shop.updated_at)
       : null;
 
     if (typeof CadeiraConfirmacaoService !== 'undefined') {
@@ -874,7 +874,7 @@ class BarbeariaPage {
     if (typeof CadeiraConfirmacaoService !== 'undefined') {
       const nome = perfil.full_name ?? '';
       const shopLogoUrl = (typeof ApiService !== 'undefined' && shop?.logo_path)
-        ? ApiService.getLogoUrl(shop.logo_path)
+        ? ApiService.getLogoUrl(shop.logo_path, shop.updated_at)
         : null;
       CadeiraConfirmacaoService.iniciarFluxo(entrada.id, nome, shopLogoUrl).catch(() => {});
     }
@@ -1151,10 +1151,10 @@ class BarbeariaPage {
     if (this.#refs.capaImg) {
       const path = shop.cover_path ?? shop.logo_path;
       // ResourceLoader.loadImage injeta ?v={bust} para evitar cache de imagem antiga
-      if (path) this.#refs.capaImg.src = ResourceLoader.loadImage(ApiService.getLogoUrl(path));
+      if (path) this.#refs.capaImg.src = ResourceLoader.loadImage(ApiService.getLogoUrl(path, shop.updated_at));
     }
     if (this.#refs.logoImg && shop.logo_path) {
-      this.#refs.logoImg.src = ResourceLoader.loadImage(ApiService.getLogoUrl(shop.logo_path));
+      this.#refs.logoImg.src = ResourceLoader.loadImage(ApiService.getLogoUrl(shop.logo_path, shop.updated_at));
       // textContent/alt são seguros por natureza — não usar sanitizar()
       this.#refs.logoImg.alt = shop.name ?? '';
     }

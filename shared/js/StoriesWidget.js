@@ -279,12 +279,13 @@ class StoriesWidget {
     for (const { shop, stories } of feed) {
       if (!Array.isArray(stories) || !stories.length) continue;
       const logoUrl = typeof ApiService !== 'undefined'
-        ? ApiService.getLogoUrl(shop.logo_path)
+        ? ApiService.getLogoUrl(shop.logo_path, shop.updated_at)
         : (shop.logo_path ?? '');
       // Enriquece cada story com a identidade da barbearia para que, na
       // navegação contínua entre barbearias, cada face mostre logo/nome certos.
       stories.forEach(story => {
         if (story.shop_logo_path == null) story.shop_logo_path = shop.logo_path ?? null;
+        if (story.shop_updated_at == null) story.shop_updated_at = shop.updated_at ?? null;
         if (story.shop_name == null)      story.shop_name      = shop.name ?? '';
       });
       const card = this.#criarCardGrupo(stories, shop.id, shop.name ?? '', logoUrl, shop.owner_id ?? null);
@@ -675,7 +676,7 @@ class StoriesWidget {
    */
   #criarCardIndividual(story, idx, shopId) {
     const logoSrc  = this.#shopLogoSrc ?? (story.shop_logo_path && typeof ApiService !== 'undefined'
-      ? ApiService.getLogoUrl(story.shop_logo_path)
+      ? ApiService.getLogoUrl(story.shop_logo_path, story.shop_updated_at)
       : null) ?? '/shared/img/Logo01.png';
     const isOwnerStory = story.tipo_autor !== 'parceiro';
     const authorAvatarSrc = story.poster_avatar_path
