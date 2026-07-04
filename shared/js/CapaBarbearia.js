@@ -74,6 +74,7 @@ class CapaBarbearia {
     const card = document.createElement('div');
     card.className  = 'fav-card' + (temImagem ? '' : ' fav-card--sem-img');
     card.dataset.id = b.id;
+    if (b.id) card.dataset.barbershopId = b.id;
     card.innerHTML  = `
       <div class="fav-card__overlay">
         <div class="fav-card__badge-row">
