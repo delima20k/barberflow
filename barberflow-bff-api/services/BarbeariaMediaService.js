@@ -53,21 +53,12 @@ class BarbeariaMediaService extends BaseService {
     const buffer = await BarbeariaMediaService.#processarImagem(arquivo, cfg);
     const path = `${shop.id}/${cfg.nome}`;
     const pathAntigo = shop[cfg.campo] ?? null;
-    const tipoOposto = tipo === 'logo' ? 'cover' : 'logo';
-    const cfgOposto = BarbeariaMediaService.#TIPOS[tipoOposto];
-    const pathOposto = shop[cfgOposto.campo] ?? null;
     const updatedAt = new Date().toISOString();
 
     await this.#repo.uploadImagemBarbearia(path, buffer, 'image/webp');
-    if (typeof this.#repo.updateImagemUnica === 'function') {
-      await this.#repo.updateImagemUnica(shop.id, cfg.campo, path, cfgOposto.campo, updatedAt);
-    } else {
-      await this.#repo.updateImagem(shop.id, cfg.campo, path, updatedAt);
-    }
+    await this.#repo.updateImagem(shop.id, cfg.campo, path, updatedAt);
     await this.#removerImagemAntiga(pathAntigo, path);
-    await this.#removerImagemAntiga(pathOposto, path);
     await this.#removerVariantesAntigas(shop.id, cfg.nome);
-    await this.#removerVariantesAntigas(shop.id, cfgOposto.nome);
 
     return {
       path,

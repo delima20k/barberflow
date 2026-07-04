@@ -833,32 +833,16 @@ class BarbeariaRepository extends BaseRepository {
   }
 
   /**
-   * Atualiza a imagem ativa da barbearia e limpa o outro campo de imagem.
+   * Compatibilidade com o contrato antigo: logo_path e cover_path agora coexistem.
    * @param {string} shopId
    * @param {'logo_path'|'cover_path'} campo
    * @param {string} path
-   * @param {'logo_path'|'cover_path'} campoLimpar
+   * @param {'logo_path'|'cover_path'} _campoLimpar
    * @param {string} updatedAt
    * @returns {Promise<object>}
    */
-  async updateImagemUnica(shopId, campo, path, campoLimpar, updatedAt) {
-    this._uuid('shopId', shopId);
-    if (!['logo_path', 'cover_path'].includes(campo) || !['logo_path', 'cover_path'].includes(campoLimpar) || campo === campoLimpar) {
-      throw new TypeError('campos de imagem invalidos');
-    }
-
-    const { data, error } = await this._db
-      .from('barbershops')
-      .update({ [campo]: path, [campoLimpar]: null, updated_at: updatedAt })
-      .eq('id', shopId)
-      .select(BarbeariaRepository.#SELECT_OWNER)
-      .single();
-
-    if (error) {
-      this._warn('updateImagemUnica', error);
-      this._throwDbError(error, 'updateImagemUnica');
-    }
-    return data;
+  async updateImagemUnica(shopId, campo, path, _campoLimpar, updatedAt) {
+    return this.updateImagem(shopId, campo, path, updatedAt);
   }
 
   /**
