@@ -64,6 +64,7 @@ class ProfessionalPaymentService extends BaseService {
       planType,
       proType,
       dueDate,
+      expectedValue: plano.value,
     });
     if (reusablePayment) return this.#toPaymentDto(reusablePayment, { reused: true });
 
@@ -462,7 +463,7 @@ class ProfessionalPaymentService extends BaseService {
     return synced ?? payment;
   }
 
-  async #buscarCobrancaPendenteReutilizavel({ userId, planType, proType, dueDate }) {
+  async #buscarCobrancaPendenteReutilizavel({ userId, planType, proType, dueDate, expectedValue }) {
     if (typeof this.#repo.getReusablePendingPayment !== 'function') return null;
     return this.#repo.getReusablePendingPayment({
       userId,
@@ -470,6 +471,7 @@ class ProfessionalPaymentService extends BaseService {
       proType,
       statuses: STATUS_COBRANCA_REAPROVEITAVEL,
       dueDateMin: dueDate,
+      expectedValue,
     });
   }
 

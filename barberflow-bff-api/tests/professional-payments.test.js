@@ -83,13 +83,14 @@ class FakeRepo {
     return row;
   }
 
-  async getReusablePendingPayment({ userId, planType, proType, statuses, dueDateMin }) {
-    this.pendingPaymentLookup = { userId, planType, proType, statuses, dueDateMin };
+  async getReusablePendingPayment({ userId, planType, proType, statuses, dueDateMin, expectedValue }) {
+    this.pendingPaymentLookup = { userId, planType, proType, statuses, dueDateMin, expectedValue };
     const payment = this.pendingPayment ?? this.payment;
     if (!payment) return null;
     if (payment.user_id !== userId) return null;
     if (payment.plan_type !== planType) return null;
     if (payment.pro_type !== proType) return null;
+    if (Number(payment.value).toFixed(2) !== Number(expectedValue).toFixed(2)) return null;
     if (!statuses.includes(payment.status)) return null;
     if (payment.paid_at) return null;
     if (!payment.invoice_url) return null;
@@ -324,6 +325,32 @@ test('reaproveita cobranca pendente valida sem criar nova no Asaas', async () =>
   assert.equal(result.reused, true);
   assert.equal(asaas.payments.length, 0);
   assert.equal(repo.createdPayments.length, 0);
+});
+
+test('ignora cobranca pendente antiga com valor diferente do plano atual', async () => {
+  const repo = new FakeRepo({
+    authMetadata: { cpf_cnpj: '529.982.247-25' },
+    pendingPayment: pendingPayment({ value: 5 }),
+  });
+  const asaas = new FakeAsaas();
+  const service = new ProfessionalPaymentService(repo, asaas, { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.criarCobranca(
+    { id: USER_ID, email: 'teste@barberflow.test' },
+    { proType: 'barbeiro', planType: 'mensal', billingType: 'UNDEFINED', dueDate: '2099-01-01' },
+    { ip: '127.0.0.1' },
+  );
+
+  assert.equal(repo.pendingPayment.value, 5);
+  assert.equal(repo.pendingPaymentLookup.expectedValue, 24.90);
+  assert.equal(result.asaasPaymentId, 'pay_123');
+  assert.equal(result.invoiceUrl, 'https://sandbox.asaas.com/i/pay_123');
+  assert.equal(result.reused, false);
+  assert.equal(result.value, 24.90);
+  assert.equal(asaas.payments.length, 1);
+  assert.equal(asaas.payments[0].value, 24.90);
+  assert.equal(repo.createdPayments.length, 1);
+  assert.equal(repo.createdPayments[0].value, 24.90);
 });
 
 test('segunda tentativa em outro dispositivo recebe mesma invoiceUrl pendente', async () => {

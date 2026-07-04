@@ -95,8 +95,9 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data;
   }
 
-  async getReusablePendingPayment({ userId, planType, proType, statuses, dueDateMin }) {
+  async getReusablePendingPayment({ userId, planType, proType, statuses, dueDateMin, expectedValue }) {
     this._uuid('userId', userId);
+    const expectedValueFilter = Number(expectedValue).toFixed(2);
     const { data, error } = await this._db
       .from('asaas_payments')
       .select([
@@ -123,6 +124,7 @@ class ProfessionalPaymentRepository extends BaseRepository {
       .eq('user_id', userId)
       .eq('plan_type', planType)
       .eq('pro_type', proType)
+      .eq('value', expectedValueFilter)
       .in('status', statuses)
       .is('paid_at', null)
       .not('invoice_url', 'is', null)
