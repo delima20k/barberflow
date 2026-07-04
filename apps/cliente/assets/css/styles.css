@@ -5,6 +5,12 @@
 ============================================================ */
 
 /* ── Botão flutuante — pingo d'água para reabrir footer ────── */
+.auth-social-btn--google .auth-social-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 1.15rem;
+}
+
 #btn-abrir-footer {
   all: unset;
   position: fixed;
