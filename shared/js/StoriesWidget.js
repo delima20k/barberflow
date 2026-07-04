@@ -684,7 +684,11 @@ class StoriesWidget {
     const identityName = isOwnerStory
       ? (story.shop_name ?? this.#shopName ?? '')
       : (story.poster_name ?? story.shop_name ?? this.#shopName ?? '');
-    const identityLogo = isOwnerStory ? logoSrc : (authorAvatarSrc ?? logoSrc);
+    // Badge = SEMPRE a logo da barbearia (dono e parceiro), igual ao card do
+    // dono e ao feed da Home. Para parceiro, o avatar do barbeiro aparece uma
+    // única vez no overlay (story-barber-avatar + story-barber-name) abaixo —
+    // antes o badge repetia o avatar do parceiro, gerando dois avatares iguais.
+    const identityLogo = logoSrc;
 
     const card = document.createElement('div');
     card.className          = 'card-mini story-card';

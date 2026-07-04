@@ -551,3 +551,117 @@ test('StoriesWidget modo scan usa poster estatico para cards com IDs reais', asy
   assert.strictEqual(realCard.dataset.shopId, OWNER_ID, 'shopId deve ser atualizado');
   assert.strictEqual(realCard.hidden, false, 'card com story real nao deve ser ocultado');
 });
+
+// ── Anti-duplicação de avatar no card individual (public-shop) ───────────────
+
+/**
+ * Coleta TODOS os elementos criados por document.createElement, para inspecionar
+ * className/src depois. getLogoUrl e getAvatarUrl retornam prefixos distintos
+ * ('logo:'/'avatar:') para diferenciar a logo da barbearia do avatar do barbeiro.
+ */
+function buildStoriesComColeta({ listarStories }) {
+  const allEls = [];
+  const mockDoc = {
+    createElement(tag) {
+      const el = {
+        _tag: tag, _children: [], _attrs: {}, className: '', src: '', alt: '',
+        muted: false, loop: false, preload: '', type: '', textContent: '',
+        innerHTML: '', hidden: false, onerror: null, dataset: {}, style: {},
+        get classList() {
+          const self = this;
+          const _set = new Set((self.className || '').split(' ').filter(Boolean));
+          return {
+            add(...cls) { cls.forEach(c => { _set.add(c); self.className = [..._set].join(' '); }); },
+            remove(...cls) { cls.forEach(c => { _set.delete(c); self.className = [..._set].join(' '); }); },
+            toggle(c, force) {
+              const has = _set.has(c);
+              if (force === true || (!has && force === undefined)) this.add(c);
+              else if (force === false || has) this.remove(c);
+            },
+            contains(c) { return _set.has(c); },
+          };
+        },
+        setAttribute(k, v) { this._attrs[k] = v; },
+        appendChild(child) { this._children.push(child); },
+        addEventListener() {}, removeEventListener() {},
+        querySelector() { return null; }, closest() { return null; },
+        querySelectorAll() { return []; },
+      };
+      allEls.push(el);
+      return el;
+    },
+  };
+
+  const appendedCards = [];
+  const scrollEl = {
+    get children() { return appendedCards; },
+    innerHTML: '', hidden: false,
+    querySelectorAll: () => [],
+    closest: () => ({ hidden: false }),
+    appendChild(c) { appendedCards.push(c); },
+  };
+
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: { barbearias: { listarStories } },
+    ApiService: { getLogoUrl: p => `logo:${p}`, getAvatarUrl: p => `avatar:${p}` },
+    document: mockDoc,
+  });
+
+  return { StoriesWidget, scrollEl, allEls };
+}
+
+test('StoriesWidget public-shop: story de PARCEIRO tem exatamente 1 avatar de barbeiro e badge = LOGO', async () => {
+  const partnerStory = {
+    id: 'sp1', owner_id: 'owner-1', media_url: 'https://cdn/p.mp4', media_type: 'video',
+    tipo_autor: 'parceiro',
+    poster_avatar_path: 'barbeiros/joao.jpg',
+    poster_name: 'João Parceiro',
+    shop_logo_path: 'shops/logo.webp',
+    shop_name: 'Studio X',
+  };
+
+  const { StoriesWidget, scrollEl, allEls } = buildStoriesComColeta({
+    listarStories: async () => ({ data: [partnerStory], error: null }),
+  });
+
+  const widget = new StoriesWidget(scrollEl, { barbershopId: 'shop-public', shopName: 'Studio X', context: 'public-shop' });
+  await widget.carregar();
+
+  // Regra: parceiro mostra 1 avatar de barbeiro (no overlay, com nome ao lado).
+  const barberAvatars = allEls.filter(e => (e.className ?? '').includes('story-barber-avatar'));
+  assert.strictEqual(barberAvatars.length, 1, 'story de parceiro deve ter EXATAMENTE 1 avatar de barbeiro (não 2)');
+  assert.match(barberAvatars[0].src, /^avatar:/, 'o avatar do overlay deve ser o avatar do barbeiro');
+
+  // Badge volta a ser a LOGO da barbearia (mesmo padrão do card do dono/Home).
+  const badge = allEls.find(e => (e.className ?? '').includes('story-shop-badge'));
+  assert.ok(badge, 'deve existir o badge story-shop-badge');
+  assert.match(badge.src, /^logo:/, 'badge deve mostrar a LOGO da barbearia');
+  assert.doesNotMatch(badge.src, /^avatar:/, 'badge NÃO deve repetir o avatar do barbeiro');
+
+  // O nome do barbeiro segue presente no overlay.
+  const nome = allEls.find(e => (e.className ?? '').includes('story-barber-name'));
+  assert.ok(nome && nome.textContent === 'João Parceiro', 'overlay deve manter o nome do barbeiro ao lado do avatar');
+});
+
+test('StoriesWidget public-shop: story do DONO mostra logo e NENHUM avatar de barbeiro (inalterado)', async () => {
+  const ownerStory = {
+    id: 'so1', owner_id: 'owner-1', media_url: 'https://cdn/o.mp4', media_type: 'video',
+    // sem tipo_autor: 'parceiro' → isOwnerStory = true
+    shop_logo_path: 'shops/logo.webp',
+    shop_name: 'Studio X',
+  };
+
+  const { StoriesWidget, scrollEl, allEls } = buildStoriesComColeta({
+    listarStories: async () => ({ data: [ownerStory], error: null }),
+  });
+
+  const widget = new StoriesWidget(scrollEl, { barbershopId: 'shop-public', shopName: 'Studio X', context: 'public-shop' });
+  await widget.carregar();
+
+  const barberAvatars = allEls.filter(e => (e.className ?? '').includes('story-barber-avatar'));
+  assert.strictEqual(barberAvatars.length, 0, 'story do dono não deve ter avatar de barbeiro');
+
+  const badge = allEls.find(e => (e.className ?? '').includes('story-shop-badge'));
+  assert.ok(badge, 'deve existir o badge story-shop-badge');
+  assert.match(badge.src, /^logo:/, 'badge do dono deve mostrar a LOGO da barbearia');
+});
