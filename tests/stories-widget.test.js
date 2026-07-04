@@ -610,7 +610,7 @@ function buildStoriesComColeta({ listarStories }) {
   return { StoriesWidget, scrollEl, allEls };
 }
 
-test('StoriesWidget public-shop: story de PARCEIRO tem só o avatar do barbeiro (sem badge-logo) e mantém a thumbnail', async () => {
+test('StoriesWidget public-shop: story de PARCEIRO usa overlay padronizado com avatar e nome', async () => {
   const partnerStory = {
     id: 'sp1', owner_id: 'owner-1', media_url: 'https://cdn/p.mp4', media_type: 'video',
     tipo_autor: 'parceiro',
@@ -629,13 +629,17 @@ test('StoriesWidget public-shop: story de PARCEIRO tem só o avatar do barbeiro 
 
   // UM único avatar: o do barbeiro (overlay com nome ao lado). Sem badge-logo.
   const barberAvatars = allEls.filter(e => (e.className ?? '').includes('story-barber-avatar'));
-  assert.strictEqual(barberAvatars.length, 1, 'story de parceiro deve ter EXATAMENTE 1 avatar de barbeiro');
-  assert.match(barberAvatars[0].src, /^avatar:/, 'o avatar deve ser o do barbeiro');
+  const overlays = allEls.filter(e => (e.className ?? '').split(' ').includes('story-public-identity'));
+  assert.strictEqual(overlays.length, 1, 'story de parceiro deve ter exatamente 1 overlay publico');
+
+  const avatars = allEls.filter(e => (e.className ?? '').includes('story-public-identity__avatar'));
+  assert.strictEqual(avatars.length, 1, 'overlay deve ter exatamente 1 avatar');
+  assert.match(avatars[0].src, /^avatar:/, 'o avatar deve ser o do barbeiro');
 
   const badge = allEls.find(e => (e.className ?? '').includes('story-shop-badge'));
   assert.strictEqual(badge, undefined, 'parceiro NÃO deve ter o badge da logo (evita 2 avatares)');
 
-  const nome = allEls.find(e => (e.className ?? '').includes('story-barber-name'));
+  const nome = allEls.find(e => (e.className ?? '').includes('story-public-identity__name'));
   assert.ok(nome && nome.textContent === 'João Parceiro', 'overlay deve manter o nome do barbeiro ao lado do avatar');
 
   // A thumbnail/fundo do card (.story-video) NÃO pode sumir com a mudança.
@@ -660,6 +664,7 @@ test('StoriesWidget public-shop: story do DONO mostra só a logo (badge) e mant�
   const widget = new StoriesWidget(scrollEl, { barbershopId: 'shop-public', shopName: 'Studio X', context: 'public-shop' });
   await widget.carregar();
 
+  const overlays = allEls.filter(e => (e.className ?? '').split(' ').includes('story-public-identity'));
   const barberAvatars = allEls.filter(e => (e.className ?? '').includes('story-barber-avatar'));
   assert.strictEqual(barberAvatars.length, 0, 'story do dono não deve ter avatar de barbeiro');
 

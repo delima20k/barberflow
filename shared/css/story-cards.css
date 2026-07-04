@@ -430,6 +430,49 @@ body.media-viewer-open { overflow: hidden; }
 .sv-sound-btn:active { transform: translateX(-50%) scale(.96); }
 
 /* ── Overlays de identidade sobre a thumbnail do card ──────────── */
+.story-public-identity {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 16px);
+  padding: 3px 7px 3px 3px;
+  border-radius: 999px;
+  background: rgba(43, 27, 18, .58);
+  border: 1px solid rgba(212, 175, 55, .42);
+  box-shadow: 0 3px 10px rgba(43, 27, 18, .18);
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.story-public-identity__avatar {
+  position: static;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(212, 160, 23, .85);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.story-public-identity__name {
+  min-width: 0;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font);
+  font-size: .72rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .72);
+}
+
 .story-barber-overlay {
   position: absolute;
   top: 46px;
@@ -461,6 +504,12 @@ body.media-viewer-open { overflow: hidden; }
   overflow: hidden;
   max-width: 80px;
   text-overflow: ellipsis;
+}
+
+.story-public-identity .story-public-identity__avatar {
+  position: static;
+  width: 30px;
+  height: 30px;
 }
 
 .story-shop-overlay {

@@ -747,11 +747,29 @@ class StoriesWidget {
     if (media) wrap.appendChild(media);
     else wrap.classList.add('is-loaded');
 
-    // Identidade — UM único avatar por card:
-    //   • Barbearia (dono) postou → badge com a LOGO da barbearia.
-    //   • Barbeiro parceiro postou → overlay com o AVATAR do barbeiro + nome.
-    // Nunca os dois ao mesmo tempo (antes o parceiro tinha badge-logo + avatar).
-    if (isOwnerStory) {
+    // Identidade na página pública da barbearia: mesmo overlay para dono e parceiro.
+    if (this.#context === 'public-shop') {
+      const identityOverlay = document.createElement('div');
+      identityOverlay.className = 'story-public-identity';
+
+      const identityImg = document.createElement('img');
+      identityImg.className = isOwnerStory
+        ? 'story-public-identity__avatar story-shop-badge'
+        : 'story-public-identity__avatar story-barber-avatar';
+      identityImg.src = isOwnerStory ? logoSrc : (authorAvatarSrc ?? logoSrc);
+      identityImg.alt = '';
+      identityImg.onerror = function() { this.style.display = 'none'; };
+
+      const identityNameEl = document.createElement('span');
+      identityNameEl.className = isOwnerStory
+        ? 'story-public-identity__name'
+        : 'story-public-identity__name story-barber-name';
+      identityNameEl.textContent = identityName;
+
+      identityOverlay.appendChild(identityImg);
+      identityOverlay.appendChild(identityNameEl);
+      wrap.appendChild(identityOverlay);
+    } else if (isOwnerStory) {
       const badge = document.createElement('img');
       badge.className = 'story-shop-badge';
       badge.src       = logoSrc;
