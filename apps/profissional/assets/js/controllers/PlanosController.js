@@ -19,7 +19,26 @@ class PlanosController {
     this.#bindPlanosPro();
   }
 
-  prepararTelaPlanos(tipoLogado = null) {
+  // Motivo do bloqueio → mensagem amigável no topo da tela de planos.
+  // Retorna null quando não deve exibir banner (usuário novo / navegação
+  // espontânea). Pura e estática para testabilidade.
+  static mensagemBloqueio(reason) {
+    switch (reason) {
+      case 'expired_subscription':
+        return 'Seu plano venceu. Escolha um plano abaixo para continuar usando o BarberFlow.';
+      case 'inactive_subscription':
+        return 'Seu plano está inativo. Escolha um plano abaixo para reativar o BarberFlow.';
+      case 'subscription_unavailable':
+      case 'subscription_status_unavailable':
+        return 'Não foi possível confirmar seu plano. Escolha um plano abaixo para continuar usando o BarberFlow.';
+      default:
+        // missing_subscription (usuário novo) e navegação espontânea → sem banner
+        return null;
+    }
+  }
+
+  prepararTelaPlanos(tipoLogado = null, reason = null) {
+    this.#renderAvisoBloqueio(reason);
     const tipoTravado = ['barbeiro', 'barbearia'].includes(tipoLogado) ? tipoLogado : null;
     const toggle = document.querySelector('.ppp-toggle');
     if (toggle) toggle.style.display = tipoTravado ? 'none' : '';
@@ -39,6 +58,21 @@ class PlanosController {
       ? MonetizationGuard.tipoUsuario
       : 'barbeiro';
     this.#alternarTipoPlano(tipoAtual, { persistir: true });
+  }
+
+  // Exibe/oculta o banner de bloqueio no topo da tela de planos conforme o
+  // reason recebido do gate. Sem reason (navegação espontânea) → oculto.
+  #renderAvisoBloqueio(reason) {
+    const el = document.getElementById('ppp-aviso-bloqueio');
+    if (!el) return;
+    const texto = PlanosController.mensagemBloqueio(reason);
+    if (!texto) {
+      el.hidden = true;
+      el.textContent = '';
+      return;
+    }
+    el.textContent = texto;
+    el.hidden = false;
   }
 
   #bindToggleTipo() {

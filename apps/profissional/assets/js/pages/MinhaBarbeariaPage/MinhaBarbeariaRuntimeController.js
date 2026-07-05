@@ -149,10 +149,16 @@ export class MinhaBarbeariaRuntimeController {
         if (parceriaId && parceriaId !== this.#barbershopId) this.#carregou = false;
         if (!this.#carregou) {
           this.#carregar();
-        } else if (this.#barbershopId && !this.#canalFila) {
-          // Canal pode ter sido parado ao navegar para outra tela — reinicia
-          this.#iniciarRealtimeFila(this.#barbershopId);
-          this.#iniciarRealtimeAtividade(this.#barbershopId);
+        } else {
+          // Recalcula o contador de teste grátis a cada reentrada na tela.
+          // Sem isto o número congela: #carregar() (que também renderiza o
+          // aviso) só roda 1x por sessão, e o app pode ficar residente por dias.
+          void this.#renderTrialAviso();
+          if (this.#barbershopId && !this.#canalFila) {
+            // Canal pode ter sido parado ao navegar para outra tela — reinicia
+            this.#iniciarRealtimeFila(this.#barbershopId);
+            this.#iniciarRealtimeAtividade(this.#barbershopId);
+          }
         }
       } else {
         this.#digBoasVindas?.parar();
@@ -1987,6 +1993,14 @@ export class MinhaBarbeariaRuntimeController {
     return Math.max(0, Math.ceil((fim - agoraMs) / DIA));
   }
 
+  // Texto compacto do aviso de teste grátis. Cobre qualquer contagem de dias
+  // (7 dias padrão ou 30 do voucher). Extraído para testabilidade.
+  static textoTrialAviso(dias) {
+    if (dias >= 2)  return { texto: `VC tem ${dias} dias`, urgente: false };
+    if (dias === 1) return { texto: 'VC tem 1 dia',        urgente: true  };
+    return { texto: 'Plano venceu', urgente: true };
+  }
+
   async #renderTrialAviso() {
     const el = this.#refs.trialAviso;
     if (!el) return;
@@ -2013,18 +2027,7 @@ export class MinhaBarbeariaRuntimeController {
     const dias = MinhaBarbeariaRuntimeController.calcularDiasTrial(sub.endsAt);
     if (dias === null) { el.hidden = true; return; }
 
-    let texto;
-    let urgente = false;
-    if (dias >= 2) {
-      texto = `Você tem ${dias} dias de teste grátis`;
-    } else if (dias === 1) {
-      texto = 'Último dia de teste grátis — assine o plano para não bloquear a barbearia';
-      urgente = true;
-    } else {
-      texto = 'Seu teste grátis terminou — assine o plano para reabrir a barbearia';
-      urgente = true;
-    }
-
+    const { texto, urgente } = MinhaBarbeariaRuntimeController.textoTrialAviso(dias);
     el.textContent = texto;
     el.className   = `mb-trial-aviso${urgente ? ' mb-trial-aviso--urgente' : ''}`;
     el.hidden      = false;

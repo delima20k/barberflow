@@ -158,8 +158,10 @@ class BarberFlowProfissional extends Router {
         || null;
   }
 
-  #prepararTela(tela) {
-    if (tela === 'planos-pro') this.#planos.prepararTelaPlanos(AuthService.getPerfil()?.pro_type ?? null);
+  #prepararTela(tela, { reason = null } = {}) {
+    // reason só é repassado quando a tela de planos é aberta por bloqueio do
+    // gate (#navegarComAssinatura). Navegação espontânea → reason null → sem banner.
+    if (tela === 'planos-pro') this.#planos.prepararTelaPlanos(AuthService.getPerfil()?.pro_type ?? null, reason);
     if (tela === 'cadastro') this.#cadastro.ajustarFormularioPorTipo();
   }
 
@@ -199,7 +201,9 @@ class BarberFlowProfissional extends Router {
       }
 
       if (!status.accessAllowed) {
-        this.#prepararTela('planos-pro');
+        // Repassa o motivo para a tela de planos exibir o banner adequado
+        // (ex: "Seu plano venceu."). missing_subscription não gera banner.
+        this.#prepararTela('planos-pro', { reason: status.reason });
         super.push('planos-pro');
         return;
       }

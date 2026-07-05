@@ -531,6 +531,22 @@
    TELA PLANOS PRO — redesign premium mobile-first
 ============================================================ */
 
+/* Aviso de bloqueio no topo da tela de planos (plano vencido/inativo).
+   Só visível quando o usuário chega aqui por bloqueio do gate de assinatura. */
+.ppp-aviso-bloqueio {
+  margin: 14px 20px 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(212,175,55,.12);
+  border: 1px solid rgba(212,175,55,.45);
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+}
+.ppp-aviso-bloqueio[hidden] { display: none; }
+
 /* Toggle barbeiro/barbearia */
 .ppp-toggle {
   display: flex;
