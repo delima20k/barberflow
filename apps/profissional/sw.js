@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260705b';
+const SW_PRO_VERSION = '20260705c';
 
 class SWProfissional {
 
@@ -46,7 +46,7 @@ class SWProfissional {
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
     '/shared/js/NavigationViewService.js',
-    '/shared/js/Router.js?v=20260627c',
+    '/shared/js/Router.js?v=20260705c',
     '/shared/js/BarberPole.js',
     '/shared/js/SplashService.js',
     '/shared/js/ProLandingGate.js',

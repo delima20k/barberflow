@@ -187,7 +187,7 @@ describe('Router — nav()', () => {
     router.nav('perfil');
 
     assert.strictEqual(router._telaAtual, 'inicio');
-    assert.strictEqual(router._historico.length, 0);
+    assert.deepStrictEqual(Array.from(router._historico), ['perfil']);
     // _atualizarUI('inicio') foi chamado via sincronizarUI
     assert.strictEqual(viewMock.sincronizarUI.calls.length, 1);
     // Aba sai pela esquerda — home está por baixo

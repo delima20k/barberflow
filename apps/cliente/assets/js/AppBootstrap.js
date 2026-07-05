@@ -188,7 +188,7 @@ class AppBootstrap {
       try {
         params.delete('barbearia');
         const qs = params.toString();
-        history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+        history.replaceState(history.state ?? null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
       } catch (_) {}
     } else {
       // Lido do sessionStorage (reload do SW): remove a chave para não persistir.
