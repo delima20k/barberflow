@@ -181,7 +181,14 @@ class BarberFlowProfissional extends Router {
       // Só dispara uma vez por sessão e só para intenção de trial (o fluxo pago
       // continua indo ao checkout normalmente). confirmarPlano chama limpar() no
       // sucesso, então a flag não re-dispara.
+      //
+      // CRÍTICO (financeiro): só recupera quem NUNCA teve assinatura
+      // (reason === 'missing_subscription'). Trial expirado
+      // (reason === 'expired_subscription') NÃO renova — senão o gate viraria
+      // uma brecha de trial infinito. O backend recusa de qualquer forma
+      // (trial_already_used), mas nem chegamos a tentar.
       if (!status.accessAllowed
+          && status.reason === 'missing_subscription'
           && !this.#trialAutoTentado
           && typeof PlanosService !== 'undefined'
           && MonetizationGuard.confirmacaoPendente

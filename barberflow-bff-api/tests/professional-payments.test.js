@@ -17,6 +17,7 @@ class FakeRepo {
     profilePhone = '11999999999',
     profileCpfCnpj = null,
     profileCpfCnpjEncPresent = false,
+    profileTrialUsedAt = null,
     authMetadata = {},
     authMetadataError = null,
     pendingPayment = null,
@@ -25,6 +26,7 @@ class FakeRepo {
     this.profilePhone = profilePhone;
     this.profileCpfCnpj = profileCpfCnpj;
     this.profileCpfCnpjEncPresent = profileCpfCnpjEncPresent;
+    this.profileTrialUsedAt = profileTrialUsedAt;
     this.authMetadata = authMetadata;
     this.authMetadataError = authMetadataError;
     this.pendingPayment = pendingPayment;
@@ -47,6 +49,7 @@ class FakeRepo {
       is_active: true,
       cpf_cnpj: this.profileCpfCnpj,
       cpf_cnpj_enc_present: this.profileCpfCnpjEncPresent,
+      trial_used_at: this.profileTrialUsedAt,
     };
   }
 
@@ -735,6 +738,44 @@ test('bloqueia trial para usuario que nao e profissional', async () => {
     () => service.ativarTrial({ id: USER_ID }),
     err => err.status === 403,
   );
+});
+
+// ── Regra financeira: 1 trial por usuário na vida ─────────────────────────────
+
+test('usuario que NUNCA teve trial consegue ativar normalmente', async () => {
+  const repo = new FakeRepo({ profileTrialUsedAt: null });
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  const result = await service.ativarTrial({ id: USER_ID, email: 'teste@barberflow.test' });
+
+  assert.equal(result.planType, 'trial');
+  assert.equal(result.status, 'trial');
+  assert.equal(repo.expiredSubscriptions, 1, 'deve ter chamado repo.ativarTrial exatamente uma vez');
+});
+
+test('usuario que JA teve trial (expirado) tem novo trial RECUSADO pelo backend', async () => {
+  const repo = new FakeRepo({ profileTrialUsedAt: '2026-06-01T12:00:00.000Z' });
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  await assert.rejects(
+    () => service.ativarTrial({ id: USER_ID, email: 'teste@barberflow.test' }),
+    err => err.status === 409 && err.message === 'trial_already_used',
+  );
+  // NÃO pode ter tocado no repositório: não expira assinatura nem insere trial.
+  assert.equal(repo.expiredSubscriptions, 0, 'nao pode expirar/criar assinatura quando o trial ja foi usado');
+});
+
+test('bypass do frontend: chamada direta ao service ainda recusa trial reusado (protecao e do backend)', async () => {
+  // Simula a rota POST /pagamentos/trial batendo direto no service com JWT
+  // valido (req.user), sem nenhuma flag de frontend envolvida.
+  const repo = new FakeRepo({ profileTrialUsedAt: '2026-05-15T09:00:00.000Z' });
+  const service = new ProfessionalPaymentService(repo, new FakeAsaas(), { webhookToken: 'x'.repeat(32) });
+
+  await assert.rejects(
+    () => service.ativarTrial({ id: USER_ID }),
+    err => err.status === 409 && err.message === 'trial_already_used',
+  );
+  assert.equal(repo.expiredSubscriptions, 0);
 });
 
 test('status de assinatura permite acesso quando plano esta ativo e vigente', async () => {

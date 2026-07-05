@@ -419,6 +419,10 @@ class AuthService {
     // apareçam para outro usuário na mesma sessão de navegação (SPA sem reload)
     if (typeof BarbershopService  !== 'undefined') BarbershopService.limparCache();
     if (typeof ProfessionalService !== 'undefined') ProfessionalService.limparCache();
+    // Limpa a seleção de plano/trial (sessionStorage) do app profissional.
+    // Sem isso, as flags bf_plano/bf_plano_confirmacao_pendente sobrevivem ao
+    // logout na mesma aba e podem re-disparar a rede de segurança de trial.
+    if (typeof MonetizationGuard !== 'undefined') MonetizationGuard.limpar();
     AuthService._limparUI();
   }
 

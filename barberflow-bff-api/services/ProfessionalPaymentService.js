@@ -216,6 +216,15 @@ class ProfessionalPaymentService extends BaseService {
     const profile = await this.#repo.getProfile(userId);
     this.#assertProfessional(profile);
 
+    // Regra financeira: 1 trial por usuário na vida. Bloqueio primário no
+    // servidor (independe do frontend). profile.trial_used_at já veio do
+    // getProfile — early exit sem custo extra. O trigger enforce_single_trial
+    // no banco e o guard em ProfessionalPaymentRepository.ativarTrial são os
+    // backstops atômicos contra corrida e chamadas diretas à API.
+    if (profile.trial_used_at) {
+      throw AppError.conflict('trial_already_used');
+    }
+
     const subscription = await this.#repo.ativarTrial(userId);
     return this.#toSubscriptionDto(subscription);
   }

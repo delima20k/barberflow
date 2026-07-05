@@ -2,6 +2,7 @@
 
 const BaseRepository  = require('./BaseRepository');
 const DocumentCipher  = require('../infrastructure/crypto/DocumentCipher');
+const AppError        = require('../utils/AppError');
 
 class ProfessionalPaymentRepository extends BaseRepository {
   constructor(db) {
@@ -12,7 +13,7 @@ class ProfessionalPaymentRepository extends BaseRepository {
     this._uuid('userId', userId);
     const { data, error } = await this._db
       .from('profiles')
-      .select('id, full_name, phone, role, pro_type, is_active, cpf_cnpj_enc')
+      .select('id, full_name, phone, role, pro_type, is_active, cpf_cnpj_enc, trial_used_at')
       .eq('id', userId)
       .maybeSingle();
     if (error) this._throwDbError(error, 'getProfile');
@@ -199,8 +200,27 @@ class ProfessionalPaymentRepository extends BaseRepository {
     return data ?? [];
   }
 
+  async jaUsouTrial(userId) {
+    this._uuid('userId', userId);
+    const { data, error } = await this._db
+      .from('profiles')
+      .select('trial_used_at')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) this._throwDbError(error, 'jaUsouTrial');
+    return Boolean(data?.trial_used_at);
+  }
+
   async ativarTrial(userId) {
     this._uuid('userId', userId);
+
+    // Regra financeira: 1 trial por usuário na vida. A verificação vem
+    // ANTES de expirar a assinatura vigente — assim, se o usuário já usou
+    // o trial, não perdemos nada (não expiramos) e recusamos na hora.
+    // O backstop atômico (contra corrida) é o trigger enforce_single_trial.
+    if (await this.jaUsouTrial(userId)) {
+      throw AppError.conflict('trial_already_used');
+    }
 
     const { error: expireError } = await this._db
       .from('subscriptions')
@@ -226,6 +246,12 @@ class ProfessionalPaymentRepository extends BaseRepository {
       })
       .select('id, user_id, plan_type, status, starts_at, ends_at')
       .single();
+    // Backstop atômico: se dois trials concorreram (ou uma chamada direta
+    // burlou a checagem acima), o trigger enforce_single_trial — ou o índice
+    // idx_subscriptions_one_active_per_user — rejeita com 23505.
+    if (error?.code === '23505') {
+      throw AppError.conflict('trial_already_used');
+    }
     if (error) this._throwDbError(error, 'ativarTrial');
     return data;
   }
