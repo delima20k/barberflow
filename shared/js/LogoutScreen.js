@@ -55,6 +55,7 @@ class LogoutScreen {
     if (typeof AppState !== 'undefined') AppState.set('isLogado', false);
     router._telaAtual  = 'inicio';
     router._historico  = [];
+    router._substituirHistory?.('inicio', []);
 
     // ── Fase 5: garante que home está visível por baixo ────────────────────
     document.querySelectorAll('.tela').forEach(t => {

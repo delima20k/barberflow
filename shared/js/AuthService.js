@@ -343,7 +343,7 @@ class AuthService {
   static limparRecoveryUrl() {
     if (!AuthService.isPasswordRecoveryUrl()) return;
     const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
+    window.history.replaceState(window.history.state ?? {}, document.title, cleanUrl);
   }
 
   static async redefinirSenha(novaSenha, confirmarSenha, navFn, onMensagem = null) {

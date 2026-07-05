@@ -311,7 +311,7 @@ class PaymentFlowHandler {
       const url = new URL(window.location.href);
       if (!url.searchParams.has('bf_pagamento')) return;
       url.searchParams.delete('bf_pagamento');
-      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+      window.history.replaceState(window.history.state ?? {}, document.title, `${url.pathname}${url.search}${url.hash}`);
     } catch (_) {
       /* noop */
     }

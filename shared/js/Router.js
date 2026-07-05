@@ -57,6 +57,8 @@ class Router {
   // quando o SO mata o app em segundo plano (bfcache é tratado no pageshow).
   static #CHAVE_ULTIMA_TELA = 'bf_ultima_tela';
   static #JANELA_RESUMO_MS  = 30 * 60 * 1000; // 30 min
+  static #HISTORY_KEY       = '__barberflowRouter';
+  static #HISTORY_VERSION   = 1;
   // Telas que NÃO devem ser persistidas/restauradas: fluxo de auth, telas
   // efêmeras e telas de detalhe que dependem de uma entidade selecionada
   // (restaurá-las sem contexto mostraria uma tela vazia/quebrada).
@@ -102,6 +104,8 @@ class Router {
     this._view.init(telaInicial);
 
     this._telaAtual = telaInicial;
+    this._substituirHistory(telaInicial, []);
+    this._bindPopstate();
     this._atualizarUI(telaInicial);
     this._bindLoginEvent();
     this._bindDataAttributes();
@@ -133,6 +137,7 @@ class Router {
         this._view.resetarParaHome();
         this._telaAtual = 'inicio';
         this._historico = [];
+        this._substituirHistory('inicio', []);
       }
       this._atualizarUI(this._telaAtual);
     });
@@ -141,9 +146,156 @@ class Router {
     this._agendarRestauracaoTela();
   }
 
+  // History API: mantem o historico interno do Router sincronizado com o navegador/PWA.
+  _historyDisponivel() {
+    return typeof window !== 'undefined'
+      && window.history
+      && typeof window.history.pushState === 'function'
+      && typeof window.history.replaceState === 'function';
+  }
+
+  _historyBackDisponivel() {
+    return typeof window !== 'undefined'
+      && window.history
+      && typeof window.history.back === 'function';
+  }
+
+  _criarHistoryState(tela, historico = this._historico) {
+    return {
+      [Router.#HISTORY_KEY]: true,
+      version: Router.#HISTORY_VERSION,
+      tela,
+      historico: Router.#normalizarHistorico(historico),
+    };
+  }
+
+  static #ehHistoryState(state) {
+    return !!state
+      && state[Router.#HISTORY_KEY] === true
+      && typeof state.tela === 'string'
+      && Array.isArray(state.historico);
+  }
+
+  static #normalizarHistorico(historico) {
+    if (!Array.isArray(historico)) return [];
+    return historico
+      .filter(tela => typeof tela === 'string' && tela.trim())
+      .map(tela => tela.trim());
+  }
+
+  _substituirHistory(tela = this._telaAtual, historico = this._historico) {
+    if (!this._historyDisponivel()) return;
+    try {
+      window.history.replaceState(
+        this._criarHistoryState(tela, historico),
+        typeof document !== 'undefined' ? document.title : '',
+      );
+    } catch (erro) {
+      this._services.logger?.warn?.('[Router] Falha ao sincronizar replaceState:', erro?.message || erro);
+    }
+  }
+
+  _empilharHistory(tela = this._telaAtual, historico = this._historico) {
+    if (!this._historyDisponivel()) return;
+    try {
+      window.history.pushState(
+        this._criarHistoryState(tela, historico),
+        typeof document !== 'undefined' ? document.title : '',
+      );
+    } catch (erro) {
+      this._services.logger?.warn?.('[Router] Falha ao sincronizar pushState:', erro?.message || erro);
+    }
+  }
+
+  _bindPopstate() {
+    if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+
+    window.__barberFlowRouterAtual = this;
+    if (window.__barberFlowRouterPopstateBound) return;
+
+    window.__barberFlowRouterPopstateBound = true;
+    window.addEventListener('popstate', event => {
+      window.__barberFlowRouterAtual?._onPopstate(event);
+    });
+  }
+
+  _onPopstate(event) {
+    const state = event?.state;
+
+    if (!Router.#ehHistoryState(state)) {
+      this._substituirHistory(this._telaAtual, this._historico);
+      return;
+    }
+
+    const tela = String(state.tela || '').trim();
+    const historico = Router.#normalizarHistorico(state.historico);
+    if (!tela) return;
+
+    if (!this._permitirNavPopstate(tela)) {
+      this._restaurarTela('login', [], { direcao: 'forward', sincronizarHistory: 'replace' });
+      return;
+    }
+
+    this._restaurarTela(tela, historico, { direcao: 'auto', sincronizarHistory: false });
+  }
+
+  _permitirNavPopstate(tela) {
+    if (Router.TELAS_PUBLICAS.has(tela)) return true;
+    const logado = typeof AppState !== 'undefined' && AppState.get('isLogado') === true;
+    if (logado) return true;
+    this._view.exibirToastLoginObrigatorio();
+    return false;
+  }
+
+  _restaurarTela(tela, historico, { direcao = 'auto', sincronizarHistory = false, transicao = 'nav' } = {}) {
+    const destino = this._view.telaEl(tela);
+    if (tela !== 'inicio' && !destino) {
+      this._services.logger.warn(`[BarberFlow] Tela "${tela}" nao encontrada.`);
+      this._substituirHistory(this._telaAtual, this._historico);
+      return false;
+    }
+
+    const telaAnterior = this._telaAtual;
+    const historicoAnterior = this._historico;
+    const atual = this._view.telaEl(telaAnterior);
+    const novoHistorico = Router.#normalizarHistorico(historico);
+
+    this._historico = novoHistorico;
+    this._telaAtual = tela;
+    this._atualizarUI(tela);
+    this._persistirTela(tela);
+
+    if (sincronizarHistory === 'replace') this._substituirHistory(tela, novoHistorico);
+    if (sincronizarHistory === 'push') this._empilharHistory(tela, novoHistorico);
+
+    if (tela === telaAnterior) return true;
+
+    const voltando = direcao === 'back'
+      || (direcao === 'auto' && novoHistorico.length < historicoAnterior.length);
+
+    if (voltando) {
+      this._animar(
+        telaAnterior !== 'inicio' ? atual : null,
+        tela         !== 'inicio' ? destino : null,
+        'saindo',
+        tela !== 'inicio' ? 'entrando-lento' : 'ativa',
+      );
+      return true;
+    }
+
+    const carrossel = telaAnterior !== 'inicio';
+    this._animar(
+      carrossel         ? atual   : null,
+      tela !== 'inicio' ? destino : null,
+      transicao === 'push' || carrossel ? 'saindo-direita' : 'saindo',
+      transicao === 'push' || carrossel ? 'entrando-lento' : 'ativa',
+    );
+    return true;
+  }
+
   /**
-   * Persiste a última aba principal para permitir retomar de onde o usuário
-   * parou. Telas de fluxo/detalhe (ver #TELAS_NAO_PERSISTIR) limpam o registro.
+   * Persiste a ultima aba principal para permitir retomar de onde o usuario parou.
+   * Telas de fluxo/detalhe (ver #TELAS_NAO_PERSISTIR) limpam o registro.
    * @param {string} tela
    * @protected
    */
@@ -269,12 +421,8 @@ class Router {
     // Toggle: clicou no ícone da aba já aberta → fecha pela ESQUERDA (igual a voltar).
     // Guard intencionalmente omitido aqui: o destino é sempre 'inicio' (tela pública).
     if (tela === this._telaAtual && tela !== 'inicio') {
-      const atual = this._view.telaEl(this._telaAtual);
-      this._historico = [];          // limpa histórico — volta pra home
-      this._telaAtual = 'inicio';
-      this._atualizarUI('inicio');
-      this._persistirTela('inicio');
-      this._animar(atual, null, 'saindo');  // sai pela esquerda, home já está embaixo
+      const novoHistorico = [...this._historico, this._telaAtual];
+      this._restaurarTela('inicio', novoHistorico, { direcao: 'back', sincronizarHistory: 'push' });
       return;
     }
     if (tela === this._telaAtual) return;
@@ -282,49 +430,24 @@ class Router {
     // Guard de autenticação — bloqueia telas privadas para visitantes
     if (!this._permitirNavAuth(tela)) return;
 
-    const destino = this._view.telaEl(tela);
-    if (!destino) { this._services.logger.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
+    if (!this._view.telaEl(tela)) { this._services.logger.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
-    const telaAnterior = this._telaAtual;
-    const atual = this._view.telaEl(telaAnterior);
-
-    this._historico.push(telaAnterior);
-    this._telaAtual = tela;
-    this._atualizarUI(tela);
-    this._persistirTela(tela);
-
-    // Home é base fixa — nunca anima saída
-    // Aba já aberta → carrossel: atual sai DIREITA (lento), nova entra ESQUERDA (lento)
-    // Vindo da home  → nova entra pela ESQUERDA normalmente (sem exit)
-    const carrossel = telaAnterior !== 'inicio';
-    this._animar(
-      carrossel         ? atual   : null,
-      tela !== 'inicio' ? destino : null,
-      carrossel         ? 'saindo-direita' : 'saindo',
-      carrossel         ? 'entrando-lento' : 'ativa'
-    );
+    const novoHistorico = [...this._historico, this._telaAtual];
+    this._restaurarTela(tela, novoHistorico, { direcao: 'forward', sincronizarHistory: 'push' });
   }
 
-  /** Fecha a aba corrente e retorna ao início.
-   *  A aba sai pela esquerda; home sempre está visível por baixo.
+  /** Volta para a entrada anterior do History API.
+   *  Sem History API disponivel, retorna ao inicio como fallback seguro.
    */
   voltar() {
     if (this._telaAtual === 'inicio') return;
 
-    const telaAtual = this._telaAtual;
-    const atual = this._view.telaEl(telaAtual);
+    if (this._historico.length > 0 && this._historyBackDisponivel()) {
+      window.history.back();
+      return;
+    }
 
-    this._historico = [];
-    this._telaAtual = 'inicio';
-    this._atualizarUI('inicio');
-    this._persistirTela('inicio');
-
-    this._animar(
-      telaAtual !== 'inicio' ? atual : null,
-      null,
-      'saindo',
-      'ativa'
-    );
+    this._restaurarTela('inicio', [], { direcao: 'back', sincronizarHistory: 'replace' });
   }
 
   /**
@@ -341,25 +464,10 @@ class Router {
     // Guard de autenticação — impede acesso a telas privadas via push() direto
     if (!this._permitirNavAuth(tela)) return;
 
-    const destino = this._view.telaEl(tela);
-    if (!destino) { this._services.logger.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
+    if (!this._view.telaEl(tela)) { this._services.logger.warn(`[BarberFlow] Tela "${tela}" não encontrada.`); return; }
 
-    const telaAnterior = this._telaAtual;
-    const atual = this._view.telaEl(telaAnterior);
-
-    this._historico.push(telaAnterior);
-    this._telaAtual = tela;
-    this._atualizarUI(tela);
-    this._persistirTela(tela);
-
-    // Fluxo de auth (login ↔ cadastro ↔ esqueceu-senha):
-    // atual sai pela DIREITA, nova entra pela ESQUERDA — padrão carrossel
-    this._animar(
-      telaAnterior !== 'inicio' ? atual   : null,
-      tela         !== 'inicio' ? destino : null,
-      'saindo-direita',
-      'entrando-lento'
-    );
+    const novoHistorico = [...this._historico, this._telaAtual];
+    this._restaurarTela(tela, novoHistorico, { direcao: 'forward', sincronizarHistory: 'push', transicao: 'push' });
   }
 
   /**
