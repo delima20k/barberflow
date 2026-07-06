@@ -40,6 +40,8 @@ class PushService {
    *   barbershopId:   string,
    *   type:           'client_not_seated' | 'client_at_shop',
    *   clienteNome:    string,
+   *   eventId?:       string,
+   *   dedupeKey?:     string,
    * }} params
    * @returns {Promise<{ enviados: number, invalidas: number, destinatarios: number }>}
    */
@@ -50,6 +52,8 @@ class PushService {
     barbershopId,
     type,
     clienteNome,
+    eventId,
+    dedupeKey,
     statusLabel,
     cadeira,
     cliente,
@@ -72,18 +76,32 @@ class PushService {
 
     const label       = statusLabel || (isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou');
     const cadeiraNome = cadeira || 'Cadeira de producao';
+    const eventKey    = dedupeKey || eventId || PushService.#eventId(entradaId, type);
+
+    // Idempotência real: registra o eventKey ANTES de enviar, ancorado no
+    // professionalId (sempre presente). Se já foi enviado (23505), não
+    // reenvia — evita push duplicado enquanto o cliente permanece
+    // aguardando (2ª aba, reload, retry, etc).
+    if (professionalId) {
+      const duplicado = await this.#registrarDedupPush(professionalId, eventKey);
+      if (duplicado) {
+        return { enviados: 0, invalidas: 0, destinatarios: destinatarioIds.length, duplicate: true };
+      }
+    }
 
     const payload = JSON.stringify({
       title,
       body,
       icon:  '/shared/img/icon-192.png',
       badge: '/shared/img/badge-72.png',
-      tag:   `chegada-${entradaId}`,
+      tag:   PushService.#notificationTag(eventKey),
       requireInteraction: true,
       data: {
         pushType:    type,
         entradaId,
         barbershopId,
+        eventId:     eventKey,
+        dedupeKey:   eventKey,
         clienteNome,
         statusLabel: label,
         cadeira:     cadeiraNome,
@@ -95,6 +113,32 @@ class PushService {
 
     const outcome = await this.#enviarPayload(subsUnicas, payload);
     return { ...outcome, destinatarios: destinatarioIds.length };
+  }
+
+  static #eventId(entradaId, type) {
+    return `queue:${entradaId}:${type}`;
+  }
+
+  static #notificationTag(eventKey) {
+    return `chegada-${String(eventKey).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+  }
+
+  /**
+   * Registra (userId, dedupeKey) em push_notification_dedup antes do envio.
+   * Mesmo padrão de ProfessionalPaymentRepository.registrarWebhookEvento:
+   * violação de unicidade (23505) = já enviado, não é erro.
+   * @returns {Promise<boolean>} true se já existia (duplicado)
+   */
+  async #registrarDedupPush(userId, dedupeKey) {
+    const { error } = await this.#supabaseAdmin
+      .from('push_notification_dedup')
+      .insert({ user_id: userId, dedupe_key: dedupeKey });
+    if (error?.code === '23505') return true;
+    if (error) {
+      console.error('[PushService] Erro ao registrar dedup de push:', error.message, error.code);
+      return false; // fail-open: não bloqueia envio se a checagem falhar
+    }
+    return false;
   }
 
   async enviarMensagemChat({ userId, conversationId, messageId, senderId }) {

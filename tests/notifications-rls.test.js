@@ -32,6 +32,9 @@
  *   RLS-20  notificar_barbeiro_chegada: tipo inválido → rejeitar
  *   RLS-21  notificar_barbeiro_chegada: entry_id não é UUID → rejeitar
  *   RLS-22  Regression: fluxo legítimo completo de chegada do cliente
+ *   RLS-23  Idempotência: 2ª chamada com mesmo (user_id, dedupe_key) não duplica
+ *   RLS-24  Idempotência: notificar_barbeiro_chegada 2x com mesmo dedupe_key não duplica
+ *   RLS-25  Idempotência: confirmar_presenca_cliente ramo 'absent' não reprocessa
  */
 
 const { describe, test } = require('node:test');
@@ -117,6 +120,11 @@ function selectPolicy({ callerUid, row }) {
  * Espelha a lógica de validação de public._insert_validated_notification().
  * Não conecta ao banco — usa os mapas em memória passados como parâmetro.
  *
+ * Migration 20260706000001: se payload.data.dedupe_key vier preenchido e já
+ * existir uma notificação com o mesmo (recipientId, dedupe_key) em
+ * existingKeys, retorna null (idempotente — mesmo comportamento do
+ * ON CONFLICT ... DO NOTHING no banco), sem consumir mais nenhuma validação.
+ *
  * @param {object}  opts
  * @param {string}  opts.recipientId
  * @param {string|null} opts.senderId
@@ -126,11 +134,12 @@ function selectPolicy({ callerUid, row }) {
  * @param {Map}     opts.profiles       — Map<uuid, { is_active: boolean }>
  * @param {Map}     opts.rateLimits     — Map<'sender:recipient', { count, windowStart }>
  * @param {Map}     opts.senderLimits   — Map<sender_uuid, { count, windowStart }>
- * @returns {{ id: string, recipientId: string, type: string, title: string, body: string }}
+ * @param {Set}     [opts.existingKeys] — Set<'recipientId:dedupeKey'> já inseridos
+ * @returns {{ id: string, recipientId: string, type: string, title: string, body: string }|null}
  */
 function insertValidatedNotification(opts) {
   const { recipientId, senderId, type, payload, applyRateLimit,
-          profiles, rateLimits, senderLimits } = opts;
+          profiles, rateLimits, senderLimits, existingKeys = new Set() } = opts;
 
   // Recipient: deve existir e estar ativo
   const profile = profiles.get(recipientId);
@@ -199,6 +208,15 @@ function insertValidatedNotification(opts) {
     }
   }
 
+  // Idempotência (migration 20260706000001): dedupe_key repetido para o
+  // mesmo recipient = ON CONFLICT DO NOTHING → retorna null, não duplica.
+  const dedupeKey = payload.data?.dedupe_key;
+  if (dedupeKey) {
+    const chave = `${recipientId}:${dedupeKey}`;
+    if (existingKeys.has(chave)) return null;
+    existingKeys.add(chave);
+  }
+
   return {
     id:          crypto.randomUUID(),
     recipientId,
@@ -216,11 +234,11 @@ function insertValidatedNotification(opts) {
  * authenticated só pode auto-notificar; service_role sem restrição.
  */
 function createNotification({ callerUid, callerRole = 'authenticated', recipientId,
-                              type, payload, profiles, rateLimits, senderLimits }) {
+                              type, payload, profiles, rateLimits, senderLimits, existingKeys }) {
   if (callerRole === 'service_role') {
     return insertValidatedNotification({
       recipientId, senderId: null, type, payload,
-      applyRateLimit: false, profiles, rateLimits, senderLimits,
+      applyRateLimit: false, profiles, rateLimits, senderLimits, existingKeys,
     });
   }
   if (!callerUid) {
@@ -231,7 +249,7 @@ function createNotification({ callerUid, callerRole = 'authenticated', recipient
   }
   return insertValidatedNotification({
     recipientId, senderId: callerUid, type, payload,
-    applyRateLimit: true, profiles, rateLimits, senderLimits,
+    applyRateLimit: true, profiles, rateLimits, senderLimits, existingKeys,
   });
 }
 
@@ -247,7 +265,7 @@ const UUID_REGEX =
  */
 function notificarBarbeiroChegada({ professionalId, type, pTitle, pBody, pData,
                                    callerUid, queueEntries, profiles,
-                                   rateLimits, senderLimits }) {
+                                   rateLimits, senderLimits, existingKeys }) {
   const VALID_ARRIVAL_TYPES = ['client_at_shop', 'client_arriving_late', 'client_not_seated'];
 
   if (!VALID_ARRIVAL_TYPES.includes(type)
@@ -294,6 +312,36 @@ function notificarBarbeiroChegada({ professionalId, type, pTitle, pBody, pData,
     profiles,
     rateLimits,
     senderLimits,
+    existingKeys,
+  });
+}
+
+// ─── Simulação: confirmar_presenca_cliente (ramo 'absent', pós-idempotência) ──
+
+/**
+ * Espelha só o ramo final (2º "Não"/grace expirado) de
+ * public.confirmar_presenca_cliente() após a migration 20260706000001:
+ * checa clientConfirmedAtual ANTES de notificar (defesa primária barata) e
+ * usa dedupe_key 'queue:{entryId}:client_absent' (defesa secundária atômica
+ * via existingKeys, espelhando o ON CONFLICT DO NOTHING do banco).
+ */
+function confirmarPresencaClienteAbsent({ entryId, professionalId, senderUid,
+                                         clientConfirmedAtual, profiles,
+                                         rateLimits, senderLimits, existingKeys }) {
+  const jaAbsente = clientConfirmedAtual === 'absent';
+  if (jaAbsente) return null; // defesa primária: nem chama _insert_validated_notification
+
+  return insertValidatedNotification({
+    recipientId: professionalId,
+    senderId:    senderUid,
+    type:        'client_absent',
+    payload: {
+      title: 'Cliente ausente',
+      body:  'Cliente nao confirmou presenca na cadeira.',
+      data:  { client_absent: true, entry_id: entryId, dedupe_key: `queue:${entryId}:client_absent` },
+    },
+    applyRateLimit: true,
+    profiles, rateLimits, senderLimits, existingKeys,
   });
 }
 
@@ -784,5 +832,119 @@ describe('RLS — notificar_barbeiro_chegada (V2/V4 fix)', () => {
 
     assert.equal(result.title, 'Cliente ainda nao esta pronto');
     assert.ok(result.body.includes('Ana'));
+  });
+});
+
+// ─── describe: idempotência (migration 20260706000001) ───────────────────────
+
+describe('RLS — idempotência de notificações de fila', () => {
+
+  test('RLS-23 2ª chamada com o mesmo (user_id, dedupe_key) não duplica linha', () => {
+    const { pair, sender } = criarRateLimits();
+    const existingKeys = new Set();
+    const payload = payloadValido({ data: { dedupe_key: 'queue:entry-x:client_not_seated' } });
+
+    const primeira = insertValidatedNotification({
+      recipientId: CLIENT_A, senderId: CLIENT_B,
+      type: 'client_not_seated', payload,
+      applyRateLimit: true, profiles: criarProfiles(), rateLimits: pair, senderLimits: sender,
+      existingKeys,
+    });
+    const segunda = insertValidatedNotification({
+      recipientId: CLIENT_A, senderId: CLIENT_B,
+      type: 'client_not_seated', payload,
+      applyRateLimit: true, profiles: criarProfiles(), rateLimits: pair, senderLimits: sender,
+      existingKeys,
+    });
+
+    assert.ok(primeira?.id, '1ª chamada deve criar a notificação normalmente');
+    assert.equal(segunda, null, '2ª chamada com mesmo dedupe_key deve retornar null (idempotente)');
+  });
+
+  test('sem dedupe_key: 2 chamadas idênticas NÃO são deduplicadas (comportamento antigo preservado)', () => {
+    const { pair, sender } = criarRateLimits();
+    const existingKeys = new Set();
+
+    const primeira = insertValidatedNotification({
+      recipientId: CLIENT_A, senderId: CLIENT_B,
+      type: 'agendamento', payload: payloadValido(),
+      applyRateLimit: true, profiles: criarProfiles(), rateLimits: pair, senderLimits: sender,
+      existingKeys,
+    });
+    const segunda = insertValidatedNotification({
+      recipientId: CLIENT_A, senderId: CLIENT_B,
+      type: 'agendamento', payload: payloadValido(),
+      applyRateLimit: true, profiles: criarProfiles(), rateLimits: pair, senderLimits: sender,
+      existingKeys,
+    });
+
+    assert.ok(primeira?.id);
+    assert.ok(segunda?.id, 'sem dedupe_key, cada chamada continua criando sua própria notificação');
+  });
+
+  test('RLS-24 notificar_barbeiro_chegada 2x com mesmo dedupe_key não duplica', () => {
+    const { pair, sender } = criarRateLimits();
+    const existingKeys = new Set();
+    const pData = { entry_id: ENTRY_ID, dedupe_key: `queue:${ENTRY_ID}:client_not_seated` };
+
+    const primeira = notificarBarbeiroChegada({
+      professionalId: PROF_ID, type: 'client_not_seated',
+      pTitle: 'x', pBody: 'x', pData,
+      callerUid: CLIENT_A, queueEntries: criarQueueEntries(),
+      profiles: criarProfiles(), rateLimits: pair, senderLimits: sender, existingKeys,
+    });
+    const segunda = notificarBarbeiroChegada({
+      professionalId: PROF_ID, type: 'client_not_seated',
+      pTitle: 'x', pBody: 'x', pData,
+      callerUid: CLIENT_A, queueEntries: criarQueueEntries(),
+      profiles: criarProfiles(), rateLimits: pair, senderLimits: sender, existingKeys,
+    });
+
+    assert.ok(primeira?.id, '1ª chamada deve notificar o barbeiro normalmente');
+    assert.equal(segunda, null, '2ª chamada com o mesmo dedupe_key não deve criar nova notificação');
+  });
+
+  test('RLS-25 confirmar_presenca_cliente ramo absent: 2ª chamada não reprocessa', () => {
+    const { pair, sender } = criarRateLimits();
+    const existingKeys = new Set();
+
+    // 1ª chamada: client_confirmed ainda não é 'absent' → notifica e marca
+    const primeira = confirmarPresencaClienteAbsent({
+      entryId: ENTRY_ID, professionalId: PROF_ID, senderUid: CLIENT_A,
+      clientConfirmedAtual: 'no_waiting',
+      profiles: criarProfiles(), rateLimits: pair, senderLimits: sender, existingKeys,
+    });
+
+    // 2ª chamada: client_confirmed já é 'absent' (defesa primária barra antes de notificar)
+    const segunda = confirmarPresencaClienteAbsent({
+      entryId: ENTRY_ID, professionalId: PROF_ID, senderUid: CLIENT_A,
+      clientConfirmedAtual: 'absent',
+      profiles: criarProfiles(), rateLimits: pair, senderLimits: sender, existingKeys,
+    });
+
+    assert.ok(primeira?.id, '1ª chamada (ainda não absent) deve notificar');
+    assert.equal(segunda, null, '2ª chamada (já absent) não deve reprocessar');
+  });
+
+  test('confirmar_presenca_cliente ramo absent: corrida (TOCTOU) barrada pelo dedupe_key', () => {
+    const { pair, sender } = criarRateLimits();
+    const existingKeys = new Set();
+
+    // Duas chamadas concorrentes leem clientConfirmedAtual ANTES do UPDATE
+    // (nenhuma vê 'absent' ainda) — a defesa primária não pega a corrida,
+    // mas o dedupe_key (defesa secundária/atômica) impede a 2ª notificação.
+    const primeira = confirmarPresencaClienteAbsent({
+      entryId: ENTRY_ID, professionalId: PROF_ID, senderUid: CLIENT_A,
+      clientConfirmedAtual: 'no_waiting',
+      profiles: criarProfiles(), rateLimits: pair, senderLimits: sender, existingKeys,
+    });
+    const segunda = confirmarPresencaClienteAbsent({
+      entryId: ENTRY_ID, professionalId: PROF_ID, senderUid: CLIENT_A,
+      clientConfirmedAtual: 'no_waiting', // corrida: ainda lê o estado antigo
+      profiles: criarProfiles(), rateLimits: pair, senderLimits: sender, existingKeys,
+    });
+
+    assert.ok(primeira?.id);
+    assert.equal(segunda, null, 'dedupe_key deve barrar mesmo quando a checagem de estado não pega a corrida');
   });
 });

@@ -2,14 +2,19 @@
 // =============================================================================
 // barbeiro-espera-fluxo.test.js — TDD para BarbeiroEsperaFluxo
 //
+// Contrato atual (pós-remoção do timer recorrente de 5min): notifica 1x ao
+// iniciar a espera; NENHUM modal/notificação reabre sozinho enquanto o
+// cliente aguarda — o barbeiro responde manualmente quando quiser.
+//
 // Cobertura:
-//   describe 1: iniciarEspera — toca som, registra estado, guard de duplicata
+//   describe 1: iniciarEspera — toca som 1x, registra estado, NUNCA usa setInterval
 //   describe 2: estaAguardando — false antes, true depois, false após finalizar
-//   describe 3: finalizarEspera — remove estado, chama clearInterval
+//   describe 3: finalizarEspera — remove estado, NÃO chama clearInterval (nada a cancelar)
 //   describe 4: abrirModalCadeira — 2 botões (Sim/Não) + segundo modal após Não
-//   describe 5: resetarTimer — cancela + reinicia sem duplicar
-//   describe 6: localStorage — persiste ao iniciar, limpa ao finalizar, restaurar()
+//   describe 5: resetarTimer — no-op (não chama setInterval/clearInterval)
+//   describe 6: localStorage — persiste ao iniciar, limpa ao finalizar, restaurar() sem timer
 //   describe 7: barberflow:espera-resolvida — despacha com acao + barbershopId
+//   describe 8: sem reabertura automática — requisito central do fix de notificação em loop
 // =============================================================================
 
 const { describe, test } = require('node:test');
@@ -92,11 +97,11 @@ describe('BarbeiroEsperaFluxo — iniciarEspera', () => {
     assert.equal(tocarSomSpy.calls.length, 1, 'som deve tocar apenas na primeira vez');
   });
 
-  test('guard: segunda chamada com mesmo entradaId não inicia segundo timer', () => {
+  test('iniciarEspera nunca chama setInterval (sem timer recorrente)', () => {
     const { sandbox, setIntervalSpy } = criarSandbox();
     sandbox.BarbeiroEsperaFluxo.iniciarEspera({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     sandbox.BarbeiroEsperaFluxo.iniciarEspera({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
-    assert.equal(setIntervalSpy.calls.length, 1, 'setInterval deve ser chamado apenas 1x');
+    assert.equal(setIntervalSpy.calls.length, 0, 'não deve haver timer recorrente após 1x ou 2x iniciarEspera');
   });
 });
 
@@ -127,11 +132,11 @@ describe('BarbeiroEsperaFluxo — estaAguardando', () => {
 
 describe('BarbeiroEsperaFluxo — finalizarEspera', () => {
 
-  test('chama clearInterval ao finalizar', () => {
+  test('finalizarEspera não chama clearInterval (não há timer para cancelar)', () => {
     const { sandbox, clearIntervalSpy } = criarSandbox();
     sandbox.BarbeiroEsperaFluxo.iniciarEspera({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     sandbox.BarbeiroEsperaFluxo.finalizarEspera(ENTRY_ID);
-    assert.equal(clearIntervalSpy.calls.length, 1, 'clearInterval deve ser chamado 1x');
+    assert.equal(clearIntervalSpy.calls.length, 0, 'clearInterval nunca deve ser chamado — não há mais timer');
   });
 
   test('remove entrada do estado interno', () => {
@@ -218,18 +223,18 @@ describe('BarbeiroEsperaFluxo — abrirModalCadeira', () => {
   });
 });
 
-// ─── describe 5: resetarTimer ────────────────────────────────────────────────────
+// ─── describe 5: resetarTimer (deprecated, agora no-op) ──────────────────────────
 
-describe('BarbeiroEsperaFluxo — resetarTimer', () => {
+describe('BarbeiroEsperaFluxo — resetarTimer (no-op)', () => {
 
-  test('chama clearInterval e depois setInterval novamente', () => {
+  test('resetarTimer não chama setInterval nem clearInterval', () => {
     const { sandbox, setIntervalSpy, clearIntervalSpy } = criarSandbox();
     sandbox.BarbeiroEsperaFluxo.iniciarEspera({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
-    assert.equal(setIntervalSpy.calls.length, 1, 'deve ter 1 setInterval após iniciar');
+    assert.equal(setIntervalSpy.calls.length, 0, 'iniciarEspera não usa setInterval');
 
     sandbox.BarbeiroEsperaFluxo.resetarTimer(ENTRY_ID);
-    assert.equal(clearIntervalSpy.calls.length, 1, 'deve ter 1 clearInterval ao resetar');
-    assert.equal(setIntervalSpy.calls.length, 2, 'deve ter 2 setInterval ao resetar (cancela + cria novo)');
+    assert.equal(clearIntervalSpy.calls.length, 0, 'resetarTimer é no-op — não chama clearInterval');
+    assert.equal(setIntervalSpy.calls.length, 0, 'resetarTimer é no-op — não chama setInterval');
   });
 
   test('resetarTimer em entradaId sem espera ativa não lança erro', () => {
@@ -264,11 +269,12 @@ describe('BarbeiroEsperaFluxo — localStorage', () => {
     assert.equal(sandbox.BarbeiroEsperaFluxo.estaAguardando(ENTRY_ID), true, 'restaurar deve registrar estado do localStorage');
   });
 
-  test('restaurar() reinicia timers para entradas restauradas', () => {
+  test('restaurar() NÃO usa setInterval (idempotente, sem timer)', () => {
     const lsData = JSON.stringify({ [ENTRY_ID]: { clienteNome: NOME, barbershopId: SHOP_ID } });
     const { sandbox, setIntervalSpy } = criarSandbox({ lsStore: { 'bf_espera_barbeiro': lsData } });
     sandbox.BarbeiroEsperaFluxo.restaurar();
-    assert.ok(setIntervalSpy.calls.length >= 1, 'setInterval deve ser chamado ao restaurar timer');
+    assert.equal(setIntervalSpy.calls.length, 0, 'restaurar() não deve agendar nenhum timer recorrente');
+    assert.equal(sandbox.BarbeiroEsperaFluxo.estaAguardando(ENTRY_ID), true, 'estado continua restaurado corretamente');
   });
 });
 
@@ -299,5 +305,23 @@ describe('BarbeiroEsperaFluxo — evento barberflow:espera-resolvida', () => {
     const { sandbox, dispatchSpy } = criarSandbox({ modalResp: 'sim' });
     await sandbox.BarbeiroEsperaFluxo.abrirModalCadeira({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
     assert.equal(dispatchSpy.calls[0][0].detail.barbershopId, SHOP_ID);
+  });
+});
+
+// ─── describe 8: sem reabertura automática (requisito central do fix) ───────────
+
+describe('BarbeiroEsperaFluxo — sem reabertura automática enquanto cliente aguarda', () => {
+
+  test('após iniciarEspera, nenhum modal é reaberto automaticamente', () => {
+    const { sandbox, abrirSpy } = criarSandbox();
+    sandbox.BarbeiroEsperaFluxo.iniciarEspera({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    assert.equal(abrirSpy.calls.length, 0, 'nenhuma chamada a FluxoDeFila.abrir deve ocorrer sem ação manual do barbeiro');
+  });
+
+  test('estado permanece "aguardando" indefinidamente sem nenhum timer agendado', () => {
+    const { sandbox, setIntervalSpy } = criarSandbox();
+    sandbox.BarbeiroEsperaFluxo.iniciarEspera({ clienteNome: NOME, entradaId: ENTRY_ID, barbershopId: SHOP_ID });
+    assert.equal(sandbox.BarbeiroEsperaFluxo.estaAguardando(ENTRY_ID), true);
+    assert.equal(setIntervalSpy.calls.length, 0, 'nada deve estar agendado para reabrir o modal sozinho');
   });
 });

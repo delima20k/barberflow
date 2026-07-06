@@ -33,7 +33,7 @@ class NotificacoesController extends BaseController {
 
   /**
    * POST /api/v1/notificacoes/push-barbeiro
-   * Body: { professionalId, entradaId, barbershopId, type, clienteNome }
+   * Body: { professionalId, entradaId, barbershopId, type, clienteNome, eventId?, dedupeKey? }
    */
   async pushBarbeiro(req, res) {
     await this.handle(res, async () => {
@@ -43,6 +43,8 @@ class NotificacoesController extends BaseController {
         barbershopId,
         type,
         clienteNome,
+        eventId,
+        dedupeKey,
         statusLabel,
         cadeira,
         cliente,
@@ -86,11 +88,18 @@ class NotificacoesController extends BaseController {
         entradaId,
         barbershopId,
         type,
+        eventId,
+        dedupeKey,
         clienteNome: clienteNome.trim(),
         statusLabel,
         cadeira,
         cliente,
       });
+
+      if (result.duplicate) {
+        console.info('[BFF] push-barbeiro: evento duplicado ignorado (dedupeKey já enviado)');
+        return res.status(200).json({ ok: true, reason: 'DUPLICATE', data: { destinatarios: result.destinatarios } });
+      }
 
       console.info('[BFF] push-barbeiro: enviados=%d destinatarios=%d invalidas=%d',
         result.enviados, result.destinatarios, result.invalidas);

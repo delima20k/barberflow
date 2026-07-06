@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260705c';
+const SW_PRO_VERSION = '20260706b';
 
 class SWProfissional {
 
@@ -29,6 +29,8 @@ class SWProfissional {
     `bf-pro-images-${SW_PRO_VERSION}`,
     `bf-pro-shell-${SW_PRO_VERSION}`,
   ]);
+  static #PUSH_DEDUPE_TTL_MS = 30 * 60 * 1000;
+  static #pushEventosRecentes = new Map();
 
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
   // HTML nunca entra na lista — sempre servido da rede
@@ -41,7 +43,7 @@ class SWProfissional {
     '/shared/js/LoggerService.js',
     '/shared/js/SectionEventCatalog.js',
     '/shared/js/SectionEventBus.js',
-    '/shared/js/NotificationService.js',
+    '/shared/js/NotificationService.js?v=20260706a',
     '/shared/js/PageSection.js',
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
@@ -239,6 +241,12 @@ class SWProfissional {
         silent:             true,
         data:               payload.data  ?? {},
       };
+      const eventId = SWProfissional.#pushEventId(opts);
+
+      if (eventId && await SWProfissional.#isDuplicatePush(eventId, opts.tag)) {
+        console.log('[SW-Pro] push duplicado ignorado:', eventId);
+        return;
+      }
 
       // Adiciona botões de ação para notificações de chegada do cliente (Android)
       const pushType = opts.data?.pushType;
@@ -273,7 +281,50 @@ class SWProfissional {
     })());
   }
 
-  // ── Clique na notificação: botão de ação (Android) ou toque no corpo (iOS + Android) ───
+  // -- Deduplicacao de Web Push antes de abrir modal/tocar som.
+  static #pushEventId(opts = {}) {
+    const data = opts.data ?? {};
+    if (data.eventId) return String(data.eventId);
+    if (data.dedupeKey) return String(data.dedupeKey);
+    if (data.entradaId && data.pushType) return `queue:${data.entradaId}:${data.pushType}`;
+    return null;
+  }
+
+  static async #isDuplicatePush(eventId, tag) {
+    const now = Date.now();
+    SWProfissional.#limparPushDedupe(now);
+
+    if (SWProfissional.#pushEventosRecentes.has(eventId)) return true;
+
+    if (tag && self.registration.getNotifications) {
+      const abertas = await self.registration.getNotifications({ tag });
+      const existeAberta = abertas.some(notification => {
+        const keyAberta = SWProfissional.#pushEventId({
+          data: notification.data ?? {},
+          tag:  notification.tag,
+        });
+        return keyAberta === eventId || notification.tag === tag;
+      });
+
+      if (existeAberta) {
+        SWProfissional.#pushEventosRecentes.set(eventId, now);
+        return true;
+      }
+    }
+
+    SWProfissional.#pushEventosRecentes.set(eventId, now);
+    return false;
+  }
+
+  static #limparPushDedupe(now = Date.now()) {
+    for (const [eventId, timestamp] of SWProfissional.#pushEventosRecentes) {
+      if (now - timestamp > SWProfissional.#PUSH_DEDUPE_TTL_MS) {
+        SWProfissional.#pushEventosRecentes.delete(eventId);
+      }
+    }
+  }
+
+  // -- Clique na notificacao: botao de acao (Android) ou toque no corpo.
   static notificationclick(e) {
     e.notification.close();
 

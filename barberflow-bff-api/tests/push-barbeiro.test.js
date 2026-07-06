@@ -57,6 +57,9 @@ Module._load = function patchedLoad(request, parent, isMain) {
 let _mockEntrada = { id: ENTRY_ID, professional_id: PROF_ID, barbershop_id: SHOP_ID };
 let _mockBarbershop = { id: SHOP_ID, owner_id: OWNER_ID };
 let _mockSubs = [MOCK_SUB];
+// Erro simulado do INSERT em push_notification_dedup — null = sucesso (não duplicado).
+// Testes de idempotência mutam para { code: '23505' } para simular evento já enviado.
+let _mockPushDedupError = null;
 
 const SupabaseClient = require('../utils/SupabaseClient');
 {
@@ -65,6 +68,7 @@ const SupabaseClient = require('../utils/SupabaseClient');
       _op:      null,
       _filters: [],
       select: () => { q._op = 'select'; return q; },
+      insert: (dados) => { q._op = 'insert'; q._data = dados; return q; },
       update: (dados) => {
         q._op   = 'update';
         q._data = dados;
@@ -93,6 +97,9 @@ const SupabaseClient = require('../utils/SupabaseClient');
             }))
             .map(({ user_id, ...sub }) => sub);
           return resolve({ data, error: null });
+        }
+        if (table === 'push_notification_dedup' && q._op === 'insert') {
+          return resolve({ data: null, error: _mockPushDedupError });
         }
         return resolve({ data: null, error: null });
       },
@@ -124,6 +131,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
         const q = {
           _op:    null,
           select: () => { q._op = 'select'; return q; },
+          insert: () => { q._op = 'insert'; return q; },
           update: () => { q._op = 'update'; return q; },
           eq:     () => q,
           then:   (resolve) => {
@@ -167,6 +175,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
           _op: null,
           _filters: [],
           select: () => { q._op = 'select'; return q; },
+          insert: () => { q._op = 'insert'; return q; },
           update: () => { q._op = 'update'; return q; },
           eq: (col, val) => { q._filters.push([col, 'eq', val]); return q; },
           in: (col, val) => { q._filters.push([col, 'in', val]); return q; },
@@ -217,6 +226,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
         const q = {
           _op: null,
           select: () => { q._op = 'select'; return q; },
+          insert: () => { q._op = 'insert'; return q; },
           update: () => q,
           eq: () => q,
           in: () => q,
@@ -295,6 +305,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
         const q = {
           _op:  null,
           select: () => { q._op = 'select'; return q; },
+          insert: () => { q._op = 'insert'; return q; },
           update: (dados) => {
             q._op = 'update';
             if (table === 'push_subscriptions') atualizacoes.push(dados);
@@ -342,6 +353,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
         const q = {
           _op:  null,
           select: () => { q._op = 'select'; return q; },
+          insert: () => { q._op = 'insert'; return q; },
           update: (dados) => {
             q._op = 'update';
             if (table === 'push_subscriptions') atualizacoes.push(dados);
@@ -387,7 +399,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
     };
     const sbMock = {
       from: () => {
-        const q = { select: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+        const q = { select: () => q, insert: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
         return q;
       },
     };
@@ -415,6 +427,8 @@ suite('PushService — enviarAoBarbeiro()', () => {
     assert.strictEqual(chamadas[0].data.statusLabel, 'Cliente ja chegou');
     assert.strictEqual(chamadas[0].data.cadeira, 'Cadeira de producao');
     assert.strictEqual(chamadas[0].data.destino, 'profissional');
+    assert.strictEqual(chamadas[0].data.eventId, `queue:${ENTRY_ID}:client_at_shop`);
+    assert.strictEqual(chamadas[0].data.dedupeKey, `queue:${ENTRY_ID}:client_at_shop`);
   });
 
   test('type client_not_seated: title e body refletem que cliente está a caminho', async () => {
@@ -428,7 +442,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
     };
     const sbMock = {
       from: () => {
-        const q = { select: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+        const q = { select: () => q, insert: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
         return q;
       },
     };
@@ -476,7 +490,7 @@ suite('PushService — enviarAoBarbeiro()', () => {
       };
       const sbMock500 = {
         from: () => {
-          const q = { select: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+          const q = { select: () => q, insert: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
           return q;
         },
       };
@@ -550,6 +564,97 @@ suite('PushService — enviarAoBarbeiro()', () => {
         args.some(a => typeof a === 'string' && a.includes('connection timeout')),
       );
       assert.ok(logouErro, 'console.error deve ser chamado com a mensagem do erro Supabase');
+    } finally {
+      console.error = origError;
+    }
+  });
+});
+
+// =================================================================
+// SUITE 1b — Unit: PushService — idempotência (push_notification_dedup)
+// =================================================================
+suite('PushService — enviarAoBarbeiro() idempotência', () => {
+  const PushService = require('../services/PushService');
+
+  function criarSbMock({ dedupError = null } = {}) {
+    return {
+      from: (table) => {
+        const q = {
+          _op: null,
+          select: () => { q._op = 'select'; return q; },
+          insert: (dados) => { q._op = 'insert'; q._data = dados; return q; },
+          update: () => { q._op = 'update'; return q; },
+          eq:     () => q,
+          then:   (resolve) => {
+            if (table === 'push_subscriptions' && q._op === 'select') {
+              return resolve({ data: [MOCK_SUB].map(({ user_id, ...sub }) => sub), error: null });
+            }
+            if (table === 'push_notification_dedup' && q._op === 'insert') {
+              return resolve({ data: null, error: dedupError });
+            }
+            return resolve({ data: null, error: null });
+          },
+        };
+        return q;
+      },
+    };
+  }
+
+  test('1ª chamada com dedupeKey: insere no dedup e envia normalmente', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payload) => { chamadas.push({ sub, payload }); return { statusCode: 201 }; },
+    };
+    const svc = new PushService(criarSbMock({ dedupError: null }), wpMock);
+    const resultado = await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+      type: 'client_not_seated', clienteNome: 'João', dedupeKey: 'queue:teste-1:client_not_seated',
+    });
+
+    assert.strictEqual(chamadas.length, 1, 'sendNotification deve ser chamado quando não é duplicado');
+    assert.strictEqual(resultado.enviados, 1);
+    assert.strictEqual(resultado.duplicate, undefined, 'não deve marcar duplicate na 1ª chamada');
+  });
+
+  test('2ª chamada com o MESMO dedupeKey: não chama sendNotification, retorna duplicate:true', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payload) => { chamadas.push({ sub, payload }); return { statusCode: 201 }; },
+    };
+    // Simula unique_violation — o INSERT já existe para (user_id, dedupe_key).
+    const svc = new PushService(criarSbMock({ dedupError: { code: '23505' } }), wpMock);
+    const resultado = await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+      type: 'client_not_seated', clienteNome: 'João', dedupeKey: 'queue:teste-2:client_not_seated',
+    });
+
+    assert.strictEqual(chamadas.length, 0, 'sendNotification NUNCA deve ser chamado quando já foi enviado');
+    assert.strictEqual(resultado.enviados, 0);
+    assert.strictEqual(resultado.duplicate, true);
+  });
+
+  test('erro não-23505 no insert de dedup não bloqueia envio (fail-open)', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payload) => { chamadas.push({ sub, payload }); return { statusCode: 201 }; },
+    };
+    const errosLogados = [];
+    const origError = console.error;
+    console.error = (...args) => errosLogados.push(args.join(' '));
+    try {
+      const svc = new PushService(criarSbMock({ dedupError: { code: 'PGRST000', message: 'connection timeout' } }), wpMock);
+      const resultado = await svc.enviarAoBarbeiro({
+        professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+        type: 'client_not_seated', clienteNome: 'João', dedupeKey: 'queue:teste-3:client_not_seated',
+      });
+
+      assert.strictEqual(chamadas.length, 1, 'deve seguir enviando quando a checagem de dedup falha por erro diferente de 23505');
+      assert.strictEqual(resultado.enviados, 1);
+      assert.strictEqual(resultado.duplicate, undefined);
+      assert.ok(errosLogados.length > 0, 'erro da checagem de dedup deve ser logado');
     } finally {
       console.error = origError;
     }
@@ -685,6 +790,24 @@ suite('POST /api/v1/notificacoes/push-barbeiro', () => {
   test('aceita type client_at_shop', async () => {
     const { status } = await criarReq({ ...BODY_VALIDO, type: 'client_at_shop' }, AUTH);
     assert.strictEqual(status, 200);
+  });
+
+  test('2 POSTs com o mesmo dedupeKey: 2ª resposta é ok:true reason:DUPLICATE', async () => {
+    _mockPushDedupError = null;
+    try {
+      const body = { ...BODY_VALIDO, dedupeKey: 'queue:integracao-dedup:client_not_seated' };
+      const primeira = await criarReq(body, AUTH);
+      assert.strictEqual(primeira.status, 200);
+      assert.strictEqual(primeira.body.ok, true);
+
+      _mockPushDedupError = { code: '23505' };
+      const segunda = await criarReq(body, AUTH);
+      assert.strictEqual(segunda.status, 200);
+      assert.strictEqual(segunda.body.ok, true);
+      assert.strictEqual(segunda.body.reason, 'DUPLICATE');
+    } finally {
+      _mockPushDedupError = null;
+    }
   });
 });
 

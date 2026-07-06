@@ -249,6 +249,60 @@ describe('MinhaBarbeariaPage - estabilidade de realtime/equipe', () => {
     assert.match(SRC_MB_PAGE, /#subTelaAtiva\.contains\(voltarBtn\)/);
     assert.match(SRC_MB_PAGE, /e\.preventDefault\(\);[\s\S]+e\.stopPropagation\(\);[\s\S]+this\.#fecharSub\(\)/);
   });
+
+  // ── Fix: polling de fallback nunca desligava ao reconectar (causa do "piscar") ──
+  //
+  // #iniciarRealtimeFila/#pararPollingFallback são instância-privadas e ficam
+  // atrás de #carregar() (pipeline assíncrono pesado: perfil, shop, serviços,
+  // stories, fila, etc. — todos static-privados, não mockáveis de fora).
+  // Testamos a estrutura da correção via código-fonte, seguindo o mesmo
+  // padrão já usado acima para #agendarReRenderEquipe/postgres_changes.
+
+  function blocoIniciarRealtimeFila() {
+    const inicio = SRC_MB_PAGE.indexOf('#iniciarRealtimeFila(barbershopId)');
+    assert.notEqual(inicio, -1, 'deve existir #iniciarRealtimeFila');
+    const fim = SRC_MB_PAGE.indexOf('#iniciarPollingFallback()', inicio);
+    return SRC_MB_PAGE.slice(inicio, fim > inicio ? fim : undefined);
+  }
+
+  test('reconexão do Realtime (status SUBSCRIBED) desliga o polling de fallback', () => {
+    const bloco = blocoIniciarRealtimeFila();
+    assert.match(
+      bloco,
+      /status === 'SUBSCRIBED'[\s\S]*?this\.#pararPollingFallback\(\)/,
+      'o branch SUBSCRIBED deve chamar #pararPollingFallback() para não deixar o polling rodando em paralelo',
+    );
+  });
+
+  test('SUBSCRIBED não remove o canal Realtime (só o polling)', () => {
+    const bloco = blocoIniciarRealtimeFila();
+    const subscribedIdx = bloco.indexOf("status === 'SUBSCRIBED'");
+    const proximoBranch = bloco.indexOf('CHANNEL_ERROR', subscribedIdx);
+    const branchSubscribed = bloco.slice(subscribedIdx, proximoBranch > subscribedIdx ? proximoBranch : undefined);
+    assert.doesNotMatch(
+      branchSubscribed,
+      /removeChannel|this\.#canalFila\s*=\s*null/,
+      'SUBSCRIBED não deve remover/anular o canal — ele já está corretamente conectado',
+    );
+  });
+
+  test('#pararPollingFallback existe, é idempotente e limpa o timer', () => {
+    const idx = SRC_MB_PAGE.indexOf('#pararPollingFallback()');
+    assert.notEqual(idx, -1, 'deve existir o helper #pararPollingFallback');
+    const fim = SRC_MB_PAGE.indexOf('#pararRealtimeFila()', idx);
+    const corpo = SRC_MB_PAGE.slice(idx, fim > idx ? fim : idx + 300);
+    assert.match(corpo, /if\s*\(this\.#pollingTimer\)/, 'deve checar antes de limpar (idempotente)');
+    assert.match(corpo, /clearInterval\(this\.#pollingTimer\)/);
+    assert.match(corpo, /this\.#pollingTimer\s*=\s*null/);
+  });
+
+  test('#pararRealtimeFila reaproveita #pararPollingFallback (sem duplicar clearInterval)', () => {
+    const idx = SRC_MB_PAGE.indexOf('#pararRealtimeFila() {');
+    assert.notEqual(idx, -1, 'deve existir #pararRealtimeFila');
+    const fim = SRC_MB_PAGE.indexOf('#iniciarRealtimeAtividade', idx);
+    const corpo = SRC_MB_PAGE.slice(idx, fim > idx ? fim : undefined);
+    assert.match(corpo, /this\.#pararPollingFallback\(\)/, '#pararRealtimeFila deve chamar o helper, não duplicar a lógica de clearInterval');
+  });
 });
 
 // =============================================================================
@@ -298,12 +352,12 @@ describe('MinhaBarbeariaPage — sub-painéis (config)', () => {
   test('#fecharSub chama blur() no activeElement antes de definir aria-hidden=true', () => {
     // Garante que o foco é movido para fora do painel antes de escondê-lo da AT,
     // evitando o aria-hidden conflict (WCAG 2.1 / 4.1.3)
-    const idx = SRC_MB_PAGE.indexOf('#fecharSub() {');
-    assert.ok(idx > 0, '#fecharSub deve existir');
+    const idx = SRC_MB_PAGE.indexOf('#fecharSubPainel(panel) {');
+    assert.ok(idx > 0, '#fecharSubPainel deve existir');
     const bloco = SRC_MB_PAGE.slice(idx, idx + 400);
     assert.ok(
       bloco.includes('activeElement') && bloco.includes('blur'),
-      '#fecharSub deve chamar blur() no activeElement antes de setar aria-hidden=true',
+      '#fecharSubPainel deve chamar blur() no activeElement antes de setar aria-hidden=true',
     );
   });
 });
@@ -383,6 +437,33 @@ describe('MinhaBarbeariaPage — alternância entre painéis', () => {
     }
     assert.ok(!dom.panelEl.classList.contains('mb-sub-ativa'));
     assert.strictEqual(dom.panelEl._attrs['aria-hidden'], 'true');
+  });
+
+  test('sair da tela fecha todos os subpainéis internos ativos', () => {
+    const { dom, mutationObservers } = criarPagina();
+
+    dom.maisBtn._click();
+    dom.gpsBtn._click();
+    dom.conviteBtn._click();
+    mutationObservers[0]._disparar();
+
+    assert.ok(!dom.panelEl.classList.contains('mb-sub-ativa'), 'config deve fechar ao sair');
+    assert.ok(!dom.gpsPanelEl.classList.contains('mb-sub-ativa'), 'gps deve fechar ao sair');
+    assert.ok(!dom.convitePanelEl.classList.contains('mb-sub-ativa'), 'convite deve fechar ao sair');
+    assert.strictEqual(dom.panelEl._attrs['aria-hidden'], 'true');
+    assert.strictEqual(dom.gpsPanelEl._attrs['aria-hidden'], 'true');
+    assert.strictEqual(dom.convitePanelEl._attrs['aria-hidden'], 'true');
+  });
+
+  test('cleanup de saída cancela timers e fecha modal de story', () => {
+    const idx = SRC_MB_PAGE.indexOf('#limparEstadoAoSair() {');
+    assert.ok(idx > 0, '#limparEstadoAoSair deve existir');
+    const bloco = SRC_MB_PAGE.slice(idx, idx + 900);
+
+    assert.ok(bloco.includes('#limparStoryPressTimers'), 'deve limpar timers de long press dos stories');
+    assert.ok(bloco.includes('#fecharStoryCreationModal'), 'deve fechar modal de criação de story');
+    assert.match(SRC_MB_PAGE, /#limparStoryPressTimers\(\) \{[\s\S]*clearTimeout/);
+    assert.match(SRC_MB_PAGE, /\.sc-overlay \.sc-close/);
   });
 });
 

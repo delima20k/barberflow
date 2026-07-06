@@ -1,17 +1,21 @@
 'use strict';
 
 // =============================================================================
-// BarbeiroEsperaFluxo.js — Fluxo persistente de espera do barbeiro.
+// BarbeiroEsperaFluxo.js — Fluxo de espera do barbeiro.
 //
 // Responsabilidade ÚNICA: gerenciar o estado de espera ativo enquanto
 // o cliente ainda não se sentou na cadeira de produção.
 //
+// Notifica 1x ao iniciar a espera (iniciarEspera) — SEM timer recorrente.
+// O barbeiro reabre o modal manualmente (clique na cadeira em espera,
+// via #onCadeiraClick) quando quiser responder. Isso evita que a mesma
+// notificação/modal reapareça sozinha em loop enquanto o cliente aguarda.
+//
 // Ciclo de vida:
-//   iniciarEspera()  — registra estado, toca som, inicia timer recorrente
-//   abrirModalCadeira() — modal "O cliente já chegou?" (manual ou pelo timer)
-//   resetarTimer()   — cancela + reinicia o timer (após resposta "aguardar")
-//   finalizarEspera() — cancela timer, remove estado, limpa localStorage
-//   restaurar()      — reconstrói estado + timers ao recarregar a página
+//   iniciarEspera()     — registra estado, toca alerta 1x
+//   abrirModalCadeira() — modal "O cliente já chegou?" (sempre manual)
+//   finalizarEspera()   — remove estado, limpa localStorage
+//   restaurar()         — reconstrói estado ao recarregar a página
 //
 // Dependências: FluxoDeFila, QueuePoller, localStorage, document.dispatchEvent
 // =============================================================================
@@ -20,8 +24,6 @@ class BarbeiroEsperaFluxo {
 
   // ─── Estado estático (singleton) ───────────────────────────────────────────
   static #ESTADO       = new Map(); // entradaId → { clienteNome, barbershopId }
-  static #TIMERS       = new Map(); // entradaId → intervalId
-  static #INTERVALO_MS = 5 * 60 * 1000;
   static #LS_KEY       = 'bf_espera_barbeiro';
   static #MODAL_ID     = 'modal-espera-cadeira';
 
@@ -41,11 +43,10 @@ class BarbeiroEsperaFluxo {
     BarbeiroEsperaFluxo.#ESTADO.set(entradaId, { clienteNome, barbershopId });
     BarbeiroEsperaFluxo.#tocarAlerta();
     BarbeiroEsperaFluxo.#persistir();
-    BarbeiroEsperaFluxo.#iniciarTimer(entradaId);
   }
 
   /**
-   * Abre a modal de decisão manualmente (também usada pelo timer).
+   * Abre a modal de decisão (sempre manual, disparada pelo barbeiro).
    * null de FluxoDeFila (overlay duplicado removido) → trata como 'aguardar'.
    *
    * @param {object} opts
@@ -131,11 +132,10 @@ class BarbeiroEsperaFluxo {
   }
 
   /**
-   * Encerra a espera: cancela timer, remove estado, atualiza localStorage.
+   * Encerra a espera: remove estado, atualiza localStorage.
    * @param {string} entradaId
    */
   static finalizarEspera(entradaId) {
-    BarbeiroEsperaFluxo.#cancelarTimer(entradaId);
     BarbeiroEsperaFluxo.#ESTADO.delete(entradaId);
     BarbeiroEsperaFluxo.#limparPersistencia(entradaId);
   }
@@ -157,19 +157,19 @@ class BarbeiroEsperaFluxo {
   }
 
   /**
-   * Cancela o timer atual e inicia um novo, sem duplicar.
-   * Seguro chamar se entradaId não existe (no-op).
+   * @deprecated Preservado só para não quebrar call-sites existentes
+   * (#fluxoEspera em MinhaBarbeariaRuntimeController). Antes reiniciava o
+   * timer recorrente de 5 min; hoje é no-op — não há mais timer recorrente,
+   * o barbeiro reabre o modal manualmente quando quiser responder.
    * @param {string} entradaId
    */
   static resetarTimer(entradaId) {
-    if (!BarbeiroEsperaFluxo.#ESTADO.has(entradaId)) return;
-    BarbeiroEsperaFluxo.#cancelarTimer(entradaId);
-    BarbeiroEsperaFluxo.#iniciarTimer(entradaId);
+    void entradaId; // no-op intencional
   }
 
   /**
-   * Repopula estado + timers a partir do localStorage (chamado em #carregar).
-   * Não toca som (recarga silenciosa).
+   * Repopula estado a partir do localStorage (chamado em #carregar).
+   * Não toca som (recarga silenciosa) e não agenda nenhum timer.
    */
   static restaurar() {
     let dados;
@@ -186,40 +186,10 @@ class BarbeiroEsperaFluxo {
         clienteNome:  info.clienteNome  ?? '',
         barbershopId: info.barbershopId ?? '',
       });
-      BarbeiroEsperaFluxo.#iniciarTimer(entradaId);
     }
   }
 
   // ─── Privado ───────────────────────────────────────────────────────────────
-
-  static #iniciarTimer(entradaId) {
-    BarbeiroEsperaFluxo.#cancelarTimer(entradaId);
-    if (!BarbeiroEsperaFluxo.#ESTADO.has(entradaId)) return;
-
-    const id = setInterval(async () => {
-      const dados = BarbeiroEsperaFluxo.#ESTADO.get(entradaId);
-      if (!dados) { BarbeiroEsperaFluxo.#cancelarTimer(entradaId); return; }
-
-      BarbeiroEsperaFluxo.#tocarAlerta();
-      const acao = await BarbeiroEsperaFluxo.abrirModalCadeira({ ...dados, entradaId });
-
-      if (acao === 'aguardar') {
-        BarbeiroEsperaFluxo.resetarTimer(entradaId);
-      } else {
-        BarbeiroEsperaFluxo.finalizarEspera(entradaId);
-      }
-    }, BarbeiroEsperaFluxo.#INTERVALO_MS);
-
-    BarbeiroEsperaFluxo.#TIMERS.set(entradaId, id);
-  }
-
-  static #cancelarTimer(entradaId) {
-    const id = BarbeiroEsperaFluxo.#TIMERS.get(entradaId);
-    if (id !== undefined) {
-      clearInterval(id);
-      BarbeiroEsperaFluxo.#TIMERS.delete(entradaId);
-    }
-  }
 
   static #tocarAlerta() {
     if (typeof QueuePoller !== 'undefined') QueuePoller.tocarSom();
