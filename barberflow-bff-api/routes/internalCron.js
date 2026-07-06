@@ -1,7 +1,7 @@
 'use strict';
 
 const { Router }                       = require('express');
-const { BarbeariaRepository }          = require('../repositories/BarbeariaRepository');
+const BarbeariaRepository              = require('../repositories/BarbeariaRepository');
 const { SupabaseMediaRepository }      = require('../infrastructure/media/SupabaseMediaRepository');
 const { R2StorageGateway }             = require('../infrastructure/media/R2StorageGateway');
 const { SupabaseMediaStorageGateway }  = require('../infrastructure/media/SupabaseMediaStorageGateway');
