@@ -42,6 +42,8 @@ class BarbeariaPage {
 
   // ── Refs DOM ──────────────────────────────────────────────
   #refs = {};
+  #barbeiroRows         = new Map(); // barbeiro.id -> { rowEl, sig } (reconciliação incremental)
+  #renderBarbeirosTimer = null;      // debounce p/ coalescer eventos de fila
   #portfolioViewer      = null;  // PortfolioPrismViewer — lazy, criado no 1º clique
   #portfolioData        = [];    // lista de fotos ativas — alimentado em #renderPortfolio
   #mensalModal          = null;  // overlay do modal de mensalidade — lazy, criado na 1ª abertura
@@ -439,6 +441,30 @@ class BarbeariaPage {
    * Row skeleton para exibição enquanto dados carregam.
    * @returns {HTMLDivElement}
    */
+  /** Assinatura que resume tudo que afeta o DOM da row pública. */
+  static #assinaturaRowPublica(b, filaB, isOwner, podeInteragir, clienteLogadoId) {
+    const chairs = filaB
+      .map(e => `${e.id}:${e.status}:${e.client_confirmed ?? ''}:${e.client?.avatar_path ?? ''}:${(e.client_id ?? e.user_id) === clienteLogadoId ? 'me' : ''}`)
+      .join('|');
+    return [
+      b.id, b.full_name, b.avatar_path, b.updated_at,
+      isOwner ? '1' : '0', podeInteragir ? '1' : '0', clienteLogadoId ?? '', chairs,
+    ].join('§');
+  }
+
+  /**
+   * Agenda um re-render dos barbeiros com debounce — coalesce a rajada de eventos
+   * queue_entries (recálculo de posição) de UMA operação num único re-render.
+   */
+  #agendarRenderBarbeiros(shop, delay = 160) {
+    if (!shop?.id) return;
+    if (this.#renderBarbeirosTimer) clearTimeout(this.#renderBarbeirosTimer);
+    this.#renderBarbeirosTimer = setTimeout(() => {
+      this.#renderBarbeirosTimer = null;
+      if (this.#shopData?.id === shop.id) this.#renderBarbeiros(this.#shopData).catch(() => {});
+    }, delay);
+  }
+
   static #criarSkeletonRow() {
     const row = document.createElement('div');
     row.className = 'cdr-row cdr-row--skel';
@@ -518,9 +544,12 @@ class BarbeariaPage {
     const el = this.#refs.barbeirosScroll;
     if (!el) return;
 
-    // Skeleton imediato: 3 rows placeholder
-    el.innerHTML = '';
-    for (let i = 0; i < 3; i++) el.appendChild(BarbeariaPage.#criarSkeletonRow());
+    // Skeleton só no 1º load (sem rows reais no container). Em re-render de
+    // fila NÃO limpa tudo — senão volta a tempestade de innerHTML total.
+    if (!el.querySelector('.cdr-row:not(.cdr-row--skel)')) {
+      el.innerHTML = '';
+      for (let i = 0; i < 3; i++) el.appendChild(BarbeariaPage.#criarSkeletonRow());
+    }
 
     const cacheKey = `${shop.id}:barbeiros`;
     let barbeiros = CacheManager.get(cacheKey);
@@ -553,6 +582,7 @@ class BarbeariaPage {
 
     if (!barbeiros.length) {
       el.innerHTML = '';
+      this.#barbeiroRows.clear();
       const secao = el.closest('.bp-barbeiros-secao');
       if (secao) secao.hidden = true;
       return;
@@ -568,28 +598,40 @@ class BarbeariaPage {
     const podeInteragir        = clientePodeInteragir && barbeariaAberta;
     const clienteLogadoId      = typeof AuthService !== 'undefined' ? (AuthService.getPerfil?.()?.id ?? null) : null;
 
-    el.innerHTML = '';
+    // Reconciliação por barbeiro.id + assinatura: só recria a row do barbeiro
+    // cuja fila/estado mudou; pula as inalteradas. Sem innerHTML='' no container
+    // → elimina a tempestade de re-render que travava a página pública.
+    el.querySelectorAll('.cdr-row--skel').forEach(s => s.remove());
+    const vivos = new Set();
     for (const b of barbeiros) {
-      const filaB = filaAtiva.filter(e => e.professional?.id === b.id);
-      el.appendChild(BarbeariaPage.#criarRow({
-        barbeiro:              b,
-        isOwner:               b.id === shop.owner_id,
-        filaEntradas:          filaB,
-        podeInteragir,
-        clienteLogadoId,
-        onProducaoVaziaClick:     clientePodeInteragir
-          ? () => this.#onProducaoClick(b.id)
-          : null,
-        onCadeiraVaziaClick:      clientePodeInteragir
-          ? () => this.#onCadeiraClick(b.id)
-          : null,
-        onProducaoArrivingClick:  clientePodeInteragir
-          ? (entrada) => this.#onProducaoArrivingClick(entrada)
-          : null,
-        onMinhaFilaLongPress:     clientePodeInteragir
-          ? (entrada) => this.#onMinhaCadeiraEsperaLongPress(entrada)
-          : null,
-      }));
+      const filaB   = filaAtiva.filter(e => e.professional?.id === b.id);
+      const isOwner = b.id === shop.owner_id;
+      const sig     = BarbeariaPage.#assinaturaRowPublica(b, filaB, isOwner, podeInteragir, clienteLogadoId);
+      vivos.add(b.id);
+      const atual = this.#barbeiroRows.get(b.id);
+      let rowEl;
+      if (atual && atual.sig === sig) {
+        rowEl = atual.rowEl; // inalterada — reaproveita
+      } else {
+        rowEl = BarbeariaPage.#criarRow({
+          barbeiro:              b,
+          isOwner,
+          filaEntradas:          filaB,
+          podeInteragir,
+          clienteLogadoId,
+          onProducaoVaziaClick:     clientePodeInteragir ? () => this.#onProducaoClick(b.id) : null,
+          onCadeiraVaziaClick:      clientePodeInteragir ? () => this.#onCadeiraClick(b.id) : null,
+          onProducaoArrivingClick:  clientePodeInteragir ? (entrada) => this.#onProducaoArrivingClick(entrada) : null,
+          onMinhaFilaLongPress:     clientePodeInteragir ? (entrada) => this.#onMinhaCadeiraEsperaLongPress(entrada) : null,
+        });
+        if (atual) atual.rowEl.remove();
+        this.#barbeiroRows.set(b.id, { rowEl, sig });
+      }
+      el.appendChild(rowEl); // mantém/reordena
+    }
+    // Remove rows de barbeiros que sumiram da lista
+    for (const [id, info] of this.#barbeiroRows) {
+      if (!vivos.has(id)) { info.rowEl.remove(); this.#barbeiroRows.delete(id); }
     }
 
     this.#aplicarHighlight();
@@ -856,9 +898,9 @@ class BarbeariaPage {
     if (this.#shopId !== shop.id) return;
     if (!this.#shopData) return;
 
-    // Re-renderiza com o estado ATUAL da barbearia (this.#shopData pode ter is_open
-    // diferente do shop capturado no closure quando o canal foi criado)
-    await this.#renderBarbeiros(this.#shopData).catch(() => {});
+    // Re-render com debounce: coalesce a rajada de eventos de uma operação num
+    // único render (estado ATUAL da barbearia via this.#shopData).
+    this.#agendarRenderBarbeiros(this.#shopData);
 
     // Detecta se este cliente foi promovido para in_service
     const entrada = payload?.new;

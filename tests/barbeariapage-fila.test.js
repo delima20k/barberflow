@@ -356,17 +356,23 @@ describe('BarbeariaPage — realtime shop re-render', () => {
     );
   });
 
-  test('#onFilaRealtime usa this.#shopData (não shop do closure) ao chamar #renderBarbeiros', () => {
+  test('#onFilaRealtime usa this.#shopData (não shop do closure) ao re-renderizar', () => {
     // Bug fix: quando o barber abre a barbearia, this.#shopData é atualizado com is_open=true.
     // Se #onFilaRealtime passar o `shop` do closure (stale), ele ainda tem is_open=false e
     // o re-render apaga a interatividade das cadeiras que acabou de ser habilitada.
+    // O re-render é agendado com debounce (#agendarRenderBarbeiros), que também usa this.#shopData.
     const idx = SRC.indexOf('async #onFilaRealtime(');
     assert.ok(idx > 0, '#onFilaRealtime deve existir');
     const bloco = SRC.slice(idx, idx + 500);
-    // Deve chamar #renderBarbeiros com this.#shopData, não com o shop do closure
     assert.ok(
-      bloco.includes('#renderBarbeiros(this.#shopData)'),
-      '#onFilaRealtime deve chamar #renderBarbeiros(this.#shopData) — não o shop do closure',
+      bloco.includes('#agendarRenderBarbeiros(this.#shopData)'),
+      '#onFilaRealtime deve agendar re-render com this.#shopData — não o shop do closure',
+    );
+    // E o próprio debounce renderiza com this.#shopData (guard de contexto).
+    assert.match(
+      SRC,
+      /#agendarRenderBarbeiros\([\s\S]*?this\.#renderBarbeiros\(this\.#shopData\)/,
+      '#agendarRenderBarbeiros deve renderizar this.#shopData',
     );
   });
 });
