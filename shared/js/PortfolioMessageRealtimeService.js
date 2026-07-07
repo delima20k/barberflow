@@ -21,6 +21,12 @@ class PortfolioMessageRealtimeService {
   /** @type {string|null} ID do profissional inscrito */
   static #proId = null;
 
+  /** @type {object|null} Canal Supabase de curtidas (stories + portfolio) */
+  static #canalLikes = null;
+
+  /** @type {string|null} owner_id inscrito para curtidas em tempo real */
+  static #ownerLikes = null;
+
   /**
    * Inicia a assinatura para o profissional.
    * Se já houver assinatura ativa para o mesmo profissional, não faz nada.
@@ -89,7 +95,110 @@ class PortfolioMessageRealtimeService {
            PortfolioMessageRealtimeService.#proId  === profissionalId;
   }
 
+  /**
+   * Inicia a assinatura de CURTIDAS em tempo real para o profissional dono.
+   *
+   * Assina UPDATE em `stories` e `portfolio_images` filtrado por
+   * `owner_id = ownerId` (triggers atômicos atualizam likes_count a cada
+   * curtida). Despacha:
+   *   - portfolio_images → 'barberflow:portfolio-like' (só contagem)
+   *   - stories          → 'barberflow:story-like-sync'
+   * para que os viewers/cards atualizem o contador ao vivo.
+   *
+   * Idempotente: mesma ownerId com canal ativo → no-op.
+   * @param {string} ownerId — UUID do profissional logado (= profiles.id)
+   */
+  static iniciarLikes(ownerId) {
+    if (typeof SupabaseService === 'undefined') return;
+    if (!ownerId) return;
+
+    if (PortfolioMessageRealtimeService.#ownerLikes === ownerId &&
+        PortfolioMessageRealtimeService.#canalLikes !== null) {
+      return; // já ativo para este dono
+    }
+
+    PortfolioMessageRealtimeService.pararLikes();
+
+    try {
+      const canal = SupabaseService
+        .channel(`portfolio-likes:${ownerId}`)
+        .on(
+          'postgres_changes',
+          {
+            event:  'UPDATE',
+            schema: 'public',
+            table:  'portfolio_images',
+            filter: `owner_id=eq.${ownerId}`,
+          },
+          (payload) => PortfolioMessageRealtimeService.#despacharLikePortfolio(payload.new),
+        )
+        .on(
+          'postgres_changes',
+          {
+            event:  'UPDATE',
+            schema: 'public',
+            table:  'stories',
+            filter: `owner_id=eq.${ownerId}`,
+          },
+          (payload) => PortfolioMessageRealtimeService.#despacharLikeStory(payload.new),
+        )
+        .subscribe();
+
+      PortfolioMessageRealtimeService.#canalLikes = canal;
+      PortfolioMessageRealtimeService.#ownerLikes = ownerId;
+    } catch (err) {
+      console.error('[PortfolioMessageRealtimeService] Falha ao iniciar canal de curtidas:', err);
+    }
+  }
+
+  /** Encerra a assinatura de curtidas (se houver). */
+  static pararLikes() {
+    if (PortfolioMessageRealtimeService.#canalLikes === null) return;
+    try {
+      if (typeof SupabaseService !== 'undefined') {
+        SupabaseService.removeChannel(PortfolioMessageRealtimeService.#canalLikes);
+      }
+    } catch (err) {
+      console.error('[PortfolioMessageRealtimeService] Falha ao remover canal de curtidas:', err);
+    } finally {
+      PortfolioMessageRealtimeService.#canalLikes = null;
+      PortfolioMessageRealtimeService.#ownerLikes = null;
+    }
+  }
+
   // ── privado ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Despacha atualização de contagem de curtida de uma imagem de portfólio.
+   * SEM o campo `liked` → os listeners tratam como atualização só-de-contagem
+   * e preservam o estado "curtido" do próprio usuário.
+   * @param {object} row — linha atualizada de portfolio_images (snake_case)
+   */
+  static #despacharLikePortfolio(row) {
+    if (!row?.id) return;
+    document.dispatchEvent(new CustomEvent('barberflow:portfolio-like', {
+      bubbles: false,
+      detail: {
+        imageId:    row.id,
+        likesCount: Math.max(0, Number(row.likes_count ?? 0)),
+      },
+    }));
+  }
+
+  /**
+   * Despacha atualização de contagem de curtida de um story.
+   * @param {object} row — linha atualizada de stories (snake_case)
+   */
+  static #despacharLikeStory(row) {
+    if (!row?.media_id) return;
+    document.dispatchEvent(new CustomEvent('barberflow:story-like-sync', {
+      bubbles: false,
+      detail: {
+        mediaId:    row.media_id,
+        likesCount: Math.max(0, Number(row.likes_count ?? 0)),
+      },
+    }));
+  }
 
   /**
    * Despacha CustomEvent com os dados da nova mensagem.

@@ -1161,5 +1161,29 @@ class StoryViewer {
     });
   }
 
-  static { StoryViewer.#initPrismLikeListener(); }
+  /**
+   * Realtime: outra pessoa curtiu um story do dono — atualiza a contagem ao
+   * vivo se esse story estiver aberto no viewer. Casa por media_id.
+   */
+  static #initLikeSyncListener() {
+    document.addEventListener('barberflow:story-like-sync', (e) => {
+      const { mediaId, likesCount } = e.detail ?? {};
+      if (!mediaId) return;
+      const { stories, currentIndex } = StoryViewer.#viewerState;
+      if (!Array.isArray(stories)) return;
+      const story = stories.find(s => s?.media_id === mediaId);
+      if (!story) return;
+      const novo = Math.max(0, Number(likesCount ?? 0));
+      story.likes_count = novo;
+      if (stories[currentIndex]?.media_id === mediaId) {
+        const { likeCount } = StoryViewer.#els;
+        if (likeCount) likeCount.textContent = String(novo);
+      }
+    });
+  }
+
+  static {
+    StoryViewer.#initPrismLikeListener();
+    StoryViewer.#initLikeSyncListener();
+  }
 }

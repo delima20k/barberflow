@@ -1371,6 +1371,20 @@ class MediaPrismViewer {
       }
     });
 
+    // Realtime: outra pessoa curtiu um STORY do dono — atualiza a contagem ao vivo.
+    // Casa por media_id (stories não usam o id de portfolio_image).
+    document.addEventListener('barberflow:story-like-sync', e => {
+      if (this.#overlay?.hidden) return;
+      const { mediaId, likesCount } = e.detail ?? {};
+      if (!mediaId) return;
+      const item = this.#items.find(i => i?.media_id === mediaId);
+      if (!item) return;
+      item.likes_count = Math.max(0, Number(likesCount ?? 0));
+      if (this.#items[this.#index]?.media_id === mediaId) {
+        this.#syncStoryOwnerLikeUI(item);
+      }
+    });
+
     // ResizeObserver — recalcula raio quando o stage mudar de tamanho
     if (typeof ResizeObserver !== 'undefined' && this.#stage) {
       this.#resizeObserver = new ResizeObserver(() => {

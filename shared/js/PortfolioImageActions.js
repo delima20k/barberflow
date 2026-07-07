@@ -73,11 +73,19 @@ class PortfolioImageActions {
     document.addEventListener('barberflow:portfolio-like', event => {
       const { imageId, likesCount, liked } = event.detail ?? {};
       if (!imageId) return;
-      // Atualiza o Set interno de curtidas
-      if (liked) PortfolioImageActions.#curtidas.add(imageId);
-      else PortfolioImageActions.#curtidas.delete(imageId);
+      let ativo;
+      if (liked === undefined || liked === null) {
+        // Atualização só-de-contagem (ex.: Realtime — outra pessoa curtiu):
+        // preserva o estado "curtido" do próprio usuário, só atualiza o número.
+        ativo = PortfolioImageActions.#curtidas.has(imageId);
+      } else {
+        // Atualiza o Set interno de curtidas
+        if (liked) PortfolioImageActions.#curtidas.add(imageId);
+        else PortfolioImageActions.#curtidas.delete(imageId);
+        ativo = Boolean(liked);
+      }
       // Sincroniza todos os elementos na página
-      PortfolioImageActions.#sincronizarBotao(imageId, Boolean(liked), likesCount);
+      PortfolioImageActions.#sincronizarBotao(imageId, ativo, likesCount);
     });
 
     // Listener global: nova mensagem recebida via Realtime

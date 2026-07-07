@@ -95,6 +95,22 @@ class BarberFlowProfissional extends Router {
     this.#barbeiroPage.bind();
     this.#parceriasPage.bind();
     this.#financasPage.bind();
+
+    // Curtidas em tempo real: quando um cliente curte um story/foto do dono,
+    // o barbeiro (olhando o próprio conteúdo) vê a contagem +1 ao vivo.
+    // Assina por sessão — ligado no login, desligado no logout.
+    document.addEventListener('auth:login', (e) => {
+      const proId = e.detail?.perfil?.id;
+      if (proId && typeof PortfolioMessageRealtimeService !== 'undefined') {
+        PortfolioMessageRealtimeService.iniciarLikes(proId);
+      }
+    });
+    document.addEventListener('auth:logout', () => {
+      if (typeof PortfolioMessageRealtimeService !== 'undefined') {
+        PortfolioMessageRealtimeService.pararLikes();
+      }
+    });
+
     AuthService.iniciarListener();
     AuthService.inicializarSessao();
     setTimeout(() => {
