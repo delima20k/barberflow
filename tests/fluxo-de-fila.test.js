@@ -373,6 +373,24 @@ describe('FluxoDeFila — icone imagem', () => {
     const img = todosDescendentes(overlay).find(e => e.tagName === 'IMG');
     assert.ok(img, 'deve haver um <img> no overlay');
   });
+
+  test('icone emoji nao cria img nem tenta carregar rota /emoji', () => {
+    const { sandbox, doc } = criarSandbox();
+    const iconeCasa = '\u{1F3E0}';
+
+    sandbox.FluxoDeFila.abrir({
+      titulo: 'T', corpo: 'C', acoes: [],
+      icone:       iconeCasa,
+      iconeImagem: true,
+    });
+
+    const overlay = doc.body._appended[0];
+    const iconeEl = overlay.querySelector('.fdf-icone');
+    const img = todosDescendentes(overlay).find(e => e.tagName === 'IMG');
+
+    assert.equal(img, undefined, 'emoji nao deve virar <img src>');
+    assert.equal(iconeEl.textContent, iconeCasa, 'emoji deve ser renderizado como texto');
+  });
 });
 
 describe('FluxoDeFila — instância', () => {

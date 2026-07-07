@@ -183,6 +183,19 @@ class Router {
       .map(tela => tela.trim());
   }
 
+  static #normalizarDestinoTela(tela) {
+    if (typeof tela !== 'string') return '';
+    const normalizada = tela.trim();
+    return /^[a-z0-9][a-z0-9-]*$/.test(normalizada) ? normalizada : '';
+  }
+
+  _validarDestinoTela(tela, origem) {
+    const normalizada = Router.#normalizarDestinoTela(tela);
+    if (normalizada) return normalizada;
+    this._services.logger?.warn?.(`[BarberFlow] Destino de navegacao invalido em ${origem}.`);
+    return '';
+  }
+
   _substituirHistory(tela = this._telaAtual, historico = this._historico) {
     if (!this._historyDisponivel()) return;
     try {
@@ -415,6 +428,9 @@ class Router {
    * @param {string} tela — ID sem prefixo "tela-"
    */
   nav(tela) {
+    tela = this._validarDestinoTela(tela, 'nav');
+    if (!tela) return;
+
     // Se o menu estiver aberto, fecha pelo lado DIREITO em sincronia com a animação da página
     this._services.menu?.fecharParaDireita();
 
@@ -456,6 +472,9 @@ class Router {
    * @param {string} tela
    */
   push(tela) {
+    tela = this._validarDestinoTela(tela, 'push');
+    if (!tela) return;
+
     // Se o menu estiver aberto, fecha pelo lado DIREITO em sincronia com a animação da página
     this._services.menu?.fecharParaDireita();
 

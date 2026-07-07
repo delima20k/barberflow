@@ -165,6 +165,31 @@ describe('Router — _permitirNavAuth()', () => {
 
 });
 
+describe('Router - bloqueio de destinos invalidos', () => {
+
+  test('nav com emoji como destino bloqueia antes de consultar DOM', () => {
+    const { router, viewMock, loggerMock } = criarRouter({ logado: true, telaInicial: 'inicio' });
+
+    router.nav('\u{1F3E0}');
+
+    assert.strictEqual(router._telaAtual, 'inicio');
+    assert.strictEqual(viewMock.telaEl.calls.length, 0);
+    assert.strictEqual(loggerMock.warn.calls.length, 1);
+    assert.ok(String(loggerMock.warn.calls[0][0]).includes('Destino de navegacao invalido'));
+  });
+
+  test('push com emoji como destino bloqueia antes de consultar DOM', () => {
+    const { router, viewMock, loggerMock } = criarRouter({ logado: true, telaInicial: 'login' });
+
+    router.push('\u{1F3E0}');
+
+    assert.strictEqual(router._telaAtual, 'login');
+    assert.strictEqual(viewMock.telaEl.calls.length, 0);
+    assert.strictEqual(loggerMock.warn.calls.length, 1);
+    assert.ok(String(loggerMock.warn.calls[0][0]).includes('Destino de navegacao invalido'));
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BLOCO 2 — nav()
 // ─────────────────────────────────────────────────────────────────────────────
