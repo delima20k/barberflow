@@ -67,6 +67,9 @@ export class MinhaBarbeariaRuntimeController {
   #reRenderEquipeTimer = null;   // agrupa eventos frequentes de realtime/polling
   #renderizandoEquipe   = false;  // guard: evita re-renders simultâneos de cadeiras
   #reRenderPendente     = false;  // sinaliza update chegado durante render em curso
+  #equipeRows           = new Map(); // professionalId -> { rowEl, sig } (reconciliação incremental)
+  #filaIndex            = new Map(); // entryId -> entrada (lookup p/ delegação de clique)
+  #cadeirasDelegado     = false;  // guard: listener delegado de cadeira instalado 1x
   #pushPendente         = [];
   #pushModalAtiva       = new Set();
   #pushProcessados      = new Set();
@@ -821,64 +824,149 @@ export class MinhaBarbeariaRuntimeController {
 
   // ── Equipe da barbearia ─────────────────────────────────────
 
+  // Reconciliação incremental: em vez de `innerHTML=''` + rebuild total a cada
+  // evento de fila (tempestade de re-render que travava a tela), só recria a row
+  // do barbeiro cuja fila/estado MUDOU (assinatura) e pula as inalteradas.
+  // Cliques de cadeira usam delegação (1 listener no container), então recriar a
+  // row não acumula nem perde listeners.
   #renderEquipe(barbeiros, ownerId, perfilDono = null, filaEntradas = []) {
-    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
     const donoWrap = this.#refs.equipeDonoWrap;
     const col      = this.#refs.equipeCol;
     const section  = document.getElementById('mb-equipe-section');
     if (!donoWrap || !col) return;
 
+    this.#instalarDelegacaoCadeiras();
+
+    // Índice p/ a delegação (lookup da entrada por id — sem closures por cadeira)
+    this.#filaIndex = new Map();
+    for (const e of filaEntradas) if (e?.id != null) this.#filaIndex.set(String(e.id), e);
+
     const donoProf   = barbeiros.find(b => b.id === ownerId);
     const equipe     = barbeiros.filter(b => b.id !== ownerId);
+    const filaDonoId = donoProf?.id ?? ownerId;
 
-    const nomeDono   = donoProf?.profile?.full_name   ?? perfilDono?.full_name   ?? 'Dono';
-    const avatarPath = donoProf?.profile?.avatar_path ?? perfilDono?.avatar_path ?? null;
-    const updatedAt  = donoProf?.profile?.updated_at  ?? perfilDono?.updated_at  ?? null;
-
-    // Fila filtrada por profissional
-    const filaDonoId     = donoProf?.id ?? ownerId;
-    const filaDonoEntradas = filaEntradas.filter(e => e.professional?.id === filaDonoId);
-
-    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
-    donoWrap.innerHTML = '';
-    donoWrap.appendChild(
-      MinhaBarbeariaRuntimeController.#criarBarbeiroRow({
-        nome: nomeDono, avatarPath, updatedAt,
-        variant: 'dono', badge: 'Dono',
-        onClick:         () => { if (typeof App !== 'undefined') App.nav('perfil'); },
-        filaEntradas:    filaDonoEntradas,
-        isOwner:         this.#podeGerenciarCadeira(filaDonoId),
-        professionalId:  filaDonoId,
-        mostrarAtividade: this.#atividadeStatus.has(filaDonoId),
-        isAvailable:     this.#statusDisponivel(filaDonoId),
-        onCadeiraClick:  (tipo, ocupada, entrada) =>
-          this.#onCadeiraClick(tipo, ocupada, entrada, filaDonoId),
-      })
-    );
-
-    col.innerHTML = '';
+    // Specs ordenadas: dono no donoWrap, membros no col.
+    const specs = [];
+    specs.push({ container: donoWrap, key: String(filaDonoId), spec: {
+      nome:            donoProf?.profile?.full_name   ?? perfilDono?.full_name   ?? 'Dono',
+      avatarPath:      donoProf?.profile?.avatar_path ?? perfilDono?.avatar_path ?? null,
+      updatedAt:       donoProf?.profile?.updated_at  ?? perfilDono?.updated_at  ?? null,
+      variant:         'dono', badge: 'Dono', navegarPerfil: true,
+      filaEntradas:    filaEntradas.filter(e => e.professional?.id === filaDonoId),
+      isOwner:         this.#podeGerenciarCadeira(filaDonoId),
+      professionalId:  filaDonoId,
+      mostrarAtividade: this.#atividadeStatus.has(filaDonoId),
+      isAvailable:     this.#statusDisponivel(filaDonoId),
+    }});
     for (const b of equipe) {
-      const filaB = filaEntradas.filter(e => e.professional?.id === b.id);
-      const podeGerenciarCadeiras = this.#podeGerenciarCadeira(b.id);
-      col.appendChild(
-        MinhaBarbeariaRuntimeController.#criarBarbeiroRow({
-          nome:           b.profile?.full_name   ?? 'Barbeiro',
-          avatarPath:     b.profile?.avatar_path ?? null,
-          updatedAt:      b.profile?.updated_at  ?? null,
-          variant:        'membro',
-          filaEntradas:   filaB,
-          isOwner:        podeGerenciarCadeiras,
-          professionalId: b.id,
-          mostrarAtividade: true,
-          isAvailable:    this.#statusDisponivel(b.id),
-          onCadeiraClick: (tipo, ocupada, entrada) =>
-            this.#onCadeiraClick(tipo, ocupada, entrada, b.id),
-        })
-      );
+      specs.push({ container: col, key: String(b.id), spec: {
+        nome:            b.profile?.full_name   ?? 'Barbeiro',
+        avatarPath:      b.profile?.avatar_path ?? null,
+        updatedAt:       b.profile?.updated_at  ?? null,
+        variant:         'membro', badge: null, navegarPerfil: false,
+        filaEntradas:    filaEntradas.filter(e => e.professional?.id === b.id),
+        isOwner:         this.#podeGerenciarCadeira(b.id),
+        professionalId:  b.id,
+        mostrarAtividade: true,
+        isAvailable:     this.#statusDisponivel(b.id),
+      }});
+    }
+
+    const vivos = new Set();
+    for (const { container, key, spec } of specs) {
+      vivos.add(key);
+      const sig   = MinhaBarbeariaRuntimeController.#assinaturaRow(spec);
+      const atual = this.#equipeRows.get(key);
+      if (atual && atual.sig === sig) {
+        container.appendChild(atual.rowEl); // mantém ordem; nada recriado
+        continue;
+      }
+      const { cardEl, wrapEl } = this.#construirConteudoRow(spec);
+      if (atual) {
+        atual.rowEl.replaceChildren(cardEl, wrapEl); // troca conteúdo SEM innerHTML=''
+        atual.sig = sig;
+        container.appendChild(atual.rowEl);
+      } else {
+        const rowEl = document.createElement('div');
+        rowEl.className = `mb-barbeiro-row mb-barbeiro-row--${spec.variant}`;
+        rowEl.appendChild(cardEl);
+        rowEl.appendChild(wrapEl);
+        this.#equipeRows.set(key, { rowEl, sig });
+        container.appendChild(rowEl);
+      }
+    }
+
+    // Remove rows de profissionais que sumiram da lista
+    for (const [key, info] of this.#equipeRows) {
+      if (!vivos.has(key)) { info.rowEl.remove(); this.#equipeRows.delete(key); }
     }
 
     if (section) section.hidden = false;
-    // DEBUG TEMPORÁRIO - remover após encontrar bug do botão Voltar
+  }
+
+  /** Instala (1x) o listener delegado de clique/tecla nas cadeiras. */
+  #instalarDelegacaoCadeiras() {
+    if (this.#cadeirasDelegado) return;
+    const donoWrap = this.#refs.equipeDonoWrap;
+    const col      = this.#refs.equipeCol;
+    if (!donoWrap || !col) return;
+    this.#cadeirasDelegado = true;
+
+    const acionar = (cad) => {
+      const tipo    = cad.dataset.tipo;
+      const profId  = cad.dataset.professionalId || null;
+      const entryId = cad.dataset.entryId || '';
+      const ocupada = cad.dataset.ocupada === '1';
+      const entrada = entryId ? (this.#filaIndex.get(entryId) ?? null) : null;
+      MinhaBarbeariaRuntimeController.#executarCadeiraComFeedback(
+        cad,
+        () => this.#onCadeiraClick(tipo, ocupada, entrada, profId),
+      );
+    };
+    const onClick = (ev) => {
+      const cad = ev.target?.closest?.('.mb-cadeira--interativa');
+      if (cad) acionar(cad);
+    };
+    const onKey = (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      const cad = ev.target?.closest?.('.mb-cadeira--interativa');
+      if (cad) { ev.preventDefault(); acionar(cad); }
+    };
+    donoWrap.addEventListener('click', onClick);
+    col.addEventListener('click', onClick);
+    donoWrap.addEventListener('keydown', onKey);
+    col.addEventListener('keydown', onKey);
+  }
+
+  /** Monta o conteúdo de uma row (card + cadeiras) a partir da spec. */
+  #construirConteudoRow(spec) {
+    const statusEl = (spec.mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined')
+      ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: spec.professionalId, isAvailable: spec.isAvailable })
+      : null;
+    const cardEl = MinhaBarbeariaRuntimeController.#criarBarberiroCard({
+      nome: spec.nome, avatarPath: spec.avatarPath, updatedAt: spec.updatedAt,
+      variant: spec.variant, badge: spec.badge, cortes: null, statusEl,
+    });
+    if (spec.navegarPerfil) {
+      cardEl.addEventListener('click', () => { if (typeof App !== 'undefined') App.nav('perfil'); });
+    }
+    const wrapEl = MinhaBarbeariaRuntimeController.#construirCadeiras(spec);
+    return { cardEl, wrapEl };
+  }
+
+  /** Assinatura que resume tudo que afeta o DOM da row (fila, card, atividade). */
+  static #assinaturaRow(spec) {
+    const emServico = spec.filaEntradas.find(e => e.status === 'in_service') ?? null;
+    const espera = emServico && typeof BarbeiroEsperaFluxo !== 'undefined'
+      && BarbeiroEsperaFluxo.estaAguardando(emServico.id) ? '1' : '0';
+    const chairs = spec.filaEntradas
+      .map(e => `${e.id}:${e.status}:${e.client_confirmed ?? ''}:${e.client?.avatar_path ?? ''}:${e.client?.updated_at ?? ''}`)
+      .join('|');
+    return [
+      spec.nome, spec.avatarPath, spec.updatedAt, spec.variant, spec.badge,
+      spec.isOwner ? '1' : '0', spec.mostrarAtividade ? '1' : '0', spec.isAvailable ? '1' : '0',
+      espera, chairs,
+    ].join('§');
   }
 
   /**
@@ -1777,7 +1865,7 @@ export class MinhaBarbeariaRuntimeController {
    * @param {'yes'|'no_waiting'|'absent'|null}   [confirmacao]  estado de confirmação de presença
    */
   static #criarCadeiraEl(tipo, entrada = null, posicao = 1, opts = {}, confirmacao = null) {
-    const { isOwner = false, onClickVazia = null, onClickOcupada = null } = opts;
+    const { isOwner = false, professionalId = null } = opts;
     const ocupada   = !!entrada;
     const emEspera  = ocupada && tipo === 'producao'
       && typeof BarbeiroEsperaFluxo !== 'undefined'
@@ -1800,14 +1888,17 @@ export class MinhaBarbeariaRuntimeController {
       iconWrap.classList.add('mb-cadeira-icon--confirmada');
     }
 
-    if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
+    // Produção sempre interativa p/ o dono; fila só a cadeira VAZIA (adicionar).
+    // Cliques são resolvidos por delegação (#instalarDelegacaoCadeiras) — a cadeira
+    // carrega só data-* e nenhum listener próprio, permitindo recriá-la sem churn.
+    const interativa = isOwner && (tipo === 'producao' || !ocupada);
+    if (interativa) {
       cadeira.classList.add('mb-cadeira--interativa');
       MinhaBarbeariaRuntimeController.#bloquearSelecaoNativaCadeira(cadeira);
-      const handler = () => MinhaBarbeariaRuntimeController.#executarCadeiraComFeedback(
-        cadeira,
-        () => (ocupada ? onClickOcupada(entrada) : onClickVazia())
-      );
-      cadeira.addEventListener('click', handler);
+      cadeira.dataset.tipo           = tipo;
+      cadeira.dataset.professionalId = professionalId ?? '';
+      cadeira.dataset.entryId        = entrada?.id ?? '';
+      cadeira.dataset.ocupada        = ocupada ? '1' : '0';
       cadeira.setAttribute('role', 'button');
       cadeira.setAttribute('tabindex', '0');
       cadeira.setAttribute('aria-label',
@@ -1817,9 +1908,6 @@ export class MinhaBarbeariaRuntimeController {
             :              'Sentar cliente em produção')
           : (ocupada ? `Cliente #${posicao}` : 'Adicionar cliente na fila')
       );
-      cadeira.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
-      });
     }
 
     // Imagem da cadeira — sempre como fundo
@@ -1947,59 +2035,27 @@ export class MinhaBarbeariaRuntimeController {
    * @param {string}    professionalId  UUID do barbeiro desta row
    * @param {Function}  onCadeiraClick  (tipo, ocupada, entrada) => void
    */
-  static #criarBarbeiroRow({ nome, avatarPath, updatedAt, variant = 'membro', badge = null, onClick = null, cortes = null, filaEntradas = [], isOwner = false, professionalId = null, onCadeiraClick = null, mostrarAtividade = false, isAvailable = false }) {
-    const row = document.createElement('div');
-    row.className = `mb-barbeiro-row mb-barbeiro-row--${variant}`;
-
-    // Card do barbeiro (coluna esquerda)
-    const statusEl = (mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined')
-      ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId, isAvailable })
-      : null;
-    const bCard = MinhaBarbeariaRuntimeController.#criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge, cortes, statusEl });
-    if (onClick) bCard.addEventListener('click', onClick);
-    row.appendChild(bCard);
-
-    // Cadeiras (container externo)
+  static #construirCadeiras({ filaEntradas = [], isOwner = false, professionalId = null } = {}) {
     const wrap     = document.createElement('div');
     wrap.className = 'mb-cadeiras-wrap';
 
     const emServico = filaEntradas.find(e => e.status === 'in_service') ?? null;
     const naFila    = filaEntradas.filter(e => e.status === 'waiting');
-
-    // Opções de interatividade — só ativas para o dono
-    const optsProducao = {
-      isOwner,
-      onClickVazia:   onCadeiraClick ? () => onCadeiraClick('producao', false, null) : null,
-      onClickOcupada: onCadeiraClick ? (e) => onCadeiraClick('producao', true, e)    : null,
-    };
-    const optsFilaFn = (pos) => ({
-      isOwner,
-      onClickVazia: onCadeiraClick ? () => onCadeiraClick('fila', false, null) : null,
-      onClickOcupada: null, // cadeiras de fila não têm ação de finalizar
-    });
+    const opts      = { isOwner, professionalId };
 
     // Cadeira de produção — fixa, fora do scroll
-    wrap.appendChild(MinhaBarbeariaRuntimeController.#criarCadeiraEl('producao', emServico, 0, optsProducao, emServico?.client_confirmed ?? null));
+    wrap.appendChild(MinhaBarbeariaRuntimeController.#criarCadeiraEl('producao', emServico, 0, opts, emServico?.client_confirmed ?? null));
 
-    // Cadeiras de espera — dinâmicas: uma por cliente na fila + sempre 1 vazia no final
+    // Cadeiras de espera — uma por cliente na fila + sempre 1 vazia no final
     const filaWrap     = document.createElement('div');
     filaWrap.className = 'mb-cadeiras-fila-wrap';
-
     naFila.forEach((entrada, i) => {
-      filaWrap.appendChild(
-        MinhaBarbeariaRuntimeController.#criarCadeiraEl('fila', entrada, i + 1, optsFilaFn(i + 1))
-      );
+      filaWrap.appendChild(MinhaBarbeariaRuntimeController.#criarCadeiraEl('fila', entrada, i + 1, opts));
     });
-
-    // Cadeira vazia sempre ao final — permite adicionar o próximo
-    filaWrap.appendChild(
-      MinhaBarbeariaRuntimeController.#criarCadeiraEl('fila', null, naFila.length + 1, optsFilaFn(naFila.length + 1))
-    );
+    filaWrap.appendChild(MinhaBarbeariaRuntimeController.#criarCadeiraEl('fila', null, naFila.length + 1, opts));
 
     wrap.appendChild(filaWrap);
-
-    row.appendChild(wrap);
-    return row;
+    return wrap;
   }
 
   // ── Status aberta / fechada ─────────────────────────────────
