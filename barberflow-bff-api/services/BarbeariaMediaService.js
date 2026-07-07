@@ -124,8 +124,9 @@ class BarbeariaMediaService extends BaseService {
    * @param {Buffer} arquivo
    * @returns {Promise<{path:string, publicUrl:string}>}
    */
-  async salvarOgCard(userId, arquivo) {
+  async salvarOgCard(userId, arquivo, barbershopId = null) {
     this._uuid('userId', userId);
+    if (barbershopId) this._uuid('barbershopId', barbershopId);
     if (!Buffer.isBuffer(arquivo) || arquivo.length === 0) throw AppError.badRequest('Arquivo inválido.');
     if (arquivo.length > BarbeariaMediaService.#MAX_BYTES) throw AppError.badRequest('Arquivo excede 5 MB.');
 
@@ -140,7 +141,9 @@ class BarbeariaMediaService extends BaseService {
       && arquivo[8] === 0x57 && arquivo[9] === 0x45;                       // WE (WEBP)
     if (!isPng && !isJpeg && !isWebp) throw AppError.badRequest('Formato inválido (PNG, JPEG ou WebP).');
 
-    const shop = await this.#repo.getPorOwner(userId);
+    const shop = typeof this.#repo.getParaOgCard === 'function'
+      ? await this.#repo.getParaOgCard(userId, barbershopId)
+      : await this.#repo.getPorOwner(userId);
     if (!shop?.id) throw AppError.notFound('Barbearia não encontrada.');
 
     // Guarda o card como JPEG quadrado comprimido (~70KB). A composição em

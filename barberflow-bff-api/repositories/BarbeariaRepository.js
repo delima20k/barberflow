@@ -395,6 +395,64 @@ class BarbeariaRepository extends BaseRepository {
     return data ?? null;
   }
 
+  /**
+   * Resolve a barbearia que pode receber o og-card gerado pela tela Minha Barbearia.
+   * Donos continuam usando owner_id; barbeiros parceiros usam vínculo ativo.
+   * @param {string} userId
+   * @param {string|null} [barbershopId=null]
+   * @returns {Promise<object|null>}
+   */
+  async getParaOgCard(userId, barbershopId = null) {
+    this._uuid('userId', userId);
+    if (barbershopId) {
+      this._uuid('barbershopId', barbershopId);
+      const owned = await this.#getPorOwnerEId(userId, barbershopId);
+      if (owned?.id) return owned;
+
+      const temVinculo = await this.profissionalTemVinculoAtivo(barbershopId, userId);
+      if (!temVinculo) throw AppError.forbidden('Profissional sem vinculo ativo com a barbearia.');
+      return this.getAtivaPorId(barbershopId);
+    }
+
+    const owned = await this.getPorOwner(userId);
+    if (owned?.id) return owned;
+    return this.#getPrimeiraAtivaVinculada(userId);
+  }
+
+  async #getPorOwnerEId(ownerId, barbershopId) {
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select(BarbeariaRepository.#SELECT_OWNER)
+      .eq('owner_id', ownerId)
+      .eq('id', barbershopId)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('getPorOwnerEId', error);
+      this._throwDbError(error, 'getPorOwnerEId');
+    }
+    return data ?? null;
+  }
+
+  async #getPrimeiraAtivaVinculada(professionalId) {
+    const { data: links, error } = await this._db
+      .from('professional_shop_links')
+      .select('barbershop_id')
+      .eq('professional_id', professionalId)
+      .eq('is_active', true)
+      .order('joined_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      this._warn('getPrimeiraAtivaVinculada:links', error);
+      this._throwDbError(error, 'getPrimeiraAtivaVinculada:links');
+    }
+
+    const barbershopId = links?.[0]?.barbershop_id ?? null;
+    if (!barbershopId) return null;
+    return this.getAtivaVinculada(barbershopId, professionalId);
+  }
+
   async getAtivaPorId(barbershopId) {
     this._uuid('barbershopId', barbershopId);
     const { data, error } = await this._db

@@ -182,7 +182,7 @@ class BarbeariaSharePanel {
     if (typeof BffApiService === 'undefined') return;
     try {
       const buffer = await file.arrayBuffer();
-      const { error } = await BffApiService.barbearias.salvarOgCard(buffer);
+      const { error } = await BffApiService.barbearias.salvarOgCard(buffer, this.#barbershopId);
       if (!error) this.#cardUrl = 'ready';
     } catch (_) {}
   }

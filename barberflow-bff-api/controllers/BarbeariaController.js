@@ -207,7 +207,8 @@ class BarbeariaController extends BaseController {
   /** PATCH /api/v1/barbearias/minha/og-card — salva card de convite no Storage. */
   async salvarOgCard(req, res) {
     await this.handle(res, async () => {
-      const result = await this.#mediaService.salvarOgCard(req.user.id, req.body);
+      const barbershopId = String(req.query.barbershop_id ?? '').trim() || null;
+      const result = await this.#mediaService.salvarOgCard(req.user.id, req.body, barbershopId);
       this.success(res, result);
     });
   }

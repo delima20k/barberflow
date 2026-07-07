@@ -444,3 +444,124 @@ suite('BarbeariaRepository.removerVariantesImagemBarbearia()', () => {
     assert.deepEqual(removidos[0], [`${SHOP_ID}/cover.jpeg`]);
   });
 });
+
+suite('BarbeariaRepository.getParaOgCard()', () => {
+  const OWNER_UUID = '10000000-0000-4000-8000-000000000001';
+  const PRO_UUID = '20000000-0000-4000-8000-000000000002';
+  const SHOP_UUID = '30000000-0000-4000-8000-000000000003';
+
+  function criarMockDbSequencial(respostas) {
+    const chamadas = [];
+
+    return {
+      chamadas,
+      from: (table) => {
+        const q = {
+          table,
+          selectCols: null,
+          filters: [],
+          orders: [],
+          select: (cols) => {
+            q.selectCols = cols;
+            return q;
+          },
+          eq: (col, val) => {
+            q.filters.push([col, val]);
+            return q;
+          },
+          order: (col, options) => {
+            q.orders.push([col, options]);
+            return q;
+          },
+          limit: (value) => {
+            q.limitValue = value;
+            if (table === 'professional_shop_links') return finalizar(q);
+            return q;
+          },
+          maybeSingle: () => finalizar(q),
+        };
+        return q;
+      },
+    };
+
+    function finalizar(query) {
+      chamadas.push({
+        table: query.table,
+        filters: query.filters,
+        orders: query.orders,
+        limit: query.limitValue,
+      });
+      return Promise.resolve(respostas.shift() ?? { data: null, error: null });
+    }
+  }
+
+  test('permite owner enviar og-card para a propria barbearia informada', async () => {
+    const db = criarMockDbSequencial([
+      { data: { id: SHOP_UUID, owner_id: OWNER_UUID, is_active: true }, error: null },
+    ]);
+    const repo = new BarbeariaRepository(db);
+
+    const result = await repo.getParaOgCard(OWNER_UUID, SHOP_UUID);
+
+    assert.strictEqual(result.id, SHOP_UUID);
+    assert.deepStrictEqual(db.chamadas[0].filters, [
+      ['owner_id', OWNER_UUID],
+      ['id', SHOP_UUID],
+    ]);
+  });
+
+  test('permite profissional com vinculo ativo enviar og-card da barbearia vinculada', async () => {
+    const db = criarMockDbSequencial([
+      { data: null, error: null },
+      { data: { professional_id: PRO_UUID }, error: null },
+      { data: { id: SHOP_UUID, owner_id: OWNER_UUID, is_active: true }, error: null },
+    ]);
+    const repo = new BarbeariaRepository(db);
+
+    const result = await repo.getParaOgCard(PRO_UUID, SHOP_UUID);
+
+    assert.strictEqual(result.id, SHOP_UUID);
+    assert.deepStrictEqual(db.chamadas[1].filters, [
+      ['barbershop_id', SHOP_UUID],
+      ['professional_id', PRO_UUID],
+      ['is_active', true],
+    ]);
+    assert.deepStrictEqual(db.chamadas[2].filters, [
+      ['id', SHOP_UUID],
+      ['is_active', true],
+    ]);
+  });
+
+  test('bloqueia barbershop_id manipulado quando profissional nao tem vinculo ativo', async () => {
+    const db = criarMockDbSequencial([
+      { data: null, error: null },
+      { data: null, error: null },
+    ]);
+    const repo = new BarbeariaRepository(db);
+
+    await assert.rejects(
+      () => repo.getParaOgCard(PRO_UUID, SHOP_UUID),
+      (err) => {
+        assert.strictEqual(err.status, 403);
+        return true;
+      },
+    );
+  });
+
+  test('sem barbershop_id usa o vinculo ativo mais recente quando usuario nao e owner', async () => {
+    const db = criarMockDbSequencial([
+      { data: null, error: null },
+      { data: [{ barbershop_id: SHOP_UUID }], error: null },
+      { data: { professional_id: PRO_UUID }, error: null },
+      { data: { id: SHOP_UUID, owner_id: OWNER_UUID, is_active: true }, error: null },
+    ]);
+    const repo = new BarbeariaRepository(db);
+
+    const result = await repo.getParaOgCard(PRO_UUID);
+
+    assert.strictEqual(result.id, SHOP_UUID);
+    assert.deepStrictEqual(db.chamadas[1].orders, [
+      ['joined_at', { ascending: false }],
+    ]);
+  });
+});

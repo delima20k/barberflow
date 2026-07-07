@@ -271,8 +271,10 @@ class BffApiService {
     salvarImagemServico: (buffer, mime) =>
       BffApiService.patchBinario('/api/v1/barbearias/minha/servicos/imagem', buffer, mime),
 
-    salvarOgCard: (buffer) =>
-      BffApiService.patchBinario('/api/v1/barbearias/minha/og-card', buffer, 'image/png'),
+    salvarOgCard: (buffer, barbershopId = null) => {
+      const query = barbershopId ? `?barbershop_id=${encodeURIComponent(barbershopId)}` : '';
+      return BffApiService.patchBinario(`/api/v1/barbearias/minha/og-card${query}`, buffer, 'image/png');
+    },
 
     gestaoVinculada: (barbershopId) =>
       BffApiService.get(`/api/v1/barbearias/${encodeURIComponent(barbershopId)}/gestao`),

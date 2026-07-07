@@ -81,6 +81,31 @@ describe('BarbeariaMediaService', () => {
     assert.equal(result.publicUrl, 'https://cdn.test/shop-1/og-card.jpg');
   });
 
+  it('og-card: permite barbeiro vinculado salvar card da barbearia ativa', async () => {
+    const chamadas = [];
+    const uploads = [];
+    const service = new BarbeariaMediaService({
+      getParaOgCard: async (userId, barbershopId) => {
+        chamadas.push({ userId, barbershopId });
+        return { id: 'linked-shop-1' };
+      },
+      uploadImagemBarbearia: async (path, buffer, contentType) => uploads.push({ path, buffer, contentType }),
+      getBarbershopPublicUrl: (path) => `https://cdn.test/${path}`,
+    });
+
+    const webp = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: { r: 12, g: 12, b: 12 } },
+    }).webp().toBuffer();
+
+    const result = await service.salvarOgCard(OWNER_ID, webp, '11111111-1111-4111-8111-111111111111');
+
+    assert.deepEqual(chamadas, [
+      { userId: OWNER_ID, barbershopId: '11111111-1111-4111-8111-111111111111' },
+    ]);
+    assert.equal(result.path, 'linked-shop-1/og-card.jpg');
+    assert.equal(uploads[0].contentType, 'image/jpeg');
+  });
+
   it('og-card: reencoda PNG grande do cliente em JPEG (dentro do limite do WhatsApp)', async () => {
     const uploads = [];
     const service = new BarbeariaMediaService({

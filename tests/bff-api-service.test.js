@@ -288,6 +288,21 @@ describe('BffApiService.barbearias portfolio', () => {
     assert.ok(chamadas[0].url.includes('offset=0'));
     assert.strictEqual(chamadas[0].opts.method, undefined);
   });
+
+  test('salvarOgCard envia barbershop_id na query quando informado', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 200, json: async () => ({ dados: { path: 'shop-1/og-card.jpg' } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.barbearias.salvarOgCard(new ArrayBuffer(8), 'shop-1');
+
+    assert.ok(chamadas[0].url.includes('/api/v1/barbearias/minha/og-card?'));
+    assert.ok(chamadas[0].url.includes('barbershop_id=shop-1'));
+    assert.strictEqual(chamadas[0].opts.method, 'PATCH');
+  });
 });
 
 describe('BffApiService.musicas', () => {
