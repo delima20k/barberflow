@@ -1802,7 +1802,11 @@ export class MinhaBarbeariaRuntimeController {
 
     if (isOwner && (ocupada ? onClickOcupada : onClickVazia)) {
       cadeira.classList.add('mb-cadeira--interativa');
-      const handler = () => ocupada ? onClickOcupada(entrada) : onClickVazia();
+      MinhaBarbeariaRuntimeController.#bloquearSelecaoNativaCadeira(cadeira);
+      const handler = () => MinhaBarbeariaRuntimeController.#executarCadeiraComFeedback(
+        cadeira,
+        () => (ocupada ? onClickOcupada(entrada) : onClickVazia())
+      );
       cadeira.addEventListener('click', handler);
       cadeira.setAttribute('role', 'button');
       cadeira.setAttribute('tabindex', '0');
@@ -1877,6 +1881,48 @@ export class MinhaBarbeariaRuntimeController {
     cadeira.appendChild(label);
 
     return cadeira;
+  }
+
+  static #bloquearSelecaoNativaCadeira(cadeira) {
+    cadeira.addEventListener('selectstart', event => event.preventDefault());
+    cadeira.addEventListener('dragstart', event => event.preventDefault());
+  }
+
+  static #executarCadeiraComFeedback(cadeira, callback) {
+    const animacao = MinhaBarbeariaRuntimeController.#piscarCadeira(cadeira);
+    if (!animacao?.finished) {
+      callback();
+      return;
+    }
+
+    const token = `${Date.now()}-${Math.random()}`;
+    cadeira.dataset.cadeiraFeedbackToken = token;
+    animacao.finished
+      .then(() => {
+        if (cadeira.dataset.cadeiraFeedbackToken === token) callback();
+      })
+      .catch(() => {
+        if (cadeira.dataset.cadeiraFeedbackToken === token) callback();
+      });
+  }
+
+  static #piscarCadeira(cadeira) {
+    if (!cadeira || typeof cadeira.animate !== 'function') return null;
+
+    cadeira.getAnimations?.().forEach(animacao => {
+      if (animacao.id === 'cadeira-click-feedback') animacao.cancel();
+    });
+
+    const animacao = cadeira.animate([
+      { opacity: 1, transform: 'scale(1)' },
+      { opacity: .54, transform: 'scale(.93)' },
+      { opacity: 1, transform: 'scale(1)' },
+    ], {
+      duration: 150,
+      easing: 'cubic-bezier(.22, 1, .36, 1)',
+    });
+    animacao.id = 'cadeira-click-feedback';
+    return animacao;
   }
 
   /**

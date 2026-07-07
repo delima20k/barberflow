@@ -64,7 +64,7 @@ class Cadeira {
         const ariaLabel = tipo === 'producao' ? 'Entrar para atendimento' : `Entrar na posição ${posicao}`;
         Cadeira.#tornarInterativa(el, onClick, ariaLabel);
       } else {
-        el.addEventListener('click', () => onClick());
+        el.addEventListener('click', () => Cadeira.#executarComFeedback(el, onClick));
       }
     }
 
@@ -106,13 +106,59 @@ class Cadeira {
    */
   static #tornarInterativa(el, callback, ariaLabel) {
     el.classList.add('cdr-cadeira--interativa');
-    el.addEventListener('click', () => callback());
+    Cadeira.#bloquearSelecaoNativa(el);
+    el.addEventListener('click', () => Cadeira.#executarComFeedback(el, callback));
     el.setAttribute('role',       'button');
     el.setAttribute('tabindex',   '0');
     el.setAttribute('aria-label', ariaLabel);
     el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); callback(); }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        Cadeira.#executarComFeedback(el, callback);
+      }
     });
+  }
+
+  static #bloquearSelecaoNativa(el) {
+    el.addEventListener('selectstart', event => event.preventDefault());
+    el.addEventListener('dragstart', event => event.preventDefault());
+  }
+
+  static #executarComFeedback(el, callback) {
+    const animacao = Cadeira.#piscarClique(el);
+    if (!animacao?.finished) {
+      callback();
+      return;
+    }
+
+    const token = `${Date.now()}-${Math.random()}`;
+    el.dataset.cadeiraFeedbackToken = token;
+    animacao.finished
+      .then(() => {
+        if (el.dataset.cadeiraFeedbackToken === token) callback();
+      })
+      .catch(() => {
+        if (el.dataset.cadeiraFeedbackToken === token) callback();
+      });
+  }
+
+  static #piscarClique(el) {
+    if (!el || typeof el.animate !== 'function') return null;
+
+    el.getAnimations?.().forEach(animacao => {
+      if (animacao.id === 'cadeira-click-feedback') animacao.cancel();
+    });
+
+    const animacao = el.animate([
+      { opacity: 1, transform: 'scale(1)' },
+      { opacity: .54, transform: 'scale(.93)' },
+      { opacity: 1, transform: 'scale(1)' },
+    ], {
+      duration: 150,
+      easing: 'cubic-bezier(.22, 1, .36, 1)',
+    });
+    animacao.id = 'cadeira-click-feedback';
+    return animacao;
   }
 
   static #ativarToqueLongo(el, callback, ariaLabel) {

@@ -25,27 +25,33 @@ class CadeiraVisualFeedbackTest {
     const wrap = CadeiraVisualFeedbackTest.#bloco(css, '.mb-cadeiras-wrap');
     const row = CadeiraVisualFeedbackTest.#bloco(css, '.mb-barbeiro-row');
 
-    assert.match(cadeira, /-webkit-tap-highlight-color:\s*transparent/);
+    assert.match(cadeira, /-webkit-tap-highlight-color:\s*transparent\s*!important/);
     assert.match(cadeira, /touch-action:\s*manipulation/);
-    assert.match(wrap, /-webkit-tap-highlight-color:\s*transparent/);
+    assert.match(cadeira, /-webkit-touch-callout:\s*none/);
+    assert.match(wrap, /-webkit-tap-highlight-color:\s*transparent\s*!important/);
     assert.match(row, /-webkit-tap-highlight-color:\s*transparent/);
   }
 
   static minhaBarbeariaNaoAnimaParent() {
     const css = CadeiraVisualFeedbackTest.#ler('apps/profissional/assets/css/styles.css');
 
-    assert.doesNotMatch(css, /\.mb-cadeiras-wrap:(?:active|focus|focus-visible|focus-within)/);
-    assert.doesNotMatch(css, /\.mb-barbeiro-row[^{]*(?:active|focus|focus-visible|focus-within)[^{]*\{[^}]*background:\s*(?:#|rgb|rgba|var\(--blue)/s);
+    assert.doesNotMatch(css, /\.mb-cadeiras-wrap[^{]*(?:active|focus|focus-visible|focus-within)[^{]*\{[^}]*(background|box-shadow|border-color|transform|opacity)\s*:/s);
+    assert.doesNotMatch(css, /\.mb-barbeiro-row[^{]*(?:active|focus|focus-visible|focus-within)[^{]*\{[^}]*(background|box-shadow|border-color|transform|opacity)\s*:/s);
   }
 
   static minhaBarbeariaAnimaSomenteCadeira() {
     const css = CadeiraVisualFeedbackTest.#ler('apps/profissional/assets/css/styles.css');
+    const source = CadeiraVisualFeedbackTest.#ler('apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js');
     const interativa = CadeiraVisualFeedbackTest.#bloco(css, '.mb-cadeira--interativa');
     const active = CadeiraVisualFeedbackTest.#bloco(css, '.mb-cadeira--interativa:active .mb-cadeira-icon');
 
     assert.match(interativa, /transition:\s*transform\s+\.1[2-8]s\s+ease,\s*opacity\s+\.1[2-8]s\s+ease/);
     assert.match(active, /transform:\s*scale\(\.9[0-9]\)/);
     assert.doesNotMatch(active, /background|box-shadow|border-color|outline/);
+    assert.match(source, /#bloquearSelecaoNativaCadeira/);
+    assert.match(source, /event\.preventDefault\(\)/);
+    assert.match(source, /#piscarCadeira/);
+    assert.match(source, /animate\(\[/);
   }
 
   static barbeariaPublicaRemoveHighlightNativo() {
@@ -54,9 +60,10 @@ class CadeiraVisualFeedbackTest {
     const wrap = CadeiraVisualFeedbackTest.#bloco(css, '.cdr-cadeiras-wrap');
     const row = CadeiraVisualFeedbackTest.#bloco(css, '.cdr-row');
 
-    assert.match(cadeira, /-webkit-tap-highlight-color:\s*transparent/);
+    assert.match(cadeira, /-webkit-tap-highlight-color:\s*transparent\s*!important/);
     assert.match(cadeira, /touch-action:\s*manipulation/);
-    assert.match(wrap, /-webkit-tap-highlight-color:\s*transparent/);
+    assert.match(cadeira, /-webkit-touch-callout:\s*none/);
+    assert.match(wrap, /-webkit-tap-highlight-color:\s*transparent\s*!important/);
     assert.match(row, /-webkit-tap-highlight-color:\s*transparent/);
   }
 
@@ -66,6 +73,16 @@ class CadeiraVisualFeedbackTest {
 
     assert.match(focus, /outline:\s*2px\s+solid\s+var\(--gold/);
     assert.doesNotMatch(focus, /blue|#00f|#0000ff|rgb\(0,\s*0,\s*255\)/i);
+  }
+
+  static barbeariaPublicaPiscaSomenteCadeiraClicada() {
+    const source = CadeiraVisualFeedbackTest.#ler('shared/js/Cadeira.js');
+
+    assert.match(source, /#bloquearSelecaoNativa/);
+    assert.match(source, /event\.preventDefault\(\)/);
+    assert.match(source, /#piscarClique/);
+    assert.match(source, /animate\(\[/);
+    assert.match(source, /opacity:\s*\.54/);
   }
 }
 
@@ -87,4 +104,8 @@ test('Barbearia pública remove highlight nativo das cadeiras e do container', (
 
 test('Barbearia pública mantém foco acessível sem azul nativo', () => {
   CadeiraVisualFeedbackTest.barbeariaPublicaMantemFocoAcessivelSemAzul();
+});
+
+test('Barbearia pública pisca somente a cadeira clicada antes da ação', () => {
+  CadeiraVisualFeedbackTest.barbeariaPublicaPiscaSomenteCadeiraClicada();
 });

@@ -2021,9 +2021,10 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Scroll apenas nas cadeiras de espera */
@@ -2039,7 +2040,8 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 2px;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
 }
 .mb-cadeiras-fila-wrap::-webkit-scrollbar { display: none; }
 
@@ -2059,9 +2061,37 @@
   pointer-events: none; /* desabilitado por padrão */
   user-select: none;
   -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
   touch-action: manipulation;
   scroll-snap-align: start;
+}
+
+.mb-barbeiro-row,
+.mb-barbeiro-row *,
+.mb-cadeiras-wrap,
+.mb-cadeiras-wrap *,
+.mb-cadeiras-fila-wrap,
+.mb-cadeiras-fila-wrap *,
+.mb-cadeira,
+.mb-cadeira * {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none;
+}
+
+.mb-barbeiro-row:active,
+.mb-barbeiro-row:focus,
+.mb-barbeiro-row:focus-within,
+.mb-cadeiras-wrap:active,
+.mb-cadeiras-wrap:focus,
+.mb-cadeiras-wrap:focus-within,
+.mb-cadeiras-fila-wrap:active,
+.mb-cadeiras-fila-wrap:focus,
+.mb-cadeiras-fila-wrap:focus-within {
+  outline: none;
 }
 .mb-cadeira--producao {
   border: 1.5px solid var(--gold, #D4AF37);
