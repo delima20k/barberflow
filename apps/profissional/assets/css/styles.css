@@ -1907,6 +1907,9 @@
   padding: 8px 10px;
   overflow: hidden;
   transition: box-shadow .2s, transform .2s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .mb-barbeiro-row--dono {
   position: relative;
@@ -2018,6 +2021,9 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Scroll apenas nas cadeiras de espera */
@@ -2033,6 +2039,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 2px;
+  -webkit-tap-highlight-color: transparent;
 }
 .mb-cadeiras-fila-wrap::-webkit-scrollbar { display: none; }
 
@@ -2052,6 +2059,8 @@
   pointer-events: none; /* desabilitado por padrão */
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   scroll-snap-align: start;
 }
 .mb-cadeira--producao {
@@ -2169,19 +2178,23 @@
   pointer-events: auto;
   cursor: pointer;
   transition: transform .15s ease, opacity .15s ease;
+  outline: none;
 }
 
 .mb-cadeira--interativa .mb-cadeira-icon {
-  transition: transform .15s ease, opacity .15s ease, filter .15s ease;
+  transition: transform .15s ease, opacity .15s ease;
 }
 .mb-cadeira--interativa:hover .mb-cadeira-icon {
   opacity: .88;
   transform: scale(1.1);
-  filter: drop-shadow(0 2px 8px rgba(212,175,55,.5));
 }
 .mb-cadeira--interativa:active .mb-cadeira-icon {
   transform: scale(.94);
   opacity: .75;
+}
+.mb-cadeira--interativa:focus-visible {
+  outline: 2px solid var(--gold, #D4AF37);
+  outline-offset: 2px;
 }
 
 /* Modais de cadeira — overlay base (reutilizado por csm / crtm / fcm) */

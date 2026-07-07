@@ -4105,6 +4105,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   border-radius: var(--r-md, 12px);
   overflow: hidden;
   transition: box-shadow .2s, transform .2s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .cdr-row--skel { opacity: .35; pointer-events: none; }
 .cdr-row--owner {
@@ -4144,6 +4147,9 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .cdr-fila-wrap {
@@ -4158,6 +4164,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 2px;
+  -webkit-tap-highlight-color: transparent;
 }
 .cdr-fila-wrap::-webkit-scrollbar { display: none; }
 
@@ -4177,6 +4184,8 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   scroll-snap-align: start;
 }
 .cdr-cadeira--livre {
@@ -4202,12 +4211,12 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   pointer-events: auto;
   cursor: pointer;
   opacity: 1;
-  transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+  transition: transform .15s ease, opacity .15s ease;
+  outline: none;
 }
 .cdr-cadeira--interativa:hover {
   opacity: .88;
   transform: scale(1.06);
-  box-shadow: 0 2px 10px rgba(212,175,55,.22);
 }
 .cdr-cadeira--interativa:active {
   transform: scale(.96);
