@@ -820,21 +820,20 @@ describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
   });
 
   test('row do dono usa a mesma regra de permissao da cadeira', () => {
-    const idx = SRC_MB_PAGE.indexOf('variant: \'dono\'');
-    assert.ok(idx > 0, 'render da row do dono deve existir');
-    const bloco = SRC_MB_PAGE.slice(idx, idx + 500);
+    // A row do dono é interativa somente para o dono/profissional logado.
     assert.match(
-      bloco,
-      /isOwner:\s*this\.#podeGerenciarCadeira\(filaDonoId\)/,
-      'row do dono deve ficar interativa somente para o dono/profissional logado',
+      SRC_MB_PAGE,
+      /variant:\s*'dono'[\s\S]{0,400}isOwner:\s*this\.#podeGerenciarCadeira\(filaDonoId\)/,
+      'row do dono deve usar #podeGerenciarCadeira(filaDonoId)',
     );
   });
 
   test('rows de membros usam permissao por barbeiro responsavel', () => {
+    // Cada row de membro fica interativa só para o barbeiro responsável (b.id).
     assert.match(
       SRC_MB_PAGE,
-      /const podeGerenciarCadeiras\s*=\s*this\.#podeGerenciarCadeira\(b\.id\);/,
-      'row de membro deve ficar interativa somente para o barbeiro responsavel',
+      /variant:\s*'membro'[\s\S]{0,400}isOwner:\s*this\.#podeGerenciarCadeira\(b\.id\)/,
+      'row de membro deve usar #podeGerenciarCadeira(b.id)',
     );
   });
 
@@ -853,25 +852,24 @@ describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
     );
   });
 
-  test('cadeira autorizada registra clique e teclado na cadeira inteira', () => {
-    assert.match(
-      SRC_MB_PAGE,
-      /cadeira\.addEventListener\('click', handler\);/,
-      'click deve ser registrado na cadeira inteira',
-    );
-    assert.match(
-      SRC_MB_PAGE,
-      /cadeira\.setAttribute\('role', 'button'\);/,
-      'role=button deve ficar na cadeira inteira',
-    );
-    assert.match(
-      SRC_MB_PAGE,
-      /cadeira\.addEventListener\('keydown', e => \{/,
-      'teclado deve ser registrado na cadeira inteira',
-    );
+  test('cadeira interativa usa delegação (data-* + role), sem listener por cadeira', () => {
+    // A cadeira carrega data-* e role=button; o clique é resolvido por delegação
+    // (1 listener no container da equipe), evitando churn/tempestade de listeners.
+    assert.match(SRC_MB_PAGE, /cadeira\.dataset\.tipo\s*=\s*tipo;/,
+      'cadeira deve marcar data-tipo');
+    assert.match(SRC_MB_PAGE, /cadeira\.dataset\.entryId\s*=\s*entrada\?\.id/,
+      'cadeira deve marcar data-entryId');
+    assert.match(SRC_MB_PAGE, /cadeira\.setAttribute\('role', 'button'\);/,
+      'role=button deve ficar na cadeira inteira');
+    assert.match(SRC_MB_PAGE, /#instalarDelegacaoCadeiras\(\)\s*\{/,
+      'deve existir a instalação da delegação de cadeiras');
+    assert.match(SRC_MB_PAGE, /donoWrap\.addEventListener\('click', onClick\)/,
+      'delegação deve escutar clique no container do dono');
+    assert.match(SRC_MB_PAGE, /col\.addEventListener\('keydown', onKey\)/,
+      'delegação deve escutar teclado no container de membros');
     assert.ok(
-      !SRC_MB_PAGE.includes("iconWrap.addEventListener('click', handler);"),
-      'icone nao deve ser o unico alvo clicavel',
+      !/cadeira\.addEventListener\('click'/.test(SRC_MB_PAGE),
+      'não deve haver listener de clique por cadeira (delegação assume o clique)',
     );
   });
 
