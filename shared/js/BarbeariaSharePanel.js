@@ -5,13 +5,14 @@
  *
  * Preview: canvas 1080×1080 exibido na página em tamanho reduzido (CSS).
  *
- * Compartilhamento: envia APENAS a URL do BFF (/b/:id) via Web Share API —
+ * Compartilhamento: envia a URL pública de OG (/b/:id) via Web Share API —
  * o WhatsApp lê as meta tags Open Graph dessa URL e monta automaticamente
  * um card clicável com a foto, nome e botão que abre a barbearia no app
- * cliente. Nenhum texto extra é enviado junto.
+ * cliente.
  *
- * Fallback: abre wa.me com a URL do BFF (mesmo resultado — OG card).
- * Botão "Copiar" copia a URL do app cliente (link direto, sem redirect).
+ * Fallback: abre wa.me com mensagem + URL de OG.
+ * Botão "Copiar" copia mensagem + URL de OG; copiar a URL direta da SPA
+ * (?barbearia=) não gera preview confiável no desktop porque depende de JS.
  *
  * Camada: interfaces (UI). Sem regra de negócio.
  */
@@ -75,8 +76,8 @@ class BarbeariaSharePanel {
     if (this.#root) this.#root.hidden = !ok;
     if (!ok) return this;
 
-    // Input de cópia mostra a URL do app cliente (link direto)
-    if (this.#linkInput) this.#linkInput.value = this.#appUrl();
+    // Input mostra a URL pública que scrapers desktop/mobile conseguem ler.
+    if (this.#linkInput) this.#linkInput.value = this.#ogUrl({ cacheBust: false });
 
     // Gera preview visual do card no canvas (async, não bloqueia)
     if (this.#previewEl) void this.#atualizarPreview();
@@ -94,14 +95,20 @@ class BarbeariaSharePanel {
    * que ficou em cache. O servidor ignora o parâmetro e resolve o card pela
    * existência do arquivo og-card no Storage.
    */
-  #ogUrl() {
+  #ogUrl({ cacheBust = true } = {}) {
+    const base = `${BarbeariaSharePanel.APP_URL}/b/${this.#barbershopId}`;
+    if (!cacheBust) return base;
     const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-    return `${BarbeariaSharePanel.APP_URL}/b/${this.#barbershopId}?v=${token}`;
+    return `${base}?v=${token}`;
   }
 
-  /** URL do app cliente — usada no botão "Copiar". */
-  #appUrl() {
-    return `${BarbeariaSharePanel.APP_URL}/?barbearia=${this.#barbershopId}`;
+  #shareTitle() {
+    return this.#nome || 'Barbearia no BarberFlow';
+  }
+
+  #shareText(url) {
+    const nome = this.#nome || 'esta barbearia';
+    return `Conheça ${nome}: ${url}`;
   }
 
   // ── Ações ──────────────────────────────────────────────────
@@ -116,10 +123,12 @@ class BarbeariaSharePanel {
     // NÃO aguarda nada assíncrono antes de navigator.share — qualquer await perde
     // o contexto de gesto do usuário (iOS bloqueia a ação).
     const url = this.#ogUrl();
+    const title = this.#shareTitle();
+    const text = this.#shareText(url);
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ url });
+        await navigator.share({ title, text, url });
         return;
       } catch (e) {
         if (e?.name === 'AbortError') return;
@@ -127,15 +136,16 @@ class BarbeariaSharePanel {
     }
     // Fallback (desktop / sem Web Share): abre o WhatsApp com a URL no texto.
     if (typeof window !== 'undefined') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(url)}`, '_blank', 'noopener');
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     }
   }
 
   async #copiar() {
     if (!this.#barbershopId) return;
-    const url = this.#appUrl();
+    const url = this.#ogUrl();
+    const text = this.#shareText(url);
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(text);
       this.#feedback('Link copiado!');
       return;
     } catch (_) { /* fallback */ }
