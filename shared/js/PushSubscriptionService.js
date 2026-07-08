@@ -34,7 +34,7 @@ class PushSubscriptionService {
 
   // ⚠️ VAPID public key gerada por: node scripts/gerar-vapid-keys.js
   // Par correspondente deve estar em Supabase Secrets: VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY
-  static #VAPID_PUBLIC = 'BMSj25ewklWOCZO25BHOh-o3a5VZ1C7IJfyzrxIn0MB4AH_Ai8rLO981WS5owSPQ4AIC_DUsAy46wh1UFBML_10';
+  static #VAPID_PUBLIC = 'BOfV2LfGroM9pGlgGzpgIK4ZZiIeDtG2-Rwo4Ivj1Io4tiRcDsdv-0TBp-PxO0fgR55eQls7hF87B1yFOyJVeAc';
 
   static #EDGE_SUBS = 'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/push-subscriptions';
   static #LS_DEVICE = 'bf_device_id';
