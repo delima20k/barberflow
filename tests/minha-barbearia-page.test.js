@@ -837,6 +837,22 @@ describe('MinhaBarbeariaPage - cadeiras por barbeiro responsavel', () => {
     );
   });
 
+  test('#renderEquipe remove o skeleton estático (reconciliação usa appendChild, não innerHTML=\'\')', () => {
+    // Regressão: como o render incremental não faz innerHTML='', o placeholder
+    // .mb-barbeiro-row--skeleton do HTML precisa ser removido explicitamente —
+    // senão fica em cima da row real do dono.
+    assert.match(
+      SRC_MB_PAGE,
+      /donoWrap\.querySelector\('\.mb-barbeiro-row--skeleton'\)\?\.remove\(\)/,
+      '#renderEquipe deve remover o skeleton do donoWrap',
+    );
+    assert.match(
+      SRC_MB_PAGE,
+      /col\.querySelector\('\.mb-barbeiro-row--skeleton'\)\?\.remove\(\)/,
+      '#renderEquipe deve remover o skeleton do col',
+    );
+  });
+
   test('#onCadeiraClick nao depende de contextoParceiro para autorizar', () => {
     const idx = SRC_MB_PAGE.indexOf('async #onCadeiraClick');
     assert.ok(idx > 0, '#onCadeiraClick deve existir');

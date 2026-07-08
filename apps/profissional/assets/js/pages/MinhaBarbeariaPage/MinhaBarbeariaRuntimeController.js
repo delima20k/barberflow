@@ -835,6 +835,13 @@ export class MinhaBarbeariaRuntimeController {
     const section  = document.getElementById('mb-equipe-section');
     if (!donoWrap || !col) return;
 
+    // Remove o placeholder skeleton estático do HTML (mb-barbeiro-row--skeleton).
+    // O render antigo o apagava com innerHTML=''; a reconciliação incremental usa
+    // appendChild, então precisa removê-lo explicitamente — senão ele fica em cima
+    // da row real do dono. Não está no #equipeRows, então o loop de remoção não pega.
+    donoWrap.querySelector('.mb-barbeiro-row--skeleton')?.remove();
+    col.querySelector('.mb-barbeiro-row--skeleton')?.remove();
+
     this.#instalarDelegacaoCadeiras();
 
     // Índice p/ a delegação (lookup da entrada por id — sem closures por cadeira)
