@@ -46,6 +46,7 @@ class NotificationService {
   // ── Internos ─────────────────────────────────────────────────
   static #MAX_LOCAL  = 50;          // máximo de itens no localStorage
   static #TOAST_DUR  = 4500;        // ms antes de desaparecer
+  static #MAX_TOASTS = 4;           // máximo de toasts simultâneos no DOM
   static #KEY_LOCAL  = 'bf_notificacoes';
   static #canal      = null;        // canal Supabase Realtime ativo
   static #toastTimer = null;        // debounce para toasts em sequência
@@ -144,7 +145,8 @@ class NotificationService {
       created_at: new Date().toISOString(),
     };
 
-    NotificationService.#salvarLocal(notif);
+    // Dedup defensivo (ids locais são únicos, mas mantém o mesmo contrato do Realtime).
+    if (!NotificationService.#salvarLocal(notif)) return notif;
     NotificationService.mostrarToast(titulo, body, tipo);
     NotificationService.#atualizarBadge();
     NotificationService.#dispararEvento(notif);
@@ -297,6 +299,12 @@ class NotificationService {
         if (!alvo.classList.contains('notif-toast-fechar')) onClick();
       });
       toast.style.cursor = 'pointer';
+    }
+
+    // Limite de toasts simultâneos: remove o(s) mais antigo(s) antes de anexar,
+    // pra não acumular nós/listeners no DOM (bloat que pode travar a tela).
+    while (container.childElementCount >= NotificationService.#MAX_TOASTS) {
+      container.firstElementChild?.remove();
     }
 
     container.appendChild(toast);
@@ -476,7 +484,9 @@ class NotificationService {
       created_at: notifBanco.created_at,
     };
 
-    NotificationService.#salvarLocal(notif);
+    // Dedup: se já vimos essa notificação (mesmo id do banco), não mostra um 2º
+    // toast nem re-dispara o evento — evita empilhar toasts em reentrega Realtime.
+    if (!NotificationService.#salvarLocal(notif)) return;
 
     NotificationService.mostrarToast(
       notif.titulo,
@@ -530,10 +540,18 @@ class NotificationService {
   }
 
   static #fecharToast(toast) {
-    if (!toast.isConnected) return;
+    if (!toast || !toast.isConnected || toast.dataset.saindo === '1') return;
+    toast.dataset.saindo = '1';
     toast.classList.remove('notif-toast--visivel');
     toast.classList.add('notif-toast--saindo');
-    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    // A saída é uma CSS transition (opacity/transform) → dispara 'transitionend',
+    // NÃO 'animationend'. Escutar o evento errado deixava TODO toast vazando no
+    // DOM (nó invisível + listeners), acumulando até travar a página.
+    const remover = () => { try { toast.remove(); } catch (_) {} };
+    toast.addEventListener('transitionend', remover, { once: true });
+    // Fallback: garante remoção mesmo se transitionend não vier (aba em background,
+    // transição cancelada, prefers-reduced-motion sem transição, etc.).
+    setTimeout(remover, 400);
   }
 
   static #atualizarBadge() {
@@ -578,16 +596,19 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /**
+   * Salva a notificação no localStorage. Retorna true se era nova, false se
+   * já existia (mesmo id) — usado para deduplicar o toast (Realtime pode
+   * reentregar o mesmo INSERT em reconexão/replay).
+   * @returns {boolean} true = nova; false = duplicata
+   */
   static #salvarLocal(notif) {
     const lista = NotificationService.#lerLocal();
-    // Evita duplicata (mesmo id do banco)
-    const existe = lista.some(n => n.id === notif.id);
-    if (existe) return;
+    if (lista.some(n => n.id === notif.id)) return false; // duplicata (mesmo id)
 
     lista.unshift(notif); // mais recente primeiro
-    // Limita ao máximo definido
-    const cortada = lista.slice(0, NotificationService.#MAX_LOCAL);
-    NotificationService.#gravarLocal(cortada);
+    NotificationService.#gravarLocal(lista.slice(0, NotificationService.#MAX_LOCAL));
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════
