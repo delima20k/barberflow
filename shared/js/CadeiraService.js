@@ -145,18 +145,22 @@ class CadeiraService {
       throw Object.assign(new Error(msg), { status: 403 });
     }
 
-    // Calcula próxima posição e verifica se produção está vazia (tipo='fila')
+    // Próxima posição (só p/ 'fila') + se a produção do barbeiro está vazia agora.
+    // producaoVazia é a base da transição 0→1: cadeira de produção vazia (zero
+    // in_service do barbeiro) e o 1º cliente vai ocupá-la → push ao barbeiro.
     let position      = 0;
     let producaoVazia = false;
-    if (tipo === 'fila') {
+    {
       const filaAtual = await CadeiraService.getFilaAtiva(barbershopId);
-      const waiting   = filaAtual.filter(e => e.status === 'waiting');
-      position        = waiting.length > 0
-        ? Math.max(...waiting.map(e => e.position ?? 0)) + 1
-        : 1;
       producaoVazia   = !filaAtual.some(
         e => e.status === 'in_service' && e.professional?.id === professionalId,
       );
+      if (tipo === 'fila') {
+        const waiting = filaAtual.filter(e => e.status === 'waiting');
+        position      = waiting.length > 0
+          ? Math.max(...waiting.map(e => e.position ?? 0)) + 1
+          : 1;
+      }
     }
 
     const payload = {
@@ -182,9 +186,13 @@ class CadeiraService {
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
       }
+      // 0→1: só notifica o barbeiro se a cadeira estava vazia antes deste cliente.
+      if (producaoVazia) {
+        CadeiraService.#notificarBarbeiroPrimeiroCliente(professionalId, barbershopId, entrada.id, guestName);
+      }
     }
 
-    // Fila de espera com produção vazia → auto-avança para in_service
+    // Fila de espera com produção vazia → auto-avança para in_service (transição 0→1)
     if (tipo === 'fila' && producaoVazia) {
       await QueueRepository.updateStatus(
         entrada.id,
@@ -194,6 +202,7 @@ class CadeiraService {
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
       }
+      CadeiraService.#notificarBarbeiroPrimeiroCliente(professionalId, barbershopId, entrada.id, guestName);
     }
 
     // Salva serviços escolhidos (tabela queue_entry_services, se existir)
@@ -378,6 +387,46 @@ class CadeiraService {
           },
         );
       } catch { /* push é best-effort — silencioso */ }
+    })();
+  }
+
+  /**
+   * Notifica o BARBEIRO via Web Push quando a cadeira de produção estava vazia
+   * e o PRIMEIRO cliente a ocupou (transição de fila 0→1). Funciona com o app
+   * do barbeiro aberto OU fechado (Web Push/VAPID via BFF).
+   *
+   * Best-effort: nunca bloqueia o fluxo de quem sentou; erros só em log interno.
+   * @param {string}      professionalId
+   * @param {string}      barbershopId
+   * @param {string}      entradaId
+   * @param {string|null} guestName  nome do avulso (walk-in); cliente cadastrado → 'Cliente'
+   */
+  static #notificarBarbeiroPrimeiroCliente(professionalId, barbershopId, entradaId, guestName) {
+    if (!professionalId || !barbershopId || !entradaId) return;
+    if (typeof BffApiService === 'undefined') return;
+
+    const clienteNome = (guestName && guestName.trim()) || 'Cliente';
+
+    // Fire-and-forget: não bloqueia o fluxo do cliente/barbeiro
+    ;(async () => {
+      try {
+        const { data, error } = await BffApiService.post('/api/v1/notificacoes/push-barbeiro', {
+          professionalId,
+          entradaId,
+          barbershopId,
+          type: 'production_started',
+          clienteNome,
+        });
+        if (error && typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[CadeiraService] push primeiro-cliente falhou:', error?.status ? `status=${error.status}` : '', error?.message);
+        } else if (data?.ok === false && typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[CadeiraService] push primeiro-cliente ok=false:', `reason=${data?.reason ?? 'unknown'}`);
+        }
+      } catch (err) {
+        if (typeof LoggerService !== 'undefined') {
+          LoggerService.warn('[CadeiraService] push primeiro-cliente falhou:', err?.message);
+        }
+      }
     })();
   }
 

@@ -11,29 +11,35 @@ function ler(relPath) {
   return fs.readFileSync(path.join(ROOT, relPath), 'utf8');
 }
 
-describe('Notificacoes push sem som', () => {
-  test('Service Worker profissional mantem vibracao e silencia som nativo', () => {
+// Opção C: som do sistema + vibração quando o app está FECHADO/background;
+// mp3 customizado (via página) quando o app está em FOREGROUND. O `silent` do
+// showNotification passou a ser DINÂMICO (silent:emForeground) — silencia o som
+// nativo só quando a página vai tocar o mp3.
+describe('Notificacoes push — som dinâmico (Opção C)', () => {
+  test('SW profissional: silent dinâmico (emForeground) + vibracao + BF_PUSH_SOUND', () => {
     const src = ler('apps/profissional/sw.js');
     const idxPush = src.indexOf('static push(e)');
     assert.ok(idxPush > 0, 'SW profissional deve ter handler push');
-    const bloco = src.slice(idxPush, idxPush + 2600);
+    const bloco = src.slice(idxPush, idxPush + 3200);
 
     assert.ok(bloco.includes('vibrate:'), 'deve preservar vibracao');
-    assert.ok(bloco.includes('silent:             true'), 'deve silenciar som nativo');
-    assert.ok(!bloco.includes('silent:             false'), 'nao deve permitir som nativo');
+    assert.ok(bloco.includes('silent:             emForeground'), 'silent deve ser dinâmico (foreground)');
+    assert.ok(!bloco.includes('silent:             true'), 'nao deve mais silenciar sempre (som do sistema com app fechado)');
+    assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 em foreground');
     assert.ok(bloco.includes('showNotification'), 'deve manter notificacao visual');
     assert.ok(bloco.includes('PUSH_SHOW_MODAL'), 'deve manter evento de modal');
   });
 
-  test('Service Worker cliente mantem vibracao e silencia som nativo', () => {
+  test('SW cliente: silent dinâmico (emForeground) + vibracao + BF_PUSH_SOUND', () => {
     const src = ler('apps/cliente/sw.js');
     const idxPush = src.indexOf('static push(e)');
     assert.ok(idxPush > 0, 'SW cliente deve ter handler push');
-    const bloco = src.slice(idxPush, idxPush + 1800);
+    const bloco = src.slice(idxPush, idxPush + 2400);
 
     assert.ok(bloco.includes('vibrate:'), 'deve preservar vibracao');
-    assert.ok(bloco.includes('silent:             true'), 'deve silenciar som nativo');
-    assert.ok(!bloco.includes('silent:             false'), 'nao deve permitir som nativo');
+    assert.ok(bloco.includes('silent:             emForeground'), 'silent deve ser dinâmico (foreground)');
+    assert.ok(!bloco.includes('silent:             true'), 'nao deve mais silenciar sempre (som do sistema com app fechado)');
+    assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 em foreground');
     assert.ok(bloco.includes('showNotification'), 'deve manter notificacao visual');
   });
 });

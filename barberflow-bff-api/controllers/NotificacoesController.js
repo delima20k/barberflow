@@ -62,7 +62,7 @@ class NotificacoesController extends BaseController {
         }
       }
 
-      const TIPOS_VALIDOS = ['client_not_seated', 'client_at_shop'];
+      const TIPOS_VALIDOS = ['client_not_seated', 'client_at_shop', 'production_started'];
       if (!TIPOS_VALIDOS.includes(type)) {
         throw AppError.badRequest(`Campo 'type' inválido. Use: ${TIPOS_VALIDOS.join(' | ')}.`);
       }
@@ -101,10 +101,16 @@ class NotificacoesController extends BaseController {
         return res.status(200).json({ ok: true, reason: 'DUPLICATE', data: { destinatarios: result.destinatarios } });
       }
 
-      console.info('[BFF] push-barbeiro: enviados=%d destinatarios=%d invalidas=%d',
-        result.enviados, result.destinatarios, result.invalidas);
+      console.info('[BFF] push-barbeiro: enviados=%d destinatarios=%d invalidas=%d falhas=%d',
+        result.enviados, result.destinatarios, result.invalidas, result.falhas ?? 0);
 
       if (result.enviados === 0) {
+        // Distingue "sem subscription" de "envio falhou" (ex.: VAPID 403). Mascarar
+        // um 403 como NO_SUBSCRIPTION escondia o drift de chave em diagnósticos.
+        if ((result.falhas ?? 0) > 0) {
+          console.error('[BFF] push-barbeiro: %d envio(s) FALHARAM (subscription existe). Provável chave VAPID inválida — verificar VAPID_PUBLIC_KEY/PRIVATE_KEY.', result.falhas);
+          return res.status(200).json({ ok: false, reason: 'SEND_FAILED', data: { destinatarios: result.destinatarios, falhas: result.falhas } });
+        }
         return res.status(200).json({ ok: false, reason: 'NO_SUBSCRIPTION', data: { destinatarios: result.destinatarios } });
       }
 

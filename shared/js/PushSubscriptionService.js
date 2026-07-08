@@ -38,6 +38,7 @@ class PushSubscriptionService {
 
   static #EDGE_SUBS = 'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/push-subscriptions';
   static #LS_DEVICE = 'bf_device_id';
+  static #LS_VAPID  = 'bf_push_vapid_key'; // marca a chave VAPID pública do último registro
 
   // ═══════════════════════════════════════════════════════════
   // PÚBLICO — Ciclo de vida
@@ -78,11 +79,24 @@ class PushSubscriptionService {
       return;
     }
 
+    // Rotação de chave VAPID: se a subscription foi criada com uma chave pública
+    // diferente da atual, o servidor NUNCA conseguirá entregar o push (a assinatura
+    // VAPID não corresponde → 403). Re-inscreve em silêncio — sem diálogo, sem UI,
+    // sem pedir permissão (o browser já concedeu antes). Auto-cura devices legados.
+    if (!PushSubscriptionService.#chaveVapidConfere(sub)) {
+      LoggerService.warn('[PushSubscriptionService] chave VAPID mudou — re-inscrevendo em silêncio.');
+      try { await sub.unsubscribe(); }
+      catch (err) { LoggerService.warn('[PushSubscriptionService] unsubscribe (rotação) falhou:', err?.message); }
+      await PushSubscriptionService.registrar(swReg, userId, appId);
+      return;
+    }
+
     // Re-registra se a subscription está expirada ou expira dentro de 24 horas.
     // A maioria dos browsers retorna null (sem expiração), mas Chrome retorna um timestamp.
     const JANELA_RENOVACAO_MS = 24 * 60 * 60 * 1000; // 24h antecipação
     if (sub.expirationTime !== null && sub.expirationTime <= Date.now() + JANELA_RENOVACAO_MS) {
-      try { await sub.unsubscribe(); } catch { /* ignorar — apenas limpa o estado local */ }
+      try { await sub.unsubscribe(); }
+      catch (err) { LoggerService.warn('[PushSubscriptionService] unsubscribe (expiração) falhou:', err?.message); }
       await PushSubscriptionService.registrar(swReg, userId, appId);
       return;
     }
@@ -156,13 +170,21 @@ class PushSubscriptionService {
         }),
       });
       if (!res.ok) {
-        LoggerService.warn('[PushSubscriptionService] backend retornou', res.status);
+        // Log real (interno) — nunca visível ao usuário. Erro aqui = device sem
+        // subscription válida no backend → não receberá push (falha silenciosa
+        // que o diagnóstico apontou). Registrar status + corpo pra depuração.
+        const corpo = await res.text().catch(() => '');
+        LoggerService.error('[PushSubscriptionService] backend rejeitou o registro:', res.status, corpo.slice(0, 200));
       } else {
+        // Marca a chave VAPID usada — permite detectar rotação de chave em devices
+        // que não expõem sub.options.applicationServerKey (fallback do #chaveVapidConfere).
+        try { localStorage.setItem(PushSubscriptionService.#LS_VAPID, PushSubscriptionService.#VAPID_PUBLIC); } catch { /* storage indisponível */ }
         console.log('[Push] subscription salva no backend ✓');
       }
     } catch (err) {
-      // Erro de rede ou CORS — não crítico, subscription já está ativa no browser
-      LoggerService.warn('[PushSubscriptionService] salvarNoBackend falhou:', err?.message);
+      // Erro de rede ou CORS — subscription já está ativa no browser, mas o backend
+      // não sabe dela. Log interno (não crítico pro app, crítico pro push).
+      LoggerService.error('[PushSubscriptionService] salvarNoBackend falhou:', err?.message);
     }
   }
 
@@ -224,6 +246,47 @@ class PushSubscriptionService {
     const pad = '='.repeat((4 - (base64String.length % 4)) % 4);
     const raw = atob(base64String.replace(/-/g, '+').replace(/_/g, '/') + pad);
     return Uint8Array.from(raw, c => c.charCodeAt(0));
+  }
+
+  /**
+   * Converte Uint8Array → base64url (para comparar a applicationServerKey
+   * embutida na subscription com a #VAPID_PUBLIC atual).
+   * @param {Uint8Array} bytes
+   * @returns {string}
+   */
+  static #uint8ArrayToBase64Url(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  /**
+   * Confere se a subscription atual foi criada com a chave VAPID pública vigente.
+   * Estratégia:
+   *   1) Preferência: compara a applicationServerKey embutida na subscription
+   *      (Chrome/Firefox expõem em sub.options.applicationServerKey).
+   *   2) Fallback (browsers que não expõem): marcador salvo em localStorage no
+   *      último registro bem-sucedido. Sem marcador (registro anterior à rotação)
+   *      → trata como divergente para forçar UMA re-inscrição com a chave atual.
+   * @param {PushSubscription} sub
+   * @returns {boolean} true = mesma chave (não precisa re-inscrever)
+   */
+  static #chaveVapidConfere(sub) {
+    const atual = PushSubscriptionService.#VAPID_PUBLIC;
+
+    try {
+      const ask = sub?.options?.applicationServerKey;
+      if (ask) {
+        const salvaB64 = PushSubscriptionService.#uint8ArrayToBase64Url(new Uint8Array(ask));
+        return salvaB64 === atual;
+      }
+    } catch { /* cai pro fallback do marcador */ }
+
+    try {
+      return localStorage.getItem(PushSubscriptionService.#LS_VAPID) === atual;
+    } catch {
+      return true; // storage indisponível → não entra em loop de re-registro
+    }
   }
 
   /**

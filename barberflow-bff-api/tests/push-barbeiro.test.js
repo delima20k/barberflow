@@ -568,6 +568,72 @@ suite('PushService — enviarAoBarbeiro()', () => {
       console.error = origError;
     }
   });
+
+  // ── Falha silenciosa: 403 (VAPID) não pode ser mascarado como NO_SUBSCRIPTION ──
+  test('sendNotification com erro 403 (VAPID): falhas:1, invalidas:0 e loga como problema VAPID', async () => {
+    const errosLogados   = [];
+    const consoleOriginal = console.error;
+    console.error = (...args) => errosLogados.push(args.join(' '));
+    try {
+      const wpMock403 = {
+        setVapidDetails:  () => {},
+        sendNotification: async () => { const err = new Error('Forbidden'); err.statusCode = 403; throw err; },
+      };
+      const sbMock403 = {
+        from: () => {
+          const q = { select: () => q, insert: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+          return q;
+        },
+      };
+      const svc = new PushService(sbMock403, wpMock403);
+      const resultado = await svc.enviarAoBarbeiro({
+        professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+        type: 'client_at_shop', clienteNome: 'Rita',
+      });
+
+      assert.strictEqual(resultado.enviados,  0, 'nenhum push entregue');
+      assert.strictEqual(resultado.invalidas, 0, '403 NÃO é expiração — não invalida a subscription');
+      assert.strictEqual(resultado.falhas,    1, 'deve CONTAR a falha (subscription existe, envio falhou)');
+      const logouVapid = errosLogados.some(l => l.includes('VAPID') && l.includes('403'));
+      assert.ok(logouVapid, 'deve logar o 403 como problema de chave VAPID, não silenciar/mascarar');
+    } finally {
+      console.error = consoleOriginal;
+    }
+  });
+
+  // ── Nova regra: 1º cliente na cadeira de produção (transição 0→1) ──
+  test('type production_started: title/body indicam 1º cliente na cadeira de produção', async () => {
+    const chamadas = [];
+    const wpMock = {
+      setVapidDetails:  () => {},
+      sendNotification: async (sub, payloadStr) => { chamadas.push(JSON.parse(payloadStr)); return { statusCode: 201 }; },
+    };
+    const sbMock = {
+      from: () => {
+        const q = { select: () => q, insert: () => q, eq: () => q, then: (r) => r({ data: [MOCK_SUB], error: null }) };
+        return q;
+      },
+    };
+
+    const svc = new PushService(sbMock, wpMock);
+    await svc.enviarAoBarbeiro({
+      professionalId: PROF_ID, entradaId: ENTRY_ID, barbershopId: SHOP_ID,
+      type:        'production_started',
+      clienteNome: 'Diego',
+    });
+
+    assert.strictEqual(chamadas.length, 1);
+    assert.ok(
+      chamadas[0].title.toLowerCase().includes('primeiro') || chamadas[0].title.includes('✂️'),
+      `title deve indicar 1º cliente, recebido: "${chamadas[0].title}"`,
+    );
+    assert.ok(
+      chamadas[0].body.includes('Diego') && chamadas[0].body.toLowerCase().includes('produção'),
+      `body deve citar o cliente e a cadeira de produção, recebido: "${chamadas[0].body}"`,
+    );
+    assert.strictEqual(chamadas[0].data.pushType, 'production_started');
+    assert.strictEqual(chamadas[0].data.eventId, `queue:${ENTRY_ID}:production_started`);
+  });
 });
 
 // =================================================================

@@ -131,6 +131,12 @@ class AppBootstrap {
 
     // Ouve mensagens do SW quando o app está aberto.
     navigator.serviceWorker.addEventListener('message', e => {
+      // Som customizado de push (Opção C): só quando o app está em foreground.
+      if (e.data?.type === 'BF_PUSH_SOUND') {
+        if (typeof PushSoundService !== 'undefined') PushSoundService.tocar();
+        return;
+      }
+
       if (e.data?.type === 'PUSH_NAVIGATE') {
         const { barbershopId, entradaId } = e.data;
         if (!barbershopId) return;

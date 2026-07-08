@@ -28,12 +28,20 @@ const ENDPOINT    = 'https://fcm.googleapis.com/fcm/send/test-token';
 const P256DH      = 'BNcr7aGTpYVVPNXENLpqpPkFOVDRpFl_VBfDHLf9iNKkCBYBRrSsL_3Hh_tBqCp_TEST';
 const AUTH        = 'dGVzdGF1dGgxNg==';
 const DEVICE_ID   = 'device-uuid-test-1234';
+// Chave VAPID pública vigente (deve espelhar #VAPID_PUBLIC de
+// shared/js/PushSubscriptionService.js). Se rotacionar a chave, atualizar aqui.
+const VAPID_PUB   = 'BOfV2LfGroM9pGlgGzpgIK4ZZiIeDtG2-Rwo4Ivj1Io4tiRcDsdv-0TBp-PxO0fgR55eQls7hF87B1yFOyJVeAc';
+const LS_VAPID    = 'bf_push_vapid_key';
 
 // ─── Factory da sandbox VM ────────────────────────────────────
 
-function criarSandbox({ permission = 'granted', subscription = null, fetchStatus = 200 } = {}) {
+function criarSandbox({ permission = 'granted', subscription = null, fetchStatus = 200, vapidMarker = VAPID_PUB } = {}) {
   // localStorage mock
   const lsStore = new Map();
+  // Marca a chave VAPID do último registro. Por padrão = chave vigente (mesmo
+  // caso → não deve re-inscrever). Passar vapidMarker=null simula device legado
+  // (pré-rotação) e outra string simula chave antiga/divergente.
+  if (vapidMarker) lsStore.set(LS_VAPID, vapidMarker);
   const localStorageMock = {
     getItem:    (k) => lsStore.get(k) ?? null,
     setItem:    (k, v) => lsStore.set(k, String(v)),
@@ -58,7 +66,7 @@ function criarSandbox({ permission = 'granted', subscription = null, fetchStatus
   const fetchCalls = [];
   const fetchMock  = fn(async (url, opts) => {
     fetchCalls.push({ url, opts });
-    return { ok: fetchStatus < 400, status: fetchStatus };
+    return { ok: fetchStatus < 400, status: fetchStatus, text: async () => '' };
   });
 
   const sandbox = vm.createContext({
@@ -75,6 +83,7 @@ function criarSandbox({ permission = 'granted', subscription = null, fetchStatus
     fetch:        fetchMock,
     crypto:       { randomUUID: () => DEVICE_ID },
     atob:         globalThis.atob.bind(globalThis),
+    btoa:         globalThis.btoa.bind(globalThis),
     // Dependências do serviço
     SupabaseService: { getSession: fn().mockResolvedValue({ access_token: 'jwt-test-token' }) },
     LoggerService:   { warn: fn(), info: fn() },
@@ -249,6 +258,69 @@ describe('PushSubscriptionService — renovar()', () => {
     assert.equal(validSub.unsubscribe.calls.length, 0, 'unsubscribe NÃO deve ser chamado');
     assert.equal(sb._pushManager.subscribe.calls.length, 0, 'subscribe NÃO deve ser chamado');
     assert.equal(sb._fetchCalls.length, 1, 'apenas POST para atualizar last_used');
+  });
+});
+
+describe('PushSubscriptionService — re-inscrição silenciosa por rotação de chave VAPID', () => {
+
+  const subValida = () => ({
+    endpoint:       ENDPOINT,
+    expirationTime: Date.now() + (48 * 60 * 60 * 1000), // válida (>24h) — isola o efeito da chave
+    // options ausente → browser não expõe applicationServerKey → usa o marcador local
+    toJSON:         () => ({ keys: { p256dh: P256DH, auth: AUTH } }),
+    unsubscribe:    fn().mockResolvedValue(true),
+  });
+
+  test('chave DIFERENTE da salva → re-inscreve automaticamente (unsubscribe + subscribe)', async () => {
+    const sub = subValida();
+    const sb  = criarSandbox({ subscription: sub, vapidMarker: 'CHAVE_ANTIGA_DIFERENTE' });
+    await sb.PushSubscriptionService.renovar(sb._swReg, UUID_USER, 'cliente');
+    assert.equal(sub.unsubscribe.calls.length, 1, 'desinscreve a sub com a chave antiga');
+    assert.equal(sb._pushManager.subscribe.calls.length, 1, 'cria nova sub com a chave atual');
+  });
+
+  test('device legado SEM marcador → re-inscreve (auto-cura pós-rotação)', async () => {
+    const sub = subValida();
+    const sb  = criarSandbox({ subscription: sub, vapidMarker: null });
+    await sb.PushSubscriptionService.renovar(sb._swReg, UUID_USER, 'cliente');
+    assert.equal(sub.unsubscribe.calls.length, 1, 'sem marcador é tratado como divergente');
+    assert.equal(sb._pushManager.subscribe.calls.length, 1, 're-inscreve uma vez');
+  });
+
+  test('chave IGUAL à salva → NÃO re-inscreve (evita chamadas desnecessárias)', async () => {
+    const sub = subValida();
+    const sb  = criarSandbox({ subscription: sub, vapidMarker: VAPID_PUB });
+    await sb.PushSubscriptionService.renovar(sb._swReg, UUID_USER, 'cliente');
+    assert.equal(sub.unsubscribe.calls.length, 0, 'não desinscreve');
+    assert.equal(sb._pushManager.subscribe.calls.length, 0, 'não re-inscreve');
+  });
+
+  test('applicationServerKey exposto e IGUAL → NÃO re-inscreve (mesmo sem marcador)', async () => {
+    // Reproduz Chrome/Firefox: a subscription carrega a applicationServerKey usada.
+    const pad   = '='.repeat((4 - (VAPID_PUB.length % 4)) % 4);
+    const raw   = globalThis.atob(VAPID_PUB.replace(/-/g, '+').replace(/_/g, '/') + pad);
+    const bytes = Uint8Array.from(raw, c => c.charCodeAt(0));
+    // Array simples (realm-safe): new Uint8Array(...) reconstrói os mesmos bytes.
+    // Em browser real seria um ArrayBuffer — o que importa aqui é o round-trip base64url.
+    const sub   = { ...subValida(), options: { applicationServerKey: Array.from(bytes) } };
+    const sb    = criarSandbox({ subscription: sub, vapidMarker: null });
+    await sb.PushSubscriptionService.renovar(sb._swReg, UUID_USER, 'cliente');
+    assert.equal(sb._pushManager.subscribe.calls.length, 0, 'chave embutida confere → não re-inscreve');
+  });
+
+  test('após re-inscrição o marcador da chave é atualizado para a vigente', async () => {
+    const sub = subValida();
+    const sb  = criarSandbox({ subscription: sub, vapidMarker: 'CHAVE_ANTIGA_DIFERENTE' });
+    await sb.PushSubscriptionService.renovar(sb._swReg, UUID_USER, 'cliente');
+    assert.equal(sb._lsStore.get(LS_VAPID), VAPID_PUB, 'marcador vira a chave atual após salvar');
+  });
+
+  test('re-inscrição é 100% silenciosa (sem UI/confirmação → sem erro)', async () => {
+    // O sandbox não tem window.confirm/alert/prompt — se o código tentasse pedir
+    // confirmação, lançaria. Ausência de rejeição confirma que roda em background.
+    const sub = subValida();
+    const sb  = criarSandbox({ subscription: sub, vapidMarker: 'DIFERENTE' });
+    await assert.doesNotReject(() => sb.PushSubscriptionService.renovar(sb._swReg, UUID_USER, 'cliente'));
   });
 });
 

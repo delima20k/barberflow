@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260708c';
+const SW_PRO_VERSION = '20260708e';
 
 class SWProfissional {
 
@@ -229,6 +229,11 @@ class SWProfissional {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
+      // App em foreground? Foreground → silencia som do sistema (a página toca o
+      // mp3, corta em 5s); background/fechado → som do sistema + vibração. (Opção C)
+      const clientList   = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const emForeground = clientList.some(c => c.focused || c.visibilityState === 'visible');
+
       const title = payload.title ?? 'Nova atualização ✂️';
       const opts  = {
         body:               payload.body   ?? 'Toque para ver.',
@@ -238,7 +243,8 @@ class SWProfissional {
         requireInteraction: payload.requireInteraction ?? false,
         // Vibração curta para notificações do profissional
         vibrate:            payload.vibrate ?? [200, 100, 200],
-        silent:             true,
+        // Foreground → silencia o som do sistema; background/fechado → som do sistema.
+        silent:             emForeground,
         data:               payload.data  ?? {},
       };
       const eventId = SWProfissional.#pushEventId(opts);
@@ -264,7 +270,6 @@ class SWProfissional {
         opts.requireInteraction = true;
       }
 
-      const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       await Promise.allSettled(clientList.map(client => client.postMessage({
         type:         'PUSH_SHOW_MODAL',
         pushType:     opts.data?.pushType     ?? null,
@@ -277,7 +282,12 @@ class SWProfissional {
       })));
 
       await self.registration.showNotification(title, opts);
-      console.log('[SW-Pro] showNotification ok, tag:', opts.tag);
+
+      // Só a página em foreground toca o mp3 customizado.
+      if (emForeground) {
+        for (const c of clientList) c.postMessage({ type: 'BF_PUSH_SOUND' });
+      }
+      console.log('[SW-Pro] showNotification ok, tag:', opts.tag, 'fg:', emForeground);
     })());
   }
 

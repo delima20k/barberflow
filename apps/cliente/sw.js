@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260708b';
+const SW_CLI_VERSION = '20260708d';
 
 class SWCliente {
 
@@ -223,6 +223,12 @@ class SWCliente {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
+      // App em foreground? Então silenciamos o som do SISTEMA e pedimos à página
+      // que toque o mp3 customizado (corta em 5s). App fechado/background → som do
+      // sistema + vibração (o SW não tem Audio para tocar mp3). (Opção C)
+      const clientes     = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const emForeground = clientes.some(c => c.focused || c.visibilityState === 'visible');
+
       const title = payload.title ?? 'Você foi chamado! ✂️';
       const opts  = {
         body:               payload.body    ?? 'O barbeiro está te esperando na cadeira.',
@@ -230,15 +236,21 @@ class SWCliente {
         badge:              payload.badge   ?? '/shared/img/icon-192-cliente.png',
         tag:                payload.tag     ?? 'bf-inservice',
         requireInteraction: payload.requireInteraction ?? true,
-        // Padrão de vibração: 300ms vibra, 100ms pausa, 300ms vibra, 100ms pausa, 500ms vibra
-        // Som desativado: mantem notificacao visual e vibracao quando suportado
+        // Vibração: 300ms vibra, 100ms pausa, 300ms vibra, 100ms pausa, 500ms vibra
         vibrate:            payload.vibrate ?? [300, 100, 300, 100, 500],
-        silent:             true,
+        // Foreground → silencia o som do sistema (a página toca o mp3);
+        // background/fechado → som do sistema + vibração.
+        silent:             emForeground,
         data:               payload.data   ?? {},
       };
 
       await self.registration.showNotification(title, opts);
-      console.log('[SW-Cliente] showNotification ok, tag:', opts.tag);
+
+      // Só a página em foreground toca o mp3 customizado.
+      if (emForeground) {
+        for (const c of clientes) c.postMessage({ type: 'BF_PUSH_SOUND' });
+      }
+      console.log('[SW-Cliente] showNotification ok, tag:', opts.tag, 'fg:', emForeground);
     })());
   }
 

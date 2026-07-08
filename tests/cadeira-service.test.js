@@ -63,6 +63,7 @@ function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } 
     ? { is_open: true,  name: 'Barbearia Teste', close_reason: null }
     : { is_open: false, name: 'Barbearia Teste', close_reason: null };
 
+  const bffPosts = [];
   const sandbox = vm.createContext({
     console,
     QueueRepository,
@@ -81,6 +82,13 @@ function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } 
     SupabaseService: {
       getSession: fn().mockResolvedValue({ access_token: 'token-teste' }),
     },
+    // Push ao barbeiro (0→1) vai por aqui — registra as chamadas p/ asserção
+    BffApiService: {
+      post: fn().mockImplementation((path, body) => {
+        bffPosts.push({ path, body });
+        return Promise.resolve({ data: { ok: true }, error: null });
+      }),
+    },
     fetch: fn().mockImplementation((url, opts) => {
       fetchCalls.push({ url, opts });
       return Promise.resolve({ ok: true });
@@ -91,7 +99,7 @@ function criarSandbox({ filaAtiva = [], entradaNova = null, shopAberta = true } 
   carregar(sandbox, 'shared/js/InputValidator.js');
   carregar(sandbox, 'shared/js/CadeiraService.js');
 
-  return { CS: sandbox.CadeiraService, QR: QueueRepository, fetchCalls };
+  return { CS: sandbox.CadeiraService, QR: QueueRepository, fetchCalls, bffPosts };
 }
 
 // =============================================================================
@@ -451,5 +459,85 @@ describe('CadeiraService.sentar() — barbearia fechada', () => {
     });
 
     assert.strictEqual(QR.entrar.calls.length, 1, 'entrar() deve ser chamado uma vez');
+  });
+});
+
+// =============================================================================
+// describe 6 — sentar(): push ao BARBEIRO na transição 0→1 (cadeira produção vazia)
+// =============================================================================
+
+describe('CadeiraService.sentar() — push ao barbeiro no 0→1', () => {
+
+  const emProducao = (profId) => ({
+    id:           'in-service-existente',
+    status:       'in_service',
+    professional: { id: profId },
+    client:       { id: UUID_CLI, full_name: 'Zé' },
+  });
+
+  test('sentar("fila") com produção VAZIA dispara push production_started ao barbeiro', async () => {
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [] });
+
+    await CS.sentar({
+      barbershopId:   UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId:       UUID_CLI,
+      serviceIds:     [],
+      tipo:           'fila',
+    });
+
+    const push = bffPosts.find(p => p.path.includes('push-barbeiro'));
+    assert.ok(push, 'deve chamar push-barbeiro na transição 0→1');
+    assert.strictEqual(push.body.type, 'production_started');
+    assert.strictEqual(push.body.professionalId, UUID_PROF_A);
+    assert.strictEqual(push.body.entradaId, UUID_ENTRY_NOVO);
+  });
+
+  test('sentar("fila") com produção OCUPADA NÃO dispara push ao barbeiro (não é 0→1)', async () => {
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [emProducao(UUID_PROF_A)] });
+
+    await CS.sentar({
+      barbershopId:   UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId:       UUID_CLI,
+      serviceIds:     [],
+      tipo:           'fila',
+    });
+
+    const push = bffPosts.find(p => p.path.includes('push-barbeiro'));
+    assert.ok(!push, 'cadeira ocupada → sem push ao barbeiro');
+  });
+
+  test('sentar("producao") com cadeira vazia dispara push (usa guestName como clienteNome)', async () => {
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [] });
+
+    await CS.sentar({
+      barbershopId:   UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId:       null,
+      guestName:      'Avulso',
+      serviceIds:     [],
+      tipo:           'producao',
+    });
+
+    const push = bffPosts.find(p => p.path.includes('push-barbeiro'));
+    assert.ok(push, 'produção direta com cadeira vazia é 0→1');
+    assert.strictEqual(push.body.type, 'production_started');
+    assert.strictEqual(push.body.clienteNome, 'Avulso');
+  });
+
+  test('sentar("producao") com produção OCUPADA NÃO dispara push (substituição, não 0→1)', async () => {
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [emProducao(UUID_PROF_A)] });
+
+    await CS.sentar({
+      barbershopId:   UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId:       UUID_CLI,
+      serviceIds:     [],
+      tipo:           'producao',
+    });
+
+    const push = bffPosts.find(p => p.path.includes('push-barbeiro'));
+    assert.ok(!push, 'cadeira já ocupada → não é transição 0→1');
   });
 });

@@ -63,18 +63,30 @@ class PushService {
 
     if (!subsUnicas.length) {
       console.warn('[PushService] Nenhuma subscription válida para destinatarios:', destinatarioIds.join(','));
-      return { enviados: 0, invalidas: 0, destinatarios: destinatarioIds.length };
+      return { enviados: 0, invalidas: 0, falhas: 0, destinatarios: destinatarioIds.length };
     }
 
-    const isCaminho = type === 'client_not_seated';
-    const title     = isCaminho
-      ? 'Cliente a caminho 🚶'
-      : 'Cliente na barbearia! ✅';
-    const body      = isCaminho
-      ? `${clienteNome} está a caminho da barbearia.`
-      : `${clienteNome} confirmou que está na barbearia.`;
+    const isCaminho  = type === 'client_not_seated';
+    const isProducao = type === 'production_started';
+    let title;
+    let body;
+    let labelPadrao;
+    if (isProducao) {
+      // Transição 0→1: cadeira de produção estava vazia e o 1º cliente sentou.
+      title       = 'Primeiro cliente na cadeira! ✂️';
+      body        = `${clienteNome} sentou na sua cadeira de produção.`;
+      labelPadrao = 'Primeiro cliente sentou';
+    } else if (isCaminho) {
+      title       = 'Cliente a caminho 🚶';
+      body        = `${clienteNome} está a caminho da barbearia.`;
+      labelPadrao = 'Cliente esta a caminho';
+    } else {
+      title       = 'Cliente na barbearia! ✅';
+      body        = `${clienteNome} confirmou que está na barbearia.`;
+      labelPadrao = 'Cliente ja chegou';
+    }
 
-    const label       = statusLabel || (isCaminho ? 'Cliente esta a caminho' : 'Cliente ja chegou');
+    const label       = statusLabel || labelPadrao;
     const cadeiraNome = cadeira || 'Cadeira de producao';
     const eventKey    = dedupeKey || eventId || PushService.#eventId(entradaId, type);
 
@@ -203,6 +215,7 @@ class PushService {
   async #enviarPayload(subscriptions, payload) {
     let enviados = 0;
     let invalidas = 0;
+    let falhas = 0;
     await Promise.all(subscriptions.map(async (sub) => {
       try {
         await this.#webpush.sendNotification({
@@ -211,7 +224,8 @@ class PushService {
         }, payload);
         enviados++;
       } catch (err) {
-        if (err?.statusCode === 410 || err?.statusCode === 404) {
+        const sc = err?.statusCode;
+        if (sc === 410 || sc === 404) {
           invalidas++;
           await this.#supabaseAdmin
             .from('push_subscriptions')
@@ -219,10 +233,20 @@ class PushService {
             .eq('endpoint', sub.endpoint);
           return;
         }
-        console.error('[PushService] sendNotification falhou:', err?.statusCode, err?.message);
+        // Falha de ENVIO (subscription existe, mas o envio falhou). NÃO é
+        // "sem subscription" — não pode ser mascarado como NO_SUBSCRIPTION.
+        falhas++;
+        if (sc === 403 || sc === 401) {
+          console.error(
+            '[PushService] VAPID REJEITADO (%s): a chave VAPID do servidor NÃO corresponde à applicationServerKey da subscription. Verifique VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY (drift de chave).',
+            sc, err?.message,
+          );
+        } else {
+          console.error('[PushService] sendNotification falhou:', sc, err?.message);
+        }
       }
     }));
-    return { enviados, invalidas };
+    return { enviados, invalidas, falhas };
   }
 }
 

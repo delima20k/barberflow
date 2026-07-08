@@ -137,8 +137,13 @@ class AppBootstrap {
       if (userId) PushSubscriptionService.init(userId, 'cliente').catch(() => {});
     }, { once: true });
 
-    // Ouve mensagens PUSH_NAVIGATE enviadas pelo SW (app aberto)
+    // Ouve mensagens enviadas pelo SW (app aberto)
     navigator.serviceWorker.addEventListener('message', e => {
+      // Som customizado de push (Opção C): só quando o app está em foreground.
+      if (e.data?.type === 'BF_PUSH_SOUND') {
+        if (typeof PushSoundService !== 'undefined') PushSoundService.tocar();
+        return;
+      }
       if (e.data?.type !== 'PUSH_NAVIGATE') return;
       const { barbershopId, entradaId } = e.data;
       if (!barbershopId) return;
