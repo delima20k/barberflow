@@ -140,9 +140,9 @@ class AppBootstrap {
 
     // Ouve mensagens enviadas pelo SW (app aberto)
     navigator.serviceWorker.addEventListener('message', e => {
-      // Som customizado de push (Opção C): só quando o app está em foreground.
+      // Janela aberta tenta o MP3 customizado e a vibração da página.
       if (e.data?.type === 'BF_PUSH_SOUND') {
-        if (typeof PushSoundService !== 'undefined') PushSoundService.tocar();
+        if (typeof PushSoundService !== 'undefined') PushSoundService.alertar(e.data?.vibrate);
         return;
       }
       if (e.data?.type !== 'PUSH_NAVIGATE') return;

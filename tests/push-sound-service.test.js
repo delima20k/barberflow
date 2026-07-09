@@ -22,6 +22,8 @@ const { carregar, ROOT } = require('./_helpers.js');
 function criarSandbox({ playRejects = false } = {}) {
   const timers = [];
   const audios = [];
+  const loggerErrors = [];
+  const vibrateCalls = [];
   const documentListeners = new Map();
   let seq = 0;
 
@@ -49,6 +51,15 @@ function criarSandbox({ playRejects = false } = {}) {
       },
     },
     Audio: AudioMock,
+    navigator: {
+      vibrate: (pattern) => {
+        vibrateCalls.push(pattern);
+        return true;
+      },
+    },
+    LoggerService: {
+      error: (...args) => loggerErrors.push(args),
+    },
     setTimeout: (fn, delay) => { const id = ++seq; timers.push({ id, fn, delay }); return id; },
     clearTimeout: (id) => { const i = timers.findIndex(t => t.id === id); if (i >= 0) timers.splice(i, 1); },
   });
@@ -63,7 +74,16 @@ function criarSandbox({ playRejects = false } = {}) {
 
   const dispararGesto = (event = 'pointerdown') => documentListeners.get(event)?.handler();
 
-  return { sandbox, audios, timers, documentListeners, dispararGesto, runByDelay };
+  return {
+    sandbox,
+    audios,
+    timers,
+    loggerErrors,
+    vibrateCalls,
+    documentListeners,
+    dispararGesto,
+    runByDelay,
+  };
 }
 
 describe('PushSoundService — comportamento', () => {
@@ -96,9 +116,23 @@ describe('PushSoundService — comportamento', () => {
     assert.equal(audios[0].playCalls, 2, 'toca de novo do início');
   });
 
-  test('autoplay bloqueado (play rejeitado) não lança', () => {
-    const { sandbox } = criarSandbox({ playRejects: true });
+  test('autoplay bloqueado (play rejeitado) não lança e registra o erro', async () => {
+    const { sandbox, loggerErrors } = criarSandbox({ playRejects: true });
     assert.doesNotThrow(() => sandbox.PushSoundService.tocar(), 'best-effort silencioso');
+    await Promise.resolve();
+    assert.equal(loggerErrors.length, 1, 'deve registrar a rejeição de audio.play()');
+    assert.match(String(loggerErrors[0][0]), /audio\.play/i);
+    assert.match(String(loggerErrors[0][1]?.message), /autoplay blocked/i);
+  });
+
+  test('alertar() toca o mp3 e vibra no app aberto', () => {
+    const { sandbox, audios, vibrateCalls } = criarSandbox();
+    const pattern = [200, 100, 200];
+
+    sandbox.PushSoundService.alertar(pattern);
+
+    assert.equal(audios[0].playCalls, 1, 'deve tentar tocar o mp3');
+    assert.deepEqual(vibrateCalls, [pattern], 'deve chamar navigator.vibrate com o padrão recebido');
   });
 
   test('parar() interrompe o som', () => {
@@ -128,20 +162,68 @@ describe('PushSoundService — comportamento', () => {
     assert.equal(audios.length, 1, 'reusa audio preparado');
     assert.equal(audios[0].playCalls, 2, 'toca o mesmo audio no push');
   });
+
+  test('preparar() registra rejeição de autoplay sem quebrar o gesto', async () => {
+    const { sandbox, loggerErrors, dispararGesto } = criarSandbox({ playRejects: true });
+
+    sandbox.PushSoundService.preparar();
+    assert.doesNotThrow(() => dispararGesto('pointerdown'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(loggerErrors.length, 1);
+    assert.match(String(loggerErrors[0][0]), /preparação falhou/i);
+  });
 });
 
 describe('PushSoundService — fonte dos Service Workers', () => {
   const swCli = fs.readFileSync(path.join(ROOT, 'apps/cliente/sw.js'), 'utf8');
   const swPro = fs.readFileSync(path.join(ROOT, 'apps/profissional/sw.js'), 'utf8');
 
-  test('ambos os SW usam silent dinâmico (emForeground) e emitem BF_PUSH_SOUND', () => {
+  test('ambos os SW mantêm som/vibração ativos e emitem BF_PUSH_SOUND antes da notificação', () => {
     for (const [nome, src] of [['cliente', swCli], ['profissional', swPro]]) {
-      assert.match(src, /silent:\s*emForeground/, `${nome}: silent deve ser dinâmico`);
+      const pushStart = src.indexOf('static push(e)');
+      const pushBlock = src.slice(pushStart, pushStart + 4500);
+      const soundIndex = pushBlock.indexOf('BF_PUSH_SOUND');
+      const notificationIndex = pushBlock.indexOf('await self.registration.showNotification');
+
+      assert.match(pushBlock, /silent:\s*false/, `${nome}: notificação não pode ser silenciosa`);
+      assert.doesNotMatch(pushBlock, /^\s*silent:\s*(?:true|emForeground)/m, `${nome}: silent não pode conflitar com vibrate`);
       assert.match(src, /temJanelaAberta/, `${nome}: deve detectar janela aberta`);
       assert.match(src, /BF_PUSH_SOUND/, `${nome}: deve emitir BF_PUSH_SOUND com janela aberta`);
+      assert.ok(soundIndex >= 0 && soundIndex < notificationIndex, `${nome}: mp3 deve ser solicitado antes de showNotification`);
       assert.match(src, /notificacao-push\.mp3/, `${nome}: deve pre-cachear o mp3 do push`);
       assert.match(src, /PushSoundService\.js/, `${nome}: deve pre-cachear o servico de som`);
       assert.match(src, /matchAll\(\{\s*type:\s*'window'/, `${nome}: deve consultar clientes de janela`);
+    }
+  });
+
+  test('AppBootstrap dos dois apps delega som e vibração ao PushSoundService', () => {
+    for (const app of ['cliente', 'profissional']) {
+      const src = fs.readFileSync(
+        path.join(ROOT, `apps/${app}/assets/js/AppBootstrap.js`),
+        'utf8',
+      );
+      assert.match(src, /PushSoundService\.alertar\(e\.data\?\.vibrate\)/);
+    }
+  });
+});
+
+describe('MP3 de push — Content-Type', () => {
+  test('servidor local mapeia .mp3 para audio/mpeg', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+    assert.match(src, /'\.mp3'\s*:\s*'audio\/mpeg'/);
+  });
+
+  test('Vercel declara audio/mpeg para o arquivo de notificação', () => {
+    for (const configPath of ['vercel.json', 'apps/cliente/vercel.json', 'apps/profissional/vercel.json']) {
+      const config = JSON.parse(fs.readFileSync(path.join(ROOT, configPath), 'utf8'));
+      const rule = config.headers?.find(item => item.source === '/shared/audio/notificacao-push.mp3');
+      assert.ok(rule, `${configPath}: deve declarar header para o mp3`);
+      assert.ok(
+        rule.headers.some(header => header.key === 'Content-Type' && header.value === 'audio/mpeg'),
+        `${configPath}: Content-Type deve ser audio/mpeg`,
+      );
     }
   });
 });

@@ -178,31 +178,32 @@ class CadeiraService {
 
     // Produção direta → in_service imediatamente
     if (tipo === 'producao') {
-      await QueueRepository.updateStatus(
-        entrada.id,
-        'in_service',
-        confirmarPresenca ? { clientConfirmed: 'yes' } : undefined,
-      );
+      await CadeiraService.promoverParaProducao({
+        entradaId: entrada.id,
+        barbershopId,
+        professionalId,
+        clienteNome: guestName,
+        clientConfirmed: confirmarPresenca ? 'yes' : undefined,
+        producaoVazia,
+      });
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
-      }
-      // 0→1: só notifica o barbeiro se a cadeira estava vazia antes deste cliente.
-      if (producaoVazia) {
-        CadeiraService.#notificarBarbeiroPrimeiroCliente(professionalId, barbershopId, entrada.id, guestName);
       }
     }
 
     // Fila de espera com produção vazia → auto-avança para in_service (transição 0→1)
     if (tipo === 'fila' && producaoVazia) {
-      await QueueRepository.updateStatus(
-        entrada.id,
-        'in_service',
-        confirmarPresenca ? { clientConfirmed: 'yes' } : undefined,
-      );
+      await CadeiraService.promoverParaProducao({
+        entradaId: entrada.id,
+        barbershopId,
+        professionalId,
+        clienteNome: guestName,
+        clientConfirmed: confirmarPresenca ? 'yes' : undefined,
+        producaoVazia,
+      });
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
       }
-      CadeiraService.#notificarBarbeiroPrimeiroCliente(professionalId, barbershopId, entrada.id, guestName);
     }
 
     // Salva serviços escolhidos (tabela queue_entry_services, se existir)
@@ -211,6 +212,58 @@ class CadeiraService {
     }
 
     return entrada;
+  }
+
+  /**
+   * Ponto único para qualquer transição de uma entrada para a cadeira de produção.
+   * Detecta 0→1 antes de persistir e dispara production_started após o update.
+   *
+   * @param {object} params
+   * @param {string} params.entradaId
+   * @param {string} params.barbershopId
+   * @param {string|null} params.professionalId
+   * @param {string|null} [params.clienteNome]
+   * @param {string} [params.clientConfirmed]
+   * @param {object[]} [params.filaAtiva]
+   * @param {boolean} [params.producaoVazia]
+   * @returns {Promise<object>}
+   */
+  static async promoverParaProducao({
+    entradaId,
+    barbershopId,
+    professionalId,
+    clienteNome = null,
+    clientConfirmed,
+    filaAtiva = null,
+    producaoVazia,
+  } = {}) {
+    const rShop = InputValidator.uuid(barbershopId);
+    if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
+
+    let estavaVazia = producaoVazia;
+    if (typeof estavaVazia !== 'boolean') {
+      const fila = Array.isArray(filaAtiva)
+        ? filaAtiva
+        : await CadeiraService.getFilaAtiva(barbershopId);
+      estavaVazia = !fila.some(entrada =>
+        entrada.id !== entradaId &&
+        entrada.status === 'in_service' &&
+        entrada.professional?.id === professionalId
+      );
+    }
+
+    const options = clientConfirmed === undefined ? undefined : { clientConfirmed };
+    const atualizada = await QueueRepository.updateStatus(entradaId, 'in_service', options);
+
+    if (estavaVazia) {
+      CadeiraService.#notificarBarbeiroPrimeiroCliente(
+        professionalId,
+        barbershopId,
+        entradaId,
+        clienteNome,
+      );
+    }
+    return atualizada;
   }
 
   /**
@@ -240,7 +293,13 @@ class CadeiraService {
 
     // Auto-avança o próximo da fila de espera para produção
     if (proximo) {
-      await QueueRepository.updateStatus(proximo.id, 'in_service');
+      await CadeiraService.promoverParaProducao({
+        entradaId: proximo.id,
+        barbershopId,
+        professionalId: proximo.professional?.id ?? professionalId,
+        clienteNome: proximo.client?.full_name ?? null,
+        filaAtiva,
+      });
       CadeiraService.#notificarClienteInService(
         proximo.client?.id ?? null,
         barbershopId,
@@ -278,7 +337,13 @@ class CadeiraService {
     const proximo   = CadeiraService.#proximoNaFila(filtrada);
 
     if (proximo) {
-      await QueueRepository.updateStatus(proximo.id, 'in_service');
+      await CadeiraService.promoverParaProducao({
+        entradaId: proximo.id,
+        barbershopId,
+        professionalId: proximo.professional?.id ?? professionalId,
+        clienteNome: proximo.client?.full_name ?? null,
+        filaAtiva,
+      });
       CadeiraService.#notificarClienteInService(
         proximo.client?.id ?? null,
         barbershopId,
@@ -324,7 +389,13 @@ class CadeiraService {
     for (const g of grupos.values()) {
       if (g.temInService || g.waiting.length === 0) continue;
       const proximo = g.waiting.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0];
-      await QueueRepository.updateStatus(proximo.id, 'in_service');
+      await CadeiraService.promoverParaProducao({
+        entradaId: proximo.id,
+        barbershopId,
+        professionalId: proximo.professional?.id ?? null,
+        clienteNome: proximo.client?.full_name ?? null,
+        filaAtiva,
+      });
       houveMudanca = true;
     }
 

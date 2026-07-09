@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260708f';
+const SW_PRO_VERSION = '20260709a';
 
 class SWProfissional {
 
@@ -231,8 +231,7 @@ class SWProfissional {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
-      // App visivel silencia som do sistema; janela aberta tenta tocar o mp3.
-      // Background/fechado mantém som do sistema + vibracao como fallback.
+      // Janela aberta tenta o mp3; som e vibracao nativos permanecem habilitados.
       const clientList      = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const temJanelaAberta = clientList.length > 0;
       const emForeground    = clientList.some(c => c.focused || c.visibilityState === 'visible');
@@ -246,8 +245,8 @@ class SWProfissional {
         requireInteraction: payload.requireInteraction ?? false,
         // Vibração curta para notificações do profissional
         vibrate:            payload.vibrate ?? [200, 100, 200],
-        // Foreground → silencia o som do sistema; background/fechado → som do sistema.
-        silent:             emForeground,
+        // `silent:true` não pode ser combinado com `vibrate`.
+        silent:             false,
         renotify:           payload.renotify ?? !emForeground,
         data:               payload.data  ?? {},
       };
@@ -287,12 +286,15 @@ class SWProfissional {
         })));
       }
 
-      await self.registration.showNotification(title, opts);
-
-      // Qualquer janela aberta tenta tocar o mp3 customizado.
+      // Solicita MP3/vibração à página antes da notificação nativa. Assim,
+      // uma eventual falha em showNotification não bloqueia o alerta in-app.
       if (temJanelaAberta && !pushDuplicado) {
-        for (const c of clientList) c.postMessage({ type: 'BF_PUSH_SOUND' });
+        for (const c of clientList) {
+          c.postMessage({ type: 'BF_PUSH_SOUND', vibrate: opts.vibrate });
+        }
       }
+
+      await self.registration.showNotification(title, opts);
       console.log('[SW-Pro] showNotification ok, tag:', opts.tag, 'fg:', emForeground, 'open:', temJanelaAberta);
     })());
   }

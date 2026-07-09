@@ -8,10 +8,9 @@
 //   ABERTO (foreground). Corta automaticamente em 5s, mesmo que o
 //   arquivo seja mais longo.
 //
-// Contexto (Opção C):
-//   - App aberto  → o Service Worker silencia o som do sistema
-//     (showNotification silent:true) e manda BF_PUSH_SOUND para a
-//     página; a página toca este mp3.
+// Contexto:
+//   - App aberto  → o Service Worker manda BF_PUSH_SOUND para a página;
+//     a página tenta tocar este mp3 e solicita vibração.
 //   - App fechado → o Service Worker NÃO consegue tocar áudio (sem
 //     Audio/AudioContext no SW); a própria notificação usa o som do
 //     sistema (silent:false) + vibração. Limitação da plataforma.
@@ -20,7 +19,7 @@
 //   PushSoundService.tocar();  // chamado ao receber BF_PUSH_SOUND
 //
 // Best-effort: autoplay pode ser bloqueado sem gesto do usuário; nesse
-// caso falha em silêncio (sem quebrar nada, sem UI).
+// caso registra o erro sem quebrar o fluxo da notificação.
 // =============================================================
 
 class PushSoundService {
@@ -63,10 +62,15 @@ class PushSoundService {
         };
 
         const p = audio.play();
-        if (p && typeof p.then === 'function') p.then(finalizar).catch(finalizar);
+        if (p && typeof p.then === 'function') {
+          p.then(finalizar).catch(err => {
+            PushSoundService.#registrarErro('audio.play() de preparação falhou:', err);
+            finalizar();
+          });
+        }
         else finalizar();
-      } catch (_) {
-        // Preparacao e best-effort; tocar() ainda tentara quando o push chegar.
+      } catch (err) {
+        PushSoundService.#registrarErro('preparação do áudio falhou:', err);
       }
     };
 
@@ -88,15 +92,36 @@ class PushSoundService {
       audio.currentTime = 0;
 
       const p = audio.play();
-      // Política de autoplay pode rejeitar sem gesto prévio → best-effort.
-      if (p && typeof p.catch === 'function') p.catch(() => {});
+      if (p && typeof p.catch === 'function') {
+        p.catch(err => PushSoundService.#registrarErro('audio.play() falhou:', err));
+      }
 
       // Corte em 5s (independe da duração do arquivo).
       PushSoundService.#timer = setTimeout(() => {
         try { audio.pause(); audio.currentTime = 0; } catch (_) { /* ignore */ }
       }, PushSoundService.#CORTE_MS);
-    } catch (_) {
-      // Audio indisponível (SSR, browser antigo) — silencioso.
+    } catch (err) {
+      PushSoundService.#registrarErro('não foi possível iniciar o áudio:', err);
+    }
+  }
+
+  /**
+   * Tenta reproduzir o MP3 e vibrar quando existe uma página aberta.
+   * A API de vibração é best-effort e pode não ser suportada no desktop.
+   * @param {number[]} [pattern]
+   */
+  static alertar(pattern = [200, 100, 200]) {
+    PushSoundService.tocar();
+    PushSoundService.vibrar(pattern);
+  }
+
+  static vibrar(pattern = [200, 100, 200]) {
+    if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return false;
+    try {
+      return navigator.vibrate(pattern);
+    } catch (err) {
+      PushSoundService.#registrarErro('navigator.vibrate() falhou:', err);
+      return false;
     }
   }
 
@@ -114,5 +139,15 @@ class PushSoundService {
       PushSoundService.#audio.preload = 'auto';
     }
     return PushSoundService.#audio;
+  }
+
+  static #registrarErro(mensagem, erro) {
+    if (typeof LoggerService !== 'undefined' && typeof LoggerService.error === 'function') {
+      LoggerService.error(`[PushSoundService] ${mensagem}`, erro);
+      return;
+    }
+    if (typeof console !== 'undefined' && typeof console.error === 'function') {
+      console.error(`[PushSoundService] ${mensagem}`, erro);
+    }
   }
 }

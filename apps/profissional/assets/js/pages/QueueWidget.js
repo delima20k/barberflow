@@ -5,7 +5,7 @@
 // Mostra cadeiras e clientes em espera via Supabase Realtime.
 // Atualiza automaticamente sem reload.
 //
-// Dependências: QueueRepository.js, AuthService.js,
+// Dependências: QueueRepository.js, CadeiraService.js, AuthService.js,
 //               BarbershopRepository.js, SupabaseService.js
 // =============================================================
 
@@ -139,15 +139,20 @@ class QueueWidget {
             <p class="agenda-serv">Entrou às ${hora}</p>
           </div>
           <button class="badge" style="cursor:pointer;font-size:.7rem;"
-                  onclick="QueueWidget._chamar('${e.id}')">Chamar</button>
+                  onclick="QueueWidget._chamar('${e.id}', '${this.#barbershopId}', '${e.professional?.id ?? ''}')">Chamar</button>
         </div>`;
     }).join('');
   }
 
   // Método estático chamado pelo onclick do HTML gerado
-  static async _chamar(entradaId) {
+  static async _chamar(entradaId, barbershopId, professionalId) {
     try {
-      await QueueRepository.updateStatus(entradaId, 'in_service', { clientConfirmed: 'yes' });
+      await CadeiraService.promoverParaProducao({
+        entradaId,
+        barbershopId,
+        professionalId,
+        clientConfirmed: 'yes',
+      });
     } catch (err) {
       LoggerService.error('[QueueWidget] erro ao chamar cliente:', err);
     }

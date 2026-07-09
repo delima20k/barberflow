@@ -30,7 +30,7 @@ class RateLimiter {
   // Extensões isentas de rate-limit (assets estáticos sem estado)
   static #ISENTOS = new Set([
     '.js', '.css', '.json', '.svg', '.png', '.jpg', '.jpeg',
-    '.ico', '.webp', '.woff', '.woff2', '.map',
+    '.ico', '.webp', '.woff', '.woff2', '.map', '.mp3',
   ]);
 
   /**
@@ -107,6 +107,7 @@ class SecurityMiddleware {
     '.jpeg' : 'image/jpeg',
     '.ico'  : 'image/x-icon',
     '.webp' : 'image/webp',
+    '.mp3'  : 'audio/mpeg',
     '.woff2': 'font/woff2',
     '.woff' : 'font/woff',
   });
@@ -274,4 +275,3 @@ class DevServer {
 
 /* ── Ponto de entrada ─────────────────────────────────────── */
 DevServer.iniciar();
-

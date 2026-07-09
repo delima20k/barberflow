@@ -11,41 +11,118 @@ function ler(relPath) {
   return fs.readFileSync(path.join(ROOT, relPath), 'utf8');
 }
 
-// Opção C: som do sistema + vibração quando o app está FECHADO/background;
-// mp3 customizado (via página) quando o app está em FOREGROUND. O `silent` do
-// showNotification passou a ser DINÂMICO (silent:emForeground) — silencia o som
-// nativo só quando a página vai tocar o mp3.
-describe('Notificacoes push — som dinâmico (Opção C)', () => {
-  test('SW profissional: silent dinâmico (emForeground) + vibracao + BF_PUSH_SOUND', () => {
+// Som e vibração nativos permanecem habilitados. Quando existe uma janela aberta,
+// a página também tenta o MP3 customizado sem depender de showNotification().
+describe('Notificacoes push — som e vibracao ativos', () => {
+  async function simularPush(relPath, clients = []) {
+    const listeners = new Map();
+    const events = [];
+    const notifications = [];
+    const trackedClients = clients.map(client => ({
+      ...client,
+      postMessage: message => {
+        if (message.type === 'BF_PUSH_SOUND') events.push('BF_PUSH_SOUND');
+        return client.postMessage?.(message);
+      },
+    }));
+    const sandbox = vm.createContext({
+      console,
+      Map,
+      Promise,
+      Date,
+      self: {
+        addEventListener: (type, handler) => listeners.set(type, handler),
+        clients: {
+          matchAll: async () => trackedClients,
+        },
+        registration: {
+          getNotifications: async () => [],
+          showNotification: async (title, options) => {
+            if (options.silent === true && options.vibrate) {
+              throw new TypeError('silent and vibrate cannot be used together');
+            }
+            events.push('showNotification');
+            notifications.push({ title, options });
+          },
+        },
+      },
+    });
+
+    vm.runInContext(ler(relPath), sandbox, { filename: relPath });
+    let pending;
+    listeners.get('push')({
+      data: {
+        json: () => ({
+          title: 'Teste',
+          data: { eventId: 'queue:test:production_started' },
+        }),
+      },
+      waitUntil: promise => { pending = promise; },
+    });
+    await pending;
+    return { events, notifications };
+  }
+
+  test('showNotification não recebe silent:true junto com vibrate', async () => {
+    for (const sw of ['apps/profissional/sw.js', 'apps/cliente/sw.js']) {
+      const { notifications } = await simularPush(sw);
+      assert.equal(notifications.length, 1, `${sw}: deve exibir a notificação`);
+      assert.equal(notifications[0].options.silent, false, `${sw}: som deve estar ativo`);
+      assert.ok(notifications[0].options.vibrate.length > 0, `${sw}: vibração deve estar configurada`);
+    }
+  });
+
+  test('janela aberta recebe BF_PUSH_SOUND antes de showNotification', async () => {
+    for (const sw of ['apps/profissional/sw.js', 'apps/cliente/sw.js']) {
+      const client = {
+        focused: true,
+        visibilityState: 'visible',
+      };
+      const { events } = await simularPush(sw, [client]);
+      assert.ok(events.indexOf('BF_PUSH_SOUND') < events.indexOf('showNotification'), sw);
+    }
+  });
+
+  test('SW profissional: silent:false + vibracao + BF_PUSH_SOUND antecipado', () => {
     const src = ler('apps/profissional/sw.js');
     const idxPush = src.indexOf('static push(e)');
     assert.ok(idxPush > 0, 'SW profissional deve ter handler push');
     const bloco = src.slice(idxPush, idxPush + 4200);
 
     assert.ok(bloco.includes('vibrate:'), 'deve preservar vibracao');
-    assert.ok(bloco.includes('silent:             emForeground'), 'silent deve ser dinâmico (foreground)');
-    assert.ok(!bloco.includes('silent:             true'), 'nao deve mais silenciar sempre (som do sistema com app fechado)');
+    assert.ok(bloco.includes('silent:             false'), 'som nativo deve permanecer habilitado');
+    assert.ok(!bloco.includes('silent:             true'), 'silent:true conflita com vibrate');
+    assert.ok(!bloco.includes('silent:             emForeground'), 'foreground também não pode silenciar vibração');
     assert.ok(bloco.includes('temJanelaAberta'), 'deve detectar janela aberta para tentar mp3 em background');
     assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 com janela aberta');
     assert.ok(bloco.includes('showNotification'), 'deve manter notificacao visual');
     assert.ok(bloco.includes('PUSH_SHOW_MODAL'), 'deve manter evento de modal');
+    assert.ok(
+      bloco.indexOf('BF_PUSH_SOUND') < bloco.indexOf('await self.registration.showNotification'),
+      'tentativa do mp3 deve ocorrer antes de showNotification',
+    );
 
     const dedupeAteNotificacao = bloco.slice(bloco.indexOf('const pushDuplicado'), bloco.indexOf('await self.registration.showNotification'));
     assert.ok(!dedupeAteNotificacao.includes('return;'), 'push duplicado nao deve cancelar showNotification');
   });
 
-  test('SW cliente: silent dinâmico (emForeground) + vibracao + BF_PUSH_SOUND', () => {
+  test('SW cliente: silent:false + vibracao + BF_PUSH_SOUND antecipado', () => {
     const src = ler('apps/cliente/sw.js');
     const idxPush = src.indexOf('static push(e)');
     assert.ok(idxPush > 0, 'SW cliente deve ter handler push');
     const bloco = src.slice(idxPush, idxPush + 2400);
 
     assert.ok(bloco.includes('vibrate:'), 'deve preservar vibracao');
-    assert.ok(bloco.includes('silent:             emForeground'), 'silent deve ser dinâmico (foreground)');
-    assert.ok(!bloco.includes('silent:             true'), 'nao deve mais silenciar sempre (som do sistema com app fechado)');
+    assert.ok(bloco.includes('silent:             false'), 'som nativo deve permanecer habilitado');
+    assert.ok(!bloco.includes('silent:             true'), 'silent:true conflita com vibrate');
+    assert.ok(!bloco.includes('silent:             emForeground'), 'foreground também não pode silenciar vibração');
     assert.ok(bloco.includes('temJanelaAberta'), 'deve detectar janela aberta para tentar mp3 em background');
     assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 com janela aberta');
     assert.ok(bloco.includes('showNotification'), 'deve manter notificacao visual');
+    assert.ok(
+      bloco.indexOf('BF_PUSH_SOUND') < bloco.indexOf('await self.registration.showNotification'),
+      'tentativa do mp3 deve ocorrer antes de showNotification',
+    );
   });
 });
 

@@ -131,6 +131,17 @@ describe('CadeiraService.finalizar() — auto-avanço', () => {
     );
   });
 
+  test('transição 0→1 pelo finalizar dispara production_started', async () => {
+    const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [esperando] });
+
+    await CS.finalizar(UUID_ENTRY_ATUAL, UUID_SHOP, UUID_PROF_A);
+
+    const push = bffPosts.find(item => item.body?.type === 'production_started');
+    assert.ok(push, 'finalizar deve notificar o barbeiro ao promover o primeiro waiting');
+    assert.strictEqual(push.body.entradaId, UUID_ENTRY_ESPERA);
+  });
+
   test('retorna proximoNome quando há próximo na fila', async () => {
     const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
     const { CS } = criarSandbox({ filaAtiva: [esperando] });
@@ -297,6 +308,17 @@ describe('CadeiraService.sincronizarFilas()', () => {
     );
   });
 
+  test('transição 0→1 pela sincronização dispara production_started', async () => {
+    const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [esperando] });
+
+    await CS.sincronizarFilas(UUID_SHOP);
+
+    const push = bffPosts.find(item => item.body?.type === 'production_started');
+    assert.ok(push, 'sincronizarFilas deve notificar o barbeiro ao preencher produção vazia');
+    assert.strictEqual(push.body.entradaId, UUID_ENTRY_ESPERA);
+  });
+
   test('produção já ocupada → NÃO chama updateStatus', async () => {
     const emServico = entradaInService(UUID_ENTRY_ATUAL,  UUID_PROF_A);
     const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
@@ -361,6 +383,19 @@ describe('CadeiraService.sincronizarFilas()', () => {
       () => CS.sincronizarFilas('nao-e-uuid'),
       (err) => err.name === 'TypeError',
     );
+  });
+});
+
+describe('CadeiraService.liberarSemCorte() — push ao auto-avançar', () => {
+  test('transição 0→1 pelo liberarSemCorte dispara production_started', async () => {
+    const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
+    const { CS, bffPosts } = criarSandbox({ filaAtiva: [esperando] });
+
+    await CS.liberarSemCorte(UUID_ENTRY_ATUAL, UUID_SHOP, UUID_PROF_A);
+
+    const push = bffPosts.find(item => item.body?.type === 'production_started');
+    assert.ok(push, 'liberarSemCorte deve notificar o barbeiro ao promover o primeiro waiting');
+    assert.strictEqual(push.body.entradaId, UUID_ENTRY_ESPERA);
   });
 });
 

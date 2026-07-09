@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260708e';
+const SW_CLI_VERSION = '20260709a';
 
 class SWCliente {
 
@@ -225,8 +225,7 @@ class SWCliente {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
-      // App visivel silencia som do sistema; janela aberta tenta tocar o mp3.
-      // Background/fechado mantém som do sistema + vibracao como fallback.
+      // Janela aberta tenta o mp3; som e vibracao nativos permanecem habilitados.
       const clientes        = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const temJanelaAberta = clientes.length > 0;
       const emForeground    = clientes.some(c => c.focused || c.visibilityState === 'visible');
@@ -240,19 +239,21 @@ class SWCliente {
         requireInteraction: payload.requireInteraction ?? true,
         // Vibração: 300ms vibra, 100ms pausa, 300ms vibra, 100ms pausa, 500ms vibra
         vibrate:            payload.vibrate ?? [300, 100, 300, 100, 500],
-        // Foreground → silencia o som do sistema (a página toca o mp3);
-        // background/fechado → som do sistema + vibração.
-        silent:             emForeground,
+        // `silent:true` não pode ser combinado com `vibrate`.
+        silent:             false,
         renotify:           payload.renotify ?? !emForeground,
         data:               payload.data   ?? {},
       };
 
-      await self.registration.showNotification(title, opts);
-
-      // Qualquer janela aberta tenta tocar o mp3 customizado.
+      // Solicita MP3/vibração à página antes da notificação nativa. Assim,
+      // uma eventual falha em showNotification não bloqueia o alerta in-app.
       if (temJanelaAberta) {
-        for (const c of clientes) c.postMessage({ type: 'BF_PUSH_SOUND' });
+        for (const c of clientes) {
+          c.postMessage({ type: 'BF_PUSH_SOUND', vibrate: opts.vibrate });
+        }
       }
+
+      await self.registration.showNotification(title, opts);
       console.log('[SW-Cliente] showNotification ok, tag:', opts.tag, 'fg:', emForeground, 'open:', temJanelaAberta);
     })());
   }
