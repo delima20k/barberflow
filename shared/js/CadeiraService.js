@@ -240,12 +240,13 @@ class CadeiraService {
     const rShop = InputValidator.uuid(barbershopId);
     if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
 
+    let filaAntes = Array.isArray(filaAtiva) ? filaAtiva : null;
     let estavaVazia = producaoVazia;
-    if (typeof estavaVazia !== 'boolean') {
-      const fila = Array.isArray(filaAtiva)
-        ? filaAtiva
-        : await CadeiraService.getFilaAtiva(barbershopId);
-      estavaVazia = !fila.some(entrada =>
+    if (!filaAntes || typeof estavaVazia !== 'boolean') {
+      filaAntes ??= await CadeiraService.getFilaAtiva(barbershopId);
+      estavaVazia = typeof estavaVazia === 'boolean'
+        ? estavaVazia
+        : !filaAntes.some(entrada =>
         entrada.id !== entradaId &&
         entrada.status === 'in_service' &&
         entrada.professional?.id === professionalId

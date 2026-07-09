@@ -218,6 +218,28 @@ describe('CadeiraService.finalizar() — auto-avanço', () => {
   });
 });
 
+describe('CadeiraService - Web Push de posicao da fila', () => {
+  test('nao dispara queue_position_update diretamente para evitar duplicidade com trigger DB', async () => {
+    const atual = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
+    const { CS, fetchCalls } = criarSandbox({ filaAtiva: [atual] });
+
+    await CS.promoverParaProducao({
+      entradaId: atual.id,
+      barbershopId: UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      filaAtiva: [atual],
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    const positionPushes = fetchCalls
+      .map(call => JSON.parse(call.opts.body))
+      .filter(body => body.pushType === 'queue_position_update');
+
+    assert.equal(positionPushes.length, 0);
+  });
+
+});
+
 // =============================================================================
 // describe 2 — sentar('fila'): auto-avanço quando produção está vazia
 // =============================================================================

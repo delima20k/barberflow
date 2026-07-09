@@ -3,9 +3,11 @@
 // Responsabilidade: enviar Web Push Notification via VAPID
 //
 // Rota: POST /functions/v1/send-push
-// Body: { clientId, barbershopId, entradaId, appId? }
+// Body: { clientId, barbershopId, entradaId, appId?, pushType?, position?, previousPosition? }
 //
-// Autenticação: Bearer JWT do barbeiro (profissional autenticado)
+// Autenticação:
+//   - Bearer JWT do barbeiro para chamadas normais
+//   - x-barberflow-internal-secret apenas para queue_position_update vindo do trigger DB
 // Secrets necessários:
 //   VAPID_PUBLIC_KEY   — chave pública VAPID (base64url)
 //   VAPID_PRIVATE_KEY  — chave privada VAPID (base64url raw EC 32 bytes)
@@ -25,7 +27,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-barberflow-internal-secret',
 }
 
 function json(body: unknown, status = 200): Response {
@@ -251,30 +253,64 @@ serve(async (req: Request) => {
 
   console.log('[send-push] POST recebido de:', req.headers.get('origin') ?? 'sem-origin')
 
-  // ── Autenticação do barbeiro ──────────────────────────────
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Não autorizado' }, 401)
-
-  // Cria cliente autenticado para verificar o JWT do barbeiro
-  const supabaseAuth = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
-  )
-  const authResult = await supabaseAuth.auth.getUser()
-  const barber     = authResult.data?.user ?? null
-  const authErr    = authResult.error
-  if (authErr || !barber) {
-    console.warn('[send-push] auth falhou:', authErr?.message ?? 'user null')
-    return json({ error: 'Sessão inválida' }, 401)
+  let preAuthBody: { pushType?: string } = {}
+  try {
+    preAuthBody = await req.clone().json()
+  } catch {
+    return json({ error: 'Body JSON inválido' }, 422)
   }
-  console.log('[send-push] barbeiro autenticado:', barber.id)
+
+  const isPreAuthQueuePosition = preAuthBody.pushType === 'queue_position_update'
+  const internalSecret = req.headers.get('x-barberflow-internal-secret') ?? ''
+  const expectedInternalSecret = Deno.env.get('QUEUE_POSITION_PUSH_INTERNAL_SECRET') ?? ''
+  const isInternalQueuePosition = isPreAuthQueuePosition
+    && expectedInternalSecret.length > 0
+    && internalSecret === expectedInternalSecret
+
+  // ── Autenticação do barbeiro ──────────────────────────────
+  if (!isInternalQueuePosition) {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'Não autorizado' }, 401)
+
+    // Cria cliente autenticado para verificar o JWT do barbeiro
+    const supabaseAuth = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } },
+    )
+    const authResult = await supabaseAuth.auth.getUser()
+    const barber     = authResult.data?.user ?? null
+    const authErr    = authResult.error
+    if (authErr || !barber) {
+      console.warn('[send-push] auth falhou:', authErr?.message ?? 'user null')
+      return json({ error: 'Sessão inválida' }, 401)
+    }
+    console.log('[send-push] barbeiro autenticado:', barber.id)
+  } else {
+    console.log('[send-push] chamada interna DB autorizada para queue_position_update')
+  }
 
   // ── Parse do body ─────────────────────────────────────────
-  let body: { clientId?: string; barbershopId?: string; entradaId?: string; appId?: string }
+  let body: {
+    clientId?: string
+    barbershopId?: string
+    entradaId?: string
+    appId?: string
+    pushType?: string
+    position?: number
+    previousPosition?: number
+  }
   try { body = await req.json() } catch { return json({ error: 'Body JSON inválido' }, 422) }
 
-  const { clientId, barbershopId, entradaId, appId = 'cliente' } = body
+  const {
+    clientId,
+    barbershopId,
+    entradaId,
+    appId = 'cliente',
+    pushType = 'in_service',
+    position,
+    previousPosition,
+  } = body
   if (!clientId || !entradaId) {
     return json({ error: 'clientId e entradaId são obrigatórios' }, 422)
   }
@@ -284,6 +320,12 @@ serve(async (req: Request) => {
   }
 
   // ── Busca subscriptions do cliente (service_role ignora RLS) ──
+  const isQueuePosition = pushType === 'queue_position_update'
+  const posicaoAtual = Number(position)
+  if (isQueuePosition && (!Number.isFinite(posicaoAtual) || posicaoAtual < 1)) {
+    return json({ error: 'position deve ser um numero positivo para queue_position_update' }, 422)
+  }
+
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -321,16 +363,32 @@ serve(async (req: Request) => {
   }
 
   // ── Payload da notificação ────────────────────────────────
+  const title = isQueuePosition
+    ? (posicaoAtual === 1 ? 'VocÃª Ã© o prÃ³ximo!' : 'VocÃª subiu na fila!')
+    : 'VocÃª foi chamado! âœ‚ï¸'
+  const notificationBody = isQueuePosition
+    ? (posicaoAtual === 1
+      ? 'Agora vocÃª estÃ¡ em 1Âº lugar. Fique atento Ã  chamada.'
+      : `Agora vocÃª estÃ¡ em ${posicaoAtual}Âº lugar.`)
+    : 'O barbeiro estÃ¡ te esperando na cadeira.'
+  const tag = isQueuePosition
+    ? `bf-queue-position-${entradaId}-${posicaoAtual}`
+    : `bf-inservice-${entradaId}`
+
   const payload = JSON.stringify({
-    title:       'Você foi chamado! ✂️',
-    body:        'O barbeiro está te esperando na cadeira.',
+    title,
+    body:        notificationBody,
     icon:        '/shared/img/icon-192-cliente.png',
     badge:       '/shared/img/icon-192-cliente.png',
-    tag:         `bf-inservice-${entradaId}`,
+    tag,
     requireInteraction: true,
     data: {
       barbershopId: barbershopId ?? null,
       entradaId,
+      pushType,
+      position: isQueuePosition ? posicaoAtual : null,
+      previousPosition: isQueuePosition ? (previousPosition ?? null) : null,
+      isNext: isQueuePosition ? posicaoAtual === 1 : null,
       url: barbershopId
         ? `/cliente/?push_barbershop=${barbershopId}&push_entrada=${entradaId}`
         : '/cliente/',
