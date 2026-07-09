@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260708e';
+const SW_PRO_VERSION = '20260708f';
 
 class SWProfissional {
 
@@ -44,6 +44,8 @@ class SWProfissional {
     '/shared/js/SectionEventCatalog.js',
     '/shared/js/SectionEventBus.js',
     '/shared/js/NotificationService.js?v=20260706a',
+    '/shared/js/PushSoundService.js',
+    '/shared/audio/notificacao-push.mp3',
     '/shared/js/PageSection.js',
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
@@ -229,10 +231,11 @@ class SWProfissional {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
-      // App em foreground? Foreground → silencia som do sistema (a página toca o
-      // mp3, corta em 5s); background/fechado → som do sistema + vibração. (Opção C)
-      const clientList   = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const emForeground = clientList.some(c => c.focused || c.visibilityState === 'visible');
+      // App visivel silencia som do sistema; janela aberta tenta tocar o mp3.
+      // Background/fechado mantém som do sistema + vibracao como fallback.
+      const clientList      = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const temJanelaAberta = clientList.length > 0;
+      const emForeground    = clientList.some(c => c.focused || c.visibilityState === 'visible');
 
       const title = payload.title ?? 'Nova atualização ✂️';
       const opts  = {
@@ -245,13 +248,14 @@ class SWProfissional {
         vibrate:            payload.vibrate ?? [200, 100, 200],
         // Foreground → silencia o som do sistema; background/fechado → som do sistema.
         silent:             emForeground,
+        renotify:           payload.renotify ?? !emForeground,
         data:               payload.data  ?? {},
       };
       const eventId = SWProfissional.#pushEventId(opts);
 
-      if (eventId && await SWProfissional.#isDuplicatePush(eventId, opts.tag)) {
+      const pushDuplicado = eventId && await SWProfissional.#isDuplicatePush(eventId, opts.tag);
+      if (pushDuplicado) {
         console.log('[SW-Pro] push duplicado ignorado:', eventId);
-        return;
       }
 
       // Adiciona botões de ação para notificações de chegada do cliente (Android)
@@ -270,24 +274,26 @@ class SWProfissional {
         opts.requireInteraction = true;
       }
 
-      await Promise.allSettled(clientList.map(client => client.postMessage({
-        type:         'PUSH_SHOW_MODAL',
-        pushType:     opts.data?.pushType     ?? null,
-        entradaId:    opts.data?.entradaId    ?? null,
-        barbershopId: opts.data?.barbershopId ?? null,
-        clienteNome:  opts.data?.clienteNome  ?? null,
-        statusLabel:  opts.data?.statusLabel  ?? null,
-        cadeira:      opts.data?.cadeira      ?? null,
-        cliente:      opts.data?.cliente      ?? null,
-      })));
+      if (!pushDuplicado) {
+        await Promise.allSettled(clientList.map(client => client.postMessage({
+          type:         'PUSH_SHOW_MODAL',
+          pushType:     opts.data?.pushType     ?? null,
+          entradaId:    opts.data?.entradaId    ?? null,
+          barbershopId: opts.data?.barbershopId ?? null,
+          clienteNome:  opts.data?.clienteNome  ?? null,
+          statusLabel:  opts.data?.statusLabel  ?? null,
+          cadeira:      opts.data?.cadeira      ?? null,
+          cliente:      opts.data?.cliente      ?? null,
+        })));
+      }
 
       await self.registration.showNotification(title, opts);
 
-      // Só a página em foreground toca o mp3 customizado.
-      if (emForeground) {
+      // Qualquer janela aberta tenta tocar o mp3 customizado.
+      if (temJanelaAberta && !pushDuplicado) {
         for (const c of clientList) c.postMessage({ type: 'BF_PUSH_SOUND' });
       }
-      console.log('[SW-Pro] showNotification ok, tag:', opts.tag, 'fg:', emForeground);
+      console.log('[SW-Pro] showNotification ok, tag:', opts.tag, 'fg:', emForeground, 'open:', temJanelaAberta);
     })());
   }
 

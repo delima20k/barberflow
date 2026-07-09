@@ -20,14 +20,18 @@ describe('Notificacoes push — som dinâmico (Opção C)', () => {
     const src = ler('apps/profissional/sw.js');
     const idxPush = src.indexOf('static push(e)');
     assert.ok(idxPush > 0, 'SW profissional deve ter handler push');
-    const bloco = src.slice(idxPush, idxPush + 3200);
+    const bloco = src.slice(idxPush, idxPush + 4200);
 
     assert.ok(bloco.includes('vibrate:'), 'deve preservar vibracao');
     assert.ok(bloco.includes('silent:             emForeground'), 'silent deve ser dinâmico (foreground)');
     assert.ok(!bloco.includes('silent:             true'), 'nao deve mais silenciar sempre (som do sistema com app fechado)');
-    assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 em foreground');
+    assert.ok(bloco.includes('temJanelaAberta'), 'deve detectar janela aberta para tentar mp3 em background');
+    assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 com janela aberta');
     assert.ok(bloco.includes('showNotification'), 'deve manter notificacao visual');
     assert.ok(bloco.includes('PUSH_SHOW_MODAL'), 'deve manter evento de modal');
+
+    const dedupeAteNotificacao = bloco.slice(bloco.indexOf('const pushDuplicado'), bloco.indexOf('await self.registration.showNotification'));
+    assert.ok(!dedupeAteNotificacao.includes('return;'), 'push duplicado nao deve cancelar showNotification');
   });
 
   test('SW cliente: silent dinâmico (emForeground) + vibracao + BF_PUSH_SOUND', () => {
@@ -39,7 +43,8 @@ describe('Notificacoes push — som dinâmico (Opção C)', () => {
     assert.ok(bloco.includes('vibrate:'), 'deve preservar vibracao');
     assert.ok(bloco.includes('silent:             emForeground'), 'silent deve ser dinâmico (foreground)');
     assert.ok(!bloco.includes('silent:             true'), 'nao deve mais silenciar sempre (som do sistema com app fechado)');
-    assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 em foreground');
+    assert.ok(bloco.includes('temJanelaAberta'), 'deve detectar janela aberta para tentar mp3 em background');
+    assert.ok(bloco.includes('BF_PUSH_SOUND'), 'deve avisar a pagina para tocar o mp3 com janela aberta');
     assert.ok(bloco.includes('showNotification'), 'deve manter notificacao visual');
   });
 });

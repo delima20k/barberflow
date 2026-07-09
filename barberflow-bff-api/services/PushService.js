@@ -124,6 +124,9 @@ class PushService {
     });
 
     const outcome = await this.#enviarPayload(subsUnicas, payload);
+    if (professionalId && eventKey && outcome.enviados === 0 && outcome.falhas > 0) {
+      await this.#removerDedupPush(professionalId, eventKey);
+    }
     return { ...outcome, destinatarios: destinatarioIds.length };
   }
 
@@ -151,6 +154,22 @@ class PushService {
       return false; // fail-open: não bloqueia envio se a checagem falhar
     }
     return false;
+  }
+
+  async #removerDedupPush(userId, dedupeKey) {
+    try {
+      const builder = this.#supabaseAdmin.from('push_notification_dedup');
+      if (typeof builder.delete !== 'function') return;
+      const { error } = await builder
+        .delete()
+        .eq('user_id', userId)
+        .eq('dedupe_key', dedupeKey);
+      if (error) {
+        console.error('[PushService] Erro ao liberar dedup de push falho:', error.message, error.code);
+      }
+    } catch (err) {
+      console.error('[PushService] Erro ao liberar dedup de push falho:', err?.message);
+    }
   }
 
   async enviarMensagemChat({ userId, conversationId, messageId, senderId }) {
@@ -200,7 +219,11 @@ class PushService {
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth_key')
       .eq('is_valid', true);
-    if (appId) query = query.eq('app_id', appId);
+    if (appId) {
+      query = typeof query.or === 'function'
+        ? query.or(`app_id.eq.${appId},app_id.is.null`)
+        : query.eq('app_id', appId);
+    }
     query = ids.length === 1 ? query.eq('user_id', ids[0]) : query.in('user_id', ids);
     const { data: subs, error } = await query;
     if (error) console.error('[PushService] Erro ao buscar subscriptions:', error.message, error.code);

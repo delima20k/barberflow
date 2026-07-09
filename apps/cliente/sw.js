@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260708d';
+const SW_CLI_VERSION = '20260708e';
 
 class SWCliente {
 
@@ -53,6 +53,8 @@ class SWCliente {
     '/shared/js/QueueStateUpdater.js',
     '/shared/js/QueuePositionNotificationService.js',
     '/shared/js/NotificationService.js',
+    '/shared/js/PushSoundService.js',
+    '/shared/audio/notificacao-push.mp3',
     '/shared/js/QueuePositionPresenter.js',
     '/shared/js/FilaPresencaService.js',
     '/shared/js/ChegadaProducaoService.js',
@@ -223,11 +225,11 @@ class SWCliente {
       let payload = {};
       try { payload = e.data?.json() ?? {}; } catch { /* payload vazio é ok */ }
 
-      // App em foreground? Então silenciamos o som do SISTEMA e pedimos à página
-      // que toque o mp3 customizado (corta em 5s). App fechado/background → som do
-      // sistema + vibração (o SW não tem Audio para tocar mp3). (Opção C)
-      const clientes     = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const emForeground = clientes.some(c => c.focused || c.visibilityState === 'visible');
+      // App visivel silencia som do sistema; janela aberta tenta tocar o mp3.
+      // Background/fechado mantém som do sistema + vibracao como fallback.
+      const clientes        = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const temJanelaAberta = clientes.length > 0;
+      const emForeground    = clientes.some(c => c.focused || c.visibilityState === 'visible');
 
       const title = payload.title ?? 'Você foi chamado! ✂️';
       const opts  = {
@@ -241,16 +243,17 @@ class SWCliente {
         // Foreground → silencia o som do sistema (a página toca o mp3);
         // background/fechado → som do sistema + vibração.
         silent:             emForeground,
+        renotify:           payload.renotify ?? !emForeground,
         data:               payload.data   ?? {},
       };
 
       await self.registration.showNotification(title, opts);
 
-      // Só a página em foreground toca o mp3 customizado.
-      if (emForeground) {
+      // Qualquer janela aberta tenta tocar o mp3 customizado.
+      if (temJanelaAberta) {
         for (const c of clientes) c.postMessage({ type: 'BF_PUSH_SOUND' });
       }
-      console.log('[SW-Cliente] showNotification ok, tag:', opts.tag, 'fg:', emForeground);
+      console.log('[SW-Cliente] showNotification ok, tag:', opts.tag, 'fg:', emForeground, 'open:', temJanelaAberta);
     })());
   }
 

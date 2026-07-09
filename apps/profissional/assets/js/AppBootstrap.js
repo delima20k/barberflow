@@ -101,6 +101,7 @@ class AppBootstrap {
    */
   static #iniciarPushSubscription() {
     if (!('serviceWorker' in navigator)) return;
+    if (typeof PushSoundService !== 'undefined') PushSoundService.preparar();
 
     // Inicializa imediatamente se já estiver logado
     if (typeof AppState !== 'undefined' && AppState.get('isLogado')) {

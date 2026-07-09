@@ -29,6 +29,51 @@ class PushSoundService {
   static #CORTE_MS = 5000;   // toca no máximo os primeiros 5 segundos
   static #audio    = null;   // instância reutilizada (evita empilhar áudios)
   static #timer    = null;
+  static #preparado = false;
+  static #EVENTOS_PREPARO = ['pointerdown', 'touchstart', 'keydown', 'click'];
+
+  /**
+   * Prepara o elemento de audio no primeiro gesto do usuario.
+   * Isso reduz rejeicoes de autoplay quando o push chega com a janela em background.
+   */
+  static preparar() {
+    if (PushSoundService.#preparado) return;
+    if (typeof document === 'undefined' || typeof Audio === 'undefined') return;
+    PushSoundService.#preparado = true;
+
+    const prepararNoGesto = () => {
+      for (const evento of PushSoundService.#EVENTOS_PREPARO) {
+        document.removeEventListener(evento, prepararNoGesto, true);
+      }
+
+      try {
+        const audio = PushSoundService.#garantirAudio();
+        const volumeAnterior = audio.volume;
+        const mutedAnterior = audio.muted;
+        audio.volume = 0;
+        audio.muted = true;
+
+        const finalizar = () => {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.volume = volumeAnterior;
+            audio.muted = mutedAnterior;
+          } catch (_) { /* ignore */ }
+        };
+
+        const p = audio.play();
+        if (p && typeof p.then === 'function') p.then(finalizar).catch(finalizar);
+        else finalizar();
+      } catch (_) {
+        // Preparacao e best-effort; tocar() ainda tentara quando o push chegar.
+      }
+    };
+
+    for (const evento of PushSoundService.#EVENTOS_PREPARO) {
+      document.addEventListener(evento, prepararNoGesto, { capture: true, passive: true });
+    }
+  }
 
   /**
    * Toca o som de notificação e o interrompe após 5 segundos.
@@ -36,11 +81,7 @@ class PushSoundService {
    */
   static tocar() {
     try {
-      if (!PushSoundService.#audio) {
-        PushSoundService.#audio = new Audio(PushSoundService.#URL);
-        PushSoundService.#audio.preload = 'auto';
-      }
-      const audio = PushSoundService.#audio;
+      const audio = PushSoundService.#garantirAudio();
 
       clearTimeout(PushSoundService.#timer);
       try { audio.pause(); } catch (_) { /* ignore */ }
@@ -65,5 +106,13 @@ class PushSoundService {
     if (PushSoundService.#audio) {
       try { PushSoundService.#audio.pause(); PushSoundService.#audio.currentTime = 0; } catch (_) { /* ignore */ }
     }
+  }
+
+  static #garantirAudio() {
+    if (!PushSoundService.#audio) {
+      PushSoundService.#audio = new Audio(PushSoundService.#URL);
+      PushSoundService.#audio.preload = 'auto';
+    }
+    return PushSoundService.#audio;
   }
 }

@@ -22,11 +22,13 @@ const { carregar, ROOT } = require('./_helpers.js');
 function criarSandbox({ playRejects = false } = {}) {
   const timers = [];
   const audios = [];
+  const documentListeners = new Map();
   let seq = 0;
 
   class AudioMock {
     constructor(url) {
       this.url = url; this.preload = ''; this.currentTime = 0; this.paused = true;
+      this.volume = 1; this.muted = false;
       this.playCalls = 0; this.pauseCalls = 0;
       audios.push(this);
     }
@@ -39,6 +41,13 @@ function criarSandbox({ playRejects = false } = {}) {
 
   const sandbox = vm.createContext({
     console,
+    document: {
+      addEventListener: (event, handler, options) => documentListeners.set(event, { handler, options }),
+      removeEventListener: (event, handler) => {
+        const listener = documentListeners.get(event);
+        if (listener?.handler === handler) documentListeners.delete(event);
+      },
+    },
     Audio: AudioMock,
     setTimeout: (fn, delay) => { const id = ++seq; timers.push({ id, fn, delay }); return id; },
     clearTimeout: (id) => { const i = timers.findIndex(t => t.id === id); if (i >= 0) timers.splice(i, 1); },
@@ -52,7 +61,9 @@ function criarSandbox({ playRejects = false } = {}) {
     for (const t of alvo) t.fn();
   };
 
-  return { sandbox, audios, timers, runByDelay };
+  const dispararGesto = (event = 'pointerdown') => documentListeners.get(event)?.handler();
+
+  return { sandbox, audios, timers, documentListeners, dispararGesto, runByDelay };
 }
 
 describe('PushSoundService — comportamento', () => {
@@ -97,6 +108,26 @@ describe('PushSoundService — comportamento', () => {
     assert.equal(audios[0].paused, true, 'para o áudio');
     assert.equal(audios[0].currentTime, 0, 'rebobina');
   });
+
+  test('preparar() tenta desbloquear o audio no primeiro gesto do usuario', async () => {
+    const { sandbox, audios, documentListeners, dispararGesto } = criarSandbox();
+
+    sandbox.PushSoundService.preparar();
+    assert.ok(documentListeners.has('pointerdown'), 'registra listener de gesto');
+
+    dispararGesto('pointerdown');
+    assert.equal(documentListeners.size, 0, 'remove listeners depois do primeiro gesto');
+    assert.equal(audios.length, 1, 'cria audio no gesto');
+    assert.equal(audios[0].playCalls, 1, 'tenta tocar silenciosamente no gesto');
+
+    await Promise.resolve();
+    assert.equal(audios[0].paused, true, 'pausa apos preparar');
+    assert.equal(audios[0].currentTime, 0, 'rebobina apos preparar');
+
+    sandbox.PushSoundService.tocar();
+    assert.equal(audios.length, 1, 'reusa audio preparado');
+    assert.equal(audios[0].playCalls, 2, 'toca o mesmo audio no push');
+  });
 });
 
 describe('PushSoundService — fonte dos Service Workers', () => {
@@ -106,7 +137,10 @@ describe('PushSoundService — fonte dos Service Workers', () => {
   test('ambos os SW usam silent dinâmico (emForeground) e emitem BF_PUSH_SOUND', () => {
     for (const [nome, src] of [['cliente', swCli], ['profissional', swPro]]) {
       assert.match(src, /silent:\s*emForeground/, `${nome}: silent deve ser dinâmico`);
-      assert.match(src, /BF_PUSH_SOUND/, `${nome}: deve emitir BF_PUSH_SOUND em foreground`);
+      assert.match(src, /temJanelaAberta/, `${nome}: deve detectar janela aberta`);
+      assert.match(src, /BF_PUSH_SOUND/, `${nome}: deve emitir BF_PUSH_SOUND com janela aberta`);
+      assert.match(src, /notificacao-push\.mp3/, `${nome}: deve pre-cachear o mp3 do push`);
+      assert.match(src, /PushSoundService\.js/, `${nome}: deve pre-cachear o servico de som`);
       assert.match(src, /matchAll\(\{\s*type:\s*'window'/, `${nome}: deve consultar clientes de janela`);
     }
   });
