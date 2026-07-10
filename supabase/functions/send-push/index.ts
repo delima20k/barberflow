@@ -364,13 +364,13 @@ serve(async (req: Request) => {
 
   // ── Payload da notificação ────────────────────────────────
   const title = isQueuePosition
-    ? (posicaoAtual === 1 ? 'VocÃª Ã© o prÃ³ximo!' : 'VocÃª subiu na fila!')
-    : 'VocÃª foi chamado! âœ‚ï¸'
+    ? (posicaoAtual === 1 ? 'Você é o próximo!' : 'Você subiu na fila!')
+    : 'Você foi chamado! ✂️'
   const notificationBody = isQueuePosition
     ? (posicaoAtual === 1
-      ? 'Agora vocÃª estÃ¡ em 1Âº lugar. Fique atento Ã  chamada.'
-      : `Agora vocÃª estÃ¡ em ${posicaoAtual}Âº lugar.`)
-    : 'O barbeiro estÃ¡ te esperando na cadeira.'
+      ? 'Agora você está em 1º lugar. Fique atento à chamada.'
+      : `Agora você está em ${posicaoAtual}º lugar.`)
+    : 'O barbeiro está te esperando na cadeira.'
   const tag = isQueuePosition
     ? `bf-queue-position-${entradaId}-${posicaoAtual}`
     : `bf-inservice-${entradaId}`
