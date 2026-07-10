@@ -422,12 +422,19 @@ serve(async (req: Request) => {
   }))
 
   // ── Invalida subscriptions expiradas ──────────────────────
+  // O query-builder do supabase-js é thenable (aceita await) mas NÃO expõe
+  // .catch() — encadear .in(...).catch(...) lançava TypeError e derrubava a
+  // function inteira (500) sempre que havia subscription 410/404 a invalidar.
   if (invalidIds.length > 0) {
-    await supabaseAdmin
-      .from('push_subscriptions')
-      .update({ is_valid: false, updated_at: new Date().toISOString() })
-      .in('id', invalidIds)
-      .catch(err => console.error('[send-push] falha ao invalidar subs:', err.message))
+    try {
+      const { error: invalidateErr } = await supabaseAdmin
+        .from('push_subscriptions')
+        .update({ is_valid: false, updated_at: new Date().toISOString() })
+        .in('id', invalidIds)
+      if (invalidateErr) console.error('[send-push] falha ao invalidar subs:', invalidateErr.message)
+    } catch (err) {
+      console.error('[send-push] falha ao invalidar subs:', (err as Error).message)
+    }
   }
 
   return json({ ok: true, enviados, invalidas: invalidIds.length })
