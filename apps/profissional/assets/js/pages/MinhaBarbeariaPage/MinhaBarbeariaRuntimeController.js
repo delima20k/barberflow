@@ -53,6 +53,7 @@ export class MinhaBarbeariaRuntimeController {
   #atividadeStatus      = new Map();
   #barbeiroParceiroAtivo = false;
   #barbeiroAtividadeStatus = null;
+  #salvandoAtividadeDono = false;   // guard anti duplo-clique do toggle do dono
   #mensalistasAtivos    = new Set(); // client IDs que escolheram Plano Mensal nesta sessão
   #coordsGps            = null;   // coordenadas GPS capturadas no sub-painel
   #digGps               = null;   // instância DigText para o p.gps-dig
@@ -862,8 +863,10 @@ export class MinhaBarbeariaRuntimeController {
       filaEntradas:    filaEntradas.filter(e => e.professional?.id === filaDonoId),
       isOwner:         this.#podeGerenciarCadeira(filaDonoId),
       professionalId:  filaDonoId,
-      mostrarAtividade: this.#atividadeStatus.has(filaDonoId),
-      isAvailable:     this.#statusDisponivel(filaDonoId),
+      // Dono sempre mostra o status (como os parceiros); default ATIVO quando
+      // ainda não há linha de presença (nunca marcou ausência).
+      mostrarAtividade: true,
+      isAvailable:     this.#statusDisponivelDono(filaDonoId),
     }});
     for (const b of equipe) {
       specs.push({ container: col, key: String(b.id), spec: {
@@ -950,9 +953,14 @@ export class MinhaBarbeariaRuntimeController {
     const statusEl = (spec.mostrarAtividade && typeof BarbeiroAtividadeStatus !== 'undefined')
       ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: spec.professionalId, isAvailable: spec.isAvailable })
       : null;
+    // Toggle Ativo/Inativo do DONO: só no card do dono e só quando o usuário
+    // logado É o dono. Reusa o switch existente (mb-status-toggle) — sem CSS novo.
+    const toggleEl = (spec.variant === 'dono' && this.#isOwner)
+      ? this.#criarToggleAtividadeDono(spec.isAvailable)
+      : null;
     const cardEl = MinhaBarbeariaRuntimeController.#criarBarberiroCard({
       nome: spec.nome, avatarPath: spec.avatarPath, updatedAt: spec.updatedAt,
-      variant: spec.variant, badge: spec.badge, cortes: null, statusEl,
+      variant: spec.variant, badge: spec.badge, cortes: null, statusEl, toggleEl,
     });
     if (spec.navegarPerfil) {
       cardEl.addEventListener('click', () => { if (typeof App !== 'undefined') App.nav('perfil'); });
@@ -1350,12 +1358,83 @@ export class MinhaBarbeariaRuntimeController {
     const propriaCadeira = !!professionalId && professionalId === this.#profissionalId;
     if (!propriaCadeira) return false;
     if (this.#contextoParceiro) return this.#barbeiroParceiroAtivo === true;
-    return true;
+    // Dono Inativo não senta cliente na própria cadeira (mesma regra do parceiro).
+    // Default ATIVO quando não há linha de presença (comportamento pré-feature).
+    return this.#statusDisponivelDono(professionalId);
   }
 
   #statusDisponivel(professionalId) {
     if (!professionalId) return false;
     return this.#atividadeStatus.get(professionalId)?.is_available === true;
+  }
+
+  /**
+   * Status do DONO com default ATIVO: diferente do parceiro (ausência = inativo),
+   * o dono sem linha de presença nunca marcou ausência → tratado como ativo.
+   * Cobre também o rollout com BFF antigo (dono fora da listagem de status).
+   */
+  #statusDisponivelDono(professionalId) {
+    if (!professionalId) return true;
+    const entry = this.#atividadeStatus.get(professionalId);
+    return entry ? entry.is_available === true : true;
+  }
+
+  /** Cria o switch Ativo/Inativo do card do dono (reusa classes do mb-status-toggle). */
+  #criarToggleAtividadeDono(isAvailable) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mb-status-toggle mb-status-toggle--card-dono';
+    btn.classList.add(isAvailable ? 'mb-status-toggle--barbeiro-ativo' : 'mb-status-toggle--barbeiro-inativo');
+    btn.setAttribute('role', 'switch');
+    btn.setAttribute('aria-checked', String(isAvailable === true));
+    btn.setAttribute('aria-label', 'Ativar ou desativar seu atendimento');
+    btn.disabled = this.#salvandoAtividadeDono;
+    const thumb = document.createElement('span');
+    thumb.className = 'mb-status-thumb';
+    btn.appendChild(thumb);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // card do dono navega p/ perfil no clique — não disparar
+      this.#toggleAtividadeDono(btn);
+    });
+    return btn;
+  }
+
+  /**
+   * Alterna Ativo/Inativo do DONO via BFF (mesma rota dos parceiros).
+   * Otimista: atualiza o mapa e re-renderiza; broadcast/postgres_changes do
+   * servidor confirmam para os demais clients (canal barbeiro-status já ativo).
+   */
+  async #toggleAtividadeDono(btn = null) {
+    if (this.#salvandoAtividadeDono) return;
+    if (typeof BffApiService === 'undefined' || !this.#barbershopId) return;
+    const donoId = this.#shopData?.owner_id ?? this.#profissionalId;
+    const novo   = !this.#statusDisponivelDono(donoId);
+
+    this.#salvandoAtividadeDono = true;
+    if (btn) btn.disabled = true;
+    try {
+      const res = await BffApiService.barbearias.atualizarMeuStatusBarbeiro(this.#barbershopId, novo);
+      if (res?.error) throw new Error(res.error?.message ?? String(res.error));
+      const row = res?.data ?? {};
+      this.#onAtividadeParceiroAtualizada({
+        barbershop_id:   this.#barbershopId,
+        professional_id: donoId,
+        ...row,
+        is_available:    (row.is_available ?? novo) === true,
+      });
+    } catch (err) {
+      LoggerService.warn('[MinhaBarbeariaPage] toggle atividade dono falhou:', err?.message);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Não foi possível atualizar seu status',
+          'Tente novamente em instantes.',
+          NotificationService.TIPOS.SISTEMA,
+        );
+      }
+    } finally {
+      this.#salvandoAtividadeDono = false;
+      if (btn?.isConnected) btn.disabled = false;
+    }
   }
 
   /**
@@ -1832,11 +1911,12 @@ export class MinhaBarbeariaRuntimeController {
   /**
    * Card em coluna (avatar + nome + badge) — filho esquerdo da row.
    */
-  static #criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge = null, cortes = null, statusEl = null }) {
+  static #criarBarberiroCard({ nome, avatarPath, updatedAt, variant, badge = null, cortes = null, statusEl = null, toggleEl = null }) {
     const card = document.createElement('div');
     card.className = 'mb-barbeiro-card';
 
     if (statusEl) card.appendChild(statusEl);
+    if (toggleEl) card.appendChild(toggleEl); // switch Ativo/Inativo (só card do dono)
     card.appendChild(
       MinhaBarbeariaRuntimeController.#criarAvatarEl(avatarPath, updatedAt, nome, variant === 'dono' ? 'lg' : 'md')
     );

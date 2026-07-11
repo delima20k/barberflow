@@ -1005,15 +1005,28 @@ class BarbeariaRepository extends BaseRepository {
   async listarStatusBarbeiros(barbershopId) {
     this._uuid('barbershopId', barbershopId);
 
-    const { data: links, error: linksError } = await this._db
-      .from('professional_shop_links')
-      .select('professional_id')
-      .eq('barbershop_id', barbershopId)
-      .eq('is_active', true);
+    const [{ data: links, error: linksError }, { data: shop, error: shopError }] = await Promise.all([
+      this._db
+        .from('professional_shop_links')
+        .select('professional_id')
+        .eq('barbershop_id', barbershopId)
+        .eq('is_active', true),
+      this._db
+        .from('barbershops')
+        .select('owner_id')
+        .eq('id', barbershopId)
+        .maybeSingle(),
+    ]);
 
     if (linksError) this._throwDbError(linksError, 'listarStatusBarbeiros.links');
+    if (shopError) this._throwDbError(shopError, 'listarStatusBarbeiros.shop');
 
-    const ids = [...new Set((links || []).map(link => link.professional_id).filter(Boolean))];
+    // Dono entra na lista junto com os vinculados: ele também tem presença
+    // operacional (Ativo/Inativo) na própria barbearia.
+    const ownerId = shop?.owner_id ?? null;
+    const ids = [...new Set(
+      [...(links || []).map(link => link.professional_id), ownerId].filter(Boolean),
+    )];
     if (!ids.length) return [];
 
     const [{ data: perfis, error: perfisError }, { data: presencas, error: presencasError }] = await Promise.all([
@@ -1037,11 +1050,18 @@ class BarbeariaRepository extends BaseRepository {
     return ids.map(professionalId => {
       const presenca = presencaMap.get(professionalId) || {};
       const perfil = perfilMap.get(professionalId) || {};
+      // Default por papel: dono sem linha de presença = ATIVO (nunca marcou
+      // ausência; preserva o comportamento pré-feature). Vinculado sem linha
+      // segue INATIVO (semântica original da tabela).
+      const ehDono = professionalId === ownerId;
+      const isAvailable = presenca.is_available === undefined
+        ? ehDono
+        : presenca.is_available === true;
       return {
         barbershop_id: barbershopId,
         professional_id: professionalId,
         professional_name: perfil.full_name || 'Barbeiro',
-        is_available: presenca.is_available === true,
+        is_available: isAvailable,
         updated_at: presenca.updated_at || null,
         updated_by: presenca.updated_by || null,
       };
@@ -1059,8 +1079,13 @@ class BarbeariaRepository extends BaseRepository {
     this._uuid('barbershopId', barbershopId);
     this._uuid('professionalId', professionalId);
 
+    // Dono da barbearia também pode gerenciar a própria presença (Ativo/Inativo),
+    // mesmo sem linha em professional_shop_links (dono não é "vinculado").
     const temVinculo = await this.profissionalTemVinculoAtivo(barbershopId, professionalId);
-    if (!temVinculo) throw AppError.forbidden('Profissional sem vinculo ativo com a barbearia.');
+    if (!temVinculo) {
+      const ehDono = await this.ehDonoDaBarbearia(barbershopId, professionalId);
+      if (!ehDono) throw AppError.forbidden('Profissional sem vinculo ativo com a barbearia.');
+    }
 
     const payload = {
       barbershop_id: barbershopId,
@@ -1179,6 +1204,30 @@ class BarbeariaRepository extends BaseRepository {
     }
 
     return Boolean(data?.professional_id);
+  }
+
+  /**
+   * Verifica se o profissional é o dono da barbearia (owner_id).
+   * @param {string} barbershopId
+   * @param {string} professionalId
+   * @returns {Promise<boolean>}
+   */
+  async ehDonoDaBarbearia(barbershopId, professionalId) {
+    this._uuid('barbershopId', barbershopId);
+    this._uuid('professionalId', professionalId);
+
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select('owner_id')
+      .eq('id', barbershopId)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('ehDonoDaBarbearia', error);
+      this._throwDbError(error, 'ehDonoDaBarbearia');
+    }
+
+    return Boolean(data?.owner_id) && data.owner_id === professionalId;
   }
 
   /**
