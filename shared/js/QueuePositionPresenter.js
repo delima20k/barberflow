@@ -125,6 +125,13 @@ class QueuePositionPresenter {
           shopLogoUrl:     QueuePositionPresenter.#shopLogoUrl,
         },
       );
+
+      // Som de notificação (mp3 hair-trimmer, corte em 3s) + vibração junto
+      // com a modal — best-effort (autoplay pode ser bloqueado sem gesto).
+      if (typeof PushSoundService !== 'undefined') {
+        try { PushSoundService.alertar(); } catch (_) { /* som é best-effort */ }
+      }
+
       await FluxoDeFila.abrir(config);
     } catch (err) {
       LoggerService.warn('[QueuePositionPresenter] Erro ao abrir modal:', err?.message);

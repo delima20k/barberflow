@@ -41,6 +41,7 @@ class AppBootstrap {
     { label: 'MapOrientationModule',fn: () => MapOrientationModule.init()          },
     { label: 'MessagesWidget',      fn: () => MessagesWidget.init('msgs-lista', 'cliente')     },
     { label: 'NotificationService', fn: () => NotificationService.init()                        },
+    { label: 'FilaPosicaoNotif',    fn: () => AppBootstrap.#iniciarNotificacoesPosicaoFila()    },
     { label: 'NotifPermissao',      fn: () => NotificationService.solicitarPushPermissao()     },
     { label: 'PushSubscription',    fn: () => AppBootstrap.#iniciarPushSubscription()           },
     { label: 'StoriesWidget.home',  fn: () => StoriesWidget.iniciarHome(document.getElementById('tela-inicio')) },
@@ -99,6 +100,27 @@ class AppBootstrap {
           ConversationKeyService.limpar();
         }
       });
+    }
+  }
+
+  /**
+   * Liga a notificação visual de mudança de posição na fila — uma vez por sessão.
+   *
+   * Interceptor: converte notificações queue_update (INSERT no banco → Realtime
+   * do NotificationService → 'barberflow:notificacao-nova') no evento
+   * 'barberflow:fila-posicao-atualizada' consumido pela modal.
+   *
+   * Presenter global (sem identidade): garante que a modal FluxoDeFila abre com
+   * o app em QUALQUER tela (ícone 💈 padrão). Ao abrir a página da barbearia,
+   * BarbeariaPage re-chama iniciar(nome, logo) — idempotente, só enriquece.
+   * @private
+   */
+  static #iniciarNotificacoesPosicaoFila() {
+    if (typeof QueuePositionNotificationService !== 'undefined') {
+      QueuePositionNotificationService.iniciar();
+    }
+    if (typeof QueuePositionPresenter !== 'undefined') {
+      QueuePositionPresenter.iniciar();
     }
   }
 

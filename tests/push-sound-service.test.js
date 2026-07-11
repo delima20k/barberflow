@@ -5,7 +5,7 @@
 //
 // Cobre PushSoundService (som customizado de push — Opção C):
 //   - tocar() toca o mp3 correto
-//   - corta em 5s (pause + currentTime=0), mesmo com arquivo maior
+//   - corta em 3s (pause + currentTime=0), mesmo com arquivo maior
 //   - reusa a mesma instância de Audio (não empilha)
 //   - autoplay bloqueado (play() rejeitado) não quebra
 //   - parar() interrompe o som
@@ -96,15 +96,15 @@ describe('PushSoundService — comportamento', () => {
     assert.equal(audios[0].paused, false, 'fica tocando');
   });
 
-  test('corta o som em 5s (pause + currentTime=0)', () => {
+  test('corta o som em 3s (pause + currentTime=0)', () => {
     const { sandbox, audios, runByDelay } = criarSandbox();
     sandbox.PushSoundService.tocar();
     const a = audios[0];
     assert.equal(a.paused, false, 'tocando antes do corte');
 
-    runByDelay(5000);
-    assert.ok(a.pauseCalls >= 1, 'pausa no corte de 5s');
-    assert.equal(a.paused, true, 'parado após 5s');
+    runByDelay(3000);
+    assert.ok(a.pauseCalls >= 1, 'pausa no corte de 3s');
+    assert.equal(a.paused, true, 'parado após 3s');
     assert.equal(a.currentTime, 0, 'rebobina para 0');
   });
 

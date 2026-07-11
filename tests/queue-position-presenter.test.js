@@ -346,3 +346,50 @@ describe('QueuePositionPresenter — logo, nome e posicaoAnterior', () => {
   });
 
 });
+
+// ─── describe: som da notificação de posição (mp3 3s + vibração) ────────────────
+
+describe('QueuePositionPresenter — som (PushSoundService)', () => {
+
+  test('toca PushSoundService.alertar() ao abrir a modal de posição', () => {
+    const { sandbox, acoesModal, dispararPosicaoAtualizada } = criarSandbox();
+    const { QueuePositionPresenter } = sandbox;
+    sandbox.PushSoundService = { alertar: fn(), tocar: fn(), parar: fn() };
+
+    QueuePositionPresenter.iniciar('Barbearia X');
+    dispararPosicaoAtualizada({ position: 5 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(acoesModal.length, 1, 'modal deve abrir');
+      assert.equal(sandbox.PushSoundService.alertar.calls.length, 1,
+        'deve tocar o som (mp3 hair-trimmer) junto com a modal');
+    });
+  });
+
+  test('posição inválida não toca som (só toca quando a modal abre)', () => {
+    const { sandbox, dispararPosicaoAtualizada } = criarSandbox();
+    const { QueuePositionPresenter } = sandbox;
+    sandbox.PushSoundService = { alertar: fn(), tocar: fn(), parar: fn() };
+
+    QueuePositionPresenter.iniciar();
+    dispararPosicaoAtualizada({ position: 0 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(sandbox.PushSoundService.alertar.calls.length, 0, 'sem modal, sem som');
+    });
+  });
+
+  test('sem PushSoundService no ambiente, modal abre normalmente (guard typeof)', () => {
+    const { sandbox, acoesModal, dispararPosicaoAtualizada } = criarSandbox();
+    const { QueuePositionPresenter } = sandbox;
+    // NÃO define PushSoundService — reproduz ambiente sem o script carregado
+
+    QueuePositionPresenter.iniciar();
+    dispararPosicaoAtualizada({ position: 2 });
+
+    return new Promise(resolve => setTimeout(resolve, 0)).then(() => {
+      assert.equal(acoesModal.length, 1, 'modal deve abrir mesmo sem o serviço de som');
+    });
+  });
+
+});

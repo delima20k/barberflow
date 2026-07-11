@@ -157,3 +157,74 @@ describe('QueuePositionNotificationService — roteamento de notificações', ()
     assert.ok(evt, 'deve reprocessar após reinicialização');
   });
 });
+
+// ─── describe: shape mapeado do NotificationService ({type cru, tipo, dados}) ────
+// O NotificationService normaliza 'queue_update' → tipo 'agendamento' e renomeia
+// data → dados; o type CRU é preservado no campo `type`. O interceptor precisa
+// funcionar com esse shape — era o defeito que deixava a modal morta.
+
+describe('QueuePositionNotificationService — shape mapeado do NotificationService', () => {
+  test('despacha para notif mapeada {type, tipo, dados} (sem .data)', () => {
+    const { sandbox, eventosDispachados, dispararNotificacaoNova } = criarSandbox();
+    const { QueuePositionNotificationService } = sandbox;
+    QueuePositionNotificationService.iniciar();
+
+    dispararNotificacaoNova({
+      id:    UUID_NOTIF,
+      type:  'queue_update',        // cru preservado pelo NotificationService
+      tipo:  'agendamento',         // normalizado
+      dados: { position: 4, is_next: false, barbershop_id: UUID_SHOP, push_type: 'queue_position_update' },
+    });
+
+    const evt = eventosDispachados.find(e => e.type === 'barberflow:fila-posicao-atualizada');
+    assert.ok(evt, 'deve despachar com o shape mapeado');
+    assert.equal(evt.detail.position, 4);
+    assert.equal(evt.detail.barbershopId, UUID_SHOP);
+  });
+
+  test('fallback: sem type cru, casa por dados.push_type=queue_position_update', () => {
+    const { sandbox, eventosDispachados, dispararNotificacaoNova } = criarSandbox();
+    const { QueuePositionNotificationService } = sandbox;
+    QueuePositionNotificationService.iniciar();
+
+    dispararNotificacaoNova({
+      id:    'n-fallback',
+      tipo:  'agendamento',         // shape antigo, sem type cru
+      dados: { position: 2, is_next: false, barbershop_id: UUID_SHOP, push_type: 'queue_position_update' },
+    });
+
+    const evt = eventosDispachados.find(e => e.type === 'barberflow:fila-posicao-atualizada');
+    assert.ok(evt, 'deve casar pelo push_type gravado pelo trigger');
+    assert.equal(evt.detail.position, 2);
+  });
+
+  test('não despacha para notif mapeada de outro tipo (sem type cru nem push_type)', () => {
+    const { sandbox, eventosDispachados, dispararNotificacaoNova } = criarSandbox();
+    const { QueuePositionNotificationService } = sandbox;
+    QueuePositionNotificationService.iniciar();
+
+    dispararNotificacaoNova({ id: 'n3', tipo: 'agendamento', dados: { tela: 'mensagens' } });
+
+    const evt = eventosDispachados.find(e => e.type === 'barberflow:fila-posicao-atualizada');
+    assert.equal(evt, undefined, 'notificação comum não deve abrir modal de posição');
+  });
+});
+
+// ─── describe: fonte (wiring que mantém a modal viva) ───────────────────────────
+
+describe('QueuePositionNotificationService — wiring (fonte)', () => {
+  const fs   = require('node:fs');
+  const path = require('node:path');
+  const { ROOT } = require('./_helpers.js');
+
+  test('NotificationService preserva o type CRU do banco na notif despachada', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'shared/js/NotificationService.js'), 'utf8');
+    assert.match(src, /type:\s*notifBanco\.type/, 'onRealtimeInsert deve incluir o type cru');
+  });
+
+  test('AppBootstrap do cliente inicia interceptor + presenter (1x por sessão)', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'apps/cliente/assets/js/AppBootstrap.js'), 'utf8');
+    assert.match(src, /QueuePositionNotificationService\.iniciar\(\)/, 'deve ligar o interceptor');
+    assert.match(src, /QueuePositionPresenter\.iniciar\(\)/, 'deve ligar o presenter global');
+  });
+});

@@ -80,8 +80,24 @@ class QueuePositionNotificationService {
    * @param {object} evt.detail.notif
    */
   static #onNotifNova({ detail: { notif } = {} }) {
-    if (!notif || notif.type !== 'queue_update') return;
-    if (!notif.data) return;
+    if (!notif) return;
+
+    // Aceita os DOIS shapes que circulam em 'barberflow:notificacao-nova':
+    //   - cru do banco:  { type: 'queue_update', data: {...} }
+    //   - mapeado pelo NotificationService: { type (cru, preservado), tipo
+    //     (normalizado p/ 'agendamento'), dados: {...} }
+    // O filtro usa o type CRU; fallback no data.push_type gravado pelo trigger.
+    const bruto = notif.data ?? notif.dados ?? null;
+
+    // JSONB do banco pode chegar serializado como string em alguns contextos
+    const data = bruto && typeof bruto === 'string'
+      ? (() => { try { return JSON.parse(bruto); } catch { return null; } })()
+      : bruto;
+
+    const ehQueueUpdate =
+      notif.type === 'queue_update' ||
+      data?.push_type === 'queue_position_update';
+    if (!ehQueueUpdate || !data) return;
 
     // Deduplicação com cap de memória
     const notifId = notif.id;
@@ -95,13 +111,6 @@ class QueuePositionNotificationService {
       }
       QueuePositionNotificationService.#processadas.add(notifId);
     }
-
-    // JSONB do banco pode chegar serializado como string em alguns contextos
-    const data = notif.data && typeof notif.data === 'string'
-      ? (() => { try { return JSON.parse(notif.data); } catch { return null; } })()
-      : notif.data;
-
-    if (!data) return;
 
     const position     = data.position     ?? null;
     const isNext       = data.is_next       ?? false;

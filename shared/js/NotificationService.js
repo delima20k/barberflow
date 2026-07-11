@@ -477,6 +477,10 @@ class NotificationService {
     const notif = {
       id:         notifBanco.id,
       tipo:       NotificationService.#normalizarTipo(notifBanco.type),
+      // type CRU do banco (ex.: 'queue_update') — a normalização acima colapsa
+      // vários types em 'agendamento'; consumidores como o
+      // QueuePositionNotificationService precisam do valor original p/ filtrar.
+      type:       notifBanco.type ?? null,
       titulo:     notifBanco.title,
       body:       notifBanco.body ?? '',
       dados:      notifBanco.data ?? {},

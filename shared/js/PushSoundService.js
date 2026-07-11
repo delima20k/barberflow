@@ -5,7 +5,7 @@
 //
 // Responsabilidade:
 //   Tocar o som de notificação (mp3) quando um push chega com o app
-//   ABERTO (foreground). Corta automaticamente em 5s, mesmo que o
+//   ABERTO (foreground). Corta automaticamente em 3s, mesmo que o
 //   arquivo seja mais longo.
 //
 // Contexto:
@@ -25,7 +25,7 @@
 class PushSoundService {
 
   static #URL      = '/shared/audio/notificacao-push.mp3';
-  static #CORTE_MS = 5000;   // toca no máximo os primeiros 5 segundos
+  static #CORTE_MS = 3000;   // toca no máximo os primeiros 3 segundos
   static #audio    = null;   // instância reutilizada (evita empilhar áudios)
   static #timer    = null;
   static #preparado = false;
@@ -80,7 +80,7 @@ class PushSoundService {
   }
 
   /**
-   * Toca o som de notificação e o interrompe após 5 segundos.
+   * Toca o som de notificação e o interrompe após 3 segundos.
    * Reinicia do zero se já estiver tocando (evita sobreposição).
    */
   static tocar() {
@@ -96,7 +96,7 @@ class PushSoundService {
         p.catch(err => PushSoundService.#registrarErro('audio.play() falhou:', err));
       }
 
-      // Corte em 5s (independe da duração do arquivo).
+      // Corte em 3s (independe da duração do arquivo).
       PushSoundService.#timer = setTimeout(() => {
         try { audio.pause(); audio.currentTime = 0; } catch (_) { /* ignore */ }
       }, PushSoundService.#CORTE_MS);
