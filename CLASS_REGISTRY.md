@@ -31,7 +31,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `AppState` | [shared/js/AppState.js](shared/js/AppState.js) | infra | Estado global da aplicação compartilhado entre os dois apps |
 | `AuthController` | [shared/js/AuthController.js](shared/js/AuthController.js) | interfaces | Binding dos formulários de login, cadastro e recuperação de senha |
 | `AuthService` | [shared/js/AuthService.js](shared/js/AuthService.js) | application | Autenticação completa via Supabase Auth (login, cadastro, logout, perfil) |
-| `BarbeariaPage` | [shared/js/BarbeariaPage.js](shared/js/BarbeariaPage.js) | interfaces | Tela pública de detalhes de uma barbearia (serviços, portfólio, avaliação) |
+| `BarbeariaPage` | [shared/js/BarbeariaPage.js](shared/js/BarbeariaPage.js) | interfaces | Tela pública de detalhes de uma barbearia (serviços, portfólio, avaliação). Exibe presença Ativo/Inativo do dono acima do avatar (via `BarbeiroAtividadeStatus`, tempo real pelo canal `barbeiro-status`) e bloqueia as cadeiras do dono Inativo para o cliente. |
 | `BarbeiroPage` | [shared/js/BarbeiroPage.js](shared/js/BarbeiroPage.js) | interfaces | Tela de perfil público de um barbeiro/profissional via BFF público agregado, com fallback legado. Renderiza avatar, rating, bio, dados pessoais públicos, sinceYear, barbearia e CTA de mensagem. |
 | `BarberSinceInfo` | [shared/js/BarberSinceInfo.js](shared/js/BarberSinceInfo.js) | interfaces | Section reutilizável do perfil público para exibir `Cortando desde YYYY`; oculta automaticamente quando vazio. |
 | `BarberPublicProfileInfo` | [shared/js/BarberPublicProfileInfo.js](shared/js/BarberPublicProfileInfo.js) | interfaces | Section reutilizável do perfil público para birthDate formatada e gender, com ocultação de campos vazios. |

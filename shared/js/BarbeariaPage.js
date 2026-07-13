@@ -33,6 +33,9 @@ class BarbeariaPage {
   #canalShop        = null;   // canal Supabase Realtime de barbershops (status aberto/fechado)
   #canalShopId      = null;   // shop.id do canal de status (evita reconexão desnecessária)
   #timerShopPoll    = null;   // timer de polling periódico de status (fallback quando Realtime falha)
+  #canalAtividade   = null;   // canal Supabase Realtime de professional_barbershop_presence
+  #canalAtividadeShopId = null; // shop.id do canal de atividade (evita reconexão desnecessária)
+  #atividadeStatus  = new Map(); // professional_id → presença { is_available, ... }
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
   #highlightBarberId = null;  // barber-id a destacar após abrir barbearia via card do barbeiro
 
@@ -186,6 +189,7 @@ class BarbeariaPage {
         // mesmo quando o usuário navega para outra tela.
         this.#pararRealtimeFila();
         this.#pararRealtimeShop();
+        this.#pararRealtimeAtividade();
         this.#pararPollingShop();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
@@ -227,6 +231,8 @@ class BarbeariaPage {
       if (this.#shopData) {
         this.#iniciarRealtimeFila(this.#shopData);
         this.#iniciarRealtimeShop(this.#shopData);
+        this.#iniciarRealtimeAtividade(this.#shopData);
+        void this.#carregarAtividade(this.#shopData); // re-sync: status pode ter mudado fora da tela
         this.#iniciarPollingShop(this.#shopId);
       }
       return;
@@ -377,7 +383,7 @@ class BarbeariaPage {
    * @param {string|null}   opts.clienteLogadoId         id do cliente autenticado (ou null)
    * @returns {HTMLDivElement}
    */
-  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, onMinhaFilaLongPress = null, clienteLogadoId = null }) {
+  static #criarRow({ barbeiro, isOwner, filaEntradas, podeInteragir, onProducaoVaziaClick, onCadeiraVaziaClick, onProducaoArrivingClick = null, onMinhaFilaLongPress = null, clienteLogadoId = null, statusEl = null }) {
     const row = document.createElement('div');
     row.className = `cdr-row${isOwner ? ' cdr-row--owner' : ''}`;
 
@@ -387,6 +393,7 @@ class BarbeariaPage {
       updatedAt:  barbeiro.updated_at ?? null,
       isOwner,
       barberId:   barbeiro.id ?? null,
+      statusEl,
     }));
 
     const wrap = document.createElement('div');
@@ -442,13 +449,13 @@ class BarbeariaPage {
    * @returns {HTMLDivElement}
    */
   /** Assinatura que resume tudo que afeta o DOM da row pública. */
-  static #assinaturaRowPublica(b, filaB, isOwner, podeInteragir, clienteLogadoId) {
+  static #assinaturaRowPublica(b, filaB, isOwner, podeInteragir, clienteLogadoId, atividade = '') {
     const chairs = filaB
       .map(e => `${e.id}:${e.status}:${e.client_confirmed ?? ''}:${e.client?.avatar_path ?? ''}:${(e.client_id ?? e.user_id) === clienteLogadoId ? 'me' : ''}`)
       .join('|');
     return [
       b.id, b.full_name, b.avatar_path, b.updated_at,
-      isOwner ? '1' : '0', podeInteragir ? '1' : '0', clienteLogadoId ?? '', chairs,
+      isOwner ? '1' : '0', podeInteragir ? '1' : '0', clienteLogadoId ?? '', atividade, chairs,
     ].join('§');
   }
 
@@ -499,6 +506,8 @@ class BarbeariaPage {
     this.#renderPortfolioBarbeiros(shop); // fire-and-forget: portfólio dos barbeiros
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
+    this.#iniciarRealtimeAtividade(shop);
+    void this.#carregarAtividade(shop);   // fire-and-forget: presença Ativo/Inativo do dono
     this.#iniciarPollingShop(shop.id);
     this.#mostrarConteudo();
   }
@@ -606,7 +615,10 @@ class BarbeariaPage {
     for (const b of barbeiros) {
       const filaB   = filaAtiva.filter(e => e.professional?.id === b.id);
       const isOwner = b.id === shop.owner_id;
-      const sig     = BarbeariaPage.#assinaturaRowPublica(b, filaB, isOwner, podeInteragir, clienteLogadoId);
+      // Dono Inativo: cliente não usa as cadeiras dele até reativar (default ATIVO)
+      const donoAtivo = !isOwner || this.#donoDisponivel(b.id);
+      const atividade = isOwner ? (donoAtivo ? 'A' : 'I') : '';
+      const sig     = BarbeariaPage.#assinaturaRowPublica(b, filaB, isOwner, podeInteragir, clienteLogadoId, atividade);
       vivos.add(b.id);
       const atual = this.#barbeiroRows.get(b.id);
       let rowEl;
@@ -617,8 +629,13 @@ class BarbeariaPage {
           barbeiro:              b,
           isOwner,
           filaEntradas:          filaB,
-          podeInteragir,
+          podeInteragir:         podeInteragir && donoAtivo,
           clienteLogadoId,
+          // Texto Ativo/Inativo acima do avatar — só na row do dono (mesmo
+          // componente da Minha Barbearia; muda em tempo real via canal)
+          statusEl: (isOwner && typeof BarbeiroAtividadeStatus !== 'undefined')
+            ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: b.id, isAvailable: donoAtivo })
+            : null,
           onProducaoVaziaClick:     clientePodeInteragir ? () => this.#onProducaoClick(b.id) : null,
           onCadeiraVaziaClick:      clientePodeInteragir ? () => this.#onCadeiraClick(b.id) : null,
           onProducaoArrivingClick:  clientePodeInteragir ? (entrada) => this.#onProducaoArrivingClick(entrada) : null,
@@ -756,6 +773,75 @@ class BarbeariaPage {
       this.#canalShopId = shop.id;
     } catch (e) {
       LoggerService.warn('[BarbeariaPage] Realtime shop indisponível:', e?.message);
+    }
+  }
+
+  // ── Presença dos barbeiros (Ativo/Inativo) ────────────────
+
+  /**
+   * Disponibilidade do DONO com default ATIVO: dono sem linha de presença
+   * nunca marcou ausência → tratado como ativo (mesma régua da Minha Barbearia).
+   * @param {string} professionalId
+   * @returns {boolean}
+   */
+  #donoDisponivel(professionalId) {
+    if (!professionalId) return true;
+    const entry = this.#atividadeStatus.get(professionalId);
+    return entry ? entry.is_available === true : true;
+  }
+
+  /** true quando o professionalId é o dono da barbearia atual E está Inativo. */
+  #donoInativo(professionalId) {
+    return professionalId != null
+      && professionalId === this.#shopData?.owner_id
+      && !this.#donoDisponivel(professionalId);
+  }
+
+  /**
+   * Carrega o mapa de presença dos barbeiros (rota pública do BFF) e agenda
+   * re-render. Fire-and-forget — não bloqueia o render principal.
+   * @param {object} shop
+   */
+  async #carregarAtividade(shop) {
+    if (!shop?.id || typeof BarbeiroAtividadeStatus === 'undefined') return;
+    const lista = await BarbeiroAtividadeStatus.listar(shop.id);
+    if (this.#shopId !== shop.id) return; // stale: navegou para outra barbearia durante o await
+    this.#atividadeStatus = BarbeiroAtividadeStatus.mapa(lista);
+    this.#agendarRenderBarbeiros(shop);
+  }
+
+  /**
+   * Assina presença via BarbeiroAtividadeStatus.assinar (broadcast +
+   * postgres_changes — mesmo canal usado pelo toggle do dono): o texto
+   * Ativo/Inativo muda no instante do clique, sem re-fetch.
+   * @param {object} shop
+   */
+  #iniciarRealtimeAtividade(shop) {
+    if (!shop?.id || typeof BarbeiroAtividadeStatus === 'undefined') return;
+    if (this.#canalAtividade && this.#canalAtividadeShopId === shop.id) return;
+    this.#pararRealtimeAtividade();
+    this.#canalAtividade = BarbeiroAtividadeStatus.assinar(shop.id, payload => {
+      const row = (payload?.new && payload.new.professional_id) ? payload.new : payload?.old;
+      if (!row?.professional_id) return;
+      if (payload?.eventType === 'DELETE') {
+        this.#atividadeStatus.delete(row.professional_id); // linha removida → volta ao default
+      } else {
+        this.#atividadeStatus.set(row.professional_id, {
+          ...row,
+          is_available: row.is_available === true,
+        });
+      }
+      this.#agendarRenderBarbeiros(this.#shopData ?? shop);
+    });
+    this.#canalAtividadeShopId = this.#canalAtividade ? shop.id : null;
+  }
+
+  /** Para o canal Realtime de atividade e limpa referências. */
+  #pararRealtimeAtividade() {
+    if (this.#canalAtividade) {
+      try { SupabaseService.removeChannel(this.#canalAtividade); } catch (_) {}
+      this.#canalAtividade = null;
+      this.#canalAtividadeShopId = null;
     }
   }
 
@@ -957,6 +1043,16 @@ class BarbeariaPage {
       return;
     }
 
+    // Guard: dono Inativo — as cadeiras dele ficam bloqueadas até ele reativar
+    if (this.#donoInativo(professionalId)) {
+      NotificationService.mostrarToast(
+        'Barbeiro indisponível',
+        'O barbeiro está inativo no momento. Aguarde ele ficar ativo.',
+        NotificationService.TIPOS.SISTEMA,
+      );
+      return;
+    }
+
     const perfil  = AuthService.getPerfil();
     let filaAtiva = [];
     try {
@@ -1099,6 +1195,16 @@ class BarbeariaPage {
     // Guard: bloqueia clique quando barbearia está fechada ou em pausa
     if (!BarbershopAvailabilityService.canClientClickChair(this.#shopData)) {
       await this.#mostrarModalBarbeariaFechada();
+      return;
+    }
+
+    // Guard: dono Inativo — as cadeiras dele ficam bloqueadas até ele reativar
+    if (this.#donoInativo(professionalId)) {
+      NotificationService.mostrarToast(
+        'Barbeiro indisponível',
+        'O barbeiro está inativo no momento. Aguarde ele ficar ativo.',
+        NotificationService.TIPOS.SISTEMA,
+      );
       return;
     }
 

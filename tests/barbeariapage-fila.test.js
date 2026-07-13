@@ -83,7 +83,7 @@ describe('BarbeariaPage — cadeira de produção interativa (app cliente)', () 
   test('#onProducaoClick retorna cedo se ChegadaProducaoService retornar null', () => {
     const idxMetodo = SRC.indexOf('async #onProducaoClick');
     assert.ok(idxMetodo > 0);
-    const bloco = SRC.slice(idxMetodo, idxMetodo + 2500);
+    const bloco = SRC.slice(idxMetodo, idxMetodo + 3000);
     // Deve verificar a entrada retornada antes de prosseguir com pollers
     assert.ok(
       bloco.includes('if (!entrada) return'),

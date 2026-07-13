@@ -6647,6 +6647,11 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-status-txt--barbeiro-ativo   { color: var(--gold, #D4AF37); text-shadow: 0 0 10px rgba(212,175,55,.7); }
 .mb-status-txt--barbeiro-inativo { color: #e05252; }
 
+/* Texto Ativo/Inativo acima do avatar do barbeiro
+   (BarbeiroAtividadeStatus.criarParagrafo — Minha Barbearia e página pública) */
+.barbeiro-atividade-status__valor--ativo   { color: var(--gold, #D4AF37); }
+.barbeiro-atividade-status__valor--inativo { color: #e05252; }
+
 /* ── Status no tela-topo (canto direito) ───────────────────── */
 .mb-topo-status {
   font-size: .75rem;
