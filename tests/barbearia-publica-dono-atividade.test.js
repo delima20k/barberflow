@@ -171,13 +171,13 @@ describe('BarbeariaPage — presença do dono (render)', () => {
 // =============================================================================
 
 describe('BarbeariaPage — presença do dono (guard de clique)', () => {
-  for (const handler of ['#onCadeiraClick(professionalId)', '#onProducaoClick(professionalId)']) {
-    test(`${handler} bloqueia com toast quando o dono está Inativo (antes da seleção de serviços)`, () => {
-      const idx = SRC_PAGE.indexOf(handler);
+  for (const handler of ['#onCadeiraClick(professionalId', '#onProducaoClick(professionalId']) {
+    test(`${handler}) bloqueia com feedback visual quando o dono está Inativo (antes da seleção de serviços)`, () => {
+      const idx = SRC_PAGE.indexOf(`async ${handler}`);
       assert.ok(idx > 0, `${handler} deve existir`);
       const bloco = SRC_PAGE.slice(idx, SRC_PAGE.indexOf('abrirSelecaoServicos', idx));
       assert.match(bloco, /this\.#donoInativo\(professionalId\)/, 'guard do dono inativo');
-      assert.match(bloco, /mostrarToast/, 'feedback claro ao cliente');
+      assert.match(bloco, /#feedbackCadeiraBloqueada\(cadeiraEl\)/, 'balanço + balão na cadeira (toast é fallback)');
     });
   }
 });

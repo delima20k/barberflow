@@ -6652,6 +6652,27 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .barbeiro-atividade-status__valor--ativo   { color: var(--gold, #D4AF37); }
 .barbeiro-atividade-status__valor--inativo { color: #e05252; }
 
+/* Balão "barbeiro indisponível" acima da cadeira (CadeiraBloqueadaFeedback).
+   position:fixed ancorado pelo getBoundingClientRect — não clipa no
+   overflow do scroll horizontal das rows de barbeiros. */
+.cdr-balao-indisponivel {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  background: rgba(26, 8, 0, .94);
+  color: #e05252;
+  border: 1px solid rgba(224, 82, 82, .45);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: .7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 9500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+.cdr-balao-indisponivel--visivel { opacity: 1; }
+
 /* ── Status no tela-topo (canto direito) ───────────────────── */
 .mb-topo-status {
   font-size: .75rem;

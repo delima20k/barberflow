@@ -636,8 +636,8 @@ class BarbeariaPage {
           statusEl: (isOwner && typeof BarbeiroAtividadeStatus !== 'undefined')
             ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: b.id, isAvailable: donoAtivo })
             : null,
-          onProducaoVaziaClick:     clientePodeInteragir ? () => this.#onProducaoClick(b.id) : null,
-          onCadeiraVaziaClick:      clientePodeInteragir ? () => this.#onCadeiraClick(b.id) : null,
+          onProducaoVaziaClick:     clientePodeInteragir ? (cadeiraEl) => this.#onProducaoClick(b.id, cadeiraEl) : null,
+          onCadeiraVaziaClick:      clientePodeInteragir ? (cadeiraEl) => this.#onCadeiraClick(b.id, cadeiraEl) : null,
           onProducaoArrivingClick:  clientePodeInteragir ? (entrada) => this.#onProducaoArrivingClick(entrada) : null,
           onMinhaFilaLongPress:     clientePodeInteragir ? (entrada) => this.#onMinhaCadeiraEsperaLongPress(entrada) : null,
         });
@@ -795,6 +795,24 @@ class BarbeariaPage {
     return professionalId != null
       && professionalId === this.#shopData?.owner_id
       && !this.#donoDisponivel(professionalId);
+  }
+
+  /**
+   * Feedback de cadeira bloqueada (barbeiro indisponível): balança a cadeira
+   * para os lados e mostra um balão acima dela (CadeiraBloqueadaFeedback).
+   * Fallback: toast quando o elemento da cadeira não está disponível.
+   * @param {HTMLElement|null} cadeiraEl
+   */
+  #feedbackCadeiraBloqueada(cadeiraEl = null) {
+    if (cadeiraEl && typeof CadeiraBloqueadaFeedback !== 'undefined') {
+      CadeiraBloqueadaFeedback.mostrar(cadeiraEl);
+      return;
+    }
+    NotificationService.mostrarToast(
+      'Barbeiro indisponível',
+      'O barbeiro está inativo no momento. Aguarde ele ficar ativo.',
+      NotificationService.TIPOS.SISTEMA,
+    );
   }
 
   /**
@@ -1030,7 +1048,7 @@ class BarbeariaPage {
    * Abre o modal de seleção de serviços e registra o cliente na fila.
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
-  async #onCadeiraClick(professionalId) {
+  async #onCadeiraClick(professionalId, cadeiraEl = null) {
     if (!ClienteController.podeInteragir()) {
       const router = (typeof App !== 'undefined' && App) || null;
       if (router) router.push('cadastro');
@@ -1043,13 +1061,9 @@ class BarbeariaPage {
       return;
     }
 
-    // Guard: dono Inativo — as cadeiras dele ficam bloqueadas até ele reativar
+    // Guard: dono Inativo — balança a cadeira e avisa acima dela até ele reativar
     if (this.#donoInativo(professionalId)) {
-      NotificationService.mostrarToast(
-        'Barbeiro indisponível',
-        'O barbeiro está inativo no momento. Aguarde ele ficar ativo.',
-        NotificationService.TIPOS.SISTEMA,
-      );
+      this.#feedbackCadeiraBloqueada(cadeiraEl);
       return;
     }
 
@@ -1116,19 +1130,19 @@ class BarbeariaPage {
       const resposta = await FluxoDeFila.abrir({
         id: 'sair-fila-espera',
         icone: '↩',
-        titulo: 'Sair da fila?',
+        titulo: 'Desistir de esperar?',
         corpo: FluxoDeFila.escapar(
-          `${clienteNome}, deseja sair desta cadeira de espera? Voce perdera sua posicao na fila.`,
+          `${clienteNome}, deseja realmente desistir de esperar? Voce perdera sua posicao na fila.`,
         ),
         acoes: [
-          { label: 'Sair da fila', valor: 'sair', variante: 'primario' },
-          { label: 'Continuar aguardando', valor: 'cancelar', variante: 'secundario' },
+          { label: 'Sim', valor: 'sair', variante: 'primario' },
+          { label: 'Continuar esperando', valor: 'cancelar', variante: 'secundario' },
         ],
         fecharBtn: true,
       });
       confirmar = resposta === 'sair';
     } else {
-      confirmar = window.confirm('Deseja sair desta cadeira de espera? Voce perdera sua posicao na fila.');
+      confirmar = window.confirm('Deseja realmente desistir de esperar? Voce perdera sua posicao na fila.');
     }
 
     if (!confirmar) return;
@@ -1185,7 +1199,7 @@ class BarbeariaPage {
    * Aplica guards e delega o fluxo ao #executarFluxoProducao.
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
-  async #onProducaoClick(professionalId) {
+  async #onProducaoClick(professionalId, cadeiraEl = null) {
     if (!ClienteController.podeInteragir()) {
       const router = (typeof App !== 'undefined' && App) || null;
       if (router) router.push('cadastro');
@@ -1198,13 +1212,9 @@ class BarbeariaPage {
       return;
     }
 
-    // Guard: dono Inativo — as cadeiras dele ficam bloqueadas até ele reativar
+    // Guard: dono Inativo — balança a cadeira e avisa acima dela até ele reativar
     if (this.#donoInativo(professionalId)) {
-      NotificationService.mostrarToast(
-        'Barbeiro indisponível',
-        'O barbeiro está inativo no momento. Aguarde ele ficar ativo.',
-        NotificationService.TIPOS.SISTEMA,
-      );
+      this.#feedbackCadeiraBloqueada(cadeiraEl);
       return;
     }
 

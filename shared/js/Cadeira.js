@@ -127,7 +127,7 @@ class Cadeira {
   static #executarComFeedback(el, callback) {
     const animacao = Cadeira.#piscarClique(el);
     if (!animacao?.finished) {
-      callback();
+      callback(el); // repassa a cadeira — permite feedback contextual (ex.: balanço)
       return;
     }
 
@@ -135,10 +135,10 @@ class Cadeira {
     el.dataset.cadeiraFeedbackToken = token;
     animacao.finished
       .then(() => {
-        if (el.dataset.cadeiraFeedbackToken === token) callback();
+        if (el.dataset.cadeiraFeedbackToken === token) callback(el);
       })
       .catch(() => {
-        if (el.dataset.cadeiraFeedbackToken === token) callback();
+        if (el.dataset.cadeiraFeedbackToken === token) callback(el);
       });
   }
 
