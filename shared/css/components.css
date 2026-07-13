@@ -6637,6 +6637,16 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .mb-status-txt--aberta  { color: var(--gold, #D4AF37); text-shadow: 0 0 10px rgba(212,175,55,.7); }
 .mb-status-txt--pausa   { color: #ffb74d; }
 
+/* Linha do dono (switch Ativo/Inativo) — 1rem abaixo da linha abrir/fechar */
+.mb-status-row--dono {
+  margin-top: 1rem;
+}
+
+/* Estados aplicados por BarbeiroAtividadeStatus (dono e modo parceiro) —
+   declarados DEPOIS de --aberta/--fechada para vencerem classe residual */
+.mb-status-txt--barbeiro-ativo   { color: var(--gold, #D4AF37); text-shadow: 0 0 10px rgba(212,175,55,.7); }
+.mb-status-txt--barbeiro-inativo { color: #e05252; }
+
 /* ── Status no tela-topo (canto direito) ───────────────────── */
 .mb-topo-status {
   font-size: .75rem;

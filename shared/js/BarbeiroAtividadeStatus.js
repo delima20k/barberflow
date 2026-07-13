@@ -32,9 +32,18 @@ class BarbeiroAtividadeStatus {
     }
   }
 
-  async init() {
-    const status = await BarbeiroAtividadeStatus.buscarStatus(this.#barbershopId, this.#professionalId);
-    this.atualizarStatus(status, { emit: false });
+  /**
+   * @param {{ carregarStatus?: boolean }} [opts]
+   *   carregarStatus=false pula o fetch inicial no BFF e preserva o status já
+   *   semeado via atualizarStatus() — usado quando o chamador é a fonte da
+   *   verdade (ex.: dono na Minha Barbearia, cujo mapa de presença já foi
+   *   carregado com default ATIVO). O Realtime é assinado em ambos os casos.
+   */
+  async init({ carregarStatus = true } = {}) {
+    if (carregarStatus) {
+      const status = await BarbeiroAtividadeStatus.buscarStatus(this.#barbershopId, this.#professionalId);
+      this.atualizarStatus(status, { emit: false });
+    }
     this.#assinarRealtime();
     return this;
   }
