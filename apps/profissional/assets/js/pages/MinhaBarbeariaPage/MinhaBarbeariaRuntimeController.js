@@ -54,6 +54,7 @@ export class MinhaBarbeariaRuntimeController {
   #barbeiroParceiroAtivo = false;
   #barbeiroAtividadeStatus = null;
   #donoAtividadeStatus  = null;   // switch Ativo/Inativo do dono no painel de status
+  #somProducao          = null;   // ProducaoSomAlerta — som ao entrar em produção (fallback do push)
   #mensalistasAtivos    = new Set(); // client IDs que escolheram Plano Mensal nesta sessão
   #coordsGps            = null;   // coordenadas GPS capturadas no sub-painel
   #digGps               = null;   // instância DigText para o p.gps-dig
@@ -1034,6 +1035,12 @@ export class MinhaBarbeariaRuntimeController {
     if (!barbershopId) return;
     if (this.#canalFila) return; // já ativo para esta barbearia
 
+    // Fallback de som do Web Push: alerta sonoro quando um cliente entra em
+    // produção com o app aberto, mesmo que o push não chegue.
+    if (!this.#somProducao && typeof ProducaoSomAlerta !== 'undefined') {
+      this.#somProducao = new ProducaoSomAlerta();
+    }
+
     try {
       this.#canalFila = SupabaseService.channel(`mb-fila:${barbershopId}`)
         .on(
@@ -1044,7 +1051,10 @@ export class MinhaBarbeariaRuntimeController {
             table:  'queue_entries',
             filter: `barbershop_id=eq.${barbershopId}`,
           },
-          () => this.#agendarReRenderEquipe(),
+          (payload) => {
+            this.#somProducao?.processarEvento(payload);
+            this.#agendarReRenderEquipe();
+          },
         )
         .subscribe((status, err) => {
           if (status === 'SUBSCRIBED') {

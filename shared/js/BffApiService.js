@@ -184,7 +184,12 @@ class BffApiService {
         err.status = res.status;
         return { data: null, error: err };
       }
-      return { data: json?.dados ?? null, error: null };
+      // Falhas de negócio (ex.: push ok:false/reason SEND_FAILED) vêm no
+      // top-level, sem 'dados' — repassa o corpo para o chamador enxergar
+      // ok/reason em vez de receber null e mascarar a causa.
+      const data = json?.dados
+        ?? ((json && typeof json === 'object' && 'ok' in json) ? json : null);
+      return { data, error: null };
     } catch (err) {
       return { data: null, error: BffApiService.#parseErroRede(err) };
     }
