@@ -31,6 +31,7 @@ class RateLimiter {
   static #ISENTOS = new Set([
     '.js', '.css', '.json', '.svg', '.png', '.jpg', '.jpeg',
     '.ico', '.webp', '.woff', '.woff2', '.map', '.mp3',
+    '.mp4',
   ]);
 
   /**
@@ -108,6 +109,7 @@ class SecurityMiddleware {
     '.ico'  : 'image/x-icon',
     '.webp' : 'image/webp',
     '.mp3'  : 'audio/mpeg',
+    '.mp4'  : 'video/mp4',
     '.woff2': 'font/woff2',
     '.woff' : 'font/woff',
   });

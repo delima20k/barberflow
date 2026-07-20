@@ -1,0 +1,191 @@
+.process {
+  background: var(--color-white);
+}
+
+.process-list {
+  display: grid;
+  border-top: 1px solid var(--color-border);
+}
+
+.process-list li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 16px;
+  padding-block: 24px;
+  border-bottom: 1px solid var(--color-border);
+  transition:
+    background-color var(--transition),
+    transform var(--transition);
+}
+
+.process-list li:hover {
+  background: rgba(240, 228, 215, 0.56);
+  transform: translateX(4px);
+}
+
+.process-list li > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--color-gold);
+  border-radius: 50%;
+  color: var(--color-brown);
+  font-weight: 700;
+}
+
+.process-list h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+.process-list p {
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.process-list .process-list__campaign {
+  background: var(--color-surface);
+}
+
+.process-list .process-list__campaign > span {
+  background: var(--color-gold-bright);
+}
+
+.benefits {
+  background: var(--color-brown-dark);
+}
+
+.benefits-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.benefit-card {
+  min-height: 210px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  background: #362219;
+  color: var(--color-white);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+
+.benefit-card:hover {
+  border-color: rgba(242, 183, 5, 0.46);
+  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.22);
+  transform: translateY(-6px);
+}
+
+.benefit-card span {
+  color: var(--color-gold-bright);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.benefit-card h3 {
+  margin-top: 36px;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1.3;
+}
+
+.benefit-card p {
+  margin-top: 8px;
+  color: var(--color-on-dark-muted);
+  font-size: 0.86rem;
+}
+
+.app-downloads {
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.app-downloads__grid {
+  display: grid;
+  gap: 16px;
+}
+
+.app-access-card {
+  display: grid;
+  min-height: 330px;
+  align-content: start;
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-white);
+  box-shadow: var(--shadow-soft);
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+
+.app-access-card:hover {
+  border-color: var(--color-gold);
+  box-shadow: 0 24px 48px rgba(43, 27, 18, 0.18);
+  transform: translateY(-6px);
+}
+
+.app-access-card--professional {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: var(--color-blue);
+  color: var(--color-white);
+}
+
+.app-access-card img {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 24px;
+  object-fit: contain;
+}
+
+.app-access-card__audience {
+  color: var(--color-gold);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.app-access-card--professional .app-access-card__audience {
+  color: var(--color-gold-bright);
+}
+
+.app-access-card h3 {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1.25;
+}
+
+.app-access-card p {
+  margin-top: 10px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.app-access-card--professional p {
+  color: var(--color-on-dark-muted);
+}
+
+.app-access-card .button {
+  width: 100%;
+  align-self: end;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.app-downloads__note {
+  max-width: 720px;
+  margin: 22px auto 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}

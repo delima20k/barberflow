@@ -1,0 +1,250 @@
+.feedback {
+  background: var(--color-blue);
+  color: var(--color-white);
+}
+
+.feedback__layout {
+  display: grid;
+  gap: 6px;
+}
+
+.feedback-form {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius);
+  background: var(--color-white);
+  color: var(--color-ink);
+}
+
+.feedback-form__grid {
+  display: grid;
+  gap: 14px;
+}
+
+.feedback-form__field {
+  display: grid;
+  gap: 7px;
+}
+
+.feedback-form label {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.feedback-form input,
+.feedback-form select,
+.feedback-form textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: #fffdfa;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.feedback-form input,
+.feedback-form select {
+  height: 48px;
+  padding-inline: 13px;
+}
+
+.feedback-form select {
+  cursor: pointer;
+}
+
+.feedback-form textarea {
+  min-height: 132px;
+  resize: vertical;
+  padding: 12px 13px;
+}
+
+.feedback-form input:focus,
+.feedback-form select:focus,
+.feedback-form textarea:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.16);
+}
+
+.feedback-form__honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.feedback-form__consent {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  margin-top: 2px;
+  color: var(--color-muted);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.feedback-form__consent input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--color-blue);
+}
+
+.feedback-form__consent a {
+  color: var(--color-blue);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.feedback-form__footer {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.feedback-form__footer > span {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.feedback-form__status {
+  min-height: 24px;
+  color: var(--color-brown);
+  font-size: 0.78rem;
+}
+
+.feedback-form__status[data-state="success"] {
+  color: #166534;
+}
+
+.feedback-form__status[data-state="error"] {
+  color: #a32323;
+}
+
+.feedback-form__loading,
+.feedback-form__mode {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.feedback-form__loading {
+  font-weight: 700;
+}
+
+.feedback-form button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.final-cta {
+  background: var(--color-brown-dark);
+  color: var(--color-white);
+  text-align: center;
+}
+
+.final-cta__content {
+  display: grid;
+  justify-items: center;
+}
+
+.final-cta img {
+  margin-bottom: 22px;
+}
+
+.final-cta h2 {
+  max-width: 760px;
+  color: var(--color-white);
+}
+
+.final-cta p {
+  max-width: 640px;
+  margin-top: 16px;
+  color: var(--color-on-dark-muted);
+}
+
+.final-cta__actions {
+  display: flex;
+  width: min(100%, 360px);
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.site-footer {
+  background: #1f140f;
+  color: var(--color-on-dark-muted);
+}
+
+.site-footer__top {
+  display: grid;
+  gap: 28px;
+  padding-block: 46px 34px;
+}
+
+.site-footer__brand {
+  display: grid;
+  max-width: 390px;
+  gap: 12px;
+}
+
+.site-footer__brand p {
+  font-size: 0.82rem;
+}
+
+.site-footer__brand > a:last-child {
+  color: var(--color-white);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.brand--footer .brand__name {
+  width: 176px;
+}
+
+.site-footer__links {
+  display: grid;
+  gap: 10px;
+}
+
+.site-footer__links a {
+  font-size: 0.84rem;
+}
+
+.site-footer__links a:hover {
+  color: var(--color-gold-bright);
+}
+
+.site-footer__social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.site-footer__social span {
+  display: grid;
+  gap: 1px;
+  color: var(--color-white);
+  font-size: 0.78rem;
+}
+
+.site-footer__social small {
+  color: var(--color-on-dark-muted);
+  font-size: 0.62rem;
+}
+
+.site-footer__bottom {
+  display: grid;
+  gap: 6px;
+  padding-block: 20px 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.site-footer__bottom small {
+  font-size: 0.68rem;
+}

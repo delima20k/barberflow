@@ -33,6 +33,11 @@
 | Front-end / nova tela / layout / CSS | `skill-02-frontend.md` |
 | Animações / navegação / Router | `skill-02-frontend.md` (§ Router, § Animação de telas) |
 | Cards / componentes visuais | `skill-02-frontend.md` (§ Cards, § Componentes globais) |
+| Carrossel de demonstracao / scroll-snap / arraste / fallback sem JavaScript | `skill-02-frontend.md` (§ Carrosseis de demonstracao acessiveis), `skill-07-testes.md`, `skill-08-performance.md` |
+| Video externo lazy / YouTube / iframe sob demanda | `skill-02-frontend.md` (Video externo com carregamento sob demanda), `skill-04-seguranca.md`, `skill-08-performance.md` |
+| Video decorativo de fundo no hero / autoplay silencioso / poster / movimento reduzido | `skill-02-frontend.md` (Video decorativo de fundo no hero), `skill-07-testes.md`, `skill-08-performance.md` |
+| Modal de campanha / voucher promocional / formulario com dados pessoais | `skill-02-frontend.md` (Modal de campanha sem regra de negocio no cliente), `skill-04-seguranca.md`, `skill-07-testes.md` |
+| Formulario publico de feedback / e-mail seguro / honeypot / SEO / analytics preparado | `skill-02-frontend.md` (Formularios publicos, SEO e analytics preparado), `skill-04-seguranca.md`, `skill-07-testes.md`, `skill-08-performance.md` |
 | Backend / BFF / services / controllers / rotas | `skill-03-backend.md` |
 | Segurança / OWASP / autenticação / JWT / headers | `skill-04-seguranca.md` |
 | Banco / queries / migrations / storage / Supabase | `skill-05-banco.md` |

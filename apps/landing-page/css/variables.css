@@ -1,0 +1,26 @@
+:root {
+  --color-bg: #f5e9dc;
+  --color-surface: #f0e4d7;
+  --color-white: #ffffff;
+  --color-ink: #2a211b;
+  --color-muted: #6b5a4a;
+  --color-brown: #5c3317;
+  --color-brown-dark: #2b1b12;
+  --color-gold: #d4a017;
+  --color-gold-bright: #f2b705;
+  --color-blue: #0d1f3c;
+  --color-blue-light: #1a3460;
+  --color-border: #d9c7b6;
+  --color-on-dark: #f9f3ec;
+  --color-on-dark-muted: #dfd0c2;
+  --color-success: #287a4d;
+  --shadow-soft: 0 16px 36px rgba(43, 27, 18, 0.12);
+  --shadow-strong: 0 22px 54px rgba(13, 31, 60, 0.2);
+  --radius-small: 4px;
+  --radius: 8px;
+  --container: 1180px;
+  --header-height: 68px;
+  --font-body: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --transition: 180ms ease;
+}

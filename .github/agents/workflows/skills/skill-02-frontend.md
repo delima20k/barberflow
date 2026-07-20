@@ -105,3 +105,52 @@ const App = new NomeApp();
 - Cada Section concreta separa `Controller`, `State` e `View`; `Controller` recebe `State` e `View` por injecao e secoes nao acessam outras secoes diretamente.
 - Comunicacao entre Sections usa `SectionEventBus` com evento registrado em `/events/catalog.js`; validacao de catalogo fica ligada em desenvolvimento.
 - Toda Section e dona do cleanup de listeners, timers e observers que registrar. Teste de leak deve cobrir ciclos repetidos de `init`/`destroy`.
+
+## 9. CARROSSEIS DE DEMONSTRACAO ACESSIVEIS
+
+- Centralizar o conteudo dos slides em catalogo imutavel e montar a interface por uma classe de componente.
+- Usar `scroll-snap` e rolagem nativa para toque; arraste por mouse deve usar Pointer Events sem bloquear o scroll vertical.
+- Oferecer setas, indicadores, teclado, foco visivel, estado `aria-current` e mensagem `aria-live`.
+- Nao usar autoplay por padrao. Se o produto exigir autoplay, fornecer controle explicito de pausa e preservar tempo de leitura.
+- Manter fallback editorial em `<noscript>` sem duplicar o catalogo completo no HTML.
+- Imagens ausentes devem permanecer como placeholders identificados, sem requests 404; imagens reais usam dimensoes estaveis e lazy loading.
+- Limitar eventos de scroll com `requestAnimationFrame` e remover listeners, frames e estados de ponteiro em `destroy()`.
+
+## 10. VIDEO EXTERNO COM CARREGAMENTO SOB DEMANDA
+
+- Centralizar o identificador do video na configuracao da aplicacao.
+- Nunca renderizar iframe vazio. Sem identificador valido, exibir placeholder editorial.
+- Criar iframe externo apenas apos acao explicita do usuario e usar dominio com privacidade aprimorada quando disponivel.
+- Definir proporcao estavel, titulo acessivel, `loading="lazy"` e allowlist de `frame-src` na CSP.
+- Nao carregar thumbnail, SDK ou script externo antes da intencao de reproducao.
+
+## 11. MODAL DE CAMPANHA SEM REGRA DE NEGOCIO NO CLIENTE
+
+- Contagem, elegibilidade, limite e emissao de voucher pertencem ao servidor; o frontend apenas apresenta respostas reais.
+- Em modo sem API, exibir estado indisponivel com `remaining: null`; nunca gerar codigo, saldo ou sucesso local.
+- Concentrar disponibilidade, emissao e validacao em service com adapter injetado.
+- Modal deve cobrir loading, erro, sucesso, foco, Escape, trap de Tab, copia e instrucao de uso.
+- Dados pessoais exigem regras e politica publicadas, aceite versionado, rate limit, anti-bot, idempotencia e logs no servidor.
+- Nao usar `localStorage`, arrays publicos ou refresh da pagina como controle definitivo de campanha.
+
+## 12. FORMULARIOS PUBLICOS, SEO E ANALYTICS PREPARADO
+
+- Formularios publicos devem separar Controller e Service, com adapter injetado para a integracao remota.
+- Sem API aprovada, o Service retorna estado indisponivel e a interface informa que nenhum dado foi transmitido; nunca simular sucesso de negocio.
+- Aplicar limites no HTML e no Service, honeypot, consentimento, loading e bloqueio de submissao concorrente. Validacao e normalizacao no navegador sao apenas UX; o servidor repete validacao, escape, rate limit e protecao anti-bot.
+- Destino de e-mail, data, horario e origem devem ser definidos no servidor. Nunca aceitar destinatario vindo do navegador nem expor credenciais do provedor.
+- Antes de criar uma nova funcao serverless ou provedor, procurar a infraestrutura de e-mail existente e ampliar o adapter atual dentro da arquitetura do projeto.
+- SEO de landing publica deve manter title, description, canonical, Open Graph, Twitter, icones e JSON-LD coerentes com a URL oficial, sem metricas, avaliacoes ou ofertas inventadas.
+- JSON-LD inline deve ser coberto pela CSP com hash exato; atualizar e testar o hash sempre que o bloco mudar.
+- Analytics deve iniciar com allowlist de eventos e adapter nulo. Nao carregar Pixel, GA ou GTM antes de consentimento, configuracao aprovada e politica publicada.
+- Eventos de conversao nao devem transportar nome, e-mail, telefone, mensagem, voucher ou qualquer outro dado pessoal.
+
+## 13. VIDEO DECORATIVO DE FUNDO NO HERO
+
+- Video decorativo deve usar `autoplay`, `muted`, `loop` e `playsinline`; sem `muted`, navegadores podem bloquear a reproducao automatica.
+- Manter imagem otimizada como `poster` e fallback no CSS para falha de carregamento, economia de dados e movimento reduzido.
+- Usar `preload="metadata"` e nunca pre-carregar integralmente o MP4 do hero. Comprimir o arquivo e, quando viavel, oferecer WebM antes do MP4.
+- Fixar o video com dimensoes estaveis e `object-fit: cover`; aplicar overlay que preserve contraste real do texto em todos os frames.
+- Por ser decorativo, usar `aria-hidden="true"`, remover da ordem de foco e ocultar em `prefers-reduced-motion: reduce`.
+- Se o video transmitir informacao indispensavel, ele deixa de ser decorativo: deve ter controles, alternativa textual e legendas.
+- Servidor e CDN devem entregar o MIME correto e cache controlado. Arquivos que podem ser substituidos sem hash nao devem usar cache imutavel longo.

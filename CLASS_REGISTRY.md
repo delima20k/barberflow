@@ -864,3 +864,55 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `ProfissionalController` | [barberflow-bff-api/controllers/ProfissionalController.js](barberflow-bff-api/controllers/ProfissionalController.js) | interfaces | `extends BaseController`. Handlers: `GET /api/v1/profissionais/:id/perfil-publico`, `GET /api/v1/profissionais/:id/portfolio`, `PATCH /api/v1/profissionais/me/public-profile`, `PATCH/DELETE /api/v1/profissionais/me/portfolio/:imageId`, `POST /api/v1/profissionais/:id/mensagem-barbearia`. |
 | `ProfissionalRepository` | [barberflow-bff-api/repositories/ProfissionalRepository.js](barberflow-bff-api/repositories/ProfissionalRepository.js) | infra | `extends BaseRepository`. Agrega perfil público via `profiles`, `professionals`, `professional_shop_links`, `barbershops`; atualiza `since_year`, `birth_date`, `gender`; lista/edita/remove `portfolio_images` com owner validado; cria/reutiliza conversa direta cliente-dono. Mantém convites existentes. |
 | `ProfissionalService` | [barberflow-bff-api/services/ProfissionalService.js](barberflow-bff-api/services/ProfissionalService.js) | application | `extends BaseService`. Valida DTO público, allowlist de edição, portfolio com permissão client/admin e origem de mensagem para barbearia via `SendMessageUseCase`, preservando casos de convites existentes. |
+
+## apps/landing-page/
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `FaqAccordion` | [apps/landing-page/js/faq.js](apps/landing-page/js/faq.js) | interfaces | Controla a abertura acessível e exclusiva das perguntas frequentes da landing. |
+| `FeedbackFormController` | [apps/landing-page/js/feedback.js](apps/landing-page/js/feedback.js) | interfaces | Coordena validação, honeypot, loading, prevenção de envio repetido e estados do formulário por service injetado. |
+| `FeedbackService` | [apps/landing-page/js/feedback-service.js](apps/landing-page/js/feedback-service.js) | application | Normaliza e valida sugestões antes de delegar a um adapter seguro; no modo local retorna indisponível sem transmitir dados. |
+| `LandingAnalytics` | [apps/landing-page/js/analytics.js](apps/landing-page/js/analytics.js) | interfaces | Define a allowlist de eventos e os pontos de instrumentação por adapter nulo, sem carregar rastreadores ou dados pessoais. |
+| `LandingApp` | [apps/landing-page/js/main.js](apps/landing-page/js/main.js) | interfaces | Inicializa e coordena os componentes independentes da landing page. |
+| `LandingCarousel` | [apps/landing-page/js/carousel.js](apps/landing-page/js/carousel.js) | interfaces | Renderiza o catálogo de funcionalidades e gerencia scroll-snap, arraste, teclado, indicadores e estado acessível. |
+| `LandingConfig` | [apps/landing-page/config/landing-config.js](apps/landing-page/config/landing-config.js) | infra | Centraliza domínio canônico, destinos oficiais e flags de integrações futuras. |
+| `LandingFeatureCatalog` | [apps/landing-page/config/landing-features.js](apps/landing-page/config/landing-features.js) | infra | Mantém o catálogo imutável dos slides e os caminhos esperados dos screenshots da landing. |
+| `MobileNavigation` | [apps/landing-page/js/mobile-navigation.js](apps/landing-page/js/mobile-navigation.js) | interfaces | Gerencia o menu responsivo e seus estados ARIA. |
+| `ScrollAnimationController` | [apps/landing-page/js/animations.js](apps/landing-page/js/animations.js) | interfaces | Revela seções com IntersectionObserver e respeita preferência de movimento reduzido. |
+| `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla formulario, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
+| `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
+| `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e cria iframe youtube-nocookie somente apos acao do visitante. |
+
+## tests/landing-carousel.test.js
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `CarouselFixture` | [tests/landing-carousel.test.js](tests/landing-carousel.test.js) | infra | Monta um ambiente DOM isolado para validar catálogo e interações do carrossel. |
+| `FakeClassList` | [tests/landing-carousel.test.js](tests/landing-carousel.test.js) | infra | Simula estados de classes CSS nos testes do carrossel. |
+| `FakeDocument` | [tests/landing-carousel.test.js](tests/landing-carousel.test.js) | infra | Cria elementos DOM controlados no contexto de teste. |
+| `FakeElement` | [tests/landing-carousel.test.js](tests/landing-carousel.test.js) | infra | Simula elementos, eventos, atributos e rolagem necessários ao componente. |
+
+## tests/landing-voucher.test.js
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `VoucherAdapterStub` | [tests/landing-voucher.test.js](tests/landing-voucher.test.js) | infra | Adapter controlado para provar a delegacao do service sem rede. |
+| `VoucherServiceFixture` | [tests/landing-voucher.test.js](tests/landing-voucher.test.js) | infra | Carrega o service em contexto VM isolado para validar modo local e adapter. |
+
+## tests/landing-feedback.test.js
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `FeedbackAdapterStub` | [tests/landing-feedback.test.js](tests/landing-feedback.test.js) | infra | Adapter controlado que valida a delegacao do feedback sem rede ou provedor externo. |
+
+## tests/landing-video.test.js
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `YouTubeVideoFixture` | [tests/landing-video.test.js](tests/landing-video.test.js) | infra | Simula DOM minimo para validar placeholder e criacao tardia do iframe. |
+
+## tests/landing-page.test.js
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `LandingPageFixture` | [tests/landing-page.test.js](tests/landing-page.test.js) | infra | Fornece caminhos e fontes determinísticas para os testes estáticos da landing. |
