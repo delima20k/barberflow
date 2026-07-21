@@ -122,6 +122,7 @@ describe('Landing page BarberFlow', () => {
   it('deve manter marca e menu no topo do conteudo sem elemento header', () => {
     const html = LandingPageFixture.source('index.html');
     const css = LandingPageFixture.source('css/sections/header-hero.css');
+    const responsiveCss = LandingPageFixture.source('css/responsive.css');
     const mainStart = html.match(/<main id="conteudo">[\s\S]*?<section id="hero"/)?.[0] ?? '';
 
     assert.doesNotMatch(html, /<\/?header\b/i);
@@ -130,6 +131,16 @@ describe('Landing page BarberFlow', () => {
     assert.match(mainStart, /<img class="brand__name"/);
     assert.match(mainStart, /<button class="menu-toggle"[^>]*data-menu-toggle/);
     assert.match(css, /\.landing-topbar\s*\{[^}]*background:\s*transparent;/);
+    assert.match(
+      css,
+      /\.brand\s*\{[^}]*position:\s*absolute;[^}]*left:\s*50%;[^}]*transform:\s*translateX\(-50%\);/,
+    );
+    assert.match(
+      css,
+      /\.brand__name\s*\{[^}]*width:\s*246px;[^}]*height:\s*63px;[^}]*transform:\s*translateY\(15px\);/,
+    );
+    assert.match(responsiveCss, /@media \(max-width:\s*374px\)[\s\S]*?\.brand__name\s*\{[^}]*width:\s*168px;/);
+    assert.doesNotMatch(responsiveCss, /\.menu-toggle\s*\{[^}]*display:\s*none;/);
     assert.doesNotMatch(css, /\.site-header(?:__inner)?\b/);
   });
 
