@@ -203,7 +203,9 @@ describe('VoucherService', () => {
 
   it('deve emitir pela API usando somente os campos permitidos', async () => {
     const calls = [];
-    const fetchImpl = async (url, options = {}) => {
+    let fetchReceiver;
+    const fetchImpl = async function fetchVoucher(url, options = {}) {
+      fetchReceiver = this;
       calls.push({ url, options });
       return {
         ok: true,
@@ -233,6 +235,7 @@ describe('VoucherService', () => {
 
     assert.equal(availability.remaining, 58);
     assert.equal(issuance.code, 'ABC123');
+    assert.equal(fetchReceiver, undefined);
     assert.equal(calls[0].url, 'https://bff.barberflow.live/api/v1/professional-vouchers/availability');
     assert.equal(calls[1].url, 'https://bff.barberflow.live/api/v1/professional-vouchers/issue');
     assert.deepEqual(JSON.parse(calls[1].options.body), {

@@ -43,7 +43,8 @@ class VoucherApiAdapter {
     }
 
     try {
-      const response = await this.#fetch(`${this.#endpoint}${path}`, {
+      const fetchRequest = this.#fetch;
+      const response = await fetchRequest(`${this.#endpoint}${path}`, {
         method,
         credentials: 'omit',
         ...(body ? {

@@ -130,10 +130,12 @@ describe('FeedbackApiAdapter', () => {
   it('deve enviar somente o payload permitido para o endpoint do BFF', async () => {
     const { FeedbackApiAdapter } = createServiceContext();
     let request;
+    let fetchReceiver;
     const adapter = new FeedbackApiAdapter(
       'https://bff.barberflow.live/api/v1/landing/feedback',
       {
-        fetchImpl: async (url, options) => {
+        fetchImpl: async function fetchFeedback(url, options) {
+          fetchReceiver = this;
           request = { url, options, body: JSON.parse(options.body) };
           return {
             ok: true,
@@ -158,6 +160,7 @@ describe('FeedbackApiAdapter', () => {
       ok: true,
       status: 'accepted',
     });
+    assert.equal(fetchReceiver, undefined);
     assert.equal(request.url, 'https://bff.barberflow.live/api/v1/landing/feedback');
     assert.equal(request.options.method, 'POST');
     assert.equal(request.options.credentials, 'omit');

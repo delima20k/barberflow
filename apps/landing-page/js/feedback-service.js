@@ -33,7 +33,8 @@ class FeedbackApiAdapter {
     });
 
     try {
-      const response = await this.#fetch(this.#endpoint, {
+      const fetchRequest = this.#fetch;
+      const response = await fetchRequest(this.#endpoint, {
         method: 'POST',
         credentials: 'omit',
         headers: { 'Content-Type': 'application/json' },
