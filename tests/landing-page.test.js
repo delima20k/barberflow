@@ -98,7 +98,6 @@ describe('Landing page BarberFlow', () => {
   it('deve renderizar todas as secoes previstas no esqueleto', () => {
     const html = LandingPageFixture.source('index.html');
     const sections = [
-      'cabecalho',
       'hero',
       'problema',
       'solucao',
@@ -120,11 +119,17 @@ describe('Landing page BarberFlow', () => {
     }
   });
 
-  it('deve manter transparente o fundo visual do cabecalho', () => {
+  it('deve manter marca e menu no topo do conteudo sem elemento header', () => {
+    const html = LandingPageFixture.source('index.html');
     const css = LandingPageFixture.source('css/sections/header-hero.css');
+    const mainStart = html.match(/<main id="conteudo">[\s\S]*?<section id="hero"/)?.[0] ?? '';
 
-    assert.match(css, /\.site-header\s*\{[^}]*background:\s*transparent;/);
-    assert.match(css, /\.site-header__inner\s*\{[^}]*background:\s*transparent;/);
+    assert.doesNotMatch(html, /<header[^>]*id="cabecalho"|id="cabecalho"/);
+    assert.match(mainStart, /<div class="landing-topbar" data-header>/);
+    assert.match(mainStart, /<img class="brand__name"/);
+    assert.match(mainStart, /<button class="menu-toggle"[^>]*data-menu-toggle/);
+    assert.match(css, /\.landing-topbar\s*\{[^}]*background:\s*transparent;/);
+    assert.doesNotMatch(css, /\.site-header(?:__inner)?\b/);
   });
 
   it('deve usar video decorativo otimizado no hero com imagem de fallback', () => {

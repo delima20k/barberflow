@@ -46,13 +46,13 @@
   }
 
   .hero {
-    min-height: min(680px, calc(100svh - var(--header-height) - 80px));
+    min-height: min(calc(680px + var(--header-height)), calc(100svh - 80px));
   }
 
   .hero__layout {
     grid-template-columns: minmax(0, 1fr) 250px;
     gap: 42px;
-    padding-block: 72px 88px;
+    padding-block: calc(var(--header-height) + 40px) 88px;
   }
 
   .hero h1 {
@@ -225,7 +225,7 @@
   }
 
   .hero {
-    min-height: min(650px, calc(100svh - var(--header-height) - 96px));
+    min-height: min(calc(650px + var(--header-height)), calc(100svh - 96px));
   }
 
   .hero h1 {

@@ -17,7 +17,7 @@ body.modal-open {
 }
 
 section[id] {
-  scroll-margin-top: calc(var(--header-height) + 16px);
+  scroll-margin-top: 16px;
 }
 
 :focus-visible {
