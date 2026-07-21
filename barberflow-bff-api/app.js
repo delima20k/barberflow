@@ -66,6 +66,7 @@ const adminConfigRoute      = require('./routes/adminConfig');
 const adminRoute            = require('./routes/admin');
 const internalCronRoute     = require('./routes/internalCron');
 const shareRoute            = require('./routes/share');
+const { LandingRouteFactory } = require('./routes/landing');
 const SupabaseClient         = require('./utils/SupabaseClient');
 const { R2ConfigService }    = require('./application/admin/R2ConfigService');
 
@@ -155,6 +156,7 @@ function criarApp(db = null) {
   v1Router.use('/financeiro',     financeiroRoute(_db));
   v1Router.use('/profissional/pagamentos', professionalPaymentsRoute(_db));
   v1Router.use('/professional-vouchers', professionalVouchersRoute(_db));
+  v1Router.use('/landing',       LandingRouteFactory.create());
   v1Router.use('/auth', RateLimiterMiddleware.auth, AbuseMiddleware.forHttp(), authRoute);
   v1Router.use('/geo',           geoRoute);
   v1Router.use('/media',         AbuseMiddleware.forHttp(), mediaRoute(_db));

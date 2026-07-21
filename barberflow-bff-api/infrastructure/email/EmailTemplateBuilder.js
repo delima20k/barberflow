@@ -54,6 +54,32 @@ class EmailTemplateBuilder {
     });
   }
 
+  static landingFeedback({
+    name,
+    email,
+    type,
+    subject,
+    message,
+    privacyConsent,
+    submittedAt,
+    origin,
+  }) {
+    return EmailTemplateBuilder.#layout({
+      title: 'Nova mensagem da landing',
+      preview: 'Uma nova sugestão foi enviada pela Landing Page BarberFlow.',
+      body: `
+        <p><strong>Nome:</strong> ${EmailTemplateBuilder.#escape(name)}</p>
+        <p><strong>E-mail:</strong> ${EmailTemplateBuilder.#escape(email)}</p>
+        <p><strong>Tipo:</strong> ${EmailTemplateBuilder.#escape(type)}</p>
+        <p><strong>Assunto:</strong> ${EmailTemplateBuilder.#escape(subject)}</p>
+        <p><strong>Mensagem:</strong><br>${EmailTemplateBuilder.#escape(message).replaceAll('\n', '<br>')}</p>
+        <p><strong>Enviado em:</strong> ${EmailTemplateBuilder.#escape(submittedAt)}</p>
+        <p><strong>Origem:</strong> ${EmailTemplateBuilder.#escape(origin)}</p>
+        <p class="muted">Aceite da política de privacidade: ${privacyConsent === true ? 'sim' : 'não'}.</p>
+      `,
+    });
+  }
+
   static appLabelFromUrl(value) {
     try {
       const hostname = new URL(String(value || '')).hostname.toLowerCase();

@@ -120,6 +120,13 @@ describe('Landing page BarberFlow', () => {
     }
   });
 
+  it('deve manter transparente o fundo visual do cabecalho', () => {
+    const css = LandingPageFixture.source('css/sections/header-hero.css');
+
+    assert.match(css, /\.site-header\s*\{[^}]*background:\s*transparent;/);
+    assert.match(css, /\.site-header__inner\s*\{[^}]*background:\s*transparent;/);
+  });
+
   it('deve usar video decorativo otimizado no hero com imagem de fallback', () => {
     const html = LandingPageFixture.source('index.html');
     const css = LandingPageFixture.source('css/sections/header-hero.css');
@@ -309,7 +316,18 @@ describe('Landing page BarberFlow', () => {
   });
 
   it('deve usar classes de interface sem chamadas de dados', () => {
-    const source = LandingPageFixture.javascriptSource();
+    const source = [
+      'config/landing-config.js',
+      'js/main.js',
+      'js/carousel.js',
+      'js/mobile-navigation.js',
+      'js/faq.js',
+      'js/youtube-video.js',
+      'js/voucher-service.js',
+      'js/voucher-modal.js',
+      'js/feedback.js',
+      'js/animations.js',
+    ].map((file) => LandingPageFixture.source(file)).join('\n');
     const classes = [
       'LandingConfig',
       'LandingApp',
@@ -398,9 +416,12 @@ describe('Landing page BarberFlow', () => {
     assert.doesNotMatch(animations, /^\.reveal\s*\{\s*opacity:\s*0/m);
   });
 
-  it('deve oferecer o formulario completo de sugestoes sem envio inseguro', () => {
+  it('deve oferecer o formulario completo com envio seguro pelo BFF', () => {
     const html = LandingPageFixture.source('index.html');
     const source = LandingPageFixture.javascriptSource();
+    const config = LandingPageFixture.source('config/landing-config.js');
+    const main = LandingPageFixture.source('js/main.js');
+    const privacy = LandingPageFixture.source('legal/privacy.html');
     const section = html.match(
       /<section[^>]*id="sugestoes"[\s\S]*?<\/section>/,
     )?.[0] ?? '';
@@ -434,8 +455,14 @@ describe('Landing page BarberFlow', () => {
     }
 
     assert.match(source, /class FeedbackService\b/);
+    assert.match(source, /class FeedbackApiAdapter\b/);
     assert.match(source, /feedbackSubmissionEnabled/);
-    assert.doesNotMatch(source, /\bfetch\s*\(|XMLHttpRequest|mailto:/i);
+    assert.match(config, /feedbackSubmissionEnabled:\s*true/);
+    assert.match(config, /feedbackApiUrl:\s*'https:\/\/bff\.barberflow\.live\/api\/v1\/landing\/feedback'/);
+    assert.match(main, /new FeedbackApiAdapter\(\s*LandingConfig\.get\('feedbackApiUrl'\)/);
+    assert.match(privacy, /contato@barberflow\.live/);
+    assert.match(privacy, /Resend/);
+    assert.doesNotMatch(section, /envio está em preparação|nenhum dado será transmitido/i);
     assert.doesNotMatch(source, /RESEND_API_KEY|SUPABASE_SERVICE_ROLE|service_role/i);
   });
 

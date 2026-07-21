@@ -27,7 +27,7 @@ class FeedbackAdapterStub {
 }
 
 function createServiceContext() {
-  const context = vm.createContext({ console });
+  const context = vm.createContext({ console, AbortSignal });
   vm.runInContext(readFileSync(SERVICE_PATH, 'utf8'), context);
   return context;
 }
@@ -123,5 +123,74 @@ describe('FeedbackService', () => {
       }),
       /adapter seguro de feedback/i,
     );
+  });
+});
+
+describe('FeedbackApiAdapter', () => {
+  it('deve enviar somente o payload permitido para o endpoint do BFF', async () => {
+    const { FeedbackApiAdapter } = createServiceContext();
+    let request;
+    const adapter = new FeedbackApiAdapter(
+      'https://bff.barberflow.live/api/v1/landing/feedback',
+      {
+        fetchImpl: async (url, options) => {
+          request = { url, options, body: JSON.parse(options.body) };
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ ok: true, dados: { accepted: true } }),
+          };
+        },
+      },
+    );
+
+    const result = await adapter.submit({
+      name: 'Ana',
+      email: 'ana@example.com',
+      type: 'Sugestão',
+      subject: 'Fila',
+      message: 'Uma ideia para a fila.',
+      privacyConsent: true,
+      to: 'attacker@example.com',
+    });
+
+    assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+      ok: true,
+      status: 'accepted',
+    });
+    assert.equal(request.url, 'https://bff.barberflow.live/api/v1/landing/feedback');
+    assert.equal(request.options.method, 'POST');
+    assert.equal(request.options.credentials, 'omit');
+    assert.deepEqual(request.body, {
+      name: 'Ana',
+      email: 'ana@example.com',
+      type: 'Sugestão',
+      subject: 'Fila',
+      message: 'Uma ideia para a fila.',
+      privacyConsent: true,
+    });
+    assert.equal(Object.hasOwn(request.body, 'to'), false);
+  });
+
+  it('deve retornar falha controlada quando o BFF rejeitar o envio', async () => {
+    const { FeedbackApiAdapter } = createServiceContext();
+    const adapter = new FeedbackApiAdapter(
+      'https://bff.barberflow.live/api/v1/landing/feedback',
+      {
+        fetchImpl: async () => ({
+          ok: false,
+          status: 429,
+          json: async () => ({ ok: false, error: 'Muitas requisições.' }),
+        }),
+      },
+    );
+
+    const result = await adapter.submit({ name: 'Ana' });
+
+    assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+      ok: false,
+      status: 'error',
+      message: 'Muitas requisições.',
+    });
   });
 });

@@ -20,7 +20,7 @@ primeiros passos e oferta condicional da campanha.
 - Quatro beneficios praticos e cinco passos para comecar
 - Acesso direto aos PWAs oficiais do cliente e do profissional
 - Voucher de um mes gratis condicionado as regras vigentes da campanha
-- FAQ com nove duvidas reais, formulario de sugestoes preparado, CTA final e rodape completo
+- FAQ com nove duvidas reais, formulario de sugestoes integrado ao BFF, CTA final e rodape completo
 - SEO tecnico, dados estruturados e pontos de analytics sem rastreadores instalados
 - Animacoes leves no hero, nas secoes e nos estados ao vivo, com movimento reduzido respeitado
 
@@ -151,39 +151,26 @@ service role, regras de geracao e credenciais permanecem exclusivamente no BFF.
 ## Integracoes pendentes
 
 - Geracao publica e segura de voucher de campanha
-- Envio de sugestoes e melhorias
 
-Nenhum codigo ficticio, dado local ou request de rede simula essas integracoes.
+Nenhum codigo ficticio ou dado local simula a integracao de voucher.
 
 ## Sugestoes e e-mail
 
 O formulario inclui nome, e-mail, tipo, assunto, mensagem, consentimento,
 limites de caracteres, honeypot, loading, sucesso e erro. `FeedbackService`
-normaliza e valida os dados e aceita um adapter por injecao. A flag
-`feedbackSubmissionEnabled` permanece `false`; nesse estado, nenhum dado e
-transmitido ou armazenado.
+normaliza e valida os dados e delega o envio ao `FeedbackApiAdapter`. A flag
+`feedbackSubmissionEnabled` esta ativa e o adapter envia somente a allowlist
+para `POST https://bff.barberflow.live/api/v1/landing/feedback`.
 
-O repositorio ja possui `ResendEmailService` no BFF para e-mails transacionais.
-Por isso, a opcao recomendada e ampliar a infraestrutura existente, em vez de
-criar outra conta Resend ou uma funcao isolada na Vercel:
+O BFF revalida o payload com `LandingFeedbackDto`, absorve o honeypot, limita a
+cinco envios por IP a cada 15 minutos e usa `SubmitLandingFeedbackUseCase` para
+fixar `contato@barberflow.live` como destino. O cliente nao envia nem controla o
+destinatario. O template escapa Nome, E-mail, Tipo, Assunto e Mensagem e inclui
+data, horario, consentimento e a origem `Landing Page BarberFlow`.
 
-1. Criar `SubmitLandingFeedbackUseCase` e DTO com allowlist no BFF.
-2. Expor `POST /api/v1/landing/feedback` com payload limitado.
-3. Revalidar e escapar todos os campos no servidor.
-4. Definir `contato@barberflow.live` como destino fixo no servidor.
-5. Acrescentar data e horario do servidor e origem fixa `Landing Page BarberFlow`.
-6. Aplicar rate limit, idempotencia curta, honeypot e protecao anti-bot.
-7. Estender o adapter Resend com template proprio, sem logar conteudo pessoal.
-8. Definir retencao, auditoria, politica de privacidade e alertas operacionais.
-
-Uma Vercel Function seria tecnicamente compativel, mas duplicaria rate limit,
-observabilidade, configuracao e provedor ja presentes no BFF. O navegador nunca
-deve receber `RESEND_API_KEY`, tokens, credenciais ou o endereco de destino como
-regra controlavel pelo request.
-
-O e-mail futuro deve apresentar Nome, E-mail, Tipo, Assunto, Mensagem, data e
-horario e a origem. O backend deve montar e escapar o template; a normalizacao
-do frontend existe apenas para melhorar a experiencia.
+O envio reutiliza `ResendEmailService`; nao existe credencial no navegador nem
+uma segunda funcao serverless. O deploy do BFF precisa manter `RESEND_API_KEY` e
+um `RESEND_FROM_EMAIL` autorizado pelo dominio no ambiente de producao.
 
 ## FAQ e documentos legais
 
@@ -192,9 +179,9 @@ autonomo, fila publica, convites de parceiros, recursos financeiros, voucher e
 contato. As respostas refletem funcionalidades existentes e evitam tratar o
 sistema como contabilidade completa ou garantir beneficio promocional.
 
-Os links do rodape apontam para documentos preliminares locais em `legal/`.
-Eles estao marcados como preparacao e `noindex`; precisam de revisao juridica e
-aprovacao antes da publicacao.
+A politica de privacidade descreve o envio ativo de sugestoes pelo BFF e pelo
+Resend. Os termos e as regras da campanha continuam preliminares; os documentos
+legais permanecem com `noindex` e devem passar por revisao juridica.
 
 ## SEO e compartilhamento
 
@@ -244,7 +231,7 @@ funcionalidades. O video oficial continua pendente em `youtubeVideoId`.
 1. Adicionar e otimizar os screenshots reais.
 2. Configurar o ID oficial do YouTube.
 3. Revisar links dos aplicativos e a caixa `contato@barberflow.live`.
-4. Aprovar a integracao segura de feedback no BFF.
+4. Confirmar `RESEND_API_KEY` e `RESEND_FROM_EMAIL` no projeto do BFF.
 5. Implementar e auditar os vouchers reais.
 6. Revisar e aprovar politica, termos e regras da campanha.
 7. Criar a imagem social oficial.

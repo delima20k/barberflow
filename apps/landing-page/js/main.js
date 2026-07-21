@@ -35,6 +35,9 @@ class LandingApp {
         this.root.querySelector('[data-feedback-form]'),
         new FeedbackService({
           enabled: LandingConfig.get('feedbackSubmissionEnabled'),
+          adapter: new FeedbackApiAdapter(
+            LandingConfig.get('feedbackApiUrl'),
+          ),
         }),
         analytics,
       ),

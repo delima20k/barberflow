@@ -39,6 +39,16 @@ class IEmailService {
   async sendPasswordChangedNotification(userEmail, userName) {
     throw new Error(`${this.constructor.name}.sendPasswordChangedNotification() nao implementado`);
   }
+
+  /**
+   * Envia uma mensagem recebida pela landing para o contato operacional.
+   * @param {string} destination
+   * @param {object} feedback
+   * @returns {Promise<{ ok: boolean, skipped?: boolean, providerId?: string|null, error?: string }>}
+   */
+  async sendLandingFeedback(_destination, _feedback) {
+    throw new Error(`${this.constructor.name}.sendLandingFeedback() nao implementado`);
+  }
 }
 
 module.exports = { IEmailService };

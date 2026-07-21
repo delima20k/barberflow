@@ -161,3 +161,35 @@ test('ResendEmailService trata timeout sem lancar excecao nem vazar segredo', as
   assert.doesNotMatch(logs, /re_secret_test_key/);
   assert.doesNotMatch(logs, /user@example\.com/);
 });
+
+test('ResendEmailService envia feedback da landing ao contato fixado pelo caso de uso', async () => {
+  let request;
+  const svc = new ResendEmailService({
+    apiKey: 're_test',
+    baseUrl: 'https://resend.test',
+    fetchImpl: async (_url, options) => {
+      request = { body: JSON.parse(options.body) };
+      return { ok: true, status: 200, json: async () => ({ id: 'email_feedback_1' }) };
+    },
+    logger: makeLogger(),
+  });
+
+  const result = await svc.sendLandingFeedback('contato@barberflow.live', {
+    name: '<Ana>',
+    email: 'ana@example.com',
+    type: 'Sugestão',
+    subject: 'Fila <script>',
+    message: 'Melhorar <b>a fila</b>.',
+    privacyConsent: true,
+    submittedAt: '2026-07-21T12:00:00.000Z',
+    origin: 'Landing Page BarberFlow',
+  });
+
+  assert.deepEqual(result, { ok: true, providerId: 'email_feedback_1' });
+  assert.deepEqual(request.body.to, ['contato@barberflow.live']);
+  assert.equal(request.body.subject, 'Nova mensagem da Landing BarberFlow');
+  assert.match(request.body.html, /&lt;Ana&gt;/);
+  assert.match(request.body.html, /Fila &lt;script&gt;/);
+  assert.match(request.body.html, /Melhorar &lt;b&gt;a fila&lt;\/b&gt;\./);
+  assert.doesNotMatch(request.body.html, /<script>|<b>a fila<\/b>/);
+});

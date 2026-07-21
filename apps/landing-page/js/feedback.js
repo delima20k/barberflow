@@ -71,7 +71,7 @@ class FeedbackFormController {
       }
 
       this.showStatus(
-        `${result?.message ?? 'Não foi possível enviar sua sugestão.'} Nenhum dado foi transmitido.`,
+        result?.message ?? 'Não foi possível enviar sua sugestão.',
         'error',
       );
     } catch (error) {

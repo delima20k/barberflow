@@ -870,6 +870,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `FaqAccordion` | [apps/landing-page/js/faq.js](apps/landing-page/js/faq.js) | interfaces | Controla a abertura acessível e exclusiva das perguntas frequentes da landing. |
+| `FeedbackApiAdapter` | [apps/landing-page/js/feedback-service.js](apps/landing-page/js/feedback-service.js) | infra | Envia ao endpoint público do BFF somente a allowlist do formulário, sem credenciais ou destinatário controlável pelo navegador. |
 | `FeedbackFormController` | [apps/landing-page/js/feedback.js](apps/landing-page/js/feedback.js) | interfaces | Coordena validação, honeypot, loading, prevenção de envio repetido e estados do formulário por service injetado. |
 | `FeedbackService` | [apps/landing-page/js/feedback-service.js](apps/landing-page/js/feedback-service.js) | application | Normaliza e valida sugestões antes de delegar a um adapter seguro; no modo local retorna indisponível sem transmitir dados. |
 | `LandingAnalytics` | [apps/landing-page/js/analytics.js](apps/landing-page/js/analytics.js) | interfaces | Define a allowlist de eventos e os pontos de instrumentação por adapter nulo, sem carregar rastreadores ou dados pessoais. |
@@ -882,6 +883,15 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla formulario, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
 | `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
 | `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e cria iframe youtube-nocookie somente apos acao do visitante. |
+
+## Landing Feedback BFF
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `LandingController` | [barberflow-bff-api/controllers/LandingController.js](barberflow-bff-api/controllers/LandingController.js) | interfaces | Expõe o envio público de sugestões da landing e delega o processamento ao caso de uso. |
+| `LandingFeedbackDto` | [barberflow-bff-api/application/landing/dto/LandingFeedbackDto.js](barberflow-bff-api/application/landing/dto/LandingFeedbackDto.js) | application | Normaliza e valida a allowlist do formulário, incluindo consentimento e honeypot. |
+| `LandingRouteFactory` | [barberflow-bff-api/routes/landing.js](barberflow-bff-api/routes/landing.js) | interfaces | Monta `POST /api/v1/landing/feedback` com rate limit e dependências injetáveis. |
+| `SubmitLandingFeedbackUseCase` | [barberflow-bff-api/application/landing/use-cases/SubmitLandingFeedbackUseCase.js](barberflow-bff-api/application/landing/use-cases/SubmitLandingFeedbackUseCase.js) | application | Fixa o destinatário operacional, acrescenta metadados do servidor e envia pelo serviço de e-mail. |
 
 ## tests/landing-carousel.test.js
 
@@ -904,6 +914,14 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | Classe | Arquivo | Camada | Descricao |
 |---|---|---|---|
 | `FeedbackAdapterStub` | [tests/landing-feedback.test.js](tests/landing-feedback.test.js) | infra | Adapter controlado que valida a delegacao do feedback sem rede ou provedor externo. |
+
+## barberflow-bff-api/tests/landing-feedback.test.js
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `FixedClock` | [barberflow-bff-api/tests/landing-feedback.test.js](barberflow-bff-api/tests/landing-feedback.test.js) | infra | Relógio determinístico para validar os metadados produzidos pelo caso de uso. |
+| `LandingFeedbackEmailStub` | [barberflow-bff-api/tests/landing-feedback.test.js](barberflow-bff-api/tests/landing-feedback.test.js) | infra | Adapter de e-mail controlado para testar destino, falha e supressão do honeypot. |
+| `LandingFeedbackHttpFixture` | [barberflow-bff-api/tests/landing-feedback.test.js](barberflow-bff-api/tests/landing-feedback.test.js) | infra | Sobe uma aplicação Express isolada para validar o contrato HTTP da rota pública. |
 
 ## tests/landing-video.test.js
 

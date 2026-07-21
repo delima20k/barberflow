@@ -225,6 +225,17 @@ class RateLimiterMiddleware {
     handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
   });
 
+  static landingFeedback = rateLimit({
+    windowMs:        15 * 60 * 1000,
+    max:             5,
+    standardHeaders: 'draft-7',
+    legacyHeaders:   false,
+    store:           _criarRedisStore(),
+    keyGenerator:    (req) => `landing-feedback:${ipKeyGenerator(req.ip)}`,
+    skip:            () => process.env.APP_ENV === 'test',
+    handler:         (req, res) => RateLimiterMiddleware.#onLimit(req, res),
+  });
+
   static authEmailIp = rateLimit({
     windowMs:        60 * 60 * 1000,
     max:             5,

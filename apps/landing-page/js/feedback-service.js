@@ -1,5 +1,66 @@
 'use strict';
 
+class FeedbackApiAdapter {
+  static #ALLOWED_FIELDS = Object.freeze([
+    'name',
+    'email',
+    'type',
+    'subject',
+    'message',
+    'privacyConsent',
+  ]);
+
+  #endpoint;
+  #fetch;
+
+  constructor(endpoint, { fetchImpl = globalThis.fetch } = {}) {
+    this.#endpoint = String(endpoint ?? '').trim();
+    this.#fetch = fetchImpl;
+  }
+
+  async submit(payload = {}) {
+    if (!this.#endpoint || typeof this.#fetch !== 'function') {
+      return {
+        ok: false,
+        status: 'unavailable',
+        message: 'O envio de sugestões está temporariamente indisponível.',
+      };
+    }
+
+    const body = {};
+    FeedbackApiAdapter.#ALLOWED_FIELDS.forEach((field) => {
+      body[field] = payload[field];
+    });
+
+    try {
+      const response = await this.#fetch(this.#endpoint, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: globalThis.AbortSignal?.timeout?.(10_000),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || result?.ok === false) {
+        return {
+          ok: false,
+          status: 'error',
+          message: result?.error ?? 'Não foi possível enviar sua sugestão agora.',
+        };
+      }
+
+      return { ok: true, status: 'accepted' };
+    } catch {
+      return {
+        ok: false,
+        status: 'error',
+        message: 'Não foi possível conectar ao BarberFlow. Tente novamente.',
+      };
+    }
+  }
+}
+
 class FeedbackService {
   static #ALLOWED_TYPES = new Set([
     'Sugestão',
@@ -78,4 +139,5 @@ class FeedbackService {
   }
 }
 
+globalThis.FeedbackApiAdapter = FeedbackApiAdapter;
 globalThis.FeedbackService = FeedbackService;

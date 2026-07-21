@@ -55,6 +55,15 @@ class ResendEmailService extends IEmailService {
     });
   }
 
+  async sendLandingFeedback(destination, feedback) {
+    return this.#send({
+      to: destination,
+      subject: 'Nova mensagem da Landing BarberFlow',
+      html: EmailTemplateBuilder.landingFeedback(feedback),
+      tag: 'landing_feedback',
+    });
+  }
+
   async #send({ to, subject, html, tag }) {
     const email = String(to || '').trim().toLowerCase();
     if (!this.#apiKey) {
