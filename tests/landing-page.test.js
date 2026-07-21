@@ -299,6 +299,8 @@ describe('Landing page BarberFlow', () => {
   it('deve preparar formulario e estados completos sem voucher ou contagem ficticia', () => {
     const html = LandingPageFixture.source('index.html');
     const source = LandingPageFixture.javascriptSource();
+    const config = LandingPageFixture.source('config/landing-config.js');
+    const main = LandingPageFixture.source('js/main.js');
 
     assert.match(html, /data-voucher-availability[^>]*aria-live="polite"/);
     assert.match(html, /name="name"[^>]*autocomplete="name"/);
@@ -310,10 +312,14 @@ describe('Landing page BarberFlow', () => {
     assert.match(html, /data-voucher-success/);
     assert.match(html, /data-voucher-code/);
     assert.match(html, /data-copy-voucher[^>]*>Copiar código<\/button>/);
+    assert.match(html, /data-voucher-app-link[^>]*>Entrar no app profissional<\/a>/);
     assert.match(html, /Seu voucher foi gerado com sucesso!/);
     assert.equal((html.match(/data-voucher-success-step/g) ?? []).length, 5);
     assert.doesNotMatch(source, /localStorage|Math\.random|crypto\.randomUUID/);
     assert.doesNotMatch(html, />\s*\d+\s+vouchers? restantes/i);
+    assert.match(config, /voucherCampaignEnabled:\s*true/);
+    assert.match(config, /voucherApiUrl:\s*'https:\/\/bff\.barberflow\.live\/api\/v1\/professional-vouchers'/);
+    assert.match(main, /new VoucherApiAdapter\(/);
   });
 
   it('deve preparar o carrossel dinamico com fallback sem JavaScript', () => {
@@ -340,7 +346,6 @@ describe('Landing page BarberFlow', () => {
       'js/mobile-navigation.js',
       'js/faq.js',
       'js/youtube-video.js',
-      'js/voucher-service.js',
       'js/voucher-modal.js',
       'js/feedback.js',
       'js/animations.js',
@@ -352,7 +357,6 @@ describe('Landing page BarberFlow', () => {
       'MobileNavigation',
       'FaqAccordion',
       'YouTubeVideoController',
-      'VoucherService',
       'VoucherModal',
       'FeedbackFormController',
       'ScrollAnimationController',
@@ -364,6 +368,11 @@ describe('Landing page BarberFlow', () => {
 
     assert.doesNotMatch(source, /\bfetch\s*\(|XMLHttpRequest|supabase/i);
     assert.doesNotMatch(source, /\binnerHTML\b|setInterval\s*\(/);
+
+    const voucherService = LandingPageFixture.source('js/voucher-service.js');
+    assert.match(voucherService, /class VoucherService\b/);
+    assert.match(voucherService, /class VoucherApiAdapter\b/);
+    assert.doesNotMatch(voucherService, /supabase|service[_-]?role/i);
   });
 
   it('deve oferecer responsividade e respeitar movimento reduzido', () => {

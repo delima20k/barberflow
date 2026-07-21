@@ -28,6 +28,9 @@ class LandingApp {
         this.root,
         new VoucherService({
           enabled: LandingConfig.get('voucherCampaignEnabled'),
+          adapter: new VoucherApiAdapter(
+            LandingConfig.get('voucherApiUrl'),
+          ),
         }),
         { analytics },
       ),

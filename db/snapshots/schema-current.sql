@@ -1,6 +1,6 @@
 -- BarberFlow Schema Snapshot
--- Gerado em: 2026-06-09
--- Migrations: 126
+-- Gerado em: 2026-07-21
+-- Migrations: 146
 -- NÃO editar manualmente. Regenerar com: node scripts/db-snapshot.js
 
 
@@ -7806,18 +7806,1532 @@ COMMENT ON COLUMN public.system_config.value_enc IS 'Valor criptografado (AES-25
 COMMENT ON COLUMN public.system_config.iv        IS 'IV de 12 bytes, base64url. Único por registro.';
 COMMENT ON COLUMN public.system_config.auth_tag  IS 'GCM auth tag de 16 bytes, base64url.';
 
--- MIGRATION: 20260609000001_barbershops_public_ranking_indexes.sql
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_barbershops_public_all_ranking
-  ON public.barbershops (
-    is_active,
-    rating_score DESC,
-    rating_avg DESC,
-    likes_count DESC
+-- MIGRATION: 20260610000001_barbershops_unique_owner_active.sql
+UPDATE public.barbershops
+SET is_active = false
+WHERE is_active = true
+  AND id NOT IN (
+    SELECT DISTINCT ON (owner_id) id
+    FROM public.barbershops
+    WHERE is_active = true
+    ORDER BY owner_id, updated_at DESC NULLS LAST
   );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_barbershops_public_featured_ranking
-  ON public.barbershops (
-    is_active,
-    rating_avg DESC,
-    rating_count DESC
+CREATE UNIQUE INDEX IF NOT EXISTS barbershops_one_active_per_owner
+  ON public.barbershops(owner_id)
+  WHERE is_active = true;
+
+-- MIGRATION: 20260615000001_fix_stories_barbershop_id_parceiros.sql
+UPDATE public.stories s
+SET barbershop_id = (
+  SELECT psl.barbershop_id
+  FROM public.professional_shop_links psl
+  INNER JOIN public.barbershops b ON b.id = psl.barbershop_id
+  WHERE psl.professional_id = s.owner_id
+    AND psl.is_active = true
+    AND b.is_active = true
+  GROUP BY psl.barbershop_id
+  HAVING COUNT(*) = 1
+  LIMIT 1
+)
+WHERE s.barbershop_id IN (
+
+  SELECT id FROM public.barbershops WHERE is_active = false
+)
+AND (
+
+  SELECT COUNT(DISTINCT psl.barbershop_id)
+  FROM public.professional_shop_links psl
+  INNER JOIN public.barbershops b ON b.id = psl.barbershop_id
+  WHERE psl.professional_id = s.owner_id
+    AND psl.is_active = true
+    AND b.is_active = true
+) = 1;
+
+-- MIGRATION: 20260615000002_chat_send_rate_limit_index.sql
+CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_recent
+  ON public.chat_messages(sender_id, created_at DESC, conversation_id);
+
+COMMENT ON INDEX public.idx_chat_messages_sender_recent IS
+  'Acelera count_chat_pair_messages no rate limit do envio de chat por remetente e janela recente.';
+
+-- MIGRATION: 20260617000001_media_files_cleanup_state.sql
+ALTER TABLE public.media_files
+  ADD COLUMN IF NOT EXISTS cleanup_status         text
+    CHECK (cleanup_status IN ('pending', 'completed', 'failed')),
+  ADD COLUMN IF NOT EXISTS cleanup_attempts       smallint NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cleanup_last_error     text,
+  ADD COLUMN IF NOT EXISTS cleanup_last_attempt_at timestamptz,
+  ADD COLUMN IF NOT EXISTS cleanup_next_attempt_at timestamptz;
+
+CREATE INDEX IF NOT EXISTS idx_media_files_cleanup
+  ON public.media_files (cleanup_status, cleanup_next_attempt_at)
+  WHERE cleanup_status IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION rpc_increment_media_cleanup_attempt(
+  p_media_id        uuid,
+  p_error           text,
+  p_next_attempt_at timestamptz
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.media_files SET
+    cleanup_status            = 'pending',
+    cleanup_attempts          = cleanup_attempts + 1,
+    cleanup_last_error        = p_error,
+    cleanup_last_attempt_at   = now(),
+    cleanup_next_attempt_at   = p_next_attempt_at
+  WHERE id = p_media_id;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION rpc_increment_media_cleanup_attempt(uuid, text, timestamptz) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION rpc_increment_media_cleanup_attempt(uuid, text, timestamptz) TO service_role;
+
+-- MIGRATION: 20260626000001_story_messages.sql
+CREATE TABLE IF NOT EXISTS public.story_messages (
+  id                uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  story_id          uuid        NOT NULL REFERENCES public.stories(id) ON DELETE CASCADE,
+  media_id          uuid        NOT NULL,
+  recipient_id      uuid        NOT NULL,
+  sender_id         uuid        NOT NULL,
+  body              text        NOT NULL CHECK (char_length(body) BETWEEN 1 AND 240),
+  client_message_id text,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_story_messages_story
+  ON public.story_messages(story_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_story_messages_media
+  ON public.story_messages(media_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_story_messages_recipient
+  ON public.story_messages(recipient_id, created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_story_messages_client_dedupe
+  ON public.story_messages(sender_id, story_id, client_message_id)
+  WHERE client_message_id IS NOT NULL;
+
+ALTER TABLE public.story_messages ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "story_messages_recipient_select" ON public.story_messages;
+CREATE POLICY "story_messages_recipient_select"
+  ON public.story_messages FOR SELECT
+  USING (auth.uid() = recipient_id);
+
+DROP POLICY IF EXISTS "story_messages_sender_insert" ON public.story_messages;
+CREATE POLICY "story_messages_sender_insert"
+  ON public.story_messages FOR INSERT
+  WITH CHECK (auth.uid() = sender_id);
+
+COMMENT ON TABLE public.story_messages
+  IS 'Mensagens privadas enviadas em stories, lidas pelo dono/profissional do story.';
+
+-- MIGRATION: 20260626000002_asaas_professional_payments.sql
+CREATE TABLE IF NOT EXISTS public.asaas_customers (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  asaas_customer_id text NOT NULL UNIQUE,
+  name              text NOT NULL,
+  email             text,
+  mobile_phone      text,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.asaas_payments (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  barbershop_id       uuid REFERENCES public.barbershops(id) ON DELETE SET NULL,
+  asaas_customer_id   text NOT NULL,
+  asaas_payment_id    text NOT NULL UNIQUE,
+  plan_type           text NOT NULL CHECK (plan_type IN ('mensal', 'trimestral')),
+  pro_type            text NOT NULL DEFAULT 'barbeiro' CHECK (pro_type IN ('barbeiro', 'barbearia')),
+  billing_type        text NOT NULL CHECK (billing_type IN ('PIX', 'BOLETO', 'CREDIT_CARD', 'UNDEFINED')),
+  status              text NOT NULL DEFAULT 'PENDING',
+  value               numeric(12,2) NOT NULL CHECK (value > 0),
+  due_date            date NOT NULL,
+  description         text,
+  invoice_url         text,
+  bank_slip_url       text,
+  pix_payload         text,
+  pix_expiration_date timestamptz,
+  raw_payload         jsonb NOT NULL DEFAULT '{}'::jsonb,
+  paid_at             timestamptz,
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.asaas_webhook_events (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id          text NOT NULL UNIQUE,
+  event_type        text NOT NULL,
+  asaas_payment_id  text,
+  payment_id        uuid REFERENCES public.asaas_payments(id) ON DELETE SET NULL,
+  payload           jsonb NOT NULL DEFAULT '{}'::jsonb,
+  processed_at      timestamptz,
+  created_at        timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_asaas_customers_user
+  ON public.asaas_customers (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_asaas_payments_user_created
+  ON public.asaas_payments (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_asaas_payments_status
+  ON public.asaas_payments (status, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_asaas_payments_asaas_customer
+  ON public.asaas_payments (asaas_customer_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_asaas_webhook_events_payment
+  ON public.asaas_webhook_events (asaas_payment_id, created_at DESC);
+
+ALTER TABLE public.asaas_customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.asaas_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.asaas_webhook_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "asaas_customers_select_own" ON public.asaas_customers;
+CREATE POLICY "asaas_customers_select_own"
+  ON public.asaas_customers FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "asaas_customers_insert_service" ON public.asaas_customers;
+CREATE POLICY "asaas_customers_insert_service"
+  ON public.asaas_customers FOR INSERT
+  WITH CHECK (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "asaas_customers_update_service" ON public.asaas_customers;
+CREATE POLICY "asaas_customers_update_service"
+  ON public.asaas_customers FOR UPDATE
+  USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "asaas_customers_delete_service" ON public.asaas_customers;
+CREATE POLICY "asaas_customers_delete_service"
+  ON public.asaas_customers FOR DELETE
+  USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "asaas_payments_select_own" ON public.asaas_payments;
+CREATE POLICY "asaas_payments_select_own"
+  ON public.asaas_payments FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "asaas_payments_insert_service" ON public.asaas_payments;
+CREATE POLICY "asaas_payments_insert_service"
+  ON public.asaas_payments FOR INSERT
+  WITH CHECK (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "asaas_payments_update_service" ON public.asaas_payments;
+CREATE POLICY "asaas_payments_update_service"
+  ON public.asaas_payments FOR UPDATE
+  USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "asaas_payments_delete_service" ON public.asaas_payments;
+CREATE POLICY "asaas_payments_delete_service"
+  ON public.asaas_payments FOR DELETE
+  USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "asaas_webhook_events_service_all" ON public.asaas_webhook_events;
+CREATE POLICY "asaas_webhook_events_service_all"
+  ON public.asaas_webhook_events
+  FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+DROP TRIGGER IF EXISTS trg_asaas_customers_updated_at ON public.asaas_customers;
+CREATE TRIGGER trg_asaas_customers_updated_at
+  BEFORE UPDATE ON public.asaas_customers
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_asaas_payments_updated_at ON public.asaas_payments;
+CREATE TRIGGER trg_asaas_payments_updated_at
+  BEFORE UPDATE ON public.asaas_payments
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+COMMENT ON TABLE public.asaas_customers IS
+  'Vinculo entre usuario profissional BarberFlow e customer no Asaas. Nao armazenar CPF/CNPJ completo.';
+
+COMMENT ON TABLE public.asaas_payments IS
+  'Cobrancas Asaas dos planos do app profissional. Nao armazenar dados de cartao.';
+
+COMMENT ON TABLE public.asaas_webhook_events IS
+  'Eventos de webhook Asaas processados de forma idempotente.';
+
+-- MIGRATION: 20260628000001_profiles_pii_hardening.sql
+REVOKE SELECT ON public.profiles FROM anon;
+REVOKE SELECT ON public.profiles FROM authenticated;
+
+DROP POLICY IF EXISTS "profiles_select_active_for_queue" ON public.profiles;
+
+DROP VIEW IF EXISTS public.profiles_public;
+CREATE VIEW public.profiles_public AS
+  SELECT
+    p.id,
+    p.full_name,
+    p.avatar_path,
+    p.role,
+    p.pro_type,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+    coalesce(pr.rating_avg,   0.00) AS rating_avg,
+    coalesce(pr.rating_count, 0)    AS rating_count
+  FROM  public.profiles      p
+  LEFT JOIN public.professionals pr ON pr.id = p.id
+  WHERE p.is_active = true;
+
+GRANT SELECT ON public.profiles_public TO anon, authenticated;
+
+COMMENT ON VIEW public.profiles_public IS
+  'View pública de profiles — SECURITY DEFINER intencional. Projeta apenas '
+  'colunas não-sensíveis (sem phone/email/address/birth_date/gender/zip_code). '
+  'É a única porta de leitura de profiles para anon/authenticated. '
+  'Perfil privado do próprio dono é servido pela BFF (/api/v1/auth/me).';
+
+-- MIGRATION: 20260628000002_profiles_cpf_cnpj_enc.sql
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cpf_cnpj_enc TEXT;
+
+CREATE OR REPLACE FUNCTION public.limpar_cpf_cnpj_user_metadata()
+RETURNS TABLE(usuarios_atualizados bigint)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE v bigint := 0;
+BEGIN
+  UPDATE auth.users
+  SET raw_user_meta_data = raw_user_meta_data - 'cpf' - 'cnpj' - 'cpf_cnpj'
+  WHERE raw_user_meta_data ? 'cpf'
+     OR raw_user_meta_data ? 'cnpj'
+     OR raw_user_meta_data ? 'cpf_cnpj';
+
+  GET DIAGNOSTICS v = ROW_COUNT;
+  RETURN QUERY SELECT v;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.limpar_cpf_cnpj_user_metadata() FROM anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.limpar_cpf_cnpj_user_metadata() TO service_role;
+
+-- MIGRATION: 20260630000001_fix_profiles_select_authenticated.sql
+GRANT SELECT ON public.profiles TO authenticated;
+
+-- MIGRATION: 20260630000002_auth_email_attempts_rate_limit.sql
+CREATE TABLE IF NOT EXISTS public.auth_email_attempts (
+  email_hash        text        NOT NULL,
+  purpose           text        NOT NULL,
+  window_started_at timestamptz NOT NULL DEFAULT now(),
+  attempts          integer     NOT NULL DEFAULT 0,
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (email_hash, purpose)
+);
+
+ALTER TABLE public.auth_email_attempts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "auth_email_attempts_service_role_all" ON public.auth_email_attempts;
+CREATE POLICY "auth_email_attempts_service_role_all"
+  ON public.auth_email_attempts
+  FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE INDEX IF NOT EXISTS idx_auth_email_attempts_updated_at
+  ON public.auth_email_attempts (updated_at);
+
+CREATE OR REPLACE FUNCTION public.consume_auth_email_attempt(
+  p_email_hash text,
+  p_purpose text,
+  p_window_seconds integer DEFAULT 3600,
+  p_max_attempts integer DEFAULT 3
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_now timestamptz := now();
+  v_row public.auth_email_attempts%ROWTYPE;
+BEGIN
+  IF auth.role() <> 'service_role' THEN
+    RAISE EXCEPTION 'forbidden';
+  END IF;
+
+  IF p_email_hash IS NULL OR p_email_hash !~ '^[a-f0-9]{64}$' THEN
+    RAISE EXCEPTION 'invalid_email_hash';
+  END IF;
+
+  IF p_purpose NOT IN ('forgot-password', 'signup-confirmation') THEN
+    RAISE EXCEPTION 'invalid_purpose';
+  END IF;
+
+  INSERT INTO public.auth_email_attempts (
+    email_hash,
+    purpose,
+    window_started_at,
+    attempts,
+    updated_at
+  )
+  VALUES (
+    p_email_hash,
+    p_purpose,
+    v_now,
+    1,
+    v_now
+  )
+  ON CONFLICT (email_hash, purpose)
+  DO UPDATE SET
+    window_started_at = CASE
+      WHEN public.auth_email_attempts.window_started_at < v_now - make_interval(secs => p_window_seconds)
+        THEN v_now
+      ELSE public.auth_email_attempts.window_started_at
+    END,
+    attempts = CASE
+      WHEN public.auth_email_attempts.window_started_at < v_now - make_interval(secs => p_window_seconds)
+        THEN 1
+      ELSE public.auth_email_attempts.attempts + 1
+    END,
+    updated_at = v_now
+  RETURNING * INTO v_row;
+
+  RETURN jsonb_build_object(
+    'allowed', v_row.attempts <= p_max_attempts,
+    'attempts', v_row.attempts,
+    'maxAttempts', p_max_attempts,
+    'windowStartedAt', v_row.window_started_at
   );
+END;
+$$;
+
+REVOKE ALL ON public.auth_email_attempts FROM PUBLIC, anon, authenticated;
+GRANT ALL ON public.auth_email_attempts TO service_role;
+
+REVOKE EXECUTE ON FUNCTION public.consume_auth_email_attempt(text, text, integer, integer)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.consume_auth_email_attempt(text, text, integer, integer)
+  TO service_role;
+
+-- MIGRATION: 20260702000001_auto_trial_subscription.sql
+CREATE OR REPLACE FUNCTION public.handle_new_user_trial()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+
+  IF COALESCE(NEW.raw_user_meta_data->>'role', 'client') = 'professional'
+     AND NEW.raw_user_meta_data->>'plan_intent' = 'trial' THEN
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.subscriptions
+      WHERE user_id = NEW.id AND status IN ('trial', 'active')
+    ) THEN
+      INSERT INTO public.subscriptions
+        (user_id, plan_type, status, platform, starts_at, ends_at)
+      VALUES
+        (NEW.id, 'trial', 'trial', 'web', now(), now() + interval '7 days');
+    END IF;
+
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_trial ON auth.users;
+CREATE TRIGGER on_auth_user_trial
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_trial();
+
+-- MIGRATION: 20260702000003_restore_original_queue_trigger.sql
+CREATE OR REPLACE FUNCTION public.fn_check_barbershop_open_on_queue()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+  v_is_open BOOLEAN;
+BEGIN
+  SELECT is_open
+    INTO v_is_open
+    FROM public.barbershops
+   WHERE id = NEW.barbershop_id;
+
+  IF v_is_open IS NOT TRUE THEN
+    RAISE EXCEPTION 'Barbearia está fechada no momento.'
+      USING ERRCODE = 'P0001', DETAIL = 'is_open = false';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_check_barbershop_open ON public.queue_entries;
+CREATE TRIGGER trg_check_barbershop_open
+  BEFORE INSERT ON public.queue_entries
+  FOR EACH ROW EXECUTE FUNCTION public.fn_check_barbershop_open_on_queue();
+
+-- MIGRATION: 20260702000004_professional_trial_vouchers.sql
+CREATE TABLE IF NOT EXISTS public.professional_trial_vouchers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  trial_days integer NOT NULL DEFAULT 30 CHECK (trial_days BETWEEN 1 AND 365),
+  is_active boolean NOT NULL DEFAULT true,
+  used_at timestamptz NULL,
+  used_by uuid NULL REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NULL,
+  CONSTRAINT professional_trial_vouchers_code_format
+    CHECK (code = upper(code) AND code ~ '^[A-Z0-9]{6}$'),
+  CONSTRAINT professional_trial_vouchers_used_pair
+    CHECK ((used_at IS NULL AND used_by IS NULL) OR (used_at IS NOT NULL AND used_by IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS idx_professional_trial_vouchers_available
+  ON public.professional_trial_vouchers (code)
+  WHERE is_active = true AND used_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_professional_trial_vouchers_used_by
+  ON public.professional_trial_vouchers (used_by)
+  WHERE used_by IS NOT NULL;
+
+ALTER TABLE public.professional_trial_vouchers ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.professional_trial_vouchers FROM anon, authenticated;
+
+COMMENT ON TABLE public.professional_trial_vouchers IS
+  'Vouchers de teste gratis profissional. A BFF valida previamente; o trigger de signup consome atomicamente.';
+
+CREATE OR REPLACE FUNCTION public.handle_new_user_trial()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_code text;
+  v_trial_days integer := 7;
+BEGIN
+
+  IF COALESCE(NEW.raw_user_meta_data->>'role', 'client') = 'professional'
+     AND NEW.raw_user_meta_data->>'plan_intent' = 'trial' THEN
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.subscriptions
+      WHERE user_id = NEW.id AND status IN ('trial', 'active')
+    ) THEN
+      v_code := upper(regexp_replace(
+        COALESCE(NEW.raw_user_meta_data->>'trial_voucher_code', ''),
+        '\s+',
+        '',
+        'g'
+      ));
+
+      IF v_code ~ '^[A-Z0-9]{6}$' THEN
+        UPDATE public.professional_trial_vouchers
+           SET used_at = now(),
+               used_by = NEW.id
+         WHERE code = v_code
+           AND is_active = true
+           AND used_at IS NULL
+           AND (expires_at IS NULL OR expires_at > now())
+         RETURNING trial_days INTO v_trial_days;
+
+        IF v_trial_days IS NULL THEN
+          v_trial_days := 7;
+        END IF;
+      END IF;
+
+      INSERT INTO public.subscriptions
+        (user_id, plan_type, status, platform, starts_at, ends_at)
+      VALUES
+        (NEW.id, 'trial', 'trial', 'web', now(), now() + make_interval(days => v_trial_days));
+    END IF;
+
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_trial ON auth.users;
+CREATE TRIGGER on_auth_user_trial
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user_trial();
+
+-- MIGRATION: 20260702000004_queue_entries_realtime.sql
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_publication_tables
+     WHERE pubname   = 'supabase_realtime'
+       AND schemaname = 'public'
+       AND tablename  = 'queue_entries'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.queue_entries;
+  END IF;
+END $$;
+
+ALTER TABLE public.queue_entries REPLICA IDENTITY FULL;
+
+-- MIGRATION: 20260704000001_prevent_trial_reuse.sql
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS trial_used_at timestamptz;
+
+COMMENT ON COLUMN public.profiles.trial_used_at IS
+  'Momento em que o usuário ativou seu único trial (NULL = nunca usou). Impede reuso de trial — carimbado/validado por enforce_single_trial().';
+
+UPDATE public.profiles p
+   SET trial_used_at = sub.first_trial_at
+  FROM (
+    SELECT user_id, MIN(created_at) AS first_trial_at
+      FROM public.subscriptions
+     WHERE plan_type = 'trial'
+     GROUP BY user_id
+  ) sub
+ WHERE sub.user_id = p.id
+   AND p.trial_used_at IS NULL;
+
+CREATE OR REPLACE FUNCTION public.enforce_single_trial()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_trial_used timestamptz;
+BEGIN
+
+  IF NEW.plan_type IS DISTINCT FROM 'trial' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT trial_used_at INTO v_trial_used
+    FROM public.profiles
+   WHERE id = NEW.user_id
+   FOR UPDATE;
+
+  IF v_trial_used IS NOT NULL THEN
+    RAISE EXCEPTION 'trial_already_used'
+      USING ERRCODE = 'unique_violation',
+            HINT    = 'Usuário já ativou um trial anteriormente.';
+  END IF;
+
+  UPDATE public.profiles
+     SET trial_used_at = COALESCE(NEW.starts_at, now())
+   WHERE id = NEW.user_id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_enforce_single_trial ON public.subscriptions;
+CREATE TRIGGER trg_enforce_single_trial
+  BEFORE INSERT ON public.subscriptions
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_single_trial();
+
+-- MIGRATION: 20260706000001_notificacoes_fila_idempotentes.sql
+BEGIN;
+
+ALTER TABLE public.notifications
+  ADD COLUMN IF NOT EXISTS dedupe_key text;
+
+COMMENT ON COLUMN public.notifications.dedupe_key IS
+  'Chave lógica de deduplicação (ex: queue:{entry_id}:{type}). NULL para tipos que não precisam de idempotência. Única por user_id quando preenchida.';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_user_dedupe
+  ON public.notifications (user_id, dedupe_key)
+  WHERE dedupe_key IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.confirmar_presenca_cliente(p_entry_id uuid, p_confirmado boolean, p_grace_used boolean)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_entry      RECORD;
+  v_profId     UUID;
+  v_ja_absente boolean;
+BEGIN
+  SELECT qe.id, qe.professional_id, qe.barbershop_id, qe.client_confirmed,
+         p.full_name AS client_name
+  INTO v_entry
+  FROM public.queue_entries qe
+  LEFT JOIN public.profiles p ON p.id = qe.client_id
+  WHERE qe.id        = p_entry_id
+    AND qe.client_id = auth.uid()
+    AND qe.status    = 'in_service'
+  LIMIT 1;
+
+  IF v_entry IS NULL THEN
+    RETURN;
+  END IF;
+
+  v_profId := v_entry.professional_id;
+
+  IF p_confirmado THEN
+    UPDATE public.queue_entries
+    SET client_confirmed = 'yes',
+        first_no_at      = NULL
+    WHERE id = p_entry_id;
+
+  ELSIF NOT p_grace_used THEN
+
+    UPDATE public.queue_entries
+    SET client_confirmed = 'no_waiting',
+        first_no_at      = NOW()
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, dedupe_key, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_not_seated',
+        'Cliente ainda não está pronto',
+        COALESCE(v_entry.client_name, 'Cliente') || ' avisou que ainda não está sentado na cadeira.',
+        jsonb_build_object(
+          'client_not_seated', true,
+          'entry_id',          p_entry_id,
+          'client_name',       COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',     v_entry.barbershop_id
+        ),
+        'queue:' || p_entry_id::text || ':client_not_seated',
+        false,
+        NOW()
+      )
+      ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+    END IF;
+
+  ELSE
+
+    v_ja_absente := v_entry.client_confirmed IS NOT DISTINCT FROM 'absent';
+
+    UPDATE public.queue_entries
+    SET client_confirmed = 'absent'
+    WHERE id = p_entry_id;
+
+    IF v_profId IS NOT NULL AND NOT v_ja_absente THEN
+      INSERT INTO public.notifications (
+        user_id, type, title, body, data, dedupe_key, is_read, created_at
+      ) VALUES (
+        v_profId,
+        'client_absent',
+        'Cliente ausente 🔔',
+        COALESCE(v_entry.client_name, 'Cliente') || ' não confirmou presença na cadeira.',
+        jsonb_build_object(
+          'client_absent',  true,
+          'entry_id',       p_entry_id,
+          'client_name',    COALESCE(v_entry.client_name, 'Cliente'),
+          'barbershop_id',  v_entry.barbershop_id
+        ),
+        'queue:' || p_entry_id::text || ':client_absent',
+        false,
+        NOW()
+      )
+      ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+    END IF;
+  END IF;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.notificar_barbeiro_chegada(p_professional_id uuid, p_type text, p_title text, p_body text, p_data jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_dedupe_key text;
+BEGIN
+  IF p_professional_id IS NULL THEN RETURN; END IF;
+
+  v_dedupe_key := NULLIF(TRIM(COALESCE(p_data->>'dedupe_key', '')), '');
+  IF v_dedupe_key IS NULL AND (p_data ? 'entry_id') THEN
+    v_dedupe_key := 'queue:' || (p_data->>'entry_id') || ':' || p_type;
+  END IF;
+
+  INSERT INTO public.notifications (
+    user_id, type, title, body, data, dedupe_key, is_read, created_at
+  ) VALUES (
+    p_professional_id,
+    p_type,
+    p_title,
+    COALESCE(p_body, ''),
+    COALESCE(p_data, '{}'),
+    v_dedupe_key,
+    false,
+    NOW()
+  )
+  ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
+END;
+$function$;
+
+CREATE TABLE IF NOT EXISTS public.push_notification_dedup (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  dedupe_key text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, dedupe_key)
+);
+
+COMMENT ON TABLE public.push_notification_dedup IS
+  'Guarda de idempotencia para Web Push (PushService.enviarAoBarbeiro). Sem TTL automatico: queue_entries tem vida curta, nao critico se crescer.';
+
+CREATE INDEX IF NOT EXISTS idx_push_notification_dedup_created_at
+  ON public.push_notification_dedup (created_at);
+
+ALTER TABLE public.push_notification_dedup ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "push_notification_dedup_service_all" ON public.push_notification_dedup;
+CREATE POLICY "push_notification_dedup_service_all"
+  ON public.push_notification_dedup FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+COMMIT;
+
+-- MIGRATION: 20260709000001_queue_position_web_push.sql
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+CREATE OR REPLACE FUNCTION public._notify_queue_position_web_push(
+  p_client_id uuid,
+  p_barbershop_id uuid,
+  p_entry_id uuid,
+  p_position integer,
+  p_previous_position integer
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions, net, pg_temp
+AS $$
+DECLARE
+  v_secret text := current_setting('app.queue_position_push_secret', true);
+  v_url text := COALESCE(
+    NULLIF(current_setting('app.queue_position_push_url', true), ''),
+    'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/send-push'
+  );
+BEGIN
+  IF p_client_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF COALESCE(v_secret, '') = '' THEN
+    RAISE WARNING 'queue position web push skipped: app.queue_position_push_secret not configured';
+    RETURN;
+  END IF;
+
+  PERFORM net.http_post(
+    url := v_url,
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-barberflow-internal-secret', v_secret
+    ),
+    body := jsonb_build_object(
+      'clientId', p_client_id,
+      'barbershopId', p_barbershop_id,
+      'entradaId', p_entry_id,
+      'appId', 'cliente',
+      'pushType', 'queue_position_update',
+      'position', p_position,
+      'previousPosition', p_previous_position
+    ),
+    timeout_milliseconds := 1000
+  );
+EXCEPTION
+  WHEN undefined_function THEN
+    RAISE WARNING 'queue position web push skipped: pg_net/net.http_post unavailable';
+  WHEN OTHERS THEN
+    RAISE WARNING 'queue position web push request failed: %', SQLERRM;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_notify_queue_clients()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  rec record;
+  v_barbershop_id uuid;
+  v_professional_id uuid;
+  v_proximo record;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    v_barbershop_id := OLD.barbershop_id;
+    v_professional_id := OLD.professional_id;
+  ELSE
+    v_barbershop_id := NEW.barbershop_id;
+    v_professional_id := NEW.professional_id;
+  END IF;
+
+  IF TG_OP IN ('UPDATE', 'DELETE') AND OLD.status = 'waiting' THEN
+    FOR rec IN
+      WITH previous_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+          AND qe.id <> OLD.id
+        UNION ALL
+        SELECT OLD.id, OLD.client_id, OLD.position
+      ),
+      current_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+      ),
+      previous_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS previous_position
+        FROM previous_waiting
+      ),
+      current_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS position
+        FROM current_waiting
+      )
+      SELECT
+        c.id AS entry_id,
+        c.client_id,
+        c.position,
+        p.previous_position
+      FROM current_ranked c
+      JOIN previous_ranked p
+        ON p.id = c.id
+       AND p.client_id IS NOT DISTINCT FROM c.client_id
+      WHERE c.client_id IS NOT NULL
+        AND c.position <> p.previous_position
+      ORDER BY c.position ASC
+    LOOP
+      PERFORM public._insert_validated_notification(
+        rec.client_id,
+        v_professional_id,
+        'queue_update',
+        jsonb_build_object(
+          'title', CASE
+            WHEN rec.position = 1 THEN 'Voce e o proximo!'
+            ELSE 'Voce subiu na fila!'
+          END,
+          'body', CASE
+            WHEN rec.position = 1 THEN 'Agora voce esta em 1o lugar. Fique atento a chamada.'
+            ELSE 'Agora voce esta em ' || rec.position || 'o lugar.'
+          END,
+          'data', jsonb_build_object(
+            'position', rec.position,
+            'previous_position', rec.previous_position,
+            'entry_id', rec.entry_id,
+            'barbershop_id', v_barbershop_id,
+            'is_next', rec.position = 1,
+            'push_type', 'queue_position_update'
+          )
+        ),
+        'fn_notify_queue_clients',
+        false
+      );
+
+      PERFORM public._notify_queue_position_web_push(
+        rec.client_id,
+        v_barbershop_id,
+        rec.entry_id,
+        rec.position,
+        rec.previous_position
+      );
+    END LOOP;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.status = 'done' AND NEW.professional_id IS NOT NULL THEN
+    SELECT qe.id AS entry_id, COALESCE(p.full_name, qe.guest_name, 'Cliente walk-in') AS client_name
+    INTO v_proximo
+    FROM public.queue_entries qe
+    LEFT JOIN public.profiles p ON p.id = qe.client_id
+    WHERE qe.barbershop_id = NEW.barbershop_id
+      AND qe.status = 'waiting'
+    ORDER BY qe.position ASC, qe.id ASC
+    LIMIT 1;
+
+    IF v_proximo IS NOT NULL THEN
+      PERFORM public._insert_validated_notification(
+        NEW.professional_id,
+        NEW.professional_id,
+        'queue_next_client',
+        jsonb_build_object(
+          'title', 'Proximo cliente',
+          'body', v_proximo.client_name || ' esta aguardando na fila.',
+          'data', jsonb_build_object(
+            'entry_id', v_proximo.entry_id,
+            'client_name', v_proximo.client_name,
+            'barbershop_id', NEW.barbershop_id,
+            'is_next', true
+          )
+        ),
+        'fn_notify_queue_clients',
+        false
+      );
+    ELSE
+      PERFORM public._insert_validated_notification(
+        NEW.professional_id,
+        NEW.professional_id,
+        'queue_empty',
+        jsonb_build_object(
+          'title', 'Fila vazia',
+          'body', 'Nao ha mais clientes aguardando.',
+          'data', jsonb_build_object('barbershop_id', NEW.barbershop_id)
+        ),
+        'fn_notify_queue_clients',
+        false
+      );
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_queue_on_done ON public.queue_entries;
+DROP TRIGGER IF EXISTS trg_notify_queue_clients ON public.queue_entries;
+
+CREATE TRIGGER trg_notify_queue_clients
+AFTER UPDATE OR DELETE ON public.queue_entries
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_notify_queue_clients();
+
+-- MIGRATION: 20260710000001_queue_position_web_push_vault_config.sql
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
+CREATE OR REPLACE FUNCTION public._queue_position_push_setting(
+  p_vault_name text,
+  p_guc_name text,
+  p_default text DEFAULT NULL
+)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, vault, pg_temp
+AS $$
+DECLARE
+  v_value text;
+BEGIN
+
+  v_value := NULLIF(current_setting(p_guc_name, true), '');
+  IF v_value IS NOT NULL THEN
+    RETURN v_value;
+  END IF;
+
+  BEGIN
+    SELECT NULLIF(ds.decrypted_secret, '')
+    INTO v_value
+    FROM vault.decrypted_secrets ds
+    WHERE ds.name = p_vault_name
+    ORDER BY ds.updated_at DESC NULLS LAST, ds.created_at DESC NULLS LAST
+    LIMIT 1;
+  EXCEPTION
+    WHEN invalid_schema_name OR undefined_table OR insufficient_privilege THEN
+      v_value := NULL;
+  END;
+
+  RETURN COALESCE(v_value, p_default);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._notify_queue_position_web_push(
+  p_client_id uuid,
+  p_barbershop_id uuid,
+  p_entry_id uuid,
+  p_position integer,
+  p_previous_position integer
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions, net, pg_temp
+AS $$
+DECLARE
+  v_secret text := public._queue_position_push_setting(
+    'QUEUE_POSITION_PUSH_INTERNAL_SECRET',
+    'app.queue_position_push_secret',
+    NULL
+  );
+  v_url text := public._queue_position_push_setting(
+    'QUEUE_POSITION_PUSH_URL',
+    'app.queue_position_push_url',
+    'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/send-push'
+  );
+BEGIN
+  IF p_client_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF COALESCE(v_secret, '') = '' THEN
+    RAISE WARNING 'queue position web push skipped: QUEUE_POSITION_PUSH_INTERNAL_SECRET not configured in Database Vault';
+    RETURN;
+  END IF;
+
+  PERFORM net.http_post(
+    url := v_url,
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-barberflow-internal-secret', v_secret
+    ),
+    body := jsonb_build_object(
+      'clientId', p_client_id,
+      'barbershopId', p_barbershop_id,
+      'entradaId', p_entry_id,
+      'appId', 'cliente',
+      'pushType', 'queue_position_update',
+      'position', p_position,
+      'previousPosition', p_previous_position
+    ),
+    timeout_milliseconds := 1000
+  );
+EXCEPTION
+  WHEN undefined_function THEN
+    RAISE WARNING 'queue position web push skipped: pg_net/net.http_post unavailable';
+  WHEN OTHERS THEN
+    RAISE WARNING 'queue position web push request failed: %', SQLERRM;
+END;
+$$;
+
+-- MIGRATION: 20260710000002_queue_clients_trigger_safe_notifications.sql
+CREATE OR REPLACE FUNCTION public._queue_trigger_insert_notification(
+  p_recipient_id uuid,
+  p_type text,
+  p_title text,
+  p_body text,
+  p_data jsonb
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF p_recipient_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = p_recipient_id
+      AND COALESCE(p.is_active, true) = true
+  ) THEN
+    RETURN;
+  END IF;
+
+  PERFORM set_config('app.notification_insert_allowed', 'on', true);
+
+  INSERT INTO public.notifications (
+    user_id,
+    type,
+    title,
+    body,
+    data,
+    is_read,
+    created_at
+  ) VALUES (
+    p_recipient_id,
+    p_type,
+    left(COALESCE(NULLIF(btrim(p_title), ''), 'Atualizacao da fila'), 160),
+    left(COALESCE(p_body, ''), 1000),
+    COALESCE(p_data, '{}'::jsonb),
+    false,
+    now()
+  );
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE WARNING 'queue trigger notification skipped: %', SQLERRM;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_notify_queue_clients()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  rec record;
+  v_barbershop_id uuid;
+  v_professional_id uuid;
+  v_proximo record;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    v_barbershop_id := OLD.barbershop_id;
+    v_professional_id := OLD.professional_id;
+  ELSE
+    v_barbershop_id := NEW.barbershop_id;
+    v_professional_id := NEW.professional_id;
+  END IF;
+
+  IF TG_OP IN ('UPDATE', 'DELETE') AND OLD.status = 'waiting' THEN
+    FOR rec IN
+      WITH previous_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+          AND qe.id <> OLD.id
+        UNION ALL
+        SELECT OLD.id, OLD.client_id, OLD.position
+      ),
+      current_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+      ),
+      previous_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS previous_position
+        FROM previous_waiting
+      ),
+      current_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS position
+        FROM current_waiting
+      )
+      SELECT
+        c.id AS entry_id,
+        c.client_id,
+        c.position,
+        p.previous_position
+      FROM current_ranked c
+      JOIN previous_ranked p
+        ON p.id = c.id
+       AND p.client_id IS NOT DISTINCT FROM c.client_id
+      WHERE c.client_id IS NOT NULL
+        AND c.position <> p.previous_position
+      ORDER BY c.position ASC
+    LOOP
+      PERFORM public._queue_trigger_insert_notification(
+        rec.client_id,
+        'queue_update',
+        CASE
+          WHEN rec.position = 1 THEN 'Voce e o proximo!'
+          ELSE 'Voce subiu na fila!'
+        END,
+        CASE
+          WHEN rec.position = 1 THEN 'Agora voce esta em 1o lugar. Fique atento a chamada.'
+          ELSE 'Agora voce esta em ' || rec.position || 'o lugar.'
+        END,
+        jsonb_build_object(
+          'position', rec.position,
+          'previous_position', rec.previous_position,
+          'entry_id', rec.entry_id,
+          'barbershop_id', v_barbershop_id,
+          'is_next', rec.position = 1,
+          'push_type', 'queue_position_update'
+        )
+      );
+
+      BEGIN
+        PERFORM public._notify_queue_position_web_push(
+          rec.client_id,
+          v_barbershop_id,
+          rec.entry_id,
+          rec.position,
+          rec.previous_position
+        );
+      EXCEPTION
+        WHEN undefined_function THEN
+          RAISE WARNING 'queue position web push skipped: _notify_queue_position_web_push unavailable';
+        WHEN OTHERS THEN
+          RAISE WARNING 'queue position web push skipped: %', SQLERRM;
+      END;
+    END LOOP;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.status = 'done' AND NEW.professional_id IS NOT NULL THEN
+    SELECT qe.id AS entry_id, COALESCE(p.full_name, qe.guest_name, 'Cliente walk-in') AS client_name
+    INTO v_proximo
+    FROM public.queue_entries qe
+    LEFT JOIN public.profiles p ON p.id = qe.client_id
+    WHERE qe.barbershop_id = NEW.barbershop_id
+      AND qe.status = 'waiting'
+    ORDER BY qe.position ASC, qe.id ASC
+    LIMIT 1;
+
+    IF v_proximo IS NOT NULL THEN
+      PERFORM public._queue_trigger_insert_notification(
+        NEW.professional_id,
+        'queue_next_client',
+        'Proximo cliente',
+        v_proximo.client_name || ' esta aguardando na fila.',
+        jsonb_build_object(
+          'entry_id', v_proximo.entry_id,
+          'client_name', v_proximo.client_name,
+          'barbershop_id', NEW.barbershop_id,
+          'is_next', true
+        )
+      );
+    ELSE
+      PERFORM public._queue_trigger_insert_notification(
+        NEW.professional_id,
+        'queue_empty',
+        'Fila vazia',
+        'Nao ha mais clientes aguardando.',
+        jsonb_build_object(
+          'barbershop_id', NEW.barbershop_id
+        )
+      );
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notify_queue_on_done ON public.queue_entries;
+DROP TRIGGER IF EXISTS trg_notify_queue_clients ON public.queue_entries;
+
+CREATE TRIGGER trg_notify_queue_clients
+AFTER UPDATE OR DELETE ON public.queue_entries
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_notify_queue_clients();
+
+-- MIGRATION: 20260711000001_presence_owner_toggle.sql
+DROP POLICY IF EXISTS "pbp_insert_linked_professional" ON public.professional_barbershop_presence;
+CREATE POLICY "pbp_insert_linked_professional"
+  ON public.professional_barbershop_presence
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = professional_id
+    AND updated_by = auth.uid()
+    AND (
+      EXISTS (
+        SELECT 1
+        FROM public.professional_shop_links psl
+        WHERE psl.barbershop_id = professional_barbershop_presence.barbershop_id
+          AND psl.professional_id = auth.uid()
+          AND psl.is_active = true
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.barbershops b
+        WHERE b.id = professional_barbershop_presence.barbershop_id
+          AND b.owner_id = auth.uid()
+      )
+    )
+  );
+
+DROP POLICY IF EXISTS "pbp_update_linked_professional" ON public.professional_barbershop_presence;
+CREATE POLICY "pbp_update_linked_professional"
+  ON public.professional_barbershop_presence
+  FOR UPDATE
+  USING (
+    auth.uid() = professional_id
+    AND (
+      EXISTS (
+        SELECT 1
+        FROM public.professional_shop_links psl
+        WHERE psl.barbershop_id = professional_barbershop_presence.barbershop_id
+          AND psl.professional_id = auth.uid()
+          AND psl.is_active = true
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.barbershops b
+        WHERE b.id = professional_barbershop_presence.barbershop_id
+          AND b.owner_id = auth.uid()
+      )
+    )
+  )
+  WITH CHECK (
+    auth.uid() = professional_id
+    AND updated_by = auth.uid()
+  );
+
+-- MIGRATION: 20260721000001_issue_professional_trial_vouchers.sql
+ALTER TABLE public.professional_trial_vouchers
+  ADD COLUMN IF NOT EXISTS issued_at timestamptz,
+  ADD COLUMN IF NOT EXISTS issued_email_hash text;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_professional_trial_vouchers_issued_email
+  ON public.professional_trial_vouchers (issued_email_hash)
+  WHERE issued_at IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_professional_trial_vouchers_issue_order
+  ON public.professional_trial_vouchers (created_at, id)
+  WHERE is_active = true AND used_at IS NULL AND issued_at IS NULL;
+
+COMMENT ON COLUMN public.professional_trial_vouchers.issued_at IS
+  'Momento em que o voucher foi entregue pela landing; NULL significa disponivel para emissao.';
+COMMENT ON COLUMN public.professional_trial_vouchers.issued_email_hash IS
+  'SHA-256 do e-mail normalizado que recebeu o voucher; o e-mail puro nao e persistido.';
+
+CREATE OR REPLACE FUNCTION public.issue_professional_trial_voucher(
+  p_email_hash text
+)
+RETURNS TABLE (
+  result_status text,
+  voucher_code text,
+  voucher_trial_days integer,
+  remaining_count integer
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_voucher_id uuid;
+  v_code text;
+  v_trial_days integer;
+  v_remaining integer := 0;
+BEGIN
+  IF COALESCE(p_email_hash, '') !~ '^[a-f0-9]{64}$' THEN
+    RAISE EXCEPTION 'invalid_email_hash' USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_email_hash, 0));
+
+  IF EXISTS (
+    SELECT 1
+      FROM public.professional_trial_vouchers AS voucher
+     WHERE voucher.issued_email_hash = p_email_hash
+  ) THEN
+    SELECT count(*)::integer
+      INTO v_remaining
+      FROM public.professional_trial_vouchers AS voucher
+     WHERE voucher.is_active = true
+       AND voucher.used_at IS NULL
+       AND voucher.issued_at IS NULL
+       AND (voucher.expires_at IS NULL OR voucher.expires_at > now());
+
+    RETURN QUERY SELECT
+      'duplicate_email'::text,
+      NULL::text,
+      NULL::integer,
+      v_remaining;
+    RETURN;
+  END IF;
+
+  SELECT voucher.id
+    INTO v_voucher_id
+    FROM public.professional_trial_vouchers AS voucher
+   WHERE voucher.is_active = true
+     AND voucher.used_at IS NULL
+     AND voucher.issued_at IS NULL
+     AND (voucher.expires_at IS NULL OR voucher.expires_at > now())
+   ORDER BY voucher.created_at, voucher.id
+   FOR UPDATE SKIP LOCKED
+   LIMIT 1;
+
+  IF v_voucher_id IS NULL THEN
+    RETURN QUERY SELECT
+      'sold_out'::text,
+      NULL::text,
+      NULL::integer,
+      0::integer;
+    RETURN;
+  END IF;
+
+  UPDATE public.professional_trial_vouchers AS voucher
+     SET issued_at = now(),
+         issued_email_hash = p_email_hash
+   WHERE voucher.id = v_voucher_id
+   RETURNING voucher.code, voucher.trial_days
+        INTO v_code, v_trial_days;
+
+  SELECT count(*)::integer
+    INTO v_remaining
+    FROM public.professional_trial_vouchers AS voucher
+   WHERE voucher.is_active = true
+     AND voucher.used_at IS NULL
+     AND voucher.issued_at IS NULL
+     AND (voucher.expires_at IS NULL OR voucher.expires_at > now());
+
+  RETURN QUERY SELECT
+    'issued'::text,
+    v_code,
+    v_trial_days,
+    v_remaining;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.issue_professional_trial_voucher(text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.issue_professional_trial_voucher(text)
+  TO service_role;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user_trial()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_code text;
+  v_trial_days integer := 7;
+  v_email_hash text;
+BEGIN
+  IF COALESCE(NEW.raw_user_meta_data->>'role', 'client') = 'professional'
+     AND NEW.raw_user_meta_data->>'plan_intent' = 'trial' THEN
+
+    IF NOT EXISTS (
+      SELECT 1 FROM public.subscriptions
+      WHERE user_id = NEW.id AND status IN ('trial', 'active')
+    ) THEN
+      v_code := upper(regexp_replace(
+        COALESCE(NEW.raw_user_meta_data->>'trial_voucher_code', ''),
+        '\s+',
+        '',
+        'g'
+      ));
+      v_email_hash := encode(
+        digest(lower(trim(COALESCE(NEW.email, ''))), 'sha256'),
+        'hex'
+      );
+
+      IF v_code ~ '^[A-Z0-9]{6}$' THEN
+        UPDATE public.professional_trial_vouchers AS voucher
+           SET used_at = now(),
+               used_by = NEW.id
+         WHERE voucher.code = v_code
+           AND voucher.is_active = true
+           AND voucher.used_at IS NULL
+           AND (voucher.expires_at IS NULL OR voucher.expires_at > now())
+           AND (
+             voucher.issued_at IS NULL
+             OR voucher.issued_email_hash = v_email_hash
+           )
+         RETURNING voucher.trial_days INTO v_trial_days;
+
+        IF v_trial_days IS NULL THEN
+          v_trial_days := 7;
+        END IF;
+      END IF;
+
+      INSERT INTO public.subscriptions
+        (user_id, plan_type, status, platform, starts_at, ends_at)
+      VALUES
+        (NEW.id, 'trial', 'trial', 'web', now(), now() + make_interval(days => v_trial_days));
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;

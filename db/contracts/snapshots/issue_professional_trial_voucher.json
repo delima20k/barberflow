@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "rpc": "issue_professional_trial_voucher",
+  "description": "Reserva atomicamente o primeiro voucher profissional disponivel para um e-mail elegivel.",
+  "signature": {
+    "name": "issue_professional_trial_voucher",
+    "params": [
+      { "name": "p_email_hash", "type": "TEXT" }
+    ],
+    "returns": {
+      "type": "TABLE",
+      "columns": [
+        { "name": "result_status", "type": "TEXT" },
+        { "name": "voucher_code", "type": "TEXT" },
+        { "name": "voucher_trial_days", "type": "INTEGER" },
+        { "name": "remaining_count", "type": "INTEGER" }
+      ]
+    },
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "grants": ["service_role"],
+  "migration": "20260721000001_issue_professional_trial_vouchers.sql"
+}

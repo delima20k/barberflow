@@ -104,7 +104,7 @@ navegador em dispositivos compativeis, sem simular um download de loja.
 O CTA flutuante do celular e ocultado quando as secoes de aplicativos, voucher
 ou chamada final estao visiveis, evitando cobrir botoes de conversao.
 
-## Voucher em modo de desenvolvimento
+## Voucher integrado ao BFF
 
 `VoucherService` expoe:
 
@@ -112,45 +112,31 @@ ou chamada final estao visiveis, evitando cobrir botoes de conversao.
 - `generateVoucher(data)`
 - `validateVoucher(code)`
 
-A chave `voucherCampaignEnabled` permanece `false`. Nesse modo, os tres metodos
-retornam estado `unavailable`, `remaining: null` e nenhuma informacao e
-transmitida. A interface nunca cria codigo, saldo ou confirmacao ficticia.
+A chave `voucherCampaignEnabled` esta ativa. `VoucherApiAdapter` acessa somente
+`https://bff.barberflow.live/api/v1/professional-vouchers`; a interface nunca
+cria codigo, saldo ou confirmacao local.
 
-A modal ja possui nome, e-mail, telefone/WhatsApp, aceite das regras e
-privacidade, loading, erro, sucesso, copia do codigo, acesso ao app profissional
-e os cinco passos de uso. O estado de sucesso so pode aparecer quando um adapter
-seguro injetado devolver um codigo real.
+A modal possui nome, e-mail, telefone/WhatsApp, aceite das regras e privacidade,
+honeypot, loading, erro, sucesso, copia do codigo, acesso ao app profissional e
+os cinco passos de uso. O estado de sucesso so aparece quando o BFF devolve um
+codigo real reservado no banco.
 
-## Arquitetura de producao dos vouchers
+## Arquitetura dos vouchers
 
-A ativacao real exige proposta tecnica aprovada e implementacao no servidor:
+A fonte unica continua sendo `professional_trial_vouchers`. A RPC
+`issue_professional_trial_voucher` seleciona o primeiro codigo disponivel por
+`created_at`, reserva com `FOR UPDATE SKIP LOCKED` e registra apenas o hash
+SHA-256 do e-mail. Um mesmo e-mail nao recebe um segundo voucher.
 
-1. Banco de dados como fonte unica da campanha e dos vouchers.
-2. Geracao criptograficamente segura de codigos unicos no servidor.
-3. Limite total de 50 vouchers imposto por transacao e constraint, nunca pelo frontend.
-4. Bloqueio de duplicidade por campanha, e-mail e telefone normalizados.
-5. Registro de data e horario de reserva, emissao, resgate e expiracao.
-6. Estados `available`, `reserved`, `issued`, `redeemed`, `expired` e `cancelled`.
-7. Validade, vinculo com e-mail ou telefone e validacao durante o cadastro.
-8. Idempotency key para impedir emissao duplicada em repeticao de request.
-9. Rate limit por IP e identidade, protecao anti-bot e deteccao de abuso.
-10. Logs de auditoria sem expor codigo completo nem dados pessoais.
-11. Politica de privacidade publicada e versao das regras aceita pelo participante.
+Endpoints da BFF:
 
-Proposta de endpoints futuros na BFF:
+- `GET /api/v1/professional-vouchers/availability`
+- `POST /api/v1/professional-vouchers/issue`
+- `POST /api/v1/professional-vouchers/validate`
 
-- `GET /api/v1/professional-vouchers/campaigns/:slug/availability`
-- `POST /api/v1/professional-vouchers/campaigns/:slug/issue`
-- Manter a validacao existente durante o cadastro, adaptada ao novo ciclo de status.
-
-O endpoint de emissao deve reservar e emitir dentro de uma unica transacao,
-usando contador atomico ou linha de campanha bloqueada. A API deve devolver a
-quantidade real restante e o codigo apenas na resposta de emissao. Secrets,
-service role, regras de geracao e credenciais permanecem exclusivamente no BFF.
-
-## Integracoes pendentes
-
-- Geracao publica e segura de voucher de campanha
+O cadastro continua consumindo o codigo atomicamente por `used_at` e `used_by`.
+Quando o voucher veio da landing, o e-mail do cadastro deve ser o mesmo da
+emissao. Secrets, service role e credenciais permanecem exclusivamente no BFF.
 
 Nenhum codigo ficticio ou dado local simula a integracao de voucher.
 
@@ -232,8 +218,8 @@ funcionalidades. O video oficial continua pendente em `youtubeVideoId`.
 2. Configurar o ID oficial do YouTube.
 3. Revisar links dos aplicativos e a caixa `contato@barberflow.live`.
 4. Confirmar `RESEND_API_KEY` e `RESEND_FROM_EMAIL` no projeto do BFF.
-5. Implementar e auditar os vouchers reais.
-6. Revisar e aprovar politica, termos e regras da campanha.
+5. Aplicar e auditar a migration de emissao antes de ativar o deploy.
+6. Revisar juridicamente politica, termos e regras da campanha.
 7. Criar a imagem social oficial.
 8. Decidir consentimento e adapter de analytics.
 9. Reexecutar testes, acessibilidade, performance e auditoria em conexao lenta.

@@ -401,9 +401,9 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 
 | Classe | Arquivo | Camada | Descricao |
 |---|---|---|---|
-| `ProfessionalVoucherController` | [barberflow-bff-api/controllers/ProfessionalVoucherController.js](barberflow-bff-api/controllers/ProfessionalVoucherController.js) | interfaces | `extends BaseController`. Endpoint publico `POST /api/v1/professional-vouchers/validate` para validar voucher de trial profissional antes do cadastro, sem consumir o codigo. |
-| `ProfessionalVoucherRepository` | [barberflow-bff-api/repositories/ProfessionalVoucherRepository.js](barberflow-bff-api/repositories/ProfessionalVoucherRepository.js) | infra | `extends BaseRepository`. Leitura controlada da tabela `professional_trial_vouchers` por codigo normalizado para validacao pre-cadastro; nao consome voucher. |
-| `ProfessionalVoucherService` | [barberflow-bff-api/services/ProfessionalVoucherService.js](barberflow-bff-api/services/ProfessionalVoucherService.js) | application | `extends BaseService`. Valida voucher de trial profissional por formato, existencia, expiracao, status ativo e uso previo; retorna motivo seguro e nunca consome o voucher. |
+| `ProfessionalVoucherController` | [barberflow-bff-api/controllers/ProfessionalVoucherController.js](barberflow-bff-api/controllers/ProfessionalVoucherController.js) | interfaces | `extends BaseController`. Expoe disponibilidade, emissao por e-mail e validacao pre-cadastro em `/api/v1/professional-vouchers`. |
+| `ProfessionalVoucherRepository` | [barberflow-bff-api/repositories/ProfessionalVoucherRepository.js](barberflow-bff-api/repositories/ProfessionalVoucherRepository.js) | infra | `extends BaseRepository`. Consulta saldo e validacao e delega a reserva atomica para `issue_professional_trial_voucher`. |
+| `ProfessionalVoucherService` | [barberflow-bff-api/services/ProfessionalVoucherService.js](barberflow-bff-api/services/ProfessionalVoucherService.js) | application | `extends BaseService`. Valida vouchers e emite um codigo existente por hash de e-mail, sem persistir PII bruta ou consumir o beneficio antes do cadastro. |
 
 ### Repositories
 
@@ -881,6 +881,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `MobileNavigation` | [apps/landing-page/js/mobile-navigation.js](apps/landing-page/js/mobile-navigation.js) | interfaces | Gerencia o menu responsivo e seus estados ARIA. |
 | `ScrollAnimationController` | [apps/landing-page/js/animations.js](apps/landing-page/js/animations.js) | interfaces | Revela seções com IntersectionObserver e respeita preferência de movimento reduzido. |
 | `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla formulario, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
+| `VoucherApiAdapter` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | infra | Adapter HTTP com timeout e allowlist para disponibilidade, emissao e validacao no BFF, sem credenciais no navegador. |
 | `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
 | `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e cria iframe youtube-nocookie somente apos acao do visitante. |
 
@@ -908,6 +909,12 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 |---|---|---|---|
 | `VoucherAdapterStub` | [tests/landing-voucher.test.js](tests/landing-voucher.test.js) | infra | Adapter controlado para provar a delegacao do service sem rede. |
 | `VoucherServiceFixture` | [tests/landing-voucher.test.js](tests/landing-voucher.test.js) | infra | Carrega o service em contexto VM isolado para validar modo local e adapter. |
+
+## barberflow-bff-api/tests/professional-voucher-issuance.test.js
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `VoucherIssuanceRepositoryStub` | [barberflow-bff-api/tests/professional-voucher-issuance.test.js](barberflow-bff-api/tests/professional-voucher-issuance.test.js) | infra | Repositorio controlado para testar saldo, hash de e-mail e emissao sem acessar o banco. |
 
 ## tests/landing-feedback.test.js
 

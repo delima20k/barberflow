@@ -81,10 +81,14 @@ class VoucherModal {
         email: String(formData.get('email') ?? '').trim(),
         phone: String(formData.get('phone') ?? '').trim(),
         campaignConsent: formData.get('campaignConsent') === 'on',
+        company: String(formData.get('company') ?? '').trim(),
       });
 
       if (result?.ok && typeof result.code === 'string' && result.code.trim()) {
         this.showSuccess(result.code.trim());
+        if (Number.isInteger(result.remaining)) {
+          this.updateAvailabilityCount(result.remaining);
+        }
         return;
       }
 
@@ -92,10 +96,16 @@ class VoucherModal {
         result?.message
           ?? 'Não foi possível gerar o voucher. Tente novamente mais tarde.',
       );
+      if (Number.isInteger(result?.remaining)) {
+        this.updateAvailabilityCount(result.remaining);
+      }
     } catch {
       this.showError('A integração segura ainda não está disponível.');
     } finally {
       this.setLoading(false);
+      if (this.availability?.dataset.state === 'unavailable' && this.submitButton) {
+        this.submitButton.disabled = true;
+      }
     }
   }
 
@@ -204,12 +214,20 @@ class VoucherModal {
       const notes = {
         available: 'Saldo informado pela API segura da campanha.',
         unavailable: 'Saldo informado pela API segura da campanha.',
-        development: 'Modo de desenvolvimento: nenhum código ou contador é criado no navegador.',
+        development: 'Nenhum código ou contador é criado no navegador.',
         loading: 'Apenas informações fornecidas pelo servidor serão exibidas.',
         error: 'Tente consultar novamente mais tarde.',
       };
       this.availabilityNote.textContent = notes[state] ?? '';
     }
+  }
+
+  updateAvailabilityCount(remaining) {
+    const label = remaining === 1
+      ? '1 voucher restante'
+      : `${remaining} vouchers restantes`;
+    this.setAvailability(label, remaining > 0 ? 'available' : 'unavailable');
+    if (this.submitButton) this.submitButton.disabled = remaining === 0;
   }
 
   setCopyStatus(message) {

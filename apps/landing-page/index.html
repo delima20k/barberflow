@@ -544,7 +544,7 @@
       <div class="voucher-availability">
         <span>Disponibilidade da campanha</span>
         <strong data-voucher-availability aria-live="polite">A disponibilidade real será consultada ao abrir este formulário.</strong>
-        <small data-voucher-mode>Modo de desenvolvimento: nenhum código ou contador é criado no navegador.</small>
+        <small data-voucher-mode>Os códigos e a disponibilidade são consultados com segurança no servidor.</small>
       </div>
 
       <div data-voucher-form-view>
@@ -558,6 +558,11 @@
 
             <label for="voucher-phone">Telefone ou WhatsApp</label>
             <input id="voucher-phone" name="phone" autocomplete="tel" type="tel" inputmode="tel" minlength="10" maxlength="20" required>
+          </div>
+
+          <div class="feedback-form__honeypot" aria-hidden="true">
+            <label for="voucher-company">Empresa</label>
+            <input id="voucher-company" name="company" type="text" tabindex="-1" autocomplete="off">
           </div>
 
           <label class="voucher-consent" for="voucher-consent">
@@ -575,11 +580,11 @@
         <div class="voucher-legal">
           <details id="voucher-rules">
             <summary>Regras da campanha</summary>
-            <p>A emissão depende de elegibilidade, disponibilidade, validade e regras oficiais que deverão ser publicadas antes da ativação da campanha.</p>
+            <p>Um voucher por e-mail elegível, enquanto houver disponibilidade. Use o mesmo e-mail ao criar sua conta profissional.</p>
           </details>
           <details id="voucher-privacy">
             <summary>Política de privacidade</summary>
-            <p>Nesta versão os dados não são transmitidos. Antes da ativação, a política deverá informar finalidade, base legal, retenção e canal para exercício de direitos.</p>
+            <p>Os dados são enviados à BFF para validar a solicitação. O controle de duplicidade mantém somente o hash do e-mail junto ao voucher.</p>
           </details>
         </div>
       </div>
@@ -591,7 +596,7 @@
         <code class="voucher-success__code" data-voucher-code></code>
         <button class="button button--dark" type="button" data-copy-voucher>Copiar código</button>
         <p class="voucher-success__copy-status" role="status" aria-live="polite" data-copy-status></p>
-        <a class="button button--gold" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="app_access_click">Acessar o BarberFlow</a>
+        <a class="button button--gold" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-voucher-app-link data-analytics-event="app_access_click">Entrar no app profissional</a>
         <ol class="voucher-success__steps">
           <li data-voucher-success-step>Copie seu voucher.</li>
           <li data-voucher-success-step>Acesse a aplicação profissional.</li>

@@ -31,10 +31,12 @@ class VoucherAdapterStub {
 }
 
 class VoucherServiceFixture {
-  static createContext() {
+  static createContext(fetchImpl = null) {
     const context = vm.createContext({
       console,
       document: {},
+      fetch: fetchImpl,
+      AbortSignal,
     });
     const source = readFileSync(
       join(LANDING_ROOT, 'js', 'voucher-service.js'),
@@ -43,6 +45,88 @@ class VoucherServiceFixture {
     vm.runInContext(source, context);
     return context;
   }
+}
+
+function createElement(overrides = {}) {
+  return {
+    hidden: false,
+    disabled: false,
+    textContent: '',
+    dataset: {},
+    attributes: new Map(),
+    addEventListener() {},
+    removeEventListener() {},
+    setAttribute(name, value) { this.attributes.set(name, String(value)); },
+    getAttribute(name) { return this.attributes.get(name) ?? null; },
+    focus() { this.focused = true; },
+    ...overrides,
+  };
+}
+
+function createVoucherModalFixture(service) {
+  const elements = {
+    form: createElement({
+      checkValidity: () => true,
+      reportValidity() {},
+    }),
+    formView: createElement(),
+    successView: createElement({ hidden: true }),
+    availability: createElement(),
+    availabilityNote: createElement(),
+    error: createElement({ hidden: true }),
+    loading: createElement({ hidden: true }),
+    submitButton: createElement(),
+    copyButton: createElement(),
+    copyStatus: createElement(),
+    code: createElement(),
+    successTitle: createElement(),
+    appLink: createElement({ href: 'https://pro.barberflow.live/' }),
+  };
+  const selectors = new Map([
+    ['[data-voucher-form]', elements.form],
+    ['[data-voucher-form-view]', elements.formView],
+    ['[data-voucher-success]', elements.successView],
+    ['[data-voucher-availability]', elements.availability],
+    ['[data-voucher-mode]', elements.availabilityNote],
+    ['[data-voucher-error]', elements.error],
+    ['[data-voucher-loading]', elements.loading],
+    ['[data-voucher-submit]', elements.submitButton],
+    ['[data-copy-voucher]', elements.copyButton],
+    ['[data-copy-status]', elements.copyStatus],
+    ['[data-voucher-code]', elements.code],
+    ['[data-voucher-success-title]', elements.successTitle],
+    ['[data-voucher-app-link]', elements.appLink],
+  ]);
+  const modal = createElement({
+    querySelector: (selector) => selectors.get(selector) ?? null,
+    querySelectorAll: () => [],
+  });
+  const root = {
+    body: { classList: { add() {}, remove() {} } },
+    querySelector: (selector) => (selector === '[data-voucher-modal]' ? modal : null),
+    querySelectorAll: () => [],
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  const copied = [];
+  const context = VoucherServiceFixture.createContext(null);
+  context.FormData = function FormDataFixture() {
+    this.get = (name) => ({
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      phone: '11999999999',
+      campaignConsent: 'on',
+      company: '',
+    })[name] ?? null;
+  };
+  vm.runInContext(
+    readFileSync(join(LANDING_ROOT, 'js', 'voucher-modal.js'), 'utf8'),
+    context,
+  );
+  const voucherModal = new context.VoucherModal(root, service, {
+    clipboard: { writeText: async (value) => copied.push(value) },
+  });
+  return { voucherModal, elements, copied };
 }
 
 describe('VoucherService', () => {
@@ -115,5 +199,79 @@ describe('VoucherService', () => {
       service.generateVoucher({}),
       /adapter seguro de vouchers não foi configurado/i,
     );
+  });
+
+  it('deve emitir pela API usando somente os campos permitidos', async () => {
+    const calls = [];
+    const fetchImpl = async (url, options = {}) => {
+      calls.push({ url, options });
+      return {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          dados: options.method === 'POST'
+            ? { ok: true, status: 'issued', code: 'ABC123', remaining: 57 }
+            : { ok: true, status: 'available', remaining: 58 },
+        }),
+      };
+    };
+    const { VoucherApiAdapter } = VoucherServiceFixture.createContext(fetchImpl);
+    const adapter = new VoucherApiAdapter(
+      'https://bff.barberflow.live/api/v1/professional-vouchers',
+      { fetchImpl },
+    );
+
+    const availability = await adapter.checkAvailability();
+    const issuance = await adapter.generateVoucher({
+      name: 'Ana',
+      email: 'ana@example.com',
+      phone: '11999999999',
+      campaignConsent: true,
+      company: '',
+      injectedCode: 'NAO-ENVIAR',
+    });
+
+    assert.equal(availability.remaining, 58);
+    assert.equal(issuance.code, 'ABC123');
+    assert.equal(calls[0].url, 'https://bff.barberflow.live/api/v1/professional-vouchers/availability');
+    assert.equal(calls[1].url, 'https://bff.barberflow.live/api/v1/professional-vouchers/issue');
+    assert.deepEqual(JSON.parse(calls[1].options.body), {
+      name: 'Ana',
+      email: 'ana@example.com',
+      phone: '11999999999',
+      campaignConsent: true,
+      company: '',
+    });
+  });
+
+  it('deve exibir e copiar na modal somente o voucher retornado pelo servidor', async () => {
+    const calls = [];
+    const service = {
+      async generateVoucher(data) {
+        calls.push(data);
+        return { ok: true, status: 'issued', code: 'ABC123', remaining: 57 };
+      },
+    };
+    const { voucherModal, elements, copied } = createVoucherModalFixture(service);
+
+    await voucherModal.handleSubmit({ preventDefault() {} });
+
+    assert.equal(elements.formView.hidden, true);
+    assert.equal(elements.successView.hidden, false);
+    assert.equal(elements.code.textContent, 'ABC123');
+    assert.equal(elements.appLink.href, 'https://pro.barberflow.live/');
+    assert.equal(elements.availability.textContent, '57 vouchers restantes');
+    assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      phone: '11999999999',
+      campaignConsent: true,
+      company: '',
+    }]);
+
+    await voucherModal.handleCopy();
+
+    assert.deepEqual(copied, ['ABC123']);
+    assert.equal(elements.copyStatus.textContent, 'Código copiado.');
   });
 });
