@@ -16,6 +16,7 @@ module.exports = {
       'https://www.barberflow.app',
       // Domínios oficiais barberflow.live
       'https://barberflow.live',
+      'https://www.barberflow.live',
       'https://app.barberflow.live',
       'https://pro.barberflow.live',
       // Painel administrativo

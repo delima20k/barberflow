@@ -34,6 +34,8 @@ const criarApp        = require('../app');
 suite('CorsMiddleware — origens de produção (.shop)', () => {
 
   const ORIGENS_PRODUCAO = [
+    'https://barberflow.live',
+    'https://www.barberflow.live',
     'https://app.barberflow.live',
     'https://pro.barberflow.live',
   ];
