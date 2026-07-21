@@ -112,9 +112,10 @@ ou chamada final estao visiveis, evitando cobrir botoes de conversao.
 - `generateVoucher(data)`
 - `validateVoucher(code)`
 
-A chave `voucherCampaignEnabled` esta ativa. `VoucherApiAdapter` acessa somente
-`https://bff.barberflow.live/api/v1/professional-vouchers`; a interface nunca
-cria codigo, saldo ou confirmacao local.
+A chave `voucherCampaignEnabled` esta ativa. `VoucherApiAdapter` acessa o caminho
+same-origin `/api/v1/professional-vouchers`, encaminhado pela Vercel para
+`https://bff.barberflow.live`; a interface nunca cria codigo, saldo ou
+confirmacao local.
 
 A modal possui nome, e-mail, telefone/WhatsApp, aceite das regras e privacidade,
 honeypot, loading, erro, sucesso, copia do codigo, acesso ao app profissional e
@@ -146,7 +147,7 @@ O formulario inclui nome, e-mail, tipo, assunto, mensagem, consentimento,
 limites de caracteres, honeypot, loading, sucesso e erro. `FeedbackService`
 normaliza e valida os dados e delega o envio ao `FeedbackApiAdapter`. A flag
 `feedbackSubmissionEnabled` esta ativa e o adapter envia somente a allowlist
-para `POST https://bff.barberflow.live/api/v1/landing/feedback`.
+para `POST /api/v1/landing/feedback`, encaminhado pela Vercel ao BFF.
 
 O BFF revalida o payload com `LandingFeedbackDto`, absorve o honeypot, limita a
 cinco envios por IP a cada 15 minutos e usa `SubmitLandingFeedbackUseCase` para

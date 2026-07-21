@@ -318,7 +318,7 @@ describe('Landing page BarberFlow', () => {
     assert.doesNotMatch(source, /localStorage|Math\.random|crypto\.randomUUID/);
     assert.doesNotMatch(html, />\s*\d+\s+vouchers? restantes/i);
     assert.match(config, /voucherCampaignEnabled:\s*true/);
-    assert.match(config, /voucherApiUrl:\s*'https:\/\/bff\.barberflow\.live\/api\/v1\/professional-vouchers'/);
+    assert.match(config, /voucherApiUrl:\s*'\/api\/v1\/professional-vouchers'/);
     assert.match(main, /new VoucherApiAdapter\(/);
   });
 
@@ -484,7 +484,7 @@ describe('Landing page BarberFlow', () => {
     assert.match(source, /class FeedbackApiAdapter\b/);
     assert.match(source, /feedbackSubmissionEnabled/);
     assert.match(config, /feedbackSubmissionEnabled:\s*true/);
-    assert.match(config, /feedbackApiUrl:\s*'https:\/\/bff\.barberflow\.live\/api\/v1\/landing\/feedback'/);
+    assert.match(config, /feedbackApiUrl:\s*'\/api\/v1\/landing\/feedback'/);
     assert.match(main, /new FeedbackApiAdapter\(\s*LandingConfig\.get\('feedbackApiUrl'\)/);
     assert.match(privacy, /contato@barberflow\.live/);
     assert.match(privacy, /Resend/);
@@ -599,5 +599,18 @@ describe('Landing page BarberFlow', () => {
     assert.match(vercel, /X-Content-Type-Options/);
     assert.match(vercel, /frame-ancestors 'none'/);
     assert.match(vercel, /frame-src 'self' https:\/\/www\.youtube-nocookie\.com/);
+    assert.match(
+      vercel,
+      /script-src 'self'[^;]*https:\/\/static\.cloudflareinsights\.com/,
+    );
+    assert.doesNotMatch(vercel, /script-src[^;]*'unsafe-inline'/);
+    assert.match(
+      vercel,
+      /"source": "\/api\/v1\/professional-vouchers\/:path\*"[\s\S]*?"destination": "https:\/\/bff\.barberflow\.live\/api\/v1\/professional-vouchers\/:path\*"/,
+    );
+    assert.match(
+      vercel,
+      /"source": "\/api\/v1\/landing\/feedback"[\s\S]*?"destination": "https:\/\/bff\.barberflow\.live\/api\/v1\/landing\/feedback"/,
+    );
   });
 });
