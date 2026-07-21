@@ -166,7 +166,7 @@
   display: none;
 }
 
-.modal__header {
+.modal__heading {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
   align-items: center;

@@ -124,8 +124,9 @@ describe('Landing page BarberFlow', () => {
     const css = LandingPageFixture.source('css/sections/header-hero.css');
     const mainStart = html.match(/<main id="conteudo">[\s\S]*?<section id="hero"/)?.[0] ?? '';
 
-    assert.doesNotMatch(html, /<header[^>]*id="cabecalho"|id="cabecalho"/);
-    assert.match(mainStart, /<div class="landing-topbar" data-header>/);
+    assert.doesNotMatch(html, /<\/?header\b/i);
+    assert.doesNotMatch(html, /id="cabecalho"|data-header/);
+    assert.match(mainStart, /<div class="landing-topbar">/);
     assert.match(mainStart, /<img class="brand__name"/);
     assert.match(mainStart, /<button class="menu-toggle"[^>]*data-menu-toggle/);
     assert.match(css, /\.landing-topbar\s*\{[^}]*background:\s*transparent;/);
