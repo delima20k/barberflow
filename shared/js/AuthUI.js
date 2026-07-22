@@ -228,12 +228,6 @@ const AuthUI = (() => {
       AppState.set('perfil', perfil);
     }
 
-    // Botão "+ Criar barbearia" — visível apenas para barbeiro autônomo (sem barbearia)
-    const btnCriarBarbearia = document.getElementById('btn-perfil-criar');
-    if (btnCriarBarbearia) {
-      btnCriarBarbearia.style.display = perfil?.pro_type === 'barbeiro' ? '' : 'none';
-    }
-
     // Router e menu
     AuthService._instancia()?.entrar();
     _renderizarMenu(true);
@@ -285,10 +279,6 @@ const AuthUI = (() => {
       mu.appendChild(document.createTextNode(nomeVisitante + ' '));
       mu.appendChild(small);
     }
-
-    // Oculta botão "+ Criar" ao sair
-    const btnCriarBarbearia = document.getElementById('btn-perfil-criar');
-    if (btnCriarBarbearia) btnCriarBarbearia.style.display = 'none';
 
     // Router e menu
     AuthService._instancia()?.sair();

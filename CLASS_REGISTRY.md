@@ -239,7 +239,6 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 | `AgendaPage` | [apps/profissional/assets/js/pages/AgendaPage.js](apps/profissional/assets/js/pages/AgendaPage.js) | interfaces | Tela de agenda do profissional: hoje/amanhã/semana/mês, atualização de status |
 | `BarbeariasPage` | [apps/profissional/assets/js/pages/BarbeariasPage.js](apps/profissional/assets/js/pages/BarbeariasPage.js) | interfaces | Tela de listagem de barbearias no app profissional |
 | `BarbeirosPage` | [apps/profissional/assets/js/pages/BarbeirosPage.js](apps/profissional/assets/js/pages/BarbeirosPage.js) | interfaces | Tela de listagem de barbeiros no app profissional |
-| `CriarBarbeariaPage` | [apps/profissional/assets/js/pages/CriarBarbeariaPage.js](apps/profissional/assets/js/pages/CriarBarbeariaPage.js) | interfaces | Wizard de criação de barbearia pelo profissional |
 | `DestaquesPage` | [apps/profissional/assets/js/pages/DestaquesPage.js](apps/profissional/assets/js/pages/DestaquesPage.js) | interfaces | Tela de destaques no app profissional |
 | `FinancasPage` | [apps/profissional/assets/js/pages/FinancasPage.js](apps/profissional/assets/js/pages/FinancasPage.js) | interfaces | Tela de finanças: resumo de transações e receita |
 | `GpsPage` | [apps/profissional/assets/js/pages/GpsPage.js](apps/profissional/assets/js/pages/GpsPage.js) | interfaces | Tela de configuração de localização GPS da barbearia |

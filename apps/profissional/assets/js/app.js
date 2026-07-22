@@ -23,7 +23,6 @@ class BarberFlowProfissional extends Router {
     'parcerias',
     'financas',
     'perfil',
-    'criar',
     'sair',
     'destaques',
     'barbearias',
@@ -39,7 +38,6 @@ class BarberFlowProfissional extends Router {
     'minha-barbearia',
     'parcerias',
     'financas',
-    'criar',
   ]);
 
   get telasComNav()  { return BarberFlowProfissional.#TELAS_COM_NAV;  }
@@ -52,7 +50,6 @@ class BarberFlowProfissional extends Router {
   #destaquesPage;
   #agendaPage;
   #barbeariaPage;
-  #criarBarbeariaPage;
   #queueWidget;
   #barbeirosPage;
   #barbeariasPage;
@@ -72,7 +69,6 @@ class BarberFlowProfissional extends Router {
     this.#destaquesPage      = new DestaquesPage();
     this.#agendaPage           = new AgendaPage();
     this.#barbeariaPage        = new MinhaBarbeariaPage();
-    this.#criarBarbeariaPage   = new CriarBarbeariaPage();
     this.#queueWidget          = new QueueWidget();
     this.#barbeirosPage  = new BarbeirosPage();
     this.#barbeariasPage = new BarbeariasPage();
@@ -87,7 +83,6 @@ class BarberFlowProfissional extends Router {
     this.#destaquesPage.bind();
     this.#agendaPage.bind();
     this.#barbeariaPage.bind();
-    this.#criarBarbeariaPage.bind();
     this.#queueWidget.bind();
     this.#barbeirosPage.bind();
     this.#barbeariasPage.bind();

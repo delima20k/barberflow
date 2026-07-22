@@ -33,7 +33,7 @@
 
   <!-- Shared CSS -->
   <link rel="stylesheet" href="/shared/css/tokens.css">
-  <link rel="stylesheet" href="/shared/css/components.css?v=20260702d">
+  <link rel="stylesheet" href="/shared/css/components.css?v=20260722a">
   <link rel="stylesheet" href="/shared/css/notifications.css">
   <link rel="stylesheet" href="/shared/css/story-cards.css?v=20260623c">
   <link rel="stylesheet" href="/shared/css/story-creation.css?v=20260624e">
@@ -1349,43 +1349,6 @@
   </div><!-- /mb-convite-panel -->
 
   <!-- ============================================================
-       TELA — CRIAR BARBEARIA
-       Acessível pelo botão "+ Criar" na tela de perfil.
-       Permite que barbeiros sem barbearia criem uma.
-  ============================================================ -->
-  <main id="tela-criar" class="tela">
-    <div class="login-bg">
-      <div class="login-logo">
-        <button class="btn-voltar" type="button" data-action="voltar"><span class="btn-voltar__icone" aria-hidden="true">&larr;</span><span class="btn-voltar__texto">Voltar</span></button>
-        <img class="app-icon" src="/shared/img/Logo01.png" alt="BarberFlow"
-             onerror="this.style.display='none'">
-        <span class="login-tagline">Crie sua barbearia</span>
-      </div>
-      <div class="auth-card">
-        <h2 class="auth-title">Nova Barbearia</h2>
-        <div class="criar-intro">
-          <p>Preencha os dados abaixo para criar sua barbearia no BarberFlow.
-             Depois, configure a localização para aparecer no mapa dos clientes.</p>
-        </div>
-        <div class="form-field">
-          <label for="criar-nome">Nome da barbearia *</label>
-          <input id="criar-nome" type="text" placeholder="Ex: Barbearia do Rafael"
-                 maxlength="100" autocomplete="organization">
-        </div>
-        <div class="form-field">
-          <label for="criar-tel">Telefone / WhatsApp</label>
-          <input id="criar-tel" type="tel" placeholder="(00) 00000-0000"
-                 maxlength="20" autocomplete="tel">
-        </div>
-        <p id="criar-msg" class="criar-msg"></p>
-        <button id="criar-btn" type="button" class="btn btn-gold btn-full">
-          Criar Barbearia
-        </button>
-      </div>
-    </div>
-  </main>
-
-  <!-- ============================================================
        TELA — PERFIL
   ============================================================ -->
   <main id="tela-perfil" class="tela">
@@ -1398,9 +1361,6 @@
       <p class="profile-name" id="perfil-nome">João Silva</p>
       <p class="profile-sub" id="perfil-sub">Barbeiro Profissional · 8 anos de experiência</p>
       <div class="perfil-acoes">
-        <button class="btn-perfil-criar" onclick="Pro.nav('criar')">
-          + Criar
-        </button>
         <button class="btn-perfil-editar" onclick="PerfilEditor.alternarModo(this)">
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Editar perfil
@@ -2443,7 +2403,6 @@
 <script src="assets/js/pages/AgendaPage.js" defer></script>
 <script src="/shared/js/MediaP2P.js?v=20260620l" defer></script>
 <script src="assets/js/GpsPanelMap.js" defer></script>
-<script src="assets/js/pages/CriarBarbeariaPage.js" defer></script>
 <script src="assets/js/pages/ParceriasPage.js" defer></script>
 <script src="assets/js/pages/FinancasPage.js" defer></script>
 <script src="assets/js/pages/GpsPage.js" defer></script>
@@ -2460,7 +2419,7 @@
 <script src="/shared/js/QueueConfirmService.js" defer></script>
 
 <!-- App Profissional logic -->
-<script type="module" src="assets/js/app.js?v=20260702b" defer></script>
+<script type="module" src="assets/js/app.js?v=20260722a" defer></script>
 <!-- Todas as funções de UI estão em Router (POO) via Pro.* -->
 
 <!-- Modal de Chat — MessagesWidget -->
