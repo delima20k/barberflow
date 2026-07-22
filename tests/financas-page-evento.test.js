@@ -153,13 +153,33 @@ describe('FinancasPage — eventos financeiros', () => {
 });
 
 describe('FinancasPage — contrato BFF', () => {
+  test('preserva uma recarga pendente quando evento chega durante carregamento', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /#recargaPendente/);
+    assert.match(src, /if \(this\.#carregando\) \{\s*this\.#recargaPendente = true;/);
+    assert.match(src, /if \(this\.#recargaPendente\) \{/);
+  });
+
+  test('oculta metricas financeiras dos demais membros para o parceiro', () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
+      'utf8',
+    );
+    assert.match(src, /barbeiro\.financialVisible === false/);
+    assert.match(src, /Membro da equipe/);
+  });
+
   test('mantem guard #carregando para evitar cargas concorrentes', () => {
     const src = fs.readFileSync(
       path.resolve(__dirname, '../apps/profissional/assets/js/pages/FinancasPage.js'),
       'utf8',
     );
     assert.match(src, /#carregando/);
-    assert.match(src, /if \(this\.#carregando \|\| !this\.#shopId\)/);
+    assert.match(src, /if \(this\.#carregando\) \{/);
+    assert.match(src, /if \(!this\.#shopId\) return false;/);
   });
 
   test('dashboard retorna numeros prontos para renderizacao', async () => {

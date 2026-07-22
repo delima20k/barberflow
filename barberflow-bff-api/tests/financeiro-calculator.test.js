@@ -105,6 +105,66 @@ test('FinanceiroCalculator separa ciclo aberto de recebido e faturamento histori
   assert.equal(dashboard.cards.faturamentoHistorico.total, 700);
 });
 
+test('FinanceiroCalculator remove ex-parceiro da lista mesmo com movimento financeiro', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-31' },
+    transacoes: [
+      { id: 'tx-removido', professional_id: 'prof-removido', gross_amount: 100, payment_method: 'pix' },
+      { id: 'tx-ativo', professional_id: 'prof-ativo', gross_amount: 200, payment_method: 'pix' },
+    ],
+    transacoesPayoutAberto: [
+      { id: 'tx-removido', professional_id: 'prof-removido', gross_amount: 100, payment_method: 'pix' },
+    ],
+    resumoHistoricoFinanceiro: [
+      { professional_id: 'prof-removido', faturamento_historico: 500, total_recebido: 200 },
+    ],
+    agreements: [
+      { professional_id: 'prof-ativo', type: 'percentage', value: 50, is_active: true },
+    ],
+    profissionais: [
+      { professionalId: 'owner-id', nome: 'Dono', papel: 'owner', ativo: true },
+      { professionalId: 'prof-ativo', nome: 'Parceiro ativo', papel: 'professional', ativo: true },
+    ],
+    isOwner: true,
+  });
+
+  assert.deepEqual(
+    dashboard.barbeiros.map(item => item.professionalId).sort(),
+    ['owner-id', 'prof-ativo'],
+  );
+  assert.equal(dashboard.cards.totalBarbeiros.total, 2);
+});
+
+test('FinanceiroCalculator reinsere parceiro reativado uma unica vez', () => {
+  const calculator = new FinanceiroCalculator();
+  const dashboard = calculator.calcularDashboard({
+    periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-31' },
+    transacoes: [
+      { id: 'tx-antiga', professional_id: 'prof-reativado', gross_amount: 100, payment_method: 'pix' },
+      { id: 'tx-nova', professional_id: 'prof-reativado', gross_amount: 200, payment_method: 'pix' },
+    ],
+    transacoesPayoutAberto: [
+      { id: 'tx-nova', professional_id: 'prof-reativado', gross_amount: 200, payment_method: 'pix' },
+    ],
+    resumoHistoricoFinanceiro: [
+      { professional_id: 'prof-reativado', faturamento_historico: 300, total_recebido: 50 },
+    ],
+    agreements: [
+      { professional_id: 'prof-reativado', type: 'percentage', value: 50, is_active: true },
+    ],
+    profissionais: [
+      { professionalId: 'prof-reativado', nome: 'Parceiro reativado', papel: 'professional', ativo: true },
+    ],
+    isOwner: true,
+  });
+
+  assert.equal(
+    dashboard.barbeiros.filter(item => item.professionalId === 'prof-reativado').length,
+    1,
+  );
+});
+
 test('FinanceiroCalculator preserva avatarPath do perfil no card do barbeiro', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({

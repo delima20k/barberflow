@@ -18,6 +18,7 @@ class FinancasPage {
   #shopId = null;
   #canaisResumo = [];
   #carregando = false;
+  #recargaPendente = false;
   #resolvendo = false;
   #payoutEmAndamento = false;
   #acertoEmAndamento = false;
@@ -146,7 +147,11 @@ class FinancasPage {
   }
 
   async #carregar() {
-    if (this.#carregando || !this.#shopId) return false;
+    if (this.#carregando) {
+      this.#recargaPendente = true;
+      return false;
+    }
+    if (!this.#shopId) return false;
     if (this.#periodoAtual === 'custom' && (!this.#customDe || !this.#customAte)) return false;
 
     this.#carregando = true;
@@ -177,6 +182,10 @@ class FinancasPage {
     } finally {
       this.#carregando = false;
       this.#mostrarLoading(false);
+      if (this.#recargaPendente) {
+        this.#recargaPendente = false;
+        queueMicrotask(() => this.#carregar());
+      }
     }
   }
 
@@ -242,7 +251,9 @@ class FinancasPage {
   #renderGraficos(dados) {
     if (!this.#refs.graficos) return;
     const series = dados.series || [];
-    const barbeiros = (dados.barbeiros || []).slice(0, 6);
+    const barbeiros = (dados.barbeiros || [])
+      .filter(item => item.financialVisible !== false)
+      .slice(0, 6);
     const donut = dados.donut || [];
 
     this.#refs.graficos.innerHTML = `
@@ -459,6 +470,7 @@ class FinancasPage {
         ? `<img src="${FinancasPage.#escapar(avatarUrl)}" alt="${FinancasPage.#escapar(barbeiro.nome || 'Barbeiro')}" loading="lazy">`
         : FinancasPage.#escapar(inicial);
       const status = barbeiro.status === 'online' ? 'trabalhando' : (barbeiro.ativo ? 'ativo' : 'inativo');
+      const somenteMembro = barbeiro.financialVisible === false;
       const semAcordo = !barbeiro.agreementConfigured;
       const podePagar = isOwner && barbeiro.papel !== 'owner' && Number(barbeiro.pendingPayoutAmount || 0) > 0;
 
@@ -470,8 +482,11 @@ class FinancasPage {
               <h3>${FinancasPage.#escapar(barbeiro.nome)}</h3>
               <p class="fin-status fin-status--${FinancasPage.#escapar(status)}">${FinancasPage.#escapar(status)}</p>
             </div>
-            <span class="fin-growth ${Number(barbeiro.crescimentoPct) >= 0 ? 'positivo' : 'negativo'}">${this.#variacao(barbeiro.crescimentoPct)}</span>
+            ${somenteMembro
+              ? '<span class="fin-kpi-meta">Membro da equipe</span>'
+              : `<span class="fin-growth ${Number(barbeiro.crescimentoPct) >= 0 ? 'positivo' : 'negativo'}">${this.#variacao(barbeiro.crescimentoPct)}</span>`}
           </div>
+          ${somenteMembro ? '' : `
           ${semAcordo ? '<p class="fin-alerta-acordo">sem acordo configurado</p>' : ''}
           <dl class="fin-barber-metrics">
             <div><dt>Cortes</dt><dd>${this.#numero(barbeiro.cortes)}</dd></div>
@@ -491,6 +506,7 @@ class FinancasPage {
             <p><span>Barbeiro recebe</span><strong>${this.#moeda(barbeiro.valorBarbeiro)}</strong></p>
             <p><span>Barbearia recebe</span><strong>${this.#moeda(barbeiro.valorBarbearia)}</strong></p>
           </div>
+          `}
         </article>
       `;
     }).join('');

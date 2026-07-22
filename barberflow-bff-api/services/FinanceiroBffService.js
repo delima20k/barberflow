@@ -36,9 +36,7 @@ class FinanceiroBffService extends BaseService {
       ate: periodo.anteriorAte,
     };
 
-    const mensalistasPromise = isOwner
-      ? Promise.resolve(null)
-      : this.#repo.listarTotalMensalistas(barbershopId);
+    const mensalistasPromise = Promise.resolve(null);
     const despesasPromise = isOwner
       ? this.#repo.listarDespesas(barbershopId, periodo)
       : Promise.resolve([]);
@@ -63,7 +61,7 @@ class FinanceiroBffService extends BaseService {
       this.#repo.listarTransacoes(barbershopId, periodo, viewerProfessionalId),
       this.#repo.listarTransacoes(barbershopId, periodoAnterior, viewerProfessionalId),
       this.#repo.listarAgreements(barbershopId, periodo.fim, viewerProfessionalId),
-      this.#repo.listarProfissionais(barbershopId, viewerProfessionalId),
+      this.#repo.listarProfissionais(barbershopId),
       this.#repo.listarStatusEquipe(barbershopId),
       mensalistasPromise,
       despesasPromise,
@@ -93,6 +91,10 @@ class FinanceiroBffService extends BaseService {
     });
 
     if (!isOwner && viewerProfessionalId) {
+      dashboard.barbeiros = this.#protegerFinanceiroEquipe(
+        dashboard.barbeiros,
+        viewerProfessionalId,
+      );
       dashboard.acertoSemanal = await this.#montarAcertoSemanal({
         barbershopId,
         professionalId: viewerProfessionalId,
@@ -102,6 +104,25 @@ class FinanceiroBffService extends BaseService {
     }
 
     return dashboard;
+  }
+
+  #protegerFinanceiroEquipe(barbeiros, viewerProfessionalId) {
+    return (barbeiros || []).map(barbeiro => {
+      if (barbeiro.professionalId === viewerProfessionalId) {
+        return { ...barbeiro, financialVisible: true };
+      }
+
+      return {
+        professionalId: barbeiro.professionalId,
+        nome: barbeiro.nome,
+        avatarPath: barbeiro.avatarPath,
+        avatarUrl: barbeiro.avatarUrl,
+        papel: barbeiro.papel,
+        status: barbeiro.status,
+        ativo: barbeiro.ativo,
+        financialVisible: false,
+      };
+    });
   }
 
   async extratoBarbeiro(userId, professionalId, filtros = {}) {

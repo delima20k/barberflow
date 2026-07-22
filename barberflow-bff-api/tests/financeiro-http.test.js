@@ -747,12 +747,37 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
   await new Promise((resolve, reject) => server2.close(err => (err ? reject(err) : resolve())));
   assert.equal(res.status, 200);
   assert.equal(res.body.dados.isOwner, false);
+  assert.equal(res.body.dados.cards.receitaBruta.total, 500);
+  assert.equal(res.body.dados.cards.receitaLiquida.total, 480);
+  assert.equal(res.body.dados.cards.totalCortes.total, 1);
   assert.equal(res.body.dados.cards.lucroBarbearia.total, 288);
   assert.ok(res.body.dados.cards.meuLucro !== null);
   assert.equal(res.body.dados.cards.meuLucro.total, 192);
-  assert.equal(res.body.dados.barbeiros.length, 1);
-  assert.equal(res.body.dados.barbeiros[0].professionalId, USER_ID);
-  assert.equal(res.body.dados.barbeiros[0].pendingPayoutAmount, 192);
+  assert.equal(res.body.dados.barbeiros.length, 3);
+  const viewer = res.body.dados.barbeiros.find(item => item.professionalId === USER_ID);
+  assert.equal(viewer.financialVisible, true);
+  assert.equal(viewer.cortes, 1);
+  assert.equal(viewer.receitaBruta, 500);
+  assert.equal(viewer.receitaLiquida, 480);
+  assert.equal(viewer.porcentagemBarbeiro, 40);
+  assert.equal(viewer.porcentagemBarbearia, 60);
+  assert.equal(viewer.valorBarbeiro, 192);
+  assert.equal(viewer.valorBarbearia, 288);
+  assert.equal(viewer.pendingPayoutAmount, 192);
+
+  const demaisProfissionais = res.body.dados.barbeiros.filter(item => item.professionalId !== USER_ID);
+  assert.equal(demaisProfissionais.length, 2);
+  for (const profissional of demaisProfissionais) {
+    assert.equal(profissional.financialVisible, false);
+    assert.equal(Object.hasOwn(profissional, 'receitaBruta'), false);
+    assert.equal(Object.hasOwn(profissional, 'receitaLiquida'), false);
+    assert.equal(Object.hasOwn(profissional, 'valorBarbeiro'), false);
+    assert.equal(Object.hasOwn(profissional, 'valorBarbearia'), false);
+    assert.equal(Object.hasOwn(profissional, 'porcentagemBarbeiro'), false);
+    assert.equal(Object.hasOwn(profissional, 'porcentagemBarbearia'), false);
+  }
+  assert.equal(res.body.dados.cards.mensalistas.total, 0);
+  assert.equal(res.body.dados.cards.mensalistas.count, 0);
   assert.equal(res.body.dados.acertoSemanal.resumo.valorARepassarBarbearia, 288);
   assert.equal(res.body.dados.acertoSemanal.resumo.valorLiquidoBarbeiro, 192);
   assert.equal(res.body.dados.acertoSemanal.resumo.status, 'pending');

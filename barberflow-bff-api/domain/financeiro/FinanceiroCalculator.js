@@ -478,10 +478,7 @@ class FinanceiroCalculator {
   }
 
   #barbeirosOrdenados(atualMap, anteriorMap, barbeiroMap, agreementMap, cicloAbertoMap = null, historicoMap = new Map()) {
-    const ids = new Set([...barbeiroMap.keys(), ...atualMap.keys()]);
-    for (const id of cicloAbertoMap?.keys?.() || []) ids.add(id);
-    for (const id of historicoMap.keys()) ids.add(id);
-    return [...ids].map(id => {
+    return [...barbeiroMap.keys()].map(id => {
       const atual = atualMap.get(id);
       const cicloAberto = cicloAbertoMap?.get(id);
       const historico = historicoMap.get(id) || {};
