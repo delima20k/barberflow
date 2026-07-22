@@ -187,11 +187,19 @@ class StoryDeleteModal {
 
 class StoriesWidget {
 
+  static #instances       = new Set();
+  static #listenersBound  = false;
+  static #realtimeChannel = null;
+  static #LOCAL_EVENT     = 'barberflow:stories-changed';
+  static #REMOTE_EVENT    = 'stories-changed';
+
   #scrollEl     = null;
   #barbershopId = null;
   #shopName     = null;
   #shopLogoSrc  = null;
   #context      = 'home'; // 'home' | 'public-shop' | 'my-shop'
+  #loadingPromise = null;
+  #reloadRequested = false;
 
   /**
    * @param {HTMLElement} scrollEl
@@ -207,6 +215,8 @@ class StoriesWidget {
     this.#shopName     = shopName;
     this.#shopLogoSrc  = shopLogoSrc;
     this.#context      = context;
+    StoriesWidget.#instances.add(this);
+    StoriesWidget.#iniciarSincronizacao();
   }
 
   // ══════════════════════════════════════════════════════════
@@ -216,17 +226,52 @@ class StoriesWidget {
   /** Carrega e renderiza os stories. Fire-and-forget seguro. */
   async carregar() {
     if (!this.#scrollEl || typeof BffApiService === 'undefined') return;
-    const modo = this.#resolverModo();
-    if (modo === 'grupo') {
-      await this.#carregarPorBarbearia();
-    } else if (modo === 'individual') {
-      await this.#carregarPorBarbeariIndividual();
-    } else if (modo === 'feed') {
-      await this.#carregarFeed();
-    } else {
-      await this.#carregarPorCards();
+    if (this.#loadingPromise) {
+      this.#reloadRequested = true;
+      return this.#loadingPromise;
     }
-    this.#bindObserver();
+
+    this.#loadingPromise = (async () => {
+      do {
+        this.#reloadRequested = false;
+        const modo = this.#resolverModo();
+        if (modo === 'grupo') {
+          await this.#carregarPorBarbearia();
+        } else if (modo === 'individual') {
+          await this.#carregarPorBarbeariIndividual();
+        } else if (modo === 'feed') {
+          await this.#carregarFeed();
+        } else {
+          await this.#carregarPorCards();
+        }
+        this.#bindObserver();
+      } while (this.#reloadRequested);
+    })();
+
+    try {
+      await this.#loadingPromise;
+    } finally {
+      this.#loadingPromise = null;
+    }
+  }
+
+  /**
+   * Invalida os previews locais e avisa os demais apps pelo Realtime Broadcast.
+   * O payload contém apenas identificação; os dados confiáveis voltam da BFF.
+   * @param {{barbershopId?: string|null, action?: string}} detail
+   */
+  static notificarAlteracao(detail = {}) {
+    const normalized = StoriesWidget.#normalizarAlteracao(detail);
+    if (typeof document !== 'undefined'
+        && typeof document.dispatchEvent === 'function'
+        && typeof CustomEvent !== 'undefined') {
+      document.dispatchEvent(new CustomEvent(StoriesWidget.#LOCAL_EVENT, {
+        detail: normalized,
+      }));
+      return;
+    }
+    StoriesWidget.#atualizarInstancias(normalized);
+    StoriesWidget.#enviarBroadcast(normalized);
   }
 
   /**
@@ -252,6 +297,85 @@ class StoriesWidget {
     const scroll = telaInicio?.querySelector?.('.stories-scroll');
     if (!scroll) return;
     new StoriesWidget(scroll, { context: 'feed' }).carregar().catch(() => {});
+  }
+
+  static #iniciarSincronizacao() {
+    if (!StoriesWidget.#listenersBound && typeof document !== 'undefined') {
+      document.addEventListener?.(StoriesWidget.#LOCAL_EVENT, event => {
+        const detail = StoriesWidget.#normalizarAlteracao(event?.detail);
+        StoriesWidget.#atualizarInstancias(detail);
+        if (event?.detail?.source !== 'realtime') {
+          StoriesWidget.#enviarBroadcast(detail);
+        }
+      });
+      document.addEventListener?.('barberflow:story-deleted', event => {
+        StoriesWidget.notificarAlteracao({
+          barbershopId: event?.detail?.barbershopId ?? null,
+          action: 'deleted',
+        });
+      });
+      StoriesWidget.#listenersBound = true;
+    }
+
+    if (StoriesWidget.#realtimeChannel || typeof SupabaseService === 'undefined') return;
+    try {
+      StoriesWidget.#realtimeChannel = SupabaseService
+        .channel('barberflow-stories-sync')
+        .on('broadcast', { event: StoriesWidget.#REMOTE_EVENT }, ({ payload }) => {
+          const detail = {
+            ...StoriesWidget.#normalizarAlteracao(payload),
+            source: 'realtime',
+          };
+          if (typeof document !== 'undefined'
+              && typeof document.dispatchEvent === 'function'
+              && typeof CustomEvent !== 'undefined') {
+            document.dispatchEvent(new CustomEvent(StoriesWidget.#LOCAL_EVENT, { detail }));
+          } else {
+            StoriesWidget.#atualizarInstancias(detail);
+          }
+        })
+        .subscribe();
+    } catch (_) {
+      StoriesWidget.#realtimeChannel = null;
+    }
+  }
+
+  static #normalizarAlteracao(detail = {}) {
+    const barbershopId = detail?.barbershopId == null
+      ? null
+      : String(detail.barbershopId).trim() || null;
+    const action = ['created', 'updated', 'deleted'].includes(detail?.action)
+      ? detail.action
+      : 'updated';
+    return { barbershopId, action };
+  }
+
+  static #atualizarInstancias(detail) {
+    for (const widget of StoriesWidget.#instances) {
+      if (widget.#scrollEl?.isConnected === false) {
+        StoriesWidget.#instances.delete(widget);
+        continue;
+      }
+      if (!widget.#deveAtualizar(detail.barbershopId)) continue;
+      widget.carregar().catch(() => {});
+    }
+  }
+
+  static #enviarBroadcast(payload) {
+    try {
+      const result = StoriesWidget.#realtimeChannel?.send?.({
+        type: 'broadcast',
+        event: StoriesWidget.#REMOTE_EVENT,
+        payload,
+      });
+      if (result && typeof result.catch === 'function') result.catch(() => {});
+    } catch (_) {}
+  }
+
+  #deveAtualizar(barbershopId) {
+    if (this.#context === 'feed' || this.#context === 'home') return true;
+    if (!barbershopId) return true;
+    return String(this.#barbershopId ?? '') === String(barbershopId);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -298,6 +422,8 @@ class StoriesWidget {
       return;
     }
 
+    this.#mostrarSecao();
+
     // Ordem das barbearias da home — StoryViewer usa para percorrer todos
     // os vídeos de todas as barbearias a partir de qualquer card clicado.
     StoriesStore.setFeedOrder(ordemFeed);
@@ -321,9 +447,7 @@ class StoriesWidget {
     StoriesStore.set(this.#barbershopId, stories);
     this.#scrollEl.innerHTML = '';
     this.#scrollEl.appendChild(this.#criarCardGrupo(stories, this.#barbershopId));
-
-    const section = this.#scrollEl.closest('.bp-stories-section');
-    if (section) section.hidden = false;
+    this.#mostrarSecao();
   }
 
   /**
@@ -353,8 +477,7 @@ class StoriesWidget {
       return;
     }
 
-    const section = this.#scrollEl.closest('.bp-stories-section');
-    if (section) section.hidden = false;
+    this.#mostrarSecao();
   }
 
   /**
@@ -500,6 +623,13 @@ class StoriesWidget {
     const section = this.#scrollEl.closest('.bp-stories-section');
     if (section) { section.hidden = true; return; }
     this.#scrollEl.hidden = true;
+  }
+
+  /** Reexibe o container quando uma invalidação encontra novos stories. */
+  #mostrarSecao() {
+    this.#scrollEl.hidden = false;
+    const section = this.#scrollEl.closest('.bp-stories-section');
+    if (section) section.hidden = false;
   }
 
   // ══════════════════════════════════════════════════════════
@@ -867,6 +997,10 @@ class StoriesWidget {
         const stories = StoriesStore.get(shopId).filter(item => item.media_id !== story.media_id);
         StoriesStore.set(shopId, stories);
         card.remove();
+        document.dispatchEvent(new CustomEvent('barberflow:story-deleted', {
+          bubbles: false,
+          detail: { mediaId: story.media_id, storyId: story.id, barbershopId: shopId },
+        }));
       }, 500);
     };
     const stop = () => clear();

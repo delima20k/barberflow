@@ -7,6 +7,11 @@ const path     = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const src  = fs.readFileSync(path.join(root, 'shared/js/StoriesWidget.js'), 'utf8');
+const runtimeSrc = fs.readFileSync(
+  path.join(root, 'apps/profissional/assets/js/pages/MinhaBarbeariaPage/MinhaBarbeariaRuntimeController.js'),
+  'utf8',
+);
+const viewerSrc = fs.readFileSync(path.join(root, 'shared/js/PortfolioPrismViewer.js'), 'utf8');
 
 // ── Análise estática ─────────────────────────────────────────────────────────
 
@@ -51,6 +56,29 @@ test('StoriesWidget oculta section quando nao ha stories', () => {
 test('StoriesWidget tem data-action story-open nos wraps de video', () => {
   assert.match(src, /story-open/);
   assert.match(src, /dataset\.action\s*=\s*'story-open'/);
+});
+
+test('StoriesWidget propaga invalidacao leve por evento local e Realtime Broadcast', () => {
+  assert.match(src, /barberflow:stories-changed/);
+  assert.match(src, /\.on\(\s*['"]broadcast['"]/);
+  assert.match(src, /type:\s*['"]broadcast['"]/);
+  assert.match(src, /static notificarAlteracao\(/);
+  assert.doesNotMatch(src, /postgres_changes/);
+});
+
+test('publicacao confirmada notifica consumidores sem alterar upload ou API', () => {
+  const publicarIndex = runtimeSrc.indexOf('BffApiService.barbearias.publicarStory');
+  const notificarIndex = runtimeSrc.indexOf('StoriesWidget.notificarAlteracao', publicarIndex);
+
+  assert.ok(publicarIndex >= 0, 'fluxo deve continuar publicando pela BFF');
+  assert.ok(notificarIndex > publicarIndex, 'notificacao deve ocorrer somente apos a publicacao');
+  assert.match(runtimeSrc.slice(notificarIndex, notificarIndex + 220), /barbershopId:\s*this\.#barbershopId/);
+});
+
+test('exclusao informa a barbearia para invalidar previews abertos', () => {
+  assert.match(viewerSrc, /barberflow:story-deleted/);
+  assert.match(viewerSrc, /barbershopId:/);
+  assert.match(src, /barberflow:story-deleted/);
 });
 
 // ── Testes funcionais com mock de DOM e BffApiService ────────────────────────
@@ -209,6 +237,119 @@ test('StoriesWidget.iniciarHome é método estático que aceita null sem lançar
   const StoriesWidget = buildStoriesWidgetClass();
   assert.strictEqual(typeof StoriesWidget.iniciarHome, 'function');
   assert.doesNotThrow(() => StoriesWidget.iniciarHome(null));
+});
+
+test('invalidacao recarrega o feed e somente a pagina publica correspondente', async () => {
+  const calls = { feed: 0, shopA: 0, shopB: 0 };
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: {
+      barbearias: {
+        feedStories: async () => { calls.feed++; return { data: [], error: null }; },
+        listarStories: async (shopId) => {
+          if (shopId === 'shop-a') calls.shopA++;
+          if (shopId === 'shop-b') calls.shopB++;
+          return { data: [], error: null };
+        },
+      },
+    },
+  });
+  const scroll = () => ({
+    children: [], innerHTML: '', hidden: false,
+    querySelectorAll: () => [], closest: () => null,
+  });
+
+  const feed = new StoriesWidget(scroll(), { context: 'feed' });
+  const shopA = new StoriesWidget(scroll(), { context: 'public-shop', barbershopId: 'shop-a' });
+  const shopB = new StoriesWidget(scroll(), { context: 'public-shop', barbershopId: 'shop-b' });
+  await Promise.all([feed.carregar(), shopA.carregar(), shopB.carregar()]);
+
+  StoriesWidget.notificarAlteracao({ barbershopId: 'shop-a', action: 'created' });
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.deepStrictEqual(calls, { feed: 2, shopA: 2, shopB: 1 });
+});
+
+test('Realtime Broadcast remoto invalida via BFF sem ecoar o evento', async () => {
+  const listeners = new Map();
+  let remoteHandler = null;
+  let requests = 0;
+  let sends = 0;
+  const eventDocument = {
+    addEventListener(type, handler) { listeners.set(type, handler); },
+    dispatchEvent(event) { listeners.get(event.type)?.(event); },
+    createElement() { throw new Error('nao deve renderizar card com resposta vazia'); },
+  };
+  class TestCustomEvent {
+    constructor(type, options = {}) { this.type = type; this.detail = options.detail; }
+  }
+  const channel = {
+    on(type, filter, handler) {
+      assert.strictEqual(type, 'broadcast');
+      assert.strictEqual(filter.event, 'stories-changed');
+      remoteHandler = handler;
+      return this;
+    },
+    subscribe() { return this; },
+    send() { sends++; return Promise.resolve(); },
+  };
+  const StoriesWidget = buildStoriesWidgetClass({
+    document: eventDocument,
+    CustomEvent: TestCustomEvent,
+    SupabaseService: { channel: () => channel },
+    BffApiService: {
+      barbearias: {
+        listarStories: async () => { requests++; return { data: [], error: null }; },
+      },
+    },
+  });
+  const scrollEl = {
+    children: [], innerHTML: '', hidden: false,
+    querySelectorAll: () => [], closest: () => null,
+  };
+  const widget = new StoriesWidget(scrollEl, {
+    context: 'public-shop',
+    barbershopId: 'shop-a',
+  });
+  await widget.carregar();
+
+  remoteHandler({ payload: { barbershopId: 'shop-a', action: 'created' } });
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.strictEqual(requests, 2, 'evento remoto deve consultar novamente a BFF');
+  assert.strictEqual(sends, 0, 'evento remoto nao deve ser retransmitido');
+});
+
+test('invalidacao reexibe uma secao que estava vazia quando chega o primeiro story', async () => {
+  let request = 0;
+  const StoriesWidget = buildStoriesWidgetClass({
+    BffApiService: {
+      barbearias: {
+        listarStories: async () => ({
+          data: request++ === 0 ? [] : [{
+            id: 'story-image',
+            media_id: 'media-image',
+            media_type: 'image',
+            media_url: 'https://cdn.example/story.webp',
+          }],
+          error: null,
+        }),
+      },
+    },
+  });
+  const { scrollEl } = buildDOMStub();
+  const widget = new StoriesWidget(scrollEl, {
+    context: 'public-shop',
+    barbershopId: 'shop-new-story',
+  });
+
+  await widget.carregar();
+  assert.strictEqual(scrollEl.hidden, true, 'secao vazia inicia oculta');
+
+  StoriesWidget.notificarAlteracao({ barbershopId: 'shop-new-story', action: 'created' });
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.strictEqual(scrollEl.hidden, false, 'secao deve reaparecer sem reload da pagina');
+  assert.strictEqual(scrollEl.children.length, 1, 'novo story deve ser renderizado');
 });
 
 test('StoriesWidget.carregar oculta section quando BFF retorna lista vazia', async () => {

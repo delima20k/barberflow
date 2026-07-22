@@ -3626,6 +3626,13 @@ export class MinhaBarbeariaRuntimeController {
       });
       if (dbErr) throw dbErr;
 
+      if (typeof StoriesWidget !== 'undefined') {
+        StoriesWidget.notificarAlteracao({
+          barbershopId: this.#barbershopId,
+          action: 'created',
+        });
+      }
+
       NotificationService?.mostrarToast('Publicado', 'Seu story foi publicado por 24h!', 'sistema');
       // Reseta o botão ANTES de recarregar — no sucesso o ⏳/pointerEvents:none
       // ficava preso até dar refresh na página (#renderStoryCards não reseta o

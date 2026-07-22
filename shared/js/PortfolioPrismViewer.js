@@ -661,7 +661,11 @@ class MediaPrismViewer {
     this.close();
     document.dispatchEvent(new CustomEvent('barberflow:story-deleted', {
       bubbles: false,
-      detail: { mediaId: item.media_id, storyId: item.id },
+      detail: {
+        mediaId: item.media_id,
+        storyId: item.id,
+        barbershopId: item.barbershop_id ?? item.shop_id ?? null,
+      },
     }));
   }
 

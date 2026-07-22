@@ -206,6 +206,17 @@ class AuthService {
       const user    = signUpData?.user    ?? null;
       const session = signUpData?.session ?? null;
 
+      // Com confirmacao de e-mail ativa, o Supabase mascara cadastros duplicados:
+      // retorna um usuario sem identidades e nenhuma sessao, em vez de erro.
+      const emailJaCadastrado = !session
+        && user
+        && Array.isArray(user.identities)
+        && user.identities.length === 0;
+      if (emailJaCadastrado) {
+        AuthService.#notificarMensagem(onMensagem, 'Este e-mail já está cadastrado.');
+        return;
+      }
+
       // Salva o documento cifrado na BFF — fire-and-forget.
       // Usa o JWT da sessão recém-criada via SupabaseService.getSession().
       // Falha não bloqueia o cadastro; o documento pode ser reinserido
