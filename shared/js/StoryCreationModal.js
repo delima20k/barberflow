@@ -85,9 +85,14 @@ class CameraRecorder {
     baixa: { width: { ideal: 640  }, height: { ideal: 480  } },
   };
 
-  static #streamPara(facingMode, qualKey) {
+  static #streamPara(facingMode, qualKey, exact = false) {
     const q = CameraRecorder.QUALIDADES[qualKey] || CameraRecorder.QUALIDADES.media;
-    return navigator.mediaDevices.getUserMedia({ video: { facingMode, ...q }, audio: true });
+    const facing = exact ? { exact: facingMode } : { ideal: facingMode };
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, ...q }, audio: true });
+  }
+
+  static #pararStream(stream) {
+    try { stream?.getTracks?.().forEach(track => track.stop()); } catch (_) {}
   }
 
   static async gravar(maxSeconds = 30) {
@@ -104,7 +109,8 @@ class CameraRecorder {
       const mime = ['video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
         .find(t => { try { return MediaRecorder.isTypeSupported?.(t); } catch (_) { return false; } }) || '';
 
-      let recorder = null, chunks = [], gravando = false, timerInt = null, autoStop = null;
+      let recorder = null, chunks = [], gravando = false, trocandoStream = false;
+      let timerInt = null, autoStop = null, encerrado = false;
 
       const live = scEl('video', { class: 'sc-camera-live', attrs: { playsinline: '', autoplay: '' } });
       live.muted = true;
@@ -125,11 +131,11 @@ class CameraRecorder {
       const qualBtns   = qualKeys.map(k => {
         const b = scEl('button', { class: 'sc-camera-opt-btn' + (k === qualKey ? ' is-active' : ''), type: 'button', text: qualLabels[k] });
         b.addEventListener('click', async () => {
-          if (gravando) return;
-          qualKey = k;
+          if (gravando || trocandoStream || k === qualKey) return;
+          const aplicada = await trocarStream(facingMode, k);
+          if (!aplicada) return;
           qualBtns.forEach(x => x.classList.remove('is-active'));
           b.classList.add('is-active');
-          await trocarStream();
         });
         return b;
       });
@@ -154,21 +160,62 @@ class CameraRecorder {
         children: [live, timer, qualPanel, durPanel, flipBtn, recBtn, close] });
 
       // Troca câmera / qualidade
-      const trocarStream = async () => {
+      const trocarStream = async (novoFacingMode = facingMode, novaQualidade = qualKey, exigirFacing = false) => {
+        if (trocandoStream || encerrado) return false;
+        trocandoStream = true;
+        flipBtn.disabled = true;
+        qualBtns.forEach(btn => { btn.disabled = true; });
+
+        const facingAnterior = facingMode;
+        const qualidadeAnterior = qualKey;
+        CameraRecorder.#pararStream(stream);
+        stream = null;
+        try { live.srcObject = null; } catch (_) {}
+
         let newStream;
-        try { newStream = await CameraRecorder.#streamPara(facingMode, qualKey); }
-        catch (_) { return; }
-        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
-        stream = newStream;
-        try { live.srcObject = stream; live.play?.(); } catch (_) {}
-        zoomLevel = 1;
-        live.style.transform = '';
+        let modoAplicado = novoFacingMode;
+        let qualidadeAplicada = novaQualidade;
+        try {
+          try {
+            newStream = await CameraRecorder.#streamPara(novoFacingMode, novaQualidade, exigirFacing);
+          } catch (_) {
+            if (exigirFacing) {
+              newStream = await CameraRecorder.#streamPara(novoFacingMode, novaQualidade);
+            } else {
+              throw _;
+            }
+          }
+        } catch (_) {
+          modoAplicado = facingAnterior;
+          qualidadeAplicada = qualidadeAnterior;
+          try { newStream = await CameraRecorder.#streamPara(facingAnterior, qualidadeAnterior); }
+          catch (_) { newStream = null; }
+        }
+
+        if (encerrado) {
+          CameraRecorder.#pararStream(newStream);
+          return false;
+        }
+
+        if (newStream) {
+          stream = newStream;
+          facingMode = modoAplicado;
+          qualKey = qualidadeAplicada;
+          try { live.srcObject = stream; live.play?.(); } catch (_) {}
+          zoomLevel = 1;
+          live.style.transform = '';
+        }
+
+        trocandoStream = false;
+        flipBtn.disabled = false;
+        qualBtns.forEach(btn => { btn.disabled = false; });
+        return !!newStream && modoAplicado === novoFacingMode && qualidadeAplicada === novaQualidade;
       };
 
       flipBtn.addEventListener('click', async () => {
-        if (gravando) return;
-        facingMode = facingMode === 'environment' ? 'user' : 'environment';
-        await trocarStream();
+        if (gravando || trocandoStream) return;
+        const novoFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+        await trocarStream(novoFacingMode, qualKey, true);
       });
 
       // Zoom por pinch (toque de 2 dedos)
@@ -198,9 +245,11 @@ class CameraRecorder {
 
       // Gravação
       const limpar = () => {
+        encerrado = true;
         try { clearInterval(timerInt); } catch (_) {}
         try { clearTimeout(autoStop); } catch (_) {}
-        try { stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+        CameraRecorder.#pararStream(stream);
+        stream = null;
         try { overlay.remove(); } catch (_) {}
       };
 

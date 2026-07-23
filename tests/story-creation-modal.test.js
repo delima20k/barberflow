@@ -801,6 +801,133 @@ test('OverlayPainter.desenharCreditos queima os direitos no rodapé (pequeno, fu
   assert.equal(calls.length, antes, 'sem créditos não desenha');
 });
 
+test('CameraRecorder libera a traseira antes de abrir a camera frontal', async () => {
+  const { sandbox, document } = criarSandbox();
+  let traseiraAtiva = false;
+  let traseiraParada = false;
+  let frontalParada = false;
+  const chamadas = [];
+
+  const streamTraseira = {
+    getTracks: () => [{
+      stop() {
+        traseiraAtiva = false;
+        traseiraParada = true;
+      },
+    }],
+  };
+  const streamFrontal = {
+    getTracks: () => [{
+      stop() { frontalParada = true; },
+    }],
+  };
+
+  sandbox.navigator = {
+    mediaDevices: {
+      async getUserMedia(constraints) {
+        chamadas.push(constraints);
+        if (chamadas.length === 1) {
+          traseiraAtiva = true;
+          return streamTraseira;
+        }
+        if (traseiraAtiva) {
+          const error = new Error('camera anterior ainda esta ativa');
+          error.name = 'NotReadableError';
+          throw error;
+        }
+        return streamFrontal;
+      },
+    },
+  };
+  sandbox.MediaRecorder = class MediaRecorder {
+    static isTypeSupported() { return false; }
+  };
+
+  const gravacao = sandbox.CameraRecorder.gravar(30);
+  await tick();
+  document.body.querySelector('.sc-camera-flip')._fire('click');
+  await tick();
+
+  assert.equal(traseiraParada, true, 'track traseira deve parar antes do segundo getUserMedia');
+  assert.equal(chamadas.length, 2, 'troca abre somente um novo stream');
+  assert.equal(chamadas[1].video.facingMode.exact, 'user', 'frontal deve ser solicitada explicitamente');
+
+  document.body.querySelector('.sc-camera-close')._fire('click');
+  assert.equal(await gravacao, null);
+  assert.equal(frontalParada, true, 'fechar a camera encerra a track frontal');
+});
+
+test('CameraRecorder usa preferencia frontal quando exact nao e suportado', async () => {
+  const { sandbox, document } = criarSandbox();
+  const chamadas = [];
+  const streamTraseira = { getTracks: () => [{ stop() {} }] };
+  const streamFrontal = { getTracks: () => [{ stop() {} }] };
+
+  sandbox.navigator = {
+    mediaDevices: {
+      async getUserMedia(constraints) {
+        chamadas.push(constraints);
+        if (chamadas.length === 1) return streamTraseira;
+        if (constraints.video.facingMode.exact === 'user') {
+          const error = new Error('exact nao suportado');
+          error.name = 'OverconstrainedError';
+          throw error;
+        }
+        return streamFrontal;
+      },
+    },
+  };
+  sandbox.MediaRecorder = class MediaRecorder {
+    static isTypeSupported() { return false; }
+  };
+
+  const gravacao = sandbox.CameraRecorder.gravar(30);
+  await tick();
+  document.body.querySelector('.sc-camera-flip')._fire('click');
+  await tick();
+
+  assert.equal(chamadas.length, 3, 'tenta exact e depois ideal para compatibilidade');
+  assert.equal(chamadas[2].video.facingMode.ideal, 'user');
+
+  document.body.querySelector('.sc-camera-close')._fire('click');
+  assert.equal(await gravacao, null);
+});
+
+test('CameraRecorder encerra stream frontal que chegar depois do fechamento', async () => {
+  const { sandbox, document } = criarSandbox();
+  let resolverFrontal;
+  let frontalParada = false;
+  const streamTraseira = { getTracks: () => [{ stop() {} }] };
+  const streamFrontal = { getTracks: () => [{ stop() { frontalParada = true; } }] };
+  const streamPendente = new Promise(resolve => { resolverFrontal = resolve; });
+  let chamadas = 0;
+
+  sandbox.navigator = {
+    mediaDevices: {
+      getUserMedia() {
+        chamadas += 1;
+        return chamadas === 1 ? Promise.resolve(streamTraseira) : streamPendente;
+      },
+    },
+  };
+  sandbox.MediaRecorder = class MediaRecorder {
+    static isTypeSupported() { return false; }
+  };
+
+  const gravacao = sandbox.CameraRecorder.gravar(30);
+  await tick();
+  const flip = document.body.querySelector('.sc-camera-flip');
+  const close = document.body.querySelector('.sc-camera-close');
+  flip._fire('click');
+  await tick();
+  close._fire('click');
+  assert.equal(await gravacao, null);
+
+  resolverFrontal(streamFrontal);
+  await tick();
+  assert.equal(frontalParada, true, 'stream tardio nao pode vazar apos fechar');
+});
+
 test('StoryComposer.dimsCanvas preserva aspecto, limita maior lado e gera dimensoes pares', () => {
   const { sandbox } = criarSandbox();
   const retrato = sandbox.StoryComposer.dimsCanvas(9 / 16, 1080);
