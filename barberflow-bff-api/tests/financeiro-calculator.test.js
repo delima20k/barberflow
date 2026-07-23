@@ -47,6 +47,52 @@ test('FinanceiroCalculator divide pelo percentual do barbeiro apos taxas de meto
   assert.equal(barbeiro.agreementConfigured, true);
 });
 
+test('FinanceiroCalculator preserva as divisoes 70/30, 60/40 e 50/50', () => {
+  const cenarios = [
+    { porcentagemBarbeiro: 70, porcentagemBarbearia: 30 },
+    { porcentagemBarbeiro: 60, porcentagemBarbearia: 40 },
+    { porcentagemBarbeiro: 50, porcentagemBarbearia: 50 },
+  ];
+
+  for (const cenario of cenarios) {
+    const calculator = new FinanceiroCalculator();
+    const dashboard = calculator.calcularDashboard({
+      periodo: { tipo: 'mes', de: '2026-05-01', ate: '2026-05-31' },
+      transacoes: [{
+        professional_id: 'prof-parceiro',
+        gross_amount: 100,
+        amount: 100,
+        payment_method: 'pix',
+        paid_at: '2026-05-10T12:00:00.000Z',
+      }],
+      agreements: [{
+        professional_id: 'prof-parceiro',
+        type: 'percentage',
+        value: cenario.porcentagemBarbeiro,
+        is_active: true,
+      }],
+      profissionais: [{
+        professionalId: 'prof-parceiro',
+        nome: 'Parceiro',
+        papel: 'professional',
+        ativo: true,
+      }],
+      isOwner: false,
+      viewerProfessionalId: 'prof-parceiro',
+    });
+
+    const barbeiro = dashboard.barbeiros[0];
+    assert.equal(dashboard.cards.receitaBruta.total, 100);
+    assert.equal(dashboard.cards.receitaLiquida.total, 100);
+    assert.equal(dashboard.cards.meuLucro.total, cenario.porcentagemBarbeiro);
+    assert.equal(dashboard.cards.lucroBarbearia.total, cenario.porcentagemBarbearia);
+    assert.equal(barbeiro.porcentagemBarbeiro, cenario.porcentagemBarbeiro);
+    assert.equal(barbeiro.porcentagemBarbearia, cenario.porcentagemBarbearia);
+    assert.equal(barbeiro.valorBarbeiro, cenario.porcentagemBarbeiro);
+    assert.equal(barbeiro.valorBarbearia, cenario.porcentagemBarbearia);
+  }
+});
+
 test('FinanceiroCalculator desconta do saldo pendente cortes ja vinculados a payout', () => {
   const calculator = new FinanceiroCalculator();
   const dashboard = calculator.calcularDashboard({

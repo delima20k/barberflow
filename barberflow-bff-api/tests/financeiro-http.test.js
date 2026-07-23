@@ -784,6 +784,88 @@ test('GET /dashboard nao-dono: isOwner=false e meuLucro com porcentagem do acord
   assert.equal(res.body.dados.acertoSemanal.historico.length, 1);
 });
 
+test('GET /barbeiros/:id/extrato permite owner consultar membro', async () => {
+  const app = criarApp(new FakeDb());
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+
+  const res = await request(
+    port,
+    'GET',
+    `/api/v1/financeiro/barbeiros/${PROF_ID}/extrato?barbershop_id=${SHOP_ID}&periodo=mes`,
+    { headers: { Authorization: `Bearer ${token()}` } },
+  );
+
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(res.status, 200);
+  assert.equal(res.body.dados.professionalId, PROF_ID);
+  assert.ok(res.body.dados.transacoes.every(item => item.professional_id === PROF_ID));
+});
+
+test('GET /barbeiros/:id/extrato limita parceiro ao proprio profissional', async () => {
+  const fakeDb = new FakeDb();
+  fakeDb.transactionRows.push({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    barbershop_id: SHOP_ID,
+    professional_id: USER_ID,
+    gross_amount: 100,
+    amount: 100,
+    payment_method: 'pix',
+    status: 'paid',
+    type: 'revenue',
+    paid_at: '2026-05-21T12:00:00.000Z',
+    created_at: '2026-05-21T12:00:00.000Z',
+  });
+  const from = fakeDb.from.bind(fakeDb);
+  let transactionQueries = 0;
+  fakeDb.from = table => {
+    const query = from(table);
+    if (table === 'transactions') transactionQueries += 1;
+    if (table === 'barbershops') {
+      query.then = (resolve, reject) =>
+        Promise.resolve({
+          data: {
+            id: SHOP_ID,
+            owner_id: '00000000-0000-4000-8000-000000000000',
+            is_active: true,
+          },
+          error: null,
+        }).then(resolve, reject);
+    }
+    return query;
+  };
+
+  const app = criarApp(fakeDb);
+  const server = await new Promise(resolve => {
+    const srv = app.listen(0, '127.0.0.1', () => resolve(srv));
+  });
+  const port = server.address().port;
+
+  const cruzado = await request(
+    port,
+    'GET',
+    `/api/v1/financeiro/barbeiros/${PROF_ID}/extrato?barbershop_id=${SHOP_ID}&periodo=mes`,
+    { headers: { Authorization: `Bearer ${token()}` } },
+  );
+  assert.equal(cruzado.status, 403);
+  assert.equal(transactionQueries, 0);
+
+  const proprio = await request(
+    port,
+    'GET',
+    `/api/v1/financeiro/barbeiros/${USER_ID}/extrato?barbershop_id=${SHOP_ID}&periodo=mes`,
+    { headers: { Authorization: `Bearer ${token()}` } },
+  );
+
+  await new Promise((resolve, reject) => server.close(err => (err ? reject(err) : resolve())));
+  assert.equal(proprio.status, 200);
+  assert.equal(proprio.body.dados.professionalId, USER_ID);
+  assert.equal(proprio.body.dados.transacoes.length, 1);
+  assert.ok(proprio.body.dados.transacoes.every(item => item.professional_id === USER_ID));
+});
+
 test('GET /dashboard owner nao recebe acertoSemanal de parceiro', async () => {
   const db = new FakeDb();
   const app = criarApp(db);

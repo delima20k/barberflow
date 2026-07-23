@@ -66,26 +66,50 @@ function elementoStub(id) {
   };
 }
 
-function criarSandbox({ shopId = SHOP_ID, retorno = dashboardFixture() } = {}) {
+function criarSandbox({
+  shopId = SHOP_ID,
+  retorno = dashboardFixture(),
+  ativa = false,
+  dashboardHandler = null,
+} = {}) {
   const eventListeners = {};
+  const mutationObservers = [];
+  const realtimeCallbacks = {};
+  const elements = new Map();
+  const getElement = id => {
+    if (!elements.has(id)) {
+      const element = elementoStub(id);
+      if (id === 'tela-financas' && ativa) {
+        element.classList.contains = fn().mockImplementation(classe => classe === 'ativa');
+      }
+      elements.set(id, element);
+    }
+    return elements.get(id);
+  };
 
   const sandbox = vm.createContext({
     console,
     Intl,
+    queueMicrotask,
     document: {
-      getElementById: fn().mockImplementation(id => elementoStub(id)),
+      getElementById: fn().mockImplementation(getElement),
       addEventListener: fn().mockImplementation((tipo, cb) => {
         if (!eventListeners[tipo]) eventListeners[tipo] = [];
         eventListeners[tipo].push(cb);
       }),
     },
     MutationObserver: class MutationObserver {
-      constructor(cb) { this._cb = cb; }
+      constructor(cb) {
+        this._cb = cb;
+        mutationObservers.push(cb);
+      }
       observe() {}
     },
     BffApiService: {
       financeiro: {
-        dashboard: fn().mockResolvedValue({ data: retorno, error: null }),
+        dashboard: dashboardHandler
+          ? fn().mockImplementation(dashboardHandler)
+          : fn().mockResolvedValue({ data: retorno, error: null }),
         aplicarTaxaMetodo: fn().mockResolvedValue({ data: { aplicado: true }, error: null }),
         confirmarPagamentoBarbeiro: fn().mockResolvedValue({
           data: { payout: { amount: 27.2 }, updatedBalance: { pendingPayoutAmount: 0 } },
@@ -103,18 +127,34 @@ function criarSandbox({ shopId = SHOP_ID, retorno = dashboardFixture() } = {}) {
         select: fn().mockReturnThis(),
         eq: fn().mockReturnThis(),
         limit: fn().mockReturnThis(),
+        maybeSingle: fn().mockResolvedValue({ data: { id: shopId }, error: null }),
         single: fn().mockResolvedValue({ data: { id: shopId }, error: null }),
       })),
     },
     SupabaseService: {
-      channel: fn().mockReturnValue({ on: fn().mockReturnThis(), subscribe: fn() }),
+      channel: fn().mockImplementation(nome => {
+        const canal = {
+          on: fn().mockImplementation((_tipo, config, callback) => {
+            realtimeCallbacks[config.table] = callback;
+            return canal;
+          }),
+          subscribe: fn().mockReturnValue({ nome }),
+        };
+        return canal;
+      }),
       removeChannel: fn(),
     },
     LoggerService: { warn: fn(), error: fn(), info: fn() },
   });
 
   carregar(sandbox, 'apps/profissional/assets/js/pages/FinancasPage.js');
-  return { sandbox, eventListeners };
+  return {
+    sandbox,
+    eventListeners,
+    mutationObservers,
+    realtimeCallbacks,
+    elements,
+  };
 }
 
 function disparar(eventListeners, tipo, detail) {
@@ -161,6 +201,112 @@ describe('FinancasPage — contrato BFF', () => {
     assert.match(src, /#recargaPendente/);
     assert.match(src, /if \(this\.#carregando\) \{\s*this\.#recargaPendente = true;/);
     assert.match(src, /if \(this\.#recargaPendente\) \{/);
+  });
+
+  test('executa nova carga quando Realtime chega durante consulta em andamento', async () => {
+    let chamada = 0;
+    let liberarSegundaCarga;
+    const segundaCarga = new Promise(resolve => {
+      liberarSegundaCarga = resolve;
+    });
+    const atualizado = dashboardFixture({
+      cards: {
+        receitaBruta: { total: 150, variacaoPct: 0 },
+        receitaLiquida: { total: 145, variacaoPct: 0 },
+        meuLucro: { total: 101.5, variacaoPct: 0 },
+        lucroBarbearia: { total: 43.5, variacaoPct: 0 },
+        totalCortes: { total: 3, variacaoPct: 0 },
+        saldoPendenteAtual: { total: 101.5, variacaoPct: 0 },
+        totalRecebido: { total: 70, variacaoPct: 0 },
+        faturamentoHistorico: { total: 220, variacaoPct: 0 },
+      },
+      barbeiros: [{
+        professionalId: PROF_ID,
+        nome: 'Parceiro atualizado',
+        papel: 'professional',
+        status: 'online',
+        ativo: true,
+        financialVisible: true,
+        cortes: 3,
+        receitaBruta: 150,
+        receitaLiquida: 145,
+        taxas: 5,
+        totalRecebido: 70,
+        faturamentoHistorico: 220,
+        porcentagemBarbeiro: 70,
+        porcentagemBarbearia: 30,
+        valorBarbeiro: 101.5,
+        valorBarbearia: 43.5,
+        saldoPendenteAtual: 101.5,
+        pendingPayoutAmount: 101.5,
+        agreementConfigured: true,
+        crescimentoPct: 0,
+      }],
+      metodosPagamento: [{
+        metodo: 'pix',
+        label: 'PIX atualizado',
+        receitaBruta: 150,
+        receitaLiquida: 145,
+        taxas: 5,
+        cortes: 3,
+      }],
+      series: [{ data: '2026-05-21', receitaLiquida: 145 }],
+      donut: [
+        { label: 'Barbearia', value: 43.5, color: '#0f766e' },
+        { label: 'Barbeiro', value: 101.5, color: '#2563eb' },
+      ],
+      acertoSemanal: {
+        resumo: {
+          status: 'pending',
+          valorARepassarBarbearia: 43.5,
+          producaoBrutaSemana: 150,
+          participacaoBarbearia: 43.5,
+          participacaoBarbeiro: 101.5,
+          valorLiquidoBarbeiro: 101.5,
+        },
+        historico: [{
+          semanaReferencia: 'EXTRATO ATUALIZADO',
+          valorBarbearia: 43.5,
+          status: 'pending',
+        }],
+      },
+    });
+    const dashboardHandler = () => {
+      chamada += 1;
+      if (chamada === 2) return segundaCarga;
+      return Promise.resolve({
+        data: chamada === 1 ? dashboardFixture() : atualizado,
+        error: null,
+      });
+    };
+    const contexto = criarSandbox({ ativa: true, dashboardHandler });
+    const page = new contexto.sandbox.FinancasPage();
+    page.bind();
+
+    contexto.mutationObservers[0]();
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(chamada, 1);
+    assert.equal(typeof contexto.realtimeCallbacks.transactions, 'function');
+
+    contexto.realtimeCallbacks.transactions();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(chamada, 2);
+
+    contexto.realtimeCallbacks.transactions();
+    liberarSegundaCarga({ data: dashboardFixture(), error: null });
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.equal(chamada, 3);
+    assert.match(contexto.elements.get('fin-resumo').innerHTML, /150/);
+    assert.match(contexto.elements.get('fin-resumo').innerHTML, />3</);
+    assert.match(contexto.elements.get('fin-graficos').innerHTML, /EXTRATO ATUALIZADO/);
+    assert.match(contexto.elements.get('fin-graficos').innerHTML, /Parceiro atualizado/);
+    assert.match(contexto.elements.get('fin-metodos').innerHTML, /PIX atualizado/);
+    assert.match(contexto.elements.get('fin-barbeiros').innerHTML, /Parceiro atualizado/);
+    assert.match(contexto.elements.get('fin-barbeiros').innerHTML, />70%</);
+    assert.match(contexto.elements.get('fin-barbeiros').innerHTML, /220/);
   });
 
   test('oculta metricas financeiras dos demais membros para o parceiro', () => {

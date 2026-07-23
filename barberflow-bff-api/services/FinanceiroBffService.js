@@ -132,7 +132,10 @@ class FinanceiroBffService extends BaseService {
     this._uuid('professional_id', professionalId);
 
     const periodo = this.#resolverPeriodo(filtros);
-    await this.#repo.verificarAcesso(userId, barbershopId);
+    const acesso = await this.#repo.verificarAcesso(userId, barbershopId);
+    if (acesso.papel !== 'owner' && professionalId !== userId) {
+      throw AppError.forbidden('Barbeiro parceiro so pode consultar o proprio extrato.');
+    }
     const transacoes = await this.#repo.listarTransacoes(barbershopId, periodo, professionalId);
 
     return { periodo, professionalId, transacoes };

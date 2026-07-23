@@ -30,6 +30,7 @@ class FakeQuery {
 
   select(cols) { this.selected = cols; this.db.selects.push({ table: this.table, cols }); return this; }
   eq(key, value) { this.filters[key] = value; return this; }
+  in(key, value) { this.filters[key] = value; return this; }
   gte(key, value) { this.filters[`${key}:gte`] = value; return this; }
   lte(key, value) { this.filters[`${key}:lte`] = value; return this; }
   order() { return this; }
@@ -53,6 +54,24 @@ class FakeQuery {
       return { data: rows, error: null };
     }
 
+    if (this.table === 'professional_shop_links') {
+      return { data: this.db.links, error: null };
+    }
+
+    if (this.table === 'professionals') {
+      return {
+        data: this.db.profissionais.filter(item => this.filters.id.includes(item.id)),
+        error: null,
+      };
+    }
+
+    if (this.table === 'profiles') {
+      return {
+        data: this.db.perfis.filter(item => this.filters.id.includes(item.id)),
+        error: null,
+      };
+    }
+
     if (this.table === 'transactions') {
       this.db.lastTransactionsQuery = this;
       return { data: this.db.transactions, error: null };
@@ -67,11 +86,16 @@ class FakeDb {
     this.shop = { owner_id: OWNER_ID, is_open: isOpen };
     this.presencas = presencas;
     this.transactions = [];
+    this.links = [];
+    this.profissionais = [];
+    this.perfis = [];
     this.selects = [];
+    this.fromCalls = [];
     this.lastTransactionsQuery = null;
   }
 
   from(table) {
+    this.fromCalls.push(table);
     return new FakeQuery(this, table);
   }
 }
@@ -137,4 +161,30 @@ test('FinanceiroRepository.listarTransacoes filtra receita paga da barbearia e p
   assert.equal(query.filters['paid_at:lte'], periodo.fim.toISOString());
   assert.notEqual(query.selected, '*');
   assert.equal(query.limitValue, 5000);
+});
+
+test('FinanceiroRepository lista 1, 5, 20 e 100 membros com quatro consultas em lote', async () => {
+  for (const quantidade of [1, 5, 20, 100]) {
+    const db = new FakeDb({ isOpen: true, presencas: [] });
+    const ids = Array.from(
+      { length: quantidade },
+      (_, index) => `prof-${String(index + 1).padStart(3, '0')}`,
+    );
+    db.shop.owner_id = ids[0];
+    db.links = ids.slice(1).map(professionalId => ({
+      barbershop_id: SHOP_ID,
+      professional_id: professionalId,
+      is_active: true,
+    }));
+    db.profissionais = ids.map(id => ({ id, avatar_path: '', is_active: true }));
+    db.perfis = ids.map(id => ({ id, full_name: id, avatar_path: '', is_active: true }));
+
+    const membros = await new FinanceiroRepository(db).listarProfissionais(SHOP_ID);
+
+    assert.equal(membros.length, quantidade);
+    assert.deepEqual(
+      db.fromCalls,
+      ['barbershops', 'professional_shop_links', 'professionals', 'profiles'],
+    );
+  }
 });
