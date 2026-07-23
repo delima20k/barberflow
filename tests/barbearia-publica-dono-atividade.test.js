@@ -100,7 +100,11 @@ describe('BarbeariaPage — presença do dono (carga + tempo real)', () => {
     const idx = SRC_PAGE.indexOf('#pararRealtimeAtividade() {');
     assert.ok(idx > 0, '#pararRealtimeAtividade deve existir');
     const bloco = SRC_PAGE.slice(idx, idx + 400);
-    assert.match(bloco, /removeChannel/, 'remove o canal do Supabase');
+    assert.match(
+      bloco,
+      /BarbeiroAtividadeStatus\.desassinar/,
+      'remove o consumidor pelo gerenciador do canal compartilhado',
+    );
   });
 
   test('sair da tela para o canal de atividade junto com fila e shop', () => {

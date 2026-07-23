@@ -4,6 +4,7 @@ class BarbeiroAtividadeStatus {
   static TABELA = 'professional_barbershop_presence';
   static EVENTO_ATUALIZADO = 'barberflow:barbeiro-atividade-atualizada';
   static EVENTO_BROADCAST = 'status';
+  static #assinaturasPorBarbearia = new Map();
 
   #barbershopId;
   #professionalId;
@@ -52,9 +53,7 @@ class BarbeiroAtividadeStatus {
     if (this.#toggleEl && this.#toggleHandler) {
       this.#toggleEl.removeEventListener('click', this.#toggleHandler);
     }
-    if (this.#canal && typeof SupabaseService !== 'undefined') {
-      SupabaseService.removeChannel(this.#canal);
-    }
+    BarbeiroAtividadeStatus.desassinar(this.#canal);
     this.#toggleHandler = null;
     this.#canal = null;
   }
@@ -207,40 +206,93 @@ class BarbeiroAtividadeStatus {
   }
 
   static assinar(barbershopId, callback) {
-    if (!barbershopId || typeof SupabaseService === 'undefined') return null;
-    const emitir = payload => { if (typeof callback === 'function') callback(payload); };
+    if (
+      !barbershopId
+      || typeof callback !== 'function'
+      || typeof SupabaseService === 'undefined'
+    ) return null;
+
     try {
-      const canal = SupabaseService.channel(`barbeiro-status:${barbershopId}`)
-        // postgres_changes: mudancas persistidas no banco (requer publicacao supabase_realtime)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: BarbeiroAtividadeStatus.TABELA,
-            filter: `barbershop_id=eq.${barbershopId}`,
-          },
-          emitir,
-        )
-        // broadcast: propagacao imediata cliente-a-cliente, independente do banco/RLS
-        .on(
-          'broadcast',
-          { event: BarbeiroAtividadeStatus.EVENTO_BROADCAST },
-          msg => emitir({ new: msg?.payload || {} }),
-        )
-        .subscribe(status => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            if (typeof LoggerService !== 'undefined') {
-              LoggerService.warn?.('[BarbeiroAtividadeStatus] Realtime falhou:', status);
+      let registro = BarbeiroAtividadeStatus.#assinaturasPorBarbearia.get(barbershopId);
+      if (!registro) {
+        const callbacks = new Map();
+        const emitir = payload => {
+          for (const consumidor of callbacks.values()) {
+            try {
+              consumidor(payload);
+            } catch (err) {
+              if (typeof LoggerService !== 'undefined') {
+                LoggerService.warn?.(
+                  '[BarbeiroAtividadeStatus] consumidor Realtime falhou:',
+                  err?.message || err,
+                );
+              }
             }
           }
-        });
-      return canal;
+        };
+        const canal = SupabaseService.channel(`barbeiro-status:${barbershopId}`);
+        canal
+          // postgres_changes: mudancas persistidas no banco (requer publicacao supabase_realtime)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: BarbeiroAtividadeStatus.TABELA,
+              filter: `barbershop_id=eq.${barbershopId}`,
+            },
+            emitir,
+          )
+          // broadcast: propagacao imediata cliente-a-cliente, independente do banco/RLS
+          .on(
+            'broadcast',
+            { event: BarbeiroAtividadeStatus.EVENTO_BROADCAST },
+            msg => emitir({ new: msg?.payload || {} }),
+          )
+          .subscribe(status => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              if (typeof LoggerService !== 'undefined') {
+                LoggerService.warn?.('[BarbeiroAtividadeStatus] Realtime falhou:', status);
+              }
+            }
+          });
+        registro = { callbacks, canal };
+        BarbeiroAtividadeStatus.#assinaturasPorBarbearia.set(barbershopId, registro);
+      }
+
+      const token = Symbol(barbershopId);
+      registro.callbacks.set(token, callback);
+      return Object.freeze({
+        barbershopId,
+        token,
+        send: payload => registro.canal.send(payload),
+      });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
         LoggerService.warn?.('[BarbeiroAtividadeStatus] Realtime indisponivel:', err?.message || err);
       }
       return null;
+    }
+  }
+
+  static desassinar(assinatura) {
+    if (!assinatura?.barbershopId || !assinatura?.token) return;
+    const registro = BarbeiroAtividadeStatus.#assinaturasPorBarbearia.get(
+      assinatura.barbershopId,
+    );
+    if (!registro) return;
+
+    registro.callbacks.delete(assinatura.token);
+    if (registro.callbacks.size > 0) return;
+
+    try {
+      if (typeof SupabaseService !== 'undefined') {
+        SupabaseService.removeChannel(registro.canal);
+      }
+    } finally {
+      BarbeiroAtividadeStatus.#assinaturasPorBarbearia.delete(
+        assinatura.barbershopId,
+      );
     }
   }
 }

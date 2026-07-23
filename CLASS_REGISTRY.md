@@ -940,3 +940,9 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | Classe | Arquivo | Camada | Descrição |
 |---|---|---|---|
 | `LandingPageFixture` | [tests/landing-page.test.js](tests/landing-page.test.js) | infra | Fornece caminhos e fontes determinísticas para os testes estáticos da landing. |
+
+## tests/barbeiro-atividade-realtime.test.js
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `BarbeiroAtividadeRealtimeFixture` | [tests/barbeiro-atividade-realtime.test.js](tests/barbeiro-atividade-realtime.test.js) | infra | Isola o canal Realtime para validar multiplexacao, broadcast e cleanup das assinaturas de atividade. |

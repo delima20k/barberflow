@@ -1118,7 +1118,7 @@ export class MinhaBarbeariaRuntimeController {
   /** Para o canal Realtime de atividade e limpa a referência. */
   #pararRealtimeAtividade() {
     if (this.#canalAtividade) {
-      try { SupabaseService.removeChannel(this.#canalAtividade); } catch (_) {}
+      try { BarbeiroAtividadeStatus.desassinar(this.#canalAtividade); } catch (_) {}
       this.#canalAtividade = null;
     }
   }

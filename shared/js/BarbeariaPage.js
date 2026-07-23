@@ -857,7 +857,7 @@ class BarbeariaPage {
   /** Para o canal Realtime de atividade e limpa referências. */
   #pararRealtimeAtividade() {
     if (this.#canalAtividade) {
-      try { SupabaseService.removeChannel(this.#canalAtividade); } catch (_) {}
+      try { BarbeiroAtividadeStatus.desassinar(this.#canalAtividade); } catch (_) {}
       this.#canalAtividade = null;
       this.#canalAtividadeShopId = null;
     }
