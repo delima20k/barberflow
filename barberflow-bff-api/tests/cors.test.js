@@ -27,6 +27,7 @@ process.env.SUPABASE_JWT_SECRET       = 'test-supabase-jwt-secret-for-testing-on
 const { criarMocks } = require('./_helpers');
 const CorsMiddleware  = require('../middlewares/cors');
 const BaseController  = require('../controllers/BaseController');
+const ProfissionalController = require('../controllers/ProfissionalController');
 const criarApp        = require('../app');
 
 // ─── Suite 1: origens de produção (.shop) — unit ─────────────────
@@ -460,4 +461,30 @@ suite('CorsMiddleware — rotas públicas cacheáveis com CORS', () => {
     assert.strictEqual(headers['access-control-allow-origin'], 'https://pro.barberflow.live');
     assert.ok(headers['cache-control']?.startsWith('private'));
   });
+});
+
+suite('CorsMiddleware - perfil publico profissional', () => {
+  const controller = new ProfissionalController({
+    buscarPerfilPublico: async id => ({ id, fullName: 'Profissional' }),
+  });
+
+  for (const origin of ['https://pro.barberflow.live', 'https://app.barberflow.live']) {
+    test(`perfil publico de ${origin} reflete a origem sem cache reutilizavel`, async () => {
+      const { req, res, next, captured } = criarMocks({
+        headers: { origin },
+        path: '/api/v1/profissionais/550e8400-e29b-41d4-a716-446655440000/perfil-publico',
+      });
+      req.params = { id: '550e8400-e29b-41d4-a716-446655440000' };
+      res.getHeader = name => captured.headers[name];
+
+      CorsMiddleware.handle(req, res, next);
+      await controller.perfilPublico(req, res);
+
+      assert.strictEqual(captured.status, 200);
+      assert.strictEqual(captured.headers['Access-Control-Allow-Origin'], origin);
+      assert.strictEqual(captured.headers['Vary'], 'Origin');
+      assert.strictEqual(captured.headers['Cache-Control'], 'private, no-store');
+      assert.strictEqual(captured.headers['CDN-Cache-Control'], 'no-store');
+    });
+  }
 });

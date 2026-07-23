@@ -17,7 +17,7 @@ class ProfissionalController extends BaseController {
     await this.handle(res, async () => {
       const dto = await this.#service.buscarPerfilPublico(req.params.id);
       if (this.etag(req, res, dto)) return;
-      this.cachePublico(res, 60, 300);
+      res.setHeader('Cache-Control', 'private, no-store');
       this.success(res, dto);
     });
   }
