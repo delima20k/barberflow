@@ -5734,8 +5734,11 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 
 .portfolio-gallery__carousel {
   display: flex;
+  flex-flow: row nowrap;
   gap: 12px;
+  width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;

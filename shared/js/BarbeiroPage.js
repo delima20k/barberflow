@@ -52,7 +52,7 @@ class BarbeiroPage {
    *   2. Se miss: inicia fetch + aguarda máx. 600 ms (Promise.race com timeout)
    *   3. Se dados chegaram a tempo: renderiza na tela oculta
    *   4. ENTÃO navega — tela entra JÁ com conteúdo pronto
-   *   5. Se rede lenta (>600 ms): navega com skeleton; MutationObserver termina
+   *   5. Se rede lenta (>600 ms): navega com skeleton; o fetch termina a renderização
    *
    * @param {string}  id      — UUID do barbeiro
    * @param {boolean} isOwner — true se o barbeiro é dono do salão
@@ -80,7 +80,15 @@ class BarbeiroPage {
         fetchPromise,
         new Promise(r => setTimeout(() => r(null), 600)),
       ]);
-      if (profile) CacheManager.set(`${id}:barbeiro`, profile, 5 * 60 * 1000);
+      if (profile) {
+        CacheManager.set(`${id}:barbeiro`, profile, 5 * 60 * 1000);
+      } else {
+        fetchPromise.then(lateProfile => {
+          if (!lateProfile) return;
+          CacheManager.set(`${id}:barbeiro`, lateProfile, 5 * 60 * 1000);
+          if (this.#barberoId === id) this.#renderizar(lateProfile);
+        });
+      }
     }
 
     // Renderiza na tela oculta se os dados chegaram e o contexto não mudou

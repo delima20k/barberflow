@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260723a';
+const SW_CLI_VERSION = '20260725a';
 
 class SWCliente {
 
@@ -36,7 +36,7 @@ class SWCliente {
     '/cliente/assets/js/app.js',
     '/cliente/assets/js/ClienteStartupSplash.js',
     '/shared/css/tokens.css',
-    '/shared/css/components.css',
+    '/shared/css/components.css?v=20260725a',
     '/shared/css/notifications.css',
     '/shared/js/LoggerService.js',
     '/shared/js/LgpdService.js',
