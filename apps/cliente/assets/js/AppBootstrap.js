@@ -303,24 +303,11 @@ class AppBootstrap {
   }
 
   static #registrarSW() {
-    if (!('serviceWorker' in navigator)) return;
-    // Recarrega automaticamente quando um novo SW assumir o controle
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!sessionStorage.getItem('sw_reloaded')) {
-        sessionStorage.setItem('sw_reloaded', '1');
-        location.reload();
-      }
-    });
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => {
-          LoggerService.info('[BarberFlow Cliente] SW registrado', reg.scope);
-          reg.update();
-          if ('periodicSync' in reg) {
-            reg.periodicSync.register('bf-periodic-cache-refresh', { minInterval: 24 * 60 * 60 * 1000 }).catch(() => {});
-          }
-        })
-        .catch(err => LoggerService.warn('[BarberFlow Cliente] SW erro', err));
+    if (typeof PwaUpdateManager === 'undefined') return;
+    PwaUpdateManager.registrar({
+      scriptUrl: './sw.js',
+      scope: './',
+      nomeApp: 'BarberFlow Cliente',
     });
   }
 }

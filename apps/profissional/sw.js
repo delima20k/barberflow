@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260725a';
+const SW_PRO_VERSION = '20260726a';
 
 class SWProfissional {
 
@@ -66,6 +66,7 @@ class SWProfissional {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
+    '/shared/js/PwaUpdateManager.js?v=20260726a',
     '/shared/js/BffApiService.js?v=20260628b',
     '/shared/js/BarbeiroAtividadeStatus.js',
     '/shared/js/MensalidadeInterestService.js',
@@ -120,10 +121,9 @@ class SWProfissional {
         caches.open(SWProfissional.#CACHE_IMAGES),
       ]);
       await Promise.all([
-        Promise.allSettled(SWProfissional.#ASSETS_STATIC.map(url => cs.add(url))),
+        Promise.all(SWProfissional.#ASSETS_STATIC.map(url => cs.add(new Request(url, { cache: 'reload' })))),
         Promise.allSettled(SWProfissional.#ASSETS_IMAGES.map(url => ci.add(url))),
       ]);
-      await self.skipWaiting();
     })());
   }
 
@@ -133,7 +133,7 @@ class SWProfissional {
       caches.keys()
         .then(keys => Promise.all(
           keys
-            .filter(k => !SWProfissional.#CACHES_VALIDOS.has(k))
+            .filter(k => k.startsWith('bf-pro-') && !SWProfissional.#CACHES_VALIDOS.has(k))
             .map(k  => caches.delete(k)),
         ))
         // .catch evita "Could not establish connection" quando o Chrome

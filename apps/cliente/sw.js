@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260725a';
+const SW_CLI_VERSION = '20260726a';
 
 class SWCliente {
 
@@ -67,6 +67,7 @@ class SWCliente {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
+    '/shared/js/PwaUpdateManager.js?v=20260726a',
     '/shared/js/BffApiService.js',
     '/shared/js/BarbeiroAtividadeStatus.js',
     '/shared/js/MensalidadeInterestService.js',
@@ -118,10 +119,9 @@ class SWCliente {
         caches.open(SWCliente.#CACHE_IMAGES),
       ]);
       await Promise.all([
-        Promise.allSettled(SWCliente.#ASSETS_STATIC.map(url => cs.add(url))),
+        Promise.all(SWCliente.#ASSETS_STATIC.map(url => cs.add(new Request(url, { cache: 'reload' })))),
         Promise.allSettled(SWCliente.#ASSETS_IMAGES.map(url => ci.add(url))),
       ]);
-      await self.skipWaiting();
     })());
   }
 
@@ -131,7 +131,7 @@ class SWCliente {
       caches.keys()
         .then(keys => Promise.all(
           keys
-            .filter(k => !SWCliente.#CACHES_VALIDOS.has(k))
+            .filter(k => k.startsWith('bf-cli-') && !SWCliente.#CACHES_VALIDOS.has(k))
             .map(k  => caches.delete(k)),
         ))
         .then(() => self.clients.claim().catch(() => {})),

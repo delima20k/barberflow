@@ -154,3 +154,13 @@ const App = new NomeApp();
 - Por ser decorativo, usar `aria-hidden="true"`, remover da ordem de foco e ocultar em `prefers-reduced-motion: reduce`.
 - Se o video transmitir informacao indispensavel, ele deixa de ser decorativo: deve ter controles, alternativa textual e legendas.
 - Servidor e CDN devem entregar o MIME correto e cache controlado. Arquivos que podem ser substituidos sem hash nao devem usar cache imutavel longo.
+
+## 14. ATUALIZACAO SEGURA DE PWA
+
+- Centralizar registro, deteccao, ativacao e recarga do service worker em uma classe compartilhada pelos apps.
+- Registrar o worker sempre no mesmo URL e usar `updateViaCache: 'none'`; a versao pertence aos nomes dos caches e aos assets, nao ao URL do worker.
+- Verificar atualizacao ao abrir e ao retomar o app. `controllerchange` pode recarregar a pagina somente uma vez por ciclo, com guard temporario em `sessionStorage`.
+- Nao chamar `skipWaiting()` incondicionalmente durante `install`; o gerenciador autoriza a ativacao por mensagem apenas depois que o worker termina de instalar.
+- O cache estatico critico deve ser atomico e buscado com `cache: 'reload'`. Falha em asset critico mantem o worker anterior ativo; imagens opcionais podem usar `Promise.allSettled`.
+- Durante `activate`, remover somente caches com o prefixo do proprio app. Nunca apagar sessao, localStorage, IndexedDB ou caches de outro produto.
+- Alteracao em arquivo compartilhado exige versao nova nos dois HTMLs, nos dois workers e teste de paridade cliente/profissional.

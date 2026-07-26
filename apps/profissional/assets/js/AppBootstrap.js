@@ -255,46 +255,11 @@ class AppBootstrap {
   }
 
   static #registrarSW() {
-    if (!('serviceWorker' in navigator)) return;
-    // Limpa flag do ciclo anterior — garante que cada nova atualização de SW
-    // possa forçar o reload. O flag só precisa existir durante o ciclo de reload.
-    sessionStorage.removeItem('sw_reloaded');
-
-    // Recarrega automaticamente quando um novo SW assumir o controle
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!sessionStorage.getItem('sw_reloaded')) {
-        sessionStorage.setItem('sw_reloaded', '1');
-        location.reload();
-      }
-    });
-
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => {
-          // Se já há um SW instalado aguardando, força imediatamente
-          if (reg.waiting) {
-            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
-
-          // Detecta novo SW que chega após o carregamento da página
-          reg.addEventListener('updatefound', () => {
-            const sw = reg.installing;
-            if (!sw) return;
-            sw.addEventListener('statechange', () => {
-              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-                // Novo SW instalado e pronto — força ativação imediata
-                sw.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          });
-
-          reg.update();
-          if ('periodicSync' in reg) {
-            reg.periodicSync.register('bf-periodic-cache-refresh', { minInterval: 24 * 60 * 60 * 1000 }).catch(() => {});
-          }
-          LoggerService.info('[BarberFlow Pro] SW registrado', reg.scope);
-        })
-        .catch(err => LoggerService.warn('[BarberFlow Pro] SW erro', err));
+    if (typeof PwaUpdateManager === 'undefined') return;
+    PwaUpdateManager.registrar({
+      scriptUrl: './sw.js',
+      scope: './',
+      nomeApp: 'BarberFlow Profissional',
     });
   }
 }
