@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260726a';
+const SW_CLI_VERSION = '20260726c';
 
 class SWCliente {
 
@@ -36,7 +36,7 @@ class SWCliente {
     '/cliente/assets/js/app.js',
     '/cliente/assets/js/ClienteStartupSplash.js',
     '/shared/css/tokens.css',
-    '/shared/css/components.css?v=20260725a',
+    '/shared/css/components.css?v=20260726c',
     '/shared/css/notifications.css',
     '/shared/js/LoggerService.js',
     '/shared/js/LgpdService.js',
@@ -68,7 +68,9 @@ class SWCliente {
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
     '/shared/js/PwaUpdateManager.js?v=20260726a',
-    '/shared/js/BffApiService.js',
+    '/shared/js/BffApiService.js?v=20260726c',
+    '/shared/js/PortfolioGallery.js?v=20260726c',
+    '/shared/js/BarbeiroPage.js?v=20260726c',
     '/shared/js/BarbeiroAtividadeStatus.js',
     '/shared/js/MensalidadeInterestService.js',
     '/shared/js/BffAuthClient.js',

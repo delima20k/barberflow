@@ -5732,7 +5732,7 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   animation: pbp-shimmer 1.4s ease-in-out infinite;
 }
 
-.portfolio-gallery__carousel {
+.portfolio-grid.portfolio-gallery__carousel {
   display: flex;
   flex-flow: row nowrap;
   gap: 12px;

@@ -349,7 +349,7 @@ class BffApiService {
 
   static profissionais = {
     perfilPublico: (professionalId) =>
-      BffApiService.get(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/perfil-publico`),
+      BffApiService.getPublic(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/perfil-publico`),
 
     atualizarMeuPerfilPublico: (payload) =>
       BffApiService.patch('/api/v1/profissionais/me/public-profile', payload),
@@ -358,7 +358,7 @@ class BffApiService {
       BffApiService.post(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/mensagem-barbearia`, payload ?? {}),
 
     portfolio: (professionalId, params = {}) =>
-      BffApiService.get(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/portfolio`, params),
+      BffApiService.getPublic(`/api/v1/profissionais/${encodeURIComponent(professionalId)}/portfolio`, params),
 
     atualizarPortfolioImagem: (imageId, payload) =>
       BffApiService.patch(`/api/v1/profissionais/me/portfolio/${encodeURIComponent(imageId)}`, payload),

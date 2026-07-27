@@ -31,11 +31,11 @@ class PortfolioGallery {
         return;
       }
       const items = this.#mapItems(data?.items ?? []);
-      if (typeof PortfolioImageActions !== 'undefined') {
-        await PortfolioImageActions.hidratar(items);
-      }
       this.#renderItems(items);
       this.#subscribe();
+      if (typeof PortfolioImageActions !== 'undefined') {
+        void PortfolioImageActions.hidratar(items);
+      }
     } catch {
       this.#renderBlocked(401);
     } finally {

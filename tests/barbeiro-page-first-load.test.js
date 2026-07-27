@@ -2,9 +2,11 @@
 
 const assert = require('node:assert/strict');
 const { describe, it } = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
 
-const { carregar, fn } = require('./_helpers.js');
+const { carregar, fn, ROOT } = require('./_helpers.js');
 
 const BARBER_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -100,6 +102,25 @@ function criarCenario() {
 }
 
 describe('BarbeiroPage - primeira abertura', () => {
+  it('busca perfil e portfolio publicos sem aguardar restauracao da sessao', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'shared/js/BffApiService.js'), 'utf8');
+    const profissionais = source.slice(
+      source.indexOf('static profissionais = {'),
+      source.indexOf('static auth = {'),
+    );
+    const perfilPublico = profissionais.slice(
+      profissionais.indexOf('perfilPublico:'),
+      profissionais.indexOf('atualizarMeuPerfilPublico:'),
+    );
+    const portfolioPublico = profissionais.slice(
+      profissionais.indexOf('portfolio:'),
+      profissionais.indexOf('atualizarPortfolioImagem:'),
+    );
+
+    assert.match(perfilPublico, /BffApiService\.getPublic\(/);
+    assert.match(portfolioPublico, /BffApiService\.getPublic\(/);
+  });
+
   it('deve renderizar o perfil quando a resposta chega depois do limite do skeleton', async () => {
     const cenario = criarCenario();
     const abertura = cenario.page.abrirPorId(BARBER_ID);
