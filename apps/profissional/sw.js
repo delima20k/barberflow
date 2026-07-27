@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260726a';
+const SW_PRO_VERSION = '20260726b';
 
 class SWProfissional {
 
@@ -35,7 +35,7 @@ class SWProfissional {
   // Assets JS/CSS — pré-cacheados em CACHE_STATIC
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS_STATIC = [
-    '/assets/css/styles.css?v=20260707d',
+    '/assets/css/styles.css?v=20260726b',
     '/assets/js/app.js?v=20260722a',
     '/shared/css/tokens.css',
     '/shared/css/components.css?v=20260725a',

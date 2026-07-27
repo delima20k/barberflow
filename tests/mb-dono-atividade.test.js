@@ -41,6 +41,10 @@ const SRC_CSS = fs.readFileSync(
   path.join(ROOT, 'shared/css/components.css'),
   'utf8',
 );
+const SRC_APP_CSS = fs.readFileSync(
+  path.join(ROOT, 'apps/profissional/assets/css/styles.css'),
+  'utf8',
+);
 const SRC_REPO_BFF = fs.readFileSync(
   path.join(ROOT, 'barberflow-bff-api/repositories/BarbeariaRepository.js'),
   'utf8',
@@ -85,6 +89,14 @@ describe('MB — switch do dono no painel de status (HTML)', () => {
 // =============================================================================
 
 describe('MB — switch do dono no painel de status (CSS)', () => {
+  test('modo parceiro mantem oculto o switch exclusivo do dono', () => {
+    assert.match(
+      SRC_APP_CSS,
+      /\.mb-modo-parceiro\s+#mb-dono-status-row\s*\{[^}]*display:\s*none\s*!important;/s,
+      'o CSS profissional deve impedir que .mb-status-row { display:flex } revele o switch do dono',
+    );
+  });
+
   test('.mb-status-row--dono aplica margin-top de 1rem', () => {
     const idx = SRC_CSS.indexOf('.mb-status-row--dono');
     assert.ok(idx > 0, '.mb-status-row--dono deve existir em shared/css/components.css');

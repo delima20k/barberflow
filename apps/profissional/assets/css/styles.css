@@ -1768,6 +1768,11 @@
   cursor: not-allowed;
 }
 
+/* No modo parceiro, somente o barbeiro conectado controla a propria presenca. */
+.mb-modo-parceiro #mb-dono-status-row {
+  display: none !important;
+}
+
 /* ================================================================
    EQUIPE DA BARBEARIA — section abaixo do gi-header
 ================================================================ */
