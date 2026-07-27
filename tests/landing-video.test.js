@@ -101,7 +101,7 @@ describe('YouTubeVideoController', () => {
       },
       {
         beforeClick: 0,
-        state: 'ready',
+        state: 'loaded',
         frameCount: 1,
         source: 'https://www.youtube-nocookie.com/embed/AbC_123-xY?rel=0',
         loading: 'lazy',

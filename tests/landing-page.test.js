@@ -294,6 +294,8 @@ describe('Landing page BarberFlow', () => {
     assert.match(html, /Vídeo de apresentação em breve/);
     assert.match(config, /youtubeVideoId:\s*'DdNwn7O6zL4'/);
     assert.doesNotMatch(html, /<iframe\b/i);
+    const videoCss = LandingPageFixture.source('css/sections/showcase-media.css');
+    assert.match(videoCss, /\.video-player\[data-video-state="loaded"\]\s*\{[\s\S]*padding:\s*0;[\s\S]*border:\s*0;[\s\S]*background:\s*transparent;[\s\S]*box-shadow:\s*none;/);
   });
 
   it('deve preparar formulario e estados completos sem voucher ou contagem ficticia', () => {

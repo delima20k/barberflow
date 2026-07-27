@@ -44,6 +44,7 @@ class YouTubeVideoController {
     frame.allowFullscreen = true;
     this.#frame = frame;
     this.#root.replaceChildren(frame);
+    this.#root.dataset.videoState = 'loaded';
   }
 
   destroy() {
