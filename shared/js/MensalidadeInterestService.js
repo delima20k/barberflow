@@ -13,8 +13,9 @@ class MensalidadeInterestService {
    * @param {number} params.monthlyPrice
    * @param {HTMLButtonElement} params.btn
    * @param {Function} [params.onSuccess]
+   * @param {boolean} [params.abrirConversa=true]
    */
-  static async enviar({ barbershopId, planName = 'Plano Mensalidade', monthlyPrice = null, btn = null, onSuccess = null } = {}) {
+  static async enviar({ barbershopId, planName = 'Plano Mensalidade', monthlyPrice = null, btn = null, onSuccess = null, abrirConversa = true } = {}) {
     const router = (typeof App !== 'undefined' && App) || (typeof Pro !== 'undefined' && Pro) || null;
     if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('mensagem', router)) return;
     if (!barbershopId || typeof BffApiService === 'undefined') return;
@@ -42,6 +43,7 @@ class MensalidadeInterestService {
         try { sessionStorage.setItem('bf_open_conversation_id', conversationId); } catch {}
       }
       if (typeof onSuccess === 'function') onSuccess(data);
+      if (!abrirConversa) return;
       router?.nav?.('mensagens');
       setTimeout(() => {
         if (conversationId && typeof MessagesWidget !== 'undefined') {

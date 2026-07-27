@@ -16,6 +16,7 @@ const CHAT_MODAL_JS = fs.readFileSync(path.join(ROOT, 'shared/js/ChatModal.js'),
 const CHAT_API_JS = fs.readFileSync(path.join(ROOT, 'shared/js/ChatApiClient.js'), 'utf8');
 const CLIENTE_HTML = fs.readFileSync(path.join(ROOT, 'apps/cliente/index.html'), 'utf8');
 const PRO_HTML = fs.readFileSync(path.join(ROOT, 'apps/profissional/index.html'), 'utf8');
+const COMPONENTS_CSS = fs.readFileSync(path.join(ROOT, 'shared/css/components.css'), 'utf8');
 
 describe('MensalidadeInterestService', () => {
   test('usa BFF interna de mensalidade e nao WhatsApp externo', () => {
@@ -32,17 +33,37 @@ describe('MensalidadeInterestService', () => {
     assert.match(SERVICE_JS, /finally[\s\S]*btn\.disabled = false/);
   });
 
-  test('BarbeariaPage renderiza button interno no card da mensalidade', () => {
-    const inicio = BARBEARIA_JS.indexOf('#abrirMensalModal(preco, msgRaw, shop)');
+  test('permite enviar interesse sem forcar a abertura do chat', () => {
+    assert.match(SERVICE_JS, /abrirConversa = true/);
+    assert.match(SERVICE_JS, /if \(!abrirConversa\) return/);
+  });
+
+  test('BarbeariaPage renderiza as duas acoes internas no card da mensalidade', () => {
+    const inicio = BARBEARIA_JS.lastIndexOf('#abrirMensalModal(preco, msgRaw, shop)');
     const bloco = BARBEARIA_JS.slice(
       inicio,
       BARBEARIA_JS.indexOf('\n  #fecharMensalModal(', inicio),
     );
     assert.match(bloco, /class="bp-mensal-modal-card"/);
-    assert.match(bloco, /<button class="bp-mensal-modal-cta" type="button"/);
-    assert.match(bloco, /Tenho interesse no plano/);
+    assert.match(bloco, /class="bp-mensal-modal-acoes"/);
+    assert.match(bloco, /class="btn btn-outline btn-full bp-mensal-modal-chat"[^>]*>Entrar no chat<\/button>/);
+    assert.match(bloco, /class="btn btn-gold btn-full bp-mensal-modal-interesse"[^>]*>Enviar interesse<\/button>/);
+    assert.equal((bloco.match(/<button /g) ?? []).length, 3, 'modal deve ter fechar e exatamente duas acoes');
+    assert.match(bloco, /ConversationRepository\.buscarOuCriar\(shop\?\.owner_id\)/);
+    assert.match(bloco, /MessagesWidget\.abrirConversaPersistida/);
     assert.match(bloco, /MensalidadeInterestService\.enviar/);
+    assert.match(bloco, /abrirConversa:\s*false/);
     assert.doesNotMatch(bloco, /wa\.me|whatsHref|target="_blank"/);
+  });
+
+  test('modal mensal usa superficie do app e nao mantem CTA verde isolado', () => {
+    const inicio = COMPONENTS_CSS.indexOf('.bp-mensal-modal-card');
+    const fim = COMPONENTS_CSS.indexOf('/*', inicio + 1);
+    const bloco = COMPONENTS_CSS.slice(inicio, fim);
+
+    assert.match(bloco, /max-width:\s*440px/);
+    assert.match(bloco, /border:\s*1px solid var\(--border/);
+    assert.doesNotMatch(COMPONENTS_CSS, /\.bp-mensal-modal-cta[\s\S]*background:\s*#25D366/);
   });
 
   test('BffApiService expõe endpoint interno de interesse da mensalidade', () => {

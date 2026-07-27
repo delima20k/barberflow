@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260726c';
+const SW_PRO_VERSION = '20260726d';
 
 class SWProfissional {
 
@@ -38,7 +38,7 @@ class SWProfissional {
     '/assets/css/styles.css?v=20260726b',
     '/assets/js/app.js?v=20260722a',
     '/shared/css/tokens.css',
-    '/shared/css/components.css?v=20260726c',
+    '/shared/css/components.css?v=20260726d',
     '/shared/css/notifications.css',
     '/shared/js/LoggerService.js',
     '/shared/js/SectionEventCatalog.js',
@@ -71,7 +71,7 @@ class SWProfissional {
     '/shared/js/PortfolioGallery.js?v=20260726c',
     '/shared/js/BarbeiroPage.js?v=20260726c',
     '/shared/js/BarbeiroAtividadeStatus.js',
-    '/shared/js/MensalidadeInterestService.js',
+    '/shared/js/MensalidadeInterestService.js?v=20260726d',
     '/shared/js/ImageDeletionService.js',
     '/shared/js/BffAuthClient.js',
     '/shared/js/BarbeariaApiClient.js',
@@ -80,7 +80,7 @@ class SWProfissional {
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js',
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js',
     '/shared/js/PortfolioPrismViewer.js',
-    '/shared/js/BarbeariaPage.js',
+    '/shared/js/BarbeariaPage.js?v=20260726d',
     '/shared/js/ConversationRepository.js',
     '/shared/js/ChatApiClient.js',
     '/shared/js/MessageModerationService.js',

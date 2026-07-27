@@ -1651,18 +1651,23 @@ class BarbeariaPage {
     const s       = InputValidator.sanitizar;
     const val     = `R$\u00a0${Number(preco).toFixed(2).replace('.', ',')}`;
     const msg     = msgRaw ? s(String(msgRaw)) : '';
+    const shopName = s(String(shop?.name ?? 'a barbearia'));
     overlay.innerHTML = `
       <div class="bp-mensal-modal-card" role="dialog" aria-modal="true" aria-labelledby="bp-mensal-modal-titulo">
         <button class="bp-mensal-modal-fechar" type="button" aria-label="Fechar modal de mensalidade">
           <span aria-hidden="true">&#x2715;</span>
         </button>
         <div class="bp-mensal-modal-corpo">
-          <p class="bp-mensal-modal-tag">Plano de Mensalidade</p>
-          <p class="bp-mensal-modal-valor" id="bp-mensal-modal-titulo">
-            ${val}<span class="bp-mensal-modal-per">/m\u00eas</span>
-          </p>
+          <span class="bp-mensal-modal-detalhe" aria-hidden="true"></span>
+          <p class="bp-mensal-modal-tag">Plano de mensalidade</p>
+          <h2 class="bp-mensal-modal-titulo" id="bp-mensal-modal-titulo">Fale com ${shopName}</h2>
+          <p class="bp-mensal-modal-valor">${val}<span class="bp-mensal-modal-per">/m\u00eas</span></p>
           ${msg ? `<p class="bp-mensal-modal-msg">${msg}</p>` : ''}
-          <button class="bp-mensal-modal-cta" type="button">Tenho interesse no plano</button>
+          <p class="bp-mensal-modal-orientacao">Escolha como deseja continuar.</p>
+          <div class="bp-mensal-modal-acoes">
+            <button class="btn btn-outline btn-full bp-mensal-modal-chat" type="button">Entrar no chat</button>
+            <button class="btn btn-gold btn-full bp-mensal-modal-interesse" type="button">Enviar interesse</button>
+          </div>
         </div>
       </div>`;
 
@@ -1671,14 +1676,62 @@ class BarbeariaPage {
 
     // Fechar no X
     overlay.querySelector('.bp-mensal-modal-fechar').onclick = () => this.#fecharMensalModal();
-    overlay.querySelector('.bp-mensal-modal-cta').onclick = (e) => {
+    overlay.querySelector('.bp-mensal-modal-chat').onclick = async (e) => {
+      const router = (typeof App !== 'undefined' && App)
+                  || (typeof Pro !== 'undefined' && Pro)
+                  || null;
+      if (typeof AuthGuard !== 'undefined' && !AuthGuard.permitirAcao('mensagem', router)) return;
+
+      const btn = e.currentTarget;
+      const textoOriginal = btn.textContent;
+      try {
+        if (!shop?.owner_id || typeof ConversationRepository === 'undefined') {
+          throw new Error('Conversa indisponivel no momento.');
+        }
+        btn.disabled = true;
+        btn.textContent = 'Abrindo...';
+        const { data, error } = await ConversationRepository.buscarOuCriar(shop?.owner_id);
+        if (error || !data?.id) throw error ?? new Error('Nao foi possivel abrir a conversa.');
+
+        try { sessionStorage.setItem('bf_open_conversation_id', data.id); } catch {}
+        this.#fecharMensalModal(true);
+        router?.nav?.('mensagens');
+        setTimeout(() => {
+          if (typeof MessagesWidget !== 'undefined') {
+            MessagesWidget.abrirConversaPersistida(data.id);
+          }
+        }, 160);
+      } catch (err) {
+        if (typeof NotificationService !== 'undefined') {
+          NotificationService.mostrarToast(
+            'Nao foi possivel abrir o chat',
+            err?.message || 'Tente novamente.',
+            NotificationService.TIPOS?.ERRO || NotificationService.TIPOS?.SISTEMA,
+          );
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+      }
+    };
+    overlay.querySelector('.bp-mensal-modal-interesse').onclick = (e) => {
       if (typeof MensalidadeInterestService === 'undefined') return;
       MensalidadeInterestService.enviar({
         barbershopId: shop?.id ?? this.#shopId,
         planName: 'Plano Mensalidade',
         monthlyPrice: preco,
         btn: e.currentTarget,
-        onSuccess: () => this.#fecharMensalModal(true),
+        abrirConversa: false,
+        onSuccess: () => {
+          this.#fecharMensalModal(true);
+          if (typeof NotificationService !== 'undefined') {
+            NotificationService.mostrarToast(
+              'Interesse enviado',
+              'A barbearia recebeu sua mensagem.',
+              NotificationService.TIPOS?.SUCESSO || NotificationService.TIPOS?.ENGAJAMENTO,
+            );
+          }
+        },
       }).catch(() => {});
     };
 

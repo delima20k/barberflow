@@ -4900,10 +4900,13 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .bp-mensal-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.52);
+  background: rgba(43, 27, 18, .68);
+  backdrop-filter: blur(3px);
   z-index: 2200;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
   opacity: 0;
   transition: opacity .22s ease;
 }
@@ -4911,59 +4914,82 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
 .bp-mensal-modal-overlay--saindo  { opacity: 0; }
 .bp-mensal-modal-overlay[hidden]  { display: none; }
 
-/* Card do modal (bottom-sheet) */
+/* Card do modal */
 .bp-mensal-modal-card {
   background: var(--card, #fff9f0);
-  border-radius: 22px 22px 0 0;
+  border: 1px solid var(--border-soft, rgba(107, 74, 50, .18));
+  border-radius: var(--r-lg, 16px);
   width: 100%;
-  max-height: 72vh;
+  max-width: 440px;
+  max-height: min(78vh, 620px);
   overflow-y: auto;
-  padding: 22px 20px 36px;
+  padding: 28px 24px 24px;
   position: relative;
-  transform: translateY(28px);
+  box-shadow: 0 22px 55px rgba(43, 27, 18, .28);
+  transform: translateY(14px) scale(.98);
   transition: transform .22s ease;
 }
 .bp-mensal-modal-overlay--visivel .bp-mensal-modal-card {
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 /* Botão fechar */
 .bp-mensal-modal-fechar {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  background: none;
-  border: none;
-  font-size: 1.1rem;
-  color: var(--fg-muted, #888);
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: var(--surface-alt, #f5e9dc);
+  border: 1px solid var(--border-soft, rgba(107, 74, 50, .18));
+  font-size: .95rem;
+  color: var(--text-muted, #6b4a32);
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 0;
   border-radius: 50%;
   line-height: 1;
-  transition: background .15s;
+  transition: background .15s, border-color .15s;
 }
-.bp-mensal-modal-fechar:hover { background: rgba(0,0,0,.07); }
+.bp-mensal-modal-fechar:hover {
+  background: var(--gold-muted, rgba(242, 183, 5, .14));
+  border-color: var(--gold, #f2b705);
+}
 
 /* Corpo do modal */
 .bp-mensal-modal-corpo {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 8px;
+  padding-top: 8px;
+}
+.bp-mensal-modal-detalhe {
+  display: block;
+  width: 42px;
+  height: 4px;
+  margin-bottom: 10px;
+  border-radius: 2px;
+  background: var(--gold, #f2b705);
 }
 .bp-mensal-modal-tag {
   margin: 0;
-  font-size: .82rem;
-  font-weight: 800;
-  letter-spacing: .09em;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .06em;
   text-transform: uppercase;
-  color: var(--gold, #C75A1A);
+  color: var(--gold-dark, #8b6511);
+}
+.bp-mensal-modal-titulo {
+  margin: 0;
+  padding-right: 34px;
+  color: var(--text, #2b1b12);
+  font-size: 1.35rem;
+  line-height: 1.25;
 }
 .bp-mensal-modal-valor {
-  margin: 0;
-  font-size: 2.4rem;
+  margin: 6px 0 2px;
+  font-size: 2rem;
   font-weight: 800;
-  color: var(--fg, #1a1008);
+  color: var(--text, #2b1b12);
   line-height: 1.05;
 }
 .bp-mensal-modal-per {
@@ -4973,27 +4999,45 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   margin-left: 4px;
 }
 .bp-mensal-modal-msg {
-  margin: 0;
-  font-size: .95rem;
-  color: var(--fg-muted, #555);
+  margin: 4px 0 0;
+  font-size: .9rem;
+  color: var(--text-muted, #6b4a32);
   line-height: 1.5;
 }
-.bp-mensal-modal-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 6px;
-  padding: 13px 22px;
-  background: #25D366;
-  color: #fff;
-  border-radius: 13px;
-  font-weight: 700;
-  font-size: .95rem;
-  text-decoration: none;
-  transition: opacity .18s;
+.bp-mensal-modal-orientacao {
+  margin: 8px 0 0;
+  color: var(--text-muted, #6b4a32);
+  font-size: .82rem;
 }
-.bp-mensal-modal-cta:active { opacity: .82; }
+.bp-mensal-modal-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.bp-mensal-modal-acoes .btn { min-height: 46px; }
+.bp-mensal-modal-acoes .btn-full + .btn-full { margin-top: 0; }
+
+@media (max-width: 600px) {
+  .bp-mensal-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .bp-mensal-modal-card {
+    max-width: none;
+    max-height: 82vh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+    padding: 26px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-mensal-modal-overlay,
+  .bp-mensal-modal-card { transition: none; }
+}
 
 /* ── Config: serviços por tipo (UL/LI) + luzes meia/inteira ────── */
 .mb-serv-tipos {
