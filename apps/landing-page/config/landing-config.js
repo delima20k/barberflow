@@ -6,7 +6,7 @@ class LandingConfig {
     clientAppUrl: 'https://app.barberflow.live',
     professionalAppUrl: 'https://pro.barberflow.live',
     bffUrl: 'https://bff.barberflow.live',
-    youtubeVideoId: '',
+    youtubeVideoId: 'DdNwn7O6zL4',
     voucherCampaignEnabled: true,
     voucherApiUrl: '/api/v1/professional-vouchers',
     voucherCampaignSlug: 'primeiro-mes-gratis',

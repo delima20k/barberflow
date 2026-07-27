@@ -53,8 +53,7 @@ chamadas ao BFF nesta etapa.
 ## Video do YouTube
 
 O ID do video fica somente em `config/landing-config.js`, na chave
-`youtubeVideoId`. Enquanto o valor estiver vazio, a secao apresenta
-"Video de apresentacao em breve" e nao cria iframe nem request externo.
+`youtubeVideoId`. O video oficial esta configurado com o ID `DdNwn7O6zL4`.
 
 Quando um ID valido for configurado, o iframe de
 `youtube-nocookie.com` sera criado apenas depois da acao do visitante. O player
@@ -211,20 +210,19 @@ nao enviar dados pessoais nos eventos.
 - FAQ: `index.html`, mantendo IDs e atributos ARIA de cada item
 
 Os doze screenshots esperados permanecem listados no catalogo de
-funcionalidades. O video oficial continua pendente em `youtubeVideoId`.
+funcionalidades. O video oficial esta configurado em `youtubeVideoId`.
 
 ## Checklist antes da publicacao
 
 1. Adicionar e otimizar os screenshots reais.
-2. Configurar o ID oficial do YouTube.
-3. Revisar links dos aplicativos e a caixa `contato@barberflow.live`.
-4. Confirmar `RESEND_API_KEY` e `RESEND_FROM_EMAIL` no projeto do BFF.
-5. Aplicar e auditar a migration de emissao antes de ativar o deploy.
-6. Revisar juridicamente politica, termos e regras da campanha.
-7. Criar a imagem social oficial.
-8. Decidir consentimento e adapter de analytics.
-9. Reexecutar testes, acessibilidade, performance e auditoria em conexao lenta.
-10. Somente entao publicar na Vercel e configurar o dominio.
+2. Revisar links dos aplicativos e a caixa `contato@barberflow.live`.
+3. Confirmar `RESEND_API_KEY` e `RESEND_FROM_EMAIL` no projeto do BFF.
+4. Aplicar e auditar a migration de emissao antes de ativar o deploy.
+5. Revisar juridicamente politica, termos e regras da campanha.
+6. Criar a imagem social oficial.
+7. Decidir consentimento e adapter de analytics.
+8. Reexecutar testes, acessibilidade, performance e auditoria em conexao lenta.
+9. Somente entao publicar na Vercel e configurar o dominio.
 
 ## Dominio recomendado
 

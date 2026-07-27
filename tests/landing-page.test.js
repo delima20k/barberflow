@@ -292,7 +292,7 @@ describe('Landing page BarberFlow', () => {
     );
     assert.match(html, /data-video-player/);
     assert.match(html, /Vídeo de apresentação em breve/);
-    assert.match(config, /youtubeVideoId:\s*''/);
+    assert.match(config, /youtubeVideoId:\s*'DdNwn7O6zL4'/);
     assert.doesNotMatch(html, /<iframe\b/i);
   });
 
