@@ -143,7 +143,7 @@ describe('Landing page BarberFlow', () => {
     }
   });
 
-  it('deve apresentar o hero no topo e manter carrossel seguido pelo video', () => {
+  it('deve apresentar o carrossel imediatamente abaixo do hero', () => {
     const html = LandingPageFixture.source('index.html');
     const topbarIndex = html.indexOf('<div class="landing-topbar">');
     const heroIndex = html.indexOf('<section id="hero"');
@@ -156,11 +156,11 @@ describe('Landing page BarberFlow', () => {
 
     assert.ok(topbarIndex >= 0);
     assert.ok(heroIndex > topbarIndex);
-    assert.ok(problemIndex > heroIndex);
+    assert.ok(showcaseIndex > heroIndex);
+    assert.ok(problemIndex > showcaseIndex);
     assert.ok(solutionIndex > problemIndex);
     assert.ok(featuresIndex > solutionIndex);
-    assert.ok(showcaseIndex > featuresIndex);
-    assert.ok(videoIndex > showcaseIndex);
+    assert.ok(videoIndex > featuresIndex);
     assert.ok(benefitsIndex > videoIndex);
   });
 
