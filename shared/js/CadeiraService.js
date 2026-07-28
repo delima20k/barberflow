@@ -102,6 +102,7 @@ class CadeiraService {
    * @param {string[]}      opts.serviceIds      IDs dos serviços escolhidos
    * @param {'producao'|'fila'} opts.tipo
    * @param {boolean}      [opts.notificarCliente=true] envia push ao cliente ao mover para in_service
+   * @param {boolean}      [opts.notificarBarbeiro=true] envia push ao barbeiro quando o cliente ocupa a producao vazia
    * @param {boolean}      [opts.confirmarPresenca=false] marca presença quando o profissional coloca em produção
    * @returns {Promise<object>}  entrada criada
    */
@@ -113,6 +114,7 @@ class CadeiraService {
     serviceIds,
     tipo,
     notificarCliente = true,
+    notificarBarbeiro = true,
     confirmarPresenca = false,
   }) {
     const rShop  = InputValidator.uuid(barbershopId);
@@ -185,6 +187,7 @@ class CadeiraService {
         clienteNome: guestName,
         clientConfirmed: confirmarPresenca ? 'yes' : undefined,
         producaoVazia,
+        notificarBarbeiro,
       });
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
@@ -200,6 +203,7 @@ class CadeiraService {
         clienteNome: guestName,
         clientConfirmed: confirmarPresenca ? 'yes' : undefined,
         producaoVazia,
+        notificarBarbeiro,
       });
       if (notificarCliente) {
         CadeiraService.#notificarClienteInService(clientId, barbershopId, entrada.id);
@@ -226,6 +230,7 @@ class CadeiraService {
    * @param {string} [params.clientConfirmed]
    * @param {object[]} [params.filaAtiva]
    * @param {boolean} [params.producaoVazia]
+   * @param {boolean} [params.notificarBarbeiro=true]
    * @returns {Promise<object>}
    */
   static async promoverParaProducao({
@@ -236,6 +241,7 @@ class CadeiraService {
     clientConfirmed,
     filaAtiva = null,
     producaoVazia,
+    notificarBarbeiro = true,
   } = {}) {
     const rShop = InputValidator.uuid(barbershopId);
     if (!rShop.ok) throw new TypeError(`[CadeiraService] barbershopId: ${rShop.msg}`);
@@ -256,7 +262,7 @@ class CadeiraService {
     const options = clientConfirmed === undefined ? undefined : { clientConfirmed };
     const atualizada = await QueueRepository.updateStatus(entradaId, 'in_service', options);
 
-    if (estavaVazia) {
+    if (estavaVazia && notificarBarbeiro) {
       CadeiraService.#notificarBarbeiroPrimeiroCliente(
         professionalId,
         barbershopId,

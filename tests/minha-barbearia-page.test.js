@@ -244,6 +244,17 @@ describe('MinhaBarbeariaPage - estabilidade de realtime/equipe', () => {
     assert.doesNotMatch(reRenderBody, /CadeiraService\.sincronizarFilas\(this\.#barbershopId\)/);
   });
 
+  test('fluxo profissional deve sentar cliente sem notificar o proprio barbeiro', () => {
+    const inicio = SRC_MB_PAGE.indexOf('async #fluxoSentar');
+    const fim = SRC_MB_PAGE.indexOf('async #fluxoFinalizar', inicio);
+    const fluxoSentar = SRC_MB_PAGE.slice(inicio, fim);
+
+    assert.match(
+      fluxoSentar,
+      /CadeiraService\.sentar\(\{[\s\S]*notificarBarbeiro:\s*false/,
+    );
+  });
+
   test('voltar da Minha Barbearia fecha subpainel antes de acionar router global', () => {
     assert.match(SRC_MB_PAGE, /document\.addEventListener\('click'[\s\S]+#subTelaAtiva[\s\S]+closest\('\.btn-voltar'\)/);
     assert.match(SRC_MB_PAGE, /#subTelaAtiva\.contains\(voltarBtn\)/);

@@ -583,6 +583,26 @@ describe('CadeiraService.sentar() — push ao barbeiro no 0→1', () => {
     assert.strictEqual(push.body.clienteNome, 'Avulso');
   });
 
+  test('sentar("producao") pelo profissional nao dispara push ao proprio barbeiro', async () => {
+    const { CS, QR, bffPosts } = criarSandbox({ filaAtiva: [] });
+
+    await CS.sentar({
+      barbershopId: UUID_SHOP,
+      professionalId: UUID_PROF_A,
+      clientId: UUID_CLI,
+      serviceIds: [],
+      tipo: 'producao',
+      notificarBarbeiro: false,
+    });
+
+    const push = bffPosts.find(p => p.path.includes('push-barbeiro'));
+    assert.ok(!push, 'acao do profissional nao deve notificar o proprio barbeiro');
+    assert.ok(
+      QR.updateStatus.calls.some(([id, status]) => id === UUID_ENTRY_NOVO && status === 'in_service'),
+      'cliente deve continuar sendo promovido para producao',
+    );
+  });
+
   test('sentar("producao") com produção OCUPADA NÃO dispara push (substituição, não 0→1)', async () => {
     const { CS, bffPosts } = criarSandbox({ filaAtiva: [emProducao(UUID_PROF_A)] });
 

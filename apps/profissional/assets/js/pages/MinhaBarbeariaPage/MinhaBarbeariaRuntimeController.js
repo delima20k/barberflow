@@ -1501,6 +1501,7 @@ export class MinhaBarbeariaRuntimeController {
         guestName:      clienteSel.anonymous ? clienteSel.full_name : undefined,
         serviceIds:     serviceIdsParaSalvar,
         tipo,
+        notificarBarbeiro: false,
         confirmarPresenca: true,
       });
       NotificationService.mostrarToast(
