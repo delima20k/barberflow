@@ -257,3 +257,40 @@ body.menu-open .mobile-floating-cta,
 body.modal-open .mobile-floating-cta {
   visibility: hidden;
 }
+
+.whatsapp-floating-button {
+  position: fixed;
+  right: 18px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 89;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 12px 28px rgba(20, 83, 45, 0.3);
+  transition:
+    background-color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+
+.whatsapp-floating-button:hover {
+  background: #1fbd59;
+  box-shadow: 0 14px 32px rgba(20, 83, 45, 0.38);
+  transform: translateY(-2px);
+}
+
+.whatsapp-floating-button:focus-visible {
+  outline: 3px solid var(--color-gold-bright);
+  outline-offset: 3px;
+}
+
+body.menu-open .whatsapp-floating-button,
+body.modal-open .whatsapp-floating-button {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

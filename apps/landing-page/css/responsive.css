@@ -16,6 +16,13 @@
 }
 
 @media (max-width: 767px) {
+  .whatsapp-floating-button {
+    right: 16px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    width: 52px;
+    height: 52px;
+  }
+
   #rodape .brand--footer {
     position: static;
     justify-self: start;

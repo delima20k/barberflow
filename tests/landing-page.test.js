@@ -45,6 +45,7 @@ class LandingPageFixture {
     'legal/campaign-rules.html',
     'assets/images/logos/Logo01.png',
     'assets/images/logos/LogoNomeBarberFlow.png',
+    'assets/icons/whatsapp.svg',
     'assets/images/brand/imgFundoHeader.webp',
     'assets/images/screenshots/hero-abertura-app.webp',
     'assets/videos/hero-barberflow.mp4',
@@ -95,6 +96,21 @@ describe('Landing page BarberFlow', () => {
     assert.match(config, /bffUrl:\s*'https:\/\/bff\.barberflow\.live'/);
   });
 
+  it('deve oferecer contato flutuante e acessivel pelo WhatsApp', () => {
+    const html = LandingPageFixture.source('index.html');
+    const config = LandingPageFixture.source('config/landing-config.js');
+    const css = LandingPageFixture.source('css/global.css');
+
+    assert.match(config, /whatsappUrl:\s*'https:\/\/wa\.me\/5511911082804\?text=/);
+    assert.match(
+      html,
+      /<a class="whatsapp-floating-button"[^>]*data-config-link="whatsappUrl"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*aria-label="Conversar com o BarberFlow pelo WhatsApp"/,
+    );
+    assert.match(html, /src="\.\/assets\/icons\/whatsapp\.svg"[^>]*alt=""/);
+    assert.match(css, /\.whatsapp-floating-button\s*\{[\s\S]*?position:\s*fixed/);
+    assert.match(css, /\.whatsapp-floating-button:focus-visible/);
+  });
+
   it('deve renderizar todas as secoes previstas no esqueleto', () => {
     const html = LandingPageFixture.source('index.html');
     const sections = [
@@ -117,6 +133,19 @@ describe('Landing page BarberFlow', () => {
     for (const id of sections) {
       assert.match(html, new RegExp(`id="${id}"`), `Secao ausente: ${id}`);
     }
+  });
+
+  it('deve apresentar carrossel e video logo abaixo do menu superior', () => {
+    const html = LandingPageFixture.source('index.html');
+    const topbarIndex = html.indexOf('<div class="landing-topbar">');
+    const showcaseIndex = html.indexOf('<section id="conheca"');
+    const videoIndex = html.indexOf('<section id="video"');
+    const heroIndex = html.indexOf('<section id="hero"');
+
+    assert.ok(topbarIndex >= 0);
+    assert.ok(showcaseIndex > topbarIndex);
+    assert.ok(videoIndex > showcaseIndex);
+    assert.ok(heroIndex > videoIndex);
   });
 
   it('deve manter marca e menu no topo do conteudo sem elemento header', () => {
