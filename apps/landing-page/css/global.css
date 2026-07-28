@@ -288,6 +288,43 @@ body.modal-open .mobile-floating-cta {
   outline-offset: 3px;
 }
 
+.whatsapp-floating-button__label {
+  position: absolute;
+  right: calc(100% + 10px);
+  width: max-content;
+  max-width: min(230px, calc(100vw - 92px));
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-small);
+  background: var(--color-brown-dark);
+  color: var(--color-white);
+  box-shadow: 0 8px 22px rgba(43, 27, 18, 0.24);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(8px) scale(0.96);
+}
+
+.whatsapp-floating-button__label::after {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  border: 6px solid transparent;
+  border-left-color: var(--color-brown-dark);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.whatsapp-floating-button:hover .whatsapp-floating-button__label,
+.whatsapp-floating-button:focus-visible .whatsapp-floating-button__label {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
 body.menu-open .whatsapp-floating-button,
 body.modal-open .whatsapp-floating-button {
   visibility: hidden;

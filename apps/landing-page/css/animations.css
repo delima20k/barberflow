@@ -64,6 +64,10 @@
   animation: live-status-pulse 1.8s ease-out infinite;
 }
 
+.whatsapp-floating-button__label {
+  animation: whatsapp-callout-cycle 8s ease-in-out infinite;
+}
+
 .queue-preview.is-visible .queue-list li {
   animation: queue-row-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -155,6 +159,26 @@
   }
 }
 
+@keyframes whatsapp-callout-cycle {
+  0%,
+  12%,
+  100% {
+    opacity: 0;
+    transform: translateX(8px) scale(0.96);
+  }
+
+  20%,
+  68% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  80% {
+    opacity: 0;
+    transform: translateX(4px) scale(0.98);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -173,6 +197,12 @@
   .js .reveal--left,
   .js .reveal--right,
   .js .reveal--scale {
+    opacity: 1;
+    transform: none;
+  }
+
+  .whatsapp-floating-button__label {
+    animation: none !important;
     opacity: 1;
     transform: none;
   }

@@ -100,6 +100,7 @@ describe('Landing page BarberFlow', () => {
     const html = LandingPageFixture.source('index.html');
     const config = LandingPageFixture.source('config/landing-config.js');
     const css = LandingPageFixture.source('css/global.css');
+    const animations = LandingPageFixture.source('css/animations.css');
 
     assert.match(config, /whatsappUrl:\s*'https:\/\/wa\.me\/5511911082804\?text=/);
     assert.match(
@@ -107,8 +108,15 @@ describe('Landing page BarberFlow', () => {
       /<a class="whatsapp-floating-button"[^>]*data-config-link="whatsappUrl"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*aria-label="Conversar com o BarberFlow pelo WhatsApp"/,
     );
     assert.match(html, /src="\.\/assets\/icons\/whatsapp\.svg"[^>]*alt=""/);
+    assert.match(html, /<span class="whatsapp-floating-button__label">Clique e saiba mais no WhatsApp<\/span>/);
     assert.match(css, /\.whatsapp-floating-button\s*\{[\s\S]*?position:\s*fixed/);
     assert.match(css, /\.whatsapp-floating-button:focus-visible/);
+    assert.match(animations, /\.whatsapp-floating-button__label\s*\{\s*animation:\s*whatsapp-callout-cycle\s+8s[^;]*infinite;/);
+    assert.match(animations, /@keyframes\s+whatsapp-callout-cycle/);
+    assert.match(
+      animations,
+      /prefers-reduced-motion:\s*reduce[\s\S]*?\.whatsapp-floating-button__label\s*\{[\s\S]*?animation:\s*none\s*!important;[\s\S]*?opacity:\s*1;/,
+    );
   });
 
   it('deve renderizar todas as secoes previstas no esqueleto', () => {
@@ -135,17 +143,25 @@ describe('Landing page BarberFlow', () => {
     }
   });
 
-  it('deve apresentar carrossel e video logo abaixo do menu superior', () => {
+  it('deve apresentar o hero no topo e manter carrossel seguido pelo video', () => {
     const html = LandingPageFixture.source('index.html');
     const topbarIndex = html.indexOf('<div class="landing-topbar">');
+    const heroIndex = html.indexOf('<section id="hero"');
+    const problemIndex = html.indexOf('<section id="problema"');
+    const solutionIndex = html.indexOf('<section id="solucao"');
+    const featuresIndex = html.indexOf('<section id="funcionalidades"');
     const showcaseIndex = html.indexOf('<section id="conheca"');
     const videoIndex = html.indexOf('<section id="video"');
-    const heroIndex = html.indexOf('<section id="hero"');
+    const benefitsIndex = html.indexOf('<section id="beneficios"');
 
     assert.ok(topbarIndex >= 0);
-    assert.ok(showcaseIndex > topbarIndex);
+    assert.ok(heroIndex > topbarIndex);
+    assert.ok(problemIndex > heroIndex);
+    assert.ok(solutionIndex > problemIndex);
+    assert.ok(featuresIndex > solutionIndex);
+    assert.ok(showcaseIndex > featuresIndex);
     assert.ok(videoIndex > showcaseIndex);
-    assert.ok(heroIndex > videoIndex);
+    assert.ok(benefitsIndex > videoIndex);
   });
 
   it('deve manter marca e menu no topo do conteudo sem elemento header', () => {
