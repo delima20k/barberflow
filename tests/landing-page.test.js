@@ -343,7 +343,7 @@ describe('Landing page BarberFlow', () => {
     const responsiveCss = LandingPageFixture.source('css/responsive.css');
     assert.match(videoCss, /\.video-player\[data-video-state="loaded"\]\s*\{[\s\S]*padding:\s*0;[\s\S]*border:\s*0;[\s\S]*background:\s*transparent;[\s\S]*box-shadow:\s*none;/);
     assert.match(videoCss, /\.video-player\s*\{[\s\S]*width:\s*98vw;/);
-    assert.match(videoCss, /\.video-player\s*\{[\s\S]*aspect-ratio:\s*32\s*\/\s*27;/);
+    assert.match(videoCss, /\.video-player\s*\{[\s\S]*aspect-ratio:\s*64\s*\/\s*63;/);
     assert.match(videoCss, /\.video-player\s*\{[\s\S]*margin-inline:\s*calc\(50%\s*-\s*49vw\);/);
     assert.doesNotMatch(responsiveCss, /\.video-player\s*\{[\s\S]*max-width:\s*1000px;/);
   });

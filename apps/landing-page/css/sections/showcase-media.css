@@ -290,7 +290,7 @@
   display: grid;
   width: 98vw;
   max-width: none;
-  aspect-ratio: 32 / 27;
+  aspect-ratio: 64 / 63;
   place-items: center;
   align-content: center;
   gap: 12px;

@@ -56,10 +56,11 @@ O ID do video fica somente em `config/landing-config.js`, na chave
 `youtubeVideoId`. O video oficial esta configurado com o ID `DdNwn7O6zL4`.
 
 Quando um ID valido for configurado, o iframe de `youtube-nocookie.com` sera
-criado quando metade do player entrar na area visivel. A reproducao inicia sem
-som para respeitar as politicas dos navegadores, e o botao permanece como
-fallback. O player usa 98% da largura da tela e altura 50% maior que 16:9,
-`loading="lazy"` e CSP restrita ao dominio de embed.
+criado quando metade do player entrar na area visivel. A reproducao tenta
+iniciar com som; navegadores podem bloquear autoplay com audio ate ocorrer uma
+interacao do visitante, mantendo o controle do YouTube como fallback. O player
+usa 98% da largura da tela e altura 75% maior que 16:9, `loading="lazy"` e CSP
+restrita ao dominio de embed.
 
 ## Video de fundo do hero
 

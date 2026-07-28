@@ -34,7 +34,7 @@ class YouTubeVideoController {
     this.#root.dataset.videoState = 'ready';
     this.#root.querySelector('[data-video-title]').textContent = 'Apresentação disponível';
     this.#root.querySelector('[data-video-description]').textContent =
-      'O vídeo começará sem som quando entrar na tela.';
+      'O vídeo tentará iniciar com som quando entrar na tela.';
     if (this.#loadButton) {
       this.#loadButton.hidden = false;
       this.#loadButton.addEventListener('click', this.handleLoad);
@@ -47,7 +47,7 @@ class YouTubeVideoController {
   }
 
   handleLoad() {
-    this.#loadVideo(false);
+    this.#loadVideo(true);
   }
 
   handleIntersection(entries) {
@@ -65,7 +65,7 @@ class YouTubeVideoController {
     if (this.#frame || !this.#videoId) return;
 
     const frame = this.#root.ownerDocument.createElement('iframe');
-    const autoplayQuery = autoplay ? '&autoplay=1&mute=1&playsinline=1' : '';
+    const autoplayQuery = autoplay ? '&autoplay=1&mute=0&playsinline=1' : '';
     frame.className = 'video-player__frame';
     frame.src = `https://www.youtube-nocookie.com/embed/${this.#videoId}?rel=0${autoplayQuery}`;
     frame.title = 'Apresentação do BarberFlow';
