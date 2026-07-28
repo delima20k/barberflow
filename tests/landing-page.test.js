@@ -108,7 +108,7 @@ describe('Landing page BarberFlow', () => {
       /<a class="whatsapp-floating-button"[^>]*data-config-link="whatsappUrl"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*aria-label="Conversar com o BarberFlow pelo WhatsApp"/,
     );
     assert.match(html, /src="\.\/assets\/icons\/whatsapp\.svg"[^>]*alt=""/);
-    assert.match(html, /<span class="whatsapp-floating-button__label">Clique e saiba mais no WhatsApp<\/span>/);
+    assert.match(html, /<span class="whatsapp-floating-button__label">Clique no WhatsApp e saiba mais<\/span>/);
     assert.match(css, /\.whatsapp-floating-button\s*\{[\s\S]*?position:\s*fixed/);
     assert.match(css, /\.whatsapp-floating-button:focus-visible/);
     assert.match(animations, /\.whatsapp-floating-button__label\s*\{\s*animation:\s*whatsapp-callout-cycle\s+8s[^;]*infinite;/);
@@ -143,7 +143,7 @@ describe('Landing page BarberFlow', () => {
     }
   });
 
-  it('deve apresentar o carrossel imediatamente abaixo do hero', () => {
+  it('deve apresentar carrossel e video imediatamente abaixo do hero', () => {
     const html = LandingPageFixture.source('index.html');
     const topbarIndex = html.indexOf('<div class="landing-topbar">');
     const heroIndex = html.indexOf('<section id="hero"');
@@ -157,11 +157,11 @@ describe('Landing page BarberFlow', () => {
     assert.ok(topbarIndex >= 0);
     assert.ok(heroIndex > topbarIndex);
     assert.ok(showcaseIndex > heroIndex);
-    assert.ok(problemIndex > showcaseIndex);
+    assert.ok(videoIndex > showcaseIndex);
+    assert.ok(problemIndex > videoIndex);
     assert.ok(solutionIndex > problemIndex);
     assert.ok(featuresIndex > solutionIndex);
-    assert.ok(videoIndex > featuresIndex);
-    assert.ok(benefitsIndex > videoIndex);
+    assert.ok(benefitsIndex > featuresIndex);
   });
 
   it('deve manter marca e menu no topo do conteudo sem elemento header', () => {
@@ -340,7 +340,12 @@ describe('Landing page BarberFlow', () => {
     assert.match(config, /youtubeVideoId:\s*'DdNwn7O6zL4'/);
     assert.doesNotMatch(html, /<iframe\b/i);
     const videoCss = LandingPageFixture.source('css/sections/showcase-media.css');
+    const responsiveCss = LandingPageFixture.source('css/responsive.css');
     assert.match(videoCss, /\.video-player\[data-video-state="loaded"\]\s*\{[\s\S]*padding:\s*0;[\s\S]*border:\s*0;[\s\S]*background:\s*transparent;[\s\S]*box-shadow:\s*none;/);
+    assert.match(videoCss, /\.video-player\s*\{[\s\S]*width:\s*98vw;/);
+    assert.match(videoCss, /\.video-player\s*\{[\s\S]*aspect-ratio:\s*160\s*\/\s*99;/);
+    assert.match(videoCss, /\.video-player\s*\{[\s\S]*margin-inline:\s*calc\(50%\s*-\s*49vw\);/);
+    assert.doesNotMatch(responsiveCss, /\.video-player\s*\{[\s\S]*max-width:\s*1000px;/);
   });
 
   it('deve preparar formulario e estados completos sem voucher ou contagem ficticia', () => {

@@ -139,11 +139,6 @@
     width: 300px;
   }
 
-  .video-player {
-    max-width: 1000px;
-    margin-inline: auto;
-  }
-
   .process-list {
     grid-template-columns: repeat(2, 1fr);
   }

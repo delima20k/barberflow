@@ -883,7 +883,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla formulario, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
 | `VoucherApiAdapter` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | infra | Adapter HTTP com timeout e allowlist para disponibilidade, emissao e validacao no BFF, sem credenciais no navegador. |
 | `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
-| `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e cria iframe youtube-nocookie somente apos acao do visitante. |
+| `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e carrega o iframe youtube-nocookie, sem som, quando metade do player entra na tela; preserva clique como fallback. |
 
 ## Landing Feedback BFF
 
@@ -934,7 +934,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 
 | Classe | Arquivo | Camada | Descricao |
 |---|---|---|---|
-| `YouTubeVideoFixture` | [tests/landing-video.test.js](tests/landing-video.test.js) | infra | Simula DOM minimo para validar placeholder e criacao tardia do iframe. |
+| `YouTubeVideoFixture` | [tests/landing-video.test.js](tests/landing-video.test.js) | infra | Simula DOM e IntersectionObserver para validar placeholder, autoplay visivel e fallback por clique. |
 
 ## tests/landing-page.test.js
 

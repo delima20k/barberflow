@@ -55,9 +55,11 @@ chamadas ao BFF nesta etapa.
 O ID do video fica somente em `config/landing-config.js`, na chave
 `youtubeVideoId`. O video oficial esta configurado com o ID `DdNwn7O6zL4`.
 
-Quando um ID valido for configurado, o iframe de
-`youtube-nocookie.com` sera criado apenas depois da acao do visitante. O player
-usa proporcao 16:9, `loading="lazy"` e CSP restrita ao dominio de embed.
+Quando um ID valido for configurado, o iframe de `youtube-nocookie.com` sera
+criado quando metade do player entrar na area visivel. A reproducao inicia sem
+som para respeitar as politicas dos navegadores, e o botao permanece como
+fallback. O player usa 98% da largura da tela, altura 10% maior,
+`loading="lazy"` e CSP restrita ao dominio de embed.
 
 ## Video de fundo do hero
 
