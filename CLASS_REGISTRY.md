@@ -883,7 +883,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla formulario, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
 | `VoucherApiAdapter` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | infra | Adapter HTTP com timeout e allowlist para disponibilidade, emissao e validacao no BFF, sem credenciais no navegador. |
 | `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
-| `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e tenta carregar o iframe youtube-nocookie com autoplay e audio quando metade do player entra na tela; preserva clique como fallback do navegador. |
+| `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e carrega o iframe youtube-nocookie com autoplay sem audio quando metade do player entra na tela; o clique explicito preserva a tentativa de inicio com som. |
 
 ## Landing Feedback BFF
 

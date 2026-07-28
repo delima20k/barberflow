@@ -118,7 +118,7 @@ describe('YouTubeVideoController', () => {
     );
   });
 
-  it('deve tentar iniciar o video com som quando metade do player entrar na tela', () => {
+  it('deve iniciar o video sem som quando metade do player entrar na tela', () => {
     const fixture = YouTubeVideoFixture.create('AbC_123-xY');
 
     fixture.controller.init();
@@ -154,13 +154,13 @@ describe('YouTubeVideoController', () => {
         state: 'loaded',
         frameCount: 1,
         source:
-          'https://www.youtube-nocookie.com/embed/AbC_123-xY?rel=0&autoplay=1&mute=0&playsinline=1',
+          'https://www.youtube-nocookie.com/embed/AbC_123-xY?rel=0&autoplay=1&mute=1&playsinline=1',
         loading: 'lazy',
       },
     );
   });
 
-  it('deve manter o clique como fallback quando o observer nao estiver disponivel', () => {
+  it('deve iniciar com som apos clique quando o observer nao estiver disponivel', () => {
     const fixture = YouTubeVideoFixture.create('AbC_123-xY', {
       observerAvailable: false,
     });
