@@ -286,6 +286,10 @@
   background: var(--color-bg);
 }
 
+.video-section .section-heading {
+  margin-top: 5px;
+}
+
 .video-player {
   display: grid;
   width: 98vw;
@@ -313,7 +317,8 @@
 }
 
 .video-player.is-visible {
-  padding-top: 0;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 
 .video-player > :first-child {

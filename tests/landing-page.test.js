@@ -344,8 +344,12 @@ describe('Landing page BarberFlow', () => {
     assert.match(videoCss, /\.video-player\[data-video-state="loaded"\]\s*\{[\s\S]*padding:\s*0;[\s\S]*border:\s*0;[\s\S]*background:\s*transparent;[\s\S]*box-shadow:\s*none;/);
     assert.match(videoCss, /\.video-player\s*\{[^}]*width:\s*98vw;[^}]*padding:\s*0;/);
     assert.match(videoCss, /\.video-player\s*\{[^}]*aspect-ratio:\s*640\s*\/\s*819;/);
-    assert.match(videoCss, /\.video-player\.is-visible\s*\{[^}]*padding-top:\s*0;/);
+    assert.match(
+      videoCss,
+      /\.video-player\.is-visible\s*\{[^}]*padding-top:\s*1px;[^}]*padding-bottom:\s*1px;/,
+    );
     assert.match(videoCss, /\.video-player\s*>\s*:first-child\s*\{[^}]*padding-top:\s*0;/);
+    assert.match(videoCss, /\.video-section\s+\.section-heading\s*\{[^}]*margin-top:\s*5px;/);
     assert.match(videoCss, /\.video-player\s*\{[\s\S]*margin-inline:\s*calc\(50%\s*-\s*49vw\);/);
     assert.match(videoCss, /\.video-section__action\s*\{[^}]*margin-top:\s*0;/);
     assert.doesNotMatch(responsiveCss, /\.video-player\s*\{[\s\S]*max-width:\s*1000px;/);
