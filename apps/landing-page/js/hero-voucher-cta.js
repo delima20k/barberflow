@@ -29,7 +29,7 @@ class HeroVoucherCta {
   startTextCycle() {
     clearTimeout(this.#secondPulseTimer);
     this.setLabel(0);
-    this.#secondPulseTimer = setTimeout(() => this.setLabel(1), 1300);
+    this.#secondPulseTimer = setTimeout(() => this.setLabel(1), 800);
   }
 
   setLabel(index) {
