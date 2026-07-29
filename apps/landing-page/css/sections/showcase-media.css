@@ -290,12 +290,12 @@
   display: grid;
   width: 98vw;
   max-width: none;
-  aspect-ratio: 64 / 63;
+  aspect-ratio: 640 / 819;
   place-items: center;
   align-content: center;
   gap: 12px;
   margin-inline: calc(50% - 49vw);
-  padding: 24px;
+  padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-brown-dark);
