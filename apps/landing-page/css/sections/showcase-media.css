@@ -312,6 +312,10 @@
   box-shadow: none;
 }
 
+.video-player.is-visible {
+  padding-top: 0;
+}
+
 .video-player__frame {
   display: block;
   width: 100%;
