@@ -43,6 +43,10 @@
   animation-delay: 360ms;
 }
 
+.js .hero__content > :nth-child(6) {
+  animation-delay: 450ms;
+}
+
 .hero__background-video {
   animation: hero-media-drift 18s ease-in-out infinite alternate;
 }
@@ -55,9 +59,14 @@
   animation: hero-next-cue 1.8s ease-in-out infinite;
 }
 
-.hero__actions .button--gold,
+.hero__actions .button--gold:not(.hero__voucher-button),
 .mobile-floating-cta {
   animation: cta-emphasis 3.4s ease-in-out infinite;
+}
+
+.hero__voucher-button {
+  animation: hero-voucher-pulse 6.6s linear infinite;
+  transform-origin: center;
 }
 
 .live-status i {
@@ -133,6 +142,29 @@
 
   84% {
     box-shadow: 0 12px 34px rgba(242, 183, 5, 0.42);
+  }
+}
+
+@keyframes hero-voucher-pulse {
+  0%,
+  15.151% {
+    transform: scale(1.3);
+    animation-timing-function: ease-out;
+  }
+
+  19.697% {
+    transform: scale(1);
+    animation-timing-function: steps(1, end);
+  }
+
+  34.848% {
+    transform: scale(1.3);
+    animation-timing-function: ease-out;
+  }
+
+  39.394%,
+  100% {
+    transform: scale(1);
   }
 }
 

@@ -15,6 +15,7 @@ class LandingApp {
     this.components = [
       analytics,
       new MobileNavigation(this.root),
+      new HeroVoucherCta(this.root.querySelector('[data-hero-voucher-cta]')),
       new LandingCarousel(
         this.root.querySelector('[data-carousel]'),
         LandingFeatureCatalog.all(),

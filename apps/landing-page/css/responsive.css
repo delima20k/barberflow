@@ -78,7 +78,11 @@
     font-size: 3.8rem;
   }
 
-  .hero__copy {
+  .hero__voucher-title {
+    font-size: 1.55rem;
+  }
+
+  .hero__voucher-subtitle {
     font-size: 1.05rem;
   }
 
@@ -139,6 +143,10 @@
     width: 300px;
   }
 
+  .video-player {
+    max-width: 800px;
+    margin-inline: auto;
+  }
   .process-list {
     grid-template-columns: repeat(2, 1fr);
   }

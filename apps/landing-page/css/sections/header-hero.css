@@ -184,11 +184,22 @@
   color: var(--color-gold-bright);
 }
 
-.hero__copy {
+.hero__voucher-title {
   max-width: 680px;
   margin-top: 18px;
+  color: var(--color-gold-bright);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.hero__voucher-subtitle {
+  max-width: 680px;
+  margin-top: 8px;
   color: var(--color-on-dark-muted);
   font-size: 0.96rem;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .hero__actions {
