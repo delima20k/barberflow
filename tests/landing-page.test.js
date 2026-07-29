@@ -346,7 +346,7 @@ describe('Landing page BarberFlow', () => {
     assert.match(videoCss, /\.video-player\s*\{[^}]*aspect-ratio:\s*640\s*\/\s*819;/);
     assert.match(
       videoCss,
-      /\.video-player\.is-visible\s*\{[^}]*padding-top:\s*1px;[^}]*padding-bottom:\s*1px;/,
+      /\.video-player\.is-visible\s*\{[^}]*margin-top:\s*1px;[^}]*padding-top:\s*1px;[^}]*padding-bottom:\s*1px;/,
     );
     assert.match(videoCss, /\.video-player\s*>\s*:first-child\s*\{[^}]*padding-top:\s*0;/);
     assert.match(videoCss, /\.video-section\s+\.section-heading\s*\{[^}]*margin-top:\s*5px;/);
