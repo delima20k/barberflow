@@ -119,10 +119,11 @@ same-origin `/api/v1/professional-vouchers`, encaminhado pela Vercel para
 `https://bff.barberflow.live`; a interface nunca cria codigo, saldo ou
 confirmacao local.
 
-A modal possui nome, e-mail, telefone/WhatsApp, aceite das regras e privacidade,
-honeypot, loading, erro, sucesso, copia do codigo, acesso ao app profissional e
-os cinco passos de uso. O estado de sucesso so aparece quando o BFF devolve um
-codigo real reservado no banco.
+A modal solicita somente o e-mail que sera usado no cadastro. O clique em gerar
+registra o aceite informado das regras e da privacidade; honeypot, loading, erro,
+sucesso, copia do codigo, acesso direto ao cadastro profissional e os cinco passos
+de uso permanecem. O estado de sucesso so aparece quando o BFF devolve um codigo
+real reservado no banco.
 
 ## Arquitetura dos vouchers
 

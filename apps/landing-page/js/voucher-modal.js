@@ -77,10 +77,8 @@ class VoucherModal {
     try {
       const formData = new FormData(this.form);
       const result = await this.#service.generateVoucher({
-        name: String(formData.get('name') ?? '').trim(),
         email: String(formData.get('email') ?? '').trim(),
-        phone: String(formData.get('phone') ?? '').trim(),
-        campaignConsent: formData.get('campaignConsent') === 'on',
+        campaignConsent: true,
         company: String(formData.get('company') ?? '').trim(),
       });
 
@@ -110,7 +108,7 @@ class VoucherModal {
   }
 
   async handleCopy() {
-    const code = this.code?.textContent?.trim();
+    const code = this.code?.value?.trim();
     if (!code || !this.#clipboard?.writeText) {
       this.setCopyStatus('Não foi possível copiar automaticamente.');
       return;
@@ -185,7 +183,7 @@ class VoucherModal {
   }
 
   showSuccess(code) {
-    this.code.textContent = code;
+    this.code.value = code;
     this.formView.hidden = true;
     this.successView.hidden = false;
     this.successTitle?.focus();

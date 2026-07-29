@@ -2,9 +2,7 @@
 
 class VoucherApiAdapter {
   static #ALLOWED_FIELDS = Object.freeze([
-    'name',
     'email',
-    'phone',
     'campaignConsent',
     'company',
   ]);

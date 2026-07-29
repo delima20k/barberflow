@@ -5,6 +5,7 @@ class LandingConfig {
     canonicalUrl: 'https://barberflow.live',
     clientAppUrl: 'https://app.barberflow.live',
     professionalAppUrl: 'https://pro.barberflow.live',
+    professionalSignupUrl: 'https://pro.barberflow.live/?start=signup',
     bffUrl: 'https://bff.barberflow.live',
     whatsappUrl: 'https://wa.me/5511911082804?text=Ol%C3%A1%2C%20conheci%20o%20BarberFlow%20pela%20landing%20page%20e%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es.',
     youtubeVideoId: 'DdNwn7O6zL4',

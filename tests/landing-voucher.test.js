@@ -52,6 +52,7 @@ function createElement(overrides = {}) {
     hidden: false,
     disabled: false,
     textContent: '',
+    value: '',
     dataset: {},
     attributes: new Map(),
     addEventListener() {},
@@ -112,10 +113,7 @@ function createVoucherModalFixture(service) {
   const context = VoucherServiceFixture.createContext(null);
   context.FormData = function FormDataFixture() {
     this.get = (name) => ({
-      name: 'Ana Silva',
       email: 'ana@example.com',
-      phone: '11999999999',
-      campaignConsent: 'on',
       company: '',
     })[name] ?? null;
   };
@@ -136,9 +134,8 @@ describe('VoucherService', () => {
 
     const availability = await service.checkAvailability();
     const generation = await service.generateVoucher({
-      name: 'Ana',
       email: 'ana@example.com',
-      phone: '11999999999',
+      campaignConsent: true,
     });
 
     assert.deepEqual(
@@ -167,9 +164,8 @@ describe('VoucherService', () => {
     const adapter = new VoucherAdapterStub();
     const service = new VoucherService({ enabled: true, adapter });
     const data = {
-      name: 'João Silva',
       email: 'joao@example.com',
-      phone: '11988887777',
+      campaignConsent: true,
     };
 
     const availability = await service.checkAvailability();
@@ -225,9 +221,7 @@ describe('VoucherService', () => {
 
     const availability = await adapter.checkAvailability();
     const issuance = await adapter.generateVoucher({
-      name: 'Ana',
       email: 'ana@example.com',
-      phone: '11999999999',
       campaignConsent: true,
       company: '',
       injectedCode: 'NAO-ENVIAR',
@@ -239,9 +233,7 @@ describe('VoucherService', () => {
     assert.equal(calls[0].url, 'https://bff.barberflow.live/api/v1/professional-vouchers/availability');
     assert.equal(calls[1].url, 'https://bff.barberflow.live/api/v1/professional-vouchers/issue');
     assert.deepEqual(JSON.parse(calls[1].options.body), {
-      name: 'Ana',
       email: 'ana@example.com',
-      phone: '11999999999',
       campaignConsent: true,
       company: '',
     });
@@ -261,13 +253,11 @@ describe('VoucherService', () => {
 
     assert.equal(elements.formView.hidden, true);
     assert.equal(elements.successView.hidden, false);
-    assert.equal(elements.code.textContent, 'ABC123');
+    assert.equal(elements.code.value, 'ABC123');
     assert.equal(elements.appLink.href, 'https://pro.barberflow.live/');
     assert.equal(elements.availability.textContent, '57 vouchers restantes');
     assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{
-      name: 'Ana Silva',
       email: 'ana@example.com',
-      phone: '11999999999',
       campaignConsent: true,
       company: '',
     }]);

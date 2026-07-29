@@ -230,7 +230,7 @@ Atualizar sempre que uma classe for criada, renomeada ou removida.
 |---|---|---|---|
 | `MonetizationGuard` | [apps/profissional/assets/js/MonetizationGuard.js](apps/profissional/assets/js/MonetizationGuard.js) | infra | Guard de monetização: persiste tipo de usuário e plano em sessionStorage, exige plano para acesso a funcionalidades Pro |
 | `BarberFlowProfissional` | [apps/profissional/assets/js/app.js](apps/profissional/assets/js/app.js) | infra | App raiz do profissional. Estende Router, orquestra Pages e navegação |
-| `AppBootstrap` | [apps/profissional/assets/js/AppBootstrap.js](apps/profissional/assets/js/AppBootstrap.js) | infra | Inicialização do app profissional: autenticação, SW, splash |
+| `AppBootstrap` | [apps/profissional/assets/js/AppBootstrap.js](apps/profissional/assets/js/AppBootstrap.js) | infra | Inicialização do app profissional: autenticação, SW, splash e deep link controlado para iniciar o cadastro. |
 | `LegalConsentService` | [apps/profissional/assets/js/LegalConsentService.js](apps/profissional/assets/js/LegalConsentService.js) | application | Gerencia aceite de termos legais (LGPD + T&C). Inclui processarAceite() — ponto único de decisão: usuário logado registra no banco, pré-cadastro salva como pendente |
 | `PlanosService` | [apps/profissional/assets/js/PlanosService.js](apps/profissional/assets/js/PlanosService.js) | application | Regras de negócio para seleção de planos: selecionarTipo() e iniciarFluxo(). Delega ao MonetizationGuard e PaymentFlowHandler |
 | `ProducaoSomAlerta` | [apps/profissional/assets/js/ProducaoSomAlerta.js](apps/profissional/assets/js/ProducaoSomAlerta.js) | interfaces | Fallback sonoro do Web Push: observa payloads Realtime de `queue_entries` e toca `PushSoundService.alertar()` na primeira vez que cada entrada aparece `in_service` (dedup por id + cooldown + teto de memória). Fiado no canal `mb-fila` da MinhaBarbearia |
@@ -403,7 +403,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 |---|---|---|---|
 | `ProfessionalVoucherController` | [barberflow-bff-api/controllers/ProfessionalVoucherController.js](barberflow-bff-api/controllers/ProfessionalVoucherController.js) | interfaces | `extends BaseController`. Expoe disponibilidade, emissao por e-mail e validacao pre-cadastro em `/api/v1/professional-vouchers`. |
 | `ProfessionalVoucherRepository` | [barberflow-bff-api/repositories/ProfessionalVoucherRepository.js](barberflow-bff-api/repositories/ProfessionalVoucherRepository.js) | infra | `extends BaseRepository`. Consulta saldo e validacao e delega a reserva atomica para `issue_professional_trial_voucher`. |
-| `ProfessionalVoucherService` | [barberflow-bff-api/services/ProfessionalVoucherService.js](barberflow-bff-api/services/ProfessionalVoucherService.js) | application | `extends BaseService`. Valida vouchers e emite um codigo existente por hash de e-mail, sem persistir PII bruta ou consumir o beneficio antes do cadastro. |
+| `ProfessionalVoucherService` | [barberflow-bff-api/services/ProfessionalVoucherService.js](barberflow-bff-api/services/ProfessionalVoucherService.js) | application | `extends BaseService`. Valida vouchers e emite um codigo existente usando somente e-mail e aceite por hash, sem persistir PII bruta ou consumir o beneficio antes do cadastro. |
 
 ### Repositories
 
@@ -876,12 +876,12 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `LandingAnalytics` | [apps/landing-page/js/analytics.js](apps/landing-page/js/analytics.js) | interfaces | Define a allowlist de eventos e os pontos de instrumentação por adapter nulo, sem carregar rastreadores ou dados pessoais. |
 | `LandingApp` | [apps/landing-page/js/main.js](apps/landing-page/js/main.js) | interfaces | Inicializa e coordena os componentes independentes da landing page. |
 | `LandingCarousel` | [apps/landing-page/js/carousel.js](apps/landing-page/js/carousel.js) | interfaces | Renderiza o catálogo de funcionalidades e gerencia scroll-snap, arraste, teclado, indicadores e estado acessível. |
-| `LandingConfig` | [apps/landing-page/config/landing-config.js](apps/landing-page/config/landing-config.js) | infra | Centraliza domínio canônico, destinos oficiais e flags de integrações futuras. |
+| `LandingConfig` | [apps/landing-page/config/landing-config.js](apps/landing-page/config/landing-config.js) | infra | Centraliza domínio canônico, destinos oficiais, deep link de cadastro e flags de integrações futuras. |
 | `LandingFeatureCatalog` | [apps/landing-page/config/landing-features.js](apps/landing-page/config/landing-features.js) | infra | Mantém o catálogo imutável dos slides e os caminhos esperados dos screenshots da landing. |
 | `MobileNavigation` | [apps/landing-page/js/mobile-navigation.js](apps/landing-page/js/mobile-navigation.js) | interfaces | Gerencia o menu responsivo e seus estados ARIA. |
 | `ScrollAnimationController` | [apps/landing-page/js/animations.js](apps/landing-page/js/animations.js) | interfaces | Revela seções com IntersectionObserver e respeita preferência de movimento reduzido. |
-| `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla formulario, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
-| `VoucherApiAdapter` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | infra | Adapter HTTP com timeout e allowlist para disponibilidade, emissao e validacao no BFF, sem credenciais no navegador. |
+| `VoucherModal` | [apps/landing-page/js/voucher-modal.js](apps/landing-page/js/voucher-modal.js) | interfaces | Controla solicitação por e-mail, disponibilidade, estados, copia, foco e teclado do modal de voucher por service injetado. |
+| `VoucherApiAdapter` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | infra | Adapter HTTP com timeout e allowlist mínima de e-mail, aceite e honeypot para emissão e validação no BFF, sem credenciais no navegador. |
 | `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
 | `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e carrega o iframe youtube-nocookie com autoplay sem audio quando metade do player entra na tela; o clique explicito preserva a tentativa de inicio com som. |
 

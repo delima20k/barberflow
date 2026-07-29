@@ -47,9 +47,7 @@ describe('ProfessionalVoucherService emissao', () => {
     const repository = new VoucherIssuanceRepositoryStub();
     const service = new ProfessionalVoucherService(repository);
     const result = await service.emitir({
-      name: 'Ana Silva',
       email: ' ANA@EXAMPLE.COM ',
-      phone: '(11) 99999-9999',
       campaignConsent: true,
       company: '',
     });
@@ -77,9 +75,7 @@ describe('ProfessionalVoucherService emissao', () => {
     }));
 
     const result = await service.emitir({
-      name: 'Ana Silva',
       email: 'ana@example.com',
-      phone: '11999999999',
       campaignConsent: true,
       company: '',
     });
@@ -87,6 +83,19 @@ describe('ProfessionalVoucherService emissao', () => {
     assert.equal(result.ok, false);
     assert.equal(result.status, 'duplicate_email');
     assert.match(result.message, /e-mail.*voucher/i);
+  });
+
+  it('deve exigir somente email valido e aceite explicito', async () => {
+    const service = new ProfessionalVoucherService(new VoucherIssuanceRepositoryStub());
+
+    await assert.rejects(
+      service.emitir({ email: 'invalido', campaignConsent: true }),
+      /e-mail valido/i,
+    );
+    await assert.rejects(
+      service.emitir({ email: 'ana@example.com', campaignConsent: false }),
+      /aceite as regras/i,
+    );
   });
 });
 
@@ -117,9 +126,7 @@ describe('Professional voucher issuance HTTP', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Ana Silva',
         email: 'ana@example.com',
-        phone: '11999999999',
         campaignConsent: true,
         company: '',
       }),

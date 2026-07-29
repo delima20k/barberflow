@@ -143,7 +143,7 @@ describe('Landing page BarberFlow', () => {
     }
   });
 
-  it('deve apresentar carrossel e video imediatamente abaixo do hero', () => {
+  it('deve apresentar video e carrossel imediatamente abaixo do hero', () => {
     const html = LandingPageFixture.source('index.html');
     const topbarIndex = html.indexOf('<div class="landing-topbar">');
     const heroIndex = html.indexOf('<section id="hero"');
@@ -156,9 +156,9 @@ describe('Landing page BarberFlow', () => {
 
     assert.ok(topbarIndex >= 0);
     assert.ok(heroIndex > topbarIndex);
-    assert.ok(showcaseIndex > heroIndex);
-    assert.ok(videoIndex > showcaseIndex);
-    assert.ok(problemIndex > videoIndex);
+    assert.ok(videoIndex > heroIndex);
+    assert.ok(showcaseIndex > videoIndex);
+    assert.ok(problemIndex > showcaseIndex);
     assert.ok(solutionIndex > problemIndex);
     assert.ok(featuresIndex > solutionIndex);
     assert.ok(benefitsIndex > featuresIndex);
@@ -236,15 +236,15 @@ describe('Landing page BarberFlow', () => {
     assert.ok(statSync(imagePath).size <= 100 * 1024, 'O print do hero deve ter no maximo 100 KB');
   });
 
-  it('deve oferecer navegacao de conversao sem abrir o modal indevidamente', () => {
+  it('deve abrir o modal de voucher pelos CTAs principais', () => {
     const html = LandingPageFixture.source('index.html');
 
     assert.match(html, /<a href="#como-funciona">Como funciona<\/a>/);
     assert.match(html, /<a href="#funcionalidades">Funcionalidades<\/a>/);
     assert.match(html, /<a href="#beneficios">Benefícios<\/a>/);
     assert.match(html, /<a href="#faq">Dúvidas<\/a>/);
-    assert.match(html, /href="#voucher"[^>]*>Testar grátis<\/a>/);
-    assert.doesNotMatch(html, /<a[^>]*data-open-voucher/);
+    assert.match(html, /data-open-voucher[^>]*>Testar grátis<\/a>/);
+    assert.match(html, /data-open-voucher[^>]*>Quero testar grátis<\/a>/);
   });
 
   it('deve contar a narrativa principal sem promessas absolutas ou dados ficticios', () => {
@@ -309,9 +309,9 @@ describe('Landing page BarberFlow', () => {
   it('deve rotear os CTAs de teste e abrir o mesmo modal de voucher', () => {
     const html = LandingPageFixture.source('index.html');
 
-    assert.match(html, /href="#voucher"[^>]*>Quero testar grátis<\/a>/);
+    assert.match(html, /data-open-voucher[^>]*>Quero testar grátis<\/a>/);
     assert.match(html, /href="#como-funciona"[^>]*>Ver como funciona<\/a>/);
-    assert.match(html, /data-mobile-cta[^>]*href="#voucher"[^>]*>Testar grátis<\/a>/);
+    assert.match(html, /data-mobile-cta[^>]*data-open-voucher[^>]*>Testar grátis<\/a>/);
     assert.match(html, /data-open-voucher[^>]*>Gerar meu voucher<\/button>/);
     assert.match(html, /data-open-voucher[^>]*>Quero um mês grátis<\/button>/);
     assert.match(html, /data-open-voucher[^>]*>Testar o BarberFlow<\/button>/);
@@ -350,27 +350,29 @@ describe('Landing page BarberFlow', () => {
 
   it('deve preparar formulario e estados completos sem voucher ou contagem ficticia', () => {
     const html = LandingPageFixture.source('index.html');
+    const modal = html.match(/<div class="modal"[\s\S]*?<\/body>/)?.[0] ?? '';
     const source = LandingPageFixture.javascriptSource();
     const config = LandingPageFixture.source('config/landing-config.js');
     const main = LandingPageFixture.source('js/main.js');
 
     assert.match(html, /data-voucher-availability[^>]*aria-live="polite"/);
-    assert.match(html, /name="name"[^>]*autocomplete="name"/);
-    assert.match(html, /name="email"[^>]*autocomplete="email"/);
-    assert.match(html, /name="phone"[^>]*autocomplete="tel"/);
-    assert.match(html, /name="campaignConsent"[^>]*type="checkbox"/);
+    assert.match(modal, /name="email"[^>]*autocomplete="email"/);
+    assert.doesNotMatch(modal, /name="name"|name="phone"|name="campaignConsent"/);
+    assert.match(modal, /Ao gerar o voucher,[\s\S]*regras da campanha[\s\S]*política de privacidade/i);
     assert.match(html, /data-voucher-loading/);
     assert.match(html, /data-voucher-error/);
     assert.match(html, /data-voucher-success/);
-    assert.match(html, /data-voucher-code/);
-    assert.match(html, /data-copy-voucher[^>]*>Copiar código<\/button>/);
-    assert.match(html, /data-voucher-app-link[^>]*>Entrar no app profissional<\/a>/);
+    assert.match(modal, /<input(?=[^>]*data-voucher-code)(?=[^>]*readonly)[^>]*>/);
+    assert.match(modal, /data-copy-voucher[^>]*>Copiar código<\/button>/);
+    assert.match(modal, /data-voucher-signup-link[^>]*>Ir para o cadastro<\/a>/);
+    assert.match(modal, /data-voucher-app-link[^>]*>Entrar no app profissional<\/a>/);
     assert.match(html, /Seu voucher foi gerado com sucesso!/);
     assert.equal((html.match(/data-voucher-success-step/g) ?? []).length, 5);
     assert.doesNotMatch(source, /localStorage|Math\.random|crypto\.randomUUID/);
     assert.doesNotMatch(html, />\s*\d+\s+vouchers? restantes/i);
     assert.match(config, /voucherCampaignEnabled:\s*true/);
     assert.match(config, /voucherApiUrl:\s*'\/api\/v1\/professional-vouchers'/);
+    assert.match(config, /professionalSignupUrl:\s*'https:\/\/pro\.barberflow\.live\/\?start=signup'/);
     assert.match(main, /new VoucherApiAdapter\(/);
   });
 

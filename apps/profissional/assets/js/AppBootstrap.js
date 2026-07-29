@@ -190,6 +190,7 @@ class AppBootstrap {
    */
   static #processarPushDeepLink() {
     const params       = new URLSearchParams(location.search);
+    const start        = params.get('start');
     const barbershopId = params.get('push_barbershop');
     const entradaId    = params.get('push_entrada');
     const pushAction   = params.get('push_action');
@@ -199,6 +200,11 @@ class AppBootstrap {
     const pushNome     = params.get('push_nome');
     const pushStatus   = params.get('push_status');
     const pushChair    = params.get('push_chair');
+
+    if (start === 'signup') {
+      if (typeof Pro !== 'undefined') Pro.irParaCadastroGuardado?.();
+      return;
+    }
 
     // Botão de ação clicado com app fechado (Android)
     if (pushAction && pushEntry) {

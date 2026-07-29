@@ -95,7 +95,7 @@
           <a href="#beneficios">Benefícios</a>
           <a href="#aplicativos">Aplicativos</a>
           <a href="#faq">Dúvidas</a>
-          <a class="button button--compact button--gold" href="#voucher">Testar grátis</a>
+          <a class="button button--compact button--gold" href="#voucher" data-open-voucher>Testar grátis</a>
         </nav>
 
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="menu-principal" aria-expanded="false" title="Abrir menu" data-menu-toggle>
@@ -125,7 +125,7 @@
           <h1 id="hero-title">Organize sua fila com o <span>BarberFlow</span>.</h1>
           <p class="hero__copy">O cliente vê quantas pessoas estão na frente antes mesmo de sair de casa e entra na próxima cadeira disponível. Você atende; o BarberFlow mantém a fila visível em tempo real.</p>
           <div class="hero__actions">
-            <a class="button button--gold" href="#voucher" data-analytics-event="hero_cta_click">Quero testar grátis</a>
+            <a class="button button--gold" href="#voucher" data-open-voucher data-analytics-event="hero_cta_click">Quero testar grátis</a>
             <a class="button button--outline-light" href="#como-funciona">Ver como funciona</a>
           </div>
           <ul class="hero__trust" aria-label="Para quem o BarberFlow foi criado">
@@ -153,6 +153,25 @@
       <a class="hero__next" href="#problema" aria-label="Ver o problema que o BarberFlow resolve">
         <span aria-hidden="true">↓</span>
       </a>
+    </section>
+
+    <section id="video" class="section video-section" aria-labelledby="video-title">
+      <div class="container">
+        <div class="section-heading section-heading--center reveal reveal--scale">
+          <p class="eyebrow eyebrow--dark">Veja na prática</p>
+          <h2 id="video-title">Veja como o BarberFlow funciona</h2>
+          <p>Conheça o sistema por dentro e veja como ele pode ajudar a organizar a rotina da sua barbearia.</p>
+        </div>
+        <div class="video-player reveal reveal--scale" data-video-player data-video-state="unavailable">
+          <span class="video-placeholder__play" aria-hidden="true">▶</span>
+          <strong data-video-title>Vídeo de apresentação em breve</strong>
+          <small data-video-description>O vídeo será exibido aqui quando o link oficial for configurado.</small>
+          <button class="button button--gold" type="button" data-load-video data-analytics-event="youtube_video_play" hidden>Assistir vídeo</button>
+        </div>
+        <div class="video-section__action reveal">
+          <button class="button button--dark" type="button" data-open-voucher>Testar o BarberFlow</button>
+        </div>
+      </div>
     </section>
 
     <section id="conheca" class="section showcase" aria-labelledby="showcase-title" data-carousel>
@@ -187,25 +206,6 @@
             <a class="button button--dark" href="https://pro.barberflow.live/">Acessar a aplicação</a>
           </div>
         </noscript>
-      </div>
-    </section>
-
-    <section id="video" class="section video-section" aria-labelledby="video-title">
-      <div class="container">
-        <div class="section-heading section-heading--center reveal reveal--scale">
-          <p class="eyebrow eyebrow--dark">Veja na prática</p>
-          <h2 id="video-title">Veja como o BarberFlow funciona</h2>
-          <p>Conheça o sistema por dentro e veja como ele pode ajudar a organizar a rotina da sua barbearia.</p>
-        </div>
-        <div class="video-player reveal reveal--scale" data-video-player data-video-state="unavailable">
-          <span class="video-placeholder__play" aria-hidden="true">▶</span>
-          <strong data-video-title>Vídeo de apresentação em breve</strong>
-          <small data-video-description>O vídeo será exibido aqui quando o link oficial for configurado.</small>
-          <button class="button button--gold" type="button" data-load-video data-analytics-event="youtube_video_play" hidden>Assistir vídeo</button>
-        </div>
-        <div class="video-section__action reveal">
-          <button class="button button--dark" type="button" data-open-voucher>Testar o BarberFlow</button>
-        </div>
       </div>
     </section>
 
@@ -526,7 +526,7 @@
     </div>
   </footer>
 
-  <a class="mobile-floating-cta button button--gold" data-mobile-cta href="#voucher">Testar grátis</a>
+  <a class="mobile-floating-cta button button--gold" data-mobile-cta data-open-voucher href="#voucher">Testar grátis</a>
 
   <a class="whatsapp-floating-button" href="https://wa.me/5511911082804" data-config-link="whatsappUrl" target="_blank" rel="noopener noreferrer" aria-label="Conversar com o BarberFlow pelo WhatsApp" title="Conversar pelo WhatsApp">
     <span class="whatsapp-floating-button__label">Clique no WhatsApp e saiba mais</span>
@@ -544,7 +544,7 @@
           <h2 id="voucher-modal-title">Garanta seu voucher promocional</h2>
         </div>
       </div>
-      <p id="voucher-modal-description" class="modal__description">Os primeiros profissionais elegíveis poderão receber um mês gratuito para conhecer o BarberFlow. Preencha seus dados, gere o código e utilize-o durante o cadastro.</p>
+      <p id="voucher-modal-description" class="modal__description">Informe o mesmo e-mail que será usado no cadastro profissional para gerar seu voucher de um mês gratuito.</p>
 
       <div class="voucher-availability">
         <span>Disponibilidade da campanha</span>
@@ -555,14 +555,8 @@
       <div data-voucher-form-view>
         <form class="voucher-form" data-voucher-form data-analytics-start="voucher_form_start" novalidate>
           <div class="voucher-form__fields">
-            <label for="voucher-name">Nome</label>
-            <input id="voucher-name" name="name" autocomplete="name" type="text" maxlength="80" required>
-
             <label for="voucher-email">E-mail</label>
             <input id="voucher-email" name="email" autocomplete="email" type="email" maxlength="160" required>
-
-            <label for="voucher-phone">Telefone ou WhatsApp</label>
-            <input id="voucher-phone" name="phone" autocomplete="tel" type="tel" inputmode="tel" minlength="10" maxlength="20" required>
           </div>
 
           <div class="feedback-form__honeypot" aria-hidden="true">
@@ -570,15 +564,15 @@
             <input id="voucher-company" name="company" type="text" tabindex="-1" autocomplete="off">
           </div>
 
-          <label class="voucher-consent" for="voucher-consent">
-            <input id="voucher-consent" name="campaignConsent" type="checkbox" required>
-            <span>Li e aceito as <a href="./legal/campaign-rules.html" data-config-link="campaignRulesUrl">regras da campanha</a> e a <a href="./legal/privacy.html" data-config-link="privacyPolicyUrl">política de privacidade</a>.</span>
-          </label>
+          <p class="voucher-consent-note">Ao gerar o voucher, você declara que leu e aceita as <a href="./legal/campaign-rules.html" data-config-link="campaignRulesUrl">regras da campanha</a> e a <a href="./legal/privacy.html" data-config-link="privacyPolicyUrl">política de privacidade</a>.</p>
 
-          <button class="button button--dark" type="submit" data-voucher-submit>
-            Gerar meu voucher
-            <span data-voucher-loading hidden>Verificando…</span>
-          </button>
+          <div class="voucher-form__actions">
+            <button class="button button--dark" type="submit" data-voucher-submit>
+              Gerar meu voucher
+              <span data-voucher-loading hidden>Verificando…</span>
+            </button>
+            <a class="button button--gold" href="https://pro.barberflow.live/?start=signup" data-config-link="professionalSignupUrl" data-voucher-signup-link>Ir para o cadastro</a>
+          </div>
           <p class="voucher-form__error" role="alert" data-voucher-error hidden></p>
         </form>
 
@@ -598,10 +592,12 @@
         <p class="eyebrow eyebrow--dark">Voucher emitido</p>
         <h3 id="voucher-success-title" tabindex="-1" data-voucher-success-title>Seu voucher foi gerado com sucesso!</h3>
         <p>Use este código durante o cadastro profissional:</p>
-        <code class="voucher-success__code" data-voucher-code></code>
-        <button class="button button--dark" type="button" data-copy-voucher>Copiar código</button>
+        <div class="voucher-success__code-row">
+          <input class="voucher-success__code" type="text" readonly aria-label="Código do voucher" data-voucher-code>
+          <button class="button button--dark" type="button" data-copy-voucher>Copiar código</button>
+        </div>
         <p class="voucher-success__copy-status" role="status" aria-live="polite" data-copy-status></p>
-        <a class="button button--gold" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-voucher-app-link data-analytics-event="app_access_click">Entrar no app profissional</a>
+        <a class="button button--gold" href="https://pro.barberflow.live/?start=signup" data-config-link="professionalSignupUrl" data-voucher-app-link data-analytics-event="app_access_click">Entrar no app profissional</a>
         <ol class="voucher-success__steps">
           <li data-voucher-success-step>Copie seu voucher.</li>
           <li data-voucher-success-step>Acesse a aplicação profissional.</li>

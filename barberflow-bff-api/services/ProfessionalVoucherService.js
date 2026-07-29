@@ -51,15 +51,11 @@ class ProfessionalVoucherService extends BaseService {
     const company = ProfessionalVoucherService.#normalizarTexto(body.company, 120);
     if (company) return { ok: true, status: 'accepted' };
 
-    const name = ProfessionalVoucherService.#normalizarTexto(body.name, 80);
     const email = ProfessionalVoucherService.#normalizarTexto(body.email, 160).toLowerCase();
-    const phone = String(body.phone ?? '').replace(/\D/g, '').slice(0, 15);
 
-    if (name.length < 2) throw AppError.badRequest('Informe um nome valido.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw AppError.badRequest('Informe um e-mail valido.');
     }
-    if (phone.length < 10) throw AppError.badRequest('Informe um telefone valido.');
     if (body.campaignConsent !== true) {
       throw AppError.badRequest('Aceite as regras da campanha para continuar.');
     }

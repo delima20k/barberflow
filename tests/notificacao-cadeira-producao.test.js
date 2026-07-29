@@ -179,6 +179,7 @@ describe('AppBootstrap — deep link push_type navega para minha-barbearia', () 
 
   function criarSandbox(search = '') {
     const navSpy = fn();
+    const signupSpy = fn();
     const dispatchedEvents = [];
     const _listeners = {};
 
@@ -192,7 +193,7 @@ describe('AppBootstrap — deep link push_type navega para minha-barbearia', () 
 
     const sandbox = vm.createContext({
       location:           { search, href: 'http://localhost/profissional/' + search, reload: fn() },
-      Pro:                { nav: navSpy },
+      Pro:                { nav: navSpy, irParaCadastroGuardado: signupSpy },
       LoggerService:      { warn: fn(), error: fn() },
       URLSearchParams,
       decodeURIComponent,
@@ -250,7 +251,7 @@ describe('AppBootstrap — deep link push_type navega para minha-barbearia', () 
 
     carregar(sandbox, 'apps/profissional/assets/js/AppBootstrap.js');
 
-    return { sandbox, navSpy, dispatchedEvents };
+    return { sandbox, navSpy, signupSpy, dispatchedEvents };
   }
 
   test('navega para minha-barbearia antes de disparar push-show-modal', () => {
@@ -276,6 +277,14 @@ describe('AppBootstrap — deep link push_type navega para minha-barbearia', () 
     sandbox.AppBootstrap.init();
 
     assert.equal(navSpy.calls.length, 0, 'Pro.nav não deve ser chamado sem parâmetros de push');
+  });
+
+  test('abre o fluxo de cadastro quando a landing envia start=signup', () => {
+    const { sandbox, signupSpy } = criarSandbox('?start=signup');
+
+    sandbox.AppBootstrap.init();
+
+    assert.equal(signupSpy.calls.length, 1, 'deve abrir o ponto de entrada do cadastro');
   });
 });
 
