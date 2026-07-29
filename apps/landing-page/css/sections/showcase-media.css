@@ -316,6 +316,10 @@
   padding-top: 0;
 }
 
+.video-player > :first-child {
+  padding-top: 0;
+}
+
 .video-player__frame {
   display: block;
   width: 100%;
