@@ -11,7 +11,14 @@ class LandingApp {
     LandingConfig.syncMetadata(this.root);
     this.setCurrentYear();
 
-    const analytics = new LandingAnalytics(this.root);
+    const analyticsTracker = new LandingAnalyticsTracker({
+      enabled: LandingConfig.get('analyticsEnabled'),
+      collectorUrl: LandingConfig.get('analyticsCollectorUrl'),
+      supabaseUrl: LandingConfig.get('analyticsSupabaseUrl'),
+      supabasePublishableKey: LandingConfig.get('analyticsSupabasePublishableKey'),
+      sessionTimeoutMinutes: LandingConfig.get('analyticsSessionTimeoutMinutes'),
+    });
+    const analytics = new LandingAnalytics(this.root, analyticsTracker);
     this.components = [
       analytics,
       new MobileNavigation(this.root),

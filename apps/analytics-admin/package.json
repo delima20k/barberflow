@@ -1,0 +1,12 @@
+{
+  "name": "barberflow-analytics-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PWA externa para analytics da landing page BarberFlow.",
+  "scripts": {
+    "build": "node scripts/configure-runtime.mjs && node scripts/validate-project.mjs",
+    "test": "node --test tests/*.test.js",
+    "check": "node scripts/validate-project.mjs",
+    "lint": "node scripts/validate-project.mjs"
+  }
+}

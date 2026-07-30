@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#11100f">
+    <meta name="description" content="Painel externo de monitoramento da landing page BarberFlow.">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Analytics Admin</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+    <link rel="stylesheet" href="./css/reset.css">
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/global.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/responsive.css">
+  </head>
+  <body>
+    <noscript>
+      <p class="noscript-message">Ative o JavaScript para acessar o Analytics Admin.</p>
+    </noscript>
+
+    <main id="app" class="app-root">
+      <section class="login-page" data-page="login" aria-labelledby="login-title">
+        <div class="login-panel">
+          <div class="brand brand--login">
+            <img src="./assets/images/logo.png" alt="" width="64" height="47">
+            <div>
+              <strong>Analytics Admin</strong>
+              <span>BarberFlow</span>
+            </div>
+          </div>
+
+          <div class="login-copy">
+            <p class="eyebrow">Acesso restrito</p>
+            <h1 id="login-title">Visibilidade da jornada, sem ruído.</h1>
+            <p>Entre para acompanhar a conversão da landing page em um ambiente administrativo separado.</p>
+          </div>
+
+          <div class="demo-notice" data-demo-only role="note">
+            <strong>Dados demonstrativos</strong>
+            <span>Esta versão ainda não está conectada ao Supabase Analytics.</span>
+          </div>
+
+          <form class="login-form" data-login-form>
+            <label for="login-email">E-mail</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" required>
+
+            <label for="login-password">Senha</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+
+            <p class="form-error" data-login-error role="alert" hidden></p>
+            <button class="button button--primary" type="submit">Entrar no painel</button>
+          </form>
+        </div>
+
+        <aside class="login-context" aria-label="Resumo do painel">
+          <p>Super Admin externo</p>
+          <h2>Do primeiro acesso ao primeiro login.</h2>
+          <ul>
+            <li>Eventos essenciais da landing</li>
+            <li>Funil e sessões em tempo real</li>
+            <li>Dados isolados do BarberFlow principal</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="admin-shell" data-admin-shell hidden>
+        <aside class="sidebar" data-sidebar>
+          <div class="brand">
+            <img src="./assets/images/logo.png" alt="" width="48" height="35">
+            <div>
+              <strong>Analytics Admin</strong>
+              <span>BarberFlow</span>
+            </div>
+          </div>
+
+          <nav class="sidebar-nav" aria-label="Navegação principal">
+            <a href="#dashboard" data-nav-link="dashboard" aria-current="page">
+              <span aria-hidden="true">01</span> Dashboard
+            </a>
+            <a href="#funnel" data-nav-link="funnel">
+              <span aria-hidden="true">02</span> Funil
+            </a>
+            <a href="#sessions" data-nav-link="sessions">
+              <span aria-hidden="true">03</span> Sessões
+            </a>
+          </nav>
+
+          <div class="sidebar-footer">
+            <div class="environment-badge">
+              <span aria-hidden="true"></span>
+              <span data-environment-label>Demonstração</span>
+            </div>
+            <button class="button button--quiet" type="button" data-sign-out>Sair</button>
+          </div>
+        </aside>
+
+        <div class="workspace">
+          <header class="topbar">
+            <button class="icon-button mobile-menu-button" type="button" data-menu-toggle aria-label="Abrir menu" aria-expanded="false">
+              <span></span><span></span><span></span>
+            </button>
+            <div>
+              <p class="eyebrow">Landing page</p>
+              <h1 data-page-title>Dashboard</h1>
+            </div>
+            <div class="topbar-actions">
+              <div class="live-state" aria-label="Estado da conexão">
+                <span aria-hidden="true"></span>
+                <span data-environment-label>Demonstração</span>
+              </div>
+              <button class="icon-button" type="button" data-refresh aria-label="Atualizar dados" title="Atualizar dados">↻</button>
+            </div>
+          </header>
+
+          <div class="offline-state" data-offline-state hidden role="status">
+            <strong>Modo offline.</strong>
+            <span>Exibindo o último snapshot salvo em <time data-snapshot-time></time>.</span>
+          </div>
+
+          <div class="demo-strip" data-demo-only>
+            <strong>Dados demonstrativos</strong>
+            <span>Use os filtros e as sessões para avaliar a experiência antes da conexão real.</span>
+          </div>
+
+          <div class="global-filter" data-global-filter-bar></div>
+
+          <section class="page" data-page="dashboard" aria-labelledby="dashboard-heading">
+            <h2 id="dashboard-heading" class="sr-only">Dashboard</h2>
+            <div class="metric-grid" data-metric-grid aria-live="polite"></div>
+
+            <div class="dashboard-grid">
+              <section class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Conversão</p>
+                    <h3>Visão rápida do funil</h3>
+                  </div>
+                  <a class="text-link" href="#funnel">Ver funil completo →</a>
+                </div>
+                <div data-dashboard-funnel></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">Agora</p>
+                    <h3>Atividade recente</h3>
+                  </div>
+                  <span class="online-count"><strong data-online-count>0</strong> online</span>
+                </div>
+                <ol class="activity-list" data-activity-list></ol>
+              </section>
+            </div>
+          </section>
+
+          <section class="page" data-page="funnel" aria-labelledby="funnel-heading" hidden>
+            <div class="page-intro">
+              <div>
+                <p class="eyebrow">Jornada</p>
+                <h2 id="funnel-heading">Funil de conversão</h2>
+                <p>Compare quantas pessoas avançaram em cada etapa da experiência.</p>
+              </div>
+            </div>
+            <div data-funnel-view></div>
+          </section>
+
+          <section class="page" data-page="sessions" aria-labelledby="sessions-heading" hidden>
+            <div class="page-intro page-intro--actions">
+              <div>
+                <p class="eyebrow">Comportamento</p>
+                <h2 id="sessions-heading">Sessões</h2>
+                <p>Acompanhe a sequência de eventos registrada para cada visitante.</p>
+              </div>
+              <div class="button-group">
+                <button class="button button--secondary" type="button" data-export-csv>Exportar CSV</button>
+                <button class="button button--secondary" type="button" data-export-excel>Exportar Excel</button>
+              </div>
+            </div>
+            <div data-sessions-table></div>
+            <div data-session-timeline></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast-region" data-toast-region aria-live="polite" aria-atomic="true"></div>
+
+    <script src="./config/runtime-config.js" defer></script>
+    <script src="./config/admin-config.js" defer></script>
+    <script src="./config/event-catalog.js" defer></script>
+    <script src="./utils/DateRange.js" defer></script>
+    <script src="./utils/Formatters.js" defer></script>
+    <script src="./utils/SpreadsheetValueSanitizer.js" defer></script>
+    <script src="./utils/CsvExporter.js" defer></script>
+    <script src="./utils/ExcelExporter.js" defer></script>
+    <script src="./services/SupabaseClientFactory.js" defer></script>
+    <script src="./services/AuthService.js" defer></script>
+    <script src="./services/MockAnalyticsDataSource.js" defer></script>
+    <script src="./services/AnalyticsRepository.js" defer></script>
+    <script src="./services/MetricsService.js" defer></script>
+    <script src="./services/RealtimeAnalyticsService.js" defer></script>
+    <script src="./services/PresenceService.js" defer></script>
+    <script src="./services/SnapshotService.js" defer></script>
+    <script src="./services/ExportService.js" defer></script>
+    <script src="./components/FilterBar.js" defer></script>
+    <script src="./components/MetricGrid.js" defer></script>
+    <script src="./components/FunnelView.js" defer></script>
+    <script src="./components/SessionTable.js" defer></script>
+    <script src="./components/SessionTimeline.js" defer></script>
+    <script src="./components/ToastCenter.js" defer></script>
+    <script src="./components/OfflineState.js" defer></script>
+    <script src="./components/AppShell.js" defer></script>
+    <script src="./pages/LoginPage.js" defer></script>
+    <script src="./pages/DashboardPage.js" defer></script>
+    <script src="./pages/FunnelPage.js" defer></script>
+    <script src="./pages/SessionsPage.js" defer></script>
+    <script src="./js/router.js" defer></script>
+    <script src="./js/app.js" defer></script>
+  </body>
+</html>

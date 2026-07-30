@@ -21,6 +21,11 @@ class LandingConfig {
     instagramUrl: '',
     facebookUrl: '',
     socialImageUrl: 'https://barberflow.live/assets/images/logos/LogoNomeBarberFlow.png',
+    analyticsEnabled: false,
+    analyticsCollectorUrl: '',
+    analyticsSupabaseUrl: '',
+    analyticsSupabasePublishableKey: '',
+    analyticsSessionTimeoutMinutes: 30,
   });
 
   static get(key) {

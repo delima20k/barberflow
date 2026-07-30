@@ -40,6 +40,7 @@ class LandingPageFixture {
     'js/feedback-service.js',
     'js/feedback.js',
     'js/analytics.js',
+    'js/analytics-tracker.js',
     'legal/privacy.html',
     'legal/terms.html',
     'legal/campaign-rules.html',
@@ -244,7 +245,10 @@ describe('Landing page BarberFlow', () => {
     assert.match(html, /<a href="#beneficios">Benefícios<\/a>/);
     assert.match(html, /<a href="#faq">Dúvidas<\/a>/);
     assert.match(html, /data-open-voucher[^>]*>Testar grátis<\/a>/);
-    assert.match(html, /data-open-voucher[^>]*>Quero testar grátis<\/a>/);
+    assert.match(
+      html,
+      /data-open-voucher[^>]*data-hero-voucher-cta[^>]*>Gerar voucher<\/button>/,
+    );
   });
 
   it('deve contar a narrativa principal sem promessas absolutas ou dados ficticios', () => {
@@ -259,7 +263,7 @@ describe('Landing page BarberFlow', () => {
 
     assert.match(html, /Sua barbearia trabalha com ordem de chegada\?/);
     assert.match(html, /<h1[^>]*>[\s\S]*Organize sua fila com o[\s\S]*BarberFlow[\s\S]*<\/h1>/);
-    assert.match(html, /antes mesmo de sair de casa/);
+    assert.match(html, /Acompanhe antes de sair/);
     assert.match(html, /hero-abertura-app\.webp/);
     assert.match(
       html,
@@ -309,7 +313,10 @@ describe('Landing page BarberFlow', () => {
   it('deve rotear os CTAs de teste e abrir o mesmo modal de voucher', () => {
     const html = LandingPageFixture.source('index.html');
 
-    assert.match(html, /data-open-voucher[^>]*>Quero testar grátis<\/a>/);
+    assert.match(
+      html,
+      /data-open-voucher[^>]*data-hero-voucher-cta[^>]*>Gerar voucher<\/button>/,
+    );
     assert.match(html, /href="#como-funciona"[^>]*>Ver como funciona<\/a>/);
     assert.match(html, /data-mobile-cta[^>]*data-open-voucher[^>]*>Testar grátis<\/a>/);
     assert.match(html, /data-open-voucher[^>]*>Gerar meu voucher<\/button>/);
@@ -361,7 +368,10 @@ describe('Landing page BarberFlow', () => {
   it('deve preparar formulario e estados completos sem voucher ou contagem ficticia', () => {
     const html = LandingPageFixture.source('index.html');
     const modal = html.match(/<div class="modal"[\s\S]*?<\/body>/)?.[0] ?? '';
-    const source = LandingPageFixture.javascriptSource();
+    const voucherSource = [
+      'js/voucher-service.js',
+      'js/voucher-modal.js',
+    ].map((file) => LandingPageFixture.source(file)).join('\n');
     const config = LandingPageFixture.source('config/landing-config.js');
     const main = LandingPageFixture.source('js/main.js');
 
@@ -378,7 +388,7 @@ describe('Landing page BarberFlow', () => {
     assert.match(modal, /data-voucher-app-link[^>]*>Entrar no app profissional<\/a>/);
     assert.match(html, /Seu voucher foi gerado com sucesso!/);
     assert.equal((html.match(/data-voucher-success-step/g) ?? []).length, 5);
-    assert.doesNotMatch(source, /localStorage|Math\.random|crypto\.randomUUID/);
+    assert.doesNotMatch(voucherSource, /localStorage|Math\.random|crypto\.randomUUID/);
     assert.doesNotMatch(html, />\s*\d+\s+vouchers? restantes/i);
     assert.match(config, /voucherCampaignEnabled:\s*true/);
     assert.match(config, /voucherApiUrl:\s*'\/api\/v1\/professional-vouchers'/);
@@ -402,10 +412,8 @@ describe('Landing page BarberFlow', () => {
     assert.ok(featureScriptIndex >= 0 && featureScriptIndex < carouselScriptIndex);
   });
 
-  it('deve usar classes de interface sem chamadas de dados', () => {
+  it('deve manter os componentes de interface sem chamadas de dados diretas', () => {
     const source = [
-      'config/landing-config.js',
-      'js/main.js',
       'js/carousel.js',
       'js/mobile-navigation.js',
       'js/faq.js',
@@ -415,8 +423,6 @@ describe('Landing page BarberFlow', () => {
       'js/animations.js',
     ].map((file) => LandingPageFixture.source(file)).join('\n');
     const classes = [
-      'LandingConfig',
-      'LandingApp',
       'LandingCarousel',
       'MobileNavigation',
       'FaqAccordion',
@@ -629,31 +635,37 @@ describe('Landing page BarberFlow', () => {
     assert.match(vercel, new RegExp(`sha256-${hash.replace(/[+/.]/g, '\\$&')}`));
   });
 
-  it('deve preparar os eventos de analytics sem instalar rastreadores', () => {
+  it('deve instalar o tracker isolado e desativado por padrao', () => {
     const source = LandingPageFixture.javascriptSource();
     const html = LandingPageFixture.source('index.html');
+    const config = LandingPageFixture.source('config/landing-config.js');
     const events = [
       'landing_view',
-      'hero_cta_click',
-      'feature_carousel_interaction',
-      'youtube_video_play',
-      'voucher_modal_open',
-      'voucher_form_start',
+      'cta_click',
+      'voucher_modal_opened',
+      'email_input_started',
+      'email_submitted',
       'voucher_generated',
-      'app_access_click',
-      'feedback_submitted',
-      'faq_open',
+      'scroll_25',
+      'scroll_50',
+      'scroll_75',
+      'scroll_100',
+      'session_started',
+      'session_ended',
     ];
 
     assert.match(source, /class LandingAnalytics\b/);
+    assert.match(source, /class LandingAnalyticsTracker\b/);
     for (const event of events) {
       assert.match(source, new RegExp(`['"]${event}['"]`), `Evento ausente: ${event}`);
     }
 
-    assert.match(html, /data-analytics-event="hero_cta_click"/);
-    assert.match(html, /data-analytics-event="youtube_video_play"/);
-    assert.match(html, /data-analytics-start="voucher_form_start"/);
+    assert.match(config, /analyticsEnabled:\s*false/);
+    assert.match(config, /analyticsCollectorUrl:\s*''/);
+    assert.match(html, /data-analytics-event="cta_click"/);
+    assert.match(html, /data-analytics-start="email_input_started"/);
     assert.doesNotMatch(html, /googletagmanager|google-analytics|connect\.facebook\.net|fbq\(/i);
+    assert.doesNotMatch(source, /service[_-]?role/i);
   });
 
   it('deve aplicar headers de seguranca no deploy independente', () => {

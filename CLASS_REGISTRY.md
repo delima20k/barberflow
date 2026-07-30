@@ -865,6 +865,43 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `ProfissionalRepository` | [barberflow-bff-api/repositories/ProfissionalRepository.js](barberflow-bff-api/repositories/ProfissionalRepository.js) | infra | `extends BaseRepository`. Agrega perfil público via `profiles`, `professionals`, `professional_shop_links`, `barbershops`; atualiza `since_year`, `birth_date`, `gender`; lista/edita/remove `portfolio_images` com owner validado; cria/reutiliza conversa direta cliente-dono. Mantém convites existentes. |
 | `ProfissionalService` | [barberflow-bff-api/services/ProfissionalService.js](barberflow-bff-api/services/ProfissionalService.js) | application | `extends BaseService`. Valida DTO público, allowlist de edição, portfolio com permissão client/admin e origem de mensagem para barbearia via `SendMessageUseCase`, preservando casos de convites existentes. |
 
+## apps/analytics-admin/
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `AdminConfig` | [apps/analytics-admin/config/admin-config.js](apps/analytics-admin/config/admin-config.js) | infra | Expõe a configuração pública validada do painel. |
+| `AdminRouter` | [apps/analytics-admin/js/router.js](apps/analytics-admin/js/router.js) | infra | Resolve as rotas locais por hash. |
+| `AnalyticsAdminApp` | [apps/analytics-admin/js/app.js](apps/analytics-admin/js/app.js) | application | Compõe serviços, páginas, filtros e ciclo PWA. |
+| `AnalyticsEventCatalog` | [apps/analytics-admin/config/event-catalog.js](apps/analytics-admin/config/event-catalog.js) | domain | Cataloga eventos essenciais e futuros. |
+| `AnalyticsRepository` | [apps/analytics-admin/services/AnalyticsRepository.js](apps/analytics-admin/services/AnalyticsRepository.js) | infra | Lê e normaliza eventos e sessões DEMO ou Supabase. |
+| `AppShell` | [apps/analytics-admin/components/AppShell.js](apps/analytics-admin/components/AppShell.js) | interfaces | Controla navegação e shell responsivo. |
+| `AuthService` | [apps/analytics-admin/services/AuthService.js](apps/analytics-admin/services/AuthService.js) | application | Autentica o administrador em DEMO ou Supabase. |
+| `CsvExporter` | [apps/analytics-admin/utils/CsvExporter.js](apps/analytics-admin/utils/CsvExporter.js) | infra | Serializa registros em CSV. |
+| `DashboardPage` | [apps/analytics-admin/pages/DashboardPage.js](apps/analytics-admin/pages/DashboardPage.js) | interfaces | Coordena métricas, funil compacto e atividade. |
+| `DateRange` | [apps/analytics-admin/utils/DateRange.js](apps/analytics-admin/utils/DateRange.js) | domain | Resolve períodos dos filtros. |
+| `ExcelExporter` | [apps/analytics-admin/utils/ExcelExporter.js](apps/analytics-admin/utils/ExcelExporter.js) | infra | Serializa registros em SpreadsheetML. |
+| `ExportService` | [apps/analytics-admin/services/ExportService.js](apps/analytics-admin/services/ExportService.js) | application | Coordena downloads CSV e Excel. |
+| `FilterBar` | [apps/analytics-admin/components/FilterBar.js](apps/analytics-admin/components/FilterBar.js) | interfaces | Controla os filtros globais. |
+| `Formatters` | [apps/analytics-admin/utils/Formatters.js](apps/analytics-admin/utils/Formatters.js) | interfaces | Formata números, datas e duração. |
+| `FunnelPage` | [apps/analytics-admin/pages/FunnelPage.js](apps/analytics-admin/pages/FunnelPage.js) | interfaces | Coordena a página de funil. |
+| `FunnelView` | [apps/analytics-admin/components/FunnelView.js](apps/analytics-admin/components/FunnelView.js) | interfaces | Renderiza o funil completo ou compacto. |
+| `LoginPage` | [apps/analytics-admin/pages/LoginPage.js](apps/analytics-admin/pages/LoginPage.js) | interfaces | Coordena a tela de login. |
+| `MetricGrid` | [apps/analytics-admin/components/MetricGrid.js](apps/analytics-admin/components/MetricGrid.js) | interfaces | Renderiza os indicadores. |
+| `MetricsService` | [apps/analytics-admin/services/MetricsService.js](apps/analytics-admin/services/MetricsService.js) | application | Calcula indicadores, filtros e conversão. |
+| `MockAnalyticsDataSource` | [apps/analytics-admin/services/MockAnalyticsDataSource.js](apps/analytics-admin/services/MockAnalyticsDataSource.js) | infra | Fornece dados demonstrativos. |
+| `OfflineState` | [apps/analytics-admin/components/OfflineState.js](apps/analytics-admin/components/OfflineState.js) | interfaces | Informa o uso do snapshot offline. |
+| `PresenceService` | [apps/analytics-admin/services/PresenceService.js](apps/analytics-admin/services/PresenceService.js) | infra | Assina Presence no contexto administrativo. |
+| `RealtimeAnalyticsService` | [apps/analytics-admin/services/RealtimeAnalyticsService.js](apps/analytics-admin/services/RealtimeAnalyticsService.js) | infra | Assina novos eventos sem polling. |
+| `RuntimeConfigBuilder` | [apps/analytics-admin/scripts/configure-runtime.mjs](apps/analytics-admin/scripts/configure-runtime.mjs) | infra | Gera a configuração pública do build. |
+| `SessionTable` | [apps/analytics-admin/components/SessionTable.js](apps/analytics-admin/components/SessionTable.js) | interfaces | Lista e seleciona sessões. |
+| `SessionTimeline` | [apps/analytics-admin/components/SessionTimeline.js](apps/analytics-admin/components/SessionTimeline.js) | interfaces | Exibe o caminho de uma sessão. |
+| `SessionsPage` | [apps/analytics-admin/pages/SessionsPage.js](apps/analytics-admin/pages/SessionsPage.js) | interfaces | Coordena sessões e exportações. |
+| `SnapshotService` | [apps/analytics-admin/services/SnapshotService.js](apps/analytics-admin/services/SnapshotService.js) | infra | Mantém o último snapshot offline. |
+| `SpreadsheetValueSanitizer` | [apps/analytics-admin/utils/SpreadsheetValueSanitizer.js](apps/analytics-admin/utils/SpreadsheetValueSanitizer.js) | infra | Neutraliza fórmulas em exportações. |
+| `StaticProjectValidator` | [apps/analytics-admin/scripts/validate-project.mjs](apps/analytics-admin/scripts/validate-project.mjs) | infra | Valida sintaxe, referências e isolamento DEMO. |
+| `SupabaseClientFactory` | [apps/analytics-admin/services/SupabaseClientFactory.js](apps/analytics-admin/services/SupabaseClientFactory.js) | infra | Carrega o SDK somente com configuração válida. |
+| `ToastCenter` | [apps/analytics-admin/components/ToastCenter.js](apps/analytics-admin/components/ToastCenter.js) | interfaces | Exibe notificações discretas. |
+
 ## apps/landing-page/
 
 | Classe | Arquivo | Camada | Descrição |
@@ -874,6 +911,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `FeedbackFormController` | [apps/landing-page/js/feedback.js](apps/landing-page/js/feedback.js) | interfaces | Coordena validação, honeypot, loading, prevenção de envio repetido e estados do formulário por service injetado. |
 | `FeedbackService` | [apps/landing-page/js/feedback-service.js](apps/landing-page/js/feedback-service.js) | application | Normaliza e valida sugestões antes de delegar a um adapter seguro; no modo local retorna indisponível sem transmitir dados. |
 | `LandingAnalytics` | [apps/landing-page/js/analytics.js](apps/landing-page/js/analytics.js) | interfaces | Define a allowlist de eventos e os pontos de instrumentação por adapter nulo, sem carregar rastreadores ou dados pessoais. |
+| `LandingAnalyticsTracker` | [apps/landing-page/js/analytics-tracker.js](apps/landing-page/js/analytics-tracker.js) | infra | Coleta somente eventos permitidos quando ativado, mantém sessão local e envia lotes idempotentes ao collector configurado. |
 | `LandingApp` | [apps/landing-page/js/main.js](apps/landing-page/js/main.js) | interfaces | Inicializa e coordena os componentes independentes da landing page. |
 | `LandingCarousel` | [apps/landing-page/js/carousel.js](apps/landing-page/js/carousel.js) | interfaces | Renderiza o catálogo de funcionalidades e gerencia scroll-snap, arraste, teclado, indicadores e estado acessível. |
 | `LandingConfig` | [apps/landing-page/config/landing-config.js](apps/landing-page/config/landing-config.js) | infra | Centraliza domínio canônico, destinos oficiais, deep link de cadastro e flags de integrações futuras. |

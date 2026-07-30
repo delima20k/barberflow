@@ -1,0 +1,20 @@
+:root {
+  --bg: #11100f;
+  --surface: #181715;
+  --surface-raised: #201e1b;
+  --surface-soft: #28251f;
+  --border: #37332d;
+  --border-strong: #4b443a;
+  --text: #f8f5ef;
+  --muted: #aaa398;
+  --gold: #e0ab24;
+  --gold-soft: #f1d889;
+  --green: #55c68a;
+  --red: #ef7d78;
+  --blue: #66a7dc;
+  --sidebar-width: 248px;
+  --topbar-height: 82px;
+  --radius: 8px;
+  --shadow: 0 18px 44px rgb(0 0 0 / 24%);
+  --transition: 180ms ease;
+}

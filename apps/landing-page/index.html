@@ -66,6 +66,7 @@
   <link rel="stylesheet" href="./css/responsive.css">
 
   <script src="./config/landing-config.js" defer></script>
+  <script src="./js/analytics-tracker.js" defer></script>
   <script src="./config/landing-features.js" defer></script>
   <script src="./js/mobile-navigation.js" defer></script>
   <script src="./js/carousel.js" defer></script>
@@ -127,7 +128,7 @@
           <h2 class="hero__voucher-title">TESTE O APP GRÁTIS POR UM MÊS!</h2>
           <h3 class="hero__voucher-subtitle">Gere seu voucher e cadastre-se na plataforma.</h3>
           <div class="hero__actions">
-            <button class="button button--gold hero__voucher-button" type="button" data-open-voucher data-hero-voucher-cta data-analytics-event="hero_cta_click">Gerar voucher</button>
+            <button class="button button--gold hero__voucher-button" type="button" data-open-voucher data-hero-voucher-cta data-analytics-event="cta_click">Gerar voucher</button>
             <a class="button button--outline-light" href="#como-funciona">Ver como funciona</a>
           </div>
           <ul class="hero__trust" aria-label="Para quem o BarberFlow foi criado">
@@ -555,10 +556,10 @@
       </div>
 
       <div data-voucher-form-view>
-        <form class="voucher-form" data-voucher-form data-analytics-start="voucher_form_start" novalidate>
+        <form class="voucher-form" data-voucher-form novalidate>
           <div class="voucher-form__fields">
             <label for="voucher-email">E-mail</label>
-            <input id="voucher-email" name="email" autocomplete="email" type="email" maxlength="160" required>
+            <input id="voucher-email" name="email" autocomplete="email" type="email" maxlength="160" required data-analytics-start="email_input_started">
           </div>
 
           <div class="feedback-form__honeypot" aria-hidden="true">

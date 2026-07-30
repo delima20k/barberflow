@@ -83,6 +83,8 @@ class VoucherModal {
       });
 
       if (result?.ok && typeof result.code === 'string' && result.code.trim()) {
+        const email = String(formData.get('email') ?? '').trim();
+        this.#analytics?.track?.('email_submitted', { email });
         this.showSuccess(result.code.trim());
         if (Number.isInteger(result.remaining)) {
           this.updateAvailabilityCount(result.remaining);
@@ -149,7 +151,7 @@ class VoucherModal {
     this.modal.setAttribute('aria-hidden', 'false');
     this.root.body.classList.add('modal-open');
     this.modal.querySelector('.modal__close')?.focus();
-    this.#analytics?.track?.('voucher_modal_open');
+    this.#analytics?.track?.('voucher_modal_opened');
     if (!this.#availabilityChecked) this.checkAvailability();
   }
 

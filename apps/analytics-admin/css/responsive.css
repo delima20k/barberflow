@@ -1,0 +1,144 @@
+@media (max-width: 1180px) {
+  .metric-grid {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .login-copy h1 {
+    font-size: 2.7rem;
+  }
+
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .login-panel {
+    min-height: 100vh;
+    border-right: 0;
+  }
+
+  .login-context {
+    display: none;
+  }
+
+  .sidebar {
+    width: min(290px, 86vw);
+    box-shadow: var(--shadow);
+    transform: translateX(-105%);
+    transition: transform var(--transition);
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .workspace {
+    margin-left: 0;
+  }
+
+  .mobile-menu-button {
+    display: inline-grid;
+    align-content: center;
+    gap: 3px;
+  }
+
+  .topbar {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 0.8rem;
+  }
+
+  .live-state {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .login-copy h1 {
+    font-size: 2.15rem;
+  }
+
+  .page-intro h2 {
+    font-size: 1.75rem;
+  }
+
+  .login-panel {
+    padding: 1.5rem;
+  }
+
+  .brand--login {
+    margin-bottom: 3rem;
+  }
+
+  .page {
+    padding: 1rem;
+  }
+
+  .global-filter {
+    padding: 1rem 1rem 0;
+  }
+
+  .demo-strip,
+  .offline-state {
+    padding-inline: 1rem;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-card {
+    min-height: 112px;
+  }
+
+  .filter-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filter-control {
+    min-width: 0;
+  }
+
+  .filter-control:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .page-intro,
+  .page-intro--actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .funnel-view {
+    padding: 0.85rem;
+  }
+
+  .funnel-step {
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .compact-funnel-row {
+    grid-template-columns: 96px minmax(0, 1fr) 38px;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
