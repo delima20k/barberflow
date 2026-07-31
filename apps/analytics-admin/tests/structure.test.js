@@ -96,4 +96,10 @@ describe('Analytics Admin structure', () => {
       true,
     );
   });
+
+  it('deve publicar a raiz estatica sem depender da pasta public da Vercel', () => {
+    const vercelConfig = JSON.parse(AnalyticsAdminStructureFixture.source('vercel.json'));
+
+    assert.equal(vercelConfig.outputDirectory, '.');
+  });
 });
