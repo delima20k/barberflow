@@ -8,7 +8,7 @@
 tests/
 
 # Scripts de utilitários (geração de ícones, coloração de logo, etc.)
-scripts/
+/scripts/
 
 # Backend Supabase (migrations, Edge Functions, config local)
 supabase/

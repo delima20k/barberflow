@@ -72,4 +72,25 @@ describe('Analytics Admin structure', () => {
       false,
     );
   });
+
+  it('deve incluir os scripts de build quando a Vercel usa o app como raiz', () => {
+    const repositoryRoot = path.resolve(AnalyticsAdminStructureFixture.root, '..', '..');
+    const vercelIgnore = fs.readFileSync(
+      path.join(repositoryRoot, '.vercelignore'),
+      'utf8',
+    );
+    const rules = vercelIgnore
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'));
+    const packageJson = JSON.parse(AnalyticsAdminStructureFixture.source('package.json'));
+
+    assert.equal(rules.includes('scripts/'), false);
+    assert.equal(rules.includes('/scripts/'), true);
+    assert.match(packageJson.scripts.build, /node scripts\/configure-runtime\.mjs/);
+    assert.equal(
+      fs.existsSync(path.join(AnalyticsAdminStructureFixture.root, 'scripts/configure-runtime.mjs')),
+      true,
+    );
+  });
 });
