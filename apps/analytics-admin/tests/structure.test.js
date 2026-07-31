@@ -85,8 +85,11 @@ describe('Analytics Admin structure', () => {
       .filter((line) => line && !line.startsWith('#'));
     const packageJson = JSON.parse(AnalyticsAdminStructureFixture.source('package.json'));
 
-    assert.equal(rules.includes('scripts/'), false);
-    assert.equal(rules.includes('/scripts/'), true);
+    assert.equal(
+      rules.some((rule) => rule.replace(/^\/+/, '') === 'scripts/'),
+      false,
+      'A Vercel reinterpreta /scripts/ a partir do Root Directory e excluiria o build.',
+    );
     assert.match(packageJson.scripts.build, /node scripts\/configure-runtime\.mjs/);
     assert.equal(
       fs.existsSync(path.join(AnalyticsAdminStructureFixture.root, 'scripts/configure-runtime.mjs')),
