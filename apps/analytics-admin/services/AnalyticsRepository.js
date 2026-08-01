@@ -20,6 +20,7 @@ class AnalyticsRepository {
     if (!this.#client) throw new Error('Supabase Analytics não configurado.');
 
     const { data, error } = await this.#client
+      .schema('analytics')
       .from('analytics_events')
       .select(
         'id,session_id,visitor_id,event_name,event_description,campaign,source,device,created_at',
@@ -34,9 +35,10 @@ class AnalyticsRepository {
     if (this.#config?.isDemo?.()) return this.#demoSource.sessions();
     if (!this.#client) throw new Error('Supabase Analytics não configurado.');
 
-    const { data, error } = await this.#client.rpc('analytics_sessions_page', {
+    const { data, error } = await this.#client.schema('analytics').rpc('get_analytics_sessions', {
+      p_start: new Date(0).toISOString(),
+      p_end: new Date().toISOString(),
       p_limit: this.#config.pageSize,
-      p_cursor: null,
     });
     if (error) throw error;
     return (data ?? []).map(AnalyticsRepository.#normalizeSession);

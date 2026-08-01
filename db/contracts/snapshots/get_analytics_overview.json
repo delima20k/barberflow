@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "rpc": "get_analytics_overview",
+  "description": "Resumo agregado de eventos, sessões e conversões para administrador Analytics ativo.",
+  "signature": {
+    "name": "get_analytics_overview",
+    "params": [
+      { "name": "p_start", "type": "TIMESTAMPTZ" },
+      { "name": "p_end", "type": "TIMESTAMPTZ" },
+      { "name": "p_source", "type": "TEXT", "default": "null" },
+      { "name": "p_campaign", "type": "TEXT", "default": "null" },
+      { "name": "p_device", "type": "TEXT", "default": "null" }
+    ],
+    "returns": "JSONB",
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "grants": ["authenticated"],
+  "migration": "20260731000005_create_analytics_rpcs.sql"
+}

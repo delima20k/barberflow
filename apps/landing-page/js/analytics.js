@@ -39,7 +39,10 @@ class LandingAnalytics {
     const trigger = event.target.closest('[data-analytics-event]');
     if (trigger) {
       this.track(trigger.dataset.analyticsEvent, {
-        buttonName: trigger.textContent?.trim().slice(0, 120) ?? '',
+        buttonName:
+          trigger.dataset.analyticsCtaId
+          || trigger.textContent?.trim().slice(0, 120)
+          || '',
       });
     }
   }

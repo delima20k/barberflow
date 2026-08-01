@@ -23,8 +23,8 @@ describe('Landing analytics integration', () => {
     assert.match(html, /<script src="\.\/js\/analytics-tracker\.js" defer><\/script>/);
     assert.match(config, /analyticsEnabled:\s*false/);
     assert.match(config, /analyticsCollectorUrl:\s*''/);
-    assert.match(config, /analyticsSupabaseUrl:\s*''/);
-    assert.match(config, /analyticsSupabasePublishableKey:\s*''/);
+    assert.match(config, /analyticsPublishableKey:\s*''/);
+    assert.doesNotMatch(config, /analyticsSupabaseUrl/);
     assert.match(tracker, /class LandingAnalyticsTracker\b/);
     assert.doesNotMatch(tracker, /service_role|SUPABASE_SERVICE_ROLE_KEY/i);
   });

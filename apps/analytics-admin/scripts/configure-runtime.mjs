@@ -20,14 +20,16 @@ class RuntimeConfigBuilder {
   }
 
   #values() {
+    const mode = this.#environment.ANALYTICS_ADMIN_MODE || 'demo';
+    const supabaseEnabled = mode === 'supabase';
     return {
-      mode: this.#environment.ANALYTICS_ADMIN_MODE || 'demo',
+      mode,
       productionUrl: this.#environment.ANALYTICS_ADMIN_PRODUCTION_URL
-        || 'https://superadmin.barberflow.live',
-      supabaseUrl: this.#environment.ANALYTICS_SUPABASE_URL || '',
+        || 'https://analistc.barberflow.live',
+      supabaseUrl: supabaseEnabled ? this.#environment.SUPABASE_URL || '' : '',
       supabasePublishableKey:
-        this.#environment.ANALYTICS_SUPABASE_PUBLISHABLE_KEY || '',
-      collectorUrl: this.#environment.ANALYTICS_COLLECTOR_URL || '',
+        supabaseEnabled ? this.#environment.SUPABASE_PUBLISHABLE_KEY || '' : '',
+      collectorUrl: supabaseEnabled ? this.#environment.ANALYTICS_COLLECTOR_URL || '' : '',
       buildVersion: this.#environment.VERCEL_GIT_COMMIT_SHA?.slice(0, 12)
         || this.#environment.ANALYTICS_BUILD_VERSION
         || 'demo-local',

@@ -187,23 +187,25 @@ oficial horizontal otimizada e atualize o hash da CSP se o JSON-LD mudar.
 
 ## Analytics preparado
 
-`LandingAnalytics` aceita um adapter e, sem ele, opera como no-op. Nenhum SDK,
-cookie ou request de analytics e carregado. A allowlist contem:
+`LandingAnalytics` usa o `LandingAnalyticsTracker` centralizado e começa
+desativado (`analyticsEnabled: false`), sem URL, chave pública ou collector.
+Nenhum SDK, cookie ou request de analytics é carregado antes da configuração
+manual do schema `analytics` no mesmo projeto Supabase em `../../analytics/`. A allowlist contém:
 
 - `landing_view`
-- `hero_cta_click`
-- `feature_carousel_interaction`
-- `youtube_video_play`
-- `voucher_modal_open`
-- `voucher_form_start`
+- `session_started` / `session_ended`
+- `scroll_25` / `scroll_50` / `scroll_75` / `scroll_100`
+- `cta_click`
+- `voucher_modal_opened`
+- `email_input_started`
+- `email_submitted`
 - `voucher_generated`
-- `app_access_click`
-- `feedback_submitted`
-- `faq_open`
 
-Meta Pixel, Google Analytics e Google Tag Manager so devem ser adicionados
-depois da definicao de consentimento, politica, IDs por ambiente e regras para
-nao enviar dados pessoais nos eventos.
+CTA principal, secundários, vídeo, carrossel e FAQ são identificados por
+um identificador estável enviado como `button_name`. E-mail só pode seguir no
+envio confirmado e é transformado em HMAC na
+Edge Function; a landing não deve enviar e-mail enquanto a integração estiver
+desativada. Consulte `analytics/docs/deployment.md` antes de ativar.
 
 ## Edicao de conteudo
 

@@ -535,6 +535,13 @@ describe('COBERTURA — RPCs críticas têm contrato documentado', () => {
     'get_clientes_favoritos_modal',
     'get_clientes_favoritos_barbearia',
     'notificar_barbeiro_chegada',
+    'get_analytics_overview',
+    'get_analytics_funnel',
+    'get_analytics_sessions',
+    'get_analytics_top_ctas',
+    'get_analytics_scroll_depth',
+    'get_analytics_sources',
+    'get_analytics_realtime_summary',
   ];
 
   for (const rpc of CRITICAS) {

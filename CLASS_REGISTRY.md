@@ -923,6 +923,19 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `VoucherService` | [apps/landing-page/js/voucher-service.js](apps/landing-page/js/voucher-service.js) | application | Porta disponibilidade, emissao e validacao para adapter seguro; no modo local retorna indisponivel sem gerar dados. |
 | `YouTubeVideoController` | [apps/landing-page/js/youtube-video.js](apps/landing-page/js/youtube-video.js) | interfaces | Mantem placeholder sem video e carrega o iframe youtube-nocookie com autoplay sem audio quando metade do player entra na tela; o clique explicito preserva a tentativa de inicio com som. |
 
+## analytics/
+
+| Classe | Arquivo | Camada | Descrição |
+|---|---|---|---|
+| `AnalyticsAdminGuard` | [analytics/src/services/AnalyticsAdminGuard.mjs](analytics/src/services/AnalyticsAdminGuard.mjs) | application | Autoriza o painel pelo Auth compartilhado e pela RPC `analytics.is_analytics_admin` antes de qualquer métrica. |
+| `AnalyticsConfig` | [analytics/src/config/AnalyticsConfig.mjs](analytics/src/config/AnalyticsConfig.mjs) | infra | Reutiliza a configuração segura do Supabase BarberFlow e mantém secrets Analytics somente no servidor. |
+| `AnalyticsEventValidator` | [analytics/src/validators/AnalyticsEventValidator.mjs](analytics/src/validators/AnalyticsEventValidator.mjs) | infra | Aplica allowlist estrita de eventos, campos e formatos do coletor. |
+| `AnalyticsPresencePublisher` | [analytics/src/services/AnalyticsPresencePublisher.mjs](analytics/src/services/AnalyticsPresencePublisher.mjs) | infra | Prepara Presence autenticada, mantendo-a inativa até a configuração segura. |
+| `AnalyticsRepository` | [analytics/src/repositories/AnalyticsRepository.mjs](analytics/src/repositories/AnalyticsRepository.mjs) | infra | Encapsula a RPC atômica de coleta, fixando o schema `analytics` no Supabase compartilhado. |
+| `AnalyticsSecurity` | [analytics/src/security/AnalyticsSecurity.mjs](analytics/src/security/AnalyticsSecurity.mjs) | infra | Valida origem/tamanho e produz HMAC de e-mail e hash de IP com Web Crypto. |
+| `CollectEventController` | [supabase/functions/collect-event/index.ts](supabase/functions/collect-event/index.ts) | interfaces | Fronteira HTTP da Edge Function pública no projeto BarberFlow, sem expor detalhes internos. |
+| `UserAgentInspector` | [supabase/functions/collect-event/index.ts](supabase/functions/collect-event/index.ts) | infra | Normaliza dispositivo, navegador e sistema operacional a partir do cabeçalho recebido. |
+
 ## Landing Feedback BFF
 
 | Classe | Arquivo | Camada | Descrição |

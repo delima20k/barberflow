@@ -101,3 +101,7 @@ Telas/endpoints que listam usuários "favoritos" de uma barbearia ou de seus bar
   - Aceitar `q` vazio em busca textual (`ilike '%%'` retorna todos os perfis do sistema)
 
 - **Centralização**: a regra de favoritos vive em `FavoritosClientesService` (frontend) e na RPC do banco. Toda nova tela que precise "listar quem favoritou X" deve reusar essas fontes — nunca redeclarar o UNION.
+
+## ANALYTICS NO SCHEMA ISOLADO DO SUPABASE COMPARTILHADO
+
+Analytics compartilha o projeto Supabase e o Auth do BarberFlow, mas todo objeto deve ficar no schema `analytics`; é proibido criar tabelas Analytics em `public` ou alterar tabelas principais. Migrations ficam versionadas em `supabase/migrations/`, separadas por schema, tabelas, índices, funções, RPCs, RLS e retenção, sempre com rollback documentado. Coleta anônima usa somente a Edge Function `collect-event`, com validação estrita, origem exata, payload limitado, HMAC, idempotência e rate limit por IP/sessão/origem. `anon` não recebe acesso ao schema; o painel usa RPCs `analytics.get_analytics_*`, RLS e `analytics.is_analytics_admin()` ligado a `auth.users`. Service role e HMAC nunca chegam ao navegador. Retenção fica preparada, mas não é agendada sem confirmação.

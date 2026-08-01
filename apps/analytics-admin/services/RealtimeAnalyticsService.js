@@ -16,7 +16,7 @@ class RealtimeAnalyticsService {
       .channel('analytics:admin:events', { config: { private: true } })
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'analytics_events' },
+        { event: 'INSERT', schema: 'analytics', table: 'analytics_events' },
         ({ new: event }) => onEvent(event),
       )
       .subscribe();

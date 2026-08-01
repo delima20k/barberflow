@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "rpc": "get_analytics_scroll_depth",
+  "description": "Distribuição agregada dos marcos de scroll.",
+  "signature": {
+    "name": "get_analytics_scroll_depth",
+    "params": [
+      { "name": "p_start", "type": "TIMESTAMPTZ" },
+      { "name": "p_end", "type": "TIMESTAMPTZ" },
+      { "name": "p_source", "type": "TEXT", "default": "null" },
+      { "name": "p_campaign", "type": "TEXT", "default": "null" },
+      { "name": "p_device", "type": "TEXT", "default": "null" }
+    ],
+    "returns": { "type": "TABLE", "columns": [
+      { "name": "scroll_depth", "type": "SMALLINT" },
+      { "name": "total", "type": "BIGINT" }
+    ] },
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "grants": ["authenticated"],
+  "migration": "20260731000005_create_analytics_rpcs.sql"
+}

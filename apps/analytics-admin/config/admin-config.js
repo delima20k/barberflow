@@ -5,7 +5,7 @@ class AdminConfig {
     mode: globalThis.ANALYTICS_ADMIN_RUNTIME_CONFIG?.mode ?? 'demo',
     productionUrl:
       globalThis.ANALYTICS_ADMIN_RUNTIME_CONFIG?.productionUrl
-      ?? 'https://superadmin.barberflow.live',
+      ?? 'https://analistc.barberflow.live',
     supabaseUrl: globalThis.ANALYTICS_ADMIN_RUNTIME_CONFIG?.supabaseUrl ?? '',
     supabasePublishableKey:
       globalThis.ANALYTICS_ADMIN_RUNTIME_CONFIG?.supabasePublishableKey ?? '',

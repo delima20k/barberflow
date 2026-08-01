@@ -287,6 +287,22 @@ describe('SNAP — diff legível (SchemaDiffer)', () => {
 // ─── describe: RpcSignatureParser ────────────────────────────────────────────────
 
 describe('SNAP — RpcSignatureParser', () => {
+  it('extrai RPC de schema não-public compatível com a Data API do Supabase', () => {
+    const sql = `
+      CREATE OR REPLACE FUNCTION analytics.get_analytics_overview(p_start TIMESTAMPTZ)
+      RETURNS JSONB LANGUAGE SQL SECURITY DEFINER AS $fn$
+        SELECT '{}'::JSONB;
+      $fn$;
+      GRANT EXECUTE ON FUNCTION analytics.get_analytics_overview(TIMESTAMPTZ) TO authenticated;
+    `;
+
+    const sig = RpcSignatureParser.extract(sql, 'get_analytics_overview');
+
+    assert.ok(sig);
+    assert.equal(sig.name, 'get_analytics_overview');
+    assert.deepEqual(sig.grants, ['authenticated']);
+  });
+
   it('extrai nome, params e retorno de função simples', () => {
     const sig = RpcSignatureParser.extract(FN_SIMPLES, 'fn_teste');
     assert.ok(sig, 'Deve retornar assinatura');

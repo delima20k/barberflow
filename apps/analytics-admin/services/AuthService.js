@@ -46,9 +46,12 @@ class AuthService {
       email: normalizedEmail,
       password: normalizedPassword,
     });
-    return error
-      ? { ok: false, message: 'Não foi possível entrar.' }
-      : { ok: true, user: data.user };
+    if (error) return { ok: false, message: 'Não foi possível entrar.' };
+    if (!await this.#isAllowedAdmin()) {
+      await this.#client.auth.signOut();
+      return { ok: false, message: 'Usuário sem acesso ao Analytics.' };
+    }
+    return { ok: true, user: data.user };
   }
 
   async isAuthenticated() {
@@ -57,7 +60,7 @@ class AuthService {
     }
     if (!this.#client?.auth) return false;
     const { data } = await this.#client.auth.getSession();
-    return Boolean(data?.session);
+    return Boolean(data?.session) && this.#isAllowedAdmin();
   }
 
   async currentUser() {
@@ -72,6 +75,13 @@ class AuthService {
   async signOut() {
     this.#storage?.removeItem(AuthService.#DEMO_SESSION_KEY);
     if (!this.config?.isDemo?.()) await this.#client?.auth?.signOut?.();
+  }
+
+  async #isAllowedAdmin() {
+    const { data, error } = await this.#client
+      .schema('analytics')
+      .rpc('is_analytics_admin');
+    return !error && data === true;
   }
 }
 

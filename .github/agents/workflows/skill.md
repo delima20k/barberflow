@@ -64,3 +64,7 @@ Se nenhum arquivo de skill cobrir a tarefa:
 Consulte o índice para encontrar o arquivo de skill correto para cada tarefa:
 
 `.github/agents/workflows/skill-index.md`
+
+## ANALYTICS ISOLADO
+
+Analytics compartilha o projeto Supabase do BarberFlow, mas usa exclusivamente o schema `analytics`, com tabelas, policies, funções e migrations isoladas. A coleta pública usa somente `collect-event`, com origem exata, allowlist, rate limit, idempotência, RLS e HMAC no servidor. A landing continua desligada (`analyticsEnabled=false`); service role e HMAC nunca chegam ao navegador. O painel correto é `analistc.barberflow.live` e reutiliza o Supabase Auth atual com allowlist ativa em `analytics.analytics_admins`.

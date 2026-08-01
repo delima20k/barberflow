@@ -30,7 +30,7 @@ describe('AdminConfig', () => {
     assert.equal(globals.AdminConfig.supabaseUrl, '');
     assert.equal(globals.AdminConfig.supabasePublishableKey, '');
     assert.equal(globals.AdminConfig.collectorUrl, '');
-    assert.equal(globals.AdminConfig.productionUrl, 'https://superadmin.barberflow.live');
+    assert.equal(globals.AdminConfig.productionUrl, 'https://analistc.barberflow.live');
     assert.match(globals.AdminConfig.buildVersion, /^[a-z0-9._-]+$/i);
     assert.equal(globals.AdminConfig.isSupabaseReady(), false);
   });

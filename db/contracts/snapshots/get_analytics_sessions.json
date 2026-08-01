@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "rpc": "get_analytics_sessions",
+  "description": "Lista paginada e limitada de sessões Analytics.",
+  "signature": {
+    "name": "get_analytics_sessions",
+    "params": [
+      { "name": "p_start", "type": "TIMESTAMPTZ" },
+      { "name": "p_end", "type": "TIMESTAMPTZ" },
+      { "name": "p_source", "type": "TEXT", "default": "null" },
+      { "name": "p_campaign", "type": "TEXT", "default": "null" },
+      { "name": "p_device", "type": "TEXT", "default": "null" },
+      { "name": "p_limit", "type": "INTEGER", "default": "50" }
+    ],
+    "returns": { "type": "TABLE", "columns": [
+      { "name": "session_id", "type": "TEXT" },
+      { "name": "visitor_id", "type": "TEXT" },
+      { "name": "started_at", "type": "TIMESTAMPTZ" },
+      { "name": "last_activity_at", "type": "TIMESTAMPTZ" },
+      { "name": "ended_at", "type": "TIMESTAMPTZ" },
+      { "name": "duration_seconds", "type": "INTEGER" },
+      { "name": "status", "type": "TEXT" },
+      { "name": "source", "type": "TEXT" },
+      { "name": "campaign", "type": "TEXT" },
+      { "name": "device", "type": "TEXT" },
+      { "name": "event_count", "type": "BIGINT" },
+      { "name": "events", "type": "JSONB" }
+    ] },
+    "language": "plpgsql",
+    "securityDefiner": true
+  },
+  "limits": { "p_limit": { "min": 1, "max": 100, "enforced": true } },
+  "grants": ["authenticated"],
+  "migration": "20260731000005_create_analytics_rpcs.sql"
+}

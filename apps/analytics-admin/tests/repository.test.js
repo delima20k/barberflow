@@ -23,8 +23,11 @@ describe('AnalyticsRepository', () => {
   it('deve normalizar sessoes e timelines retornadas pela RPC', async () => {
     const AnalyticsRepository = RepositoryFixture.load();
     const client = {
-      async rpc() {
-        return {
+      schema(schemaName) {
+        assert.equal(schemaName, 'analytics');
+        return { rpc: async (functionName) => {
+          assert.equal(functionName, 'get_analytics_sessions');
+          return {
           data: [{
             session_id: 'session-1',
             visitor_id: 'visitor-1',
@@ -49,7 +52,8 @@ describe('AnalyticsRepository', () => {
             }],
           }],
           error: null,
-        };
+          };
+        } };
       },
     };
     const repository = new AnalyticsRepository(

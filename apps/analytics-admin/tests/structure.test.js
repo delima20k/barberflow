@@ -38,13 +38,24 @@ describe('Analytics Admin structure', () => {
       'services/RealtimeAnalyticsService.js',
       'services/SnapshotService.js',
       'utils/SpreadsheetValueSanitizer.js',
-      'supabase/migrations/20260730000001_create_analytics_admin.sql',
-      'supabase/functions/collect-analytics-event/index.ts',
     ];
 
     requiredFiles.forEach((relativePath) => {
       assert.equal(fs.existsSync(path.join(AnalyticsAdminStructureFixture.root, relativePath)), true);
     });
+
+    const repositoryRoot = path.resolve(AnalyticsAdminStructureFixture.root, '..', '..');
+    assert.equal(
+      fs.existsSync(path.join(repositoryRoot, 'supabase/functions/collect-event/index.ts')),
+      true,
+    );
+    assert.equal(
+      fs.existsSync(path.join(
+        repositoryRoot,
+        'supabase/migrations/20260731000001_create_analytics_schema.sql',
+      )),
+      true,
+    );
   });
 
   it('deve declarar as quatro paginas e o modo demonstracao', () => {

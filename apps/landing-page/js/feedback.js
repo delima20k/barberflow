@@ -66,7 +66,7 @@ class FeedbackFormController {
           'Sugestão enviada com sucesso. Obrigado por ajudar o BarberFlow a evoluir.',
           'success',
         );
-        this.analytics?.track?.('feedback_submitted');
+        this.analytics?.track?.('cta_click', { buttonName: 'feedback_form_submit' });
         return;
       }
 

@@ -436,7 +436,9 @@ describe('Landing page BarberFlow', () => {
       assert.match(source, new RegExp(`class ${className}\\b`), `Classe ausente: ${className}`);
     }
 
-    assert.doesNotMatch(source, /\bfetch\s*\(|XMLHttpRequest|supabase/i);
+    const analytics = LandingPageFixture.source('js/analytics.js');
+    assert.doesNotMatch(analytics, /\bfetch\s*\(|XMLHttpRequest|supabase/i);
+    assert.doesNotMatch(source, /XMLHttpRequest|supabase/i);
     assert.doesNotMatch(source, /\binnerHTML\b|setInterval\s*\(/);
 
     const voucherService = LandingPageFixture.source('js/voucher-service.js');

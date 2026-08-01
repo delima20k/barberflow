@@ -7,7 +7,7 @@
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "graphql_public"]
+schemas = ["public", "graphql_public", "analytics"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
@@ -105,4 +105,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-push]
+verify_jwt = false
+
+[functions.collect-event]
 verify_jwt = false

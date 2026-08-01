@@ -9,6 +9,10 @@ class RealtimeContractFixture {
   static source(relativePath) {
     return fs.readFileSync(path.resolve(__dirname, '..', relativePath), 'utf8');
   }
+
+  static repositorySource(relativePath) {
+    return fs.readFileSync(path.resolve(__dirname, '..', '..', '..', relativePath), 'utf8');
+  }
 }
 
 describe('Session and Realtime contracts', () => {
@@ -20,15 +24,15 @@ describe('Session and Realtime contracts', () => {
     assert.doesNotMatch(realtime, /setInterval|setTimeout\s*\(\s*async/);
   });
 
-  it('deve preparar Presence privado com leitura exclusiva de administradores', () => {
+  it('deve manter Realtime no schema isolado e leitura exclusiva de administradores', () => {
     const presence = RealtimeContractFixture.source('services/PresenceService.js');
-    const migration = RealtimeContractFixture.source(
-      'supabase/migrations/20260730000001_create_analytics_admin.sql',
+    const realtime = RealtimeContractFixture.source('services/RealtimeAnalyticsService.js');
+    const migration = RealtimeContractFixture.repositorySource(
+      'supabase/migrations/20260731000006_create_analytics_rls.sql',
     );
 
     assert.match(presence, /private:\s*true/);
-    assert.match(migration, /realtime\.messages/i);
-    assert.match(migration, /is_anonymous/i);
+    assert.match(realtime, /schema:\s*'analytics'/);
     assert.match(migration, /is_analytics_admin/i);
   });
 });

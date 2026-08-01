@@ -23,8 +23,7 @@ class LandingConfig {
     socialImageUrl: 'https://barberflow.live/assets/images/logos/LogoNomeBarberFlow.png',
     analyticsEnabled: false,
     analyticsCollectorUrl: '',
-    analyticsSupabaseUrl: '',
-    analyticsSupabasePublishableKey: '',
+    analyticsPublishableKey: '',
     analyticsSessionTimeoutMinutes: 30,
   });
 

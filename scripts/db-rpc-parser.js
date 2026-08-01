@@ -109,7 +109,7 @@ class RpcSignatureParser {
 
   static _parseSignature(block) {
     // Nome da função
-    const nameM = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?(\w+)\s*\(/i.exec(block);
+    const nameM = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:[a-z_]\w*\.)?(\w+)\s*\(/i.exec(block);
     if (!nameM) return null;
     const name = nameM[1].toLowerCase();
 
@@ -214,7 +214,7 @@ class RpcSignatureParser {
    * e popula o campo `grants` de cada assinatura encontrada.
    */
   static _applyGrants(sql, signatures) {
-    const grantRe = /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+(?:public\.)?(\w+)\s*\([^)]*\)\s+TO\s+(\w+)/gi;
+    const grantRe = /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+(?:[a-z_]\w*\.)?(\w+)\s*\([^)]*\)\s+TO\s+(\w+)/gi;
     let m;
     while ((m = grantRe.exec(sql)) !== null) {
       const name = m[1].toLowerCase();

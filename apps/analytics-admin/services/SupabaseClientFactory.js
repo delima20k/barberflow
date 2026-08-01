@@ -18,6 +18,7 @@ class SupabaseClientFactory {
           autoRefreshToken: true,
           detectSessionInUrl: false,
         },
+        db: { schema: 'analytics' },
         realtime: {
           params: { eventsPerSecond: 8 },
         },

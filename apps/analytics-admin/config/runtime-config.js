@@ -2,7 +2,7 @@
 
 globalThis.ANALYTICS_ADMIN_RUNTIME_CONFIG = Object.freeze({
   "mode": "demo",
-  "productionUrl": "https://superadmin.barberflow.live",
+  "productionUrl": "https://analistc.barberflow.live",
   "supabaseUrl": "",
   "supabasePublishableKey": "",
   "collectorUrl": "",

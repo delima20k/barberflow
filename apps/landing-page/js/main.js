@@ -14,8 +14,7 @@ class LandingApp {
     const analyticsTracker = new LandingAnalyticsTracker({
       enabled: LandingConfig.get('analyticsEnabled'),
       collectorUrl: LandingConfig.get('analyticsCollectorUrl'),
-      supabaseUrl: LandingConfig.get('analyticsSupabaseUrl'),
-      supabasePublishableKey: LandingConfig.get('analyticsSupabasePublishableKey'),
+      publishableKey: LandingConfig.get('analyticsPublishableKey'),
       sessionTimeoutMinutes: LandingConfig.get('analyticsSessionTimeoutMinutes'),
     });
     const analytics = new LandingAnalytics(this.root, analyticsTracker);

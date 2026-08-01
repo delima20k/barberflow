@@ -169,7 +169,7 @@
           <span class="video-placeholder__play" aria-hidden="true">▶</span>
           <strong data-video-title>Vídeo de apresentação em breve</strong>
           <small data-video-description>O vídeo será exibido aqui quando o link oficial for configurado.</small>
-          <button class="button button--gold" type="button" data-load-video data-analytics-event="youtube_video_play" hidden>Assistir vídeo</button>
+          <button class="button button--gold" type="button" data-load-video data-analytics-event="cta_click" data-analytics-cta-id="presentation_video" hidden>Assistir vídeo</button>
         </div>
         <div class="video-section__action reveal">
           <button class="button button--dark" type="button" data-open-voucher>Testar o BarberFlow</button>
@@ -185,7 +185,7 @@
           <p>Arraste para o lado e veja como cada parte do sistema ajuda na rotina da sua barbearia.</p>
         </div>
 
-        <div class="carousel reveal reveal--scale" data-analytics-event="feature_carousel_interaction">
+        <div class="carousel reveal reveal--scale" data-analytics-event="cta_click" data-analytics-cta-id="feature_carousel">
           <div
             class="carousel__viewport"
             role="region"
@@ -344,7 +344,7 @@
               target="_blank"
               rel="noopener noreferrer"
               data-config-link="clientAppUrl"
-              data-analytics-event="app_access_click"
+              data-analytics-event="cta_click" data-analytics-cta-id="client_app_card"
             ><span aria-hidden="true">↓</span> Baixar app do cliente</a>
           </article>
           <article class="app-access-card app-access-card--professional reveal reveal--right">
@@ -358,7 +358,7 @@
               target="_blank"
               rel="noopener noreferrer"
               data-config-link="professionalAppUrl"
-              data-analytics-event="app_access_click"
+              data-analytics-event="cta_click" data-analytics-cta-id="professional_app_card"
             ><span aria-hidden="true">↓</span> Baixar app profissional</a>
           </article>
         </div>
@@ -391,39 +391,39 @@
         </div>
         <div class="faq-list reveal">
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-1" data-faq-question data-analytics-event="faq_open">O BarberFlow é um sistema de agendamento?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-1" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_1">O BarberFlow é um sistema de agendamento?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-1" class="faq-item__answer" hidden><p>O foco principal do BarberFlow é o atendimento por ordem de chegada. O cliente consulta a fila em tempo real e pode entrar na próxima cadeira disponível.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-2" data-faq-question data-analytics-event="faq_open">O cliente precisa instalar o aplicativo?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-2" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_2">O cliente precisa instalar o aplicativo?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-2" class="faq-item__answer" hidden><p>Não. O cliente pode acessar a aplicação pelo navegador. Em dispositivos e navegadores compatíveis, a PWA também pode ser instalada para uma experiência semelhante à de um aplicativo.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-3" data-faq-question data-analytics-event="faq_open">Funciona para barbeiro autônomo?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-3" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_3">Funciona para barbeiro autônomo?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-3" class="faq-item__answer" hidden><p>Sim. O barbeiro autônomo pode manter um perfil profissional próprio, apresentar seus serviços e organizar a fila do local em que trabalha.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-4" data-faq-question data-analytics-event="faq_open">O cliente consegue ver quantas pessoas estão na fila?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-4" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_4">O cliente consegue ver quantas pessoas estão na fila?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-4" class="faq-item__answer" hidden><p>Sim. Na página pública da barbearia, o cliente consulta os profissionais e as cadeiras disponíveis, além das informações da fila antes de entrar.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-5" data-faq-question data-analytics-event="faq_open">Posso convidar barbeiros parceiros?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-5" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_5">Posso convidar barbeiros parceiros?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-5" class="faq-item__answer" hidden><p>Sim. A aplicação profissional permite enviar propostas a barbeiros parceiros e registrar as condições apresentadas para integrar a equipe.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-6" data-faq-question data-analytics-event="faq_open">O BarberFlow possui controle financeiro?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-6" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_6">O BarberFlow possui controle financeiro?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-6" class="faq-item__answer" hidden><p>O sistema possui recursos para acompanhar atendimentos, receitas e divisões com profissionais parceiros. Ele organiza a operação, mas não substitui orientação contábil.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-7" data-faq-question data-analytics-event="faq_open">Como funciona o voucher?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-7" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_7">Como funciona o voucher?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-7" class="faq-item__answer" hidden><p>Quando a campanha estiver ativa, profissionais elegíveis poderão solicitar um código conforme a disponibilidade, a validade e as regras publicadas.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-8" data-faq-question data-analytics-event="faq_open">O voucher garante um mês grátis?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-8" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_8">O voucher garante um mês grátis?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-8" class="faq-item__answer" hidden><p>O benefício depende da validação do código e do cumprimento das regras da campanha. Preencher o formulário, por si só, não garante a concessão.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-9" data-faq-question data-analytics-event="faq_open">Como entrar em contato?<span aria-hidden="true">+</span></button></h3>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-9" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_9">Como entrar em contato?<span aria-hidden="true">+</span></button></h3>
             <div id="faq-answer-9" class="faq-item__answer" hidden><p>Envie uma mensagem para <a href="mailto:contato@barberflow.live">contato@barberflow.live</a>.</p></div>
           </article>
         </div>
@@ -496,7 +496,7 @@
         <p>Apresente uma experiência mais prática aos seus clientes e tenha mais controle sobre a rotina da sua barbearia.</p>
         <div class="final-cta__actions">
           <button class="button button--gold" type="button" data-open-voucher>Gerar meu voucher</button>
-          <a class="button button--outline-light" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="app_access_click">Conhecer o BarberFlow</a>
+          <a class="button button--outline-light" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="cta_click" data-analytics-cta-id="final_professional_app">Conhecer o BarberFlow</a>
         </div>
       </div>
     </section>
@@ -512,8 +512,8 @@
         <a href="mailto:contato@barberflow.live">contato@barberflow.live</a>
       </div>
       <nav class="site-footer__links" aria-label="Links do rodapé">
-        <a href="https://app.barberflow.live/" data-config-link="clientAppUrl" data-analytics-event="app_access_click">App do cliente</a>
-        <a href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="app_access_click">App profissional</a>
+        <a href="https://app.barberflow.live/" data-config-link="clientAppUrl" data-analytics-event="cta_click" data-analytics-cta-id="footer_client_app">App do cliente</a>
+        <a href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="cta_click" data-analytics-cta-id="footer_professional_app">App profissional</a>
         <a href="./legal/privacy.html" data-config-link="privacyPolicyUrl">Política de privacidade</a>
         <a href="./legal/terms.html" data-config-link="termsUrl">Termos de uso</a>
         <a href="./legal/campaign-rules.html" data-config-link="campaignRulesUrl">Regras da campanha</a>
@@ -600,7 +600,7 @@
           <button class="button button--dark" type="button" data-copy-voucher>Copiar código</button>
         </div>
         <p class="voucher-success__copy-status" role="status" aria-live="polite" data-copy-status></p>
-        <a class="button button--gold" href="https://pro.barberflow.live/?start=signup" data-config-link="professionalSignupUrl" data-voucher-app-link data-analytics-event="app_access_click">Entrar no app profissional</a>
+        <a class="button button--gold" href="https://pro.barberflow.live/?start=signup" data-config-link="professionalSignupUrl" data-voucher-app-link data-analytics-event="cta_click" data-analytics-cta-id="voucher_professional_signup">Entrar no app profissional</a>
         <ol class="voucher-success__steps">
           <li data-voucher-success-step>Copie seu voucher.</li>
           <li data-voucher-success-step>Acesse a aplicação profissional.</li>

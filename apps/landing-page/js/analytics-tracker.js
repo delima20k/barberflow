@@ -29,8 +29,7 @@ class LandingAnalyticsTracker {
     this.#config = Object.freeze({
       enabled: config.enabled === true,
       collectorUrl: String(config.collectorUrl ?? ''),
-      supabaseUrl: String(config.supabaseUrl ?? ''),
-      supabasePublishableKey: String(config.supabasePublishableKey ?? ''),
+      publishableKey: String(config.publishableKey ?? ''),
       sessionTimeoutMinutes: Number(config.sessionTimeoutMinutes) || 30,
     });
     this.handleScroll = this.handleScroll.bind(this);
@@ -152,7 +151,11 @@ class LandingAnalyticsTracker {
     try {
       const response = await fetch(this.#config.collectorUrl, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          apikey: this.#config.publishableKey,
+          authorization: `Bearer ${this.#config.publishableKey}`,
+        },
         body,
         keepalive: true,
         credentials: 'omit',
@@ -180,8 +183,7 @@ class LandingAnalyticsTracker {
     return (
       this.#config.enabled
       && /^https:\/\//.test(this.#config.collectorUrl)
-      && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(this.#config.supabaseUrl)
-      && this.#config.supabasePublishableKey.length > 20
+      && this.#config.publishableKey.length > 20
     );
   }
 

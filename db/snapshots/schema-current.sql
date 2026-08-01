@@ -1,6 +1,6 @@
 -- BarberFlow Schema Snapshot
--- Gerado em: 2026-07-23
--- Migrations: 149
+-- Gerado em: 2026-08-01
+-- Migrations: 156
 -- NÃO editar manualmente. Regenerar com: node scripts/db-snapshot.js
 
 
@@ -9497,3 +9497,721 @@ CREATE POLICY "qes_delete"
         )
     )
   );
+
+-- MIGRATION: 20260731000001_create_analytics_schema.sql
+create schema if not exists analytics authorization postgres;
+
+comment on schema analytics is
+  'Isolated BarberFlow Analytics objects in the shared Supabase project.';
+
+revoke all on schema analytics from public, anon, authenticated;
+
+do $migration$
+declare
+  table_name text;
+begin
+  foreach table_name in array array[
+    'analytics_admins',
+    'analytics_events',
+    'analytics_sessions',
+    'analytics_rate_limits',
+    'analytics_idempotency_keys',
+    'analytics_daily_metrics',
+    'analytics_funnel_metrics',
+    'analytics_realtime_events'
+  ] loop
+    if to_regclass(format('analytics.%I', table_name)) is null
+       and to_regclass(format('public.%I', table_name)) is not null then
+      execute format('alter table public.%I set schema analytics', table_name);
+    end if;
+  end loop;
+end;
+$migration$;
+
+-- MIGRATION: 20260731000002_create_analytics_tables.sql
+create extension if not exists pgcrypto with schema extensions;
+
+create table if not exists analytics.analytics_admins (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table analytics.analytics_admins
+  add column if not exists active boolean not null default true,
+  add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists analytics.analytics_events (
+  id uuid primary key default extensions.gen_random_uuid(),
+  idempotency_key text not null,
+  session_id text not null,
+  visitor_id text not null,
+  event_name text not null,
+  event_description text,
+  page text,
+  button_name text,
+  campaign text,
+  source text,
+  medium text,
+  device text,
+  browser text,
+  os text,
+  screen_width integer,
+  screen_height integer,
+  language text,
+  country text,
+  city text,
+  ip_hash text,
+  referrer text,
+  scroll_percentage smallint check (scroll_percentage in (25, 50, 75, 100)),
+  email_hmac text check (email_hmac is null or email_hmac ~ '^[a-f0-9]{64}$'),
+  voucher_opened boolean not null default false,
+  voucher_generated boolean not null default false,
+  account_created boolean not null default false,
+  email_confirmed boolean not null default false,
+  first_login boolean not null default false,
+  created_at timestamptz not null default now(),
+  received_at timestamptz not null default now()
+);
+
+alter table analytics.analytics_events
+  add column if not exists email_hmac text,
+  add column if not exists received_at timestamptz not null default now();
+
+create table if not exists analytics.analytics_sessions (
+  id uuid primary key default extensions.gen_random_uuid(),
+  session_id text not null unique,
+  visitor_id text not null,
+  started_at timestamptz not null default now(),
+  last_activity_at timestamptz not null default now(),
+  ended_at timestamptz,
+  duration_seconds integer check (duration_seconds is null or duration_seconds >= 0),
+  status text not null default 'active' check (status in ('active', 'ended')),
+  entry_page text,
+  exit_page text,
+  source text,
+  campaign text,
+  device text,
+  event_count integer not null default 0 check (event_count >= 0),
+  converted boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists analytics.analytics_rate_limits (
+  bucket_key text primary key,
+  window_started_at timestamptz not null default now(),
+  request_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table analytics.analytics_rate_limits
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now();
+
+create table if not exists analytics.analytics_idempotency_keys (
+  id uuid primary key default extensions.gen_random_uuid(),
+  idempotency_key text not null unique,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists analytics.analytics_daily_metrics (
+  id uuid primary key default extensions.gen_random_uuid(),
+  metric_date date not null,
+  source text,
+  campaign text,
+  device text,
+  sessions_count integer not null default 0,
+  events_count integer not null default 0,
+  conversions_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique nulls not distinct (metric_date, source, campaign, device)
+);
+
+create table if not exists analytics.analytics_funnel_metrics (
+  id uuid primary key default extensions.gen_random_uuid(),
+  metric_date date not null,
+  step_name text not null,
+  source text,
+  campaign text,
+  device text,
+  total_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique nulls not distinct (metric_date, step_name, source, campaign, device)
+);
+
+create table if not exists analytics.analytics_realtime_events (
+  id uuid primary key default extensions.gen_random_uuid(),
+  event_name text not null,
+  occurred_at timestamptz not null default now(),
+  button_name text,
+  conversion boolean not null default false
+);
+
+-- MIGRATION: 20260731000003_create_analytics_indexes.sql
+create index if not exists analytics_events_created_at_idx
+  on analytics.analytics_events (created_at desc);
+create index if not exists analytics_events_funnel_idx
+  on analytics.analytics_events (event_name, created_at desc);
+create index if not exists analytics_events_session_idx
+  on analytics.analytics_events (session_id, created_at desc);
+create index if not exists analytics_events_source_idx
+  on analytics.analytics_events (source, campaign, created_at desc);
+create index if not exists analytics_sessions_last_seen_idx
+  on analytics.analytics_sessions (last_activity_at desc);
+create index if not exists analytics_sessions_source_idx
+  on analytics.analytics_sessions (source, campaign, started_at desc);
+create index if not exists analytics_rate_limits_lookup_idx
+  on analytics.analytics_rate_limits (window_started_at desc);
+create index if not exists analytics_idempotency_expiry_idx
+  on analytics.analytics_idempotency_keys (expires_at);
+create index if not exists analytics_realtime_occurred_idx
+  on analytics.analytics_realtime_events (occurred_at desc);
+
+-- MIGRATION: 20260731000004_create_analytics_functions.sql
+create or replace function analytics.consume_analytics_rate_limit(
+  p_scope_type text,
+  p_scope_key text,
+  p_limit integer,
+  p_window_seconds integer default 60
+) returns boolean
+language plpgsql
+security definer
+set search_path = pg_catalog, analytics
+as $function$
+declare
+  key_value text;
+  current_count integer;
+begin
+  if p_scope_type not in ('ip', 'session', 'origin')
+     or nullif(btrim(p_scope_key), '') is null
+     or p_limit < 1
+     or p_window_seconds < 1 then
+    return false;
+  end if;
+
+  key_value := p_scope_type || ':' || p_scope_key;
+  insert into analytics.analytics_rate_limits as rate_limit (
+    bucket_key,
+    window_started_at,
+    request_count
+  ) values (
+    key_value,
+    now(),
+    1
+  )
+  on conflict (bucket_key) do update set
+    window_started_at = case
+      when rate_limit.window_started_at
+        <= now() - make_interval(secs => greatest(p_window_seconds, 1))
+      then now()
+      else rate_limit.window_started_at
+    end,
+    request_count = case
+      when rate_limit.window_started_at
+        <= now() - make_interval(secs => greatest(p_window_seconds, 1))
+      then 1
+      else rate_limit.request_count + 1
+    end,
+    updated_at = now()
+  returning request_count into current_count;
+
+  return current_count <= least(greatest(p_limit, 1), 10000);
+end;
+$function$;
+
+create or replace function analytics.collect_analytics_event(
+  p_event jsonb,
+  p_ip_hash text,
+  p_origin text,
+  p_user_agent text,
+  p_country text,
+  p_ip_limit integer,
+  p_session_limit integer
+) returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, analytics
+as $function$
+declare
+  idempotency_value text := p_event ->> 'idempotency_key';
+  session_value text := p_event ->> 'session_id';
+  received_at_value timestamptz := now();
+  event_name_value text := p_event ->> 'event_name';
+  is_conversion boolean := event_name_value in (
+    'email_submitted', 'voucher_generated', 'account_created',
+    'email_confirmed', 'first_login'
+  );
+begin
+  if not analytics.consume_analytics_rate_limit('ip', p_ip_hash, p_ip_limit)
+     or not analytics.consume_analytics_rate_limit(
+       'session', session_value, p_session_limit
+     )
+     or not analytics.consume_analytics_rate_limit(
+       'origin', p_origin, p_ip_limit * 10
+     ) then
+    return jsonb_build_object('accepted', false, 'reason', 'rate_limited');
+  end if;
+
+  insert into analytics.analytics_idempotency_keys (idempotency_key, expires_at)
+  values (idempotency_value, received_at_value + interval '24 hours')
+  on conflict (idempotency_key) do nothing;
+
+  if not found then
+    return jsonb_build_object('accepted', true, 'duplicate', true);
+  end if;
+
+  insert into analytics.analytics_events (
+    idempotency_key, session_id, visitor_id, event_name, event_description,
+    page, button_name, campaign, source, medium, device, browser, os,
+    screen_width, screen_height, language, country, ip_hash, referrer,
+    scroll_percentage, email_hmac, voucher_opened, voucher_generated,
+    created_at, received_at
+  ) values (
+    idempotency_value,
+    session_value,
+    p_event ->> 'visitor_id',
+    event_name_value,
+    replace(event_name_value, '_', ' '),
+    p_event ->> 'page',
+    p_event ->> 'button_name',
+    p_event ->> 'campaign',
+    p_event ->> 'source',
+    p_event ->> 'medium',
+    p_event ->> 'device',
+    p_event ->> 'browser',
+    p_event ->> 'os',
+    nullif(p_event ->> 'screen_width', '')::integer,
+    nullif(p_event ->> 'screen_height', '')::integer,
+    p_event ->> 'language',
+    p_country,
+    p_ip_hash,
+    p_event ->> 'referrer',
+    nullif(p_event ->> 'scroll_percentage', '')::smallint,
+    p_event ->> 'email_hmac',
+    coalesce((p_event ->> 'voucher_opened')::boolean, false),
+    coalesce((p_event ->> 'voucher_generated')::boolean, false),
+    received_at_value,
+    received_at_value
+  );
+
+  insert into analytics.analytics_sessions as session_row (
+    session_id, visitor_id, entry_page, source, campaign, device,
+    event_count, converted
+  ) values (
+    session_value,
+    p_event ->> 'visitor_id',
+    p_event ->> 'page',
+    p_event ->> 'source',
+    p_event ->> 'campaign',
+    p_event ->> 'device',
+    1,
+    is_conversion
+  )
+  on conflict (session_id) do update set
+    last_activity_at = received_at_value,
+    exit_page = p_event ->> 'page',
+    event_count = session_row.event_count + 1,
+    converted = session_row.converted or is_conversion,
+    status = case
+      when event_name_value = 'session_ended' then 'ended'
+      else session_row.status
+    end,
+    ended_at = case
+      when event_name_value = 'session_ended' then received_at_value
+      else session_row.ended_at
+    end,
+    duration_seconds = case
+      when event_name_value = 'session_ended'
+        then extract(epoch from received_at_value - session_row.started_at)::integer
+      else session_row.duration_seconds
+    end,
+    updated_at = received_at_value;
+
+  insert into analytics.analytics_realtime_events (
+    event_name,
+    button_name,
+    conversion
+  ) values (
+    event_name_value,
+    p_event ->> 'button_name',
+    is_conversion
+  );
+
+  return jsonb_build_object('accepted', true);
+end;
+$function$;
+
+revoke all on function analytics.consume_analytics_rate_limit(text, text, integer, integer)
+  from public, anon, authenticated;
+revoke all on function analytics.collect_analytics_event(jsonb, text, text, text, text, integer, integer)
+  from public, anon, authenticated;
+grant usage on schema analytics to service_role;
+grant execute on function analytics.collect_analytics_event(jsonb, text, text, text, text, integer, integer)
+  to service_role;
+
+-- MIGRATION: 20260731000005_create_analytics_rpcs.sql
+create or replace function analytics.is_analytics_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, analytics
+as $function$
+  select exists (
+    select 1
+    from analytics.analytics_admins
+    where user_id = auth.uid()
+      and active = true
+  );
+$function$;
+
+create or replace function analytics.analytics_guard()
+returns void
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  if not analytics.is_analytics_admin() then
+    raise exception 'not authorized' using errcode = '42501';
+  end if;
+end;
+$function$;
+
+create or replace function analytics.get_analytics_overview(
+  p_start timestamptz,
+  p_end timestamptz,
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null
+) returns jsonb
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return (
+    select jsonb_build_object(
+      'events', count(*),
+      'visitors', count(distinct event_row.visitor_id),
+      'sessions', count(distinct event_row.session_id),
+      'conversions', count(*) filter (where event_row.event_name in (
+        'email_submitted', 'voucher_generated', 'account_created',
+        'email_confirmed', 'first_login'
+      ))
+    )
+    from analytics.analytics_events as event_row
+    where event_row.created_at >= p_start
+      and event_row.created_at < p_end
+      and (p_source is null or event_row.source = p_source)
+      and (p_campaign is null or event_row.campaign = p_campaign)
+      and (p_device is null or event_row.device = p_device)
+  );
+end;
+$function$;
+
+create or replace function analytics.get_analytics_funnel(
+  p_start timestamptz,
+  p_end timestamptz,
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null
+) returns table (event_name text, total bigint)
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return query
+  select event_row.event_name, count(distinct event_row.visitor_id)
+  from analytics.analytics_events as event_row
+  where event_row.created_at >= p_start
+    and event_row.created_at < p_end
+    and (p_source is null or event_row.source = p_source)
+    and (p_campaign is null or event_row.campaign = p_campaign)
+    and (p_device is null or event_row.device = p_device)
+  group by event_row.event_name
+  order by count(distinct event_row.visitor_id) desc;
+end;
+$function$;
+
+create or replace function analytics.get_analytics_sessions(
+  p_start timestamptz,
+  p_end timestamptz,
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null,
+  p_limit integer default 50
+) returns table (
+  session_id text,
+  visitor_id text,
+  started_at timestamptz,
+  last_activity_at timestamptz,
+  ended_at timestamptz,
+  duration_seconds integer,
+  status text,
+  source text,
+  campaign text,
+  device text,
+  event_count bigint,
+  events jsonb
+)
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return query
+  select
+    event_row.session_id,
+    min(event_row.visitor_id),
+    min(event_row.created_at),
+    max(event_row.created_at),
+    max(event_row.created_at) filter (where event_row.event_name = 'session_ended'),
+    greatest(0, extract(epoch from max(event_row.created_at) - min(event_row.created_at))::integer),
+    case
+      when max(event_row.created_at) filter (where event_row.event_name = 'session_ended') is null
+        and max(event_row.created_at) > now() - interval '30 minutes'
+      then 'active'
+      else 'ended'
+    end,
+    min(event_row.source),
+    min(event_row.campaign),
+    min(event_row.device),
+    count(*),
+    jsonb_agg(
+      jsonb_build_object(
+        'id', event_row.id,
+        'session_id', event_row.session_id,
+        'visitor_id', event_row.visitor_id,
+        'event_name', event_row.event_name,
+        'event_description', event_row.event_description,
+        'campaign', event_row.campaign,
+        'source', event_row.source,
+        'device', event_row.device,
+        'created_at', event_row.created_at
+      ) order by event_row.created_at
+    )
+  from analytics.analytics_events as event_row
+  where event_row.created_at >= p_start
+    and event_row.created_at < p_end
+    and (p_source is null or event_row.source = p_source)
+    and (p_campaign is null or event_row.campaign = p_campaign)
+    and (p_device is null or event_row.device = p_device)
+  group by event_row.session_id
+  order by max(event_row.created_at) desc
+  limit least(greatest(coalesce(p_limit, 50), 1), 100);
+end;
+$function$;
+
+create or replace function analytics.get_analytics_top_ctas(
+  p_start timestamptz,
+  p_end timestamptz,
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null
+) returns table (cta_id text, total bigint)
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return query
+  select event_row.button_name, count(*)
+  from analytics.analytics_events as event_row
+  where event_row.event_name = 'cta_click'
+    and nullif(event_row.button_name, '') is not null
+    and event_row.created_at >= p_start and event_row.created_at < p_end
+    and (p_source is null or event_row.source = p_source)
+    and (p_campaign is null or event_row.campaign = p_campaign)
+    and (p_device is null or event_row.device = p_device)
+  group by event_row.button_name
+  order by count(*) desc;
+end;
+$function$;
+
+create or replace function analytics.get_analytics_scroll_depth(
+  p_start timestamptz,
+  p_end timestamptz,
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null
+) returns table (scroll_depth smallint, total bigint)
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return query
+  select event_row.scroll_percentage, count(*)
+  from analytics.analytics_events as event_row
+  where event_row.scroll_percentage is not null
+    and event_row.created_at >= p_start and event_row.created_at < p_end
+    and (p_source is null or event_row.source = p_source)
+    and (p_campaign is null or event_row.campaign = p_campaign)
+    and (p_device is null or event_row.device = p_device)
+  group by event_row.scroll_percentage
+  order by event_row.scroll_percentage;
+end;
+$function$;
+
+create or replace function analytics.get_analytics_sources(
+  p_start timestamptz,
+  p_end timestamptz,
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null
+) returns table (source text, campaign text, total bigint)
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return query
+  select coalesce(event_row.source, 'direct'), coalesce(event_row.campaign, ''), count(*)
+  from analytics.analytics_events as event_row
+  where event_row.created_at >= p_start and event_row.created_at < p_end
+    and (p_source is null or event_row.source = p_source)
+    and (p_campaign is null or event_row.campaign = p_campaign)
+    and (p_device is null or event_row.device = p_device)
+  group by 1, 2
+  order by count(*) desc;
+end;
+$function$;
+
+create or replace function analytics.get_analytics_realtime_summary(
+  p_start timestamptz default now() - interval '15 minutes',
+  p_end timestamptz default now(),
+  p_source text default null,
+  p_campaign text default null,
+  p_device text default null
+) returns jsonb
+language plpgsql stable security definer
+set search_path = pg_catalog, analytics
+as $function$
+begin
+  perform analytics.analytics_guard();
+  return (
+    select jsonb_build_object(
+      'events', count(*),
+      'sessions', count(distinct event_row.session_id),
+      'conversions', count(*) filter (where event_row.event_name in (
+        'email_submitted', 'voucher_generated', 'account_created',
+        'email_confirmed', 'first_login'
+      ))
+    )
+    from analytics.analytics_events as event_row
+    where event_row.created_at >= p_start and event_row.created_at < p_end
+      and (p_source is null or event_row.source = p_source)
+      and (p_campaign is null or event_row.campaign = p_campaign)
+      and (p_device is null or event_row.device = p_device)
+  );
+end;
+$function$;
+
+revoke all on all functions in schema analytics from public, anon;
+grant usage on schema analytics to authenticated, service_role;
+grant execute on function analytics.is_analytics_admin() to authenticated;
+grant execute on function analytics.get_analytics_overview(timestamptz, timestamptz, text, text, text) to authenticated;
+grant execute on function analytics.get_analytics_funnel(timestamptz, timestamptz, text, text, text) to authenticated;
+grant execute on function analytics.get_analytics_sessions(timestamptz, timestamptz, text, text, text, integer) to authenticated;
+grant execute on function analytics.get_analytics_top_ctas(timestamptz, timestamptz, text, text, text) to authenticated;
+grant execute on function analytics.get_analytics_scroll_depth(timestamptz, timestamptz, text, text, text) to authenticated;
+grant execute on function analytics.get_analytics_sources(timestamptz, timestamptz, text, text, text) to authenticated;
+grant execute on function analytics.get_analytics_realtime_summary(timestamptz, timestamptz, text, text, text) to authenticated;
+
+-- MIGRATION: 20260731000006_create_analytics_rls.sql
+revoke all on all tables in schema analytics from public, anon, authenticated;
+revoke all on all sequences in schema analytics from public, anon, authenticated;
+
+alter table analytics.analytics_admins enable row level security;
+alter table analytics.analytics_events enable row level security;
+alter table analytics.analytics_sessions enable row level security;
+alter table analytics.analytics_rate_limits enable row level security;
+alter table analytics.analytics_idempotency_keys enable row level security;
+alter table analytics.analytics_daily_metrics enable row level security;
+alter table analytics.analytics_funnel_metrics enable row level security;
+alter table analytics.analytics_realtime_events enable row level security;
+
+drop policy if exists analytics_events_admin_read
+  on analytics.analytics_events;
+create policy analytics_events_admin_read
+  on analytics.analytics_events
+  for select
+  to authenticated
+  using (analytics.is_analytics_admin());
+
+drop policy if exists analytics_realtime_admin_read
+  on analytics.analytics_realtime_events;
+create policy analytics_realtime_admin_read
+  on analytics.analytics_realtime_events
+  for select
+  to authenticated
+  using (analytics.is_analytics_admin());
+
+grant select on analytics.analytics_events, analytics.analytics_realtime_events
+  to authenticated;
+
+alter default privileges in schema analytics
+  revoke all on tables from public, anon, authenticated;
+alter default privileges in schema analytics
+  revoke all on sequences from public, anon, authenticated;
+alter default privileges in schema analytics
+  revoke execute on functions from public, anon;
+
+-- MIGRATION: 20260731000007_create_analytics_retention.sql
+create or replace function analytics.cleanup_analytics_data(
+  p_reference_time timestamptz default now()
+) returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, analytics
+as $function$
+declare
+  deleted_events integer;
+  deleted_sessions integer;
+  deleted_idempotency_keys integer;
+  deleted_rate_limits integer;
+  deleted_realtime_events integer;
+begin
+  delete from analytics.analytics_events
+  where created_at < p_reference_time - interval '90 days';
+  get diagnostics deleted_events = row_count;
+
+  delete from analytics.analytics_sessions
+  where last_activity_at < p_reference_time - interval '180 days';
+  get diagnostics deleted_sessions = row_count;
+
+  delete from analytics.analytics_idempotency_keys
+  where expires_at < p_reference_time;
+  get diagnostics deleted_idempotency_keys = row_count;
+
+  delete from analytics.analytics_rate_limits
+  where window_started_at < p_reference_time - interval '2 days';
+  get diagnostics deleted_rate_limits = row_count;
+
+  delete from analytics.analytics_realtime_events
+  where occurred_at < p_reference_time - interval '1 day';
+  get diagnostics deleted_realtime_events = row_count;
+
+  return jsonb_build_object(
+    'events', deleted_events,
+    'sessions', deleted_sessions,
+    'idempotency_keys', deleted_idempotency_keys,
+    'rate_limits', deleted_rate_limits,
+    'realtime_events', deleted_realtime_events
+  );
+end;
+$function$;
+
+revoke all on function analytics.cleanup_analytics_data(timestamptz)
+  from public, anon, authenticated;
+grant execute on function analytics.cleanup_analytics_data(timestamptz)
+  to service_role;
