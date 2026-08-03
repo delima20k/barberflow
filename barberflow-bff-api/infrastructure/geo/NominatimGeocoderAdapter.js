@@ -89,7 +89,7 @@ class NominatimGeocoderAdapter extends IReverseGeocoder {
   async forwardGeocode({ address, neighborhood, city, state, zipCode } = {}) {
     // Tentativa 1 — busca estruturada street/city/state
     if (address && city) {
-      const p = new URLSearchParams({ street: address, city, country: 'br' });
+      const p = new URLSearchParams({ street: address, city, countrycodes: 'br' });
       if (state) p.set('state', state);
       const r1 = await this.#search(p.toString());
       if (r1.isOk() && r1.getValue()) return r1;
@@ -105,7 +105,8 @@ class NominatimGeocoderAdapter extends IReverseGeocoder {
     // Tentativa 3 — CEP estruturado
     const cepLimpo = String(zipCode ?? '').replace(/\D/g, '');
     if (cepLimpo.length === 8) {
-      return this.#search(`postalcode=${cepLimpo}&country=br`);
+      const cepFormatado = `${cepLimpo.slice(0, 5)}-${cepLimpo.slice(5)}`;
+      return this.#search(`postalcode=${cepFormatado}&countrycodes=br`);
     }
 
     return Result.ok(null);

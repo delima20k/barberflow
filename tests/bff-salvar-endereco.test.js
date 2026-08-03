@@ -121,9 +121,10 @@ test('Invariante: NominatimGeocoderAdapter possui forwardGeocode com fallback po
   const fonte = lerFonte('barberflow-bff-api/infrastructure/geo/NominatimGeocoderAdapter.js');
 
   assert.match(fonte, /async forwardGeocode\(/);
-  // Fallback estruturado por CEP (postalcode + country br)
+  // Fallback estruturado por CEP com filtro ISO rígido do Brasil.
   assert.match(fonte, /postalcode=/);
-  assert.match(fonte, /country=br/);
+  assert.match(fonte, /countrycodes=br/);
+  assert.match(fonte, /cepFormatado/);
   // User-Agent obrigatório nas buscas
   assert.match(fonte, /'User-Agent':\s*this\.#userAgent/);
 });
@@ -134,7 +135,7 @@ test('Fix 422: forwardGeocode usa busca estruturada street/city antes da livre e
 
   // Tentativa 1: busca estruturada (street/city/state) — bairro do ViaCEP diverge do OSM
   assert.match(metodo, /street:\s*address/);
-  assert.match(metodo, /city,\s*country:\s*'br'/);
+  assert.match(metodo, /city,\s*countrycodes:\s*'br'/);
   // Query livre não inclui mais o bairro (fonte do mismatch)
   assert.doesNotMatch(metodo, /\[address,\s*neighborhood/);
   // Busca estruturada vem ANTES da query livre
