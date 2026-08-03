@@ -1,9 +1,10 @@
 'use strict';
 
 class LandingCarousel {
-  constructor(root, features = []) {
+  constructor(root, features = [], analytics = null) {
     this.root = root;
     this.features = features;
+    this.analytics = analytics;
     this.document = root?.ownerDocument ?? document;
     this.viewport = root?.querySelector('[data-carousel-viewport]') ?? null;
     this.track = root?.querySelector('[data-carousel-track]') ?? null;
@@ -224,6 +225,7 @@ class LandingCarousel {
 
   goTo(nextIndex, behavior = 'smooth') {
     if (this.slides.length === 0) return;
+    const previousIndex = this.index;
     const clampedIndex = Math.min(
       this.slides.length - 1,
       Math.max(0, Number(nextIndex) || 0),
@@ -238,6 +240,7 @@ class LandingCarousel {
       behavior: reducedMotion ? 'auto' : behavior,
     });
     this.updateState();
+    if (clampedIndex !== previousIndex) this.trackInteraction();
   }
 
   setIndex(nextIndex) {
@@ -248,6 +251,14 @@ class LandingCarousel {
     if (clampedIndex === this.index) return;
     this.index = clampedIndex;
     this.updateState();
+    this.trackInteraction();
+  }
+
+  trackInteraction() {
+    const feature = this.features[this.index];
+    if (feature?.id) {
+      this.analytics?.track?.('carousel_interaction', { featureId: feature.id });
+    }
   }
 
   updateState() {

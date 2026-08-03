@@ -7,11 +7,13 @@ class YouTubeVideoController {
   #frame;
   #observer;
   #observerFactory;
+  #analytics;
 
   constructor(
     root,
     videoId = '',
     observerFactory = YouTubeVideoController.createVisibilityObserver,
+    analytics = null,
   ) {
     this.#root = root;
     this.#videoId = YouTubeVideoController.normalizeVideoId(videoId);
@@ -19,6 +21,7 @@ class YouTubeVideoController {
     this.#frame = null;
     this.#observer = null;
     this.#observerFactory = observerFactory;
+    this.#analytics = analytics;
     this.handleLoad = this.handleLoad.bind(this);
     this.handleIntersection = this.handleIntersection.bind(this);
   }
@@ -78,6 +81,7 @@ class YouTubeVideoController {
     this.#frame = frame;
     this.#root.replaceChildren(frame);
     this.#root.dataset.videoState = 'loaded';
+    this.#analytics?.track?.('video_view', { featureId: 'youtube-intro' });
     this.#stopObserving();
   }
 

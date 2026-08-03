@@ -40,6 +40,12 @@
   font-size: 0.9rem;
 }
 
+.problem__consequence {
+  max-width: 760px;
+  margin-top: 28px;
+  color: var(--color-muted);
+}
+
 .features {
   background: var(--color-white);
 }
@@ -47,6 +53,12 @@
 .features-grid {
   display: grid;
   gap: 12px;
+}
+
+.features__action {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
 }
 
 .feature-card {

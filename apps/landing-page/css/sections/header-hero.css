@@ -202,6 +202,14 @@
   line-height: 1.5;
 }
 
+.hero__campaign-copy {
+  max-width: 680px;
+  margin-top: 8px;
+  color: var(--color-on-dark-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .hero__actions {
   display: flex;
   flex-direction: column;
@@ -211,7 +219,7 @@
 
 .hero__trust {
   display: grid;
-  max-width: min(250px, calc(100% - 124px));
+  max-width: min(320px, calc(100% - 124px));
   gap: 6px;
   margin-top: 22px;
   color: var(--color-on-dark-muted);
@@ -233,6 +241,14 @@
   background: var(--color-gold-bright);
   content: "";
   transform: translateY(-50%);
+}
+
+.hero__note {
+  max-width: min(320px, calc(100% - 124px));
+  margin-top: 12px;
+  color: var(--color-on-dark-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
 }
 
 .hero-phone {

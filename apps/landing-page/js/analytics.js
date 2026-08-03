@@ -1,21 +1,6 @@
 'use strict';
 
 class LandingAnalytics {
-  static #EVENTS = new Set([
-    'landing_view',
-    'cta_click',
-    'voucher_modal_opened',
-    'email_input_started',
-    'email_submitted',
-    'voucher_generated',
-    'scroll_25',
-    'scroll_50',
-    'scroll_75',
-    'scroll_100',
-    'session_started',
-    'session_ended',
-  ]);
-
   #adapter;
   #startedEvents;
 
@@ -51,13 +36,12 @@ class LandingAnalytics {
     const trigger = event.target.closest('[data-analytics-start]');
     const eventName = trigger?.dataset.analyticsStart;
     if (!eventName || this.#startedEvents.has(eventName)) return;
-
     this.#startedEvents.add(eventName);
     this.track(eventName);
   }
 
   track(eventName, payload = {}) {
-    if (!LandingAnalytics.#EVENTS.has(eventName)) return false;
+    if (!LandingAnalyticsEventCatalog.has(eventName)) return false;
     this.#adapter?.track?.(eventName, payload);
     return true;
   }

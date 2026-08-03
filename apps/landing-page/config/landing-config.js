@@ -25,6 +25,7 @@ class LandingConfig {
     analyticsCollectorUrl: '',
     analyticsPublishableKey: '',
     analyticsSessionTimeoutMinutes: 30,
+    analyticsPresenceEnabled: false,
   });
 
   static get(key) {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2B1B12">
   <meta name="robots" content="index, follow">
-  <meta name="description" content="Organize a fila da sua barbearia, mostre os profissionais disponíveis e permita que seus clientes acompanhem a ordem de atendimento em tempo real.">
+  <meta name="description" content="Organize a fila, as cadeiras, os profissionais e os atendimentos da sua barbearia com o BarberFlow. Teste gratuitamente por 30 dias.">
   <link rel="canonical" href="https://barberflow.live/">
   <link rel="icon" type="image/png" href="./assets/images/logos/Logo01.png">
   <link rel="apple-touch-icon" href="./assets/images/logos/Logo01.png">
@@ -13,20 +13,20 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:site_name" content="BarberFlow">
-  <meta property="og:title" content="BarberFlow — Fila em tempo real para barbearias">
-  <meta property="og:description" content="Organize a fila da sua barbearia, mostre os profissionais disponíveis e permita que seus clientes acompanhem a ordem de atendimento em tempo real.">
+  <meta property="og:title" content="BarberFlow | Organize a fila da sua barbearia em tempo real">
+  <meta property="og:description" content="Organize a fila, as cadeiras, os profissionais e os atendimentos da sua barbearia com o BarberFlow. Teste gratuitamente por 30 dias.">
   <meta property="og:url" content="https://barberflow.live/">
   <!-- Imagem social temporária até a aprovação da peça oficial em formato horizontal. -->
   <meta property="og:image" content="https://barberflow.live/assets/images/logos/LogoNomeBarberFlow.png">
   <meta property="og:image:alt" content="Identidade visual temporária do BarberFlow">
 
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="BarberFlow — Fila em tempo real para barbearias">
-  <meta name="twitter:description" content="Organize a fila da sua barbearia, mostre os profissionais disponíveis e permita que seus clientes acompanhem a ordem de atendimento em tempo real.">
+  <meta name="twitter:title" content="BarberFlow | Organize a fila da sua barbearia em tempo real">
+  <meta name="twitter:description" content="Organize a fila, as cadeiras, os profissionais e os atendimentos da sua barbearia com o BarberFlow. Teste gratuitamente por 30 dias.">
   <meta name="twitter:image" content="https://barberflow.live/assets/images/logos/LogoNomeBarberFlow.png">
   <meta name="twitter:image:alt" content="Identidade visual temporária do BarberFlow">
 
-  <title>BarberFlow — Fila em tempo real para barbearias</title>
+  <title>BarberFlow | Organize a fila da sua barbearia em tempo real</title>
 
   <script type="application/ld+json">
 {
@@ -36,7 +36,7 @@
   "url": "https://barberflow.live/",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
-  "description": "Organize a fila da sua barbearia, mostre os profissionais disponíveis e permita que seus clientes acompanhem a ordem de atendimento em tempo real.",
+  "description": "Organize a fila, as cadeiras, os profissionais e os atendimentos da sua barbearia com o BarberFlow. Teste gratuitamente por 30 dias.",
   "publisher": {
     "@type": "Organization",
     "name": "BarberFlow",
@@ -66,7 +66,9 @@
   <link rel="stylesheet" href="./css/responsive.css">
 
   <script src="./config/landing-config.js" defer></script>
+  <script src="./config/analytics-events.js" defer></script>
   <script src="./js/analytics-tracker.js" defer></script>
+  <script src="./js/analytics-presence.js" defer></script>
   <script src="./config/landing-features.js" defer></script>
   <script src="./js/mobile-navigation.js" defer></script>
   <script src="./js/carousel.js" defer></script>
@@ -97,7 +99,7 @@
           <a href="#beneficios">Benefícios</a>
           <a href="#aplicativos">Aplicativos</a>
           <a href="#faq">Dúvidas</a>
-          <a class="button button--compact button--gold" href="#voucher" data-open-voucher>Testar grátis</a>
+          <a class="button button--compact button--gold" href="#voucher" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="header-test-free">Testar grátis</a>
         </nav>
 
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="menu-principal" aria-expanded="false" title="Abrir menu" data-menu-toggle>
@@ -123,19 +125,22 @@
       </video>
       <div class="container hero__layout">
         <div class="hero__content">
-          <p class="eyebrow">Sua barbearia trabalha com ordem de chegada?</p>
-          <h1 id="hero-title">Organize sua fila com o <span>BarberFlow</span>.</h1>
-          <h2 class="hero__voucher-title">TESTE O APP GRÁTIS POR UM MÊS!</h2>
-          <h3 class="hero__voucher-subtitle">Gere seu voucher e cadastre-se na plataforma.</h3>
+          <p class="eyebrow">BARBEIROS E DONOS DE BARBEARIA QUE ATENDEM POR ORDEM DE CHEGADA</p>
+          <h1 id="hero-title">Pare de interromper seus cortes para responder quem é o próximo da fila</h1>
+          <p class="hero__voucher-subtitle">Com o BarberFlow, seus clientes acompanham a fila em tempo real antes mesmo de sair de casa — enquanto você organiza profissionais, cadeiras e atendimentos em um só lugar.</p>
+          <h2 class="hero__voucher-title">TESTE O BARBERFLOW GRÁTIS POR 30 DIAS</h2>
+          <p class="hero__campaign-copy">Configure sua barbearia, compartilhe seu link e veja como uma fila organizada pode transformar sua rotina.</p>
           <div class="hero__actions">
-            <button class="button button--gold hero__voucher-button" type="button" data-open-voucher data-hero-voucher-cta data-analytics-event="cta_click">Gerar voucher</button>
-            <a class="button button--outline-light" href="#como-funciona">Ver como funciona</a>
+            <button class="button button--gold hero__voucher-button" type="button" data-open-voucher data-hero-voucher-cta data-analytics-event="cta_click" data-analytics-cta="hero-generate-voucher">Quero testar grátis por 30 dias</button>
+            <a class="button button--outline-light" href="#video">Assistir à demonstração</a>
           </div>
           <ul class="hero__trust" aria-label="Para quem o BarberFlow foi criado">
-            <li>Feito para ordem de chegada</li>
-            <li>Acesso direto pelo navegador</li>
-            <li>Para barbearias e barbeiros autônomos</li>
+            <li>Menos mensagens repetidas no WhatsApp</li>
+            <li>Mais organização durante os atendimentos</li>
+            <li>Mais clareza para sua equipe e seus clientes</li>
+            <li>Acesso pelo navegador, sem complicação</li>
           </ul>
+          <p class="hero__note">Não precisa instalar nenhum programa. Funciona para barbearias e barbeiros autônomos.</p>
         </div>
 
         <div class="hero-phone">
@@ -162,8 +167,9 @@
       <div class="container">
         <div class="section-heading section-heading--center reveal reveal--scale">
           <p class="eyebrow eyebrow--dark">Veja na prática</p>
-          <h2 id="video-title">Veja como o BarberFlow funciona</h2>
-          <p>Conheça o sistema por dentro e veja como ele pode ajudar a organizar a rotina da sua barbearia.</p>
+          <h2 id="video-title">Veja como o BarberFlow funciona na prática</h2>
+          <p>Em poucos minutos, você configura sua barbearia, adiciona seus profissionais e cria uma página pública para seus clientes acompanharem a fila.</p>
+          <p>Enquanto você continua atendendo, o BarberFlow mantém todos informados e organiza a ordem de chegada.</p>
         </div>
         <div class="video-player reveal reveal--scale" data-video-player data-video-state="unavailable">
           <span class="video-placeholder__play" aria-hidden="true">▶</span>
@@ -172,7 +178,7 @@
           <button class="button button--gold" type="button" data-load-video data-analytics-event="cta_click" data-analytics-cta-id="presentation_video" hidden>Assistir vídeo</button>
         </div>
         <div class="video-section__action reveal">
-          <button class="button button--dark" type="button" data-open-voucher>Testar o BarberFlow</button>
+          <button class="button button--dark" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="video-test-barberflow">Testar o BarberFlow</button>
         </div>
       </div>
     </section>
@@ -215,47 +221,49 @@
     <section id="problema" class="section problem" aria-labelledby="problem-title">
       <div class="container">
         <div class="section-heading reveal reveal--left">
-          <p class="eyebrow eyebrow--dark">Uma rotina que pede mais clareza</p>
-          <h2 id="problem-title">Responder a mesma pergunta no WhatsApp várias vezes não precisa fazer parte da rotina da sua barbearia.</h2>
-          <p>Enquanto você atende, o BarberFlow pode deixar a ordem visível para todos.</p>
+          <p class="eyebrow eyebrow--dark">A rotina hoje</p>
+          <h2 id="problem-title">Quantas vezes você já precisou parar um corte para responder isso?</h2>
+          <p>Quando essas perguntas chegam várias vezes durante o dia, você precisa dividir sua atenção entre o cliente que está na cadeira e as mensagens no celular.</p>
         </div>
         <div class="problem-grid">
           <article class="problem-item reveal reveal--scale" data-problem-item>
             <span class="problem-item__index">01</span>
-            <h3>Perguntas repetidas</h3>
-            <p>Clientes perguntam repetidamente quantas pessoas estão esperando.</p>
+            <h3>“Tem muita gente esperando?”</h3>
+            <p>A fila não está visível para o cliente antes de ele sair de casa.</p>
           </article>
           <article class="problem-item reveal reveal--scale" data-problem-item>
             <span class="problem-item__index">02</span>
-            <h3>Muitas conversas</h3>
-            <p>Fica difícil responder todos ao mesmo tempo durante os atendimentos.</p>
+            <h3>“Quem está atendendo hoje?”</h3>
+            <p>Você interrompe o atendimento para atualizar quem está disponível.</p>
           </article>
           <article class="problem-item reveal reveal--scale" data-problem-item>
             <span class="problem-item__index">03</span>
-            <h3>Saída sem contexto</h3>
-            <p>O cliente pode sair de casa sem saber o tamanho da fila.</p>
+            <h3>“Quem é o próximo?”</h3>
+            <p>A ordem de chegada fica espalhada entre conversas e explicações.</p>
           </article>
           <article class="problem-item reveal reveal--scale" data-problem-item>
             <span class="problem-item__index">04</span>
-            <h3>Espera incerta</h3>
-            <p>A barbearia pode estar cheia, com pessoas aguardando sem previsão.</p>
+            <h3>“Se eu sair de casa agora, vou esperar muito?”</h3>
+            <p>Sem contexto, o cliente não consegue planejar melhor a chegada.</p>
           </article>
           <article class="problem-item reveal reveal--scale" data-problem-item>
             <span class="problem-item__index">05</span>
-            <h3>Ordem pouco visível</h3>
-            <p>A falta de organização da ordem de atendimento dificulta acompanhar quem é o próximo.</p>
+            <h3>O problema não é a ordem de chegada</h3>
+            <p>O problema é não ter uma maneira simples de deixar essa ordem visível para todos.</p>
           </article>
         </div>
+        <p class="problem__consequence reveal">E quando não consegue responder rapidamente, o próximo cliente pode desistir, procurar outra barbearia ou chegar sem saber quanto tempo precisará esperar.</p>
       </div>
     </section>
 
     <section id="solucao" class="section solution" aria-labelledby="solution-title">
       <div class="container solution__layout">
         <div class="section-heading section-heading--light reveal reveal--left">
-          <p class="eyebrow">Fluxo de fila em tempo real</p>
+          <p class="eyebrow">Fila organizada em tempo real</p>
           <h2 id="solution-title">Você atende. O BarberFlow mantém todos na mesma fila.</h2>
-          <p>Com o BarberFlow, o cliente consulta a barbearia, acompanha os profissionais disponíveis, verifica a fila e entra na próxima cadeira sem depender de várias mensagens no WhatsApp.</p>
-          <a class="text-link" href="#funcionalidades">Quero conhecer o BarberFlow <span aria-hidden="true">→</span></a>
+          <p>O BarberFlow transforma a fila da sua barbearia em uma experiência digital, organizada e transparente. Pelo celular, o cliente vê quais profissionais estão disponíveis, consulta quantas pessoas estão esperando, acompanha a situação da fila em tempo real e entra na próxima cadeira disponível.</p>
+          <p>E você consegue acompanhar toda a operação sem depender de papéis, mensagens espalhadas ou explicações repetidas.</p>
+          <button class="text-link" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="solution-organize-queue">Quero organizar minha fila <span aria-hidden="true">→</span></button>
         </div>
         <div class="queue-preview reveal reveal--right" aria-label="Exemplo visual neutro de uma fila organizada">
           <div class="queue-preview__header">
@@ -277,19 +285,24 @@
     <section id="funcionalidades" class="section features" aria-labelledby="features-title">
       <div class="container">
         <div class="section-heading reveal reveal--left">
-          <p class="eyebrow eyebrow--dark">Funcionalidades para a rotina real</p>
-          <h2 id="features-title">O essencial para a fila funcionar do começo ao fim.</h2>
-          <p>Organize o atendimento, informe o cliente e apresente sua barbearia em um só lugar.</p>
+          <p class="eyebrow eyebrow--dark">Operação organizada</p>
+          <h2 id="features-title">Tudo o que você precisa para organizar sua operação</h2>
+          <p>Da fila ao financeiro, o BarberFlow reúne as informações que ajudam sua barbearia a funcionar com mais clareza.</p>
         </div>
         <div class="features-grid">
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>01</span><h3>Mais organização</h3><p>Reúna o fluxo da operação em uma visão clara.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>02</span><h3>Mais praticidade para o cliente</h3><p>Deixe a fila disponível antes de o cliente sair de casa.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>03</span><h3>Visibilidade da fila em tempo real</h3><p>Mostre a ordem de atendimento com clareza.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>04</span><h3>Presença online dos profissionais</h3><p>Apresente quem está disponível naquele momento.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>05</span><h3>Comunicação centralizada</h3><p>Reduza informações repetidas em várias conversas.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>06</span><h3>Controle financeiro</h3><p>Acompanhe os resultados ligados aos atendimentos.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>07</span><h3>Divulgação dos trabalhos</h3><p>Transforme seu perfil em uma vitrine profissional.</p></article>
-          <article class="feature-card reveal reveal--scale" data-feature-card><span>08</span><h3>Localização da barbearia no mapa</h3><p>Facilite o caminho de quem ainda não conhece o endereço.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>01</span><h3>Fila em tempo real</h3><p>Deixe a ordem de atendimento visível e atualizada para seus clientes.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>02</span><h3>Controle de cadeiras e profissionais</h3><p>Mostre quais barbeiros estão presentes, disponíveis ou em atendimento.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>03</span><h3>Página pública da barbearia</h3><p>Compartilhe um único link para o cliente consultar profissionais, localização e fila.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>04</span><h3>Card para WhatsApp</h3><p>Envie o acesso à fila com poucos toques, sem precisar explicar tudo novamente.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>05</span><h3>Portfólio de cortes</h3><p>Apresente seus melhores trabalhos e transmita mais confiança para novos clientes.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>06</span><h3>Stories da barbearia</h3><p>Mostre cortes recentes, novidades, horários e o movimento do estabelecimento.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>07</span><h3>ChatFlow</h3><p>Centralize dúvidas e conversas entre clientes e profissionais dentro da plataforma.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>08</span><h3>Localização no mapa</h3><p>Ajude novos clientes a encontrar sua barbearia com mais facilidade.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>09</span><h3>Gestão da equipe</h3><p>Convide barbeiros parceiros e organize as condições de cada parceria.</p></article>
+          <article class="feature-card reveal reveal--scale" data-feature-card><span>10</span><h3>Controle financeiro</h3><p>Acompanhe atendimentos, receitas e divisões entre a barbearia e os profissionais.</p></article>
+        </div>
+        <div class="features__action reveal">
+          <button class="button button--gold" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="features-free-trial">Testar todas as funcionalidades grátis</button>
         </div>
       </div>
     </section>
@@ -297,14 +310,22 @@
     <section id="beneficios" class="section benefits" aria-labelledby="benefits-title">
       <div class="container">
         <div class="section-heading section-heading--light reveal reveal--left">
-          <p class="eyebrow">Benefícios que aparecem no dia a dia</p>
-          <h2 id="benefits-title">Mais clareza para a equipe e para o cliente.</h2>
+          <p class="eyebrow">Na rotina da sua barbearia</p>
+          <h2 id="benefits-title">Imagine sua barbearia funcionando assim…</h2>
+          <p>Você começa o dia, informa quais profissionais estão presentes e compartilha o link da sua barbearia.</p>
         </div>
         <div class="benefits-grid">
-          <article class="benefit-card reveal reveal--scale"><span>01</span><h3>Rotina mais clara</h3><p>A equipe sabe quem é o próximo.</p></article>
-          <article class="benefit-card reveal reveal--scale"><span>02</span><h3>Menos interrupções</h3><p>A fila responde o que antes virava mensagem.</p></article>
-          <article class="benefit-card reveal reveal--scale"><span>03</span><h3>Cliente mais bem informado</h3><p>Quem espera consegue se planejar melhor.</p></article>
-          <article class="benefit-card reveal reveal--scale"><span>04</span><h3>Imagem mais profissional</h3><p>Equipe, trabalhos e localização em um perfil organizado.</p></article>
+          <article class="benefit-card reveal reveal--scale"><span>01</span><h3>Fila consultada pelo celular</h3><p>Quando um cliente quiser saber se a barbearia está cheia, ele não precisará mandar mensagem.</p></article>
+          <article class="benefit-card reveal reveal--scale"><span>02</span><h3>Profissionais visíveis</h3><p>Quando quiser verificar quem está atendendo, ele poderá consultar pelo próprio celular.</p></article>
+          <article class="benefit-card reveal reveal--scale"><span>03</span><h3>Atualização para todos</h3><p>Quando uma cadeira estiver disponível, a fila será atualizada para todos.</p></article>
+          <article class="benefit-card reveal reveal--scale"><span>04</span><h3>Foco no atendimento</h3><p>Sua equipe sabe quem é o próximo, seu cliente sabe como está a espera e você pode continuar concentrado no atendimento.</p></article>
+        </div>
+        <div class="benefits__closing reveal">
+          <h3>Mais do que uma fila: uma experiência mais profissional</h3>
+          <p>É mais organização para a barbearia, mais praticidade para o cliente e menos interrupções durante o seu trabalho.</p>
+          <p>Quando o cliente consegue acompanhar a fila antes de sair, ele se sente mais seguro para visitar sua barbearia. Quando sua equipe sabe exatamente quem será atendido, a rotina flui com mais clareza.</p>
+          <p>Quando seus serviços, profissionais, trabalhos e localização aparecem em um perfil organizado, sua barbearia transmite uma imagem mais profissional.</p>
+          <p>O BarberFlow não muda a forma como você gosta de atender. Ele organiza o que acontece entre um atendimento e outro.</p>
         </div>
       </div>
     </section>
@@ -313,31 +334,34 @@
       <div class="container">
         <div class="section-heading reveal reveal--left">
           <p class="eyebrow eyebrow--dark">Como funciona</p>
-          <h2 id="process-title">Configure. Compartilhe. Deixe a fila trabalhar.</h2>
+          <h2 id="process-title">Como começar</h2>
         </div>
         <ol class="process-list">
-          <li class="reveal reveal--right" data-process-step><span>1</span><div><h3>Crie a conta profissional</h3><p>Cadastre a barbearia ou seu perfil profissional.</p></div></li>
-          <li class="reveal reveal--right" data-process-step><span>2</span><div><h3>Configure sua operação</h3><p>Adicione serviços, equipe e cadeiras.</p></div></li>
-          <li class="reveal reveal--right" data-process-step><span>3</span><div><h3>Compartilhe seu perfil</h3><p>Envie o link público ou o card pelo WhatsApp.</p></div></li>
-          <li class="reveal reveal--right" data-process-step><span>4</span><div><h3>Deixe o cliente acompanhar</h3><p>O cliente vê a fila e entra na cadeira disponível.</p></div></li>
-          <li class="process-list__campaign reveal reveal--scale" data-process-step><span>5</span><div><h3>Use o voucher da campanha</h3><p>O profissional utiliza o voucher promocional durante o cadastro, quando a campanha estiver disponível.</p></div></li>
+          <li class="reveal reveal--right" data-process-step><span>1</span><div><h3>Crie sua conta profissional</h3><p>Cadastre sua barbearia ou seu perfil como barbeiro autônomo.</p></div></li>
+          <li class="reveal reveal--right" data-process-step><span>2</span><div><h3>Configure sua operação</h3><p>Adicione serviços, profissionais e cadeiras disponíveis.</p></div></li>
+          <li class="reveal reveal--right" data-process-step><span>3</span><div><h3>Compartilhe seu link</h3><p>Envie sua página pública pelo WhatsApp, Instagram ou QR Code.</p></div></li>
+          <li class="reveal reveal--right" data-process-step><span>4</span><div><h3>Deixe seus clientes acompanharem</h3><p>Eles consultam a fila e verificam os profissionais disponíveis pelo celular.</p></div></li>
+          <li class="process-list__campaign reveal reveal--scale" data-process-step><span>5</span><div><h3>Continue fazendo o que você faz melhor</h3><p>Enquanto o BarberFlow organiza a fila, você mantém a atenção no cliente que está na cadeira.</p></div></li>
         </ol>
+        <div class="process__action reveal">
+          <button class="button button--gold" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="process-start-free-trial">Começar meu teste gratuito</button>
+        </div>
       </div>
     </section>
 
     <section id="aplicativos" class="section app-downloads" aria-labelledby="apps-title" data-floating-cta-hide>
       <div class="container">
         <div class="section-heading section-heading--center reveal reveal--scale">
-          <p class="eyebrow eyebrow--dark">Aplicativos BarberFlow</p>
-          <h2 id="apps-title">Um app para quem espera. Outro para quem organiza.</h2>
-          <p>O cliente acompanha a fila. O profissional mantém o atendimento em movimento.</p>
+          <p class="eyebrow eyebrow--dark">Dois acessos, uma rotina mais clara</p>
+          <h2 id="apps-title">Um aplicativo para quem espera. Outro para quem organiza.</h2>
+          <p>Os aplicativos funcionam diretamente pelo navegador e também podem ser instalados como PWA em dispositivos compatíveis.</p>
         </div>
         <div class="app-downloads__grid">
           <article class="app-access-card reveal reveal--left">
             <img src="./assets/images/logos/Logo01.png" width="56" height="56" alt="" loading="lazy" decoding="async">
             <span class="app-access-card__audience">Para clientes</span>
-            <h3>Acompanhe antes de sair</h3>
-            <p>Veja barbearias, profissionais disponíveis e a situação da fila pelo celular.</p>
+            <h3>Para o cliente</h3>
+            <p>O cliente acessa a página da barbearia, consulta os profissionais disponíveis, acompanha a fila e planeja melhor sua chegada.</p>
             <a
               class="button button--dark"
               href="https://app.barberflow.live/"
@@ -350,8 +374,8 @@
           <article class="app-access-card app-access-card--professional reveal reveal--right">
             <img src="./assets/images/logos/Logo01.png" width="56" height="56" alt="" loading="lazy" decoding="async">
             <span class="app-access-card__audience">Para profissionais</span>
-            <h3>Coloque sua operação no controle</h3>
-            <p>Configure serviços, equipe e cadeiras, compartilhe seu perfil e acompanhe a fila.</p>
+            <h3>Para o profissional</h3>
+            <p>Você configura sua equipe, serviços e cadeiras, acompanha os atendimentos e mantém a fila organizada.</p>
             <a
               class="button button--gold"
               href="https://pro.barberflow.live/"
@@ -362,7 +386,39 @@
             ><span aria-hidden="true">↓</span> Baixar app profissional</a>
           </article>
         </div>
-        <p class="app-downloads__note reveal">Os aplicativos abrem no navegador e podem ser instalados como PWA em dispositivos compatíveis.</p>
+        <p class="app-downloads__note reveal">Não é necessário baixar um programa pesado ou utilizar equipamentos especiais.</p>
+        <aside class="app-downloads__confidence reveal" aria-labelledby="confidence-title">
+          <h3 id="confidence-title">“Mas será que meus clientes vão conseguir usar?”</h3>
+          <p>O BarberFlow foi desenvolvido para tornar o acesso simples. Você compartilha um link pelo WhatsApp, Instagram ou QR Code; o cliente abre pelo celular e consulta a fila sem precisar ligar ou perguntar quantas pessoas estão esperando.</p>
+          <p>Não é necessário entender de tecnologia. Se o cliente consegue abrir um link no WhatsApp, ele consegue acessar sua fila.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="depoimentos" class="section testimonials" aria-labelledby="testimonials-title">
+      <div class="container">
+        <div class="section-heading section-heading--center reveal reveal--scale">
+          <p class="eyebrow eyebrow--dark">Experiências reais</p>
+          <h2 id="testimonials-title">Resultados de quem já colocou a fila para fluir</h2>
+          <p>Os depoimentos serão publicados somente após autorização dos clientes.</p>
+        </div>
+        <div class="testimonials-grid">
+          <!-- TODO: substituir por depoimento real autorizado pelo cliente. -->
+          <article class="testimonial-card reveal reveal--scale">
+            <blockquote>Depoimento real será inserido aqui.</blockquote>
+            <footer><strong>Nome do cliente</strong><span>Nome da barbearia — Cidade</span></footer>
+          </article>
+          <!-- TODO: substituir por depoimento real autorizado pelo cliente. -->
+          <article class="testimonial-card reveal reveal--scale">
+            <blockquote>Depoimento real será inserido aqui.</blockquote>
+            <footer><strong>Nome do cliente</strong><span>Nome da barbearia — Cidade</span></footer>
+          </article>
+          <!-- TODO: substituir por depoimento real autorizado pelo cliente. -->
+          <article class="testimonial-card reveal reveal--scale">
+            <blockquote>Depoimento real será inserido aqui.</blockquote>
+            <footer><strong>Nome do cliente</strong><span>Nome da barbearia — Cidade</span></footer>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -370,13 +426,15 @@
       <div class="container voucher__layout reveal">
         <div>
           <p class="eyebrow eyebrow--dark">Campanha BarberFlow</p>
-          <h2 id="voucher-title">Comece com um mês grátis.</h2>
-          <p>Use o voucher promocional durante o cadastro profissional para receber um mês grátis, conforme a disponibilidade e as regras vigentes da campanha.</p>
-          <button class="button button--dark" type="button" data-open-voucher>Quero um mês grátis</button>
+          <h2 id="voucher-title">Comece agora e use o BarberFlow grátis por 30 dias</h2>
+          <p>Durante os próximos 30 dias, você poderá configurar sua operação, compartilhar sua fila e experimentar as funcionalidades do BarberFlow em sua rotina.</p>
+          <p>Sem precisar mudar sua forma de atendimento. Sem depender de agendas complicadas. Sem continuar respondendo a mesma pergunta várias vezes por dia.</p>
+          <p>Consulte as condições da campanha. Após o período gratuito, você poderá escolher se deseja continuar utilizando o BarberFlow.</p>
+          <button class="button button--dark" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="voucher-one-month-free">Quero meus 30 dias grátis</button>
         </div>
         <div class="voucher-ticket" aria-label="Voucher promocional BarberFlow">
           <span>BARBERFLOW</span>
-          <strong>1 MÊS</strong>
+          <strong>30 DIAS</strong>
           <small>GRÁTIS</small>
           <b>VOUCHER DE CAMPANHA</b>
         </div>
@@ -387,44 +445,44 @@
       <div class="container faq__layout">
         <div class="section-heading reveal">
           <p class="eyebrow eyebrow--dark">Perguntas frequentes</p>
-          <h2 id="faq-title">Antes de colocar sua fila para fluir.</h2>
+          <h2 id="faq-title">Perguntas frequentes</h2>
         </div>
         <div class="faq-list reveal">
           <article class="faq-item">
             <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-1" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_1">O BarberFlow é um sistema de agendamento?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-1" class="faq-item__answer" hidden><p>O foco principal do BarberFlow é o atendimento por ordem de chegada. O cliente consulta a fila em tempo real e pode entrar na próxima cadeira disponível.</p></div>
+            <div id="faq-answer-1" class="faq-item__answer" hidden><p>Não. O BarberFlow foi criado especialmente para barbearias e profissionais que trabalham por ordem de chegada. Ele organiza a fila e permite que o cliente acompanhe a situação em tempo real.</p></div>
           </article>
           <article class="faq-item">
             <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-2" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_2">O cliente precisa instalar o aplicativo?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-2" class="faq-item__answer" hidden><p>Não. O cliente pode acessar a aplicação pelo navegador. Em dispositivos e navegadores compatíveis, a PWA também pode ser instalada para uma experiência semelhante à de um aplicativo.</p></div>
+            <div id="faq-answer-2" class="faq-item__answer" hidden><p>Não. O cliente pode acessar a página pública da barbearia diretamente pelo navegador do celular.</p></div>
           </article>
           <article class="faq-item">
             <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-3" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_3">Funciona para barbeiro autônomo?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-3" class="faq-item__answer" hidden><p>Sim. O barbeiro autônomo pode manter um perfil profissional próprio, apresentar seus serviços e organizar a fila do local em que trabalha.</p></div>
+            <div id="faq-answer-3" class="faq-item__answer" hidden><p>Sim. Você pode cadastrar seu perfil profissional, configurar seus serviços e compartilhar sua própria fila com os clientes.</p></div>
           </article>
           <article class="faq-item">
             <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-4" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_4">O cliente consegue ver quantas pessoas estão na fila?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-4" class="faq-item__answer" hidden><p>Sim. Na página pública da barbearia, o cliente consulta os profissionais e as cadeiras disponíveis, além das informações da fila antes de entrar.</p></div>
+            <div id="faq-answer-4" class="faq-item__answer" hidden><p>Sim. A página pública permite consultar a fila e verificar quais profissionais estão disponíveis.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-5" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_5">Posso convidar barbeiros parceiros?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-5" class="faq-item__answer" hidden><p>Sim. A aplicação profissional permite enviar propostas a barbeiros parceiros e registrar as condições apresentadas para integrar a equipe.</p></div>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-5" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_5">Posso cadastrar minha equipe?<span aria-hidden="true">+</span></button></h3>
+            <div id="faq-answer-5" class="faq-item__answer" hidden><p>Sim. Você pode adicionar profissionais, controlar presença e organizar as cadeiras da barbearia.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-6" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_6">O BarberFlow possui controle financeiro?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-6" class="faq-item__answer" hidden><p>O sistema possui recursos para acompanhar atendimentos, receitas e divisões com profissionais parceiros. Ele organiza a operação, mas não substitui orientação contábil.</p></div>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-6" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_6">Posso compartilhar a fila pelo WhatsApp?<span aria-hidden="true">+</span></button></h3>
+            <div id="faq-answer-6" class="faq-item__answer" hidden><p>Sim. Você pode enviar o link ou um card para que o cliente acesse diretamente a página pública da barbearia.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-7" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_7">Como funciona o voucher?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-7" class="faq-item__answer" hidden><p>Quando a campanha estiver ativa, profissionais elegíveis poderão solicitar um código conforme a disponibilidade, a validade e as regras publicadas.</p></div>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-7" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_7">O BarberFlow possui controle financeiro?<span aria-hidden="true">+</span></button></h3>
+            <div id="faq-answer-7" class="faq-item__answer" hidden><p>Sim. A plataforma permite acompanhar atendimentos, receitas e divisões entre a barbearia e os profissionais parceiros.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-8" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_8">O voucher garante um mês grátis?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-8" class="faq-item__answer" hidden><p>O benefício depende da validação do código e do cumprimento das regras da campanha. Preencher o formulário, por si só, não garante a concessão.</p></div>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-8" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_8">Preciso entender de tecnologia?<span aria-hidden="true">+</span></button></h3>
+            <div id="faq-answer-8" class="faq-item__answer" hidden><p>Não. O sistema foi desenvolvido para ser simples de configurar e utilizar durante a rotina da barbearia.</p></div>
           </article>
           <article class="faq-item">
-            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-9" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_9">Como entrar em contato?<span aria-hidden="true">+</span></button></h3>
-            <div id="faq-answer-9" class="faq-item__answer" hidden><p>Envie uma mensagem para <a href="mailto:contato@barberflow.live">contato@barberflow.live</a>.</p></div>
+            <h3><button type="button" aria-expanded="false" aria-controls="faq-answer-9" data-faq-question data-analytics-event="cta_click" data-analytics-cta-id="faq_9">O que acontece depois dos 30 dias gratuitos?<span aria-hidden="true">+</span></button></h3>
+            <div id="faq-answer-9" class="faq-item__answer" hidden><p>Ao final do período, você decide se deseja continuar utilizando o BarberFlow. As condições vigentes serão apresentadas antes de qualquer contratação.</p><!-- TODO: confirmar valores, condições e cancelamento antes da publicação. --></div>
           </article>
         </div>
       </div>
@@ -492,12 +550,14 @@
     <section id="cta-final" class="section final-cta" aria-labelledby="final-cta-title" data-floating-cta-hide>
       <div class="container final-cta__content reveal">
         <img src="./assets/images/logos/Logo01.png" width="72" height="72" alt="">
-        <h2 id="final-cta-title">Sua fila pode ser mais organizada a partir de hoje</h2>
-        <p>Apresente uma experiência mais prática aos seus clientes e tenha mais controle sobre a rotina da sua barbearia.</p>
+        <h2 id="final-cta-title">Sua fila pode ficar mais organizada a partir de hoje</h2>
+        <p>Enquanto você atende, seus clientes podem acompanhar a fila, verificar os profissionais disponíveis e planejar melhor a chegada.</p>
+        <p>Menos interrupções para você. Mais clareza para sua equipe. Mais praticidade para seus clientes.</p>
         <div class="final-cta__actions">
-          <button class="button button--gold" type="button" data-open-voucher>Gerar meu voucher</button>
-          <a class="button button--outline-light" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="cta_click" data-analytics-cta-id="final_professional_app">Conhecer o BarberFlow</a>
+          <button class="button button--gold" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="final-generate-voucher">Começar agora</button>
+          <a class="button button--outline-light" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="cta_click" data-analytics-cta-id="final_professional_app">Acessar a aplicação profissional</a>
         </div>
+        <small>Leva apenas alguns minutos para configurar sua barbearia.</small>
       </div>
     </section>
   </main>
@@ -529,9 +589,9 @@
     </div>
   </footer>
 
-  <a class="mobile-floating-cta button button--gold" data-mobile-cta data-open-voucher href="#voucher">Testar grátis</a>
+  <a class="mobile-floating-cta button button--gold" data-mobile-cta data-open-voucher href="#voucher" data-analytics-event="cta_click" data-analytics-cta="mobile-test-free">Testar grátis</a>
 
-  <a class="whatsapp-floating-button" href="https://wa.me/5511911082804" data-config-link="whatsappUrl" target="_blank" rel="noopener noreferrer" aria-label="Conversar com o BarberFlow pelo WhatsApp" title="Conversar pelo WhatsApp">
+  <a class="whatsapp-floating-button" href="https://wa.me/5511911082804" data-config-link="whatsappUrl" data-analytics-event="cta_click" data-analytics-cta="whatsapp-contact" target="_blank" rel="noopener noreferrer" aria-label="Conversar com o BarberFlow pelo WhatsApp" title="Conversar pelo WhatsApp">
     <span class="whatsapp-floating-button__label">Clique no WhatsApp e saiba mais</span>
     <img src="./assets/icons/whatsapp.svg" width="30" height="30" alt="" aria-hidden="true">
   </a>
@@ -547,7 +607,7 @@
           <h2 id="voucher-modal-title">Garanta seu voucher promocional</h2>
         </div>
       </div>
-      <p id="voucher-modal-description" class="modal__description">Informe o mesmo e-mail que será usado no cadastro profissional para gerar seu voucher de um mês gratuito.</p>
+      <p id="voucher-modal-description" class="modal__description">Informe o mesmo e-mail que será usado no cadastro profissional para gerar seu voucher de 30 dias gratuitos.</p>
 
       <div class="voucher-availability">
         <span>Disponibilidade da campanha</span>
@@ -559,7 +619,7 @@
         <form class="voucher-form" data-voucher-form novalidate>
           <div class="voucher-form__fields">
             <label for="voucher-email">E-mail</label>
-            <input id="voucher-email" name="email" autocomplete="email" type="email" maxlength="160" required data-analytics-start="email_input_started">
+            <input id="voucher-email" name="email" autocomplete="email" type="email" maxlength="160" required data-analytics-start="email_input_start">
           </div>
 
           <div class="feedback-form__honeypot" aria-hidden="true">
@@ -574,7 +634,7 @@
               Gerar meu voucher
               <span data-voucher-loading hidden>Verificando…</span>
             </button>
-            <a class="button button--gold" href="https://pro.barberflow.live/?start=signup" data-config-link="professionalSignupUrl" data-voucher-signup-link>Ir para o cadastro</a>
+            <a class="button button--gold" href="https://pro.barberflow.live/?start=signup" data-config-link="professionalSignupUrl" data-voucher-signup-link data-analytics-event="cta_click" data-analytics-cta="voucher-signup">Ir para o cadastro</a>
           </div>
           <p class="voucher-form__error" role="alert" data-voucher-error hidden></p>
         </form>

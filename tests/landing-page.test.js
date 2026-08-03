@@ -15,6 +15,7 @@ class LandingPageFixture {
     'README.md',
     'vercel.json',
     'config/landing-config.js',
+    'config/analytics-events.js',
     'config/landing-features.js',
     'css/variables.css',
     'css/reset.css',
@@ -41,6 +42,7 @@ class LandingPageFixture {
     'js/feedback.js',
     'js/analytics.js',
     'js/analytics-tracker.js',
+    'js/analytics-presence.js',
     'legal/privacy.html',
     'legal/terms.html',
     'legal/campaign-rules.html',
@@ -132,6 +134,7 @@ describe('Landing page BarberFlow', () => {
       'como-funciona',
       'aplicativos',
       'beneficios',
+      'depoimentos',
       'voucher',
       'faq',
       'sugestoes',
@@ -247,27 +250,30 @@ describe('Landing page BarberFlow', () => {
     assert.match(html, /data-open-voucher[^>]*>Testar grátis<\/a>/);
     assert.match(
       html,
-      /data-open-voucher[^>]*data-hero-voucher-cta[^>]*>Gerar voucher<\/button>/,
+      /data-open-voucher[^>]*data-hero-voucher-cta[^>]*>Quero testar grátis por 30 dias<\/button>/,
     );
   });
 
   it('deve contar a narrativa principal sem promessas absolutas ou dados ficticios', () => {
     const html = LandingPageFixture.source('index.html');
     const problemScenarios = [
-      'quantas pessoas estão esperando',
-      'responder todos ao mesmo tempo',
-      'sem saber o tamanho da fila',
-      'aguardando sem previsão',
-      'organização da ordem de atendimento',
+      'Tem muita gente esperando?',
+      'Quem está atendendo hoje?',
+      'Quem é o próximo?',
+      'Se eu sair de casa agora, vou esperar muito?',
     ];
 
-    assert.match(html, /Sua barbearia trabalha com ordem de chegada\?/);
-    assert.match(html, /<h1[^>]*>[\s\S]*Organize sua fila com o[\s\S]*BarberFlow[\s\S]*<\/h1>/);
-    assert.match(html, /Acompanhe antes de sair/);
+    assert.match(html, /BARBEIROS E DONOS DE BARBEARIA QUE ATENDEM POR ORDEM DE CHEGADA/);
+    assert.match(html, /<h1[^>]*>Pare de interromper seus cortes para responder quem é o próximo da fila<\/h1>/);
+    assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+    assert.match(html, /Com o BarberFlow, seus clientes acompanham a fila em tempo real antes mesmo de sair de casa/);
+    assert.match(html, /Não precisa instalar nenhum programa\. Funciona para barbearias e barbeiros autônomos\./);
+    assert.match(html, /Imagine sua barbearia funcionando assim…/);
+    assert.match(html, /O BarberFlow não muda a forma como você gosta de atender\. Ele organiza o que acontece entre um atendimento e outro\./);
     assert.match(html, /hero-abertura-app\.webp/);
     assert.match(
       html,
-      /Responder a mesma pergunta no WhatsApp várias vezes não precisa fazer parte da rotina da sua barbearia\./,
+      /Quantas vezes você já precisou parar um corte para responder isso\?/,
     );
 
     for (const scenario of problemScenarios) {
@@ -286,28 +292,29 @@ describe('Landing page BarberFlow', () => {
     );
   });
 
-  it('deve apresentar oito funcionalidades e cinco passos da campanha', () => {
+  it('deve apresentar dez funcionalidades e cinco passos da nova narrativa', () => {
     const html = LandingPageFixture.source('index.html');
     const features = [
-      'Mais organização',
-      'Mais praticidade para o cliente',
-      'Visibilidade da fila em tempo real',
-      'Presença online dos profissionais',
-      'Comunicação centralizada',
+      'Fila em tempo real',
+      'Controle de cadeiras e profissionais',
+      'Página pública da barbearia',
+      'Card para WhatsApp',
+      'Portfólio de cortes',
+      'Stories da barbearia',
+      'ChatFlow',
+      'Localização no mapa',
+      'Gestão da equipe',
       'Controle financeiro',
-      'Divulgação dos trabalhos',
-      'Localização da barbearia no mapa',
     ];
 
-    assert.equal((html.match(/data-feature-card/g) ?? []).length, 8);
+    assert.equal((html.match(/data-feature-card/g) ?? []).length, 10);
     assert.equal((html.match(/data-process-step/g) ?? []).length, 5);
 
     for (const feature of features) {
       assert.match(html, new RegExp(feature));
     }
 
-    assert.match(html, /utiliza o voucher promocional durante o cadastro/i);
-    assert.match(html, /quando a campanha estiver disponível/i);
+    assert.match(html, /Enquanto o BarberFlow organiza a fila, você mantém a atenção no cliente que está na cadeira\./);
   });
 
   it('deve rotear os CTAs de teste e abrir o mesmo modal de voucher', () => {
@@ -315,16 +322,16 @@ describe('Landing page BarberFlow', () => {
 
     assert.match(
       html,
-      /data-open-voucher[^>]*data-hero-voucher-cta[^>]*>Gerar voucher<\/button>/,
+      /data-open-voucher[^>]*data-hero-voucher-cta[^>]*>Quero testar grátis por 30 dias<\/button>/,
     );
-    assert.match(html, /href="#como-funciona"[^>]*>Ver como funciona<\/a>/);
+    assert.match(html, /href="#video"[^>]*>Assistir à demonstração<\/a>/);
     assert.match(html, /data-mobile-cta[^>]*data-open-voucher[^>]*>Testar grátis<\/a>/);
-    assert.match(html, /data-open-voucher[^>]*>Gerar meu voucher<\/button>/);
-    assert.match(html, /data-open-voucher[^>]*>Quero um mês grátis<\/button>/);
+    assert.match(html, /data-open-voucher[^>]*>Quero organizar minha fila\s*<span aria-hidden="true">→<\/span>\s*<\/button>/);
+    assert.match(html, /data-open-voucher[^>]*>Quero meus 30 dias grátis<\/button>/);
     assert.match(html, /data-open-voucher[^>]*>Testar o BarberFlow<\/button>/);
     assert.match(
       html,
-      /href="https:\/\/pro\.barberflow\.live\/"[^>]*>Acessar a aplicação<\/a>/,
+      /href="https:\/\/pro\.barberflow\.live\/"[^>]*>Acessar a aplicação profissional<\/a>/,
     );
   });
 
@@ -337,10 +344,10 @@ describe('Landing page BarberFlow', () => {
     assert.match(features, /\[PRINT REAL — HOME DO BARBERFLOW\]/);
     assert.match(features, /\[PRINT REAL — BARBEARIA PÚBLICA\]/);
     assert.match(features, /\[PRINT REAL — MINHA BARBEARIA\]/);
-    assert.match(html, /<h2 id="video-title">Veja como o BarberFlow funciona<\/h2>/);
+    assert.match(html, /<h2 id="video-title">Veja como o BarberFlow funciona na prática<\/h2>/);
     assert.match(
       html,
-      /Conheça o sistema por dentro e veja como ele pode ajudar a organizar a rotina da sua barbearia\./,
+      /Em poucos minutos, você configura sua barbearia, adiciona seus profissionais e cria uma página pública para seus clientes acompanharem a fila\./,
     );
     assert.match(html, /data-video-player/);
     assert.match(html, /Vídeo de apresentação em breve/);
@@ -516,7 +523,10 @@ describe('Landing page BarberFlow', () => {
 
   it('deve oferecer o formulario completo com envio seguro pelo BFF', () => {
     const html = LandingPageFixture.source('index.html');
-    const source = LandingPageFixture.javascriptSource();
+    const source = [
+      LandingPageFixture.javascriptSource(),
+      LandingPageFixture.source('config/analytics-events.js'),
+    ].join('\n');
     const config = LandingPageFixture.source('config/landing-config.js');
     const main = LandingPageFixture.source('js/main.js');
     const privacy = LandingPageFixture.source('legal/privacy.html');
@@ -564,7 +574,7 @@ describe('Landing page BarberFlow', () => {
     assert.doesNotMatch(source, /RESEND_API_KEY|SUPABASE_SERVICE_ROLE|service_role/i);
   });
 
-  it('deve responder as nove duvidas com informacoes reais do produto', () => {
+  it('deve responder as nove dúvidas da nova copy sem inventar preço ou depoimento', () => {
     const html = LandingPageFixture.source('index.html');
     const faq = html.match(/<section[^>]*id="faq"[\s\S]*?<\/section>/)?.[0] ?? '';
     const questions = [
@@ -572,11 +582,11 @@ describe('Landing page BarberFlow', () => {
       'O cliente precisa instalar o aplicativo?',
       'Funciona para barbeiro autônomo?',
       'O cliente consegue ver quantas pessoas estão na fila?',
-      'Posso convidar barbeiros parceiros?',
+      'Posso cadastrar minha equipe?',
+      'Posso compartilhar a fila pelo WhatsApp?',
       'O BarberFlow possui controle financeiro?',
-      'Como funciona o voucher?',
-      'O voucher garante um mês grátis?',
-      'Como entrar em contato?',
+      'Preciso entender de tecnologia?',
+      'O que acontece depois dos 30 dias gratuitos?',
     ];
 
     assert.equal((faq.match(/data-faq-question/g) ?? []).length, 9);
@@ -586,20 +596,32 @@ describe('Landing page BarberFlow', () => {
 
     assert.match(faq, /ordem de chegada/i);
     assert.match(faq, /pelo navegador/i);
-    assert.match(faq, /PWA/i);
-    assert.match(faq, /contato@barberflow\.live/);
+    assert.match(faq, /TODO: confirmar valores, condições e cancelamento antes da publicação\./);
+    assert.doesNotMatch(faq, /R\$\s*\d/);
+  });
+
+  it('deve reservar depoimentos para clientes reais autorizados', () => {
+    const html = LandingPageFixture.source('index.html');
+    const section = html.match(/<section[^>]*id="depoimentos"[\s\S]*?<\/section>/)?.[0] ?? '';
+
+    assert.equal((section.match(/class="testimonial-card/g) ?? []).length, 3);
+    assert.equal((section.match(/Depoimento real será inserido aqui\./g) ?? []).length, 3);
+    assert.equal((section.match(/Nome do cliente/g) ?? []).length, 3);
+    assert.equal((section.match(/Nome da barbearia — Cidade/g) ?? []).length, 3);
+    assert.equal((section.match(/TODO: substituir por depoimento real autorizado pelo cliente\./g) ?? []).length, 3);
+    assert.doesNotMatch(section, /Antes do BarberFlow|Facilitou muito nossa rotina|O que mais gostei/i);
   });
 
   it('deve finalizar a conversao e o rodape com links auditaveis', () => {
     const html = LandingPageFixture.source('index.html');
 
-    assert.match(html, /<h2 id="final-cta-title">Sua fila pode ser mais organizada a partir de hoje<\/h2>/);
+    assert.match(html, /<h2 id="final-cta-title">Sua fila pode ficar mais organizada a partir de hoje<\/h2>/);
     assert.match(
       html,
-      /Apresente uma experiência mais prática aos seus clientes e tenha mais controle sobre a rotina da sua barbearia\./,
+      /Enquanto você atende, seus clientes podem acompanhar a fila, verificar os profissionais disponíveis e planejar melhor a chegada\./,
     );
-    assert.match(html, /data-open-voucher[^>]*>Gerar meu voucher<\/button>/);
-    assert.match(html, />Conhecer o BarberFlow<\/a>/);
+    assert.match(html, /data-open-voucher[^>]*>Começar agora<\/button>/);
+    assert.match(html, />Acessar a aplicação profissional<\/a>/);
     assert.match(html, /href="mailto:contato@barberflow\.live"/);
     assert.match(html, /href="\.\/legal\/privacy\.html"/);
     assert.match(html, /href="\.\/legal\/terms\.html"/);
@@ -611,14 +633,14 @@ describe('Landing page BarberFlow', () => {
 
   it('deve aplicar SEO completo e dados estruturados sem URLs de desenvolvimento', () => {
     const html = LandingPageFixture.source('index.html');
-    const description = 'Organize a fila da sua barbearia, mostre os profissionais disponíveis e permita que seus clientes acompanhem a ordem de atendimento em tempo real.';
+    const description = 'Organize a fila, as cadeiras, os profissionais e os atendimentos da sua barbearia com o BarberFlow. Teste gratuitamente por 30 dias.';
     const structuredDataMatch = html.match(
       /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
     );
 
-    assert.match(html, /<title>BarberFlow — Fila em tempo real para barbearias<\/title>/);
+    assert.match(html, /<title>BarberFlow \| Organize a fila da sua barbearia em tempo real<\/title>/);
     assert.match(html, new RegExp(`<meta name="description" content="${description}">`));
-    assert.match(html, /<meta property="og:title" content="BarberFlow — Fila em tempo real para barbearias">/);
+    assert.match(html, /<meta property="og:title" content="BarberFlow \| Organize a fila da sua barbearia em tempo real">/);
     assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
     assert.match(html, /<link rel="icon"[^>]*Logo01\.png/);
     assert.match(html, /<link rel="apple-touch-icon"[^>]*Logo01\.png/);
@@ -643,17 +665,21 @@ describe('Landing page BarberFlow', () => {
     const config = LandingPageFixture.source('config/landing-config.js');
     const events = [
       'landing_view',
+      'session_start',
+      'session_end',
       'cta_click',
-      'voucher_modal_opened',
-      'email_input_started',
-      'email_submitted',
+      'voucher_open',
+      'email_input_start',
+      'email_submit',
       'voucher_generated',
       'scroll_25',
       'scroll_50',
       'scroll_75',
       'scroll_100',
-      'session_started',
-      'session_ended',
+      'video_view',
+      'carousel_interaction',
+      'faq_open',
+      'feedback_submit',
     ];
 
     assert.match(source, /class LandingAnalytics\b/);
@@ -663,9 +689,10 @@ describe('Landing page BarberFlow', () => {
     }
 
     assert.match(config, /analyticsEnabled:\s*false/);
+    assert.match(config, /analyticsPresenceEnabled:\s*false/);
     assert.match(config, /analyticsCollectorUrl:\s*''/);
     assert.match(html, /data-analytics-event="cta_click"/);
-    assert.match(html, /data-analytics-start="email_input_started"/);
+    assert.match(html, /data-analytics-start="email_input_start"/);
     assert.doesNotMatch(html, /googletagmanager|google-analytics|connect\.facebook\.net|fbq\(/i);
     assert.doesNotMatch(source, /service[_-]?role/i);
   });

@@ -12,15 +12,16 @@ primeiros passos e oferta condicional da campanha.
 ## Narrativa implementada
 
 - Cabecalho com atalhos para funcionamento, funcionalidades, beneficios e duvidas
-- Hero com foco em fila por ordem de chegada e CTAs para teste e funcionamento
-- Cinco cenarios comuns de uma fila administrada por mensagens
-- Apresentacao do BarberFlow como fluxo de fila em tempo real
-- Oito funcionalidades ligadas a operacao e a presenca online
+- Hero voltado a barbeiros e donos de barbearia que atendem por ordem de chegada, com teste gratuito por 30 dias
+- Quatro perguntas recorrentes da rotina e a explicacao de por que a fila precisa ficar visivel
+- Apresentacao do BarberFlow como uma experiencia digital de fila organizada e transparente
+- Dez funcionalidades ligadas a fila, equipe, divulgacao, comunicacao e financeiro
 - Demonstracao com carrossel dinamico de doze funcionalidades e player de video configuravel
-- Quatro beneficios praticos e cinco passos para comecar
+- Beneficios praticos, cinco passos para comecar, orientacao para os dois aplicativos e uma explicacao de acesso simples
 - Acesso direto aos PWAs oficiais do cliente e do profissional
-- Voucher de um mes gratis condicionado as regras vigentes da campanha
-- FAQ com nove duvidas reais, formulario de sugestoes integrado ao BFF, CTA final e rodape completo
+- Tres cards de depoimentos reservados para relatos reais autorizados, sem dados ou avaliacoes ficticias
+- Voucher de 30 dias gratis condicionado as regras vigentes da campanha
+- FAQ com nove duvidas reais, incluindo uma resposta provisoria sobre o periodo gratuito, formulario de sugestoes integrado ao BFF, CTA final e rodape completo
 - SEO tecnico, dados estruturados e pontos de analytics sem rastreadores instalados
 - Animacoes leves no hero, nas secoes e nos estados ao vivo, com movimento reduzido respeitado
 
@@ -175,7 +176,8 @@ legais permanecem com `noindex` e devem passar por revisao juridica.
 
 ## SEO e compartilhamento
 
-- Title: `BarberFlow — Fila em tempo real para barbearias`
+- Title: `BarberFlow | Organize a fila da sua barbearia em tempo real`
+- Description: `Organize a fila, as cadeiras, os profissionais e os atendimentos da sua barbearia com o BarberFlow. Teste gratuitamente por 30 dias.`
 - Canonical: `https://barberflow.live/`
 - Open Graph e Twitter usam a URL oficial
 - JSON-LD descreve o BarberFlow como `SoftwareApplication`
@@ -209,7 +211,7 @@ desativada. Consulte `analytics/docs/deployment.md` antes de ativar.
 
 ## Edicao de conteudo
 
-- Textos e secoes principais: `index.html`
+- Textos e secoes principais, FAQ e placeholders de depoimentos: `index.html`
 - Slides e caminhos de screenshots: `config/landing-features.js`
 - URLs, flags, video e imagem social: `config/landing-config.js`
 - Estilos do formulario, CTA e rodape: `css/sections/feedback-cta-footer.css`
@@ -222,13 +224,15 @@ funcionalidades. O video oficial esta configurado em `youtubeVideoId`.
 
 1. Adicionar e otimizar os screenshots reais.
 2. Revisar links dos aplicativos e a caixa `contato@barberflow.live`.
-3. Confirmar `RESEND_API_KEY` e `RESEND_FROM_EMAIL` no projeto do BFF.
-4. Aplicar e auditar a migration de emissao antes de ativar o deploy.
-5. Revisar juridicamente politica, termos e regras da campanha.
-6. Criar a imagem social oficial.
-7. Decidir consentimento e adapter de analytics.
-8. Reexecutar testes, acessibilidade, performance e auditoria em conexao lenta.
-9. Somente entao publicar na Vercel e configurar o dominio.
+3. Confirmar valores, condicoes e cancelamento da oferta apos os 30 dias e substituir o TODO do FAQ.
+4. Substituir os tres placeholders por depoimentos reais autorizados.
+5. Confirmar `RESEND_API_KEY` e `RESEND_FROM_EMAIL` no projeto do BFF.
+6. Aplicar e auditar a migration de emissao antes de ativar o deploy.
+7. Revisar juridicamente politica, termos e regras da campanha.
+8. Criar a imagem social oficial.
+9. Decidir consentimento e adapter de analytics.
+10. Reexecutar testes, acessibilidade, performance e auditoria em conexao lenta.
+11. Somente entao publicar na Vercel e configurar o dominio.
 
 ## Dominio recomendado
 

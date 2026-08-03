@@ -55,6 +55,12 @@
   background: var(--color-gold-bright);
 }
 
+.process__action {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
 .benefits {
   background: var(--color-brown-dark);
 }
@@ -101,6 +107,25 @@
   margin-top: 8px;
   color: var(--color-on-dark-muted);
   font-size: 0.86rem;
+}
+
+.benefits__closing {
+  max-width: 820px;
+  margin: 42px auto 0;
+  color: var(--color-on-dark-muted);
+  text-align: center;
+}
+
+.benefits__closing h3 {
+  color: var(--color-white);
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  line-height: 1.25;
+}
+
+.benefits__closing p {
+  margin-top: 14px;
+  font-size: 0.92rem;
 }
 
 .app-downloads {
@@ -188,4 +213,26 @@
   color: var(--color-muted);
   font-size: 0.78rem;
   text-align: center;
+}
+
+.app-downloads__confidence {
+  max-width: 760px;
+  margin: 48px auto 0;
+  padding: 28px;
+  border-left: 4px solid var(--color-gold);
+  background: var(--color-white);
+  box-shadow: var(--shadow-soft);
+}
+
+.app-downloads__confidence h3 {
+  color: var(--color-brown-dark);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  line-height: 1.3;
+}
+
+.app-downloads__confidence p {
+  margin-top: 12px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }

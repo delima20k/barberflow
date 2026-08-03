@@ -18,17 +18,27 @@ class LandingApp {
       sessionTimeoutMinutes: LandingConfig.get('analyticsSessionTimeoutMinutes'),
     });
     const analytics = new LandingAnalytics(this.root, analyticsTracker);
+    const presence = new LandingPresencePublisher({
+      enabled: LandingConfig.get('analyticsPresenceEnabled'),
+      supabaseUrl: LandingConfig.get('analyticsSupabaseUrl'),
+      supabasePublishableKey: LandingConfig.get('analyticsSupabasePublishableKey'),
+      captchaTokenProvider: null,
+    });
     this.components = [
       analytics,
+      presence,
       new MobileNavigation(this.root),
       new HeroVoucherCta(this.root.querySelector('[data-hero-voucher-cta]')),
       new LandingCarousel(
         this.root.querySelector('[data-carousel]'),
         LandingFeatureCatalog.all(),
+        analytics,
       ),
       new YouTubeVideoController(
         this.root.querySelector('[data-video-player]'),
         LandingConfig.get('youtubeVideoId'),
+        YouTubeVideoController.createVisibilityObserver,
+        analytics,
       ),
       new FaqAccordion(this.root.querySelector('[data-faq]')),
       new VoucherModal(
