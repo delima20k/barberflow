@@ -108,6 +108,8 @@ describe('Landing page BarberFlow', () => {
     assert.doesNotMatch(plans, /renovar plano|checkout|pagamento|data-open-voucher/i);
     assert.match(css, /\.plan-deck\s*\{/);
     assert.match(css, /@media\s*\(min-width:\s*768px\)[\s\S]*?\.plan-card\.is-front/);
+    assert.match(css, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.plan-card\.is-front/);
+    assert.match(css, /@media\s*\(max-width:\s*767px\)[\s\S]*?\.plan-deck\.is-switching/);
     assert.match(planDeck, /class PlanDeck\b/);
     assert.ok(
       html.indexOf('./js/plan-deck.js') < html.indexOf('./js/main.js'),
