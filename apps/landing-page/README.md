@@ -21,6 +21,7 @@ primeiros passos e oferta condicional da campanha.
 - Acesso direto aos PWAs oficiais do cliente e do profissional
 - Tres cards de depoimentos reservados para relatos reais autorizados, sem dados ou avaliacoes ficticias
 - Voucher de 30 dias gratis condicionado as regras vigentes da campanha
+- Planos mensais apenas informativos apos o teste: Barbeiro por `R$ 24,90/mes` e Barbearia por `R$ 59,90/mes`, sem checkout, renovacao ou cobranca na landing
 - FAQ com nove duvidas reais, incluindo uma resposta provisoria sobre o periodo gratuito, formulario de sugestoes integrado ao BFF, CTA final e rodape completo
 - SEO tecnico, dados estruturados e pontos de analytics sem rastreadores instalados
 - Animacoes leves no hero, nas secoes e nos estados ao vivo, com movimento reduzido respeitado
@@ -216,6 +217,7 @@ desativada. Consulte `analytics/docs/deployment.md` antes de ativar.
 - URLs, flags, video e imagem social: `config/landing-config.js`
 - Estilos do formulario, CTA e rodape: `css/sections/feedback-cta-footer.css`
 - FAQ: `index.html`, mantendo IDs e atributos ARIA de cada item
+- Cards de planos informativos: `index.html`, `css/sections/voucher-faq.css` e `js/plan-deck.js`
 
 Os doze screenshots esperados permanecem listados no catalogo de
 funcionalidades. O video oficial esta configurado em `youtubeVideoId`.

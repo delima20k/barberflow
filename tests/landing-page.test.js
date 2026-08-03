@@ -32,6 +32,7 @@ class LandingPageFixture {
     'js/main.js',
     'js/boot.js',
     'js/carousel.js',
+    'js/plan-deck.js',
     'js/animations.js',
     'js/mobile-navigation.js',
     'js/faq.js',
@@ -89,6 +90,29 @@ describe('Landing page BarberFlow', () => {
     assert.match(html, /<link rel="canonical" href="https:\/\/barberflow\.live\/">/);
     assert.match(html, /<meta property="og:url" content="https:\/\/barberflow\.live\/">/);
     assert.match(config, /canonicalUrl:\s*'https:\/\/barberflow\.live'/);
+  });
+
+  it('deve apresentar somente os planos informativos mensais apos o teste gratuito', () => {
+    const html = LandingPageFixture.source('index.html');
+    const css = LandingPageFixture.source('css/sections/voucher-faq.css');
+    const planDeck = LandingPageFixture.source('js/plan-deck.js');
+    const plans = html.match(/<section[^>]*id="planos"[\s\S]*?<\/section>/)?.[0] ?? '';
+
+    assert.match(plans, /<h2 id="plans-title">Conheça os planos após seus 30 dias grátis<\/h2>/);
+    assert.equal((plans.match(/data-plan-card/g) ?? []).length, 2);
+    assert.match(plans, /Plano para Barbeiro/);
+    assert.match(plans, /R\$<\/span>\s*24,90/);
+    assert.match(plans, /Plano para Barbearia/);
+    assert.match(plans, /R\$<\/span>\s*59,90/);
+    assert.match(plans, /Os valores abaixo são informativos e não iniciam cobrança nesta página\./);
+    assert.doesNotMatch(plans, /renovar plano|checkout|pagamento|data-open-voucher/i);
+    assert.match(css, /\.plan-deck\s*\{/);
+    assert.match(css, /@media\s*\(min-width:\s*768px\)[\s\S]*?\.plan-card\.is-front/);
+    assert.match(planDeck, /class PlanDeck\b/);
+    assert.ok(
+      html.indexOf('./js/plan-deck.js') < html.indexOf('./js/main.js'),
+      'PlanDeck deve carregar antes da inicialização da landing.',
+    );
   });
 
   it('deve manter os dominios oficiais separados por finalidade', () => {

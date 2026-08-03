@@ -81,6 +81,7 @@
   <script src="./js/feedback.js" defer></script>
   <script src="./js/analytics.js" defer></script>
   <script src="./js/animations.js" defer></script>
+  <script src="./js/plan-deck.js" defer></script>
   <script src="./js/main.js" defer></script>
 </head>
 <body>
@@ -438,6 +439,50 @@
           <small>GRÁTIS</small>
           <b>VOUCHER DE CAMPANHA</b>
         </div>
+      </div>
+    </section>
+
+    <section id="planos" class="section plans" aria-labelledby="plans-title">
+      <div class="container">
+        <div class="section-heading section-heading--center reveal reveal--scale">
+          <p class="eyebrow eyebrow--dark">Depois do teste gratuito</p>
+          <h2 id="plans-title">Conheça os planos após seus 30 dias grátis</h2>
+          <p>Ao final do teste, você decide se deseja continuar usando o BarberFlow. Os valores abaixo são informativos e não iniciam cobrança nesta página.</p>
+        </div>
+
+        <div class="plan-deck reveal reveal--scale" data-plan-deck aria-label="Planos mensais informativos do BarberFlow">
+          <button class="plan-card plan-card--barber" type="button" data-plan-card data-plan-name="Plano para Barbeiro">
+            <span class="plan-card__brand">BARBERFLOW</span>
+            <span class="plan-card__audience">Para barbeiros</span>
+            <h3>Plano para Barbeiro</h3>
+            <p class="plan-card__period">Plano mensal</p>
+            <p class="plan-card__price"><span>R$</span> 24,90 <small>/mês</small></p>
+            <p class="plan-card__description">Para acompanhar sua presença profissional, parcerias e os recursos compartilhados da operação.</p>
+            <ul class="plan-card__features">
+              <li>Gestão financeira compartilhada</li>
+              <li>Clientes compartilhados</li>
+              <li>Parcerias com barbearias do sistema</li>
+            </ul>
+            <small class="plan-card__note">Cadeiras, GPS e Stories exigem parceria com uma barbearia do sistema.</small>
+          </button>
+
+          <button class="plan-card plan-card--barbershop" type="button" data-plan-card data-plan-name="Plano para Barbearia">
+            <span class="plan-card__brand">BARBERFLOW</span>
+            <span class="plan-card__audience">Para barbearias</span>
+            <h3>Plano para Barbearia</h3>
+            <p class="plan-card__period">Plano mensal</p>
+            <p class="plan-card__price"><span>R$</span> 59,90 <small>/mês</small></p>
+            <p class="plan-card__description">Para continuar organizando a fila, a equipe e as cadeiras da sua barbearia em um só lugar.</p>
+            <ul class="plan-card__features">
+              <li>Fila visível em tempo real</li>
+              <li>Organização de profissionais e cadeiras</li>
+              <li>Página pública para seus clientes</li>
+            </ul>
+            <small class="plan-card__note">As condições vigentes serão apresentadas antes de qualquer contratação.</small>
+          </button>
+        </div>
+
+        <p class="plans__interaction-note">Clique ou toque em um card para trazê-lo para frente e ler as informações com calma.</p>
       </div>
     </section>
 
