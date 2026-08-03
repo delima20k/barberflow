@@ -103,18 +103,16 @@ test('MinhaBarbeariaRuntimeController envia barbershop_id no payload de #salvarG
 
 // ─── Invariante: endereço salvo ⇒ coordenadas salvas ────────────────────────
 
-test('Invariante: BarbeariaService.salvarEndereco geocodifica no servidor e rejeita 422 sem coords', () => {
+test('BarbeariaService.salvarEndereco tenta geocodificar, mas salva CEP sem coordenadas', () => {
   const fonte  = lerFonte('barberflow-bff-api/services/BarbeariaService.js');
   const metodo = extrairMetodo(fonte, 'async salvarEndereco(', '\n  /**');
 
   // Geocodificação server-side quando cliente não envia coords
   assert.match(metodo, /forwardGeocode\(/);
-  // Falha de geocodificação → 422
-  assert.match(metodo, /AppError\.unprocessable\(/);
-  // Payload sempre persiste coordenadas (sem spread condicional de hasCoords)
-  assert.match(metodo, /latitude:\s*lat,/);
-  assert.match(metodo, /longitude:\s*lng,/);
-  assert.doesNotMatch(metodo, /hasCoords\s*\?\s*\{\s*latitude/);
+  // Falha de geocodificação não bloqueia o salvamento do endereço.
+  assert.doesNotMatch(metodo, /AppError\.unprocessable\(/);
+  // Coordenadas só são persistidas quando há um par válido.
+  assert.match(metodo, /hasCoords\s*\?\s*\{\s*latitude:\s*lat,\s*longitude:\s*lng\s*\}/);
 });
 
 test('Invariante: NominatimGeocoderAdapter possui forwardGeocode com fallback por CEP', () => {

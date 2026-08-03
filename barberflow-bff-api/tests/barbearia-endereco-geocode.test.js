@@ -3,14 +3,14 @@
 /**
  * tests/barbearia-endereco-geocode.test.js
  *
- * Testa a invariante "endereço salvo ⇒ coordenadas salvas" em
+ * Testa o salvamento de endereço com geocodificação como enriquecimento opcional em
  * BarbeariaService.salvarEndereco() com geocoder mockado (sem rede).
  *
  * Cenários:
  *  a) coords enviadas pelo cliente → geocoder NÃO é chamado
  *  b) coords ausentes + geocoder resolve → updateEndereco recebe lat/lng
- *  c) coords ausentes + geocoder falha/sem resultado → 422, updateEndereco NÃO chamado
- *  d) coords ausentes + geocoder não injetado → 422
+ *  c) coords ausentes + geocoder falha/sem resultado → endereço ainda é salvo
+ *  d) coords ausentes + geocoder não injetado → endereço ainda é salvo
  */
 
 process.env.APP_ENV                   = 'development';
@@ -48,7 +48,7 @@ function criarRepoMock() {
   };
 }
 
-suite('BarbeariaService.salvarEndereco() — invariante endereço ⇒ coordenadas', () => {
+suite('BarbeariaService.salvarEndereco() — geocodificação opcional', () => {
 
   test('a) coords do cliente → geocoder NÃO é chamado, coords persistidas', async () => {
     const repo = criarRepoMock();
@@ -80,39 +80,39 @@ suite('BarbeariaService.salvarEndereco() — invariante endereço ⇒ coordenada
     assert.strictEqual(repo.chamadas[0].payload.longitude, -46.7312735);
   });
 
-  test('c1) sem coords + geocoder sem resultado → 422, updateEndereco NÃO chamado', async () => {
+  test('c1) sem coords + geocoder sem resultado → salva o endereço sem coordenadas', async () => {
     const repo = criarRepoMock();
     const geocoder = { forwardGeocode: async () => Result.ok(null) };
     const svc = new BarbeariaService(repo, null, null, null, geocoder);
 
-    await assert.rejects(
-      () => svc.salvarEndereco(USER_ID, { ...DADOS_BASE }),
-      (err) => err.status === 422,
-    );
-    assert.strictEqual(repo.chamadas.length, 0);
+    await svc.salvarEndereco(USER_ID, { ...DADOS_BASE });
+
+    assert.strictEqual(repo.chamadas.length, 1);
+    assert.strictEqual(repo.chamadas[0].payload.latitude, undefined);
+    assert.strictEqual(repo.chamadas[0].payload.longitude, undefined);
   });
 
-  test('c2) sem coords + geocoder falha (Result.fail) → 422, updateEndereco NÃO chamado', async () => {
+  test('c2) sem coords + geocoder falha (Result.fail) → salva o endereço sem coordenadas', async () => {
     const repo = criarRepoMock();
     const geocoder = { forwardGeocode: async () => Result.fail('HTTP 503') };
     const svc = new BarbeariaService(repo, null, null, null, geocoder);
 
-    await assert.rejects(
-      () => svc.salvarEndereco(USER_ID, { ...DADOS_BASE }),
-      (err) => err.status === 422,
-    );
-    assert.strictEqual(repo.chamadas.length, 0);
+    await svc.salvarEndereco(USER_ID, { ...DADOS_BASE });
+
+    assert.strictEqual(repo.chamadas.length, 1);
+    assert.strictEqual(repo.chamadas[0].payload.latitude, undefined);
+    assert.strictEqual(repo.chamadas[0].payload.longitude, undefined);
   });
 
-  test('d) sem coords + geocoder não injetado → 422', async () => {
+  test('d) sem coords + geocoder não injetado → salva o endereço sem coordenadas', async () => {
     const repo = criarRepoMock();
     const svc = new BarbeariaService(repo);
 
-    await assert.rejects(
-      () => svc.salvarEndereco(USER_ID, { ...DADOS_BASE }),
-      (err) => err.status === 422,
-    );
-    assert.strictEqual(repo.chamadas.length, 0);
+    await svc.salvarEndereco(USER_ID, { ...DADOS_BASE });
+
+    assert.strictEqual(repo.chamadas.length, 1);
+    assert.strictEqual(repo.chamadas[0].payload.latitude, undefined);
+    assert.strictEqual(repo.chamadas[0].payload.longitude, undefined);
   });
 
   test('geocoder recebe os campos de endereço validados', async () => {

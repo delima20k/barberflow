@@ -173,8 +173,9 @@ class BarbeariaService extends BaseService {
     const neighborhood = this._texto('neighborhood', dados.neighborhood  ?? '',               80,  false);
     const address      = [rua, numero, complemento].filter(Boolean).join(', ');
 
-    // Invariante: endereço salvo ⇒ coordenadas salvas.
-    // Cliente não enviou coords (GPS off) → geocodificar no servidor.
+    // Coordenadas enriquecem o endereço para o mapa, mas não podem impedir
+    // o salvamento de um CEP que já foi validado no fluxo de endereço.
+    // Cliente não enviou coords (GPS off) → tentar geocodificar no servidor.
     if (!hasCoords && this.#geocoder) {
       console.info('[BarbeariaService] [Endereco] iniciando geocodificação server-side');
       const geo = await this.#geocoder.forwardGeocode({
@@ -191,20 +192,13 @@ class BarbeariaService extends BaseService {
         console.warn('[BarbeariaService] [Endereco] geocodificação falhou:', geo.isOk() ? 'sem resultado' : geo.getError());
       }
     }
-    if (!hasCoords) {
-      throw AppError.unprocessable(
-        'Endereço não encontrado no provedor de geolocalização. Confira rua e cidade e tente novamente.'
-      );
-    }
-
     const result = await this.#repo.updateEndereco(userId, {
       address,
       ...(city         ? { city }                  : {}),
       ...(state        ? { state }                 : {}),
       ...(zipCode      ? { zip_code: zipCode }     : {}),
       ...(neighborhood ? { neighborhood }          : {}),
-      latitude: lat,
-      longitude: lng,
+      ...(hasCoords ? { latitude: lat, longitude: lng } : {}),
       updated_at: new Date().toISOString(),
     }, barbershopId);
 
