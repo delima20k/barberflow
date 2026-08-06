@@ -159,7 +159,6 @@ p, input, textarea, button, label, span, small, li {
   display: flex;
   z-index: 1;
   top: 0;
-  background: #6b3f2a;
   padding-top: var(--header-h);
 }
 #tela-inicio.ativa,
