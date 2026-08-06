@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260728a';
+const SW_PRO_VERSION = '20260806a';
 
 class SWProfissional {
 
@@ -37,7 +37,7 @@ class SWProfissional {
   static #ASSETS_STATIC = [
     '/assets/css/styles.css?v=20260726b',
     '/assets/js/app.js?v=20260722a',
-    '/shared/css/tokens.css',
+    '/shared/css/tokens.css?v=20260806a',
     '/shared/css/components.css?v=20260726d',
     '/shared/css/notifications.css',
     '/shared/js/LoggerService.js',
@@ -206,9 +206,20 @@ class SWProfissional {
       return res;
     }).catch(() => null);
 
+    if (!SWProfissional.#assetVersionado(request)) {
+      return (await fetchAndSave)
+        || cached
+        || new Response('', { status: 504, statusText: 'Gateway Timeout' });
+    }
+
     if (cached) { void fetchAndSave; return cached; }
     return (await fetchAndSave)
       || new Response('', { status: 504, statusText: 'Gateway Timeout' });
+  }
+
+  static #assetVersionado(request) {
+    const url = new URL(request.url);
+    return url.searchParams.has('v');
   }
 
   // ── Background Sync: replaya fila offline + limpa imagens antigas ────────
