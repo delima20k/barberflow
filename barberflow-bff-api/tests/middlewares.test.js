@@ -17,6 +17,9 @@ const AuthMiddleware  = require('../middlewares/auth');
 const ErrorHandler    = require('../middlewares/errorHandler');
 const ApiResponse     = require('../utils/ApiResponse');
 const AppError        = require('../utils/AppError');
+const BaseController  = require('../controllers/BaseController');
+const { logger }      = require('../middlewares/logger');
+const { CorrelationContext } = require('../observability/CorrelationContext');
 
 // ─── AuthMiddleware — ausência de token ──────────────────────────
 
@@ -43,6 +46,56 @@ suite('AuthMiddleware — sem token', () => {
     });
     await AuthMiddleware.verificar(req, res, next);
     assert.strictEqual(captured.status, 401);
+  });
+
+});
+
+suite('BaseController - log de excecao original', () => {
+
+  test('handle() registra mensagem, stack e ids de rastreio antes da resposta generica', async () => {
+    const controller = new BaseController();
+    const originalLogger = logger.error;
+    let loggedPayload = null;
+    logger.error = (payload) => {
+      loggedPayload = payload;
+    };
+
+    try {
+      const req = {
+        method: 'POST',
+        path: '/api/v1/media/confirmar',
+        originalUrl: '/api/v1/media/confirmar',
+        headers: {
+          'x-request-id': 'req-header',
+          'x-correlation-id': 'corr-header',
+          'x-trace-id': 'trace-header',
+        },
+      };
+      const { res, captured } = criarMocks();
+      res.req = req;
+
+      await CorrelationContext.run({
+        requestId: 'req-1',
+        correlationId: 'corr-1',
+        traceId: 'trace-1',
+      }, async () => {
+        await controller.handle(res, async () => {
+          throw new TypeError('falha real do banco');
+        });
+      });
+
+      assert.strictEqual(captured.status, 500);
+      assert.strictEqual(loggedPayload.errorName, 'TypeError');
+      assert.strictEqual(loggedPayload.errorMessage, 'falha real do banco');
+      assert.match(loggedPayload.errorStack, /TypeError: falha real do banco/);
+      assert.strictEqual(loggedPayload.method, 'POST');
+      assert.strictEqual(loggedPayload.path, '/api/v1/media/confirmar');
+      assert.strictEqual(loggedPayload.requestId, 'req-1');
+      assert.strictEqual(loggedPayload.correlationId, 'corr-1');
+      assert.strictEqual(loggedPayload.traceId, 'trace-1');
+    } finally {
+      logger.error = originalLogger;
+    }
   });
 
 });

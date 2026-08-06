@@ -4,6 +4,7 @@ const crypto         = require('node:crypto');
 const ApiResponse    = require('../utils/ApiResponse');
 const AppError       = require('../utils/AppError');
 const { logger }     = require('../middlewares/logger');
+const { CorrelationContext } = require('../observability/CorrelationContext');
 
 /**
  * BaseController — Classe base para controllers do BFF.
@@ -101,9 +102,54 @@ class BaseController {
     try {
       await fn();
     } catch (err) {
-      logger.error({ err }, '[BFF] erro no handler');
+      logger.error(
+        BaseController.#errorLogPayload(err, res?.req),
+        '[BFF] erro no handler',
+      );
       if (!res.headersSent) this.fail(res, err);
     }
+  }
+
+  /**
+   * Monta log de excecao sem expor headers sensiveis nem payload.
+   * @param {Error|unknown} err
+   * @param {import('express').Request|undefined} req
+   * @returns {object}
+   */
+  static #errorLogPayload(err, req) {
+    const safeError = BaseController.#normalizeError(err);
+    const ctx = CorrelationContext.getStore();
+    return {
+      err: safeError,
+      errorName: safeError.name,
+      errorMessage: safeError.message,
+      errorStack: safeError.stack,
+      status: safeError.status ?? safeError.statusCode ?? 500,
+      method: req?.method,
+      path: req?.path ?? req?.originalUrl,
+      route: req ? `${req.method} ${req.originalUrl ?? req.url ?? req.path}` : undefined,
+      requestId: ctx.requestId ?? req?.headers?.['x-request-id'] ?? null,
+      correlationId: ctx.correlationId ?? req?.headers?.['x-correlation-id'] ?? null,
+      traceId: ctx.traceId ?? req?.headers?.['x-trace-id'] ?? null,
+    };
+  }
+
+  /**
+   * Garante que pino receba um Error real, com name/message/stack.
+   * @param {Error|unknown} err
+   * @returns {Error}
+   */
+  static #normalizeError(err) {
+    if (err instanceof Error) return err;
+    const normalized = new Error(typeof err === 'string' ? err : 'Erro nao-Error lancado.');
+    normalized.name = 'NonErrorThrown';
+    if (err && typeof err === 'object') {
+      normalized.details = {
+        type: err.constructor?.name ?? 'Object',
+        keys: Object.keys(err).slice(0, 20),
+      };
+    }
+    return normalized;
   }
 
   // ── Cache ────────────────────────────────────────────────────────
