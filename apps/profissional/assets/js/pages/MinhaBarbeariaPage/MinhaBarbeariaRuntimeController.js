@@ -53,31 +53,70 @@ import { QueueRealtimeClient } from './QueueRealtimeClient.js';
       }
     },
 
-    render(entry) {
-      if (typeof document === 'undefined') return;
+    ensureUI() {
+      if (typeof document === 'undefined') return null;
       let panel = document.getElementById('bf-upload-diag-panel');
-      if (!panel) {
-        panel = document.createElement('section');
-        panel.id = 'bf-upload-diag-panel';
-        panel.setAttribute('aria-live', 'polite');
-        panel.style.cssText = [
-          'position:fixed',
-          'left:8px',
-          'right:8px',
-          'bottom:8px',
-          'z-index:2147483647',
-          'max-height:42vh',
-          'overflow:auto',
-          'padding:8px',
-          'background:rgba(8,12,18,.94)',
-          'color:#e8f0ff',
-          'font:11px/1.35 monospace',
-          'border:1px solid rgba(255,255,255,.22)',
-          'border-radius:8px',
-          'white-space:pre-wrap',
-        ].join(';');
-        document.body.appendChild(panel);
-      }
+      if (panel) return panel;
+
+      panel = document.createElement('section');
+      panel.id = 'bf-upload-diag-panel';
+      panel.setAttribute('aria-live', 'polite');
+      panel.style.cssText = [
+        'position:fixed',
+        'left:8px',
+        'right:8px',
+        'bottom:8px',
+        'z-index:2147483646',
+        'max-height:42vh',
+        'overflow:auto',
+        'padding:8px',
+        'background:rgba(8,12,18,.94)',
+        'color:#e8f0ff',
+        'font:11px/1.35 monospace',
+        'border:1px solid rgba(255,255,255,.22)',
+        'border-radius:8px',
+        'white-space:pre-wrap',
+        'display:none',
+      ].join(';');
+      document.body.appendChild(panel);
+
+      const toggle = document.createElement('button');
+      toggle.id = 'bf-upload-diag-toggle';
+      toggle.type = 'button';
+      toggle.setAttribute('aria-controls', 'bf-upload-diag-panel');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Abrir diagnóstico de upload');
+      toggle.textContent = '▲';
+      toggle.style.cssText = [
+        'position:fixed',
+        'left:8px',
+        'bottom:8px',
+        'z-index:2147483647',
+        'width:34px',
+        'height:34px',
+        'border-radius:50%',
+        'border:1px solid rgba(255,255,255,.22)',
+        'background:rgba(8,12,18,.94)',
+        'color:#e8f0ff',
+        'font:16px/1 monospace',
+        'cursor:pointer',
+        'padding:0',
+      ].join(';');
+      toggle.addEventListener('click', () => {
+        const aberto = panel.style.display !== 'none';
+        panel.style.display = aberto ? 'none' : 'block';
+        toggle.textContent = aberto ? '▲' : '▼';
+        toggle.setAttribute('aria-expanded', String(!aberto));
+        toggle.setAttribute('aria-label', aberto ? 'Abrir diagnóstico de upload' : 'Fechar diagnóstico de upload');
+      });
+      document.body.appendChild(toggle);
+
+      return panel;
+    },
+
+    render(entry) {
+      const panel = this.ensureUI();
+      if (!panel) return;
 
       const line = document.createElement('div');
       line.textContent = JSON.stringify(entry);
