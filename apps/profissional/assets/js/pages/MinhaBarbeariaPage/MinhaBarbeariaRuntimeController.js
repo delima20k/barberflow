@@ -9,6 +9,85 @@ import { SettingsController, SettingsSection, SettingsState, SettingsView } from
 import { StoryBrowserMediaAdapter } from './StorySection/StoryBrowserMediaAdapter.js';
 import { QueueRealtimeClient } from './QueueRealtimeClient.js';
 
+(() => {
+  if (typeof window === 'undefined' || window.BarberflowUploadDiag) return;
+
+  window.BarberflowUploadDiag = {
+    log(event = {}) {
+      const entry = {
+        time: new Date().toISOString(),
+        step: event.step ?? 'unknown',
+        state: event.state ?? 'info',
+        uid: event.uid ?? null,
+        status: event.status ?? null,
+        endpoint: this.sanitizeEndpoint(event.endpoint),
+        message: event.message ?? null,
+        stack: event.stack ?? null,
+      };
+
+      console.info('[UploadDiag]', entry);
+      this.render(entry);
+    },
+
+    error(step, err, extra = {}) {
+      this.log({
+        ...extra,
+        step,
+        state: 'erro',
+        message: err?.message ?? String(err),
+        stack: err?.stack ?? null,
+      });
+    },
+
+    sanitizeEndpoint(endpoint) {
+      if (!endpoint) return null;
+      try {
+        const url = new URL(String(endpoint), window.location.origin);
+        if (url.hostname.includes('r2') || url.hostname.includes('cloudflare')) {
+          const parts = url.pathname.split('/').filter(Boolean).slice(0, 2).join('/');
+          return `${url.origin}/${parts}${parts ? '/...' : ''}`;
+        }
+        return `${url.origin}${url.pathname}`.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, ':uuid');
+      } catch {
+        return String(endpoint).split('?')[0].replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, ':uuid');
+      }
+    },
+
+    render(entry) {
+      if (typeof document === 'undefined') return;
+      let panel = document.getElementById('bf-upload-diag-panel');
+      if (!panel) {
+        panel = document.createElement('section');
+        panel.id = 'bf-upload-diag-panel';
+        panel.setAttribute('aria-live', 'polite');
+        panel.style.cssText = [
+          'position:fixed',
+          'left:8px',
+          'right:8px',
+          'bottom:8px',
+          'z-index:2147483647',
+          'max-height:42vh',
+          'overflow:auto',
+          'padding:8px',
+          'background:rgba(8,12,18,.94)',
+          'color:#e8f0ff',
+          'font:11px/1.35 monospace',
+          'border:1px solid rgba(255,255,255,.22)',
+          'border-radius:8px',
+          'white-space:pre-wrap',
+        ].join(';');
+        document.body.appendChild(panel);
+      }
+
+      const line = document.createElement('div');
+      line.textContent = JSON.stringify(entry);
+      panel.appendChild(line);
+      while (panel.childNodes.length > 80) panel.removeChild(panel.firstChild);
+      panel.scrollTop = panel.scrollHeight;
+    },
+  };
+})();
+
 // =============================================================
 // MinhaBarbeariaPage.js — Tela "Minha Barbearia"
 //
@@ -549,16 +628,24 @@ export class MinhaBarbeariaRuntimeController {
     section?.update(partialState);
   }
 
-  async #carregar() {
+  async #carregar(uploadDiagUid = null) {
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.#carregar', state: 'inicio', uid: uploadDiagUid });
     this.#carregou = true;
     this.#mostrarSkeleton();
 
     try {
       const perfil = AuthService.getPerfil();
-      if (!perfil?.id) return;
+      if (!perfil?.id) {
+        globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.#carregar', state: 'sucesso', uid: uploadDiagUid, message: 'sem perfil ativo' });
+        return;
+      }
 
       const shop = await MinhaBarbeariaRuntimeController.#fetchMinhaBarbearia(perfil.id);
-      if (!shop) { this.#mostrarVazio(); return; }
+      if (!shop) {
+        this.#mostrarVazio();
+        globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.#carregar', state: 'sucesso', uid: uploadDiagUid, message: 'sem barbearia ativa' });
+        return;
+      }
 
       this.#barbershopId   = shop.id;
       this.#contextoParceiro = shop.__contextoParceiro === true;
@@ -609,8 +696,10 @@ export class MinhaBarbeariaRuntimeController {
       this.#processarPushPendente();
       this.#aplicarModoParceiro();
       if (this.#refs.convitesStatusSection) this.#refs.convitesStatusSection.hidden = true;
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.#carregar', state: 'sucesso', uid: uploadDiagUid });
 
     } catch (err) {
+      globalThis.BarberflowUploadDiag?.error?.('MinhaBarbearia.#carregar', err, { uid: uploadDiagUid });
       console.error('[MinhaBarbeariaPage] erro:', err);
       this.#mostrarErro();
     }
@@ -3586,6 +3675,7 @@ export class MinhaBarbeariaRuntimeController {
    * @param {File} file
    */
   async #postarStory(file) {
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.#postarStory', state: 'inicio' });
     if (!file || !this.#barbershopId) return;
 
     if (!file.type?.startsWith('video/') && !file.type?.startsWith('image/')) {
@@ -3603,9 +3693,13 @@ export class MinhaBarbeariaRuntimeController {
     const addBtn = this.#refs.addBtn;
     if (addBtn) { addBtn.textContent = '⏳'; addBtn.style.pointerEvents = 'none'; }
 
+    let uid = null;
     try {
-      const uid     = `story-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.uid', state: 'inicio' });
+      uid = `story-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.uid', state: 'sucesso', uid });
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.upload', state: 'inicio', uid });
       const uploadResult = await this.#storyMediaAdapter.upload({
         file,
         uid,
@@ -3613,18 +3707,23 @@ export class MinhaBarbeariaRuntimeController {
         expiresAt,
         preValidated: true, // arquivo já passou pelo StoryComposer (truncado a ≤30s)
       });
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.upload', state: uploadResult ? 'sucesso' : 'erro', uid, message: uploadResult ? null : 'upload retornou vazio' });
       if (!uploadResult) {
         if (addBtn) { addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; }
         return;
       }
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.uploadRetorno', state: 'sucesso', uid });
 
       // 3. Registrar story pela BFF (metadados; arquivo ja esta no R2)
+      const publicarEndpoint = `/api/v1/barbearias/${this.#barbershopId}/stories`;
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'BffApiService.barbearias.publicarStory', state: 'inicio', uid, endpoint: publicarEndpoint });
       const { error: dbErr } = await BffApiService.barbearias.publicarStory(this.#barbershopId, {
         storage_path: uploadResult.path,
         media_type: uploadResult.mediaType,
         expires_at: uploadResult.expiresAt,
         media_id: uploadResult.mediaId ?? null,
       });
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'BffApiService.barbearias.publicarStory', state: dbErr ? 'erro' : 'sucesso', uid, endpoint: publicarEndpoint, status: dbErr?.status ?? null, message: dbErr?.message ?? null, stack: dbErr?.stack ?? null });
       if (dbErr) throw dbErr;
 
       if (typeof StoriesWidget !== 'undefined') {
@@ -3640,12 +3739,15 @@ export class MinhaBarbeariaRuntimeController {
       // textContent). Agora volta ao normal em tempo real, sem reload.
       if (addBtn) { addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; }
       this.#carregou = false;
-      this.#carregar();
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.#carregar chamada', state: 'inicio', uid });
+      this.#carregar(uid);
 
     } catch (err) {
       LoggerService?.warn('[MinhaBarbeariaPage] onUploadMidia erro:', err.message);
       const mensagem = err?.message || 'Falha ao enviar mídia. Tente novamente.';
       const titulo = mensagem.startsWith('Este vídeo tem ') ? 'Limite' : 'Erro';
+      globalThis.BarberflowUploadDiag?.error?.('MinhaBarbearia.#postarStory catch final', err, { uid, message: mensagem });
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MinhaBarbearia.toastErro', state: 'inicio', uid, message: mensagem });
       NotificationService?.mostrarToast(titulo, mensagem, 'sistema');
       if (addBtn) { addBtn.textContent = '+'; addBtn.style.pointerEvents = ''; }
     }

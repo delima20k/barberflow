@@ -14,6 +14,7 @@ export class StoryBrowserMediaAdapter {
   }
 
   async upload({ file, uid, barbershopId, expiresAt, preValidated = false }) {
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.upload', state: 'inicio', uid });
     if (!file) throw new Error('StoryBrowserMediaAdapter requer arquivo.');
     if (!uid) throw new Error('StoryBrowserMediaAdapter requer uid.');
     if (!barbershopId) throw new Error('StoryBrowserMediaAdapter requer barbershopId.');
@@ -25,14 +26,18 @@ export class StoryBrowserMediaAdapter {
       await this.#validarDuracaoVideo(file);
     }
 
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.registrar', state: 'inicio', uid });
     const blobUrl = await this.#mediaP2P.registrar(file, uid);
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.registrar', state: blobUrl ? 'sucesso' : 'erro', uid, message: blobUrl ? null : 'registro cancelado ou indisponivel' });
     if (!blobUrl) return null;
 
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.fazerUpload', state: 'inicio', uid });
     const uploadResult = await this.#mediaP2P.fazerUpload(uid, 'stories', {
       barbershopId,
       mediaType,
       expiresAt,
     });
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.fazerUpload', state: 'sucesso', uid });
 
     // Captura thumbnail do primeiro frame e salva de forma assíncrona (fire-and-forget).
     // Não bloqueia o fluxo de upload — falhas são silenciosas por design.
@@ -46,6 +51,7 @@ export class StoryBrowserMediaAdapter {
       }).catch(() => {});
     }
 
+    globalThis.BarberflowUploadDiag?.log?.({ step: 'StoryBrowserMediaAdapter.upload', state: 'sucesso', uid });
     return {
       ...uploadResult,
       blobUrl,

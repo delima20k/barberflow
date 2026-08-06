@@ -29,6 +29,85 @@
 // Dependência: SupabaseService (para obter JWT da sessão)
 // =============================================================
 
+(() => {
+  if (typeof window === 'undefined' || window.BarberflowUploadDiag) return;
+
+  window.BarberflowUploadDiag = {
+    log(event = {}) {
+      const entry = {
+        time: new Date().toISOString(),
+        step: event.step ?? 'unknown',
+        state: event.state ?? 'info',
+        uid: event.uid ?? null,
+        status: event.status ?? null,
+        endpoint: this.sanitizeEndpoint(event.endpoint),
+        message: event.message ?? null,
+        stack: event.stack ?? null,
+      };
+
+      console.info('[UploadDiag]', entry);
+      this.render(entry);
+    },
+
+    error(step, err, extra = {}) {
+      this.log({
+        ...extra,
+        step,
+        state: 'erro',
+        message: err?.message ?? String(err),
+        stack: err?.stack ?? null,
+      });
+    },
+
+    sanitizeEndpoint(endpoint) {
+      if (!endpoint) return null;
+      try {
+        const url = new URL(String(endpoint), window.location.origin);
+        if (url.hostname.includes('r2') || url.hostname.includes('cloudflare')) {
+          const parts = url.pathname.split('/').filter(Boolean).slice(0, 2).join('/');
+          return `${url.origin}/${parts}${parts ? '/...' : ''}`;
+        }
+        return `${url.origin}${url.pathname}`.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, ':uuid');
+      } catch {
+        return String(endpoint).split('?')[0].replace(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi, ':uuid');
+      }
+    },
+
+    render(entry) {
+      if (typeof document === 'undefined') return;
+      let panel = document.getElementById('bf-upload-diag-panel');
+      if (!panel) {
+        panel = document.createElement('section');
+        panel.id = 'bf-upload-diag-panel';
+        panel.setAttribute('aria-live', 'polite');
+        panel.style.cssText = [
+          'position:fixed',
+          'left:8px',
+          'right:8px',
+          'bottom:8px',
+          'z-index:2147483647',
+          'max-height:42vh',
+          'overflow:auto',
+          'padding:8px',
+          'background:rgba(8,12,18,.94)',
+          'color:#e8f0ff',
+          'font:11px/1.35 monospace',
+          'border:1px solid rgba(255,255,255,.22)',
+          'border-radius:8px',
+          'white-space:pre-wrap',
+        ].join(';');
+        document.body.appendChild(panel);
+      }
+
+      const line = document.createElement('div');
+      line.textContent = JSON.stringify(entry);
+      panel.appendChild(line);
+      while (panel.childNodes.length > 80) panel.removeChild(panel.firstChild);
+      panel.scrollTop = panel.scrollHeight;
+    },
+  };
+})();
+
 class MediaP2P {
 
   /**
@@ -109,10 +188,14 @@ class MediaP2P {
     // o erro — sem isso, um upload que falha vaza o Blob até cancelar(uid)
     // ou cancelarTodos() serem chamados por fora (nem sempre acontece).
     try {
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MediaP2P.obterToken', state: 'inicio', uid });
       const token = await this.#obterToken();
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'MediaP2P.obterToken', state: 'sucesso', uid });
 
       // ── Etapa 1: solicitar URL presigned ao BFF ──────────────────
-      const presResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/presigned`, {
+      const presignedEndpoint = `${MediaP2P.#BFF_URL}/api/v1/media/presigned`;
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'POST /media/presigned', state: 'inicio', uid, endpoint: presignedEndpoint });
+      const presResp = await fetch(presignedEndpoint, {
         method:  'POST',
         headers: {
           'Content-Type':  'application/json',
@@ -120,6 +203,7 @@ class MediaP2P {
         },
         body: JSON.stringify({ context: contexto, contentType: file.type, sizeBytes: file.size }),
       });
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'POST /media/presigned', state: presResp.ok ? 'sucesso' : 'erro', uid, endpoint: presignedEndpoint, status: presResp.status });
 
       if (!presResp.ok) {
         const { error } = await presResp.json().catch(() => ({}));
@@ -133,18 +217,22 @@ class MediaP2P {
       }
 
       // ── Etapa 2: upload P2P direto ao R2 (sem servidor no meio) ──
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'PUT R2', state: 'inicio', uid, endpoint: uploadUrl });
       const uploadResp = await fetch(uploadUrl, {
         method:  'PUT',
         headers: { 'Content-Type': file.type },
         body:    file,
       });
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'PUT R2', state: uploadResp.ok ? 'sucesso' : 'erro', uid, endpoint: uploadUrl, status: uploadResp.status });
 
       if (!uploadResp.ok) {
         throw new Error(`[MediaP2P] Falha no upload ao R2: HTTP ${uploadResp.status}`);
       }
 
       // ── Etapa 3: confirmar ao BFF → salva metadata no Supabase ───
-      const confResp = await fetch(`${MediaP2P.#BFF_URL}/api/v1/media/confirmar`, {
+      const confirmarEndpoint = `${MediaP2P.#BFF_URL}/api/v1/media/confirmar`;
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'POST /media/confirmar', state: 'inicio', uid, endpoint: confirmarEndpoint });
+      const confResp = await fetch(confirmarEndpoint, {
         method:  'POST',
         headers: {
           'Content-Type':  'application/json',
@@ -152,6 +240,7 @@ class MediaP2P {
         },
         body: JSON.stringify({ mediaId, path, context: contexto, confirmationToken: hmac, expiresAt, metadata }),
       });
+      globalThis.BarberflowUploadDiag?.log?.({ step: 'POST /media/confirmar', state: confResp.ok ? 'sucesso' : 'erro', uid, endpoint: confirmarEndpoint, status: confResp.status });
 
       if (!confResp.ok) {
         const { error } = await confResp.json().catch(() => ({}));
@@ -161,6 +250,7 @@ class MediaP2P {
       this.#revogar(uid); // libera memória após conclusão bem-sucedida
       return { path, publicUrl, mediaId };
     } catch (err) {
+      globalThis.BarberflowUploadDiag?.error?.('MediaP2P.fazerUpload', err, { uid });
       this.#revogar(uid); // libera memória mesmo quando o upload falha
       throw err;
     }
