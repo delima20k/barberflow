@@ -8,6 +8,10 @@ class PwaUpdateManager {
   static #nomeApp = 'BarberFlow';
   static #RELOAD_GUARD_KEY = 'bf_pwa_update_reloaded';
   static #RELOAD_GUARD_TTL_MS = 5000;
+  // Sessao longa em foreground (comum no Android, app aberto o dia todo no
+  // balcao) nunca dispara visibilitychange — sem isso, so pegaria a
+  // atualizacao ao fechar/reabrir o app. Intervalo cobre esse caso.
+  static #INTERVALO_VERIFICACAO_MS = 15 * 60 * 1000;
 
   static registrar({ scriptUrl = './sw.js', scope = './', nomeApp = 'BarberFlow' } = {}) {
     if (PwaUpdateManager.#inicializado || !('serviceWorker' in navigator)) return;
@@ -62,6 +66,7 @@ class PwaUpdateManager {
 
       await PwaUpdateManager.verificarAtualizacao();
       PwaUpdateManager.#registrarSincronizacaoPeriodica(registration);
+      PwaUpdateManager.#iniciarVerificacaoPeriodica();
       PwaUpdateManager.#info(`SW registrado em ${registration.scope ?? scope}`);
     } catch (error) {
       PwaUpdateManager.#warn('Falha ao registrar o SW', error);
@@ -87,6 +92,13 @@ class PwaUpdateManager {
 
   static #ativar(worker) {
     worker?.postMessage?.({ type: 'SKIP_WAITING' });
+  }
+
+  /** Verifica atualização a cada #INTERVALO_VERIFICACAO_MS enquanto a aba está visível. */
+  static #iniciarVerificacaoPeriodica() {
+    setInterval(() => {
+      if (document.visibilityState === 'visible') PwaUpdateManager.verificarAtualizacao();
+    }, PwaUpdateManager.#INTERVALO_VERIFICACAO_MS);
   }
 
   static #registrarSincronizacaoPeriodica(registration) {

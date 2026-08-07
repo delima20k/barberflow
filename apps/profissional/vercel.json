@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cp -r ../../shared .",
+  "buildCommand": "cp -r ../../shared . && node ../../scripts/stamp-sw-version.js sw.js",
   "outputDirectory": ".",
   "headers": [
     {

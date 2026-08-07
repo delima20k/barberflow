@@ -49,6 +49,7 @@ function criarCenario({ waiting = null } = {}) {
   const storage = new Map();
   const reload = fn();
   const timers = [];
+  const intervalos = [];
   const sandbox = vm.createContext({
     console,
     Promise,
@@ -65,6 +66,10 @@ function criarCenario({ waiting = null } = {}) {
       timers.push(callback);
       return timers.length;
     },
+    setInterval: (callback, ms) => {
+      intervalos.push({ callback, ms });
+      return intervalos.length;
+    },
     LoggerService: { info: fn(), warn: fn() },
   });
 
@@ -78,6 +83,7 @@ function criarCenario({ waiting = null } = {}) {
     documentTarget,
     reload,
     timers,
+    intervalos,
   };
 }
 
@@ -151,6 +157,31 @@ describe('PwaUpdateManager', () => {
     await new Promise(resolve => setImmediate(resolve));
 
     assert.equal(cenario.registration.update.calls.length, 1);
+  });
+
+  it('agenda verificação periódica ao registrar (cobre sessão longa em foreground, sem visibilitychange)', async () => {
+    const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    assert.equal(cenario.intervalos.length, 1, 'deve agendar exatamente 1 setInterval');
+    assert.ok(cenario.intervalos[0].ms > 0 && cenario.intervalos[0].ms <= 30 * 60 * 1000,
+      'intervalo deve ser da ordem de minutos, não horas — sessão longa não pode ficar sem checar por muito tempo');
+  });
+
+  it('verificação periódica só checa quando a aba está visível (evita gastar rede/bateria em background)', async () => {
+    const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+    cenario.registration.update.mockClear();
+
+    cenario.documentTarget.visibilityState = 'hidden';
+    cenario.intervalos[0].callback();
+    assert.equal(cenario.registration.update.calls.length, 0, 'em background não deve chamar update()');
+
+    cenario.documentTarget.visibilityState = 'visible';
+    cenario.intervalos[0].callback();
+    assert.equal(cenario.registration.update.calls.length, 1, 'visível deve chamar update()');
   });
 });
 
