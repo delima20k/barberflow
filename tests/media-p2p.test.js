@@ -103,6 +103,40 @@ describe('MediaP2P', () => {
     assert.equal(calls[2].url, 'https://bff.test/api/v1/media/confirmar');
   });
 
+  it('normaliza contentType com parametros de codec (fallback webm do MediaRecorder) igualmente no presigned e no PUT', async () => {
+    const calls = [];
+    const fetchImpl = async (url, options = {}) => {
+      calls.push({ url, options });
+      if (url.endsWith('/api/v1/media/presigned')) {
+        return {
+          ok: true,
+          json: async () => ({ dados: {
+            uploadUrl: 'https://r2.test/upload',
+            path: 'stories/user/incoming/media.webm',
+            publicUrl: 'https://cdn.test/media.webm',
+            token: 'confirm-token',
+            expiresAt: '2026-08-07T12:00:00.000Z',
+            mediaId: 'media-webm-1',
+          } }),
+        };
+      }
+      if (url === 'https://r2.test/upload') return { ok: true, json: async () => ({}) };
+      if (url.endsWith('/api/v1/media/confirmar')) return { ok: true, json: async () => ({ dados: { status: 'queued' } }) };
+      throw new Error(`URL inesperada: ${url}`);
+    };
+    const { MediaP2P, FileMock } = carregarMediaP2P(fetchImpl);
+    const media = new MediaP2P();
+    // Blob.type como o MediaRecorder entrega no fallback sem encoder H.264 (comum em Android).
+    const file = new FileMock(['video'], 'story.webm', { type: 'video/webm;codecs=vp9,opus' });
+
+    await media.registrar(file, 'story-webm');
+    await media.fazerUpload('story-webm', 'stories');
+
+    const presignedBody = JSON.parse(calls[0].options.body);
+    assert.equal(presignedBody.contentType, 'video/webm', 'presigned deve enviar o MIME sem parametros de codec');
+    assert.equal(calls[1].options.headers['Content-Type'], 'video/webm', 'PUT deve usar o mesmo Content-Type assinado no presigned');
+  });
+
   it('falha cedo quando envelope presigned nao contem mediaId ou path', async () => {
     const fetchImpl = async () => ({
       ok: true,

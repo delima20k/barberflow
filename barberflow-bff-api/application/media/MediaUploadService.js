@@ -254,7 +254,12 @@ class MediaUploadService {
     const context = String(request?.context ?? '').toLowerCase();
     const policy = MediaPolicyCatalog.context(context);
     if (!policy) throw AppError.badRequest('Contexto de midia invalido.');
-    const contentType = String(request?.contentType ?? '').toLowerCase();
+    // Descarta parâmetros do MIME (ex.: ";codecs=vp9,opus") antes de comparar —
+    // o MediaRecorder do browser anexa isso ao Blob.type em alguns navegadores
+    // (comum no fallback video/webm de Android sem encoder H.264), e o valor
+    // normalizado tem que bater com o que o frontend usa no Content-Type do
+    // PUT presigned (mesma normalização em shared/js/MediaP2P.js).
+    const contentType = String(request?.contentType ?? '').toLowerCase().split(';')[0].trim();
     if (!policy.mimes.includes(contentType)) throw AppError.badRequest('Tipo de midia nao permitido.');
     const sizeBytes = Number(request?.sizeBytes ?? 0);
     if (!Number.isInteger(sizeBytes) || sizeBytes < 1 || sizeBytes > policy.maxBytes) {

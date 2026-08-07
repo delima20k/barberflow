@@ -221,6 +221,14 @@ class MediaP2P {
     }
 
     const { file } = pendente;
+    // Normaliza o content type descartando parâmetros (ex.: ";codecs=vp9,opus"),
+    // que o MediaRecorder anexa ao Blob.type em alguns navegadores (comum no
+    // fallback video/webm de Android sem encoder de hardware H.264). Sem isso,
+    // a policy do BFF rejeita ("Tipo de midia nao permitido") e, mesmo se o BFF
+    // relaxasse a checagem, o Content-Type divergente quebraria a assinatura da
+    // URL presigned (SigV4) no PUT ao R2 — por isso o mesmo valor normalizado é
+    // usado tanto no pedido do presigned quanto no PUT abaixo.
+    const contentType = String(file.type || '').split(';')[0].trim();
 
     // Todo o fluxo de rede fica dentro do try: qualquer falha (presigned,
     // PUT ao R2 ou confirmação) revoga o Blob URL pendente antes de propagar
@@ -240,7 +248,7 @@ class MediaP2P {
           'Content-Type':  'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ context: contexto, contentType: file.type, sizeBytes: file.size }),
+        body: JSON.stringify({ context: contexto, contentType, sizeBytes: file.size }),
       });
       globalThis.BarberflowUploadDiag?.log?.({ step: 'POST /media/presigned', state: presResp.ok ? 'sucesso' : 'erro', uid, endpoint: presignedEndpoint, status: presResp.status });
 
@@ -259,7 +267,7 @@ class MediaP2P {
       globalThis.BarberflowUploadDiag?.log?.({ step: 'PUT R2', state: 'inicio', uid, endpoint: uploadUrl });
       const uploadResp = await fetch(uploadUrl, {
         method:  'PUT',
-        headers: { 'Content-Type': file.type },
+        headers: { 'Content-Type': contentType },
         body:    file,
       });
       globalThis.BarberflowUploadDiag?.log?.({ step: 'PUT R2', state: uploadResp.ok ? 'sucesso' : 'erro', uid, endpoint: uploadUrl, status: uploadResp.status });

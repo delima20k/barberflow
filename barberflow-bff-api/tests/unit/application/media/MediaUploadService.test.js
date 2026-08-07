@@ -55,6 +55,34 @@ describe('MediaUploadService', () => {
     assert.equal(calls[0].contentType, 'video/mp4');
   });
 
+  it('aceita video/webm com parametros de codec (fallback do MediaRecorder em Android sem H.264) e normaliza antes de assinar', async () => {
+    const calls = [];
+    const service = new MediaUploadService({
+      storage: {
+        createSignedUpload: async (request) => {
+          calls.push(request);
+          return { uploadUrl: 'https://storage.test/upload', token: 'storage-token', expiresAt: '2026-05-22T12:00:00.000Z' };
+        },
+      },
+      mediaRepository: { reserve: async (media) => media },
+      outboxRepository: { save: async () => 'outbox-1' },
+      confirmationSigner: { sign: () => 'confirm-token', verify: () => true },
+    });
+
+    const result = await service.createSignedUpload('aaaaaaaa-0000-4000-8000-000000000001', {
+      context: 'stories',
+      contentType: 'video/webm;codecs=vp9,opus',
+      sizeBytes: 4 * 1024 * 1024,
+    });
+
+    assert.equal(result.uploadUrl, 'https://storage.test/upload');
+    // O que vai para storage.createSignedUpload (e assina a URL presigned) precisa
+    // estar sem o sufixo de codec — senao o Content-Type do PUT real (ja normalizado
+    // no frontend) diverge do que foi assinado e o R2 rejeita com SignatureDoesNotMatch.
+    assert.equal(calls[0].contentType, 'video/webm');
+    assert.match(result.path, /\.webm$/);
+  });
+
   it('confirma upload de story e cria variante original imediata para acesso antes do worker', async () => {
     let event = null;
     let originalVariant = null;
