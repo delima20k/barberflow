@@ -1317,10 +1317,12 @@
    Gradiente com tokens de marca já existentes (tokens.css), sem cor nova.
    --gold-dark (#6B4A32) NÃO é dourado apesar do nome — é marrom. Usa --gold
    (#D4A017) de verdade no final do gradiente pra ficar marrom -> amarelo/dourado
-   visível, como pedido — não só variações de marrom. */
+   visível, como pedido — não só variações de marrom.
+   Marrom bem escuro sólido segura até 40% (mais denso/opaco, menos "lavado"),
+   dourado só entra como acento no canto final — sem cor com alpha em nenhum stop. */
 .barber-card[data-professional-id],
 .barber-row[data-professional-id] {
-  background: linear-gradient(135deg, var(--header-bg, #2B1B12) 0%, var(--brown, #5C3317) 65%, var(--gold, #D4A017) 100%);
+  background: linear-gradient(135deg, var(--header-bg, #2B1B12) 0%, var(--header-bg, #2B1B12) 40%, var(--brown, #5C3317) 78%, var(--gold, #D4A017) 100%);
 }
 
 /* ── Linha de pontuação ─────────────────────────────────── */
