@@ -9,7 +9,9 @@ const silentLogger = { warn: () => {} };
 
 describe('VideoCompressionService', () => {
   it('comprime video valido usando runner injetado', async () => {
-    const original = Buffer.alloc(2 * 1024 * 1024, 1);
+    // Precisa ficar acima de SKIP_BELOW_BYTES (3.5MB) pra shouldSkip() nao pular
+    // a compressao antes do runner ser chamado.
+    const original = Buffer.alloc(4 * 1024 * 1024, 1);
     const compressed = Buffer.alloc(Math.floor(1.35 * 1024 * 1024), 2);
     let runnerOptions = null;
     const service = new VideoCompressionService({
@@ -42,7 +44,9 @@ describe('VideoCompressionService', () => {
   });
 
   it('usa original como fallback quando video esta corrompido', async () => {
-    const original = Buffer.alloc(2 * 1024 * 1024, 1);
+    // Idem — acima de SKIP_BELOW_BYTES (3.5MB), senao o runner nunca seria
+    // chamado e o erro simulado nunca aconteceria.
+    const original = Buffer.alloc(4 * 1024 * 1024, 1);
     let logged = false;
     const service = new VideoCompressionService({
       logger: { warn: () => { logged = true; } },

@@ -10,7 +10,12 @@ const { logger } = require('../../middlewares/logger');
 class VideoCompressionService {
   static TARGET_BYTES = Math.floor(1.35 * 1024 * 1024);
   static MAX_OUTPUT_BYTES = Math.floor(1.5 * 1024 * 1024);
-  static SKIP_BELOW_BYTES = VideoCompressionService.MAX_OUTPUT_BYTES;
+  // Alinhado ao alvo real do StoryComposer no cliente (ALVO_VIDEO = 3MB,
+  // StoryCreationModal.js), com folga até a margem de retry dele (targetBytes*1.3
+  // = ~3.9MB). Antes era igual a MAX_OUTPUT_BYTES (1.5MB) — bem abaixo do que o
+  // cliente já entrega comprimido — fazendo o servidor recomprimir de novo (a
+  // 330kbps/480p) quase todo video que o cliente ja tinha otimizado corretamente.
+  static SKIP_BELOW_BYTES = Math.floor(3.5 * 1024 * 1024);
   static DEFAULT_TIMEOUT_MS = 45_000;
 
   #runner;
