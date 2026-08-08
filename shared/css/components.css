@@ -5776,6 +5776,44 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   animation: pbp-shimmer 1.4s ease-in-out infinite;
 }
 
+/* Grade de portfólio da própria barbearia na Barbearia Pública (#bp-portfolio-grid,
+   markup em shared/js/BarbeariaPage.js#renderPortfolio). Não tinha nenhum CSS —
+   <img> sem width/height/object-fit renderizava no tamanho nativo, quebrando o
+   layout. Mesma receita já usada em .mb-portfolio-card/.mb-portfolio-card > img
+   (width, height, object-fit) — só renomeada pro seletor .bp-port-item. */
+.bp-portfolio-grid {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.bp-port-item {
+  position: relative;
+  aspect-ratio: 1;
+  flex: 0 0 clamp(132px, 42vw, 180px);
+  width: clamp(132px, 42vw, 180px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.bp-port-item img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .portfolio-grid.portfolio-gallery__carousel {
   display: flex;
   flex-flow: row nowrap;
