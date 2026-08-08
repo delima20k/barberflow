@@ -176,15 +176,18 @@ describe('Fundo escuro do card — escopado a barbeiro, sem vazar pra card de ba
     );
   });
 
-  it('gradiente escuro usa só tokens de marca já existentes (nenhuma cor hexadecimal nova)', () => {
+  it('gradiente escuro usa as cores de marca (header-bg/brown/gold), semitransparente de propósito', () => {
     const inicio = CSS.indexOf('.barber-card[data-professional-id]');
     assert.ok(inicio > 0, 'regra deve existir (testes anteriores já confirmam isso)');
     const regra = CSS.slice(inicio, inicio + 400);
-    assert.match(regra, /var\(--header-bg/);
-    assert.match(regra, /var\(--brown\b/);
+    // var() não permite ajustar alpha de um token hex diretamente — por isso os
+    // stops usam rgba() com o RGB equivalente de --header-bg/--brown/--gold,
+    // não var(). Confirma que são exatamente esses 3 RGBs, com alpha < 1.
+    assert.match(regra, /rgba\(43,\s*27,\s*18,\s*\.85\)/, 'primeiro stop deve ser --header-bg (#2B1B12) semitransparente');
+    assert.match(regra, /rgba\(92,\s*51,\s*23,\s*\.85\)/, 'stop do meio deve ser --brown (#5C3317) semitransparente');
     // --gold-dark (#6B4A32) NÃO é amarelo/dourado apesar do nome — é marrom.
     // O gradiente precisa terminar em --gold (#D4A017) de verdade, senão vira
     // marrom -> marrom -> marrom (foi exatamente o bug reportado e corrigido).
-    assert.match(regra, /var\(--gold,/, 'precisa usar --gold de verdade, não --gold-dark (que é marrom)');
+    assert.match(regra, /rgba\(212,\s*160,\s*23,\s*\.85\)/, 'último stop deve ser --gold (#D4A017) de verdade, não --gold-dark');
   });
 });

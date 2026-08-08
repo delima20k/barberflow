@@ -1318,11 +1318,12 @@
    --gold-dark (#6B4A32) NÃO é dourado apesar do nome — é marrom. Usa --gold
    (#D4A017) de verdade no final do gradiente pra ficar marrom -> amarelo/dourado
    visível, como pedido — não só variações de marrom.
-   Todos os stops são hex sólido (sem rgba/alpha) — 100% opaco de propósito,
-   diferente da regra clara acima (linha ~1307) que usa rgba(...,.82/.68). */
+   Semitransparente de propósito (.85 alpha) — mesmas cores de --header-bg/
+   --brown/--gold em rgba (var() não permite ajustar alpha de um token hex
+   diretamente), deixando um pouco do fundo da tela aparecer por trás. */
 .barber-card[data-professional-id],
 .barber-row[data-professional-id] {
-  background: linear-gradient(135deg, var(--header-bg, #2B1B12) 0%, var(--brown, #5C3317) 65%, var(--gold, #D4A017) 100%);
+  background: linear-gradient(135deg, rgba(43, 27, 18, .85) 0%, rgba(92, 51, 23, .85) 65%, rgba(212, 160, 23, .85) 100%);
 }
 
 /* ── Linha de pontuação ─────────────────────────────────── */
