@@ -8,6 +8,7 @@ export class PortfolioController {
   #emit = null;
   #carregadoBarbershopId = null;
   #uploadHandler = null;
+  #canalRealtime = null;
   constructor({ state, view } = {}) {
     if (!state?.merge || !view?.render) throw new Error('PortfolioController requer State e View injetados.');
     this.#state = state;
@@ -22,6 +23,30 @@ export class PortfolioController {
       onRemove: imageId => this.remove(imageId),
     });
     this.render();
+    this.#iniciarRealtime();
+  }
+
+  // Portfolio da barbearia agrega fotos de varios profissionais (dono + parceiros
+  // ativos — ver BarbeariaService.listarPortfolio), entao nao ha um unico owner_id
+  // para filtrar no canal: qualquer mudanca na tabela reaciona um refetch (guardado
+  // internamente por #load(), que so busca de fato quando ha barbershopId carregado).
+  #iniciarRealtime() {
+    if (this.#canalRealtime || typeof SupabaseService === 'undefined') return;
+    try {
+      this.#canalRealtime = SupabaseService.channel('portfolio-images-minha-barbearia')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'portfolio_images' }, () => {
+          void this.#load();
+        })
+        .subscribe();
+    } catch {
+      this.#canalRealtime = null;
+    }
+  }
+
+  #pararRealtime() {
+    if (!this.#canalRealtime) return;
+    try { SupabaseService.removeChannel(this.#canalRealtime); } catch { /* melhor esforco */ }
+    this.#canalRealtime = null;
   }
 
   async remove(imageId) {
@@ -78,6 +103,7 @@ export class PortfolioController {
     }
   }
   destroy() {
+    this.#pararRealtime();
     this.#view.destroy?.();
     this.#emit = null;
     this.#uploadHandler = null;

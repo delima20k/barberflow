@@ -47,6 +47,7 @@ class ParceriasPage {
   #fotoViewerCountEl = null;
   #fotoViewerIndex   = 0;
   #fotoViewerSwipeX  = null;
+  #canalPortfolio    = null; // canal Supabase Realtime de portfolio_images (minhas fotos)
 
   constructor() {}
 
@@ -76,12 +77,18 @@ class ParceriasPage {
       if (this.#fotosUploadInputEl) this.#fotosUploadInputEl.value = '';
     });
 
-    document.addEventListener('auth:login', e => this.#renderUsuarioInfo(
-      e.detail?.perfil ?? null,
-      e.detail?.user ?? null,
-    ));
-    document.addEventListener('auth:logout', () => this.#renderUsuarioInfo({}, {}));
+    document.addEventListener('auth:login', e => {
+      this.#renderUsuarioInfo(e.detail?.perfil ?? null, e.detail?.user ?? null);
+      this.#iniciarRealtimeFotos(e.detail?.perfil?.id ?? e.detail?.user?.id ?? null);
+    });
+    document.addEventListener('auth:logout', () => {
+      this.#renderUsuarioInfo({}, {});
+      this.#pararRealtimeFotos();
+    });
     this.#renderUsuarioInfo();
+    this.#iniciarRealtimeFotos(
+      (typeof AuthService !== 'undefined' ? AuthService.getPerfil?.()?.id : null) ?? null,
+    );
 
     new MutationObserver(() => {
       const ativa = this.#telaEl.classList.contains('ativa') ||
@@ -484,6 +491,43 @@ class ParceriasPage {
       return;
     }
     this.#renderFotos(Array.isArray(data) ? data : (data?.items ?? []));
+  }
+
+  /**
+   * Assina INSERT/UPDATE/DELETE em portfolio_images do profissional logado.
+   * "Minhas Fotos" só recarregava quando o upload acontecia nesta própria tela
+   * (#uploadFoto já resetava #carregouFotos); um upload feito em Minha Barbearia
+   * nunca chegava aqui — #carregouFotos ficava travado em true pelo resto da
+   * sessão. Filtra por owner_id porque esta seção é sempre o portfólio do
+   * próprio usuário (diferente da agregação de equipe da Barbearia Pública).
+   * @param {string|null} profissionalId
+   */
+  #iniciarRealtimeFotos(profissionalId) {
+    if (typeof SupabaseService === 'undefined' || !profissionalId) return;
+    this.#pararRealtimeFotos();
+    try {
+      this.#canalPortfolio = SupabaseService
+        .channel(`portfolio-images-parcerias:${profissionalId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'portfolio_images',
+          filter: `owner_id=eq.${profissionalId}`,
+        }, () => {
+          this.#carregouFotos = false;
+          this.#carregarFotos();
+        })
+        .subscribe();
+    } catch (err) {
+      LoggerService.warn('[ParceriasPage] Realtime fotos indisponível:', err?.message);
+      this.#canalPortfolio = null;
+    }
+  }
+
+  #pararRealtimeFotos() {
+    if (!this.#canalPortfolio) return;
+    try { SupabaseService.removeChannel(this.#canalPortfolio); } catch (_) {}
+    this.#canalPortfolio = null;
   }
 
   #renderFotos(fotos) {

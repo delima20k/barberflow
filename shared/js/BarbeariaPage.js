@@ -35,6 +35,8 @@ class BarbeariaPage {
   #timerShopPoll    = null;   // timer de polling periódico de status (fallback quando Realtime falha)
   #canalAtividade   = null;   // canal Supabase Realtime de professional_barbershop_presence
   #canalAtividadeShopId = null; // shop.id do canal de atividade (evita reconexão desnecessária)
+  #canalPortfolio       = null; // canal Supabase Realtime de portfolio_images (equipe da barbearia)
+  #canalPortfolioShopId = null; // shop.id do canal de portfolio ativo (evita reconexão desnecessária)
   #atividadeStatus  = new Map(); // professional_id → presença { is_available, ... }
   #pushEntradaId    = null;   // entradaId de push deep-link pendente (abre modal após render)
   #highlightBarberId = null;  // barber-id a destacar após abrir barbearia via card do barbeiro
@@ -190,6 +192,7 @@ class BarbeariaPage {
         this.#pararRealtimeFila();
         this.#pararRealtimeShop();
         this.#pararRealtimeAtividade();
+        this.#pararRealtimePortfolio();
         this.#pararPollingShop();
         if (this.#refs.infoFixa) this.#refs.infoFixa.hidden = true;
       }
@@ -232,6 +235,7 @@ class BarbeariaPage {
         this.#iniciarRealtimeFila(this.#shopData);
         this.#iniciarRealtimeShop(this.#shopData);
         this.#iniciarRealtimeAtividade(this.#shopData);
+        this.#iniciarRealtimePortfolio(this.#shopData);
         void this.#carregarAtividade(this.#shopData); // re-sync: status pode ter mudado fora da tela
         this.#iniciarPollingShop(this.#shopId);
       }
@@ -507,6 +511,7 @@ class BarbeariaPage {
     this.#iniciarRealtimeFila(shop);
     this.#iniciarRealtimeShop(shop);
     this.#iniciarRealtimeAtividade(shop);
+    this.#iniciarRealtimePortfolio(shop);
     void this.#carregarAtividade(shop);   // fire-and-forget: presença Ativo/Inativo do dono
     this.#iniciarPollingShop(shop.id);
     this.#mostrarConteudo();
@@ -870,6 +875,70 @@ class BarbeariaPage {
       this.#canalShop   = null;
       this.#canalShopId = null;
     }
+  }
+
+  // ── Portfólio (sincronização em tempo real) ───────────────
+
+  /**
+   * Assina INSERT/UPDATE/DELETE em portfolio_images enquanto a barbearia
+   * atual está na tela, para refletir uploads feitos em Minha Barbearia (ou
+   * em outra aba) sem refresh manual — mesmo objetivo do canal de Stories.
+   *
+   * Sem `filter`: portfolio_images.owner_id aponta para o profissional
+   * dono da foto, não para a barbearia (o "portfólio da equipe" agrega
+   * dono + parceiros ativos — ver BarbeariaService.listarPortfolio). Não há
+   * coluna de barbershop_id para filtrar no Postgres Changes, então
+   * qualquer mudança na tabela apenas dispara um refetch — barato e
+   * sempre correto, mesmo se a equipe mudar entre uma foto e outra.
+   * @param {object} shop
+   */
+  #iniciarRealtimePortfolio(shop) {
+    if (!shop?.id) return;
+    if (this.#canalPortfolioShopId === shop.id && this.#canalPortfolio) return;
+
+    this.#pararRealtimePortfolio();
+
+    try {
+      this.#canalPortfolio = SupabaseService.channel(`portfolio-images:${shop.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'portfolio_images' },
+          () => this.#onPortfolioRealtime(shop.id),
+        )
+        .subscribe((status, err) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            LoggerService.warn('[BarbeariaPage] Realtime portfolio falhou:', status, err?.message);
+          }
+        });
+      this.#canalPortfolioShopId = shop.id;
+    } catch (e) {
+      LoggerService.warn('[BarbeariaPage] Realtime portfolio indisponível:', e?.message);
+    }
+  }
+
+  /** Para o canal Realtime de portfólio e limpa referências. */
+  #pararRealtimePortfolio() {
+    if (this.#canalPortfolio) {
+      try { SupabaseService.removeChannel(this.#canalPortfolio); } catch (_) {}
+      this.#canalPortfolio      = null;
+      this.#canalPortfolioShopId = null;
+    }
+  }
+
+  /**
+   * Reage a uma mudança em portfolio_images: invalida o cache de 5min desta
+   * barbearia e refaz os dois pontos de leitura de portfólio da página
+   * (grade própria + carrossel da equipe), sem depender de reload/timer.
+   * @param {string} shopId
+   */
+  async #onPortfolioRealtime(shopId) {
+    if (this.#shopId !== shopId) return; // stale: usuário navegou para outra barbearia
+    CacheManager.invalidate(`${shopId}:portfolio`);
+    const portfolioNet = await BarbeariaPage.#fetchPortfolio(shopId);
+    if (this.#shopId !== shopId) return; // stale: navegou durante o await
+    CacheManager.set(`${shopId}:portfolio`, portfolioNet, 5 * 60 * 1000);
+    this.#renderPortfolio(portfolioNet);
+    if (this.#shopData) this.#renderPortfolioBarbeiros(this.#shopData);
   }
 
   // ── Polling de status da barbearia (fallback quando Realtime falha) ───

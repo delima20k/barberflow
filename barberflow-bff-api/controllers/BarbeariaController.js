@@ -143,7 +143,12 @@ class BarbeariaController extends BaseController {
 
       const dados = await this.#service.listarPortfolio(barbershopId, { limit, offset });
 
-      this.cachePublico(res, 30, 120);
+      // Sem cachePublico() de propósito: portfolio precisa refletir uploads
+      // imediatamente (Minha Barbearia, Barbearia Publica, Parcerias todas
+      // leem este endpoint). Cache HTTP de 30-120s era a causa raiz da UI
+      // ficar defasada apos publicar uma foto — mesmo padrao do endpoint de
+      // stories (listarStories/listarFeedStories), que nunca teve cache.
+      res.setHeader('Cache-Control', 'private, no-store');
       this.success(res, dados, { total: dados.total });
     });
   }

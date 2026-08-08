@@ -42,7 +42,11 @@ class ProfissionalController extends BaseController {
     await this.handle(res, async () => {
       const dto = await this.#service.listarPortfolioPublico(req.params.id, req.query ?? {});
       if (this.etag(req, res, dto)) return;
-      this.cachePublico(res, 60, 300);
+      // Sem cachePublico() de propósito — ver nota equivalente em
+      // BarbeariaController.portfolio(). ETag acima ja evita payload
+      // desnecessario (304) sem introduzir a janela de dados desatualizados
+      // que max-age causava.
+      res.setHeader('Cache-Control', 'private, no-store');
       this.success(res, dto);
     });
   }
