@@ -1301,10 +1301,23 @@
    Aplica fundo warm-cream sutil e novos elementos de interação.
 ============================================================ */
 
-/* Fundo warm-cream para cards de barbeiros */
+/* Fundo warm-cream (barbearias e demais usos de .barber-card/.barber-row) */
 .barber-card,
 .barber-row {
   background: linear-gradient(135deg, rgba(255,251,246,.82) 0%, rgba(240,228,215,.68) 100%);
+}
+
+/* Fundo escuro — SOMENTE cards de barbeiro (profissional), não barbearia.
+   [data-professional-id] é o atributo que toda linha de barbeiro já carrega
+   (BarbeirosPage, NearbyBarbershopsWidget, FavoritesPage, SearchWidget);
+   linhas de barbearia usam [data-barbershop-id] em vez disso — o seletor de
+   atributo garante que esta regra nunca alcance cards de barbearia, mesmo
+   quando os dois tipos aparecem juntos no mesmo container (ex: resultados
+   de busca). Maior especificidade que a regra acima => sempre vence.
+   Gradiente com tokens de marca já existentes (tokens.css), sem cor nova. */
+.barber-card[data-professional-id],
+.barber-row[data-professional-id] {
+  background: linear-gradient(135deg, var(--header-bg, #2B1B12) 0%, var(--brown, #5C3317) 60%, var(--gold-dark, #6B4A32) 100%);
 }
 
 /* ── Linha de pontuação ─────────────────────────────────── */

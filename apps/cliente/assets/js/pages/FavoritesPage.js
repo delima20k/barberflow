@@ -174,6 +174,15 @@ class FavoritesPage {
     nomeEl.textContent = nome;
     info.appendChild(nomeEl);
 
+    // Mesma fonte de verdade e mesmo texto/classe usados em BarbeirosPage#criarCard
+    // e SearchWidget#criarProfissionalRow — não inventa uma segunda regra.
+    if (p.profiles?.pro_type === 'barbearia') {
+      const badge = document.createElement('span');
+      badge.className   = 'barber-owner-badge';
+      badge.textContent = '🏪 Tem Barbearia';
+      info.appendChild(badge);
+    }
+
     const starsRow = document.createElement('div');
     starsRow.className = 'top-card__stars';
     starsRow.innerHTML = `${BarbershopService.criarEstrelasHTML(ratingVal)}<span class="dc-rating-num">${ratingVal.toFixed(1)}</span>`;

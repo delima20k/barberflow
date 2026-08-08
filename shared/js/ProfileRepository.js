@@ -289,9 +289,9 @@ class ProfileRepository {
     if (e2) throw e2;
     if (!pros?.length) return [];
 
-    // 3. Perfis (nome + avatar_path) — mesmo id usado em professionals
+    // 3. Perfis (nome + avatar_path + pro_type p/ badge "Tem Barbearia") — mesmo id usado em professionals
     const { data: profs } = await ApiService.from('profiles_public')
-      .select('id, full_name, avatar_path')
+      .select('id, full_name, avatar_path, pro_type')
       .in('id', ids);
     const profilesMap = {};
     (profs ?? []).forEach(pr => { profilesMap[pr.id] = pr; });
