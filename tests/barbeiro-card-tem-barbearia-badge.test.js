@@ -182,6 +182,9 @@ describe('Fundo escuro do card — escopado a barbeiro, sem vazar pra card de ba
     const regra = CSS.slice(inicio, inicio + 400);
     assert.match(regra, /var\(--header-bg/);
     assert.match(regra, /var\(--brown\b/);
-    assert.match(regra, /var\(--gold-dark/);
+    // --gold-dark (#6B4A32) NÃO é amarelo/dourado apesar do nome — é marrom.
+    // O gradiente precisa terminar em --gold (#D4A017) de verdade, senão vira
+    // marrom -> marrom -> marrom (foi exatamente o bug reportado e corrigido).
+    assert.match(regra, /var\(--gold,/, 'precisa usar --gold de verdade, não --gold-dark (que é marrom)');
   });
 });

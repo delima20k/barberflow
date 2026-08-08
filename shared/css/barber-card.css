@@ -1314,10 +1314,13 @@
    atributo garante que esta regra nunca alcance cards de barbearia, mesmo
    quando os dois tipos aparecem juntos no mesmo container (ex: resultados
    de busca). Maior especificidade que a regra acima => sempre vence.
-   Gradiente com tokens de marca já existentes (tokens.css), sem cor nova. */
+   Gradiente com tokens de marca já existentes (tokens.css), sem cor nova.
+   --gold-dark (#6B4A32) NÃO é dourado apesar do nome — é marrom. Usa --gold
+   (#D4A017) de verdade no final do gradiente pra ficar marrom -> amarelo/dourado
+   visível, como pedido — não só variações de marrom. */
 .barber-card[data-professional-id],
 .barber-row[data-professional-id] {
-  background: linear-gradient(135deg, var(--header-bg, #2B1B12) 0%, var(--brown, #5C3317) 60%, var(--gold-dark, #6B4A32) 100%);
+  background: linear-gradient(135deg, var(--header-bg, #2B1B12) 0%, var(--brown, #5C3317) 65%, var(--gold, #D4A017) 100%);
 }
 
 /* ── Linha de pontuação ─────────────────────────────────── */
