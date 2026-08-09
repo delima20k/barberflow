@@ -34,11 +34,14 @@ describe('VideoCompressionService', () => {
     // StoryComposer no cliente). CRF governa a qualidade de verdade; o
     // bitrate calculado por #calcularBitrateVideoBps(null) com
     // TARGET_BYTES=3.3MB (782472bps) agora só vira o TETO de segurança
-    // (maxrate/bufsize), não mais um alvo fixo de bitrate.
+    // (maxrate/bufsize), não mais um alvo fixo de bitrate. maxrate tem
+    // headroom real acima da média (2x, não mais "+20k" herdado do CBR) e
+    // bufsize dá mais segundos de colchão ao rate-control (3x maxrate, não
+    // mais 2x) — evita o teto estourar de forma abrupta em cena complexa.
     assert.equal(runnerOptions.crf, 23);
     assert.equal(runnerOptions.audioBitrate, '48k');
-    assert.equal(runnerOptions.maxrate, '802k'); // bitrate calculado (item 2) + 20k
-    assert.equal(runnerOptions.bufsize, '1605k'); // 2x maxrate
+    assert.equal(runnerOptions.maxrate, '1565k'); // bitrate calculado (item 2) x2
+    assert.equal(runnerOptions.bufsize, '4695k'); // 3x maxrate
     assert.equal(runnerOptions.rateControl, 'crf');
     assert.equal(runnerOptions.width, 480);
     assert.equal(runnerOptions.fps, 24);

@@ -44,6 +44,20 @@ class VideoCompressionService {
   // cena; CRF aloca mais bits pra cena complexa (movimento/pouca luz) e
   // menos pra cena simples, dentro do teto de maxrate/bufsize abaixo.
   static #CRF = 23;
+  // Headroom do teto (maxrate) acima da média calculada por duração (item 2).
+  // Antes (CBR) o teto era so +20k sobre o proprio bitrate constante — fazia
+  // sentido pra CBR (media e teto sao quase a mesma coisa). Em CRF a media e
+  // so uma referencia; cena complexa (movimento/pouca luz) precisa gastar
+  // bem mais que a media por curtos trechos. Teto apertado demais forcava o
+  // rate-control a estourar o QP de forma abrupta nesses trechos, causando
+  // o travamento de imagem (audio seguia tocando normal, decodificado
+  // independente) relatado apos a troca CBR->CRF.
+  static #MAXRATE_MULTIPLICADOR = 2;
+  // Segundos de buffer (bufsize / maxrate) para suavizar o rate-control do
+  // CRF. Antes (formula 2x sobre um maxrate ja apertado) dava ~2s de
+  // colchao. Buffer maior da mais espaco pro encoder absorver picos de
+  // cena complexa sem estourar o teto de forma brusca.
+  static #BUFSIZE_MULTIPLICADOR = 3;
 
   #runner;
   #timeoutMs;
@@ -214,6 +228,26 @@ class VideoCompressionService {
   }
 
   /**
+   * Teto de maxrate (bps) com headroom real acima da média calculada por
+   * duração (item 2) — não mais um simples "+20k" (adequado só pra CBR).
+   * @param {number} bitrateVideoBps
+   * @returns {number}
+   */
+  static #calcularMaxrateBps(bitrateVideoBps) {
+    return Math.round(bitrateVideoBps * VideoCompressionService.#MAXRATE_MULTIPLICADOR);
+  }
+
+  /**
+   * Bufsize (bps) proporcional ao maxrate, dando mais segundos de colchão
+   * ao rate-control do CRF do que o antigo "2x maxrate" (~2s).
+   * @param {number} maxrateBps
+   * @returns {number}
+   */
+  static #calcularBufsizeBps(maxrateBps) {
+    return Math.round(maxrateBps * VideoCompressionService.#BUFSIZE_MULTIPLICADOR);
+  }
+
+  /**
    * Monta os outputOptions do ffmpeg em modo CRF (qualidade constante,
    * bits alocados por complexidade de cena) — antes era CBR (bitrate fixo,
    * mesmo teto de bits em qualquer cena, o que destruía detalhe em cena
@@ -221,16 +255,20 @@ class VideoCompressionService {
    * #calcularBitrateVideoBps) deixa de ser o alvo fixo e passa a ser só o
    * TETO de segurança (maxrate/bufsize) — impede que uma cena muito
    * complexa estoure o orçamento de tamanho, sem forçar bitrate constante
-   * em cena simples. Mesma relação maxrate/bufsize de antes (maxrate =
-   * bitrate calculado + 20k; bufsize = 2x maxrate), só sem o -b:v/-minrate
-   * fixos nem o nal-hrd=cbr (exclusivo do modo CBR anterior).
+   * em cena simples. maxrate tem headroom real acima da média
+   * (#MAXRATE_MULTIPLICADOR, não mais "+20k" herdado do CBR) e bufsize dá
+   * mais segundos de colchão (#BUFSIZE_MULTIPLICADOR) pro rate-control
+   * absorver picos de complexidade sem estourar o teto de forma abrupta —
+   * sem o -b:v/-minrate fixos nem o nal-hrd=cbr (exclusivo do CBR anterior).
    * Resolução (480p) e FPS (24) inalterados.
    * @param {number} bitrateVideoBps — teto calculado por duração (item 2)
    * @returns {string[]}
    */
   static #montarArgumentosFfmpeg(bitrateVideoBps) {
-    const maxrateK = VideoCompressionService.#paraKbps(bitrateVideoBps + 20_000);
-    const bufsizeK = VideoCompressionService.#paraKbps((bitrateVideoBps + 20_000) * 2);
+    const maxrateBps = VideoCompressionService.#calcularMaxrateBps(bitrateVideoBps);
+    const bufsizeBps = VideoCompressionService.#calcularBufsizeBps(maxrateBps);
+    const maxrateK = VideoCompressionService.#paraKbps(maxrateBps);
+    const bufsizeK = VideoCompressionService.#paraKbps(bufsizeBps);
     return [
       '-c:v libx264',
       `-crf ${VideoCompressionService.#CRF}`,
@@ -250,14 +288,16 @@ class VideoCompressionService {
     // um arquivo em disco — usa o mesmo pior-caso conservador do fallback
     // (#FALLBACK_DURATION_SECONDS) usado quando a sonda real falha.
     const bitrateVideoBps = VideoCompressionService.#calcularBitrateVideoBps(null);
+    const maxrateBps = VideoCompressionService.#calcularMaxrateBps(bitrateVideoBps);
+    const bufsizeBps = VideoCompressionService.#calcularBufsizeBps(maxrateBps);
     return Object.freeze({
       timeoutMs,
       targetBytes: VideoCompressionService.TARGET_BYTES,
       maxOutputBytes: VideoCompressionService.MAX_OUTPUT_BYTES,
       crf: VideoCompressionService.#CRF,
       audioBitrate: '48k',
-      maxrate: VideoCompressionService.#paraKbps(bitrateVideoBps + 20_000),
-      bufsize: VideoCompressionService.#paraKbps((bitrateVideoBps + 20_000) * 2),
+      maxrate: VideoCompressionService.#paraKbps(maxrateBps),
+      bufsize: VideoCompressionService.#paraKbps(bufsizeBps),
       rateControl: 'crf',
       width: 480,
       fps: 24,
