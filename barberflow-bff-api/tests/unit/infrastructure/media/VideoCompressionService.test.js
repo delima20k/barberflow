@@ -29,18 +29,23 @@ describe('VideoCompressionService', () => {
     assert.equal(result.compressed, true);
     assert.equal(result.outputBytes, compressed.length);
     assert.equal(result.contentType, 'video/mp4');
-    assert.equal(runnerOptions.videoBitrate, '330k');
+    // Runner injetado não tem acesso a um arquivo real em disco pra sondar
+    // duração — cai no fallback conservador de 30s (mesmo teto do
+    // StoryComposer no cliente). Valores calculados por
+    // #calcularBitrateVideoBps(null) com TARGET_BYTES=3.3MB:
+    //   (3.3MB*8/30)*0.9 - 48000(áudio) = 782472bps -> '782k'
+    assert.equal(runnerOptions.videoBitrate, '782k');
     assert.equal(runnerOptions.audioBitrate, '48k');
-    assert.equal(runnerOptions.minrate, '330k');
-    assert.equal(runnerOptions.maxrate, '350k');
-    assert.equal(runnerOptions.bufsize, '700k');
+    assert.equal(runnerOptions.minrate, '782k');
+    assert.equal(runnerOptions.maxrate, '802k'); // minrate + 20k
+    assert.equal(runnerOptions.bufsize, '1605k'); // 2x maxrate
     assert.equal(runnerOptions.rateControl, 'cbr');
     assert.equal(runnerOptions.width, 480);
     assert.equal(runnerOptions.fps, 24);
     assert.equal(runnerOptions.preset, 'fast');
-    assert.equal(runnerOptions.targetBytes, Math.floor(1.35 * 1024 * 1024));
+    assert.equal(runnerOptions.targetBytes, Math.floor(3.3 * 1024 * 1024));
     assert.equal(runnerOptions.maxOutputBytes, VideoCompressionService.MAX_OUTPUT_BYTES);
-    assert.equal(VideoCompressionService.MAX_OUTPUT_BYTES, Math.floor(1.5 * 1024 * 1024));
+    assert.equal(VideoCompressionService.MAX_OUTPUT_BYTES, Math.floor(4 * 1024 * 1024));
   });
 
   it('usa original como fallback quando video esta corrompido', async () => {
