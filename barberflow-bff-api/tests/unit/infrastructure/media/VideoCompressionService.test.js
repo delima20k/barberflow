@@ -31,15 +31,15 @@ describe('VideoCompressionService', () => {
     assert.equal(result.contentType, 'video/mp4');
     // Runner injetado não tem acesso a um arquivo real em disco pra sondar
     // duração — cai no fallback conservador de 30s (mesmo teto do
-    // StoryComposer no cliente). Valores calculados por
-    // #calcularBitrateVideoBps(null) com TARGET_BYTES=3.3MB:
-    //   (3.3MB*8/30)*0.9 - 48000(áudio) = 782472bps -> '782k'
-    assert.equal(runnerOptions.videoBitrate, '782k');
+    // StoryComposer no cliente). CRF governa a qualidade de verdade; o
+    // bitrate calculado por #calcularBitrateVideoBps(null) com
+    // TARGET_BYTES=3.3MB (782472bps) agora só vira o TETO de segurança
+    // (maxrate/bufsize), não mais um alvo fixo de bitrate.
+    assert.equal(runnerOptions.crf, 23);
     assert.equal(runnerOptions.audioBitrate, '48k');
-    assert.equal(runnerOptions.minrate, '782k');
-    assert.equal(runnerOptions.maxrate, '802k'); // minrate + 20k
+    assert.equal(runnerOptions.maxrate, '802k'); // bitrate calculado (item 2) + 20k
     assert.equal(runnerOptions.bufsize, '1605k'); // 2x maxrate
-    assert.equal(runnerOptions.rateControl, 'cbr');
+    assert.equal(runnerOptions.rateControl, 'crf');
     assert.equal(runnerOptions.width, 480);
     assert.equal(runnerOptions.fps, 24);
     assert.equal(runnerOptions.preset, 'fast');

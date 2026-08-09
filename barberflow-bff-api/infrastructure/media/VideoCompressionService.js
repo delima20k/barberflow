@@ -39,6 +39,11 @@ class VideoCompressionService {
   // bitrate mais conservador (menor), nunca estourando o orçamento por
   // falta de dado real.
   static #FALLBACK_DURATION_SECONDS = 30;
+  // CRF do libx264 — padrão da própria lib (bom equilíbrio qualidade/tamanho
+  // pra 480p). CBR forçava o mesmo número de bits por segundo em qualquer
+  // cena; CRF aloca mais bits pra cena complexa (movimento/pouca luz) e
+  // menos pra cena simples, dentro do teto de maxrate/bufsize abaixo.
+  static #CRF = 23;
 
   #runner;
   #timeoutMs;
@@ -209,25 +214,28 @@ class VideoCompressionService {
   }
 
   /**
-   * Monta os outputOptions do ffmpeg com o bitrate de vídeo calculado.
-   * Mantém a MESMA relação entre b:v/minrate/maxrate/bufsize de antes
-   * (minrate = b:v; maxrate = b:v + 20k; bufsize = 2x maxrate) — só o
-   * número muda, o modo CBR (nal-hrd=cbr:force-cfr=1) continua igual.
+   * Monta os outputOptions do ffmpeg em modo CRF (qualidade constante,
+   * bits alocados por complexidade de cena) — antes era CBR (bitrate fixo,
+   * mesmo teto de bits em qualquer cena, o que destruía detalhe em cena
+   * complexa/pouca luz). O bitrate calculado por duração (item 2,
+   * #calcularBitrateVideoBps) deixa de ser o alvo fixo e passa a ser só o
+   * TETO de segurança (maxrate/bufsize) — impede que uma cena muito
+   * complexa estoure o orçamento de tamanho, sem forçar bitrate constante
+   * em cena simples. Mesma relação maxrate/bufsize de antes (maxrate =
+   * bitrate calculado + 20k; bufsize = 2x maxrate), só sem o -b:v/-minrate
+   * fixos nem o nal-hrd=cbr (exclusivo do modo CBR anterior).
    * Resolução (480p) e FPS (24) inalterados.
-   * @param {number} bitrateVideoBps
+   * @param {number} bitrateVideoBps — teto calculado por duração (item 2)
    * @returns {string[]}
    */
   static #montarArgumentosFfmpeg(bitrateVideoBps) {
-    const videoK = VideoCompressionService.#paraKbps(bitrateVideoBps);
     const maxrateK = VideoCompressionService.#paraKbps(bitrateVideoBps + 20_000);
     const bufsizeK = VideoCompressionService.#paraKbps((bitrateVideoBps + 20_000) * 2);
     return [
       '-c:v libx264',
-      `-b:v ${videoK}`,
-      `-minrate ${videoK}`,
+      `-crf ${VideoCompressionService.#CRF}`,
       `-maxrate ${maxrateK}`,
       `-bufsize ${bufsizeK}`,
-      '-x264-params nal-hrd=cbr:force-cfr=1',
       '-c:a aac',
       '-b:a 48k',
       '-vf scale=480:-2,fps=24',
@@ -246,12 +254,11 @@ class VideoCompressionService {
       timeoutMs,
       targetBytes: VideoCompressionService.TARGET_BYTES,
       maxOutputBytes: VideoCompressionService.MAX_OUTPUT_BYTES,
-      videoBitrate: VideoCompressionService.#paraKbps(bitrateVideoBps),
+      crf: VideoCompressionService.#CRF,
       audioBitrate: '48k',
-      minrate: VideoCompressionService.#paraKbps(bitrateVideoBps),
       maxrate: VideoCompressionService.#paraKbps(bitrateVideoBps + 20_000),
       bufsize: VideoCompressionService.#paraKbps((bitrateVideoBps + 20_000) * 2),
-      rateControl: 'cbr',
+      rateControl: 'crf',
       width: 480,
       fps: 24,
       codec: 'libx264',
