@@ -397,7 +397,7 @@ class SWProfissional {
               push_status: data.statusLabel  ?? '',
               push_chair:  data.cadeira      ?? '',
             });
-            return self.clients.openWindow(`/profissional/?${params}`);
+            return self.clients.openWindow(`/?${params}`);
           }
 
           // Toque no corpo da notificação (iOS Safari + Android) — abre a modal existente
@@ -422,7 +422,7 @@ class SWProfissional {
             push_status:data.statusLabel  ?? '',
             push_chair: data.cadeira      ?? '',
           });
-          return self.clients.openWindow(`/profissional/?${params}`);
+          return self.clients.openWindow(`/?${params}`);
         }),
     );
   }

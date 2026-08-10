@@ -119,7 +119,7 @@ class PushService {
         cadeira:     cadeiraNome,
         destino:     'profissional',
         cliente:     cliente ?? { id: null, nome: clienteNome },
-        url:         '/profissional/',
+        url:         '/',
       },
     });
 
