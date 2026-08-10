@@ -71,7 +71,20 @@ class CadeiraService {
    * @returns {Promise<object[]>}
    */
   static async getFilaAtiva(barbershopId) {
-    return QueueRepository.getByBarbershop(barbershopId);
+    const fila = await QueueRepository.getByBarbershop(barbershopId);
+    // TEMPORARIO - diagnostico Problema 2 (push ausente ao barbeiro quando
+    // cliente senta em producao vazia). Remover apos analise dos logs.
+    LoggerService.warn('[DEBUG-PUSH-BARBEIRO] getFilaAtiva() retornou', {
+      barbershopId,
+      total: fila.length,
+      resumo: fila.map(e => ({
+        id:     e.id,
+        status: e.status,
+        profId: e.professional?.id ?? null,
+        cliId:  e.client?.id ?? e.client_id ?? null,
+      })),
+    });
+    return fila;
   }
 
   /**
@@ -157,6 +170,15 @@ class CadeiraService {
       producaoVazia   = !filaAtual.some(
         e => e.status === 'in_service' && e.professional?.id === professionalId,
       );
+      // TEMPORARIO - diagnostico Problema 2. Remover apos analise dos logs.
+      LoggerService.warn('[DEBUG-PUSH-BARBEIRO] sentar(): producaoVazia calculado', {
+        tipo,
+        professionalId,
+        barbershopId,
+        clientId,
+        notificarBarbeiro,
+        producaoVazia,
+      });
       if (tipo === 'fila') {
         const waiting = filaAtual.filter(e => e.status === 'waiting');
         position      = waiting.length > 0
@@ -262,6 +284,17 @@ class CadeiraService {
     const options = clientConfirmed === undefined ? undefined : { clientConfirmed };
     const atualizada = await QueueRepository.updateStatus(entradaId, 'in_service', options);
 
+    // TEMPORARIO - diagnostico Problema 2. Remover apos analise dos logs.
+    LoggerService.warn('[DEBUG-PUSH-BARBEIRO] promoverParaProducao(): guard do push', {
+      entradaId,
+      professionalId,
+      barbershopId,
+      producaoVaziaRecebido: producaoVazia,
+      estavaVazia,
+      notificarBarbeiro,
+      vaiDispararPush: Boolean(estavaVazia && notificarBarbeiro),
+    });
+
     if (estavaVazia && notificarBarbeiro) {
       CadeiraService.#notificarBarbeiroPrimeiroCliente(
         professionalId,
@@ -298,7 +331,9 @@ class CadeiraService {
       : filaAtiva;
     const proximo   = CadeiraService.#proximoNaFila(filtrada);
 
-    // Auto-avança o próximo da fila de espera para produção
+    // Auto-avança o próximo da fila de espera para produção. notificarBarbeiro:
+    // false — quem chamou finalizar() foi o próprio barbeiro (ação manual no
+    // seu app); ele não deve receber push da própria ação.
     if (proximo) {
       await CadeiraService.promoverParaProducao({
         entradaId: proximo.id,
@@ -306,6 +341,7 @@ class CadeiraService {
         professionalId: proximo.professional?.id ?? professionalId,
         clienteNome: proximo.client?.full_name ?? null,
         filaAtiva,
+        notificarBarbeiro: false,
       });
       CadeiraService.#notificarClienteInService(
         proximo.client?.id ?? null,
@@ -343,6 +379,8 @@ class CadeiraService {
       : filaAtiva;
     const proximo   = CadeiraService.#proximoNaFila(filtrada);
 
+    // notificarBarbeiro: false — quem chamou liberarSemCorte() foi o próprio
+    // barbeiro (ação manual no seu app); ele não deve receber push da própria ação.
     if (proximo) {
       await CadeiraService.promoverParaProducao({
         entradaId: proximo.id,
@@ -350,6 +388,7 @@ class CadeiraService {
         professionalId: proximo.professional?.id ?? professionalId,
         clienteNome: proximo.client?.full_name ?? null,
         filaAtiva,
+        notificarBarbeiro: false,
       });
       CadeiraService.#notificarClienteInService(
         proximo.client?.id ?? null,
@@ -391,7 +430,10 @@ class CadeiraService {
       else if (e.status === 'waiting') g.waiting.push(e);
     }
 
-    // Para cada grupo sem in_service: promove o primeiro waiting
+    // Para cada grupo sem in_service: promove o primeiro waiting.
+    // notificarBarbeiro: false — sincronizarFilas() só é chamado ao carregar a
+    // própria tela do barbeiro (MinhaBarbeariaRuntimeController); ele não deve
+    // receber push por uma promoção disparada pelo carregamento do seu próprio app.
     let houveMudanca = false;
     for (const g of grupos.values()) {
       if (g.temInService || g.waiting.length === 0) continue;
@@ -402,6 +444,7 @@ class CadeiraService {
         professionalId: proximo.professional?.id ?? null,
         clienteNome: proximo.client?.full_name ?? null,
         filaAtiva,
+        notificarBarbeiro: false,
       });
       houveMudanca = true;
     }
@@ -480,6 +523,15 @@ class CadeiraService {
    * @param {string|null} guestName  nome do avulso (walk-in); cliente cadastrado → 'Cliente'
    */
   static #notificarBarbeiroPrimeiroCliente(professionalId, barbershopId, entradaId, guestName) {
+    // TEMPORARIO - diagnostico Problema 2. Remover apos analise dos logs.
+    LoggerService.warn('[DEBUG-PUSH-BARBEIRO] #notificarBarbeiroPrimeiroCliente() invocado', {
+      professionalId,
+      barbershopId,
+      entradaId,
+      guestName,
+      bffDisponivel: typeof BffApiService !== 'undefined',
+    });
+
     if (!professionalId || !barbershopId || !entradaId) return;
     if (typeof BffApiService === 'undefined') return;
 
@@ -494,6 +546,12 @@ class CadeiraService {
           barbershopId,
           type: 'production_started',
           clienteNome,
+        });
+        // TEMPORARIO - diagnostico Problema 2. Remover apos analise dos logs.
+        LoggerService.warn('[DEBUG-PUSH-BARBEIRO] resposta do BFF push-barbeiro', {
+          data,
+          errorMessage: error?.message ?? null,
+          errorStatus:  error?.status ?? null,
         });
         if (error && typeof LoggerService !== 'undefined') {
           LoggerService.warn('[CadeiraService] push primeiro-cliente falhou:', error?.status ? `status=${error.status}` : '', error?.message);

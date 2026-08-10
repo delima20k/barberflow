@@ -32,6 +32,7 @@ describe('QueueWidget._chamar — promoção centralizada para produção', () =
         barbershopId: SHOP_ID,
         professionalId: PROFESSIONAL_ID,
         clientConfirmed: 'yes',
+        notificarBarbeiro: false,
       },
     );
   });

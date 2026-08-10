@@ -152,6 +152,7 @@ class QueueWidget {
         barbershopId,
         professionalId,
         clientConfirmed: 'yes',
+        notificarBarbeiro: false,
       });
     } catch (err) {
       LoggerService.error('[QueueWidget] erro ao chamar cliente:', err);

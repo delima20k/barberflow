@@ -46,6 +46,18 @@ class QueuePoller {
   /** @type {boolean} Se o poller está ativo */
   static #ativo = false;
 
+  /**
+   * @type {boolean} true no primeiro poll após iniciar() "fresco" (sessão nova
+   * pra esse barbershopId/clientId). O primeiro poll só REGISTRA o status e a
+   * posição atuais como linha de base — nunca avalia mudança nem notifica.
+   * Sem isso, um cliente que já entra direto em produção (cadeira vazia, sem
+   * ninguém esperando) teria #statusAnterior=null no primeiro poll, e
+   * `null !== 'in_service'` seria lido como "acabou de virar sua vez" — um
+   * falso positivo que notifica o cliente da própria ação. Só a partir do
+   * SEGUNDO poll em diante uma mudança de status/posição é uma transição real.
+   */
+  static #primeiraLeitura = false;
+
   /** Intervalo de polling em ms */
   static #INTERVALO_MS = 20_000;
 
@@ -120,6 +132,7 @@ class QueuePoller {
     QueuePoller.#ultimaMudanca   = null;
     QueuePoller.#posicaoAnterior = null;
     QueuePoller.#statusAnterior  = null;
+    QueuePoller.#primeiraLeitura = true;
     QueuePoller.#ativo           = true;
 
     QueuePoller.#poll();
@@ -147,6 +160,7 @@ class QueuePoller {
     QueuePoller.#ultimaMudanca   = null;
     QueuePoller.#posicaoAnterior = null;
     QueuePoller.#statusAnterior  = null;
+    QueuePoller.#primeiraLeitura = false;
     QueuePoller.#ativo           = false;
   }
 
@@ -243,6 +257,18 @@ class QueuePoller {
       (e) => (e.client_id ?? e.user_id) === QueuePoller.#clientId,
     );
     const posicaoAtual = idxAtivo >= 0 ? idxAtivo + 1 : null;
+
+    // Primeiro poll da sessão: só registra a linha de base (status/posição
+    // atuais), sem avaliar mudança nem notificar. Ver comentário de
+    // #primeiraLeitura — evita notificar o cliente pela própria entrada
+    // direta em produção (cadeira vazia, sem espera).
+    if (QueuePoller.#primeiraLeitura) {
+      QueuePoller.#primeiraLeitura = false;
+      QueuePoller.#statusAnterior  = minha.status;
+      QueuePoller.#posicaoAnterior = posicaoAtual;
+      return;
+    }
+
     const posAnterior  = QueuePoller.#posicaoAnterior;
 
     const avancou = posAnterior !== null

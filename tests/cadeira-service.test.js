@@ -131,15 +131,14 @@ describe('CadeiraService.finalizar() — auto-avanço', () => {
     );
   });
 
-  test('transição 0→1 pelo finalizar dispara production_started', async () => {
+  test('transição 0→1 pelo finalizar NÃO dispara push ao barbeiro (ação do próprio barbeiro)', async () => {
     const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
     const { CS, bffPosts } = criarSandbox({ filaAtiva: [esperando] });
 
     await CS.finalizar(UUID_ENTRY_ATUAL, UUID_SHOP, UUID_PROF_A);
 
     const push = bffPosts.find(item => item.body?.type === 'production_started');
-    assert.ok(push, 'finalizar deve notificar o barbeiro ao promover o primeiro waiting');
-    assert.strictEqual(push.body.entradaId, UUID_ENTRY_ESPERA);
+    assert.ok(!push, 'finalizar() é ação do próprio barbeiro — não deve notificar a si mesmo');
   });
 
   test('retorna proximoNome quando há próximo na fila', async () => {
@@ -330,15 +329,14 @@ describe('CadeiraService.sincronizarFilas()', () => {
     );
   });
 
-  test('transição 0→1 pela sincronização dispara production_started', async () => {
+  test('transição 0→1 pela sincronização NÃO dispara push ao barbeiro (carregamento do próprio app)', async () => {
     const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
     const { CS, bffPosts } = criarSandbox({ filaAtiva: [esperando] });
 
     await CS.sincronizarFilas(UUID_SHOP);
 
     const push = bffPosts.find(item => item.body?.type === 'production_started');
-    assert.ok(push, 'sincronizarFilas deve notificar o barbeiro ao preencher produção vazia');
-    assert.strictEqual(push.body.entradaId, UUID_ENTRY_ESPERA);
+    assert.ok(!push, 'sincronizarFilas() só roda no carregamento da própria tela do barbeiro — não deve notificá-lo');
   });
 
   test('produção já ocupada → NÃO chama updateStatus', async () => {
@@ -409,15 +407,14 @@ describe('CadeiraService.sincronizarFilas()', () => {
 });
 
 describe('CadeiraService.liberarSemCorte() — push ao auto-avançar', () => {
-  test('transição 0→1 pelo liberarSemCorte dispara production_started', async () => {
+  test('transição 0→1 pelo liberarSemCorte NÃO dispara push ao barbeiro (ação do próprio barbeiro)', async () => {
     const esperando = entradaWaiting(UUID_ENTRY_ESPERA, UUID_PROF_A, 1, 'Alice');
     const { CS, bffPosts } = criarSandbox({ filaAtiva: [esperando] });
 
     await CS.liberarSemCorte(UUID_ENTRY_ATUAL, UUID_SHOP, UUID_PROF_A);
 
     const push = bffPosts.find(item => item.body?.type === 'production_started');
-    assert.ok(push, 'liberarSemCorte deve notificar o barbeiro ao promover o primeiro waiting');
-    assert.strictEqual(push.body.entradaId, UUID_ENTRY_ESPERA);
+    assert.ok(!push, 'liberarSemCorte() é ação do próprio barbeiro — não deve notificar a si mesmo');
   });
 });
 

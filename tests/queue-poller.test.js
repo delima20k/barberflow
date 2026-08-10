@@ -169,3 +169,111 @@ describe('QueueRepository — SELECT_LIST inclui updated_at', () => {
     assert.ok(src.includes('updated_at'), 'QueueRepository deve selecionar updated_at do perfil do cliente');
   });
 });
+
+// =============================================================================
+// QueuePoller.iniciar() + poll — primeira leitura não deve notificar
+// =============================================================================
+//
+// Bug real observado: cliente que entra direto na cadeira de produção vazia
+// (sem ninguém esperando) recebia notificação nativa "É a sua vez!" da
+// PRÓPRIA ação. Causa: iniciar() resetava #statusAnterior=null antes do
+// primeiro poll; como a entrada já nascia in_service, `null !== 'in_service'`
+// era lido como uma transição que tinha acabado de acontecer.
+//
+// Correção: o primeiro poll de uma sessão nova só registra a linha de base
+// (status/posição), sem avaliar mudança nem notificar. Só a partir do
+// segundo poll uma mudança de status é tratada como transição real.
+
+function criarSandboxIntegracao({ filaInicial, hidden = true } = {}) {
+  const toasts           = [];
+  const notificationCalls = [];
+  let intervalCallback   = null;
+
+  function NotificationMock(title, opts) {
+    notificationCalls.push({ title, opts });
+  }
+  NotificationMock.permission = 'granted';
+
+  const getByBarbershop = fn().mockResolvedValue(filaInicial ?? []);
+
+  const sandbox = vm.createContext({
+    console,
+    document: {
+      hidden,
+      addEventListener:    fn(),
+      removeEventListener: fn(),
+    },
+    window:        { AudioContext: undefined, webkitAudioContext: undefined },
+    setInterval:   fn().mockImplementation((cb) => { intervalCallback = cb; return 99; }),
+    clearInterval: fn(),
+    sessionStorage: { setItem: fn(), getItem: fn(), removeItem: fn() },
+    Notification:  NotificationMock,
+    NotificationService: {
+      TIPOS:        { SISTEMA: 'sistema' },
+      mostrarToast: fn((...args) => toasts.push(args)),
+    },
+    QueueRepository: { getByBarbershop },
+    LoggerService:   { warn: fn(), error: fn() },
+    CadeiraConfirmacaoService: {
+      iniciarFluxo: fn().mockResolvedValue(undefined),
+    },
+  });
+
+  carregar(sandbox, 'shared/js/QueuePoller.js');
+
+  return {
+    QueuePoller: sandbox.QueuePoller,
+    getByBarbershop,
+    toasts,
+    notificationCalls,
+    // simula o próximo ciclo de setInterval (poll seguinte)
+    proximoPoll: () => intervalCallback?.(),
+  };
+}
+
+function entradaPoller(clientId, position, status) {
+  return { client_id: clientId, position, status, client: { full_name: 'Cliente Teste' } };
+}
+
+describe('QueuePoller — primeira leitura não notifica (regra de negócio)', () => {
+
+  test('cliente que entra direto em produção vazia (sem espera) NÃO é notificado no primeiro poll', async () => {
+    const filaJaEmProducao = [entradaPoller(CLIENT_ID, 1, 'in_service')];
+    const { QueuePoller, toasts, notificationCalls } = criarSandboxIntegracao({
+      filaInicial: filaJaEmProducao,
+      hidden:      true, // app em segundo plano — pior caso pra notificação nativa
+    });
+
+    QueuePoller.iniciar('shop-1', CLIENT_ID, fn());
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    assert.equal(toasts.length, 0, 'não deve exibir toast "É a sua vez!" na própria entrada direta');
+    assert.equal(notificationCalls.length, 0, 'não deve disparar Notification nativa na própria entrada direta');
+  });
+
+  test('cliente que estava esperando e é promovido depois É notificado a partir do segundo poll', async () => {
+    const filaEsperando = [entradaPoller(CLIENT_ID, 1, 'waiting')];
+    const { QueuePoller, getByBarbershop, toasts, notificationCalls, proximoPoll } = criarSandboxIntegracao({
+      filaInicial: filaEsperando,
+      hidden:      true,
+    });
+
+    QueuePoller.iniciar('shop-1', CLIENT_ID, fn());
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Primeiro poll: só registra baseline (waiting) — sem notificação ainda
+    assert.equal(toasts.length, 0, 'primeiro poll não deve notificar');
+
+    // Barbeiro promove o cliente para produção — segundo poll detecta a transição real
+    getByBarbershop.mockResolvedValue([entradaPoller(CLIENT_ID, 1, 'in_service')]);
+    proximoPoll();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    assert.equal(toasts.length, 1, 'segundo poll deve notificar "é a sua vez" na transição real');
+    assert.equal(toasts[0][0], 'É a sua vez!');
+    assert.equal(notificationCalls.length, 1, 'deve disparar Notification nativa (app em segundo plano)');
+  });
+});
