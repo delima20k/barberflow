@@ -773,17 +773,24 @@ export class MinhaBarbeariaRuntimeController {
   }
 
   // ── Fetchers ────────────────────────────────────────────────
+  /**
+   * Resolve a barbearia do profissional logado, tentando nesta ordem:
+   *   1. Dono — caminho mais comum, sem round-trip extra pra maioria dos donos.
+   *   2. sessionStorage (bf_parceria_barbershop_id) — escolha explícita feita
+   *      na tela Parcerias durante esta sessão de navegador.
+   *   3. Descoberta automática — consulta os vínculos de parceria ativos do
+   *      profissional (mesmo endpoint usado por ParceriasPage) e, se achar
+   *      algum, carrega o mais recente. Elimina a necessidade de passar pela
+   *      tela Parcerias antes da primeira entrada em "Minha Barbearia"
+   *      funcionar pra um barbeiro parceiro.
+   * @param {string} ownerId
+   * @returns {Promise<object|null>}
+   */
   static async #fetchMinhaBarbearia(ownerId) {
-    const parceriaId = sessionStorage.getItem('bf_parceria_barbershop_id');
-    if (parceriaId) {
-      const { data, error } = await BffApiService.barbearias.gestaoVinculada(parceriaId);
-      if (!error && data?.id) return { ...data, __contextoParceiro: true };
-      sessionStorage.removeItem('bf_parceria_barbershop_id');
-    }
-
     const SELECT = 'id, owner_id, name, slug, address, city, state, zip_code, neighborhood, latitude, longitude, logo_path, cover_path, is_open, close_reason, font_key, whatsapp, founded_year, rating_avg, rating_count, rating_score, likes_count, dislikes_count, is_active, updated_at, monthly_plan_price, monthly_plan_message';
 
-    const { data, error } = await SupabaseService.barbershops()
+    // 1. Dono
+    const { data: donoData, error: donoError } = await SupabaseService.barbershops()
       .select(SELECT)
       .eq('owner_id', ownerId)
       .eq('is_active', true)
@@ -791,22 +798,49 @@ export class MinhaBarbeariaRuntimeController {
       .limit(1)
       .single();
 
-    if (!error) return data ?? null;
+    if (!donoError) return donoData ?? null;
 
-    // PGRST116 = 0 rows (.single() sem resultado) — profissional sem barbearia ativa
-    if (error.code === 'PGRST116') return null;
+    // PGRST116 = 0 rows (.single() sem resultado) — não é dono, tenta os
+    // caminhos de parceiro abaixo. Qualquer outro erro é reportado e propagado.
+    if (donoError.code !== 'PGRST116') {
+      LoggerService.error('[MinhaBarbeariaPage] #fetchMinhaBarbearia — query de dono falhou', {
+        tabela:   'barbershops',
+        owner_id: ownerId,
+        select:   SELECT,
+        filtros:  { owner_id: ownerId, is_active: true },
+        code:     donoError.code,
+        message:  donoError.message,
+        details:  donoError.details,
+        hint:     donoError.hint,
+      });
+      throw donoError;
+    }
 
-    LoggerService.error('[MinhaBarbeariaPage] #fetchMinhaBarbearia — query falhou', {
-      tabela:   'barbershops',
-      owner_id: ownerId,
-      select:   SELECT,
-      filtros:  { owner_id: ownerId, is_active: true },
-      code:     error.code,
-      message:  error.message,
-      details:  error.details,
-      hint:     error.hint,
-    });
-    throw error;
+    // 2. sessionStorage — escolha explícita feita em Parcerias nesta sessão
+    const parceriaId = sessionStorage.getItem('bf_parceria_barbershop_id');
+    if (parceriaId) {
+      const { data, error } = await BffApiService.barbearias.gestaoVinculada(parceriaId);
+      if (!error && data?.id) return { ...data, __contextoParceiro: true };
+      sessionStorage.removeItem('bf_parceria_barbershop_id');
+    }
+
+    // 3. Descoberta automática — mesmo endpoint que alimenta a tela Parcerias
+    try {
+      const { data: vinculos, error: errVinculos } = await BffApiService.profissionais.listarBarbeariasVinculadas();
+      const primeiroId = vinculos?.[0]?.barbershop?.id ?? null;
+      if (!errVinculos && primeiroId) {
+        const { data, error } = await BffApiService.barbearias.gestaoVinculada(primeiroId);
+        if (!error && data?.id) {
+          try { sessionStorage.setItem('bf_parceria_barbershop_id', primeiroId); }
+          catch (_) { /* quota/privado — ignora, não bloqueia o carregamento */ }
+          return { ...data, __contextoParceiro: true };
+        }
+      }
+    } catch (err) {
+      LoggerService.warn('[MinhaBarbeariaPage] #fetchMinhaBarbearia — descoberta automática de parceria falhou:', err?.message);
+    }
+
+    return null;
   }
 
   static async #fetchStatusBarbeiros(barbershopId) {

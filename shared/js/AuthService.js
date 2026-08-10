@@ -434,6 +434,12 @@ class AuthService {
     // Sem isso, as flags bf_plano/bf_plano_confirmacao_pendente sobrevivem ao
     // logout na mesma aba e podem re-disparar a rede de segurança de trial.
     if (typeof MonetizationGuard !== 'undefined') MonetizationGuard.limpar();
+    // Limpa a barbearia de parceria selecionada (sessionStorage) do app
+    // profissional. Sem isso, bf_parceria_barbershop_id sobrevive ao logout
+    // na mesma aba — um próximo login (de outro barbeiro parceiro, ou do
+    // mesmo em outra barbearia) poderia carregar a barbearia errada só por
+    // sobra de sessão anterior.
+    try { sessionStorage.removeItem('bf_parceria_barbershop_id'); } catch (_) { /* indisponível — ignora */ }
     AuthService._limparUI();
   }
 
