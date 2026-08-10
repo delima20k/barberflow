@@ -1861,6 +1861,11 @@ export class MinhaBarbeariaRuntimeController {
     }
 
     if (acao === 'aguardar') {
+      // Suprime o fallback de som (ProducaoSomAlerta) por precaução — hoje
+      // BarbeiroEsperaFluxo.iniciarEspera() não escreve no banco (só estado
+      // local), então isso é preventivo: evita regressão se QueuePoller
+      // algum dia passar a ser carregado no app profissional.
+      this.#somProducao?.suprimirPorAcaoPropria(this.#profissionalId);
       BarbeiroEsperaFluxo.iniciarEspera({
         clienteNome:  clienteNome ?? 'Cliente',
         entradaId,
@@ -1873,6 +1878,13 @@ export class MinhaBarbeariaRuntimeController {
     if (acao === 'chegou') {
       const nome = clienteNome ?? 'Cliente';
       try {
+        // Suprime o fallback de som (ProducaoSomAlerta) ANTES da escrita no
+        // banco — mesmo padrão de #fluxoSentar(). Ação veio de um clique na
+        // própria notificação do barbeiro (possivelmente com o app recém
+        // reaberto, dedup do ProducaoSomAlerta vazio); sem isso, o Realtime
+        // devolveria essa MESMA mudança e o app tocaria o alerta como se
+        // fosse um evento novo.
+        this.#somProducao?.suprimirPorAcaoPropria(this.#profissionalId);
         await QueueRepository.updateClientConfirmed(entradaId, 'yes');
       } catch (err) {
         LoggerService.warn('[MinhaBarbeariaPage] push action chegou:', err?.message);

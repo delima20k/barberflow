@@ -300,4 +300,38 @@ describe('Fiação — som de produção no app profissional', () => {
       'suprimirPorAcaoPropria() precisa vir ANTES do await — a janela tem que estar aberta antes da escrita no banco, senão o evento Realtime pode chegar antes da supressão ser marcada',
     );
   });
+
+  test('#handlePushAction ("chegou") suprime o som ANTES de updateClientConfirmed()', () => {
+    const idxFn = SRC_MB.indexOf('async #handlePushAction(');
+    assert.ok(idxFn > 0, '#handlePushAction deve existir');
+    const idxChegou = SRC_MB.indexOf("acao === 'chegou'", idxFn);
+    assert.ok(idxChegou > idxFn, 'ramo "chegou" deve existir dentro de #handlePushAction');
+    const bloco = SRC_MB.slice(idxChegou, idxChegou + 800);
+
+    const idxSuprimir = bloco.indexOf("#somProducao?.suprimirPorAcaoPropria(this.#profissionalId)");
+    const idxAwaitUpd = bloco.indexOf("await QueueRepository.updateClientConfirmed(entradaId, 'yes')");
+    assert.ok(idxSuprimir > 0, 'deve chamar suprimirPorAcaoPropria(this.#profissionalId)');
+    assert.ok(idxAwaitUpd > 0, 'deve chamar QueueRepository.updateClientConfirmed');
+    assert.ok(
+      idxSuprimir < idxAwaitUpd,
+      'suprimirPorAcaoPropria() precisa vir ANTES do await — clique no botão "chegou" pode reabrir o app com o dedup do ProducaoSomAlerta vazio, e o Realtime devolveria essa mesma escrita como se fosse um evento novo',
+    );
+  });
+
+  test('#handlePushAction ("aguardar") suprime o som antes de BarbeiroEsperaFluxo.iniciarEspera() (preventivo)', () => {
+    const idxFn = SRC_MB.indexOf('async #handlePushAction(');
+    assert.ok(idxFn > 0, '#handlePushAction deve existir');
+    const idxAguardar = SRC_MB.indexOf("acao === 'aguardar'", idxFn);
+    assert.ok(idxAguardar > idxFn, 'ramo "aguardar" deve existir dentro de #handlePushAction');
+    const bloco = SRC_MB.slice(idxAguardar, idxAguardar + 500);
+
+    const idxSuprimir = bloco.indexOf("#somProducao?.suprimirPorAcaoPropria(this.#profissionalId)");
+    const idxIniciarEspera = bloco.indexOf('BarbeiroEsperaFluxo.iniciarEspera({');
+    assert.ok(idxSuprimir > 0, 'deve chamar suprimirPorAcaoPropria(this.#profissionalId)');
+    assert.ok(idxIniciarEspera > 0, 'deve chamar BarbeiroEsperaFluxo.iniciarEspera');
+    assert.ok(
+      idxSuprimir < idxIniciarEspera,
+      'supressão preventiva deve vir antes de iniciarEspera(), mesmo hoje sem escrita no banco nesse ramo',
+    );
+  });
 });
