@@ -301,7 +301,11 @@ class SWProfissional {
 
       // Solicita MP3/vibração à página antes da notificação nativa. Assim,
       // uma eventual falha em showNotification não bloqueia o alerta in-app.
-      if (temJanelaAberta && !pushDuplicado) {
+      // Usa emForeground (não temJanelaAberta): uma janela apenas registrada
+      // mas em segundo plano/suspensa não deve receber o som — a mensagem
+      // ficaria enfileirada e só tocaria quando o usuário reabrisse a página
+      // (ex.: pelo próprio clique na notificação), soando como um evento novo.
+      if (emForeground && !pushDuplicado) {
         for (const c of clientList) {
           c.postMessage({ type: 'BF_PUSH_SOUND', vibrate: opts.vibrate });
         }

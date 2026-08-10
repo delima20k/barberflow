@@ -75,6 +75,12 @@ class ChegadaProducaoService {
         serviceIds,
         tipo: 'producao',
         notificarCliente: false,
+        // O barbeiro já é notificado logo abaixo por #processarAqui/#processarCaminho
+        // (client_at_shop/client_not_seated), com texto que varia pelo status de
+        // chegada. Sem isso, duas notificações separadas chegavam quase juntas
+        // pro mesmo evento — a de "primeiro cliente sentou" (genérica, sem status)
+        // e a de confirmação de chegada (com o status real).
+        notificarBarbeiro: false,
       });
     } catch (err) {
       if (typeof LoggerService !== 'undefined') {
