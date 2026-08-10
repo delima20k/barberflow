@@ -109,7 +109,8 @@ function criarSandboxSom() {
   };
 }
 
-const evento = (id, status = 'in_service') => ({ new: { id, status } });
+const evento = (id, status = 'in_service', professionalId = 'prof-1') =>
+  ({ new: { id, status, professional_id: professionalId } });
 
 describe('ProducaoSomAlerta — fallback de som (unit VM)', () => {
   test('entrada in_service toca o som (uma vez) e retorna true', () => {
@@ -198,6 +199,71 @@ describe('ProducaoSomAlerta — fallback de som (unit VM)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ProducaoSomAlerta.suprimirPorAcaoPropria() — barbeiro não ouve a própria ação
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Bug real: barbeiro senta cliente manualmente (MinhaBarbeariaRuntimeController
+// #fluxoSentar) → notificarBarbeiro:false já suprime o Web Push, mas o Realtime
+// (mb-fila) devolve a MESMA mudança pro próprio app aberto, e ProducaoSomAlerta
+// tocava o som mesmo assim, por não distinguir quem causou a transição.
+
+describe('ProducaoSomAlerta.suprimirPorAcaoPropria() — ação do próprio barbeiro', () => {
+
+  test('evento in_service do professionalId suprimido NÃO toca dentro da janela', () => {
+    const { sandbox, alertar, avancar } = criarSandboxSom();
+    const s = new sandbox.ProducaoSomAlerta();
+    avancar(10_000);
+
+    s.suprimirPorAcaoPropria('prof-1');
+    assert.strictEqual(s.processarEvento(evento('e1', 'in_service', 'prof-1')), false);
+    assert.strictEqual(alertar.calls.length, 0);
+  });
+
+  test('evento in_service de OUTRO professionalId continua tocando normalmente', () => {
+    const { sandbox, alertar, avancar } = criarSandboxSom();
+    const s = new sandbox.ProducaoSomAlerta();
+    avancar(10_000);
+
+    // Supressão é só pro barbeiro que agiu (prof-1) — parceiro diferente
+    // sentando um cliente de verdade não deve ficar mudo.
+    s.suprimirPorAcaoPropria('prof-1');
+    assert.strictEqual(s.processarEvento(evento('e1', 'in_service', 'prof-2')), true);
+    assert.strictEqual(alertar.calls.length, 1);
+  });
+
+  test('após a janela de supressão expirar, evento do mesmo professionalId volta a tocar', () => {
+    const { sandbox, alertar, avancar } = criarSandboxSom();
+    const s = new sandbox.ProducaoSomAlerta();
+    avancar(10_000);
+
+    s.suprimirPorAcaoPropria('prof-1', 5000);
+    avancar(5001); // janela expirou
+    assert.strictEqual(s.processarEvento(evento('e1', 'in_service', 'prof-1')), true);
+    assert.strictEqual(alertar.calls.length, 1);
+  });
+
+  test('sem chamar suprimirPorAcaoPropria(), comportamento é inalterado (evento sempre toca)', () => {
+    const { sandbox, alertar, avancar } = criarSandboxSom();
+    const s = new sandbox.ProducaoSomAlerta();
+    avancar(10_000);
+
+    assert.strictEqual(s.processarEvento(evento('e1', 'in_service', 'prof-1')), true);
+    assert.strictEqual(alertar.calls.length, 1);
+  });
+
+  test('reset() também limpa a supressão por ação própria', () => {
+    const { sandbox, alertar, avancar } = criarSandboxSom();
+    const s = new sandbox.ProducaoSomAlerta();
+    avancar(10_000);
+
+    s.suprimirPorAcaoPropria('prof-1');
+    s.reset();
+    assert.strictEqual(s.processarEvento(evento('e1', 'in_service', 'prof-1')), true, 'reset() deve limpar a supressão');
+    assert.strictEqual(alertar.calls.length, 1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Fiação — canal mb-fila e entrega no app profissional
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -218,5 +284,20 @@ describe('Fiação — som de produção no app profissional', () => {
 
   test('index.html do profissional carrega ProducaoSomAlerta.js', () => {
     assert.match(SRC_HTML_PRO, /assets\/js\/ProducaoSomAlerta\.js/, 'script tag no app profissional');
+  });
+
+  test('#fluxoSentar suprime o som ANTES de chamar CadeiraService.sentar()', () => {
+    const idxSentar = SRC_MB.indexOf('async #fluxoSentar(tipo, professionalId)');
+    assert.ok(idxSentar > 0, '#fluxoSentar deve existir');
+    const bloco = SRC_MB.slice(idxSentar, idxSentar + 3500);
+
+    const idxSuprimir = bloco.indexOf('#somProducao?.suprimirPorAcaoPropria(professionalId)');
+    const idxAwaitCS  = bloco.indexOf('await CadeiraService.sentar({');
+    assert.ok(idxSuprimir > 0, 'deve chamar suprimirPorAcaoPropria(professionalId)');
+    assert.ok(idxAwaitCS > 0, 'deve chamar CadeiraService.sentar()');
+    assert.ok(
+      idxSuprimir < idxAwaitCS,
+      'suprimirPorAcaoPropria() precisa vir ANTES do await — a janela tem que estar aberta antes da escrita no banco, senão o evento Realtime pode chegar antes da supressão ser marcada',
+    );
   });
 });

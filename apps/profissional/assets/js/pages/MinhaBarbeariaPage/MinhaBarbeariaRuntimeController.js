@@ -1549,6 +1549,11 @@ export class MinhaBarbeariaRuntimeController {
 
     // 4. Sentar (cliente cadastrado ou walk-in anônimo)
     try {
+      // Suprime o fallback de som (ProducaoSomAlerta) ANTES da escrita no
+      // banco — o Realtime vai devolver a MESMA mudança que esta ação está
+      // prestes a causar; sem isso, o barbeiro ouviria o próprio alerta
+      // mesmo com notificarBarbeiro:false já suprimindo o Web Push.
+      this.#somProducao?.suprimirPorAcaoPropria(professionalId);
       await CadeiraService.sentar({
         barbershopId:   this.#barbershopId,
         professionalId,
