@@ -30,7 +30,7 @@ const AUTH        = 'dGVzdGF1dGgxNg==';
 const DEVICE_ID   = 'device-uuid-test-1234';
 // Chave VAPID pública vigente (deve espelhar #VAPID_PUBLIC de
 // shared/js/PushSubscriptionService.js). Se rotacionar a chave, atualizar aqui.
-const VAPID_PUB   = 'BOfV2LfGroM9pGlgGzpgIK4ZZiIeDtG2-Rwo4Ivj1Io4tiRcDsdv-0TBp-PxO0fgR55eQls7hF87B1yFOyJVeAc';
+const VAPID_PUB   = 'BD9UZEXrl0p5S9TA4JXh7Onq8Ix5QrWlcCo2O1ZIuZV_MrsajIDAbTrfZ_CCgjbHQTdyuL2KubhXjPeDsX9LV5k';
 const LS_VAPID    = 'bf_push_vapid_key';
 
 // ─── Factory da sandbox VM ────────────────────────────────────
