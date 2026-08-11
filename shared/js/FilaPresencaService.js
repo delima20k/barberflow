@@ -31,6 +31,9 @@ class FilaPresencaService {
   // entradaId → timeoutId — timer de grace de 5 min ("estou chegando")
   static #timers = new Map();
 
+  // guard: evita registrar o listener de push-action mais de uma vez
+  static #vinculado = false;
+
   // ── Constantes ───────────────────────────────────────────────
   static #GRACE_MS = 5 * 60 * 1000; // 5 minutos
 
@@ -89,6 +92,56 @@ class FilaPresencaService {
     }
     FilaPresencaService.#timers.clear();
     FilaPresencaService.#processadas.clear();
+  }
+
+  /**
+   * Liga o listener do botão de ação da notificação push (Sim/Não do
+   * lembrete recorrente de presença — cliente em 1º lugar na fila).
+   * Idempotente — chamado uma vez no boot do app (AppBootstrap).
+   */
+  static bind() {
+    if (FilaPresencaService.#vinculado) return;
+    FilaPresencaService.#vinculado = true;
+    document.addEventListener('barberflow:push-action', e => FilaPresencaService.#handlePushAction(e.detail));
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PÚBLICO — Lembrete recorrente de presença (1º lugar na fila)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Processa a resposta do lembrete recorrente "você já está na barbearia?"
+   * (botões Sim/Não da notificação push, cliente em 1º lugar na fila de
+   * espera). Distinto do fluxo iniciarFluxo/#processarSim/#processarNao
+   * acima — aquele é a confirmação ÚNICA ao ENTRAR na fila (client_confirmed);
+   * este é o ciclo RECORRENTE de 10 em 10 min (presence_confirmed_at).
+   *
+   * 'sim' → persiste presence_confirmed_at (a task do scheduler para de
+   *         mandar novos lembretes para esta entrada) e mostra toast.
+   * 'nao' (ou qualquer outra resposta) → não persiste nada; o próximo
+   *         lembrete simplesmente dispara de novo em 10 min — mesmo
+   *         comportamento de não responder, por design.
+   *
+   * @param {string}      entradaId
+   * @param {'sim'|'nao'} resposta
+   */
+  static async responderPresencaRecorrente(entradaId, resposta) {
+    if (!entradaId || resposta !== 'sim') return;
+
+    try {
+      await QueueRepository.updatePresenceConfirmed(entradaId);
+      if (typeof NotificationService !== 'undefined') {
+        NotificationService.mostrarToast(
+          'Confirmado!',
+          'Obrigado por confirmar. Já estamos te esperando.',
+          NotificationService.TIPOS.SISTEMA,
+        );
+      }
+    } catch (err) {
+      if (typeof LoggerService !== 'undefined') {
+        LoggerService.warn('[FilaPresencaService] responderPresencaRecorrente falhou:', err?.message);
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -244,6 +297,18 @@ class FilaPresencaService {
         LoggerService.warn('[FilaPresencaService] notificarBarbeiro falhou:', err?.message);
       }
     }
+  }
+
+  /**
+   * Traduz o evento barberflow:push-action (botão Sim/Não da notificação
+   * push) para responderPresencaRecorrente(). Ignora pushTypes que não são
+   * 'presence_check' — o mesmo evento é usado por outras features de push.
+   * @param {{ acao: string, entradaId: string, pushType: string }} [detail]
+   */
+  static #handlePushAction({ acao, entradaId, pushType } = {}) {
+    if (pushType !== 'presence_check' || !entradaId) return;
+    const resposta = acao === 'presenca_sim' ? 'sim' : 'nao';
+    FilaPresencaService.responderPresencaRecorrente(entradaId, resposta).catch(() => {});
   }
 
   /**

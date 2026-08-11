@@ -44,6 +44,7 @@ class AppBootstrap {
     { label: 'FilaPosicaoNotif',    fn: () => AppBootstrap.#iniciarNotificacoesPosicaoFila()    },
     { label: 'NotifPermissao',      fn: () => NotificationService.solicitarPushPermissao()     },
     { label: 'PushSubscription',    fn: () => AppBootstrap.#iniciarPushSubscription()           },
+    { label: 'FilaPresencaBind',    fn: () => FilaPresencaService.bind()                        },
     { label: 'StoriesWidget.home',  fn: () => StoriesWidget.iniciarHome(document.getElementById('tela-inicio')) },
   ];
 
