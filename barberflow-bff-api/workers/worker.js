@@ -120,6 +120,7 @@ const { SchedulerFactory }            = require('../application/scheduler/Schedu
 const { RedisDistributedLock }        = require('../infrastructure/scheduler/RedisDistributedLock');
 const { SupabaseSchedulerRepository } = require('../infrastructure/scheduler/SupabaseSchedulerRepository');
 const { BarbeariaRepository }         = require('../repositories/BarbeariaRepository');
+const { QueuePresenceRepository }     = require('../repositories/QueuePresenceRepository');
 
 const mediaRepository = new SupabaseMediaRepository(supabase);
 const useR2 = process.env.STORIES_STORAGE_BACKEND === 'r2';
@@ -228,6 +229,8 @@ const scheduler = SchedulerFactory.build({
   mediaRepository,
   r2Gateway: r2GatewayForCleanup,
   supabaseStorageGateway: supabaseGatewayForCleanup,
+  queuePresenceRepository: new QueuePresenceRepository(supabase),
+  pushService,
 });
 scheduler.service.start();
 

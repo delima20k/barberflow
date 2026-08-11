@@ -11,6 +11,7 @@ const { OutboxRelayTask } = require('./tasks/OutboxRelayTask');
 const { NotificationDigestTask } = require('./tasks/NotificationDigestTask');
 const { ChatMessagePurgeTask } = require('./tasks/ChatMessagePurgeTask');
 const { StoryCleanupTask } = require('./tasks/StoryCleanupTask');
+const { QueuePresenceNudgeTask } = require('./tasks/QueuePresenceNudgeTask');
 const { PurgeExpiredChatMessagesUseCase } = require('../chat/PurgeExpiredChatMessagesUseCase');
 const { PurgeExpiredStoriesUseCase } = require('../stories/PurgeExpiredStoriesUseCase');
 
@@ -27,6 +28,8 @@ class SchedulerFactory {
     mediaRepository = null,
     r2Gateway = null,
     supabaseStorageGateway = null,
+    queuePresenceRepository = null,
+    pushService = null,
   }) {
     const registry = new TaskRegistry();
     registry
@@ -88,6 +91,19 @@ class SchedulerFactory {
           }),
         }),
         description: 'Remove stories expirados e arquivos R2 orfaos. Horario.',
+      }));
+    }
+
+    if (queuePresenceRepository && pushService) {
+      registry.register(SchedulerFactory.#task({
+        name: 'queue.presence-nudge',
+        ownerContext: 'queue',
+        cron: '* * * * *',
+        timezone: 'UTC',
+        timeoutMs: 30_000,
+        retryPolicy: new RetryPolicy({ maxAttempts: 2, baseDelayMs: 1_000, maxDelayMs: 5_000 }),
+        handler: new QueuePresenceNudgeTask({ queuePresenceRepository, pushService }),
+        description: 'Lembrete recorrente (10 min) de presenca para clientes em 1o lugar na fila que ainda nao confirmaram.',
       }));
     }
 

@@ -193,14 +193,22 @@ class PushService {
     return { ...outcome, destinatarios: userId ? 1 : 0 };
   }
 
-  async enviarParaUsuario({ userId, title, body, data = {}, priority = 'default' }) {
+  async enviarParaUsuario({
+    userId,
+    title,
+    body,
+    data = {},
+    priority = 'default',
+    icon = '/shared/img/icon-192.png',
+    badge = '/shared/img/badge-72.png',
+  }) {
     const subs = await this.#listarSubscriptions([userId], null);
     if (!subs.length) return { enviados: 0, invalidas: 0, destinatarios: userId ? 1 : 0 };
     const payload = JSON.stringify({
       title,
       body,
-      icon: '/shared/img/icon-192.png',
-      badge: '/shared/img/badge-72.png',
+      icon,
+      badge,
       tag: data.tag ?? `notification-${data.notificationId ?? userId}`,
       requireInteraction: priority === 'high',
       data: {
