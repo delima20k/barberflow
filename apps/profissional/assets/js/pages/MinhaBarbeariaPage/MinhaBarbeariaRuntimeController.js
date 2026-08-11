@@ -1649,6 +1649,13 @@ export class MinhaBarbeariaRuntimeController {
         return;
       }
 
+      // Suprime o fallback de som (ProducaoSomAlerta) ANTES da escrita no banco
+      // — mesmo padrão de #fluxoSentar(). finalizar() auto-avança o próximo da
+      // fila para in_service; sem isso, o Realtime devolveria essa promoção
+      // como se fosse um evento novo e o barbeiro ouviria o próprio alerta.
+      // profId (não this.#profissionalId) porque é o dono da cadeira/fila em
+      // questão — pode ser um parceiro, se o dono estiver vendo a fila dele.
+      this.#somProducao?.suprimirPorAcaoPropria(profId);
       const { proximoNome: nomeChamado } = await CadeiraService.finalizar(
         entrada.id, this.#barbershopId, profId,
       );
@@ -1763,6 +1770,13 @@ export class MinhaBarbeariaRuntimeController {
     if (acao === 'remover') {
       try {
         if (entradaId) {
+          // Suprime o fallback de som (ProducaoSomAlerta) ANTES da escrita no
+          // banco — mesmo padrão de #fluxoSentar(). Usa this.#profissionalId:
+          // este handler só roda no dispositivo do profissional que recebeu a
+          // notificação client_not_seated/client_absent (notif.dados não traz
+          // o professional_id da entrada), mesma convenção já usada nos
+          // ramos 'aguardar'/'chegou' de #handlePushAction() abaixo.
+          this.#somProducao?.suprimirPorAcaoPropria(this.#profissionalId);
           await CadeiraService.finalizar(entradaId, this.#barbershopId);
         }
         NotificationService.mostrarToast(
@@ -1848,6 +1862,12 @@ export class MinhaBarbeariaRuntimeController {
 
     if (acao === 'remover') {
       try {
+        // Suprime o fallback de som (ProducaoSomAlerta) ANTES da escrita no
+        // banco — mesmo padrão de #fluxoSentar() e dos ramos 'aguardar'/
+        // 'chegou' abaixo. this.#profissionalId: ação veio do próprio
+        // dispositivo do profissional que recebeu a notificação (detail não
+        // traz o professional_id da entrada).
+        this.#somProducao?.suprimirPorAcaoPropria(this.#profissionalId);
         const res         = await CadeiraService.finalizar(entradaId, this.#barbershopId) ?? {};
         const proximoNome = res.proximoNome ?? null;
         const msg         = proximoNome ? `Em atendimento: ${proximoNome}` : 'Fila vazia agora.';
@@ -1961,6 +1981,12 @@ export class MinhaBarbeariaRuntimeController {
 
     if (acao === 'remover') {
       try {
+        // Suprime o fallback de som (ProducaoSomAlerta) ANTES da escrita no
+        // banco — mesmo padrão de #fluxoSentar(). BarbeiroEsperaFluxo não
+        // rastreia o professional_id da entrada (só entradaId/barbershopId),
+        // então usa this.#profissionalId: quem está com a tela aberta quando
+        // o timer resolve é quem está de fato executando a ação agora.
+        this.#somProducao?.suprimirPorAcaoPropria(this.#profissionalId);
         const res         = await CadeiraService.finalizar(entradaId, this.#barbershopId) ?? {};
         const proximoNome = res.proximoNome ?? null;
         const msg         = proximoNome ? `Em atendimento: ${proximoNome}` : 'Fila vazia agora.';
