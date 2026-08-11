@@ -203,6 +203,30 @@ class QueueRepository {
   }
 
   /**
+   * Confirma a presença do ciclo recorrente (cliente em 1º lugar na fila,
+   * pergunta "você já está na barbearia?" a cada 10 min). Marca
+   * presence_confirmed_at com o instante atual — distinto de client_confirmed
+   * (confirmação única ao entrar na fila, ver updateClientConfirmed acima).
+   * Usado pelo FilaPresencaService ao processar a resposta "Sim".
+   *
+   * @param {string} entradaId — UUID da queue_entry
+   * @returns {Promise<object>} — { id, presence_confirmed_at }
+   */
+  static async updatePresenceConfirmed(entradaId) {
+    const r = InputValidator.uuid(entradaId);
+    if (!r.ok) throw new TypeError(`[QueueRepository] entradaId: ${r.msg}`);
+
+    const { data, error } = await ApiService.from('queue_entries')
+      .update({ presence_confirmed_at: new Date().toISOString() })
+      .eq('id', entradaId)
+      .select('id, presence_confirmed_at')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
    * Adiciona um cliente à fila.
    * Valida UUIDs obrigatórios e aplica allowlist de campos.
    * @param {object} payload — { barbershop_id, client_id, professional_id?, chair_id?, position }
