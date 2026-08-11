@@ -1141,7 +1141,14 @@ export class MinhaBarbeariaRuntimeController {
             filter: `barbershop_id=eq.${barbershopId}`,
           },
           (payload) => {
-            this.#somProducao?.processarEvento(payload);
+            // Alerta sonoro é só da fila do PRÓPRIO profissional logado neste
+            // dispositivo — o canal Realtime é por barbearia inteira (todos os
+            // profissionais), então sem esse filtro qualquer barbeiro ouviria
+            // som pela cadeira de qualquer outro. O re-render continua sempre,
+            // pra UI refletir a fila inteira independente de quem mudou.
+            if (payload?.new?.professional_id === this.#profissionalId) {
+              this.#somProducao?.processarEvento(payload);
+            }
             this.#agendarReRenderEquipe();
           },
         )
