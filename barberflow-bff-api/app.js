@@ -65,6 +65,7 @@ const p2pRoute              = require('./routes/p2p');
 const adminConfigRoute      = require('./routes/adminConfig');
 const adminRoute            = require('./routes/admin');
 const internalCronRoute     = require('./routes/internalCron');
+const externalCronRoute     = require('./routes/externalCron');
 const shareRoute            = require('./routes/share');
 const { LandingRouteFactory } = require('./routes/landing');
 const SupabaseClient         = require('./utils/SupabaseClient');
@@ -195,6 +196,12 @@ function criarApp(db = null) {
   // ── Cron interno — exclusivo para Vercel Cron Jobs ───────────
   // Validado por Authorization: Bearer $CRON_SECRET (injetado pelo Vercel).
   app.use('/api/internal/cron', internalCronRoute(_db));
+
+  // ── Cron externo — gatilho de serviço de terceiros (ex: cron-job.org) ─
+  // Validado por header x-cron-secret == QUEUE_PRESENCE_CRON_SECRET.
+  // Ver routes/externalCron.js para o motivo de existir separado do
+  // Scheduler canônico (worker.js não roda na hospedagem serverless atual).
+  app.use('/api/external/cron', externalCronRoute(_db));
 
   // ── P2P ICE config ────────────────────────────────────────────
   app.use('/api/p2p', p2pRoute());
