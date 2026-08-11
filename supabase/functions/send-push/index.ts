@@ -299,6 +299,7 @@ serve(async (req: Request) => {
     pushType?: string
     position?: number
     previousPosition?: number
+    clientName?: string
   }
   try { body = await req.json() } catch { return json({ error: 'Body JSON inválido' }, 422) }
 
@@ -310,6 +311,7 @@ serve(async (req: Request) => {
     pushType = 'in_service',
     position,
     previousPosition,
+    clientName,
   } = body
   if (!clientId || !entradaId) {
     return json({ error: 'clientId e entradaId são obrigatórios' }, 422)
@@ -320,11 +322,16 @@ serve(async (req: Request) => {
   }
 
   // ── Busca subscriptions do cliente (service_role ignora RLS) ──
-  const isQueuePosition = pushType === 'queue_position_update'
+  const isQueuePosition  = pushType === 'queue_position_update'
+  const isPresenceCheck  = pushType === 'presence_check'
   const posicaoAtual = Number(position)
   if (isQueuePosition && (!Number.isFinite(posicaoAtual) || posicaoAtual < 1)) {
     return json({ error: 'position deve ser um numero positivo para queue_position_update' }, 422)
   }
+
+  // Saudação personalizada — cai para genérica quando clientName ausente/vazio.
+  const nomeCliente = typeof clientName === 'string' ? clientName.trim() : ''
+  const saudacao     = nomeCliente ? `Olá ${nomeCliente}` : 'Olá'
 
   const supabaseAdmin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -363,17 +370,34 @@ serve(async (req: Request) => {
   }
 
   // ── Payload da notificação ────────────────────────────────
-  const title = isQueuePosition
-    ? (posicaoAtual === 1 ? 'Você é o próximo!' : 'Você subiu na fila!')
-    : 'Você foi chamado! ✂️'
-  const notificationBody = isQueuePosition
-    ? (posicaoAtual === 1
-      ? 'Agora você está em 1º lugar. Fique atento à chamada.'
-      : `Agora você está em ${posicaoAtual}º lugar.`)
-    : 'O barbeiro está te esperando na cadeira.'
-  const tag = isQueuePosition
-    ? `bf-queue-position-${entradaId}-${posicaoAtual}`
-    : `bf-inservice-${entradaId}`
+  // queue_position_update: 3 faixas por posição (intermediária / 2º / 1º).
+  // presence_check: pergunta recorrente de presença (cliente em 1º lugar).
+  // demais (default in_service): chamada para a cadeira de produção.
+  let title: string
+  let notificationBody: string
+  let tag: string
+
+  if (isQueuePosition) {
+    if (posicaoAtual === 1) {
+      title            = 'Você é o próximo!'
+      notificationBody = `${saudacao}, você já é o próximo! Dirija-se até a barbearia.`
+    } else if (posicaoAtual === 2) {
+      title            = 'Prepare-se!'
+      notificationBody = `${saudacao}, fique ligado, você será o próximo a ser chamado para o corte.`
+    } else {
+      title            = 'Você subiu na fila!'
+      notificationBody = `${saudacao}, você está em ${posicaoAtual}º lugar, fique atento.`
+    }
+    tag = `bf-queue-position-${entradaId}-${posicaoAtual}`
+  } else if (isPresenceCheck) {
+    title            = 'Você já está na barbearia?'
+    notificationBody = `${saudacao}, você já está na barbearia?`
+    tag              = `bf-presence-check-${entradaId}`
+  } else {
+    title            = 'Você foi chamado! ✂️'
+    notificationBody = 'O barbeiro está te esperando na cadeira.'
+    tag              = `bf-inservice-${entradaId}`
+  }
 
   const payload = JSON.stringify({
     title,
