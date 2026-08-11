@@ -1201,7 +1201,7 @@ class BarbeariaPage {
         icone: '↩',
         titulo: 'Desistir de esperar?',
         corpo: FluxoDeFila.escapar(
-          `${clienteNome}, deseja realmente desistir de esperar? Voce perdera sua posicao na fila.`,
+          `${clienteNome}, deseja realmente desistir de esperar? Você perderá sua posição na fila.`,
         ),
         acoes: [
           { label: 'Sim', valor: 'sair', variante: 'primario' },
@@ -1222,7 +1222,7 @@ class BarbeariaPage {
       QueuePositionPresenter.parar?.();
       QueueStateUpdater.parar?.();
       NotificationService.mostrarToast(
-        'Voce saiu da fila',
+        'Você saiu da fila',
         'Sua cadeira de espera foi liberada.',
         NotificationService.TIPOS.SISTEMA,
       );
@@ -1231,7 +1231,7 @@ class BarbeariaPage {
       LoggerService.error('[BarbeariaPage] erro ao sair da fila:', err);
       NotificationService.mostrarToast(
         'Erro',
-        err?.message ?? 'Nao foi possivel sair da fila agora.',
+        err?.message ?? 'Não foi possível sair da fila agora.',
         NotificationService.TIPOS.SISTEMA,
       );
     }
