@@ -167,6 +167,20 @@ class AppBootstrap {
         if (typeof PushSoundService !== 'undefined') PushSoundService.alertar(e.data?.vibrate);
         return;
       }
+      // Botão de ação clicado na notificação (Android), app já aberto —
+      // mesmo padrão do app profissional (execução silenciosa, sem modal).
+      if (e.data?.type === 'PUSH_ACTION') {
+        document.dispatchEvent(new CustomEvent('barberflow:push-action', {
+          detail: {
+            acao:         e.data.acao,
+            entradaId:    e.data.entradaId    ?? null,
+            barbershopId: e.data.barbershopId ?? null,
+            pushType:     e.data.pushType     ?? null,
+          },
+        }));
+        return;
+      }
+
       if (e.data?.type !== 'PUSH_NAVIGATE') return;
       const { barbershopId, entradaId } = e.data;
       if (!barbershopId) return;
@@ -237,6 +251,25 @@ class AppBootstrap {
     const params       = new URLSearchParams(location.search);
     const barbershopId = params.get('push_barbershop');
     const entradaId    = params.get('push_entrada');
+    const pushAction   = params.get('push_action');
+    const pushEntry    = params.get('push_entry');
+    const pushShop     = params.get('push_shop');
+    const pushType     = params.get('push_type');
+
+    // Botão de ação clicado com app fechado (Android) — SW abriu a janela
+    // com ?push_action=...&push_entry=... (ver notificationclick em sw.js).
+    if (pushAction && pushEntry) {
+      document.dispatchEvent(new CustomEvent('barberflow:push-action', {
+        detail: {
+          acao:         pushAction,
+          entradaId:    pushEntry,
+          barbershopId: pushShop ?? null,
+          pushType:     pushType ?? null,
+        },
+      }));
+      return;
+    }
+
     if (!barbershopId) return;
 
     // AppBootstrap.init() é chamado de dentro de DOMContentLoaded (app.js).

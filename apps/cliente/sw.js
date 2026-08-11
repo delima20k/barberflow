@@ -248,6 +248,16 @@ class SWCliente {
         data:               payload.data   ?? {},
       };
 
+      // Botões de ação (Android) para o lembrete recorrente de presença —
+      // mesmo padrão usado em apps/profissional/sw.js para pushType-específico.
+      if (opts.data?.pushType === 'presence_check') {
+        opts.actions = [
+          { action: 'presenca_sim', title: '✅ Sim' },
+          { action: 'presenca_nao', title: '❌ Não' },
+        ];
+        opts.requireInteraction = true;
+      }
+
       // Solicita MP3/vibração à página antes da notificação nativa. Assim,
       // uma eventual falha em showNotification não bloqueia o alerta in-app.
       if (temJanelaAberta) {
@@ -261,15 +271,16 @@ class SWCliente {
     })());
   }
 
-  // ── Clique na notificação: foca aba existente ou abre nova ───────────
-  // Evita múltiplas abas: sempre tenta reutilizar aba com /cliente/.
-  // Se app aberto: postMessage PUSH_NAVIGATE para disparo de deep-link.
-  // Se app fechado: abre a URL com os parâmetros de deep-link.
+  // ── Clique na notificação: botão de ação (Android) ou toque no corpo ─
+  // Botão de ação: mesmo padrão de apps/profissional/sw.js — execução
+  // silenciosa via postMessage (app aberto) ou deep-link por query params
+  // (app fechado, self.clients.openWindow).
+  // Toque no corpo: comportamento original — foca aba existente ou abre nova.
   static notificationclick(e) {
     e.notification.close();
 
-    const data      = e.notification.data ?? {};
-    const targetUrl = data.url ?? '/cliente/';
+    const data = e.notification.data ?? {};
+    const acao = e.action; // string vazia = toque no corpo; 'presenca_sim'|'presenca_nao' = botão
 
     e.waitUntil(
       self.clients
@@ -277,6 +288,28 @@ class SWCliente {
         .then(clientList => {
           // Procura aba do cliente já aberta
           const existing = clientList.find(c => c.url.includes('/cliente/'));
+
+          if (acao) {
+            if (existing) {
+              existing.postMessage({
+                type:         'PUSH_ACTION',
+                acao,
+                entradaId:    data.entradaId    ?? null,
+                barbershopId: data.barbershopId ?? null,
+                pushType:     data.pushType     ?? null,
+              });
+              return existing.focus();
+            }
+            const params = new URLSearchParams({
+              push_action: acao,
+              push_entry:  data.entradaId    ?? '',
+              push_shop:   data.barbershopId ?? '',
+              push_type:   data.pushType     ?? '',
+            });
+            return self.clients.openWindow(`/cliente/?${params}`);
+          }
+
+          const targetUrl = data.url ?? '/cliente/';
           if (existing) {
             // App aberto: envia evento de navegação e foca a aba
             existing.postMessage({
