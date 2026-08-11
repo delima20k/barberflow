@@ -187,6 +187,114 @@ describe('BffApiService.patch()', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BffApiService — retry único de SupabaseService.getSession() antes do
+// fallback localStorage. Cobre o caso comum de rede ainda não pronta logo
+// ao reabrir um PWA suspenso (token expirado, 1ª tentativa de renovação
+// falha, 2ª já funciona).
+// ─────────────────────────────────────────────────────────────────────────────
+describe('BffApiService — retry de getSession()', () => {
+
+  function criarSandboxComSessaoInstavel(respostas, { comLocalStorage = false } = {}) {
+    const fila = [...respostas];
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    const getSession = fn().mockImplementation(async () => {
+      const proxima = fila.length > 1 ? fila.shift() : fila[0];
+      if (proxima instanceof Error) throw proxima;
+      return proxima;
+    });
+    const ls = comLocalStorage ? { [STORAGE_KEY]: sessao(undefined, 'tok-localstorage') } : {};
+    const lsMap = new Map(Object.entries(ls));
+
+    const sb = vm.createContext({
+      console, Error, TypeError, Promise,
+      window: { location: { hostname: 'localhost' } },
+      localStorage: {
+        getItem:    fn((k) => lsMap.get(k) ?? null),
+        setItem:    fn((k, v) => lsMap.set(k, String(v))),
+        removeItem: fn((k) => lsMap.delete(k)),
+      },
+      AbortController: class { constructor() { this.signal = {}; } abort() {} },
+      // Resolve na hora — sem esperar o delay real do retry no teste.
+      setTimeout:   fn((cb) => { try { cb(); } catch {} }),
+      clearTimeout: fn(),
+      fetch: fetchMock,
+      SupabaseService: { getSession },
+    });
+    carregar(sb, 'shared/js/BffApiService.js');
+    return { sb, capturedOpts, getSession };
+  }
+
+  test('1ª tentativa sem token, 2ª com token → usa o token da 2ª (retry funcionou)', async () => {
+    const { sb, capturedOpts, getSession } = criarSandboxComSessaoInstavel([
+      null,
+      { access_token: 'tok-retry-ok' },
+    ]);
+
+    await sb.BffApiService.post('/api/v1/test', {});
+
+    assert.strictEqual(capturedOpts[0]?.headers?.['Authorization'], 'Bearer tok-retry-ok');
+    assert.strictEqual(getSession.calls.length, 2, 'deve chamar getSession() exatamente 2 vezes (1 tentativa + 1 retry)');
+  });
+
+  test('1ª tentativa lança exceção, 2ª com token → retry recupera', async () => {
+    const { sb, capturedOpts, getSession } = criarSandboxComSessaoInstavel([
+      new Error('network hiccup'),
+      { access_token: 'tok-recuperado' },
+    ]);
+
+    await sb.BffApiService.post('/api/v1/test', {});
+
+    assert.strictEqual(capturedOpts[0]?.headers?.['Authorization'], 'Bearer tok-recuperado');
+    assert.strictEqual(getSession.calls.length, 2);
+  });
+
+  test('as 2 tentativas falham → cai no fallback localStorage (sem loop além do retry único)', async () => {
+    const { sb, capturedOpts, getSession } = criarSandboxComSessaoInstavel([null, null], { comLocalStorage: true });
+
+    await sb.BffApiService.post('/api/v1/test', {});
+
+    assert.strictEqual(capturedOpts[0]?.headers?.['Authorization'], 'Bearer tok-localstorage');
+    assert.strictEqual(getSession.calls.length, 2, 'não deve tentar mais que 1 retry (2 chamadas no total)');
+  });
+
+  test('SupabaseService indisponível → vai direto pro fallback, sem esperar o retry de 700ms', async () => {
+    const capturedOpts = [];
+    const fetchMock = fn(async (_url, opts) => {
+      capturedOpts.push(opts);
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    const ls = { [STORAGE_KEY]: sessao(undefined, 'tok-direto') };
+    const lsMap = new Map(Object.entries(ls));
+    const delaysUsados = [];
+    const sb = vm.createContext({
+      console, Error, TypeError, Promise,
+      window: { location: { hostname: 'localhost' } },
+      localStorage: {
+        getItem: fn((k) => lsMap.get(k) ?? null),
+        setItem: fn(), removeItem: fn(),
+      },
+      AbortController: class { constructor() { this.signal = {}; } abort() {} },
+      // Só o timer de abort do fetch (#TIMEOUT_MS) deve disparar aqui — o
+      // retry de sessão (700ms) não deve, pois SupabaseService nem existe.
+      setTimeout: fn((cb, ms) => { delaysUsados.push(ms); cb(); return 0; }),
+      clearTimeout: fn(),
+      fetch: fetchMock,
+      // SupabaseService intencionalmente ausente do sandbox
+    });
+    carregar(sb, 'shared/js/BffApiService.js');
+
+    await sb.BffApiService.post('/api/v1/test', {});
+
+    assert.strictEqual(capturedOpts[0]?.headers?.['Authorization'], 'Bearer tok-direto');
+    assert.ok(!delaysUsados.includes(700), 'não deve agendar o retry de 700ms quando SupabaseService está ausente');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BffApiService.post() — status no erro (simetria com patch)
 // ─────────────────────────────────────────────────────────────────────────────
 describe('BffApiService.post()', () => {

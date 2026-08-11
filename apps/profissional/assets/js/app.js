@@ -171,6 +171,30 @@ class BarberFlowProfissional extends Router {
     try {
       let status = await MonetizationGuard.assinaturaPermiteAcesso();
 
+      // Erro transitório de rede/token ao consultar a assinatura — comum ao
+      // reabrir o app instalado (PWA) depois de ficar suspenso em segundo
+      // plano por tempo suficiente pro token expirar. NÃO é um veredito real
+      // sobre o plano, então não deve mostrar o banner de "mensalidade
+      // vencida". Tenta mais 1 vez (assinaturaPermiteAcesso nunca cacheia
+      // esse resultado, então a nova tentativa já sai fresca).
+      if (!status.accessAllowed && status.reason === 'network_or_auth_error') {
+        status = await MonetizationGuard.assinaturaPermiteAcesso({ force: true });
+      }
+
+      if (!status.accessAllowed && status.reason === 'network_or_auth_error') {
+        // Ainda sem confirmação — estado neutro: avisa e não navega (nem
+        // libera, nem bloqueia como se o plano estivesse vencido). O
+        // profissional pode tentar de novo tocando a mesma tela.
+        if (typeof NotificationService !== 'undefined') {
+          NotificationService.mostrarToast(
+            'Verificando assinatura',
+            'Não foi possível confirmar sua assinatura agora. Tente novamente em instantes.',
+            NotificationService.TIPOS.SISTEMA,
+          );
+        }
+        return;
+      }
+
       // Rede de segurança: profissional que escolheu "Começar teste grátis" no
       // cadastro mas cuja ativação não ocorreu (timing do token, erro
       // transitório no POST /trial). Em vez de jogar para planos, ativa o trial

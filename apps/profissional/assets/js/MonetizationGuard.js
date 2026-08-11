@@ -82,6 +82,19 @@ class MonetizationGuard {
     }
   }
 
+  /**
+   * Verifica se a assinatura permite acesso ao painel.
+   *
+   * Distingue duas famílias de resultado bem diferentes:
+   *   - Erro de rede/token ao CONSULTAR o status (ex: PWA reaberto após
+   *     suspensão longa, token expirado, rede ainda não pronta) — reason
+   *     'network_or_auth_error'. NÃO é um veredito real sobre o plano, então
+   *     NUNCA é cacheado — a próxima chamada tenta de novo do zero.
+   *   - Resposta de verdade do backend (mesmo quando accessAllowed=false,
+   *     ex: plano vencido) — só esse caso é cacheado por #STATUS_TTL_MS.
+   * @param {{ force?: boolean }} [opts]
+   * @returns {Promise<{ accessAllowed: boolean, reason: string, subscription: object|null }>}
+   */
   static async assinaturaPermiteAcesso({ force = false } = {}) {
     const agora = Date.now();
     if (!force
@@ -90,20 +103,26 @@ class MonetizationGuard {
       return MonetizationGuard.#statusCache.status;
     }
 
-    const fallback = {
+    const erroTransitorio = {
       accessAllowed: false,
-      reason: 'subscription_status_unavailable',
+      reason: 'network_or_auth_error',
       subscription: null,
     };
 
     if (typeof BffApiService === 'undefined'
       || !BffApiService.pagamentosProfissional?.statusAssinatura) {
-      MonetizationGuard.#statusCache = { checkedAt: agora, status: fallback };
-      return fallback;
+      // Plumbing indisponível (ex: script ainda carregando) — não cacheia.
+      return erroTransitorio;
     }
 
     const { data, error } = await BffApiService.pagamentosProfissional.statusAssinatura();
-    const status = error ? fallback : {
+    if (error) {
+      // Erro de transporte (rede/401/timeout) — não é veredito de plano,
+      // não cacheia, pra próxima tentativa sair fresca.
+      return erroTransitorio;
+    }
+
+    const status = {
       accessAllowed: data?.accessAllowed === true,
       reason: data?.reason ?? 'subscription_status_unavailable',
       subscription: data?.subscription ?? null,

@@ -570,19 +570,40 @@ class BffApiService {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
+  // Atraso do retry único de #getTokenAsync — cobre o caso comum de rede
+  // ainda não pronta logo ao reabrir um PWA suspenso (token expirado, SDK
+  // precisa de uma renovação via rede que pode não estar disponível de
+  // imediato no primeiro instante após o app voltar ao primeiro plano).
+  static #RETRY_SESSAO_MS = 700;
+
   /**
    * Prioriza a sessão viva do Supabase SDK e usa localStorage só como fallback.
+   * Se a SDK estiver disponível mas a primeira tentativa não render um token
+   * (erro ou sessão sem access_token), tenta mais 1 vez após um pequeno
+   * atraso antes de cair no fallback — não é um loop, só 1 retry, pra não
+   * pesar o carregamento quando o problema é de verdade (ex: deslogado).
    * @returns {Promise<string|null>}
    */
   static async #getTokenAsync() {
+    if (typeof SupabaseService === 'undefined' || typeof SupabaseService.getSession !== 'function') {
+      return BffApiService.#getToken();
+    }
+
     try {
-      if (typeof SupabaseService !== 'undefined' && typeof SupabaseService.getSession === 'function') {
-        const session = await SupabaseService.getSession();
-        if (session?.access_token) return session.access_token;
-      }
+      const session = await SupabaseService.getSession();
+      if (session?.access_token) return session.access_token;
+    } catch {
+      // tenta de novo abaixo antes de desistir
+    }
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, BffApiService.#RETRY_SESSAO_MS));
+      const session = await SupabaseService.getSession();
+      if (session?.access_token) return session.access_token;
     } catch {
       // Fallback abaixo mantém compatibilidade quando o SDK ainda não carregou.
     }
+
     return BffApiService.#getToken();
   }
 
