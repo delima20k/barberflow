@@ -64,7 +64,7 @@ function createElement(overrides = {}) {
   };
 }
 
-function createVoucherModalFixture(service) {
+function createVoucherModalFixture(service, { metaPixel = null } = {}) {
   const elements = {
     form: createElement({
       checkValidity: () => true,
@@ -102,6 +102,7 @@ function createVoucherModalFixture(service) {
     querySelector: (selector) => selectors.get(selector) ?? null,
     querySelectorAll: () => [],
   });
+  modal.setAttribute('aria-hidden', 'true');
   const root = {
     body: { classList: { add() {}, remove() {} } },
     querySelector: (selector) => (selector === '[data-voucher-modal]' ? modal : null),
@@ -123,6 +124,7 @@ function createVoucherModalFixture(service) {
   );
   const voucherModal = new context.VoucherModal(root, service, {
     clipboard: { writeText: async (value) => copied.push(value) },
+    metaPixel,
   });
   return { voucherModal, elements, copied };
 }
@@ -241,13 +243,16 @@ describe('VoucherService', () => {
 
   it('deve exibir e copiar na modal somente o voucher retornado pelo servidor', async () => {
     const calls = [];
+    const leads = [];
     const service = {
       async generateVoucher(data) {
         calls.push(data);
         return { ok: true, status: 'issued', code: 'ABC123', remaining: 57 };
       },
     };
-    const { voucherModal, elements, copied } = createVoucherModalFixture(service);
+    const { voucherModal, elements, copied } = createVoucherModalFixture(service, {
+      metaPixel: { trackLead: (code) => leads.push(code) },
+    });
 
     await voucherModal.handleSubmit({ preventDefault() {} });
 
@@ -256,6 +261,7 @@ describe('VoucherService', () => {
     assert.equal(elements.code.value, 'ABC123');
     assert.equal(elements.appLink.href, 'https://pro.barberflow.live/');
     assert.equal(elements.availability.textContent, '57 vouchers restantes');
+    assert.deepEqual(leads, ['ABC123']);
     assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{
       email: 'ana@example.com',
       campaignConsent: true,
@@ -266,5 +272,81 @@ describe('VoucherService', () => {
 
     assert.deepEqual(copied, ['ABC123']);
     assert.equal(elements.copyStatus.textContent, 'Código copiado.');
+  });
+
+  it('deve enviar VoucherStart somente ao abrir por um CTA marcado', () => {
+    const starts = [];
+    const service = {
+      async checkAvailability() {
+        return { ok: true, remaining: 7 };
+      },
+    };
+    const { voucherModal } = createVoucherModalFixture(service, {
+      metaPixel: { trackVoucherStart: () => starts.push('VoucherStart') },
+    });
+    const markedCta = createElement();
+    markedCta.setAttribute('data-meta-event', 'voucher-start');
+    const regularCta = createElement();
+
+    voucherModal.open(markedCta);
+    voucherModal.open(markedCta);
+    voucherModal.close();
+    voucherModal.open(regularCta);
+
+    assert.deepEqual(starts, ['VoucherStart']);
+  });
+
+  it('nao deve enviar Lead quando a API recusar ou retornar resposta invalida', async () => {
+    const leads = [];
+    const metaPixel = { trackLead: (code) => leads.push(code) };
+    const rejected = createVoucherModalFixture({
+      async generateVoucher() {
+        return { ok: false, message: 'Nao elegivel.' };
+      },
+    }, { metaPixel });
+    const invalid = createVoucherModalFixture({
+      async generateVoucher() {
+        return { ok: true, code: '   ' };
+      },
+    }, { metaPixel });
+
+    await rejected.voucherModal.handleSubmit({ preventDefault() {} });
+    await invalid.voucherModal.handleSubmit({ preventDefault() {} });
+
+    assert.deepEqual(leads, []);
+    assert.equal(rejected.elements.successView.hidden, true);
+    assert.equal(invalid.elements.successView.hidden, true);
+  });
+
+  it('nao deve enviar Lead quando a geracao falhar', async () => {
+    const leads = [];
+    const { voucherModal, elements } = createVoucherModalFixture({
+      async generateVoucher() {
+        throw new Error('network error');
+      },
+    }, {
+      metaPixel: { trackLead: (code) => leads.push(code) },
+    });
+
+    await voucherModal.handleSubmit({ preventDefault() {} });
+
+    assert.deepEqual(leads, []);
+    assert.equal(elements.successView.hidden, true);
+  });
+
+  it('deve exibir o voucher mesmo se o rastreador falhar', async () => {
+    const { voucherModal, elements } = createVoucherModalFixture({
+      async generateVoucher() {
+        return { ok: true, code: 'ABC123' };
+      },
+    }, {
+      metaPixel: { trackLead: () => { throw new Error('pixel blocked'); } },
+    });
+
+    await voucherModal.handleSubmit({ preventDefault() {} });
+
+    assert.equal(elements.successView.hidden, false);
+    assert.equal(elements.code.value, 'ABC123');
+    assert.equal(elements.error.hidden, true);
   });
 });

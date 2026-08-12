@@ -18,6 +18,7 @@ class LandingApp {
       sessionTimeoutMinutes: LandingConfig.get('analyticsSessionTimeoutMinutes'),
     });
     const analytics = new LandingAnalytics(this.root, analyticsTracker);
+    const metaPixel = new MetaPixelTracker(this.root);
     const presence = new LandingPresencePublisher({
       enabled: LandingConfig.get('analyticsPresenceEnabled'),
       supabaseUrl: LandingConfig.get('analyticsSupabaseUrl'),
@@ -25,6 +26,7 @@ class LandingApp {
       captchaTokenProvider: null,
     });
     this.components = [
+      metaPixel,
       analytics,
       presence,
       new MobileNavigation(this.root),
@@ -50,7 +52,7 @@ class LandingApp {
             LandingConfig.get('voucherApiUrl'),
           ),
         }),
-        { analytics },
+        { analytics, metaPixel },
       ),
       new FeedbackFormController(
         this.root.querySelector('[data-feedback-form]'),

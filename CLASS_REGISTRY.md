@@ -916,6 +916,7 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 | `LandingCarousel` | [apps/landing-page/js/carousel.js](apps/landing-page/js/carousel.js) | interfaces | Renderiza o catálogo de funcionalidades e gerencia scroll-snap, arraste, teclado, indicadores e estado acessível. |
 | `LandingConfig` | [apps/landing-page/config/landing-config.js](apps/landing-page/config/landing-config.js) | infra | Centraliza domínio canônico, destinos oficiais, deep link de cadastro e flags de integrações futuras. |
 | `LandingFeatureCatalog` | [apps/landing-page/config/landing-features.js](apps/landing-page/config/landing-features.js) | infra | Mantém o catálogo imutável dos slides e os caminhos esperados dos screenshots da landing. |
+| `MetaPixelTracker` | [apps/landing-page/js/meta-pixel.js](apps/landing-page/js/meta-pixel.js) | infra | Carrega o Meta Pixel somente na landing e envia PageView, VoucherStart e Lead sem parâmetros de dados pessoais ou voucher, com inicialização e conversão idempotentes. |
 | `MobileNavigation` | [apps/landing-page/js/mobile-navigation.js](apps/landing-page/js/mobile-navigation.js) | interfaces | Gerencia o menu responsivo e seus estados ARIA. |
 | `PlanDeck` | [apps/landing-page/js/plan-deck.js](apps/landing-page/js/plan-deck.js) | interfaces | Coordena a troca acessível do plano em destaque, com pilha animada no desktop e leitura em coluna no mobile. |
 | `ScrollAnimationController` | [apps/landing-page/js/animations.js](apps/landing-page/js/animations.js) | interfaces | Revela seções com IntersectionObserver e respeita preferência de movimento reduzido. |
@@ -961,6 +962,12 @@ Toda nova funcionalidade backend deve ser adicionada SOMENTE aqui — nunca dent
 |---|---|---|---|
 | `VoucherAdapterStub` | [tests/landing-voucher.test.js](tests/landing-voucher.test.js) | infra | Adapter controlado para provar a delegacao do service sem rede. |
 | `VoucherServiceFixture` | [tests/landing-voucher.test.js](tests/landing-voucher.test.js) | infra | Carrega o service em contexto VM isolado para validar modo local e adapter. |
+
+## tests/landing-meta-pixel.test.js
+
+| Classe | Arquivo | Camada | Descricao |
+|---|---|---|---|
+| `MetaPixelFixture` | [tests/landing-meta-pixel.test.js](tests/landing-meta-pixel.test.js) | infra | Isola documento, fila `fbq` e carregamento do SDK para validar os eventos do Meta Pixel sem rede. |
 
 ## barberflow-bff-api/tests/professional-voucher-issuance.test.js
 

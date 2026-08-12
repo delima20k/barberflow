@@ -23,7 +23,7 @@ primeiros passos e oferta condicional da campanha.
 - Voucher de 30 dias gratis condicionado as regras vigentes da campanha
 - Planos mensais apenas informativos apos o teste: Barbeiro por `R$ 24,90/mes` e Barbearia por `R$ 59,90/mes`, sem checkout, renovacao ou cobranca na landing
 - FAQ com nove duvidas reais, incluindo uma resposta provisoria sobre o periodo gratuito, formulario de sugestoes integrado ao BFF, CTA final e rodape completo
-- SEO tecnico, dados estruturados e pontos de analytics sem rastreadores instalados
+- SEO tecnico, dados estruturados, analytics interno desativado e Meta Pixel restrito ao funil do voucher
 - Animacoes leves no hero, nas secoes e nos estados ao vivo, com movimento reduzido respeitado
 
 ## Executar localmente
@@ -188,12 +188,13 @@ O wordmark atual e apenas a imagem social temporaria. Antes da publicacao,
 substitua `socialImageUrl` e as metas `og:image`/`twitter:image` por uma peca
 oficial horizontal otimizada e atualize o hash da CSP se o JSON-LD mudar.
 
-## Analytics preparado
+## Analytics e Meta Pixel
 
 `LandingAnalytics` usa o `LandingAnalyticsTracker` centralizado e começa
 desativado (`analyticsEnabled: false`), sem URL, chave pública ou collector.
-Nenhum SDK, cookie ou request de analytics é carregado antes da configuração
-manual do schema `analytics` no mesmo projeto Supabase em `../../analytics/`. A allowlist contém:
+A integração interna continua sem SDK, cookie ou request enquanto o schema
+`analytics` do mesmo projeto Supabase não for configurado em `../../analytics/`.
+A allowlist interna contém:
 
 - `landing_view`
 - `session_started` / `session_ended`
@@ -209,6 +210,15 @@ um identificador estável enviado como `button_name`. E-mail só pode seguir no
 envio confirmado e é transformado em HMAC na
 Edge Function; a landing não deve enviar e-mail enquanto a integração estiver
 desativada. Consulte `analytics/docs/deployment.md` antes de ativar.
+
+Separadamente, a landing carrega o Meta Pixel `2486237658515097` sem bloqueio
+prévio por consentimento nesta etapa. `MetaPixelTracker` envia somente
+`PageView`, `VoucherStart` e `Lead`: o início acontece quando a modal abre por
+um CTA marcado e a conversão somente após a API confirmar um código válido.
+Os eventos não incluem e-mail, nome, telefone ou código do voucher como
+parâmetros. O SDK da Meta ainda pode tratar identificadores técnicos conforme
+suas próprias políticas, ponto que exige revisão jurídica. O tracker não é
+carregado nas páginas legais nem nos aplicativos internos.
 
 ## Edicao de conteudo
 
@@ -232,7 +242,7 @@ funcionalidades. O video oficial esta configurado em `youtubeVideoId`.
 6. Aplicar e auditar a migration de emissao antes de ativar o deploy.
 7. Revisar juridicamente politica, termos e regras da campanha.
 8. Criar a imagem social oficial.
-9. Decidir consentimento e adapter de analytics.
+9. Revisar juridicamente consentimento e cookies antes de ampliar o rastreamento.
 10. Reexecutar testes, acessibilidade, performance e auditoria em conexao lenta.
 11. Somente entao publicar na Vercel e configurar o dominio.
 
@@ -262,6 +272,7 @@ dominios atuais. Esta configuracao nao executa deploy nem altera DNS.
 node --test tests/landing-page.test.js
 node --test tests/landing-carousel.test.js
 node --test tests/landing-voucher.test.js
+node --test tests/landing-meta-pixel.test.js
 node --test tests/landing-video.test.js
 node --test tests/landing-feedback.test.js
 node --check apps/landing-page/config/landing-config.js
@@ -269,6 +280,7 @@ node --check apps/landing-page/config/landing-features.js
 node --check apps/landing-page/js/main.js
 node --check apps/landing-page/js/feedback-service.js
 node --check apps/landing-page/js/analytics.js
+node --check apps/landing-page/js/meta-pixel.js
 ```
 
 O arquivo `vercel.json` prepara um projeto estatico independente. Esta etapa nao

@@ -69,6 +69,7 @@
   <script src="./config/analytics-events.js" defer></script>
   <script src="./js/analytics-tracker.js" defer></script>
   <script src="./js/analytics-presence.js" defer></script>
+  <script src="./js/meta-pixel.js" defer></script>
   <script src="./config/landing-features.js" defer></script>
   <script src="./js/mobile-navigation.js" defer></script>
   <script src="./js/carousel.js" defer></script>
@@ -85,6 +86,9 @@
   <script src="./js/main.js" defer></script>
 </head>
 <body>
+  <noscript>
+    <img height="1" width="1" hidden alt="" src="https://www.facebook.com/tr?id=2486237658515097&ev=PageView&noscript=1">
+  </noscript>
   <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
 
   <main id="conteudo">
@@ -100,7 +104,7 @@
           <a href="#beneficios">Benefícios</a>
           <a href="#aplicativos">Aplicativos</a>
           <a href="#faq">Dúvidas</a>
-          <a class="button button--compact button--gold" href="#voucher" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="header-test-free">Testar grátis</a>
+          <a class="button button--compact button--gold" href="#voucher" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="header-test-free">Testar grátis</a>
         </nav>
 
         <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="menu-principal" aria-expanded="false" title="Abrir menu" data-menu-toggle>
@@ -132,7 +136,7 @@
           <h2 class="hero__voucher-title">TESTE O BARBERFLOW GRÁTIS POR 30 DIAS</h2>
           <p class="hero__campaign-copy">Configure sua barbearia, compartilhe seu link e veja como uma fila organizada pode transformar sua rotina.</p>
           <div class="hero__actions">
-            <button class="button button--gold hero__voucher-button" type="button" data-open-voucher data-hero-voucher-cta data-analytics-event="cta_click" data-analytics-cta="hero-generate-voucher">Quero testar grátis por 30 dias</button>
+            <button class="button button--gold hero__voucher-button" type="button" data-open-voucher data-meta-event="voucher-start" data-hero-voucher-cta data-analytics-event="cta_click" data-analytics-cta="hero-generate-voucher">Quero testar grátis por 30 dias</button>
             <a class="button button--outline-light" href="#video">Assistir à demonstração</a>
           </div>
           <ul class="hero__trust" aria-label="Para quem o BarberFlow foi criado">
@@ -179,7 +183,7 @@
           <button class="button button--gold" type="button" data-load-video data-analytics-event="cta_click" data-analytics-cta-id="presentation_video" hidden>Assistir vídeo</button>
         </div>
         <div class="video-section__action reveal">
-          <button class="button button--dark" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="video-test-barberflow">Testar o BarberFlow</button>
+          <button class="button button--dark" type="button" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="video-test-barberflow">Testar o BarberFlow</button>
         </div>
       </div>
     </section>
@@ -264,7 +268,7 @@
           <h2 id="solution-title">Você atende. O BarberFlow mantém todos na mesma fila.</h2>
           <p>O BarberFlow transforma a fila da sua barbearia em uma experiência digital, organizada e transparente. Pelo celular, o cliente vê quais profissionais estão disponíveis, consulta quantas pessoas estão esperando, acompanha a situação da fila em tempo real e entra na próxima cadeira disponível.</p>
           <p>E você consegue acompanhar toda a operação sem depender de papéis, mensagens espalhadas ou explicações repetidas.</p>
-          <button class="text-link" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="solution-organize-queue">Quero organizar minha fila <span aria-hidden="true">→</span></button>
+          <button class="text-link" type="button" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="solution-organize-queue">Quero organizar minha fila <span aria-hidden="true">→</span></button>
         </div>
         <div class="queue-preview reveal reveal--right" aria-label="Exemplo visual neutro de uma fila organizada">
           <div class="queue-preview__header">
@@ -303,7 +307,7 @@
           <article class="feature-card reveal reveal--scale" data-feature-card><span>10</span><h3>Controle financeiro</h3><p>Acompanhe atendimentos, receitas e divisões entre a barbearia e os profissionais.</p></article>
         </div>
         <div class="features__action reveal">
-          <button class="button button--gold" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="features-free-trial">Testar todas as funcionalidades grátis</button>
+          <button class="button button--gold" type="button" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="features-free-trial">Testar todas as funcionalidades grátis</button>
         </div>
       </div>
     </section>
@@ -345,7 +349,7 @@
           <li class="process-list__campaign reveal reveal--scale" data-process-step><span>5</span><div><h3>Continue fazendo o que você faz melhor</h3><p>Enquanto o BarberFlow organiza a fila, você mantém a atenção no cliente que está na cadeira.</p></div></li>
         </ol>
         <div class="process__action reveal">
-          <button class="button button--gold" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="process-start-free-trial">Começar meu teste gratuito</button>
+          <button class="button button--gold" type="button" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="process-start-free-trial">Começar meu teste gratuito</button>
         </div>
       </div>
     </section>
@@ -431,7 +435,7 @@
           <p>Durante os próximos 30 dias, você poderá configurar sua operação, compartilhar sua fila e experimentar as funcionalidades do BarberFlow em sua rotina.</p>
           <p>Sem precisar mudar sua forma de atendimento. Sem depender de agendas complicadas. Sem continuar respondendo a mesma pergunta várias vezes por dia.</p>
           <p>Consulte as condições da campanha. Após o período gratuito, você poderá escolher se deseja continuar utilizando o BarberFlow.</p>
-          <button class="button button--dark" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="voucher-one-month-free">Quero meus 30 dias grátis</button>
+          <button class="button button--dark" type="button" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="voucher-one-month-free">Quero meus 30 dias grátis</button>
         </div>
         <div class="voucher-ticket" aria-label="Voucher promocional BarberFlow">
           <span>BARBERFLOW</span>
@@ -599,7 +603,7 @@
         <p>Enquanto você atende, seus clientes podem acompanhar a fila, verificar os profissionais disponíveis e planejar melhor a chegada.</p>
         <p>Menos interrupções para você. Mais clareza para sua equipe. Mais praticidade para seus clientes.</p>
         <div class="final-cta__actions">
-          <button class="button button--gold" type="button" data-open-voucher data-analytics-event="cta_click" data-analytics-cta="final-generate-voucher">Começar agora</button>
+          <button class="button button--gold" type="button" data-open-voucher data-meta-event="voucher-start" data-analytics-event="cta_click" data-analytics-cta="final-generate-voucher">Começar agora</button>
           <a class="button button--outline-light" href="https://pro.barberflow.live/" data-config-link="professionalAppUrl" data-analytics-event="cta_click" data-analytics-cta-id="final_professional_app">Acessar a aplicação profissional</a>
         </div>
         <small>Leva apenas alguns minutos para configurar sua barbearia.</small>
@@ -634,7 +638,7 @@
     </div>
   </footer>
 
-  <a class="mobile-floating-cta button button--gold" data-mobile-cta data-open-voucher href="#voucher" data-analytics-event="cta_click" data-analytics-cta="mobile-test-free">Testar grátis</a>
+  <a class="mobile-floating-cta button button--gold" data-mobile-cta data-open-voucher data-meta-event="voucher-start" href="#voucher" data-analytics-event="cta_click" data-analytics-cta="mobile-test-free">Testar grátis</a>
 
   <a class="whatsapp-floating-button" href="https://wa.me/5511911082804" data-config-link="whatsappUrl" data-analytics-event="cta_click" data-analytics-cta="whatsapp-contact" target="_blank" rel="noopener noreferrer" aria-label="Conversar com o BarberFlow pelo WhatsApp" title="Conversar pelo WhatsApp">
     <span class="whatsapp-floating-button__label">Clique no WhatsApp e saiba mais</span>

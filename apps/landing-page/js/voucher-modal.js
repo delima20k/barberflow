@@ -5,6 +5,7 @@ class VoucherModal {
   #availabilityChecked;
   #clipboard;
   #analytics;
+  #metaPixel;
 
   constructor(root = document, service = new VoucherService(), options = {}) {
     this.root = root;
@@ -28,6 +29,7 @@ class VoucherModal {
     this.#availabilityChecked = false;
     this.#clipboard = options.clipboard ?? globalThis.navigator?.clipboard ?? null;
     this.#analytics = options.analytics ?? null;
+    this.#metaPixel = options.metaPixel ?? null;
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.handleKeydown = this.handleKeydown.bind(this);
@@ -84,8 +86,10 @@ class VoucherModal {
 
       if (result?.ok && typeof result.code === 'string' && result.code.trim()) {
         const email = String(formData.get('email') ?? '').trim();
+        const code = result.code.trim();
         this.#analytics?.track?.('email_submit', { email });
-        this.showSuccess(result.code.trim());
+        this.showSuccess(code);
+        this.#trackLead(code);
         if (Number.isInteger(result.remaining)) {
           this.updateAvailabilityCount(result.remaining);
         }
@@ -147,10 +151,14 @@ class VoucherModal {
   }
 
   open(trigger) {
+    const wasClosed = this.modal.getAttribute('aria-hidden') !== 'false';
     this.lastFocused = trigger;
     this.modal.setAttribute('aria-hidden', 'false');
     this.root.body.classList.add('modal-open');
     this.modal.querySelector('.modal__close')?.focus();
+    if (wasClosed && trigger?.getAttribute?.('data-meta-event') === 'voucher-start') {
+      this.#trackVoucherStart();
+    }
     this.#analytics?.track?.('voucher_open');
     if (!this.#availabilityChecked) this.checkAvailability();
   }
@@ -190,6 +198,22 @@ class VoucherModal {
     this.successView.hidden = false;
     this.successTitle?.focus();
     this.#analytics?.track?.('voucher_generated');
+  }
+
+  #trackLead(code) {
+    try {
+      return this.#metaPixel?.trackLead?.(code) ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  #trackVoucherStart() {
+    try {
+      return this.#metaPixel?.trackVoucherStart?.() ?? false;
+    } catch {
+      return false;
+    }
   }
 
   showError(message) {

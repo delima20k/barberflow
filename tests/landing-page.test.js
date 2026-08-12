@@ -44,6 +44,7 @@ class LandingPageFixture {
     'js/analytics.js',
     'js/analytics-tracker.js',
     'js/analytics-presence.js',
+    'js/meta-pixel.js',
     'legal/privacy.html',
     'legal/terms.html',
     'legal/campaign-rules.html',
@@ -685,7 +686,7 @@ describe('Landing page BarberFlow', () => {
     assert.match(vercel, new RegExp(`sha256-${hash.replace(/[+/.]/g, '\\$&')}`));
   });
 
-  it('deve instalar o tracker isolado e desativado por padrao', () => {
+  it('deve manter analytics interno desativado e Meta Pixel isolado', () => {
     const source = LandingPageFixture.javascriptSource();
     const html = LandingPageFixture.source('index.html');
     const config = LandingPageFixture.source('config/landing-config.js');
@@ -710,6 +711,7 @@ describe('Landing page BarberFlow', () => {
 
     assert.match(source, /class LandingAnalytics\b/);
     assert.match(source, /class LandingAnalyticsTracker\b/);
+    assert.match(source, /class MetaPixelTracker\b/);
     for (const event of events) {
       assert.match(source, new RegExp(`['"]${event}['"]`), `Evento ausente: ${event}`);
     }
@@ -719,7 +721,8 @@ describe('Landing page BarberFlow', () => {
     assert.match(config, /analyticsCollectorUrl:\s*''/);
     assert.match(html, /data-analytics-event="cta_click"/);
     assert.match(html, /data-analytics-start="email_input_start"/);
-    assert.doesNotMatch(html, /googletagmanager|google-analytics|connect\.facebook\.net|fbq\(/i);
+    assert.match(html, /<script src="\.\/js\/meta-pixel\.js" defer><\/script>/);
+    assert.doesNotMatch(html, /googletagmanager|google-analytics|fbq\(/i);
     assert.doesNotMatch(source, /service[_-]?role/i);
   });
 
@@ -734,6 +737,7 @@ describe('Landing page BarberFlow', () => {
       vercel,
       /script-src 'self'[^;]*https:\/\/static\.cloudflareinsights\.com/,
     );
+    assert.match(vercel, /script-src[^;]*https:\/\/connect\.facebook\.net/);
     assert.doesNotMatch(vercel, /script-src[^;]*'unsafe-inline'/);
     assert.match(
       vercel,
