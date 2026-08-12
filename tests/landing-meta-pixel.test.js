@@ -120,9 +120,11 @@ describe('Meta Pixel na landing', () => {
     markedTags.forEach((tag) => assert.match(tag, /data-open-voucher/));
   });
 
-  it('deve identificar somente o link Ir para o cadastro', () => {
+  it('deve identificar somente o link pos-voucher para entrada no app', () => {
     const html = readFileSync(join(LANDING_ROOT, 'index.html'), 'utf8');
-    const signupLinks = html.match(/<a[^>]+data-voucher-signup-link[^>]*>Ir para o cadastro<\/a>/g) ?? [];
+    const signupLinks = html.match(
+      /<a[^>]+data-voucher-app-link[^>]*>Entrar no app profissional<\/a>/g,
+    ) ?? [];
 
     assert.equal(signupLinks.length, 1);
     assert.ok(

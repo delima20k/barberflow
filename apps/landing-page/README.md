@@ -216,7 +216,7 @@ prévio por consentimento nesta etapa. `MetaPixelTracker` envia somente
 `PageView`, `VoucherStart`, `CompleteRegistration` e `GoToSignup`: o início
 acontece quando a modal abre por um CTA marcado, o cadastro é concluído somente
 após a API confirmar um código válido e a ida ao cadastro é registrada apenas
-no link específico da modal.
+no link exibido no estado de sucesso pós-voucher.
 Os eventos não incluem e-mail, nome, telefone ou código do voucher como
 parâmetros. O SDK da Meta ainda pode tratar identificadores técnicos conforme
 suas próprias políticas, ponto que exige revisão jurídica. O tracker não é

@@ -55,8 +55,20 @@ function createElement(overrides = {}) {
     value: '',
     dataset: {},
     attributes: new Map(),
-    addEventListener() {},
-    removeEventListener() {},
+    listeners: new Map(),
+    addEventListener(type, listener) {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+    },
+    removeEventListener(type, listener) {
+      this.listeners.get(type)?.delete(listener);
+    },
+    click() {
+      this.listeners.get('click')?.forEach((listener) => {
+        listener({ currentTarget: this });
+      });
+    },
     setAttribute(name, value) { this.attributes.set(name, String(value)); },
     getAttribute(name) { return this.attributes.get(name) ?? null; },
     focus() { this.focused = true; },
@@ -82,7 +94,7 @@ function createVoucherModalFixture(service, { metaPixel = null } = {}) {
     code: createElement(),
     successTitle: createElement(),
     signupLink: createElement({ href: 'https://pro.barberflow.live/?start=signup' }),
-    appLink: createElement({ href: 'https://pro.barberflow.live/' }),
+    appLink: createElement({ href: 'https://pro.barberflow.live/?start=signup' }),
   };
   const selectors = new Map([
     ['[data-voucher-form]', elements.form],
@@ -263,7 +275,7 @@ describe('VoucherService', () => {
     assert.equal(elements.formView.hidden, true);
     assert.equal(elements.successView.hidden, false);
     assert.equal(elements.code.value, 'ABC123');
-    assert.equal(elements.appLink.href, 'https://pro.barberflow.live/');
+    assert.equal(elements.appLink.href, 'https://pro.barberflow.live/?start=signup');
     assert.equal(elements.availability.textContent, '57 vouchers restantes');
     assert.deepEqual(registrations, ['ABC123']);
     assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{
@@ -300,15 +312,23 @@ describe('VoucherService', () => {
     assert.deepEqual(starts, ['VoucherStart']);
   });
 
-  it('deve enviar GoToSignup somente pelo link especifico da modal', () => {
+  it('deve enviar GoToSignup somente pelo link exibido apos gerar o voucher', () => {
     const signupEvents = [];
     const { voucherModal, elements } = createVoucherModalFixture({}, {
       metaPixel: { trackGoToSignup: () => signupEvents.push('GoToSignup') },
     });
 
-    voucherModal.handleSignupClick();
+    voucherModal.init();
+    elements.signupLink.click();
+    elements.appLink.click();
 
+    assert.deepEqual(signupEvents, []);
     assert.equal(elements.signupLink.href, 'https://pro.barberflow.live/?start=signup');
+    voucherModal.showSuccess('ABC123');
+
+    assert.deepEqual(signupEvents, []);
+    elements.appLink.click();
+
     assert.deepEqual(signupEvents, ['GoToSignup']);
   });
 

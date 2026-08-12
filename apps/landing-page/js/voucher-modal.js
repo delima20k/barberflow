@@ -24,7 +24,7 @@ class VoucherModal {
     this.copyStatus = this.modal?.querySelector('[data-copy-status]') ?? null;
     this.code = this.modal?.querySelector('[data-voucher-code]') ?? null;
     this.successTitle = this.modal?.querySelector('[data-voucher-success-title]') ?? null;
-    this.signupLink = this.modal?.querySelector('[data-voucher-signup-link]') ?? null;
+    this.appSignupLink = this.modal?.querySelector('[data-voucher-app-link]') ?? null;
     this.lastFocused = null;
     this.#service = service;
     this.#availabilityChecked = false;
@@ -36,7 +36,7 @@ class VoucherModal {
     this.handleKeydown = this.handleKeydown.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleCopy = this.handleCopy.bind(this);
-    this.handleSignupClick = this.handleSignupClick.bind(this);
+    this.handleAppSignupClick = this.handleAppSignupClick.bind(this);
   }
 
   init() {
@@ -45,7 +45,7 @@ class VoucherModal {
     this.closeButtons.forEach((button) => button.addEventListener('click', this.handleClose));
     this.form?.addEventListener('submit', this.handleSubmit);
     this.copyButton?.addEventListener('click', this.handleCopy);
-    this.signupLink?.addEventListener('click', this.handleSignupClick);
+    this.appSignupLink?.addEventListener('click', this.handleAppSignupClick);
     this.root.addEventListener('keydown', this.handleKeydown);
     return this;
   }
@@ -166,8 +166,9 @@ class VoucherModal {
     if (!this.#availabilityChecked) this.checkAvailability();
   }
 
-  handleSignupClick() {
-    this.#trackGoToSignup();
+  handleAppSignupClick() {
+    if (this.successView?.hidden !== false) return false;
+    return this.#trackGoToSignup();
   }
 
   close() {
@@ -278,7 +279,7 @@ class VoucherModal {
     this.closeButtons.forEach((button) => button.removeEventListener('click', this.handleClose));
     this.form?.removeEventListener('submit', this.handleSubmit);
     this.copyButton?.removeEventListener('click', this.handleCopy);
-    this.signupLink?.removeEventListener('click', this.handleSignupClick);
+    this.appSignupLink?.removeEventListener('click', this.handleAppSignupClick);
     this.root.removeEventListener('keydown', this.handleKeydown);
   }
 }
