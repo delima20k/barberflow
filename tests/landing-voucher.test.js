@@ -81,6 +81,7 @@ function createVoucherModalFixture(service, { metaPixel = null } = {}) {
     copyStatus: createElement(),
     code: createElement(),
     successTitle: createElement(),
+    signupLink: createElement({ href: 'https://pro.barberflow.live/?start=signup' }),
     appLink: createElement({ href: 'https://pro.barberflow.live/' }),
   };
   const selectors = new Map([
@@ -96,6 +97,7 @@ function createVoucherModalFixture(service, { metaPixel = null } = {}) {
     ['[data-copy-status]', elements.copyStatus],
     ['[data-voucher-code]', elements.code],
     ['[data-voucher-success-title]', elements.successTitle],
+    ['[data-voucher-signup-link]', elements.signupLink],
     ['[data-voucher-app-link]', elements.appLink],
   ]);
   const modal = createElement({
@@ -243,7 +245,7 @@ describe('VoucherService', () => {
 
   it('deve exibir e copiar na modal somente o voucher retornado pelo servidor', async () => {
     const calls = [];
-    const leads = [];
+    const registrations = [];
     const service = {
       async generateVoucher(data) {
         calls.push(data);
@@ -251,7 +253,9 @@ describe('VoucherService', () => {
       },
     };
     const { voucherModal, elements, copied } = createVoucherModalFixture(service, {
-      metaPixel: { trackLead: (code) => leads.push(code) },
+      metaPixel: {
+        trackCompleteRegistration: (code) => registrations.push(code),
+      },
     });
 
     await voucherModal.handleSubmit({ preventDefault() {} });
@@ -261,7 +265,7 @@ describe('VoucherService', () => {
     assert.equal(elements.code.value, 'ABC123');
     assert.equal(elements.appLink.href, 'https://pro.barberflow.live/');
     assert.equal(elements.availability.textContent, '57 vouchers restantes');
-    assert.deepEqual(leads, ['ABC123']);
+    assert.deepEqual(registrations, ['ABC123']);
     assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{
       email: 'ana@example.com',
       campaignConsent: true,
@@ -296,9 +300,23 @@ describe('VoucherService', () => {
     assert.deepEqual(starts, ['VoucherStart']);
   });
 
-  it('nao deve enviar Lead quando a API recusar ou retornar resposta invalida', async () => {
-    const leads = [];
-    const metaPixel = { trackLead: (code) => leads.push(code) };
+  it('deve enviar GoToSignup somente pelo link especifico da modal', () => {
+    const signupEvents = [];
+    const { voucherModal, elements } = createVoucherModalFixture({}, {
+      metaPixel: { trackGoToSignup: () => signupEvents.push('GoToSignup') },
+    });
+
+    voucherModal.handleSignupClick();
+
+    assert.equal(elements.signupLink.href, 'https://pro.barberflow.live/?start=signup');
+    assert.deepEqual(signupEvents, ['GoToSignup']);
+  });
+
+  it('nao deve enviar CompleteRegistration quando a API recusar ou retornar resposta invalida', async () => {
+    const registrations = [];
+    const metaPixel = {
+      trackCompleteRegistration: (code) => registrations.push(code),
+    };
     const rejected = createVoucherModalFixture({
       async generateVoucher() {
         return { ok: false, message: 'Nao elegivel.' };
@@ -313,24 +331,26 @@ describe('VoucherService', () => {
     await rejected.voucherModal.handleSubmit({ preventDefault() {} });
     await invalid.voucherModal.handleSubmit({ preventDefault() {} });
 
-    assert.deepEqual(leads, []);
+    assert.deepEqual(registrations, []);
     assert.equal(rejected.elements.successView.hidden, true);
     assert.equal(invalid.elements.successView.hidden, true);
   });
 
-  it('nao deve enviar Lead quando a geracao falhar', async () => {
-    const leads = [];
+  it('nao deve enviar CompleteRegistration quando a geracao falhar', async () => {
+    const registrations = [];
     const { voucherModal, elements } = createVoucherModalFixture({
       async generateVoucher() {
         throw new Error('network error');
       },
     }, {
-      metaPixel: { trackLead: (code) => leads.push(code) },
+      metaPixel: {
+        trackCompleteRegistration: (code) => registrations.push(code),
+      },
     });
 
     await voucherModal.handleSubmit({ preventDefault() {} });
 
-    assert.deepEqual(leads, []);
+    assert.deepEqual(registrations, []);
     assert.equal(elements.successView.hidden, true);
   });
 
@@ -340,7 +360,9 @@ describe('VoucherService', () => {
         return { ok: true, code: 'ABC123' };
       },
     }, {
-      metaPixel: { trackLead: () => { throw new Error('pixel blocked'); } },
+      metaPixel: {
+        trackCompleteRegistration: () => { throw new Error('pixel blocked'); },
+      },
     });
 
     await voucherModal.handleSubmit({ preventDefault() {} });

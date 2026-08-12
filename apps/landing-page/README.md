@@ -213,8 +213,10 @@ desativada. Consulte `analytics/docs/deployment.md` antes de ativar.
 
 Separadamente, a landing carrega o Meta Pixel `2486237658515097` sem bloqueio
 prévio por consentimento nesta etapa. `MetaPixelTracker` envia somente
-`PageView`, `VoucherStart` e `Lead`: o início acontece quando a modal abre por
-um CTA marcado e a conversão somente após a API confirmar um código válido.
+`PageView`, `VoucherStart`, `CompleteRegistration` e `GoToSignup`: o início
+acontece quando a modal abre por um CTA marcado, o cadastro é concluído somente
+após a API confirmar um código válido e a ida ao cadastro é registrada apenas
+no link específico da modal.
 Os eventos não incluem e-mail, nome, telefone ou código do voucher como
 parâmetros. O SDK da Meta ainda pode tratar identificadores técnicos conforme
 suas próprias políticas, ponto que exige revisão jurídica. O tracker não é

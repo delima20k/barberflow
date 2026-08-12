@@ -6,7 +6,7 @@ class MetaPixelTracker {
   static #pixelInitialized = false;
   static #pageViewTracked = false;
   static #scriptRequested = false;
-  static #trackedLeadCodes = new Set();
+  static #completedVoucherCodes = new Set();
 
   #root;
 
@@ -23,12 +23,19 @@ class MetaPixelTracker {
     return this.#send('trackCustom', 'VoucherStart');
   }
 
-  trackLead(voucherCode) {
+  trackCompleteRegistration(voucherCode) {
     const normalizedCode = String(voucherCode ?? '').trim();
-    if (!normalizedCode || MetaPixelTracker.#trackedLeadCodes.has(normalizedCode)) return false;
-    if (!this.#send('track', 'Lead')) return false;
-    MetaPixelTracker.#trackedLeadCodes.add(normalizedCode);
+    if (
+      !normalizedCode
+      || MetaPixelTracker.#completedVoucherCodes.has(normalizedCode)
+    ) return false;
+    if (!this.#send('track', 'CompleteRegistration')) return false;
+    MetaPixelTracker.#completedVoucherCodes.add(normalizedCode);
     return true;
+  }
+
+  trackGoToSignup() {
+    return this.#send('trackCustom', 'GoToSignup');
   }
 
   #preparePixel() {

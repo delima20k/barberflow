@@ -24,6 +24,7 @@ class VoucherModal {
     this.copyStatus = this.modal?.querySelector('[data-copy-status]') ?? null;
     this.code = this.modal?.querySelector('[data-voucher-code]') ?? null;
     this.successTitle = this.modal?.querySelector('[data-voucher-success-title]') ?? null;
+    this.signupLink = this.modal?.querySelector('[data-voucher-signup-link]') ?? null;
     this.lastFocused = null;
     this.#service = service;
     this.#availabilityChecked = false;
@@ -35,6 +36,7 @@ class VoucherModal {
     this.handleKeydown = this.handleKeydown.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleCopy = this.handleCopy.bind(this);
+    this.handleSignupClick = this.handleSignupClick.bind(this);
   }
 
   init() {
@@ -43,6 +45,7 @@ class VoucherModal {
     this.closeButtons.forEach((button) => button.addEventListener('click', this.handleClose));
     this.form?.addEventListener('submit', this.handleSubmit);
     this.copyButton?.addEventListener('click', this.handleCopy);
+    this.signupLink?.addEventListener('click', this.handleSignupClick);
     this.root.addEventListener('keydown', this.handleKeydown);
     return this;
   }
@@ -89,7 +92,7 @@ class VoucherModal {
         const code = result.code.trim();
         this.#analytics?.track?.('email_submit', { email });
         this.showSuccess(code);
-        this.#trackLead(code);
+        this.#trackCompleteRegistration(code);
         if (Number.isInteger(result.remaining)) {
           this.updateAvailabilityCount(result.remaining);
         }
@@ -163,6 +166,10 @@ class VoucherModal {
     if (!this.#availabilityChecked) this.checkAvailability();
   }
 
+  handleSignupClick() {
+    this.#trackGoToSignup();
+  }
+
   close() {
     this.modal.setAttribute('aria-hidden', 'true');
     this.root.body.classList.remove('modal-open');
@@ -200,9 +207,17 @@ class VoucherModal {
     this.#analytics?.track?.('voucher_generated');
   }
 
-  #trackLead(code) {
+  #trackCompleteRegistration(code) {
     try {
-      return this.#metaPixel?.trackLead?.(code) ?? false;
+      return this.#metaPixel?.trackCompleteRegistration?.(code) ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  #trackGoToSignup() {
+    try {
+      return this.#metaPixel?.trackGoToSignup?.() ?? false;
     } catch {
       return false;
     }
@@ -263,6 +278,7 @@ class VoucherModal {
     this.closeButtons.forEach((button) => button.removeEventListener('click', this.handleClose));
     this.form?.removeEventListener('submit', this.handleSubmit);
     this.copyButton?.removeEventListener('click', this.handleCopy);
+    this.signupLink?.removeEventListener('click', this.handleSignupClick);
     this.root.removeEventListener('keydown', this.handleKeydown);
   }
 }

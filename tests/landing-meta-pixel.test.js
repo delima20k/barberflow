@@ -73,17 +73,28 @@ describe('MetaPixelTracker', () => {
     ]);
   });
 
-  it('deve enviar um Lead por codigo sem transmitir o codigo a Meta', () => {
+  it('deve enviar um CompleteRegistration por codigo sem transmitir o codigo a Meta', () => {
     const fixture = new MetaPixelFixture();
     const tracker = fixture.createTracker().init();
 
-    assert.equal(tracker.trackLead(' ABC123 '), true);
-    assert.equal(tracker.trackLead('ABC123'), false);
-    assert.equal(fixture.createTracker().trackLead('ABC123'), false);
-    assert.equal(tracker.trackLead(''), false);
+    assert.equal(tracker.trackCompleteRegistration(' ABC123 '), true);
+    assert.equal(tracker.trackCompleteRegistration('ABC123'), false);
+    assert.equal(fixture.createTracker().trackCompleteRegistration('ABC123'), false);
+    assert.equal(tracker.trackCompleteRegistration(''), false);
 
-    assert.deepEqual(fixture.calls().filter((call) => call[1] === 'Lead'), [
-      ['track', 'Lead'],
+    assert.deepEqual(fixture.calls().filter((call) => call[1] === 'CompleteRegistration'), [
+      ['track', 'CompleteRegistration'],
+    ]);
+  });
+
+  it('deve enviar GoToSignup como evento personalizado', () => {
+    const fixture = new MetaPixelFixture();
+    const tracker = fixture.createTracker().init();
+
+    assert.equal(tracker.trackGoToSignup(), true);
+
+    assert.deepEqual(fixture.calls().slice(-1), [
+      ['trackCustom', 'GoToSignup'],
     ]);
   });
 
@@ -95,7 +106,8 @@ describe('MetaPixelTracker', () => {
 
     assert.doesNotThrow(() => tracker.init());
     assert.equal(tracker.trackVoucherStart(), false);
-    assert.equal(tracker.trackLead('ABC123'), false);
+    assert.equal(tracker.trackCompleteRegistration('ABC123'), false);
+    assert.equal(tracker.trackGoToSignup(), false);
   });
 });
 
@@ -106,6 +118,16 @@ describe('Meta Pixel na landing', () => {
 
     assert.equal(markedTags.length, 9);
     markedTags.forEach((tag) => assert.match(tag, /data-open-voucher/));
+  });
+
+  it('deve identificar somente o link Ir para o cadastro', () => {
+    const html = readFileSync(join(LANDING_ROOT, 'index.html'), 'utf8');
+    const signupLinks = html.match(/<a[^>]+data-voucher-signup-link[^>]*>Ir para o cadastro<\/a>/g) ?? [];
+
+    assert.equal(signupLinks.length, 1);
+    assert.ok(
+      signupLinks[0].includes('href="https://pro.barberflow.live/?start=signup"'),
+    );
   });
 
   it('deve carregar o tracker somente na landing e liberar a CSP minima', () => {
