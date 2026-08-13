@@ -1,6 +1,7 @@
 {
   "version": 2,
   "regions": ["gru1"],
+  "installCommand": "npm ci",
   "crons": [
     {
       "path": "/api/internal/cron/stories-cleanup",
