@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_CLI_VERSION = '20260811a';
+const SW_CLI_VERSION = '20260812a';
 
 class SWCliente {
 
@@ -42,7 +42,7 @@ class SWCliente {
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
     '/shared/js/NavigationViewService.js',
-    '/shared/js/Router.js?v=20260705c',
+    '/shared/js/Router.js?v=20260812a',
     '/shared/js/BarberPole.js',
     '/shared/js/SplashService.js',
     '/shared/js/QueueRepository.js',
@@ -67,12 +67,12 @@ class SWCliente {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
-    '/shared/js/PwaUpdateManager.js?v=20260726a',
-    '/shared/js/BffApiService.js?v=20260726c',
+    '/shared/js/PwaUpdateManager.js?v=20260812a',
+    '/shared/js/BffApiService.js?v=20260812a',
     '/shared/js/PortfolioGallery.js?v=20260726c',
     '/shared/js/BarbeiroPage.js?v=20260726c',
     '/shared/js/BarbeiroAtividadeStatus.js',
-    '/shared/js/MensalidadeInterestService.js?v=20260726d',
+    '/shared/js/MensalidadeInterestService.js?v=20260812a',
     '/shared/js/BffAuthClient.js',
     '/shared/js/AgendaBffClient.js',
     '/shared/js/BarbeariaApiClient.js',
@@ -82,7 +82,7 @@ class SWCliente {
     '/shared/js/NearbyBarbershopsWidget.js',
     '/shared/js/PortfolioPrismViewer.js',
     '/shared/js/PortfolioBarbeirosSection.js',
-    '/shared/js/BarbeariaPage.js?v=20260726d',
+    '/shared/js/BarbeariaPage.js?v=20260812a',
     '/shared/js/ConversationRepository.js',
     '/shared/js/ChatApiClient.js',
     '/shared/js/MessageModerationService.js',

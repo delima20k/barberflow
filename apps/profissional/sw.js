@@ -17,7 +17,7 @@
 // =============================================================
 // Versão do Service Worker — bumpar a cada deploy para invalidar caches antigos.
 // A limpeza ocorre no evento 'activate' via #CACHES_VALIDOS.
-const SW_PRO_VERSION = '20260806a';
+const SW_PRO_VERSION = '20260812a';
 
 class SWProfissional {
 
@@ -36,7 +36,7 @@ class SWProfissional {
   // HTML nunca entra na lista — sempre servido da rede
   static #ASSETS_STATIC = [
     '/assets/css/styles.css?v=20260726b',
-    '/assets/js/app.js?v=20260722a',
+    '/assets/js/app.js?v=20260812a',
     '/shared/css/tokens.css?v=20260806a',
     '/shared/css/components.css?v=20260726d',
     '/shared/css/notifications.css',
@@ -50,11 +50,11 @@ class SWProfissional {
     '/shared/js/LgpdService.js',
     '/shared/js/TermsPage.js',
     '/shared/js/NavigationViewService.js',
-    '/shared/js/Router.js?v=20260705c',
+    '/shared/js/Router.js?v=20260812a',
     '/shared/js/BarberPole.js',
     '/shared/js/SplashService.js',
     '/shared/js/ProLandingGate.js',
-    '/shared/js/PaymentFlowHandler.js?v=20260628c',
+    '/shared/js/PaymentFlowHandler.js?v=20260812a',
     '/shared/js/CadeiraService.js',
     '/shared/js/ClienteSeletorModal.js',
     '/shared/js/CorteModal.js',
@@ -66,12 +66,12 @@ class SWProfissional {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
-    '/shared/js/PwaUpdateManager.js?v=20260726a',
-    '/shared/js/BffApiService.js?v=20260726c',
+    '/shared/js/PwaUpdateManager.js?v=20260812a',
+    '/shared/js/BffApiService.js?v=20260812a',
     '/shared/js/PortfolioGallery.js?v=20260726c',
     '/shared/js/BarbeiroPage.js?v=20260726c',
     '/shared/js/BarbeiroAtividadeStatus.js',
-    '/shared/js/MensalidadeInterestService.js?v=20260726d',
+    '/shared/js/MensalidadeInterestService.js?v=20260812a',
     '/shared/js/ImageDeletionService.js',
     '/shared/js/BffAuthClient.js',
     '/shared/js/BarbeariaApiClient.js',
@@ -80,7 +80,7 @@ class SWProfissional {
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaController.js',
     '/assets/js/pages/MinhaBarbeariaPage/AgendaSection/AgendaSection.js',
     '/shared/js/PortfolioPrismViewer.js',
-    '/shared/js/BarbeariaPage.js?v=20260726d',
+    '/shared/js/BarbeariaPage.js?v=20260812a',
     '/shared/js/ConversationRepository.js',
     '/shared/js/ChatApiClient.js',
     '/shared/js/MessageModerationService.js',
