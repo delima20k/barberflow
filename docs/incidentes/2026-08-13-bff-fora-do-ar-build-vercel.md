@@ -1,8 +1,50 @@
 # Incidente 2026-08-13 — BFF fora do ar após rebuild na Vercel
 
-**Status:** mitigado (produção fixada em deployment antigo saudável; auto-deploy da BFF desligado)
-**Causa raiz:** não confirmada — evidências apontam para mudança no empacotamento/build da Vercel
+**Status:** resolvido — causa raiz corrigida em `bf9e126` e validada em staging
+**Causa raiz:** **CONFIRMADA** — declaração inválida de `server.js` no bloco `functions`
+do `barberflow-bff-api/vercel.json`
 **Impacto:** total na API (login, perfil, fila, chat, gate de assinatura) enquanto durou
+
+## Causa raiz (confirmada em 14/08)
+
+O `vercel.json` declarava **duas** serverless functions: `api/index.js` e `server.js`.
+Mas `server.js` fica na raiz do root directory, não em `api/` — **nunca foi uma
+serverless function**. Ele é o entrypoint local/Docker/PM2 (`app.listen()`, usado por
+`npm start` / `npm dev`). A declaração sempre foi inválida; a Vercel apenas tolerava.
+
+Quando o empacotamento da Vercel mudou, essa entrada inválida passou a produzir um
+bundle quebrado: a função subia como `Ready` mas nunca respondia, e o
+`@supabase/supabase-js` era entregue malformado (objeto sem `.from`).
+
+A prova de que a Vercel deixou de tolerar veio ao criar o projeto de staging:
+
+```
+Error: The pattern "server.js" defined in 'functions' doesn't match any
+Serverless Functions inside the `api` directory.
+```
+
+**Correção:** commit `bf9e126` — remove apenas a entrada `server.js` do bloco
+`functions`. O arquivo continua no repo e funcional para uso local/Docker/PM2;
+`api/index.js` fica inalterado (mesmo `maxDuration`, mesmo `includeFiles`).
+
+### Validação (smoke test real em staging, 14/08)
+
+| Endpoint | Resultado | Tempo |
+|---|---|---|
+| `/api/health` | **200** `{"ok":true,"status":"up"}` | 0,23–1,27s |
+| `/api/v1/profissional/pagamentos/assinatura/status` | **401** (correto, sem token) | 0,22s |
+| `/api/v1/barbearias/stories/feed` | chegou ao PostgREST (`PGRST125`, config de URL do staging) | 0,77–1,3s |
+
+- Marcador de log voltou a ser `λ` (executa e responde), nunca `◇`.
+- `this[#db].from is not a function` — **ausente**.
+- `RedisStore is not a constructor` — **ausente**.
+- O stack trace do `stories/feed` prova que o cliente Supabase foi construído e
+  `.from()` funcionou (a query chegou ao servidor). Antes, estourava `TypeError`
+  bem antes disso.
+
+Isso também explica as evidências que nenhuma outra hipótese explicava: o bundle
+0,24MB menor sem mudança de código, os erros de interop CJS/ESM, e o fato de
+`npm ci` com deps fixas e a troca de Node 24→22 não terem surtido efeito.
 
 ---
 
@@ -74,7 +116,7 @@ Os projetos de frontend (`barberflow-cliente`, `barberflow-profissional`,
 `barberflow`, `barberflow-adimin`) **não foram alterados** e seguem com
 auto-deploy normal.
 
-## Como reverter a mitigação (quando a causa raiz for resolvida)
+## Como reverter a mitigação (causa raiz já resolvida — ver seção acima)
 
 ```bash
 # 1. Reconectar o auto-deploy da BFF
