@@ -16,7 +16,11 @@ class ProfissionalStartupSplash {
 
   static init() {
     const overlayInicial = document.getElementById('profissional-startup-splash');
-    if (sessionStorage.getItem(ProfissionalStartupSplash.#SESSION_KEY) && !overlayInicial) return;
+    if (sessionStorage.getItem(ProfissionalStartupSplash.#SESSION_KEY) && !overlayInicial) {
+      // Sem splash nesta navegacao — nada a esperar, libera a atualizacao do SW.
+      ProfissionalStartupSplash.#liberarAtualizacaoPwa();
+      return;
+    }
     sessionStorage.setItem(ProfissionalStartupSplash.#SESSION_KEY, '1');
     ProfissionalStartupSplash.#exibir(overlayInicial);
   }
@@ -44,7 +48,15 @@ class ProfissionalStartupSplash {
     overlay.classList.add('cs-saindo');
     setTimeout(() => {
       overlay.remove();
+      // Splash concluida: a troca de Service Worker (e o reload que ela dispara)
+      // ja pode acontecer sem reiniciar a animacao no meio.
+      ProfissionalStartupSplash.#liberarAtualizacaoPwa();
     }, ProfissionalStartupSplash.#FADE_MS);
+  }
+
+  /** Avisa o PwaUpdateManager que o boot terminou. Silencioso se ausente. */
+  static #liberarAtualizacaoPwa() {
+    if (typeof PwaUpdateManager !== 'undefined') PwaUpdateManager.liberarBoot?.();
   }
 
   static #concluirTagline(overlay) {

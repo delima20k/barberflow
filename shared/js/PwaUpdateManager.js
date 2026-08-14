@@ -13,11 +13,32 @@ class PwaUpdateManager {
   // atualizacao ao fechar/reabrir o app. Intervalo cobre esse caso.
   static #INTERVALO_VERIFICACAO_MS = 15 * 60 * 1000;
 
+  // ── Janela de boot (splash) ────────────────────────────────────────────
+  // Trocar de Service Worker durante o boot dispara controllerchange →
+  // location.reload(), o que reinicia a splash do zero (a animacao do texto e
+  // CSS: recarregar o documento sempre a recomeca). Como o guard de reload
+  // dura menos que um ciclo de splash, isso se repetia em serie.
+  //
+  // Enquanto o boot nao e liberado:
+  //   - SKIP_WAITING nao e enviado (a troca de SW nem chega a acontecer);
+  //   - se um controllerchange vier de fora (ex.: outra aba ativou o SW novo),
+  //     o reload fica pendente em vez de acontecer na hora.
+  // A splash chama liberarBoot() ao terminar; o timeout e rede de seguranca
+  // para telas sem splash ou splash que falhe.
+  static #bootLiberado = false;
+  static #reloadPendente = false;
+  static #workerPendente = null;
+  static #BOOT_TIMEOUT_MS = 12000;
+
   static registrar({ scriptUrl = './sw.js', scope = './', nomeApp = 'BarberFlow' } = {}) {
     if (PwaUpdateManager.#inicializado || !('serviceWorker' in navigator)) return;
     PwaUpdateManager.#inicializado = true;
     PwaUpdateManager.#nomeApp = nomeApp;
     PwaUpdateManager.#ligarEventos();
+
+    // Rede de seguranca: telas sem splash (ou splash que falhe) nunca chamariam
+    // liberarBoot() e a atualizacao ficaria presa para sempre.
+    setTimeout(() => PwaUpdateManager.liberarBoot(), PwaUpdateManager.#BOOT_TIMEOUT_MS);
 
     if (document.readyState === 'complete') {
       PwaUpdateManager.#registrarAgora(scriptUrl, scope);
@@ -38,11 +59,32 @@ class PwaUpdateManager {
     }
   }
 
+  /**
+   * Encerra a janela de boot: a partir daqui a troca de Service Worker pode
+   * acontecer. Chamado pelas splashes ao terminar (e pelo timeout de
+   * seguranca). Idempotente.
+   *
+   * A pendencia acumulada nao e aplicada de imediato — seria trocar o SW (ou
+   * recarregar) com o usuario olhando a tela recem-aberta. Ela e aplicada
+   * quando a aba sai de vista (#aplicarPendenteQuandoOculto), ou naturalmente
+   * na proxima abertura do app.
+   */
+  static liberarBoot() {
+    if (PwaUpdateManager.#bootLiberado) return;
+    PwaUpdateManager.#bootLiberado = true;
+    if (PwaUpdateManager.#reloadPendente || PwaUpdateManager.#workerPendente) {
+      PwaUpdateManager.#aplicarPendenteQuandoOculto();
+    }
+  }
+
   static #ligarEventos() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (sessionStorage.getItem(PwaUpdateManager.#RELOAD_GUARD_KEY) === '1') return;
-      sessionStorage.setItem(PwaUpdateManager.#RELOAD_GUARD_KEY, '1');
-      location.reload();
+      // Durante o boot o reload reiniciaria a splash — adia para depois.
+      if (!PwaUpdateManager.#bootLiberado) {
+        PwaUpdateManager.#reloadPendente = true;
+        return;
+      }
+      PwaUpdateManager.#recarregar();
     });
 
     document.addEventListener('visibilitychange', () => {
@@ -50,6 +92,38 @@ class PwaUpdateManager {
         PwaUpdateManager.verificarAtualizacao();
       }
     });
+  }
+
+  /** Recarrega uma unica vez, respeitando o guard anti-loop. */
+  static #recarregar() {
+    if (sessionStorage.getItem(PwaUpdateManager.#RELOAD_GUARD_KEY) === '1') return;
+    sessionStorage.setItem(PwaUpdateManager.#RELOAD_GUARD_KEY, '1');
+    location.reload();
+  }
+
+  /**
+   * Aplica a atualizacao pendente no primeiro momento em que a aba sai de
+   * vista — assim a troca de SW e o reload acontecem sem o usuario ver. Se a
+   * aba nunca for ocultada, a atualizacao entra na proxima abertura do app,
+   * que e o ciclo natural do PWA.
+   */
+  static #aplicarPendenteQuandoOculto() {
+    const aplicar = () => {
+      if (document.visibilityState !== 'hidden') return;
+      document.removeEventListener('visibilitychange', aplicar);
+      const worker = PwaUpdateManager.#workerPendente;
+      PwaUpdateManager.#workerPendente = null;
+      if (worker) {
+        // A troca dispara controllerchange, que agora recarrega (boot liberado).
+        worker.postMessage?.({ type: 'SKIP_WAITING' });
+        return;
+      }
+      if (PwaUpdateManager.#reloadPendente) {
+        PwaUpdateManager.#reloadPendente = false;
+        PwaUpdateManager.#recarregar();
+      }
+    };
+    document.addEventListener('visibilitychange', aplicar);
   }
 
   static async #registrarAgora(scriptUrl, scope) {
@@ -91,7 +165,14 @@ class PwaUpdateManager {
   }
 
   static #ativar(worker) {
-    worker?.postMessage?.({ type: 'SKIP_WAITING' });
+    if (!worker) return;
+    // Durante o boot, segura a troca: ativar agora dispararia controllerchange
+    // e reiniciaria a splash. Fica pendente para depois (ou proxima abertura).
+    if (!PwaUpdateManager.#bootLiberado) {
+      PwaUpdateManager.#workerPendente = worker;
+      return;
+    }
+    worker.postMessage?.({ type: 'SKIP_WAITING' });
   }
 
   /** Verifica atualização a cada #INTERVALO_VERIFICACAO_MS enquanto a aba está visível. */

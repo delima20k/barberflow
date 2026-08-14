@@ -30,7 +30,11 @@ class ClienteStartupSplash {
    */
   static init() {
     const overlayInicial = document.getElementById('cliente-startup-splash');
-    if (sessionStorage.getItem(ClienteStartupSplash.#SESSION_KEY) && !overlayInicial) return;
+    if (sessionStorage.getItem(ClienteStartupSplash.#SESSION_KEY) && !overlayInicial) {
+      // Sem splash nesta navegacao — nada a esperar, libera a atualizacao do SW.
+      ClienteStartupSplash.#liberarAtualizacaoPwa();
+      return;
+    }
     sessionStorage.setItem(ClienteStartupSplash.#SESSION_KEY, '1');
     ClienteStartupSplash.#exibir(overlayInicial);
   }
@@ -64,7 +68,15 @@ class ClienteStartupSplash {
 
     setTimeout(() => {
       overlay.remove();
+      // Splash concluida: a troca de Service Worker (e o reload que ela dispara)
+      // ja pode acontecer sem reiniciar a animacao no meio.
+      ClienteStartupSplash.#liberarAtualizacaoPwa();
     }, ClienteStartupSplash.#FADE_MS);
+  }
+
+  /** Avisa o PwaUpdateManager que o boot terminou. Silencioso se ausente. */
+  static #liberarAtualizacaoPwa() {
+    if (typeof PwaUpdateManager !== 'undefined') PwaUpdateManager.liberarBoot?.();
   }
 
   static #concluirTagline(overlay) {

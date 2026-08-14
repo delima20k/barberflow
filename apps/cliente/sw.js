@@ -67,7 +67,7 @@ class SWCliente {
     '/shared/js/ClienteController.js',
     '/shared/js/OfflineSyncQueue.js',
     '/shared/js/PWAInstallBanner.js',
-    '/shared/js/PwaUpdateManager.js?v=20260812a',
+    '/shared/js/PwaUpdateManager.js?v=20260814a',
     '/shared/js/BffApiService.js?v=20260812a',
     '/shared/js/PortfolioGallery.js?v=20260726c',
     '/shared/js/BarbeiroPage.js?v=20260726c',

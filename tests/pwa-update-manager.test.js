@@ -15,8 +15,16 @@ function criarEventTarget() {
       if (!listeners.has(type)) listeners.set(type, []);
       listeners.get(type).push(callback);
     },
+    removeEventListener(type, callback) {
+      const lista = listeners.get(type);
+      if (!lista) return;
+      const i = lista.indexOf(callback);
+      if (i !== -1) lista.splice(i, 1);
+    },
     dispatch(type) {
-      for (const callback of listeners.get(type) ?? []) callback({ type });
+      // Copia a lista: um listener pode se auto-remover durante o dispatch
+      // (é o caso do PwaUpdateManager ao aplicar a atualizacao pendente).
+      for (const callback of [...(listeners.get(type) ?? [])]) callback({ type });
     },
   };
 }
@@ -97,6 +105,8 @@ describe('PwaUpdateManager', () => {
     const waiting = { postMessage: fn() };
     const cenario = criarCenario({ waiting });
 
+    // Fora da janela de boot (splash ja concluida): a troca e imediata.
+    cenario.sandbox.PwaUpdateManager.liberarBoot();
     cenario.sandbox.PwaUpdateManager.registrar({ nomeApp: 'BarberFlow Cliente' });
     await concluirRegistro(cenario);
 
@@ -109,6 +119,7 @@ describe('PwaUpdateManager', () => {
 
   it('ativa a nova versao quando a instalacao termina', async () => {
     const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.liberarBoot(); // fora do boot
     cenario.sandbox.PwaUpdateManager.registrar();
     await concluirRegistro(cenario);
 
@@ -124,6 +135,7 @@ describe('PwaUpdateManager', () => {
   it('observa um worker que ja estava instalando quando o registro respondeu', async () => {
     const cenario = criarCenario();
     cenario.registration.installing = cenario.worker;
+    cenario.sandbox.PwaUpdateManager.liberarBoot(); // fora do boot
     cenario.sandbox.PwaUpdateManager.registrar();
     await concluirRegistro(cenario);
 
@@ -135,6 +147,7 @@ describe('PwaUpdateManager', () => {
 
   it('recarrega uma unica vez quando a nova versao assume o controle', async () => {
     const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.liberarBoot(); // fora do boot
     cenario.sandbox.PwaUpdateManager.registrar();
     await concluirRegistro(cenario);
 
@@ -142,6 +155,98 @@ describe('PwaUpdateManager', () => {
     cenario.serviceWorker.dispatch('controllerchange');
 
     assert.equal(cenario.reload.calls.length, 1);
+  });
+
+  // ── Janela de boot (splash) ──────────────────────────────────────────────
+  // A splash roda com animacao CSS: qualquer location.reload() no meio a
+  // reinicia do zero. Por isso, durante o boot, nem a troca de SW nem o
+  // reload podem acontecer.
+
+  it('durante o boot NAO envia SKIP_WAITING ao worker em espera', async () => {
+    const waiting = { postMessage: fn() };
+    const cenario = criarCenario({ waiting });
+
+    // Sem liberarBoot(): simula a splash ainda rodando.
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    assert.equal(waiting.postMessage.calls.length, 0,
+      'trocar o SW durante a splash reiniciaria a animacao');
+  });
+
+  it('durante o boot NAO recarrega quando o controle muda', async () => {
+    const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    cenario.serviceWorker.dispatch('controllerchange');
+
+    assert.equal(cenario.reload.calls.length, 0,
+      'reload durante a splash reiniciaria a animacao do texto');
+  });
+
+  it('nao aplica a pendencia enquanto a aba segue visivel apos o boot', async () => {
+    const waiting = { postMessage: fn() };
+    const cenario = criarCenario({ waiting });
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    cenario.sandbox.PwaUpdateManager.liberarBoot(); // splash terminou
+
+    cenario.documentTarget.visibilityState = 'visible';
+    cenario.documentTarget.dispatch('visibilitychange');
+
+    assert.equal(waiting.postMessage.calls.length, 0,
+      'trocar o SW com o usuario olhando a tela seria intrusivo');
+    assert.equal(cenario.reload.calls.length, 0);
+  });
+
+  it('aplica a troca pendente quando a aba fica oculta', async () => {
+    const waiting = { postMessage: fn() };
+    const cenario = criarCenario({ waiting });
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    assert.equal(waiting.postMessage.calls.length, 0, 'segurou durante o boot');
+
+    cenario.sandbox.PwaUpdateManager.liberarBoot(); // splash terminou
+    cenario.documentTarget.visibilityState = 'hidden';
+    cenario.documentTarget.dispatch('visibilitychange');
+
+    assert.equal(waiting.postMessage.calls.length, 1);
+    assert.equal(waiting.postMessage.calls[0][0].type, 'SKIP_WAITING');
+  });
+
+  it('aplica o reload pendente quando a aba fica oculta', async () => {
+    const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    // controllerchange vindo de fora (ex.: outra aba ativou o SW novo)
+    cenario.serviceWorker.dispatch('controllerchange');
+    assert.equal(cenario.reload.calls.length, 0, 'adiado durante o boot');
+
+    cenario.sandbox.PwaUpdateManager.liberarBoot();
+    cenario.documentTarget.visibilityState = 'hidden';
+    cenario.documentTarget.dispatch('visibilitychange');
+
+    assert.equal(cenario.reload.calls.length, 1);
+  });
+
+  it('liberarBoot e idempotente', async () => {
+    const cenario = criarCenario();
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    cenario.serviceWorker.dispatch('controllerchange');
+    cenario.sandbox.PwaUpdateManager.liberarBoot();
+    cenario.sandbox.PwaUpdateManager.liberarBoot();
+    cenario.sandbox.PwaUpdateManager.liberarBoot();
+
+    cenario.documentTarget.visibilityState = 'hidden';
+    cenario.documentTarget.dispatch('visibilitychange');
+
+    assert.equal(cenario.reload.calls.length, 1, 'nao pode recarregar varias vezes');
   });
 
   it('verifica atualizacao ao retornar do segundo plano', async () => {
