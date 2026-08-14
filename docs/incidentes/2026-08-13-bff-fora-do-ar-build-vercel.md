@@ -105,7 +105,17 @@ TypeError: RedisStore is not a constructor
 | Bundle acima do limite | comparação de tamanho | quebrado é **menor** |
 | Rede/DNS local | `curl` + fetch externo + `pro.barberflow.live` OK | descartado |
 
-## Mitigação aplicada
+## Desfecho (14/08)
+
+1. Correção `bf9e126` validada em staging e mergeada na `main` (`8c94cea5`).
+2. Deploy manual em produção (`9a4w4fdm3`) + smoke test real aprovado:
+   `/api/health` 200, `/stories/feed` 200 lendo do banco (434ms de query),
+   endpoints autenticados 401 correto, todas as invocações com marcador `λ`.
+3. **Auto-deploy da BFF reconectado** (`vercel git connect`), encerrando a
+   mitigação. Pushes na `main` voltam a reconstruir a BFF automaticamente —
+   agora sem o defeito que causava o travamento.
+
+## Mitigação aplicada (durante o incidente — já revertida)
 
 1. `vercel promote` do deployment `oji2zfzpo` (`dpl_Af4T7H7ZwgVcpjKkbKZqTepJbWth`).
 2. **Auto-deploy do projeto da BFF desligado** (`vercel git disconnect` no
