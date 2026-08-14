@@ -12,10 +12,6 @@
     "api/index.js": {
       "maxDuration": 60,
       "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**,../src/infra/**"
-    },
-    "server.js": {
-      "maxDuration": 60,
-      "includeFiles": "app.js,config/**,controllers/**,domain/**,application/**,infrastructure/**,observability/**,middlewares/**,repositories/**,routes/**,services/**,utils/**,validators/**,../shared/**,../src/infra/**"
     }
   },
   "headers": [
