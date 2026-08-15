@@ -30,10 +30,23 @@ class PwaUpdateManager {
   static #workerPendente = null;
   static #BOOT_TIMEOUT_MS = 12000;
 
+  // O SW faz clients.claim() no activate. Na PRIMEIRA instalacao a pagina
+  // ainda nao tem controller, entao esse claim dispara controllerchange — sem
+  // que exista update algum. Recarregar ali e desnecessario (a pagina acabou
+  // de baixar tudo da rede, ja esta na versao mais nova) e visivelmente
+  // errado: reinicia a splash na primeira abertura e, se adiado, faz o app
+  // recarregar ao voltar do segundo plano.
+  // So e update de verdade quando JA existia um controller antes.
+  static #tinhaControllerNoBoot = false;
+
   static registrar({ scriptUrl = './sw.js', scope = './', nomeApp = 'BarberFlow' } = {}) {
     if (PwaUpdateManager.#inicializado || !('serviceWorker' in navigator)) return;
     PwaUpdateManager.#inicializado = true;
     PwaUpdateManager.#nomeApp = nomeApp;
+    // Fotografa o estado ANTES de registrar: sem controller aqui significa
+    // primeira instalacao, e o controllerchange que vier do clients.claim()
+    // nao e update — nao deve recarregar nada.
+    PwaUpdateManager.#tinhaControllerNoBoot = Boolean(navigator.serviceWorker.controller);
     PwaUpdateManager.#ligarEventos();
 
     // Rede de seguranca: telas sem splash (ou splash que falhe) nunca chamariam
@@ -79,6 +92,12 @@ class PwaUpdateManager {
 
   static #ligarEventos() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // Primeira instalacao (clients.claim(), sem controller anterior): a
+      // pagina ja esta na versao mais nova. Nada a recarregar, nem agora nem
+      // depois — recarregar aqui reiniciaria a splash / traria a splash de
+      // volta ao retomar o app do segundo plano.
+      if (!PwaUpdateManager.#tinhaControllerNoBoot) return;
+
       // Durante o boot o reload reiniciaria a splash — adia para depois.
       if (!PwaUpdateManager.#bootLiberado) {
         PwaUpdateManager.#reloadPendente = true;
@@ -102,10 +121,16 @@ class PwaUpdateManager {
   }
 
   /**
-   * Aplica a atualizacao pendente no primeiro momento em que a aba sai de
-   * vista — assim a troca de SW e o reload acontecem sem o usuario ver. Se a
-   * aba nunca for ocultada, a atualizacao entra na proxima abertura do app,
-   * que e o ciclo natural do PWA.
+   * Troca o Service Worker quando a aba sai de vista — sem recarregar.
+   *
+   * Recarregar aqui parece inofensivo (a aba esta oculta), mas nao e: ao
+   * voltar para o app o usuario cai na splash em vez da tela onde estava,
+   * como se o app tivesse sido fechado. Num PWA instalado isso quebra a
+   * expectativa de "voltar de onde parei".
+   *
+   * Entao apenas ativamos o SW novo: ele passa a servir os assets novos e o
+   * codigo novo entra na proxima abertura do app — o ciclo natural do PWA.
+   * O reload pendente e descartado de proposito pelo mesmo motivo.
    */
   static #aplicarPendenteQuandoOculto() {
     const aplicar = () => {
@@ -113,15 +138,8 @@ class PwaUpdateManager {
       document.removeEventListener('visibilitychange', aplicar);
       const worker = PwaUpdateManager.#workerPendente;
       PwaUpdateManager.#workerPendente = null;
-      if (worker) {
-        // A troca dispara controllerchange, que agora recarrega (boot liberado).
-        worker.postMessage?.({ type: 'SKIP_WAITING' });
-        return;
-      }
-      if (PwaUpdateManager.#reloadPendente) {
-        PwaUpdateManager.#reloadPendente = false;
-        PwaUpdateManager.#recarregar();
-      }
+      PwaUpdateManager.#reloadPendente = false;
+      worker?.postMessage?.({ type: 'SKIP_WAITING' });
     };
     document.addEventListener('visibilitychange', aplicar);
   }

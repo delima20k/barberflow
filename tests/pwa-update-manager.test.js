@@ -217,7 +217,7 @@ describe('PwaUpdateManager', () => {
     assert.equal(waiting.postMessage.calls[0][0].type, 'SKIP_WAITING');
   });
 
-  it('aplica o reload pendente quando a aba fica oculta', async () => {
+  it('NUNCA recarrega ao ocultar a aba (voltar do 2o plano deve retomar, nao mostrar a splash)', async () => {
     const cenario = criarCenario();
     cenario.sandbox.PwaUpdateManager.registrar();
     await concluirRegistro(cenario);
@@ -230,15 +230,16 @@ describe('PwaUpdateManager', () => {
     cenario.documentTarget.visibilityState = 'hidden';
     cenario.documentTarget.dispatch('visibilitychange');
 
-    assert.equal(cenario.reload.calls.length, 1);
+    assert.equal(cenario.reload.calls.length, 0,
+      'recarregar em background faz o app voltar na splash em vez da tela onde estava');
   });
 
   it('liberarBoot e idempotente', async () => {
-    const cenario = criarCenario();
+    const waiting = { postMessage: fn() };
+    const cenario = criarCenario({ waiting });
     cenario.sandbox.PwaUpdateManager.registrar();
     await concluirRegistro(cenario);
 
-    cenario.serviceWorker.dispatch('controllerchange');
     cenario.sandbox.PwaUpdateManager.liberarBoot();
     cenario.sandbox.PwaUpdateManager.liberarBoot();
     cenario.sandbox.PwaUpdateManager.liberarBoot();
@@ -246,7 +247,44 @@ describe('PwaUpdateManager', () => {
     cenario.documentTarget.visibilityState = 'hidden';
     cenario.documentTarget.dispatch('visibilitychange');
 
-    assert.equal(cenario.reload.calls.length, 1, 'nao pode recarregar varias vezes');
+    assert.equal(waiting.postMessage.calls.length, 1, 'nao pode trocar o SW varias vezes');
+  });
+
+  // ── Primeira instalacao ──────────────────────────────────────────────────
+  // O SW faz clients.claim() no activate. Sem controller anterior, esse claim
+  // dispara controllerchange mesmo NAO havendo update — a pagina acabou de
+  // baixar tudo da rede. Recarregar ali reiniciava a splash na primeira
+  // abertura e, quando adiado, trazia a splash de volta ao retomar o app.
+
+  it('primeira instalacao: controllerchange do claim nao recarrega nem fica pendente', async () => {
+    const cenario = criarCenario();
+    cenario.serviceWorker.controller = null; // ainda sem SW controlando
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    cenario.serviceWorker.dispatch('controllerchange');
+    assert.equal(cenario.reload.calls.length, 0, 'primeira instalacao nao e update');
+
+    // Nem depois: liberar o boot e ocultar a aba nao pode ressuscitar o reload.
+    cenario.sandbox.PwaUpdateManager.liberarBoot();
+    cenario.documentTarget.visibilityState = 'hidden';
+    cenario.documentTarget.dispatch('visibilitychange');
+
+    assert.equal(cenario.reload.calls.length, 0,
+      'sem update real, nada deve recarregar em momento algum');
+  });
+
+  it('update real (ja havia controller) segue sendo tratado como atualizacao', async () => {
+    const cenario = criarCenario();
+    // controller ja existe por padrao no cenario => update de verdade
+    cenario.sandbox.PwaUpdateManager.liberarBoot(); // fora do boot
+    cenario.sandbox.PwaUpdateManager.registrar();
+    await concluirRegistro(cenario);
+
+    cenario.serviceWorker.dispatch('controllerchange');
+
+    assert.equal(cenario.reload.calls.length, 1,
+      'troca de SW fora do boot, com controller anterior, recarrega normalmente');
   });
 
   it('verifica atualizacao ao retornar do segundo plano', async () => {
