@@ -653,8 +653,13 @@ describe('Landing page BarberFlow', () => {
     assert.match(html, /href="\.\/legal\/privacy\.html"/);
     assert.match(html, /href="\.\/legal\/terms\.html"/);
     assert.match(html, /href="\.\/legal\/campaign-rules\.html"/);
-    assert.match(html, /data-social-placeholder="instagram"/);
-    assert.match(html, /data-social-placeholder="facebook"/);
+    // Redes sociais configuradas de verdade (antes eram placeholders "nao configurado").
+    // href real + data-config-link, que faz LandingConfig sobrescrever pelo config central.
+    assert.match(html, /href="https:\/\/www\.instagram\.com\/barberflow\.contato\/"/);
+    assert.match(html, /data-config-link="instagramUrl"/);
+    assert.match(html, /href="https:\/\/web\.facebook\.com\/profile\.php\?id=61591764367834"/);
+    assert.match(html, /data-config-link="facebookUrl"/);
+    assert.doesNotMatch(html, /data-social-placeholder/, 'placeholders de rede social nao devem sobrar');
     assert.match(html, /data-current-year/);
   });
 

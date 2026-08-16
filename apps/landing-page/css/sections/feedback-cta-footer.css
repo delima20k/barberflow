@@ -295,9 +295,34 @@
   font-size: 0.78rem;
 }
 
+/* Redes sociais: icone acima, identificacao (link) abaixo */
+.site-footer__social-link {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--color-white);
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.site-footer__social-link:hover,
+.site-footer__social-link:focus-visible {
+  color: var(--color-gold, #d4af37);
+  transform: translateY(-1px);
+}
+
+.site-footer__social-icon {
+  display: block;
+}
+
 .site-footer__social small {
   color: var(--color-on-dark-muted);
   font-size: 0.62rem;
+}
+
+.site-footer__social-link:hover small,
+.site-footer__social-link:focus-visible small {
+  color: inherit;
 }
 
 .site-footer__bottom {
