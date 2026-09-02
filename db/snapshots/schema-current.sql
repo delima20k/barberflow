@@ -1,6 +1,6 @@
 -- BarberFlow Schema Snapshot
--- Gerado em: 2026-08-01
--- Migrations: 156
+-- Gerado em: 2026-09-02
+-- Migrations: 161
 -- NÃO editar manualmente. Regenerar com: node scripts/db-snapshot.js
 
 
@@ -10215,3 +10215,395 @@ revoke all on function analytics.cleanup_analytics_data(timestamptz)
   from public, anon, authenticated;
 grant execute on function analytics.cleanup_analytics_data(timestamptz)
   to service_role;
+
+-- MIGRATION: 20260811000001_fix_queue_position_web_push_bigint_cast.sql
+CREATE OR REPLACE FUNCTION public.fn_notify_queue_clients()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  rec record;
+  v_barbershop_id uuid;
+  v_professional_id uuid;
+  v_proximo record;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    v_barbershop_id := OLD.barbershop_id;
+    v_professional_id := OLD.professional_id;
+  ELSE
+    v_barbershop_id := NEW.barbershop_id;
+    v_professional_id := NEW.professional_id;
+  END IF;
+
+  IF TG_OP IN ('UPDATE', 'DELETE') AND OLD.status = 'waiting' THEN
+    FOR rec IN
+      WITH previous_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+          AND qe.id <> OLD.id
+        UNION ALL
+        SELECT OLD.id, OLD.client_id, OLD.position
+      ),
+      current_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+      ),
+      previous_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS previous_position
+        FROM previous_waiting
+      ),
+      current_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS position
+        FROM current_waiting
+      )
+      SELECT
+        c.id AS entry_id,
+        c.client_id,
+        c.position,
+        p.previous_position
+      FROM current_ranked c
+      JOIN previous_ranked p
+        ON p.id = c.id
+       AND p.client_id IS NOT DISTINCT FROM c.client_id
+      WHERE c.client_id IS NOT NULL
+        AND c.position <> p.previous_position
+      ORDER BY c.position ASC
+    LOOP
+      PERFORM public._queue_trigger_insert_notification(
+        rec.client_id,
+        'queue_update',
+        CASE
+          WHEN rec.position = 1 THEN 'Voce e o proximo!'
+          ELSE 'Voce subiu na fila!'
+        END,
+        CASE
+          WHEN rec.position = 1 THEN 'Agora voce esta em 1o lugar. Fique atento a chamada.'
+          ELSE 'Agora voce esta em ' || rec.position || 'o lugar.'
+        END,
+        jsonb_build_object(
+          'position', rec.position,
+          'previous_position', rec.previous_position,
+          'entry_id', rec.entry_id,
+          'barbershop_id', v_barbershop_id,
+          'is_next', rec.position = 1,
+          'push_type', 'queue_position_update'
+        )
+      );
+
+      BEGIN
+        PERFORM public._notify_queue_position_web_push(
+          rec.client_id,
+          v_barbershop_id,
+          rec.entry_id,
+          rec.position::integer,
+          rec.previous_position::integer
+        );
+      EXCEPTION
+        WHEN undefined_function THEN
+          RAISE WARNING 'queue position web push skipped: _notify_queue_position_web_push unavailable';
+        WHEN OTHERS THEN
+          RAISE WARNING 'queue position web push skipped: %', SQLERRM;
+      END;
+    END LOOP;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.status = 'done' AND NEW.professional_id IS NOT NULL THEN
+    SELECT qe.id AS entry_id, COALESCE(p.full_name, qe.guest_name, 'Cliente walk-in') AS client_name
+    INTO v_proximo
+    FROM public.queue_entries qe
+    LEFT JOIN public.profiles p ON p.id = qe.client_id
+    WHERE qe.barbershop_id = NEW.barbershop_id
+      AND qe.status = 'waiting'
+    ORDER BY qe.position ASC, qe.id ASC
+    LIMIT 1;
+
+    IF v_proximo IS NOT NULL THEN
+      PERFORM public._queue_trigger_insert_notification(
+        NEW.professional_id,
+        'queue_next_client',
+        'Proximo cliente',
+        v_proximo.client_name || ' esta aguardando na fila.',
+        jsonb_build_object(
+          'entry_id', v_proximo.entry_id,
+          'client_name', v_proximo.client_name,
+          'barbershop_id', NEW.barbershop_id,
+          'is_next', true
+        )
+      );
+    ELSE
+      PERFORM public._queue_trigger_insert_notification(
+        NEW.professional_id,
+        'queue_empty',
+        'Fila vazia',
+        'Nao ha mais clientes aguardando.',
+        jsonb_build_object(
+          'barbershop_id', NEW.barbershop_id
+        )
+      );
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- MIGRATION: 20260811000002_queue_presence_nudge_columns.sql
+ALTER TABLE public.queue_entries
+  ADD COLUMN IF NOT EXISTS presence_confirmed_at   timestamptz NULL,
+  ADD COLUMN IF NOT EXISTS last_presence_prompt_at timestamptz NULL;
+
+COMMENT ON COLUMN public.queue_entries.presence_confirmed_at IS
+  'Confirmacao de presenca do ciclo recorrente (1o lugar, pergunta a cada 10 min). Distinta de client_confirmed (confirmacao unica ao entrar na fila).';
+COMMENT ON COLUMN public.queue_entries.last_presence_prompt_at IS
+  'Timestamp do ultimo lembrete de presenca recorrente enviado. Usado pela task queue.presence-nudge para respeitar o intervalo de 10 minutos.';
+
+-- MIGRATION: 20260811000003_queue_position_push_client_name.sql
+CREATE OR REPLACE FUNCTION public._notify_queue_position_web_push(
+  p_client_id uuid,
+  p_barbershop_id uuid,
+  p_entry_id uuid,
+  p_position integer,
+  p_previous_position integer
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions, net, pg_temp
+AS $$
+DECLARE
+  v_secret text := public._queue_position_push_setting(
+    'QUEUE_POSITION_PUSH_INTERNAL_SECRET',
+    'app.queue_position_push_secret',
+    NULL
+  );
+  v_url text := public._queue_position_push_setting(
+    'QUEUE_POSITION_PUSH_URL',
+    'app.queue_position_push_url',
+    'https://jfvjisqnzapxxagkbxcu.supabase.co/functions/v1/send-push'
+  );
+  v_client_name text;
+BEGIN
+  IF p_client_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF COALESCE(v_secret, '') = '' THEN
+    RAISE WARNING 'queue position web push skipped: QUEUE_POSITION_PUSH_INTERNAL_SECRET not configured in Database Vault';
+    RETURN;
+  END IF;
+
+  SELECT p.full_name INTO v_client_name
+  FROM public.profiles p
+  WHERE p.id = p_client_id;
+
+  PERFORM net.http_post(
+    url := v_url,
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-barberflow-internal-secret', v_secret
+    ),
+    body := jsonb_build_object(
+      'clientId', p_client_id,
+      'barbershopId', p_barbershop_id,
+      'entradaId', p_entry_id,
+      'appId', 'cliente',
+      'pushType', 'queue_position_update',
+      'position', p_position,
+      'previousPosition', p_previous_position,
+      'clientName', v_client_name
+    ),
+    timeout_milliseconds := 1000
+  );
+EXCEPTION
+  WHEN undefined_function THEN
+    RAISE WARNING 'queue position web push skipped: pg_net/net.http_post unavailable';
+  WHEN OTHERS THEN
+    RAISE WARNING 'queue position web push request failed: %', SQLERRM;
+END;
+$$;
+
+-- MIGRATION: 20260811000004_fn_notify_queue_clients_personalized_text.sql
+CREATE OR REPLACE FUNCTION public.fn_notify_queue_clients()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  rec record;
+  v_barbershop_id uuid;
+  v_professional_id uuid;
+  v_proximo record;
+  v_client_name text;
+  v_saudacao text;
+  v_title text;
+  v_body text;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    v_barbershop_id := OLD.barbershop_id;
+    v_professional_id := OLD.professional_id;
+  ELSE
+    v_barbershop_id := NEW.barbershop_id;
+    v_professional_id := NEW.professional_id;
+  END IF;
+
+  IF TG_OP IN ('UPDATE', 'DELETE') AND OLD.status = 'waiting' THEN
+    FOR rec IN
+      WITH previous_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+          AND qe.id <> OLD.id
+        UNION ALL
+        SELECT OLD.id, OLD.client_id, OLD.position
+      ),
+      current_waiting AS (
+        SELECT qe.id, qe.client_id, qe.position
+        FROM public.queue_entries qe
+        WHERE qe.barbershop_id = v_barbershop_id
+          AND qe.status = 'waiting'
+      ),
+      previous_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS previous_position
+        FROM previous_waiting
+      ),
+      current_ranked AS (
+        SELECT
+          id,
+          client_id,
+          ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) AS position
+        FROM current_waiting
+      )
+      SELECT
+        c.id AS entry_id,
+        c.client_id,
+        c.position,
+        p.previous_position
+      FROM current_ranked c
+      JOIN previous_ranked p
+        ON p.id = c.id
+       AND p.client_id IS NOT DISTINCT FROM c.client_id
+      WHERE c.client_id IS NOT NULL
+        AND c.position <> p.previous_position
+      ORDER BY c.position ASC
+    LOOP
+      SELECT p.full_name INTO v_client_name
+      FROM public.profiles p
+      WHERE p.id = rec.client_id;
+
+      v_saudacao := CASE
+        WHEN NULLIF(btrim(v_client_name), '') IS NOT NULL THEN 'Ola ' || btrim(v_client_name)
+        ELSE 'Ola'
+      END;
+
+      IF rec.position = 1 THEN
+        v_title := 'Voce e o proximo!';
+        v_body  := v_saudacao || ', voce ja e o proximo! Dirija-se ate a barbearia.';
+      ELSIF rec.position = 2 THEN
+        v_title := 'Prepare-se!';
+        v_body  := v_saudacao || ', fique ligado, voce sera o proximo a ser chamado para o corte.';
+      ELSE
+        v_title := 'Voce subiu na fila!';
+        v_body  := v_saudacao || ', voce esta em ' || rec.position || 'o lugar, fique atento.';
+      END IF;
+
+      PERFORM public._queue_trigger_insert_notification(
+        rec.client_id,
+        'queue_update',
+        v_title,
+        v_body,
+        jsonb_build_object(
+          'position', rec.position,
+          'previous_position', rec.previous_position,
+          'entry_id', rec.entry_id,
+          'barbershop_id', v_barbershop_id,
+          'is_next', rec.position = 1,
+          'push_type', 'queue_position_update',
+          'client_name', v_client_name
+        )
+      );
+
+      BEGIN
+        PERFORM public._notify_queue_position_web_push(
+          rec.client_id,
+          v_barbershop_id,
+          rec.entry_id,
+          rec.position::integer,
+          rec.previous_position::integer
+        );
+      EXCEPTION
+        WHEN undefined_function THEN
+          RAISE WARNING 'queue position web push skipped: _notify_queue_position_web_push unavailable';
+        WHEN OTHERS THEN
+          RAISE WARNING 'queue position web push skipped: %', SQLERRM;
+      END;
+    END LOOP;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW.status = 'done' AND NEW.professional_id IS NOT NULL THEN
+    SELECT qe.id AS entry_id, COALESCE(p.full_name, qe.guest_name, 'Cliente walk-in') AS client_name
+    INTO v_proximo
+    FROM public.queue_entries qe
+    LEFT JOIN public.profiles p ON p.id = qe.client_id
+    WHERE qe.barbershop_id = NEW.barbershop_id
+      AND qe.status = 'waiting'
+    ORDER BY qe.position ASC, qe.id ASC
+    LIMIT 1;
+
+    IF v_proximo IS NOT NULL THEN
+      PERFORM public._queue_trigger_insert_notification(
+        NEW.professional_id,
+        'queue_next_client',
+        'Proximo cliente',
+        v_proximo.client_name || ' esta aguardando na fila.',
+        jsonb_build_object(
+          'entry_id', v_proximo.entry_id,
+          'client_name', v_proximo.client_name,
+          'barbershop_id', NEW.barbershop_id,
+          'is_next', true
+        )
+      );
+    ELSE
+      PERFORM public._queue_trigger_insert_notification(
+        NEW.professional_id,
+        'queue_empty',
+        'Fila vazia',
+        'Nao ha mais clientes aguardando.',
+        jsonb_build_object(
+          'barbershop_id', NEW.barbershop_id
+        )
+      );
+    END IF;
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- MIGRATION: 20260901000001_queue_entries_guest_phone.sql
+ALTER TABLE public.queue_entries ADD COLUMN IF NOT EXISTS guest_phone TEXT;
+
+COMMENT ON COLUMN public.queue_entries.guest_phone IS
+  'WhatsApp avulso informado pelo cliente sem cadastro (walk-in ou fila sem login). Opcional.';

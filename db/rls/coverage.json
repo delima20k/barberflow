@@ -75,7 +75,7 @@
     },
     "public.queue_entries": {
       "operations": ["select", "insert", "update", "delete"],
-      "sensitiveColumns": ["client_id", "professional_id", "barbershop_id", "guest_name"],
+      "sensitiveColumns": ["client_id", "professional_id", "barbershop_id", "guest_name", "guest_phone"],
       "tests": ["supabase/tests/rls_crud_suite.sql"]
     },
     "public.transactions": {

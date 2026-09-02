@@ -9,3 +9,6 @@ ALTER TABLE public.queue_entries ADD COLUMN IF NOT EXISTS guest_phone TEXT;
 
 COMMENT ON COLUMN public.queue_entries.guest_phone IS
   'WhatsApp avulso informado pelo cliente sem cadastro (walk-in ou fila sem login). Opcional.';
+
+-- rollback:
+-- ALTER TABLE public.queue_entries DROP COLUMN IF EXISTS guest_phone;
