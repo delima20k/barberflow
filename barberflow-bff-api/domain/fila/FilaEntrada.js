@@ -28,14 +28,16 @@ class FilaEntradaCriadaEvent extends DomainEvent {
  *
  * Invariantes:
  *  - Posição é >= 1.
- *  - clienteId e barbershopId são obrigatórios.
+ *  - barbershopId é obrigatório.
+ *  - clienteId (cliente com conta) ou guestName (visitante sem conta) — exatamente um dos dois.
  *  - Confirmação de presença só é válida enquanto não terminal.
  */
 class FilaEntrada extends BaseAggregateRoot {
   /** @type {string}         */ #barbershopId;
-  /** @type {string}         */ #clienteId;
+  /** @type {string|null}    */ #clienteId;
+  /** @type {string|null}    */ #guestName;
+  /** @type {string|null}    */ #guestPhone;
   /** @type {string|null}    */ #profissionalId;
-  /** @type {string|null}    */ #serviceId;
   /** @type {number}         */ #posicao;
   /** @type {FilaStatus}     */ #status;
   /** @type {string|null}    */ #clienteConfirmado;
@@ -43,12 +45,13 @@ class FilaEntrada extends BaseAggregateRoot {
   /**
    * @private
    */
-  constructor(id, barbershopId, clienteId, profissionalId, serviceId, posicao, status, clienteConfirmado, createdAt, updatedAt) {
+  constructor(id, barbershopId, clienteId, guestName, guestPhone, profissionalId, posicao, status, clienteConfirmado, createdAt, updatedAt) {
     super(id, createdAt, updatedAt);
     this.#barbershopId      = barbershopId;
-    this.#clienteId         = clienteId;
+    this.#clienteId         = clienteId ?? null;
+    this.#guestName         = guestName ?? null;
+    this.#guestPhone        = guestPhone ?? null;
     this.#profissionalId    = profissionalId ?? null;
-    this.#serviceId         = serviceId ?? null;
     this.#posicao           = posicao;
     this.#status            = status;
     this.#clienteConfirmado = clienteConfirmado ?? null;
@@ -57,24 +60,28 @@ class FilaEntrada extends BaseAggregateRoot {
   // ── Factories ──────────────────────────────────────────────────
 
   /**
-   * @param {{ id: string, barbershopId: string, clienteId: string, profissionalId?: string, serviceId?: string, posicao: number }} dados
+   * @param {{ id: string, barbershopId: string, clienteId?: string, guestName?: string, guestPhone?: string, profissionalId?: string, posicao: number }} dados
    * @returns {Result<FilaEntrada, string>}
    */
   static create(dados) {
     const { id, barbershopId, clienteId, posicao } = dados;
+    const guestName = typeof dados.guestName === 'string' ? dados.guestName.trim() : '';
+
     if (!id)          return Result.fail('FilaEntrada.create: id é obrigatório');
     if (!barbershopId) return Result.fail('FilaEntrada.create: barbershopId é obrigatório');
-    if (!clienteId)   return Result.fail('FilaEntrada.create: clienteId é obrigatório');
+    if (!clienteId && !guestName) {
+      return Result.fail('FilaEntrada.create: clienteId ou guestName é obrigatório');
+    }
     if (!Number.isInteger(posicao) || posicao < 1) {
       return Result.fail('FilaEntrada.create: posicao deve ser inteiro >= 1');
     }
 
     const entrada = new FilaEntrada(
-      id, barbershopId, clienteId,
-      dados.profissionalId ?? null, dados.serviceId ?? null,
+      id, barbershopId, clienteId ?? null, guestName || null, dados.guestPhone ?? null,
+      dados.profissionalId ?? null,
       posicao, FilaStatus.initial(), null,
     );
-    entrada._raise(new FilaEntradaCriadaEvent(id, barbershopId, clienteId));
+    entrada._raise(new FilaEntradaCriadaEvent(id, barbershopId, clienteId ?? null));
     return Result.ok(entrada);
   }
 
@@ -88,8 +95,9 @@ class FilaEntrada extends BaseAggregateRoot {
     if (statusResult.isFail()) return statusResult;
 
     return Result.ok(new FilaEntrada(
-      dados.id, dados.barbershopId, dados.clienteId,
-      dados.profissionalId ?? null, dados.serviceId ?? null,
+      dados.id, dados.barbershopId, dados.clienteId ?? null,
+      dados.guestName ?? null, dados.guestPhone ?? null,
+      dados.profissionalId ?? null,
       dados.posicao, statusResult.getValue(),
       dados.clienteConfirmado ?? null,
       dados.createdAt, dados.updatedAt,
@@ -131,8 +139,10 @@ class FilaEntrada extends BaseAggregateRoot {
 
   get barbershopId()      { return this.#barbershopId; }
   get clienteId()         { return this.#clienteId; }
+  get guestName()         { return this.#guestName; }
+  get guestPhone()        { return this.#guestPhone; }
+  get isGuest()           { return !this.#clienteId; }
   get profissionalId()    { return this.#profissionalId; }
-  get serviceId()         { return this.#serviceId; }
   get posicao()           { return this.#posicao; }
   get status()            { return this.#status; }
   get clienteConfirmado() { return this.#clienteConfirmado; }
@@ -144,8 +154,9 @@ class FilaEntrada extends BaseAggregateRoot {
       ...super.toJSON(),
       barbershopId:      this.#barbershopId,
       clienteId:         this.#clienteId,
+      guestName:         this.#guestName,
+      guestPhone:        this.#guestPhone,
       profissionalId:    this.#profissionalId,
-      serviceId:         this.#serviceId,
       posicao:           this.#posicao,
       status:            this.#status.value,
       clienteConfirmado: this.#clienteConfirmado,

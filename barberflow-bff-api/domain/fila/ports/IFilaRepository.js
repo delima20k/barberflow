@@ -34,6 +34,21 @@ class IFilaRepository {
    * @returns {Promise<import('../../shared/Result').Result<number, string>>}
    */
   async countAtivos(barbershopId) { throw new Error(`${this.constructor.name}.countAtivos() não implementado`); } // eslint-disable-line no-unused-vars
+
+  /**
+   * @param {string} barbershopId
+   * @param {string[]} serviceIds
+   * @returns {Promise<import('../../shared/Result').Result<boolean, string>>}
+   */
+  async servicosValidos(barbershopId, serviceIds) { throw new Error(`${this.constructor.name}.servicosValidos() não implementado`); } // eslint-disable-line no-unused-vars
+
+  /**
+   * @param {string} queueEntryId
+   * @param {string} barbershopId
+   * @param {string[]} serviceIds
+   * @returns {Promise<import('../../shared/Result').Result<void, string>>}
+   */
+  async linkServicos(queueEntryId, barbershopId, serviceIds) { throw new Error(`${this.constructor.name}.linkServicos() não implementado`); } // eslint-disable-line no-unused-vars
 }
 
 module.exports = { IFilaRepository };

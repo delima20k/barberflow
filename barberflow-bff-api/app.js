@@ -67,6 +67,7 @@ const adminRoute            = require('./routes/admin');
 const internalCronRoute     = require('./routes/internalCron');
 const externalCronRoute     = require('./routes/externalCron');
 const shareRoute            = require('./routes/share');
+const filaConvidadoRoute    = require('./routes/filaConvidado');
 const { LandingRouteFactory } = require('./routes/landing');
 const SupabaseClient         = require('./utils/SupabaseClient');
 const { R2ConfigService }    = require('./application/admin/R2ConfigService');
@@ -160,6 +161,9 @@ function criarApp(db = null) {
   v1Router.use('/landing',       LandingRouteFactory.create());
   v1Router.use('/auth', RateLimiterMiddleware.auth, AbuseMiddleware.forHttp(), authRoute);
   v1Router.use('/geo',           geoRoute);
+  // Fila sem login (visitante sem conta, via link do WhatsApp) — pública,
+  // sem AuthMiddleware. AbuseMiddleware é a única barreira contra spam.
+  v1Router.use('/fila',          AbuseMiddleware.forHttp(), filaConvidadoRoute(_db));
   v1Router.use('/media',         AbuseMiddleware.forHttp(), mediaRoute(_db));
   v1Router.use('/feed',          AbuseMiddleware.forHttp(), feedRoute(_db));
   v1Router.use('/chat',          AbuseMiddleware.forHttp(), chatRoute(_db));

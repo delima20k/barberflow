@@ -9,9 +9,10 @@ class FilaResponseDto {
     return {
       id:             entrada.id,
       clienteId:      entrada.clienteId,
+      guestName:      entrada.guestName,
+      guestPhone:     entrada.guestPhone,
       barbershopId:   entrada.barbershopId,
       profissionalId: entrada.profissionalId,
-      serviceId:      entrada.serviceId,
       posicao:        entrada.posicao,
       status:         entrada.status.value,
       confirmacao:    entrada.clienteConfirmado,

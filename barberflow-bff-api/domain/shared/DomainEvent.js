@@ -33,7 +33,8 @@ class DomainEvent {
     this.#aggregateId  = aggregateId;
     this.#occurredAt   = new Date();
 
-    Object.freeze(this);
+    // Não congela aqui: cada subclasse define seus próprios campos extras
+    // depois do super() e se congela no fim do próprio construtor.
   }
 
   /** @returns {string} */

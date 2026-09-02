@@ -85,7 +85,7 @@ jobs:
         run: npm run test:unit
 
       - name: Integration & app-level tests
-        run: node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js tests/barbearia.test.js tests/auth.test.js tests/agendamentos.test.js
+        run: node --test tests/app.test.js tests/health.test.js tests/middlewares.test.js tests/barbearia.test.js tests/auth.test.js tests/agendamentos.test.js tests/filaConvidado.test.js
 
   # ── 3. E2E ────────────────────────────────────────────────────────────────
   e2e-test:

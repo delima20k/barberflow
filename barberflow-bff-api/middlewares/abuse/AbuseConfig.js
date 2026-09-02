@@ -66,6 +66,26 @@ const ENDPOINT_CONFIG = {
     suspect:     { multiplier: 0.5 },
   },
 
+  // Fila sem login: identidade é sempre IP (rota pública, sem usuário).
+  // Uma barbearia real pode ter vários clientes no mesmo wifi entrando ao
+  // mesmo tempo — janela generosa o bastante pra não barrar gente de verdade,
+  // curta o bastante pra travar um script batendo na rota.
+  //
+  // Chave é o path RELATIVO ao mount do router (não o path completo /api/v1/fila/...):
+  // AbuseMiddleware.forHttp() lê req.path, e o Express já consome o prefixo do
+  // mount (/api/v1 e /fila) antes desse middleware rodar dentro do sub-router.
+  // As demais entradas deste arquivo (media/feed/chat/auth/agendamentos) usam
+  // path completo e por isso não têm efeito real — usam o bucket default ('*')
+  // silenciosamente. Não corrigido aqui por estar fora do escopo desta tarefa
+  // (mudaria o rate limit de rotas já em produção); manter em mente numa
+  // limpeza futura desse arquivo.
+  'POST /entrar': {
+    strategy: 'sliding_window', windowMs: 10 * 60_000, max: 5,
+    rules: ['bot_signature'],
+    established: { multiplier: 1 },
+    suspect:     { multiplier: 0.5 },
+  },
+
   'POST /api/v1/clientes': {
     strategy: 'sliding_window', windowMs: 60 * 60_000, max: 3,
     rules: ['bot_signature', 'geo_velocity'],

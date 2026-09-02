@@ -30,7 +30,7 @@ class FilaRepository extends BaseRepository {
         .select('*')
         .eq('barbershop_id', barbershopId)
         .not('status', 'in', '("done","absent","cancelled")')
-        .order('posicao', { ascending: true });
+        .order('position', { ascending: true });
 
       if (error) return { data: null, error };
 
@@ -64,35 +64,82 @@ class FilaRepository extends BaseRepository {
     });
   }
 
+  /**
+   * Confere se todos os serviceIds existem, pertencem à barbearia e estão ativos.
+   * @param {string} barbershopId
+   * @param {string[]} serviceIds
+   * @returns {Promise<Result<boolean, string>>}
+   */
+  async servicosValidos(barbershopId, serviceIds) {
+    return this._run(async () => {
+      const { data, error } = await this._client
+        .from('services')
+        .select('id')
+        .eq('barbershop_id', barbershopId)
+        .eq('is_active', true)
+        .in('id', serviceIds);
+
+      if (error) return { data: null, error };
+
+      const encontrados = new Set((data ?? []).map(row => row.id));
+      return { data: serviceIds.every(id => encontrados.has(id)), error: null };
+    });
+  }
+
+  /**
+   * Vincula os serviços escolhidos a uma entrada da fila (queue_entry_services).
+   * @param {string} queueEntryId
+   * @param {string} barbershopId
+   * @param {string[]} serviceIds
+   * @returns {Promise<Result<void, string>>}
+   */
+  async linkServicos(queueEntryId, barbershopId, serviceIds) {
+    const result = await this._run(async () => {
+      const rows = serviceIds.map(serviceId => ({
+        queue_entry_id: queueEntryId,
+        barbershop_id:  barbershopId,
+        service_id:     serviceId,
+      }));
+      const { error } = await this._client.from('queue_entry_services').insert(rows);
+      return { data: null, error };
+    });
+    return result.isOk() ? Result.ok() : result;
+  }
+
   // ── Mapeamento ─────────────────────────────────────────────────
+  // Atenção: a tabela real (queue_entries) usa `position` e `client_confirmed`
+  // — não `posicao`/`confirmacao` — e não tem colunas created_at/updated_at
+  // (usa check_in_at, populada por default no banco). Serviços escolhidos
+  // vivem em queue_entry_services (tabela à parte), não numa coluna aqui.
 
   _toRow(entrada) {
-    return {
+    const row = {
       id:              entrada.id,
       barbershop_id:   entrada.barbershopId,
       client_id:       entrada.clienteId,
       professional_id: entrada.profissionalId ?? null,
-      service_id:      entrada.serviceId ?? null,
-      posicao:         entrada.posicao,
+      guest_name:      entrada.guestName ?? null,
+      guest_phone:     entrada.guestPhone ?? null,
+      position:        entrada.posicao,
       status:          entrada.status.value,
-      confirmacao:     entrada.clienteConfirmado ?? null,
-      created_at:      entrada.createdAt.toISOString(),
-      updated_at:      entrada.updatedAt.toISOString(),
     };
+    if (entrada.clienteConfirmado) row.client_confirmed = entrada.clienteConfirmado;
+    return row;
   }
 
   _toDomain(row) {
     return FilaEntrada.reconstitute({
-      id:              row.id,
-      barbershopId:    row.barbershop_id,
-      clienteId:       row.client_id,
-      profissionalId:  row.professional_id ?? null,
-      serviceId:       row.service_id ?? null,
-      posicao:         row.posicao,
-      status:          row.status,
-      clienteConfirmado: row.confirmacao ?? null,
-      createdAt:       new Date(row.created_at),
-      updatedAt:       new Date(row.updated_at),
+      id:                row.id,
+      barbershopId:      row.barbershop_id,
+      clienteId:         row.client_id ?? null,
+      guestName:         row.guest_name ?? null,
+      guestPhone:        row.guest_phone ?? null,
+      profissionalId:    row.professional_id ?? null,
+      posicao:           row.position,
+      status:            row.status,
+      clienteConfirmado: row.client_confirmed ?? null,
+      createdAt:         new Date(row.check_in_at ?? Date.now()),
+      updatedAt:         new Date(row.check_in_at ?? Date.now()),
     });
   }
 }

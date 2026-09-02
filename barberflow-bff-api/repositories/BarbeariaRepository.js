@@ -453,6 +453,26 @@ class BarbeariaRepository extends BaseRepository {
     return this.getAtivaVinculada(barbershopId, professionalId);
   }
 
+  /**
+   * Status operacional mínimo para validar entrada na fila (existe, ativa, aberta).
+   * @param {string} barbershopId
+   * @returns {Promise<{id:string,name:string,is_open:boolean,close_reason:string|null,is_active:boolean}|null>}
+   */
+  async getStatusOperacional(barbershopId) {
+    this._uuid('barbershopId', barbershopId);
+    const { data, error } = await this._db
+      .from('barbershops')
+      .select('id, name, is_open, close_reason, is_active')
+      .eq('id', barbershopId)
+      .maybeSingle();
+
+    if (error) {
+      this._warn('getStatusOperacional', error);
+      this._throwDbError(error, 'getStatusOperacional');
+    }
+    return data ?? null;
+  }
+
   async getAtivaPorId(barbershopId) {
     this._uuid('barbershopId', barbershopId);
     const { data, error } = await this._db
