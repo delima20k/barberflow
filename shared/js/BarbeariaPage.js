@@ -1114,10 +1114,18 @@ class BarbeariaPage {
 
   /**
    * Handler de clique em uma cadeira vazia.
+   * Sem login: abre o fluxo de convidado (Frente B) em vez de redirecionar.
    * Abre o modal de seleção de serviços e registra o cliente na fila.
    * @param {string} professionalId UUID do barbeiro da cadeira
    */
   async #onCadeiraClick(professionalId, cadeiraEl = null) {
+    const perfilAtual = typeof AuthService !== 'undefined' ? AuthService.getPerfil() : null;
+
+    if (!perfilAtual) {
+      await this.#onCadeiraClickConvidado(professionalId, cadeiraEl);
+      return;
+    }
+
     if (!ClienteController.podeInteragir()) {
       const router = (typeof App !== 'undefined' && App) || null;
       if (router) router.push('cadastro');
@@ -1136,7 +1144,7 @@ class BarbeariaPage {
       return;
     }
 
-    const perfil  = AuthService.getPerfil();
+    const perfil  = perfilAtual;
     let filaAtiva = [];
     try {
       filaAtiva = await CadeiraService.getFilaAtiva(this.#shopId);
@@ -1186,6 +1194,85 @@ class BarbeariaPage {
         NotificationService.TIPOS.SISTEMA,
       );
     }
+  }
+
+  /**
+   * Fluxo de entrada na fila para visitante sem login (Frente B):
+   * nome/WhatsApp (GuestFilaModal) → seleção de serviço (CorteModal,
+   * chamado direto — sem ModalController, que resolve identidade via
+   * AuthService) → POST /api/v1/fila/entrar (GuestFilaService).
+   *
+   * Sempre entra como 'waiting': cadeira de produção vazia continua
+   * exigindo login (auto-promoção não é suportada para convidado).
+   * @param {string} professionalId UUID do barbeiro da cadeira
+   * @param {HTMLElement|null} cadeiraEl
+   */
+  async #onCadeiraClickConvidado(professionalId, cadeiraEl) {
+    // Guard: bloqueia entrada na fila quando barbearia está fechada ou em pausa
+    if (!BarbershopAvailabilityService.canClientJoinQueue(this.#shopData)) {
+      await this.#mostrarModalBarbeariaFechada();
+      return;
+    }
+
+    // Guard: dono Inativo — balança a cadeira e avisa acima dela até ele reativar
+    if (this.#donoInativo(professionalId)) {
+      this.#feedbackCadeiraBloqueada(cadeiraEl);
+      return;
+    }
+
+    const identidade = await GuestFilaModal.abrir();
+    if (!identidade) return;
+
+    const serviceIds = await CorteModal.abrir({
+      servicos:    this.#servicos,
+      clienteNome: identidade.nome,
+    });
+    if (serviceIds === null) return;
+
+    try {
+      const entrada = await GuestFilaService.entrar({
+        barbershopId:   this.#shopId,
+        professionalId,
+        guestName:      identidade.nome,
+        guestPhone:     identidade.telefone,
+        serviceIds,
+      });
+
+      if (this.#shopData) await this.#renderBarbeiros(this.#shopData);
+      await this.#oferecerConfirmacaoWhatsApp(entrada);
+    } catch (err) {
+      LoggerService.error('[BarbeariaPage] erro ao entrar na fila (convidado):', err);
+      NotificationService.mostrarToast(
+        'Erro',
+        err?.message ?? 'Não foi possível entrar na fila.',
+        NotificationService.TIPOS.SISTEMA,
+      );
+    }
+  }
+
+  /**
+   * B4 — confirmação social opcional via WhatsApp após o convidado entrar
+   * na fila de espera. Puramente informativo: a entrada já existe
+   * independente do clique aqui; fechar o modal não desfaz nada.
+   * @param {object} entrada — resposta de GuestFilaService.entrar()
+   */
+  async #oferecerConfirmacaoWhatsApp(entrada) {
+    const digits = (this.#shopData?.whatsapp ?? '').replace(/\D/g, '');
+    if (!digits) return;
+
+    const nome = entrada?.guestName ?? 'visitante';
+    const resposta = await FluxoDeFila.abrir({
+      id:        'confirmar-fila-whatsapp',
+      icone:     '✅',
+      titulo:    'Você entrou na fila!',
+      corpo:     'Quer avisar o barbeiro? É opcional — sua vaga já está garantida.',
+      acoes:     [{ label: 'Confirmar no WhatsApp', valor: 'whatsapp', variante: 'primario' }],
+      fecharBtn: true,
+    });
+    if (resposta !== 'whatsapp') return;
+
+    const texto = encodeURIComponent(`Oi, meu nome é ${nome}, acabei de entrar na fila.`);
+    window.open(`https://wa.me/${digits}?text=${texto}`, '_blank');
   }
 
   async #onMinhaCadeiraEsperaLongPress(entrada) {

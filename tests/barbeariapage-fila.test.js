@@ -165,7 +165,9 @@ describe('BarbeariaPage — modal barbearia fechada', () => {
     const idxProducao  = SRC.indexOf('async #onProducaoClick');
     assert.ok(idxCadeira  > 0, 'async #onCadeiraClick deve existir');
     assert.ok(idxProducao > 0, 'async #onProducaoClick deve existir');
-    const blocoCadeira  = SRC.slice(idxCadeira,  idxCadeira  + 500);
+    // Janela maior que #onProducaoClick: #onCadeiraClick agora também roteia
+    // pro fluxo de convidado (Frente B) antes dos guards de barbearia fechada.
+    const blocoCadeira  = SRC.slice(idxCadeira,  idxCadeira  + 700);
     const blocoProducao = SRC.slice(idxProducao, idxProducao + 500);
     assert.ok(
       blocoCadeira.includes('#mostrarModalBarbeariaFechada'),

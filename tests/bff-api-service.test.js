@@ -380,6 +380,44 @@ describe('BffApiService.mensalistas', () => {
   });
 });
 
+describe('BffApiService.fila', () => {
+  test('entrarComoConvidado envia payload em snake_case pro endpoint público', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 201, json: async () => ({ dados: { id: 'e1' } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null); // sem sessão — visitante sem login
+
+    await sb.BffApiService.fila.entrarComoConvidado({
+      barbershopId: 'shop-1', professionalId: 'prof-1', guestName: 'Alan', guestPhone: '11999998888', serviceIds: ['s1'],
+    });
+
+    assert.ok(chamadas[0].url.endsWith('/api/v1/fila/entrar'));
+    assert.strictEqual(chamadas[0].opts.method, 'POST');
+    assert.deepStrictEqual(JSON.parse(chamadas[0].opts.body), {
+      barbershop_id:   'shop-1',
+      professional_id: 'prof-1',
+      guest_name:      'Alan',
+      guest_phone:     '11999998888',
+      service_ids:     ['s1'],
+    });
+  });
+
+  test('entrarComoConvidado não envia Authorization sem sessão ativa', async () => {
+    const chamadas = [];
+    const fetchMock = fn(async (url, opts) => {
+      chamadas.push({ url, opts });
+      return { ok: true, status: 201, json: async () => ({ dados: { id: 'e1' } }) };
+    });
+    const sb = criarSandbox({}, fetchMock, null);
+
+    await sb.BffApiService.fila.entrarComoConvidado({ barbershopId: 'shop-1', guestName: 'Alan' });
+
+    assert.strictEqual('Authorization' in chamadas[0].opts.headers, false);
+  });
+});
+
 describe('BffApiService.barbearias portfolio', () => {
   test('portfolio chama endpoint BFF agregado da barbearia', async () => {
     const chamadas = [];

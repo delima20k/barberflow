@@ -4719,6 +4719,119 @@ select.pi-editor  { appearance: auto; cursor: pointer; }
   color: var(--text, #2b1b12);
 }
 
+/* ── GuestFilaModal — formulário de convidado (gfm-*) ── */
+.gfm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 9500;
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.gfm-overlay--visivel { opacity: 1; }
+.gfm-overlay--saindo  { opacity: 0; }
+.gfm-card {
+  background: var(--card, #fff9f0);
+  border-radius: 18px 18px 0 0;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(32px);
+  transition: transform .22s ease;
+}
+.gfm-overlay--visivel .gfm-card { transform: translateY(0); }
+.gfm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+  border-bottom: 1px solid var(--border-soft, rgba(212,175,55,.15));
+  flex-shrink: 0;
+}
+.gfm-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text, #2b1b12);
+  margin: 0;
+}
+.gfm-fechar {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--text-muted, #8c7057);
+  padding: 4px 8px;
+}
+.gfm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.gfm-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gfm-label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-muted, #8c7057);
+}
+.gfm-label small { font-weight: 400; }
+.gfm-input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(107, 74, 50, .18);
+  background: var(--card2, #f0e8d8);
+  color: var(--text, #2b1b12);
+  font-size: .95rem;
+}
+.gfm-input:focus { outline: 2px solid var(--gold, #D4AF37); outline-offset: 1px; }
+/* Honeypot: fora da tela pra humano, ainda presente no fluxo do form pra bots simples */
+.gfm-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.gfm-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 4px;
+}
+.gfm-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.gfm-btn:active { opacity: .75; }
+.gfm-btn--confirmar {
+  background: var(--gold, #D4AF37);
+  color: #fff;
+}
+.gfm-btn--confirmar:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+.gfm-btn--cancelar {
+  background: var(--card2, #f0e8d8);
+  color: var(--text, #2b1b12);
+}
+
 /* ── Lista de serviços da BarbeariaPage (bp-serv-*) ── */
 .bp-serv-row {
   display: flex;

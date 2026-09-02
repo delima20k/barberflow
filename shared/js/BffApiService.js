@@ -220,6 +220,32 @@ class BffApiService {
     }
   }
 
+  // ── Namespace: fila ──────────────────────────────────────────────
+
+  /**
+   * Métodos de acesso ao endpoint público /api/v1/fila (visitante sem login).
+   * Sem Authorization — usa post() normal, que já omite o header quando
+   * não há sessão (ver #authHeaders).
+   */
+  static fila = {
+    /**
+     * @param {object}   opts
+     * @param {string}     opts.barbershopId
+     * @param {string}     [opts.professionalId]
+     * @param {string}     opts.guestName
+     * @param {string|null} [opts.guestPhone]
+     * @param {string[]}   [opts.serviceIds]
+     */
+    entrarComoConvidado: ({ barbershopId, professionalId = null, guestName, guestPhone = null, serviceIds = [] }) =>
+      BffApiService.post('/api/v1/fila/entrar', {
+        barbershop_id:   barbershopId,
+        professional_id: professionalId,
+        guest_name:      guestName,
+        guest_phone:     guestPhone,
+        service_ids:     serviceIds,
+      }),
+  };
+
   // ── Namespace: mensalistas ────────────────────────────────────────
 
   /**
