@@ -642,7 +642,12 @@ class BarbeariaPage {
             ? BarbeiroAtividadeStatus.criarParagrafo({ professionalId: b.id, isAvailable: donoAtivo })
             : null,
           onProducaoVaziaClick:     clientePodeInteragir ? (cadeiraEl) => this.#onProducaoClick(b.id, cadeiraEl) : null,
-          onCadeiraVaziaClick:      clientePodeInteragir ? (cadeiraEl) => this.#onCadeiraClick(b.id, cadeiraEl) : null,
+          // Sempre conectado (não só quando clientePodeInteragir): visitante sem
+          // login também precisa que o clique chegue em #onCadeiraClick — é lá
+          // dentro que a rota pro fluxo de convidado (Frente B) é decidida.
+          // Cadeira de produção (linha acima) permanece só para quem já pode
+          // interagir — fora do escopo desta etapa (ver decisão registrada).
+          onCadeiraVaziaClick:      (cadeiraEl) => this.#onCadeiraClick(b.id, cadeiraEl),
           onProducaoArrivingClick:  clientePodeInteragir ? (entrada) => this.#onProducaoArrivingClick(entrada) : null,
           onMinhaFilaLongPress:     clientePodeInteragir ? (entrada) => this.#onMinhaCadeiraEsperaLongPress(entrada) : null,
         });

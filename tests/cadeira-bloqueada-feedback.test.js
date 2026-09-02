@@ -197,8 +197,8 @@ describe('Fiação — clique na cadeira de barbeiro indisponível', () => {
     );
     assert.match(
       SRC_PAGE,
-      /onCadeiraVaziaClick:\s*clientePodeInteragir \? \(cadeiraEl\) => this\.#onCadeiraClick\(b\.id, cadeiraEl\)/,
-      'fila vazia repassa o elemento',
+      /onCadeiraVaziaClick:\s*\(cadeiraEl\) => this\.#onCadeiraClick\(b\.id, cadeiraEl\)/,
+      'fila vazia repassa o elemento (conectado sempre, inclusive visitante sem login — Frente B)',
     );
   });
 

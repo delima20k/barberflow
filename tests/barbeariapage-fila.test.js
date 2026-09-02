@@ -208,13 +208,17 @@ describe('BarbeariaPage — callbacks com barbearia fechada', () => {
     );
   });
 
-  test('onCadeiraVaziaClick usa clientePodeInteragir (não podeInteragir)', () => {
+  test('onCadeiraVaziaClick é sempre conectado (não condicionado a clientePodeInteragir)', () => {
+    // Frente B: visitante sem login também precisa que o clique chegue em
+    // #onCadeiraClick — é lá dentro que a rota pro fluxo de convidado é
+    // decidida. Diferente de onProducaoVaziaClick (produção segue exigindo
+    // login, fora do escopo desta etapa — ver BarbeariaPage.js).
     const idxCallback = SRC.indexOf('onCadeiraVaziaClick:');
     assert.ok(idxCallback > 0, 'onCadeiraVaziaClick deve existir');
     const trecho = SRC.slice(idxCallback, idxCallback + 120);
     assert.ok(
-      trecho.includes('clientePodeInteragir'),
-      'onCadeiraVaziaClick deve usar clientePodeInteragir no ternário',
+      trecho.includes('(cadeiraEl) => this.#onCadeiraClick(b.id, cadeiraEl)') && !trecho.includes('clientePodeInteragir ?'),
+      'onCadeiraVaziaClick deve ser conectado incondicionalmente (sem ternário de clientePodeInteragir)',
     );
   });
 });
