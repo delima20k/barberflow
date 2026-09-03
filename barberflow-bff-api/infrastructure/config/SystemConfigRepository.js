@@ -28,6 +28,14 @@ class SystemConfigRepository {
   constructor(supabase, encryption) {
     if (!supabase)   throw new TypeError('SystemConfigRepository: supabase é obrigatório.');
     if (!encryption) throw new TypeError('SystemConfigRepository: encryption é obrigatório.');
+    // Guard explícito: se algo que não é um client Supabase de verdade chegar
+    // aqui, falha com uma mensagem diagnosticável na hora, em vez de um
+    // "X.from is not a function" genérico lá na hora do uso (ver getAll/get/set).
+    if (typeof supabase.from !== 'function') {
+      throw new TypeError(
+        `SystemConfigRepository: supabase inválido — esperava um client com .from(), recebeu ${typeof supabase} (constructor: ${supabase?.constructor?.name ?? 'desconhecido'}).`,
+      );
+    }
     this.#db         = supabase;
     this.#encryption = encryption;
   }
