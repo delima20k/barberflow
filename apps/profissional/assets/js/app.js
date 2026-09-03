@@ -183,13 +183,17 @@ class BarberFlowProfissional extends Router {
 
       if (!status.accessAllowed && status.reason === 'network_or_auth_error') {
         // Ainda sem confirmação — estado neutro: avisa e não navega (nem
-        // libera, nem bloqueia como se o plano estivesse vencido). O
-        // profissional pode tentar de novo tocando a mesma tela.
+        // libera, nem bloqueia como se o plano estivesse vencido). Toast
+        // persistente com ação "Tentar novamente" — sem isso, o profissional
+        // não tinha nenhum próximo passo claro além de adivinhar que precisa
+        // tocar a aba de novo (parecia tela travada).
         if (typeof NotificationService !== 'undefined') {
           NotificationService.mostrarToast(
             'Verificando assinatura',
-            'Não foi possível confirmar sua assinatura agora. Tente novamente em instantes.',
+            'Não foi possível confirmar sua assinatura agora.',
             NotificationService.TIPOS.SISTEMA,
+            () => this.#navegarComAssinatura(tela, modo),
+            'Tentar novamente',
           );
         }
         return;

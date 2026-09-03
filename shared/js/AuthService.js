@@ -544,68 +544,102 @@ class AuthService {
     }
 
     // ── Camada 3: validação real da sessão com Supabase ─────────────
-    // getSession() lê o token do localStorage e auto-refresca — muito mais
-    // rápido que getUser() que sempre vai à rede.
+    await AuthService.#validarSessao({ perfilCache, tentativa: 1 });
+  }
+
+  /**
+   * Valida a sessão contra o Supabase (getSession() — lê localStorage e
+   * auto-refresca, mais rápido que getUser() que sempre vai à rede).
+   *
+   * Se havia perfil em cache (usuário aparentava estar logado) e a validação
+   * não devolve sessão, NÃO assume logout de cara — falha de renovação pode
+   * ser transitória (rede, incidente externo tipo a rejeição de JWT do
+   * Supabase em 08/2026), não necessariamente sessão realmente expirada.
+   * Tenta mais 1 vez em background antes de derrubar a UI (chamada não é
+   * aguardada por quem chama inicializarSessao() — não atrasa boot/splash).
+   *
+   * @param {{ perfilCache: object|null, tentativa: number }} ctx
+   */
+  static async #validarSessao({ perfilCache, tentativa }) {
     try {
       const session = await SupabaseService.getSession();
       if (session?.user) {
-        // Carrega perfil — pode lançar PERFIL_ORFAO se o usuário foi deletado
-        try {
-          AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
-        } catch (perfilErr) {
-          if (perfilErr?.code === 'PERFIL_INDISPONIVEL') {
-            return;
-          }
-          if (perfilErr?.code === 'PERFIL_ORFAO') {
-            // Sessão órfã — deslogar silenciosamente e avisar o usuário
-            try { await SupabaseService.signOut(); } catch { /* sem-op */ }
-            SessionCache.limparTudo();
-            AuthService.#perfil = null;
-            AuthService._limparUI();
-            AuthService.#dispatch('auth:error', {
-              message: 'Sua conta não foi encontrada no BarberFlow. Crie uma nova conta para continuar.',
-              context: 'perfil_orfao',
-            });
-            return;
-          }
-          AuthService.#perfil = null; // erro de rede etc. → continua sem perfil
-        }
+        await AuthService.#processarSessaoValida(session);
+        return;
+      }
 
-        // ═ Guard de app: bloqueia clientes com sessão restaurada no app profissional ═
-        if (!await AuthService._verificarRoleApp(AuthService.#perfil)) {
-          AuthService._limparUI();
-          AuthService._instancia()?.nav('login');
-          AuthService.#dispatch('auth:error', {
-            message: 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.',
-            context: 'login',
-          });
+      if (perfilCache) {
+        if (tentativa < 2) {
+          setTimeout(() => {
+            AuthService.#validarSessao({ perfilCache, tentativa: tentativa + 1 });
+          }, 4000);
           return;
         }
-
-        SessionCache.salvar(AuthService.#perfil, session.user);
-        AuthService._atualizarUI(AuthService.#perfil, session.user);
-        // ═ Guard legal: verifica aceite ao restaurar sessão ════════════════
-        // Só aplica no app profissional e quando no flow pós-login (não durante cadastro)
-        if (typeof LegalConsentService !== 'undefined' &&
-            !sessionStorage.getItem('bf_termo_destino')) {
-          const isPro = AuthService.#isPro;
-          if (isPro) {
-            const aceitou = await LegalConsentService.verificarAceite(session.user.id);
-            if (!aceitou) {
-              sessionStorage.setItem('bf_termo_destino', 'inicio');
-              // Adia para garantir que a instância global (Pro) já foi atribuída
-              setTimeout(() => AuthService._instancia()?.push('termos-legais'), 0);
-            }
-          }
-        }
-      } else if (perfilCache) {
-        // Sessão expirou mas havia cache → limpa e mostra como visitante
+        // 2ª tentativa também sem sessão — agora sim trata como expirada de verdade.
         AuthService.#perfil = null;
         SessionCache.limparTudo();
         AuthService._limparUI();
       }
+      // Sem perfilCache e sem sessão: visitante de verdade, nada a fazer.
     } catch (_) {
       // Sem rede: mantém o cache visível — app funciona offline
+    }
+  }
+
+  /**
+   * Processa uma sessão validada com sucesso: carrega perfil, aplica guards
+   * de role/legal e atualiza a UI com dados frescos.
+   * @param {object} session
+   */
+  static async #processarSessaoValida(session) {
+    // Carrega perfil — pode lançar PERFIL_ORFAO se o usuário foi deletado
+    try {
+      AuthService.#perfil = await AuthService._carregarPerfil(session.user.id);
+    } catch (perfilErr) {
+      if (perfilErr?.code === 'PERFIL_INDISPONIVEL') {
+        return;
+      }
+      if (perfilErr?.code === 'PERFIL_ORFAO') {
+        // Sessão órfã — deslogar silenciosamente e avisar o usuário
+        try { await SupabaseService.signOut(); } catch { /* sem-op */ }
+        SessionCache.limparTudo();
+        AuthService.#perfil = null;
+        AuthService._limparUI();
+        AuthService.#dispatch('auth:error', {
+          message: 'Sua conta não foi encontrada no BarberFlow. Crie uma nova conta para continuar.',
+          context: 'perfil_orfao',
+        });
+        return;
+      }
+      AuthService.#perfil = null; // erro de rede etc. → continua sem perfil
+    }
+
+    // ═ Guard de app: bloqueia clientes com sessão restaurada no app profissional ═
+    if (!await AuthService._verificarRoleApp(AuthService.#perfil)) {
+      AuthService._limparUI();
+      AuthService._instancia()?.nav('login');
+      AuthService.#dispatch('auth:error', {
+        message: 'Esta plataforma é exclusiva para profissionais. Acesse o App Cliente para continuar.',
+        context: 'login',
+      });
+      return;
+    }
+
+    SessionCache.salvar(AuthService.#perfil, session.user);
+    AuthService._atualizarUI(AuthService.#perfil, session.user);
+    // ═ Guard legal: verifica aceite ao restaurar sessão ════════════════
+    // Só aplica no app profissional e quando no flow pós-login (não durante cadastro)
+    if (typeof LegalConsentService !== 'undefined' &&
+        !sessionStorage.getItem('bf_termo_destino')) {
+      const isPro = AuthService.#isPro;
+      if (isPro) {
+        const aceitou = await LegalConsentService.verificarAceite(session.user.id);
+        if (!aceitou) {
+          sessionStorage.setItem('bf_termo_destino', 'inicio');
+          // Adia para garantir que a instância global (Pro) já foi atribuída
+          setTimeout(() => AuthService._instancia()?.push('termos-legais'), 0);
+        }
+      }
     }
   }
 

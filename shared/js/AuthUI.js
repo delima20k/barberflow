@@ -280,6 +280,10 @@ const AuthUI = (() => {
       mu.appendChild(small);
     }
 
+    // Rodapé (app profissional) — mesma fonte de verdade que o menu lateral;
+    // sem isso, o botão "Barbearia" ficava preso no último estado logado.
+    _atualizarFooterNavPro(null);
+
     // Router e menu
     AuthService._instancia()?.sair();
     _renderizarMenu(false);
