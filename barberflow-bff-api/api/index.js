@@ -5,33 +5,9 @@ if (!process.env.VERCEL) {
   try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); } catch { /* opcional */ }
 }
 
-const express        = require('express');
-const CorsMiddleware = require('../middlewares/cors');
+const criarWrapperHttp = require('../httpWrapper');
 
-// Lazy init: adia criarApp() para a primeira requisição real.
-// Garante que CorsMiddleware.handle execute SEMPRE — inclusive no
-// preflight OPTIONS — mesmo que criarApp() venha a falhar.
-let _app;
-
-const wrapper = express();
-wrapper.use(CorsMiddleware.handle);
-
-wrapper.use((req, res, next) => {
-  if (!_app) {
-    try {
-      _app = require('../app')();
-    } catch (err) {
-      // Loga a causa real do boot — sem stack/secrets, apenas a mensagem.
-      // eslint-disable-next-line no-console
-      console.error('[BFF] criarApp() falhou no boot:', err?.message ?? err);
-      return res.status(503).json({
-        ok: false,
-        error: 'Service unavailable',
-        reason: err?.message ?? String(err),
-      });
-    }
-  }
-  _app(req, res, next);
-});
-
-module.exports = wrapper;
+// Lazy init: a fábrica só é exigida na primeira requisição real, e o
+// CorsMiddleware roda SEMPRE antes dela — inclusive no preflight OPTIONS
+// e quando criarApp() falha (503 com a causa).
+module.exports = criarWrapperHttp(() => require('../app')());

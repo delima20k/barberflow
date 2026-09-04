@@ -71,6 +71,7 @@ const filaConvidadoRoute    = require('./routes/filaConvidado');
 const { LandingRouteFactory } = require('./routes/landing');
 const SupabaseClient         = require('./utils/SupabaseClient');
 const { R2ConfigService }    = require('./application/admin/R2ConfigService');
+const criarWrapperHttp       = require('./httpWrapper');
 
 /**
  * Valida variáveis de ambiente obrigatórias no startup.
@@ -98,6 +99,9 @@ function _pareceRequestHttp(v) {
     && typeof v.headers === 'object';
 }
 
+/** Wrapper HTTP memorizado, usado quando este módulo é invocado como handler. */
+let _wrapperDelegado = null;
+
 function criarApp(db = null, res = null) {
   // A plataforma pode invocar este módulo como handler HTTP — handler(req, res)
   // — em vez de passar pelo entrypoint api/index.js. Nesse caso o 1º argumento
@@ -106,7 +110,8 @@ function criarApp(db = null, res = null) {
   // OPTIONS, porque nem o CORS chega a rodar). Delega para o wrapper oficial,
   // que já faz CORS-first, init preguiçoso e 503 com causa em falha de boot.
   if (_pareceRequestHttp(db)) {
-    return require('./api/index.js')(db, res);
+    _wrapperDelegado ??= criarWrapperHttp(() => criarApp());
+    return _wrapperDelegado(db, res);
   }
 
   _validarEnv();
