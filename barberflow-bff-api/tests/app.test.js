@@ -119,3 +119,66 @@ suite('App — CORS preflight (OPTIONS)', () => {
   });
 
 });
+
+// ── app.js invocado como handler HTTP pela plataforma ───────────────
+// Regressão: a Vercel invocava este módulo como handler(req, res), fazendo o
+// request cair no parâmetro `db` e ser injetado em todas as rotas — derrubava
+// 100% das requisições com FUNCTION_INVOCATION_FAILED, inclusive o preflight
+// OPTIONS (o CORS nem chegava a rodar).
+suite('criarApp invocado como handler HTTP', () => {
+  let srvH;
+  let portH;
+
+  before(async () => {
+    await new Promise((resolve) => {
+      srvH = http.createServer((req, res) => criarApp(req, res));
+      srvH.listen(0, '127.0.0.1', resolve);
+    });
+    portH = srvH.address().port;
+  });
+
+  after(async () => {
+    await new Promise((resolve, reject) =>
+      srvH.close((err) => (err ? reject(err) : resolve())),
+    );
+  });
+
+  function pedir(method, path, headers = {}) {
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        { hostname: '127.0.0.1', port: portH, path, method, headers },
+        (res) => {
+          let body = '';
+          res.on('data', (c) => { body += c; });
+          res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+        },
+      );
+      req.on('error', reject);
+      req.end();
+    });
+  }
+
+  test('GET responde a requisição em vez de estourar TypeError', async () => {
+    const { status } = await pedir('GET', '/api/v1/health');
+    assert.strictEqual(status, 200);
+  });
+
+  test('preflight OPTIONS responde 200 com CORS', async () => {
+    const { status, headers } = await pedir('OPTIONS', '/api/v1/health', {
+      'Origin':                        'http://localhost:3000',
+      'Access-Control-Request-Method': 'GET',
+    });
+    assert.strictEqual(status, 200);
+    assert.strictEqual(headers['access-control-allow-origin'], 'http://localhost:3000');
+  });
+
+  test('rota inexistente responde 404 (app montado por completo)', async () => {
+    const { status } = await pedir('GET', '/api/v1/rota-que-nao-existe');
+    assert.strictEqual(status, 404);
+  });
+
+  test('chamada normal como fábrica continua retornando um app Express', () => {
+    const app = criarApp();
+    assert.strictEqual(typeof app.listen, 'function');
+  });
+});

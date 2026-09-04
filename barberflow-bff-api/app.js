@@ -86,7 +86,29 @@ function _validarEnv() {
   }
 }
 
-function criarApp(db = null) {
+/**
+ * Detecta um request HTTP do Node (http.IncomingMessage) chegando no lugar
+ * do client de banco. Assinatura mínima e estável: method + headers + url.
+ */
+function _pareceRequestHttp(v) {
+  return !!v
+    && typeof v.from !== 'function'
+    && typeof v.method === 'string'
+    && typeof v.url === 'string'
+    && typeof v.headers === 'object';
+}
+
+function criarApp(db = null, res = null) {
+  // A plataforma pode invocar este módulo como handler HTTP — handler(req, res)
+  // — em vez de passar pelo entrypoint api/index.js. Nesse caso o 1º argumento
+  // é o request, não o client do banco, e sem este desvio ele seria injetado em
+  // todas as rotas (o que derruba 100% das requisições, inclusive o preflight
+  // OPTIONS, porque nem o CORS chega a rodar). Delega para o wrapper oficial,
+  // que já faz CORS-first, init preguiçoso e 503 com causa em falha de boot.
+  if (_pareceRequestHttp(db)) {
+    return require('./api/index.js')(db, res);
+  }
+
   _validarEnv();
   const _db = db ?? SupabaseClient.getInstance();
 
