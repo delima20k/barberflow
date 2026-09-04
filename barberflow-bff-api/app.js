@@ -90,6 +90,17 @@ function criarApp(db = null) {
   _validarEnv();
   const _db = db ?? SupabaseClient.getInstance();
 
+  // Guard explícito: todas as rotas abaixo recebem `_db` injetado — se ele não
+  // for um client Supabase de verdade, falha aqui, no único ponto de origem,
+  // com diagnóstico claro, em vez de deixar cada repositório falhar depois
+  // com um erro genérico "X.from is not a function" (ou pior, silenciosamente
+  // aceitar e só quebrar numa request real).
+  if (typeof _db.from !== 'function') {
+    throw new TypeError(
+      `[criarApp] _db resolvido inválido — esperava client Supabase com .from(), recebeu ${typeof _db} (constructor: ${_db?.constructor?.name ?? 'desconhecido'}).`,
+    );
+  }
+
   // Inicializa sistemas de observabilidade (idempotente)
   Metrics.init();
   SentryClient.init();
